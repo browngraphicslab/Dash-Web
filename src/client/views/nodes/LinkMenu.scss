@@ -1,84 +1,14 @@
 @import "../globalCssVariables";
 
-#linkMenu-container {
+.linkMenu {
     width: 100%;
     height: auto;
-    display: flex;
-    flex-direction: column;
 }
 
-#linkMenu-searchBar {
-    width: 100%;
-    padding: 5px;
-    margin-bottom: 10px;
-    font-size: 12px;
-    border: 1px solid #bababa;
-}
-
-#linkMenu-list {
-    margin-top: 5px;
-    width: 100%;
-    height: 100px;
+.linkMenu-list {
+    max-height: 200px;
     overflow-y: scroll;
 }
 
-.link-menu-group {
-    .link-menu-item {
-        border-top: 0.5px solid $light-color-secondary; 
-        padding: 6px;
-        position: relative;
-        display: flex;
 
-        .link-menu-item-content {
-            width: 100%;
-        }
-
-        &:last-child {
-            border-bottom: 0.5px solid $light-color-secondary;
-        }
-        &:hover .link-menu-item-buttons {
-            display: flex;
-        }
-        &:hover .link-menu-item-content {
-            width: calc(100% - 42px);
-        }
-    }
-    .link-menu-item-buttons {
-        display: none;
-        position: absolute;
-        top: 50%;
-        right: 0;
-        transform: translateY(-50%);
-
-        .button {
-            width: 20px;
-            height: 20px;
-            margin: 0;
-            margin-right: 6px;
-            border-radius: 50%;
-            cursor: pointer;
-            pointer-events: auto;
-            background-color: $dark-color;
-            color: $light-color;
-            font-size: 65%;
-            transition: transform 0.2s;
-            text-align: center;
-            position: relative;
-
-            .fa-icon {
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-            }
-
-            &:last-child {
-                margin-right: 0;
-            }
-            &:hover {
-                background: $main-accent;
-            }
-        }
-    }
-}
 

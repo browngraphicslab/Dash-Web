@@ -1,92 +1,63 @@
 @import "../globalCssVariables";
-.edit-container {
-    width: 100%;
-    height: auto;
-    display: flex;
-    flex-direction: column;
-}
-
-.name-input {
-    margin-bottom: 10px;
-    padding: 5px;
-    font-size: 12px;
-    border: 1px solid #bababa;
-}
-
-.description-input {
-    font-size: 11px;
-    padding: 5px;
-    margin-bottom: 10px;
-    border: 1px solid #bababa;
-}
-
-.save-button {
-    width: 50px;
-    height: 22px;
-    pointer-events: auto;
-    background-color: $dark-color;
-    color: $light-color;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    padding: 2px;
-    font-size: 10px;
-    margin: 0 auto;
-    transition: transform 0.2s;
-    text-align: center;
-    line-height: 20px;
-}
-
-.save-button:hover {
-    background: $main-accent;
-    cursor: pointer;
-}
 
 .linkEditor {
+    width: 100%;
+    height: auto;
     font-size: 12px; // TODO
+}
 
-    .linkEditor-back {
-        // background-color: $dark-color;
-        // color: $light-color;
-        margin-bottom: 6px;
-    }
+.linkEditor-back {
+    margin-bottom: 6px;
+}
 
-    .linkEditor-groupsLabel {
-        display: flex;
-        justify-content: space-between;
-        button {
-            width: 20px;
-            height: 20px;
-            margin-left: 6px;
-            padding: 0;
-            font-size: 14px;
-        }
+.linkEditor-groupsLabel {
+    display: flex;
+    justify-content: space-between;
+
+    button {
+        width: 20px;
+        height: 20px;
+        margin-left: 6px;
+        padding: 0;
+        font-size: 14px;
     }
-    .linkEditor-linkedTo {
-        border-bottom: 0.5px solid $light-color-secondary; 
-        padding-bottom: 6px;
-        margin-bottom: 6px;
-    }
-    .linkEditor-group {
-        background-color: $light-color-secondary; 
-        padding: 6px;
-        margin: 3px 0;
-        border-radius: 3px;
-    }
+}
+
+.linkEditor-linkedTo {
+    border-bottom: 0.5px solid $light-color-secondary; 
+    padding-bottom: 6px;
+    margin-bottom: 6px;
+}
+
+.linkEditor-group {
+    background-color: $light-color-secondary; 
+    padding: 6px;
+    margin: 3px 0;
+    border-radius: 3px;
+
     .linkEditor-group-row {
         display: flex;
         margin-bottom: 6px;
+
         .linkEditor-group-row-label {
             margin-right: 6px;
         }
     }
+
     .linkEditor-metadata-row {
         display: flex;
         justify-content: space-between;
         margin-bottom: 6px;
+
+        .linkEditor-error {
+            border-color: red;
+        }
+
         input {
             width: calc(50% - 18px);
             height: 20px;
         }
+
         button {
             width: 20px;
             height: 20px;
@@ -96,11 +67,13 @@
         }
     }
 }
+
 
 .linkEditor-dropdown {
     width: 100%;
     position: relative;
     z-index: 999;
+
     .linkEditor-options-wrapper {
         width: 100%;
         position: absolute;
@@ -109,12 +82,14 @@
         display: flex;
         flex-direction: column;
     }
+
     .linkEditor-option {
         background-color: $light-color-secondary;
         border: 1px solid $intermediate-color;
         border-top: 0;
         padding: 3px;
         cursor: pointer;
+
         &:hover {
             background-color: $intermediate-color;
             font-weight: bold;
@@ -126,19 +101,18 @@
     height: 20px;
     display: flex;
     justify-content: space-between;
+
     .linkEditor-groupOpts {
         width: calc(20% - 3px);
         height: 20px;
-        // margin-left: 6px;
         padding: 0;
         font-size: 10px;
-        &:first-child { // delete
-            font-size: 14px;
-        }
-        &:disabled { // delete
+
+        &:disabled {
             background-color: gray;
         }
     }
+
     .linkEditor-groupOpts button {
         width: 100%;
         height: 20px;

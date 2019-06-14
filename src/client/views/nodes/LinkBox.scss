@@ -1,66 +1,62 @@
 @import "../globalCssVariables";
-.link-container {
-    width: 100%;
-    height: 50px;
+.link-menu-item {
+    border-top: 0.5px solid $light-color-secondary; 
+    padding: 6px;
+    position: relative;
     display: flex;
-    flex-direction: row;
-    border-top: 0.5px solid #bababa;
+    font-size: 12px;
+
+    .link-menu-item-content {
+        width: 100%;
+    }
+
+    &:last-child {
+        border-bottom: 0.5px solid $light-color-secondary;
+    }
+    &:hover {
+        .link-menu-item-buttons {
+            display: flex;
+        }
+        .link-menu-item-content {
+            width: calc(100% - 42px);
+        }
+    }
 }
 
-.info-container {
-    width: 65%;
-    padding-top: 5px;
-    padding-left: 5px;
-    display: flex;
-    flex-direction: column
-}
+.link-menu-item-buttons {
+    display: none;
+    position: absolute;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
 
-.link-name {
-    font-size: 11px;
-}
+    .button {
+        width: 20px;
+        height: 20px;
+        margin: 0;
+        margin-right: 6px;
+        border-radius: 50%;
+        cursor: pointer;
+        pointer-events: auto;
+        background-color: $dark-color;
+        color: $light-color;
+        font-size: 65%;
+        transition: transform 0.2s;
+        text-align: center;
+        position: relative;
 
-.doc-name {
-    font-size: 8px;
-}
+        .fa-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
 
-.button-container {
-    width: 35%;
-    padding-top: 8px;
-    display: flex;
-    flex-direction: row;
-}
-
-.button {
-    height: 20px;
-    width: 20px;
-    margin: 8px 4px;
-    border-radius: 50%;
-    opacity: 0.9;
-    pointer-events: auto;
-    background-color: $dark-color;
-    color: $light-color;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    font-size: 60%;
-    transition: transform 0.2s;
-}
-
-.button:hover {
-    background: $main-accent;
-    cursor: pointer;
-}
-
-// .fa-icon-view {
-//     margin-left: 3px;
-//     margin-top: 5px;
-// }
-
-.fa-icon-edit {
-    margin-left: 6px;
-    margin-top: 6px;
-}
-
-.fa-icon-delete {
-    margin-left: 7px;
-    margin-top: 6px;
+        &:last-child {
+            margin-right: 0;
+        }
+        &:hover {
+            background: $main-accent;
+        }
+    }
 }
