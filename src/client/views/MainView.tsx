@@ -1,5 +1,5 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
-import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faTree, faUndoAlt, faBell } from '@fortawesome/free-solid-svg-icons';
+import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faTree, faUndoAlt, faBell, faCommentAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, runInAction, trace } from 'mobx';
 import { observer } from 'mobx-react';
@@ -32,6 +32,7 @@ import { listSpec } from '../../new_fields/Schema';
 import { Id } from '../../new_fields/FieldSymbols';
 import { HistoryUtil } from '../util/History';
 import { CollectionBaseView } from './collections/CollectionBaseView';
+import PDFMenu from './pdf/PDFMenu';
 
 
 @observer
@@ -88,6 +89,7 @@ export class MainView extends React.Component {
         library.add(faFilm);
         library.add(faMusic);
         library.add(faTree);
+        library.add(faCommentAlt);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
@@ -315,6 +317,7 @@ export class MainView extends React.Component {
                 {this.nodesMenu()}
                 {this.miscButtons}
                 <InkingControl />
+                <PDFMenu />
                 <MainOverlayTextBox />
             </div>
         );

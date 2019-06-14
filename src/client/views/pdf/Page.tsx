@@ -14,6 +14,7 @@ import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { listSpec } from "../../../new_fields/Schema";
 import { menuBar } from "prosemirror-menu";
 import { AnnotationTypes } from "./PDFViewer";
+import PDFMenu from "./PDFMenu";
 
 interface IPageProps {
     pdf: Opt<Pdfjs.PDFDocumentProxy>;
@@ -272,7 +273,7 @@ export default class Page extends React.Component<IPageProps> {
     }
 
     @action
-    onSelectEnd = (): void => {
+    onSelectEnd = (e: PointerEvent): void => {
         if (this._marqueeing) {
             this._marqueeing = false;
             if (this._marquee.current) {
@@ -303,36 +304,79 @@ export default class Page extends React.Component<IPageProps> {
             }
 
             this._marqueeHeight = this._marqueeWidth = 0;
+            PDFMenu.Instance.Left = e.clientX;
+            PDFMenu.Instance.Top = e.clientY;
         }
         else {
             let sel = window.getSelection();
-            // if selecting over a range of things
-            if (sel && sel.type === "Range") {
-                let clientRects = sel.getRangeAt(0).getClientRects();
-                if (this._textLayer.current) {
-                    let boundingRect = this._textLayer.current.getBoundingClientRect();
-                    for (let i = 0; i < clientRects.length; i++) {
-                        let rect = clientRects.item(i);
-                        if (rect) {
-                            let annoBox = document.createElement("div");
-                            annoBox.className = "pdfViewer-annotationBox";
-                            // transforms the positions from screen onto the pdf div
-                            annoBox.style.top = ((rect.top - boundingRect.top) * (this._textLayer.current.offsetHeight / boundingRect.height)).toString();
-                            annoBox.style.left = ((rect.left - boundingRect.left) * (this._textLayer.current.offsetWidth / boundingRect.width)).toString();
-                            annoBox.style.width = (rect.width * this._textLayer.current.offsetWidth / boundingRect.width).toString();
-                            annoBox.style.height = (rect.height * this._textLayer.current.offsetHeight / boundingRect.height).toString();
-                            this.props.createAnnotation(annoBox, this.props.page);
-                        }
-                    }
-                }
-                // clear selection
-                if (sel.empty) {  // Chrome
-                    sel.empty();
-                } else if (sel.removeAllRanges) {  // Firefox
-                    sel.removeAllRanges();
-                }
+            if (sel && sel.type === "range") {
+
+                PDFMenu.Instance.Left = e.clientX;
+                PDFMenu.Instance.Top = e.clientY;
             }
         }
+        // let x = (e.clientX - boundingRect.left) * (current.offsetWidth / boundingRect.width);
+        // let y = (e.clientY - boundingRect.top) * (current.offsetHeight / boundingRect.height);
+        // if (this._marqueeing) {
+        //     this._marqueeing = false;
+        //     if (this._marquee.current) {
+        //         let copy = document.createElement("div");
+        //         // make a copy of the marquee
+        //         copy.style.left = this._marquee.current.style.left;
+        //         copy.style.top = this._marquee.current.style.top;
+        //         copy.style.width = this._marquee.current.style.width;
+        //         copy.style.height = this._marquee.current.style.height;
+
+        //         // apply the appropriate background, opacity, and transform
+        //         let { background, opacity, transform } = this.getCurlyTransform();
+        //         copy.style.background = background;
+        //         // if curly bracing, add a curly brace
+        //         if (opacity === "1" && this._curly.current) {
+        //             copy.style.opacity = opacity;
+        //             let img = this._curly.current.cloneNode();
+        //             (img as any).style.opacity = opacity;
+        //             (img as any).style.transform = transform;
+        //             copy.appendChild(img);
+        //         }
+        //         else {
+        //             copy.style.opacity = this._marquee.current.style.opacity;
+        //         }
+        //         copy.className = this._marquee.current.className;
+        //         this.props.createAnnotation(copy, this.props.page);
+        //         this._marquee.current.style.opacity = "0";
+        //     }
+
+        //     this._marqueeHeight = this._marqueeWidth = 0;
+        // }
+        // else {
+        //     let sel = window.getSelection();
+        //     // if selecting over a range of things
+        //     if (sel && sel.type === "Range") {
+        //         let clientRects = sel.getRangeAt(0).getClientRects();
+        //         if (this._textLayer.current) {
+        //             let boundingRect = this._textLayer.current.getBoundingClientRect();
+        //             for (let i = 0; i < clientRects.length; i++) {
+        //                 let rect = clientRects.item(i);
+        //                 if (rect) {
+        //                     let annoBox = document.createElement("div");
+        //                     annoBox.className = "pdfViewer-annotationBox";
+        //                     // transforms the positions from screen onto the pdf div
+        //                     annoBox.style.top = ((rect.top - boundingRect.top) * (this._textLayer.current.offsetHeight / boundingRect.height)).toString();
+        //                     annoBox.style.left = ((rect.left - boundingRect.left) * (this._textLayer.current.offsetWidth / boundingRect.width)).toString();
+        //                     annoBox.style.width = (rect.width * this._textLayer.current.offsetWidth / boundingRect.width).toString();
+        //                     annoBox.style.height = (rect.height * this._textLayer.current.offsetHeight / boundingRect.height).toString();
+        //                     this.props.createAnnotation(annoBox, this.props.page);
+        //                 }
+        //             }
+        //         }
+        //         // clear selection
+        //         if (sel.empty) {  // Chrome
+        //             sel.empty();
+        //         } else if (sel.removeAllRanges) {  // Firefox
+        //             sel.removeAllRanges();
+        //         }
+        //     }
+        // }
         document.removeEventListener("pointermove", this.onSelectStart);
         document.removeEventListener("pointerup", this.onSelectEnd);
     }
