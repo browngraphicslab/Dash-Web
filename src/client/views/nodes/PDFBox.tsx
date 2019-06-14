@@ -73,7 +73,8 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         return (
             <div onScroll={this.onScroll}
                 style={{
-                    overflowY: "scroll", overflowX: "hidden", height: `${NumCast(this.props.Document.nativeHeight ? this.props.Document.nativeHeight : 300)}px`,
+                    height: "100%",
+                    overflowY: "scroll", overflowX: "hidden",
                     marginTop: `${NumCast(this.props.ContainingCollectionView!.props.Document.panY)}px`
                 }}
                 onWheel={(e: React.WheelEvent) => e.stopPropagation()} className={classname}>
