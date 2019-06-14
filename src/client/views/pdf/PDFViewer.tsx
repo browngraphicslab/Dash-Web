@@ -23,7 +23,7 @@ import { Dictionary } from "typescript-collections";
 
 interface IPDFViewerProps {
     url: string;
-    loaded: (nw: number, nh: number) => void;
+    loaded: (nw: number, nh: number, np: number) => void;
     scrollY: number;
     parent: PDFBox;
 }
@@ -61,7 +61,7 @@ export class PDFViewer extends React.Component<IPDFViewerProps> {
 
 interface IViewerProps {
     pdf: Opt<Pdfjs.PDFDocumentProxy>;
-    loaded: (nw: number, nh: number) => void;
+    loaded: (nw: number, nh: number, np: number) => void;
     scrollY: number;
     parent: PDFBox;
     mainCont: React.RefObject<HTMLDivElement>;
@@ -400,7 +400,7 @@ class Viewer extends React.Component<IViewerProps> {
             return;
         }
         let numPages = this.props.pdf ? this.props.pdf.numPages : 0;
-        this.props.loaded(page.width, page.height);
+        this.props.loaded(page.width, page.height, numPages);
         this._pageSizes[index - 1] = { width: page.width, height: page.height };
         this._pagesLoaded++;
         if (this._pagesLoaded === numPages) {

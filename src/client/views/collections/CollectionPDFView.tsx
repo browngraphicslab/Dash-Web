@@ -1,19 +1,21 @@
-import { action, observable, IReactionDisposer, reaction } from "mobx";
+import { action, IReactionDisposer, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
+import { WidthSym } from "../../../new_fields/Doc";
+import { Id } from "../../../new_fields/FieldSymbols";
+import { NumCast } from "../../../new_fields/Types";
+import { emptyFunction } from "../../../Utils";
 import { ContextMenu } from "../ContextMenu";
+import { FieldView, FieldViewProps } from "../nodes/FieldView";
+import { CollectionBaseView, CollectionRenderProps, CollectionViewType } from "./CollectionBaseView";
+import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";
 import "./CollectionPDFView.scss";
 import React = require("react");
-import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";
-import { FieldView, FieldViewProps } from "../nodes/FieldView";
-import { CollectionRenderProps, CollectionBaseView, CollectionViewType } from "./CollectionBaseView";
-import { emptyFunction } from "../../../Utils";
-import { NumCast } from "../../../new_fields/Types";
-import { Id } from "../../../new_fields/FieldSymbols";
-import { HeightSym, WidthSym } from "../../../new_fields/Doc";
+import { PDFBox } from "../nodes/PDFBox";
 
 
 @observer
 export class CollectionPDFView extends React.Component<FieldViewProps> {
+    private _pdfBox?: PDFBox;
     private _reactionDisposer?: IReactionDisposer;
     private _buttonTray: React.RefObject<HTMLDivElement>;
 
@@ -46,31 +48,12 @@ export class CollectionPDFView extends React.Component<FieldViewProps> {
     }
     @observable _inThumb = false;
 
-    private set curPage(value: number) { this.props.Document.curPage = value; }
+    private set curPage(value: number) { this._pdfBox && this._pdfBox.GotoPage(value); }
     private get curPage() { return NumCast(this.props.Document.curPage, -1); }
     private get numPages() { return NumCast(this.props.Document.numPages); }
-    @action onPageBack = () => this.curPage > 1 ? (this.props.Document.curPage = this.curPage - 1) : -1;
-    @action onPageForward = () => this.curPage < this.numPages ? (this.props.Document.curPage = this.curPage + 1) : -1;
+    @action onPageBack = () => this._pdfBox && this._pdfBox.BackPage();
+    @action onPageForward = () => this._pdfBox && this._pdfBox.ForwardPage();
 
-    @action
-    onThumbDown = (e: React.PointerEvent) => {
-        document.addEventListener("pointermove", this.onThumbMove, false);
-        document.addEventListener("pointerup", this.onThumbUp, false);
-        e.stopPropagation();
-        this._inThumb = true;
-    }
-    @action
-    onThumbMove = (e: PointerEvent) => {
-        let pso = (e.clientY - (e as any).target.parentElement.getBoundingClientRect().top) / (e as any).target.parentElement.getBoundingClientRect().height;
-        this.curPage = Math.trunc(Math.min(this.numPages, pso * this.numPages + 1));
-        e.stopPropagation();
-    }
-    @action
-    onThumbUp = (e: PointerEvent) => {
-        this._inThumb = false;
-        document.removeEventListener("pointermove", this.onThumbMove);
-        document.removeEventListener("pointerup", this.onThumbUp);
-    }
     nativeWidth = () => NumCast(this.props.Document.nativeWidth);
     nativeHeight = () => NumCast(this.props.Document.nativeHeight);
     private get uIButtons() {
@@ -92,11 +75,14 @@ export class CollectionPDFView extends React.Component<FieldViewProps> {
         }
     }
 
+    setPdfBox = (pdfBox: PDFBox) => { this._pdfBox = pdfBox; };
+
+
     private subView = (_type: CollectionViewType, renderProps: CollectionRenderProps) => {
         let props = { ...this.props, ...renderProps };
         return (
             <>
-                <CollectionFreeFormView {...props} CollectionView={this} />
+                <CollectionFreeFormView {...props} setPdfBox={this.setPdfBox} CollectionView={this} />
                 {renderProps.active() ? this.uIButtons : (null)}
             </>
         );

@@ -18,6 +18,7 @@ import { FormattedTextBox } from "./FormattedTextBox";
 import { IconBox } from "./IconBox";
 import { ImageBox } from "./ImageBox";
 import { VideoBox } from "./VideoBox";
+import { PDFBox } from "./PDFBox";
 
 
 //
@@ -44,6 +45,7 @@ export interface FieldViewProps {
     PanelWidth: () => number;
     PanelHeight: () => number;
     setVideoBox?: (player: VideoBox) => void;
+    setPdfBox?: (player: PDFBox) => void;
 }
 
 @observer
