@@ -30,6 +30,7 @@ import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import React = require("react");
+import { DocumentManager } from '../../util/DocumentManager';
 
 library.add(faEdit);
 library.add(faSmile);
@@ -241,6 +242,13 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             if (href) {
                 if (href.indexOf(DocServer.prepend("/doc/")) === 0) {
                     this._linkClicked = href.replace(DocServer.prepend("/doc/"), "").split("?")[0];
+                    if (this._linkClicked) {
+                        DocServer.GetRefField(this._linkClicked).then(f => {
+                            (f instanceof Doc) && DocumentManager.Instance.jumpToDocument(f, ctrlKey, document => this.props.addDocTab(document, "inTab"));
+                        });
+                        e.stopPropagation();
+                        e.preventDefault();
+                    }
                 } else {
                     let webDoc = Docs.WebDocument(href, { x: NumCast(this.props.Document.x, 0) + NumCast(this.props.Document.width, 0), y: NumCast(this.props.Document.y) });
                     this.props.addDocument && this.props.addDocument(webDoc);
@@ -283,6 +291,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     onClick = (e: React.MouseEvent): void => {
         this._proseRef!.focus();
         if (this._linkClicked) {
+            this._linkClicked = "";
             e.preventDefault();
             e.stopPropagation();
         }
