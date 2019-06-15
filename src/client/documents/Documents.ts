@@ -87,21 +87,11 @@ const delegateKeys = ["x", "y", "width", "height", "panX", "panY"];
 export namespace DocUtils {
     export function MakeLink(source: Doc, target: Doc) {
         if (LinkManager.Instance.doesLinkExist(source, target)) return;
-        // let protoSrc = source.proto ? source.proto : source;
-        // let protoTarg = target.proto ? target.proto : target;
-        UndoManager.RunInBatch(() => {
-            // let groupDoc1 = Docs.TextDocument();
-            // groupDoc1.proto!.type = "*";
-            // groupDoc1.proto!.metadata = Docs.TextDocument();
 
-            // let groupDoc2 = Docs.TextDocument();
-            // groupDoc2.proto!.type = "*";
-            // groupDoc2.proto!.metadata = Docs.TextDocument();
+        UndoManager.RunInBatch(() => {
 
             let linkDoc = Docs.TextDocument({ width: 100, height: 30, borderRounding: -1 });
-            //let linkDoc = new Doc;
-            // linkDoc.proto!.title = source.proto!.title + " and " + target.proto!.title;
-            // linkDoc.proto!.linkDescription = "";
+
             linkDoc.proto!.anchor1 = source;
             linkDoc.proto!.anchor1Page = source.curPage;
             linkDoc.proto!.anchor1Groups = new List<Doc>([]);
@@ -109,23 +99,6 @@ export namespace DocUtils {
             linkDoc.proto!.anchor2 = target;
             linkDoc.proto!.anchor2Page = target.curPage;
             linkDoc.proto!.anchor2Groups = new List<Doc>([]);
-
-            // linkDoc.proto!.linkedTo = target;
-            // linkDoc.proto!.linkedToPage = target.curPage;
-            // linkDoc.proto!.linkedFrom = source;
-            // linkDoc.proto!.linkedFromPage = source.curPage;
-
-            // let linkedFrom = Cast(protoTarg.linkedFromDocs, listSpec(Doc));
-            // if (!linkedFrom) {
-            //     protoTarg.linkedFromDocs = linkedFrom = new List<Doc>();
-            // }
-            // linkedFrom.push(linkDoc);
-
-            // let linkedTo = Cast(protoSrc.linkedToDocs, listSpec(Doc));
-            // if (!linkedTo) {
-            //     protoSrc.linkedToDocs = linkedTo = new List<Doc>();
-            // }
-            // linkedTo.push(linkDoc);
 
             LinkManager.Instance.allLinks.push(linkDoc);
 

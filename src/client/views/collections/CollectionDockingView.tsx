@@ -23,6 +23,7 @@ import { DocumentManager } from '../../util/DocumentManager';
 import { CollectionViewType } from './CollectionBaseView';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
+import { LinkManager } from '../../util/LinkManager';
 
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
@@ -338,9 +339,9 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     tab.reactComponents = [upDiv];
                     tab.element.append(upDiv);
                     counter.DashDocId = tab.contentItem.config.props.documentId;
-                    tab.reactionDisposer = reaction(() => [doc.linkedFromDocs, doc.LinkedToDocs, doc.title],
+                    tab.reactionDisposer = reaction(() => [LinkManager.Instance.findAllRelatedLinks(doc), doc.title],
                         () => {
-                            counter.innerHTML = DocListCast(doc.linkedFromDocs).length + DocListCast(doc.linkedToDocs).length;
+                            counter.innerHTML = LinkManager.Instance.findAllRelatedLinks(doc).length;
                             tab.titleElement[0].textContent = doc.title;
                         }, { fireImmediately: true });
                     tab.titleElement[0].DashDocId = tab.contentItem.config.props.documentId;

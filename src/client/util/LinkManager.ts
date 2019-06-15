@@ -30,7 +30,8 @@ export class LinkManager {
     }
 
     @observable public allLinks: Array<Doc> = []; // list of link docs
-    @observable public groupMetadataKeys: Map<string, Array<string>> = new Map(); // map of group type to list of its metadata keys
+    @observable public groupMetadataKeys: Map<string, Array<string>> = new Map();
+    // map of group type to list of its metadata keys; serves as a dictionary of groups to what kind of metadata it hodls
 
     // finds all links that contain the given anchor
     public findAllRelatedLinks(anchor: Doc): Array<Doc> {

@@ -31,6 +31,7 @@ import React = require("react");
 import { Id, Copy } from '../../../new_fields/FieldSymbols';
 import { ContextMenuProps } from '../ContextMenuItem';
 import { list, object, createSimpleSchema } from 'serializr';
+import { LinkManager } from '../../util/LinkManager';
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(faTrash);
@@ -49,16 +50,16 @@ library.add(faCrosshairs);
 library.add(faDesktop);
 
 
-const linkSchema = createSchema({
-    title: "string",
-    linkDescription: "string",
-    linkTags: "string",
-    linkedTo: Doc,
-    linkedFrom: Doc
-});
+// const linkSchema = createSchema({
+//     title: "string",
+//     linkDescription: "string",
+//     linkTags: "string",
+//     linkedTo: Doc,
+//     linkedFrom: Doc
+// });
 
-type LinkDoc = makeInterface<[typeof linkSchema]>;
-const LinkDoc = makeInterface(linkSchema);
+// type LinkDoc = makeInterface<[typeof linkSchema]>;
+// const LinkDoc = makeInterface(linkSchema);
 
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
@@ -216,8 +217,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 let subBulletDocs = await DocListCastAsync(this.props.Document.subBulletDocs);
                 let maximizedDocs = await DocListCastAsync(this.props.Document.maximizedDocs);
                 let summarizedDocs = await DocListCastAsync(this.props.Document.summarizedDocs);
-                let linkedToDocs = await DocListCastAsync(this.props.Document.linkedToDocs, []);
-                let linkedFromDocs = await DocListCastAsync(this.props.Document.linkedFromDocs, []);
+                let linkedDocs = LinkManager.Instance.findAllRelatedLinks(this.props.Document);
                 let expandedDocs: Doc[] = [];
                 expandedDocs = subBulletDocs ? [...subBulletDocs, ...expandedDocs] : expandedDocs;
                 expandedDocs = maximizedDocs ? [...maximizedDocs, ...expandedDocs] : expandedDocs;
@@ -252,18 +252,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                         this.props.collapseToPoint && this.props.collapseToPoint(scrpt, expandedProtoDocs);
                     }
                 }
-                else if (linkedToDocs.length || linkedFromDocs.length) {
-                    let linkedFwdDocs = [
-                        linkedToDocs.length ? linkedToDocs[0].linkedTo as Doc : linkedFromDocs.length ? linkedFromDocs[0].linkedFrom as Doc : expandedDocs[0],
-                        linkedFromDocs.length ? linkedFromDocs[0].linkedFrom as Doc : linkedToDocs.length ? linkedToDocs[0].linkedTo as Doc : expandedDocs[0]];
-
-                    let linkedFwdPage = [
-                        linkedToDocs.length ? NumCast(linkedToDocs[0].linkedToPage, undefined) : linkedFromDocs.length ? NumCast(linkedFromDocs[0].linkedFromPage, undefined) : undefined,
-                        linkedFromDocs.length ? NumCast(linkedFromDocs[0].linkedFromPage, undefined) : linkedToDocs.length ? NumCast(linkedToDocs[0].linkedToPage, undefined) : undefined];
-                    if (!linkedFwdDocs.some(l => l instanceof Promise)) {
-                        let maxLocation = StrCast(linkedFwdDocs[altKey ? 1 : 0].maximizeLocation, "inTab");
-                        DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0], ctrlKey, document => this.props.addDocTab(document, maxLocation), linkedFwdPage[altKey ? 1 : 0]);
-                    }
+                else if (linkedDocs.length) {
+                    let linkedDoc = linkedDocs.length ? linkedDocs[0] : expandedDocs[0];
+                    let linkedPages = [linkedDocs.length ? NumCast(linkedDocs[0].anchor1Page, undefined) : NumCast(linkedDocs[0].anchor2Page, undefined),
+                    linkedDocs.length ? NumCast(linkedDocs[0].anchor2Page, undefined) : NumCast(linkedDocs[0].anchor1Page, undefined)];
+                    let maxLocation = StrCast(linkedDoc.maximizeLocation, "inTab");
+                    DocumentManager.Instance.jumpToDocument(linkedDoc, ctrlKey, document => this.props.addDocTab(document, maxLocation), linkedPages[altKey ? 1 : 0]);
                 }
             }
         }
