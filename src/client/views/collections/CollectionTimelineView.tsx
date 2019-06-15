@@ -85,8 +85,20 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         return (a.height - b.height);
     }
 
+    sortwidth(a: Doc, b: Doc) {
+        return (a.width - b.width);
+    }
+
     sorttitle(a: Doc, b: Doc) {
         return a.title.localeCompare(b.title);
+    }
+
+    sortauthor(a: Doc, b: Doc) {
+        return a.author.localeCompare(b.author);
+    }
+
+    sortzIndex(a: Doc, b: Doc) {
+        return (a.zIndex - b.zIndex);
     }
 
     sortdate(a: Doc, b: Doc) {
@@ -96,8 +108,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     }
 
 
+
     get tableOptionsPanel() {
         const docs = DocListCast(this.props.Document[this.props.fieldKey]);
+
         let keys: { [key: string]: boolean } = {};
         untracked(() => docs.map(doc => Doc.GetAllPrototypes(doc).map(proto => Object.keys(proto).forEach(key => keys[key] = false))));
 
@@ -121,7 +135,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     toggleKey = (key: string) => {
         this.sortstate = key;
         console.log(this.sortstate);
-        console.log(this.sortstate);
     }
 
     @observable
@@ -137,7 +150,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         let buttons2 = [];
         let range = 1;
         let arr: Doc[] = [];
-        let values = [];
+        let values: number[] = [];
 
         //Building the array is kinda weird because I reverse engineered something from another class.
         this.childDocs.filter(d => !d.isMinimized).map((d, i) => {
@@ -145,21 +158,40 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         });
         if (this.sortstate === "creationDate") {
             arr.sort(this.sortdate);
+            let i = arr.length - 1;
+            range = arr[i].creationDate - arr[0].creationDate;
+            for (let j = 0; j < arr.length; j++) {
+                var newdate = arr[j].creationDate;
+                values[j] = newdate;
+            }
+
         }
         if (this.sortstate === "title") {
             arr.sort(this.sorttitle);
+            range = arr.length;
+            for (let j = 0; j < arr.length; j++) {
+                values[j] = j;
+            }
+        }
+
+        if (this.sortstate === "author") {
+            arr.sort(this.sortauthor);
+            range = arr.length;
+            for (let j = 0; j < arr.length; j++) {
+                values[j] = j;
+            }
         }
 
         if (this.sortstate === "x") {
             arr.sort(this.sortx);
-            let i = arr.length;
-            while (arr[i] === undefined) {
-                i += -1;
-                if (i === 0) {
-                    break;
-                }
+            let i = arr.length - 1;
+            // while (arr[i] === undefined) {
+            //     i += -1;
+            //     if (i === 0) {
+            //         break;
+            //     }
 
-            }
+            // }
             range = arr[i].x - arr[0].x;
             for (let j = 0; j < arr.length; j++) {
                 if (arr[j].x === undefined) {
@@ -173,17 +205,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
         if (this.sortstate === "y") {
             arr.sort(this.sorty);
-            let i = arr.length;
-            while (arr[i] === undefined) {
-                i += -1;
-                if (i === 0) {
-                    break;
-                }
-
-            }
+            let i = arr.length - 1;
             range = arr[i].y - arr[0].y;
             for (let j = 0; j < arr.length; j++) {
-                if (arr[j].x === undefined) {
+                if (arr[j].y === undefined) {
                     values[j] = 0;
                 }
                 else {
@@ -193,20 +218,53 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
         if (this.sortstate === "height") {
             arr.sort(this.sortheight);
+            let i = arr.length - 1;
+            range = arr[i].height - arr[0].height;
+            for (let j = 0; j < arr.length; j++) {
+                if (arr[j].height === undefined) {
+                    values[j] = 0;
+                }
+                else {
+                    values[j] = arr[j].height;
+                }
+            }
+        }
+
+        if (this.sortstate === "width") {
+            arr.sort(this.sortwidth);
+            let i = arr.length - 1;
+            range = arr[i].width - arr[0].width;
+            for (let j = 0; j < arr.length; j++) {
+                if (arr[j].width === undefined) {
+                    values[j] = 0;
+                }
+                else {
+                    values[j] = arr[j].width;
+                }
+            }
+        }
+
+        if (this.sortstate === "zIndex") {
+            arr.sort(this.sortzIndex);
+            let i = arr.length - 1;
+            range = arr[i].zIndex - arr[0].zIndex;
+            for (let j = 0; j < arr.length; j++) {
+                if (arr[j].zIndex === undefined) {
+                    values[j] = 0;
+                }
+                else {
+                    values[j] = arr[j].zIndex;
+                }
+            }
         }
 
 
 
-        var len = arr.length;
-
-
-        let returnHundred = () => 100;
-        let hover = false;
-
         for (let i = 0; i < arr.length; i++) {
-            let color = "darker-color";
+            let color = "$darker-color";
             if (i % 2 === 0) {
                 color = "$intermediate-color";
+                console.log("yeet");
             }
 
             buttons.push(
@@ -215,7 +273,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         style={{
                             position: "absolute",
                             background: color,
-                            top: "70%", height: "5%", left: ((values[i] - values[0]) * 962 / range) * (962 / (this.xmovement2 - this.xmovement)) - (this.xmovement * 962 / (this.xmovement2 - this.xmovement)) + "px",
+                            top: "70%", height: "5%", left: ((values[i] - values[0]) * this.barwidth / range) * (this.barwidth / (this.xmovement2 - this.xmovement)) - (this.xmovement * this.barwidth / (this.xmovement2 - this.xmovement)) + "px",
                         }}>{arr[i].title}</button>
                 </div>);
             buttons2.push(
@@ -225,18 +283,18 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         position: "absolute",
                         background: "black",
                         zIndex: "1",
-                        top: "50%", left: ((values[i] - values[0]) * 962 / range) + "px", width: "1%", border: "3px solid"
+                        top: "50%", left: ((values[i] - values[0]) * this.barwidth / range) + "px", width: "0.5%", border: "2px solid"
                     }}>
                 </div>);
         }
 
 
-        return (<div>
+        return (<div id="screen">
             <div className="backdropdocview" style={{ top: "5%", left: "33%", right: "33%", bottom: "40%", position: "absolute" }}>
                 {this.preview ? this.documentpreview(this.preview) : (null)}
             </div>
             <div>{buttons}</div>
-            <div className="backdropscroll" onPointerDown={this.onPointerDown4} style={{ top: "85%", left: "10%", bottom: "10%", right: "10%", border: "3px solid", position: "absolute" }}>
+            <div id="bar" className="backdropscroll" onPointerDown={this.onPointerDown4} style={{ top: "85%", width: "100%", bottom: "10%", border: "3px solid", position: "absolute" }}>
                 {buttons2}
                 <div className="v1" onPointerDown={this.onPointerDown} style={{ cursor: "ew-resize", position: "absolute", zIndex: "2", left: this.xmovement, height: "100%" }}>
 
@@ -281,6 +339,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     onPointerDown = (e: React.PointerEvent): void => {
         document.addEventListener("pointermove", this.onPointerMove);
+        this.barwidth = document.getElementById('bar').clientWidth;
         e.stopPropagation();
         e.preventDefault();
     }
@@ -301,11 +360,11 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @action
     onPointerDown4 = (e: React.PointerEvent): void => {
         let temp = this.xmovement2 - this.xmovement;
-        this.xmovement = e.pageX - 430;
+        this.xmovement = e.pageX;
         this.xmovement2 = temp + this.xmovement;
-        if (this.xmovement2 > 962) {
-            this.xmovement = 962 - (this.xmovement2 - this.xmovement);
-            this.xmovement2 = 962;
+        if (this.xmovement2 > this.barwidth) {
+            this.xmovement = this.barwidth - (this.xmovement2 - this.xmovement);
+            this.xmovement2 = this.barwidth;
         }
         e.stopPropagation();
         e.preventDefault();
@@ -314,12 +373,13 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     }
 
+    private barwidth = 962;
 
     @observable
     private xmovement = 0;
 
     @observable
-    private xmovement2 = 962;
+    private xmovement2 = this.barwidth;
 
     @action
     onPointerMove = (e: PointerEvent): void => {
@@ -332,7 +392,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         if (this.xmovement > this.xmovement2 - 1) {
             this.xmovement = this.xmovement2 - 1;
         }
-        console.log(this.xmovement2 - this.xmovement);
+        console.log(this.barwidth);
         document.addEventListener("pointerup", this.onPointerUp);
 
     }
@@ -343,8 +403,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         e.preventDefault();
         console.log(this.xmovement2);
         this.xmovement2 += e.movementX;
-        if (this.xmovement2 > 962) {
-            this.xmovement2 = 962;
+        if (this.xmovement2 > this.barwidth) {
+            this.xmovement2 = this.barwidth;
         }
         if (this.xmovement2 < this.xmovement + 1) {
             this.xmovement2 = this.xmovement + 1;
@@ -361,8 +421,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         console.log(this.xmovement2);
         this.xmovement2 += e.movementX;
         this.xmovement += e.movementX;
-        if (this.xmovement2 > 962) {
-            this.xmovement2 = 962;
+        if (this.xmovement2 > this.barwidth) {
+            this.xmovement2 = this.barwidth;
             this.xmovement -= e.movementX;
         }
         if (this.xmovement < 0) {
@@ -386,6 +446,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
                 <hr style={{ top: "70%", display: "block", width: "100%", border: "10", position: "absolute" }} />
                 {this.tableOptionsPanel}
+
                 {this.buttonloop()}
             </div>
         );
