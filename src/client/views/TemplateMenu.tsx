@@ -1,12 +1,11 @@
-import { observable, computed, action, trace } from "mobx";
-import React = require("react");
+import { action, observable } from "mobx";
 import { observer } from "mobx-react";
-import './DocumentDecorations.scss';
-import { Template } from "./Templates";
-import { DocumentView } from "./nodes/DocumentView";
-import { List } from "../../new_fields/List";
 import { Doc } from "../../new_fields/Doc";
-import { NumCast } from "../../new_fields/Types";
+import { List } from "../../new_fields/List";
+import './DocumentDecorations.scss';
+import { DocumentView } from "./nodes/DocumentView";
+import { Template } from "./Templates";
+import React = require("react");
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;

@@ -1,15 +1,13 @@
+import { action, observable } from "mobx";
 import { observer } from "mobx-react";
-import React = require("react");
-import { observable, action, runInAction, reaction } from "mobx";
-import "./PresentationView.scss";
-import { DocumentManager } from "../util/DocumentManager";
-import { Utils } from "../../Utils";
-import { Doc, DocListCast, DocListCastAsync } from "../../new_fields/Doc";
-import { listSpec } from "../../new_fields/Schema";
-import { Cast, NumCast, FieldValue, PromiseValue, StrCast, BoolCast } from "../../new_fields/Types";
+import { Doc, DocListCast } from "../../new_fields/Doc";
 import { Id } from "../../new_fields/FieldSymbols";
 import { List } from "../../new_fields/List";
-import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
+import { listSpec } from "../../new_fields/Schema";
+import { BoolCast, Cast, FieldValue, NumCast, StrCast } from "../../new_fields/Types";
+import { DocumentManager } from "../util/DocumentManager";
+import "./PresentationView.scss";
+import React = require("react");
 
 export interface PresViewProps {
     Document: Doc;
@@ -19,7 +17,6 @@ interface PresListProps extends PresViewProps {
     deleteDocument(index: number): void;
     gotoDocument(index: number): void;
 }
-
 
 @observer
 /**

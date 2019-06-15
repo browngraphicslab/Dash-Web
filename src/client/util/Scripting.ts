@@ -12,6 +12,7 @@ import { Doc, Field } from '../../new_fields/Doc';
 import { ImageField, PdfField, VideoField, AudioField } from '../../new_fields/URLField';
 import { List } from '../../new_fields/List';
 import { RichTextField } from '../../new_fields/RichTextField';
+import { ScriptField, ComputedField } from '../../fields/ScriptField';
 
 export interface ScriptSucccess {
     success: true;
@@ -45,7 +46,7 @@ function Run(script: string | undefined, customParams: string[], diagnostics: an
         return { compiled: false, errors: diagnostics };
     }
 
-    let fieldTypes = [Doc, ImageField, PdfField, VideoField, AudioField, List, RichTextField];
+    let fieldTypes = [Doc, ImageField, PdfField, VideoField, AudioField, List, RichTextField, ScriptField, ComputedField, CompileScript];
     let paramNames = ["Docs", ...fieldTypes.map(fn => fn.name)];
     let params: any[] = [Docs, ...fieldTypes];
     let compiledFunction = new Function(...paramNames, `return ${script}`);

@@ -15,7 +15,7 @@ export class Utils {
         return v5(seed, v5.URL);
     }
 
-    public static GetScreenTransform(ele: HTMLElement): { scale: number, translateX: number, translateY: number } {
+    public static GetScreenTransform(ele?: HTMLElement): { scale: number, translateX: number, translateY: number } {
         if (!ele) {
             return { scale: 1, translateX: 1, translateY: 1 };
         }

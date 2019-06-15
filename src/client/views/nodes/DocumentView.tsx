@@ -1,12 +1,12 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faAlignCenter, faCaretSquareRight, faCompressArrowsAlt, faExpandArrowsAlt, faLayerGroup, faSquare, faTrash, faConciergeBell, faFolder, faMapPin, faLink, faFingerprint, faCrosshairs, faDesktop } from '@fortawesome/free-solid-svg-icons';
-import { action, computed, IReactionDisposer, reaction } from "mobx";
+import { action, computed, IReactionDisposer, reaction, trace, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, HeightSym, Opt, WidthSym, DocListCastAsync } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { ObjectField } from "../../../new_fields/ObjectField";
-import { createSchema, makeInterface, listSpec } from "../../../new_fields/Schema";
-import { BoolCast, Cast, FieldValue, StrCast, NumCast } from "../../../new_fields/Types";
+import { createSchema, makeInterface } from "../../../new_fields/Schema";
+import { BoolCast, Cast, FieldValue, StrCast, NumCast, PromiseValue } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { emptyFunction, Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
@@ -126,6 +126,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     set templates(templates: List<string>) { this.props.Document.templates = templates; }
     screenRect = (): ClientRect | DOMRect => this._mainCont.current ? this._mainCont.current.getBoundingClientRect() : new DOMRect();
 
+    constructor(props: DocumentViewProps) {
+        super(props);
+    }
+
     _reactionDisposer?: IReactionDisposer;
     @action
     componentDidMount() {
@@ -192,7 +196,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     toggleMinimized = async () => {
         let minimizedDoc = await Cast(this.props.Document.minimizedDoc, Doc);
         if (minimizedDoc) {
-            let scrpt = this.props.ScreenToLocalTransform().inverse().transformPoint(
+            let scrpt = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(
                 NumCast(minimizedDoc.x) - NumCast(this.Document.x), NumCast(minimizedDoc.y) - NumCast(this.Document.y));
             this.props.collapseToPoint && this.props.collapseToPoint(scrpt, await DocListCastAsync(minimizedDoc.maximizedDocs));
         }
@@ -248,7 +252,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                                     this.props.addDocTab(getDispDoc(maxDoc), maxLocation)));
                         }
                     } else {
-                        let scrpt = this.props.ScreenToLocalTransform().inverse().transformPoint(NumCast(this.Document.width) / 2, NumCast(this.Document.height) / 2);
+                        let scrpt = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(NumCast(this.Document.width) / 2, NumCast(this.Document.height) / 2);
                         this.props.collapseToPoint && this.props.collapseToPoint(scrpt, expandedProtoDocs);
                     }
                 }
@@ -258,6 +262,24 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     linkedDocs.length ? NumCast(linkedDocs[0].anchor2Page, undefined) : NumCast(linkedDocs[0].anchor1Page, undefined)];
                     let maxLocation = StrCast(linkedDoc.maximizeLocation, "inTab");
                     DocumentManager.Instance.jumpToDocument(linkedDoc, ctrlKey, document => this.props.addDocTab(document, maxLocation), linkedPages[altKey ? 1 : 0]);
+                    // else if (linkedToDocs.length || linkedFromDocs.length) {
+                    //     let linkedFwdDocs = [
+                    //         linkedToDocs.length ? linkedToDocs[0].linkedTo as Doc : linkedFromDocs.length ? linkedFromDocs[0].linkedFrom as Doc : expandedDocs[0],
+                    //         linkedFromDocs.length ? linkedFromDocs[0].linkedFrom as Doc : linkedToDocs.length ? linkedToDocs[0].linkedTo as Doc : expandedDocs[0]];
+
+                    //     let linkedFwdContextDocs = [
+                    //         linkedToDocs.length ? await (linkedToDocs[0].linkedToContext) as Doc : linkedFromDocs.length ? await PromiseValue(linkedFromDocs[0].linkedFromContext) as Doc : undefined,
+                    //         linkedFromDocs.length ? await (linkedFromDocs[0].linkedFromContext) as Doc : linkedToDocs.length ? await PromiseValue(linkedToDocs[0].linkedToContext) as Doc : undefined];
+
+                    //     let linkedFwdPage = [
+                    //         linkedToDocs.length ? NumCast(linkedToDocs[0].linkedToPage, undefined) : linkedFromDocs.length ? NumCast(linkedFromDocs[0].linkedFromPage, undefined) : undefined,
+                    //         linkedFromDocs.length ? NumCast(linkedFromDocs[0].linkedFromPage, undefined) : linkedToDocs.length ? NumCast(linkedToDocs[0].linkedToPage, undefined) : undefined];
+
+                    //     if (!linkedFwdDocs.some(l => l instanceof Promise)) {
+                    //         let maxLocation = StrCast(linkedFwdDocs[altKey ? 1 : 0].maximizeLocation, "inTab");
+                    //         let targetContext = !Doc.AreProtosEqual(linkedFwdContextDocs[altKey ? 1 : 0], this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document) ? linkedFwdContextDocs[altKey ? 1 : 0] : undefined;
+                    //         DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0], ctrlKey, document => this.props.addDocTab(document, maxLocation), linkedFwdPage[altKey ? 1 : 0], targetContext);
+                    //     }
                 }
             }
         }
@@ -302,13 +324,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     makeBtnClicked = (): void => {
         let doc = Doc.GetProto(this.props.Document);
         doc.isButton = !BoolCast(doc.isButton, false);
-        if (StrCast(doc.layout).indexOf("Formatted") !== -1) { // only need to freeze the dimensions of text boxes since they don't have a native width and height naturally
-            if (doc.isButton && !doc.nativeWidth) {
+        if (doc.isButton) {
+            if (!doc.nativeWidth) {
                 doc.nativeWidth = this.props.Document[WidthSym]();
                 doc.nativeHeight = this.props.Document[HeightSym]();
-            } else {
-                doc.nativeWidth = doc.nativeHeight = undefined;
             }
+        } else {
+            doc.nativeWidth = doc.nativeHeight = undefined;
         }
     }
     fullScreenClicked = (): void => {
@@ -323,6 +345,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             let sourceDoc = de.data.linkSourceDocument;
             let destDoc = this.props.Document;
 
+            e.stopPropagation();
             if (de.mods === "AltKey") {
                 const protoDest = destDoc.proto;
                 const protoSrc = sourceDoc.proto;
@@ -333,10 +356,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 dst.nativeHeight = src.nativeHeight;
             }
             else {
-                DocUtils.MakeLink(sourceDoc, destDoc);
+                // const docs = await SearchUtil.Search(`data_l:"${destDoc[Id]}"`, true);
+                // const views = docs.map(d => DocumentManager.Instance.getDocumentView(d)).filter(d => d).map(d => d as DocumentView);
+                DocUtils.MakeLink(sourceDoc, destDoc, this.props.ContainingCollectionView ? this.props.ContainingCollectionView.props.Document : undefined);
                 de.data.droppedDocuments.push(destDoc);
             }
-            e.stopPropagation();
         }
     }
 
@@ -370,23 +394,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     freezeNativeDimensions = (e: React.MouseEvent): void => {
-        if (NumCast(this.props.Document.nativeWidth)) {
-            let proto = Doc.GetProto(this.props.Document);
-            let nw = proto.nativeWidth;
-            let nh = proto.nativeHeight;
-            proto.nativeWidth = proto.nativeHeight = undefined;
-            this.props.Document.width = this.props.Document.frozenWidth;
-            this.props.Document.height = this.props.Document.frozenHeight;
+        let proto = Doc.GetProto(this.props.Document);
+        if (proto.ignoreAspect === undefined && !proto.nativeWidth) {
+            proto.nativeWidth = this.props.PanelWidth();
+            proto.nativeHeight = this.props.PanelHeight();
+            proto.ignoreAspect = true;
         }
-        else {
-            let scale = this.props.ScreenToLocalTransform().Scale * NumCast(this.props.Document.zoomBasis, 1);
-            let scr = this.screenRect();
-            let proto = Doc.GetProto(this.props.Document);
-            this.props.Document.frozenWidth = this.props.Document.width;
-            this.props.Document.frozenHeight = this.props.Document.height;
-            this.props.Document.height = proto.nativeHeight = scr.height * scale;
-            this.props.Document.width = proto.nativeWidth = scr.width * scale;
-        }
+        proto.ignoreAspect = !BoolCast(proto.ignoreAspect, false);
     }
 
     @action
@@ -408,7 +422,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         subitems.push({ description: "Open Right Alias", event: () => this.props.addDocTab && this.props.addDocTab(Doc.MakeAlias(this.props.Document), "onRight"), icon: "caret-square-right" });
         subitems.push({ description: "Open Fields", event: this.fieldsClicked, icon: "layer-group" });
         cm.addItem({ description: "Open...", subitems: subitems });
-        cm.addItem({ description: NumCast(this.props.Document.nativeWidth) ? "Unfreeze" : "Freeze", event: this.freezeNativeDimensions, icon: "edit" });
+        cm.addItem({ description: BoolCast(this.props.Document.ignoreAspect, false) || !this.props.Document.nativeWidth || !this.props.Document.nativeHeight ? "Freeze" : "Unfreeze", event: this.freezeNativeDimensions, icon: "edit" });
         cm.addItem({ description: "Pin to Pres", event: () => PresentationView.Instance.PinDoc(this.props.Document), icon: "map-pin" });
         cm.addItem({ description: this.props.Document.isButton ? "Remove Button" : "Make Button", event: this.makeBtnClicked, icon: "concierge-bell" });
         cm.addItem({
@@ -435,17 +449,19 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     onPointerLeave = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = false; };
 
     isSelected = () => SelectionManager.IsSelected(this);
-    select = (ctrlPressed: boolean) => SelectionManager.SelectDoc(this, ctrlPressed);
+    @action select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); }
 
     @computed get nativeWidth() { return this.Document.nativeWidth || 0; }
     @computed get nativeHeight() { return this.Document.nativeHeight || 0; }
-    @computed get contents() { return (<DocumentContentsView {...this.props} isSelected={this.isSelected} select={this.select} layoutKey={"layout"} />); }
+    @computed get contents() {
+        return (
+            <DocumentContentsView {...this.props} isSelected={this.isSelected} select={this.select} selectOnLoad={this.props.selectOnLoad} layoutKey={"layout"} />);
+    }
 
     render() {
         var scaling = this.props.ContentScaling();
         var nativeHeight = this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
         var nativeWidth = this.nativeWidth > 0 ? `${this.nativeWidth}px` : "100%";
-
         return (
             <div className={`documentView-node${this.props.isTopMost ? "-topmost" : ""}`}
                 ref={this._mainCont}

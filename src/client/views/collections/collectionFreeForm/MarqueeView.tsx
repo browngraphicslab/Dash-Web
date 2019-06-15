@@ -1,27 +1,25 @@
 import * as htmlToImage from "html-to-image";
-import { action, computed, observable, trace } from "mobx";
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
+import { Doc } from "../../../../new_fields/Doc";
+import { Id } from "../../../../new_fields/FieldSymbols";
+import { InkField, StrokeData } from "../../../../new_fields/InkField";
+import { List } from "../../../../new_fields/List";
+import { Cast, NumCast } from "../../../../new_fields/Types";
+import { Utils } from "../../../../Utils";
+import { DocServer } from "../../../DocServer";
 import { Docs } from "../../../documents/Documents";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { Transform } from "../../../util/Transform";
-import { undoBatch, UndoManager } from "../../../util/UndoManager";
+import { undoBatch } from "../../../util/UndoManager";
 import { InkingCanvas } from "../../InkingCanvas";
 import { PreviewCursor } from "../../PreviewCursor";
+import { SearchBox } from "../../SearchBox";
+import { Templates } from "../../Templates";
+import { CollectionViewType } from "../CollectionBaseView";
 import { CollectionFreeFormView } from "./CollectionFreeFormView";
 import "./MarqueeView.scss";
 import React = require("react");
-import { Utils } from "../../../../Utils";
-import { Doc } from "../../../../new_fields/Doc";
-import { NumCast, Cast } from "../../../../new_fields/Types";
-import { InkField, StrokeData } from "../../../../new_fields/InkField";
-import { List } from "../../../../new_fields/List";
-import { ImageField } from "../../../../new_fields/URLField";
-import { Template, Templates } from "../../Templates";
-import { SearchBox } from "../../SearchBox";
-import { DocServer } from "../../../DocServer";
-import { Id } from "../../../../new_fields/FieldSymbols";
-import { CollectionView } from "../CollectionView";
-import { CollectionViewType } from "../CollectionBaseView";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -47,12 +45,14 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     _commandExecuted = false;
 
     @action
-    cleanupInteractions = (all: boolean = false) => {
+    cleanupInteractions = (all: boolean = false, rem_keydown: boolean = true) => {
         if (all) {
             document.removeEventListener("pointerup", this.onPointerUp, true);
             document.removeEventListener("pointermove", this.onPointerMove, true);
         }
-        document.removeEventListener("keydown", this.marqueeCommand, true);
+        if (rem_keydown) {
+            document.removeEventListener("keydown", this.marqueeCommand, true);
+        }
         this._visible = false;
     }
 
@@ -94,8 +94,9 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     this.pasteTable(ns, x, y);
                 }
             });
-        } else {
-            let newBox = Docs.TextDocument({ width: 200, height: 100, x: x, y: y, title: "-typed text-" });
+        } else if (!e.ctrlKey) {
+            let newBox = Docs.TextDocument({ width: 200, height: 30, x: x, y: y, title: "-typed text-" });
+            newBox.proto!.autoHeight = true;
             this.props.addLiveTextDocument(newBox);
         }
         e.stopPropagation();
@@ -147,6 +148,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         this._downY = this._lastY = e.pageY;
         this._commandExecuted = false;
         PreviewCursor.Visible = false;
+        this.cleanupInteractions(true);
         if (e.button === 2 || (e.button === 0 && e.altKey)) {
             if (!this.props.container.props.active()) this.props.selectDocuments([this.props.container.props.Document]);
             document.addEventListener("pointermove", this.onPointerMove, true);
@@ -182,14 +184,21 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
 
     @action
     onPointerUp = (e: PointerEvent): void => {
+        console.log("pointer up!");
         if (this._visible) {
+            console.log("visible");
             let mselect = this.marqueeSelect();
             if (!e.shiftKey) {
                 SelectionManager.DeselectAll(mselect.length ? undefined : this.props.container.props.Document);
             }
             this.props.selectDocuments(mselect.length ? mselect : [this.props.container.props.Document]);
+            mselect.length ? this.cleanupInteractions(true, false) : this.cleanupInteractions(true);
         }
-        this.cleanupInteractions(true);
+        else {
+            console.log("invisible");
+            this.cleanupInteractions(true);
+        }
+
         if (e.altKey) {
             e.preventDefault();
         }
@@ -327,7 +336,6 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             }
             else {
                 this.props.addDocument(newCollection, false);
-                SelectionManager.DeselectAll();
                 this.props.selectDocuments([newCollection]);
             }
             this.cleanupInteractions(false);

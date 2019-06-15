@@ -30,7 +30,7 @@ import { Cast, NumCast } from "../../new_fields/Types";
 import { IconField } from "../../new_fields/IconField";
 import { listSpec } from "../../new_fields/Schema";
 import { DocServer } from "../DocServer";
-import { StrokeData, InkField } from "../../new_fields/InkField";
+import { InkField } from "../../new_fields/InkField";
 import { dropActionType } from "../util/DragManager";
 import { DateField } from "../../new_fields/DateField";
 import { UndoManager } from "../util/UndoManager";
@@ -85,20 +85,21 @@ const delegateKeys = ["x", "y", "width", "height", "panX", "panY"];
 // }
 
 export namespace DocUtils {
-    export function MakeLink(source: Doc, target: Doc) {
+    export function MakeLink(source: Doc, target: Doc, targetContext?: Doc) {
         if (LinkManager.Instance.doesLinkExist(source, target)) return;
 
         UndoManager.RunInBatch(() => {
 
             let linkDoc = Docs.TextDocument({ width: 100, height: 30, borderRounding: -1 });
+            let linkDocProto = Doc.GetProto(linkDoc);
 
-            linkDoc.proto!.anchor1 = source;
-            linkDoc.proto!.anchor1Page = source.curPage;
-            linkDoc.proto!.anchor1Groups = new List<Doc>([]);
-
-            linkDoc.proto!.anchor2 = target;
-            linkDoc.proto!.anchor2Page = target.curPage;
-            linkDoc.proto!.anchor2Groups = new List<Doc>([]);
+            linkDocProto.anchor1 = source;
+            linkDocProto.anchor1Page = source.curPage;
+            linkDocProto.anchor1Groups = new List<Doc>([]);
+            linkDocProto.anchor2 = target;
+            linkDocProto.anchor2Page = target.curPage;
+            linkDocProto.anchor2Groups = new List<Doc>([]);
+            linkDocProto.context = targetContext;
 
             LinkManager.Instance.allLinks.push(linkDoc);
 
@@ -177,7 +178,7 @@ export namespace Docs {
     }
     function CreateTextPrototype(): Doc {
         let textProto = setupPrototypeOptions(textProtoId, "TEXT_PROTO", FormattedTextBox.LayoutString(),
-            { x: 0, y: 0, width: 300, height: 150, backgroundColor: "#f1efeb" });
+            { x: 0, y: 0, width: 300, backgroundColor: "#f1efeb" });
         return textProto;
     }
     function CreatePdfPrototype(): Doc {
@@ -234,7 +235,7 @@ export namespace Docs {
                     inst.proto!.nativeWidth = size.width;
                 }
                 inst.proto!.nativeHeight = Number(inst.proto!.nativeWidth!) * aspect;
-                inst.proto!.height = NumCast(inst.proto!.width) * aspect;
+                inst.height = NumCast(inst.width) * aspect;
             })
             .catch((err: any) => console.log(err));
         return inst;

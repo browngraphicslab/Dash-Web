@@ -1,11 +1,10 @@
 import { observer } from "mobx-react";
-import { Utils } from "../../../../Utils";
+import { Doc, HeightSym, WidthSym } from "../../../../new_fields/Doc";
+import { BoolCast, NumCast, StrCast } from "../../../../new_fields/Types";
+import { InkingControl } from "../../InkingControl";
 import "./CollectionFreeFormLinkView.scss";
 import React = require("react");
 import v5 = require("uuid/v5");
-import { StrCast, NumCast, BoolCast } from "../../../../new_fields/Types";
-import { Doc, WidthSym, HeightSym } from "../../../../new_fields/Doc";
-import { InkingControl } from "../../InkingControl";
 
 export interface CollectionFreeFormLinkViewProps {
     A: Doc;
@@ -46,7 +45,6 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         let y2 = NumCast(b.y) + (BoolCast(b.isMinimized, false) ? 5 : NumCast(b.height) / NumCast(b.zoomBasis, 1) / 2);
         let text = "";
         this.props.LinkDocs.map(l => text += StrCast(l.title) + "(" + StrCast(l.linkDescription) + "), ");
-        // text = text.substr(0, text.length - 2);
         text = "";
         return (
             <>

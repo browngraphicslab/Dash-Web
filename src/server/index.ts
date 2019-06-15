@@ -9,7 +9,6 @@ import * as fs from 'fs';
 import * as sharp from 'sharp';
 const imageDataUri = require('image-data-uri');
 import * as mobileDetect from 'mobile-detect';
-import { ObservableMap } from 'mobx';
 import * as passport from 'passport';
 import * as path from 'path';
 import * as request from 'request';

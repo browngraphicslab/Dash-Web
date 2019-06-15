@@ -1,23 +1,24 @@
-import { action, runInAction } from "mobx";
-import React = require("react");
-import { undoBatch, UndoManager } from "../../util/UndoManager";
-import { DragManager } from "../../util/DragManager";
-import { Docs, DocumentOptions } from "../../documents/Documents";
-import { RouteStore } from "../../../server/RouteStore";
-import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
-import { FieldViewProps } from "../nodes/FieldView";
+import { action } from "mobx";
 import * as rp from 'request-promise';
-import { CollectionView } from "./CollectionView";
+import CursorField from "../../../new_fields/CursorField";
+import { Doc, DocListCast, Opt } from "../../../new_fields/Doc";
+import { List } from "../../../new_fields/List";
+import { listSpec } from "../../../new_fields/Schema";
+import { Cast, PromiseValue } from "../../../new_fields/Types";
+import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
+import { RouteStore } from "../../../server/RouteStore";
+import { DocServer } from "../../DocServer";
+import { Docs, DocumentOptions } from "../../documents/Documents";
+import { DragManager } from "../../util/DragManager";
+import { undoBatch, UndoManager } from "../../util/UndoManager";
+import { DocComponent } from "../DocComponent";
+import { FieldViewProps } from "../nodes/FieldView";
 import { CollectionPDFView } from "./CollectionPDFView";
 import { CollectionVideoView } from "./CollectionVideoView";
-import { Doc, Opt, FieldResult, DocListCast } from "../../../new_fields/Doc";
-import { DocComponent } from "../DocComponent";
-import { listSpec } from "../../../new_fields/Schema";
-import { Cast, PromiseValue, FieldValue, ListSpec } from "../../../new_fields/Types";
-import { List } from "../../../new_fields/List";
-import { DocServer } from "../../DocServer";
-import CursorField from "../../../new_fields/CursorField";
-import { DocumentManager } from "../../util/DocumentManager";
+import { CollectionView } from "./CollectionView";
+import React = require("react");
+import { FormattedTextBox } from "../nodes/FormattedTextBox";
+import { Id } from "../../../new_fields/FieldSymbols";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
@@ -81,28 +82,15 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         @action
         protected drop(e: Event, de: DragManager.DropEvent): boolean {
             if (de.data instanceof DragManager.DocumentDragData) {
-                if (de.data.dropAction || de.data.userDropAction) {
-                    ["width", "height", "curPage"].map(key =>
-                        de.data.draggedDocuments.map((draggedDocument: Doc, i: number) =>
-                            PromiseValue(Cast(draggedDocument[key], "number")).then(f => f && (de.data.droppedDocuments[i][key] = f))));
-                }
                 let added = false;
                 if (de.data.dropAction || de.data.userDropAction) {
-                    added = de.data.droppedDocuments.reduce((added: boolean, d) => {
-                        let moved = this.props.addDocument(d);
-                        return moved || added;
-                    }, false);
+                    added = de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
                 } else if (de.data.moveDocument) {
-                    const move = de.data.moveDocument;
-                    added = de.data.droppedDocuments.reduce((added: boolean, d) => {
-                        let moved = move(d, this.props.Document, this.props.addDocument);
-                        return moved || added;
-                    }, false);
+                    let movedDocs = de.data.options === this.props.Document[Id] ? de.data.draggedDocuments : de.data.droppedDocuments;
+                    added = movedDocs.reduce((added: boolean, d) =>
+                        de.data.moveDocument(d, this.props.Document, this.props.addDocument) || added, false);
                 } else {
-                    added = de.data.droppedDocuments.reduce((added: boolean, d) => {
-                        let moved = this.props.addDocument(d);
-                        return moved || added;
-                    }, false);
+                    added = de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
                 }
                 e.stopPropagation();
                 return added;
@@ -167,11 +155,23 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             e.stopPropagation();
             e.preventDefault();
 
-            if (html && html.indexOf(document.location.origin)) { // prosemirror text containing link to dash document
-                let start = html.indexOf(window.location.origin);
-                let path = html.substr(start, html.length - start);
-                let docid = path.substr(0, path.indexOf("\">")).replace(DocServer.prepend("/doc/"), "").split("?")[0];
-                DocServer.GetRefField(docid).then(f => (f instanceof Doc) && this.props.addDocument(f, false));
+            if (html && FormattedTextBox.IsFragment(html)) {
+                let href = FormattedTextBox.GetHref(html);
+                if (href) {
+                    let docid = FormattedTextBox.GetDocFromUrl(href);
+                    if (docid) { // prosemirror text containing link to dash document
+                        DocServer.GetRefField(docid).then(f => {
+                            if (f instanceof Doc) {
+                                if (options.x || options.y) { f.x = options.x; f.y = options.y; } // should be in CollectionFreeFormView
+                                (f instanceof Doc) && this.props.addDocument(f, false);
+                            }
+                        });
+                    } else {
+                        this.props.addDocument && this.props.addDocument(Docs.WebDocument(href, options));
+                    }
+                } else if (text) {
+                    this.props.addDocument && this.props.addDocument(Docs.TextDocument({ ...options, width: 100, height: 25, documentText: "@@@" + text }), false);
+                }
                 return;
             }
             if (html && html.indexOf("<img") !== 0 && !html.startsWith("<a")) {

@@ -1,8 +1,14 @@
-import { action, computed, trace } from "mobx";
+import { action, computed } from "mobx";
 import { observer } from "mobx-react";
-import { emptyFunction, returnFalse, returnOne } from "../../../../Utils";
+import { Doc, HeightSym, WidthSym } from "../../../../new_fields/Doc";
+import { Id } from "../../../../new_fields/FieldSymbols";
+import { InkField, StrokeData } from "../../../../new_fields/InkField";
+import { createSchema, makeInterface } from "../../../../new_fields/Schema";
+import { BoolCast, Cast, FieldValue, NumCast } from "../../../../new_fields/Types";
+import { emptyFunction, returnOne } from "../../../../Utils";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { DragManager } from "../../../util/DragManager";
+import { HistoryUtil } from "../../../util/History";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { Transform } from "../../../util/Transform";
 import { undoBatch } from "../../../util/UndoManager";
@@ -11,6 +17,7 @@ import { InkingCanvas } from "../../InkingCanvas";
 import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
 import { DocumentContentsView } from "../../nodes/DocumentContentsView";
 import { DocumentViewProps, positionSchema } from "../../nodes/DocumentView";
+import { pageSchema } from "../../nodes/ImageBox";
 import { CollectionSubView } from "../CollectionSubView";
 import { CollectionFreeFormLinksView } from "./CollectionFreeFormLinksView";
 import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCursors";
@@ -18,14 +25,6 @@ import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import v5 = require("uuid/v5");
-import { createSchema, makeInterface, listSpec } from "../../../../new_fields/Schema";
-import { Doc, WidthSym, HeightSym } from "../../../../new_fields/Doc";
-import { FieldValue, Cast, NumCast, BoolCast } from "../../../../new_fields/Types";
-import { pageSchema } from "../../nodes/ImageBox";
-import { InkField, StrokeData } from "../../../../new_fields/InkField";
-import { HistoryUtil } from "../../../util/History";
-import { Id } from "../../../../new_fields/FieldSymbols";
-import { DocServer } from "../../../DocServer";
 
 export const panZoomSchema = createSchema({
     panX: "number",
@@ -103,7 +102,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     }
                     this.bringToFront(d);
                 });
-                SelectionManager.ReselectAll();
             }
             return true;
         }
@@ -218,6 +216,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @action
     setPan(panX: number, panY: number) {
+
         this.props.Document.panTransformType = "None";
         var scale = this.getLocalTransform().inverse().Scale;
         const newPanX = Math.min((1 - 1 / scale) * this.nativeWidth, Math.max(0, panX));
@@ -229,24 +228,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @action
     onDrop = (e: React.DragEvent): void => {
         var pt = this.getTransform().transformPoint(e.pageX, e.pageY);
-        let html = e.dataTransfer.getData("text/html");
-        if (html && html.indexOf(document.location.origin)) {  // prosemirror text containing link to dash document
-            e.stopPropagation();
-            e.preventDefault();
-            let start = html.indexOf(window.location.origin);
-            let path = html.substr(start, html.length - start);
-            let docid = path.substr(0, path.indexOf("\">")).replace(DocServer.prepend("/doc/"), "").split("?")[0];
-            DocServer.GetRefField(docid).then(f => {
-                if (f instanceof Doc) {
-                    f.x = pt[0];
-                    f.y = pt[1];
-                    (f instanceof Doc) && this.props.addDocument(f, false);
-                }
-            });
-            return;
-        } else {
-            super.onDrop(e, { x: pt[0], y: pt[1] });
-        }
+        super.onDrop(e, { x: pt[0], y: pt[1] });
     }
 
     onDragOver = (): void => {
@@ -365,7 +347,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         <CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" />
                     </CollectionFreeFormViewPannableContents>
                 </MarqueeView>
-                <CollectionFreeFormOverlayView {...this.getDocumentViewProps(this.props.Document)} {...this.props} />
+                <CollectionFreeFormOverlayView  {...this.props} {...this.getDocumentViewProps(this.props.Document)} />
             </div>
         );
     }

@@ -28,6 +28,8 @@ export class InkingStroke extends React.Component<StrokeProps> {
     deleteStroke = (e: React.PointerEvent): void => {
         if (InkingControl.Instance.selectedTool === InkTool.Eraser && e.buttons === 1) {
             this.props.deleteCallback(this.props.id);
+            e.stopPropagation();
+            e.preventDefault();
         }
     }
 
@@ -50,7 +52,7 @@ export class InkingStroke extends React.Component<StrokeProps> {
     render() {
         let pathStyle = this.createStyle();
         let pathData = this.parseData(this.props.line);
-        let pathlength = this.props.count; // bcz: this is needed to force reactions to the line data changes
+        let pathlength = this.props.count; // bcz: this is needed to force reactions to the line's data changes
         let marker = this.props.tool === InkTool.Highlighter ? "-marker" : "";
 
         let pointerEvents: any = InkingControl.Instance.selectedTool === InkTool.Eraser ? "all" : "none";
