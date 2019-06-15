@@ -60,6 +60,7 @@ export function getter(target: any, prop: string | symbol | number, receiver: an
     }
     return getField(target, prop);
 }
+
 function getProtoField(protoField: Doc | undefined, prop: string | number, cb?: (field: Field | undefined) => void) {
     if (!protoField) return undefined;
     let field = protoField[prop];

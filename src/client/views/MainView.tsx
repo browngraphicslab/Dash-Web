@@ -55,7 +55,7 @@ export class MainView extends React.Component {
     private set mainContainer(doc: Opt<Doc>) {
         if (doc) {
             if (!("presentationView" in doc)) {
-                doc.presentationView = Docs.TreeDocument([], { title: "Presentation" });
+                doc.presentationView = Docs.Create.TreeDocument([], { title: "Presentation" });
             }
             CurrentUserUtils.UserDocument.activeWorkspace = doc;
         }
@@ -151,12 +151,12 @@ export class MainView extends React.Component {
     createNewWorkspace = async (id?: string) => {
         const list = Cast(CurrentUserUtils.UserDocument.data, listSpec(Doc));
         if (list) {
-            let freeformDoc = Docs.FreeformDocument([], { x: 0, y: 400, width: this.pwidth * .7, height: this.pheight, title: `WS collection ${list.length + 1}` });
+            let freeformDoc = Docs.Create.FreeformDocument([], { x: 0, y: 400, width: this.pwidth * .7, height: this.pheight, title: `WS collection ${list.length + 1}` });
             let configs = [
                 { doc: CurrentUserUtils.UserDocument, initialWidth: 150 },
                 { doc: freeformDoc, initialWidth: 600 }
             ]
-            let mainDoc = Docs.StandardCollectionDockingDocument(configs, { title: `Workspace ${list.length + 1}` }, id);
+            let mainDoc = Docs.Create.StandardCollectionDockingDocument(configs, { title: `Workspace ${list.length + 1}` }, id);
             list.push(mainDoc);
             // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
             setTimeout(() => {
@@ -242,18 +242,18 @@ export class MainView extends React.Component {
         let audiourl = "http://techslides.com/demos/samples/sample.mp3";
         let videourl = "http://techslides.com/demos/sample-videos/small.mp4";
 
-        let addTextNode = action(() => Docs.TextDocument({ borderRounding: -1, width: 200, height: 200, title: "a text note" }));
-        let addColNode = action(() => Docs.FreeformDocument([], { width: this.pwidth * .7, height: this.pheight, title: "a freeform collection" }));
-        let addDockingNode = action(() => Docs.StandardCollectionDockingDocument([{ doc: addColNode(), initialWidth: 200 }], { width: 200, height: 200, title: "a nested docking freeform collection" }));
-        let addSchemaNode = action(() => Docs.SchemaDocument(["title"], [], { width: 200, height: 200, title: "a schema collection" }));
+        let addTextNode = action(() => Docs.Create.TextDocument({ borderRounding: -1, width: 200, height: 200, title: "a text note" }));
+        let addColNode = action(() => Docs.Create.FreeformDocument([], { width: this.pwidth * .7, height: this.pheight, title: "a freeform collection" }));
+        let addDockingNode = action(() => Docs.Create.StandardCollectionDockingDocument([{ doc: addColNode(), initialWidth: 200 }], { width: 200, height: 200, title: "a nested docking freeform collection" }));
+        let addSchemaNode = action(() => Docs.Create.SchemaDocument(["title"], [], { width: 200, height: 200, title: "a schema collection" }));
         let addTreeNode = action(() => CurrentUserUtils.UserDocument);
         //let addTreeNode = action(() => Docs.TreeDocument([CurrentUserUtils.UserDocument], { width: 250, height: 400, title: "Library:" + CurrentUserUtils.email, dropAction: "alias" }));
         // let addTreeNode = action(() => Docs.TreeDocument(this._northstarSchemas, { width: 250, height: 400, title: "northstar schemas", dropAction: "copy"  }));
-        let addVideoNode = action(() => Docs.VideoDocument(videourl, { width: 200, title: "video node" }));
-        let addPDFNode = action(() => Docs.PdfDocument(pdfurl, { width: 200, height: 200, title: "a pdf doc" }));
-        let addImageNode = action(() => Docs.ImageDocument(imgurl, { width: 200, title: "an image of a cat" }));
-        let addWebNode = action(() => Docs.WebDocument(weburl, { width: 200, height: 200, title: "a sample web page" }));
-        let addAudioNode = action(() => Docs.AudioDocument(audiourl, { width: 200, height: 200, title: "audio node" }));
+        let addVideoNode = action(() => Docs.Create.VideoDocument(videourl, { width: 200, title: "video node" }));
+        let addPDFNode = action(() => Docs.Create.PdfDocument(pdfurl, { width: 200, height: 200, title: "a pdf doc" }));
+        let addImageNode = action(() => Docs.Create.ImageDocument(imgurl, { width: 200, title: "an image of a cat" }));
+        let addWebNode = action(() => Docs.Create.WebDocument(weburl, { width: 200, height: 200, title: "a sample web page" }));
+        let addAudioNode = action(() => Docs.Create.AudioDocument(audiourl, { width: 200, height: 200, title: "audio node" }));
 
         let btns: [React.RefObject<HTMLDivElement>, IconName, string, () => Doc][] = [
             [React.createRef<HTMLDivElement>(), "font", "Add Textbox", addTextNode],

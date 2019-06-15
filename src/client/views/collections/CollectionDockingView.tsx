@@ -6,27 +6,116 @@ import * as ReactDOM from 'react-dom';
 import Measure, { ContentRect } from "react-measure";
 import * as GoldenLayout from "../../../client/goldenLayout";
 import { Doc, Field, Opt, DocListCast } from "../../../new_fields/Doc";
-import { FieldId } from "../../../new_fields/RefField";
 import { listSpec } from "../../../new_fields/Schema";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { emptyFunction, returnTrue, Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { DragLinksAsDocuments, DragManager } from "../../util/DragManager";
-import { Transform } from '../../util/Transform';
 import { undoBatch, UndoManager } from "../../util/UndoManager";
-import { DocumentView } from "../nodes/DocumentView";
 import "./CollectionDockingView.scss";
 import { SubCollectionViewProps } from "./CollectionSubView";
 import React = require("react");
 import { ParentDocSelector } from './ParentDocumentSelector';
 import { DocumentManager } from '../../util/DocumentManager';
-import { CollectionViewType } from './CollectionBaseView';
 import { Id } from '../../../new_fields/FieldSymbols';
-import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
+import { DockedFrameRenderer } from './DockedFrameRenderer';
 
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
     public static TopLevel: CollectionDockingView;
+    private _goldenLayout: any = null;
+    private _containerRef = React.createRef<HTMLDivElement>();
+    reactionDisposer?: IReactionDisposer;
+    _removedDocs: Doc[] = [];
+    private _flush: boolean = false;
+    private _ignoreStateChange = "";
+    private _isPointerDown = false;
+    hack: boolean = false;
+    undohack: any = null;
+
+    constructor(props: SubCollectionViewProps) {
+        super(props);
+        CollectionDockingView.TopLevel = this;
+        (window as any).React = React;
+        (window as any).ReactDOM = ReactDOM;
+    }
+
+    componentDidMount: () => void = () => {
+        if (this._containerRef.current) {
+            this.reactionDisposer = reaction(
+                () => StrCast(this.props.Document.dockingConfig),
+                () => {
+                    if (!this._goldenLayout || this._ignoreStateChange !== this.retrieveConfiguration()) {
+                        // Because this is in a set timeout, if this component unmounts right after mounting,
+                        // we will leak a GoldenLayout, because we try to destroy it before we ever create it
+                        setTimeout(() => this.setupGoldenLayout(), 1);
+                    }
+                    this._ignoreStateChange = "";
+                }, { fireImmediately: true });
+
+            // window.addEventListener('resize', this.onResize); // bcz: would rather add this event to the parent node, but resize events only come from Window
+        }
+    }
+
+    componentWillUnmount: () => void = () => {
+        try {
+            this._goldenLayout.unbind('itemDropped', this.itemDropped);
+            this._goldenLayout.unbind('tabCreated', this.tabCreated);
+            this._goldenLayout.unbind('stackCreated', this.stackCreated);
+            this._goldenLayout.unbind('tabDestroyed', this.tabDestroyed);
+        } catch (e) {
+            console.log("Unable to unbind Golden Layout event listener...", e);
+        }
+        if (this._goldenLayout) this._goldenLayout.destroy();
+        this._goldenLayout = null;
+
+        if (this.reactionDisposer) {
+            this.reactionDisposer();
+        }
+    }
+
+    setupGoldenLayout() {
+        var config = StrCast(this.props.Document.dockingConfig);
+        if (config) {
+            if (!this._goldenLayout) {
+                this.initializeConfiguration(config);
+            }
+            else {
+                if (config === this.retrieveConfiguration()) {
+                    return;
+                }
+                try {
+                    this._goldenLayout.unbind('itemDropped', this.itemDropped);
+                    this._goldenLayout.unbind('tabCreated', this.tabCreated);
+                    this._goldenLayout.unbind('tabDestroyed', this.tabDestroyed);
+                    this._goldenLayout.unbind('stackCreated', this.stackCreated);
+                } catch (e) { }
+                this._goldenLayout.destroy();
+                this.initializeConfiguration(config);
+            }
+            this._goldenLayout.on('itemDropped', this.itemDropped);
+            this._goldenLayout.on('tabCreated', this.tabCreated);
+            this._goldenLayout.on('tabDestroyed', this.tabDestroyed);
+            this._goldenLayout.on('stackCreated', this.stackCreated);
+            this._goldenLayout.registerComponent('DocumentFrameRenderer', DockedFrameRenderer);
+            this._goldenLayout.container = this._containerRef.current;
+            if (this._goldenLayout.config.maximisedItemId === '__glMaximised') {
+                try {
+                    this._goldenLayout.config.root.getItemsById(this._goldenLayout.config.maximisedItemId)[0].toggleMaximise();
+                } catch (e) {
+                    this._goldenLayout.config.maximisedItemId = null;
+                }
+            }
+            this._goldenLayout.init();
+        }
+    }
+
+    private makeDocConfig = (document: Doc, width?: number) => {
+        const config = CollectionDockingView.makeDocumentConfig(document, width);
+        (config.props as any).parent = this;
+        return config;
+    }
+
     public static makeDocumentConfig(document: Doc, width?: number) {
         return {
             type: 'react-component',
@@ -37,52 +126,6 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 documentId: document[Id],
             }
         };
-    }
-
-    private makeDocConfig = (document: Doc, width?: number) => {
-        const config = CollectionDockingView.makeDocumentConfig(document, width);
-        (config.props as any).parent = this;
-        return config;
-    }
-
-    private _goldenLayout: any = null;
-    private _containerRef = React.createRef<HTMLDivElement>();
-    private _flush: boolean = false;
-    private _ignoreStateChange = "";
-    private _isPointerDown = false;
-
-    constructor(props: SubCollectionViewProps) {
-        super(props);
-        CollectionDockingView.TopLevel = this;
-        (window as any).React = React;
-        (window as any).ReactDOM = ReactDOM;
-    }
-    hack: boolean = false;
-    undohack: any = null;
-    public StartOtherDrag(dragDocs: Doc[], e: any) {
-        this.hack = true;
-        this.undohack = UndoManager.StartBatch("goldenDrag");
-        dragDocs.map(dragDoc =>
-            CollectionDockingView.AddRightSplit(dragDoc, true).contentItems[0].tab._dragListener.
-                onMouseDown({ pageX: e.pageX, pageY: e.pageY, preventDefault: emptyFunction, button: 0 }));
-    }
-
-    private openFullScreen = (document: Doc) => {
-        let newItemStackConfig = {
-            type: 'stack',
-            content: [this.makeDocConfig(document)]
-        };
-        var docconfig = this._goldenLayout.root.layoutManager.createContentItem(newItemStackConfig, this._goldenLayout);
-        this._goldenLayout.root.contentItems[0].addChild(docconfig);
-        docconfig.callDownwards('_$init');
-        this._goldenLayout._$maximiseItem(docconfig);
-        this._ignoreStateChange = this.retrieveConfiguration();
-        this.stateChanged();
-    }
-
-    @action
-    public static OpenFullScreen(document: Doc, dockingView: CollectionDockingView = CollectionDockingView.TopLevel) {
-        dockingView.openFullScreen(document);
     }
 
     initializeConfiguration = (configText: string) => {
@@ -109,44 +152,29 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         });
     }
 
-    @undoBatch
-    @action
-    public static CloseRightSplit = (document: Doc, dockingView: CollectionDockingView = CollectionDockingView.TopLevel): boolean => {
-        let retVal = false;
-        if (dockingView._goldenLayout.root.contentItems[0].isRow) {
-            retVal = Array.from(dockingView._goldenLayout.root.contentItems[0].contentItems).some((child: any) => {
-                if (child.contentItems.length === 1 && child.contentItems[0].config.component === "DocumentFrameRenderer" &&
-                    Doc.AreProtosEqual(DocumentManager.Instance.getDocumentViewById(child.contentItems[0].config.props.documentId)!.Document, document)) {
-                    child.contentItems[0].remove();
-                    dockingView.layoutChanged(document);
-                    return true;
-                } else {
-                    Array.from(child.contentItems).filter((tab: any) => tab.config.component === "DocumentFrameRenderer").some((tab: any, j: number) => {
-                        if (Doc.AreProtosEqual(DocumentManager.Instance.getDocumentViewById(tab.config.props.documentId)!.Document, document)) {
-                            child.contentItems[j].remove();
-                            child.config.activeItemIndex = Math.max(child.contentItems.length - 1, 0);
-                            let docs = Cast(dockingView.props.Document.data, listSpec(Doc));
-                            docs && docs.indexOf(document) !== -1 && docs.splice(docs.indexOf(document), 1);
-                            return true;
-                        }
-                        return false;
-                    });
-                }
-                return false;
-            });
-        }
-        if (retVal) {
-            dockingView.stateChanged();
-        }
-        return retVal;
+    public StartOtherDrag(dragDocs: Doc[], e: any) {
+        this.hack = true;
+        this.undohack = UndoManager.StartBatch("goldenDrag");
+        dragDocs.map(dragDoc =>
+            CollectionDockingView.AddRightSplit(dragDoc, true).contentItems[0].tab._dragListener.
+                onMouseDown({ pageX: e.pageX, pageY: e.pageY, preventDefault: emptyFunction, button: 0 }));
     }
 
     @action
-    layoutChanged(removed?: Doc) {
-        this._goldenLayout.root.callDownwards('setSize', [this._goldenLayout.width, this._goldenLayout.height]);
-        this._goldenLayout.emit('stateChanged');
+    public static OpenFullScreen(document: Doc, dockingView: CollectionDockingView = CollectionDockingView.TopLevel) {
+        dockingView.openFullScreen(document);
+    }
+
+    private openFullScreen = (document: Doc) => {
+        let newItemStackConfig = {
+            type: 'stack',
+            content: [this.makeDocConfig(document)]
+        };
+        var docconfig = this._goldenLayout.root.layoutManager.createContentItem(newItemStackConfig, this._goldenLayout);
+        this._goldenLayout.root.contentItems[0].addChild(docconfig);
+        docconfig.callDownwards('_$init');
+        this._goldenLayout._$maximiseItem(docconfig);
         this._ignoreStateChange = this.retrieveConfiguration();
-        if (removed) CollectionDockingView.TopLevel._removedDocs.push(removed);
         this.stateChanged();
     }
 
@@ -209,75 +237,47 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         this.layoutChanged();
     }
 
-    setupGoldenLayout() {
-        var config = StrCast(this.props.Document.dockingConfig);
-        if (config) {
-            if (!this._goldenLayout) {
-                this.initializeConfiguration(config);
-            }
-            else {
-                if (config === this.retrieveConfiguration()) {
-                    return;
+    @undoBatch
+    @action
+    public static CloseRightSplit = (document: Doc, dockingView: CollectionDockingView = CollectionDockingView.TopLevel): boolean => {
+        let retVal = false;
+        if (dockingView._goldenLayout.root.contentItems[0].isRow) {
+            retVal = Array.from(dockingView._goldenLayout.root.contentItems[0].contentItems).some((child: any) => {
+                if (child.contentItems.length === 1 && child.contentItems[0].config.component === "DocumentFrameRenderer" &&
+                    Doc.AreProtosEqual(DocumentManager.Instance.getDocumentViewById(child.contentItems[0].config.props.documentId)!.Document, document)) {
+                    child.contentItems[0].remove();
+                    dockingView.layoutChanged(document);
+                    return true;
+                } else {
+                    Array.from(child.contentItems).filter((tab: any) => tab.config.component === "DocumentFrameRenderer").some((tab: any, j: number) => {
+                        if (Doc.AreProtosEqual(DocumentManager.Instance.getDocumentViewById(tab.config.props.documentId)!.Document, document)) {
+                            child.contentItems[j].remove();
+                            child.config.activeItemIndex = Math.max(child.contentItems.length - 1, 0);
+                            let docs = Cast(dockingView.props.Document.data, listSpec(Doc));
+                            docs && docs.indexOf(document) !== -1 && docs.splice(docs.indexOf(document), 1);
+                            return true;
+                        }
+                        return false;
+                    });
                 }
-                try {
-                    this._goldenLayout.unbind('itemDropped', this.itemDropped);
-                    this._goldenLayout.unbind('tabCreated', this.tabCreated);
-                    this._goldenLayout.unbind('tabDestroyed', this.tabDestroyed);
-                    this._goldenLayout.unbind('stackCreated', this.stackCreated);
-                } catch (e) { }
-                this._goldenLayout.destroy();
-                this.initializeConfiguration(config);
-            }
-            this._goldenLayout.on('itemDropped', this.itemDropped);
-            this._goldenLayout.on('tabCreated', this.tabCreated);
-            this._goldenLayout.on('tabDestroyed', this.tabDestroyed);
-            this._goldenLayout.on('stackCreated', this.stackCreated);
-            this._goldenLayout.registerComponent('DocumentFrameRenderer', DockedFrameRenderer);
-            this._goldenLayout.container = this._containerRef.current;
-            if (this._goldenLayout.config.maximisedItemId === '__glMaximised') {
-                try {
-                    this._goldenLayout.config.root.getItemsById(this._goldenLayout.config.maximisedItemId)[0].toggleMaximise();
-                } catch (e) {
-                    this._goldenLayout.config.maximisedItemId = null;
-                }
-            }
-            this._goldenLayout.init();
+                return false;
+            });
         }
+        if (retVal) {
+            dockingView.stateChanged();
+        }
+        return retVal;
     }
-    reactionDisposer?: IReactionDisposer;
-    componentDidMount: () => void = () => {
-        if (this._containerRef.current) {
-            this.reactionDisposer = reaction(
-                () => StrCast(this.props.Document.dockingConfig),
-                () => {
-                    if (!this._goldenLayout || this._ignoreStateChange !== this.retrieveConfiguration()) {
-                        // Because this is in a set timeout, if this component unmounts right after mounting,
-                        // we will leak a GoldenLayout, because we try to destroy it before we ever create it
-                        setTimeout(() => this.setupGoldenLayout(), 1);
-                    }
-                    this._ignoreStateChange = "";
-                }, { fireImmediately: true });
 
-            // window.addEventListener('resize', this.onResize); // bcz: would rather add this event to the parent node, but resize events only come from Window
-        }
+    @action
+    layoutChanged(removed?: Doc) {
+        this._goldenLayout.root.callDownwards('setSize', [this._goldenLayout.width, this._goldenLayout.height]);
+        this._goldenLayout.emit('stateChanged');
+        this._ignoreStateChange = this.retrieveConfiguration();
+        if (removed) CollectionDockingView.TopLevel._removedDocs.push(removed);
+        this.stateChanged();
     }
-    componentWillUnmount: () => void = () => {
-        try {
-            this._goldenLayout.unbind('itemDropped', this.itemDropped);
-            this._goldenLayout.unbind('tabCreated', this.tabCreated);
-            this._goldenLayout.unbind('stackCreated', this.stackCreated);
-            this._goldenLayout.unbind('tabDestroyed', this.tabDestroyed);
-        } catch (e) {
 
-        }
-        if (this._goldenLayout) this._goldenLayout.destroy();
-        this._goldenLayout = null;
-        // window.removeEventListener('resize', this.onResize);
-
-        if (this.reactionDisposer) {
-            this.reactionDisposer();
-        }
-    }
     @action
     onResize = (size: ContentRect) => {
         // bcz: since GoldenLayout isn't a React component itself, we need to notify it to resize when its document container's size has changed
@@ -387,6 +387,9 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                         }
                         tab.setActive(true);
                     }
+                    tab.header.element[0].ondrop = (e: any) => {
+                        console.log("DROPPPP THE BASS!", e);
+                    }
                     ReactDOM.render(<ParentDocSelector Document={doc} addDocTab={(doc, location) => CollectionDockingView.AddTab(stack, doc)} />, upDiv);
                     tab.reactComponents = [upDiv];
                     tab.element.append(upDiv);
@@ -422,7 +425,6 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             }
         }
     }
-    _removedDocs: Doc[] = [];
 
     private stackCreated = (stack: any) => {
         //stack.header.controlsContainer.find('.lm_popout').hide();
@@ -462,102 +464,4 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         );
     }
 
-}
-
-interface DockedFrameProps {
-    documentId: FieldId;
-    glContainer: any;
-    glEventHub: any;
-    parent: CollectionDockingView;
-}
-
-@observer
-export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
-    _mainCont = React.createRef<HTMLDivElement>();
-    @observable private _panelWidth = 0;
-    @observable private _panelHeight = 0;
-    @observable private _document: Opt<Doc>;
-    private get parentProps(): SubCollectionViewProps {
-        return this.props.parent.props;
-    }
-
-    get _stack(): any {
-        let parent = this.props.glContainer.parent.parent;
-        if (this._document && this._document.excludeFromLibrary && parent.parent && parent.parent.contentItems.length > 1)
-            return parent.parent.contentItems[1];
-        return parent;
-    }
-    constructor(props: any) {
-        super(props);
-        DocServer.GetRefField(this.props.documentId).then(action((f: Opt<Field>) => this._document = f as Doc));
-    }
-
-    nativeWidth = () => NumCast(this._document!.nativeWidth, this._panelWidth);
-    nativeHeight = () => NumCast(this._document!.nativeHeight, this._panelHeight);
-    contentScaling = () => {
-        const nativeH = this.nativeHeight();
-        const nativeW = this.nativeWidth();
-        let wscale = this._panelWidth / nativeW;
-        return wscale * nativeH > this._panelHeight ? this._panelHeight / nativeH : wscale;
-    }
-
-    ScreenToLocalTransform = () => {
-        if (this._mainCont.current && this._mainCont.current.children) {
-            let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.current.children[0].firstChild as HTMLElement);
-            scale = Utils.GetScreenTransform(this._mainCont.current).scale;
-            return this.parentProps.ScreenToLocalTransform().translate(-translateX, -translateY).scale(1 / this.contentScaling() / scale);
-        }
-        return Transform.Identity();
-    }
-    get scaleToFitMultiplier() {
-        let docWidth = NumCast(this._document!.width);
-        let docHeight = NumCast(this._document!.height);
-        if (NumCast(this._document!.nativeWidth) || !docWidth || !this._panelWidth || !this._panelHeight) return 1;
-        if (StrCast(this._document!.layout).indexOf("Collection") === -1 ||
-            NumCast(this._document!.viewType) !== CollectionViewType.Freeform) return 1;
-        let scaling = Math.max(1, this._panelWidth / docWidth * docHeight > this._panelHeight ?
-            this._panelHeight / docHeight : this._panelWidth / docWidth);
-        return scaling;
-    }
-    get previewPanelCenteringOffset() { return (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2; }
-
-    addDocTab = (doc: Doc, location: string) => {
-        if (location === "onRight") {
-            CollectionDockingView.AddRightSplit(doc);
-        } else {
-            CollectionDockingView.AddTab(this._stack, doc);
-        }
-    }
-    get content() {
-        if (!this._document) {
-            return (null);
-        }
-        return (
-            <div className="collectionDockingView-content" ref={this._mainCont}
-                style={{ transform: `translate(${this.previewPanelCenteringOffset}px, 0px) scale(${this.scaleToFitMultiplier}, ${this.scaleToFitMultiplier})` }}>
-                <DocumentView key={this._document[Id]} Document={this._document}
-                    bringToFront={emptyFunction}
-                    addDocument={undefined}
-                    removeDocument={undefined}
-                    ContentScaling={this.contentScaling}
-                    PanelWidth={this.nativeWidth}
-                    PanelHeight={this.nativeHeight}
-                    ScreenToLocalTransform={this.ScreenToLocalTransform}
-                    isTopMost={true}
-                    selectOnLoad={false}
-                    parentActive={returnTrue}
-                    whenActiveChanged={emptyFunction}
-                    focus={emptyFunction}
-                    addDocTab={this.addDocTab}
-                    ContainingCollectionView={undefined} />
-            </div >);
-    }
-
-    render() {
-        let theContent = this.content;
-        return !this._document ? (null) :
-            <Measure offset onResize={action((r: any) => { this._panelWidth = r.offset.width; this._panelHeight = r.offset.height; })}>
-                {({ measureRef }) => <div ref={measureRef}>  {theContent} </div>}
-            </Measure>;
-    }
 }

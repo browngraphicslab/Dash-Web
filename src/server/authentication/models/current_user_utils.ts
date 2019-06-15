@@ -33,8 +33,8 @@ export class CurrentUserUtils {
         doc.title = this.email;
         doc.data = new List<Doc>();
         doc.excludeFromLibrary = true;
-        doc.optionalRightCollection = Docs.StackingDocument([], { title: "New mobile uploads" });
-        // doc.library = Docs.TreeDocument([doc], { title: `Library: ${CurrentUserUtils.email}` });
+        doc.optionalRightCollection = Docs.Create.StackingDocument([], { title: "New mobile uploads" });
+        // doc.library = Docs.Create.TreeDocument([doc], { title: `Library: ${CurrentUserUtils.email}` });
         // (doc.library as Doc).excludeFromLibrary = true;
         return doc;
     }
@@ -94,12 +94,12 @@ export class CurrentUserUtils {
         //                         new AttributeTransformationModel(atmod, AggregateFunction.None),
         //                         new AttributeTransformationModel(atmod, AggregateFunction.Count),
         //                         new AttributeTransformationModel(atmod, AggregateFunction.Count));
-        //                     schemaDocuments.push(Docs.HistogramDocument(histoOp, { width: 200, height: 200, title: attr.displayName! }));
+        //                     schemaDocuments.push(Docs.Create.HistogramDocument(histoOp, { width: 200, height: 200, title: attr.displayName! }));
         //                 }
         //             })));
         //             return promises;
         //         }, [] as Promise<void>[]));
-        //         return CurrentUserUtils._northstarSchemas.push(Docs.TreeDocument(schemaDocuments, { width: 50, height: 100, title: schema.displayName! }));
+        //         return CurrentUserUtils._northstarSchemas.push(Docs.Create.TreeDocument(schemaDocuments, { width: 50, height: 100, title: schema.displayName! }));
         //     });
         // }
     }

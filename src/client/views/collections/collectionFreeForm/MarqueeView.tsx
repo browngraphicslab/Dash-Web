@@ -79,7 +79,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 }
                 ns.map(line => {
                     let indent = line.search(/\S|$/);
-                    let newBox = Docs.TextDocument({ width: 200, height: 35, x: x + indent / 3 * 10, y: y, documentText: "@@@" + line, title: line });
+                    let newBox = Docs.Create.TextDocument({ width: 200, height: 35, x: x + indent / 3 * 10, y: y, documentText: "@@@" + line, title: line });
                     this.props.addDocument(newBox, false);
                     y += 40 * this.props.getTransform().Scale;
                 });
@@ -89,13 +89,13 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             navigator.clipboard.readText().then(text => {
                 let ns = text.split("\n").filter(t => t.trim() !== "\r" && t.trim() !== "");
                 if (ns.length === 1 && text.startsWith("http")) {
-                    this.props.addDocument(Docs.ImageDocument(text, { nativeWidth: 300, width: 300, x: x, y: y }), false);// paste an image from its URL in the paste buffer
+                    this.props.addDocument(Docs.Create.ImageDocument(text, { nativeWidth: 300, width: 300, x: x, y: y }), false);// paste an image from its URL in the paste buffer
                 } else {
                     this.pasteTable(ns, x, y);
                 }
             });
         } else {
-            let newBox = Docs.TextDocument({ width: 200, height: 100, x: x, y: y, title: "-typed text-" });
+            let newBox = Docs.Create.TextDocument({ width: 200, height: 100, x: x, y: y, title: "-typed text-" });
             this.props.addLiveTextDocument(newBox);
         }
         e.stopPropagation();
@@ -136,7 +136,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 doc.width = 200;
                 docList.push(doc);
             }
-            let newCol = Docs.SchemaDocument([...(groupAttr ? ["_group"] : []), ...columns.filter(c => c)], docList, { x: x, y: y, title: "droppedTable", width: 300, height: 100 });
+            let newCol = Docs.Create.SchemaDocument([...(groupAttr ? ["_group"] : []), ...columns.filter(c => c)], docList, { x: x, y: y, title: "droppedTable", width: 300, height: 100 });
 
             this.props.addDocument(newCol, false);
         }
@@ -259,7 +259,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             let ink = Cast(this.props.container.props.Document.ink, InkField);
             let inkData = ink ? ink.inkData : undefined;
             let zoomBasis = NumCast(this.props.container.props.Document.scale, 1);
-            let newCollection = Docs.FreeformDocument(selected, {
+            let newCollection = Docs.Create.FreeformDocument(selected, {
                 x: bounds.left,
                 y: bounds.top,
                 panX: 0,
@@ -283,14 +283,14 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     d.page = -1;
                     return d;
                 });
-                let summary = Docs.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
+                let summary = Docs.Create.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
                 newCollection.proto!.summaryDoc = summary;
                 selected = [newCollection];
                 newCollection.x = bounds.left + bounds.width;
                 summary.proto!.subBulletDocs = new List<Doc>(selected);
                 //summary.proto!.maximizeLocation = "inTab";  // or "inPlace", or "onRight"
                 summary.templates = new List<string>([Templates.Bullet.Layout]);
-                let container = Docs.FreeformDocument([summary, newCollection], { x: bounds.left, y: bounds.top, width: 300, height: 200, title: "-summary-" });
+                let container = Docs.Create.FreeformDocument([summary, newCollection], { x: bounds.left, y: bounds.top, width: 300, height: 200, title: "-summary-" });
                 container.viewType = CollectionViewType.Stacking;
                 this.props.addLiveTextDocument(container);
                 // });
@@ -303,11 +303,11 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                         d.page = -1;
                         return d;
                     });
-                    let summary = Docs.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
+                    let summary = Docs.Create.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
                     SearchBox.convertDataUri(dataUrl, "icon" + summary[Id] + "_image").then((returnedFilename) => {
                         if (returnedFilename) {
                             let url = DocServer.prepend(returnedFilename);
-                            let imageSummary = Docs.ImageDocument(url, {
+                            let imageSummary = Docs.Create.ImageDocument(url, {
                                 x: bounds.left, y: bounds.top + 100 / zoomBasis,
                                 width: 150, height: bounds.height / bounds.width * 150, title: "-summary image-"
                             });

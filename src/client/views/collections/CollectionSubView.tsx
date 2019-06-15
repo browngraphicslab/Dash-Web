@@ -113,20 +113,20 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         protected async getDocumentFromType(type: string, path: string, options: DocumentOptions): Promise<Opt<Doc>> {
             let ctor: ((path: string, options: DocumentOptions) => (Doc | Promise<Doc | undefined>)) | undefined = undefined;
             if (type.indexOf("image") !== -1) {
-                ctor = Docs.ImageDocument;
+                ctor = Docs.Create.ImageDocument;
             }
             if (type.indexOf("video") !== -1) {
-                ctor = Docs.VideoDocument;
+                ctor = Docs.Create.VideoDocument;
             }
             if (type.indexOf("audio") !== -1) {
-                ctor = Docs.AudioDocument;
+                ctor = Docs.Create.AudioDocument;
             }
             if (type.indexOf("pdf") !== -1) {
-                ctor = Docs.PdfDocument;
+                ctor = Docs.Create.PdfDocument;
                 options.nativeWidth = 1200;
             }
             if (type.indexOf("excel") !== -1) {
-                ctor = Docs.DBDocument;
+                ctor = Docs.Create.DBDocument;
                 options.dropAction = "copy";
             }
             if (type.indexOf("html") !== -1) {
@@ -145,7 +145,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     });
                     return undefined;
                 }
-                ctor = Docs.WebDocument;
+                ctor = Docs.Create.WebDocument;
                 options = { height: options.width, ...options, title: path, nativeWidth: undefined };
             }
             return ctor ? ctor(path, options) : undefined;
@@ -175,13 +175,13 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 return;
             }
             if (html && html.indexOf("<img") !== 0 && !html.startsWith("<a")) {
-                let htmlDoc = Docs.HtmlDocument(html, { ...options, width: 300, height: 300, documentText: text });
+                let htmlDoc = Docs.Create.HtmlDocument(html, { ...options, width: 300, height: 300, documentText: text });
                 this.props.addDocument(htmlDoc, false);
                 return;
             }
             if (text && text.indexOf("www.youtube.com/watch") !== -1) {
                 const url = text.replace("youtube.com/watch?v=", "youtube.com/embed/");
-                this.props.addDocument(Docs.WebDocument(url, { ...options, width: 300, height: 300 }));
+                this.props.addDocument(Docs.Create.WebDocument(url, { ...options, width: 300, height: 300 }));
                 return;
             }
 
