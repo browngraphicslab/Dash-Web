@@ -3,6 +3,7 @@ import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, runInAction, trace } from 'mobx';
 import { observer } from 'mobx-react';
+import { CirclePicker } from 'react-color';
 import "normalize.css";
 import * as React from 'react';
 import Measure from 'react-measure';
@@ -32,6 +33,7 @@ import { listSpec } from '../../new_fields/Schema';
 import { Id } from '../../new_fields/FieldSymbols';
 import { HistoryUtil } from '../util/History';
 import { CollectionBaseView } from './collections/CollectionBaseView';
+import { InkTool } from '../../new_fields/InkField';
 
 
 @observer
@@ -217,6 +219,15 @@ export class MainView extends React.Component {
         </Measure>;
     }
 
+    selected = (tool: InkTool) => {
+        if (!InkingControl.Instance || InkingControl.Instance.selectedTool === InkTool.None) return { display: "none" };
+        if (InkingControl.Instance.selectedTool === tool) {
+            return { color: "#61aaa3", fontSize: "50%" };
+        }
+        return { fontSize: "50%" };
+    }
+
+    @observable private _colorPickerDisplay = false;
     /* for the expandable add nodes menu. Not included with the miscbuttons because once it expands it expands the whole div with it, making canvas interactions limited. */
     nodesMenu() {
 
@@ -241,16 +252,33 @@ export class MainView extends React.Component {
                     <li key="search"><button className="add-button round-button" title="Search" onClick={this.toggleSearch}><FontAwesomeIcon icon="search" size="sm" /></button></li>
                     <li key="undo"><button className="add-button round-button" title="Undo" onClick={() => UndoManager.Undo()}><FontAwesomeIcon icon="undo-alt" size="sm" /></button></li>
                     <li key="redo"><button className="add-button round-button" title="Redo" onClick={() => UndoManager.Redo()}><FontAwesomeIcon icon="redo-alt" size="sm" /></button></li>
+                    <li key="color"><button className="add-button round-button" title="Redo" onClick={() => this.toggleColorPicker()}><div className="toolbar-color-button" style={{ backgroundColor: InkingControl.Instance.selectedColor }} >
+
+                        <div className="toolbar-color-picker" style={this._colorPickerDisplay ? { display: "block" } : { display: "none" }}>
+                            <CirclePicker onChange={InkingControl.Instance.switchColor} circleSize={22} width={"220"} />
+                        </div>
+                    </div></button></li>
                     {btns.map(btn =>
                         <li key={btn[1]} ><div ref={btn[0]}>
                             <button className="round-button add-button" title={btn[2]} onPointerDown={SetupDrag(btn[0], btn[3])}>
                                 <FontAwesomeIcon icon={btn[1]} size="sm" />
                             </button>
                         </div></li>)}
-                    <li key="ink"><button className="toolbar-button round-button" title="Ink" onClick={() => InkingControl.Instance.toggleDisplay()}><FontAwesomeIcon icon="pen-nib" size="sm" /></button></li>
+                    <li key="ink" style={{ paddingRight: "6px" }}><button className="toolbar-button round-button" title="Ink" onClick={() => InkingControl.Instance.toggleDisplay()}><FontAwesomeIcon icon="pen-nib" size="sm" /> </button></li>
+                    <li key="pen"><button onClick={() => InkingControl.Instance.switchTool(InkTool.Pen)} style={this.selected(InkTool.Pen)}><FontAwesomeIcon icon="pen" size="lg" title="Pen" /></button></li>
+                    <li key="marker"><button onClick={() => InkingControl.Instance.switchTool(InkTool.Highlighter)} style={this.selected(InkTool.Highlighter)}><FontAwesomeIcon icon="highlighter" size="lg" title="Pen" /></button></li>
+                    <li key="eraser"><button onClick={() => InkingControl.Instance.switchTool(InkTool.Eraser)} style={this.selected(InkTool.Eraser)}><FontAwesomeIcon icon="eraser" size="lg" title="Pen" /></button></li>
+                    <li key="inkControls"><InkingControl /></li>
                 </ul>
             </div>
         </div >;
+    }
+
+
+
+    @action
+    toggleColorPicker = () => {
+        this._colorPickerDisplay = !this._colorPickerDisplay;
     }
 
     /* @TODO this should really be moved into a moveable toolbar component, but for now let's put it here to meet the deadline */
@@ -295,7 +323,6 @@ export class MainView extends React.Component {
                 <ContextMenu />
                 {this.nodesMenu()}
                 {this.miscButtons}
-                <InkingControl />
                 <MainOverlayTextBox />
             </div>
         );

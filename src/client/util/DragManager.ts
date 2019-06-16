@@ -4,6 +4,7 @@ import { Cast } from "../../new_fields/Types";
 import { emptyFunction } from "../../Utils";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import * as globalCssVariables from "../views/globalCssVariables.scss";
+import { URLField } from "../../new_fields/URLField";
 import { SelectionManager } from "./SelectionManager";
 
 export type dropActionType = "alias" | "copy" | undefined;
@@ -181,7 +182,21 @@ export namespace DragManager {
         [id: string]: any;
     }
 
+    export class EmbedDragData {
+        constructor(embeddableSourceDoc: Doc) {
+            this.embeddableSourceDoc = embeddableSourceDoc;
+            this.urlField = embeddableSourceDoc.data instanceof URLField ? embeddableSourceDoc.data : undefined;
+        }
+        embeddableSourceDoc: Doc;
+        urlField?: URLField;
+        [id: string]: any;
+    }
+
     export function StartLinkDrag(ele: HTMLElement, dragData: LinkDragData, downX: number, downY: number, options?: DragOptions) {
+        StartDrag([ele], dragData, downX, downY, options);
+    }
+
+    export function StartEmbedDrag(ele: HTMLElement, dragData: EmbedDragData, downX: number, downY: number, options?: DragOptions) {
         StartDrag([ele], dragData, downX, downY, options);
     }
 

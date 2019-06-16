@@ -14,11 +14,12 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 import { wrapInList, bulletList, liftListItem, listItem, } from 'prosemirror-schema-list';
 import { liftTarget, RemoveMarkStep, AddMarkStep } from 'prosemirror-transform';
 import {
-    faListUl,
+    faListUl, faGrinTongueSquint,
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { FieldViewProps } from "../views/nodes/FieldView";
 import { throwStatement } from "babel-types";
+const { openPrompt, TextField } = require("./ProsemirrorCopy/prompt.js");
 import { View } from "@react-pdf/renderer";
 import { DragManager } from "./DragManager";
 import { Doc, Opt, Field } from "../../new_fields/Doc";
@@ -47,6 +48,8 @@ export class TooltipTextMenu {
     private fontStylesToName: Map<MarkType, string>;
     private listTypeToIcon: Map<NodeType, string>;
     private fontSizeIndicator: HTMLSpanElement = document.createElement("span");
+    private link: HTMLAnchorElement;
+
     private linkEditor?: HTMLDivElement;
     private linkText?: HTMLDivElement;
     private linkDrag?: HTMLImageElement;
@@ -124,6 +127,13 @@ export class TooltipTextMenu {
         this.listTypeToIcon.set(schema.nodes.bullet_list, ":");
         this.listTypeToIcon.set(schema.nodes.ordered_list, "1)");
         this.listTypes = Array.from(this.listTypeToIcon.keys());
+
+        this.link = document.createElement("a");
+        this.link.target = "_blank";
+        this.link.style.color = "white";
+        this.tooltip.appendChild(this.link);
+
+        this.tooltip.appendChild(this.createLink().render(this.view).dom);
 
         this.update(view, undefined);
     }
@@ -360,6 +370,43 @@ export class TooltipTextMenu {
         });
     }
 
+    createLink() {
+        let markType = schema.marks.link;
+        return new MenuItem({
+            title: "Add or remove link",
+            label: "Add or remove link",
+            execEvent: "",
+            icon: icons.link,
+            css: "color:white;",
+            class: "menuicon",
+            enable(state) { return !state.selection.empty; },
+            run: (state, dispatch, view) => {
+                // to remove link
+                if (this.markActive(state, markType)) {
+                    toggleMark(markType)(state, dispatch);
+                    return true;
+                }
+                // to create link
+                openPrompt({
+                    title: "Create a link",
+                    fields: {
+                        href: new TextField({
+                            label: "Link target",
+                            required: true
+                        }),
+                        title: new TextField({ label: "Title" })
+                    },
+                    callback(attrs: any) {
+                        toggleMark(markType, attrs)(view.state, view.dispatch);
+                        view.focus();
+                    },
+                    flyout_top: 0,
+                    flyout_left: 0
+                });
+            }
+        });
+    }
+
     //makes a button for the drop down FOR NODE TYPES
     //css is the style you want applied to the button
     dropdownNodeBtn(label: string, css: string, nodeType: NodeType | undefined, view: EditorView, groupNodes: NodeType[], changeToNodeInGroup: (nodeType: NodeType<any> | undefined, view: EditorView, groupNodes: NodeType[]) => any) {
@@ -375,6 +422,12 @@ export class TooltipTextMenu {
             }
         });
     }
+
+    markActive = function (state: EditorState<any>, type: MarkType<Schema<string, string>>) {
+        let { from, $from, to, empty } = state.selection;
+        if (empty) return type.isInSet(state.storedMarks || $from.marks());
+        else return state.doc.rangeHasMark(from, to, type);
+    };
 
     // Helper function to create menu icons
     icon(text: string, name: string, title: string = name) {
@@ -423,6 +476,20 @@ export class TooltipTextMenu {
         };
     }
 
+    getMarksInSelection(state: EditorState<any>, targets: MarkType<any>[]) {
+        let found: Mark<any>[] = [];
+        let { from, to } = state.selection as TextSelection;
+        state.doc.nodesBetween(from, to, (node) => {
+            let marks = node.marks;
+            if (marks) {
+                marks.forEach(m => {
+                    if (targets.includes(m.type)) found.push(m);
+                });
+            }
+        });
+        return found;
+    }
+
     //updates the tooltip menu when the selection changes
     update(view: EditorView, lastState: EditorState | undefined) {
         let state = view.state;
@@ -435,6 +502,14 @@ export class TooltipTextMenu {
             this.tooltip.style.display = "none";
             return;
         }
+
+        let linksInSelection = this.activeMarksOnSelection([schema.marks.link]);
+        if (linksInSelection.length > 0) {
+            let attributes = this.getMarksInSelection(this.view.state, [schema.marks.link])[0].attrs;
+            this.link.href = attributes.href;
+            this.link.textContent = attributes.title;
+            this.link.style.visibility = "visible";
+        } else this.link.style.visibility = "hidden";
 
         // Otherwise, reposition it and update its content
         this.tooltip.style.display = "";

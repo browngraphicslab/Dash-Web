@@ -5,34 +5,31 @@ import { observer } from "mobx-react";
 import { baseKeymap } from "prosemirror-commands";
 import { history } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
+import { NodeType } from 'prosemirror-model';
 import { EditorState, Plugin, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { Doc, Field, Opt, WidthSym, HeightSym } from "../../../new_fields/Doc";
+import { Doc, Opt } from "../../../new_fields/Doc";
 import { Id } from '../../../new_fields/FieldSymbols';
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { DocServer } from "../../DocServer";
 import { Docs } from '../../documents/Documents';
-import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager } from "../../util/DragManager";
-import buildKeymap from "../../util/ProsemirrorKeymap";
+import buildKeymap from "../../util/ProsemirrorExampleTransfer";
 import { inpRules } from "../../util/RichTextRules";
-import { SummarizedView, ImageResizeView, schema } from "../../util/RichTextSchema";
+import { ImageResizeView, schema, SummarizedView } from "../../util/RichTextSchema";
 import { SelectionManager } from "../../util/SelectionManager";
 import { TooltipLinkingMenu } from "../../util/TooltipLinkingMenu";
 import { TooltipTextMenu } from "../../util/TooltipTextMenu";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { ContextMenu } from "../../views/ContextMenu";
-import { CollectionDockingView } from "../collections/CollectionDockingView";
+import { ContextMenuProps } from '../ContextMenuItem';
 import { DocComponent } from "../DocComponent";
 import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import React = require("react");
-import { DocUtils } from '../../documents/Documents';
-import { start } from 'repl';
-import { ContextMenuProps } from '../ContextMenuItem';
 
 library.add(faEdit);
 library.add(faSmile);
@@ -60,13 +57,14 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         return FieldView.LayoutString(FormattedTextBox, fieldStr);
     }
     private _ref: React.RefObject<HTMLDivElement>;
-    private _proseRef: React.RefObject<HTMLDivElement>;
+    private _proseRef?: HTMLDivElement;
     private _editorView: Opt<EditorView>;
     private _toolTipTextMenu: TooltipTextMenu | undefined = undefined;
     private _applyingChange: boolean = false;
     private _linkClicked = "";
     private _reactionDisposer: Opt<IReactionDisposer>;
     private _proxyReactionDisposer: Opt<IReactionDisposer>;
+    private dropDisposer?: DragManager.DragDropDisposer;
     public get CurrentDiv(): HTMLDivElement { return this._ref.current!; }
     @observable _entered = false;
 
@@ -98,7 +96,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         super(props);
 
         this._ref = React.createRef();
-        this._proseRef = React.createRef();
         if (this.props.isOverlay) {
             DragManager.StartDragFunctions.push(() => FormattedTextBox.InputBoxOverlay = undefined);
         }
@@ -119,6 +116,29 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 let target = this.props.Document.proto ? this.props.Document.proto : this.props.Document;
                 target.title = "-" + titlestr + (str.length > 40 ? "..." : "");
             }
+        }
+    }
+
+    protected createDropTarget = (ele: HTMLDivElement) => {
+        this._proseRef = ele;
+        if (this.dropDisposer) {
+            this.dropDisposer();
+        }
+        if (ele) {
+            this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
+        }
+    }
+
+    @undoBatch
+    @action
+    drop = async (e: Event, de: DragManager.DropEvent) => {
+        // We're dealing with a link to a document
+        if (de.data instanceof DragManager.EmbedDragData && de.data.urlField) {
+            // We're dealing with an internal document drop
+            let url = de.data.urlField.url.href;
+            let model: NodeType = (url.includes(".mov") || url.includes(".mp4")) ? schema.nodes.video : schema.nodes.image;
+            this._editorView!.dispatch(this._editorView!.state.tr.insert(0, model.create({ src: url })));
+            e.stopPropagation();
         }
     }
 
@@ -172,8 +192,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (!startup && !field && doc) {
             startup = StrCast(doc[fieldKey]);
         }
-        if (this._proseRef.current) {
-            this._editorView = new EditorView(this._proseRef.current, {
+        if (this._proseRef) {
+            this._editorView = new EditorView(this._proseRef, {
                 state: field && field.Data ? EditorState.fromJSON(config, JSON.parse(field.Data)) : EditorState.create(config),
                 dispatchTransaction: this.dispatchTransaction,
                 nodeViews: {
@@ -261,7 +281,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     onClick = (e: React.MouseEvent): void => {
-        this._proseRef.current!.focus();
+        this._proseRef!.focus();
+        if (this._linkClicked) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
     }
     onMouseDown = (e: React.MouseEvent): void => {
         if (!this.props.isSelected()) { // preventing default allows the onClick to be generated instead of being swallowed by the text box itself
@@ -336,7 +360,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         let subitems: ContextMenuProps[] = [];
         subitems.push({
             description: BoolCast(this.props.Document.autoHeight, false) ? "Manual Height" : "Auto Height",
-            event: action(() => this.props.Document.autoHeight = !BoolCast(this.props.Document.autoHeight, false)), icon: "expand-arrows-alt"
+            event: action(() => Doc.GetProto(this.props.Document).autoHeight = !BoolCast(this.props.Document.autoHeight, false)), icon: "expand-arrows-alt"
         });
         ContextMenu.Instance.addItem({ description: "Text Funcs...", subitems: subitems });
     }
@@ -353,7 +377,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     color: this.props.color ? this.props.color : this.props.hideOnLeave ? "white" : "initial",
                     pointerEvents: interactive ? "all" : "none",
                 }}
-                onKeyPress={this.onKeyPress}
+                onKeyDown={this.onKeyPress}
                 onFocus={this.onFocused}
                 onClick={this.onClick}
                 onContextMenu={this.specificContextMenu}
@@ -366,7 +390,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 onPointerEnter={this.onPointerEnter}
                 onPointerLeave={this.onPointerLeave}
             >
-                <div className={`formattedTextBox-inner${rounded}`} style={{ whiteSpace: "pre-wrap", pointerEvents: this.props.Document.isButton && !this.props.isSelected() ? "none" : "all" }} ref={this._proseRef} />
+                <div className={`formattedTextBox-inner${rounded}`} ref={this.createDropTarget} style={{ whiteSpace: "pre-wrap", pointerEvents: this.props.Document.isButton && !this.props.isSelected() ? "none" : "all" }} />
             </div>
         );
     }
