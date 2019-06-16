@@ -71,7 +71,6 @@ class TreeView extends React.Component<TreeViewProps> {
     @action onMouseLeave = () => { this._isOver = false; }
 
     onPointerEnter = (e: React.PointerEvent): void => {
-        console.log("ENTER =  " + this.props.document.title);
         this.props.active() && (this.props.document.libraryBrush = true);
         if (e.buttons === 1) {
             this._header!.current!.className = "treeViewItem-header";
