@@ -22,7 +22,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     @computed get yMargin() { return NumCast(this.props.Document.yMargin, 2 * this.gridGap); }
     @computed get gridGap() { return NumCast(this.props.Document.gridGap, 10); }
     @computed get singleColumn() { return BoolCast(this.props.Document.singleColumn, true); }
-    @computed get columnWidth() { return this.singleColumn ? this.props.PanelWidth() - 2 * this.xMargin : Math.min(this.props.PanelWidth() - 2 * this.xMargin, NumCast(this.props.Document.columnWidth, 250)); }
+    @computed get columnWidth() { return this.singleColumn ? (this.props.PanelWidth() / (this.props as any).ContentScaling() - 2 * this.xMargin) : Math.min(this.props.PanelWidth() - 2 * this.xMargin, NumCast(this.props.Document.columnWidth, 250)); }
 
     singleColDocHeight(d: Doc) {
         let nw = NumCast(d.nativeWidth);
