@@ -48,7 +48,10 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
     constructor(props: SubCollectionViewProps) {
         super(props);
-        CollectionDockingView.Instance = this;
+        if (!CollectionDockingView.Instance) {
+            CollectionDockingView.Instance = this;
+        }
+        //Why is this here?
         (window as any).React = React;
         (window as any).ReactDOM = ReactDOM;
     }
