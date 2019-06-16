@@ -111,7 +111,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
                 }}
                 ref={this.createRef}
                 onWheel={(e: React.WheelEvent) => e.stopPropagation()} className={classname}>
-                <PDFViewer url={pdfUrl.url.href} loaded={this.loaded} scrollY={this._scrollY} parent={this} />
+                <PDFViewer url={pdfUrl.url.pathname} loaded={this.loaded} scrollY={this._scrollY} parent={this} />
                 {/* <div style={{ width: "100px", height: "300px" }}></div> */}
             </div>
         );

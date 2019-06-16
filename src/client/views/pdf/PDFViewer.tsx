@@ -20,6 +20,9 @@ import { emptyFunction, returnTrue, returnFalse } from "../../../Utils";
 import { DocumentView } from "../nodes/DocumentView";
 import { DragManager } from "../../util/DragManager";
 import { Dictionary } from "typescript-collections";
+import * as rp from "request-promise";
+import { restProperty } from "babel-types";
+import { DocServer } from "../../DocServer";
 
 export const scale = 2;
 interface IPDFViewerProps {
@@ -137,7 +140,8 @@ class Viewer extends React.Component<IViewerProps> {
         }
 
         setTimeout(() => {
-            this.renderPages(this.startIndex, this.endIndex, true);
+            // this.renderPages(this.startIndex, this.endIndex, true);
+            this.saveThumbnail();
         }, 1000);
     }
 
@@ -204,17 +208,19 @@ class Viewer extends React.Component<IViewerProps> {
     }
 
     @action
-    saveThumbnail = () => {
+    saveThumbnail = async () => {
         // file address of the pdf
         const address: string = this.props.url;
         for (let i = 0; i < this._visibleElements.length; i++) {
             if (this._isPage[i]) {
                 // change the address to be the file address of the PNG version of each page
-                let thisAddress = `${address.substring(0, address.length - ".pdf".length)}-${i + 1}.PNG`;
-                let nWidth = this._pageSizes[i].width;
-                let nHeight = this._pageSizes[i].height;
+                let res = JSON.parse(await rp.get(DocServer.prepend(`/thumbnail${address.substring("files/".length, address.length - ".pdf".length)}-${i + 1}.PNG`)));
+                let thisAddress = res.path;
+                let nWidth = parseInt(res.width);
+                let nHeight = parseInt(res.height);
                 // replace page with image
-                this._visibleElements[i] = <img key={thisAddress} style={{ width: `${nWidth}px`, height: `${nHeight}px` }} src={thisAddress} />;
+                runInAction(() =>
+                    this._visibleElements[i] = <img key={thisAddress} style={{ width: `${nWidth * scale}px`, height: `${nHeight * scale}px` }} src={thisAddress} />);
             }
         }
     }
@@ -236,6 +242,7 @@ class Viewer extends React.Component<IViewerProps> {
         if (this.scrollY !== prevProps.scrollY || this._pdf !== this.props.pdf) {
             this._pdf = this.props.pdf;
             // render pages if the scorll position changes
+            console.log(`START: ${this.startIndex}, END: ${this.endIndex}`);
             this.renderPages(this.startIndex, this.endIndex);
         }
     }
@@ -269,7 +276,7 @@ class Viewer extends React.Component<IViewerProps> {
 
         // this is only for an initial render to get all of the pages rendered
         if (this._visibleElements.length !== numPages) {
-            let divs = Array.from(Array(numPages).keys()).map(i => (
+            let divs = Array.from(Array(numPages).keys()).map(i => i < 5 ? (
                 <Page
                     pdf={this.props.pdf}
                     page={i}
@@ -285,8 +292,10 @@ class Viewer extends React.Component<IViewerProps> {
                     makeAnnotationDocuments={this.makeAnnotationDocument}
                     receiveAnnotations={this.sendAnnotations}
                     {...this.props} />
-            ));
-            let arr = Array.from(Array(numPages).keys()).map(() => false);
+            ) :
+                (<div key={`pdfviewer-placeholder-${i}`} className="pdfviewer-placeholder" style={{ width: this._pageSizes[i] ? this._pageSizes[i].width : 612 * scale, height: this._pageSizes[i] ? this._pageSizes[i].height : 792 * scale }} />)
+            );
+            let arr = Array.from(Array(numPages).keys()).map(i => i < 5);
             this._visibleElements.push(...divs);
             this._isPage.push(...arr);
         }
@@ -378,16 +387,16 @@ class Viewer extends React.Component<IViewerProps> {
 
     // get the page index that the vertical offset passed in is on
     getIndex = (vOffset: number) => {
-        if (this._loaded) {
-            let numPages = this.props.pdf ? this.props.pdf.numPages : 0;
-            let index = 0;
-            let currOffset = vOffset;
-            while (index < numPages && currOffset - this._pageSizes[index].height > 0) {
-                currOffset -= this._pageSizes[index].height;
-                index++;
-            }
-            return index;
+        // if (this._loaded) {
+        let numPages = this.props.pdf ? this.props.pdf.numPages : 0;
+        let index = 0;
+        let currOffset = vOffset;
+        while (index < numPages && currOffset - (this._pageSizes[index] ? this._pageSizes[index].height : 792 * scale) > 0) {
+            currOffset -= this._pageSizes[index].height;
+            index++;
         }
+        return index;
+        // }
         return 0;
     }
 

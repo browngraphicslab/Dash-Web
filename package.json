@@ -142,6 +142,7 @@
         "passport": "^0.4.0",
         "passport-local": "^1.0.0",
         "pdfjs-dist": "^2.0.943",
+        "probe-image-size": "^4.0.0",
         "prosemirror-commands": "^1.0.7",
         "prosemirror-example-setup": "^1.0.1",
         "prosemirror-history": "^1.0.4",
