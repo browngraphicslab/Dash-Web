@@ -71,6 +71,7 @@ class TreeView extends React.Component<TreeViewProps> {
     @action onMouseLeave = () => { this._isOver = false; }
 
     onPointerEnter = (e: React.PointerEvent): void => {
+        console.log("ENTER =  " + this.props.document.title);
         this.props.active() && (this.props.document.libraryBrush = true);
         if (e.buttons === 1) {
             this._header!.current!.className = "treeViewItem-header";
@@ -90,9 +91,9 @@ class TreeView extends React.Component<TreeViewProps> {
         let before = x[1] < bounds[1];
         let inside = x[0] > bounds[0] + 75 || (!before && this._bulletType === BulletType.Collapsible);
         this._header!.current!.className = "treeViewItem-header"
-        if (inside && this._bulletType != BulletType.List) this._header!.current!.className = "treeViewItem-header-inside";
-        else if (before) this._header!.current!.className = "treeViewItem-header-above";
-        else if (!before) this._header!.current!.className = "treeViewItem-header-below";
+        if (inside && this._bulletType != BulletType.List) this._header!.current!.className += " treeViewItem-header-inside";
+        else if (before) this._header!.current!.className += " treeViewItem-header-above";
+        else if (!before) this._header!.current!.className += " treeViewItem-header-below";
         e.stopPropagation();
     }
     onPointerDown = (e: React.PointerEvent) => {
