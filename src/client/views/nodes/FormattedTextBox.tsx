@@ -8,10 +8,10 @@ import { keymap } from "prosemirror-keymap";
 import { NodeType } from 'prosemirror-model';
 import { EditorState, Plugin, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { Doc, Opt } from "../../../new_fields/Doc";
+import { Doc, Opt, DocListCast } from "../../../new_fields/Doc";
 import { Id } from '../../../new_fields/FieldSymbols';
 import { RichTextField } from "../../../new_fields/RichTextField";
-import { createSchema, makeInterface } from "../../../new_fields/Schema";
+import { createSchema, makeInterface, listSpec } from "../../../new_fields/Schema";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { DocServer } from "../../DocServer";
 import { Docs } from '../../documents/Documents';
@@ -30,6 +30,8 @@ import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import React = require("react");
+import { List } from '../../../new_fields/List';
+import { Templates } from '../Templates';
 
 library.add(faEdit);
 library.add(faSmile);
@@ -139,6 +141,28 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             let model: NodeType = (url.includes(".mov") || url.includes(".mp4")) ? schema.nodes.video : schema.nodes.image;
             this._editorView!.dispatch(this._editorView!.state.tr.insert(0, model.create({ src: url })));
             e.stopPropagation();
+        } else {
+            if (de.data instanceof DragManager.DocumentDragData) {
+                let ldocs = Cast(this.props.Document.subBulletDocs, listSpec(Doc));
+                if (!ldocs) {
+                    this.props.Document.subBulletDocs = new List<Doc>([]);
+                }
+                ldocs = Cast(this.props.Document.subBulletDocs, listSpec(Doc));
+                if (!ldocs) return;
+                if (!ldocs || !ldocs[0] || ldocs[0] instanceof Promise || StrCast((ldocs[0] as Doc).layout).indexOf("CollectionView") === -1) {
+                    ldocs.splice(0, 0, Docs.StackingDocument([], { title: StrCast(this.props.Document.title) + "-subBullets", x: NumCast(this.props.Document.x), y: NumCast(this.props.Document.y) + NumCast(this.props.Document.height), width: 300, height: 300 }));
+                    this.props.addDocument && this.props.addDocument(ldocs[0] as Doc);
+                    this.props.Document.templates = new List<string>([Templates.Bullet.Layout]);
+                    this.props.Document.isBullet = true;
+                }
+                let stackDoc = (ldocs[0] as Doc);
+                if (de.data.moveDocument) {
+                    de.data.moveDocument(de.data.draggedDocuments[0], stackDoc, (doc) => {
+                        Cast(stackDoc.data, listSpec(Doc))!.push(doc);
+                        return true;
+                    })
+                }
+            }
         }
     }
 
