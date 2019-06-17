@@ -90,9 +90,9 @@ class TreeView extends React.Component<TreeViewProps> {
         let before = x[1] < bounds[1];
         let inside = x[0] > bounds[0] + 75 || (!before && this._bulletType === BulletType.Collapsible);
         this._header!.current!.className = "treeViewItem-header"
-        if (inside && this._bulletType != BulletType.List) this._header!.current!.className = "treeViewItem-header-inside";
-        else if (before) this._header!.current!.className = "treeViewItem-header-above";
-        else if (!before) this._header!.current!.className = "treeViewItem-header-below";
+        if (inside && this._bulletType != BulletType.List) this._header!.current!.className += " treeViewItem-header-inside";
+        else if (before) this._header!.current!.className += " treeViewItem-header-above";
+        else if (!before) this._header!.current!.className += " treeViewItem-header-below";
         e.stopPropagation();
     }
     onPointerDown = (e: React.PointerEvent) => {
@@ -149,7 +149,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 <FontAwesomeIcon icon="angle-right" size="lg" />
                 {/* <FontAwesomeIcon icon="angle-right" size="lg" /> */}
             </div>);
-        return (
+        return <>
             <div className="docContainer" id={`docContainer-${this.props.parentKey}`} ref={reference} onPointerDown={onItemDown} onMouseEnter={this.onMouseEnter} onMouseLeave={this.onMouseLeave}
                 style={{
                     background: BoolCast(this.props.document.protoBrush, false) ? "#06123232" : BoolCast(this.props.document.libraryBrush, false) ? "#06121212" : "0",
@@ -157,9 +157,10 @@ class TreeView extends React.Component<TreeViewProps> {
                 }}
             >
                 {editableView(StrCast(this.props.document.title))}
-                {openRight}
                 {/* {<div className="delete-button" onClick={this.delete}><FontAwesomeIcon icon="trash-alt" size="xs" /></div>} */}
-            </div >);
+            </div >
+            {openRight}
+        </>;
     }
 
     onWorkspaceContextMenu = (e: React.MouseEvent): void => {
@@ -229,17 +230,20 @@ class TreeView extends React.Component<TreeViewProps> {
             keys.push(...Array.from(Object.keys(this.props.document.proto)));
             while (keys.indexOf("proto") !== -1) keys.splice(keys.indexOf("proto"), 1);
         }
+        if (keys.indexOf("data") !== -1) {
+            keys.splice(keys.indexOf("data"), 1);
+            keys.splice(0, 0, "data");
+        }
         keys.map(key => {
             let docList = Cast(this.props.document[key], listSpec(Doc));
             let remDoc = (doc: Doc) => this.remove(doc, key);
             let addDoc = (doc: Doc, addBefore?: Doc, before?: boolean) => TreeView.AddDocToList(this.props.document, key, doc, addBefore, before);
             let doc = Cast(this.props.document[key], Doc);
-            if (doc instanceof Doc || docList) {
+            if (doc instanceof Doc || (docList && (DocListCast(docList).length > 0 || key === "data"))) {
                 if (!this._collapsed) {
                     bulletType = BulletType.Collapsible;
                     contentElement.push(<ul key={key + "more"}>
-                        {(key === "data") ? (null) :
-                            <span className="collectionTreeView-keyHeader" style={{ display: "block", marginTop: "7px" }} key={key}>{key}</span>}
+                        <span className="collectionTreeView-keyHeader" style={{ display: "block", marginTop: "7px" }} key={key}>{key}</span>
                         <div style={{ display: "block" }}>
                             {TreeView.GetChildElements(doc instanceof Doc ? [doc] : DocListCast(docList), this.props.treeViewId, key, addDoc, remDoc, this.move,
                                 this.props.dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.props.active)}
