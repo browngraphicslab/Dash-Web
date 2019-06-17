@@ -98,7 +98,7 @@ export namespace Docs {
             // non-guid string ids for each document prototype
             let protoIds = [textProtoId, histoProtoId, collProtoId, imageProtoId, webProtoId, kvpProtoId, videoProtoId, audioProtoId, pdfProtoId, iconProtoId]
             // fetch the actual prototype documents from the server
-            let actualProtos = await DocServer.GetRefFields(protoIds);
+            let actualProtos = await DocServer.getRefFields(protoIds);
 
             // initialize prototype documents
             textProto = actualProtos[textProtoId] as Doc || CreateTextProto();
@@ -363,7 +363,7 @@ export namespace Docs {
                 CurrentUserUtils.AddNorthstarSchema(schema, schemaDoc);
                 const docs = schemaDocuments;
                 CurrentUserUtils.GetAllNorthstarColumnAttributes(schema).map(attr => {
-                    DocServer.GetRefField(attr.displayName! + ".alias").then(action((field: Opt<Field>) => {
+                    DocServer.getRefField(attr.displayName! + ".alias").then(action((field: Opt<Field>) => {
                         if (field instanceof Doc) {
                             docs.push(field);
                         } else {

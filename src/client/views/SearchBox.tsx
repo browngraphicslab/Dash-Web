@@ -56,13 +56,13 @@ export class SearchBox extends React.Component {
 
     @action
     getResults = async (query: string) => {
-        let response = await rp.get(DocServer.prepend('/search'), {
+        let response = await rp.get(DocServer.Util.prepend('/search'), {
             qs: {
                 query
             }
         });
         let res: string[] = JSON.parse(response);
-        const fields = await DocServer.GetRefFields(res);
+        const fields = await DocServer.getRefFields(res);
         const docs: Doc[] = [];
         for (const id of res) {
             const field = fields[id];
@@ -74,7 +74,7 @@ export class SearchBox extends React.Component {
     }
     public static async convertDataUri(imageUri: string, returnedFilename: string) {
         try {
-            let posting = DocServer.prepend(RouteStore.dataUriToImage);
+            let posting = DocServer.Util.prepend(RouteStore.dataUriToImage);
             const returnedUri = await rp.post(posting, {
                 body: {
                     uri: imageUri,

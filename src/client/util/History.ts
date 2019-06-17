@@ -88,7 +88,7 @@ export namespace HistoryUtil {
     }
 
     export function createUrl(params: ParsedUrl): string {
-        let baseUrl = DocServer.prepend(`/${params.type}`);
+        let baseUrl = DocServer.Util.prepend(`/${params.type}`);
         switch (params.type) {
             case "doc":
                 const initializers = encodeURIComponent(JSON.stringify(params.initializers));
@@ -103,7 +103,7 @@ export namespace HistoryUtil {
     }
 
     export async function initDoc(id: string, initializer: DocInitializerList) {
-        const doc = await DocServer.GetRefField(id);
+        const doc = await DocServer.getRefField(id);
         if (!(doc instanceof Doc)) {
             return;
         }
@@ -111,7 +111,7 @@ export namespace HistoryUtil {
     }
 
     async function onDocUrl(url: DocUrl) {
-        const field = await DocServer.GetRefField(url.docId);
+        const field = await DocServer.getRefField(url.docId);
         await Promise.all(Object.keys(url.initializers).map(id => initDoc(id, url.initializers[id])));
         if (field instanceof Doc) {
             MainView.Instance.openWorkspace(field, true);

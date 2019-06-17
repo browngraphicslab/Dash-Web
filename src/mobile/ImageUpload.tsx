@@ -57,11 +57,11 @@ class Uploader extends React.Component {
 
                         this.status = "getting user document";
 
-                        const res = await rp.get(DocServer.prepend(RouteStore.getUserDocumentId));
+                        const res = await rp.get(DocServer.Util.prepend(RouteStore.getUserDocumentId));
                         if (!res) {
                             throw new Error("No user id returned");
                         }
-                        const field = await DocServer.GetRefField(res);
+                        const field = await DocServer.getRefField(res);
                         let pending: Opt<Doc>;
                         if (field instanceof Doc) {
                             pending = await Cast(field.optionalRightCollection, Doc);

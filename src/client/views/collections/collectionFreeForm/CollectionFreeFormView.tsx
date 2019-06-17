@@ -235,8 +235,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             e.preventDefault();
             let start = html.indexOf(window.location.origin);
             let path = html.substr(start, html.length - start);
-            let docid = path.substr(0, path.indexOf("\">")).replace(DocServer.prepend("/doc/"), "").split("?")[0];
-            DocServer.GetRefField(docid).then(f => {
+            let docid = path.substr(0, path.indexOf("\">")).replace(DocServer.Util.prepend("/doc/"), "").split("?")[0];
+            DocServer.getRefField(docid).then(f => {
                 if (f instanceof Doc) {
                     f.x = pt[0];
                     f.y = pt[1];

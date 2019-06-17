@@ -40,7 +40,7 @@ export class CurrentUserUtils {
     }
 
     public static async loadCurrentUser(): Promise<any> {
-        let userPromise = rp.get(DocServer.prepend(RouteStore.getCurrUser)).then(response => {
+        let userPromise = rp.get(DocServer.Util.prepend(RouteStore.getCurrUser)).then(response => {
             if (response) {
                 let obj = JSON.parse(response);
                 CurrentUserUtils.curr_id = obj.id as string;
@@ -49,9 +49,9 @@ export class CurrentUserUtils {
                 throw new Error("There should be a user! Why does Dash think there isn't one?");
             }
         });
-        let userDocPromise = await rp.get(DocServer.prepend(RouteStore.getUserDocumentId)).then(id => {
+        let userDocPromise = await rp.get(DocServer.Util.prepend(RouteStore.getUserDocumentId)).then(id => {
             if (id) {
-                return DocServer.GetRefField(id).then(field =>
+                return DocServer.getRefField(id).then(field =>
                     runInAction(() => this.user_document = field instanceof Doc ? field : this.createUserDocument(id)));
             } else {
                 throw new Error("There should be a user id! Why does Dash think there isn't one?");

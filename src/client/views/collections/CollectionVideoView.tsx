@@ -97,7 +97,7 @@ export class CollectionVideoView extends React.Component<FieldViewProps> {
                 let filename = encodeURIComponent("snapshot" + this.props.Document.title + "_" + this.props.Document.curPage).replace(/\./g, "");
                 SearchBox.convertDataUri(dataUrl, filename).then((returnedFilename) => {
                     if (returnedFilename) {
-                        let url = DocServer.prepend(returnedFilename);
+                        let url = DocServer.Util.prepend(returnedFilename);
                         let imageSummary = Docs.Create.ImageDocument(url, {
                             x: NumCast(this.props.Document.x) + width, y: NumCast(this.props.Document.y),
                             width: 150, height: height / width * 150, title: "--snapshot" + NumCast(this.props.Document.curPage) + " image-"

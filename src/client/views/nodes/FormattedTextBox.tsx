@@ -237,9 +237,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 href = parent.childNodes[0].href;
             }
             if (href) {
-                if (href.indexOf(DocServer.prepend("/doc/")) === 0) {
-                    let docid = href.replace(DocServer.prepend("/doc/"), "").split("?")[0];
-                    DocServer.GetRefField(docid).then(f => {
+                if (href.indexOf(DocServer.Util.prepend("/doc/")) === 0) {
+                    let docid = href.replace(DocServer.Util.prepend("/doc/"), "").split("?")[0];
+                    DocServer.getRefField(docid).then(f => {
                         (f instanceof Doc) && DocumentManager.Instance.jumpToDocument(f, ctrlKey, document => this.props.addDocTab(document, "inTab"))
                     });
                 }

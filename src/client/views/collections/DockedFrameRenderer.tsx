@@ -42,7 +42,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
     constructor(props: any) {
         super(props);
-        DocServer.GetRefField(this.props.documentId).then(action((f: Opt<Field>) => this._document = f as Doc));
+        DocServer.getRefField(this.props.documentId).then(action((f: Opt<Field>) => this._document = f as Doc));
     }
 
     nativeWidth = () => NumCast(this._document!.nativeWidth, this._panelWidth);

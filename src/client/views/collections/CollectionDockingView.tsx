@@ -306,7 +306,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             let y = e.clientY;
             let docid = (e.target as any).DashDocId;
             let tab = (e.target as any).parentElement as HTMLElement;
-            DocServer.GetRefField(docid).then(action(async (sourceDoc: Opt<Field>) =>
+            DocServer.getRefField(docid).then(action(async (sourceDoc: Opt<Field>) =>
                 (sourceDoc instanceof Doc) && DragLinksAsDocuments(tab, x, y, sourceDoc)));
         } else
             if ((className === "lm_title" || className === "lm_tab lm_active") && !e.shiftKey) {
@@ -320,7 +320,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 if (glTab && glTab.contentItem && glTab.contentItem.parent) {
                     glTab.contentItem.parent.setActiveContentItem(glTab.contentItem);
                 }
-                DocServer.GetRefField(docid).then(action((f: Opt<Field>) => {
+                DocServer.getRefField(docid).then(action((f: Opt<Field>) => {
                     if (f instanceof Doc) {
                         DragManager.StartDocumentDrag([tab], new DragManager.DocumentDragData([f]), x, y,
                             {
@@ -372,7 +372,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             if (tab.contentItem.config.fixed) {
                 tab.contentItem.parent.config.fixed = true;
             }
-            DocServer.GetRefField(tab.contentItem.config.props.documentId).then(async doc => {
+            DocServer.getRefField(tab.contentItem.config.props.documentId).then(async doc => {
                 if (doc instanceof Doc) {
                     let counter: any = this.htmlToElement(`<span class="messageCounter">0</div>`);
                     tab.element.append(counter);
@@ -409,7 +409,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 if (tab.reactionDisposer) {
                     tab.reactionDisposer();
                 }
-                let doc = await DocServer.GetRefField(tab.contentItem.config.props.documentId);
+                let doc = await DocServer.getRefField(tab.contentItem.config.props.documentId);
                 if (doc instanceof Doc) {
                     let theDoc = doc;
                     CollectionDockingView.TopLevel._removedDocs.push(theDoc);
@@ -434,7 +434,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 //if (confirm('really close this?')) {
                 stack.remove();
                 stack.contentItems.map(async (contentItem: any) => {
-                    let doc = await DocServer.GetRefField(contentItem.config.props.documentId);
+                    let doc = await DocServer.getRefField(contentItem.config.props.documentId);
                     if (doc instanceof Doc) {
                         let theDoc = doc;
                         CollectionDockingView.TopLevel._removedDocs.push(theDoc);

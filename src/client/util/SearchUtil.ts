@@ -7,13 +7,13 @@ export namespace SearchUtil {
     export function Search(query: string, returnDocs: true): Promise<Doc[]>;
     export function Search(query: string, returnDocs: false): Promise<string[]>;
     export async function Search(query: string, returnDocs: boolean) {
-        const ids = JSON.parse(await rp.get(DocServer.prepend("/search"), {
+        const ids = JSON.parse(await rp.get(DocServer.Util.prepend("/search"), {
             qs: { query }
         }));
         if (!returnDocs) {
             return ids;
         }
-        const docMap = await DocServer.GetRefFields(ids);
+        const docMap = await DocServer.getRefFields(ids);
         return ids.map((id: string) => docMap[id]).filter((doc: any) => doc instanceof Doc);
     }
 

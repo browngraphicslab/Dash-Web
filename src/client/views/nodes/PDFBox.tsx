@@ -257,7 +257,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
                 .then(action((dataUrl: string) => {
                     SearchBox.convertDataUri(dataUrl, "icon" + this.Document[Id] + "_" + this.curPage).then((returnedFilename) => {
                         if (returnedFilename) {
-                            let url = DocServer.prepend(returnedFilename);
+                            let url = DocServer.Util.prepend(returnedFilename);
                             this.props.Document.thumbnail = new ImageField(new URL(url));
                         }
                         runInAction(() => this._renderAsSvg = true);

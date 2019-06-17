@@ -187,9 +187,9 @@ export class TooltipTextMenu {
                 let link = node && node.marks.find(m => m.type.name === "link");
                 if (link) {
                     let href: string = link.attrs.href;
-                    if (href.indexOf(DocServer.prepend("/doc/")) === 0) {
-                        let docid = href.replace(DocServer.prepend("/doc/"), "");
-                        DocServer.GetRefField(docid).then(action((f: Opt<Field>) => {
+                    if (href.indexOf(DocServer.Util.prepend("/doc/")) === 0) {
+                        let docid = href.replace(DocServer.Util.prepend("/doc/"), "");
+                        DocServer.getRefField(docid).then(action((f: Opt<Field>) => {
                             if (f instanceof Doc) {
                                 if (DocumentManager.Instance.getDocumentView(f)) {
                                     DocumentManager.Instance.getDocumentView(f)!.props.focus(f);
@@ -218,7 +218,7 @@ export class TooltipTextMenu {
                         handlers: {
                             dragComplete: action(() => {
                                 let m = dragData.droppedDocuments;
-                                this.makeLink(DocServer.prepend("/doc/" + m[0][Id]));
+                                this.makeLink(DocServer.Util.prepend("/doc/" + m[0][Id]));
                             }),
                         },
                         hideSource: false

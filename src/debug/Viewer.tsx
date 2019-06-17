@@ -146,7 +146,7 @@ class Viewer extends React.Component {
     @action
     onKeyPress = (e: React.KeyboardEvent<HTMLDivElement>) => {
         if (e.key === "Enter") {
-            DocServer.GetRefField(this.idToAdd).then(action((field: any) => {
+            DocServer.getRefField(this.idToAdd).then(action((field: any) => {
                 if (field !== undefined) {
                     this.fields.push(field);
                 }

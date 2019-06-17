@@ -57,7 +57,7 @@ export class ProxyField<T extends RefField> extends ObjectField {
             return undefined;
         }
         if (!this.promise) {
-            this.promise = DocServer.GetRefField(this.fieldId).then(action((field: any) => {
+            this.promise = DocServer.getRefField(this.fieldId).then(action((field: any) => {
                 this.promise = undefined;
                 this.cache = field;
                 if (field === undefined) this.failed = true;

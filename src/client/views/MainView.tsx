@@ -76,11 +76,11 @@ export class MainView extends React.Component {
         // causes errors to be generated when modifying an observable outside of an action
         configure({ enforceActions: "observed" });
         if (window.location.search.includes("readonly")) {
-            DocServer.makeReadOnly();
+            DocServer.Util.makeReadOnly();
         }
         if (window.location.search.includes("safe")) {
             if (!window.location.search.includes("nro")) {
-                DocServer.makeReadOnly();
+                DocServer.Util.makeReadOnly();
             }
             CollectionBaseView.SetSafeMode(true);
         }
@@ -141,7 +141,7 @@ export class MainView extends React.Component {
                 this.createNewWorkspace();
             }
         } else {
-            DocServer.GetRefField(CurrentUserUtils.MainDocId).then(field =>
+            DocServer.getRefField(CurrentUserUtils.MainDocId).then(field =>
                 field instanceof Doc ? this.openWorkspace(field) :
                     this.createNewWorkspace(CurrentUserUtils.MainDocId));
         }
@@ -294,7 +294,7 @@ export class MainView extends React.Component {
         let logoutRef = React.createRef<HTMLDivElement>();
 
         return [
-            <button className="clear-db-button" key="clear-db" onClick={e => e.shiftKey && e.altKey && DocServer.DeleteDatabase()}>Clear Database</button>,
+            <button className="clear-db-button" key="clear-db" onClick={e => e.shiftKey && e.altKey && DocServer.Util.deleteDatabase()}>Clear Database</button>,
             <div id="toolbar" key="toolbar">
                 <div ref={notifsRef}>
                     <button className="toolbar-button round-button" title="Notifs"
@@ -312,7 +312,7 @@ export class MainView extends React.Component {
             </div >,
             this.isSearchVisible ? <div className="main-searchDiv" key="search" style={{ top: '34px', right: '1px', position: 'absolute' }} > <SearchBox /> </div> : null,
             <div className="main-buttonDiv" key="logout" style={{ bottom: '0px', right: '1px', position: 'absolute' }} ref={logoutRef}>
-                <button onClick={() => request.get(DocServer.prepend(RouteStore.logout), emptyFunction)}>Log Out</button></div>
+                <button onClick={() => request.get(DocServer.Util.prepend(RouteStore.logout), emptyFunction)}>Log Out</button></div>
         ];
 
     }

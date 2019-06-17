@@ -133,7 +133,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 if (path.includes(window.location.hostname)) {
                     let s = path.split('/');
                     let id = s[s.length - 1];
-                    DocServer.GetRefField(id).then(field => {
+                    DocServer.getRefField(id).then(field => {
                         if (field instanceof Doc) {
                             let alias = Doc.MakeAlias(field);
                             alias.x = options.x || 0;
@@ -170,8 +170,8 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             if (html && html.indexOf(document.location.origin)) { // prosemirror text containing link to dash document
                 let start = html.indexOf(window.location.origin);
                 let path = html.substr(start, html.length - start);
-                let docid = path.substr(0, path.indexOf("\">")).replace(DocServer.prepend("/doc/"), "").split("?")[0];
-                DocServer.GetRefField(docid).then(f => (f instanceof Doc) && this.props.addDocument(f, false));
+                let docid = path.substr(0, path.indexOf("\">")).replace(DocServer.Util.prepend("/doc/"), "").split("?")[0];
+                DocServer.getRefField(docid).then(f => (f instanceof Doc) && this.props.addDocument(f, false));
                 return;
             }
             if (html && html.indexOf("<img") !== 0 && !html.startsWith("<a")) {
@@ -194,7 +194,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 if (item.kind === "string" && item.type.indexOf("uri") !== -1) {
                     let str: string;
                     let prom = new Promise<string>(resolve => e.dataTransfer.items[i].getAsString(resolve))
-                        .then(action((s: string) => rp.head(DocServer.prepend(RouteStore.corsProxy + "/" + (str = s)))))
+                        .then(action((s: string) => rp.head(DocServer.Util.prepend(RouteStore.corsProxy + "/" + (str = s)))))
                         .then(result => {
                             let type = result["content-type"];
                             if (type) {

@@ -97,7 +97,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
             };
             try {
                 let responseSchema: any = {};
-                const videoInfoResponse = await rp.get(DocServer.prepend(RouteStore.corsProxy + "/" + `https://www.youtube.com/watch?v=${videoId}`), videoInfoRequestConfig);
+                const videoInfoResponse = await rp.get(DocServer.Util.prepend(RouteStore.corsProxy + "/" + `https://www.youtube.com/watch?v=${videoId}`), videoInfoRequestConfig);
                 const dataHtml = videoInfoResponse;
                 const start = dataHtml.indexOf('ytplayer.config = ') + 18;
                 const end = dataHtml.indexOf(';ytplayer.load');

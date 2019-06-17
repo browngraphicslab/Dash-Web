@@ -306,7 +306,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     let summary = Docs.Create.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
                     SearchBox.convertDataUri(dataUrl, "icon" + summary[Id] + "_image").then((returnedFilename) => {
                         if (returnedFilename) {
-                            let url = DocServer.prepend(returnedFilename);
+                            let url = DocServer.Util.prepend(returnedFilename);
                             let imageSummary = Docs.Create.ImageDocument(url, {
                                 x: bounds.left, y: bounds.top + 100 / zoomBasis,
                                 width: 150, height: bounds.height / bounds.width * 150, title: "-summary image-"
