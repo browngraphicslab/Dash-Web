@@ -18,7 +18,7 @@ export default class PDFMenu extends React.Component {
     @observable private _pinned: boolean = false;
 
     StartDrag: (e: PointerEvent) => void = emptyFunction;
-    Highlight: (d: Doc | undefined) => void = emptyFunction;
+    Highlight: (d: Doc | undefined, color: string | undefined) => void = emptyFunction;
     @observable Highlighting: boolean = false;
 
     private _timeout: NodeJS.Timeout | undefined;
@@ -129,11 +129,11 @@ export default class PDFMenu extends React.Component {
     @action
     highlightClicked = (e: React.MouseEvent) => {
         if (!this._pinned) {
-            this.Highlight(undefined);
+            this.Highlight(undefined, "#f4f442");
         }
         else {
             this.Highlighting = !this.Highlighting;
-            this.Highlight(undefined);
+            this.Highlight(undefined, "#f4f442");
         }
     }
 

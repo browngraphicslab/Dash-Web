@@ -23,6 +23,7 @@ import { Dictionary } from "typescript-collections";
 import * as rp from "request-promise";
 import { restProperty } from "babel-types";
 import { DocServer } from "../../DocServer";
+import { number } from "prop-types";
 
 export const scale = 2;
 interface IPDFViewerProps {
@@ -141,8 +142,31 @@ class Viewer extends React.Component<IViewerProps> {
 
         setTimeout(() => {
             // this.renderPages(this.startIndex, this.endIndex, true);
-            this.saveThumbnail();
+            this.initialLoad();
         }, 1000);
+    }
+
+    @action
+    initialLoad = () => {
+        let pdf = this.props.pdf;
+        if (pdf) {
+            this._pageSizes = Array<{ width: number, height: number }>(pdf.numPages);
+            let rendered = 0;
+            for (let i = 0; i < pdf.numPages; i++) {
+                pdf.getPage(i + 1).then(
+                    (page: Pdfjs.PDFPageProxy) => {
+                        runInAction(() => {
+                            this._pageSizes[i] = { width: page.view[2] * scale, height: page.view[3] * scale };
+                        });
+                        console.log(`page ${i} size retreieved`);
+                        rendered++;
+                        if (rendered === pdf!.numPages - 1) {
+                            this.saveThumbnail();
+                        }
+                    }
+                );
+            }
+        }
     }
 
     private mainCont = (div: HTMLDivElement | null) => {
@@ -186,7 +210,7 @@ class Viewer extends React.Component<IViewerProps> {
     drop = async (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.LinkDragData) {
             let sourceDoc = de.data.linkSourceDocument;
-            let destDoc = this.makeAnnotationDocument(sourceDoc);
+            let destDoc = this.makeAnnotationDocument(sourceDoc, 1, "red");
             let targetAnnotations = DocListCast(this.props.parent.Document.annotations);
             if (targetAnnotations) {
                 targetAnnotations.push(destDoc);
@@ -392,7 +416,7 @@ class Viewer extends React.Component<IViewerProps> {
         let numPages = this.props.pdf ? this.props.pdf.numPages : 0;
         let index = 0;
         let currOffset = vOffset;
-        while (index < numPages && currOffset - (this._pageSizes[index] ? this._pageSizes[index].height : 792 * scale) > 0) {
+        while (index < this._pageSizes.length && currOffset - (this._pageSizes[index] ? this._pageSizes[index].height : 792 * scale) > 0) {
             currOffset -= this._pageSizes[index] ? this._pageSizes[index].height : this._pageSizes[0].height;
             index++;
         }

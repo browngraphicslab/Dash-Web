@@ -133,9 +133,9 @@ export default class Page extends React.Component<IPageProps> {
     }
 
     @action
-    highlight = (targetDoc?: Doc) => {
+    highlight = (targetDoc?: Doc, color: string = "red") => {
         // creates annotation documents for current highlights
-        let annotationDoc = this.props.makeAnnotationDocuments(targetDoc, scale, "#f4f442");
+        let annotationDoc = this.props.makeAnnotationDocuments(targetDoc, scale, color);
         let targetAnnotations = Cast(this.props.parent.Document.annotations, listSpec(Doc));
         if (targetAnnotations === undefined) {
             Doc.GetProto(this.props.parent.Document).annotations = new List([annotationDoc]);
@@ -162,7 +162,7 @@ export default class Page extends React.Component<IPageProps> {
         // document that this annotation is linked to
         let targetDoc = Docs.TextDocument({ width: 200, height: 200, title: "New Annotation" });
         targetDoc.targetPage = this.props.page;
-        let annotationDoc = this.highlight(targetDoc);
+        let annotationDoc = this.highlight(targetDoc, "red");
         // create dragData and star tdrag
         let dragData = new DragManager.AnnotationDragData(thisDoc, annotationDoc, targetDoc);
         if (this._textLayer.current) {
@@ -323,7 +323,7 @@ export default class Page extends React.Component<IPageProps> {
 
 
         if (PDFMenu.Instance.Highlighting) {
-            this.highlight(undefined);
+            this.highlight(undefined, "#f4f442");
         }
         else {
             PDFMenu.Instance.StartDrag = this.startDrag;
