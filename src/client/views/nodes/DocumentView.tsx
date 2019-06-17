@@ -158,7 +158,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     animateBetweenIcon = (iconPos: number[], startTime: number, maximizing: boolean) => {
         this.props.animateBetweenIcon ? this.props.animateBetweenIcon(iconPos, startTime, maximizing) :
             DocumentView.animateBetweenIconFunc(this.props.Document, this.Document[WidthSym](), this.Document[HeightSym](), startTime, maximizing);
-        Doc.GetProto(this.props.Document).willMaximize = false;
     }
 
     public static animateBetweenIconFunc = (doc: Doc, width: number, height: number, stime: number, maximizing: boolean, cb?: (progress: number) => void) => {
@@ -175,6 +174,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 Doc.GetProto(doc).isMinimized = !maximizing;
                 Doc.GetProto(doc).isIconAnimating = undefined;
             }
+            Doc.GetProto(doc).willMaximize = false;
         },
             2);
     }
