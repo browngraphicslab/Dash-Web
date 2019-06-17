@@ -23,6 +23,7 @@ import { FieldViewProps } from "./FieldView";
 import { Without, OmitKeys } from "../../../Utils";
 import { Cast, StrCast, NumCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
+import { PDFBox2 } from "../pdf/PDFBox2";
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 type BindingProps = Without<FieldViewProps, 'fieldKey'>;

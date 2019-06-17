@@ -25,6 +25,7 @@ import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import v5 = require("uuid/v5");
+import PDFMenu from "../../pdf/PDFMenu";
 
 export const panZoomSchema = createSchema({
     panX: "number",
@@ -80,30 +81,45 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @undoBatch
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
-        if (super.drop(e, de) && de.data instanceof DragManager.DocumentDragData) {
-            if (de.data.droppedDocuments.length) {
-                let dragDoc = de.data.droppedDocuments[0];
-                let zoom = NumCast(dragDoc.zoomBasis, 1);
-                let [xp, yp] = this.getTransform().transformPoint(de.x, de.y);
-                let x = xp - de.data.xOffset / zoom;
-                let y = yp - de.data.yOffset / zoom;
-                let dropX = NumCast(de.data.droppedDocuments[0].x);
-                let dropY = NumCast(de.data.droppedDocuments[0].y);
-                de.data.droppedDocuments.forEach(d => {
-                    d.x = x + NumCast(d.x) - dropX;
-                    d.y = y + NumCast(d.y) - dropY;
-                    if (!NumCast(d.width)) {
-                        d.width = 300;
-                    }
-                    if (!NumCast(d.height)) {
-                        let nw = NumCast(d.nativeWidth);
-                        let nh = NumCast(d.nativeHeight);
-                        d.height = nw && nh ? nh / nw * NumCast(d.width) : 300;
-                    }
-                    this.bringToFront(d);
-                });
+        if (super.drop(e, de)) {
+            if (de.data instanceof DragManager.DocumentDragData) {
+                if (de.data.droppedDocuments.length) {
+                    let dragDoc = de.data.droppedDocuments[0];
+                    let zoom = NumCast(dragDoc.zoomBasis, 1);
+                    let [xp, yp] = this.getTransform().transformPoint(de.x, de.y);
+                    let x = xp - de.data.xOffset / zoom;
+                    let y = yp - de.data.yOffset / zoom;
+                    let dropX = NumCast(de.data.droppedDocuments[0].x);
+                    let dropY = NumCast(de.data.droppedDocuments[0].y);
+                    de.data.droppedDocuments.forEach(d => {
+                        d.x = x + NumCast(d.x) - dropX;
+                        d.y = y + NumCast(d.y) - dropY;
+                        if (!NumCast(d.width)) {
+                            d.width = 300;
+                        }
+                        if (!NumCast(d.height)) {
+                            let nw = NumCast(d.nativeWidth);
+                            let nh = NumCast(d.nativeHeight);
+                            d.height = nw && nh ? nh / nw * NumCast(d.width) : 300;
+                        }
+                        this.bringToFront(d);
+                    });
+                }
             }
-            return true;
+            else if (de.data instanceof DragManager.AnnotationDragData) {
+                if (de.data.dropDocument) {
+                    let dragDoc = de.data.dropDocument;
+                    let zoom = NumCast(dragDoc.zoomBasis, 1);
+                    let [xp, yp] = this.getTransform().transformPoint(de.x, de.y);
+                    let x = xp - de.data.xOffset / zoom;
+                    let y = yp - de.data.yOffset / zoom;
+                    let dropX = NumCast(de.data.dropDocument.x);
+                    let dropY = NumCast(de.data.dropDocument.y);
+                    dragDoc.x = x + NumCast(dragDoc.x) - dropX;
+                    dragDoc.y = y + NumCast(dragDoc.y) - dropY;
+                    this.bringToFront(dragDoc);
+                }
+            }
         }
         return false;
     }
@@ -133,6 +149,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             let docs = this.childDocs || [];
             let [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
             if (!this.isAnnotationOverlay) {
+                PDFMenu.Instance.fadeOut(true);
                 let minx = docs.length ? NumCast(docs[0].x) : 0;
                 let maxx = docs.length ? NumCast(docs[0].width) / NumCast(docs[0].zoomBasis, 1) + minx : minx;
                 let miny = docs.length ? NumCast(docs[0].y) : 0;

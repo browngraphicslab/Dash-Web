@@ -8,13 +8,15 @@ import { keymap } from "prosemirror-keymap";
 import { NodeType } from 'prosemirror-model';
 import { EditorState, Plugin, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { Doc, Opt, DocListCast } from "../../../new_fields/Doc";
+import { Doc, Opt } from "../../../new_fields/Doc";
 import { Id } from '../../../new_fields/FieldSymbols';
+import { List } from '../../../new_fields/List';
 import { RichTextField } from "../../../new_fields/RichTextField";
-import { createSchema, makeInterface, listSpec } from "../../../new_fields/Schema";
+import { createSchema, listSpec, makeInterface } from "../../../new_fields/Schema";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { DocServer } from "../../DocServer";
 import { Docs } from '../../documents/Documents';
+import { DocumentManager } from '../../util/DocumentManager';
 import { DragManager } from "../../util/DragManager";
 import buildKeymap from "../../util/ProsemirrorExampleTransfer";
 import { inpRules } from "../../util/RichTextRules";
@@ -27,11 +29,10 @@ import { ContextMenu } from "../../views/ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
 import { DocComponent } from "../DocComponent";
 import { InkingControl } from "../InkingControl";
+import { Templates } from '../Templates';
 import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import React = require("react");
-import { List } from '../../../new_fields/List';
-import { Templates } from '../Templates';
 
 library.add(faEdit);
 library.add(faSmile);
@@ -265,6 +266,13 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             if (href) {
                 if (href.indexOf(DocServer.prepend("/doc/")) === 0) {
                     this._linkClicked = href.replace(DocServer.prepend("/doc/"), "").split("?")[0];
+                    if (this._linkClicked) {
+                        DocServer.GetRefField(this._linkClicked).then(f => {
+                            (f instanceof Doc) && DocumentManager.Instance.jumpToDocument(f, ctrlKey, document => this.props.addDocTab(document, "inTab"));
+                        });
+                        e.stopPropagation();
+                        e.preventDefault();
+                    }
                 } else {
                     let webDoc = Docs.WebDocument(href, { x: NumCast(this.props.Document.x, 0) + NumCast(this.props.Document.width, 0), y: NumCast(this.props.Document.y) });
                     this.props.addDocument && this.props.addDocument(webDoc);
@@ -307,6 +315,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     onClick = (e: React.MouseEvent): void => {
         this._proseRef!.focus();
         if (this._linkClicked) {
+            this._linkClicked = "";
             e.preventDefault();
             e.stopPropagation();
         }

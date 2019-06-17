@@ -157,6 +157,22 @@ export namespace DragManager {
         [id: string]: any;
     }
 
+    export class AnnotationDragData {
+        constructor(dragDoc: Doc, annotationDoc: Doc, dropDoc: Doc) {
+            this.dragDocument = dragDoc;
+            this.dropDocument = dropDoc;
+            this.annotationDocument = annotationDoc;
+            this.xOffset = this.yOffset = 0;
+        }
+        dragDocument: Doc;
+        annotationDocument: Doc;
+        dropDocument: Doc;
+        xOffset: number;
+        yOffset: number;
+        dropAction: dropActionType;
+        userDropAction: dropActionType;
+    }
+
     export let StartDragFunctions: (() => void)[] = [];
 
     export function StartDocumentDrag(eles: HTMLElement[], dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
@@ -168,6 +184,10 @@ export namespace DragManager {
                     dragData.userDropAction === "copy" || (!dragData.userDropAction && dragData.dropAction === "copy") ?
                         dragData.draggedDocuments.map(d => Doc.MakeCopy(d, true)) :
                         dragData.draggedDocuments));
+    }
+
+    export function StartAnnotationDrag(eles: HTMLElement[], dragData: AnnotationDragData, downX: number, downY: number, options?: DragOptions) {
+        StartDrag(eles, dragData, downX, downY, options);
     }
 
     export class LinkDragData {
@@ -217,7 +237,7 @@ export namespace DragManager {
         let ys: number[] = [];
 
         const docs: Doc[] =
-            dragData instanceof DocumentDragData ? dragData.draggedDocuments : [];
+            dragData instanceof DocumentDragData ? dragData.draggedDocuments : dragData instanceof AnnotationDragData ? [dragData.dragDocument] : [];
         let dragElements = eles.map(ele => {
             const w = ele.offsetWidth,
                 h = ele.offsetHeight;
