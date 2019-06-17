@@ -416,20 +416,6 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
     onPreviewScriptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         this.props.setPreviewScript(e.currentTarget.value);
     }
-    @undoBatch
-    @action
-    public collapseToPoint = (scrpt: number[], expandedDocs: Doc[] | undefined): void => {
-        SelectionManager.DeselectAll();
-        if (expandedDocs) {
-            let isMinimized: boolean | undefined;
-            expandedDocs.map(d => Doc.GetProto(d)).map(maximizedDoc => {
-                if (isMinimized === undefined) {
-                    isMinimized = BoolCast(maximizedDoc.isMinimized, false);
-                }
-                maximizedDoc.isMinimized = !isMinimized;
-            });
-        }
-    }
     render() {
         let input = this.props.previewScript === undefined ? (null) :
             <input className="collectionSchemaView-input" value={this.props.previewScript} onChange={this.onPreviewScriptChange}
@@ -448,7 +434,6 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
                         whenActiveChanged={this.props.whenActiveChanged}
                         bringToFront={emptyFunction}
                         addDocTab={this.props.addDocTab}
-                        collapseToPoint={this.collapseToPoint}
                     />
                 </div>)}
             {input}

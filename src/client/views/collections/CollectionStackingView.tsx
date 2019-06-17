@@ -1,17 +1,15 @@
 import React = require("react");
-import { action, computed, IReactionDisposer, reaction, trace } from "mobx";
+import { action, computed, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, HeightSym, WidthSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { BoolCast, NumCast } from "../../../new_fields/Types";
 import { emptyFunction, returnOne, Utils } from "../../../Utils";
-import { SelectionManager } from "../../util/SelectionManager";
-import { undoBatch } from "../../util/UndoManager";
+import { ContextMenu } from "../ContextMenu";
 import { DocumentView } from "../nodes/DocumentView";
 import { CollectionSchemaPreview } from "./CollectionSchemaView";
 import "./CollectionStackingView.scss";
 import { CollectionSubView } from "./CollectionSubView";
-import { ContextMenu } from "../ContextMenu";
 
 @observer
 export class CollectionStackingView extends CollectionSubView(doc => doc) {
@@ -61,20 +59,6 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     createRef = (ele: HTMLDivElement | null) => {
         this._masonryGridRef = ele;
         this.createDropTarget(ele!);
-    }
-    @undoBatch
-    @action
-    public collapseToPoint = (scrpt: number[], expandedDocs: Doc[] | undefined): void => {
-        SelectionManager.DeselectAll();
-        if (expandedDocs) {
-            let isMinimized: boolean | undefined;
-            expandedDocs.map(d => Doc.GetProto(d)).map(maximizedDoc => {
-                if (isMinimized === undefined) {
-                    isMinimized = BoolCast(maximizedDoc.isMinimized, false);
-                }
-                maximizedDoc.isMinimized = !isMinimized;
-            });
-        }
     }
 
     @computed
@@ -144,7 +128,6 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     addDocTab={this.props.addDocTab}
                     bringToFront={emptyFunction}
                     whenActiveChanged={this.props.whenActiveChanged}
-                    collapseToPoint={this.collapseToPoint}
                 />
             </div>);
         })
