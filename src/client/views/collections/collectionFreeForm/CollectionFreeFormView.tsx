@@ -25,6 +25,7 @@ import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import v5 = require("uuid/v5");
+import PDFMenu from "../../pdf/PDFMenu";
 
 export const panZoomSchema = createSchema({
     panX: "number",
@@ -148,6 +149,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             let docs = this.childDocs || [];
             let [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
             if (!this.isAnnotationOverlay) {
+                PDFMenu.Instance.fadeOut(true);
                 let minx = docs.length ? NumCast(docs[0].x) : 0;
                 let maxx = docs.length ? NumCast(docs[0].width) / NumCast(docs[0].zoomBasis, 1) + minx : minx;
                 let miny = docs.length ? NumCast(docs[0].y) : 0;
