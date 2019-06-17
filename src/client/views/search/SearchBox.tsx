@@ -37,13 +37,14 @@ export class SearchBox extends React.Component {
     @observable _searchString: string = "";
     //if true, any keywords can be used. if false, all keywords are required.
     @observable _wordStatus: boolean = true;
-    @observable _icons: string[] = [];
     @observable private _open: boolean = false;
     @observable private _resultsOpen: boolean = false;
     @observable private _results: Doc[] = [];
     @observable filterBoxStatus: boolean = false;
     @observable private _openNoResults: boolean = false;
     allIcons: string[] = [DocTypes.AUDIO, DocTypes.COL, DocTypes.HIST, DocTypes.IMG, DocTypes.LINK, DocTypes.PDF, DocTypes.TEXT, DocTypes.VID, DocTypes.WEB];
+    @observable _icons: string[] = this.allIcons;
+    @observable _selectedTypes: any[] = [];
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -81,8 +82,6 @@ export class SearchBox extends React.Component {
         let query = this._searchString;
         let results: Doc[];
 
-        console.log(query)
-
         //if this._wordstatus is false, all words are required and a + is added before each
         if (!this._wordStatus) {
             let oldWords = query.split(" ");
@@ -103,8 +102,6 @@ export class SearchBox extends React.Component {
             //gets json result into a list of documents that can be used
             results = await this.getResults(query);
         }
-
-        console.log(results)
 
         runInAction(() => {
             this._resultsOpen = true;
@@ -130,7 +127,6 @@ export class SearchBox extends React.Component {
                 docs.push(field);
             }
         }
-        console.log(docs)
         return this.filterDocs(docs);
     }
 
@@ -276,10 +272,21 @@ export class SearchBox extends React.Component {
         this._pointerTime = e.timeStamp;
     }
 
-    //TODO: to be cone with checkmark
+    //TODO: to be done with checkmark
     updateCheckStatus(newStat: boolean) {
         console.log("updating!")
     }
+
+    @action.bound
+    updateSelected(newArray: any[]) {
+        this._selectedTypes = newArray;
+    }
+
+    getSelected(): any[] {
+        console.log(this._selectedTypes)
+        return this._selectedTypes;
+    }
+
 
     // Useful queries:
     // Delegates of a document: {!join from=id to=proto_i}id:{protoId}
@@ -316,7 +323,7 @@ export class SearchBox extends React.Component {
                                 <ToggleBar originalStatus={this._wordStatus} optionOne={"Include Any Keywords"} optionTwo={"Include All Keywords"} changeStatus={this.handleWordQueryChange} />
                             </div>
                             <div className="type-of-node filter-div">
-                                <IconBar allIcons = {this.allIcons} updateIcon={this.updateIcon} getIcons={this.getIcons} />
+                                <IconBar updateSelected = {this.updateSelected} allIcons = {this.allIcons} updateIcon={this.updateIcon} getIcons={this.getSelected} />
                             </div>
                             <div className="filter-collection filter-div">
                                 temp for filtering by collection
