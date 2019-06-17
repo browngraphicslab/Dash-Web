@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { Schema, NodeSpec, MarkSpec, DOMOutputSpecArray, NodeType, Slice, Mark } from "prosemirror-model";
+import { Schema, NodeSpec, MarkSpec, DOMOutputSpecArray, NodeType, Slice, Mark, Node } from "prosemirror-model";
 import { joinUp, lift, setBlockType, toggleMark, wrapIn, selectNodeForward, deleteSelection } from 'prosemirror-commands';
 import { redo, undo } from 'prosemirror-history';
 import { orderedList, bulletList, listItem, } from 'prosemirror-schema-list';
@@ -503,19 +503,30 @@ export class SummarizedView {
 
     updateSummarizedText(start?: any, mark?: any) {
         let $start = this._view.state.doc.resolve(start);
-        let first_startPos = $start.start(), endPos = first_startPos;
-        while ($start.nodeAfter !== null) {
-            let startIndex = $start.index(), endIndex = $start.indexAfter();
-            while (startIndex > 0 && mark.isInSet($start.parent.child(startIndex - 1).marks)) startIndex--;
-            while (endIndex < $start.parent.childCount && mark.isInSet($start.parent.child(endIndex).marks)) endIndex++;
-            let startPos = $start.start(), endPos = startPos;
-            for (let i = 0; i < endIndex; i++) {
-                let size = $start.parent.child(i).nodeSize;
-                console.log($start.parent.child(i).childCount);
-                if (i < startIndex) startPos += size;
-                endPos += size;
-            }
-            $start = this._view.state.doc.resolve(start + (endPos - startPos) + 1);
+        let first_startPos = $start.start();//, endPos = first_startPos;
+        let startIndex = $start.index(), endIndex = $start.indexAfter();
+        let nodeAfter = $start.nodeAfter;
+        while (startIndex > 0 && mark.isInSet($start.parent.child(startIndex - 1).marks)) startIndex--;
+        while (endIndex < $start.parent.childCount && mark.isInSet($start.parent.child(endIndex).marks)) endIndex++;
+        let startPos = $start.start(), endPos = startPos;
+        for (let i = 0; i < endIndex; i++) {
+            let size = $start.parent.child(i).nodeSize;
+            console.log($start.parent.child(i).childCount);
+            if (i < startIndex) startPos += size;
+            endPos += size;
+        }
+        for (let i: number = start + 1; i < this._view.state.doc.nodeSize - 1; i++) {
+            console.log("ITER:", i);
+            this._view.state.doc.nodesBetween(start, i, (node: Node, pos: number, parent: Node, index: number) => {
+                if (node === undefined || parent === undefined) {
+                    console.log('undefined dawg');
+                    return false;
+                }
+                if (node.isLeaf) {
+                    console.log(node.textContent);
+                    console.log(node.marks);
+                }
+            });
         }
         return { from: first_startPos, to: endPos };
     }
