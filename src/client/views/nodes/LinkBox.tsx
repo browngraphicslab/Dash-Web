@@ -10,7 +10,7 @@ import { Doc } from '../../../new_fields/Doc';
 import { StrCast, Cast } from '../../../new_fields/Types';
 import { observable, action } from 'mobx';
 import { LinkManager } from '../../util/LinkManager';
-import { DragLinksAsDocuments } from '../../util/DragManager';
+import { DragLinksAsDocuments, DragLinkAsDocument } from '../../util/DragManager';
 import { SelectionManager } from '../../util/SelectionManager';
 library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp);
 
@@ -76,7 +76,7 @@ export class LinkBox extends React.Component<Props> {
             document.removeEventListener("pointermove", this.onLinkButtonMoved);
             document.removeEventListener("pointerup", this.onLinkButtonUp);
 
-            DragLinksAsDocuments(this._drag.current, e.x, e.y, SelectionManager.SelectedDocuments()[0].props.Document);
+            DragLinkAsDocument(this._drag.current, e.x, e.y, this.props.linkDoc, this.props.sourceDoc);
         }
         e.stopPropagation();
     }
