@@ -149,8 +149,6 @@ app.get("/thumbnail/:filename", (req, res) => {
                     console.log(err);
                     return;
                 }
-                console.log(result.width);
-                console.log(result.height);
                 res.send({ path: "/files/" + filename, width: result.width, height: result.height });
             });
         }
