@@ -392,7 +392,7 @@ class Viewer extends React.Component<IViewerProps> {
         let index = 0;
         let currOffset = vOffset;
         while (index < numPages && currOffset - (this._pageSizes[index] ? this._pageSizes[index].height : 792 * scale) > 0) {
-            currOffset -= this._pageSizes[index].height;
+            currOffset -= this._pageSizes[index] ? this._pageSizes[index].height : this._pageSizes[0].height;
             index++;
         }
         return index;

@@ -36,15 +36,14 @@
     pointer-events: none;
     display: flex;
     flex-direction: row;
-
-    span {
-        pointer-events: none !important;
+    .textlayer {
+        pointer-events: none;
+        span {
+            pointer-events: none !important;
+        }
     }
-}
-.textlayer {
-    span {
-        pointer-events: all !important;
-        user-select: text;
+    .page-cont {
+        pointer-events: none;
     }
 }
 
@@ -52,6 +51,12 @@
     pointer-events: all;
     display: flex;
     flex-direction: row;
+    .textlayer {
+        span {
+            pointer-events: all !important;
+            user-select: text;
+        }
+    }
 }
 
 .pdfBox-contentContainer {
