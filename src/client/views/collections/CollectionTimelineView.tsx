@@ -25,6 +25,8 @@ import { CollectionVideoView } from "./CollectionVideoView";
 import { VideoBox } from "../nodes/VideoBox";
 import { faFilePowerpoint, faShower } from "@fortawesome/free-solid-svg-icons";
 import { throwStatement } from "babel-types";
+import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faTree, faUndoAlt, faBell } from '@fortawesome/free-solid-svg-icons';
+
 
 
 export interface FieldViewProps {
@@ -68,26 +70,16 @@ class KeyToggle extends React.Component<{ keyName: string, toggle: (key: string)
 @observer
 export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
-    @computed get previewWidth() { return () => NumCast(this.props.Document.schemaPreviewWidth); }
-
     @observable
-    private sortstate: String = "date";
+    private sortstate: string = "date";
 
-    sortx(a: Doc, b: Doc) {
-        return (a.x - b.x);
+    private range = 0;
+
+
+    sortarray(a, b) {
+        return (a - b);
     }
 
-    sorty(a: Doc, b: Doc) {
-        return (a.y - b.y);
-    }
-
-    sortheight(a: Doc, b: Doc) {
-        return (a.height - b.height);
-    }
-
-    sortwidth(a: Doc, b: Doc) {
-        return (a.width - b.width);
-    }
 
     sorttitle(a: Doc, b: Doc) {
         return a.title.localeCompare(b.title);
@@ -97,14 +89,11 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         return a.author.localeCompare(b.author);
     }
 
-    sortzIndex(a: Doc, b: Doc) {
-        return (a.zIndex - b.zIndex);
-    }
 
     sortdate(a: Doc, b: Doc) {
         var adate: DateField = a.creationDate;
         var bdate: DateField = b.creationDate;
-        return new Date(bdate.date) - new Date(adate.date);
+        return new Date(adate.date) - new Date(bdate.date);
     }
 
 
@@ -134,7 +123,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @action
     toggleKey = (key: string) => {
         this.sortstate = key;
-        console.log(this.sortstate);
+        console.log("a." + this.sortstate);
     }
 
     @observable
@@ -148,7 +137,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     buttonloop() {
         let buttons = [];
         let buttons2 = [];
-        let range = 1;
+        this.range = 1;
         let arr: Doc[] = [];
         let values: number[] = [];
 
@@ -159,122 +148,53 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         if (this.sortstate === "creationDate") {
             arr.sort(this.sortdate);
             let i = arr.length - 1;
-            range = arr[i].creationDate - arr[0].creationDate;
+            this.range = arr[i].creationDate.date - arr[0].creationDate.date;
             for (let j = 0; j < arr.length; j++) {
-                var newdate = arr[j].creationDate;
+                var newdate = arr[j].creationDate.date;
                 values[j] = newdate;
             }
 
         }
         if (this.sortstate === "title") {
             arr.sort(this.sorttitle);
-            range = arr.length;
+            this.range = arr.length;
             for (let j = 0; j < arr.length; j++) {
                 values[j] = j;
             }
         }
 
-        if (this.sortstate === "author") {
-            arr.sort(this.sortauthor);
-            range = arr.length;
-            for (let j = 0; j < arr.length; j++) {
-                values[j] = j;
-            }
+        // if (this.sortstate === "author") {
+        //     arr.sort(this.sortauthor);
+        //     this.range = arr.length;
+        //     for (let j = 0; j < arr.length; j++) {
+        //         values[j] = j;
+        //     }
+        // }
+
+
+        else {
+            values = arr.filter(doc => doc[this.sortstate]).map(doc => NumCast(doc[this.sortstate]));
+            values.sort(this.sortarray);
+            let i = values.length - 1;
+            this.range = values[i] - values[0];
         }
-
-        if (this.sortstate === "x") {
-            arr.sort(this.sortx);
-            let i = arr.length - 1;
-            // while (arr[i] === undefined) {
-            //     i += -1;
-            //     if (i === 0) {
-            //         break;
-            //     }
-
-            // }
-            range = arr[i].x - arr[0].x;
-            for (let j = 0; j < arr.length; j++) {
-                if (arr[j].x === undefined) {
-                    values[j] = 0;
-                }
-                else {
-                    values[j] = arr[j].x;
-                }
-            }
-        }
-
-        if (this.sortstate === "y") {
-            arr.sort(this.sorty);
-            let i = arr.length - 1;
-            range = arr[i].y - arr[0].y;
-            for (let j = 0; j < arr.length; j++) {
-                if (arr[j].y === undefined) {
-                    values[j] = 0;
-                }
-                else {
-                    values[j] = arr[j].y;
-                }
-            }
-        }
-        if (this.sortstate === "height") {
-            arr.sort(this.sortheight);
-            let i = arr.length - 1;
-            range = arr[i].height - arr[0].height;
-            for (let j = 0; j < arr.length; j++) {
-                if (arr[j].height === undefined) {
-                    values[j] = 0;
-                }
-                else {
-                    values[j] = arr[j].height;
-                }
-            }
-        }
-
-        if (this.sortstate === "width") {
-            arr.sort(this.sortwidth);
-            let i = arr.length - 1;
-            range = arr[i].width - arr[0].width;
-            for (let j = 0; j < arr.length; j++) {
-                if (arr[j].width === undefined) {
-                    values[j] = 0;
-                }
-                else {
-                    values[j] = arr[j].width;
-                }
-            }
-        }
-
-        if (this.sortstate === "zIndex") {
-            arr.sort(this.sortzIndex);
-            let i = arr.length - 1;
-            range = arr[i].zIndex - arr[0].zIndex;
-            for (let j = 0; j < arr.length; j++) {
-                if (arr[j].zIndex === undefined) {
-                    values[j] = 0;
-                }
-                else {
-                    values[j] = arr[j].zIndex;
-                }
-            }
-        }
-
-
 
         for (let i = 0; i < arr.length; i++) {
             let color = "$darker-color";
-            if (i % 2 === 0) {
-                color = "$intermediate-color";
-                console.log("yeet");
-            }
 
             buttons.push(
                 <div>
-                    <button onClick={() => this.show(arr[i])}
+                    <FontAwesomeIcon icon={faBell} size="sm" style={{
+                        position: "absolute",
+                        background: color,
+                        top: "70%", height: "5%", left: ((values[i] - values[0]) * this.barwidth / this.range) * (this.barwidth / (this.xmovement2 - this.xmovement)) - (this.xmovement * this.barwidth / (this.xmovement2 - this.xmovement)) - this.barwidth / 40 + "px",
+                    }} />
+                    {/* <button onClick={() => this.show(arr[i])}
                         style={{
                             position: "absolute",
                             background: color,
-                            top: "70%", height: "5%", left: ((values[i] - values[0]) * this.barwidth / range) * (this.barwidth / (this.xmovement2 - this.xmovement)) - (this.xmovement * this.barwidth / (this.xmovement2 - this.xmovement)) + "px",
-                        }}>{arr[i].title}</button>
+                            top: "70%", height: "5%", left: ((values[i] - values[0]) * this.barwidth / this.range) * (this.barwidth / (this.xmovement2 - this.xmovement)) - (this.xmovement * this.barwidth / (this.xmovement2 - this.xmovement)) - this.barwidth / 40 + "px",
+                        }}>{arr[i].title}</button> */}
                 </div>);
             buttons2.push(
                 <div
@@ -283,26 +203,29 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         position: "absolute",
                         background: "black",
                         zIndex: "1",
-                        top: "50%", left: ((values[i] - values[0]) * this.barwidth / range) + "px", width: "0.5%", border: "2px solid"
+                        top: "50%", left: ((values[i] - values[0]) * this.barwidth / this.range) - 3 + "px", width: "0.5%", border: "3px solid"
                     }}>
                 </div>);
         }
 
 
-        return (<div id="screen">
+        return (<div id="screen" >
             <div className="backdropdocview" style={{ top: "5%", left: "33%", right: "33%", bottom: "40%", position: "absolute" }}>
                 {this.preview ? this.documentpreview(this.preview) : (null)}
             </div>
+            <div style={{ top: "62%", left: "33%", right: "66%", position: "absolute" }}>
+                {this.range}
+            </div>
             <div>{buttons}</div>
-            <div id="bar" className="backdropscroll" onPointerDown={this.onPointerDown4} style={{ top: "85%", width: "100%", bottom: "10%", border: "3px solid", position: "absolute" }}>
+            <div id="bar" className="backdropscroll" onPointerDown={this.onPointerDown4} style={{ top: "85%", width: "100%", bottom: "10%", position: "absolute", }}>
                 {buttons2}
                 <div className="v1" onPointerDown={this.onPointerDown} style={{ cursor: "ew-resize", position: "absolute", zIndex: "2", left: this.xmovement, height: "100%" }}>
 
                 </div>
                 <div className="v2" onPointerDown={this.onPointerDown2} style={{
                     cursor: "ew-resize",
-                    position: "absolute", left: this.xmovement2
-                    , height: "100%",
+                    position: "absolute", left: this.xmovement2 - 2,
+                    height: "100%",
                     zIndex: "2"
                 }}>
                 </div>
@@ -345,12 +268,15 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     }
 
     onPointerDown2 = (e: React.PointerEvent): void => {
+        this.barwidth = document.getElementById('bar').clientWidth;
         document.addEventListener("pointermove", this.onPointerMove2);
         e.stopPropagation();
         e.preventDefault();
     }
 
     onPointerDown3 = (e: React.PointerEvent): void => {
+        this.barwidth = document.getElementById('bar').clientWidth;
+
         document.addEventListener("pointermove", this.onPointerMove3);
         console.log("yeet");
         e.stopPropagation();
@@ -359,8 +285,11 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     onPointerDown4 = (e: React.PointerEvent): void => {
+        this.barwidth = document.getElementById('bar').clientWidth;
+
         let temp = this.xmovement2 - this.xmovement;
-        this.xmovement = e.pageX;
+        this.xmovement = e.pageX - document.body.clientWidth + document.getElementById('screen').clientWidth;
+
         this.xmovement2 = temp + this.xmovement;
         if (this.xmovement2 > this.barwidth) {
             this.xmovement = this.barwidth - (this.xmovement2 - this.xmovement);
@@ -374,6 +303,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     }
 
     private barwidth = 962;
+
 
     @observable
     private xmovement = 0;
@@ -389,8 +319,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         if (this.xmovement < 0) {
             this.xmovement = 0;
         }
-        if (this.xmovement > this.xmovement2 - 1) {
-            this.xmovement = this.xmovement2 - 1;
+        if (this.xmovement > this.xmovement2 - 3) {
+            this.xmovement = this.xmovement2 - 3;
         }
         console.log(this.barwidth);
         document.addEventListener("pointerup", this.onPointerUp);
@@ -406,8 +336,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         if (this.xmovement2 > this.barwidth) {
             this.xmovement2 = this.barwidth;
         }
-        if (this.xmovement2 < this.xmovement + 1) {
-            this.xmovement2 = this.xmovement + 1;
+        if (this.xmovement2 < this.xmovement + 3) {
+            this.xmovement2 = this.xmovement + 3;
         }
 
         document.addEventListener("pointerup", this.onPointerUp);
@@ -445,9 +375,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             <div className="collectionTimelineView" style={{ height: "100%" }}
                 onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
                 <hr style={{ top: "70%", display: "block", width: "100%", border: "10", position: "absolute" }} />
-                {this.tableOptionsPanel}
-
                 {this.buttonloop()}
+                {this.tableOptionsPanel}
             </div>
         );
     }
