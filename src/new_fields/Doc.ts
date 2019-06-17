@@ -80,7 +80,7 @@ export class Doc extends RefField {
         });
         this[SelfProxy] = doc;
         if (!id || forceSave) {
-            DocServer.CreateField(doc);
+            DocServer.createField(doc);
         }
         return doc;
     }
@@ -108,7 +108,7 @@ export class Doc extends RefField {
     private ___fields: any = {};
 
     private [Update] = (diff: any) => {
-        DocServer.UpdateField(this[Id], diff);
+        DocServer.emitFieldUpdate(this[Id], diff);
     }
 
     private [Self] = this;

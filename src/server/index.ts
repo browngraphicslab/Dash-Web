@@ -301,16 +301,16 @@ let clients: Map = {};
 server.on("connection", function (socket: Socket) {
     console.log("a user has connected");
 
-    Utils.Emit(socket, MessageStore.Foo, "handshooken");
+    Utils.emit(socket, MessageStore.Foo, "handshooken");
 
-    Utils.AddServerHandler(socket, MessageStore.Bar, barReceived);
-    Utils.AddServerHandler(socket, MessageStore.SetField, (args) => setField(socket, args));
+    Utils.addServerHandler(socket, MessageStore.Bar, barReceived);
+    Utils.addServerHandler(socket, MessageStore.SetField, (args) => setField(socket, args));
     Utils.AddServerHandlerCallback(socket, MessageStore.GetField, getField);
     Utils.AddServerHandlerCallback(socket, MessageStore.GetFields, getFields);
-    Utils.AddServerHandler(socket, MessageStore.DeleteAll, deleteFields);
+    Utils.addServerHandler(socket, MessageStore.DeleteAll, deleteFields);
 
-    Utils.AddServerHandler(socket, MessageStore.CreateField, CreateField);
-    Utils.AddServerHandler(socket, MessageStore.UpdateField, diff => UpdateField(socket, diff));
+    Utils.addServerHandler(socket, MessageStore.CreateField, CreateField);
+    Utils.addServerHandler(socket, MessageStore.UpdateField, diff => UpdateField(socket, diff));
     Utils.AddServerHandlerCallback(socket, MessageStore.GetRefField, GetRefField);
     Utils.AddServerHandlerCallback(socket, MessageStore.GetRefFields, GetRefFields);
 });

@@ -73,14 +73,14 @@ export class Utils {
         };
     }
 
-    public static Emit<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T) {
+    public static emit<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T) {
         this.log("Emit", message.Name, args, false);
         socket.emit(message.Message, args);
     }
 
-    public static EmitCallback<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T): Promise<any>;
-    public static EmitCallback<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T, fn: (args: any) => any): void;
-    public static EmitCallback<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T, fn?: (args: any) => any): void | Promise<any> {
+    public static emitCallback<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T): Promise<any>;
+    public static emitCallback<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T, fn: (args: any) => any): void;
+    public static emitCallback<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T, fn?: (args: any) => any): void | Promise<any> {
         this.log("Emit", message.Name, args, false);
         if (fn) {
             socket.emit(message.Message, args, this.loggingCallback('Receiving', fn, message.Name));
@@ -89,7 +89,7 @@ export class Utils {
         }
     }
 
-    public static AddServerHandler<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, handler: (args: T) => any) {
+    public static addServerHandler<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, handler: (args: T) => any) {
         socket.on(message.Message, this.loggingCallback('Incoming', handler, message.Name));
     }
 
