@@ -29,7 +29,7 @@ interface IPageProps {
     sendAnnotations: (annotations: HTMLDivElement[], page: number) => void;
     receiveAnnotations: (page: number) => HTMLDivElement[] | undefined;
     createAnnotation: (div: HTMLDivElement, page: number) => void;
-    makeAnnotationDocuments: (doc: Doc | undefined, scale: number) => Doc;
+    makeAnnotationDocuments: (doc: Doc | undefined, scale: number, color: string) => Doc;
 }
 
 @observer
@@ -135,7 +135,7 @@ export default class Page extends React.Component<IPageProps> {
     @action
     highlight = (targetDoc?: Doc) => {
         // creates annotation documents for current highlights
-        let annotationDoc = this.props.makeAnnotationDocuments(targetDoc, scale);
+        let annotationDoc = this.props.makeAnnotationDocuments(targetDoc, scale, "#f4f442");
         let targetAnnotations = Cast(this.props.parent.Document.annotations, listSpec(Doc));
         if (targetAnnotations === undefined) {
             Doc.GetProto(this.props.parent.Document).annotations = new List([annotationDoc]);

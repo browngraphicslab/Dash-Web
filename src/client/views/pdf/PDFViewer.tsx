@@ -156,7 +156,7 @@ class Viewer extends React.Component<IViewerProps> {
         }
     }
 
-    makeAnnotationDocument = (sourceDoc: Doc | undefined): Doc => {
+    makeAnnotationDocument = (sourceDoc: Doc | undefined, s: number, color: string): Doc => {
         let annoDocs: Doc[] = [];
         this._savedAnnotations.forEach((key: number, value: HTMLDivElement[]) => {
             for (let anno of value) {
@@ -167,6 +167,7 @@ class Viewer extends React.Component<IViewerProps> {
                 if (anno.style.width) annoDoc.width = parseInt(anno.style.width) / scale;
                 annoDoc.page = key;
                 annoDoc.target = sourceDoc;
+                annoDoc.color = color;
                 annoDoc.type = AnnotationTypes.Region;
                 annoDocs.push(annoDoc);
                 anno.remove();
@@ -624,7 +625,7 @@ class RegionAnnotation extends React.Component<IAnnotationProps> {
     render() {
         return (
             <div className="pdfViewer-annotationBox" onPointerDown={this.onPointerDown}
-                style={{ top: this.props.y * scale, left: this.props.x * scale, width: this.props.width * scale, height: this.props.height * scale, pointerEvents: "all", backgroundColor: this._backgroundColor }}></div>
+                style={{ top: this.props.y * scale, left: this.props.x * scale, width: this.props.width * scale, height: this.props.height * scale, pointerEvents: "all", backgroundColor: StrCast(this.props.document.color) }}></div>
         );
     }
 }
