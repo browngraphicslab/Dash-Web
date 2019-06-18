@@ -18,6 +18,7 @@ import { PDFBox } from "../nodes/PDFBox";
 import Page from "./Page";
 import "./PDFViewer.scss";
 import React = require("react");
+import PDFMenu from "./PDFMenu";
 
 export const scale = 2;
 interface IPDFViewerProps {
@@ -333,6 +334,26 @@ class Viewer extends React.Component<IViewerProps> {
             else {
                 this._savedAnnotations.setValue(page, [div]);
             }
+            PDFMenu.Instance.StartDrag = this.startDrag;
+        }
+    }
+
+    startDrag = (e: PointerEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        let thisDoc = this.props.parent.Document;
+        // document that this annotation is linked to
+        let targetDoc = Docs.TextDocument({ width: 200, height: 200, title: "New Annotation" });
+        targetDoc.targetPage = Math.min(...this._savedAnnotations.keys());
+        let annotationDoc = this.makeAnnotationDocument(targetDoc, 1, "red");
+        let dragData = new DragManager.AnnotationDragData(thisDoc, annotationDoc, targetDoc);
+        if (this._annotationLayer.current) {
+            DragManager.StartAnnotationDrag([this._annotationLayer.current], dragData, e.pageX, e.pageY, {
+                handlers: {
+                    dragComplete: action(emptyFunction),
+                },
+                hideSource: false
+            });
         }
     }
 

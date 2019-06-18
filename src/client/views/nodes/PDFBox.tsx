@@ -62,7 +62,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     createRef = (ele: HTMLDivElement | null) => {
         if (this._reactionDisposer) this._reactionDisposer();
         this._reactionDisposer = reaction(() => this.props.Document.scrollY, () => {
-            ele && ele.scrollTo({ top: NumCast(this.Document.scrollY), behavior: "smooth" });
+            ele && ele.scrollTo({ top: NumCast(this.Document.scrollY), behavior: "auto" });
         });
     }
 
