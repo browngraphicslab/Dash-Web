@@ -111,13 +111,14 @@ class Viewer extends React.Component<IViewerProps> {
     initialLoad = async () => {
         if (this._pageSizes.length === 0) {
             let pageSizes = Array<{ width: number, height: number }>(this.props.pdf.numPages);
+            this._isPage = Array<string>(this.props.pdf.numPages);
             for (let i = 0; i < this.props.pdf.numPages; i++) {
                 await this.props.pdf.getPage(i + 1).then(page => runInAction(() =>
                     pageSizes[i] = { width: page.view[2] * scale, height: page.view[3] * scale }));
             }
-            this.props.loaded(pageSizes[0].width, pageSizes[0].height, this.props.pdf.numPages);
             runInAction(() =>
-                Array.from(Array((this._pageSizes = pageSizes).length).keys()).map(this.getPlaceholderPage))
+                Array.from(Array((this._pageSizes = pageSizes).length).keys()).map(this.getPlaceholderPage));
+            this.props.loaded(pageSizes[0].width, pageSizes[0].height, this.props.pdf.numPages);
         }
     }
 
