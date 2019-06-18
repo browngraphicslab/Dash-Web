@@ -314,7 +314,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
         this.onDrop(e, {});
     }
     render() {
-        let dropAction = Cast(this.props.Document.dropAction, "string") as dropActionType;
+        let dropAction = StrCast(this.props.Document.dropAction) as dropActionType;
         if (!this.childDocs) {
             return (null);
         }

@@ -36,9 +36,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
     class CollectionSubView extends DocComponent<SubCollectionViewProps, T>(schemaCtor) {
         private dropDisposer?: DragManager.DragDropDisposer;
         protected createDropTarget = (ele: HTMLDivElement) => {
-            if (this.dropDisposer) {
-                this.dropDisposer();
-            }
+            this.dropDisposer && this.dropDisposer();
             if (ele) {
                 this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
             }
@@ -96,10 +94,6 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 return added;
             }
             else if (de.data instanceof DragManager.AnnotationDragData) {
-                console.log("dropped!");
-                console.log(de.data);
-                // de.data.dropDocument.x = de.x;
-                // de.data.dropDocument.y = de.y;
                 return this.props.addDocument(de.data.dropDocument);
             }
             return false;
