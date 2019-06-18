@@ -50,7 +50,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             document.removeEventListener("pointerup", this.onPointerUp, true);
             document.removeEventListener("pointermove", this.onPointerMove, true);
         }
-        if (rem_keydown) {
+        if (all) {
             document.removeEventListener("keydown", this.marqueeCommand, true);
         }
         this._visible = false;
