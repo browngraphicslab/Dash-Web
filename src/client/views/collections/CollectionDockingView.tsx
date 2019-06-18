@@ -336,6 +336,15 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     tab.element.append(counter);
                     let upDiv = document.createElement("span");
                     const stack = tab.contentItem.parent;
+                    // shifts the focus to this tab when another tab is dragged over it
+                    tab.element[0].onmouseenter = (e: any) => {
+                        if (!this._isPointerDown) return;
+                        var activeContentItem = tab.header.parent.getActiveContentItem();
+                        if (tab.contentItem !== activeContentItem) {
+                            tab.header.parent.setActiveContentItem(tab.contentItem);
+                        }
+                        tab.setActive(true);
+                    }
                     ReactDOM.render(<ParentDocSelector Document={doc} addDocTab={(doc, location) => CollectionDockingView.Instance.AddTab(stack, doc)} />, upDiv);
                     tab.reactComponents = [upDiv];
                     tab.element.append(upDiv);
