@@ -19,19 +19,26 @@
 }
 
 .v1 {
-    border-left: 6px solid;
+    border-left: 6px solid $intermediate-color;
+    opacity: 0.5
 }
 
 .v2 {
-    border-right: 6px solid;
+    border-right: 6px solid $intermediate-color;
+    opacity: 0.5;
 }
 
 .bar {
-    background: $intermediate-color;
+    background: $light-color-secondary;
+    cursor: grab;
 }
 
 .backdropscroll {
-    background: $light-color-secondary;
+    background: $light-color;
+}
+
+.viewpanel {
+    background: $light-color;
 }
 
 

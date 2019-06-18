@@ -23,9 +23,17 @@ import { CollectionView } from "./CollectionView";
 import { CollectionPDFView } from "./CollectionPDFView";
 import { CollectionVideoView } from "./CollectionVideoView";
 import { VideoBox } from "../nodes/VideoBox";
-import { faFilePowerpoint, faShower } from "@fortawesome/free-solid-svg-icons";
+import { faFilePowerpoint, faShower, faVideo, faThumbsDown } from "@fortawesome/free-solid-svg-icons";
 import { throwStatement } from "babel-types";
 import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faTree, faUndoAlt, faBell } from '@fortawesome/free-solid-svg-icons';
+import { RichTextField } from "../../../new_fields/RichTextField";
+import { ImageField, VideoField, AudioField, URLField, PdfField, WebField } from "../../../new_fields/URLField";
+import { IconField } from "../../../new_fields/IconField";
+import { IconProp } from "@fortawesome/fontawesome-svg-core";
+import { Docs } from "../../documents/Documents";
+import { HtmlField } from "../../../new_fields/HtmlField";
+import { ProxyField } from "../../../new_fields/Proxy";
+import { auto } from "async";
 
 
 
@@ -76,10 +84,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     private range = 0;
 
 
-    sortarray(a, b) {
-        return (a - b);
-    }
-
 
     sorttitle(a: Doc, b: Doc) {
         return a.title.localeCompare(b.title);
@@ -123,15 +127,26 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @action
     toggleKey = (key: string) => {
         this.sortstate = key;
-        console.log("a." + this.sortstate);
     }
 
     @observable
     private preview: Doc | undefined;
 
+    @observable
+    private preview2: Doc | undefined;
+
+    @observable
+    private preview3: string;
+    @observable
+    private preview4: string;
+
     @action
     show(document: Doc) {
+        console.log(document.data);
         this.preview = document;
+        this.preview2 = Docs.KVPDocument(document, {});
+        this.preview3 = document.title + "";
+        this.preview4 = this.sortstate + ":" + document[this.sortstate];
     }
 
     buttonloop() {
@@ -139,29 +154,29 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         let buttons2 = [];
         this.range = 1;
         let arr: Doc[] = [];
-        let values: number[] = [];
+        let values = [];
 
         //Building the array is kinda weird because I reverse engineered something from another class.
         this.childDocs.filter(d => !d.isMinimized).map((d, i) => {
             arr.push(d);
         });
-        if (this.sortstate === "creationDate") {
-            arr.sort(this.sortdate);
-            let i = arr.length - 1;
-            this.range = arr[i].creationDate.date - arr[0].creationDate.date;
-            for (let j = 0; j < arr.length; j++) {
-                var newdate = arr[j].creationDate.date;
-                values[j] = newdate;
-            }
+        // if (this.sortstate === "creationDate") {
+        //     arr.sort(this.sortdate);
+        //     let i = arr.length - 1;
+        //     this.range = arr[i].creationDate.date - arr[0].creationDate.date;
+        //     for (let j = 0; j < arr.length; j++) {
+        //         var newdate = arr[j].creationDate.date;
+        //         values[j] = newdate;
+        //     }
 
-        }
-        if (this.sortstate === "title") {
-            arr.sort(this.sorttitle);
-            this.range = arr.length;
-            for (let j = 0; j < arr.length; j++) {
-                values[j] = j;
-            }
-        }
+        // }
+        // if (this.sortstate === "title") {
+        //     arr.sort(this.sorttitle);
+        //     this.range = arr.length;
+        //     for (let j = 0; j < arr.length; j++) {
+        //         values[j] = j;
+        //     }
+        // }
 
         // if (this.sortstate === "author") {
         //     arr.sort(this.sortauthor);
@@ -170,31 +185,41 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         //         values[j] = j;
         //     }
         // }
+        let backup = arr.filter(doc => doc[this.sortstate]);
+        values = arr.filter(doc => doc[this.sortstate]).map(doc => {
+            console.log(doc[this.sortstate]);
+            NumCast(doc[this.sortstate]);
+        });
+        values.sort(function (a, b) { return (a - b); });
+        console.log(values);
+        let i = values.length - 1;
+        this.range = (values[i] - values[0]);
+        //console.log(this.range);
+        // if (this.range === 0) {
+        //     this.range = values.length;
+        // }
+        // if (isNaN(this.range)) {
+        //     this.range = values.length;
+        //     for (let i = 0; i < values.length; i++) {
+        //         values[i] = String(i);
+        //     }
+        // }
+        //console.log(this.range);
 
 
-        else {
-            values = arr.filter(doc => doc[this.sortstate]).map(doc => NumCast(doc[this.sortstate]));
-            values.sort(this.sortarray);
-            let i = values.length - 1;
-            this.range = values[i] - values[0];
-        }
 
-        for (let i = 0; i < arr.length; i++) {
-            let color = "$darker-color";
+        for (let i = 0; i < backup.length; i++) {
+            let color = "$dark-color";
 
             buttons.push(
-                <div>
-                    <FontAwesomeIcon icon={faBell} size="sm" style={{
+                <div><button className="toolbar-button round-button" title="Notifs"
+                    onClick={() => this.show(backup[i])} style={{
                         position: "absolute",
                         background: color,
-                        top: "70%", height: "5%", left: ((values[i] - values[0]) * this.barwidth / this.range) * (this.barwidth / (this.xmovement2 - this.xmovement)) - (this.xmovement * this.barwidth / (this.xmovement2 - this.xmovement)) - this.barwidth / 40 + "px",
-                    }} />
-                    {/* <button onClick={() => this.show(arr[i])}
-                        style={{
-                            position: "absolute",
-                            background: color,
-                            top: "70%", height: "5%", left: ((values[i] - values[0]) * this.barwidth / this.range) * (this.barwidth / (this.xmovement2 - this.xmovement)) - (this.xmovement * this.barwidth / (this.xmovement2 - this.xmovement)) - this.barwidth / 40 + "px",
-                        }}>{arr[i].title}</button> */}
+                        top: "70%", height: "5%", left: (((values[i] - values[0]) * this.barwidth / this.range) * (this.barwidth / (this.xmovement2 - this.xmovement)) - (this.xmovement * this.barwidth / (this.xmovement2 - this.xmovement)) === this.barwidth ? (((values[i] - values[0]) * this.barwidth / this.range) * (this.barwidth / (this.xmovement2 - this.xmovement)) - (this.xmovement * this.barwidth / (this.xmovement2 - this.xmovement)) - this.barwidth / 40) : (((values[i] - values[0]) * this.barwidth / this.range) * (this.barwidth / (this.xmovement2 - this.xmovement)) - (this.xmovement * this.barwidth / (this.xmovement2 - this.xmovement)))) + "px",
+                    }}>
+                    <FontAwesomeIcon icon={this.checkData(backup[i])} size="sm" />
+                </button>
                 </div>);
             buttons2.push(
                 <div
@@ -203,19 +228,26 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         position: "absolute",
                         background: "black",
                         zIndex: "1",
-                        top: "50%", left: ((values[i] - values[0]) * this.barwidth / this.range) - 3 + "px", width: "0.5%", border: "3px solid"
+                        top: "50%", left: ((values[i] - values[0]) * this.barwidth / this.range) - 3 + "px", width: "5px", border: "3px solid"
                     }}>
                 </div>);
         }
 
 
         return (<div id="screen" >
-            <div className="backdropdocview" style={{ top: "5%", left: "33%", right: "33%", bottom: "40%", position: "absolute" }}>
+            <div className="backdropdocview" style={{ top: "5%", left: "10%", right: "50%", bottom: "40%", position: "absolute", borderBottom: "2px solid" }}>
                 {this.preview ? this.documentpreview(this.preview) : (null)}
             </div>
-            <div style={{ top: "62%", left: "33%", right: "66%", position: "absolute" }}>
-                {this.range}
+            <div className="backdropdocview" style={{ top: "5%", left: "50%", right: "10%", bottom: "40%", position: "absolute", borderBottom: "2px solid" }}>
+                {this.preview2 ? this.documentpreview(this.preview2) : (null)}
             </div>
+            <div style={{ top: "62%", left: "25%", position: "absolute" }}>
+                {this.preview3}
+            </div>
+            <div style={{ top: "62%", left: "75%", position: "absolute" }}>
+                {this.preview4}
+            </div>
+            <div className="viewpanel" style={{ top: "5%", left: "10%", position: "absolute", right: "10%", bottom: "35%", background: "#GGGGGG", zIndex: "-55", }}></div>
             <div>{buttons}</div>
             <div id="bar" className="backdropscroll" onPointerDown={this.onPointerDown4} style={{ top: "85%", width: "100%", bottom: "10%", position: "absolute", }}>
                 {buttons2}
@@ -233,9 +265,43 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 </div>
 
             </div>
-        </div >
+        </div>
         );
 
+    }
+
+    checkData = (document: Doc): IconProp => {
+        let field = document.data;
+
+        if (field instanceof AudioField) {
+            return faMusic;
+        }
+        else if (field instanceof PdfField) {
+            return faFilePdf;
+        }
+
+        else if (field instanceof RichTextField) {
+            return faFont;
+        }
+        else if (field instanceof ImageField) {
+            return faImage;
+        }
+
+
+        else if (field instanceof VideoField) {
+            return faFilm;
+
+        }
+        else if (field instanceof WebField) {
+            return faGlobeAsia;
+
+        }
+
+        else if (field instanceof ProxyField) {
+            return faObjectGroup;
+        }
+
+        return faBell;
     }
 
     documentpreview(document: Doc) {
@@ -276,9 +342,9 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     onPointerDown3 = (e: React.PointerEvent): void => {
         this.barwidth = document.getElementById('bar').clientWidth;
+        document.body.style.cursor = "grabbing";
 
         document.addEventListener("pointermove", this.onPointerMove3);
-        console.log("yeet");
         e.stopPropagation();
         e.preventDefault();
     }
@@ -368,6 +434,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointermove", this.onPointerMove2);
         document.removeEventListener("pointermove", this.onPointerMove3);
+        document.body.style.cursor = "default";
     }
 
     render() {

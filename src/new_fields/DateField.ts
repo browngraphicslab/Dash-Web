@@ -13,6 +13,10 @@ export class DateField extends ObjectField {
         this.date = date;
     }
 
+    compare = (other: DateField): number => {
+        return (other.date === this.date) ? 0 : ((other.date > this.date) ? 1 : -1);
+    }
+
     [Copy]() {
         return new DateField(this.date);
     }
