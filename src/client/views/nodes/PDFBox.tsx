@@ -69,7 +69,6 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     loaded = (nw: number, nh: number, np: number) => {
         if (this.props.Document) {
             let doc = this.props.Document.proto ? this.props.Document.proto : this.props.Document;
-            console.log("pages = " + np);
             doc.numPages = np;
             if (doc.nativeWidth && doc.nativeHeight) return;
             let oldaspect = NumCast(doc.nativeHeight) / NumCast(doc.nativeWidth, 1);
