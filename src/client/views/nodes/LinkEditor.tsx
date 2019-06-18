@@ -7,14 +7,12 @@ import { Doc } from "../../../new_fields/Doc";
 import { LinkManager } from "../../util/LinkManager";
 import { Docs } from "../../documents/Documents";
 import { Utils } from "../../../Utils";
-import { faArrowLeft, faEllipsisV, faTable } from '@fortawesome/free-solid-svg-icons';
+import { faArrowLeft, faEllipsisV, faTable, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { SetupDrag } from "../../util/DragManager";
 
-library.add(faArrowLeft);
-library.add(faEllipsisV);
-library.add(faTable);
+library.add(faArrowLeft, faEllipsisV, faTable, faTrash);
 
 
 interface GroupTypesDropdownProps {
@@ -160,6 +158,13 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
             groups.set(id, groupDoc);
         });
         this._groups = groups;
+    }
+
+    @action
+    deleteLink = (): void => {
+        let index = LinkManager.Instance.allLinks.indexOf(this.props.linkDoc);
+        LinkManager.Instance.allLinks.splice(index, 1);
+        this.props.showLinks();
     }
 
     @action
@@ -324,7 +329,10 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         return (
             <div className="linkEditor">
                 <button className="linkEditor-back" onPointerDown={() => this.props.showLinks()}><FontAwesomeIcon icon="arrow-left" size="sm" /></button>
-                <p className="linkEditor-linkedTo">editing link to: <b>{destination.proto!.title}</b></p>
+                <div className="linkEditor-info">
+                    <p className="linkEditor-linkedTo">editing link to: <b>{destination.proto!.title}</b></p>
+                    <button className="linkEditor-delete" onPointerDown={() => this.deleteLink()} title="Delete link"><FontAwesomeIcon icon="trash" size="sm" /></button>
+                </div>
                 <div className="linkEditor-groupsLabel">
                     <b>Relationships:</b>
                     <button onClick={() => this.addGroup()} title="Add Group">+</button>
