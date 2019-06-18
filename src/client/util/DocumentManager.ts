@@ -1,7 +1,7 @@
 import { computed, observable } from 'mobx';
 import { DocumentView } from '../views/nodes/DocumentView';
 import { Doc, DocListCast, Opt } from '../../new_fields/Doc';
-import { FieldValue, Cast, NumCast, BoolCast } from '../../new_fields/Types';
+import { FieldValue, Cast, NumCast, BoolCast, StrCast } from '../../new_fields/Types';
 import { listSpec } from '../../new_fields/Schema';
 import { undoBatch } from './UndoManager';
 import { CollectionDockingView } from '../views/collections/CollectionDockingView';
@@ -85,22 +85,26 @@ export class DocumentManager {
     @computed
     public get LinkedDocumentViews() {
         let linked = DocumentManager.Instance.DocumentViews.filter(dv => dv.isSelected() || BoolCast(dv.props.Document.libraryBrush, false)).reduce((pairs, dv) => {
-
+            // console.log("FINDING LINKED DVs FOR", StrCast(dv.props.Document.title));
             let linksList = LinkManager.Instance.findAllRelatedLinks(dv.props.Document);
             if (linksList && linksList.length) {
                 pairs.push(...linksList.reduce((pairs, link) => {
                     if (link) {
                         let destination = LinkManager.Instance.findOppositeAnchor(link, dv.props.Document);
                         if (destination) {
-                            DocumentManager.Instance.getDocumentViews(destination).map(docView1 =>
-                                pairs.push({ a: dv, b: docView1, l: link }));
+                            DocumentManager.Instance.getDocumentViews(destination).map(docView1 => {
+                                // console.log("PUSHING LINK BETWEEN", StrCast(dv.props.Document.title), StrCast(docView1.props.Document.title));
+                                // TODO: if any docviews are not in the same context, draw a proxy
+                                // let sameContent = dv.props.ContainingCollectionView === docView1.props.ContainingCollectionView;
+                                pairs.push({ anchor1View: dv, anchor2View: docView1, linkDoc: link });
+                            });
                         }
                     }
                     return pairs;
-                }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]));
+                }, [] as { anchor1View: DocumentView, anchor2View: DocumentView, linkDoc: Doc }[]));
             }
             return pairs;
-        }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]);
+        }, [] as { anchor1View: DocumentView, anchor2View: DocumentView, linkDoc: Doc }[]);
         return linked;
     }
 
