@@ -69,7 +69,6 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     loaded = (nw: number, nh: number, np: number) => {
         if (this.props.Document) {
             let doc = this.props.Document.proto ? this.props.Document.proto : this.props.Document;
-            console.log("pages = " + np);
             doc.numPages = np;
             if (doc.nativeWidth && doc.nativeHeight) return;
             let oldaspect = NumCast(doc.nativeHeight) / NumCast(doc.nativeWidth, 1);
@@ -97,10 +96,8 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     }
 
     render() {
-        trace();
         // uses mozilla pdf as default
         const pdfUrl = Cast(this.props.Document.data, PdfField, new PdfField(window.origin + RouteStore.corsProxy + "/https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf"));
-        console.log(pdfUrl);
         let classname = "pdfBox-cont" + (this.props.isSelected() && !InkingControl.Instance.selectedTool && !this._alt ? "-interactive" : "");
         return (
             <div onScroll={this.onScroll}

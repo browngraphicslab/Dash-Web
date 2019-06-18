@@ -10,6 +10,7 @@ import { Transform } from '../util/Transform';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import "./MainOverlayTextBox.scss";
 import { FormattedTextBox } from './nodes/FormattedTextBox';
+import { For } from 'babel-types';
 
 interface MainOverlayTextBoxProps {
 }
@@ -25,6 +26,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
     private _textProxyDiv: React.RefObject<HTMLDivElement>;
     private _textBottom: boolean | undefined;
     private _textAutoHeight: boolean | undefined;
+    private _textBox: FormattedTextBox | undefined;
     @observable public TextDoc?: Doc;
 
     constructor(props: MainOverlayTextBoxProps) {
@@ -33,6 +35,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
         MainOverlayTextBox.Instance = this;
         reaction(() => FormattedTextBox.InputBoxOverlay,
             (box?: FormattedTextBox) => {
+                this._textBox = box;
                 if (box) {
                     this.TextDoc = box.props.Document;
                     let sxf = Utils.GetScreenTransform(box ? box.CurrentDiv : undefined);
@@ -68,6 +71,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
     textScroll = (e: React.UIEvent) => {
         if (this._textProxyDiv.current && this._textTargetDiv) {
             this._textTargetDiv.scrollTop = (e as any)._targetInst.stateNode.scrollTop;
+            console.log(this._textTargetDiv.scrollTop + " != " + (e as any)._targetInst.stateNode.scrollTop + " != " + (this._textBox!.CurrentDiv ? this._textBox!.CurrentDiv.scrollTop : -1));
         }
     }
 

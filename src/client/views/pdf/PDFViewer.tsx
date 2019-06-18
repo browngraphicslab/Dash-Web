@@ -1,29 +1,23 @@
+import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import React = require("react");
-import { observable, action, runInAction, computed, IReactionDisposer, reaction, trace } from "mobx";
 import * as Pdfjs from "pdfjs-dist";
-import { Opt, HeightSym, WidthSym, Doc, DocListCast } from "../../../new_fields/Doc";
-import "./PDFViewer.scss";
 import "pdfjs-dist/web/pdf_viewer.css";
+import * as rp from "request-promise";
+import { Dictionary } from "typescript-collections";
+import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../new_fields/Doc";
+import { Id } from "../../../new_fields/FieldSymbols";
+import { List } from "../../../new_fields/List";
+import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { emptyFunction } from "../../../Utils";
+import { DocServer } from "../../DocServer";
+import { Docs, DocUtils } from "../../documents/Documents";
+import { DocumentManager } from "../../util/DocumentManager";
+import { DragManager } from "../../util/DragManager";
+import { DocumentView } from "../nodes/DocumentView";
 import { PDFBox } from "../nodes/PDFBox";
 import Page from "./Page";
-import { NumCast, Cast, BoolCast, StrCast } from "../../../new_fields/Types";
-import { Id } from "../../../new_fields/FieldSymbols";
-import { DocUtils, Docs } from "../../documents/Documents";
-import { DocumentManager } from "../../util/DocumentManager";
-import { SelectionManager } from "../../util/SelectionManager";
-import { List } from "../../../new_fields/List";
-import { DocumentContentsView } from "../nodes/DocumentContentsView";
-import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
-import { Transform } from "../../util/Transform";
-import { emptyFunction, returnTrue, returnFalse } from "../../../Utils";
-import { DocumentView } from "../nodes/DocumentView";
-import { DragManager } from "../../util/DragManager";
-import { Dictionary } from "typescript-collections";
-import * as rp from "request-promise";
-import { restProperty } from "babel-types";
-import { DocServer } from "../../DocServer";
-import { number } from "prop-types";
+import "./PDFViewer.scss";
+import React = require("react");
 import PDFMenu from "./PDFMenu";
 
 export const scale = 2;
@@ -44,29 +38,21 @@ export class PDFViewer extends React.Component<IPDFViewerProps> {
 
     @action
     componentDidMount() {
-        const pdfUrl = this.props.url;
-        console.log("pdf starting to load")
-        let promise = Pdfjs.getDocument(pdfUrl).promise;
-
-        promise.then((pdf: Pdfjs.PDFDocumentProxy) => {
-            runInAction(() => {
-                console.log("pdf url received");
-                this._pdf = pdf;
-            });
-        });
+        Pdfjs.getDocument(this.props.url).promise.then(pdf => runInAction(() => this._pdf = pdf));
     }
 
     render() {
         return (
             <div ref={this._mainDiv}>
-                <Viewer pdf={this._pdf} loaded={this.props.loaded} scrollY={this.props.scrollY} parent={this.props.parent} mainCont={this._mainDiv} url={this.props.url} />
+                {!this._pdf ? (null) :
+                    <Viewer pdf={this._pdf} loaded={this.props.loaded} scrollY={this.props.scrollY} parent={this.props.parent} mainCont={this._mainDiv} url={this.props.url} />}
             </div>
         );
     }
 }
 
 interface IViewerProps {
-    pdf: Opt<Pdfjs.PDFDocumentProxy>;
+    pdf: Pdfjs.PDFDocumentProxy;
     loaded: (nw: number, nh: number, np: number) => void;
     scrollY: number;
     parent: PDFBox;
@@ -84,100 +70,63 @@ class Viewer extends React.Component<IViewerProps> {
     // _visibleElements is the array of JSX elements that gets rendered
     @observable.shallow private _visibleElements: JSX.Element[] = [];
     // _isPage is an array that tells us whether or not an index is rendered as a page or as a placeholder
-    @observable private _isPage: boolean[] = [];
+    @observable private _isPage: string[] = [];
     @observable private _pageSizes: { width: number, height: number }[] = [];
-    @observable private _startIndex: number = 0;
-    @observable private _endIndex: number = 1;
-    @observable private _loaded: boolean = false;
-    @observable private _pdf: Opt<Pdfjs.PDFDocumentProxy>;
     @observable private _annotations: Doc[] = [];
-    @observable private _pointerEvents: "all" | "none" = "all";
     @observable private _savedAnnotations: Dictionary<number, HTMLDivElement[]> = new Dictionary<number, HTMLDivElement[]>();
 
     private _pageBuffer: number = 1;
-    private _annotationLayer: React.RefObject<HTMLDivElement>;
+    private _annotationLayer: React.RefObject<HTMLDivElement> = React.createRef();
     private _reactionDisposer?: IReactionDisposer;
     private _annotationReactionDisposer?: IReactionDisposer;
-    private _pagesLoaded: number = 0;
     private _dropDisposer?: DragManager.DragDropDisposer;
 
-    constructor(props: IViewerProps) {
-        super(props);
-
-        this._annotationLayer = React.createRef();
+    componentDidUpdate = (prevProps: IViewerProps) => {
+        if (this.scrollY !== prevProps.scrollY) {
+            this.renderPages();
+        }
     }
 
     @action
     componentDidMount = () => {
-        let wasSelected = this.props.parent.props.active();
-        // reaction for when document gets (de)selected
         this._reactionDisposer = reaction(
-            () => [this.props.parent.props.active(), this.startIndex],
-            () => {
-                // if deselected, render images in place of pdf
-                if (wasSelected && !this.props.parent.props.active()) {
-                    this.saveThumbnail();
-                }
-                // if selected, render pdf
-                else if (!wasSelected && this.props.parent.props.active()) {
-                    this.renderPages(this.startIndex, this.endIndex, true);
-                }
-                wasSelected = this.props.parent.props.active();
-                this._pointerEvents = wasSelected ? "none" : "all";
-            },
-            { fireImmediately: true }
-        );
+            () => [this.props.parent.props.active(), this.startIndex, this.endIndex],
+            async () => {
+                await this.initialLoad();
+                this.renderPages();
+            }, { fireImmediately: true });
 
-        if (this.props.parent.Document) {
-            this._annotationReactionDisposer = reaction(
-                () => DocListCast(this.props.parent.Document.annotations),
-                () => {
-                    let annotations = DocListCast(this.props.parent.Document.annotations);
-                    if (annotations && annotations.length) {
-                        this.renderAnnotations(annotations, true);
-                    }
-                },
-                { fireImmediately: true }
-            );
-        }
+        this._annotationReactionDisposer = reaction(
+            () => this.props.parent.Document && DocListCast(this.props.parent.Document.annotations),
+            (annotations: Doc[]) =>
+                annotations && annotations.length && this.renderAnnotations(annotations, true),
+            { fireImmediately: true });
+    }
 
-        setTimeout(() => {
-            // this.renderPages(this.startIndex, this.endIndex, true);
-            this.initialLoad();
-        }, 1000);
+    componentWillUnmount = () => {
+        this._reactionDisposer && this._reactionDisposer();
+        this._annotationReactionDisposer && this._annotationReactionDisposer();
     }
 
     @action
-    initialLoad = () => {
-        let pdf = this.props.pdf;
-        if (pdf) {
-            this._pageSizes = Array<{ width: number, height: number }>(pdf.numPages);
-            let rendered = 0;
-            for (let i = 0; i < pdf.numPages; i++) {
-                pdf.getPage(i + 1).then(
-                    (page: Pdfjs.PDFPageProxy) => {
-                        runInAction(() => {
-                            this._pageSizes[i] = { width: page.view[2] * scale, height: page.view[3] * scale };
-                        });
-                        console.log(`page ${i} size retreieved`);
-                        rendered++;
-                        if (rendered === pdf!.numPages - 1) {
-                            this.saveThumbnail();
-                        }
-                    }
-                );
+    initialLoad = async () => {
+        if (this._pageSizes.length === 0) {
+            let pageSizes = Array<{ width: number, height: number }>(this.props.pdf.numPages);
+            this._isPage = Array<string>(this.props.pdf.numPages);
+            for (let i = 0; i < this.props.pdf.numPages; i++) {
+                await this.props.pdf.getPage(i + 1).then(page => runInAction(() =>
+                    pageSizes[i] = { width: page.view[2] * scale, height: page.view[3] * scale }));
             }
+            runInAction(() =>
+                Array.from(Array((this._pageSizes = pageSizes).length).keys()).map(this.getPlaceholderPage));
+            this.props.loaded(pageSizes[0].width, pageSizes[0].height, this.props.pdf.numPages);
         }
     }
 
     private mainCont = (div: HTMLDivElement | null) => {
-        if (this._dropDisposer) {
-            this._dropDisposer();
-        }
+        this._dropDisposer && this._dropDisposer();
         if (div) {
-            this._dropDisposer = DragManager.MakeDropTarget(div, {
-                handlers: { drop: this.drop.bind(this) }
-            });
+            this._dropDisposer = div && DragManager.MakeDropTarget(div, { handlers: { drop: this.drop.bind(this) } });
         }
     }
 
@@ -223,53 +172,85 @@ class Viewer extends React.Component<IViewerProps> {
             e.stopPropagation();
         }
     }
+    /**
+     * Called by the Page class when it gets rendered, initializes the lists and
+     * puts a placeholder with all of the correct page sizes when all of the pages have been loaded.
+     */
+    @action
+    pageLoaded = (index: number, page: Pdfjs.PDFPageViewport): void => {
+        this.props.loaded(page.width, page.height, this.props.pdf.numPages);
+    }
+    @action
+    getPlaceholderPage = (page: number) => {
+        if (this._isPage[page] !== "none") {
+            this._isPage[page] = "none";
+            this._visibleElements[page] = (
+                <div key={`placeholder-${page}`} className="pdfviewer-placeholder"
+                    style={{ width: this._pageSizes[page].width, height: this._pageSizes[page].height }} />
+            );
+        }
+    }
+    @action
+    getRenderedPage = (page: number) => {
+        if (this._isPage[page] !== "page") {
+            this._isPage[page] = "page";
+            this._visibleElements[page] = (
+                <Page
+                    pdf={this.props.pdf}
+                    page={page}
+                    numPages={this.props.pdf!.numPages}
+                    key={`rendered-${page + 1}`}
+                    name={`${this.props.pdf.fingerprint + `-page${page + 1}`}`}
+                    pageLoaded={this.pageLoaded}
+                    parent={this.props.parent}
+                    makePin={this.createPinAnnotation}
+                    renderAnnotations={this.renderAnnotations}
+                    createAnnotation={this.createAnnotation}
+                    sendAnnotations={this.receiveAnnotations}
+                    makeAnnotationDocuments={this.makeAnnotationDocument}
+                    receiveAnnotations={this.sendAnnotations}
+                    {...this.props} />
+            );
+        }
+    }
 
-    componentWillUnmount = () => {
-        if (this._reactionDisposer) {
-            this._reactionDisposer();
+    // change the address to be the file address of the PNG version of each page
+    // file address of the pdf
+    @action
+    getPageImage = async (page: number) => {
+        let handleError = () => this.getRenderedPage(page);
+        if (this._isPage[page] != "image") {
+            this._isPage[page] = "image";
+            const address = this.props.url;
+            let res = JSON.parse(await rp.get(DocServer.prepend(`/thumbnail${address.substring("files/".length, address.length - ".pdf".length)}-${page + 1}.PNG`)));
+            runInAction(() => this._visibleElements[page] =
+                <img key={res.path} src={res.path} onError={handleError}
+                    style={{ width: `${parseInt(res.width) * scale}px`, height: `${parseInt(res.height) * scale}px` }} />);
         }
-        if (this._annotationReactionDisposer) {
-            this._annotationReactionDisposer();
-        }
+    }
+
+    @computed get scrollY(): number { return this.props.scrollY; }
+
+    // startIndex: where to start rendering pages
+    @computed get startIndex(): number { return Math.max(0, this.getPageFromScroll(this.scrollY) - this._pageBuffer); }
+
+    // endIndex: where to end rendering pages
+    @computed get endIndex(): number {
+        return Math.min(this.props.pdf.numPages - 1, this.getPageFromScroll(this.scrollY) + this._pageBuffer);
     }
 
     @action
-    saveThumbnail = async () => {
-        // file address of the pdf
-        const address: string = this.props.url;
-        for (let i = 0; i < this._visibleElements.length; i++) {
-            if (this._isPage[i]) {
-                // change the address to be the file address of the PNG version of each page
-                let res = JSON.parse(await rp.get(DocServer.prepend(`/thumbnail${address.substring("files/".length, address.length - ".pdf".length)}-${i + 1}.PNG`)));
-                let thisAddress = res.path;
-                let nWidth = parseInt(res.width);
-                let nHeight = parseInt(res.height);
-                // replace page with image
-                runInAction(() =>
-                    this._visibleElements[i] = <img key={thisAddress} style={{ width: `${nWidth * scale}px`, height: `${nHeight * scale}px` }} src={thisAddress} />);
+    renderPages = () => {
+        for (let i = 0; i < this.props.pdf.numPages; i++) {
+            if (i < this.startIndex || i > this.endIndex) {
+                this.getPlaceholderPage(i);  // pages outside of the pdf use empty stand-in divs
+            } else {
+                if (this.props.parent.props.active()) {
+                    this.getRenderedPage(i);
+                } else {
+                    this.getPageImage(i);
+                }
             }
-        }
-    }
-
-    @computed get scrollY(): number {
-        return this.props.scrollY;
-    }
-
-    @computed get startIndex(): number {
-        return Math.max(0, this.getIndex(this.scrollY) - this._pageBuffer);
-    }
-
-    @computed get endIndex(): number {
-        let width = this._pageSizes.map(i => i ? i.width : 0);
-        return Math.min(this.props.pdf ? this.props.pdf.numPages - 1 : 0, this.getIndex(this.scrollY + Math.max(...width)) + this._pageBuffer);
-    }
-
-    componentDidUpdate = (prevProps: IViewerProps) => {
-        if (this.scrollY !== prevProps.scrollY || this._pdf !== this.props.pdf) {
-            this._pdf = this.props.pdf;
-            // render pages if the scorll position changes
-            console.log(`START: ${this.startIndex}, END: ${this.endIndex}`);
-            this.renderPages(this.startIndex, this.endIndex);
         }
     }
 
@@ -282,95 +263,6 @@ class Viewer extends React.Component<IViewerProps> {
             this._annotations.push(...annotations);
             this._annotations = new Array<Doc>(...this._annotations);
         }
-    }
-
-    /**
-     * @param startIndex: where to start rendering pages
-     * @param endIndex: where to end rendering pages
-     * @param forceRender: (optional), force pdfs to re-render, even if the page already exists
-     */
-    @action
-    renderPages = (startIndex: number, endIndex: number, forceRender: boolean = false) => {
-        let numPages = this.props.pdf ? this.props.pdf.numPages : 0;
-        if (!this.props.pdf) {
-            return;
-        }
-
-        if (this._pageSizes.length !== numPages) {
-            this._pageSizes = new Array(numPages).map(i => ({ width: 0, height: 0 }));
-        }
-
-        // this is only for an initial render to get all of the pages rendered
-        if (this._visibleElements.length !== numPages) {
-            let divs = Array.from(Array(numPages).keys()).map(i => i < 5 ? (
-                <Page
-                    pdf={this.props.pdf}
-                    page={i}
-                    numPages={numPages}
-                    key={`${this.props.pdf ? this.props.pdf.fingerprint + `-page${i + 1}` : "undefined"}`}
-                    name={`${this.props.pdf ? this.props.pdf.fingerprint + `-page${i + 1}` : "undefined"}`}
-                    pageLoaded={this.pageLoaded}
-                    parent={this.props.parent}
-                    renderAnnotations={this.renderAnnotations}
-                    makePin={this.createPinAnnotation}
-                    createAnnotation={this.createAnnotation}
-                    sendAnnotations={this.receiveAnnotations}
-                    makeAnnotationDocuments={this.makeAnnotationDocument}
-                    receiveAnnotations={this.sendAnnotations}
-                    {...this.props} />
-            ) :
-                (<div key={`pdfviewer-placeholder-${i}`} className="pdfviewer-placeholder" style={{ width: this._pageSizes[i] ? this._pageSizes[i].width : 612 * scale, height: this._pageSizes[i] ? this._pageSizes[i].height : 792 * scale }} />)
-            );
-            let arr = Array.from(Array(numPages).keys()).map(i => i < 5);
-            this._visibleElements.push(...divs);
-            this._isPage.push(...arr);
-        }
-
-        // if nothing changed, return
-        if (startIndex === this._startIndex && endIndex === this._endIndex && !forceRender) {
-            return;
-        }
-
-        // unrender pages outside of the pdf by replacing them with empty stand-in divs
-        for (let i = 0; i < numPages; i++) {
-            if (i < startIndex || i > endIndex) {
-                if (this._isPage[i]) {
-                    this._visibleElements[i] = (
-                        <div key={`pdfviewer-placeholder-${i}`} className="pdfviewer-placeholder" style={{ width: this._pageSizes[i] ? this._pageSizes[i].width : 0, height: this._pageSizes[i] ? this._pageSizes[i].height : 0 }} />
-                    );
-                }
-                this._isPage[i] = false;
-            }
-        }
-
-        // render pages for any indices that don't already have pages (force rerender will make these render regardless)
-        for (let i = startIndex; i <= endIndex; i++) {
-            if (!this._isPage[i] || (this._isPage[i] && forceRender)) {
-                this._visibleElements[i] = (
-                    <Page
-                        pdf={this.props.pdf}
-                        page={i}
-                        numPages={numPages}
-                        key={`${this.props.pdf ? this.props.pdf.fingerprint + `-page${i + 1}` : "undefined"}`}
-                        name={`${this.props.pdf ? this.props.pdf.fingerprint + `-page${i + 1}` : "undefined"}`}
-                        pageLoaded={this.pageLoaded}
-                        parent={this.props.parent}
-                        makePin={this.createPinAnnotation}
-                        renderAnnotations={this.renderAnnotations}
-                        createAnnotation={this.createAnnotation}
-                        sendAnnotations={this.receiveAnnotations}
-                        makeAnnotationDocuments={this.makeAnnotationDocument}
-                        receiveAnnotations={this.sendAnnotations}
-                        {...this.props} />
-                );
-                this._isPage[i] = true;
-            }
-        }
-
-        this._startIndex = startIndex;
-        this._endIndex = endIndex;
-
-        return;
     }
 
     @action
@@ -390,10 +282,9 @@ class Viewer extends React.Component<IViewerProps> {
 
     createPinAnnotation = (x: number, y: number, page: number): void => {
         let targetDoc = Docs.TextDocument({ width: 100, height: 50, title: "New Pin Annotation" });
-
         let pinAnno = new Doc();
         pinAnno.x = x;
-        pinAnno.y = y + this.getPageHeight(page);
+        pinAnno.y = y + this.getScrollFromPage(page);
         pinAnno.width = pinAnno.height = PinRadius;
         pinAnno.page = page;
         pinAnno.target = targetDoc;
@@ -412,51 +303,19 @@ class Viewer extends React.Component<IViewerProps> {
     }
 
     // get the page index that the vertical offset passed in is on
-    getIndex = (vOffset: number) => {
-        // if (this._loaded) {
-        let numPages = this.props.pdf ? this.props.pdf.numPages : 0;
+    getPageFromScroll = (vOffset: number) => {
         let index = 0;
         let currOffset = vOffset;
-        while (index < this._pageSizes.length && currOffset - (this._pageSizes[index] ? this._pageSizes[index].height : 792 * scale) > 0) {
-            currOffset -= this._pageSizes[index] ? this._pageSizes[index].height : this._pageSizes[0].height;
-            index++;
+        while (index < this._pageSizes.length && currOffset - this._pageSizes[index].height > 0) {
+            currOffset -= this._pageSizes[index++].height;
         }
         return index;
-        // }
-        return 0;
     }
 
-    /**
-     * Called by the Page class when it gets rendered, initializes the lists and
-     * puts a placeholder with all of the correct page sizes when all of the pages have been loaded.
-     */
-    @action
-    pageLoaded = (index: number, page: Pdfjs.PDFPageViewport): void => {
-        if (this._loaded) {
-            return;
-        }
-        let numPages = this.props.pdf ? this.props.pdf.numPages : 0;
-        this.props.loaded(page.width, page.height, numPages);
-        this._pageSizes[index - 1] = { width: page.width, height: page.height };
-        this._pagesLoaded++;
-        if (this._pagesLoaded === numPages) {
-            this._loaded = true;
-            let divs = Array.from(Array(numPages).keys()).map(i => (
-                <div key={`pdfviewer-placeholder-${i}`} className="pdfviewer-placeholder" style={{ width: this._pageSizes[i] ? this._pageSizes[i].width : 0, height: this._pageSizes[i] ? this._pageSizes[i].height : 0 }} />
-            ));
-            this._visibleElements = new Array<JSX.Element>(...divs);
-            this.renderPages(this.startIndex, this.endIndex, true);
-        }
-    }
-
-    getPageHeight = (index: number): number => {
+    getScrollFromPage = (index: number): number => {
         let counter = 0;
-        if (this.props.pdf && index < this.props.pdf.numPages) {
-            for (let i = 0; i < index; i++) {
-                if (this._pageSizes[i]) {
-                    counter += this._pageSizes[i].height;
-                }
-            }
+        for (let i = 0; i < Math.min(this.props.pdf.numPages, index); i++) {
+            counter += this._pageSizes[i].height;
         }
         return counter;
     }
@@ -464,7 +323,7 @@ class Viewer extends React.Component<IViewerProps> {
     createAnnotation = (div: HTMLDivElement, page: number) => {
         if (this._annotationLayer.current) {
             if (div.style.top) {
-                div.style.top = (parseInt(div.style.top) + this.getPageHeight(page)).toString();
+                div.style.top = (parseInt(div.style.top) + this.getScrollFromPage(page)).toString();
             }
             this._annotationLayer.current.append(div);
             let savedPage = this._savedAnnotations.getValue(page);
@@ -515,13 +374,16 @@ class Viewer extends React.Component<IViewerProps> {
     }
 
     render() {
-        trace();
         return (
             <div ref={this.mainCont} style={{ pointerEvents: "all" }}>
                 <div className="viewer">
                     {this._visibleElements}
                 </div>
-                <div className="pdfViewer-annotationLayer" style={{ height: this.props.parent.Document.nativeHeight, width: `100%`, pointerEvents: this._pointerEvents }}>
+                <div className="pdfViewer-annotationLayer"
+                    style={{
+                        height: this.props.parent.Document.nativeHeight, width: `100%`,
+                        pointerEvents: this.props.parent.props.active() ? "none" : "all"
+                    }}>
                     <div className="pdfViewer-annotationLayer-subCont" ref={this._annotationLayer}>
                         {this._annotations.map(anno => this.renderAnnotation(anno))}
                     </div>

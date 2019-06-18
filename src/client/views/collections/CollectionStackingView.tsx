@@ -81,6 +81,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     getTransform={dxf}
                     CollectionView={this.props.CollectionView}
                     addDocument={this.props.addDocument}
+                    moveDocument={this.props.moveDocument}
                     removeDocument={this.props.removeDocument}
                     active={this.props.active}
                     whenActiveChanged={this.props.whenActiveChanged}

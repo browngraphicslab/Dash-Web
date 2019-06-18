@@ -109,7 +109,7 @@ export class FieldView extends React.Component<FieldViewProps> {
         }
         else if (field instanceof List) {
             return (<div>
-                {field.map(f => f instanceof Doc ? f.title : f.toString()).join(", ")}
+                {field.map(f => f instanceof Doc ? f.title : (f && f.toString && f.toString())).join(", ")}
             </div>);
         }
         // bcz: this belongs here, but it doesn't render well so taking it out for now

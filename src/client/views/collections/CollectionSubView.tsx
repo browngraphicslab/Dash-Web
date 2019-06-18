@@ -182,8 +182,19 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 return;
             }
             if (html && html.indexOf("<img") !== 0 && !html.startsWith("<a")) {
-                let htmlDoc = Docs.HtmlDocument(html, { ...options, width: 300, height: 300, documentText: text });
-                this.props.addDocument(htmlDoc, false);
+                let path = window.location.origin + "/doc/";
+                if (text.startsWith(path)) {
+                    let docid = text.replace(DocServer.prepend("/doc/"), "").split("?")[0];
+                    DocServer.GetRefField(docid).then(f => {
+                        if (f instanceof Doc) {
+                            if (options.x || options.y) { f.x = options.x; f.y = options.y; } // should be in CollectionFreeFormView
+                            (f instanceof Doc) && this.props.addDocument(f, false);
+                        }
+                    });
+                } else {
+                    let htmlDoc = Docs.HtmlDocument(html, { ...options, width: 300, height: 300, documentText: text });
+                    this.props.addDocument(htmlDoc, false);
+                }
                 return;
             }
             if (text && text.indexOf("www.youtube.com/watch") !== -1) {
