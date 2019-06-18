@@ -205,6 +205,17 @@ addSecureRoute(
 
 addSecureRoute(
     Method.GET,
+    async (_, res) => {
+        const cursor = await Database.Instance.query({}, "users");
+        const results = await cursor.toArray();
+        res.send(results.map(user => ({ email: user.email, userDocumentId: user.userDocumentId })));
+    },
+    undefined,
+    RouteStore.getUsers
+);
+
+addSecureRoute(
+    Method.GET,
     (user, res, req) => {
         let detector = new mobileDetect(req.headers['user-agent'] || "");
         let filename = detector.mobile() !== null ? 'mobile/image.html' : 'index.html';

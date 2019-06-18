@@ -1,11 +1,11 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faAlignCenter, faCaretSquareRight, faCompressArrowsAlt, faExpandArrowsAlt, faLayerGroup, faSquare, faTrash, faConciergeBell, faFolder, faMapPin, faLink, faFingerprint, faCrosshairs, faDesktop } from '@fortawesome/free-solid-svg-icons';
-import { action, computed, IReactionDisposer, reaction, trace, observable } from "mobx";
+import { action, computed, IReactionDisposer, reaction, trace, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, HeightSym, Opt, WidthSym, DocListCastAsync } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { ObjectField } from "../../../new_fields/ObjectField";
-import { createSchema, makeInterface } from "../../../new_fields/Schema";
+import { createSchema, makeInterface, listSpec } from "../../../new_fields/Schema";
 import { BoolCast, Cast, FieldValue, StrCast, NumCast, PromiseValue } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { emptyFunction, Utils } from "../../../Utils";
@@ -26,10 +26,12 @@ import { DocComponent } from "../DocComponent";
 import { PresentationView } from "../PresentationView";
 import { Template } from "./../Templates";
 import { DocumentContentsView } from "./DocumentContentsView";
+import * as rp from "request-promise";
 import "./DocumentView.scss";
 import React = require("react");
 import { Id, Copy } from '../../../new_fields/FieldSymbols';
 import { ContextMenuProps } from '../ContextMenuItem';
+import { RouteStore } from '../../../server/RouteStore';
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(faTrash);
@@ -452,7 +454,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     @action
-    onContextMenu = (e: React.MouseEvent): void => {
+    onContextMenu = async (e: React.MouseEvent): Promise<void> => {
+        e.persist();
         e.stopPropagation();
         if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3 ||
             e.isDefaultPrevented()) {
@@ -483,14 +486,37 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         cm.addItem({ description: "Copy URL", event: () => Utils.CopyText(DocServer.prepend("/doc/" + this.props.Document[Id])), icon: "link" });
         cm.addItem({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "fingerprint" });
         cm.addItem({ description: "Delete", event: this.deleteClicked, icon: "trash" });
-        if (!this.topMost) {
-            // DocumentViews should stop propagation of this event
-            e.stopPropagation();
-        }
-        ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
-        if (!SelectionManager.IsSelected(this)) {
-            SelectionManager.SelectDoc(this, false);
-        }
+        type User = { email: string, userDocumentId: string };
+        const users: User[] = JSON.parse(await rp.get(DocServer.prepend(RouteStore.getUsers)));
+        let usersMenu: ContextMenuProps[] = users.filter(({ email }) => email !== CurrentUserUtils.email).map(({ email, userDocumentId }) => ({
+            description: email, event: async () => {
+                const userDocument = await Cast(DocServer.GetRefField(userDocumentId), Doc);
+                if (!userDocument) {
+                    throw new Error(`Couldn't get user document of user ${email}`);
+                }
+                const notifDoc = await Cast(userDocument.optionalRightCollection, Doc);
+                if (notifDoc instanceof Doc) {
+                    const data = await Cast(notifDoc.data, listSpec(Doc));
+                    const sharedDoc = Doc.MakeAlias(this.props.Document);
+                    if (data) {
+                        data.push(sharedDoc);
+                    } else {
+                        notifDoc.data = new List([sharedDoc]);
+                    }
+                }
+            }
+        }));
+        runInAction(() => {
+            cm.addItem({ description: "Share...", subitems: usersMenu });
+            if (!this.topMost) {
+                // DocumentViews should stop propagation of this event
+                e.stopPropagation();
+            }
+            ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
+            if (!SelectionManager.IsSelected(this)) {
+                SelectionManager.SelectDoc(this, false);
+            }
+        });
     }
 
     onPointerEnter = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = true; };
