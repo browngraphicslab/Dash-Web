@@ -147,10 +147,9 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         let templatecols = "";
         for (let i = 0; i < cols; i++) templatecols += `${this.columnWidth}px `;
         return (
-            <div className="collectionStackingView">
+            <div className="collectionStackingView" ref={this.createRef} onContextMenu={this.onContextMenu} onWheel={(e: React.WheelEvent) => e.stopPropagation()} >
                 <div className={`collectionStackingView-masonry${this.singleColumn ? "Single" : "Grid"}`}
-                    onContextMenu={this.onContextMenu}
-                    ref={this.createRef} onWheel={(e: React.WheelEvent) => e.stopPropagation()}
+
                     style={{
                         padding: this.singleColumn ? `${this.yMargin}px ${this.xMargin}px ${this.yMargin}px ${this.xMargin}px` : `${this.yMargin}px ${this.xMargin}px`,
                         margin: "auto",
@@ -163,7 +162,8 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     }}
                 >
                     {this.singleColumn ? this.singleColumnChildren : this.children}
-                </div></div>
+                </div>
+            </div>
         );
     }
 }
