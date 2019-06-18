@@ -7,8 +7,6 @@ import * as anime from 'animejs';
 import { SearchBox } from './SearchBox';
 
 export interface ToggleBarProps {
-    //false = right, true = left
-    // changeStatus(): void;
     originalStatus: boolean;
     optionOne: string;
     optionTwo: string;

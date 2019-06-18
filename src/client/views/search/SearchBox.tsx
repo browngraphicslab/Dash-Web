@@ -35,8 +35,8 @@ export class SearchBox extends React.Component {
 
     @observable _searchString: string = "";
     //if true, any keywords can be used. if false, all keywords are required.
-    @observable _wordStatus: boolean = true;
-    @observable private _open: boolean = false;
+    @observable _basicWordStatus: boolean = true;
+    @observable private _filterOpen: boolean = false;
     @observable private _resultsOpen: boolean = false;
     @observable private _results: Doc[] = [];
     @observable filterBoxStatus: boolean = false;
@@ -56,14 +56,17 @@ export class SearchBox extends React.Component {
                 this.closeSearch();
             }
         });
+
+        //empties search query after 30 seconds of the search bar/filter box not being open
+        if(!this._resultsOpen && !this._filterOpen){
+            setTimeout(this.clearSearchQuery, 30000);
+        }
     }
 
     @action.bound
     resetFilters = () => {
         ToggleBar.Instance.resetToggle();
         IconBar.Instance.selectAll();
-        // this._wordStatus = true;
-        this._icons = this.allIcons;
     }
 
     @action.bound
@@ -76,13 +79,19 @@ export class SearchBox extends React.Component {
         }
     }
 
+    @action.bound
+    clearSearchQuery() {
+        this._searchString = "";
+        this._results = [];
+    }
+
     @action
     submitSearch = async () => {
         let query = this._searchString;
         let results: Doc[];
 
         //if this._wordstatus is false, all words are required and a + is added before each
-        if (!this._wordStatus) {
+        if (!this._basicWordStatus) {
             let oldWords = query.split(" ");
             let newWords: string[] = [];
             oldWords.forEach(word => {
@@ -108,6 +117,8 @@ export class SearchBox extends React.Component {
             this._openNoResults = true;
         });
 
+        //clears searchstring after search - may not be preferred
+        this._searchString = "";
     }
 
     @action
@@ -166,14 +177,14 @@ export class SearchBox extends React.Component {
 
     @action.bound
     closeSearch = () => {
-        this._open = false;
+        this._filterOpen = false;
         this._resultsOpen = false;
         this._results = [];
     }
 
     @action
     openFilter = () => {
-        this._open = true;
+        this._filterOpen = true;
         this._resultsOpen = false;
         this._results = [];
     }
@@ -228,7 +239,7 @@ export class SearchBox extends React.Component {
 
     //if true, any keywords can be used. if false, all keywords are required.
     handleWordQueryChange = () => {
-        this._wordStatus = !this._wordStatus;
+        this._basicWordStatus = !this._basicWordStatus;
     }
 
     @action.bound
@@ -252,7 +263,7 @@ export class SearchBox extends React.Component {
     openSearch(e: React.PointerEvent) {
         e.stopPropagation();
         this._openNoResults = false;
-        this._open = false;
+        this._filterOpen = false;
         this._resultsOpen = true;
         this._pointerTime = e.timeStamp;
     }
@@ -261,16 +272,6 @@ export class SearchBox extends React.Component {
     updateCheckStatus(newStat: boolean) {
         console.log("updating!")
     }
-
-    @action.bound
-    updateSelected(newArray: any[]) {
-        this._selectedTypes = newArray;
-    }
-
-    getSelected(): any[] {
-        return this._selectedTypes;
-    }
-
 
     // Useful queries:
     // Delegates of a document: {!join from=id to=proto_i}id:{protoId}
@@ -298,15 +299,15 @@ export class SearchBox extends React.Component {
                         </div>
                     ) : undefined}
                 </div>
-                {this._open ? (
-                    <div className="filter-form" onPointerDown={this.stopProp} id="filter" style={this._open ? { display: "flex" } : { display: "none" }}>
+                {this._filterOpen ? (
+                    <div className="filter-form" onPointerDown={this.stopProp} id="filter" style={this._filterOpen ? { display: "flex" } : { display: "none" }}>
                         <div className="filter-form filter-div" id="header">Filter Search Results</div>
                         <div className="filter-form " id="option">
                             <div className="required-words filter-div">
-                                <ToggleBar originalStatus={this._wordStatus} optionOne={"Include Any Keywords"} optionTwo={"Include All Keywords"} />
+                                <ToggleBar originalStatus={this._basicWordStatus} optionOne={"Include Any Keywords"} optionTwo={"Include All Keywords"} />
                             </div>
                             <div className="type-of-node filter-div">
-                                <IconBar updateSelected = {this.updateSelected} allIcons = {this.allIcons} updateIcon={this.updateIcon} getIcons={this.getSelected} />
+                                <IconBar/>
                             </div>
                             <div className="filter-collection filter-div">
                                 temp for filtering by collection

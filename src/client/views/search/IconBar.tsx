@@ -27,15 +27,8 @@ library.add(faChartBar);
 library.add(faGlobeAsia);
 library.add(faBan);
 
-export interface IconBarProps {
-    updateIcon(icons: string[]): void;
-    getIcons(): string[]
-    allIcons: string[];
-    updateSelected(list: any[]): void;
-}
-
 @observer
-export class IconBar extends React.Component<IconBarProps> {
+export class IconBar extends React.Component {
 
     static Instance: IconBar;
     
@@ -45,7 +38,7 @@ export class IconBar extends React.Component<IconBarProps> {
     public Reset: number = 0;
     public Select: number = 0;
 
-    constructor(props: IconBarProps) {
+    constructor(props: any) {
         super(props);
         IconBar.Instance = this;
     }
