@@ -40,12 +40,10 @@ export class IconBar extends React.Component<IconBarProps> {
     
     allIcons: string[] = [DocTypes.AUDIO, DocTypes.COL, DocTypes.HIST, DocTypes.IMG, DocTypes.LINK, DocTypes.PDF, DocTypes.TEXT, DocTypes.VID, DocTypes.WEB];
     @observable typesToFind: string[];
-    // @observable selectedItems: string[] = [];
     @observable public ResetClicked: boolean = false;
     @observable public SelectAllClicked: boolean = false;
     public Reset: number = 0;
     public Select: number = 0;
-    // @observable activeType = "none";
 
     constructor(props: IconBarProps) {
         super(props);
@@ -61,43 +59,20 @@ export class IconBar extends React.Component<IconBarProps> {
     @action.bound
     updateList(newList: string[]) {
         this.typesToFind = newList;
+        console.log(newList)
     }
 
     @action.bound
     resetSelf = () => {
         this.ResetClicked = true;
-        this.typesToFind = [];
-        // this.selectedItems = [];
-        // this.activeType = "none";
-        // console.log("resetting")
+        this.updateList([]);
     }
 
     @action.bound
     selectAll = () => {
         this.SelectAllClicked = true;
-        this.typesToFind = this.allIcons;
+        this.updateList(this.allIcons);
     }
-
-    // @action.bound
-    // getActiveType() {
-    //     return this.activeType;
-    // }
-
-    // @action.bound
-    // updateActiveType(type: string) {
-    //     this.resetSelf();
-    //     this.activeType = type;
-    // }
-
-    // @action.bound
-    // updateSelectedList(type: string){
-    //     if(this.selectedItems.indexOf(type) === -1){
-    //         this.selectedItems.push(type);
-    //     }
-    //     else{
-    //         _.pull(this.selectedItems, type);
-    //     }
-    // }
 
     render() {
         return (
