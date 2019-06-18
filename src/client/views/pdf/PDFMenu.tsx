@@ -10,8 +10,8 @@ import { Doc } from "../../../new_fields/Doc";
 export default class PDFMenu extends React.Component {
     static Instance: PDFMenu;
 
-    @observable private _top: number = 0;
-    @observable private _left: number = 0;
+    @observable private _top: number = -300;
+    @observable private _left: number = -300;
     @observable private _opacity: number = 1;
     @observable private _transition: string = "opacity 0.5s";
     @observable private _transitionDelay: string = "";
@@ -22,18 +22,25 @@ export default class PDFMenu extends React.Component {
     @observable Highlighting: boolean = false;
 
     private _timeout: NodeJS.Timeout | undefined;
+    private _offsetY: number = 0;
+    private _offsetX: number = 0;
+    private _mainCont: React.RefObject<HTMLDivElement>;
 
     constructor(props: Readonly<{}>) {
         super(props);
 
         PDFMenu.Instance = this;
+
+        this._mainCont = React.createRef();
     }
 
     pointerDown = (e: React.PointerEvent) => {
         document.removeEventListener("pointermove", this.StartDrag);
         document.addEventListener("pointermove", this.StartDrag);
-        document.removeEventListener("pointerup", this.pointerUp)
-        document.addEventListener("pointerup", this.pointerUp)
+        document.removeEventListener("pointerup", this.pointerUp);
+        document.addEventListener("pointerup", this.pointerUp);
+
+        console.log(this.StartDrag);
 
         e.stopPropagation();
         e.preventDefault();
@@ -102,8 +109,8 @@ export default class PDFMenu extends React.Component {
 
     @action
     dragging = (e: PointerEvent) => {
-        this._left += e.movementX;
-        this._top += e.movementY;
+        this._left = e.pageX - this._offsetX;
+        this._top = e.pageY - this._offsetY;
 
         e.stopPropagation();
         e.preventDefault();
@@ -122,6 +129,9 @@ export default class PDFMenu extends React.Component {
         document.removeEventListener("pointerup", this.dragEnd);
         document.addEventListener("pointerup", this.dragEnd);
 
+        this._offsetX = this._mainCont.current!.getBoundingClientRect().width - e.nativeEvent.offsetX;
+        this._offsetY = e.nativeEvent.offsetY;
+
         e.stopPropagation();
         e.preventDefault();
     }
@@ -139,7 +149,7 @@ export default class PDFMenu extends React.Component {
 
     render() {
         return (
-            <div className="pdfMenu-cont" onPointerLeave={this.pointerLeave} onPointerEnter={this.pointerEntered}
+            <div className="pdfMenu-cont" onPointerLeave={this.pointerLeave} onPointerEnter={this.pointerEntered} ref={this._mainCont}
                 style={{ left: this._left, top: this._top, opacity: this._opacity, transition: this._transition, transitionDelay: this._transitionDelay }}>
                 <button className="pdfMenu-button" title="Highlight" onClick={this.highlightClicked}
                     style={this.Highlighting ? { backgroundColor: "#121212" } : {}}>
