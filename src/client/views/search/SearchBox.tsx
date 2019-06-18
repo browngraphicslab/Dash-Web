@@ -130,20 +130,6 @@ export class SearchBox extends React.Component {
         return this.filterDocs(docs);
     }
 
-    // @action filterDocs2(docs: Doc[]) {
-    //     if (this._icons.length === 0) {
-    //         return docs;
-    //     }
-    //     let finalDocs: Doc[] = [];
-    //     docs.forEach(doc => {
-    //         let layoutresult = Cast(doc.type, "string", "");
-    //         if (this._icons.includes(layoutresult)) {
-    //             finalDocs.push(doc)
-    //         }
-    //     });
-    //     return finalDocs;
-    // }
-
     //this.icons will now include all the icons that need to be included
     @action filterDocs(docs: Doc[]) {
         let finalDocs: Doc[] = [];

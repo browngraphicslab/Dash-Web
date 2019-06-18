@@ -13,6 +13,7 @@ import $ from 'jquery';
 import { array } from 'prop-types';
 import { IconButton } from './IconButton';
 import { list } from 'serializr';
+import { SearchBox } from './SearchBox';
 
 library.add(faSearch);
 library.add(faObjectGroup);
@@ -39,7 +40,7 @@ export class IconBar extends React.Component<IconBarProps> {
     static Instance: IconBar;
     
     allIcons: string[] = [DocTypes.AUDIO, DocTypes.COL, DocTypes.HIST, DocTypes.IMG, DocTypes.LINK, DocTypes.PDF, DocTypes.TEXT, DocTypes.VID, DocTypes.WEB];
-    @observable typesToFind: string[];
+    // @observable typesToFind: string[] = SearchBox.Instance.getIcons();
     @observable public ResetClicked: boolean = false;
     @observable public SelectAllClicked: boolean = false;
     public Reset: number = 0;
@@ -47,19 +48,20 @@ export class IconBar extends React.Component<IconBarProps> {
 
     constructor(props: IconBarProps) {
         super(props);
-        this.typesToFind = [DocTypes.AUDIO, DocTypes.COL, DocTypes.HIST, DocTypes.IMG, DocTypes.LINK, DocTypes.PDF, DocTypes.TEXT, DocTypes.VID, DocTypes.WEB];
+        // console.log("seting")
         IconBar.Instance = this;
     }
 
     @action.bound
     getList = (): string[] => {
-        return this.typesToFind;
+        return SearchBox.Instance.getIcons();
     }
 
     @action.bound
     updateList(newList: string[]) {
-        this.typesToFind = newList;
-        console.log(newList)
+        // this.typesToFind = newList;
+        SearchBox.Instance.updateIcon(newList)
+        // console.log(newList)
     }
 
     @action.bound
@@ -87,7 +89,7 @@ export class IconBar extends React.Component<IconBarProps> {
                         <div className="filter-description">Select All</div>
                     </div>
                     {this.allIcons.map((type: string) =>
-                        <IconButton type={type} active={this.typesToFind.indexOf(type) !== -1} getList={this.getList} updateList={this.updateList} />
+                        <IconButton type={type}/>
                     )}
                     <div className="filter type-outer">
                         <div className={"type-icon none not-selected"}
