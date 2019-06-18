@@ -18,8 +18,8 @@
 }
 
 .type-icon {
-    height: 50px;
-    width: 50px;
+    height: 45px;
+    width: 45px;
     color: $light-color;
     border-radius: 50%;
     display: flex;
@@ -30,22 +30,22 @@
     -o-transition: all 0.2s ease-in-out;
     transition: all 0.2s ease-in-out;
     font-size: 2em;
-    position: absolute;
+    // position: absolute;
 }
 
-.ban-icon {
-    width: 50px;
-    height: 50px;
-    color: $alt-accent;
-    opacity: 0;
-    position: absolute;
-    float: right;
+// .ban-icon {
+//     width: 50px;
+//     height: 50px;
+//     color: $alt-accent;
+//     opacity: 0;
+//     position: absolute;
+//     float: right;
 
-    .fontawesome-icon {
-        height: 100%;
-        width: 100%;
-    }
-}
+//     .fontawesome-icon {
+//         height: 100%;
+//         width: 100%;
+//     }
+// }
 
 // .type-icon.selected.add {
 //     background-color: $alt-accent;
@@ -63,8 +63,8 @@
 // }
 
 .fontawesome-icon {
-    height: 28px;
-    width: 28px;
+    height: 24px;
+    width: 24px;
 }
 
 .filter-description{
@@ -73,7 +73,7 @@
 
 .type-icon:hover {
     transform: scale(1.1);
-    background-color: $alt-accent;
+    background-color: $darker-alt-accent;
     opacity: 1;
 
     +.filter-description {
@@ -95,9 +95,9 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 50px;
-    height: 50px;
-    position: relative;
+    width: 45px;
+    height: 60px;
+    // position: relative;
 }
 
 .filter-description {

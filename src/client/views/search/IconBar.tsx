@@ -5,7 +5,7 @@ import "./SearchBox.scss";
 import "./IconBar.scss";
 import * as anime from 'animejs';
 import { DocTypes } from '../../documents/Documents';
-import { faSearch, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faMusic, faLink, faChartBar, faGlobeAsia, faBan } from '@fortawesome/free-solid-svg-icons';
+import { faSearch, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faMusic, faLink, faChartBar, faGlobeAsia, faBan, faTimesCircle, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { library, icon } from '@fortawesome/fontawesome-svg-core';
 import * as _ from "lodash";
@@ -40,10 +40,12 @@ export class IconBar extends React.Component<IconBarProps> {
     
     allIcons: string[] = [DocTypes.AUDIO, DocTypes.COL, DocTypes.HIST, DocTypes.IMG, DocTypes.LINK, DocTypes.PDF, DocTypes.TEXT, DocTypes.VID, DocTypes.WEB];
     @observable typesToFind: string[];
-    @observable selectedItems: string[] = [];
+    // @observable selectedItems: string[] = [];
     @observable public ResetClicked: boolean = false;
+    @observable public SelectAllClicked: boolean = false;
     public Reset: number = 0;
-    @observable activeType = "none";
+    public Select: number = 0;
+    // @observable activeType = "none";
 
     constructor(props: IconBarProps) {
         super(props);
@@ -63,49 +65,62 @@ export class IconBar extends React.Component<IconBarProps> {
 
     @action.bound
     resetSelf = () => {
-        // this.ResetClicked = true;
+        this.ResetClicked = true;
+        this.typesToFind = [];
+        // this.selectedItems = [];
+        // this.activeType = "none";
+        // console.log("resetting")
+    }
+
+    @action.bound
+    selectAll = () => {
+        this.SelectAllClicked = true;
         this.typesToFind = this.allIcons;
-        this.selectedItems = [];
-        this.activeType = "none";
-        console.log("resetting")
     }
 
-    @action.bound
-    getActiveType() {
-        return this.activeType;
-    }
+    // @action.bound
+    // getActiveType() {
+    //     return this.activeType;
+    // }
 
-    @action.bound
-    updateActiveType(type: string) {
-        this.resetSelf();
-        this.activeType = type;
-    }
+    // @action.bound
+    // updateActiveType(type: string) {
+    //     this.resetSelf();
+    //     this.activeType = type;
+    // }
 
-    @action.bound
-    updateSelectedList(type: string){
-        if(this.selectedItems.indexOf(type) === -1){
-            this.selectedItems.push(type);
-        }
-        else{
-            _.pull(this.selectedItems, type);
-        }
-    }
+    // @action.bound
+    // updateSelectedList(type: string){
+    //     if(this.selectedItems.indexOf(type) === -1){
+    //         this.selectedItems.push(type);
+    //     }
+    //     else{
+    //         _.pull(this.selectedItems, type);
+    //     }
+    // }
 
     render() {
         return (
             <div>
                 <div className="filter icon-title">Filter by type of node</div>
                 <div className="filter icon-bar">
+                <div className="filter type-outer">
+                        <div className={"type-icon none not-selected"}
+                            onClick={this.selectAll}>
+                            <FontAwesomeIcon className="fontawesome-icon" icon={faCheckCircle} />
+                        </div>
+                        <div className="filter-description">Select All</div>
+                    </div>
+                    {this.allIcons.map((type: string) =>
+                        <IconButton type={type} active={this.typesToFind.indexOf(type) !== -1} getList={this.getList} updateList={this.updateList} />
+                    )}
                     <div className="filter type-outer">
                         <div className={"type-icon none not-selected"}
                             onClick={this.resetSelf}>
-                            <FontAwesomeIcon className="fontawesome-icon" style={{ order: -2 }} icon={faBan} />
+                            <FontAwesomeIcon className="fontawesome-icon" icon={faTimesCircle} />
                         </div>
                         <div className="filter-description">Clear</div>
                     </div>
-                    {this.allIcons.map((type: string) =>
-                        <IconButton getActiveType = {this.getActiveType} updateSelectedList= {this.updateSelectedList} type={type} changeActiveType = {this.updateActiveType} active={this.selectedItems.indexOf(type) !== -1} getList={this.getList} updateList={this.updateList} />
-                    )}
                 </div>
             </div>
         );
