@@ -402,7 +402,8 @@ export default class Page extends React.Component<IPageProps> {
             let boundingRect = this._textLayer.current.getBoundingClientRect();
             for (let i = 0; i < clientRects.length; i++) {
                 let rect = clientRects.item(i);
-                if (rect) {
+                if (rect && rect.width !== this._textLayer.current.getBoundingClientRect().width && rect.height !== this._textLayer.current.getBoundingClientRect().height) {
+                    console.log(rect);
                     let annoBox = document.createElement("div");
                     annoBox.className = "pdfViewer-annotationBox";
                     // transforms the positions from screen onto the pdf div

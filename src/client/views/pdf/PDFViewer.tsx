@@ -388,7 +388,7 @@ class Viewer extends React.Component<IViewerProps> {
                         {this._annotations.map(anno => this.renderAnnotation(anno))}
                     </div>
                 </div>
-            </div>
+            </div >
         );
     }
 }
@@ -522,7 +522,7 @@ class PinAnnotation extends React.Component<IAnnotationProps> {
 class RegionAnnotation extends React.Component<IAnnotationProps> {
     @observable private _backgroundColor: string = "red";
 
-    onPointerDown = (e: React.PointerEvent) => {
+    onPointerDown = (e: React.MouseEvent) => {
         let targetDoc = Cast(this.props.document.target, Doc, null);
         if (targetDoc) {
             DocumentManager.Instance.jumpToDocument(targetDoc);
@@ -531,7 +531,7 @@ class RegionAnnotation extends React.Component<IAnnotationProps> {
 
     render() {
         return (
-            <div className="pdfViewer-annotationBox" onPointerDown={this.onPointerDown}
+            <div className="pdfViewer-annotationBox" onClick={this.onPointerDown}
                 style={{ top: this.props.y * scale, left: this.props.x * scale, width: this.props.width * scale, height: this.props.height * scale, pointerEvents: "all", backgroundColor: StrCast(this.props.document.color) }}></div>
         );
     }
