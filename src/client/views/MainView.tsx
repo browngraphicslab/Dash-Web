@@ -3,7 +3,7 @@ import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, runInAction, trace } from 'mobx';
 import { observer } from 'mobx-react';
-import { CirclePicker } from 'react-color';
+import { CirclePicker, SliderPicker, BlockPicker, TwitterPicker } from 'react-color';
 import "normalize.css";
 import * as React from 'react';
 import Measure from 'react-measure';
@@ -230,6 +230,14 @@ export class MainView extends React.Component {
         return { fontSize: "50%" };
     }
 
+    onColorClick = (e: React.MouseEvent) => {
+        let target = (e.nativeEvent! as any).path[0];
+        let parent = (e.nativeEvent! as any).path[1];
+        if (target.localName === "input" || parent.localName === "span")
+            e.stopPropagation();
+    }
+
+
     @observable private _colorPickerDisplay = false;
     /* for the expandable add nodes menu. Not included with the miscbuttons because once it expands it expands the whole div with it, making canvas interactions limited. */
     nodesMenu() {
@@ -257,8 +265,8 @@ export class MainView extends React.Component {
                     <li key="redo"><button className="add-button round-button" title="Redo" onClick={() => UndoManager.Redo()}><FontAwesomeIcon icon="redo-alt" size="sm" /></button></li>
                     <li key="color"><button className="add-button round-button" title="Redo" onClick={() => this.toggleColorPicker()}><div className="toolbar-color-button" style={{ backgroundColor: InkingControl.Instance.selectedColor }} >
 
-                        <div className="toolbar-color-picker" style={this._colorPickerDisplay ? { display: "block" } : { display: "none" }}>
-                            <CirclePicker onChange={InkingControl.Instance.switchColor} circleSize={22} width={"220"} />
+                        <div className="toolbar-color-picker" onClick={this.onColorClick} style={this._colorPickerDisplay ? { display: "block" } : { display: "none" }}>
+                            <TwitterPicker color={InkingControl.Instance.selectedColor} onChange={InkingControl.Instance.switchColor} />
                         </div>
                     </div></button></li>
                     {btns.map(btn =>
