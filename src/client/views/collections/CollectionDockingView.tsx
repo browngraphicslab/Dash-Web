@@ -45,6 +45,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     private _containerRef = React.createRef<HTMLDivElement>();
     private _flush: boolean = false;
     private _ignoreStateChange = "";
+    private _isPointerDown = false;
 
     constructor(props: SubCollectionViewProps) {
         super(props);
