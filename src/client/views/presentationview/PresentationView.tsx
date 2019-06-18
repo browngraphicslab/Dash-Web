@@ -13,18 +13,22 @@ import { CurrentUserUtils } from "../../../server/authentication/models/current_
 import PresentationElement, { buttonIndex } from "./PresentationElement";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowRight, faArrowLeft, faPlay, faStop } from '@fortawesome/free-solid-svg-icons';
+import { faArrowRight, faArrowLeft, faPlay, faStop, faPlus, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { Docs } from "../../documents/Documents";
 
 library.add(faArrowLeft);
 library.add(faArrowRight);
 library.add(faPlay);
 library.add(faStop);
+library.add(faPlus);
+library.add(faTimes);
 
 export interface PresViewProps {
-    Document: Doc;
+    Documents: List<Doc>;
 }
 
-interface PresListProps extends PresViewProps {
+interface PresListProps {
+    mainDocument: Doc;
     deleteDocument(index: number): void;
     gotoDocument(index: number, fromDoc: number): Promise<void>;
     groupMappings: Map<String, Doc[]>;
@@ -85,15 +89,17 @@ class PresentationViewList extends React.Component<PresListProps> {
         });
     }
 
+
+
     render() {
-        const children = DocListCast(this.props.Document.data);
+        const children = DocListCast(this.props.mainDocument.data);
         this.initializeGroupIds(children);
         this.initializeScaleViews(children);
         this.props.setChildrenDocs(children);
         return (
 
             <div className="presentationView-listCont">
-                {children.map((doc: Doc, index: number) => <PresentationElement ref={(e) => { if (e) { this.props.presElementsMappings.set(doc, e); } }} key={index} mainDocument={this.props.Document} document={doc} index={index} deleteDocument={this.props.deleteDocument} gotoDocument={this.props.gotoDocument} groupMappings={this.props.groupMappings} allListElements={children} presStatus={this.props.presStatus} presButtonBackUp={this.props.presButtonBackUp} presGroupBackUp={this.props.presGroupBackUp} />)}
+                {children.map((doc: Doc, index: number) => <PresentationElement ref={(e) => { if (e) { this.props.presElementsMappings.set(doc, e); } }} key={index} mainDocument={this.props.mainDocument} document={doc} index={index} deleteDocument={this.props.deleteDocument} gotoDocument={this.props.gotoDocument} groupMappings={this.props.groupMappings} allListElements={children} presStatus={this.props.presStatus} presButtonBackUp={this.props.presButtonBackUp} presGroupBackUp={this.props.presGroupBackUp} />)}
             </div>
         );
     }
@@ -115,17 +121,32 @@ export class PresentationView extends React.Component<PresViewProps>  {
     //back-up so that presentation stays the way it's when refreshed
     @observable presGroupBackUp: Doc = new Doc();
     @observable presButtonBackUp: Doc = new Doc();
+    @observable curPresentation: Doc = new Doc();
+    @observable presentationsMapping: Map<String, Doc> = new Map();
+    @observable selectedPresentation: HTMLSelectElement = new HTMLSelectElement();
 
+
+    //initilize class variables
+    constructor(props: PresViewProps) {
+        super(props);
+        PresentationView.Instance = this;
+    }
+
+
+    async componentWillMount() {
+        let docAtZero = await this.props.Documents[0];
+        runInAction(() => this.curPresentation = docAtZero);
+    }
 
     componentDidMount() {
         //getting both backUp documents
-        let castedGroupBackUp = Cast(this.props.Document.presGroupBackUp, Doc);
-        let castedButtonBackUp = Cast(this.props.Document.presButtonBackUp, Doc);
+        let castedGroupBackUp = Cast(this.curPresentation.presGroupBackUp, Doc);
+        let castedButtonBackUp = Cast(this.curPresentation.presButtonBackUp, Doc);
         //if instantiated before 
         if (castedGroupBackUp instanceof Promise) {
             castedGroupBackUp.then(doc => {
                 let toAssign = doc ? doc : new Doc();
-                this.props.Document.presGroupBackUp = toAssign;
+                this.curPresentation.presGroupBackUp = toAssign;
                 runInAction(() => this.presGroupBackUp = toAssign);
                 if (doc) {
                     if (toAssign[Id] === doc[Id]) {
@@ -138,7 +159,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
             runInAction(() => {
                 let toAssign = new Doc();
                 this.presGroupBackUp = toAssign;
-                this.props.Document.presGroupBackUp = toAssign;
+                this.curPresentation.presGroupBackUp = toAssign;
 
             });
 
@@ -148,7 +169,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
         if (castedButtonBackUp instanceof Promise) {
             castedButtonBackUp.then(doc => {
                 let toAssign = doc ? doc : new Doc();
-                this.props.Document.presButtonBackUp = toAssign;
+                this.curPresentation.presButtonBackUp = toAssign;
                 runInAction(() => this.presButtonBackUp = toAssign);
             });
 
@@ -157,14 +178,14 @@ export class PresentationView extends React.Component<PresViewProps>  {
             runInAction(() => {
                 let toAssign = new Doc();
                 this.presButtonBackUp = toAssign;
-                this.props.Document.presButtonBackUp = toAssign;
+                this.curPresentation.presButtonBackUp = toAssign;
             });
 
         }
 
 
         //storing the presentation status,ie. whether it was stopped or playing
-        let presStatusBackUp = BoolCast(this.props.Document.presStatus, null);
+        let presStatusBackUp = BoolCast(this.curPresentation.presStatus, null);
         runInAction(() => this.presStatus = presStatusBackUp);
     }
 
@@ -188,9 +209,9 @@ export class PresentationView extends React.Component<PresViewProps>  {
     //observable means render is re-called every time variable is changed
     @observable
     collapsed: boolean = false;
-    closePresentation = action(() => this.props.Document.width = 0);
+    closePresentation = action(() => this.curPresentation.width = 0);
     next = async () => {
-        const current = NumCast(this.props.Document.selectedDoc);
+        const current = NumCast(this.curPresentation.selectedDoc);
         //asking to get document at current index
         let docAtCurrentNext = await this.getDocAtIndex(current + 1);
         if (docAtCurrentNext === undefined) {
@@ -213,7 +234,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
     }
     back = async () => {
-        const current = NumCast(this.props.Document.selectedDoc);
+        const current = NumCast(this.curPresentation.selectedDoc);
         //requesting for the doc at current index
         let docAtCurrent = await this.getDocAtIndex(current);
         if (docAtCurrent === undefined) {
@@ -379,7 +400,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
      * Async function that supposedly return the doc that is located at given index.
      */
     getDocAtIndex = async (index: number) => {
-        const list = FieldValue(Cast(this.props.Document.data, listSpec(Doc)));
+        const list = FieldValue(Cast(this.curPresentation.data, listSpec(Doc)));
         if (!list) {
             return undefined;
         }
@@ -387,7 +408,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
             return undefined;
         }
 
-        this.props.Document.selectedDoc = index;
+        this.curPresentation.selectedDoc = index;
         //awaiting async call to finish to get Doc instance
         const doc = await list[index];
         return doc;
@@ -395,21 +416,21 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
     @action
     public RemoveDoc = (index: number) => {
-        const value = FieldValue(Cast(this.props.Document.data, listSpec(Doc)));
+        const value = FieldValue(Cast(this.curPresentation.data, listSpec(Doc)));
         if (value) {
             value.splice(index, 1);
         }
     }
     @action
     public gotoDocument = async (index: number, fromDoc: number) => {
-        const list = FieldValue(Cast(this.props.Document.data, listSpec(Doc)));
+        const list = FieldValue(Cast(this.curPresentation.data, listSpec(Doc)));
         if (!list) {
             return;
         }
         if (index < 0 || index >= list.length) {
             return;
         }
-        this.props.Document.selectedDoc = index;
+        this.curPresentation.selectedDoc = index;
 
         if (!this.presStatus) {
             this.presStatus = true;
@@ -425,11 +446,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
     }
 
-    //initilize class variables
-    constructor(props: PresViewProps) {
-        super(props);
-        PresentationView.Instance = this;
-    }
+
 
     /**
      * Adds a document to the presentation view
@@ -437,14 +454,14 @@ export class PresentationView extends React.Component<PresViewProps>  {
     @action
     public PinDoc(doc: Doc) {
         //add this new doc to props.Document
-        const data = Cast(this.props.Document.data, listSpec(Doc));
+        const data = Cast(this.curPresentation.data, listSpec(Doc));
         if (data) {
             data.push(doc);
         } else {
-            this.props.Document.data = new List([doc]);
+            this.curPresentation.data = new List([doc]);
         }
 
-        this.props.Document.width = 300;
+        this.curPresentation.width = 300;
     }
 
     @action
@@ -468,10 +485,10 @@ export class PresentationView extends React.Component<PresViewProps>  {
         } else {
             this.presStatus = true;
             this.startPresentation(0);
-            const current = NumCast(this.props.Document.selectedDoc);
+            const current = NumCast(this.curPresentation.selectedDoc);
             this.gotoDocument(0, current);
         }
-        this.props.Document.presStatus = this.presStatus;
+        this.curPresentation.presStatus = this.presStatus;
     }
 
     @action
@@ -484,7 +501,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
             //doc.presentId = Utils.GenerateGuid();
             doc.opacity = 1;
         });
-        this.props.Document.selectedDoc = 0;
+        this.curPresentation.selectedDoc = 0;
         if (this.childrenDocs.length === 0) {
             return;
         }
@@ -518,23 +535,51 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
     }
 
+    @action
+    addNewPresentation = () => {
+        let title = "Presentation " + (this.props.Documents.length + 1);
+        let newPresentationDoc = Docs.TreeDocument([], { title: title });
+        this.props.Documents.push(newPresentationDoc);
+        this.curPresentation = newPresentationDoc;
+    }
+
+    @action
+    getSelectedPresentation = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        this.curPresentation = this.presentationsMapping.get(e.target.value)!;
+    }
+
+
     render() {
-        let titleStr = StrCast(this.props.Document.title);
-        let width = NumCast(this.props.Document.width);
+        let titleStr = StrCast(this.curPresentation.title);
+        let width = NumCast(this.curPresentation.width);
+        let presentationList = DocListCast(this.props.Documents);
+
+
+        console.log("width: ", width);
+        console.log("title : ", titleStr);
 
         //TODO: next and back should be icons
         return (
             <div className="presentationView-cont" style={{ width: width, overflow: "hidden" }}>
                 <div className="presentationView-heading">
-                    <div className="presentationView-title">{titleStr}</div>
-                    <button className='presentation-icon' onClick={this.closePresentation}>X</button>
+                    {/* <div className="presentationView-title">{titleStr}</div> */}
+                    <select className="presentationView-title" onChange={this.getSelectedPresentation} ref={(e) => this.selectedPresentation = e!}>
+                        {presentationList.map((doc: Doc, index: number) => {
+                            let newGuid = Utils.GenerateGuid();
+                            this.presentationsMapping.set(newGuid, doc);
+                            return <option key={index} value={newGuid}>{StrCast(doc.title)}</option>;
+                        })}
+                    </select>
+                    <button title="Close Presentation" className='presentation-icon' onClick={this.closePresentation}><FontAwesomeIcon icon={"times"} /></button>
+                    <button title="Add Presentation" className="presentation-icon" style={{ marginRight: 10 }} onClick={this.addNewPresentation}><FontAwesomeIcon icon={"plus"} /></button>
+
                 </div>
                 <div className="presentation-buttons">
                     <button title="Back" className="presentation-button" onClick={this.back}><FontAwesomeIcon icon={"arrow-left"} /></button>
                     {this.renderPlayPauseButton()}
                     <button title="Next" className="presentation-button" onClick={this.next}><FontAwesomeIcon icon={"arrow-right"} /></button>
                 </div>
-                <PresentationViewList Document={this.props.Document} deleteDocument={this.RemoveDoc} gotoDocument={this.gotoDocument} groupMappings={this.groupMappings} presElementsMappings={this.presElementsMappings} setChildrenDocs={this.setChildrenDocs} presStatus={this.presStatus} presButtonBackUp={this.presButtonBackUp} presGroupBackUp={this.presGroupBackUp} />
+                <PresentationViewList mainDocument={this.curPresentation} deleteDocument={this.RemoveDoc} gotoDocument={this.gotoDocument} groupMappings={this.groupMappings} presElementsMappings={this.presElementsMappings} setChildrenDocs={this.setChildrenDocs} presStatus={this.presStatus} presButtonBackUp={this.presButtonBackUp} presGroupBackUp={this.presGroupBackUp} />
             </div>
         );
     }

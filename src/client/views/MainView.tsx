@@ -32,6 +32,7 @@ import { listSpec } from '../../new_fields/Schema';
 import { Id } from '../../new_fields/FieldSymbols';
 import { HistoryUtil } from '../util/History';
 import { CollectionBaseView } from './collections/CollectionBaseView';
+import { List } from '../../new_fields/List';
 
 
 @observer
@@ -46,7 +47,7 @@ export class MainView extends React.Component {
     private set mainContainer(doc: Opt<Doc>) {
         if (doc) {
             if (!("presentationView" in doc)) {
-                doc.presentationView = Docs.TreeDocument([], { title: "Presentation" });
+                doc.presentationView = new List<Doc>([Docs.TreeDocument([], { title: "Presentation" })]);
             }
             CurrentUserUtils.UserDocument.activeWorkspace = doc;
         }
@@ -203,7 +204,7 @@ export class MainView extends React.Component {
                 zoomToScale={emptyFunction}
                 getScale={returnOne}
             />;
-        let castRes = mainCont ? FieldValue(Cast(mainCont.presentationView, Doc)) : undefined;
+        let castRes = mainCont ? FieldValue(Cast(mainCont.presentationView, listSpec(Doc))) : undefined;
         console.log("GETTING mainContent()");
         console.log(castRes instanceof Promise);
         console.log(castRes);
@@ -211,7 +212,7 @@ export class MainView extends React.Component {
             {({ measureRef }) =>
                 <div ref={measureRef} id="mainContent-div">
                     {content}
-                    {castRes ? <PresentationView Document={castRes} key="presentation" /> : null}
+                    {castRes ? <PresentationView Documents={castRes} key="presentation" /> : null}
                 </div>
             }
         </Measure>;
