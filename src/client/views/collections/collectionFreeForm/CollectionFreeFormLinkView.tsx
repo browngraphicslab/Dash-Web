@@ -6,6 +6,7 @@ import "./CollectionFreeFormLinkView.scss";
 import React = require("react");
 import v5 = require("uuid/v5");
 import { DocumentView } from "../../nodes/DocumentView";
+import { Docs } from "../../../documents/Documents";
 
 export interface CollectionFreeFormLinkViewProps {
     // anchor1: Doc;
@@ -18,6 +19,7 @@ export interface CollectionFreeFormLinkViewProps {
     sourceView: DocumentView;
     targetView: DocumentView;
     sameContext: boolean;
+    addDocTab: (document: Doc, where: string) => void;
 }
 
 @observer
@@ -42,6 +44,13 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
     //     }
     // }
 
+    followButton = (e: React.PointerEvent): void => {
+        // TODO: would be nicer to open docview in context
+        e.stopPropagation();
+        console.log("follow");
+        this.props.addDocTab(this.props.targetView.props.Document, "onRight");
+    }
+
     render() {
         // let l = this.props.LinkDocs;
         // let a = this.props.A;
@@ -58,23 +67,20 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
             y2 = y1 - 300;
         }
 
-        // if (!this.props.sameContext) {
-        //     console.log("not same context", StrCast(a1.title), StrCast(a2.title));
-        //     x2 = x1 + 300;
-        //     y2 = y2 + 300;
-        // } else {
-        //     console.log("same context", StrCast(a1.title), StrCast(a2.title));
-        // }
-        // let text = "";
-        // this.props.LinkDocs.map(l => text += StrCast(l.title) + "(" + StrCast(l.linkDescription) + "), ");
-        // text = "";
+        let containing = "";
+        if (this.props.targetView.props.ContainingCollectionView) {
+            containing = StrCast(this.props.targetView.props.ContainingCollectionView.props.Document.title);
+        }
+
+        let text = "link to " + StrCast(this.props.targetView.props.Document.title) + (containing === "" ? "" : (" in the context of " + containing));
         return (
             <>
                 <line className="collectionfreeformlinkview-linkLine"
                     style={{ strokeWidth: `${2 * 1 / 2}` }}
                     x1={`${x1}`} y1={`${y1}`}
                     x2={`${x2}`} y2={`${y2}`} />
-                {!this.props.sameContext ? <circle className="collectionfreeformlinkview-linkCircle" cx={x2} cy={y2} r={10}></circle> : <></>}
+                {!this.props.sameContext ? <circle className="collectionfreeformlinkview-linkCircle" cx={x2} cy={y2} r={20} onPointerDown={this.followButton}></circle> : <></>}
+                {!this.props.sameContext ? <text textAnchor="middle" className="collectionfreeformlinkview-linkText" x={`${x2}`} y={`${y2}`}> {text}</text> : <></>}
                 {/* <circle key="linkCircle" className="collectionfreeformlinkview-linkCircle"
                     cx={(x1 + x2) / 2} cy={(y1 + y2) / 2} r={8} onPointerDown={this.onPointerDown} /> */}
                 {/* <text key="linkText" textAnchor="middle" className="collectionfreeformlinkview-linkText" x={`${(x1 + x2) / 2}`} y={`${(y1 + y2) / 2}`}>

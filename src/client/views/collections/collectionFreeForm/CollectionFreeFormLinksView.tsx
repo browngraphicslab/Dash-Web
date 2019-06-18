@@ -190,12 +190,12 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
         return unique.map(u => {
             // TODO: make better key
             let key = StrCast(u.sourceView.Document[Id]) + "-link-" + StrCast(u.targetView.Document[Id]) + "-" + Date.now() + Math.random();
-            let sourceIn = u.sourceView.props.ContainingCollectionView!.props.Document === this.props.Document;
-            let targetIn = u.targetView.props.ContainingCollectionView!.props.Document === this.props.Document;
+            let sourceIn = u.sourceView.props.ContainingCollectionView ? u.sourceView.props.ContainingCollectionView.props.Document === this.props.Document : false;
+            let targetIn = u.targetView.props.ContainingCollectionView ? u.targetView.props.ContainingCollectionView.props.Document === this.props.Document : false;
             let inContainer = u.sameContext ? sourceIn || targetIn : sourceIn;
             if (inContainer) {
                 // console.log("key", key, StrCast(u.sourceView.Document.title), StrCast(u.targetView.Document.title));
-                return <CollectionFreeFormLinkView key={key} sourceView={u.sourceView} targetView={u.targetView} sameContext={u.sameContext} />;
+                return <CollectionFreeFormLinkView key={key} sourceView={u.sourceView} targetView={u.targetView} sameContext={u.sameContext} addDocTab={this.props.addDocTab} />;
             } else {
                 return <div key={key}></div>;
             }
