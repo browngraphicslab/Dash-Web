@@ -275,13 +275,11 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 panY: 0,
                 borderRounding: e.key === "e" ? -1 : undefined,
                 backgroundColor: this.props.container.isAnnotationOverlay ? undefined : "white",
-                scale: zoomBasis,
-                width: bounds.width * zoomBasis,
-                height: bounds.height * zoomBasis,
+                width: bounds.width,
+                height: bounds.height,
                 ink: inkData ? new InkField(this.marqueeInkSelect(inkData)) : undefined,
                 title: e.key === "s" || e.key === "S" ? "-summary-" : e.key === "p" ? "-summary-" : "a nested collection",
             });
-            newCollection.zoomBasis = zoomBasis;
             this.marqueeInkDelete(inkData);
 
             if (e.key === "s") {

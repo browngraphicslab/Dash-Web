@@ -132,6 +132,16 @@ export class Doc extends RefField {
                 this[fKey] = value;
             }
         }
+        const unset = diff.$unset;
+        if (unset) {
+            for (const key in unset) {
+                if (!key.startsWith("fields.")) {
+                    continue;
+                }
+                const fKey = key.substring(7);
+                delete this[fKey];
+            }
+        }
     }
 }
 
