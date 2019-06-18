@@ -105,6 +105,12 @@ export class MainView extends React.Component {
             if (e.key === "Escape") {
                 DragManager.AbortDrag();
                 SelectionManager.DeselectAll();
+            } else if (e.key === "z" && e.ctrlKey) {
+                e.preventDefault();
+                UndoManager.Undo();
+            } else if ((e.key === "y" && e.ctrlKey) || (e.key === "z" && e.ctrlKey && e.shiftKey)) {
+                e.preventDefault();
+                UndoManager.Redo();
             }
         }, false); // drag event handler
         // click interactions for the context menu
