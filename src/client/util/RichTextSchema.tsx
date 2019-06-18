@@ -503,32 +503,41 @@ export class SummarizedView {
 
     updateSummarizedText(start?: any, mark?: any) {
         let $start = this._view.state.doc.resolve(start);
-        let first_startPos = $start.start();//, endPos = first_startPos;
-        let startIndex = $start.index(), endIndex = $start.indexAfter();
-        let nodeAfter = $start.nodeAfter;
-        while (startIndex > 0 && mark.isInSet($start.parent.child(startIndex - 1).marks)) startIndex--;
-        while (endIndex < $start.parent.childCount && mark.isInSet($start.parent.child(endIndex).marks)) endIndex++;
-        let startPos = $start.start(), endPos = startPos;
-        for (let i = 0; i < endIndex; i++) {
-            let size = $start.parent.child(i).nodeSize;
-            console.log($start.parent.child(i).childCount);
-            if (i < startIndex) startPos += size;
-            endPos += size;
-        }
+        let endPos = start;
+        //let first_startPos = $start.start(), endPos = first_startPos;
+        // let startIndex = $start.index(), endIndex = $start.indexAfter();
+        // let nodeAfter = $start.nodeAfter;
+        // while (startIndex > 0 && mark.isInSet($start.parent.child(startIndex - 1).marks)) startIndex--;
+        // while (endIndex < $start.parent.childCount && mark.isInSet($start.parent.child(endIndex).marks)) endIndex++;
+        // let startPos = $start.start(), endPos = startPos;
+        // for (let i = 0; i < endIndex; i++) {
+        //     let size = $start.parent.child(i).nodeSize;
+        //     console.log($start.parent.child(i).childCount);
+        //     if (i < startIndex) startPos += size;
+        //     endPos += size;
+        // }
+        let _mark = this._view.state.schema.mark(this._view.state.schema.marks.highlight);
+        // first_startPos = start;
+        // endPos = first_startPos;
+        let visited = new Set();
         for (let i: number = start + 1; i < this._view.state.doc.nodeSize - 1; i++) {
             console.log("ITER:", i);
             this._view.state.doc.nodesBetween(start, i, (node: Node, pos: number, parent: Node, index: number) => {
-                if (node === undefined || parent === undefined) {
-                    console.log('undefined dawg');
-                    return false;
-                }
                 if (node.isLeaf) {
-                    console.log(node.textContent);
-                    console.log(node.marks);
+                    if (node.marks.includes(_mark) && !visited.has(node)) {
+                        visited.add(node);
+                        //endPos += node.nodeSize + 1;
+                        endPos = i + node.nodeSize - 1;
+                        console.log("node contains mark!");
+                    }
+                    else { }
+
                 }
             });
         }
-        return { from: first_startPos, to: endPos };
+        console.log(start);
+        console.log(endPos);
+        return { from: start, to: endPos };
     }
 
     deselectNode() {
