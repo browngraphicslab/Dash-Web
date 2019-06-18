@@ -87,7 +87,6 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     onScroll = (e: React.UIEvent<HTMLDivElement>) => {
         if (e.currentTarget) {
             this._scrollY = e.currentTarget.scrollTop;
-            // e.currentTarget.scrollTo({ top: 1000, behavior: "smooth" });
             let ccv = this.props.ContainingCollectionView;
             if (ccv) {
                 ccv.props.Document.scrollY = this._scrollY;
@@ -107,7 +106,9 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
                     marginTop: `${NumCast(this.props.ContainingCollectionView!.props.Document.panY)}px`
                 }}
                 ref={this.createRef}
-                onWheel={(e: React.WheelEvent) => e.stopPropagation()} className={classname}>
+                onWheel={(e: React.WheelEvent) => {
+                    e.stopPropagation();
+                }} className={classname}>
                 <PDFViewer url={pdfUrl.url.pathname} loaded={this.loaded} scrollY={this._scrollY} parent={this} />
                 {/* <div style={{ width: "100px", height: "300px" }}></div> */}
             </div>
