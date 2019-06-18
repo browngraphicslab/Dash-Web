@@ -234,8 +234,7 @@ class Viewer extends React.Component<IViewerProps> {
 
     // endIndex: where to end rendering pages
     @computed get endIndex(): number {
-        let width = this._pageSizes.map(i => i.width);
-        return Math.min(this.props.pdf.numPages - 1, this.getPageFromScroll(this.scrollY + Math.max(...width)) + this._pageBuffer);
+        return Math.min(this.props.pdf.numPages - 1, this.getPageFromScroll(this.scrollY) + this._pageBuffer);
     }
 
     @action
