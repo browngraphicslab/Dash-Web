@@ -56,7 +56,13 @@ export enum buttonIndex {
 @observer
 export default class PresentationElement extends React.Component<PresentationElementProps> {
 
-    @observable selectedButtons: boolean[] = new Array(6);
+    @observable selectedButtons: boolean[];
+
+
+    constructor(props: PresentationElementProps) {
+        super(props);
+        this.selectedButtons = new Array(6);
+    }
 
     /**
      * Getter to get the status of the buttons.
@@ -67,6 +73,16 @@ export default class PresentationElement extends React.Component<PresentationEle
     }
 
     async componentDidMount() {
+        this.receiveButtonBackUp();
+
+    }
+
+    async componentDidUpdate() {
+        this.receiveButtonBackUp();
+    }
+
+    receiveButtonBackUp = async () => {
+
         //get the list that stores docs that keep track of buttons
         let castedList = Cast(this.props.presButtonBackUp.selectedButtonDocs, listSpec(Doc));
         if (!castedList) {
@@ -74,16 +90,20 @@ export default class PresentationElement extends React.Component<PresentationEle
         }
         //if this is the first time this doc mounts, push a doc for it to store
         if (castedList.length <= this.props.index) {
-            castedList.push(new Doc());
+            let newDoc = new Doc();
+            let defaultBooleanArray: boolean[] = new Array(6);
+            newDoc.selectedButtons = new List(defaultBooleanArray);
+            castedList.push(newDoc);
             //otherwise update the selected buttons depending on storage.
         } else {
             let curDoc: Doc = await castedList[this.props.index];
             let selectedButtonOfDoc = Cast(curDoc.selectedButtons, listSpec("boolean"), null);
+            console.log("Debug Selected Buttons: ", this.selectedButtons, " and the selectedButtonOfDoc: ", selectedButtonOfDoc);
             if (selectedButtonOfDoc !== undefined) {
                 runInAction(() => this.selectedButtons = selectedButtonOfDoc);
+                console.log("New Selected Buttons: ", this.selectedButtons);
             }
         }
-
 
     }
 
@@ -336,6 +356,8 @@ export default class PresentationElement extends React.Component<PresentationEle
     render() {
         let p = this.props;
         let title = p.document.title;
+
+        console.log("Re-rendered");
 
         //to get currently selected presentation doc
         let selected = NumCast(p.mainDocument.selectedDoc, 0);

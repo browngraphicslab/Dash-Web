@@ -96,6 +96,7 @@ class PresentationViewList extends React.Component<PresListProps> {
         this.initializeGroupIds(children);
         this.initializeScaleViews(children);
         this.props.setChildrenDocs(children);
+        console.log(this.props.mainDocument, " re-rendering");
         return (
 
             <div className="presentationView-listCont">
@@ -123,7 +124,9 @@ export class PresentationView extends React.Component<PresViewProps>  {
     @observable presButtonBackUp: Doc = new Doc();
     @observable curPresentation: Doc = new Doc();
     @observable presentationsMapping: Map<String, Doc> = new Map();
-    @observable selectedPresentation: HTMLSelectElement = new HTMLSelectElement();
+    @observable presentationsKeyMapping: Map<Doc, String> = new Map();
+    @observable selectedPresentation: HTMLSelectElement | undefined;
+    @observable currentSelectedPresValue: string | undefined;
 
 
     //initilize class variables
@@ -134,12 +137,32 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
 
     async componentWillMount() {
-        let docAtZero = await this.props.Documents[0];
-        runInAction(() => this.curPresentation = docAtZero);
+        this.props.Documents.forEach(async (doc, index: number) => {
+            let curDoc: Doc = await doc;
+            let newGuid = Utils.GenerateGuid();
+            this.presentationsKeyMapping.set(curDoc, newGuid);
+            this.presentationsMapping.set(newGuid, curDoc);
+            if (index === 0) {
+                runInAction(() => this.currentSelectedPresValue = newGuid);
+                runInAction(() => this.curPresentation = curDoc);
+            }
+        });
     }
 
-    componentDidMount() {
+    async componentDidMount() {
+
+        let docAtZero = await this.props.Documents[0];
+        runInAction(() => this.curPresentation = docAtZero);
+
+        this.setPresentationBackUps();
+
+
+    }
+
+
+    setPresentationBackUps = async () => {
         //getting both backUp documents
+
         let castedGroupBackUp = Cast(this.curPresentation.presGroupBackUp, Doc);
         let castedButtonBackUp = Cast(this.curPresentation.presButtonBackUp, Doc);
         //if instantiated before 
@@ -154,7 +177,12 @@ export class PresentationView extends React.Component<PresViewProps>  {
                     }
                 }
             });
+
             //if never instantiated a store doc yet
+        } else if (castedGroupBackUp instanceof Doc) {
+            let castedDoc: Doc = await castedGroupBackUp;
+            runInAction(() => this.presGroupBackUp = castedDoc);
+            this.retrieveGroupMappings();
         } else {
             runInAction(() => {
                 let toAssign = new Doc();
@@ -170,10 +198,16 @@ export class PresentationView extends React.Component<PresViewProps>  {
             castedButtonBackUp.then(doc => {
                 let toAssign = doc ? doc : new Doc();
                 this.curPresentation.presButtonBackUp = toAssign;
+                console.log("Called the promise one!!");
                 runInAction(() => this.presButtonBackUp = toAssign);
             });
 
             //if never instantiated a store doc yet
+        } else if (castedButtonBackUp instanceof Doc) {
+            let castedDoc: Doc = await castedButtonBackUp;
+            runInAction(() => this.presButtonBackUp = castedDoc);
+            console.log("Called the important action");
+
         } else {
             runInAction(() => {
                 let toAssign = new Doc();
@@ -541,11 +575,30 @@ export class PresentationView extends React.Component<PresViewProps>  {
         let newPresentationDoc = Docs.TreeDocument([], { title: title });
         this.props.Documents.push(newPresentationDoc);
         this.curPresentation = newPresentationDoc;
+        let newGuid = Utils.GenerateGuid();
+        this.presentationsMapping.set(newGuid, newPresentationDoc);
+        this.presentationsKeyMapping.set(newPresentationDoc, newGuid);
+        this.currentSelectedPresValue = newGuid;
+        this.setPresentationBackUps();
+
+        // if (this.selectedPresentation) {
+        //     this.selectedPresentation.selectedIndex = 1;
+        //     console.log("Selected Pres: ", this.selectedPresentation);
+        //     console.log("New value: ", this.selectedPresentation.value);
+        //     console.log("New Index: ", this.selectedPresentation.selectedIndex);
+
+
+        // }
+
     }
 
     @action
     getSelectedPresentation = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        this.curPresentation = this.presentationsMapping.get(e.target.value)!;
+        let selectedGuid = e.target.value;
+        this.curPresentation = this.presentationsMapping.get(selectedGuid)!;
+        this.currentSelectedPresValue = selectedGuid;
+        this.setPresentationBackUps();
+
     }
 
 
@@ -555,19 +608,17 @@ export class PresentationView extends React.Component<PresViewProps>  {
         let presentationList = DocListCast(this.props.Documents);
 
 
-        console.log("width: ", width);
-        console.log("title : ", titleStr);
 
         //TODO: next and back should be icons
         return (
             <div className="presentationView-cont" style={{ width: width, overflow: "hidden" }}>
                 <div className="presentationView-heading">
                     {/* <div className="presentationView-title">{titleStr}</div> */}
-                    <select className="presentationView-title" onChange={this.getSelectedPresentation} ref={(e) => this.selectedPresentation = e!}>
+                    <select value={this.currentSelectedPresValue} id="pres_selector" className="presentationView-title" onChange={this.getSelectedPresentation} ref={(e: HTMLSelectElement) => this.selectedPresentation = e}>
                         {presentationList.map((doc: Doc, index: number) => {
-                            let newGuid = Utils.GenerateGuid();
-                            this.presentationsMapping.set(newGuid, doc);
-                            return <option key={index} value={newGuid}>{StrCast(doc.title)}</option>;
+                            let mappedGuid = this.presentationsKeyMapping.get(doc);
+                            let docGuid: string = mappedGuid ? mappedGuid.toString() : "";
+                            return <option key={index} value={docGuid}>{StrCast(doc.title)}</option>;
                         })}
                     </select>
                     <button title="Close Presentation" className='presentation-icon' onClick={this.closePresentation}><FontAwesomeIcon icon={"times"} /></button>
