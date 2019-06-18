@@ -50,12 +50,14 @@ export class IconButton extends React.Component<IconButtonProps>{
             () => IconBar.Instance.ResetClicked,
             () => {
                 if (IconBar.Instance.ResetClicked) {
-                    this.reset();
-                    IconBar.Instance.Reset++;
-                    if (IconBar.Instance.Reset === 9) {
-                        IconBar.Instance.Reset = 0;
-                        IconBar.Instance.ResetClicked = false;
-                    }
+                    runInAction(() => {
+                        this.reset();
+                        IconBar.Instance.Reset++;
+                        if (IconBar.Instance.Reset === 9) {
+                            IconBar.Instance.Reset = 0;
+                            IconBar.Instance.ResetClicked = false;
+                        }
+                    })
                 }
             },
         )
@@ -63,12 +65,14 @@ export class IconButton extends React.Component<IconButtonProps>{
             () => IconBar.Instance.SelectAllClicked,
             () => {
                 if (IconBar.Instance.SelectAllClicked) {
-                    this.select();
-                    IconBar.Instance.Select++;
-                    if (IconBar.Instance.Select === 9) {
-                        IconBar.Instance.Select = 0;
-                        IconBar.Instance.SelectAllClicked = false;
-                    }
+                    runInAction(() => {
+                        this.select();
+                        IconBar.Instance.Select++;
+                        if (IconBar.Instance.Select === 9) {
+                            IconBar.Instance.Select = 0;
+                            IconBar.Instance.SelectAllClicked = false;
+                        }
+                    })
                 }
             },
         )
@@ -106,11 +110,11 @@ export class IconButton extends React.Component<IconButtonProps>{
     onClick = () => {
         let newList: string[] = SearchBox.Instance.getIcons();
 
-        if(!this.isSelected){
+        if (!this.isSelected) {
             this.isSelected = true;
             newList.push(this.props.type)
         }
-        else{
+        else {
             this.isSelected = false;
             _.pull(newList, this.props.type)
         }
@@ -186,7 +190,7 @@ export class IconButton extends React.Component<IconButtonProps>{
                 onMouseLeave={this.onMouseLeave}
                 onClick={this.onClick}>
                 <div className="type-icon" id={this.props.type + "-icon"}
-                    style = {this.hover ? this.hoverStyle : this.isSelected ? this.selected : this.notSelected}
+                    style={this.hover ? this.hoverStyle : this.isSelected ? this.selected : this.notSelected}
                 >
                     {this.getFA()}
                 </div>

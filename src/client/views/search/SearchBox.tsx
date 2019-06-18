@@ -116,9 +116,6 @@ export class SearchBox extends React.Component {
             this._results = results;
             this._openNoResults = true;
         });
-
-        //clears searchstring after search - may not be preferred
-        this._searchString = "";
     }
 
     @action
@@ -238,8 +235,14 @@ export class SearchBox extends React.Component {
     }
 
     //if true, any keywords can be used. if false, all keywords are required.
+    @action.bound
     handleWordQueryChange = () => {
         this._basicWordStatus = !this._basicWordStatus;
+    }
+
+    @action
+    getBasicWordStatus() {
+        return this._basicWordStatus;
     }
 
     @action.bound
