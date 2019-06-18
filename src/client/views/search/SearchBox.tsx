@@ -18,7 +18,6 @@ import { SearchUtil } from '../../util/SearchUtil';
 import * as anime from 'animejs';
 import { updateFunction } from '../../../new_fields/util';
 import * as _ from "lodash";
-// import "./globalCssVariables.scss";
 import { findDOMNode } from 'react-dom';
 import { ToggleBar } from './ToggleBar';
 import { IconBar } from './IconBar';
@@ -62,7 +61,7 @@ export class SearchBox extends React.Component {
     @action.bound
     resetFilters = () => {
         ToggleBar.Instance.resetToggle();
-        IconBar.Instance.resetIconFilters();
+        IconBar.Instance.selectAll();
         // this._wordStatus = true;
         this._icons = this.allIcons;
     }
@@ -269,7 +268,6 @@ export class SearchBox extends React.Component {
     }
 
     getSelected(): any[] {
-        console.log(this._selectedTypes)
         return this._selectedTypes;
     }
 
@@ -300,13 +298,12 @@ export class SearchBox extends React.Component {
                         </div>
                     ) : undefined}
                 </div>
-                {/* these all need class names in order to find ancestor - please do not delete */}
                 {this._open ? (
                     <div className="filter-form" onPointerDown={this.stopProp} id="filter" style={this._open ? { display: "flex" } : { display: "none" }}>
                         <div className="filter-form filter-div" id="header">Filter Search Results</div>
                         <div className="filter-form " id="option">
                             <div className="required-words filter-div">
-                                <ToggleBar originalStatus={this._wordStatus} optionOne={"Include Any Keywords"} optionTwo={"Include All Keywords"} changeStatus={this.handleWordQueryChange} />
+                                <ToggleBar originalStatus={this._wordStatus} optionOne={"Include Any Keywords"} optionTwo={"Include All Keywords"} />
                             </div>
                             <div className="type-of-node filter-div">
                                 <IconBar updateSelected = {this.updateSelected} allIcons = {this.allIcons} updateIcon={this.updateIcon} getIcons={this.getSelected} />

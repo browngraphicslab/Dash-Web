@@ -28,22 +28,13 @@ library.add(faBan);
 
 interface IconButtonProps {
     type: string;
-    // getList(): string[];
-    // updateList(list: string[]): void;
-    // updateSelectedList(type: string): void;
-    // active: boolean;
-    // getActiveType(): string;
-    // changeActiveType(value: string): void;
 }
 
 @observer
 export class IconButton extends React.Component<IconButtonProps>{
 
     @observable isSelected: boolean = SearchBox.Instance.getIcons().indexOf(this.props.type) !== -1;
-    // @observable removeType = false;
     @observable hover = false;
-    // @observable isRemoved: boolean = (this.props.getActiveType() === "remove");
-    // @observable isAdded: boolean = (this.props.getActiveType() === "add");
 
     private _resetReaction?: IReactionDisposer;
     private _selectAllReaction?: IReactionDisposer;
@@ -55,8 +46,6 @@ export class IconButton extends React.Component<IconButtonProps>{
     }
 
     componentDidMount = () => {
-        // console.log(this.props.type, this.isSelected)
-        
         this._resetReaction = reaction(
             () => IconBar.Instance.ResetClicked,
             () => {

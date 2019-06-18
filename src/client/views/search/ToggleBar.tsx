@@ -4,10 +4,11 @@ import { observable, action, runInAction, computed } from 'mobx';
 import "./SearchBox.scss";
 import "./ToggleBar.scss";
 import * as anime from 'animejs';
+import { SearchBox } from './SearchBox';
 
 export interface ToggleBarProps {
     //false = right, true = left
-    changeStatus(): void;
+    // changeStatus(): void;
     originalStatus: boolean;
     optionOne: string;
     optionTwo: string;
@@ -75,7 +76,7 @@ export class ToggleBar extends React.Component<ToggleBarProps>{
         this._curStatus = !this._curStatus;
         this.forwardTimeline.play();
         this.forwardTimeline.reverse();
-        this.props.changeStatus();
+        SearchBox.Instance.handleWordQueryChange();
     }
 
     @action.bound
@@ -83,7 +84,7 @@ export class ToggleBar extends React.Component<ToggleBarProps>{
         if (!this._curStatus) {
             this.forwardTimeline.play()
             this.forwardTimeline.reverse();
-            this.props.changeStatus();
+            SearchBox.Instance.handleWordQueryChange();
             this._curStatus = true;
         }
     }

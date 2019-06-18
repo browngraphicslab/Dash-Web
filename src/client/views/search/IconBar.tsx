@@ -40,7 +40,6 @@ export class IconBar extends React.Component<IconBarProps> {
     static Instance: IconBar;
     
     allIcons: string[] = [DocTypes.AUDIO, DocTypes.COL, DocTypes.HIST, DocTypes.IMG, DocTypes.LINK, DocTypes.PDF, DocTypes.TEXT, DocTypes.VID, DocTypes.WEB];
-    // @observable typesToFind: string[] = SearchBox.Instance.getIcons();
     @observable public ResetClicked: boolean = false;
     @observable public SelectAllClicked: boolean = false;
     public Reset: number = 0;
@@ -48,7 +47,6 @@ export class IconBar extends React.Component<IconBarProps> {
 
     constructor(props: IconBarProps) {
         super(props);
-        // console.log("seting")
         IconBar.Instance = this;
     }
 
@@ -59,9 +57,7 @@ export class IconBar extends React.Component<IconBarProps> {
 
     @action.bound
     updateList(newList: string[]) {
-        // this.typesToFind = newList;
         SearchBox.Instance.updateIcon(newList)
-        // console.log(newList)
     }
 
     @action.bound
