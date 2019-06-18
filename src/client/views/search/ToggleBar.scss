@@ -1,6 +1,6 @@
 @import "../globalCssVariables";
 
-.toggle-title{
+.toggle-title {
     display: flex;
     align-items: center;
     color: $light-color;
@@ -9,7 +9,7 @@
     justify-content: space-around;
     padding: 5px;
 
-    .toggle-option{
+    .toggle-option {
         width: 100px;
         text-align: center;
         -webkit-transition: all 0.2s ease-in-out;
@@ -19,7 +19,7 @@
     }
 }
 
-.toggle-bar{
+.toggle-bar {
     height: 50px;
     background-color: $alt-accent;
     border-radius: 10px;
@@ -27,10 +27,14 @@
     display: flex;
     align-items: center;
 
-    .toggle-button{
+    .toggle-button {
         width: 275px;
         height: 100%;
         border-radius: 10px;
         background-color: $light-color;
+        -webkit-transition: all 0.2s ease-in-out;
+        -moz-transition: all 0.2s ease-in-out;
+        -o-transition: all 0.2s ease-in-out;
+        transition: all 0.2s ease-in-out;
     }
 }
