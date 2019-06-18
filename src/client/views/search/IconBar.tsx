@@ -40,18 +40,15 @@ export class IconBar extends React.Component<IconBarProps> {
     
     allIcons: string[] = [DocTypes.AUDIO, DocTypes.COL, DocTypes.HIST, DocTypes.IMG, DocTypes.LINK, DocTypes.PDF, DocTypes.TEXT, DocTypes.VID, DocTypes.WEB];
     @observable typesToFind: string[];
+    @observable selectedItems: string[] = [];
     @observable public ResetClicked: boolean = false;
     public Reset: number = 0;
+    @observable activeType = "none";
 
     constructor(props: IconBarProps) {
         super(props);
         this.typesToFind = [DocTypes.AUDIO, DocTypes.COL, DocTypes.HIST, DocTypes.IMG, DocTypes.LINK, DocTypes.PDF, DocTypes.TEXT, DocTypes.VID, DocTypes.WEB];
         IconBar.Instance = this;
-    }
-
-    @action.bound
-    onClick = (value: string) => {
-        console.log("hello!")
     }
 
     @action.bound
@@ -65,9 +62,33 @@ export class IconBar extends React.Component<IconBarProps> {
     }
 
     @action.bound
-    resetSelf() {
-        this.ResetClicked = true;
+    resetSelf = () => {
+        // this.ResetClicked = true;
         this.typesToFind = this.allIcons;
+        this.selectedItems = [];
+        this.activeType = "none";
+        console.log("resetting")
+    }
+
+    @action.bound
+    getActiveType() {
+        return this.activeType;
+    }
+
+    @action.bound
+    updateActiveType(type: string) {
+        this.resetSelf();
+        this.activeType = type;
+    }
+
+    @action.bound
+    updateSelectedList(type: string){
+        if(this.selectedItems.indexOf(type) === -1){
+            this.selectedItems.push(type);
+        }
+        else{
+            _.pull(this.selectedItems, type);
+        }
     }
 
     render() {
@@ -83,7 +104,7 @@ export class IconBar extends React.Component<IconBarProps> {
                         <div className="filter-description">Clear</div>
                     </div>
                     {this.allIcons.map((type: string) =>
-                        <IconButton type={type} onClick={this.onClick} getList={this.getList} updateList={this.updateList} />
+                        <IconButton getActiveType = {this.getActiveType} updateSelectedList= {this.updateSelectedList} type={type} changeActiveType = {this.updateActiveType} active={this.selectedItems.indexOf(type) !== -1} getList={this.getList} updateList={this.updateList} />
                     )}
                 </div>
             </div>

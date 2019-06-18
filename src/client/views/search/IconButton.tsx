@@ -10,6 +10,7 @@ import { DocTypes } from '../../documents/Documents';
 import '../globalCssVariables.scss';
 import * as _ from "lodash";
 import { IconBar } from './IconBar';
+import { props } from 'bluebird';
 
 library.add(faSearch);
 library.add(faObjectGroup);
@@ -25,19 +26,22 @@ library.add(faBan);
 
 interface IconButtonProps {
     type: string;
-    onClick(type: string): void;
     getList(): string[];
     updateList(list: string[]): void;
+    updateSelectedList(type: string): void;
+    active: boolean;
+    getActiveType(): string;
+    changeActiveType(value: string): void;
 }
 
 @observer
 export class IconButton extends React.Component<IconButtonProps>{
 
-    @observable isSelected: boolean = false;
-    @observable isAdded: boolean = false;
-    @observable isRemoved: boolean = false;
+    @observable isSelected: boolean = this.props.active;
     @observable removeType = false;
     @observable hover = false;
+    @observable isRemoved: boolean = (this.props.getActiveType() === "remove");
+    @observable isAdded: boolean = (this.props.getActiveType() === "add");
 
     private _reactionDisposer?: IReactionDisposer;
 
@@ -47,11 +51,12 @@ export class IconButton extends React.Component<IconButtonProps>{
         IconButton.Instance = this;
     }
 
-    componentDidMount() {
+    componentDidMount = () => {
         this._reactionDisposer = reaction(
             () => IconBar.Instance.ResetClicked,
             () => {
                 if (IconBar.Instance.ResetClicked) {
+                    console.log("running")
                     this.reset()
                     IconBar.Instance.Reset++;
                     if (IconBar.Instance.Reset === 9) {
@@ -59,7 +64,8 @@ export class IconButton extends React.Component<IconButtonProps>{
                         IconBar.Instance.ResetClicked = false;
                     }
                 }
-            }
+            },
+            {fireImmediately: true}
         )
     }
 
@@ -137,13 +143,23 @@ export class IconButton extends React.Component<IconButtonProps>{
         return this.isAdded;
     }
 
-    @action.bound
-    onClick() {
+    @action
+    onClick = () => {
         let newList: string[] = this.props.getList();
+
+        if(this.removeType && this.props.getActiveType() !== "remove"){
+            this.props.changeActiveType("remove")
+            // console.log("resetting")
+        }
+        else if(!this.removeType && this.props.getActiveType() !== "add"){
+            this.props.changeActiveType("add");
+            // console.log("resetting")
+        }
 
         //if it's not already selected
         if (!this.isSelected) {
             this.isSelected = true;
+            console.log("changing")
 
             //if actions pertain to removal
             if (this.removeType) {
@@ -162,7 +178,8 @@ export class IconButton extends React.Component<IconButtonProps>{
                 this.isRemoved = false;
                 if (!this.isAdded) {
                     if (newList.length === 9) {
-                        newList = [this.props.type];
+                        newList = [];
+                        newList.push(this.props.type)
                     } else {
                         newList.push(this.props.type);
                     }
@@ -185,14 +202,11 @@ export class IconButton extends React.Component<IconButtonProps>{
                 this.isRemoved = false;
                 newList.push(this.props.type)
             }
-
-
-            this.isAdded = false;
-            this.isRemoved = false;
+            this.props.changeActiveType("none")
         }
-
-        this.props.onClick(this.props.type);
-        this.props.updateList(newList);
+        this.props.updateList(newList)
+        console.log(this);
+        console.log(this.isAdded, this.isSelected)
     }
 
     selectedAdded = {
