@@ -250,6 +250,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
     @action
     onPointerUp = (e: React.PointerEvent): void => {
+        this._isPointerDown = false;
         if (this._flush) {
             this._flush = false;
             setTimeout(() => this.stateChanged(), 10);
@@ -257,6 +258,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     }
     @action
     onPointerDown = (e: React.PointerEvent): void => {
+        this._isPointerDown = true;
         var className = (e.target as any).className;
         if (className === "messageCounter") {
             e.stopPropagation();
