@@ -28,7 +28,7 @@ export interface EditableProps {
     height?: number;
     display?: string;
     oneLine?: boolean;
-    editing?: boolean
+    editing?: boolean;
 }
 
 /**

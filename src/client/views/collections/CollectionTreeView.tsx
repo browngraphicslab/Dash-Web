@@ -154,7 +154,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 Doc.GetProto(this.props.document)[key] = value;
                 return true;
             }}
-        />);
+        />)
 
     /**
      * Renders the EditableView title element for placement into the tree.
@@ -241,7 +241,7 @@ class TreeView extends React.Component<TreeViewProps> {
         return true;
     }
 
-    @observable _chosenKey: string = "data"
+    @observable _chosenKey: string = "data";
     _bulletType: BulletType = BulletType.List;
     render() {
         let bulletType = BulletType.List;
@@ -268,7 +268,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 style={{ display: "inline", marginRight: "3px", marginTop: "7px", background: key === this._chosenKey ? "lightgray" : undefined }}>
                 {key}
             </span>)}
-        </div>
+        </div>;
         [this._chosenKey].map(key => {
             let docList = Cast(this.props.document[key], listSpec(Doc));
             let remDoc = (doc: Doc) => this.remove(doc, key);
@@ -318,7 +318,7 @@ class TreeView extends React.Component<TreeViewProps> {
     ) {
         let docList = docs.filter(child => !child.excludeFromLibrary && (key !== "data" || !child.isMinimized));
         return docList.map((child, i) => {
-            let indent = i == 0 ? undefined : () => {
+            let indent = i === 0 ? undefined : () => {
                 if (StrCast(docList[i - 1].layout).indexOf("CollectionView") !== -1) {
                     let fieldKeysub = StrCast(docList[i - 1].layout).split("fieldKey")[1];
                     let fieldKey = fieldKeysub.split("\"")[1];
@@ -338,7 +338,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 addDocTab={addDocTab}
                 ScreenToLocalTransform={screenToLocalXf}
                 parentKey={key}
-                active={active} />
+                active={active} />;
         });
     }
 }
