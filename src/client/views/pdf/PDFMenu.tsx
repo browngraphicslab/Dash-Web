@@ -19,9 +19,11 @@ export default class PDFMenu extends React.Component {
 
     StartDrag: (e: PointerEvent) => void = emptyFunction;
     Highlight: (d: Doc | undefined, color: string | undefined) => void = emptyFunction;
-    @observable Highlighting: boolean = false;
+    Delete: () => void = emptyFunction;
 
-    private _timeout: NodeJS.Timeout | undefined;
+    @observable public Highlighting: boolean = false;
+    @observable public Status: "pdf" | "annotation" | "" = "";
+
     private _offsetY: number = 0;
     private _offsetX: number = 0;
     private _mainCont: React.RefObject<HTMLDivElement>;
@@ -66,8 +68,8 @@ export default class PDFMenu extends React.Component {
     }
 
     @action
-    jumpTo = (x: number, y: number) => {
-        if (!this._pinned) {
+    jumpTo = (x: number, y: number, forceJump: boolean = false) => {
+        if (!this._pinned || forceJump) {
             this._transition = this._transitionDelay = "";
             this._opacity = 1;
             this._left = x;
@@ -159,11 +161,35 @@ export default class PDFMenu extends React.Component {
         }
     }
 
+    deleteClicked = (e: React.PointerEvent) => {
+        this.Delete();
+    }
+
+    handleContextMenu = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        e.preventDefault();
+    }
+
     render() {
+        let buttons = this.Status === "pdf" ? [
+            <button className="pdfMenu-button" title="Click to Highlight" onClick={this.highlightClicked}
+                style={this.Highlighting ? { backgroundColor: "#121212" } : {}}>
+                <FontAwesomeIcon icon="highlighter" size="lg" style={{ transition: "transform 0.1s", transform: this.Highlighting ? "" : "rotate(-45deg)" }} />
+            </button>,
+            <button className="pdfMenu-button" title="Drag to Annotate" onPointerDown={this.pointerDown}><FontAwesomeIcon icon="comment-alt" size="lg" /></button>,
+            <button className="pdfMenu-button" title="Pin Menu" onClick={this.togglePin}
+                style={this._pinned ? { backgroundColor: "#121212" } : {}}>
+                <FontAwesomeIcon icon="thumbtack" size="lg" style={{ transition: "transform 0.1s", transform: this._pinned ? "rotate(45deg)" : "" }} />
+            </button>
+        ] : [
+                <button className="pdfMenu-button" title="Delete Anchor" onPointerDown={this.deleteClicked}><FontAwesomeIcon icon="trash-alt" size="lg" /></button>
+            ];
+
         return (
-            <div className="pdfMenu-cont" onPointerLeave={this.pointerLeave} onPointerEnter={this.pointerEntered} ref={this._mainCont}
+            <div className="pdfMenu-cont" onPointerLeave={this.pointerLeave} onPointerEnter={this.pointerEntered} ref={this._mainCont} onContextMenu={this.handleContextMenu}
                 style={{ left: this._left, top: this._top, opacity: this._opacity, transition: this._transition, transitionDelay: this._transitionDelay }}>
-                <button className="pdfMenu-button" title="Highlight" onClick={this.highlightClicked}
+                {buttons}
+                {/* <button className="pdfMenu-button" title="Highlight" onClick={this.highlightClicked}
                     style={this.Highlighting ? { backgroundColor: "#121212" } : {}}>
                     <FontAwesomeIcon icon="highlighter" size="lg" style={{ transition: "transform 0.1s", transform: this.Highlighting ? "" : "rotate(-45deg)" }} />
                 </button>
@@ -171,7 +197,7 @@ export default class PDFMenu extends React.Component {
                 <button className="pdfMenu-button" title="Pin Menu" onClick={this.togglePin}
                     style={this._pinned ? { backgroundColor: "#121212" } : {}}>
                     <FontAwesomeIcon icon="thumbtack" size="lg" style={{ transition: "transform 0.1s", transform: this._pinned ? "rotate(45deg)" : "" }} />
-                </button>
+                </button> */}
                 <div className="pdfMenu-dragger" onPointerDown={this.dragStart} style={{ width: this._pinned ? "20px" : "0px" }} />
             </div >
         );

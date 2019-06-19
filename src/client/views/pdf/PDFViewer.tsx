@@ -7,7 +7,7 @@ import { Dictionary } from "typescript-collections";
 import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
-import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { BoolCast, Cast, NumCast, StrCast, FieldValue } from "../../../new_fields/Types";
 import { emptyFunction } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Docs, DocUtils } from "../../documents/Documents";
@@ -138,6 +138,7 @@ class Viewer extends React.Component<IViewerProps> {
 
     makeAnnotationDocument = (sourceDoc: Doc | undefined, s: number, color: string): Doc => {
         let annoDocs: Doc[] = [];
+        let mainAnnoDoc = new Doc();
         this._savedAnnotations.forEach((key: number, value: HTMLDivElement[]) => {
             for (let anno of value) {
                 let annoDoc = new Doc();
@@ -147,6 +148,7 @@ class Viewer extends React.Component<IViewerProps> {
                 if (anno.style.width) annoDoc.width = parseInt(anno.style.width) / scale;
                 annoDoc.page = key;
                 annoDoc.target = sourceDoc;
+                annoDoc.group = mainAnnoDoc;
                 annoDoc.color = color;
                 annoDoc.type = AnnotationTypes.Region;
                 annoDocs.push(annoDoc);
@@ -154,13 +156,12 @@ class Viewer extends React.Component<IViewerProps> {
             }
         });
 
-        let annoDoc = new Doc();
-        annoDoc.annotations = new List<Doc>(annoDocs);
+        mainAnnoDoc.annotations = new List<Doc>(annoDocs);
         if (sourceDoc) {
-            DocUtils.MakeLink(sourceDoc, annoDoc, undefined, `Annotation from ${StrCast(this.props.parent.Document.title)}`, "", StrCast(this.props.parent.Document.title));
+            DocUtils.MakeLink(sourceDoc, mainAnnoDoc, undefined, `Annotation from ${StrCast(this.props.parent.Document.title)}`, "", StrCast(this.props.parent.Document.title));
         }
         this._savedAnnotations.clear();
-        return annoDoc;
+        return mainAnnoDoc;
     }
 
     drop = async (e: Event, de: DragManager.DropEvent) => {
@@ -508,6 +509,57 @@ interface IAnnotationProps {
 class RegionAnnotation extends React.Component<IAnnotationProps> {
     @observable private _backgroundColor: string = "red";
 
+    private _reactionDisposer?: IReactionDisposer;
+    private _mainCont: React.RefObject<HTMLDivElement>;
+
+    constructor(props: IAnnotationProps) {
+        super(props);
+
+        this._mainCont = React.createRef();
+    }
+
+    componentDidMount() {
+        this._reactionDisposer = reaction(
+            () => BoolCast(this.props.document.delete),
+            () => {
+                if (BoolCast(this.props.document.delete)) {
+                    if (this._mainCont.current) {
+                        this._mainCont.current.style.display = "none";
+                    }
+                }
+            },
+            { fireImmediately: true }
+        );
+    }
+
+    componentWillUnmount() {
+        this._reactionDisposer && this._reactionDisposer();
+    }
+
+    deleteAnnotation = () => {
+        let annotation = DocListCast(this.props.parent.props.parent.Document.annotations);
+        let group = FieldValue(Cast(this.props.document.group, Doc));
+        if (group && annotation.indexOf(group) !== -1) {
+            let newAnnotations = annotation.filter(a => a !== FieldValue(Cast(this.props.document.group, Doc)));
+            this.props.parent.props.parent.Document.annotations = new List<Doc>(newAnnotations);
+        }
+
+        if (group) {
+            let groupAnnotations = DocListCast(group.annotations);
+            groupAnnotations.forEach(anno => anno.delete = true);
+        }
+    }
+
+
+    // annotateThis = (e: PointerEvent) => {
+    //     e.preventDefault();
+    //     e.stopPropagation();
+    //     // document that this annotation is linked to
+    //     let targetDoc = Docs.TextDocument({ width: 200, height: 200, title: "New Annotation" });
+    //     let group = FieldValue(Cast(this.props.document.group, Doc));
+    // }
+
+    @action
     onPointerDown = (e: React.PointerEvent) => {
         if (e.button === 0) {
             let targetDoc = Cast(this.props.document.target, Doc, null);
@@ -515,16 +567,16 @@ class RegionAnnotation extends React.Component<IAnnotationProps> {
                 DocumentManager.Instance.jumpToDocument(targetDoc);
             }
         }
-        // if (e.button === 2) {
-        //     console.log("right");
-        //     e.stopPropagation();
-        //     e.preventDefault();
-        // }
+        if (e.button === 2) {
+            PDFMenu.Instance.Status = "annotation";
+            PDFMenu.Instance.Delete = this.deleteAnnotation;
+            PDFMenu.Instance.jumpTo(e.clientX, e.clientY, true);
+        }
     }
 
     render() {
         return (
-            <div className="pdfViewer-annotationBox" onPointerDown={this.onPointerDown}
+            <div className="pdfViewer-annotationBox" onPointerDown={this.onPointerDown} ref={this._mainCont}
                 style={{ top: this.props.y * scale, left: this.props.x * scale, width: this.props.width * scale, height: this.props.height * scale, pointerEvents: "all", backgroundColor: StrCast(this.props.document.color) }}></div>
         );
     }
