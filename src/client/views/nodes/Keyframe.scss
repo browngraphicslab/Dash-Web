@@ -1,0 +1,22 @@
+@import "./../globalCssVariables.scss"; 
+
+.bar {
+    height: 100%;
+    width: 5px;
+    background-color: green;
+    position: absolute;
+    
+    // pointer-events: none; 
+    .menubox {
+        width: 200px; 
+        height: 200px;
+        top: 50%;
+        position: absolute; 
+        background-color: $light-color; 
+        .menutable{
+            tr:nth-child(odd){
+                background-color:$light-color-secondary;
+            }
+        }
+    }
+}
