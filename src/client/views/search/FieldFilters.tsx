@@ -16,13 +16,30 @@ export interface FieldFilterProps {
 }
 
 export class FieldFilters extends React.Component<FieldFilterProps> {
+
+    static Instance: FieldFilters;
+    @observable public resetBoolean = false;
+    @observable public resetCounter: number = 0;
+
+    constructor(props: FieldFilterProps){
+        super(props);
+        FieldFilters.Instance = this;
+    }
+
+resetFieldFilters() {
+    this.props.updateAuthorStatus(true);
+    this.props.updateDataStatus(true);
+    this.props.updateTitleStatus(true);
+    this.resetBoolean = true;
+}
+
     render() {
         return (
             <div>
                 <div className="filter field-title">Filter by Basic Keys</div>
-                <CheckBox originalStatus={this.props.titleFieldStatus} updateStatus={this.props.updateTitleStatus} title={Keys.TITLE} />
-                <CheckBox originalStatus={this.props.authorFieldStatus} updateStatus={this.props.updateAuthorStatus} title={Keys.AUTHOR} />
-                <CheckBox originalStatus={this.props.dataFieldStatus} updateStatus={this.props.updateDataStatus} title={Keys.DATA} />
+                <CheckBox numCount = {3} parent = {this} originalStatus={this.props.titleFieldStatus} updateStatus={this.props.updateTitleStatus} title={Keys.TITLE} />
+                <CheckBox numCount = {3} parent = {this}  originalStatus={this.props.authorFieldStatus} updateStatus={this.props.updateAuthorStatus} title={Keys.AUTHOR} />
+                <CheckBox numCount = {3} parent = {this} originalStatus={this.props.dataFieldStatus} updateStatus={this.props.updateDataStatus} title={Keys.DATA} />
             </div>
         )
     }

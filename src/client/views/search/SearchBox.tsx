@@ -72,8 +72,8 @@ export class SearchBox extends React.Component {
     resetFilters = () => {
         ToggleBar.Instance.resetToggle();
         IconBar.Instance.selectAll();
+        FieldFilters.Instance.resetFieldFilters();
     }
-
 
     @action.bound
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
