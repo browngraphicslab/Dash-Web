@@ -10,6 +10,7 @@ import { DocumentView } from "../nodes/DocumentView";
 import { CollectionSchemaPreview } from "./CollectionSchemaView";
 import "./CollectionStackingView.scss";
 import { CollectionSubView } from "./CollectionSubView";
+import { auto } from "async";
 
 @observer
 export class CollectionStackingView extends CollectionSubView(doc => doc) {
@@ -112,6 +113,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                 style={{
                     width: width(),
                     height: height(),
+                    overflow: "auto",
                     transformOrigin: "top left",
                     gridRowEnd: `span ${rowSpan}`,
                     gridColumnEnd: `span 1`,
