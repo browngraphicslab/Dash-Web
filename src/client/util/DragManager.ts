@@ -45,6 +45,9 @@ export function SetupDrag(_reference: React.RefObject<HTMLElement>, docFunc: () 
 
 export async function DragLinkAsDocument(dragEle: HTMLElement, x: number, y: number, linkDoc: Doc, sourceDoc: Doc) {
     let draggeddoc = LinkManager.Instance.findOppositeAnchor(linkDoc, sourceDoc);
+
+    // TODO: if not in same context then don't drag
+
     let moddrag = await Cast(draggeddoc.annotationOn, Doc);
     let dragData = new DragManager.DocumentDragData(moddrag ? [moddrag] : [draggeddoc]);
     DragManager.StartDocumentDrag([dragEle], dragData, x, y, {
@@ -58,6 +61,9 @@ export async function DragLinkAsDocument(dragEle: HTMLElement, x: number, y: num
 export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: number, sourceDoc: Doc) {
     let srcTarg = sourceDoc.proto;
     let draggedDocs: Doc[] = [];
+
+    // TODO: if not in same context then don't drag
+
     if (srcTarg) {
         let linkDocs = LinkManager.Instance.findAllRelatedLinks(srcTarg);
         if (linkDocs) {
@@ -74,6 +80,9 @@ export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: n
             if (doc) moddrag.push(doc);
         }
         let dragData = new DragManager.DocumentDragData(moddrag.length ? moddrag : draggedDocs);
+        // dragData.moveDocument = (document, targetCollection, addDocument) => {
+        //     return false;
+        // };
         DragManager.StartDocumentDrag([dragEle], dragData, x, y, {
             handlers: {
                 dragComplete: action(emptyFunction),

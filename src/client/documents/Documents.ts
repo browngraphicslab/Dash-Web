@@ -99,7 +99,17 @@ export namespace DocUtils {
             linkDocProto.anchor2 = target;
             linkDocProto.anchor2Page = target.curPage;
             linkDocProto.anchor2Groups = new List<Doc>([]);
+
             linkDocProto.context = targetContext;
+
+            let proxy1 = Docs.TextDocument({ width: 300, height: 100, borderRounding: 0 });
+            let proxy1Proto = Doc.GetProto(proxy1);
+            let proxy2 = Docs.TextDocument({ width: 300, height: 100, borderRounding: 0 });
+            let proxy2Proto = Doc.GetProto(proxy2);
+
+            linkDocProto.proxy1 = proxy1; // src: 1 targ: 2
+            linkDocProto.proxy2 = proxy2; // src: 2 targ: 1
+
 
             LinkManager.Instance.allLinks.push(linkDoc);
 
@@ -377,7 +387,7 @@ export namespace Docs {
     }
 
     /*
-
+ 
     this template requires an additional style setting on the collectionView-cont to make the layout relative
     
 .collectionView-cont {

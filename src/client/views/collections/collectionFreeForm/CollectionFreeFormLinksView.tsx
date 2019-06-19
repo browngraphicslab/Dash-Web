@@ -11,6 +11,8 @@ import { CollectionViewProps } from "../CollectionSubView";
 import "./CollectionFreeFormLinksView.scss";
 import { CollectionFreeFormLinkView } from "./CollectionFreeFormLinkView";
 import React = require("react");
+import { CollectionFreeFormLinkWithProxyView } from "./CollectionFreeFormLinkWithProxyView";
+import { Docs } from "../../../documents/Documents";
 
 @observer
 export class CollectionFreeFormLinksView extends React.Component<CollectionViewProps> {
@@ -159,47 +161,56 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
     // }
 
     findUniquePairs = (): JSX.Element[] => {
-        // console.log("FIND UNIQUE PAIRS");
         let connections = DocumentManager.Instance.LinkedDocumentViews;
 
-        let unique: Array<{ sourceView: DocumentView, targetView: DocumentView, sameContext: boolean }> = [];
+        let unique: Set<{ sourceView: DocumentView, targetView: DocumentView, linkDoc: Doc }> = new Set();
         connections.forEach(c => {
-            let match1Index = unique.findIndex(u => (c.anchor1View === u.sourceView) && (c.anchor2View === u.targetView));
-            let match2Index = unique.findIndex(u => (c.anchor1View === u.targetView) && (c.anchor2View === u.sourceView));
+            // let match1Index = unique.findIndex(u => (c.anchor1View === u.sourceView) && (c.anchor2View === u.targetView));
+            // let match2Index = unique.findIndex(u => (c.anchor1View === u.targetView) && (c.anchor2View === u.sourceView));
+            let match1 = unique.has({ sourceView: c.anchor1View, targetView: c.anchor2View, linkDoc: c.linkDoc });
+            let match2 = unique.has({ sourceView: c.anchor2View, targetView: c.anchor1View, linkDoc: c.linkDoc });
             let sameContext = c.anchor1View.props.ContainingCollectionView === c.anchor2View.props.ContainingCollectionView;
 
-            if (!(match1Index > -1 || match2Index > -1)) {
-                // if docview pair does not already exist in unique, push
-                unique.push({ sourceView: c.anchor1View, targetView: c.anchor2View, sameContext: sameContext });
+            // if in same context, push if docview pair does not already exist
+            // else push both directions of pair
+            if (sameContext) {
+                if (!(match1 || match2)) unique.add({ sourceView: c.anchor1View, targetView: c.anchor2View, linkDoc: c.linkDoc });
             } else {
-                // if docview pair exists in unique, push if not in same context
-                if (!sameContext) {
-                    match1Index > -1 ? unique.push({ sourceView: c.anchor2View, targetView: c.anchor1View, sameContext: sameContext })
-                        : unique.push({ sourceView: c.anchor1View, targetView: c.anchor2View, sameContext: sameContext });
-                }
+                unique.add({ sourceView: c.anchor1View, targetView: c.anchor2View, linkDoc: c.linkDoc });
+                unique.add({ sourceView: c.anchor2View, targetView: c.anchor1View, linkDoc: c.linkDoc });
             }
         });
 
-        console.log("\n UNIQUE");
+        let uniqueList: JSX.Element[] = [];
         unique.forEach(u => {
-            console.log(StrCast(u.sourceView.Document.title), StrCast(u.targetView.Document.title), u.sameContext);
-        });
-
-        // console.log("\n");
-
-        return unique.map(u => {
             // TODO: make better key
             let key = StrCast(u.sourceView.Document[Id]) + "-link-" + StrCast(u.targetView.Document[Id]) + "-" + Date.now() + Math.random();
             let sourceIn = u.sourceView.props.ContainingCollectionView ? u.sourceView.props.ContainingCollectionView.props.Document === this.props.Document : false;
             let targetIn = u.targetView.props.ContainingCollectionView ? u.targetView.props.ContainingCollectionView.props.Document === this.props.Document : false;
-            let inContainer = u.sameContext ? sourceIn || targetIn : sourceIn;
+            let sameContext = u.sourceView.props.ContainingCollectionView === u.targetView.props.ContainingCollectionView;
+            let inContainer = sameContext ? sourceIn || targetIn : sourceIn;
+
             if (inContainer) {
-                // console.log("key", key, StrCast(u.sourceView.Document.title), StrCast(u.targetView.Document.title));
-                return <CollectionFreeFormLinkView key={key} sourceView={u.sourceView} targetView={u.targetView} sameContext={u.sameContext} addDocTab={this.props.addDocTab} />;
-            } else {
-                return <div key={key}></div>;
+                // let alias = Doc.MakeAlias(proxy);
+                if (sameContext) {
+                    uniqueList.push(<CollectionFreeFormLinkView key={key} sourceView={u.sourceView} targetView={u.targetView} />);
+                } else {
+                    let proxyKey = Doc.AreProtosEqual(u.sourceView.Document, Cast(u.linkDoc.anchor1, Doc, new Doc)) ? "proxy1" : "proxy2";
+                    let proxy = Cast(u.linkDoc[proxyKey], Doc, new Doc);
+
+                    let context = u.targetView.props.ContainingCollectionView ? (" in the context of " + StrCast(u.targetView.props.ContainingCollectionView.props.Document.title)) : "";
+                    let text = proxyKey + " link to " + StrCast(u.targetView.props.Document.title) + context;
+
+                    let proxyProto = Doc.GetProto(proxy);
+                    proxyProto.data = text;
+
+                    this.props.addDocument(proxy, false);
+                    uniqueList.push(<CollectionFreeFormLinkWithProxyView key={key} sourceView={u.sourceView} targetView={u.targetView}
+                        proxyDoc={proxy} addDocTab={this.props.addDocTab} />);
+                }
             }
         });
+        return uniqueList;
     }
 
     render() {
