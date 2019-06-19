@@ -548,6 +548,8 @@ class RegionAnnotation extends React.Component<IAnnotationProps> {
             let groupAnnotations = DocListCast(group.annotations);
             groupAnnotations.forEach(anno => anno.delete = true);
         }
+
+        PDFMenu.Instance.fadeOut(true);
     }
 
 
