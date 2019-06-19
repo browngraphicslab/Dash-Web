@@ -13,7 +13,7 @@ import { CurrentUserUtils } from "../../../server/authentication/models/current_
 import PresentationElement, { buttonIndex } from "./PresentationElement";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowRight, faArrowLeft, faPlay, faStop, faPlus, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faArrowRight, faArrowLeft, faPlay, faStop, faPlus, faTimes, faMinus } from '@fortawesome/free-solid-svg-icons';
 import { Docs } from "../../documents/Documents";
 
 library.add(faArrowLeft);
@@ -22,6 +22,7 @@ library.add(faPlay);
 library.add(faStop);
 library.add(faPlus);
 library.add(faTimes);
+library.add(faMinus);
 
 export interface PresViewProps {
     Documents: List<Doc>;
@@ -100,7 +101,7 @@ class PresentationViewList extends React.Component<PresListProps> {
         return (
 
             <div className="presentationView-listCont">
-                {children.map((doc: Doc, index: number) => <PresentationElement ref={(e) => { if (e) { this.props.presElementsMappings.set(doc, e); } }} key={index} mainDocument={this.props.mainDocument} document={doc} index={index} deleteDocument={this.props.deleteDocument} gotoDocument={this.props.gotoDocument} groupMappings={this.props.groupMappings} allListElements={children} presStatus={this.props.presStatus} presButtonBackUp={this.props.presButtonBackUp} presGroupBackUp={this.props.presGroupBackUp} />)}
+                {children.map((doc: Doc, index: number) => <PresentationElement ref={(e) => { if (e) { this.props.presElementsMappings.set(doc, e); } }} key={doc[Id]} mainDocument={this.props.mainDocument} document={doc} index={index} deleteDocument={this.props.deleteDocument} gotoDocument={this.props.gotoDocument} groupMappings={this.props.groupMappings} allListElements={children} presStatus={this.props.presStatus} presButtonBackUp={this.props.presButtonBackUp} presGroupBackUp={this.props.presGroupBackUp} />)}
             </div>
         );
     }
@@ -458,6 +459,40 @@ export class PresentationView extends React.Component<PresViewProps>  {
         if (value) {
             let removedDoc = await value.splice(index, 1)[0];
             this.presElementsMappings.delete(removedDoc);
+
+            let removedDocPresentId = StrCast(removedDoc.presentId);
+            if (this.groupMappings.has(removedDocPresentId)) {
+                let removedDocsGroup = this.groupMappings.get(removedDocPresentId);
+                if (removedDocsGroup) {
+                    removedDocsGroup.splice(removedDocsGroup.indexOf(removedDoc), 1);
+                    if (removedDocsGroup.length === 0) {
+                        this.groupMappings.delete(removedDocPresentId);
+                    }
+                }
+            }
+            let castedList = Cast(this.presButtonBackUp.selectedButtonDocs, listSpec(Doc));
+            if (castedList) {
+                castedList.splice(index, 1);
+            }
+            let castedGroupDocs = await DocListCastAsync(this.presGroupBackUp.groupDocs);
+            if (castedGroupDocs) {
+                castedGroupDocs.forEach(async (groupDoc: Doc, index: number) => {
+                    let castedKey = StrCast(groupDoc.presentIdStore, null);
+                    if (castedKey === removedDocPresentId) {
+                        let castedGrouping = await DocListCastAsync(groupDoc.grouping);
+                        if (castedGrouping) {
+                            castedGrouping.splice(castedGrouping.indexOf(removedDoc), 1);
+                            if (castedGrouping.length === 0) {
+                                castedGroupDocs!.splice(castedGroupDocs!.indexOf(groupDoc), 1);
+                            }
+                        }
+                    }
+
+                });
+
+            }
+
+
         }
     }
     @action
@@ -532,7 +567,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
             this.curPresentation.data = new List([doc]);
         }
 
-        this.curPresentation.width = 300;
+        this.curPresentation.width = 400;
     }
 
     @action
@@ -630,17 +665,6 @@ export class PresentationView extends React.Component<PresViewProps>  {
         this.currentSelectedPresValue = newGuid;
         this.setPresentationBackUps();
 
-
-
-        // if (this.selectedPresentation) {
-        //     this.selectedPresentation.selectedIndex = 1;
-        //     console.log("Selected Pres: ", this.selectedPresentation);
-        //     console.log("New value: ", this.selectedPresentation.value);
-        //     console.log("New Index: ", this.selectedPresentation.selectedIndex);
-
-
-        // }
-
     }
 
     @action
@@ -664,7 +688,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
                 {presentationList.map((doc: Doc, index: number) => {
                     let mappedGuid = this.presentationsKeyMapping.get(doc);
                     let docGuid: string = mappedGuid ? mappedGuid.toString() : "";
-                    return <option key={index} value={docGuid}>{StrCast(doc.title)}</option>;
+                    return <option key={docGuid} value={docGuid}>{StrCast(doc.title)}</option>;
                 })}
             </select>;
         }
@@ -683,10 +707,24 @@ export class PresentationView extends React.Component<PresViewProps>  {
         }
     }
 
+    @action
+    removePresentation = () => {
+        if (this.presentationsMapping.size !== 1) {
+            let presentationList = Cast(this.props.Documents, listSpec(Doc));
+            let removedDoc = this.presentationsMapping.get(this.currentSelectedPresValue!);
+            this.presentationsKeyMapping.delete(removedDoc!);
+            this.presentationsMapping.delete(this.currentSelectedPresValue!);
+            let remainingPresentations = this.presentationsMapping.values();
+            let nextDoc = remainingPresentations.next().value;
+            this.currentSelectedPresValue = this.presentationsKeyMapping.get(nextDoc)!.toString();
+            presentationList!.splice(presentationList!.indexOf(removedDoc!), 1);
+        }
+    }
+
 
     render() {
-        let width = NumCast(this.curPresentation.width);
 
+        let width = NumCast(this.curPresentation.width);
 
 
         //TODO: next and back should be icons
@@ -698,6 +736,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
                     <button title="Add Presentation" className="presentation-icon" style={{ marginRight: 10 }} onClick={() => {
                         runInAction(() => this.PresTitleInputOpen ? this.PresTitleInputOpen = false : this.PresTitleInputOpen = true);
                     }}><FontAwesomeIcon icon={"plus"} /></button>
+                    <button title="Remove Presentation" className='presentation-icon' style={{ marginRight: 10 }} onClick={this.removePresentation}><FontAwesomeIcon icon={"minus"} /></button>
 
                 </div>
                 <div className="presentation-buttons">
