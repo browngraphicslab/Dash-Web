@@ -254,7 +254,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (e.button === 0 && this.props.isSelected() && !e.altKey && !e.ctrlKey && !e.metaKey) {
             e.stopPropagation();
             if (this._toolTipTextMenu && this._toolTipTextMenu.tooltip) {
-                this._toolTipTextMenu.tooltip.style.opacity = "0";
+                //this._toolTipTextMenu.tooltip.style.opacity = "0";
             }
         }
         let ctrlKey = e.ctrlKey;
@@ -289,7 +289,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
     onPointerUp = (e: React.PointerEvent): void => {
         if (this._toolTipTextMenu && this._toolTipTextMenu.tooltip) {
-            this._toolTipTextMenu.tooltip.style.opacity = "1";
+            //this._toolTipTextMenu.tooltip.style.opacity = "1";
         }
         if (e.buttons === 1 && this.props.isSelected() && !e.altKey) {
             e.stopPropagation();

@@ -66,7 +66,7 @@ export class TooltipTextMenu {
         this.tooltip.className = "tooltipMenu";
 
         //add the div which is the tooltip
-        view.dom.parentNode!.parentNode!.appendChild(this.tooltip);
+        //view.dom.parentNode!.parentNode!.appendChild(this.tooltip);
 
         //add additional icons
         library.add(faListUl);
@@ -131,11 +131,17 @@ export class TooltipTextMenu {
         this.link = document.createElement("a");
         this.link.target = "_blank";
         this.link.style.color = "white";
-        this.tooltip.appendChild(this.link);
+        //this.tooltip.appendChild(this.link);
 
         this.tooltip.appendChild(this.createLink().render(this.view).dom);
 
+        this.tooltip.appendChild(this.createStar().render(this.view).dom);
+
         this.update(view, undefined);
+
+        if (view.dom.parentNode !== null) {
+            view.dom.parentNode.insertBefore(this.tooltip, view.dom);
+        }
     }
 
     //label of dropdown will change to given label
@@ -239,23 +245,10 @@ export class TooltipTextMenu {
                         hideSource: false
                     });
             };
-            this.linkEditor.appendChild(this.linkDrag);
-            this.linkEditor.appendChild(this.linkText);
-            this.linkEditor.appendChild(linkBtn);
-            this.tooltip.appendChild(this.linkEditor);
-
-            // SUMMARIZE BUTTON
-
-            let starButton = document.createElement("span");
-            starButton.className = "summarize";
-            starButton.textContent = "★";
-            starButton.title = 'Summarize';
-            starButton.onclick = () => {
-                let state = this.view.state;
-                this.insertStar(state, this.view.dispatch);
-            };
-
-            this.tooltip.appendChild(starButton);
+            // this.linkEditor.appendChild(this.linkDrag);
+            // this.linkEditor.appendChild(this.linkText);
+            // this.linkEditor.appendChild(linkBtn);
+            //this.tooltip.appendChild(this.linkEditor);
         }
 
         let node = this.view.state.selection.$from.nodeAfter;
@@ -367,6 +360,21 @@ export class TooltipTextMenu {
             run() {
                 changeToMarkInGroup(markType, view, groupMarks);
             }
+        });
+    }
+
+    createStar() {
+        return new MenuItem({
+            title: "Summarize",
+            label: "Summarize",
+            icon: icons.join,
+            css: "color:white;",
+            class: "summarize",
+            execEvent: "",
+            run: (state, dispatch, view) => {
+                this.insertStar(state, dispatch);
+            }
+
         });
     }
 
@@ -499,34 +507,34 @@ export class TooltipTextMenu {
 
         // Hide the tooltip if the selection is empty
         if (state.selection.empty) {
-            this.tooltip.style.display = "none";
-            return;
+            //this.tooltip.style.display = "none";
+            //return;
         }
 
         let linksInSelection = this.activeMarksOnSelection([schema.marks.link]);
-        if (linksInSelection.length > 0) {
-            let attributes = this.getMarksInSelection(this.view.state, [schema.marks.link])[0].attrs;
-            this.link.href = attributes.href;
-            this.link.textContent = attributes.title;
-            this.link.style.visibility = "visible";
-        } else this.link.style.visibility = "hidden";
+        // if (linksInSelection.length > 0) {
+        //     let attributes = this.getMarksInSelection(this.view.state, [schema.marks.link])[0].attrs;
+        //     this.link.href = attributes.href;
+        //     this.link.textContent = attributes.title;
+        //     this.link.style.visibility = "visible";
+        // } else this.link.style.visibility = "hidden";
 
         // Otherwise, reposition it and update its content
-        this.tooltip.style.display = "";
+        //this.tooltip.style.display = "";
         let { from, to } = state.selection;
         let start = view.coordsAtPos(from), end = view.coordsAtPos(to);
         // The box in which the tooltip is positioned, to use as base
-        let box = this.tooltip.offsetParent!.getBoundingClientRect();
+        //let box = this.tooltip.offsetParent!.getBoundingClientRect();
         // Find a center-ish x position from the selection endpoints (when
         // crossing lines, end may be more to the left)
         let left = Math.max((start.left + end.left) / 2, start.left + 3);
-        this.tooltip.style.left = (left - box.left) * this.editorProps.ScreenToLocalTransform().Scale + "px";
+        //this.tooltip.style.left = (left - box.left) * this.editorProps.ScreenToLocalTransform().Scale + "px";
         let width = Math.abs(start.left - end.left) / 2 * this.editorProps.ScreenToLocalTransform().Scale;
         let mid = Math.min(start.left, end.left) + width;
 
         //this.tooltip.style.width = 225 + "px";
-        this.tooltip.style.bottom = (box.bottom - start.top) * this.editorProps.ScreenToLocalTransform().Scale + "px";
-        this.tooltip.style.top = "-100px";
+        // this.tooltip.style.bottom = (box.bottom - start.top) * this.editorProps.ScreenToLocalTransform().Scale + "px";
+        // this.tooltip.style.top = "-100px";
         //this.tooltip.style.height = "100px";
 
         // let transform = this.editorProps.ScreenToLocalTransform();
