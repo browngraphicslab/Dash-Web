@@ -12,7 +12,7 @@
     padding-right: 0px;
     background: $light-color-secondary;
     font-size: 13px;
-    overflow: scroll;
+    overflow: auto;
 
     ul {
         list-style: none;
@@ -50,10 +50,12 @@
         font-size: 24px;
     }
 
-    .collectionTreeView-keyHeader {
-        font-style: italic;
-        font-size: 8pt;
-    }
+}
+.collectionTreeView-keyHeader {
+    font-style: italic;
+    font-size: 8pt;
+    margin-left: 3px;
+    display:none;
 }
 
 .docContainer {
@@ -74,6 +76,9 @@
 }
 
 .treeViewItem-header:hover {
+    .collectionTreeView-keyHeader {
+        display:inherit;
+    }
     .treeViewItem-openRight {
         display: inline-block;
         height:13px;
