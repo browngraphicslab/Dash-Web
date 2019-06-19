@@ -8,6 +8,7 @@ import shutil
 import uuid
 import datetime
 from PIL import Image
+import math
 
 source = "./source"
 dist = "../server/public/files"
@@ -58,8 +59,8 @@ def protofy(fieldId):
     }
 
 
-def write_schema(parse_results):
-    view_guids = parse_results["view_guids"]
+def write_schema(parse_results, display_fields):
+    view_guids = parse_results["child_guids"]
 
     data_doc = parse_results["schema"]
     fields = data_doc["fields"]
@@ -86,7 +87,7 @@ def write_schema(parse_results):
 
     fields["proto"] = protofy("collectionProto")
     fields["data"] = listify(proxify_guids(view_guids))
-    fields["schemaColumns"] = listify(["title", "data"])
+    fields["schemaColumns"] = listify(display_fields)
     fields["backgroundColor"] = "white"
     fields["scale"] = 0.5
     fields["viewType"] = 2
@@ -179,6 +180,14 @@ def parse_document(file_name: str):
     def sanitize(line): return re.sub("[\n\t]+", "", line).replace(u"\u00A0", " ").replace(
         u"\u2013", "-").replace(u"\u201c", '''"''').replace(u"\u201d", '''"''').strip()
 
+    def sanitize_price(raw):
+        res = math.nan
+        try:
+            res = float(raw.replace("$", ""))
+        except:
+            res = math.nan
+        return res
+
     def remove_empty(line): return len(line) > 1
 
     lines = list(map(sanitize, raw.split("\n")))
@@ -201,7 +210,8 @@ def parse_document(file_name: str):
         map(lambda data: data.strip().split(":"), lines[cur].split("|")))
     result["company"] = clean[0][len(clean[0]) - 1].strip()
     result["year"] = clean[1][len(clean[1]) - 1].strip()
-    result["original_price"] = clean[2][len(clean[2]) - 1].strip()
+    result["original_price"] = sanitize_price(
+        clean[2][len(clean[2]) - 1].strip())
 
     cur += 1
     result["degrees_of_freedom"] = extract_value(
@@ -264,7 +274,7 @@ def parse_document(file_name: str):
             "fields": result,
             "__type": "Doc"
         },
-        "view_guids": view_guids
+        "child_guids": view_guids
     }
 
 
@@ -283,12 +293,23 @@ candidates = 0
 for file_name in os.listdir(source):
     if file_name.endswith('.docx'):
         candidates += 1
-        schema_guids.append(write_schema(parse_document(file_name)))
+        schema_guids.append(write_schema(
+            parse_document(file_name), ["title", "data"]))
+
+parent_guid = write_schema({
+    "schema": {
+        "_id": guid(),
+        "fields": {},
+        "__type": "Doc"
+    },
+    "child_guids": schema_guids
+}, ["title", "short_description"])
 
 db.newDocuments.update_one(
     {"fields.title": "WS collection 1"},
-    {"$push": {"fields.data.fields": {"$each": proxify_guids(schema_guids)}}}
+    {"$push": {"fields.data.fields": {"fieldId": parent_guid, "__type": "proxy"}}}
 )
+
 
 print("...dictionaries written to Dash Document.\n")
 
