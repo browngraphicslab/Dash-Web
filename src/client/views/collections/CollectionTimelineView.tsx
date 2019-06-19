@@ -23,8 +23,8 @@ import { CollectionView } from "./CollectionView";
 import { CollectionPDFView } from "./CollectionPDFView";
 import { CollectionVideoView } from "./CollectionVideoView";
 import { VideoBox } from "../nodes/VideoBox";
-import { faFilePowerpoint, faShower, faVideo, faThumbsDown } from "@fortawesome/free-solid-svg-icons";
-import { throwStatement } from "babel-types";
+import { faFilePowerpoint, faShower, faVideo, faThumbsDown, faPlus } from "@fortawesome/free-solid-svg-icons";
+import { throwStatement, thisTypeAnnotation } from "babel-types";
 import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faTree, faUndoAlt, faBell } from '@fortawesome/free-solid-svg-icons';
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { ImageField, VideoField, AudioField, URLField, PdfField, WebField } from "../../../new_fields/URLField";
@@ -34,6 +34,8 @@ import { Docs } from "../../documents/Documents";
 import { HtmlField } from "../../../new_fields/HtmlField";
 import { ProxyField } from "../../../new_fields/Proxy";
 import { auto } from "async";
+import Measure from "react-measure";
+
 
 
 
@@ -85,14 +87,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
 
 
-    sorttitle(a: Doc, b: Doc) {
-        return a.title.localeCompare(b.title);
-    }
-
-    sortauthor(a: Doc, b: Doc) {
-        return a.author.localeCompare(b.author);
-    }
-
 
     sortdate(a: Doc, b: Doc) {
         var adate: DateField = a.creationDate;
@@ -127,6 +121,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @action
     toggleKey = (key: string) => {
         this.sortstate = key;
+        this.preview5 = -2;
     }
 
     @observable
@@ -139,100 +134,183 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     private preview3: string;
     @observable
     private preview4: string;
+    @observable
+    private preview5: String | number | Date;
+    @observable
+    private preview6: number = -2;
+
 
     @action
     show(document: Doc) {
-        console.log(document.data);
         this.preview = document;
         this.preview2 = Docs.KVPDocument(document, {});
         this.preview3 = document.title + "";
-        this.preview4 = this.sortstate + ":" + document[this.sortstate];
+        if (this.sortstate === "creationDate") {
+            this.preview4 = this.sortstate + ":" + document.creationDate.date;
+        }
+        else {
+            this.preview4 = this.sortstate + ":" + document[this.sortstate];
+        }
     }
+
+    overlapFlyOut(values: { doc: Doc, value: String | number | Date }[], checkvalue: (String | number | Date), leftval: string) {
+        let overlaps = [];
+        let filtered = values.filter(function (keyvalue) {
+            if (keyvalue.value === checkvalue) {
+                return keyvalue;
+            }
+        });
+
+        for (let i = 0; i < filtered.length; i++) {
+            overlaps.push(
+                <div><button className="toolbar-button round-button" title="Notifs"
+                    onClick={() => this.show(values[i].doc)}
+                    style={{
+                        position: "absolute",
+                        background: "$dark-color",
+                    }}>
+                    <FontAwesomeIcon icon={faBell} size="sm" />
+
+                </button>
+                </div>);
+        }
+        console.log(overlaps);
+        return (<div>
+            {overlaps}
+        </div>
+        );
+    }
+
+    @action
+    updateleft(num: number, value: String | number | Date) {
+        if (this.preview6 === num) {
+            this.preview6 = -2;
+        }
+        else {
+            this.preview6 = num;
+
+        }
+        this.preview5 = value;
+        console.log(num);
+    }
+
 
     buttonloop() {
         let buttons = [];
         let buttons2 = [];
         this.range = 1;
         let arr: Doc[] = [];
-        let values = [];
 
-        //Building the array is kinda weird because I reverse engineered something from another class.
         this.childDocs.filter(d => !d.isMinimized).map((d, i) => {
             arr.push(d);
         });
-        // if (this.sortstate === "creationDate") {
-        //     arr.sort(this.sortdate);
-        //     let i = arr.length - 1;
-        //     this.range = arr[i].creationDate.date - arr[0].creationDate.date;
-        //     for (let j = 0; j < arr.length; j++) {
-        //         var newdate = arr[j].creationDate.date;
-        //         values[j] = newdate;
-        //     }
 
-        // }
-        // if (this.sortstate === "title") {
-        //     arr.sort(this.sorttitle);
-        //     this.range = arr.length;
-        //     for (let j = 0; j < arr.length; j++) {
-        //         values[j] = j;
-        //     }
-        // }
-
-        // if (this.sortstate === "author") {
-        //     arr.sort(this.sortauthor);
-        //     this.range = arr.length;
-        //     for (let j = 0; j < arr.length; j++) {
-        //         values[j] = j;
-        //     }
-        // }
         let backup = arr.filter(doc => doc[this.sortstate]);
-        values = arr.filter(doc => doc[this.sortstate]).map(doc => {
-            console.log(doc[this.sortstate]);
-            NumCast(doc[this.sortstate]);
-        });
-        values.sort(function (a, b) { return (a - b); });
+        let keyvalue: { doc: Doc, value: String | number | Date }[] = [];
+
+        if (backup.length > 0) {
+            if (this.sortstate === "creationDate") {
+                keyvalue = backup.map(d => {
+                    let vdate: DateField = d.creationDate;
+                    let value = new Date(vdate.date);
+                    return { doc: d, value: value };
+                });
+            }
+
+            else if (isNaN(parseFloat(String(backup[0][this.sortstate])))) {
+                keyvalue = backup.map(d => {
+                    let value = String(d[this.sortstate]);
+                    return { doc: d, value: value };
+                });
+            }
+            else {
+                keyvalue = backup.map(d => {
+                    let value = NumCast(d[this.sortstate]);
+                    return { doc: d, value: value };
+                });
+            }
+        }
+        keyvalue.sort(function (a, b) { return (a.value - b.value); });
+
+        let docs = keyvalue.map(kv => kv.doc);
+        let values = keyvalue.map(kv => kv.value);
+
         console.log(values);
         let i = values.length - 1;
         this.range = (values[i] - values[0]);
-        //console.log(this.range);
-        // if (this.range === 0) {
-        //     this.range = values.length;
-        // }
-        // if (isNaN(this.range)) {
-        //     this.range = values.length;
-        //     for (let i = 0; i < values.length; i++) {
-        //         values[i] = String(i);
-        //     }
-        // }
-        //console.log(this.range);
+        console.log(this.range);
+        if (this.range === 0) {
+            this.range = values.length;
+        }
+        if (isNaN(this.range)) {
+            this.range = values.length;
+            for (let i = 0; i < values.length; i++) {
+                values[i] = String(i);
+            }
+        }
+        console.log(this.range);
 
 
 
         for (let i = 0; i < backup.length; i++) {
             let color = "$dark-color";
-
+            let icon = this.checkData(backup[i]);
+            let display = () => this.show(keyvalue[i].doc);
+            let leftval = (((values[i] - values[0]) * this.barwidth / this.range) * (this.barwidth / (this.xmovement2 - this.xmovement)) - (this.xmovement * (this.barwidth - (10 / this.barwidth)) / (this.xmovement2 - this.xmovement))) * 0.97 + "px";
+            for (let j = 0; j < backup.length; j++) {
+                if (j !== i) {
+                    if (values[i] === values[j]) {
+                        icon = faPlus;
+                        display = () => this.updateleft(i, values[i]);
+                    }
+                }
+            }
             buttons.push(
                 <div><button className="toolbar-button round-button" title="Notifs"
-                    onClick={() => this.show(backup[i])} style={{
+                    onClick={display} style={{
                         position: "absolute",
                         background: color,
-                        top: "70%", height: "5%", left: (((values[i] - values[0]) * this.barwidth / this.range) * (this.barwidth / (this.xmovement2 - this.xmovement)) - (this.xmovement * this.barwidth / (this.xmovement2 - this.xmovement)) === this.barwidth ? (((values[i] - values[0]) * this.barwidth / this.range) * (this.barwidth / (this.xmovement2 - this.xmovement)) - (this.xmovement * this.barwidth / (this.xmovement2 - this.xmovement)) - this.barwidth / 40) : (((values[i] - values[0]) * this.barwidth / this.range) * (this.barwidth / (this.xmovement2 - this.xmovement)) - (this.xmovement * this.barwidth / (this.xmovement2 - this.xmovement)))) + "px",
+                        top: "70%", height: "5%", left: leftval,
                     }}>
-                    <FontAwesomeIcon icon={this.checkData(backup[i])} size="sm" />
+
+                    <FontAwesomeIcon icon={icon} size="sm" />
+
                 </button>
                 </div>);
             buttons2.push(
                 <div
-
                     style={{
                         position: "absolute",
                         background: "black",
                         zIndex: "1",
-                        top: "50%", left: ((values[i] - values[0]) * this.barwidth / this.range) - 3 + "px", width: "5px", border: "3px solid"
+                        top: "50%", left: ((values[i] - values[0]) * this.barwidth / this.range) * 0.97 + "px", width: "5px", border: "3px solid"
                     }}>
                 </div>);
         }
 
+
+        let overlaps = [];
+        let checkvalue = this.preview5;
+        let filtered = keyvalue.filter(function (keyvalue) {
+            if (keyvalue.value === checkvalue) {
+                return keyvalue;
+            }
+        });
+
+        for (let i = 0; i < filtered.length; i++) {
+            overlaps.push(
+                <div><button className="toolbar-button round-button" title="Notifs"
+                    onClick={() => this.show(filtered[i].doc)}
+                    style={{
+
+                        background: "$dark-color",
+                    }}>
+                    <FontAwesomeIcon icon={this.checkData(filtered[i].doc)} size="sm" />
+
+                </button>
+                </div>);
+        }
+        console.log(overlaps);
 
         return (<div id="screen" >
             <div className="backdropdocview" style={{ top: "5%", left: "10%", right: "50%", bottom: "40%", position: "absolute", borderBottom: "2px solid" }}>
@@ -247,7 +325,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             <div style={{ top: "62%", left: "75%", position: "absolute" }}>
                 {this.preview4}
             </div>
-            <div className="viewpanel" style={{ top: "5%", left: "10%", position: "absolute", right: "10%", bottom: "35%", background: "#GGGGGG", zIndex: "-55", }}></div>
+            <div style={{ borderRadius: "15px 5px 5px 15px", top: "65%", left: (this.preview6 !== -2 ? (((values[this.preview6] - values[0]) * this.barwidth / this.range) * (this.barwidth / (this.xmovement2 - this.xmovement)) - (this.xmovement * this.barwidth / (this.xmovement2 - this.xmovement)) === this.barwidth ? (((values[this.preview6] - values[0]) * this.barwidth / this.range) * (this.barwidth / (this.xmovement2 - this.xmovement)) - (this.xmovement * this.barwidth / (this.xmovement2 - this.xmovement)) - this.barwidth / 40) : (((values[this.preview6] - values[0]) * this.barwidth / this.range) * (this.barwidth / (this.xmovement2 - this.xmovement)) - (this.xmovement * this.barwidth / (this.xmovement2 - this.xmovement)))) + 35 + "px" : "-9999px"), position: "absolute", overflow: "auto", background: "grey", height: "100px", wFidth: "50px" }}>
+                {overlaps}
+            </div>
+            <div className="viewpanel" style={{ top: "5%", position: "absolute", right: "10%", bottom: "35%", background: "#GGGGGG", zIndex: "-55", }}></div>
             <div>{buttons}</div>
             <div id="bar" className="backdropscroll" onPointerDown={this.onPointerDown4} style={{ top: "85%", width: "100%", bottom: "10%", position: "absolute", }}>
                 {buttons2}
@@ -256,51 +337,47 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 </div>
                 <div className="v2" onPointerDown={this.onPointerDown2} style={{
                     cursor: "ew-resize",
-                    position: "absolute", left: this.xmovement2 - 2,
+                    position: "absolute", left: this.xmovement2,
                     height: "100%",
                     zIndex: "2"
                 }}>
                 </div>
                 <div className="bar" onPointerDown={this.onPointerDown3} style={{ left: this.xmovement, width: this.xmovement2 - this.xmovement, height: "100%", position: "absolute" }}>
                 </div>
+                <Measure onResize={() => this.updateWidth()}>
+                    {({ measureRef }) => <div ref={measureRef}> </div>}
+                </Measure>
+
 
             </div>
-        </div>
+        </div >
         );
 
     }
 
     checkData = (document: Doc): IconProp => {
         let field = document.data;
-
         if (field instanceof AudioField) {
             return faMusic;
         }
         else if (field instanceof PdfField) {
             return faFilePdf;
         }
-
         else if (field instanceof RichTextField) {
             return faFont;
         }
         else if (field instanceof ImageField) {
             return faImage;
         }
-
-
         else if (field instanceof VideoField) {
             return faFilm;
-
         }
         else if (field instanceof WebField) {
             return faGlobeAsia;
-
         }
-
         else if (field instanceof ProxyField) {
             return faObjectGroup;
         }
-
         return faBell;
     }
 
@@ -326,22 +403,23 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             bringToFront={emptyFunction} />)
     }
 
+    @action
     onPointerDown = (e: React.PointerEvent): void => {
+        console.log(this.barwidth);
         document.addEventListener("pointermove", this.onPointerMove);
-        this.barwidth = document.getElementById('bar').clientWidth;
         e.stopPropagation();
         e.preventDefault();
     }
 
+    @action
     onPointerDown2 = (e: React.PointerEvent): void => {
-        this.barwidth = document.getElementById('bar').clientWidth;
         document.addEventListener("pointermove", this.onPointerMove2);
         e.stopPropagation();
         e.preventDefault();
     }
 
+    @action
     onPointerDown3 = (e: React.PointerEvent): void => {
-        this.barwidth = document.getElementById('bar').clientWidth;
         document.body.style.cursor = "grabbing";
 
         document.addEventListener("pointermove", this.onPointerMove3);
@@ -351,7 +429,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     onPointerDown4 = (e: React.PointerEvent): void => {
-        this.barwidth = document.getElementById('bar').clientWidth;
 
         let temp = this.xmovement2 - this.xmovement;
         this.xmovement = e.pageX - document.body.clientWidth + document.getElementById('screen').clientWidth;
@@ -368,7 +445,13 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     }
 
-    private barwidth = 962;
+    @action
+    updateWidth() {
+        this.barwidth = (document.getElementById('bar') ? document.getElementById('bar').clientWidth : (952));
+    }
+
+    @observable
+    private barwidth = (document.getElementById('bar') ? document.getElementById('bar').clientWidth : (952));
 
 
     @observable
@@ -399,8 +482,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         e.preventDefault();
         console.log(this.xmovement2);
         this.xmovement2 += e.movementX;
-        if (this.xmovement2 > this.barwidth) {
-            this.xmovement2 = this.barwidth;
+        if (this.xmovement2 > this.barwidth - 6) {
+            this.xmovement2 = this.barwidth - 6;
         }
         if (this.xmovement2 < this.xmovement + 3) {
             this.xmovement2 = this.xmovement + 3;
@@ -417,8 +500,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         console.log(this.xmovement2);
         this.xmovement2 += e.movementX;
         this.xmovement += e.movementX;
-        if (this.xmovement2 > this.barwidth) {
-            this.xmovement2 = this.barwidth;
+
+
+        if (this.xmovement2 > this.barwidth - 6) {
+            this.xmovement2 = this.barwidth - 6;
             this.xmovement -= e.movementX;
         }
         if (this.xmovement < 0) {
@@ -438,8 +523,9 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     }
 
     render() {
+        this.updateWidth();
         return (
-            <div className="collectionTimelineView" style={{ height: "100%" }}
+            <div className="collectionTimelineView" id="poop" style={{ marginLeft: "1%", width: "98%", height: "100%" }}
                 onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
                 <hr style={{ top: "70%", display: "block", width: "100%", border: "10", position: "absolute" }} />
                 {this.buttonloop()}
