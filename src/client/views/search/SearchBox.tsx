@@ -23,9 +23,12 @@ import { ToggleBar } from './ToggleBar';
 import { IconBar } from './IconBar';
 import { type } from 'os';
 import { CheckBox } from './CheckBox';
+import { FieldFilters } from './FieldFilters';
 
 export enum Keys {
     TITLE = "title",
+    AUTHOR = "author",
+    DATA = "data"
 }
 
 @observer
@@ -39,11 +42,13 @@ export class SearchBox extends React.Component {
     @observable private _filterOpen: boolean = false;
     @observable private _resultsOpen: boolean = false;
     @observable private _results: Doc[] = [];
-    @observable filterBoxStatus: boolean = false;
     @observable private _openNoResults: boolean = false;
     allIcons: string[] = [DocTypes.AUDIO, DocTypes.COL, DocTypes.HIST, DocTypes.IMG, DocTypes.LINK, DocTypes.PDF, DocTypes.TEXT, DocTypes.VID, DocTypes.WEB];
     @observable _icons: string[] = this.allIcons;
     @observable _selectedTypes: any[] = [];
+    @observable titleFieldStatus: boolean = true;
+    @observable authorFieldStatus: boolean = true;
+    @observable dataFieldStatus: boolean = true;
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -58,7 +63,7 @@ export class SearchBox extends React.Component {
         });
 
         //empties search query after 30 seconds of the search bar/filter box not being open
-        if(!this._resultsOpen && !this._filterOpen){
+        if (!this._resultsOpen && !this._filterOpen) {
             setTimeout(this.clearSearchQuery, 30000);
         }
     }
@@ -68,6 +73,7 @@ export class SearchBox extends React.Component {
         ToggleBar.Instance.resetToggle();
         IconBar.Instance.selectAll();
     }
+
 
     @action.bound
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -85,27 +91,80 @@ export class SearchBox extends React.Component {
         this._results = [];
     }
 
+    basicRequireWords(query: string): string {
+        let oldWords = query.split(" ");
+        let newWords: string[] = [];
+        oldWords.forEach(word => {
+            let newWrd = "+" + word;
+            newWords.push(newWrd);
+        });
+        query = newWords.join(" ");
+
+        return query;
+    }
+
+    basicFieldFilters(query: string, type: string): string {
+        let oldWords = query.split(" ");
+        let mod = "";
+
+        if(type === Keys.AUTHOR){
+            mod = " author_t:";
+        }if(type === Keys.DATA){
+            //TODO
+        }if(type === Keys.TITLE){
+            mod = " title_t:";
+        }
+
+        let newWords:string[] = [];
+        oldWords.forEach(word => {
+            let newWrd = mod + word;
+            newWords.push(newWrd);
+        });
+
+        query = newWords.join(" ");
+
+        return query;
+    }
+
+    applyBasicFieldFilters(query: string) {
+        let finalQuery = "";
+
+        if(this.titleFieldStatus){
+            finalQuery = finalQuery + this.basicFieldFilters(query, Keys.TITLE);
+        }
+        if(this.authorFieldStatus){
+            finalQuery = finalQuery + this.basicFieldFilters(query, Keys.AUTHOR);
+        }
+        if(this.dataFieldStatus){
+            finalQuery = finalQuery + this.basicFieldFilters(query, Keys.DATA);
+        }
+        return finalQuery;
+    }
+
+    get fieldFiltersApplied(){return !(this.dataFieldStatus && this.authorFieldStatus && this.titleFieldStatus);}
+
     @action
     submitSearch = async () => {
         let query = this._searchString;
         let results: Doc[];
 
+        //if this is true, then not all of the field boxes are checked
+        //TODO: data
+        if(this.fieldFiltersApplied){
+            query = this.applyBasicFieldFilters(query);
+        }
+
         //if this._wordstatus is false, all words are required and a + is added before each
         if (!this._basicWordStatus) {
-            let oldWords = query.split(" ");
-            let newWords: string[] = [];
-            oldWords.forEach(word => {
-                let newWrd = "+" + word;
-                newWords.push(newWrd);
-            });
-            query = newWords.join(" ");
+            query = this.basicRequireWords(query);
         }
+
+        query = query.replace(/\s+/g, ' ').trim()
 
         //if there is no query there should be no result
         if (query === "") {
             results = [];
         }
-
         else {
             //gets json result into a list of documents that can be used
             results = await this.getResults(query);
@@ -271,9 +330,19 @@ export class SearchBox extends React.Component {
         this._pointerTime = e.timeStamp;
     }
 
-    //TODO: to be done with checkmark
-    updateCheckStatus(newStat: boolean) {
-        console.log("updating!")
+    @action.bound
+    updateTitleStatus(newStat: boolean) {
+        this.titleFieldStatus = newStat;
+    }
+
+    @action.bound
+    updateAuthorStatus(newStat: boolean) {
+        this.authorFieldStatus = newStat;
+    }
+    
+    @action.bound
+    updateDataStatus(newStat: boolean) {
+        this.dataFieldStatus = newStat;
     }
 
     // Useful queries:
@@ -310,13 +379,14 @@ export class SearchBox extends React.Component {
                                 <ToggleBar originalStatus={this._basicWordStatus} optionOne={"Include Any Keywords"} optionTwo={"Include All Keywords"} />
                             </div>
                             <div className="type-of-node filter-div">
-                                <IconBar/>
+                                <IconBar />
                             </div>
                             <div className="filter-collection filter-div">
                                 temp for filtering by collection
                             </div>
                             <div className="where-in-doc filter-div">
-                                <CheckBox originalStatus={true} updateStatus={this.updateCheckStatus} title={Keys.TITLE} />
+                                <FieldFilters titleFieldStatus = {this.titleFieldStatus} dataFieldStatus = {this.dataFieldStatus} authorFieldStatus = {this.authorFieldStatus}
+                                updateAuthorStatus = {this.updateAuthorStatus} updateDataStatus = {this.updateDataStatus} updateTitleStatus = {this.updateTitleStatus}/>
                             </div>
                         </div>
                         <button className="reset-filter" onClick={this.resetFilters}>Reset Filters</button>

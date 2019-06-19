@@ -38,11 +38,14 @@
 
 .filter-form {
     background: $dark-color;
-    height: 400px;
+    // height: 400px;
+    height: auto;
+    overflow: auto;
     position: relative;
     right: 1px;
     color: $light-color;
     flex-direction: column;
+    display: inline-block;
 }
 
 #filter{
@@ -68,8 +71,11 @@
     height: 20px;
 }
 
-.where-in-doc{
-    height: 20px;
+.field-title {
+    color: $light-color;
+    text-transform: uppercase;
+    margin-top: 5px;
+    margin-bottom: 5px;
 }
 
 .type-of-node{

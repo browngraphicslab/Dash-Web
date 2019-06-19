@@ -42,7 +42,7 @@ export class CheckBox extends React.Component<CheckBoxProps>{
             targets: this.checkRef.current,
             easing: "easeInOutQuad",
             duration: 500,
-            opacity: 1 ,
+            opacity: 0 ,
         });
         this.checkTimeline.add({
             targets: this.checkRef.current,
@@ -51,11 +51,15 @@ export class CheckBox extends React.Component<CheckBoxProps>{
             strokeDashoffset: [anime.setDashoffset, 0],
             opacity: 1
         });
+
+        if(this.props.originalStatus){
+            this.checkTimeline.play();
+        }
     }
 
     @action.bound
     onClick = () => {
-        this.props.updateStatus(this._status);
+        this.props.updateStatus(!this._status);
 
         if(this._status){
             this.uncheckTimeline.play();
