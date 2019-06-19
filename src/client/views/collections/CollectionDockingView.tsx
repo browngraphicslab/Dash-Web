@@ -467,6 +467,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         let docHeight = NumCast(this._document!.height);
         if (NumCast(this._document!.nativeWidth) || !docWidth || !this._panelWidth || !this._panelHeight) return 1;
         if (StrCast(this._document!.layout).indexOf("Collection") === -1 ||
+            !BoolCast(this._document!.fitToContents, false) ||
             NumCast(this._document!.viewType) !== CollectionViewType.Freeform) return 1;
         let scaling = Math.max(1, this._panelWidth / docWidth * docHeight > this._panelHeight ?
             this._panelHeight / docHeight : this._panelWidth / docWidth);

@@ -217,7 +217,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         let aspect = (rotation % 180) ? this.props.Document[HeightSym]() / this.props.Document[WidthSym]() : 1;
         let shift = (rotation % 180) ? (nativeHeight - nativeWidth / aspect) / 2 : 0;
         return (
-            <div id={id} className={`imageBox-cont${interactive}`}
+            <div id={id} className={`imageBox-cont${interactive}`} style={{ background: "transparent" }}
                 onPointerDown={this.onPointerDown}
                 onDrop={this.onDrop} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
                 <img id={id}

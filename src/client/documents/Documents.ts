@@ -51,7 +51,6 @@ export interface DocumentOptions {
     panY?: number;
     page?: number;
     scale?: number;
-    baseLayout?: string;
     layout?: string;
     templates?: List<string>;
     viewType?: number;
@@ -136,7 +135,7 @@ export namespace Docs {
     }
 
     function setupPrototypeOptions(protoId: string, title: string, layout: string, options: DocumentOptions): Doc {
-        return Doc.assign(new Doc(protoId, true), { ...options, title: title, layout: layout, baseLayout: layout });
+        return Doc.assign(new Doc(protoId, true), { ...options, title: title, layout: layout });
     }
     function SetInstanceOptions<U extends Field>(doc: Doc, options: DocumentOptions, value: U) {
         const deleg = Doc.MakeDelegate(doc);

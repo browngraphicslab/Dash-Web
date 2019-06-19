@@ -21,6 +21,7 @@ import "./CollectionTreeView.scss";
 import React = require("react");
 import { Transform } from '../../util/Transform';
 import { SelectionManager } from '../../util/SelectionManager';
+import { emptyFunction } from '../../../Utils';
 
 
 export interface TreeViewProps {
@@ -30,6 +31,7 @@ export interface TreeViewProps {
     dropAction: "alias" | "copy" | undefined;
     addDocTab: (doc: Doc, where: string) => void;
     addDocument: (doc: Doc, relativeTo?: Doc, before?: boolean) => boolean;
+    indentDocument?: () => void;
     ScreenToLocalTransform: () => Transform;
     treeViewId: string;
     parentKey: string;
@@ -114,6 +116,12 @@ class TreeView extends React.Component<TreeViewProps> {
         }
         return true;
     }
+    @action
+    indent = () => {
+        this.props.addDocument(this.props.document);
+        this.delete();
+    }
+
 
     renderBullet(type: BulletType) {
         let onClicked = action(() => this._collapsed = !this._collapsed);
@@ -124,25 +132,37 @@ class TreeView extends React.Component<TreeViewProps> {
         }
         return <div className="bullet" onClick={onClicked}>{bullet ? <FontAwesomeIcon icon={bullet} /> : ""} </div>;
     }
+    static loadId = "";
+    editableView = (key: string, style?: string) =>
+        (<EditableView
+            oneLine={true}
+            display={"inline"}
+            editing={this.props.document[Id] === TreeView.loadId}
+            contents={StrCast(this.props.document[key])}
+            height={36}
+            fontStyle={style}
+            GetValue={() => StrCast(this.props.document[key])}
+            OnFillDown={(value: string) => {
+                Doc.GetProto(this.props.document)[key] = value;
+                let doc = Docs.FreeformDocument([], { title: "untitled" });
+                TreeView.loadId = doc[Id];
+                this.props.addDocument(doc);
+                return true;
+            }}
+            OnTab={() => this.props.indentDocument && this.props.indentDocument()}
+            SetValue={(value: string) => {
+                Doc.GetProto(this.props.document)[key] = value;
+                return true;
+            }}
+        />);
+
     /**
      * Renders the EditableView title element for placement into the tree.
      */
     renderTitle() {
         let reference = React.createRef<HTMLDivElement>();
         let onItemDown = SetupDrag(reference, () => this.props.document, this.move, this.props.dropAction, this.props.treeViewId, true);
-        let editableView = (titleString: string) =>
-            (<EditableView
-                oneLine={!this._isOver ? true : false}
-                display={"inline"}
-                contents={titleString}
-                height={36}
-                GetValue={() => StrCast(this.props.document.title)}
-                SetValue={(value: string) => {
-                    let target = this.props.document.proto ? this.props.document.proto : this.props.document;
-                    target.title = value;
-                    return true;
-                }}
-            />);
+
         let dataDocs = CollectionDockingView.Instance ? Cast(CollectionDockingView.Instance.props.Document.data, listSpec(Doc), []) : [];
         let openRight = dataDocs && dataDocs.indexOf(this.props.document) !== -1 ? (null) : (
             <div className="treeViewItem-openRight" onPointerDown={this.onPointerDown} onClick={this.openRight}>
@@ -156,7 +176,7 @@ class TreeView extends React.Component<TreeViewProps> {
                     pointerEvents: this.props.active() || SelectionManager.GetIsDragging() ? "all" : "none"
                 }}
             >
-                {editableView(StrCast(this.props.document.title))}
+                {this.editableView("title")}
                 {/* {<div className="delete-button" onClick={this.delete}><FontAwesomeIcon icon="trash-alt" size="xs" /></div>} */}
             </div >
             {openRight}
@@ -221,6 +241,7 @@ class TreeView extends React.Component<TreeViewProps> {
         return true;
     }
 
+    @observable _chosenKey: string = "data"
     _bulletType: BulletType = BulletType.List;
     render() {
         let bulletType = BulletType.List;
@@ -234,7 +255,21 @@ class TreeView extends React.Component<TreeViewProps> {
             keys.splice(keys.indexOf("data"), 1);
             keys.splice(0, 0, "data");
         }
+        let keyList: string[] = [];
         keys.map(key => {
+            let docList = Cast(this.props.document[key], listSpec(Doc));
+            let doc = Cast(this.props.document[key], Doc);
+            if (doc instanceof Doc || (docList && (DocListCast(docList).length > 0 || key === "data"))) {
+                keyList.push(key);
+            }
+        });
+        let headerElements = <div style={{ display: "block", marginTop: "7px" }} key={this._chosenKey}>{keyList.map(key =>
+            <span className="collectionTreeView-keyHeader" key={key} onPointerDown={action(() => this._chosenKey = key)}
+                style={{ display: "inline", marginRight: "3px", marginTop: "7px", background: key === this._chosenKey ? "lightgray" : undefined }}>
+                {key}
+            </span>)}
+        </div>
+        [this._chosenKey].map(key => {
             let docList = Cast(this.props.document[key], listSpec(Doc));
             let remDoc = (doc: Doc) => this.remove(doc, key);
             let addDoc = (doc: Doc, addBefore?: Doc, before?: boolean) => TreeView.AddDocToList(this.props.document, key, doc, addBefore, before);
@@ -243,9 +278,10 @@ class TreeView extends React.Component<TreeViewProps> {
                 if (!this._collapsed) {
                     bulletType = BulletType.Collapsible;
                     contentElement.push(<ul key={key + "more"}>
-                        <span className="collectionTreeView-keyHeader" style={{ display: "block", marginTop: "7px" }} key={key}>{key}</span>
+                        {headerElements}
                         <div style={{ display: "block" }}>
                             {TreeView.GetChildElements(doc instanceof Doc ? [doc] : DocListCast(docList), this.props.treeViewId, key, addDoc, remDoc, this.move,
+                                this.indent,
                                 this.props.dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.props.active)}
                         </div>
                     </ul >);
@@ -274,14 +310,36 @@ class TreeView extends React.Component<TreeViewProps> {
         add: (doc: Doc, relativeTo?: Doc, before?: boolean) => boolean,
         remove: ((doc: Doc) => void),
         move: DragManager.MoveFunction,
+        indent: () => void,
         dropAction: dropActionType,
         addDocTab: (doc: Doc, where: string) => void,
         screenToLocalXf: () => Transform,
         active: () => boolean
     ) {
-        return docs.filter(child => !child.excludeFromLibrary && (key !== "data" || !child.isMinimized)).map(child =>
-            <TreeView document={child} treeViewId={treeViewId} key={child[Id]} deleteDoc={remove} addDocument={add} moveDocument={move}
-                dropAction={dropAction} addDocTab={addDocTab} ScreenToLocalTransform={screenToLocalXf} parentKey={key} active={active} />);
+        let docList = docs.filter(child => !child.excludeFromLibrary && (key !== "data" || !child.isMinimized));
+        return docList.map((child, i) => {
+            let indent = i == 0 ? undefined : () => {
+                if (StrCast(docList[i - 1].layout).indexOf("CollectionView") !== -1) {
+                    let fieldKeysub = StrCast(docList[i - 1].layout).split("fieldKey")[1];
+                    let fieldKey = fieldKeysub.split("\"")[1];
+                    TreeView.AddDocToList(docList[i - 1], fieldKey, child);
+                    remove(child);
+                }
+            }
+            return <TreeView
+                document={child}
+                treeViewId={treeViewId}
+                key={child[Id]}
+                indentDocument={indent}
+                deleteDoc={remove}
+                addDocument={add}
+                moveDocument={move}
+                dropAction={dropAction}
+                addDocTab={addDocTab}
+                ScreenToLocalTransform={screenToLocalXf}
+                parentKey={key}
+                active={active} />
+        });
     }
 }
 
@@ -321,7 +379,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
         let addDoc = (doc: Doc, relativeTo?: Doc, before?: boolean) => TreeView.AddDocToList(this.props.Document, this.props.fieldKey, doc, relativeTo, before);
         let moveDoc = (d: Doc, target: Doc, addDoc: (doc: Doc) => boolean) => this.props.moveDocument(d, target, addDoc);
         let childElements = TreeView.GetChildElements(this.childDocs, this.props.Document[Id], this.props.fieldKey, addDoc, this.remove,
-            moveDoc, dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.props.active);
+            moveDoc, emptyFunction, dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.props.active);
 
         return (
             <div id="body" className="collectionTreeView-dropTarget"
