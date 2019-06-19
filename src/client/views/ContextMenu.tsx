@@ -1,5 +1,5 @@
 import React = require("react");
-import { ContextMenuItem, ContextMenuProps } from "./ContextMenuItem";
+import { ContextMenuItem, ContextMenuProps, OriginalMenuProps } from "./ContextMenuItem";
 import { observable, action, computed } from "mobx";
 import { observer } from "mobx-react";
 import "./ContextMenu.scss";
@@ -21,6 +21,7 @@ export class ContextMenu extends React.Component {
     @observable private _searchString: string = "";
     // afaik displaymenu can be called before all the items are added to the menu, so can't determine in displayMenu what the height of the menu will be
     @observable private _yRelativeToTop: boolean = true;
+    @observable selectedIndex = -1;
 
     private _searchRef = React.createRef<HTMLInputElement>();
 
@@ -75,11 +76,40 @@ export class ContextMenu extends React.Component {
         this._display = false;
     }
 
-    @computed get filteredItems() {
+    @computed get filteredItems(): (OriginalMenuProps | string[])[] {
         const searchString = this._searchString.toLowerCase().split(" ");
         const matches = (descriptions: string[]): boolean => {
-            return searchString.every(s => descriptions.some(desc => desc.includes(s)));
+            return searchString.every(s => descriptions.some(desc => desc.toLowerCase().includes(s)));
         };
+        const flattenItems = (items: ContextMenuProps[], groupFunc: (groupName: any) => string[]) => {
+            let eles: (OriginalMenuProps | string[])[] = [];
+
+            const leaves: OriginalMenuProps[] = [];
+            for (const item of items) {
+                const description = item.description;
+                const path = groupFunc(description);
+                if ("subitems" in item) {
+                    const children = flattenItems(item.subitems, name => [...groupFunc(description), name]);
+                    if (children.length || matches(path)) {
+                        eles.push(path);
+                        eles = eles.concat(children);
+                    }
+                } else {
+                    if (!matches(path)) {
+                        continue;
+                    }
+                    leaves.push(item);
+                }
+            }
+
+            eles = [...leaves, ...eles];
+
+            return eles;
+        };
+        return flattenItems(this._items, name => [name]);
+    }
+
+    @computed get filteredViews() {
         const createGroupHeader = (contents: any) => {
             return (
                 <div className="contextMenu-group">
@@ -87,37 +117,22 @@ export class ContextMenu extends React.Component {
                 </div>
             );
         };
-        const createItem = (item: ContextMenuProps) => <ContextMenuItem {...item} key={item.description} closeMenu={this.closeMenu} />;
-        const flattenItems = (items: ContextMenuProps[], groupFunc: (contents: any) => JSX.Element, getPath: () => string[]) => {
-            let eles: JSX.Element[] = [];
-
-            for (const item of items) {
-                const description = item.description.toLowerCase();
-                const path = [...getPath(), description];
-                if ("subitems" in item) {
-                    const children = flattenItems(item.subitems, contents => groupFunc(<>{item.description} -> {contents}</>), () => path);
-                    if (children.length || matches(path)) {
-                        eles.push(groupFunc(item.description));
-                        eles = eles.concat(children);
-                    }
-                } else {
-                    if (!matches(path)) {
-                        continue;
-                    }
-                    eles.push(createItem(item));
-                }
+        const createItem = (item: ContextMenuProps, selected: boolean) => <ContextMenuItem {...item} key={item.description} closeMenu={this.closeMenu} selected={selected} />;
+        let itemIndex = 0;
+        return this.filteredItems.map(value => {
+            if (Array.isArray(value)) {
+                return createGroupHeader(value.join(" -> "));
+            } else {
+                return createItem(value, ++itemIndex === this.selectedIndex);
             }
-
-            return eles;
-        };
-        return flattenItems(this._items, createGroupHeader, () => []);
+        });
     }
 
     @computed get menuItems() {
         if (!this._searchString) {
             return this._items.map(item => <ContextMenuItem {...item} key={item.description} closeMenu={this.closeMenu} />);
         }
-        return this.filteredItems;
+        return this.filteredViews;
     }
 
     render() {
@@ -143,5 +158,8 @@ export class ContextMenu extends React.Component {
     @action
     onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         this._searchString = e.target.value;
+        if (this._searchString && this.selectedIndex === -1) {
+            this.selectedIndex = 0;
+        }
     }
 }
