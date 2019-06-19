@@ -13,7 +13,7 @@ source = "./source"
 dist = "../server/public/files"
 
 db = MongoClient("localhost", 27017)["Dash"]
-view_doc_guids = []
+schema_guids = []
 
 
 def extract_links(fileName):
@@ -24,7 +24,7 @@ def extract_links(fileName):
         item = rels[rel]
         if item.reltype == RT.HYPERLINK and ".aspx" not in item._target:
             links.append(item._target)
-    return links
+    return listify(links)
 
 
 def extract_value(kv_string):
@@ -44,6 +44,66 @@ def guid():
     return str(uuid.uuid4())
 
 
+def listify(list):
+    return {
+        "fields": list,
+        "__type": "list"
+    }
+
+
+def protofy(fieldId):
+    return {
+        "fieldId": fieldId,
+        "__type": "proxy"
+    }
+
+
+def write_schema(parse_results):
+    view_guids = parse_results["view_guids"]
+
+    data_doc = parse_results["schema"]
+    fields = data_doc["fields"]
+
+    view_doc_guid = guid()
+
+    view_doc = {
+        "_id": view_doc_guid,
+        "fields": {
+            "proto": protofy(data_doc["_id"]),
+            "x": 10,
+            "y": 10,
+            "width": 900,
+            "height": 600,
+            "panX": 0,
+            "panY": 0,
+            "zoomBasis": 0.5,
+            "zIndex": 2,
+            "libraryBrush": False,
+            "viewType": 2
+        },
+        "__type": "Doc"
+    }
+
+    fields["proto"] = protofy("collectionProto")
+    fields["data"] = listify(proxify_guids(view_guids))
+    fields["schemaColumns"] = listify(["title", "data"])
+    fields["backgroundColor"] = "white"
+    fields["scale"] = 0.5
+    fields["viewType"] = 2
+    fields["author"] = "Bill Buxton"
+    fields["creationDate"] = {
+        "date": datetime.datetime.utcnow().microsecond,
+        "__type": "date"
+    }
+    fields["isPrototype"] = True
+    fields["page"] = -1
+
+    db.newDocuments.insert_one(data_doc)
+    db.newDocuments.insert_one(view_doc)
+
+    return view_doc_guid
+
+
 def write_image(folder, name):
     path = f"http://localhost:1050/files/{folder}/{name}"
 
@@ -53,10 +113,7 @@ def write_image(folder, name):
     view_doc = {
         "_id": view_doc_guid,
         "fields": {
-            "proto": {
-                "fieldId": data_doc_guid,
-                "__type": "proxy"
-            },
+            "proto": protofy(data_doc_guid),
             "x": 10,
             "y": 10,
             "width": 300,
@@ -72,10 +129,7 @@ def write_image(folder, name):
     data_doc = {
         "_id": data_doc_guid,
         "fields": {
-            "proto": {
-                "_id": "imageProto",
-                "__type": "proxy"
-            },
+            "proto": protofy("imageProto"),
             "data": {
                 "url": path,
                 "__type": "image"
@@ -115,8 +169,9 @@ def parse_document(file_name: str):
     raw = str(docx2txt.process(source + "/" + file_name, dir_path))
 
     print("Extracting images...\n")
+    view_guids = []
     for image in os.listdir(dir_path):
-        view_doc_guids.append(write_image(pure_name, image))
+        view_guids.append(write_image(pure_name, image))
         os.rename(dir_path + "/" + image, dir_path +
                   "/" + image.replace(".", "_m.", 1))
     print()
@@ -178,7 +233,7 @@ def parse_document(file_name: str):
     while lines[cur] != "Image":
         link_descriptions.append(lines[cur].strip())
         cur += 1
-    result["link_descriptions"] = link_descriptions
+    result["link_descriptions"] = listify(link_descriptions)
 
     result["hyperlinks"] = extract_links(source + "/" + file_name)
 
@@ -189,8 +244,8 @@ def parse_document(file_name: str):
         images.append(lines[cur])
         captions.append(lines[cur + 1])
         cur += 2
-    result["images"] = images
-    result["captions"] = captions
+    result["images"] = listify(images)
+    result["captions"] = listify(captions)
 
     notes = []
     if (cur < len(lines) and lines[cur] == "NOTES:"):
@@ -199,24 +254,22 @@ def parse_document(file_name: str):
             notes.append(lines[cur])
             cur += 1
     if len(notes) > 0:
-        result["notes"] = notes
+        result["notes"] = listify(notes)
 
     print("...contents dictionary constructed.")
 
-    return result
-
-
-def wrap(document):
     return {
-        "_id": guid(),
-        "fields": document,
-        "__type": "Doc"
+        "schema": {
+            "_id": guid(),
+            "fields": result,
+            "__type": "Doc"
+        },
+        "view_guids": view_guids
     }
 
 
-def upload(collection, mongofied):
-    for doc in mongofied:
-        collection.insert_one(doc)
+def proxify_guids(guids):
+    return list(map(lambda guid: {"fieldId": guid, "__type": "proxy"}, guids))
 
 
 if os.path.exists(dist):
@@ -227,20 +280,14 @@ os.mkdir(dist)
 mkdir_if_absent(source)
 
 candidates = 0
-mongofied = []
 for file_name in os.listdir(source):
     if file_name.endswith('.docx'):
         candidates += 1
-        mongofied.append(wrap(parse_document(file_name)))
+        schema_guids.append(write_schema(parse_document(file_name)))
 
-for doc in mongofied:
-    db.newDocuments.insert_one(doc)
-
-proxified = list(
-    map(lambda guid: {"fieldId": guid, "__type": "proxy"}, view_doc_guids))
 db.newDocuments.update_one(
     {"fields.title": "WS collection 1"},
-    {"$push": {"fields.data.fields": {"$each": proxified}}}
+    {"$push": {"fields.data.fields": {"$each": proxify_guids(schema_guids)}}}
 )
 
 print("...dictionaries written to Dash Document.\n")
