@@ -43,6 +43,7 @@ type TimeAndPosition = makeInterface<[typeof TimeAndPositionSchema]>;
 const TimeAndPosition = makeInterface(TimeAndPositionSchema);
 
 
+
 @observer
 export class Track extends CollectionSubView(Document) {
     @observable private _inner = React.createRef<HTMLDivElement>();
@@ -50,7 +51,6 @@ export class Track extends CollectionSubView(Document) {
     @observable private _playButton = React.createRef<HTMLButtonElement>();
 
     @observable private _isRecording: Boolean = false;
-    @observable private _windSpeed: number = 1;
     private _reactionDisposers: IReactionDisposer[] = [];
     private _selectionManagerChanged?: IReactionDisposer;
 
@@ -75,11 +75,7 @@ export class Track extends CollectionSubView(Document) {
      */
     @action
     onRecord = (e: React.MouseEvent) => {
-        if (this._isRecording === true) {
-            this._isRecording = false;
-            return;
-        }
-        this._isRecording = true;
+       
         let children = Cast(this.props.Document[this.props.fieldKey], listSpec(Doc));
         if (!children) {
             return;
@@ -277,53 +273,7 @@ export class Track extends CollectionSubView(Document) {
         });
     }
 
-    
 
-    @observable private _isPlaying = false;
-
-    @action
-    onPlay = async (e: React.MouseEvent) => {
-        let playButton: HTMLButtonElement = (await this._playButton.current)!;
-        if (this._isPlaying) {
-            playButton.innerHTML = "Play";
-            this._isPlaying = false;
-            this._barMoved = false;
-        } else {
-            playButton.innerHTML = "Stop";
-            this._barMoved = true;
-            this._isPlaying = true;
-            this.changeCurrentX();
-        }
-
-    }
-
-
-    @action
-    changeCurrentX = () => {
-        if (this._currentBarX >= this._length && this._isPlaying === true) {
-            this._currentBarX = 0;
-        }
-        if (this._currentBarX <= this._length && this._isPlaying === true) { ///////////////////////////////////////////////////////////////////////////// needs to be width 
-            this._currentBarX = this._currentBarX + this._windSpeed;
-            setTimeout(this.changeCurrentX, 15);
-            this.timeChange(this._currentBarX);
-        }
-    }
-
-
-    @action
-    windForward = (e: React.MouseEvent) => {
-        if (this._windSpeed < 64) { //max speed is 32
-            this._windSpeed = this._windSpeed * 2;
-        }
-    }
-
-    @action
-    windBackward = (e: React.MouseEvent) => {
-        if (this._windSpeed > 1 / 16) { // min speed is 1/8
-            this._windSpeed = this._windSpeed / 2;
-        }
-    }
 
     /**
      * called when you input a certain time on the input bar and press enter. The green bar will move to that location. 
@@ -340,26 +290,8 @@ export class Track extends CollectionSubView(Document) {
         }
     }
 
-
-    @action 
-    timer = (sec:number) => {
-        if(sec <= 0){
-            return; 
-        }  
-        setTimeout(() => {
-            this.timer(sec - 1);
-            this._timer = sec; 
-            //dconsole.log(this._timer); 
-        }, 1000);     
-    }
-
     @observable private _timer:number = 0; 
     async componentDidMount() {
-        this.timer(100); 
-        console.log(toJS(this.props.Document.proto) || null);
-        if (this._inner.current){
-            console.log(this._inner.current.getBoundingClientRect().width); 
-        }
         if (!this._keyframes) {
             this.props.Document.keyframes = new List<List<Doc>>();
         }
@@ -401,9 +333,9 @@ export class Track extends CollectionSubView(Document) {
         e.preventDefault(); 
         e.stopPropagation();
         if (this._inner.current) {
-            if (!this._isPlaying) {
-                this._barMoved = false;
-            }
+            // if (!this._isPlaying) {
+            //     this._barMoved = false;
+            // }
             this._inner.current.removeEventListener("pointermove", this.onInnerPointerMove);
         }
     }
@@ -417,19 +349,17 @@ export class Track extends CollectionSubView(Document) {
         e.preventDefault();
         e.stopPropagation();
         console.log("on timeline"); 
-        if (this._isRecording) {
-            if (this._inner.current) {
-                this._barMoved = true;
-                // let mouse = e.nativeEvent;
-                // let offsetX = Math.round(mouse.offsetX);
-                let left = this._inner.current.getBoundingClientRect().left;
-                let offsetX = Math.round(e.clientX - left);
-                console.log(offsetX);
-                this._currentBarX = offsetX;
-                this._inner.current.removeEventListener("pointermove", this.onInnerPointerMove);
-                this._inner.current.addEventListener("pointermove", this.onInnerPointerMove);
-                this.timeChange(this._currentBarX);
-            }
+        if (this._inner.current) {
+            this._barMoved = true;
+            // let mouse = e.nativeEvent;
+            // let offsetX = Math.round(mouse.offsetX);
+            let left = this._inner.current.getBoundingClientRect().left;
+            let offsetX = Math.round(e.clientX - left);
+            //this._currentBarX = offsetX;
+            this._inner.current.removeEventListener("pointermove", this.onInnerPointerMove);
+            this._inner.current.addEventListener("pointermove", this.onInnerPointerMove);
+            this.timeChange(this._currentBarX);
+        
 
         }
     }
@@ -457,24 +387,21 @@ export class Track extends CollectionSubView(Document) {
 
     render() {
         return (
-            <div>
-                <div className="track-container">
-                    <div className="track">
-                        <div className="inner" ref={this._inner} onDoubleClick={this.onInnerDoubleClick} onPointerDown={this.onInnerPointerDown} onPointerUp={this.onInnerPointerUp}>
-                            {SelectionManager.SelectedDocuments().map(dv => this.displayKeyFrames(dv.props.Document))}
-                            {this._bars.map((data) => {
-                                return <Keyframe position={data.x} node={data.doc}></Keyframe>;
-                            })}
-                            <Keyframe position={this._currentBarX} node={this.props.Document}></Keyframe>
-                        </div>
-                    </div>
-                    <button onClick={this.onRecord}>Record</button>
-                    <input placeholder={this._currentBarX.toString()} ref={this._timeInput} onKeyDown={this.onTimeEntered} ></input>
-                    <button onClick={this.windBackward}> {"<"}</button>
-                    <button onClick={this.onPlay} ref={this._playButton}> Play </button>
-                    <button onClick={this.windForward}>{">"}</button>
-                    <button onClick={() => { console.log(this._data + " data, "); console.log(this._keyframes.length + " keyframes"); }}>data</button>
+            <div className="track-container">
+                <div className="datapane">
+                    <h1>Certain node</h1>
                 </div>
+                <div className="track">
+                    <div className="inner" ref={this._inner} onDoubleClick={this.onInnerDoubleClick}>
+                        {SelectionManager.SelectedDocuments().map(dv => this.displayKeyFrames(dv.props.Document))}
+                        {this._bars.map((data) => {
+                            return <Keyframe position={data.x} node={data.doc}></Keyframe>;
+                        })}
+                    </div>
+                </div>
+                {/* <button onClick={this.onRecord}>Record</button>
+                <input placeholder={this._currentBarX.toString()} ref={this._timeInput} onKeyDown={this.onTimeEntered} ></input>
+                <button onClick={this.onPlay} ref={this._playButton}> Play </button>*/}
             </div>
         );
     }

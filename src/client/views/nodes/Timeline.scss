@@ -8,6 +8,19 @@
     .toolbox{
         padding-top:10px; 
     }
+    .scrubberbox{
+        z-index:10; 
+        background-color: black; 
+        height: 20px;
+        margin-left:calc(10% + 100px);
+        width: calc(80% - 100px); 
+        .scrubber{
+            z-index:10; 
+            height:300px; 
+            width: 5px; 
+            background-color:green; 
+        }
+    }
     .trackbox{
         height:60%;
         width:80%;
