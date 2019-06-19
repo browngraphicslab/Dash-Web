@@ -1,6 +1,6 @@
 import React = require("react");
 import { ContextMenuItem, ContextMenuProps } from "./ContextMenuItem";
-import { observable, action } from "mobx";
+import { observable, action, computed } from "mobx";
 import { observer } from "mobx-react";
 import "./ContextMenu.scss";
 import { library } from '@fortawesome/fontawesome-svg-core';
@@ -17,11 +17,12 @@ export class ContextMenu extends React.Component {
     @observable private _items: Array<ContextMenuProps> = [{ description: "test", event: (e: React.MouseEvent) => e.preventDefault(), icon: "smile" }];
     @observable private _pageX: number = 0;
     @observable private _pageY: number = 0;
-    @observable private _display: string = "none";
+    @observable private _display: boolean = false;
     @observable private _searchString: string = "";
     // afaik displaymenu can be called before all the items are added to the menu, so can't determine in displayMenu what the height of the menu will be
     @observable private _yRelativeToTop: boolean = true;
 
+    private _searchRef = React.createRef<HTMLInputElement>();
 
     private ref: React.RefObject<HTMLDivElement>;
 
@@ -36,7 +37,6 @@ export class ContextMenu extends React.Component {
     @action
     clearItems() {
         this._items = [];
-        this._display = "none";
     }
 
     @action
@@ -62,34 +62,70 @@ export class ContextMenu extends React.Component {
 
         this._searchString = "";
 
-        this._display = "flex";
-    }
+        this._display = true;
 
-    intersects = (x: number, y: number): boolean => {
-        if (this.ref.current && this._display !== "none") {
-            let menuSize = { width: this.ref.current.getBoundingClientRect().width, height: this.ref.current.getBoundingClientRect().height };
-
-            let upperLeft = { x: this._pageX, y: this._yRelativeToTop ? this._pageY : window.innerHeight - (this._pageY + menuSize.height) };
-            let bottomRight = { x: this._pageX + menuSize.width, y: this._yRelativeToTop ? this._pageY + menuSize.height : window.innerHeight - this._pageY };
-
-            if (x >= upperLeft.x && x <= bottomRight.x) {
-                if (y >= upperLeft.y && y <= bottomRight.y) {
-                    return true;
-                }
-            }
+        if (this._searchRef.current) {
+            this._searchRef.current.focus();
         }
-        return false;
     }
 
     @action
     closeMenu = () => {
         this.clearItems();
+        this._display = false;
+    }
+
+    @computed get filteredItems() {
+        const searchString = this._searchString.toLowerCase().split(" ");
+        const matches = (descriptions: string[]): boolean => {
+            return searchString.every(s => descriptions.some(desc => desc.includes(s)));
+        };
+        const createGroupHeader = (contents: any) => {
+            return (
+                <div className="contextMenu-group">
+                    <div className="contextMenu-description">{contents}</div>
+                </div>
+            );
+        };
+        const createItem = (item: ContextMenuProps) => <ContextMenuItem {...item} key={item.description} closeMenu={this.closeMenu} />;
+        const flattenItems = (items: ContextMenuProps[], groupFunc: (contents: any) => JSX.Element, getPath: () => string[]) => {
+            let eles: JSX.Element[] = [];
+
+            for (const item of items) {
+                const description = item.description.toLowerCase();
+                const path = [...getPath(), description];
+                if ("subitems" in item) {
+                    const children = flattenItems(item.subitems, contents => groupFunc(<>{item.description} -> {contents}</>), () => path);
+                    if (children.length || matches(path)) {
+                        eles.push(groupFunc(item.description));
+                        eles = eles.concat(children);
+                    }
+                } else {
+                    if (!matches(path)) {
+                        continue;
+                    }
+                    eles.push(createItem(item));
+                }
+            }
+
+            return eles;
+        };
+        return flattenItems(this._items, createGroupHeader, () => []);
+    }
+
+    @computed get menuItems() {
+        if (!this._searchString) {
+            return this._items.map(item => <ContextMenuItem {...item} key={item.description} closeMenu={this.closeMenu} />);
+        }
+        return this.filteredItems;
     }
 
     render() {
-        let style = this._yRelativeToTop ? { left: this._pageX, top: this._pageY, display: this._display } :
-            { left: this._pageX, bottom: this._pageY, display: this._display };
-
+        if (!this._display) {
+            return null;
+        }
+        let style = this._yRelativeToTop ? { left: this._pageX, top: this._pageY } :
+            { left: this._pageX, bottom: this._pageY };
 
         return (
             <div className="contextMenu-cont" style={style} ref={this.ref}>
@@ -97,10 +133,9 @@ export class ContextMenu extends React.Component {
                     <span className="icon-background">
                         <FontAwesomeIcon icon="search" size="lg" />
                     </span>
-                    <input className="contextMenu-item contextMenu-description" type="text" placeholder="Search . . ." value={this._searchString} onChange={this.onChange} />
+                    <input className="contextMenu-item contextMenu-description" type="text" placeholder="Search . . ." value={this._searchString} onChange={this.onChange} ref={this._searchRef} autoFocus />
                 </span>
-                {this._items.filter(prop => prop.description.toLowerCase().indexOf(this._searchString.toLowerCase()) !== -1).
-                    map(prop => <ContextMenuItem {...prop} key={prop.description} closeMenu={this.closeMenu} />)}
+                {this.menuItems}
             </div>
         );
     }

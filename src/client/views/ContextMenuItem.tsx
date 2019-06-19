@@ -21,9 +21,6 @@ export interface SubmenuProps {
     closeMenu?: () => void;
 }
 
-export interface ContextMenuItemProps {
-    type: ContextMenuProps | SubmenuProps;
-}
 export type ContextMenuProps = OriginalMenuProps | SubmenuProps;
 
 @observer
@@ -67,7 +64,6 @@ export class ContextMenuItem extends React.Component<ContextMenuProps> {
             return;
         }
         this.currentTimeout = setTimeout(action(() => this.overItem = false), ContextMenuItem.timeout);
-
     }
 
     render() {
@@ -84,8 +80,7 @@ export class ContextMenuItem extends React.Component<ContextMenuProps> {
                     </div>
                 </div>
             );
-        }
-        else {
+        } else if ("subitems" in this.props) {
             let submenu = !this.overItem ? (null) :
                 <div className="contextMenu-subMenu-cont" style={{ marginLeft: "100.5%", left: "0px" }}>
                     {this._items.map(prop => <ContextMenuItem {...prop} key={prop.description} closeMenu={this.props.closeMenu} />)}
