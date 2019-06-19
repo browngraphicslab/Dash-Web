@@ -7,9 +7,9 @@ import * as expressValidator from 'express-validator';
 import * as formidable from 'formidable';
 import * as fs from 'fs';
 import * as sharp from 'sharp';
+import * as Pdfjs from 'pdfjs-dist';
 const imageDataUri = require('image-data-uri');
 import * as mobileDetect from 'mobile-detect';
-import { ObservableMap } from 'mobx';
 import * as passport from 'passport';
 import * as path from 'path';
 import * as request from 'request';
@@ -28,6 +28,7 @@ import { MessageStore, Transferable, Types, Diff } from "./Message";
 import { RouteStore } from './RouteStore';
 const app = express();
 const config = require('../../webpack.config');
+import { createCanvas, loadImage, Canvas } from "canvas";
 const compiler = webpack(config);
 const port = 1050; // default port to listen
 const serverPort = 4321;
@@ -37,8 +38,10 @@ import c = require("crypto");
 import { Search } from './Search';
 import { debug } from 'util';
 import _ = require('lodash');
+import { Response } from 'express-serve-static-core';
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
+const probe = require("probe-image-size");
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
 
@@ -133,6 +136,64 @@ app.get("/search", async (req, res) => {
     res.send(results);
 });
 
+app.get("/thumbnail/:filename", (req, res) => {
+    let filename = req.params.filename;
+    let noExt = filename.substring(0, filename.length - ".png".length);
+    let pagenumber = parseInt(noExt[noExt.length - 1]);
+    fs.exists(uploadDir + filename, (exists: boolean) => {
+        console.log(`${uploadDir + filename} ${exists ? "exists" : "does not exist"}`);
+        if (exists) {
+            let input = fs.createReadStream(uploadDir + filename);
+            probe(input, (err: any, result: any) => {
+                if (err) {
+                    console.log(err);
+                    return;
+                }
+                res.send({ path: "/files/" + filename, width: result.width, height: result.height });
+            });
+        }
+        else {
+            LoadPage(uploadDir + filename.substring(0, filename.length - "-n.png".length) + ".pdf", pagenumber, res);
+        }
+    });
+});
+
+function LoadPage(file: string, pageNumber: number, res: Response) {
+    console.log(file);
+    Pdfjs.getDocument(file).promise
+        .then((pdf: Pdfjs.PDFDocumentProxy) => {
+            let factory = new NodeCanvasFactory();
+            console.log(pageNumber);
+            pdf.getPage(pageNumber).then((page: Pdfjs.PDFPageProxy) => {
+                console.log("reading " + page);
+                let viewport = page.getViewport(1);
+                let canvasAndContext = factory.create(viewport.width, viewport.height);
+                let renderContext = {
+                    canvasContext: canvasAndContext.context,
+                    viewport: viewport,
+                    canvasFactory: factory
+                };
+                console.log("read " + pageNumber);
+
+                page.render(renderContext).promise
+                    .then(() => {
+                        console.log("saving " + pageNumber);
+                        let stream = canvasAndContext.canvas.createPNGStream();
+                        let pngFile = `${file.substring(0, file.length - ".pdf".length)}-${pageNumber}.PNG`;
+                        let out = fs.createWriteStream(pngFile);
+                        stream.pipe(out);
+                        out.on("finish", () => {
+                            console.log(`Success! Saved to ${pngFile}`);
+                            let name = path.basename(pngFile);
+                            res.send({ path: "/files/" + name, width: viewport.width, height: viewport.height });
+                        });
+                    }, (reason: string) => {
+                        console.error(reason + ` ${pageNumber}`);
+                    });
+            });
+        });
+}
+
 // anyone attempting to navigate to localhost at this port will
 // first have to login
 addSecureRoute(
@@ -140,6 +201,17 @@ addSecureRoute(
     (user, res) => res.redirect(RouteStore.home),
     undefined,
     RouteStore.root
+);
+
+addSecureRoute(
+    Method.GET,
+    async (_, res) => {
+        const cursor = await Database.Instance.query({}, "users");
+        const results = await cursor.toArray();
+        res.send(results.map(user => ({ email: user.email, userDocumentId: user.userDocumentId })));
+    },
+    undefined,
+    RouteStore.getUsers
 );
 
 addSecureRoute(
@@ -168,7 +240,31 @@ addSecureRoute(
     RouteStore.getCurrUser
 );
 
+class NodeCanvasFactory {
+    create = (width: number, height: number) => {
+        var canvas = createCanvas(width, height);
+        var context = canvas.getContext('2d');
+        return {
+            canvas: canvas,
+            context: context,
+        };
+    }
+
+    reset = (canvasAndContext: any, width: number, height: number) => {
+        canvasAndContext.canvas.width = width;
+        canvasAndContext.canvas.height = height;
+    }
+
+    destroy = (canvasAndContext: any) => {
+        canvasAndContext.canvas.width = 0;
+        canvasAndContext.canvas.height = 0;
+        canvasAndContext.canvas = null;
+        canvasAndContext.context = null;
+    }
+}
+
 const pngTypes = [".png", ".PNG"];
+const pdfTypes = [".pdf", ".PDF"];
 const jpgTypes = [".jpg", ".JPG", ".jpeg", ".JPEG"];
 const uploadDir = __dirname + "/public/files/";
 // SETTERS
@@ -202,6 +298,38 @@ app.post(
                         element.resizer = element.resizer.jpeg();
                     });
                     isImage = true;
+                }
+                else if (pdfTypes.includes(ext)) {
+                    // Pdfjs.getDocument(uploadDir + file).promise
+                    //     .then((pdf: Pdfjs.PDFDocumentProxy) => {
+                    //         let numPages = pdf.numPages;
+                    //         let factory = new NodeCanvasFactory();
+                    //         for (let pageNum = 0; pageNum < numPages; pageNum++) {
+                    //             console.log(pageNum);
+                    //             pdf.getPage(pageNum + 1).then((page: Pdfjs.PDFPageProxy) => {
+                    //                 console.log("reading " + pageNum);
+                    //                 let viewport = page.getViewport(1);
+                    //                 let canvasAndContext = factory.create(viewport.width, viewport.height);
+                    //                 let renderContext = {
+                    //                     canvasContext: canvasAndContext.context,
+                    //                     viewport: viewport,
+                    //                     canvasFactory: factory
+                    //                 }
+                    //                 console.log("read " + pageNum);
+
+                    //                 page.render(renderContext).promise
+                    //                     .then(() => {
+                    //                         console.log("saving " + pageNum);
+                    //                         let stream = canvasAndContext.canvas.createPNGStream();
+                    //                         let out = fs.createWriteStream(uploadDir + file.substring(0, file.length - ext.length) + `-${pageNum + 1}.PNG`);
+                    //                         stream.pipe(out);
+                    //                         out.on("finish", () => console.log(`Success! Saved to ${uploadDir + file.substring(0, file.length - ext.length) + `-${pageNum + 1}.PNG`}`));
+                    //                     }, (reason: string) => {
+                    //                         console.error(reason + ` ${pageNum}`);
+                    //                     });
+                    //             });
+                    //         }
+                    //     });
                 }
                 if (isImage) {
                     resizers.forEach(resizer => {

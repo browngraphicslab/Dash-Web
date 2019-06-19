@@ -18,7 +18,6 @@ interface PresListProps extends PresViewProps {
     gotoDocument(index: number): void;
 }
 
-
 @observer
 /**
  * Component that takes in a document prop and a boolean whether it's collapsed or not.
@@ -41,8 +40,8 @@ class PresentationViewList extends React.Component<PresListProps> {
             //this doc is selected
             className += " presentationView-selected";
         }
-        let onEnter = (e: React.PointerEvent) => { document.libraryBrush = true; }
-        let onLeave = (e: React.PointerEvent) => { document.libraryBrush = false; }
+        let onEnter = (e: React.PointerEvent) => { document.libraryBrush = true; };
+        let onLeave = (e: React.PointerEvent) => { document.libraryBrush = false; };
         return (
             <div className={className} key={document[Id] + index}
                 onPointerEnter={onEnter} onPointerLeave={onLeave}

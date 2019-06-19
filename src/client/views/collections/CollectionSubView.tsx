@@ -36,9 +36,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
     class CollectionSubView extends DocComponent<SubCollectionViewProps, T>(schemaCtor) {
         private dropDisposer?: DragManager.DragDropDisposer;
         protected createDropTarget = (ele: HTMLDivElement) => {
-            if (this.dropDisposer) {
-                this.dropDisposer();
-            }
+            this.dropDisposer && this.dropDisposer();
             if (ele) {
                 this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
             }
@@ -94,6 +92,9 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 }
                 e.stopPropagation();
                 return added;
+            }
+            else if (de.data instanceof DragManager.AnnotationDragData) {
+                return this.props.addDocument(de.data.dropDocument);
             }
             return false;
         }
@@ -174,10 +175,28 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 }
                 return;
             }
-            if (html && html.indexOf("<img") !== 0 && !html.startsWith("<a")) {
-                let htmlDoc = Docs.HtmlDocument(html, { ...options, width: 300, height: 300, documentText: text });
-                this.props.addDocument(htmlDoc, false);
-                return;
+            if (html && !html.startsWith("<a")) {
+                if (html.indexOf("<img") === 0) {
+                    let split = html.split("\"")[1];
+                    let doc = Docs.ImageDocument(split, { ...options, width: 300 });
+                    this.props.addDocument(doc, false);
+                    return;
+                } else {
+                    let path = window.location.origin + "/doc/";
+                    if (text.startsWith(path)) {
+                        let docid = text.replace(DocServer.prepend("/doc/"), "").split("?")[0];
+                        DocServer.GetRefField(docid).then(f => {
+                            if (f instanceof Doc) {
+                                if (options.x || options.y) { f.x = options.x; f.y = options.y; } // should be in CollectionFreeFormView
+                                (f instanceof Doc) && this.props.addDocument(f, false);
+                            }
+                        });
+                    } else {
+                        let htmlDoc = Docs.HtmlDocument(html, { ...options, width: 300, height: 300, documentText: text });
+                        this.props.addDocument(htmlDoc, false);
+                    }
+                    return;
+                }
             }
             if (text && text.indexOf("www.youtube.com/watch") !== -1) {
                 const url = text.replace("youtube.com/watch?v=", "youtube.com/embed/");

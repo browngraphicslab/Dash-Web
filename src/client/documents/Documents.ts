@@ -51,7 +51,6 @@ export interface DocumentOptions {
     panY?: number;
     page?: number;
     scale?: number;
-    baseLayout?: string;
     layout?: string;
     templates?: List<string>;
     viewType?: number;
@@ -69,15 +68,15 @@ export interface DocumentOptions {
 const delegateKeys = ["x", "y", "width", "height", "panX", "panY"];
 
 export namespace DocUtils {
-    export function MakeLink(source: Doc, target: Doc, targetContext?: Doc) {
+    export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", tags: string = "Default") {
         let protoSrc = source.proto ? source.proto : source;
         let protoTarg = target.proto ? target.proto : target;
         UndoManager.RunInBatch(() => {
             let linkDoc = Docs.TextDocument({ width: 100, height: 30, borderRounding: -1 });
             let linkDocProto = Doc.GetProto(linkDoc);
-            linkDocProto.title = source.title + " to " + target.title;
-            linkDocProto.linkDescription = "";
-            linkDocProto.linkTags = "Default";
+            linkDocProto.title = title === "" ? source.title + " to " + target.title : title;
+            linkDocProto.linkDescription = description;
+            linkDocProto.linkTags = tags;
 
             linkDocProto.linkedTo = target;
             linkDocProto.linkedFrom = source;
@@ -136,7 +135,7 @@ export namespace Docs {
     }
 
     function setupPrototypeOptions(protoId: string, title: string, layout: string, options: DocumentOptions): Doc {
-        return Doc.assign(new Doc(protoId, true), { ...options, title: title, layout: layout, baseLayout: layout });
+        return Doc.assign(new Doc(protoId, true), { ...options, title: title, layout: layout });
     }
     function SetInstanceOptions<U extends Field>(doc: Doc, options: DocumentOptions, value: U) {
         const deleg = Doc.MakeDelegate(doc);
@@ -171,7 +170,7 @@ export namespace Docs {
     }
     function CreatePdfPrototype(): Doc {
         let pdfProto = setupPrototypeOptions(pdfProtoId, "PDF_PROTO", CollectionPDFView.LayoutString("annotations"),
-            { x: 0, y: 0, nativeWidth: 1200, width: 300, backgroundLayout: PDFBox.LayoutString(), curPage: 1 });
+            { x: 0, y: 0, width: 300, height: 300, backgroundLayout: PDFBox.LayoutString(), curPage: 1 });
         return pdfProto;
     }
     function CreateWebPrototype(): Doc {

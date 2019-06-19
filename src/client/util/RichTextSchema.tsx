@@ -140,6 +140,32 @@ export const nodes: { [index: string]: NodeSpec } = {
         }
     },
 
+    video: {
+        inline: true,
+        attrs: {
+            src: {},
+            width: { default: "100px" },
+            alt: { default: null },
+            title: { default: null }
+        },
+        group: "inline",
+        draggable: true,
+        parseDOM: [{
+            tag: "video[src]", getAttrs(dom: any) {
+                return {
+                    src: dom.getAttribute("src"),
+                    title: dom.getAttribute("title"),
+                    alt: dom.getAttribute("alt"),
+                    width: Math.min(100, Number(dom.getAttribute("width"))),
+                };
+            }
+        }],
+        toDOM(node) {
+            const attrs = { style: `width: ${node.attrs.width}` };
+            return ["video", { ...node.attrs, ...attrs }];
+        }
+    },
+
     // :: NodeSpec A hard line break, represented in the DOM as `<br>`.
     hard_break: {
         inline: true,
@@ -259,7 +285,7 @@ export const marks: { [index: string]: MarkSpec } = {
         parseDOM: [{ style: 'background: #d9dbdd' }],
         toDOM() {
             return ['span', {
-                style: 'background: #d9dbdd'
+                style: 'color: blue'
             }];
         }
     },
