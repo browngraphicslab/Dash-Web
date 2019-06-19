@@ -8,12 +8,12 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 import * as rp from 'request-promise';
 import { SearchItem } from './SearchItem';
 import { DocServer } from '../../DocServer';
-import { Doc } from '../../../new_fields/Doc';
+import { Doc, Opt } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { SetupDrag } from '../../util/DragManager';
 import { Docs, DocTypes } from '../../documents/Documents';
 import { RouteStore } from '../../../server/RouteStore';
-import { NumCast, Cast } from '../../../new_fields/Types';
+import { NumCast, Cast, StrCast } from '../../../new_fields/Types';
 import { SearchUtil } from '../../util/SearchUtil';
 import * as anime from 'animejs';
 import { updateFunction } from '../../../new_fields/util';
@@ -24,6 +24,11 @@ import { IconBar } from './IconBar';
 import { type } from 'os';
 import { CheckBox } from './CheckBox';
 import { FieldFilters } from './FieldFilters';
+import { SelectionManager } from '../../util/SelectionManager';
+import { DocumentView } from '../nodes/DocumentView';
+import { CollectionView } from '../collections/CollectionView';
+import { CollectionPDFView } from '../collections/CollectionPDFView';
+import { CollectionVideoView } from '../collections/CollectionVideoView';
 
 export enum Keys {
     TITLE = "title",
@@ -49,6 +54,7 @@ export class SearchBox extends React.Component {
     @observable titleFieldStatus: boolean = true;
     @observable authorFieldStatus: boolean = true;
     @observable dataFieldStatus: boolean = true;
+    @observable collectionStatus = false;
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -107,15 +113,15 @@ export class SearchBox extends React.Component {
         let oldWords = query.split(" ");
         let mod = "";
 
-        if(type === Keys.AUTHOR){
+        if (type === Keys.AUTHOR) {
             mod = " author_t:";
-        }if(type === Keys.DATA){
+        } if (type === Keys.DATA) {
             //TODO
-        }if(type === Keys.TITLE){
+        } if (type === Keys.TITLE) {
             mod = " title_t:";
         }
 
-        let newWords:string[] = [];
+        let newWords: string[] = [];
         oldWords.forEach(word => {
             let newWrd = mod + word;
             newWords.push(newWrd);
@@ -129,37 +135,127 @@ export class SearchBox extends React.Component {
     applyBasicFieldFilters(query: string) {
         let finalQuery = "";
 
-        if(this.titleFieldStatus){
+        if (this.titleFieldStatus) {
             finalQuery = finalQuery + this.basicFieldFilters(query, Keys.TITLE);
         }
-        if(this.authorFieldStatus){
+        if (this.authorFieldStatus) {
             finalQuery = finalQuery + this.basicFieldFilters(query, Keys.AUTHOR);
         }
-        if(this.dataFieldStatus){
+        if (this.dataFieldStatus) {
             finalQuery = finalQuery + this.basicFieldFilters(query, Keys.DATA);
         }
         return finalQuery;
     }
 
-    get fieldFiltersApplied(){return !(this.dataFieldStatus && this.authorFieldStatus && this.titleFieldStatus);}
+    get fieldFiltersApplied() { return !(this.dataFieldStatus && this.authorFieldStatus && this.titleFieldStatus); }
+
+    //gets all of the collections of all the docviews that are selected
+    //if a collection is the only thing selected, search only in that collection (not its container)
+    getCurCollections(): Doc[] {
+        let selectedDocs: DocumentView[] = SelectionManager.SelectedDocuments();
+        let collections: Doc[] = [];
+
+        //TODO: make this some sort of error
+        if (selectedDocs.length === 0) {
+            console.log("there is nothing selected!")
+        }
+        //also searches in a collection if it is selected
+        else {
+            selectedDocs.forEach(async element => {
+                let layout: string = StrCast(element.props.Document.baseLayout);
+                console.log("doc title:", element.props.Document.title)
+                //checks if selected view (element) is a collection. if it is, adds to list to search through
+                if (layout.indexOf("Collection") > -1) {
+                    console.log("current doc is a collection")
+                    //________________________________________________________________
+                    let proto = await Doc.GetT(element.props.Document, "proto", Doc, true);
+                    let protoId = (proto || element.props.Document)[Id];
+                    console.log(StrCast(element.props.Document.title), protoId)
+
+                    //________________________________________________________________
+                    //makes sure collections aren't added more than once
+                    if (!collections.includes(element.props.Document)) {
+                        collections.push(element.props.Document);
+                    }
+                }
+                //gets the selected doc's containing view
+                let containingView = element.props.ContainingCollectionView;
+                //makes sure collections aren't added more than once
+                if (containingView && !collections.includes(containingView.props.Document)) {
+                    collections.push(containingView.props.Document);
+                }
+            });
+        }
+
+        return collections;
+    }
+
+    getFinalQuery(query: string): string {
+        //alters the query so it looks in the correct fields
+        //if this is true, then not all of the field boxes are checked
+        //TODO: data
+        if (this.fieldFiltersApplied) {
+            query = this.applyBasicFieldFilters(query);
+            query = query.replace(/\s+/g, ' ').trim();
+        }
+
+        //alters the query based on if all words or any words are required
+        //if this._wordstatus is false, all words are required and a + is added before each
+        if (!this._basicWordStatus) {
+            query = this.basicRequireWords(query);
+            query = query.replace(/\s+/g, ' ').trim();
+        }
+
+        //if should be searched in a specific collection
+        if (this.collectionStatus) {
+            query = this.addCollectionFilter(query);
+            query = query.replace(/\s+/g, ' ').trim();
+        }
+
+        //gets rid of any extra spaces that may have been added
+        // query = query.replace(/\s+/g, ' ').trim();
+
+        return query;
+    }
+
+    addCollectionFilter(query: string): string {
+        let collections: Doc[] = this.getCurCollections();
+        let finalQuery: string = "";
+        let oldWords = query.split(" ");
+
+        let newWords: string[] = [];
+        oldWords.forEach(word => {
+            collections.forEach(async doc => {
+                let proto = await Doc.GetT(doc, "proto", Doc, true);
+                let protoId = (proto || doc)[Id];
+                console.log(StrCast(doc.title), protoId)
+                let colString: string = "{!join from=data_l to=id}id:" + protoId + " ";
+                //{!join from=data_l to=id}id:{collectionProtoId}
+                let newWrd: string = colString + word;
+                // console.log(newWrd)
+                newWords.push(newWrd);
+            });
+        });
+
+        console.log(newWords)
+
+        //uncomment when done
+        query = newWords.join(" ");
+
+
+        return query;
+        // const proto = await Doc.GetT(doc, "proto", Doc, true);
+        // const protoId = (proto || doc)[Id];
+    }
 
     @action
     submitSearch = async () => {
         let query = this._searchString;
         let results: Doc[];
 
-        //if this is true, then not all of the field boxes are checked
-        //TODO: data
-        if(this.fieldFiltersApplied){
-            query = this.applyBasicFieldFilters(query);
-        }
+        query = this.getFinalQuery(query);
 
-        //if this._wordstatus is false, all words are required and a + is added before each
-        if (!this._basicWordStatus) {
-            query = this.basicRequireWords(query);
-        }
-
-        query = query.replace(/\s+/g, ' ').trim();
+        console.log(query);
 
         //if there is no query there should be no result
         if (query === "") {
@@ -193,11 +289,11 @@ export class SearchBox extends React.Component {
                 docs.push(field);
             }
         }
-        return this.filterDocs(docs);
+        return this.filterDocsByType(docs);
     }
 
     //this.icons will now include all the icons that need to be included
-    @action filterDocs(docs: Doc[]) {
+    @action filterDocsByType(docs: Doc[]) {
         let finalDocs: Doc[] = [];
         docs.forEach(doc => {
             let layoutresult = Cast(doc.type, "string", "");
@@ -339,15 +435,20 @@ export class SearchBox extends React.Component {
     updateAuthorStatus(newStat: boolean) {
         this.authorFieldStatus = newStat;
     }
-    
+
     @action.bound
     updateDataStatus(newStat: boolean) {
         this.dataFieldStatus = newStat;
     }
 
+    @action.bound
+    updateCollectionStatus(newStat: boolean) {
+        this.collectionStatus = newStat;
+    }
+
     // Useful queries:
     // Delegates of a document: {!join from=id to=proto_i}id:{protoId}
-    // Documents in a collection: {!join from=data_l to=id}id:{collectionProtoId}
+    // Documents in a collection: {!join from=data_l to=id}id:{collectionProtoId} //id of collections prototype
     render() {
         return (
             <div>
@@ -382,11 +483,12 @@ export class SearchBox extends React.Component {
                                 <IconBar />
                             </div>
                             <div className="filter-collection filter-div">
-                                temp for filtering by collection
+                                <div className='collection-title'>Search in current collections</div>
+                                <CheckBox title={"limit to current collection"} parent={this} numCount={1} updateStatus={this.updateCollectionStatus} originalStatus={this.collectionStatus} />
                             </div>
                             <div className="where-in-doc filter-div">
-                                <FieldFilters titleFieldStatus = {this.titleFieldStatus} dataFieldStatus = {this.dataFieldStatus} authorFieldStatus = {this.authorFieldStatus}
-                                updateAuthorStatus = {this.updateAuthorStatus} updateDataStatus = {this.updateDataStatus} updateTitleStatus = {this.updateTitleStatus}/>
+                                <FieldFilters titleFieldStatus={this.titleFieldStatus} dataFieldStatus={this.dataFieldStatus} authorFieldStatus={this.authorFieldStatus}
+                                    updateAuthorStatus={this.updateAuthorStatus} updateDataStatus={this.updateDataStatus} updateTitleStatus={this.updateTitleStatus} />
                             </div>
                         </div>
                         <button className="reset-filter" onClick={this.resetFilters}>Reset Filters</button>

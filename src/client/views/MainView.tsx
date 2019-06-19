@@ -326,6 +326,9 @@ export class MainView extends React.Component {
     globalKeyHandler = (e: KeyboardEvent) => {
         if (e.key === "Control" || !e.ctrlKey) return;
 
+        if(e.key === "v") return;
+        if(e.key === "c") return;
+
         e.preventDefault();
         e.stopPropagation();
 

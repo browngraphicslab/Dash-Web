@@ -68,7 +68,7 @@
 }
 
 .filter-collection{
-    height: 20px;
+    display: inline-block;
 }
 
 .field-title {
@@ -89,6 +89,13 @@
 .filter-div{
     margin-top: 5px;
     margin-bottom: 5px;
+}
+
+.collection-title{
+    color: $light-color;
+    text-transform: uppercase;
+    margin-top: 5px;
+    margin-bottom: 5px; 
 }
 
 .no-result {
