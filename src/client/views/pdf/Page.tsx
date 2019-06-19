@@ -51,7 +51,6 @@ export default class Page extends React.Component<IPageProps> {
     private _marquee: React.RefObject<HTMLDivElement>;
     private _curly: React.RefObject<HTMLImageElement>;
     private _marqueeing: boolean = false;
-    private _dragging: boolean = false;
     private _reactionDisposer?: IReactionDisposer;
 
     constructor(props: IPageProps) {
@@ -151,13 +150,9 @@ export default class Page extends React.Component<IPageProps> {
      */
     @action
     startDrag = (e: PointerEvent): void => {
-        // the first 5 lines is a hack to prevent text selection while dragging
         e.preventDefault();
         e.stopPropagation();
-        if (this._dragging) {
-            return;
-        }
-        this._dragging = true;
+        console.log("dragging");
         let thisDoc = this.props.parent.Document;
         // document that this annotation is linked to
         let targetDoc = Docs.TextDocument({ width: 200, height: 200, title: "New Annotation" });
@@ -179,7 +174,6 @@ export default class Page extends React.Component<IPageProps> {
     endDrag = (e: PointerEvent): void => {
         // document.removeEventListener("pointermove", this.startDrag);
         // document.removeEventListener("pointerup", this.endDrag);
-        this._dragging = false;
         e.stopPropagation();
     }
 
@@ -195,6 +189,8 @@ export default class Page extends React.Component<IPageProps> {
             // document.addEventListener("pointerup", this.endDrag);
         }
         else if (e.button === 0) {
+            PDFMenu.Instance.StartDrag = this.startDrag;
+            PDFMenu.Instance.Highlight = this.highlight;
             PDFMenu.Instance.fadeOut(true);
             let target: any = e.target;
             if (target && target.parentElement === this._textLayer.current) {

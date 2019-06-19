@@ -90,7 +90,8 @@ class Viewer extends React.Component<IViewerProps> {
     @action
     componentDidMount = () => {
         this._reactionDisposer = reaction(
-            () => [this.props.parent.props.active(), this.startIndex, this.endIndex],
+
+            () => [this.props.parent.props.active(), this.startIndex, this._pageSizes.length ? this.endIndex : 0],
             async () => {
                 await this.initialLoad();
                 this.renderPages();
@@ -114,12 +115,16 @@ class Viewer extends React.Component<IViewerProps> {
             let pageSizes = Array<{ width: number, height: number }>(this.props.pdf.numPages);
             this._isPage = Array<string>(this.props.pdf.numPages);
             for (let i = 0; i < this.props.pdf.numPages; i++) {
-                await this.props.pdf.getPage(i + 1).then(page => runInAction(() =>
-                    pageSizes[i] = { width: page.view[2] * scale, height: page.view[3] * scale }));
+                await this.props.pdf.getPage(i + 1).then(page => runInAction(() => {
+                    // pageSizes[i] = { width: page.view[2] * scale, height: page.view[3] * scale };
+                    let x = page.getViewport(scale);
+                    pageSizes[i] = { width: x.width, height: x.height };
+                }));
             }
             runInAction(() =>
                 Array.from(Array((this._pageSizes = pageSizes).length).keys()).map(this.getPlaceholderPage));
-            this.props.loaded(pageSizes[0].width, pageSizes[0].height, this.props.pdf.numPages);
+            this.props.loaded(Math.max(...pageSizes.map(i => i.width)), pageSizes[0].height, this.props.pdf.numPages);
+            // this.props.loaded(Math.max(...pageSizes.map(i => i.width)), pageSizes[0].height, this.props.pdf.numPages);
         }
     }
 
@@ -236,7 +241,7 @@ class Viewer extends React.Component<IViewerProps> {
 
     // endIndex: where to end rendering pages
     @computed get endIndex(): number {
-        return Math.min(this.props.pdf.numPages - 1, this.getPageFromScroll(this.scrollY) + this._pageBuffer);
+        return Math.min(this.props.pdf.numPages - 1, this.getPageFromScroll(this.scrollY + this._pageSizes[0].height) + this._pageBuffer);
     }
 
     @action

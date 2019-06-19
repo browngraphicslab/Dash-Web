@@ -25,6 +25,7 @@ export default class PDFMenu extends React.Component {
     private _offsetY: number = 0;
     private _offsetX: number = 0;
     private _mainCont: React.RefObject<HTMLDivElement>;
+    private _dragging: boolean = false;
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -35,19 +36,30 @@ export default class PDFMenu extends React.Component {
     }
 
     pointerDown = (e: React.PointerEvent) => {
-        document.removeEventListener("pointermove", this.StartDrag);
-        document.addEventListener("pointermove", this.StartDrag);
+        document.removeEventListener("pointermove", this.pointerMove);
+        document.addEventListener("pointermove", this.pointerMove);
         document.removeEventListener("pointerup", this.pointerUp);
         document.addEventListener("pointerup", this.pointerUp);
-
-        console.log(this.StartDrag);
 
         e.stopPropagation();
         e.preventDefault();
     }
 
+    pointerMove = (e: PointerEvent) => {
+        e.stopPropagation();
+        e.preventDefault();
+
+        if (this._dragging) {
+            return;
+        }
+
+        this.StartDrag(e);
+        this._dragging = true;
+    }
+
     pointerUp = (e: PointerEvent) => {
-        document.removeEventListener("pointermove", this.StartDrag);
+        this._dragging = false;
+        document.removeEventListener("pointermove", this.pointerMove);
         document.removeEventListener("pointerup", this.pointerUp);
         e.stopPropagation();
         e.preventDefault();
