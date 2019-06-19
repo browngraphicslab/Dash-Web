@@ -302,7 +302,9 @@ class TreeView extends React.Component<TreeViewProps> {
                     {this.renderBullet(bulletType)}
                     {this.renderTitle()}
                 </div>
-                {contentElement}
+                <div className="treeViewItem-border">
+                    {contentElement}
+                </div>
             </li>
         </div>;
     }
