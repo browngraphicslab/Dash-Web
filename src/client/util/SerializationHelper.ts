@@ -7,7 +7,7 @@ export namespace SerializationHelper {
         return serializing > 0;
     }
 
-    export function serialize(obj: Field): any {
+    export function Serialize(obj: Field): any {
         if (obj === undefined || obj === null) {
             return undefined;
         }
@@ -124,7 +124,7 @@ export namespace Deserializable {
 
 export function autoObject(): PropSchema {
     return custom(
-        (s) => SerializationHelper.serialize(s),
+        (s) => SerializationHelper.Serialize(s),
         (s) => SerializationHelper.Deserialize(s)
     );
 }

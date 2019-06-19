@@ -257,7 +257,7 @@ export namespace DocServer {
      */
     let _createField = (field: RefField) => {
         _cache[field[Id]] = field;
-        const initialState = SerializationHelper.serialize(field);
+        const initialState = SerializationHelper.Serialize(field);
         Utils.emit(_socket, MessageStore.CreateField, initialState);
     };
 

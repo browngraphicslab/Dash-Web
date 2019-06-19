@@ -43,7 +43,7 @@ export const setter = action(function (target: any, prop: string | symbol | numb
     } else {
         target.__fields[prop] = value;
     }
-    target[Update]({ '$set': { ["fields." + prop]: value instanceof ObjectField ? SerializationHelper.serialize(value) : (value === undefined ? null : value) } });
+    target[Update]({ '$set': { ["fields." + prop]: value instanceof ObjectField ? SerializationHelper.Serialize(value) : (value === undefined ? null : value) } });
     UndoManager.AddEvent({
         redo: () => receiver[prop] = value,
         undo: () => receiver[prop] = curValue
@@ -103,7 +103,7 @@ export function updateFunction(target: any, prop: any, value: any, receiver: any
     let current = ObjectField.MakeCopy(value);
     return (diff?: any) => {
         if (true || !diff) {
-            diff = { '$set': { ["fields." + prop]: SerializationHelper.serialize(value) } };
+            diff = { '$set': { ["fields." + prop]: SerializationHelper.Serialize(value) } };
             const oldValue = current;
             const newValue = ObjectField.MakeCopy(value);
             current = newValue;
