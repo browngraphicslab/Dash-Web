@@ -191,6 +191,7 @@ export default class Page extends React.Component<IPageProps> {
         else if (e.button === 0) {
             PDFMenu.Instance.StartDrag = this.startDrag;
             PDFMenu.Instance.Highlight = this.highlight;
+            PDFMenu.Instance.Status = "pdf";
             PDFMenu.Instance.fadeOut(true);
             let target: any = e.target;
             if (target && target.parentElement === this._textLayer.current) {
