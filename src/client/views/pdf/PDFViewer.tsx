@@ -570,6 +570,7 @@ class RegionAnnotation extends React.Component<IAnnotationProps> {
         if (e.button === 2) {
             PDFMenu.Instance.Status = "annotation";
             PDFMenu.Instance.Delete = this.deleteAnnotation;
+            PDFMenu.Instance.Pinned = false;
             PDFMenu.Instance.jumpTo(e.clientX, e.clientY, true);
         }
     }
