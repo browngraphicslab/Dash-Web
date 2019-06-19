@@ -96,8 +96,12 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     get children() {
         return this.childDocs.filter(d => !d.isMinimized).map((d, i) => {
             let dref = React.createRef<HTMLDivElement>();
-            let dxf = () => this.getDocTransform(d, dref.current!);
-            let rowSpan = Math.ceil((this.columnWidth / d[WidthSym]() * d[HeightSym]() + this.gridGap) / (this._gridSize + this.gridGap));
+            let dxf = () => this.getDocTransform(d, dref.current!).scale(this.columnWidth / d[WidthSym]());
+            let renderScale = this.columnWidth / NumCast(d.nativeWidth, this.columnWidth);
+            let aspect = NumCast(d.nativeWidth) / NumCast(d.nativeHeight);
+            let width = () => this.columnWidth;
+            let height = () => aspect ? width() / aspect : d[HeightSym]()
+            let rowSpan = Math.ceil((height() + this.gridGap) / (this._gridSize + this.gridGap));
             let childFocus = (doc: Doc) => {
                 doc.libraryBrush = true;
                 this.props.focus(this.props.Document); // just focus on this collection, not the underlying document because the API doesn't support adding an offset to focus on and we can't pan zoom our contents to be centered.
@@ -106,12 +110,12 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                 key={d[Id]}
                 ref={dref}
                 style={{
-                    width: NumCast(d.nativeWidth, d[WidthSym]()),
-                    height: NumCast(d.nativeHeight, d[HeightSym]()),
+                    width: width(),
+                    height: height(),
                     transformOrigin: "top left",
                     gridRowEnd: `span ${rowSpan}`,
                     gridColumnEnd: `span 1`,
-                    transform: `scale(${this.columnWidth / NumCast(d.nativeWidth, d[WidthSym]())}, ${this.columnWidth / NumCast(d.nativeWidth, d[WidthSym]())})`
+                    transform: `scale(${renderScale})`
                 }} >
                 <DocumentView key={d[Id]} Document={d}
                     addDocument={this.props.addDocument}
@@ -122,8 +126,8 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     ScreenToLocalTransform={dxf}
                     focus={childFocus}
                     ContentScaling={returnOne}
-                    PanelWidth={d[WidthSym]}
-                    PanelHeight={d[HeightSym]}
+                    PanelWidth={width}
+                    PanelHeight={height}
                     selectOnLoad={false}
                     parentActive={this.props.active}
                     addDocTab={this.props.addDocTab}
