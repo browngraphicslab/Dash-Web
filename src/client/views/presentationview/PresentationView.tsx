@@ -46,12 +46,15 @@ interface PresListProps {
  */
 class PresentationViewList extends React.Component<PresListProps> {
 
+
+
     /**
      * Method that initializes presentation ids for the
      * docs that is in the presentation, when presentation list
      * gets re-rendered. It makes sure to not assign ids to the
      * docs that are in the group, so that mapping won't be disrupted.
      */
+
     @action
     initializeGroupIds = async (docList: Doc[]) => {
         docList.forEach(async (doc: Doc, index: number) => {
@@ -89,14 +92,11 @@ class PresentationViewList extends React.Component<PresListProps> {
         });
     }
 
-
-
     render() {
         const children = DocListCast(this.props.mainDocument.data);
         this.initializeGroupIds(children);
         this.initializeScaleViews(children);
         this.props.setChildrenDocs(children);
-        console.log(this.props.mainDocument, " re-rendering");
         return (
 
             <div className="presentationView-listCont">
@@ -125,8 +125,10 @@ export class PresentationView extends React.Component<PresViewProps>  {
     @observable curPresentation: Doc = new Doc();
     @observable presentationsMapping: Map<String, Doc> = new Map();
     @observable presentationsKeyMapping: Map<Doc, String> = new Map();
-    @observable selectedPresentation: HTMLSelectElement | undefined;
     @observable currentSelectedPresValue: string | undefined;
+    @observable PresTitleInputOpen: boolean = false;
+    @observable titleInputElement: HTMLInputElement | undefined;
+    //@observable presTitle: string =  "Presentation";
 
 
     //initilize class variables
@@ -155,7 +157,6 @@ export class PresentationView extends React.Component<PresViewProps>  {
         runInAction(() => this.curPresentation = docAtZero);
 
         this.setPresentationBackUps();
-
 
     }
 
@@ -198,7 +199,6 @@ export class PresentationView extends React.Component<PresViewProps>  {
             castedButtonBackUp.then(doc => {
                 let toAssign = doc ? doc : new Doc();
                 this.curPresentation.presButtonBackUp = toAssign;
-                console.log("Called the promise one!!");
                 runInAction(() => this.presButtonBackUp = toAssign);
             });
 
@@ -206,7 +206,6 @@ export class PresentationView extends React.Component<PresViewProps>  {
         } else if (castedButtonBackUp instanceof Doc) {
             let castedDoc: Doc = await castedButtonBackUp;
             runInAction(() => this.presButtonBackUp = castedDoc);
-            console.log("Called the important action");
 
         } else {
             runInAction(() => {
@@ -551,7 +550,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
     @action
     startOrResetPres = () => {
         if (this.presStatus) {
-            this.presStatus = false;
+            //this.presStatus = false;
             this.resetPresentation();
         } else {
             this.presStatus = true;
@@ -566,18 +565,28 @@ export class PresentationView extends React.Component<PresViewProps>  {
     resetPresentation = () => {
         //this.groupMappings = new Map();
         //let selectedButtons: boolean[];
-        this.presElementsMappings.forEach((component: PresentationElement, doc: Doc) => {
-            //selectedButtons = component.selected;
-            //selectedButtons.forEach((val: boolean, index: number) => selectedButtons[index] = false);
-            //doc.presentId = Utils.GenerateGuid();
+        // this.presElementsMappings.forEach((component: PresentationElement, doc: Doc) => {
+        //     //selectedButtons = component.selected;
+        //     //selectedButtons.forEach((val: boolean, index: number) => selectedButtons[index] = false);
+        //     //doc.presentId = Utils.GenerateGuid();
+        //     doc.opacity = 1;
+        //     doc.viewScale = 1;
+        // });
+
+
+        this.childrenDocs.forEach((doc: Doc) => {
             doc.opacity = 1;
+            doc.viewScale = 1;
         });
         this.curPresentation.selectedDoc = 0;
+        this.presStatus = false;
+        this.curPresentation.presStatus = this.presStatus;
         if (this.childrenDocs.length === 0) {
             return;
         }
         DocumentManager.Instance.zoomIntoScale(this.childrenDocs[0], 1);
-        this.childrenDocs[0].viewScale = 1;
+
+        // this.childrenDocs[0].viewScale = 1;
 
     }
 
@@ -607,17 +616,20 @@ export class PresentationView extends React.Component<PresViewProps>  {
     }
 
     @action
-    addNewPresentation = () => {
-        let title = "Presentation " + (this.props.Documents.length + 1);
-        let newPresentationDoc = Docs.TreeDocument([], { title: title });
+    addNewPresentation = (presTitle: string) => {
+        //let title = "Presentation " + (this.props.Documents.length + 1);
+        let newPresentationDoc = Docs.TreeDocument([], { title: presTitle });
         this.props.Documents.push(newPresentationDoc);
         this.curPresentation = newPresentationDoc;
         let newGuid = Utils.GenerateGuid();
         this.presentationsMapping.set(newGuid, newPresentationDoc);
         this.presentationsKeyMapping.set(newPresentationDoc, newGuid);
         this.resetGroupIds();
+        this.resetPresentation();
         this.currentSelectedPresValue = newGuid;
         this.setPresentationBackUps();
+
+
 
         // if (this.selectedPresentation) {
         //     this.selectedPresentation.selectedIndex = 1;
@@ -635,16 +647,44 @@ export class PresentationView extends React.Component<PresViewProps>  {
         let selectedGuid = e.target.value;
         this.curPresentation = this.presentationsMapping.get(selectedGuid)!;
         this.resetGroupIds();
+        this.resetPresentation();
         this.currentSelectedPresValue = selectedGuid;
         this.setPresentationBackUps();
 
+
+    }
+
+    renderSelectOrPresSelection = () => {
+        let presentationList = DocListCast(this.props.Documents);
+        if (this.PresTitleInputOpen) {
+            return <input ref={(e) => this.titleInputElement = e!} type="text" className="presentationView-title" placeholder="Enter Name!" onKeyDown={this.submitPresentationTitle} />;
+        } else {
+            return <select value={this.currentSelectedPresValue} id="pres_selector" className="presentationView-title" onChange={this.getSelectedPresentation}>
+                {presentationList.map((doc: Doc, index: number) => {
+                    let mappedGuid = this.presentationsKeyMapping.get(doc);
+                    let docGuid: string = mappedGuid ? mappedGuid.toString() : "";
+                    return <option key={index} value={docGuid}>{StrCast(doc.title)}</option>;
+                })}
+            </select>;
+        }
+    }
+
+    @action
+    submitPresentationTitle = (e: React.KeyboardEvent) => {
+        if (e.keyCode === 13) {
+            let presTitle = this.titleInputElement!.value;
+            this.titleInputElement!.value = "";
+            this.PresTitleInputOpen = false;
+            if (presTitle === "") {
+                presTitle = "Presentation";
+            }
+            this.addNewPresentation(presTitle);
+        }
     }
 
 
     render() {
-        let titleStr = StrCast(this.curPresentation.title);
         let width = NumCast(this.curPresentation.width);
-        let presentationList = DocListCast(this.props.Documents);
 
 
 
@@ -652,16 +692,11 @@ export class PresentationView extends React.Component<PresViewProps>  {
         return (
             <div className="presentationView-cont" style={{ width: width, overflow: "hidden" }}>
                 <div className="presentationView-heading">
-                    {/* <div className="presentationView-title">{titleStr}</div> */}
-                    <select value={this.currentSelectedPresValue} id="pres_selector" className="presentationView-title" onChange={this.getSelectedPresentation} ref={(e: HTMLSelectElement) => this.selectedPresentation = e}>
-                        {presentationList.map((doc: Doc, index: number) => {
-                            let mappedGuid = this.presentationsKeyMapping.get(doc);
-                            let docGuid: string = mappedGuid ? mappedGuid.toString() : "";
-                            return <option key={index} value={docGuid}>{StrCast(doc.title)}</option>;
-                        })}
-                    </select>
+                    {this.renderSelectOrPresSelection()}
                     <button title="Close Presentation" className='presentation-icon' onClick={this.closePresentation}><FontAwesomeIcon icon={"times"} /></button>
-                    <button title="Add Presentation" className="presentation-icon" style={{ marginRight: 10 }} onClick={this.addNewPresentation}><FontAwesomeIcon icon={"plus"} /></button>
+                    <button title="Add Presentation" className="presentation-icon" style={{ marginRight: 10 }} onClick={() => {
+                        runInAction(() => this.PresTitleInputOpen ? this.PresTitleInputOpen = false : this.PresTitleInputOpen = true);
+                    }}><FontAwesomeIcon icon={"plus"} /></button>
 
                 </div>
                 <div className="presentation-buttons">

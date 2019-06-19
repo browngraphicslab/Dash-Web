@@ -98,10 +98,8 @@ export default class PresentationElement extends React.Component<PresentationEle
         } else {
             let curDoc: Doc = await castedList[this.props.index];
             let selectedButtonOfDoc = Cast(curDoc.selectedButtons, listSpec("boolean"), null);
-            console.log("Debug Selected Buttons: ", this.selectedButtons, " and the selectedButtonOfDoc: ", selectedButtonOfDoc);
             if (selectedButtonOfDoc !== undefined) {
                 runInAction(() => this.selectedButtons = selectedButtonOfDoc);
-                console.log("New Selected Buttons: ", this.selectedButtons);
             }
         }
 
@@ -325,6 +323,10 @@ export default class PresentationElement extends React.Component<PresentationEle
                 this.selectedButtons[buttonIndex.Show] = false;
             }
             this.selectedButtons[buttonIndex.Navigate] = true;
+            const current = NumCast(this.props.mainDocument.selectedDoc);
+            if (current === this.props.index) {
+                this.props.gotoDocument(this.props.index, this.props.index);
+            }
         }
 
         this.autoSaveButtonChange(buttonIndex.Navigate);
@@ -346,6 +348,10 @@ export default class PresentationElement extends React.Component<PresentationEle
                 this.selectedButtons[buttonIndex.Navigate] = false;
             }
             this.selectedButtons[buttonIndex.Show] = true;
+            const current = NumCast(this.props.mainDocument.selectedDoc);
+            if (current === this.props.index) {
+                this.props.gotoDocument(this.props.index, this.props.index);
+            }
         }
 
         this.autoSaveButtonChange(buttonIndex.Show);
@@ -357,7 +363,6 @@ export default class PresentationElement extends React.Component<PresentationEle
         let p = this.props;
         let title = p.document.title;
 
-        console.log("Re-rendered");
 
         //to get currently selected presentation doc
         let selected = NumCast(p.mainDocument.selectedDoc, 0);
