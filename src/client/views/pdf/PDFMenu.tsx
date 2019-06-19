@@ -15,7 +15,8 @@ export default class PDFMenu extends React.Component {
     @observable private _opacity: number = 1;
     @observable private _transition: string = "opacity 0.5s";
     @observable private _transitionDelay: string = "";
-    @observable private _pinned: boolean = false;
+
+    @observable public Pinned: boolean = false;
 
     StartDrag: (e: PointerEvent) => void = emptyFunction;
     Highlight: (d: Doc | undefined, color: string | undefined) => void = emptyFunction;
@@ -69,7 +70,7 @@ export default class PDFMenu extends React.Component {
 
     @action
     jumpTo = (x: number, y: number, forceJump: boolean = false) => {
-        if (!this._pinned || forceJump) {
+        if (!this.Pinned || forceJump) {
             this._transition = this._transitionDelay = "";
             this._opacity = 1;
             this._left = x;
@@ -79,7 +80,7 @@ export default class PDFMenu extends React.Component {
 
     @action
     fadeOut = (forceOut: boolean) => {
-        if (!this._pinned) {
+        if (!this.Pinned) {
             if (this._opacity === 0.2) {
                 this._transition = "opacity 0.1s";
                 this._transitionDelay = "";
@@ -98,7 +99,7 @@ export default class PDFMenu extends React.Component {
 
     @action
     pointerLeave = (e: React.PointerEvent) => {
-        if (!this._pinned) {
+        if (!this.Pinned) {
             this._transition = "opacity 0.5s";
             this._transitionDelay = "1s";
             this._opacity = 0.2;
@@ -115,8 +116,8 @@ export default class PDFMenu extends React.Component {
 
     @action
     togglePin = (e: React.MouseEvent) => {
-        this._pinned = !this._pinned;
-        if (!this._pinned) {
+        this.Pinned = !this.Pinned;
+        if (!this.Pinned) {
             this.Highlighting = false;
         }
     }
@@ -152,7 +153,7 @@ export default class PDFMenu extends React.Component {
 
     @action
     highlightClicked = (e: React.MouseEvent) => {
-        if (!this._pinned) {
+        if (!this.Pinned) {
             this.Highlight(undefined, "#f4f442");
         }
         else {
@@ -178,8 +179,8 @@ export default class PDFMenu extends React.Component {
             </button>,
             <button className="pdfMenu-button" title="Drag to Annotate" onPointerDown={this.pointerDown}><FontAwesomeIcon icon="comment-alt" size="lg" /></button>,
             <button className="pdfMenu-button" title="Pin Menu" onClick={this.togglePin}
-                style={this._pinned ? { backgroundColor: "#121212" } : {}}>
-                <FontAwesomeIcon icon="thumbtack" size="lg" style={{ transition: "transform 0.1s", transform: this._pinned ? "rotate(45deg)" : "" }} />
+                style={this.Pinned ? { backgroundColor: "#121212" } : {}}>
+                <FontAwesomeIcon icon="thumbtack" size="lg" style={{ transition: "transform 0.1s", transform: this.Pinned ? "rotate(45deg)" : "" }} />
             </button>
         ] : [
                 <button className="pdfMenu-button" title="Delete Anchor" onPointerDown={this.deleteClicked}><FontAwesomeIcon icon="trash-alt" size="lg" /></button>
@@ -198,7 +199,7 @@ export default class PDFMenu extends React.Component {
                     style={this._pinned ? { backgroundColor: "#121212" } : {}}>
                     <FontAwesomeIcon icon="thumbtack" size="lg" style={{ transition: "transform 0.1s", transform: this._pinned ? "rotate(45deg)" : "" }} />
                 </button> */}
-                <div className="pdfMenu-dragger" onPointerDown={this.dragStart} style={{ width: this._pinned ? "20px" : "0px" }} />
+                <div className="pdfMenu-dragger" onPointerDown={this.dragStart} style={{ width: this.Pinned ? "20px" : "0px" }} />
             </div >
         );
     }
