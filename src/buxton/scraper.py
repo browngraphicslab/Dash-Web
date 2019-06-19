@@ -6,13 +6,14 @@ import re
 from pymongo import MongoClient
 import shutil
 import uuid
+import datetime
+from PIL import Image
 
 source = "./source"
 dist = "../server/public/files"
 
 db = MongoClient("localhost", 27017)["Dash"]
-db.buxton.drop()
-collection_handle = db.buxton
+view_doc_guids = []
 
 
 def extract_links(fileName):
@@ -39,7 +40,71 @@ def mkdir_if_absent(path):
         print("Failed to create the appropriate directory structures for %s" % file_name)
 
 
+def guid():
+    return str(uuid.uuid4())
+
+
+def write_image(folder, name):
+    path = f"http://localhost:1050/files/{folder}/{name}"
+
+    data_doc_guid = guid()
+    view_doc_guid = guid()
+
+    view_doc = {
+        "_id": view_doc_guid,
+        "fields": {
+            "proto": {
+                "fieldId": data_doc_guid,
+                "__type": "proxy"
+            },
+            "x": 10,
+            "y": 10,
+            "width": 300,
+            "zIndex": 2,
+            "libraryBrush": False
+        },
+        "__type": "Doc"
+    }
+
+    image = Image.open(f"{dist}/{folder}/{name}")
+    native_width, native_height = image.size
+
+    data_doc = {
+        "_id": data_doc_guid,
+        "fields": {
+            "proto": {
+                "_id": "imageProto",
+                "__type": "proxy"
+            },
+            "data": {
+                "url": path,
+                "type": "image"
+            },
+            "title": name,
+            "nativeWidth": native_width,
+            "author": "Bill Buxton",
+            "creationDate": {
+                "date": datetime.datetime.utcnow().microsecond,
+                "__type": "date"
+            },
+            "isPrototype": True,
+            "page": -1,
+            "nativeHeight": native_height,
+            "height": native_height
+        },
+        "__type": "Doc"
+    }
+
+    db.newDocuments.insert_one(view_doc)
+    db.newDocuments.insert_one(data_doc)
+
+    print(path)
+
+    return view_doc_guid
+
+
 def parse_document(file_name: str):
+    print(f"Parsing {file_name}...")
     result = {}
     pure_name = file_name.split(".")[0]
 
@@ -47,6 +112,11 @@ def parse_document(file_name: str):
     mkdir_if_absent(dir_path)
 
     raw = str(docx2txt.process(source + "/" + file_name, dir_path))
+
+    print("Extracting images...\n")
+    for image in os.listdir(dir_path):
+        view_doc_guids.append(write_image(pure_name, image))
+    print()
 
     def sanitize(line): return re.sub("[\n\t]+", "", line).replace(u"\u00A0", " ").replace(
         u"\u2013", "-").replace(u"\u201c", '''"''').replace(u"\u201d", '''"''').strip()
@@ -76,16 +146,20 @@ def parse_document(file_name: str):
     result["original_price"] = clean[2][len(clean[2]) - 1].strip()
 
     cur += 1
-    result["degrees_of_freedom"] = extract_value(lines[cur])
+    result["degrees_of_freedom"] = extract_value(
+        lines[cur]).replace("NA", "N/A")
     cur += 1
 
     dimensions = lines[cur].lower()
     if dimensions.startswith("dimensions"):
-        result["dimensions"] = dimensions[11:].strip()
+        dim_concat = dimensions[11:].strip()
         cur += 1
         while lines[cur] != "Key Words":
-            result["dimensions"] += (" " + lines[cur].strip())
+            dim_concat += (" " + lines[cur].strip())
             cur += 1
+        result["dimensions"] = dim_concat
+    else:
+        result["dimensions"] = "N/A"
 
     cur += 1
     result["primary_key"] = extract_value(lines[cur])
@@ -124,15 +198,22 @@ def parse_document(file_name: str):
     if len(notes) > 0:
         result["notes"] = notes
 
+    print("...contents dictionary constructed.")
+
     return result
 
 
-def upload(document):
-    wrapper = {}
-    wrapper["_id"] = str(uuid.uuid4())
-    wrapper["fields"] = document
-    wrapper["__type"] = "Doc"
-    collection_handle.insert_one(wrapper)
+def wrap(document):
+    return {
+        "_id": guid(),
+        "fields": document,
+        "__type": "Doc"
+    }
+
+
+def upload(collection, mongofied):
+    for doc in mongofied:
+        collection.insert_one(doc)
 
 
 if os.path.exists(dist):
@@ -142,9 +223,26 @@ while os.path.exists(dist):
 os.mkdir(dist)
 mkdir_if_absent(source)
 
+candidates = 0
+mongofied = []
 for file_name in os.listdir(source):
     if file_name.endswith('.docx'):
-        upload(parse_document(file_name))
+        candidates += 1
+        mongofied.append(wrap(parse_document(file_name)))
+
+for doc in mongofied:
+    db.newDocuments.insert_one(doc)
+
+proxified = list(
+    map(lambda guid: {"fieldId": guid, "type": "proxy"}, view_doc_guids))
+db.newDocuments.update_one(
+    {"fields.title": "WS collection 1"},
+    {"$push": {"fields.data.fields": {"$each": proxified}}}
+)
+
+print("...dictionaries written to Dash Document.\n")
+
+print(f"{candidates} candidates processed.")
 
 lines = ['*', '!.gitignore']
 with open(dist + "/.gitignore", 'w') as f:
