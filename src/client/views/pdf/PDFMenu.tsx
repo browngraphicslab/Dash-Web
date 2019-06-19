@@ -162,6 +162,6 @@ export default class PDFMenu extends React.Component {
                 </button>
                 <div className="pdfMenu-dragger" onPointerDown={this.dragStart} style={{ width: this._pinned ? "20px" : "0px" }} />
             </div >
-        )
+        );
     }
 }

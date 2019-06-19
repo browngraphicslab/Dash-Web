@@ -156,12 +156,12 @@ export const nodes: { [index: string]: NodeSpec } = {
                     title: dom.getAttribute("title"),
                     alt: dom.getAttribute("alt"),
                     width: Math.min(100, Number(dom.getAttribute("width"))),
-                }
+                };
             }
         }],
         toDOM(node) {
-            const attrs = { style: `width: ${node.attrs.width}` }
-            return ["video", { ...node.attrs, ...attrs }]
+            const attrs = { style: `width: ${node.attrs.width}` };
+            return ["video", { ...node.attrs, ...attrs }];
         }
     },
 
@@ -285,7 +285,7 @@ export const marks: { [index: string]: MarkSpec } = {
         toDOM() {
             return ['span', {
                 style: 'color: blue'
-            }]
+            }];
         }
     },
 
@@ -536,4 +536,4 @@ schema.nodeFromJSON = (json: any) => {
         node.attrs.oldtext = Slice.fromJSON(schema, node.attrs.oldtextslice);
     }
     return node;
-}
+};

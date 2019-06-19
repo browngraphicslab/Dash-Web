@@ -321,7 +321,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                             summary.imageSummary = imageSummary;
                             this.props.addDocument(imageSummary, false);
                         }
-                    })
+                    });
                     newCollection.proto!.summaryDoc = summary;
                     selected = [newCollection];
                     newCollection.x = bounds.left + bounds.width;

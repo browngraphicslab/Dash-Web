@@ -172,7 +172,7 @@ function LoadPage(file: string, pageNumber: number, res: Response) {
                     canvasContext: canvasAndContext.context,
                     viewport: viewport,
                     canvasFactory: factory
-                }
+                };
                 console.log("read " + pageNumber);
 
                 page.render(renderContext).promise

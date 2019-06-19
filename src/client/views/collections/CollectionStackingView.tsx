@@ -101,7 +101,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             let childFocus = (doc: Doc) => {
                 doc.libraryBrush = true;
                 this.props.focus(this.props.Document); // just focus on this collection, not the underlying document because the API doesn't support adding an offset to focus on and we can't pan zoom our contents to be centered.
-            }
+            };
             return (<div className="collectionStackingView-masonryDoc"
                 key={d[Id]}
                 ref={dref}
@@ -131,7 +131,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     whenActiveChanged={this.props.whenActiveChanged}
                 />
             </div>);
-        })
+        });
     }
     onContextMenu = (e: React.MouseEvent): void => {
         if (!e.isPropagationStopped() && this.props.Document[Id] !== "mainDoc") { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7

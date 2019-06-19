@@ -188,8 +188,9 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     }
     @action onError = () => {
         let timeout = this._curSuffix === "_s" ? this._smallRetryCount : this._curSuffix === "_m" ? this._mediumRetryCount : this._largeRetryCount;
-        if (timeout < 10)
+        if (timeout < 10) {
             setTimeout(this.retryPath, Math.min(10000, timeout * 5));
+        }
     }
     _curSuffix = "_m";
     render() {

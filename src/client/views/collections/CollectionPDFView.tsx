@@ -40,7 +40,7 @@ export class CollectionPDFView extends React.Component<FieldViewProps> {
                 // console.log(this.props.Document[HeightSym]());
             },
             { fireImmediately: true }
-        )
+        );
     }
 
     public static LayoutString(fieldKey: string = "data") {
