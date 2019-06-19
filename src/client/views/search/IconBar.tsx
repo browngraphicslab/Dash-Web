@@ -50,7 +50,7 @@ export class IconBar extends React.Component {
 
     @action.bound
     updateList(newList: string[]) {
-        SearchBox.Instance.updateIcon(newList)
+        SearchBox.Instance.updateIcon(newList);
     }
 
     @action.bound

@@ -78,7 +78,7 @@ export class ToggleBar extends React.Component<ToggleBarProps>{
     @action.bound
     public resetToggle = () => {
         if (!SearchBox.Instance.getBasicWordStatus()) {
-            this.forwardTimeline.play()
+            this.forwardTimeline.play();
             this.forwardTimeline.reverse();
             SearchBox.Instance.handleWordQueryChange();
         }

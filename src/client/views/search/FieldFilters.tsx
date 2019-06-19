@@ -41,6 +41,6 @@ resetFieldFilters() {
                 <CheckBox numCount = {3} parent = {this}  originalStatus={this.props.authorFieldStatus} updateStatus={this.props.updateAuthorStatus} title={Keys.AUTHOR} />
                 <CheckBox numCount = {3} parent = {this} originalStatus={this.props.dataFieldStatus} updateStatus={this.props.updateDataStatus} title={Keys.DATA} />
             </div>
-        )
+        );
     }
 }

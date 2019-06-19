@@ -57,10 +57,10 @@ export class IconButton extends React.Component<IconButtonProps>{
                             IconBar.Instance.Reset = 0;
                             IconBar.Instance.ResetClicked = false;
                         }
-                    })
+                    });
                 }
             },
-        )
+        );
         this._selectAllReaction = reaction(
             () => IconBar.Instance.SelectAllClicked,
             () => {
@@ -72,10 +72,10 @@ export class IconButton extends React.Component<IconButtonProps>{
                             IconBar.Instance.Select = 0;
                             IconBar.Instance.SelectAllClicked = false;
                         }
-                    })
+                    });
                 }
             },
-        )
+        );
     }
 
     @action.bound
@@ -112,11 +112,11 @@ export class IconButton extends React.Component<IconButtonProps>{
 
         if (!this.isSelected) {
             this.isSelected = true;
-            newList.push(this.props.type)
+            newList.push(this.props.type);
         }
         else {
             this.isSelected = false;
-            _.pull(newList, this.props.type)
+            _.pull(newList, this.props.type);
         }
 
         SearchBox.Instance.updateIcon(newList);
@@ -125,16 +125,16 @@ export class IconButton extends React.Component<IconButtonProps>{
     selected = {
         opacity: 1,
         backgroundColor: "#c2c2c5" //$alt-accent
-    }
+    };
 
     notSelected = {
         opacity: 0.6,
-    }
+    };
 
     hoverStyle = {
         opacity: 1,
         backgroundColor: "rgb(178, 206, 248)" //$darker-alt-accent
-    }
+    };
 
     @action.bound
     public reset() {
@@ -161,25 +161,25 @@ export class IconButton extends React.Component<IconButtonProps>{
             case (DocTypes.NONE):
                 return (<FontAwesomeIcon className="fontawesome-icon" icon={faBan} />);
             case (DocTypes.AUDIO):
-                return (<FontAwesomeIcon className="fontawesome-icon" icon={faMusic} />)
+                return (<FontAwesomeIcon className="fontawesome-icon" icon={faMusic} />);
             case (DocTypes.COL):
-                return (<FontAwesomeIcon className="fontawesome-icon" icon={faObjectGroup} />)
+                return (<FontAwesomeIcon className="fontawesome-icon" icon={faObjectGroup} />);
             case (DocTypes.HIST):
-                return (<FontAwesomeIcon className="fontawesome-icon" icon={faChartBar} />)
+                return (<FontAwesomeIcon className="fontawesome-icon" icon={faChartBar} />);
             case (DocTypes.IMG):
-                return (<FontAwesomeIcon className="fontawesome-icon" icon={faImage} />)
+                return (<FontAwesomeIcon className="fontawesome-icon" icon={faImage} />);
             case (DocTypes.LINK):
-                return (<FontAwesomeIcon className="fontawesome-icon" icon={faLink} />)
+                return (<FontAwesomeIcon className="fontawesome-icon" icon={faLink} />);
             case (DocTypes.PDF):
-                return (<FontAwesomeIcon className="fontawesome-icon" icon={faFilePdf} />)
+                return (<FontAwesomeIcon className="fontawesome-icon" icon={faFilePdf} />);
             case (DocTypes.TEXT):
-                return (<FontAwesomeIcon className="fontawesome-icon" icon={faStickyNote} />)
+                return (<FontAwesomeIcon className="fontawesome-icon" icon={faStickyNote} />);
             case (DocTypes.VID):
-                return (<FontAwesomeIcon className="fontawesome-icon" icon={faVideo} />)
+                return (<FontAwesomeIcon className="fontawesome-icon" icon={faVideo} />);
             case (DocTypes.WEB):
-                return (<FontAwesomeIcon className="fontawesome-icon" icon={faGlobeAsia} />)
+                return (<FontAwesomeIcon className="fontawesome-icon" icon={faGlobeAsia} />);
             default:
-                return (<FontAwesomeIcon className="fontawesome-icon" icon={faCaretDown} />)
+                return (<FontAwesomeIcon className="fontawesome-icon" icon={faCaretDown} />);
         }
     }
 

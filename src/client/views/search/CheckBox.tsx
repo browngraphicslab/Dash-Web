@@ -68,10 +68,10 @@ export class CheckBox extends React.Component<CheckBoxProps>{
                             this.props.parent.resetCounter = 0;
                             this.props.parent.resetCounter = false;
                         }
-                    })
+                    });
                 }
             },
-        )
+        );
     }
 
     @action.bound
@@ -113,7 +113,7 @@ export class CheckBox extends React.Component<CheckBoxProps>{
                 </div>
                 <div className="checkbox-title">{this.props.title}</div>
             </div>
-        )
+        );
     }
 
 }

@@ -159,7 +159,7 @@ export class SearchBox extends React.Component {
             query = this.basicRequireWords(query);
         }
 
-        query = query.replace(/\s+/g, ' ').trim()
+        query = query.replace(/\s+/g, ' ').trim();
 
         //if there is no query there should be no result
         if (query === "") {
