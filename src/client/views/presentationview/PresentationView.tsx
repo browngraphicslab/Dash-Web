@@ -453,10 +453,11 @@ export class PresentationView extends React.Component<PresViewProps>  {
     }
 
     @action
-    public RemoveDoc = (index: number) => {
+    public RemoveDoc = async (index: number) => {
         const value = FieldValue(Cast(this.curPresentation.data, listSpec(Doc)));
         if (value) {
-            value.splice(index, 1);
+            let removedDoc = await value.splice(index, 1)[0];
+            this.presElementsMappings.delete(removedDoc);
         }
     }
     @action

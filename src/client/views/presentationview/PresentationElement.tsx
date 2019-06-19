@@ -56,7 +56,7 @@ export enum buttonIndex {
 @observer
 export default class PresentationElement extends React.Component<PresentationElementProps> {
 
-    @observable selectedButtons: boolean[];
+    @observable private selectedButtons: boolean[];
 
 
     constructor(props: PresentationElementProps) {
