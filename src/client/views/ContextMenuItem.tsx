@@ -9,7 +9,7 @@ library.add(faAngleRight);
 
 export interface OriginalMenuProps {
     description: string;
-    event: (e: React.MouseEvent<HTMLDivElement>) => void;
+    event: () => void;
     icon?: IconProp; //maybe should be optional (icon?)
     closeMenu?: () => void;
 }
@@ -37,7 +37,7 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
 
     handleEvent = (e: React.MouseEvent<HTMLDivElement>) => {
         if ("event" in this.props) {
-            this.props.event(e);
+            this.props.event();
             this.props.closeMenu && this.props.closeMenu();
         }
     }

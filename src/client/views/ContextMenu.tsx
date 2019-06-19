@@ -14,7 +14,7 @@ library.add(faCircle);
 export class ContextMenu extends React.Component {
     static Instance: ContextMenu;
 
-    @observable private _items: Array<ContextMenuProps> = [{ description: "test", event: (e: React.MouseEvent) => e.preventDefault(), icon: "smile" }];
+    @observable private _items: Array<ContextMenuProps> = [];
     @observable private _pageX: number = 0;
     @observable private _pageY: number = 0;
     @observable private _display: boolean = false;
@@ -109,6 +109,10 @@ export class ContextMenu extends React.Component {
         return flattenItems(this._items, name => [name]);
     }
 
+    @computed get flatItems(): OriginalMenuProps[] {
+        return this.filteredItems.filter(item => !Array.isArray(item)) as OriginalMenuProps[];
+    }
+
     @computed get filteredViews() {
         const createGroupHeader = (contents: any) => {
             return (
@@ -123,7 +127,7 @@ export class ContextMenu extends React.Component {
             if (Array.isArray(value)) {
                 return createGroupHeader(value.join(" -> "));
             } else {
-                return createItem(value, ++itemIndex === this.selectedIndex);
+                return createItem(value, itemIndex++ === this.selectedIndex);
             }
         });
     }
@@ -148,7 +152,7 @@ export class ContextMenu extends React.Component {
                     <span className="icon-background">
                         <FontAwesomeIcon icon="search" size="lg" />
                     </span>
-                    <input className="contextMenu-item contextMenu-description" type="text" placeholder="Search . . ." value={this._searchString} onChange={this.onChange} ref={this._searchRef} autoFocus />
+                    <input className="contextMenu-item contextMenu-description" type="text" placeholder="Search . . ." value={this._searchString} onKeyDown={this.onKeyDown} onChange={this.onChange} ref={this._searchRef} autoFocus />
                 </span>
                 {this.menuItems}
             </div>
@@ -156,10 +160,36 @@ export class ContextMenu extends React.Component {
     }
 
     @action
+    onKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === "ArrowDown") {
+            if (this.selectedIndex < this.flatItems.length - 1) {
+                this.selectedIndex++;
+            }
+            e.preventDefault();
+        } else if (e.key === "ArrowUp") {
+            if (this.selectedIndex > 0) {
+                this.selectedIndex--;
+            }
+            e.preventDefault();
+        } else if (e.key === "Enter") {
+            const item = this.flatItems[this.selectedIndex];
+            item.event();
+            this.closeMenu();
+        }
+    }
+
+    @action
     onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         this._searchString = e.target.value;
-        if (this._searchString && this.selectedIndex === -1) {
-            this.selectedIndex = 0;
+        if (!this._searchString) {
+            this.selectedIndex = -1;
+        }
+        else {
+            if (this.selectedIndex === -1) {
+                this.selectedIndex = 0;
+            } else {
+                this.selectedIndex = Math.min(this.flatItems.length - 1, this.selectedIndex);
+            }
         }
     }
 }
