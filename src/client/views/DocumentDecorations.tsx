@@ -503,8 +503,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                         proto.nativeWidth = (doc.width || 0) / doc.height * NumCast(proto.nativeHeight);
                     }
                 } else {
-                    doc.width = zoomBasis * actualdW;
-                    doc.height = zoomBasis * actualdH;
+                    dW && (doc.width = zoomBasis * actualdW);
+                    dH && (doc.height = zoomBasis * actualdH);
                     proto.autoHeight = undefined;
                 }
             }

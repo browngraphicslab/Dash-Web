@@ -22,6 +22,8 @@ import React = require("react");
 import { Transform } from '../../util/Transform';
 import { SelectionManager } from '../../util/SelectionManager';
 import { emptyFunction } from '../../../Utils';
+import { List } from '../../../new_fields/List';
+import { Templates } from '../Templates';
 
 
 export interface TreeViewProps {
@@ -144,8 +146,9 @@ class TreeView extends React.Component<TreeViewProps> {
             GetValue={() => StrCast(this.props.document[key])}
             OnFillDown={(value: string) => {
                 Doc.GetProto(this.props.document)[key] = value;
-                let doc = Docs.FreeformDocument([], { title: "untitled" });
+                let doc = Docs.FreeformDocument([], { title: "", x: 0, y: 0, width: 100, height: 25 });
                 TreeView.loadId = doc[Id];
+                doc.templates = new List<string>([Templates.Title.Layout]);
                 this.props.addDocument(doc);
                 return true;
             }}
