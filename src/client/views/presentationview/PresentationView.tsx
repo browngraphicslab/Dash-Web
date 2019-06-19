@@ -233,6 +233,11 @@ export class PresentationView extends React.Component<PresViewProps>  {
             castedGroupDocs.forEach(async (groupDoc: Doc, index: number) => {
                 let castedGrouping = await DocListCastAsync(groupDoc.grouping);
                 let castedKey = StrCast(groupDoc.presentIdStore, null);
+                if (castedGrouping) {
+                    castedGrouping.forEach((doc: Doc) => {
+                        doc.presentId = castedKey;
+                    });
+                }
                 if (castedGrouping !== undefined && castedKey !== undefined) {
                     this.groupMappings.set(castedKey, castedGrouping);
                 }
@@ -481,6 +486,38 @@ export class PresentationView extends React.Component<PresViewProps>  {
     }
 
 
+    resetGroupIds = async () => {
+        let castedGroupDocs = await DocListCastAsync(this.presGroupBackUp.groupDocs);
+        if (castedGroupDocs !== undefined) {
+            castedGroupDocs.forEach(async (groupDoc: Doc, index: number) => {
+                let castedGrouping = await DocListCastAsync(groupDoc.grouping);
+                if (castedGrouping) {
+                    castedGrouping.forEach((doc: Doc) => {
+                        doc.presentId = Utils.GenerateGuid();
+                    });
+                }
+                // let castedKey = StrCast(groupDoc.presentIdStore, null);
+                // if (castedGrouping !== undefined && castedKey !== undefined) {
+                //     this.groupMappings.set(castedKey, castedGrouping);
+                // }
+            });
+        }
+    }
+
+    // reloadGroupIds = async () => {
+    //     let castedGroupDocs = await DocListCastAsync(this.presGroupBackUp.groupDocs);
+    //     if (castedGroupDocs !== undefined) {
+    //         castedGroupDocs.forEach(async (groupDoc: Doc, index: number) => {
+    //             let castedGrouping = await DocListCastAsync(groupDoc.grouping);
+    //             let castedKey = StrCast(groupDoc.presentIdStore, null);
+    //             if (castedGrouping !== undefined && castedKey !== undefined) {
+    //                 this.groupMappings.set(castedKey, castedGrouping);
+    //             }
+    //         });
+    //     }
+    // }
+
+
 
     /**
      * Adds a document to the presentation view
@@ -578,6 +615,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
         let newGuid = Utils.GenerateGuid();
         this.presentationsMapping.set(newGuid, newPresentationDoc);
         this.presentationsKeyMapping.set(newPresentationDoc, newGuid);
+        this.resetGroupIds();
         this.currentSelectedPresValue = newGuid;
         this.setPresentationBackUps();
 
@@ -596,6 +634,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
     getSelectedPresentation = (e: React.ChangeEvent<HTMLSelectElement>) => {
         let selectedGuid = e.target.value;
         this.curPresentation = this.presentationsMapping.get(selectedGuid)!;
+        this.resetGroupIds();
         this.currentSelectedPresValue = selectedGuid;
         this.setPresentationBackUps();
 
