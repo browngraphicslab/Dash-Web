@@ -161,7 +161,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     de.data.moveDocument(de.data.draggedDocuments[0], stackDoc, (doc) => {
                         Cast(stackDoc.data, listSpec(Doc))!.push(doc);
                         return true;
-                    })
+                    });
                 }
             }
         }

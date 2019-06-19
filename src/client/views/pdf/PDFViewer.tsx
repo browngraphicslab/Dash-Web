@@ -198,7 +198,7 @@ class Viewer extends React.Component<IViewerProps> {
                 <Page
                     pdf={this.props.pdf}
                     page={page}
-                    numPages={this.props.pdf!.numPages}
+                    numPages={this.props.pdf.numPages}
                     key={`rendered-${page + 1}`}
                     name={`${this.props.pdf.fingerprint + `-page${page + 1}`}`}
                     pageLoaded={this.pageLoaded}
@@ -219,7 +219,7 @@ class Viewer extends React.Component<IViewerProps> {
     @action
     getPageImage = async (page: number) => {
         let handleError = () => this.getRenderedPage(page);
-        if (this._isPage[page] != "image") {
+        if (this._isPage[page] !== "image") {
             this._isPage[page] = "image";
             const address = this.props.url;
             let res = JSON.parse(await rp.get(DocServer.prepend(`/thumbnail${address.substring("files/".length, address.length - ".pdf".length)}-${page + 1}.PNG`)));

@@ -40,7 +40,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
                     this.TextDoc = box.props.Document;
                     let sxf = Utils.GetScreenTransform(box ? box.CurrentDiv : undefined);
                     let xf = () => { box.props.ScreenToLocalTransform(); return new Transform(-sxf.translateX, -sxf.translateY, 1 / sxf.scale); };
-                    this.setTextDoc(box.props.fieldKey, box.CurrentDiv, xf, BoolCast(box.props.Document.autoHeight, false) || box.props.height === "min-content")
+                    this.setTextDoc(box.props.fieldKey, box.CurrentDiv, xf, BoolCast(box.props.Document.autoHeight, false) || box.props.height === "min-content");
                 }
                 else {
                     this.TextDoc = undefined;

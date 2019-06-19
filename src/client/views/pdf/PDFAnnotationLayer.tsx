@@ -19,6 +19,6 @@ export class PDFAnnotationLayer extends React.Component {
             <div className="pdfAnnotationLayer-cont" style={{ width: "100%", height: "100%", position: "relative", top: "-200%" }} onPointerDown={this.onPointerDown}>
 
             </div>
-        )
+        );
     }
 }

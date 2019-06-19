@@ -237,10 +237,11 @@ export class MainView extends React.Component {
     }
 
     onColorClick = (e: React.MouseEvent) => {
-        let target = (e.nativeEvent! as any).path[0];
-        let parent = (e.nativeEvent! as any).path[1];
-        if (target.localName === "input" || parent.localName === "span")
+        let target = (e.nativeEvent as any).path[0];
+        let parent = (e.nativeEvent as any).path[1];
+        if (target.localName === "input" || parent.localName === "span") {
             e.stopPropagation();
+        }
     }
 
 

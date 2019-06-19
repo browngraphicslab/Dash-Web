@@ -1,5 +1,5 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faAlignCenter, faCaretSquareRight, faCompressArrowsAlt, faUnlock, faLock, faExpandArrowsAlt, faLayerGroup, faSquare, faTrash, faConciergeBell, faFolder, faMapPin, faLink, faFingerprint, faCrosshairs, faDesktop } from '@fortawesome/free-solid-svg-icons';
+import { faAlignCenter, faCaretSquareRight, faCompressArrowsAlt, faUnlock, faLock, faExpandArrowsAlt, faLayerGroup, faSquare, faTrash, faConciergeBell, faFolder, faShare, faMapPin, faLink, faFingerprint, faCrosshairs, faDesktop } from '@fortawesome/free-solid-svg-icons';
 import { action, computed, IReactionDisposer, reaction, trace, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, HeightSym, Opt, WidthSym, DocListCastAsync } from "../../../new_fields/Doc";
@@ -35,6 +35,7 @@ import { RouteStore } from '../../../server/RouteStore';
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(faTrash);
+library.add(faShare);
 library.add(faExpandArrowsAlt);
 library.add(faCompressArrowsAlt);
 library.add(faLayerGroup);
@@ -167,8 +168,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     public static animateBetweenIconFunc = (doc: Doc, width: number, height: number, stime: number, maximizing: boolean, cb?: (progress: number) => void) => {
         setTimeout(() => {
             let now = Date.now();
-            let progress = now < stime + 200 ? Math.min(1, (now - stime) / 200) : 1
-            doc.width = progress === 1 ? width : maximizing ? 25 + (width - 25) * progress : width + (25 - width) * progress
+            let progress = now < stime + 200 ? Math.min(1, (now - stime) / 200) : 1;
+            doc.width = progress === 1 ? width : maximizing ? 25 + (width - 25) * progress : width + (25 - width) * progress;
             doc.height = progress === 1 ? height : maximizing ? 25 + (height - 25) * progress : height + (25 - height) * progress;
             cb && cb(progress);
             if (now < stime + 200) {
@@ -228,7 +229,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (minimizedDoc) {
             let scrpt = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(
                 NumCast(minimizedDoc.x) - NumCast(this.Document.x), NumCast(minimizedDoc.y) - NumCast(this.Document.y));
-            this.collapseTargetsToPoint(scrpt, await DocListCastAsync(minimizedDoc.maximizedDocs))
+            this.collapseTargetsToPoint(scrpt, await DocListCastAsync(minimizedDoc.maximizedDocs));
         }
     }
 
@@ -371,8 +372,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this._lastTap = Date.now();
     }
 
-    deleteClicked = (): void => { this.props.removeDocument && this.props.removeDocument(this.props.Document); }
-    fieldsClicked = (): void => { this.props.addDocTab(Docs.KVPDocument(this.props.Document, { width: 300, height: 300 }), "onRight") };
+    deleteClicked = (): void => { this.props.removeDocument && this.props.removeDocument(this.props.Document); };
+    fieldsClicked = (): void => { this.props.addDocTab(Docs.KVPDocument(this.props.Document, { width: 300, height: 300 }), "onRight"); };
     makeBtnClicked = (): void => {
         let doc = Doc.GetProto(this.props.Document);
         doc.isButton = !BoolCast(doc.isButton, false);
@@ -510,7 +511,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }
         }));
         runInAction(() => {
-            cm.addItem({ description: "Share...", subitems: usersMenu });
+            cm.addItem({ description: "Share...", subitems: usersMenu, icon: "share" });
             if (!this.topMost) {
                 // DocumentViews should stop propagation of this event
                 e.stopPropagation();
@@ -526,7 +527,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     onPointerLeave = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = false; };
 
     isSelected = () => SelectionManager.IsSelected(this);
-    @action select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); }
+    @action select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); };
 
     @computed get nativeWidth() { return this.Document.nativeWidth || 0; }
     @computed get nativeHeight() { return this.Document.nativeHeight || 0; }

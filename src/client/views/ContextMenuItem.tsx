@@ -1,8 +1,11 @@
 import React = require("react");
 import { observable, action } from "mobx";
 import { observer } from "mobx-react";
-import { IconProp } from '@fortawesome/fontawesome-svg-core';
+import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
+import { faAngleRight } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+
+library.add(faAngleRight);
 
 export interface OriginalMenuProps {
     description: string;
@@ -14,6 +17,7 @@ export interface OriginalMenuProps {
 export interface SubmenuProps {
     description: string;
     subitems: ContextMenuProps[];
+    icon?: IconProp; //maybe should be optional (icon?)
     closeMenu?: () => void;
 }
 
@@ -41,13 +45,40 @@ export class ContextMenuItem extends React.Component<ContextMenuProps> {
         }
     }
 
+    currentTimeout?: any;
+    static readonly timeout = 300;
+    onPointerEnter = () => {
+        if (this.currentTimeout) {
+            clearTimeout(this.currentTimeout);
+            this.currentTimeout = undefined;
+        }
+        if (this.overItem) {
+            return;
+        }
+        this.currentTimeout = setTimeout(action(() => this.overItem = true), ContextMenuItem.timeout);
+    }
+
+    onPointerLeave = () => {
+        if (this.currentTimeout) {
+            clearTimeout(this.currentTimeout);
+            this.currentTimeout = undefined;
+        }
+        if (!this.overItem) {
+            return;
+        }
+        this.currentTimeout = setTimeout(action(() => this.overItem = false), ContextMenuItem.timeout);
+
+    }
+
     render() {
         if ("event" in this.props) {
             return (
                 <div className="contextMenu-item" onClick={this.handleEvent}>
-                    <span className="icon-background">
-                        {this.props.icon ? <FontAwesomeIcon icon={this.props.icon} size="sm" /> : <FontAwesomeIcon icon="circle" size="sm" />}
-                    </span>
+                    {this.props.icon ? (
+                        <span className="icon-background">
+                            <FontAwesomeIcon icon={this.props.icon} size="sm" />
+                        </span>
+                    ) : null}
                     <div className="contextMenu-description">
                         {this.props.description}
                     </div>
@@ -60,9 +91,15 @@ export class ContextMenuItem extends React.Component<ContextMenuProps> {
                     {this._items.map(prop => <ContextMenuItem {...prop} key={prop.description} closeMenu={this.props.closeMenu} />)}
                 </div>;
             return (
-                <div className="contextMenu-item" onMouseEnter={action(() => { this.overItem = true; })} onMouseLeave={action(() => this.overItem = false)}>
+                <div className="contextMenu-item" onMouseEnter={this.onPointerEnter} onMouseLeave={this.onPointerLeave}>
+                    {this.props.icon ? (
+                        <span className="icon-background">
+                            <FontAwesomeIcon icon={this.props.icon} size="sm" />
+                        </span>
+                    ) : null}
                     <div className="contextMenu-description">
                         {this.props.description}
+                        <FontAwesomeIcon icon={faAngleRight} size="lg" style={{ position: "absolute", right: "5px" }} />
                     </div>
                     {submenu}
                 </div>

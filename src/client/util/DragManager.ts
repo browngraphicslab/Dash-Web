@@ -282,11 +282,13 @@ export namespace DragManager {
             // }
             let set = dragElement.getElementsByTagName('*');
             if (dragElement.hasAttribute("style")) (dragElement as any).style.pointerEvents = "none";
-            for (let i = 0; i < set.length; i++)
+            // tslint:disable-next-line: prefer-for-of
+            for (let i = 0; i < set.length; i++) {
                 if (set[i].hasAttribute("style")) {
                     let s = set[i];
                     (s as any).style.pointerEvents = "none";
                 }
+            }
 
 
             dragDiv.appendChild(dragElement);

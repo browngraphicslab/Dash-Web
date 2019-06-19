@@ -256,7 +256,7 @@ export class TooltipTextMenu {
             starButton.onclick = () => {
                 let state = this.view.state;
                 this.insertStar(state, this.view.dispatch);
-            }
+            };
 
             this.tooltip.appendChild(starButton);
         }
