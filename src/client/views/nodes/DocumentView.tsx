@@ -1,5 +1,5 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faAlignCenter, faCaretSquareRight, faCompressArrowsAlt, faUnlock, faLock, faExpandArrowsAlt, faLayerGroup, faSquare, faTrash, faConciergeBell, faFolder, faMapPin, faLink, faFingerprint, faCrosshairs, faDesktop } from '@fortawesome/free-solid-svg-icons';
+import { faAlignCenter, faCaretSquareRight, faCompressArrowsAlt, faUnlock, faLock, faExpandArrowsAlt, faLayerGroup, faSquare, faTrash, faConciergeBell, faFolder, faShare, faMapPin, faLink, faFingerprint, faCrosshairs, faDesktop } from '@fortawesome/free-solid-svg-icons';
 import { action, computed, IReactionDisposer, reaction, trace, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, HeightSym, Opt, WidthSym, DocListCastAsync } from "../../../new_fields/Doc";
@@ -35,6 +35,7 @@ import { RouteStore } from '../../../server/RouteStore';
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(faTrash);
+library.add(faShare);
 library.add(faExpandArrowsAlt);
 library.add(faCompressArrowsAlt);
 library.add(faLayerGroup);
@@ -510,7 +511,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }
         }));
         runInAction(() => {
-            cm.addItem({ description: "Share...", subitems: usersMenu });
+            cm.addItem({ description: "Share...", subitems: usersMenu, icon: "share" });
             if (!this.topMost) {
                 // DocumentViews should stop propagation of this event
                 e.stopPropagation();

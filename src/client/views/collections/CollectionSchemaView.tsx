@@ -352,6 +352,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             height={this.previewHeight}
             getTransform={this.getPreviewTransform}
             CollectionView={this.props.CollectionView}
+            moveDocument={this.props.moveDocument}
             addDocument={this.props.addDocument}
             removeDocument={this.props.removeDocument}
             active={this.props.active}
