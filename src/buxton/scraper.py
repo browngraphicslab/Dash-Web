@@ -78,7 +78,7 @@ def write_image(folder, name):
             },
             "data": {
                 "url": path,
-                "type": "image"
+                "__type": "image"
             },
             "title": name,
             "nativeWidth": native_width,
@@ -105,8 +105,9 @@ def write_image(folder, name):
 
 def parse_document(file_name: str):
     print(f"Parsing {file_name}...")
-    result = {}
     pure_name = file_name.split(".")[0]
+
+    result = {}
 
     dir_path = dist + "/" + pure_name
     mkdir_if_absent(dir_path)
@@ -116,6 +117,8 @@ def parse_document(file_name: str):
     print("Extracting images...\n")
     for image in os.listdir(dir_path):
         view_doc_guids.append(write_image(pure_name, image))
+        os.rename(dir_path + "/" + image, dir_path +
+                  "/" + image.replace(".", "_m.", 1))
     print()
 
     def sanitize(line): return re.sub("[\n\t]+", "", line).replace(u"\u00A0", " ").replace(
@@ -234,7 +237,7 @@ for doc in mongofied:
     db.newDocuments.insert_one(doc)
 
 proxified = list(
-    map(lambda guid: {"fieldId": guid, "type": "proxy"}, view_doc_guids))
+    map(lambda guid: {"fieldId": guid, "__type": "proxy"}, view_doc_guids))
 db.newDocuments.update_one(
     {"fields.title": "WS collection 1"},
     {"$push": {"fields.data.fields": {"$each": proxified}}}
