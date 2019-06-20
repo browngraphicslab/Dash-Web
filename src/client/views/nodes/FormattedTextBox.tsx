@@ -45,7 +45,7 @@ export interface FormattedTextBoxProps {
     hideOnLeave?: boolean;
     height?: string;
     color?: string;
-    outer_div?: React.RefObject<HTMLDivElement>;
+    outer_div?: (domminus: HTMLElement) => void;
 }
 
 const richTextSchema = createSchema({
@@ -61,6 +61,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         return FieldView.LayoutString(FormattedTextBox, fieldStr);
     }
     private _ref: React.RefObject<HTMLDivElement>;
+    private _outerdiv?: (dominus: HTMLElement) => void;
     private _proseRef?: HTMLDivElement;
     private _editorView: Opt<EditorView>;
     private _toolTipTextMenu: TooltipTextMenu | undefined = undefined;
@@ -98,7 +99,10 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     constructor(props: FieldViewProps) {
         super(props);
-        this.props.outer_div ? console.log("smd") : console.log("bye");
+        if (this.props.outer_div) {
+            this._outerdiv = this.props.outer_div;
+            console.log("yay");
+        }
 
         this._ref = React.createRef();
         if (this.props.isOverlay) {

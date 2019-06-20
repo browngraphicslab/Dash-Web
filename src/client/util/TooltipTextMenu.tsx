@@ -29,6 +29,7 @@ import { CollectionDockingView } from "../views/collections/CollectionDockingVie
 import { DocumentManager } from "./DocumentManager";
 import { Id } from "../../new_fields/FieldSymbols";
 import { Utils } from "../../Utils";
+import { FormattedTextBoxProps } from "../views/nodes/FormattedTextBox";
 // import { wrap } from "module";
 
 const SVG = "http://www.w3.org/2000/svg";
@@ -42,7 +43,7 @@ export class TooltipTextMenu {
     private fontStyles: MarkType[];
     private fontSizes: MarkType[];
     private listTypes: NodeType[];
-    private editorProps: FieldViewProps;
+    private editorProps: FieldViewProps & FormattedTextBoxProps;
     private state: EditorState;
     private fontSizeToNum: Map<MarkType, number>;
     private fontStylesToName: Map<MarkType, string>;
@@ -58,7 +59,7 @@ export class TooltipTextMenu {
     private fontStyleDom?: Node;
     private listTypeBtnDom?: Node;
 
-    constructor(view: EditorView, editorProps: FieldViewProps) {
+    constructor(view: EditorView, editorProps: FieldViewProps & FormattedTextBoxProps) {
         this.view = view;
         this.state = view.state;
         this.editorProps = editorProps;
@@ -139,9 +140,13 @@ export class TooltipTextMenu {
 
         this.update(view, undefined);
 
-        view.dom.parentNode!.parentNode!.insertBefore(this.tooltip, view.dom.parentNode);
+        //view.dom.parentNode!.parentNode!.insertBefore(this.tooltip, view.dom.parentNode);
 
-        //console.log("hi");
+        // quick and dirty null check
+        const outer_div = this.editorProps.outer_div;
+        outer_div && outer_div(this.tooltip);
+
+        console.log("hi");
     }
 
     //label of dropdown will change to given label
