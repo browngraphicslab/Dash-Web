@@ -83,7 +83,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @observable
     private sortstate: string = "date";
 
-    private range = 0;
+    private _range = 0;
 
 
 
@@ -92,6 +92,17 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         var adate: DateField = a.creationDate;
         var bdate: DateField = b.creationDate;
         return new Date(adate.date) - new Date(bdate.date);
+    }
+
+    strcompare = (stringOne: string, stringTwo: string): number => {
+        let cur = 0;
+        while (cur < stringOne.length && cur < stringTwo.length) {
+            if (stringOne[cur] !== stringTwo[cur]) {
+                break;
+            }
+            cur++;
+        }
+        return stringOne.charCodeAt(cur) - stringTwo.charCodeAt(cur);
     }
 
 
@@ -174,7 +185,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 </button>
                 </div>);
         }
-        console.log(overlaps);
         return (<div>
             {overlaps}
         </div>
@@ -191,14 +201,14 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
         }
         this.preview5 = value;
-        console.log(num);
     }
 
+    private _values: (String | number | Date)[] = [];
 
     buttonloop() {
         let buttons = [];
         let buttons2 = [];
-        this.range = 1;
+        this._range = 1;
         let arr: Doc[] = [];
 
         this.childDocs.filter(d => !d.isMinimized).map((d, i) => {
@@ -234,29 +244,26 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
         let docs = keyvalue.map(kv => kv.doc);
         let values = keyvalue.map(kv => kv.value);
-
-        console.log(values);
         let i = values.length - 1;
-        this.range = (values[i] - values[0]);
-        console.log(this.range);
-        if (this.range === 0) {
-            this.range = values.length;
+        this._range = (values[i] - values[0]);
+        if (this._range === 0) {
+            this._range = values.length;
         }
-        if (isNaN(this.range)) {
-            this.range = values.length;
+        if (isNaN(this._range)) {
+            this._range = values.length;
             for (let i = 0; i < values.length; i++) {
                 values[i] = String(i);
             }
         }
-        console.log(this.range);
 
+        this._values = values;
 
 
         for (let i = 0; i < backup.length; i++) {
             let color = "$dark-color";
             let icon = this.checkData(backup[i]);
             let display = () => this.show(keyvalue[i].doc);
-            let leftval = (((values[i] - values[0]) * this.barwidth / this.range) * (this.barwidth / (this.xmovement2 - this.xmovement)) - (this.xmovement * (this.barwidth - (10 / this.barwidth)) / (this.xmovement2 - this.xmovement))) * 0.97 + "px";
+            let leftval = (((values[i] - values[0]) * this.barwidth / this._range) * (this.barwidth / (this.xmovement2 - this.xmovement)) - (this.xmovement * (this.barwidth - (10 / this.barwidth)) / (this.xmovement2 - this.xmovement))) * 0.97 + "px";
             for (let j = 0; j < backup.length; j++) {
                 if (j !== i) {
                     if (values[i] === values[j]) {
@@ -283,7 +290,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         position: "absolute",
                         background: "black",
                         zIndex: "1",
-                        top: "50%", left: ((values[i] - values[0]) * this.barwidth / this.range) * 0.97 + "px", width: "5px", border: "3px solid"
+                        top: "50%", left: ((values[i] - values[0]) * this.barwidth / this._range) * 0.97 + "px", width: "5px", border: "3px solid"
                     }}>
                 </div>);
         }
@@ -310,7 +317,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 </button>
                 </div>);
         }
-        console.log(overlaps);
 
         return (<div id="screen" >
             <div className="backdropdocview" style={{ top: "5%", left: "10%", right: "50%", bottom: "40%", position: "absolute", borderBottom: "2px solid" }}>
@@ -323,9 +329,17 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 {this.preview3}
             </div>
             <div style={{ top: "62%", left: "75%", position: "absolute" }}>
+                <input value={this.searchString2} onChange={this.onChange2} onKeyPress={this.enter2} type="text" placeholder={String((this.xmovement * this._range / this.barwidth) + this._values[0])}
+                    className="searchBox-barChild searchBox-input" />
+                {String((this.xmovement * this._range / this.barwidth) + this._values[0])}
                 {this.preview4}
+                <input value={this.searchString} onChange={this.onChange} onKeyPress={this.enter} type="text" placeholder={String((this.xmovement2 * this._range / this.barwidth) + this._values[0])}
+                    className="searchBox-barChild searchBox-input" />
+                {String((this.xmovement2 * this._range / this.barwidth) + this._values[0])}
+
+
             </div>
-            <div style={{ borderRadius: "15px 5px 5px 15px", top: "65%", left: (this.preview6 !== -2 ? (((values[this.preview6] - values[0]) * this.barwidth / this.range) * (this.barwidth / (this.xmovement2 - this.xmovement)) - (this.xmovement * this.barwidth / (this.xmovement2 - this.xmovement)) === this.barwidth ? (((values[this.preview6] - values[0]) * this.barwidth / this.range) * (this.barwidth / (this.xmovement2 - this.xmovement)) - (this.xmovement * this.barwidth / (this.xmovement2 - this.xmovement)) - this.barwidth / 40) : (((values[this.preview6] - values[0]) * this.barwidth / this.range) * (this.barwidth / (this.xmovement2 - this.xmovement)) - (this.xmovement * this.barwidth / (this.xmovement2 - this.xmovement)))) + 35 + "px" : "-9999px"), position: "absolute", overflow: "auto", background: "grey", height: "100px", wFidth: "50px" }}>
+            <div style={{ borderRadius: "15px 5px 5px 15px", top: "65%", left: (this.preview6 !== -2 ? (((values[this.preview6] - values[0]) * this.barwidth / this._range) * (this.barwidth / (this.xmovement2 - this.xmovement)) - (this.xmovement * this.barwidth / (this.xmovement2 - this.xmovement)) === this.barwidth ? (((values[this.preview6] - values[0]) * this.barwidth / this._range) * (this.barwidth / (this.xmovement2 - this.xmovement)) - (this.xmovement * this.barwidth / (this.xmovement2 - this.xmovement)) - this.barwidth / 40) : (((values[this.preview6] - values[0]) * this.barwidth / this._range) * (this.barwidth / (this.xmovement2 - this.xmovement)) - (this.xmovement * this.barwidth / (this.xmovement2 - this.xmovement)))) + 35 + "px" : "-9999px"), position: "absolute", overflow: "auto", background: "grey", height: "100px", wFidth: "50px" }}>
                 {overlaps}
             </div>
             <div className="viewpanel" style={{ top: "5%", position: "absolute", right: "10%", bottom: "35%", background: "#GGGGGG", zIndex: "-55", }}></div>
@@ -354,6 +368,55 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         );
 
     }
+
+    @action.bound
+    onChange(e: React.ChangeEvent<HTMLInputElement>) {
+        // var thing = (e.target.value - parseFloat(this._values[0]) * this.barwidth) / this._range;
+        this.searchString = !isNaN(parseFloat(e.target.value)) ? e.target.value : "0";
+        // this.xmovement2 = thing;
+    }
+
+    @action.bound
+    onChange2(e: React.ChangeEvent<HTMLInputElement>) {
+        // var thing = (e.target.value - parseFloat(this._values[0]) * this.barwidth) / this._range;
+        // this.xmovement = thing;
+        this.searchString2 = !isNaN(parseFloat(e.target.value)) ? e.target.value : "0";
+
+    }
+
+    @action
+    enter = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") {
+            console.log(this.searchString);
+            var thing = ((parseFloat(this.searchString) - parseFloat(this._values[0])) * this.barwidth) / this._range;
+            // // this.xmovement2 = !isNaN(parseFloat(e.target.value)) ? parseFloat(e.target.value) : 0;
+            // this.xmovement2 = thing;s
+            // this.searchString = String((this.xmovement2 * this._range / this.barwidth) + this._values[0]);
+            console.log(thing);
+            this.xmovement2 = thing;
+        }
+    }
+
+    @action
+    enter2 = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") {
+            var thing = ((parseFloat(this.searchString2) - parseFloat(this._values[0])) * this.barwidth) / this._range;
+            // // this.xmovement2 = !isNaN(parseFloat(e.target.value)) ? parseFloat(e.target.value) : 0;
+            // this.xmovement = thing;
+            // this.searchString2 = String((this.xmovement * this._range / this.barwidth) + this._values[0]);
+            console.log(thing);
+            this.xmovement = thing;
+
+        }
+    }
+
+    @observable
+    searchString: string = "";
+
+    @observable
+    searchString2: string = "";
+
+
 
     checkData = (document: Doc): IconProp => {
         let field = document.data;
@@ -459,6 +522,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @observable
     private xmovement2 = this.barwidth;
+
+
 
     @action
     onPointerMove = (e: PointerEvent): void => {

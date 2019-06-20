@@ -54,7 +54,8 @@ export class TooltipTextMenu {
     private fontStyleDom?: Node;
     private listTypeBtnDom?: Node;
 
-    constructor(view: EditorView, editorProps: FieldViewProps) {
+
+        constructor(view: EditorView, editorProps: FieldViewProps) {
         this.view = view;
         this.state = view.state;
         this.editorProps = editorProps;
