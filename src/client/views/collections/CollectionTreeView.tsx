@@ -72,7 +72,7 @@ class TreeView extends React.Component<TreeViewProps> {
     @undoBatch delete = () => this.props.deleteDoc(this.props.document);
     @undoBatch openRight = async () => this.props.addDocTab(this.props.document, "openRight");
 
-    onPointerDown = (e: React.PointerEvent) => e.stopPropagation()
+    onPointerDown = (e: React.PointerEvent) => e.stopPropagation();
     onPointerEnter = (e: React.PointerEvent): void => {
         this.props.active() && (this.props.document.libraryBrush = true);
         if (e.buttons === 1 && SelectionManager.GetIsDragging()) {
@@ -114,11 +114,11 @@ class TreeView extends React.Component<TreeViewProps> {
         return this.props.document !== target && this.props.deleteDoc(doc) && addDoc(doc);
     }
     @action
-    indent = () => this.props.addDocument(this.props.document) && this.delete();
+    indent = () => this.props.addDocument(this.props.document) && this.delete()
 
     renderBullet() {
-        let docList = Cast(this.props.document["data"], listSpec(Doc));
-        let doc = Cast(this.props.document["data"], Doc);
+        let docList = Cast(this.props.document.data, listSpec(Doc));
+        let doc = Cast(this.props.document.data, Doc);
         let isDoc = doc instanceof Doc || docList;
         return <div className="bullet" onClick={action(() => this._collapsed = !this._collapsed)}>
             {<FontAwesomeIcon icon={this._collapsed ? (isDoc ? "caret-square-right" : "caret-right") : (isDoc ? "caret-square-down" : "caret-down")} />}
@@ -298,7 +298,7 @@ class TreeView extends React.Component<TreeViewProps> {
                         addDocTab={this.props.addDocTab}
                         setPreviewScript={emptyFunction}>
                     </CollectionSchemaPreview>
-                </div>
+                </div>;
             }
         }
         return <div className="treeViewItem-container" ref={this.createTreeDropTarget} onContextMenu={this.onWorkspaceContextMenu}>
@@ -337,14 +337,14 @@ class TreeView extends React.Component<TreeViewProps> {
                     TreeView.AddDocToList(docList[i - 1], fieldKey, child);
                     remove(child);
                 }
-            }
+            };
             let addDocument = (doc: Doc, relativeTo?: Doc, before?: boolean) => {
                 return add(doc, relativeTo ? relativeTo : docList[i], before !== undefined ? before : false);
-            }
+            };
             let rowHeight = () => {
                 let aspect = NumCast(child.nativeWidth, 0) / NumCast(child.nativeHeight, 0);
                 return aspect ? Math.min(child[WidthSym](), rowWidth()) / aspect : child[HeightSym]();
-            }
+            };
             return <TreeView
                 document={child}
                 treeViewId={treeViewId}
