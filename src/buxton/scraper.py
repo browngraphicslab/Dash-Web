@@ -39,7 +39,7 @@ def mkdir_if_absent(path):
         if not os.path.exists(path):
             os.mkdir(path)
     except OSError:
-        print("Failed to create the appropriate directory structures for %s" % file_name)
+        print("failed to create the appropriate directory structures for %s" % file_name)
 
 
 def guid():
@@ -104,8 +104,8 @@ def write_schema(parse_results, display_fields):
     db.newDocuments.insert_one(view_doc)
 
     data_doc_guid = data_doc["_id"]
-    print(
-        f"Uploaded {view_doc_guid} (view) and {data_doc_guid} (data) to http://localhost:27017...\n")
+    print(f"inserted view document ({view_doc_guid})")
+    print(f"inserted data document ({data_doc_guid})\n")
 
     return view_doc_guid
 
@@ -162,7 +162,7 @@ def write_image(folder, name):
 
 
 def parse_document(file_name: str):
-    print(f"Parsing {file_name}...")
+    print(f"parsing {file_name}...")
     pure_name = file_name.split(".")[0]
 
     result = {}
@@ -172,12 +172,14 @@ def parse_document(file_name: str):
 
     raw = str(docx2txt.process(source + "/" + file_name, dir_path))
 
-    print("Extracting images...")
     view_guids = []
+    count = 0
     for image in os.listdir(dir_path):
+        count += 1
         view_guids.append(write_image(pure_name, image))
         os.rename(dir_path + "/" + image, dir_path +
                   "/" + image.replace(".", "_m.", 1))
+    print(f"extracted {count} images...")
 
     def sanitize(line): return re.sub("[\n\t]+", "", line).replace(u"\u00A0", " ").replace(
         u"\u2013", "-").replace(u"\u201c", '''"''').replace(u"\u201d", '''"''').strip()
@@ -274,6 +276,8 @@ def parse_document(file_name: str):
     if len(notes) > 0:
         result["notes"] = listify(notes)
 
+    print("writing child schema...")
+
     return {
         "schema": {
             "_id": guid(),
@@ -302,7 +306,7 @@ for file_name in os.listdir(source):
         schema_guids.append(write_schema(
             parse_document(file_name), ["title", "data"]))
 
-print("Writing parent schema...")
+print("writing parent schema...")
 parent_guid = write_schema({
     "schema": {
         "_id": guid(),
@@ -312,16 +316,16 @@ parent_guid = write_schema({
     "child_guids": schema_guids
 }, ["title", "short_description", "original_price"])
 
-print("Appending parent schema to main workspace...\n")
+print("appending parent schema to main workspace...\n")
 db.newDocuments.update_one(
     {"fields.title": "WS collection 1"},
     {"$push": {"fields.data.fields": {"fieldId": parent_guid, "__type": "proxy"}}}
 )
 
-print("Rewriting .gitignore...\n")
+print("rewriting .gitignore...\n")
 lines = ['*', '!.gitignore']
 with open(dist + "/.gitignore", 'w') as f:
     f.write('\n'.join(lines))
 
 suffix = "" if candidates == 1 else "s"
-print(f"Done. {candidates} candidate{suffix} processed.")
+print(f"conversion complete. {candidates} candidate{suffix} processed.")
