@@ -20,6 +20,15 @@
         border-style: solid;
         border-color: $alt-accent;
         border-width: 2px;
+        -webkit-transition: all 0.2s ease-in-out;
+    -moz-transition: all 0.2s ease-in-out;
+    -o-transition: all 0.2s ease-in-out;
+    transition: all 0.2s ease-in-out;
+    }
+
+    .check-container:hover ~ .check-box {
+        background-color: $intermediate-color;
+
     }
 
     .check-container {
@@ -27,10 +36,6 @@
         height: 40px;
         position: absolute;
         z-index: 1000;
-    }
-
-    .box:hover {
-        background-color: $intermediate-color;
     }
 
     .checkmark {

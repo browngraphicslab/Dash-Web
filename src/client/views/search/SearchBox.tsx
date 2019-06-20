@@ -2,7 +2,7 @@ import * as React from 'react';
 import { observer } from 'mobx-react';
 import { observable, action, runInAction } from 'mobx';
 import "./SearchBox.scss";
-import { faSearch, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faMusic, faLink, faChartBar, faGlobeAsia, faBan, faThList } from '@fortawesome/free-solid-svg-icons';
+import { faSearch, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faMusic, faLink, faChartBar, faGlobeAsia, faBan, faThList, faWineGlassAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { library } from '@fortawesome/fontawesome-svg-core';
 import * as rp from 'request-promise';
@@ -216,30 +216,19 @@ export class SearchBox extends React.Component {
 
     addCollectionFilter(query: string): string {
         let collections: Doc[] = this.getCurCollections();
-        console.log("collections", collections)
-        let finalQuery: string = "";
         let oldWords = query.split(" ");
 
-        let newWords: string[] = [];
-        oldWords.forEach(word => {
-            collections.forEach(doc => {
-                let proto = doc.proto;
-                let protoId = (proto || doc)[Id];
-                // console.log(StrCast(doc.title), protoId);
-                let colString: string = "+{!join from=data_l to=id}id:" + protoId + " ";
-                //{!join from=data_l to=id}id:{collectionProtoId}
-                let newWrd: string = colString + word;
-                // console.log(newWrd);
-                newWords.push(newWrd);
-            });
+        let collectionString: string[] = [];
+        collections.forEach(doc => {
+            let proto = doc.proto;
+            let protoId = (proto || doc)[Id];
+            let colString: string = "{!join from=data_l to=id}id:" + protoId + " ";
+            collectionString.push(colString);
         });
 
-        console.log(newWords)
-
-        query = newWords.join(" ");
-
-        return query;
-        // const protoId = (proto || doc)[Id];
+        let finalColString = collectionString.join(" ");
+        finalColString = finalColString.trim();
+        return "+(" + finalColString + ")" + query;
     }
 
     @action
