@@ -9,6 +9,7 @@ import uuid
 import datetime
 from PIL import Image
 import math
+import sys
 
 source = "./source"
 dist = "../server/public/files"
@@ -102,6 +103,10 @@ def write_schema(parse_results, display_fields):
     db.newDocuments.insert_one(data_doc)
     db.newDocuments.insert_one(view_doc)
 
+    data_doc_guid = data_doc["_id"]
+    print(
+        f"Uploaded {view_doc_guid} (view) and {data_doc_guid} (data) to http://localhost:27017...\n")
+
     return view_doc_guid
 
 
@@ -153,8 +158,6 @@ def write_image(folder, name):
     db.newDocuments.insert_one(view_doc)
     db.newDocuments.insert_one(data_doc)
 
-    print(path)
-
     return view_doc_guid
 
 
@@ -169,24 +172,29 @@ def parse_document(file_name: str):
 
     raw = str(docx2txt.process(source + "/" + file_name, dir_path))
 
-    print("Extracting images...\n")
+    print("Extracting images...")
     view_guids = []
     for image in os.listdir(dir_path):
         view_guids.append(write_image(pure_name, image))
         os.rename(dir_path + "/" + image, dir_path +
                   "/" + image.replace(".", "_m.", 1))
-    print()
 
     def sanitize(line): return re.sub("[\n\t]+", "", line).replace(u"\u00A0", " ").replace(
         u"\u2013", "-").replace(u"\u201c", '''"''').replace(u"\u201d", '''"''').strip()
 
-    def sanitize_price(raw):
-        res = math.nan
-        try:
-            res = float(raw.replace("$", ""))
-        except:
-            res = math.nan
-        return res
+    def sanitize_price(raw: str):
+        raw = raw.replace(",", "")
+        start = raw.find("$")
+        if start > -1:
+            i = start + 1
+            while (i < len(raw) and re.match(r"[0-9\.]", raw[i])):
+                i += 1
+            price = raw[start + 1: i + 1]
+            return float(price)
+        elif (raw.lower().find("nfs")):
+            return -1
+        else:
+            return math.nan
 
     def remove_empty(line): return len(line) > 1
 
@@ -266,8 +274,6 @@ def parse_document(file_name: str):
     if len(notes) > 0:
         result["notes"] = listify(notes)
 
-    print("...contents dictionary constructed.")
-
     return {
         "schema": {
             "_id": guid(),
@@ -296,6 +302,7 @@ for file_name in os.listdir(source):
         schema_guids.append(write_schema(
             parse_document(file_name), ["title", "data"]))
 
+print("Writing parent schema...")
 parent_guid = write_schema({
     "schema": {
         "_id": guid(),
@@ -303,18 +310,18 @@ parent_guid = write_schema({
         "__type": "Doc"
     },
     "child_guids": schema_guids
-}, ["title", "short_description"])
+}, ["title", "short_description", "original_price"])
 
+print("Appending parent schema to main workspace...\n")
 db.newDocuments.update_one(
     {"fields.title": "WS collection 1"},
     {"$push": {"fields.data.fields": {"fieldId": parent_guid, "__type": "proxy"}}}
 )
 
-
-print("...dictionaries written to Dash Document.\n")
-
-print(f"{candidates} candidates processed.")
-
+print("Rewriting .gitignore...\n")
 lines = ['*', '!.gitignore']
 with open(dist + "/.gitignore", 'w') as f:
     f.write('\n'.join(lines))
+
+suffix = "" if candidates == 1 else "s"
+print(f"Done. {candidates} candidate{suffix} processed.")
