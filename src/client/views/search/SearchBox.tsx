@@ -69,9 +69,9 @@ export class SearchBox extends React.Component {
         });
 
         //empties search query after 30 seconds of the search bar/filter box not being open
-        if (!this._resultsOpen && !this._filterOpen) {
-            setTimeout(this.clearSearchQuery, 30000);
-        }
+        // if (!this._resultsOpen && !this._filterOpen) {
+        //     setTimeout(this.clearSearchQuery, 30000);
+        // }
     }
 
     @action.bound
@@ -163,16 +163,11 @@ export class SearchBox extends React.Component {
         else {
             selectedDocs.forEach(async element => {
                 let layout: string = StrCast(element.props.Document.baseLayout);
-                console.log("doc title:", element.props.Document.title)
+                // console.log("doc title:", element.props.Document.title)
                 //checks if selected view (element) is a collection. if it is, adds to list to search through
                 if (layout.indexOf("Collection") > -1) {
                     console.log("current doc is a collection")
-                    //________________________________________________________________
-                    let proto = await Doc.GetT(element.props.Document, "proto", Doc, true);
-                    let protoId = (proto || element.props.Document)[Id];
-                    console.log(StrCast(element.props.Document.title), protoId)
-
-                    //________________________________________________________________
+                    // console.log(element.props.Document)
                     //makes sure collections aren't added more than once
                     if (!collections.includes(element.props.Document)) {
                         collections.push(element.props.Document);
@@ -203,6 +198,7 @@ export class SearchBox extends React.Component {
         //if this._wordstatus is false, all words are required and a + is added before each
         if (!this._basicWordStatus) {
             query = this.basicRequireWords(query);
+            console.log(query)
             query = query.replace(/\s+/g, ' ').trim();
         }
 
@@ -220,31 +216,29 @@ export class SearchBox extends React.Component {
 
     addCollectionFilter(query: string): string {
         let collections: Doc[] = this.getCurCollections();
+        console.log("collections", collections)
         let finalQuery: string = "";
         let oldWords = query.split(" ");
 
         let newWords: string[] = [];
         oldWords.forEach(word => {
-            collections.forEach(async doc => {
-                let proto = await Doc.GetT(doc, "proto", Doc, true);
+            collections.forEach(doc => {
+                let proto = doc.proto;
                 let protoId = (proto || doc)[Id];
-                console.log(StrCast(doc.title), protoId)
-                let colString: string = "{!join from=data_l to=id}id:" + protoId + " ";
+                // console.log(StrCast(doc.title), protoId);
+                let colString: string = "+{!join from=data_l to=id}id:" + protoId + " ";
                 //{!join from=data_l to=id}id:{collectionProtoId}
                 let newWrd: string = colString + word;
-                // console.log(newWrd)
+                // console.log(newWrd);
                 newWords.push(newWrd);
             });
         });
 
         console.log(newWords)
 
-        //uncomment when done
         query = newWords.join(" ");
 
-
         return query;
-        // const proto = await Doc.GetT(doc, "proto", Doc, true);
         // const protoId = (proto || doc)[Id];
     }
 
