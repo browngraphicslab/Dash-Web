@@ -27,7 +27,21 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
 
     @observable private _alt = false;
     @observable private _scrollY: number = 0;
+    private _mainCont: React.RefObject<HTMLDivElement>;
     private _reactionDisposer?: IReactionDisposer;
+
+    constructor(props: FieldViewProps) {
+        super(props);
+
+        this._mainCont = React.createRef();
+        this._reactionDisposer = reaction(
+            () => this.props.Document.scrollY,
+            () => {
+                if (this._mainCont.current) {
+                    this._mainCont.current && this._mainCont.current.scrollTo({ top: NumCast(this.Document.scrollY), behavior: "smooth" });
+                }
+            });
+    }
 
     componentDidMount() {
         if (this.props.setPdfBox) this.props.setPdfBox(this);
@@ -60,10 +74,6 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     }
 
     createRef = (ele: HTMLDivElement | null) => {
-        if (this._reactionDisposer) this._reactionDisposer();
-        this._reactionDisposer = reaction(() => this.props.Document.scrollY, () => {
-            ele && ele.scrollTo({ top: NumCast(this.Document.scrollY), behavior: "auto" });
-        });
     }
 
     loaded = (nw: number, nh: number, np: number) => {
@@ -105,7 +115,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
                     overflowY: "scroll", overflowX: "hidden",
                     marginTop: `${NumCast(this.props.ContainingCollectionView!.props.Document.panY)}px`
                 }}
-                ref={this.createRef}
+                ref={this._mainCont}
                 onWheel={(e: React.WheelEvent) => {
                     e.stopPropagation();
                 }} className={classname}>

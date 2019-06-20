@@ -125,6 +125,10 @@ class Viewer extends React.Component<IViewerProps> {
             runInAction(() =>
                 Array.from(Array((this._pageSizes = pageSizes).length).keys()).map(this.getPlaceholderPage));
             this.props.loaded(Math.max(...pageSizes.map(i => i.width)), pageSizes[0].height, this.props.pdf.numPages);
+
+            let startY = NumCast(this.props.parent.Document.startY);
+            this.props.parent.Document.scrollY = startY;
+            console.log(startY);
             // this.props.loaded(Math.max(...pageSizes.map(i => i.width)), pageSizes[0].height, this.props.pdf.numPages);
         }
     }
@@ -215,7 +219,7 @@ class Viewer extends React.Component<IViewerProps> {
                     createAnnotation={this.createAnnotation}
                     sendAnnotations={this.receiveAnnotations}
                     makeAnnotationDocuments={this.makeAnnotationDocument}
-                    receiveAnnotations={this.sendAnnotations}
+                    getScrollFromPage={this.getScrollFromPage}
                     {...this.props} />
             );
         }

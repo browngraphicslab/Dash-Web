@@ -5,6 +5,8 @@ import { observer } from "mobx-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { emptyFunction } from "../../../Utils";
 import { Doc } from "../../../new_fields/Doc";
+import { DragManager } from "../../util/DragManager";
+import { DocUtils } from "../../documents/Documents";
 
 @observer
 export default class PDFMenu extends React.Component {
@@ -16,19 +18,23 @@ export default class PDFMenu extends React.Component {
     @observable private _transition: string = "opacity 0.5s";
     @observable private _transitionDelay: string = "";
 
-    @observable public Pinned: boolean = false;
 
     StartDrag: (e: PointerEvent) => void = emptyFunction;
     Highlight: (d: Doc | undefined, color: string | undefined) => void = emptyFunction;
     Delete: () => void = emptyFunction;
+    Snippet: (marquee: { left: number, top: number, width: number, height: number }) => void = emptyFunction;
 
     @observable public Highlighting: boolean = false;
-    @observable public Status: "pdf" | "annotation" | "" = "";
+    @observable public Status: "pdf" | "annotation" | "snippet" | "" = "";
+    @observable public Pinned: boolean = false;
+
+    public Marquee: { left: number; top: number; width: number; height: number; } | undefined;
 
     private _offsetY: number = 0;
     private _offsetX: number = 0;
     private _mainCont: React.RefObject<HTMLDivElement>;
     private _dragging: boolean = false;
+    private _snippetButton: React.RefObject<HTMLButtonElement>;
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -36,6 +42,7 @@ export default class PDFMenu extends React.Component {
         PDFMenu.Instance = this;
 
         this._mainCont = React.createRef();
+        this._snippetButton = React.createRef();
     }
 
     pointerDown = (e: React.PointerEvent) => {
@@ -171,13 +178,45 @@ export default class PDFMenu extends React.Component {
         e.preventDefault();
     }
 
+    snippetStart = (e: React.PointerEvent) => {
+        document.removeEventListener("pointermove", this.snippetDrag);
+        document.addEventListener("pointermove", this.snippetDrag);
+        document.removeEventListener("pointerup", this.snippetEnd);
+        document.addEventListener("pointerup", this.snippetEnd);
+
+        e.stopPropagation();
+        e.preventDefault();
+    }
+
+    snippetDrag = (e: PointerEvent) => {
+        e.stopPropagation();
+        e.preventDefault();
+        if (this._dragging) {
+            return;
+        }
+        this._dragging = true;
+
+        if (this.Marquee) {
+            this.Snippet(this.Marquee);
+        }
+    }
+
+    snippetEnd = (e: PointerEvent) => {
+        this._dragging = false;
+        document.removeEventListener("pointermove", this.snippetDrag);
+        document.removeEventListener("pointerup", this.snippetEnd);
+        e.stopPropagation();
+        e.preventDefault();
+    }
+
     render() {
-        let buttons = this.Status === "pdf" ? [
+        let buttons = this.Status === "pdf" || this.Status === "snippet" ? [
             <button className="pdfMenu-button" title="Click to Highlight" onClick={this.highlightClicked}
                 style={this.Highlighting ? { backgroundColor: "#121212" } : {}}>
                 <FontAwesomeIcon icon="highlighter" size="lg" style={{ transition: "transform 0.1s", transform: this.Highlighting ? "" : "rotate(-45deg)" }} />
             </button>,
             <button className="pdfMenu-button" title="Drag to Annotate" onPointerDown={this.pointerDown}><FontAwesomeIcon icon="comment-alt" size="lg" /></button>,
+            this.Status === "snippet" ? <button className="pdfMenu-button" title="Drag to Snippetize Selection" onPointerDown={this.snippetStart} ref={this._snippetButton}><FontAwesomeIcon icon="cut" size="lg" /></button> : undefined,
             <button className="pdfMenu-button" title="Pin Menu" onClick={this.togglePin}
                 style={this.Pinned ? { backgroundColor: "#121212" } : {}}>
                 <FontAwesomeIcon icon="thumbtack" size="lg" style={{ transition: "transform 0.1s", transform: this.Pinned ? "rotate(45deg)" : "" }} />
