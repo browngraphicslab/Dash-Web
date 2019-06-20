@@ -18,6 +18,7 @@ import { FormattedTextBox } from "./FormattedTextBox";
 import { IconBox } from "./IconBox";
 import { ImageBox } from "./ImageBox";
 import { VideoBox } from "./VideoBox";
+import { PDFBox } from "./PDFBox";
 
 
 //
@@ -44,6 +45,7 @@ export interface FieldViewProps {
     PanelWidth: () => number;
     PanelHeight: () => number;
     setVideoBox?: (player: VideoBox) => void;
+    setPdfBox?: (player: PDFBox) => void;
 }
 
 @observer
@@ -83,31 +85,32 @@ export class FieldView extends React.Component<FieldViewProps> {
             return <p>{field.date.toLocaleString()}</p>;
         }
         else if (field instanceof Doc) {
-            let returnHundred = () => 100;
-            return (
-                <DocumentContentsView Document={field}
-                    addDocument={undefined}
-                    addDocTab={this.props.addDocTab}
-                    removeDocument={undefined}
-                    ScreenToLocalTransform={Transform.Identity}
-                    ContentScaling={returnOne}
-                    PanelWidth={returnHundred}
-                    PanelHeight={returnHundred}
-                    isTopMost={true} //TODO Why is this top most?
-                    selectOnLoad={false}
-                    focus={emptyFunction}
-                    isSelected={this.props.isSelected}
-                    select={returnFalse}
-                    layoutKey={"layout"}
-                    ContainingCollectionView={this.props.ContainingCollectionView}
-                    parentActive={this.props.active}
-                    whenActiveChanged={this.props.whenActiveChanged}
-                    bringToFront={emptyFunction} />
-            );
+            return <p><b>{field.title}</b></p>;
+            // let returnHundred = () => 100;
+            // return (
+            //     <DocumentContentsView Document={field}
+            //         addDocument={undefined}
+            //         addDocTab={this.props.addDocTab}
+            //         removeDocument={undefined}
+            //         ScreenToLocalTransform={Transform.Identity}
+            //         ContentScaling={returnOne}
+            //         PanelWidth={returnHundred}
+            //         PanelHeight={returnHundred}
+            //         isTopMost={true} //TODO Why is this top most?
+            //         selectOnLoad={false}
+            //         focus={emptyFunction}
+            //         isSelected={this.props.isSelected}
+            //         select={returnFalse}
+            //         layoutKey={"layout"}
+            //         ContainingCollectionView={this.props.ContainingCollectionView}
+            //         parentActive={this.props.active}
+            //         whenActiveChanged={this.props.whenActiveChanged}
+            //         bringToFront={emptyFunction} />
+            // );
         }
         else if (field instanceof List) {
             return (<div>
-                {field.map(f => f instanceof Doc ? f.title : f.toString()).join(", ")}
+                {field.map(f => f instanceof Doc ? f.title : (f && f.toString && f.toString())).join(", ")}
             </div>);
         }
         // bcz: this belongs here, but it doesn't render well so taking it out for now

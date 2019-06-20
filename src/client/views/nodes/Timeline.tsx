@@ -10,7 +10,7 @@ import { Cast } from "../../../new_fields/Types";
 import { SelectionManager } from "../../util/SelectionManager";
 import { List } from "../../../new_fields/List";
 import { Self } from "../../../new_fields/FieldSymbols";
-import { Doc } from "../../../new_fields/Doc";
+import { Doc, DocListCast } from "../../../new_fields/Doc";
 
 @observer
 export class Timeline extends CollectionSubView(Document){
@@ -35,12 +35,11 @@ export class Timeline extends CollectionSubView(Document){
             return;
         }
         let childrenList = ((children[Self] as any).__fields) as List<Doc>;
-        this._nodes = childrenList;
+        this._nodes = (childrenList) as List<Doc>;
     }
 
     componentWillUnmount(){
-
-
+        
     }
 
     @action
@@ -98,8 +97,8 @@ export class Timeline extends CollectionSubView(Document){
                 <div className="scrubberbox" onPointerDown={this.onScrubberDown} ref ={this._scrubberbox}>
                     <div className="scrubber" style={{transform:`translate(${this._currentBarX}px)`}}></div>
                 </div>
-                <div className="trackbox">
-                    {this._nodes.map(doc => {return <Track {...this.props}/>})}
+                <div className="trackbox">  
+                    {this._nodes.map(doc => {return <Track node={(doc as any).value() as Doc}/>})}
                 </div> 
             </div>
         ); 

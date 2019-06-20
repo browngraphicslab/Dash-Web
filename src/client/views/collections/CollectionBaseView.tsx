@@ -130,7 +130,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
 
     @action.bound
     removeDocument(doc: Doc): boolean {
-        let docView = DocumentManager.Instance.getDocumentView(doc, this.props.ContainingCollectionView)
+        let docView = DocumentManager.Instance.getDocumentView(doc, this.props.ContainingCollectionView);
         docView && SelectionManager.DeselectDoc(docView);
         const props = this.props;
         //TODO This won't create the field if it doesn't already exist

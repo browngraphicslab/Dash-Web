@@ -18,13 +18,18 @@ export interface EditableProps {
 
     OnFillDown?(value: string): void;
 
+    OnTab?(): void;
+
     /**
      * The contents to render when not editing
      */
     contents: any;
+    fontStyle?: string;
     height?: number;
     display?: string;
     oneLine?: boolean;
+    editing?: boolean;
+    onClick?: (e: React.MouseEvent) => boolean;
 }
 
 /**
@@ -34,40 +39,50 @@ export interface EditableProps {
  */
 @observer
 export class EditableView extends React.Component<EditableProps> {
-    @observable
-    editing: boolean = false;
+    @observable _editing: boolean = false;
+
+    constructor(props: EditableProps) {
+        super(props);
+        this._editing = this.props.editing ? true : false;
+    }
 
     @action
     onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === "Enter") {
+        if (e.key === "Tab") {
+            this.props.OnTab && this.props.OnTab();
+        } else if (e.key === "Enter") {
             if (!e.ctrlKey) {
                 if (this.props.SetValue(e.currentTarget.value)) {
-                    this.editing = false;
+                    this._editing = false;
                 }
             } else if (this.props.OnFillDown) {
                 this.props.OnFillDown(e.currentTarget.value);
-                this.editing = false;
+                this._editing = false;
             }
         } else if (e.key === "Escape") {
-            this.editing = false;
+            this._editing = false;
         }
     }
 
     @action
     onClick = (e: React.MouseEvent) => {
-        this.editing = true;
+        if (!this.props.onClick || !this.props.onClick(e)) {
+            this._editing = true;
+        }
         e.stopPropagation();
     }
 
     render() {
-        if (this.editing) {
-            return <input className="editableView-input" defaultValue={this.props.GetValue()} onKeyDown={this.onKeyDown} autoFocus onBlur={action(() => this.editing = false)}
+        if (this._editing) {
+            return <input className="editableView-input" defaultValue={this.props.GetValue()} onKeyDown={this.onKeyDown} autoFocus
+                onBlur={action(() => this._editing = false)}
                 style={{ display: this.props.display }} />;
         } else {
             return (
-                <div className={`editableView-container-editing${this.props.oneLine ? "-oneLine" : ""}`} style={{ display: this.props.display, height: "auto", maxHeight: `${this.props.height}` }}
+                <div className={`editableView-container-editing${this.props.oneLine ? "-oneLine" : ""}`}
+                    style={{ display: this.props.display, height: "auto", maxHeight: `${this.props.height}` }}
                     onClick={this.onClick} >
-                    <span>{this.props.contents}</span>
+                    <span style={{ fontStyle: this.props.fontStyle }}>{this.props.contents}</span>
                 </div>
             );
         }

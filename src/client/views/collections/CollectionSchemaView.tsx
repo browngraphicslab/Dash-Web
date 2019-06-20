@@ -2,36 +2,33 @@ import React = require("react");
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faCog, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, observable, untracked, runInAction, trace } from "mobx";
+import { action, computed, observable, trace, untracked } from "mobx";
 import { observer } from "mobx-react";
 import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults } from "react-table";
-import { MAX_ROW_HEIGHT } from '../../views/globalCssVariables.scss';
 import "react-table/react-table.css";
+import { Doc, DocListCast, DocListCastAsync, Field } from "../../../new_fields/Doc";
+import { Id } from "../../../new_fields/FieldSymbols";
+import { List } from "../../../new_fields/List";
+import { listSpec } from "../../../new_fields/Schema";
+import { Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
 import { emptyFunction, returnFalse, returnZero } from "../../../Utils";
+import { Docs } from "../../documents/Documents";
+import { Gateway } from "../../northstar/manager/Gateway";
 import { SetupDrag } from "../../util/DragManager";
 import { CompileScript } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
-import { COLLECTION_BORDER_WIDTH } from "../../views/globalCssVariables.scss";
+import { COLLECTION_BORDER_WIDTH, MAX_ROW_HEIGHT } from '../../views/globalCssVariables.scss';
+import { ContextMenu } from "../ContextMenu";
 import { anchorPoints, Flyout } from "../DocumentDecorations";
 import '../DocumentDecorations.scss';
 import { EditableView } from "../EditableView";
 import { DocumentView } from "../nodes/DocumentView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
+import { CollectionPDFView } from "./CollectionPDFView";
 import "./CollectionSchemaView.scss";
 import { CollectionSubView } from "./CollectionSubView";
-import { Opt, Field, Doc, DocListCastAsync, DocListCast } from "../../../new_fields/Doc";
-import { Cast, FieldValue, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
-import { listSpec } from "../../../new_fields/Schema";
-import { List } from "../../../new_fields/List";
-import { Id } from "../../../new_fields/FieldSymbols";
-import { Gateway } from "../../northstar/manager/Gateway";
-import { Docs } from "../../documents/Documents";
-import { ContextMenu } from "../ContextMenu";
-import { CollectionView } from "./CollectionView";
-import { CollectionPDFView } from "./CollectionPDFView";
 import { CollectionVideoView } from "./CollectionVideoView";
-import { SelectionManager } from "../../util/SelectionManager";
-import { undoBatch } from "../../util/UndoManager";
+import { CollectionView } from "./CollectionView";
 
 
 library.add(faCog);
@@ -90,8 +87,9 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             let columnDocs = DocListCast(schemaDoc.data);
             if (columnDocs) {
                 let ddoc = columnDocs.find(doc => doc.title === columnName);
-                if (ddoc)
+                if (ddoc) {
                     return ddoc;
+                }
             }
         }
         return this.props.Document;
@@ -288,7 +286,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     getPreviewTransform = (): Transform => this.props.ScreenToLocalTransform().translate(
-        - this.borderWidth - this.DIVIDER_WIDTH - this.tableWidth, - this.borderWidth);
+        - this.borderWidth - this.DIVIDER_WIDTH - this.tableWidth, - this.borderWidth)
 
 
     get documentKeysCheckList() {
@@ -337,7 +335,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             columns={this.tableColumns}
             column={{ ...ReactTableDefaults.column, Cell: this.renderCell, }}
             getTrProps={this.getTrProps}
-        />
+        />;
     }
 
     @computed
@@ -355,6 +353,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             height={this.previewHeight}
             getTransform={this.getPreviewTransform}
             CollectionView={this.props.CollectionView}
+            moveDocument={this.props.moveDocument}
             addDocument={this.props.addDocument}
             removeDocument={this.props.removeDocument}
             active={this.props.active}
@@ -362,7 +361,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             addDocTab={this.props.addDocTab}
             setPreviewScript={this.setPreviewScript}
             previewScript={this.previewScript}
-        />
+        />;
     }
     @action
     setPreviewScript = (script: string) => {
@@ -386,9 +385,10 @@ interface CollectionSchemaPreviewProps {
     Document?: Doc;
     width: () => number;
     height: () => number;
-    CollectionView: CollectionView | CollectionPDFView | CollectionVideoView;
+    CollectionView?: CollectionView | CollectionPDFView | CollectionVideoView;
     getTransform: () => Transform;
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
+    moveDocument: (document: Doc, target: Doc, addDoc: ((doc: Doc) => boolean)) => boolean;
     removeDocument: (document: Doc) => boolean;
     active: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
@@ -410,25 +410,11 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
     }
     private PanelWidth = () => this.nativeWidth * this.contentScaling();
     private PanelHeight = () => this.nativeHeight * this.contentScaling();
-    private getTransform = () => this.props.getTransform().translate(-this.centeringOffset, 0).scale(1 / this.contentScaling())
+    private getTransform = () => this.props.getTransform().translate(-this.centeringOffset, 0).scale(1 / this.contentScaling());
     get centeringOffset() { return (this.props.width() - this.nativeWidth * this.contentScaling()) / 2; }
     @action
     onPreviewScriptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         this.props.setPreviewScript(e.currentTarget.value);
-    }
-    @undoBatch
-    @action
-    public collapseToPoint = (scrpt: number[], expandedDocs: Doc[] | undefined): void => {
-        SelectionManager.DeselectAll();
-        if (expandedDocs) {
-            let isMinimized: boolean | undefined;
-            expandedDocs.map(d => Doc.GetProto(d)).map(maximizedDoc => {
-                if (isMinimized === undefined) {
-                    isMinimized = BoolCast(maximizedDoc.isMinimized, false);
-                }
-                maximizedDoc.isMinimized = !isMinimized;
-            });
-        }
     }
     render() {
         let input = this.props.previewScript === undefined ? (null) :
@@ -438,7 +424,7 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
             {!this.props.Document || !this.props.width ? (null) : (
                 <div className="collectionSchemaView-previewDoc" style={{ transform: `translate(${this.centeringOffset}px, 0px)`, height: "100%" }}>
                     <DocumentView Document={this.props.Document} isTopMost={false} selectOnLoad={false}
-                        addDocument={this.props.addDocument} removeDocument={this.props.removeDocument}
+                        addDocument={this.props.addDocument} removeDocument={this.props.removeDocument} moveDocument={this.props.moveDocument}
                         ScreenToLocalTransform={this.getTransform}
                         ContentScaling={this.contentScaling}
                         PanelWidth={this.PanelWidth} PanelHeight={this.PanelHeight}
@@ -448,7 +434,6 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
                         whenActiveChanged={this.props.whenActiveChanged}
                         bringToFront={emptyFunction}
                         addDocTab={this.props.addDocTab}
-                        collapseToPoint={this.collapseToPoint}
                     />
                 </div>)}
             {input}

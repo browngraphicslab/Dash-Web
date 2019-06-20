@@ -466,7 +466,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         SelectionManager.SelectedDocuments().forEach(element => {
             const rect = element.ContentDiv ? element.ContentDiv.getBoundingClientRect() : new DOMRect();
 
-            if (rect.width !== 0 && (dX != 0 || dY != 0 || dW != 0 || dH != 0)) {
+            if (rect.width !== 0 && (dX !== 0 || dY !== 0 || dW !== 0 || dH !== 0)) {
                 let doc = PositionDocument(element.props.Document);
                 let nwidth = doc.nativeWidth || 0;
                 let nheight = doc.nativeHeight || 0;
@@ -503,8 +503,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                         proto.nativeWidth = (doc.width || 0) / doc.height * NumCast(proto.nativeHeight);
                     }
                 } else {
-                    doc.width = zoomBasis * actualdW;
-                    doc.height = zoomBasis * actualdH;
+                    dW && (doc.width = zoomBasis * actualdW);
+                    dH && (doc.height = zoomBasis * actualdH);
                     proto.autoHeight = undefined;
                 }
             }

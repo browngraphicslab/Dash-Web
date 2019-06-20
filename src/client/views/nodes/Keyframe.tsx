@@ -24,12 +24,11 @@ interface IProp {
 export class Keyframe extends React.Component<IProp> {
 
     @observable private _display:string = "none"; 
+    @observable private _duration:number = 200; 
 
     async componentDidMount() {
         console.log("mounted");
         if (this.props.node){
-            let field = FieldValue(this.props.node.creationDate)! as DateField; 
-            console.log(field.date.toISOString());
            
          
         }
@@ -70,23 +69,20 @@ export class Keyframe extends React.Component<IProp> {
         e.preventDefault(); 
         e.stopPropagation(); 
     }
-
-
-    
    
     render() {
         return (
             <div>
-                <div className="bar" style={{ transform: `translate(${this.props.position}px)` }} onPointerOver={this.onPointerEnter} onPointerLeave={this.onPointerOut}>
+                <div className="bar" style={{ transform: `translate(${this.props.position - (this._duration/2)}px)`, width:`${this._duration}px`}} onPointerOver={this.onPointerEnter} onPointerLeave={this.onPointerOut}>
+                    <div className="leftResize"></div>
+                    <div className="rightResize"></div>
                     <div className="menubox" style={{display: this._display}}>
-                        <table className="menutable">
+                        {/* <table className="menutable">
                             <tr>
                                 <th>Time: </th>
                                 <input placeholder={this.props.position.toString()}></input>
                             </tr>
                             <tr>
-                                <th>Date Created: </th>
-                                <th>{(FieldValue(this.props.node!.creationDate)! as DateField).date.toLocaleString()}</th>
                             </tr>
                             <tr>
                                 <th onPointerDown={this.onPointerDown}>Title</th>
@@ -100,7 +96,7 @@ export class Keyframe extends React.Component<IProp> {
                                 <th>Y</th>
                                 <th>{this.props.node!.y}</th>
                             </tr>
-                        </table> 
+                        </table>  */}
                     </div>
                 </div>
             </div>

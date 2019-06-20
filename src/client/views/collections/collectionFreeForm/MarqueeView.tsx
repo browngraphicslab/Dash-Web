@@ -50,7 +50,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             document.removeEventListener("pointerup", this.onPointerUp, true);
             document.removeEventListener("pointermove", this.onPointerMove, true);
         }
-        if (rem_keydown) {
+        if (all) {
             document.removeEventListener("keydown", this.marqueeCommand, true);
         }
         this._visible = false;
@@ -275,13 +275,11 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 panY: 0,
                 borderRounding: e.key === "e" ? -1 : undefined,
                 backgroundColor: this.props.container.isAnnotationOverlay ? undefined : "white",
-                scale: zoomBasis,
-                width: bounds.width * zoomBasis,
-                height: bounds.height * zoomBasis,
+                width: bounds.width,
+                height: bounds.height,
                 ink: inkData ? new InkField(this.marqueeInkSelect(inkData)) : undefined,
                 title: e.key === "s" || e.key === "S" ? "-summary-" : e.key === "p" ? "-summary-" : "a nested collection",
             });
-            newCollection.zoomBasis = zoomBasis;
             this.marqueeInkDelete(inkData);
 
             if (e.key === "s") {
@@ -304,35 +302,22 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 this.props.addLiveTextDocument(container);
                 // });
             } else if (e.key === "S") {
-                await htmlToImage.toPng(this._mainCont.current!, { width: bounds.width * zoomBasis, height: bounds.height * zoomBasis, quality: 0.2 }).then((dataUrl) => {
-                    selected.map(d => {
-                        this.props.removeDocument(d);
-                        d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
-                        d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
-                        d.page = -1;
-                        return d;
-                    });
-                    let summary = Docs.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
-                    SearchBox.convertDataUri(dataUrl, "icon" + summary[Id] + "_image").then((returnedFilename) => {
-                        if (returnedFilename) {
-                            let url = DocServer.prepend(returnedFilename);
-                            let imageSummary = Docs.ImageDocument(url, {
-                                x: bounds.left, y: bounds.top + 100 / zoomBasis,
-                                width: 150, height: bounds.height / bounds.width * 150, title: "-summary image-"
-                            });
-                            summary.imageSummary = imageSummary;
-                            this.props.addDocument(imageSummary, false);
-                        }
-                    })
-                    newCollection.proto!.summaryDoc = summary;
-                    selected = [newCollection];
-                    newCollection.x = bounds.left + bounds.width;
-                    //this.props.addDocument(newCollection, false);
-                    summary.proto!.summarizedDocs = new List<Doc>(selected);
-                    summary.proto!.maximizeLocation = "inTab";  // or "inPlace", or "onRight"
-
-                    this.props.addLiveTextDocument(summary);
+                selected.map(d => {
+                    this.props.removeDocument(d);
+                    d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
+                    d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
+                    d.page = -1;
+                    return d;
                 });
+                let summary = Docs.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
+                newCollection.proto!.summaryDoc = summary;
+                selected = [newCollection];
+                newCollection.x = bounds.left + bounds.width;
+                //this.props.addDocument(newCollection, false);
+                summary.proto!.summarizedDocs = new List<Doc>(selected);
+                summary.proto!.maximizeLocation = "inTab";  // or "inPlace", or "onRight"
+
+                this.props.addLiveTextDocument(summary);
             }
             else {
                 this.props.addDocument(newCollection, false);

@@ -1,6 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faEdit, faSmile } from '@fortawesome/free-solid-svg-icons';
-import { action, IReactionDisposer, observable, reaction } from "mobx";
+import { action, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { baseKeymap } from "prosemirror-commands";
 import { history } from "prosemirror-history";
@@ -10,11 +10,13 @@ import { EditorState, Plugin, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { Doc, Opt } from "../../../new_fields/Doc";
 import { Id } from '../../../new_fields/FieldSymbols';
+import { List } from '../../../new_fields/List';
 import { RichTextField } from "../../../new_fields/RichTextField";
-import { createSchema, makeInterface } from "../../../new_fields/Schema";
+import { createSchema, listSpec, makeInterface } from "../../../new_fields/Schema";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { DocServer } from "../../DocServer";
 import { Docs } from '../../documents/Documents';
+import { DocumentManager } from '../../util/DocumentManager';
 import { DragManager } from "../../util/DragManager";
 import buildKeymap from "../../util/ProsemirrorExampleTransfer";
 import { inpRules } from "../../util/RichTextRules";
@@ -27,6 +29,7 @@ import { ContextMenu } from "../../views/ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
 import { DocComponent } from "../DocComponent";
 import { InkingControl } from "../InkingControl";
+import { Templates } from '../Templates';
 import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import React = require("react");
@@ -139,6 +142,28 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             let model: NodeType = (url.includes(".mov") || url.includes(".mp4")) ? schema.nodes.video : schema.nodes.image;
             this._editorView!.dispatch(this._editorView!.state.tr.insert(0, model.create({ src: url })));
             e.stopPropagation();
+        } else {
+            if (de.data instanceof DragManager.DocumentDragData) {
+                let ldocs = Cast(this.props.Document.subBulletDocs, listSpec(Doc));
+                if (!ldocs) {
+                    this.props.Document.subBulletDocs = new List<Doc>([]);
+                }
+                ldocs = Cast(this.props.Document.subBulletDocs, listSpec(Doc));
+                if (!ldocs) return;
+                if (!ldocs || !ldocs[0] || ldocs[0] instanceof Promise || StrCast((ldocs[0] as Doc).layout).indexOf("CollectionView") === -1) {
+                    ldocs.splice(0, 0, Docs.StackingDocument([], { title: StrCast(this.props.Document.title) + "-subBullets", x: NumCast(this.props.Document.x), y: NumCast(this.props.Document.y) + NumCast(this.props.Document.height), width: 300, height: 300 }));
+                    this.props.addDocument && this.props.addDocument(ldocs[0] as Doc);
+                    this.props.Document.templates = new List<string>([Templates.Bullet.Layout]);
+                    this.props.Document.isBullet = true;
+                }
+                let stackDoc = (ldocs[0] as Doc);
+                if (de.data.moveDocument) {
+                    de.data.moveDocument(de.data.draggedDocuments[0], stackDoc, (doc) => {
+                        Cast(stackDoc.data, listSpec(Doc))!.push(doc);
+                        return true;
+                    });
+                }
+            }
         }
     }
 
@@ -171,7 +196,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                         FormattedTextBox.InputBoxOverlay = this;
                         FormattedTextBox.InputBoxOverlayScroll = this._ref.current!.scrollTop;
                     }
-                });
+                }, { fireImmediately: true });
         }
 
         this._reactionDisposer = reaction(
@@ -241,6 +266,13 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             if (href) {
                 if (href.indexOf(DocServer.prepend("/doc/")) === 0) {
                     this._linkClicked = href.replace(DocServer.prepend("/doc/"), "").split("?")[0];
+                    if (this._linkClicked) {
+                        DocServer.GetRefField(this._linkClicked).then(f => {
+                            (f instanceof Doc) && DocumentManager.Instance.jumpToDocument(f, ctrlKey, document => this.props.addDocTab(document, "inTab"));
+                        });
+                        e.stopPropagation();
+                        e.preventDefault();
+                    }
                 } else {
                     let webDoc = Docs.WebDocument(href, { x: NumCast(this.props.Document.x, 0) + NumCast(this.props.Document.width, 0), y: NumCast(this.props.Document.y) });
                     this.props.addDocument && this.props.addDocument(webDoc);
@@ -283,6 +315,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     onClick = (e: React.MouseEvent): void => {
         this._proseRef!.focus();
         if (this._linkClicked) {
+            this._linkClicked = "";
             e.preventDefault();
             e.stopPropagation();
         }
@@ -376,6 +409,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     opacity: this.props.hideOnLeave ? (this._entered || this.props.isSelected() || this.props.Document.libraryBrush ? 1 : 0.1) : 1,
                     color: this.props.color ? this.props.color : this.props.hideOnLeave ? "white" : "initial",
                     pointerEvents: interactive ? "all" : "none",
+                    fontSize: "13px"
                 }}
                 onKeyDown={this.onKeyPress}
                 onFocus={this.onFocused}

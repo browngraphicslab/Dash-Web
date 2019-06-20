@@ -1,7 +1,7 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 import { observer } from "mobx-react";
-import { observable, reaction, action, IReactionDisposer, observe, IObservableArray, computed, toJS } from "mobx";
+import { observable, reaction, action, IReactionDisposer, observe, IObservableArray, computed, toJS, IObservableObject } from "mobx";
 import "./Track.scss";
 import { CollectionViewProps } from "../collections/CollectionBaseView";
 import { CollectionSubView, SubCollectionViewProps } from "../collections/CollectionSubView";
@@ -43,9 +43,12 @@ type TimeAndPosition = makeInterface<[typeof TimeAndPositionSchema]>;
 const TimeAndPosition = makeInterface(TimeAndPositionSchema);
 
 
+interface props{
+    node: Doc; 
+}
 
 @observer
-export class Track extends CollectionSubView(Document) {
+export class Track extends React.Component<props> {
     @observable private _inner = React.createRef<HTMLDivElement>();
     @observable private _timeInput = React.createRef<HTMLInputElement>();
     @observable private _playButton = React.createRef<HTMLButtonElement>();
@@ -60,67 +63,67 @@ export class Track extends CollectionSubView(Document) {
     @observable private _barMoved: boolean = false;
     @observable private _length:number = 0; 
 
-    @computed private get _keyframes() {
-        return Cast(this.props.Document.keyframes, listSpec(Doc)) as any as List<List<Doc>>;
-    }
+    // @computed private get _keyframes() {
+    //     return Cast(this.props.Document.keyframes, listSpec(Doc)) as any as List<List<Doc>>;
+    // }
 
-    @computed private get _data() {
-        //return Cast(this.props.Document.dataa, listSpec(Doc)) as List<Doc>; 
-        return Cast(this.props.Document[this.props.fieldKey], listSpec(Doc))!;
-    }
+    // @computed private get _data() {
+    //     //return Cast(this.props.Document.dataa, listSpec(Doc)) as List<Doc>; 
+    //     return Cast(this.props.Document[this.props.fieldKey], listSpec(Doc))!;
+    // }
 
     /**
      * when the record button is pressed
      * @param e MouseEvent
      */
-    @action
-    onRecord = (e: React.MouseEvent) => {
+    // @action
+    // onRecord = (e: React.MouseEvent) => {
        
-        let children = Cast(this.props.Document[this.props.fieldKey], listSpec(Doc));
-        if (!children) {
-            return;
-        }
-        let childrenList = ((children[Self] as any).__fields);
-        const addReaction = (node: Doc) => {
-            node = (node as any).value();
-            return reaction(() => {
-                return this._keys.map(key => FieldValue(node[key]));
-            }, async data => {
-                if (!this._barMoved) {
-                    if (this._data.indexOf(node) !== -1 && this._keyframes.length < this._data.length) {
-                        let timeandpos = this.setTimeAndPos(node);
-                        let info: List<Doc> = new List<Doc>(new Array<Doc>(1000)); //kinda weird  
-                        info[this._currentBarX] = timeandpos;
-                        this._keyframes.push(info);
-                        this._bars = [];
-                        this._bars.push({ x: this._currentBarX, doc: node });
-                    } else {
-                        let index = this._data.indexOf(node);
-                        if (this._keyframes[index][this._currentBarX] !== undefined) { //when node is in data, but doesn't have data for this specific time. 
-                            let timeandpos = this.setTimeAndPos(node);
-                            this._keyframes[index][this._currentBarX] = timeandpos;
-                            this._bars.push({ x: this._currentBarX, doc: node });
-                        } else { //when node is in data, and has data for this specific time
-                            let timeandpos = this.setTimeAndPos(node);
-                            this._keyframes[index][this._currentBarX] = timeandpos;
-                        }
-                    }
-                }
-            });
-        };
+    //     let children = Cast(this.props.Document[this.props.fieldKey], listSpec(Doc));
+    //     if (!children) {
+    //         return;
+    //     }
+    //     let childrenList = ((children[Self] as any).__fields);
+    //     const addReaction = (node: Doc) => {
+    //         node = (node as any).value();
+    //         return reaction(() => {
+    //             return this._keys.map(key => FieldValue(node[key]));
+    //         }, async data => {
+    //             if (!this._barMoved) {
+    //                 if (this._data.indexOf(node) !== -1 && this._keyframes.length < this._data.length) {
+    //                     let timeandpos = this.setTimeAndPos(node);
+    //                     let info: List<Doc> = new List<Doc>(new Array<Doc>(1000)); //kinda weird  
+    //                     info[this._currentBarX] = timeandpos;
+    //                     this._keyframes.push(info);
+    //                     this._bars = [];
+    //                     this._bars.push({ x: this._currentBarX, doc: node });
+    //                 } else {
+    //                     let index = this._data.indexOf(node);
+    //                     if (this._keyframes[index][this._currentBarX] !== undefined) { //when node is in data, but doesn't have data for this specific time. 
+    //                         let timeandpos = this.setTimeAndPos(node);
+    //                         this._keyframes[index][this._currentBarX] = timeandpos;
+    //                         this._bars.push({ x: this._currentBarX, doc: node });
+    //                     } else { //when node is in data, and has data for this specific time
+    //                         let timeandpos = this.setTimeAndPos(node);
+    //                         this._keyframes[index][this._currentBarX] = timeandpos;
+    //                     }
+    //                 }
+    //             }
+    //         });
+    //     };
 
 
-        observe(childrenList as IObservableArray<Doc>, change => {
-            if (change.type === "update") {
-                this._reactionDisposers[change.index]();
-                this._reactionDisposers[change.index] = addReaction(change.newValue);
-            } else {
-                let removed = this._reactionDisposers.splice(change.index, change.removedCount, ...change.added.map(addReaction));
-                removed.forEach(disp => disp());
-            }
-        }, true);
+    //     observe(childrenList as IObservableArray<Doc>, change => {
+    //         if (change.type === "update") {
+    //             this._reactionDisposers[change.index]();
+    //             this._reactionDisposers[change.index] = addReaction(change.newValue);
+    //         } else {
+    //             let removed = this._reactionDisposers.splice(change.index, change.removedCount, ...change.added.map(addReaction));
+    //             removed.forEach(disp => disp());
+    //         }
+    //     }, true);
 
-    }
+    // }
 
     /**
      * sets the time and pos schema doc, given a node
@@ -289,12 +292,22 @@ export class Track extends CollectionSubView(Document) {
             }
         }
     }
+    
 
-    @observable private _timer:number = 0; 
-    async componentDidMount() {
-        if (!this._keyframes) {
-            this.props.Document.keyframes = new List<List<Doc>>();
-        }
+
+    @action
+    componentDidMount() {
+        
+      
+        // if (!this._keyframes) {
+        //     this.props.Document.keyframes = new List<List<Doc>>();
+        // }
+
+        let keys = Doc.allKeys(this.props.node);
+
+        return reaction(() => keys.map(key => FieldValue(this.props.node[key])), data => {
+            console.log(data); 
+        }); 
     }
 
     /**
@@ -380,23 +393,23 @@ export class Track extends CollectionSubView(Document) {
             this.timeChange(this._currentBarX);
         }
     }
+
+    @observable private _keyframes: JSX.Element[] = []; 
+
     @action 
     onInnerDoubleClick = (e: React.MouseEvent) => {
-        console.log("double click"); 
+        this._keyframes.push(<Keyframe position={200} />); 
     }
 
     render() {
         return (
             <div className="track-container">
                 <div className="datapane">
-                    <h1>Certain node</h1>
+                    <p>{this.props.node.title}</p>
                 </div>
                 <div className="track">
                     <div className="inner" ref={this._inner} onDoubleClick={this.onInnerDoubleClick}>
-                        {SelectionManager.SelectedDocuments().map(dv => this.displayKeyFrames(dv.props.Document))}
-                        {this._bars.map((data) => {
-                            return <Keyframe position={data.x} node={data.doc}></Keyframe>;
-                        })}
+                        {this._keyframes.map((element)=> element)}
                     </div>
                 </div>
                 {/* <button onClick={this.onRecord}>Record</button>

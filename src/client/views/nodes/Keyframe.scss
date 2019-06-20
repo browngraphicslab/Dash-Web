@@ -19,4 +19,22 @@
             }
         }
     }
+
+    .leftResize{
+        left:-10px; 
+        height:20px; 
+        width:20px; 
+        top: calc(50% - 10px); 
+        position:absolute; 
+    }
+    .rightResize{
+        right:-10px; 
+        height:20px; 
+        width:20px; 
+        top:calc(50% - 10px); 
+        position:absolute; 
+
+    }
+
+
 }
