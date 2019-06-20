@@ -398,7 +398,10 @@ export class Track extends React.Component<props> {
 
     @action 
     onInnerDoubleClick = (e: React.MouseEvent) => {
-        this._keyframes.push(<Keyframe position={200} />); 
+        let inner = this._inner.current!; 
+        let left = inner.getBoundingClientRect().left;
+        let offsetX = Math.round(e.clientX - left);
+        this._keyframes.push(<Keyframe position={offsetX} />); 
     }
 
     render() {

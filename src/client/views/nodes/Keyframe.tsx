@@ -25,8 +25,9 @@ export class Keyframe extends React.Component<IProp> {
 
     @observable private _display:string = "none"; 
     @observable private _duration:number = 200; 
+    @observable private _bar = React.createRef<HTMLDivElement>(); 
 
-    async componentDidMount() {
+    componentDidMount() {
         console.log("mounted");
         if (this.props.node){
            
@@ -42,16 +43,14 @@ export class Keyframe extends React.Component<IProp> {
     onPointerEnter = (e: React.PointerEvent) => {
         e.preventDefault();
         e.stopPropagation(); 
-        //console.log("in"); 
-        this._display = "block"; 
+        //this._display = "block"; 
     }
 
     @action 
     onPointerOut = (e: React.PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        //console.log("out"); 
-        this._display = "none"; 
+        //this._display = "none"; 
     }
 
     @action 
@@ -69,13 +68,55 @@ export class Keyframe extends React.Component<IProp> {
         e.preventDefault(); 
         e.stopPropagation(); 
     }
+
+    @action 
+    onResizeLeft = (e:React.PointerEvent)=>{
+        let bar = this._bar.current!; 
+        bar.addEventListener("pointermove", this.onDragResizeLeft); 
+    }
+
+    @action 
+    onDragResizeLeft = (e:PointerEvent)=>{
+        e.preventDefault(); 
+        e.stopPropagation(); 
+        let bar = this._bar.current!;  
+        let barX = bar.getBoundingClientRect().left; 
+        let offset = barX - e.clientX; 
+        bar.style.width = `${bar.getBoundingClientRect().width + offset}px`; 
+    }
+
+    @action 
+    onResizeFinished =(e:React.PointerEvent) => {
+        e.preventDefault(); 
+        e.stopPropagation(); 
+        let bar = this._bar.current!; 
+        bar.removeEventListener("pointermove", this.onDragResizeLeft); 
+    }
    
+    @action 
+    onResizeRight = (e:React.PointerEvent)=> {
+        e.preventDefault(); 
+        e.stopPropagation(); 
+        let bar = this._bar.current!; 
+        bar.addEventListener("pointermove", this.onDragResizeRight); 
+    }
+
+    @action 
+    onDragResizeRight = (e:PointerEvent) => {
+        e.preventDefault(); 
+        e.stopPropagation(); 
+        let bar = this._bar.current!;  
+        let barX = bar.getBoundingClientRect().right; 
+        let offset = e.clientX - barX; 
+        bar.style.width = `${bar.getBoundingClientRect().width + offset}px`; 
+    }
+    
     render() {
         return (
             <div>
-                <div className="bar" style={{ transform: `translate(${this.props.position - (this._duration/2)}px)`, width:`${this._duration}px`}} onPointerOver={this.onPointerEnter} onPointerLeave={this.onPointerOut}>
-                    <div className="leftResize"></div>
-                    <div className="rightResize"></div>
+                <div className="bar" ref={this._bar} style={{ transform: `translate(${this.props.position - (this._duration/2)}px)`, width:`${this._duration}px`}} onPointerOver={this.onPointerEnter} onPointerLeave={this.onPointerOut}>
+                    <div className="leftResize" onPointerDown={this.onResizeLeft} ></div>
+                    <div className="rightResize" onPointerDown={this.onResizeRight}></div>
                     <div className="menubox" style={{display: this._display}}>
                         {/* <table className="menutable">
                             <tr>

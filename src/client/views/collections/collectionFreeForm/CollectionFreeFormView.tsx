@@ -26,6 +26,7 @@ import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import v5 = require("uuid/v5");
 import PDFMenu from "../../pdf/PDFMenu";
+import { Timeline } from "../../nodes/Timeline";
 
 export const panZoomSchema = createSchema({
     panX: "number",
