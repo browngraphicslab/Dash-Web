@@ -89,6 +89,7 @@ const schema = createSchema({
     nativeWidth: "number",
     nativeHeight: "number",
     backgroundColor: "string",
+    hidden: "boolean"
 });
 
 export const positionSchema = createSchema({
@@ -538,6 +539,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     render() {
+        if (this.Document.hidden) {
+            return null;
+        }
         var scaling = this.props.ContentScaling();
         var nativeWidth = this.nativeWidth > 0 ? `${this.nativeWidth}px` : "100%";
         var nativeHeight = BoolCast(this.props.Document.ignoreAspect) ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
