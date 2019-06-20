@@ -1,7 +1,7 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faAngleRight, faCaretDown, faCaretRight, faTrashAlt, faCaretSquareRight, faCaretSquareDown } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, observable } from "mobx";
+import { action, observable, computed } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, HeightSym, WidthSym } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
@@ -125,12 +125,20 @@ class TreeView extends React.Component<TreeViewProps> {
         </div>;
     }
 
+    titleClicked = (e: React.MouseEvent) => {
+        if (this._collapsed) return false;
+        else {
+            this.props.document.embed = !BoolCast(this.props.document.embed);
+            return true;
+        }
+    }
     static loadId = "";
     editableView = (key: string, style?: string) => (<EditableView
         oneLine={true}
         display={"inline"}
         editing={this.props.document[Id] === TreeView.loadId}
         contents={StrCast(this.props.document[key])}
+        onClick={this.titleClicked}
         height={36}
         fontStyle={style}
         GetValue={() => StrCast(this.props.document[key])}
@@ -144,24 +152,24 @@ class TreeView extends React.Component<TreeViewProps> {
         OnTab={() => this.props.indentDocument && this.props.indentDocument()}
     />)
 
-    get keyList() {
-        let keyList: string[] = [];
+    @computed get keyList() {
         let keys = Array.from(Object.keys(this.props.document));
         if (this.props.document.proto instanceof Doc) {
             keys.push(...Array.from(Object.keys(this.props.document.proto)));
             while (keys.indexOf("proto") !== -1) keys.splice(keys.indexOf("proto"), 1);
         }
-        if (keys.indexOf("data") !== -1) {
-            keys.splice(keys.indexOf("data"), 1);
-            keys.splice(0, 0, "data");
-        }
+        let keyList: string[] = [];
         keys.map(key => {
             let docList = Cast(this.props.document[key], listSpec(Doc));
             let doc = Cast(this.props.document[key], Doc);
-            if (doc instanceof Doc || (docList && (DocListCast(docList).length > 0 || key === "data"))) {
+            if (doc instanceof Doc || docList) {
                 keyList.push(key);
             }
         });
+        if (keyList.indexOf("data") !== -1) {
+            keyList.splice(keyList.indexOf("data"), 1);
+        }
+        keyList.splice(0, 0, "data");
         return keyList;
     }
     /**
@@ -172,7 +180,12 @@ class TreeView extends React.Component<TreeViewProps> {
         let onItemDown = SetupDrag(reference, () => this.props.document, this.move, this.props.dropAction, this.props.treeViewId, true);
 
         let headerElements = (
-            <span className="collectionTreeView-keyHeader" key={this._chosenKey} onPointerDown={action(() => this.props.document.embed = !BoolCast(this.props.document.embed))} >
+            <span className="collectionTreeView-keyHeader" key={this._chosenKey}
+                onPointerDown={action(() => {
+                    let ind = this.keyList.indexOf(this._chosenKey);
+                    ind = (ind + 1) % this.keyList.length;
+                    this._chosenKey = this.keyList[ind];
+                })} >
                 {this._chosenKey}
             </span>);
         let dataDocs = CollectionDockingView.Instance ? Cast(CollectionDockingView.Instance.props.Document.data, listSpec(Doc), []) : [];
@@ -209,7 +222,7 @@ class TreeView extends React.Component<TreeViewProps> {
             } else {
                 ContextMenu.Instance.addItem({ description: "Delete Workspace", event: undoBatch(() => this.props.deleteDoc(this.props.document)) });
             }
-            ContextMenu.Instance.displayMenu(e.pageX - 156, e.pageY - 15);
+            ContextMenu.Instance.displayMenu(e.pageX > 156 ? e.pageX - 156 : 0, e.pageY - 15);
             e.stopPropagation();
         }
     }
@@ -264,7 +277,7 @@ class TreeView extends React.Component<TreeViewProps> {
         let doc = Cast(this.props.document[this._chosenKey], Doc);
         let docWidth = () => NumCast(this.props.document.nativeWidth) ? Math.min(this.props.document[WidthSym](), this.props.panelWidth() - 5) : this.props.panelWidth() - 5;
         if (!this._collapsed) {
-            if (!this.props.document.embed && (docList && (DocListCast(docList).length > 0 || this._chosenKey === "data"))) {
+            if (!this.props.document.embed) {
                 contentElement = <ul key={this._chosenKey + "more"}>
                     {TreeView.GetChildElements(doc instanceof Doc ? [doc] : DocListCast(docList), this.props.treeViewId, this._chosenKey, addDoc, remDoc, this.move,
                         this.props.dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active, this.props.panelWidth)}

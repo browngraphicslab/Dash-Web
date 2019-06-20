@@ -29,6 +29,7 @@ export interface EditableProps {
     display?: string;
     oneLine?: boolean;
     editing?: boolean;
+    onClick?: (e: React.MouseEvent) => boolean;
 }
 
 /**
@@ -65,7 +66,9 @@ export class EditableView extends React.Component<EditableProps> {
 
     @action
     onClick = (e: React.MouseEvent) => {
-        this._editing = true;
+        if (!this.props.onClick || !this.props.onClick(e)) {
+            this._editing = true;
+        }
         e.stopPropagation();
     }
 
