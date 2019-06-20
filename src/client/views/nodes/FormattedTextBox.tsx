@@ -45,6 +45,7 @@ export interface FormattedTextBoxProps {
     hideOnLeave?: boolean;
     height?: string;
     color?: string;
+    outer_div?: React.RefObject<HTMLDivElement>;
 }
 
 const richTextSchema = createSchema({
@@ -97,6 +98,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     constructor(props: FieldViewProps) {
         super(props);
+        this.props.outer_div ? console.log("smd") : console.log("bye");
 
         this._ref = React.createRef();
         if (this.props.isOverlay) {

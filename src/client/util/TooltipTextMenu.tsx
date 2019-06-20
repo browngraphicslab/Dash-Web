@@ -139,9 +139,9 @@ export class TooltipTextMenu {
 
         this.update(view, undefined);
 
-        if (view.dom.parentNode !== null) {
-            view.dom.parentNode.insertBefore(this.tooltip, view.dom);
-        }
+        view.dom.parentNode!.parentNode!.insertBefore(this.tooltip, view.dom.parentNode);
+
+        //console.log("hi");
     }
 
     //label of dropdown will change to given label
