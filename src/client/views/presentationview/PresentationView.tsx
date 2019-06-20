@@ -13,7 +13,7 @@ import { CurrentUserUtils } from "../../../server/authentication/models/current_
 import PresentationElement, { buttonIndex } from "./PresentationElement";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowRight, faArrowLeft, faPlay, faStop, faPlus, faTimes, faMinus } from '@fortawesome/free-solid-svg-icons';
+import { faArrowRight, faArrowLeft, faPlay, faStop, faPlus, faTimes, faMinus, faEdit } from '@fortawesome/free-solid-svg-icons';
 import { Docs } from "../../documents/Documents";
 
 library.add(faArrowLeft);
@@ -23,6 +23,8 @@ library.add(faStop);
 library.add(faPlus);
 library.add(faTimes);
 library.add(faMinus);
+library.add(faEdit);
+
 
 export interface PresViewProps {
     Documents: List<Doc>;
@@ -136,6 +138,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
     @observable PresTitleInputOpen: boolean = false;
     //Variable that holds reference to title input, so that new presentations get titles assigned.
     @observable titleInputElement: HTMLInputElement | undefined;
+    @observable PresTitleChangeOpen: boolean = false;
 
     //initilize class variables
     constructor(props: PresViewProps) {
@@ -664,7 +667,6 @@ export class PresentationView extends React.Component<PresViewProps>  {
      */
     @action
     addNewPresentation = (presTitle: string) => {
-        //let title = "Presentation " + (this.props.Documents.length + 1);
         let newPresentationDoc = Docs.TreeDocument([], { title: presTitle });
         this.props.Documents.push(newPresentationDoc);
         this.curPresentation = newPresentationDoc;
@@ -700,7 +702,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
      */
     renderSelectOrPresSelection = () => {
         let presentationList = DocListCast(this.props.Documents);
-        if (this.PresTitleInputOpen) {
+        if (this.PresTitleInputOpen || this.PresTitleChangeOpen) {
             return <input ref={(e) => this.titleInputElement = e!} type="text" className="presentationView-title" placeholder="Enter Name!" onKeyDown={this.submitPresentationTitle} />;
         } else {
             return <select value={this.currentSelectedPresValue} id="pres_selector" className="presentationView-title" onChange={this.getSelectedPresentation}>
@@ -722,11 +724,16 @@ export class PresentationView extends React.Component<PresViewProps>  {
         if (e.keyCode === 13) {
             let presTitle = this.titleInputElement!.value;
             this.titleInputElement!.value = "";
-            this.PresTitleInputOpen = false;
-            if (presTitle === "") {
-                presTitle = "Presentation";
+            if (this.PresTitleInputOpen) {
+                if (presTitle === "") {
+                    presTitle = "Presentation";
+                }
+                this.PresTitleInputOpen = false;
+                this.addNewPresentation(presTitle);
+            } else if (this.PresTitleChangeOpen) {
+                this.PresTitleChangeOpen = false;
+                this.changePresentationTitle(presTitle);
             }
-            this.addNewPresentation(presTitle);
         }
     }
 
@@ -752,6 +759,17 @@ export class PresentationView extends React.Component<PresViewProps>  {
         }
     }
 
+    /**
+     * The function that is called to change title of presentation to what user entered.
+     */
+    @action
+    changePresentationTitle = (newTitle: string) => {
+        if (newTitle === "") {
+            return;
+        }
+        this.curPresentation.title = newTitle;
+    }
+
 
     render() {
 
@@ -765,10 +783,14 @@ export class PresentationView extends React.Component<PresViewProps>  {
                     {this.renderSelectOrPresSelection()}
                     <button title="Close Presentation" className='presentation-icon' onClick={this.closePresentation}><FontAwesomeIcon icon={"times"} /></button>
                     <button title="Add Presentation" className="presentation-icon" style={{ marginRight: 10 }} onClick={() => {
+                        runInAction(() => { if (this.PresTitleChangeOpen) { this.PresTitleChangeOpen = false; } });
                         runInAction(() => this.PresTitleInputOpen ? this.PresTitleInputOpen = false : this.PresTitleInputOpen = true);
                     }}><FontAwesomeIcon icon={"plus"} /></button>
                     <button title="Remove Presentation" className='presentation-icon' style={{ marginRight: 10 }} onClick={this.removePresentation}><FontAwesomeIcon icon={"minus"} /></button>
-
+                    <button title="Change Presentation Title" className="presentation-icon" style={{ marginRight: 10 }} onClick={() => {
+                        runInAction(() => { if (this.PresTitleInputOpen) { this.PresTitleInputOpen = false; } });
+                        runInAction(() => this.PresTitleChangeOpen ? this.PresTitleChangeOpen = false : this.PresTitleChangeOpen = true);
+                    }}><FontAwesomeIcon icon={"edit"} /></button>
                 </div>
                 <div className="presentation-buttons">
                     <button title="Back" className="presentation-button" onClick={this.back}><FontAwesomeIcon icon={"arrow-left"} /></button>
