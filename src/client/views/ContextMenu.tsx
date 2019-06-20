@@ -167,17 +167,22 @@ export class ContextMenu extends React.Component {
         console.log(this.pageX);
         console.log();
 
+        const contents = (
+            <>
+                <span>
+                    <span className="icon-background">
+                        <FontAwesomeIcon icon="search" size="lg" />
+                    </span>
+                    <input className="contextMenu-item contextMenu-description" type="text" placeholder="Search . . ." value={this._searchString} onKeyDown={this.onKeyDown} onChange={this.onChange} autoFocus />
+                </span>
+                {this.menuItems}
+            </>
+        );
         return (
             <Measure offset onResize={action((r: any) => { this._width = r.offset.width; this._height = r.offset.height; })}>
                 {({ measureRef }) => (
                     <div className="contextMenu-cont" style={style} ref={measureRef}>
-                        <span>
-                            <span className="icon-background">
-                                <FontAwesomeIcon icon="search" size="lg" />
-                            </span>
-                            <input className="contextMenu-item contextMenu-description" type="text" placeholder="Search . . ." value={this._searchString} onKeyDown={this.onKeyDown} onChange={this.onChange} autoFocus />
-                        </span>
-                        {this.menuItems}
+                        {contents}
                     </div>
                 )
                 }

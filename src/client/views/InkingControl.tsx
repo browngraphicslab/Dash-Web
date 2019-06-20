@@ -28,11 +28,18 @@ export class InkingControl extends React.Component {
     switchTool = (tool: InkTool): void => {
         this._selectedTool = tool;
     }
+    decimalToHexString(number: number) {
+        if (number < 0) {
+            number = 0xFFFFFFFF + number + 1;
+        }
+
+        return number.toString(16).toUpperCase();
+    }
 
     @action
     switchColor = (color: ColorResult): void => {
-        this._selectedColor = color.hex;
-        SelectionManager.SelectedDocuments().forEach(doc => Doc.GetProto(doc.props.Document).backgroundColor = color.hex);
+        this._selectedColor = color.hex + (color.rgb.a !== undefined ? this.decimalToHexString(Math.round(color.rgb.a * 255)) : "ff");
+        SelectionManager.SelectedDocuments().forEach(doc => Doc.GetProto(doc.props.Document).backgroundColor = this._selectedColor);
     }
 
     @action
