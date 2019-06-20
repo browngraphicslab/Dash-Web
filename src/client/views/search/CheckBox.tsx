@@ -37,9 +37,6 @@ export class CheckBox extends React.Component<CheckBoxProps>{
             autoplay: false,
             direction: "normal",
         });
-
-        // console.log(this.props.getStatus())
-        // console.log(this.props.getStatus)
     }
 
     componentDidMount = () => {
@@ -71,7 +68,7 @@ export class CheckBox extends React.Component<CheckBoxProps>{
                         this.props.parent.resetCounter++;
                         if (this.props.parent.resetCounter === this.props.numCount) {
                             this.props.parent.resetCounter = 0;
-                            this.props.parent.resetCounter = false;
+                            this.props.parent.resetBoolean = false;
                         }
                     });
                 }
