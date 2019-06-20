@@ -31,9 +31,9 @@ export class LinkMenu extends React.Component<Props> {
         let linkItems: Array<JSX.Element> = [];
         groups.forEach((group, groupType) => {
             linkItems.push(
-                <div key={groupType} className="link-menu-group">
-                    <p className="link-menu-group-name">{groupType}:</p>
-                    <div className="link-menu-group-wrapper">
+                <div key={groupType} className="linkMenu-group">
+                    <p className="linkMenu-group-name">{groupType}:</p>
+                    <div className="linkMenu-group-wrapper">
                         {this.renderGroup(group, groupType)}
                     </div>
                 </div>

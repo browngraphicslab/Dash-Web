@@ -10,5 +10,18 @@
     overflow-y: scroll;
 }
 
+.linkMenu-group {
+    margin-bottom: 10px;
+
+    &:last-child {
+        margin-bottom: 0;
+    }
+
+    .linkMenu-group-name {
+        border-bottom: 0.5px solid lightgray; 
+        margin-bottom: 4px;
+    }
+}
+
 
 

@@ -1,13 +1,19 @@
 @import "../globalCssVariables";
 .linkMenu-item {
-    border-top: 0.5px solid $main-accent; 
-    padding: 6px;
+    // border-top: 0.5px solid $main-accent; 
     position: relative;
     display: flex;
     font-size: 12px;
+    
 
     .link-name {
         position: relative;
+
+        p {
+            padding: 4px 6px;
+            line-height: 12px;
+            border-radius: 5px;
+        }
     }
 
     .linkMenu-item-content {
@@ -15,27 +21,25 @@
     }
     
     .link-metadata {
-        margin-top: 6px;
-        padding: 3px;
-        border-top: 0.5px solid $light-color-secondary;
-        .link-metadata-row {
-            margin-left: 6px;
-        }
+        padding: 0 10px 0 16px;
+        margin-bottom: 4px;
+        color: $main-accent;
+        font-style: italic;
+        font-size: 10.5px;
     }
 
-    &:last-child {
-        border-bottom: 0.5px solid $main-accent;
-    }
     &:hover {
         .linkMenu-item-buttons {
             display: flex;
         }
         .linkMenu-item-content {
             &.expand-two p {
-                width: calc(100% - 46px);
+                width: calc(100% - 52px);
+                background-color: lightgray;
             }
             &.expand-three p {
-                width: calc(100% - 78px);
+                width: calc(100% - 84px);
+                background-color: lightgray;
             }
         }
     }
