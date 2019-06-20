@@ -15,6 +15,7 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowRight, faArrowLeft, faPlay, faStop, faPlus, faTimes, faMinus, faEdit } from '@fortawesome/free-solid-svg-icons';
 import { Docs } from "../../documents/Documents";
+import { undoBatch, UndoManager } from "../../util/UndoManager";
 
 library.add(faArrowLeft);
 library.add(faArrowRight);
@@ -560,11 +561,13 @@ export class PresentationView extends React.Component<PresViewProps>  {
         if (castedGroupDocs !== undefined) {
             castedGroupDocs.forEach(async (groupDoc: Doc, index: number) => {
                 let castedGrouping = await DocListCastAsync(groupDoc.grouping);
+                // UndoManager.RunInBatch(() => {
                 if (castedGrouping) {
                     castedGrouping.forEach((doc: Doc) => {
                         doc.presentId = Utils.GenerateGuid();
                     });
                 }
+                // }, "guid assignment");
             });
         }
     }
@@ -742,27 +745,54 @@ export class PresentationView extends React.Component<PresViewProps>  {
      * list. Sets up the next presentation as current.
      */
     @action
-    removePresentation = () => {
+    removePresentation = async () => {
         if (this.presentationsMapping.size !== 1) {
             let presentationList = Cast(this.props.Documents, listSpec(Doc));
+            let batch = UndoManager.StartBatch("presRemoval");
             let removedDoc = this.presentationsMapping.get(this.currentSelectedPresValue!);
+            presentationList!.splice(presentationList!.indexOf(removedDoc!), 1);
             this.presentationsKeyMapping.delete(removedDoc!);
             this.presentationsMapping.delete(this.currentSelectedPresValue!);
             let remainingPresentations = this.presentationsMapping.values();
             let nextDoc = remainingPresentations.next().value;
+
+
+            let curGuid = this.currentSelectedPresValue!;
+            let curPresStatus = this.presStatus;
+            UndoManager.AddEvent({
+                undo: action(() => {
+                    this.curPresentation = removedDoc!;
+                    this.presStatus = curPresStatus;
+                    this.presentationsMapping.set(curGuid, removedDoc!);
+                    this.presentationsKeyMapping.set(removedDoc!, curGuid);
+                    this.currentSelectedPresValue = curGuid;
+                    this.setPresentationBackUps();
+
+                }),
+                redo: action(() => {
+                    this.curPresentation = nextDoc;
+                    this.presStatus = false;
+                    this.presentationsKeyMapping.delete(removedDoc!);
+                    this.presentationsMapping.delete(curGuid);
+                    this.currentSelectedPresValue = this.presentationsKeyMapping.get(nextDoc)!.toString();
+                    this.setPresentationBackUps();
+
+                }),
+            });
+
             this.curPresentation = nextDoc;
             this.resetGroupIds();
             this.resetPresentation();
             this.currentSelectedPresValue = this.presentationsKeyMapping.get(nextDoc)!.toString();
             this.setPresentationBackUps();
-            presentationList!.splice(presentationList!.indexOf(removedDoc!), 1);
+            batch.end();
         }
     }
 
     /**
      * The function that is called to change title of presentation to what user entered.
      */
-    @action
+    @undoBatch
     changePresentationTitle = (newTitle: string) => {
         if (newTitle === "") {
             return;
