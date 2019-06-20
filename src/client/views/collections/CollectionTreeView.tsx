@@ -9,7 +9,7 @@ import { List } from '../../../new_fields/List';
 import { Document, listSpec } from '../../../new_fields/Schema';
 import { BoolCast, Cast, NumCast, StrCast } from '../../../new_fields/Types';
 import { emptyFunction, Utils } from '../../../Utils';
-import { Docs } from '../../documents/Documents';
+import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentManager } from '../../util/DocumentManager';
 import { DragManager, dropActionType, SetupDrag } from "../../util/DragManager";
 import { SelectionManager } from '../../util/SelectionManager';
@@ -232,6 +232,12 @@ class TreeView extends React.Component<TreeViewProps> {
         let bounds = this.props.ScreenToLocalTransform().transformPoint(rect.left, rect.top + rect.height / 2);
         let before = x[1] < bounds[1];
         let inside = x[0] > bounds[0] + 75 || (!before && !this._collapsed);
+        if (de.data instanceof DragManager.LinkDragData) {
+            let sourceDoc = de.data.linkSourceDocument;
+            let destDoc = this.props.document;
+            DocUtils.MakeLink(sourceDoc, destDoc);
+            e.stopPropagation();
+        }
         if (de.data instanceof DragManager.DocumentDragData) {
             let addDoc = (doc: Doc) => this.props.addDocument(doc, this.props.document, before);
             if (inside) {

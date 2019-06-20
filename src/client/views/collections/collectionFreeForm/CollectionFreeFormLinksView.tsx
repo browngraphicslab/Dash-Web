@@ -165,6 +165,9 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
     findUniquePairs = (): JSX.Element[] => {
         let connections = DocumentManager.Instance.LinkedDocumentViews;
 
+        // console.log("CONNECTIONS");
+        // connections.forEach(c => console.log(StrCast(c.anchor1View.Document.title), StrCast(c.anchor2View.Document.title)));
+
         let unique: Set<{ sourceView: DocumentView, targetView: DocumentView, linkDoc: Doc }> = new Set();
         connections.forEach(c => {
 

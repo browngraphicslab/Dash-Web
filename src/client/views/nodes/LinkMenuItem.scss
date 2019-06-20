@@ -6,6 +6,10 @@
     display: flex;
     font-size: 12px;
 
+    .link-name {
+        position: relative;
+    }
+
     .linkMenu-item-content {
         width: 100%;
     }
@@ -27,10 +31,10 @@
             display: flex;
         }
         .linkMenu-item-content {
-            &.expand-two {
+            &.expand-two p {
                 width: calc(100% - 46px);
             }
-            &.expand-three {
+            &.expand-three p {
                 width: calc(100% - 78px);
             }
         }
