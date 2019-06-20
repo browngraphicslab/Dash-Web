@@ -89,17 +89,26 @@ export class DocumentManager {
             let linksList = LinkManager.Instance.findAllRelatedLinks(dv.props.Document);
             if (linksList && linksList.length) {
                 pairs.push(...linksList.reduce((pairs, link) => {
-                    if (link) {
-                        let destination = LinkManager.Instance.findOppositeAnchor(link, dv.props.Document);
-                        if (destination) {
-                            DocumentManager.Instance.getDocumentViews(destination).map(docView1 => {
+                    // if (link) {
+                    let destination = LinkManager.Instance.findOppositeAnchor(link, dv.props.Document);
+                    // console.log("FINDING FOR", StrCast(dv.Document.title), StrCast(destination.title));
+
+                    if (destination) {
+                        let dvs = DocumentManager.Instance.getDocumentViews(destination);
+                        if (dvs.length > 0) {
+                            dvs.map(docView1 => {
                                 // console.log("PUSHING LINK BETWEEN", StrCast(dv.props.Document.title), StrCast(docView1.props.Document.title));
                                 // TODO: if any docviews are not in the same context, draw a proxy
                                 // let sameContent = dv.props.ContainingCollectionView === docView1.props.ContainingCollectionView;
                                 pairs.push({ anchor1View: dv, anchor2View: docView1, linkDoc: link });
+                                // console.log("PUSHED", StrCast(dv.props.Document.title), StrCast(docView1.Document.title));
                             });
+                        } else {
+                            let dv = DocumentManager.Instance.getDocumentView(destination);
+                            dv ? console.log(StrCast(dv.props.Document.title)) : console.log("cant find");
                         }
                     }
+                    // }
                     return pairs;
                 }, [] as { anchor1View: DocumentView, anchor2View: DocumentView, linkDoc: Doc }[]));
             }
