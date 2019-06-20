@@ -1,13 +1,16 @@
 @import "../globalCssVariables";
 
-.checkbox {
+.checkboxfilter {
     display: flex;
+    margin-top: 0px;
+    padding: 3px;
 
     .outer {
         display: flex;
         position: relative;
         justify-content: center;
-        align-items: center;
+        align-items: center; 
+        margin-top: 0px;
     }
 
     .check-box {
@@ -28,7 +31,6 @@
 
     .check-container:hover ~ .check-box {
         background-color: $intermediate-color;
-
     }
 
     .check-container {
@@ -49,6 +51,8 @@
 }
 
 .checkbox-title {
+    display: flex;
+    align-items: center;
     text-transform: capitalize;
     margin-left: 15px;
 }

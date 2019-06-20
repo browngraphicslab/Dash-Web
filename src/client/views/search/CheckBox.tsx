@@ -10,6 +10,7 @@ interface CheckBoxProps {
     title: string;
     parent: any;
     numCount: number;
+    default: boolean;
 }
 
 @observer
@@ -36,6 +37,9 @@ export class CheckBox extends React.Component<CheckBoxProps>{
             autoplay: false,
             direction: "normal",
         });
+
+        // console.log(this.props.getStatus())
+        // console.log(this.props.getStatus)
     }
 
     componentDidMount = () => {
@@ -55,6 +59,7 @@ export class CheckBox extends React.Component<CheckBoxProps>{
 
         if (this.props.originalStatus) {
             this.checkTimeline.play();
+            this.checkTimeline.restart();
         }
 
         this._resetReaction = reaction(
@@ -76,12 +81,18 @@ export class CheckBox extends React.Component<CheckBoxProps>{
 
     @action.bound
     reset() {
-        if (!this._status) {
+        if(this.props.default){
             this._status = true;
             this.checkTimeline.play();
             this.checkTimeline.restart();
         }
+        else{
+            this._status = false;
+            this.uncheckTimeline.play();
+            this.uncheckTimeline.restart();
+        }
 
+        this.props.updateStatus(this.props.default);
     }
 
     @action.bound
@@ -102,7 +113,7 @@ export class CheckBox extends React.Component<CheckBoxProps>{
 
     render() {
         return (
-            <div className="checkbox" onClick={this.onClick}>
+            <div className="checkboxfilter" onClick={this.onClick}>
                 <div className="outer">
                     <div className="check-container">
                         <svg viewBox="0 12 40 40">

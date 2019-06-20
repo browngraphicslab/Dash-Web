@@ -29,6 +29,7 @@ import { DocumentView } from '../nodes/DocumentView';
 import { CollectionView } from '../collections/CollectionView';
 import { CollectionPDFView } from '../collections/CollectionPDFView';
 import { CollectionVideoView } from '../collections/CollectionVideoView';
+import { CollectionFilters } from './CollectionFilters';
 
 export enum Keys {
     TITLE = "title",
@@ -55,6 +56,8 @@ export class SearchBox extends React.Component {
     @observable authorFieldStatus: boolean = true;
     @observable dataFieldStatus: boolean = true;
     @observable collectionStatus = false;
+    @observable collectionSelfStatus = true;
+    @observable collectionParentStatus = true;
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -79,6 +82,14 @@ export class SearchBox extends React.Component {
         ToggleBar.Instance.resetToggle();
         IconBar.Instance.selectAll();
         FieldFilters.Instance.resetFieldFilters();
+        // console.log("field filters at end")
+        // console.log("title", this.titleFieldStatus, "author:", this.authorFieldStatus, "data:", this.dataFieldStatus)
+        // console.log("should be true, true, true\n")
+        
+        CollectionFilters.Instance.resetCollectionFilters();
+        // console.log("collection filters at end")
+        // console.log("normal;", this.collectionStatus, "self:", this.collectionSelfStatus, "parent:", this.collectionParentStatus)
+        // console.log("should be fase, true, true")
     }
 
     @action.bound
@@ -207,10 +218,6 @@ export class SearchBox extends React.Component {
             query = this.addCollectionFilter(query);
             query = query.replace(/\s+/g, ' ').trim();
         }
-
-        //gets rid of any extra spaces that may have been added
-        // query = query.replace(/\s+/g, ' ').trim();
-
         return query;
     }
 
@@ -237,8 +244,6 @@ export class SearchBox extends React.Component {
         let results: Doc[];
 
         query = this.getFinalQuery(query);
-
-        console.log(query);
 
         //if there is no query there should be no result
         if (query === "") {
@@ -429,6 +434,40 @@ export class SearchBox extends React.Component {
         this.collectionStatus = newStat;
     }
 
+    @action.bound
+    updateSelfCollectionStatus(newStat: boolean) {
+        this.collectionSelfStatus = newStat;
+    }
+
+    @action.bound
+    updateParentCollectionStatus(newStat: boolean) {
+        this.collectionParentStatus = newStat;
+    }
+
+    getCollectionStatus() {
+        return this.collectionStatus;
+    }
+
+    getSelfCollectionStatus() {
+        return this.collectionSelfStatus;
+    }
+
+    getParentCollectionStatus() {
+        return this.collectionParentStatus;
+    }
+
+    getTitleStatus() {
+        return this.titleFieldStatus;
+    }
+
+    getAuthorStatus() {
+        return this.authorFieldStatus;
+    }
+
+    getDataStatus() {
+        return this.dataFieldStatus;
+    }
+
     // Useful queries:
     // Delegates of a document: {!join from=id to=proto_i}id:{protoId}
     // Documents in a collection: {!join from=data_l to=id}id:{collectionProtoId} //id of collections prototype
@@ -466,11 +505,13 @@ export class SearchBox extends React.Component {
                                 <IconBar />
                             </div>
                             <div className="filter-collection filter-div">
-                                <div className='collection-title'>Search in current collections</div>
-                                <CheckBox title={"limit to current collection"} parent={this} numCount={1} updateStatus={this.updateCollectionStatus} originalStatus={this.collectionStatus} />
+                                <CollectionFilters 
+                                updateCollectionStatus = {this.updateCollectionStatus} updateParentCollectionStatus = {this.updateParentCollectionStatus} updateSelfCollectionStatus = {this.updateSelfCollectionStatus}
+                                collectionStatus = {this.collectionStatus} collectionParentStatus = {this.collectionParentStatus} collectionSelfStatus = {this.collectionSelfStatus}/>
                             </div>
                             <div className="where-in-doc filter-div">
-                                <FieldFilters titleFieldStatus={this.titleFieldStatus} dataFieldStatus={this.dataFieldStatus} authorFieldStatus={this.authorFieldStatus}
+                                <FieldFilters 
+                                titleFieldStatus={this.titleFieldStatus} dataFieldStatus={this.dataFieldStatus} authorFieldStatus={this.authorFieldStatus}
                                     updateAuthorStatus={this.updateAuthorStatus} updateDataStatus={this.updateDataStatus} updateTitleStatus={this.updateTitleStatus} />
                             </div>
                         </div>
