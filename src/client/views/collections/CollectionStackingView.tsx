@@ -101,7 +101,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             let renderScale = this.columnWidth / NumCast(d.nativeWidth, this.columnWidth);
             let aspect = NumCast(d.nativeWidth) / NumCast(d.nativeHeight);
             let width = () => this.columnWidth;
-            let height = () => aspect ? width() / aspect : d[HeightSym]()
+            let height = () => aspect ? width() / aspect : d[HeightSym]();
             let rowSpan = Math.ceil((height() + this.gridGap) / (this._gridSize + this.gridGap));
             let childFocus = (doc: Doc) => {
                 doc.libraryBrush = true;
