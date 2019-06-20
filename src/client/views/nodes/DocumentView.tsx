@@ -31,12 +31,9 @@ import "./DocumentView.scss";
 import React = require("react");
 import { Id, Copy } from '../../../new_fields/FieldSymbols';
 import { ContextMenuProps } from '../ContextMenuItem';
-<<<<<<< HEAD
 import { list, object, createSimpleSchema } from 'serializr';
 import { LinkManager } from '../../util/LinkManager';
-=======
 import { RouteStore } from '../../../server/RouteStore';
->>>>>>> e9d62f4ca0dbeb57e46239047041a8a04da7b504
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(fa.faTrash);
@@ -556,7 +553,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     render() {
         var scaling = this.props.ContentScaling();
         var nativeWidth = this.nativeWidth > 0 ? `${this.nativeWidth}px` : "100%";
-<<<<<<< HEAD
 
         // // for linkbutton docs
         // let isLinkButton = BoolCast(this.props.Document.isLinkButton);
@@ -568,9 +564,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         //     return match || found;
         // }, false) : true;
 
-=======
         var nativeHeight = BoolCast(this.props.Document.ignoreAspect) ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
->>>>>>> e9d62f4ca0dbeb57e46239047041a8a04da7b504
         return (
             <div className={`documentView-node${this.props.isTopMost ? "-topmost" : ""}`}
                 ref={this._mainCont}

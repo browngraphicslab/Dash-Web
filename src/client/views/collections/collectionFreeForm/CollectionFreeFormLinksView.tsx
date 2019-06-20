@@ -214,7 +214,6 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
                         // LinkManager.Instance.linkProxies.push(proxy);
                         LinkManager.Instance.addLinkProxy(proxy);
                     }
-<<<<<<< HEAD
                     uniqueList.push(<CollectionFreeFormLinkWithProxyView key={key} sourceView={u.sourceView} targetView={u.targetView} proxyDoc={proxy} />);
 
                     // let proxy = LinkManager.Instance.findLinkProxy(StrCast(u.sourceView.props.Document[Id]), StrCast(u.targetView.props.Document[Id]));
@@ -228,11 +227,6 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
 
                     // uniqueList.push(<CollectionFreeFormLinkWithProxyView key={key} sourceView={u.sourceView} targetView={u.targetView}
                     //     proxyDoc={proxy} addDocTab={this.props.addDocTab} />);
-=======
-                    return match || found;
-                }, false)) {
-                    drawnPairs.push({ a: possiblePair.a, b: possiblePair.b, l: [connection.l] });
->>>>>>> e9d62f4ca0dbeb57e46239047041a8a04da7b504
                 }
             }
         });
