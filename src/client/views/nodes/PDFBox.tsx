@@ -1,7 +1,7 @@
 import { action, IReactionDisposer, observable, reaction, trace, untracked } from 'mobx';
 import { observer } from "mobx-react";
 import 'react-image-lightbox/style.css';
-import { WidthSym } from "../../../new_fields/Doc";
+import { WidthSym, Doc } from "../../../new_fields/Doc";
 import { makeInterface } from "../../../new_fields/Schema";
 import { Cast, NumCast } from "../../../new_fields/Types";
 import { PdfField } from "../../../new_fields/URLField";
@@ -17,6 +17,8 @@ import { FieldView, FieldViewProps } from './FieldView';
 import { pageSchema } from "./ImageBox";
 import "./PDFBox.scss";
 import React = require("react");
+import { CompileScript } from '../../util/Scripting';
+import { ScriptField } from '../../../fields/ScriptField';
 
 type PdfDocument = makeInterface<[typeof positionSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(positionSchema, pageSchema);
@@ -42,25 +44,15 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
                 }
             }
         );
+
+        let script = CompileScript("return this.page === 2", { params: { this: Doc.name } });
+        if (script.compiled) {
+            this.props.Document.filterScript = new ScriptField(script);
+        }
     }
 
-    @action
     componentDidMount() {
         if (this.props.setPdfBox) this.props.setPdfBox(this);
-
-        this._scrollY = NumCast(this.Document.startY);
-        this.props.Document.scrollY = this.Document.startY;
-        // let ccv = this.props.ContainingCollectionView;
-        // if (ccv) {
-        //     ccv.props.Document.scrollY = this.Document.startY;
-        // }
-    }
-
-    componentWillUnmount() {
-        let ccv = this.props.ContainingCollectionView;
-        if (ccv) {
-            ccv.props.Document.scrollY = this.Document.startY;
-        }
     }
 
     public GetPage() {
