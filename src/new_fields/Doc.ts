@@ -222,6 +222,16 @@ export namespace Doc {
         return Array.from(results);
     }
 
+    export function AddDocToList(target: Doc, key: string, doc: Doc, relativeTo?: Doc, before?: boolean) {
+        let list = Cast(target[key], listSpec(Doc));
+        if (list) {
+            let ind = relativeTo ? list.indexOf(relativeTo) : -1;
+            if (ind === -1) list.push(doc);
+            else list.splice(before ? ind : ind + 1, 0, doc);
+        }
+        return true;
+    }
+
     export function MakeAlias(doc: Doc) {
         if (!GetT(doc, "isPrototype", "boolean", true)) {
             return Doc.MakeCopy(doc);

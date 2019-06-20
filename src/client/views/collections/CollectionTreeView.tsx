@@ -251,16 +251,6 @@ class TreeView extends React.Component<TreeViewProps> {
         return false;
     }
 
-    public static AddDocToList(target: Doc, key: string, doc: Doc, relativeTo?: Doc, before?: boolean) {
-        let list = Cast(target[key], listSpec(Doc));
-        if (list) {
-            let ind = relativeTo ? list.indexOf(relativeTo) : -1;
-            if (ind === -1) list.push(doc);
-            else list.splice(before ? ind : ind + 1, 0, doc);
-        }
-        return true;
-    }
-
     docTransform = () => {
         let { scale, translateX, translateY } = Utils.GetScreenTransform(this._dref.current!);
         let outerXf = this.props.outerXf();
@@ -273,7 +263,7 @@ class TreeView extends React.Component<TreeViewProps> {
         let contentElement: (JSX.Element | null) = null;
         let docList = Cast(this.props.document[this._chosenKey], listSpec(Doc));
         let remDoc = (doc: Doc) => this.remove(doc, this._chosenKey);
-        let addDoc = (doc: Doc, addBefore?: Doc, before?: boolean) => TreeView.AddDocToList(this.props.document, this._chosenKey, doc, addBefore, before);
+        let addDoc = (doc: Doc, addBefore?: Doc, before?: boolean) => Doc.AddDocToList(this.props.document, this._chosenKey, doc, addBefore, before);
         let doc = Cast(this.props.document[this._chosenKey], Doc);
         let docWidth = () => NumCast(this.props.document.nativeWidth) ? Math.min(this.props.document[WidthSym](), this.props.panelWidth() - 5) : this.props.panelWidth() - 5;
         if (!this._collapsed) {
@@ -334,7 +324,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 if (StrCast(docList[i - 1].layout).indexOf("CollectionView") !== -1) {
                     let fieldKeysub = StrCast(docList[i - 1].layout).split("fieldKey")[1];
                     let fieldKey = fieldKeysub.split("\"")[1];
-                    TreeView.AddDocToList(docList[i - 1], fieldKey, child);
+                    Doc.AddDocToList(docList[i - 1], fieldKey, child);
                     remove(child);
                 }
             }
@@ -403,7 +393,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
 
     render() {
         let dropAction = StrCast(this.props.Document.dropAction) as dropActionType;
-        let addDoc = (doc: Doc, relativeTo?: Doc, before?: boolean) => TreeView.AddDocToList(this.props.Document, this.props.fieldKey, doc, relativeTo, before);
+        let addDoc = (doc: Doc, relativeTo?: Doc, before?: boolean) => Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, relativeTo, before);
         let moveDoc = (d: Doc, target: Doc, addDoc: (doc: Doc) => boolean) => this.props.moveDocument(d, target, addDoc);
 
         return !this.childDocs ? (null) : (
@@ -423,7 +413,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                             Doc.GetProto(this.props.Document).title = value;
                             let doc = Docs.FreeformDocument([], { title: "", x: 0, y: 0, width: 100, height: 25, templates: new List<string>([Templates.Title.Layout]) });
                             TreeView.loadId = doc[Id];
-                            TreeView.AddDocToList(this.props.Document, this.props.fieldKey, doc, this.childDocs.length ? this.childDocs[0] : undefined, true);
+                            Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, this.childDocs.length ? this.childDocs[0] : undefined, true);
                         }} />
                 </div>
                 <ul className="no-indent">
