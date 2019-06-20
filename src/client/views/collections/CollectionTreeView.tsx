@@ -25,6 +25,7 @@ import { CollectionSchemaPreview } from './CollectionSchemaView';
 import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTreeView.scss";
 import React = require("react");
+import { LinkManager } from '../../util/LinkManager';
 
 
 export interface TreeViewProps {
@@ -166,6 +167,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 keyList.push(key);
             }
         });
+        if (LinkManager.Instance.findAllRelatedLinks(this.props.document).length > 0) keyList.push("links");
         if (keyList.indexOf("data") !== -1) {
             keyList.splice(keyList.indexOf("data"), 1);
         }
@@ -275,6 +277,24 @@ class TreeView extends React.Component<TreeViewProps> {
         return finalXf;
     }
 
+    renderLinks = () => {
+        let ele: JSX.Element[] = [];
+        let remDoc = (doc: Doc) => this.remove(doc, this._chosenKey);
+        let addDoc = (doc: Doc, addBefore?: Doc, before?: boolean) => TreeView.AddDocToList(this.props.document, this._chosenKey, doc, addBefore, before);
+        let groups = LinkManager.Instance.findRelatedGroupedLinks(this.props.document);
+        groups.forEach((groupLinkDocs, groupType) => {
+            let destLinks = groupLinkDocs.map(d => LinkManager.Instance.findOppositeAnchor(d, this.props.document));
+            ele.push(
+                <div key={"treeviewlink-" + groupType + "subtitle"}>
+                    <div className="collectionTreeView-subtitle">{groupType}:</div>
+                    {TreeView.GetChildElements(destLinks, this.props.treeViewId, "treeviewlink-" + groupType, addDoc, remDoc, this.move,
+                        this.props.dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active, this.props.panelWidth)}
+                </div>
+            );
+        });
+        return ele;
+    }
+
     render() {
         let contentElement: (JSX.Element | null) = null;
         let docList = Cast(this.props.document[this._chosenKey], listSpec(Doc));
@@ -285,8 +305,9 @@ class TreeView extends React.Component<TreeViewProps> {
         if (!this._collapsed) {
             if (!this.props.document.embed) {
                 contentElement = <ul key={this._chosenKey + "more"}>
-                    {TreeView.GetChildElements(doc instanceof Doc ? [doc] : DocListCast(docList), this.props.treeViewId, this._chosenKey, addDoc, remDoc, this.move,
-                        this.props.dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active, this.props.panelWidth)}
+                    {this._chosenKey === "links" ? this.renderLinks() :
+                        TreeView.GetChildElements(doc instanceof Doc ? [doc] : DocListCast(docList), this.props.treeViewId, this._chosenKey, addDoc, remDoc, this.move,
+                            this.props.dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active, this.props.panelWidth)}
                 </ul >;
             } else {
                 contentElement = <div ref={this._dref} style={{ display: "inline-block", height: this.props.panelHeight() }} key={this.props.document[Id]}>

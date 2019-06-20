@@ -59,6 +59,12 @@
     background: lightgray;
 }
 
+.collectionTreeView-subtitle {
+    font-style: italic;
+    font-size: 8pt;
+    color: $intermediate-color;
+}
+
 .docContainer {
     position: relative;
     text-overflow: ellipsis;
