@@ -7,7 +7,6 @@ export class Search {
     private url = 'http://localhost:8983/solr/';
 
     public async updateDocument(document: any) {
-        return;
         try {
             const res = await rp.post(this.url + "dash/update", {
                 headers: { 'content-type': 'application/json' },
