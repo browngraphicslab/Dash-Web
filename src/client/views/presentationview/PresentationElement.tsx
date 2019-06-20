@@ -12,7 +12,6 @@ import { faFile as fileSolid, faLocationArrow, faArrowUp, faSearch } from '@fort
 import { faFile as fileRegular } from '@fortawesome/free-regular-svg-icons';
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
-import { DocumentManager } from "../../util/DocumentManager";
 
 
 
@@ -72,11 +71,13 @@ export default class PresentationElement extends React.Component<PresentationEle
         return this.selectedButtons;
     }
 
+    //Lifecycle function that makes sure that button BackUp is received when mounted.
     async componentDidMount() {
         this.receiveButtonBackUp();
 
     }
 
+    //Lifecycle function that makes sure button BackUp is received when not re-mounted bu re-rendered.
     async componentDidUpdate() {
         this.receiveButtonBackUp();
     }
