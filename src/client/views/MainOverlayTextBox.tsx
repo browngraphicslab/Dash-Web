@@ -37,7 +37,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
             (box?: FormattedTextBox) => {
                 this._textBox = box;
                 if (box) {
-                    this.TextDoc = box.props.Document;
+                    this.TextDoc = box.props.DataDoc;
                     let sxf = Utils.GetScreenTransform(box ? box.CurrentDiv : undefined);
                     let xf = () => { box.props.ScreenToLocalTransform(); return new Transform(-sxf.translateX, -sxf.translateY, 1 / sxf.scale); };
                     this.setTextDoc(box.props.fieldKey, box.CurrentDiv, xf, BoolCast(box.props.Document.autoHeight, false) || box.props.height === "min-content");
@@ -118,7 +118,9 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
                 <div className="mainOverlayTextBox-textInput" onPointerDown={this.textBoxDown} ref={this._textProxyDiv} onScroll={this.textScroll}
                     style={{ width: `${textRect.width * s}px`, height: "0px" }}>
                     <div style={{ height: hgt, width: "100%", position: "absolute", bottom: this._textBottom ? "0px" : undefined }}>
-                        <FormattedTextBox color={`${this._textColor}`} fieldKey={this.TextFieldKey} hideOnLeave={this._textHideOnLeave} isOverlay={true} Document={FormattedTextBox.InputBoxOverlay.props.Document}
+                        <FormattedTextBox color={`${this._textColor}`} fieldKey={this.TextFieldKey} hideOnLeave={this._textHideOnLeave} isOverlay={true}
+                            Document={FormattedTextBox.InputBoxOverlay.props.Document}
+                            DataDoc={FormattedTextBox.InputBoxOverlay.props.DataDoc}
                             isSelected={returnTrue} select={emptyFunction} isTopMost={true} selectOnLoad={true}
                             ContainingCollectionView={undefined} whenActiveChanged={emptyFunction} active={returnTrue}
                             ScreenToLocalTransform={this._textXf} PanelWidth={returnZero} PanelHeight={returnZero} focus={emptyFunction} addDocTab={this.addDocTab} />

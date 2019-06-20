@@ -119,7 +119,9 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     gridColumnEnd: `span 1`,
                     transform: `scale(${renderScale})`
                 }} >
-                <DocumentView key={d[Id]} Document={d}
+                <DocumentView key={d[Id]}
+                    Document={d}
+                    DataDoc={d}
                     addDocument={this.props.addDocument}
                     removeDocument={this.props.removeDocument}
                     moveDocument={this.moveDocument}

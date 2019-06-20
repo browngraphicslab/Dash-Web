@@ -30,6 +30,7 @@ export interface FieldViewProps {
     fieldKey: string;
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
     Document: Doc;
+    DataDoc: Doc;
     isSelected: () => boolean;
     select: (isCtrlPressed: boolean) => void;
     isTopMost: boolean;

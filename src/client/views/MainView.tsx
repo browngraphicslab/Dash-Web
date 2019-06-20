@@ -203,6 +203,7 @@ export class MainView extends React.Component {
         let mainCont = this.mainContainer;
         let content = !mainCont ? (null) :
             <DocumentView Document={mainCont}
+                DataDoc={mainCont}
                 addDocument={undefined}
                 addDocTab={emptyFunction}
                 removeDocument={undefined}

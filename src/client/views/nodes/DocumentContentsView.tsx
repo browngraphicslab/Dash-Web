@@ -23,6 +23,7 @@ import { FieldViewProps } from "./FieldView";
 import { Without, OmitKeys } from "../../../Utils";
 import { Cast, StrCast, NumCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
+import { Doc } from "../../../new_fields/Doc";
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 type BindingProps = Without<FieldViewProps, 'fieldKey'>;
@@ -47,11 +48,12 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     hideOnLeave?: boolean
 }> {
     @computed get layout(): string {
-        const layout = Cast(this.props.Document[this.props.layoutKey], "string");
+        let layoutDoc = this.props.Document.layout instanceof Doc ? this.props.Document.layout : this.props.Document;
+        const layout = Cast(layoutDoc[this.props.layoutKey], "string");
         if (layout === undefined) {
             return this.props.Document.data ?
                 "<FieldView {...props} fieldKey='data' />" :
-                KeyValueBox.LayoutString(this.props.Document.proto ? "proto" : "");
+                KeyValueBox.LayoutString(layoutDoc.proto ? "proto" : "");
         } else if (typeof layout === "string") {
             return layout;
         } else {
@@ -59,8 +61,8 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         }
     }
 
-    CreateBindings(): JsxBindings {
-        return { props: OmitKeys(this.props, ['parentActive'], (obj: any) => obj.active = this.props.parentActive).omit };
+    CreateBindings(layoutDoc?: Doc): JsxBindings {
+        return { props: { ...OmitKeys(this.props, ['parentActive'], (obj: any) => obj.active = this.props.parentActive).omit, Document: layoutDoc } };
     }
 
     @computed get templates(): List<string> {
@@ -104,7 +106,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         if (!this.layout && (this.props.layoutKey !== "overlayLayout" || !this.templates.length)) return (null);
         return <ObserverJsxParser
             components={{ FormattedTextBox, ImageBox, IconBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox }}
-            bindings={this.CreateBindings()}
+            bindings={this.CreateBindings(this.props.Document.layout instanceof Doc ? this.props.Document.layout : this.props.Document)}
             jsx={this.finalLayout}
             showWarnings={true}
             onError={(test: any) => { console.log(test); }}

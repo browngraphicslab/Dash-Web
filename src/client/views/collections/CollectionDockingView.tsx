@@ -492,7 +492,9 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         return (
             <div className="collectionDockingView-content" ref={this._mainCont}
                 style={{ transform: `translate(${this.previewPanelCenteringOffset}px, 0px) scale(${this.scaleToFitMultiplier}, ${this.scaleToFitMultiplier})` }}>
-                <DocumentView key={this._document[Id]} Document={this._document}
+                <DocumentView key={this._document[Id]}
+                    Document={this._document}
+                    DataDoc={this._document}
                     bringToFront={emptyFunction}
                     addDocument={undefined}
                     removeDocument={undefined}

@@ -98,6 +98,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     renderCell = (rowProps: CellInfo) => {
         let props: FieldViewProps = {
             Document: rowProps.original,
+            DataDoc: rowProps.original,
             fieldKey: rowProps.column.id as string,
             ContainingCollectionView: this.props.CollectionView,
             isSelected: returnFalse,
@@ -423,7 +424,7 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
         return (<div className="collectionSchemaView-previewRegion" style={{ width: this.props.width(), height: "100%" }}>
             {!this.props.Document || !this.props.width ? (null) : (
                 <div className="collectionSchemaView-previewDoc" style={{ transform: `translate(${this.centeringOffset}px, 0px)`, height: "100%" }}>
-                    <DocumentView Document={this.props.Document} isTopMost={false} selectOnLoad={false}
+                    <DocumentView DataDoc={this.props.Document} Document={this.props.Document} isTopMost={false} selectOnLoad={false}
                         addDocument={this.props.addDocument} removeDocument={this.props.removeDocument} moveDocument={this.props.moveDocument}
                         ScreenToLocalTransform={this.getTransform}
                         ContentScaling={this.contentScaling}
