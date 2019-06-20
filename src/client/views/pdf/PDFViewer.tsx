@@ -128,7 +128,6 @@ class Viewer extends React.Component<IViewerProps> {
 
             let startY = NumCast(this.props.parent.Document.startY);
             this.props.parent.Document.scrollY = startY;
-            console.log(startY);
             // this.props.loaded(Math.max(...pageSizes.map(i => i.width)), pageSizes[0].height, this.props.pdf.numPages);
         }
     }

@@ -38,13 +38,29 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
             () => this.props.Document.scrollY,
             () => {
                 if (this._mainCont.current) {
-                    this._mainCont.current && this._mainCont.current.scrollTo({ top: NumCast(this.Document.scrollY), behavior: "smooth" });
+                    this._mainCont.current && this._mainCont.current.scrollTo({ top: NumCast(this.Document.scrollY), behavior: "auto" });
                 }
-            });
+            }
+        );
     }
 
+    @action
     componentDidMount() {
         if (this.props.setPdfBox) this.props.setPdfBox(this);
+
+        this._scrollY = NumCast(this.Document.startY);
+        this.props.Document.scrollY = this.Document.startY;
+        // let ccv = this.props.ContainingCollectionView;
+        // if (ccv) {
+        //     ccv.props.Document.scrollY = this.Document.startY;
+        // }
+    }
+
+    componentWillUnmount() {
+        let ccv = this.props.ContainingCollectionView;
+        if (ccv) {
+            ccv.props.Document.scrollY = this.Document.startY;
+        }
     }
 
     public GetPage() {
