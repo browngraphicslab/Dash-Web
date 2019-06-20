@@ -447,6 +447,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     onPointerEnter = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = true; };
     onPointerLeave = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = false; };
+    onDragOver = (e: React.DragEvent): void => {
+        this.props.Document.libraryBrush = true;
+        console.log("dragOver");
+    };
+    onDragLeave = (e: React.DragEvent): void => { this.props.Document.libraryBrush = false; };
 
     isSelected = () => SelectionManager.IsSelected(this);
     @action select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); }
@@ -491,7 +496,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     // display: display ? "block" : "none"
                 }}
                 onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
-
+                onDragOver={this.onDragOver} onDragLeave={this.onDragLeave}
                 onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}
             >
                 {this.contents}

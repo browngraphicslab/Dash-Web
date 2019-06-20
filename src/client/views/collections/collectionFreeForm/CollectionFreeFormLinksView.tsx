@@ -167,11 +167,15 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
 
         let unique: Set<{ sourceView: DocumentView, targetView: DocumentView, linkDoc: Doc }> = new Set();
         connections.forEach(c => {
+
             // let match1Index = unique.findIndex(u => (c.anchor1View === u.sourceView) && (c.anchor2View === u.targetView));
             // let match2Index = unique.findIndex(u => (c.anchor1View === u.targetView) && (c.anchor2View === u.sourceView));
             let match1 = unique.has({ sourceView: c.anchor1View, targetView: c.anchor2View, linkDoc: c.linkDoc });
             let match2 = unique.has({ sourceView: c.anchor2View, targetView: c.anchor1View, linkDoc: c.linkDoc });
             let sameContext = c.anchor1View.props.ContainingCollectionView === c.anchor2View.props.ContainingCollectionView;
+
+            // console.log("CONNECTION", StrCast(c.anchor1View.props.Document.title), StrCast(c.anchor2View.props.Document.title), match1, match2);
+
 
             // if in same context, push if docview pair does not already exist
             // else push both directions of pair
