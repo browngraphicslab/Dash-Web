@@ -9,7 +9,7 @@ library.add(faAngleRight);
 
 export interface OriginalMenuProps {
     description: string;
-    event: (e: React.MouseEvent<HTMLDivElement>) => void;
+    event: () => void;
     icon?: IconProp; //maybe should be optional (icon?)
     closeMenu?: () => void;
 }
@@ -24,7 +24,7 @@ export interface SubmenuProps {
 export type ContextMenuProps = OriginalMenuProps | SubmenuProps;
 
 @observer
-export class ContextMenuItem extends React.Component<ContextMenuProps> {
+export class ContextMenuItem extends React.Component<ContextMenuProps & { selected?: boolean }> {
     @observable private _items: Array<ContextMenuProps> = [];
     @observable private overItem = false;
 
@@ -37,7 +37,7 @@ export class ContextMenuItem extends React.Component<ContextMenuProps> {
 
     handleEvent = (e: React.MouseEvent<HTMLDivElement>) => {
         if ("event" in this.props) {
-            this.props.event(e);
+            this.props.event();
             this.props.closeMenu && this.props.closeMenu();
         }
     }
@@ -69,7 +69,7 @@ export class ContextMenuItem extends React.Component<ContextMenuProps> {
     render() {
         if ("event" in this.props) {
             return (
-                <div className="contextMenu-item" onClick={this.handleEvent}>
+                <div className={"contextMenu-item" + (this.props.selected ? " contextMenu-itemSelected" : "")} onClick={this.handleEvent}>
                     {this.props.icon ? (
                         <span className="icon-background">
                             <FontAwesomeIcon icon={this.props.icon} size="sm" />
@@ -86,7 +86,7 @@ export class ContextMenuItem extends React.Component<ContextMenuProps> {
                     {this._items.map(prop => <ContextMenuItem {...prop} key={prop.description} closeMenu={this.props.closeMenu} />)}
                 </div>;
             return (
-                <div className="contextMenu-item" onMouseEnter={this.onPointerEnter} onMouseLeave={this.onPointerLeave}>
+                <div className={"contextMenu-item" + (this.props.selected ? " contextMenu-itemSelected" : "")} onMouseEnter={this.onPointerEnter} onMouseLeave={this.onPointerLeave}>
                     {this.props.icon ? (
                         <span className="icon-background">
                             <FontAwesomeIcon icon={this.props.icon} size="sm" />
