@@ -465,16 +465,14 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
         runInAction(() => FormattedTextBox.InputBoxOverlay = undefined);
         SelectionManager.SelectedDocuments().forEach(element => {
-            const rect = element.ContentDiv ? element.ContentDiv.getBoundingClientRect() : new DOMRect();
-
-            if (rect.width !== 0 && (dX != 0 || dY != 0 || dW != 0 || dH != 0)) {
+            if (dX !== 0 || dY !== 0 || dW !== 0 || dH !== 0) {
                 let doc = PositionDocument(element.props.Document);
                 let nwidth = doc.nativeWidth || 0;
                 let nheight = doc.nativeHeight || 0;
                 let zoomBasis = NumCast(doc.zoomBasis, 1);
                 let width = (doc.width || 0) / zoomBasis;
                 let height = (doc.height || (nheight / nwidth * width)) / zoomBasis;
-                let scale = width / rect.width;
+                let scale = element.props.ScreenToLocalTransform().Scale;
                 let actualdW = Math.max(width + (dW * scale), 20);
                 let actualdH = Math.max(height + (dH * scale), 20);
                 doc.x = (doc.x || 0) + dX * (actualdW - width);
@@ -504,8 +502,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                         proto.nativeWidth = (doc.width || 0) / doc.height * NumCast(proto.nativeHeight);
                     }
                 } else {
-                    doc.width = zoomBasis * actualdW;
-                    doc.height = zoomBasis * actualdH;
+                    dW && (doc.width = zoomBasis * actualdW);
+                    dH && (doc.height = zoomBasis * actualdH);
                     proto.autoHeight = undefined;
                 }
             }

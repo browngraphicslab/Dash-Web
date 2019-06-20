@@ -1,11 +1,11 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faAlignCenter, faCaretSquareRight, faCompressArrowsAlt, faExpandArrowsAlt, faLayerGroup, faSquare, faTrash, faConciergeBell, faFolder, faMapPin, faLink, faFingerprint, faCrosshairs, faDesktop } from '@fortawesome/free-solid-svg-icons';
-import { action, computed, IReactionDisposer, reaction, trace, observable } from "mobx";
+import * as fa from '@fortawesome/free-solid-svg-icons';
+import { action, computed, IReactionDisposer, reaction, trace, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, HeightSym, Opt, WidthSym, DocListCastAsync } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { ObjectField } from "../../../new_fields/ObjectField";
-import { createSchema, makeInterface } from "../../../new_fields/Schema";
+import { createSchema, makeInterface, listSpec } from "../../../new_fields/Schema";
 import { BoolCast, Cast, FieldValue, StrCast, NumCast, PromiseValue } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { emptyFunction, Utils } from "../../../Utils";
@@ -26,28 +26,37 @@ import { DocComponent } from "../DocComponent";
 import { PresentationView } from "../PresentationView";
 import { Template } from "./../Templates";
 import { DocumentContentsView } from "./DocumentContentsView";
+import * as rp from "request-promise";
 import "./DocumentView.scss";
 import React = require("react");
 import { Id, Copy } from '../../../new_fields/FieldSymbols';
 import { ContextMenuProps } from '../ContextMenuItem';
+<<<<<<< HEAD
 import { list, object, createSimpleSchema } from 'serializr';
 import { LinkManager } from '../../util/LinkManager';
+=======
+import { RouteStore } from '../../../server/RouteStore';
+>>>>>>> e9d62f4ca0dbeb57e46239047041a8a04da7b504
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
-library.add(faTrash);
-library.add(faExpandArrowsAlt);
-library.add(faCompressArrowsAlt);
-library.add(faLayerGroup);
-library.add(faAlignCenter);
-library.add(faCaretSquareRight);
-library.add(faSquare);
-library.add(faConciergeBell);
-library.add(faFolder);
-library.add(faMapPin);
-library.add(faLink);
-library.add(faFingerprint);
-library.add(faCrosshairs);
-library.add(faDesktop);
+library.add(fa.faTrash);
+library.add(fa.faShare);
+library.add(fa.faExpandArrowsAlt);
+library.add(fa.faCompressArrowsAlt);
+library.add(fa.faLayerGroup);
+library.add(fa.faExternalLinkAlt);
+library.add(fa.faAlignCenter);
+library.add(fa.faCaretSquareRight);
+library.add(fa.faSquare);
+library.add(fa.faConciergeBell);
+library.add(fa.faFolder);
+library.add(fa.faMapPin);
+library.add(fa.faLink);
+library.add(fa.faFingerprint);
+library.add(fa.faCrosshairs);
+library.add(fa.faDesktop);
+library.add(fa.faUnlock);
+library.add(fa.faLock);
 
 
 // const linkSchema = createSchema({
@@ -78,7 +87,7 @@ export interface DocumentViewProps {
     whenActiveChanged: (isActive: boolean) => void;
     bringToFront: (doc: Doc) => void;
     addDocTab: (doc: Doc, where: string) => void;
-    collapseToPoint?: (scrpt: number[], expandedDocs: Doc[] | undefined) => void;
+    animateBetweenIcon?: (iconPos: number[], startTime: number, maximizing: boolean) => void;
 }
 
 const schema = createSchema({
@@ -130,6 +139,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         super(props);
     }
 
+    _animateToIconDisposer?: IReactionDisposer;
     _reactionDisposer?: IReactionDisposer;
     @action
     componentDidMount() {
@@ -151,7 +161,34 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     this.props.Document.proto!.title = "-" + sumDoc.title + ".expanded";
                 }
             }, { fireImmediately: true });
+        this._animateToIconDisposer = reaction(() => this.props.Document.isIconAnimating, (values) =>
+            (values instanceof List) && this.animateBetweenIcon(values, values[2], values[3] ? true : false)
+            , { fireImmediately: true });
         DocumentManager.Instance.DocumentViews.push(this);
+    }
+
+    animateBetweenIcon = (iconPos: number[], startTime: number, maximizing: boolean) => {
+        this.props.animateBetweenIcon ? this.props.animateBetweenIcon(iconPos, startTime, maximizing) :
+            DocumentView.animateBetweenIconFunc(this.props.Document, this.Document[WidthSym](), this.Document[HeightSym](), startTime, maximizing);
+    }
+
+    public static animateBetweenIconFunc = (doc: Doc, width: number, height: number, stime: number, maximizing: boolean, cb?: (progress: number) => void) => {
+        setTimeout(() => {
+            let now = Date.now();
+            let progress = now < stime + 200 ? Math.min(1, (now - stime) / 200) : 1;
+            doc.width = progress === 1 ? width : maximizing ? 25 + (width - 25) * progress : width + (25 - width) * progress;
+            doc.height = progress === 1 ? height : maximizing ? 25 + (height - 25) * progress : height + (25 - height) * progress;
+            cb && cb(progress);
+            if (now < stime + 200) {
+                DocumentView.animateBetweenIconFunc(doc, width, height, stime, maximizing, cb);
+            }
+            else {
+                Doc.GetProto(doc).isMinimized = !maximizing;
+                Doc.GetProto(doc).isIconAnimating = undefined;
+            }
+            Doc.GetProto(doc).willMaximize = false;
+        },
+            2);
     }
     @action
     componentDidUpdate() {
@@ -167,6 +204,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @action
     componentWillUnmount() {
         if (this._reactionDisposer) this._reactionDisposer();
+        if (this._animateToIconDisposer) this._animateToIconDisposer();
         if (this._dropDisposer) this._dropDisposer();
         DocumentManager.Instance.DocumentViews.splice(DocumentManager.Instance.DocumentViews.indexOf(this), 1);
     }
@@ -198,7 +236,34 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (minimizedDoc) {
             let scrpt = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(
                 NumCast(minimizedDoc.x) - NumCast(this.Document.x), NumCast(minimizedDoc.y) - NumCast(this.Document.y));
-            this.props.collapseToPoint && this.props.collapseToPoint(scrpt, await DocListCastAsync(minimizedDoc.maximizedDocs));
+            this.collapseTargetsToPoint(scrpt, await DocListCastAsync(minimizedDoc.maximizedDocs));
+        }
+    }
+
+    static _undoBatch?: UndoManager.Batch = undefined;
+    @action
+    public collapseTargetsToPoint = async (scrpt: number[], expandedDocs: Doc[] | undefined): Promise<void> => {
+        SelectionManager.DeselectAll();
+        if (expandedDocs) {
+            if (!DocumentView._undoBatch) {
+                DocumentView._undoBatch = UndoManager.StartBatch("iconAnimating");
+            }
+            let isMinimized: boolean | undefined;
+            expandedDocs.map(d => Doc.GetProto(d)).map(maximizedDoc => {
+                let iconAnimating = Cast(maximizedDoc.isIconAnimating, List);
+                if (!iconAnimating || (Date.now() - iconAnimating[2] > 1000)) {
+                    if (isMinimized === undefined) {
+                        isMinimized = BoolCast(maximizedDoc.isMinimized, false);
+                    }
+                    maximizedDoc.willMaximize = isMinimized;
+                    maximizedDoc.isMinimized = false;
+                    maximizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], Date.now(), isMinimized ? 1 : 0]);
+                }
+            });
+            setTimeout(() => {
+                DocumentView._undoBatch && DocumentView._undoBatch.end();
+                DocumentView._undoBatch = undefined;
+            }, 500);
         }
     }
 
@@ -231,8 +296,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     let expandedProtoDocs = expandedDocs.map(doc => Doc.GetProto(doc));
                     let maxLocation = StrCast(this.props.Document.maximizeLocation, "inPlace");
                     let getDispDoc = (target: Doc) => Object.getOwnPropertyNames(target).indexOf("isPrototype") === -1 ? target : Doc.MakeDelegate(target);
-                    if (altKey) {
-                        maxLocation = this.props.Document.maximizeLocation = (maxLocation === "inPlace" || !maxLocation ? "inTab" : "inPlace");
+                    if (altKey || ctrlKey) {
+                        maxLocation = this.props.Document.maximizeLocation = (ctrlKey ? maxLocation : (maxLocation === "inPlace" || !maxLocation ? "inTab" : "inPlace"));
                         if (!maxLocation || maxLocation === "inPlace") {
                             let hadView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedProtoDocs[0], this.props.ContainingCollectionView);
                             let wasMinimized = !hadView && expandedDocs.reduce((min, d) => !min && !BoolCast(d.IsMinimized, false), false);
@@ -253,7 +318,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                         }
                     } else {
                         let scrpt = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(NumCast(this.Document.width) / 2, NumCast(this.Document.height) / 2);
-                        this.props.collapseToPoint && this.props.collapseToPoint(scrpt, expandedProtoDocs);
+                        this.collapseTargetsToPoint(scrpt, expandedProtoDocs);
                     }
                 }
                 else if (linkedDocs.length) {
@@ -304,7 +369,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
                 document.removeEventListener("pointermove", this.onPointerMove);
                 document.removeEventListener("pointerup", this.onPointerUp);
-                if (!e.altKey && !this.topMost && e.buttons === 1) {
+                if (!e.altKey && !this.topMost && e.buttons === 1 && !BoolCast(this.props.Document.lockedPosition)) {
                     this.startDragging(this._downX, this._downY, e.ctrlKey || e.altKey ? "alias" : undefined, this._hitExpander);
                 }
             }
@@ -393,7 +458,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this.templates = this.templates;
     }
 
-    freezeNativeDimensions = (e: React.MouseEvent): void => {
+    freezeNativeDimensions = (): void => {
         let proto = Doc.GetProto(this.props.Document);
         if (proto.ignoreAspect === undefined && !proto.nativeWidth) {
             proto.nativeWidth = this.props.PanelWidth();
@@ -404,7 +469,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     @action
-    onContextMenu = (e: React.MouseEvent): void => {
+    onContextMenu = async (e: React.MouseEvent): Promise<void> => {
+        e.persist();
         e.stopPropagation();
         if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3 ||
             e.isDefaultPrevented()) {
@@ -421,9 +487,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         subitems.push({ description: "Open Right", event: () => this.props.addDocTab && this.props.addDocTab(this.props.Document, "onRight"), icon: "caret-square-right" });
         subitems.push({ description: "Open Right Alias", event: () => this.props.addDocTab && this.props.addDocTab(Doc.MakeAlias(this.props.Document), "onRight"), icon: "caret-square-right" });
         subitems.push({ description: "Open Fields", event: this.fieldsClicked, icon: "layer-group" });
-        cm.addItem({ description: "Open...", subitems: subitems });
+        cm.addItem({ description: "Open...", subitems: subitems, icon: "external-link-alt" });
         cm.addItem({ description: BoolCast(this.props.Document.ignoreAspect, false) || !this.props.Document.nativeWidth || !this.props.Document.nativeHeight ? "Freeze" : "Unfreeze", event: this.freezeNativeDimensions, icon: "edit" });
         cm.addItem({ description: "Pin to Pres", event: () => PresentationView.Instance.PinDoc(this.props.Document), icon: "map-pin" });
+        cm.addItem({ description: BoolCast(this.props.Document.lockedPosition) ? "Unlock Pos" : "Lock Pos", event: () => this.props.Document.lockedPosition = BoolCast(this.props.Document.lockedPosition) ? undefined : true, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
         cm.addItem({ description: this.props.Document.isButton ? "Remove Button" : "Make Button", event: this.makeBtnClicked, icon: "concierge-bell" });
         cm.addItem({
             description: "Find aliases", event: async () => {
@@ -435,14 +502,37 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         cm.addItem({ description: "Copy URL", event: () => Utils.CopyText(DocServer.prepend("/doc/" + this.props.Document[Id])), icon: "link" });
         cm.addItem({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "fingerprint" });
         cm.addItem({ description: "Delete", event: this.deleteClicked, icon: "trash" });
-        if (!this.topMost) {
-            // DocumentViews should stop propagation of this event
-            e.stopPropagation();
-        }
-        ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
-        if (!SelectionManager.IsSelected(this)) {
-            SelectionManager.SelectDoc(this, false);
-        }
+        type User = { email: string, userDocumentId: string };
+        const users: User[] = JSON.parse(await rp.get(DocServer.prepend(RouteStore.getUsers)));
+        let usersMenu: ContextMenuProps[] = users.filter(({ email }) => email !== CurrentUserUtils.email).map(({ email, userDocumentId }) => ({
+            description: email, event: async () => {
+                const userDocument = await Cast(DocServer.GetRefField(userDocumentId), Doc);
+                if (!userDocument) {
+                    throw new Error(`Couldn't get user document of user ${email}`);
+                }
+                const notifDoc = await Cast(userDocument.optionalRightCollection, Doc);
+                if (notifDoc instanceof Doc) {
+                    const data = await Cast(notifDoc.data, listSpec(Doc));
+                    const sharedDoc = Doc.MakeAlias(this.props.Document);
+                    if (data) {
+                        data.push(sharedDoc);
+                    } else {
+                        notifDoc.data = new List([sharedDoc]);
+                    }
+                }
+            }
+        }));
+        runInAction(() => {
+            cm.addItem({ description: "Share...", subitems: usersMenu, icon: "share" });
+            if (!this.topMost) {
+                // DocumentViews should stop propagation of this event
+                e.stopPropagation();
+            }
+            ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
+            if (!SelectionManager.IsSelected(this)) {
+                SelectionManager.SelectDoc(this, false);
+            }
+        });
     }
 
     onPointerEnter = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = true; };
@@ -454,7 +544,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     onDragLeave = (e: React.DragEvent): void => { this.props.Document.libraryBrush = false; };
 
     isSelected = () => SelectionManager.IsSelected(this);
-    @action select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); }
+    @action select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); };
 
     @computed get nativeWidth() { return this.Document.nativeWidth || 0; }
     @computed get nativeHeight() { return this.Document.nativeHeight || 0; }
@@ -465,8 +555,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     render() {
         var scaling = this.props.ContentScaling();
-        var nativeHeight = this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
         var nativeWidth = this.nativeWidth > 0 ? `${this.nativeWidth}px` : "100%";
+<<<<<<< HEAD
 
         // // for linkbutton docs
         // let isLinkButton = BoolCast(this.props.Document.isLinkButton);
@@ -478,6 +568,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         //     return match || found;
         // }, false) : true;
 
+=======
+        var nativeHeight = BoolCast(this.props.Document.ignoreAspect) ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
+>>>>>>> e9d62f4ca0dbeb57e46239047041a8a04da7b504
         return (
             <div className={`documentView-node${this.props.isTopMost ? "-topmost" : ""}`}
                 ref={this._mainCont}

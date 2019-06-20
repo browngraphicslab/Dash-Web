@@ -1,17 +1,12 @@
-import { computed, IReactionDisposer, reaction, action } from "mobx";
+import { computed } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../../new_fields/Doc";
-import { List } from "../../../new_fields/List";
-import { createSchema, listSpec, makeInterface } from "../../../new_fields/Schema";
-import { BoolCast, Cast, FieldValue, NumCast } from "../../../new_fields/Types";
-import { OmitKeys } from "../../../Utils";
+import { createSchema, makeInterface } from "../../../new_fields/Schema";
+import { BoolCast, FieldValue, NumCast } from "../../../new_fields/Types";
 import { Transform } from "../../util/Transform";
 import { DocComponent } from "../DocComponent";
 import { DocumentView, DocumentViewProps, positionSchema } from "./DocumentView";
 import "./DocumentView.scss";
 import React = require("react");
-import { UndoManager } from "../../util/UndoManager";
-import { SelectionManager } from "../../util/SelectionManager";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
 }
@@ -27,13 +22,7 @@ const FreeformDocument = makeInterface(schema, positionSchema);
 
 @observer
 export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeFormDocumentViewProps, FreeformDocument>(FreeformDocument) {
-    private _mainCont = React.createRef<HTMLDivElement>();
-    _bringToFrontDisposer?: IReactionDisposer;
-
-    @computed get transform() {
-        return `scale(${this.props.ContentScaling()}, ${this.props.ContentScaling()}) translate(${this.X}px, ${this.Y}px) scale(${this.zoom}, ${this.zoom}) `;
-    }
-
+    @computed get transform() { return `scale(${this.props.ContentScaling()}) translate(${this.X}px, ${this.Y}px) scale(${this.zoom}) `; }
     @computed get X() { return FieldValue(this.Document.x, 0); }
     @computed get Y() { return FieldValue(this.Document.y, 0); }
     @computed get zoom(): number { return 1 / FieldValue(this.Document.zoomBasis, 1); }
@@ -61,89 +50,18 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         .translate(-this.X, -this.Y)
         .scale(1 / this.contentScaling()).scale(1 / this.zoom)
 
-    @computed
-    get docView() {
-        return <DocumentView {...OmitKeys(this.props, ['zoomFade']).omit}
-            ContentScaling={this.contentScaling}
-            ScreenToLocalTransform={this.getTransform}
-            PanelWidth={this.panelWidth}
-            PanelHeight={this.panelHeight}
-            collapseToPoint={this.collapseToPoint}
-        />;
-    }
-
-    componentDidMount() {
-        this._bringToFrontDisposer = reaction(() => this.props.Document.isIconAnimating, (values) => {
-            this.props.bringToFront(this.props.Document);
-            if (values instanceof List) {
-                let scrpt = this.props.ScreenToLocalTransform().transformPoint(values[0], values[1]);
-                this.animateBetweenIcon(true, scrpt, [this.Document.x || 0, this.Document.y || 0],
-                    this.Document.width || 0, this.Document.height || 0, values[2], values[3] ? true : false);
-            }
-        }, { fireImmediately: true });
-    }
-
-    componentWillUnmount() {
-        if (this._bringToFrontDisposer) this._bringToFrontDisposer();
-    }
-
-    static _undoBatch?: UndoManager.Batch = undefined;
-    @action
-    public collapseToPoint = async (scrpt: number[], expandedDocs: Doc[] | undefined): Promise<void> => {
-        SelectionManager.DeselectAll();
-        if (expandedDocs) {
-            if (!CollectionFreeFormDocumentView._undoBatch) {
-                CollectionFreeFormDocumentView._undoBatch = UndoManager.StartBatch("iconAnimating");
-            }
-            let isMinimized: boolean | undefined;
-            expandedDocs.map(d => Doc.GetProto(d)).map(maximizedDoc => {
-                let iconAnimating = Cast(maximizedDoc.isIconAnimating, List);
-                if (!iconAnimating || (Date.now() - iconAnimating[2] > 1000)) {
-                    if (isMinimized === undefined) {
-                        isMinimized = BoolCast(maximizedDoc.isMinimized, false);
-                    }
-                    maximizedDoc.willMaximize = isMinimized;
-                    maximizedDoc.isMinimized = false;
-                    maximizedDoc.isIconAnimating = new List<number>([scrpt[0], scrpt[1], Date.now(), isMinimized ? 1 : 0]);
-                }
+    animateBetweenIcon = (icon: number[], stime: number, maximizing: boolean) => {
+        this.props.bringToFront(this.props.Document);
+        let targetPos = [this.Document.x || 0, this.Document.y || 0];
+        let iconPos = this.props.ScreenToLocalTransform().transformPoint(icon[0], icon[1]);
+        DocumentView.animateBetweenIconFunc(this.props.Document,
+            this.Document.width || 0, this.Document.height || 0, stime, maximizing, (progress: number) => {
+                let pval = maximizing ?
+                    [iconPos[0] + (targetPos[0] - iconPos[0]) * progress, iconPos[1] + (targetPos[1] - iconPos[1]) * progress] :
+                    [targetPos[0] + (iconPos[0] - targetPos[0]) * progress, targetPos[1] + (iconPos[1] - targetPos[1]) * progress];
+                this.Document.x = progress === 1 ? targetPos[0] : pval[0];
+                this.Document.y = progress === 1 ? targetPos[1] : pval[1];
             });
-            setTimeout(() => {
-                CollectionFreeFormDocumentView._undoBatch && CollectionFreeFormDocumentView._undoBatch.end();
-                CollectionFreeFormDocumentView._undoBatch = undefined;
-            }, 500);
-        }
-    }
-
-    animateBetweenIcon(first: boolean, icon: number[], targ: number[], width: number, height: number, stime: number, maximizing: boolean) {
-
-        setTimeout(() => {
-            let now = Date.now();
-            let progress = Math.min(1, (now - stime) / 200);
-            let pval = maximizing ?
-                [icon[0] + (targ[0] - icon[0]) * progress, icon[1] + (targ[1] - icon[1]) * progress] :
-                [targ[0] + (icon[0] - targ[0]) * progress, targ[1] + (icon[1] - targ[1]) * progress];
-            this.props.Document.width = maximizing ? 25 + (width - 25) * progress : width + (25 - width) * progress;
-            this.props.Document.height = maximizing ? 25 + (height - 25) * progress : height + (25 - height) * progress;
-            this.props.Document.x = pval[0];
-            this.props.Document.y = pval[1];
-            if (first) {
-                this.props.Document.proto!.willMaximize = false;
-            }
-            if (now < stime + 200) {
-                this.animateBetweenIcon(false, icon, targ, width, height, stime, maximizing);
-            }
-            else {
-                if (!maximizing) {
-                    this.props.Document.proto!.isMinimized = true;
-                    this.props.Document.x = targ[0];
-                    this.props.Document.y = targ[1];
-                    this.props.Document.width = width;
-                    this.props.Document.height = height;
-                }
-                this.props.Document.proto!.isIconAnimating = undefined;
-            }
-        },
-            2);
     }
 
     borderRounding = () => {
@@ -155,34 +73,25 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     }
 
     render() {
-        let maximizedDoc = FieldValue(Cast(this.props.Document.maximizedDocs, listSpec(Doc)));
-        let zoomFade = 1;
-        //var zoom = doc.GetNumber(KeyStore.ZoomBasis, 1);
-        // let transform = this.getTransform().scale(this.contentScaling()).inverse();
-        // var [sptX, sptY] = transform.transformPoint(0, 0);
-        // let [bptX, bptY] = transform.transformPoint(this.props.PanelWidth(), this.props.PanelHeight());
-        // let w = bptX - sptX;
-        //zoomFade = area < 100 || area > 800 ? Math.max(0, Math.min(1, 2 - 5 * (zoom < this.scale ? this.scale / zoom : zoom / this.scale))) : 1;
-        const screenWidth = Math.min(50 * NumCast(this.props.Document.nativeWidth, 0), 1800);
-        let fadeUp = .75 * screenWidth;
-        let fadeDown = (maximizedDoc ? .0075 : .075) * screenWidth;
-        // zoomFade = w < fadeDown  /* || w > fadeUp */ ? Math.max(0.1, Math.min(1, 2 - (w < fadeDown ? Math.sqrt(Math.sqrt(fadeDown / w)) : w / fadeUp))) : 1;
-
         return (
-            <div className="collectionFreeFormDocumentView-container" ref={this._mainCont}
+            <div className="collectionFreeFormDocumentView-container"
                 style={{
-                    opacity: zoomFade,
-                    borderRadius: `${this.borderRounding()}px`,
                     transformOrigin: "left top",
+                    position: "absolute",
+                    backgroundColor: "transparent",
+                    borderRadius: `${this.borderRounding()}px`,
                     transform: this.transform,
-                    pointerEvents: (zoomFade < 0.09 ? "none" : "all"),
                     width: this.width,
                     height: this.height,
-                    position: "absolute",
                     zIndex: this.Document.zIndex || 0,
-                    backgroundColor: "transparent"
                 }} >
-                {this.docView}
+                <DocumentView {...this.props}
+                    ContentScaling={this.contentScaling}
+                    ScreenToLocalTransform={this.getTransform}
+                    PanelWidth={this.panelWidth}
+                    PanelHeight={this.panelHeight}
+                    animateBetweenIcon={this.animateBetweenIcon}
+                />
             </div>
         );
     }

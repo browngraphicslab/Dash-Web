@@ -1,17 +1,16 @@
 import React = require("react");
-import { action, computed, IReactionDisposer, reaction, trace } from "mobx";
+import { action, computed, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, HeightSym, WidthSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { BoolCast, NumCast } from "../../../new_fields/Types";
 import { emptyFunction, returnOne, Utils } from "../../../Utils";
-import { SelectionManager } from "../../util/SelectionManager";
-import { undoBatch } from "../../util/UndoManager";
+import { ContextMenu } from "../ContextMenu";
 import { DocumentView } from "../nodes/DocumentView";
 import { CollectionSchemaPreview } from "./CollectionSchemaView";
 import "./CollectionStackingView.scss";
 import { CollectionSubView } from "./CollectionSubView";
-import { ContextMenu } from "../ContextMenu";
+import { auto } from "async";
 
 @observer
 export class CollectionStackingView extends CollectionSubView(doc => doc) {
@@ -22,7 +21,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     @computed get yMargin() { return NumCast(this.props.Document.yMargin, 2 * this.gridGap); }
     @computed get gridGap() { return NumCast(this.props.Document.gridGap, 10); }
     @computed get singleColumn() { return BoolCast(this.props.Document.singleColumn, true); }
-    @computed get columnWidth() { return this.singleColumn ? this.props.PanelWidth() - 2 * this.xMargin : Math.min(this.props.PanelWidth() - 2 * this.xMargin, NumCast(this.props.Document.columnWidth, 250)); }
+    @computed get columnWidth() { return this.singleColumn ? (this.props.PanelWidth() / (this.props as any).ContentScaling() - 2 * this.xMargin) : Math.min(this.props.PanelWidth() - 2 * this.xMargin, NumCast(this.props.Document.columnWidth, 250)); }
 
     singleColDocHeight(d: Doc) {
         let nw = NumCast(d.nativeWidth);
@@ -62,20 +61,6 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         this._masonryGridRef = ele;
         this.createDropTarget(ele!);
     }
-    @undoBatch
-    @action
-    public collapseToPoint = (scrpt: number[], expandedDocs: Doc[] | undefined): void => {
-        SelectionManager.DeselectAll();
-        if (expandedDocs) {
-            let isMinimized: boolean | undefined;
-            expandedDocs.map(d => Doc.GetProto(d)).map(maximizedDoc => {
-                if (isMinimized === undefined) {
-                    isMinimized = BoolCast(maximizedDoc.isMinimized, false);
-                }
-                maximizedDoc.isMinimized = !isMinimized;
-            });
-        }
-    }
 
     @computed
     get singleColumnChildren() {
@@ -97,6 +82,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     getTransform={dxf}
                     CollectionView={this.props.CollectionView}
                     addDocument={this.props.addDocument}
+                    moveDocument={this.props.moveDocument}
                     removeDocument={this.props.removeDocument}
                     active={this.props.active}
                     whenActiveChanged={this.props.whenActiveChanged}
@@ -111,22 +97,27 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     get children() {
         return this.childDocs.filter(d => !d.isMinimized).map((d, i) => {
             let dref = React.createRef<HTMLDivElement>();
-            let dxf = () => this.getDocTransform(d, dref.current!);
-            let rowSpan = Math.ceil((this.columnWidth / d[WidthSym]() * d[HeightSym]() + this.gridGap) / (this._gridSize + this.gridGap));
+            let dxf = () => this.getDocTransform(d, dref.current!).scale(this.columnWidth / d[WidthSym]());
+            let renderScale = this.columnWidth / NumCast(d.nativeWidth, this.columnWidth);
+            let aspect = NumCast(d.nativeWidth) / NumCast(d.nativeHeight);
+            let width = () => this.columnWidth;
+            let height = () => aspect ? width() / aspect : d[HeightSym]()
+            let rowSpan = Math.ceil((height() + this.gridGap) / (this._gridSize + this.gridGap));
             let childFocus = (doc: Doc) => {
                 doc.libraryBrush = true;
                 this.props.focus(this.props.Document); // just focus on this collection, not the underlying document because the API doesn't support adding an offset to focus on and we can't pan zoom our contents to be centered.
-            }
+            };
             return (<div className="collectionStackingView-masonryDoc"
                 key={d[Id]}
                 ref={dref}
                 style={{
-                    width: NumCast(d.nativeWidth, d[WidthSym]()),
-                    height: NumCast(d.nativeHeight, d[HeightSym]()),
+                    width: width(),
+                    height: height(),
+                    overflow: "auto",
                     transformOrigin: "top left",
                     gridRowEnd: `span ${rowSpan}`,
                     gridColumnEnd: `span 1`,
-                    transform: `scale(${this.columnWidth / NumCast(d.nativeWidth, d[WidthSym]())}, ${this.columnWidth / NumCast(d.nativeWidth, d[WidthSym]())})`
+                    transform: `scale(${renderScale})`
                 }} >
                 <DocumentView key={d[Id]} Document={d}
                     addDocument={this.props.addDocument}
@@ -137,17 +128,16 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     ScreenToLocalTransform={dxf}
                     focus={childFocus}
                     ContentScaling={returnOne}
-                    PanelWidth={d[WidthSym]}
-                    PanelHeight={d[HeightSym]}
+                    PanelWidth={width}
+                    PanelHeight={height}
                     selectOnLoad={false}
                     parentActive={this.props.active}
                     addDocTab={this.props.addDocTab}
                     bringToFront={emptyFunction}
                     whenActiveChanged={this.props.whenActiveChanged}
-                    collapseToPoint={this.collapseToPoint}
                 />
             </div>);
-        })
+        });
     }
     onContextMenu = (e: React.MouseEvent): void => {
         if (!e.isPropagationStopped() && this.props.Document[Id] !== "mainDoc") { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
@@ -163,10 +153,9 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         let templatecols = "";
         for (let i = 0; i < cols; i++) templatecols += `${this.columnWidth}px `;
         return (
-            <div className="collectionStackingView">
+            <div className="collectionStackingView" ref={this.createRef} onContextMenu={this.onContextMenu} onWheel={(e: React.WheelEvent) => e.stopPropagation()} >
                 <div className={`collectionStackingView-masonry${this.singleColumn ? "Single" : "Grid"}`}
-                    onContextMenu={this.onContextMenu}
-                    ref={this.createRef} onWheel={(e: React.WheelEvent) => e.stopPropagation()}
+
                     style={{
                         padding: this.singleColumn ? `${this.yMargin}px ${this.xMargin}px ${this.yMargin}px ${this.xMargin}px` : `${this.yMargin}px ${this.xMargin}px`,
                         margin: "auto",
@@ -179,7 +168,8 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     }}
                 >
                     {this.singleColumn ? this.singleColumnChildren : this.children}
-                </div></div>
+                </div>
+            </div>
         );
     }
 }

@@ -40,7 +40,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             focus: emptyFunction,
             PanelWidth: returnZero,
             PanelHeight: returnZero,
-            addDocTab: emptyFunction
+            addDocTab: returnZero,
         };
         let contents = <FieldView {...props} />;
         let fieldKey = Object.keys(props.Document).indexOf(props.fieldKey) !== -1 ? props.fieldKey : "(" + props.fieldKey + ")";
