@@ -7,6 +7,8 @@ import * as globalCssVariables from "../views/globalCssVariables.scss";
 import { LinkManager } from "./LinkManager";
 import { URLField } from "../../new_fields/URLField";
 import { SelectionManager } from "./SelectionManager";
+import { Docs } from "../documents/Documents";
+import { DocumentManager } from "./DocumentManager";
 
 export type dropActionType = "alias" | "copy" | undefined;
 export function SetupDrag(_reference: React.RefObject<HTMLElement>, docFunc: () => Doc | Promise<Doc>, moveFunc?: DragManager.MoveFunction, dropAction?: dropActionType, options?: any, dontHideOnDrop?: boolean) {
@@ -220,6 +222,11 @@ export namespace DragManager {
     }
 
     export function StartEmbedDrag(ele: HTMLElement, dragData: EmbedDragData, downX: number, downY: number, options?: DragOptions) {
+        StartDrag([ele], dragData, downX, downY, options);
+    }
+
+    export function StartLinkProxyDrag(ele: HTMLElement, dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
+        runInAction(() => StartDragFunctions.map(func => func()));
         StartDrag([ele], dragData, downX, downY, options);
     }
 

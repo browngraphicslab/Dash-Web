@@ -18,6 +18,8 @@ import { FormattedTextBox } from "./FormattedTextBox";
 import { IconBox } from "./IconBox";
 import { ImageBox } from "./ImageBox";
 import { VideoBox } from "./VideoBox";
+import { LinkButtonBox } from "./LinkButtonBox";
+import { LinkButtonField } from "../../../new_fields/LinkButtonField";
 
 
 //
@@ -49,6 +51,7 @@ export interface FieldViewProps {
 @observer
 export class FieldView extends React.Component<FieldViewProps> {
     public static LayoutString(fieldType: { name: string }, fieldStr: string = "data") {
+        console.log("LAYOUT STRING", fieldType.name, fieldStr);
         return `<${fieldType.name} {...props} fieldKey={"${fieldStr}"} />`;
     }
 
@@ -73,6 +76,9 @@ export class FieldView extends React.Component<FieldViewProps> {
         }
         else if (field instanceof IconField) {
             return <IconBox {...this.props} />;
+        }
+        else if (field instanceof LinkButtonField) {
+            return <LinkButtonBox {...this.props} />;
         }
         else if (field instanceof VideoField) {
             return <VideoBox {...this.props} />;

@@ -26,7 +26,7 @@ import { OmitKeys } from "../../Utils";
 import { ImageField, VideoField, AudioField, PdfField, WebField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
 import { List } from "../../new_fields/List";
-import { Cast, NumCast } from "../../new_fields/Types";
+import { Cast, NumCast, StrCast } from "../../new_fields/Types";
 import { IconField } from "../../new_fields/IconField";
 import { listSpec } from "../../new_fields/Schema";
 import { DocServer } from "../DocServer";
@@ -36,6 +36,10 @@ import { DateField } from "../../new_fields/DateField";
 import { UndoManager } from "../util/UndoManager";
 import { RouteStore } from "../../server/RouteStore";
 import { LinkManager } from "../util/LinkManager";
+import { LinkButtonBox } from "../views/nodes/LinkButtonBox";
+import { LinkButtonField, LinkButtonData } from "../../new_fields/LinkButtonField";
+import { DocumentManager } from "../util/DocumentManager";
+import { Id } from "../../new_fields/FieldSymbols";
 var requestImageSize = require('request-image-size');
 var path = require('path');
 
@@ -102,14 +106,32 @@ export namespace DocUtils {
 
             linkDocProto.context = targetContext;
 
-            let proxy1 = Docs.TextDocument({ width: 300, height: 100, borderRounding: 0 });
-            let proxy1Proto = Doc.GetProto(proxy1);
-            let proxy2 = Docs.TextDocument({ width: 300, height: 100, borderRounding: 0 });
-            let proxy2Proto = Doc.GetProto(proxy2);
+            let sourceViews = DocumentManager.Instance.getDocumentViews(source);
+            let targetViews = DocumentManager.Instance.getDocumentViews(target);
+            sourceViews.forEach(sv => {
+                targetViews.forEach(tv => {
 
-            linkDocProto.proxy1 = proxy1; // src: 1 targ: 2
-            linkDocProto.proxy2 = proxy2; // src: 2 targ: 1
+                    // TODO: do only for when diff contexts
+                    let proxy1 = Docs.LinkButtonDocument(
+                        { sourceViewId: StrCast(sv.props.Document[Id]), targetViewId: StrCast(tv.props.Document[Id]) },
+                        { width: 200, height: 100, borderRounding: 0 });
+                    let proxy1Proto = Doc.GetProto(proxy1);
+                    proxy1Proto.sourceViewId = StrCast(sv.props.Document[Id]);
+                    proxy1Proto.targetViewId = StrCast(tv.props.Document[Id]);
+                    proxy1Proto.isLinkButton = true;
 
+                    let proxy2 = Docs.LinkButtonDocument(
+                        { sourceViewId: StrCast(tv.props.Document[Id]), targetViewId: StrCast(sv.props.Document[Id]) },
+                        { width: 200, height: 100, borderRounding: 0 });
+                    let proxy2Proto = Doc.GetProto(proxy2);
+                    proxy2Proto.sourceViewId = StrCast(tv.props.Document[Id]);
+                    proxy2Proto.targetViewId = StrCast(sv.props.Document[Id]);
+                    proxy2Proto.isLinkButton = true;
+
+                    LinkManager.Instance.linkProxies.push(proxy1);
+                    LinkManager.Instance.linkProxies.push(proxy2);
+                });
+            });
 
             LinkManager.Instance.allLinks.push(linkDoc);
 
@@ -131,6 +153,7 @@ export namespace Docs {
     let audioProto: Doc;
     let pdfProto: Doc;
     let iconProto: Doc;
+    let linkProto: Doc;
     const textProtoId = "textProto";
     const histoProtoId = "histoProto";
     const pdfProtoId = "pdfProto";
@@ -141,6 +164,7 @@ export namespace Docs {
     const videoProtoId = "videoProto";
     const audioProtoId = "audioProto";
     const iconProtoId = "iconProto";
+    const linkProtoId = "linkProto";
 
     export function initProtos(): Promise<void> {
         return DocServer.GetRefFields([textProtoId, histoProtoId, collProtoId, imageProtoId, webProtoId, kvpProtoId, videoProtoId, audioProtoId, pdfProtoId, iconProtoId]).then(fields => {
@@ -154,6 +178,7 @@ export namespace Docs {
             audioProto = fields[audioProtoId] as Doc || CreateAudioPrototype();
             pdfProto = fields[pdfProtoId] as Doc || CreatePdfPrototype();
             iconProto = fields[iconProtoId] as Doc || CreateIconPrototype();
+            linkProto = fields[linkProtoId] as Doc || CreateLinkPrototype();
         });
     }
 
@@ -185,6 +210,11 @@ export namespace Docs {
         let iconProto = setupPrototypeOptions(iconProtoId, "ICON_PROTO", IconBox.LayoutString(),
             { x: 0, y: 0, width: Number(MINIMIZED_ICON_SIZE), height: Number(MINIMIZED_ICON_SIZE) });
         return iconProto;
+    }
+    function CreateLinkPrototype(): Doc {
+        let linkProto = setupPrototypeOptions(linkProtoId, "LINK_PROTO", LinkButtonBox.LayoutString(),
+            { x: 0, y: 0, width: 300 });
+        return linkProto;
     }
     function CreateTextPrototype(): Doc {
         let textProto = setupPrototypeOptions(textProtoId, "TEXT_PROTO", FormattedTextBox.LayoutString(),
@@ -271,6 +301,9 @@ export namespace Docs {
     }
     export function IconDocument(icon: string, options: DocumentOptions = {}) {
         return CreateInstance(iconProto, new IconField(icon), options);
+    }
+    export function LinkButtonDocument(data: LinkButtonData, options: DocumentOptions = {}) {
+        return CreateInstance(linkProto, new LinkButtonField(data), options);
     }
     export function PdfDocument(url: string, options: DocumentOptions = {}) {
         return CreateInstance(pdfProto, new PdfField(new URL(url)), options);

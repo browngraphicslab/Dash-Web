@@ -1,7 +1,7 @@
 import { action, observable } from "mobx";
 import { observer } from "mobx-react";
 import { DocumentView } from "./DocumentView";
-import { LinkBox } from "./LinkBox";
+import { LinkMenuItem } from "./LinkMenuItem";
 import { LinkEditor } from "./LinkEditor";
 import './LinkMenu.scss';
 import React = require("react");
@@ -23,7 +23,7 @@ export class LinkMenu extends React.Component<Props> {
         let source = this.props.docView.Document;
         return group.map(linkDoc => {
             let destination = LinkManager.Instance.findOppositeAnchor(linkDoc, source);
-            return <LinkBox key={destination[Id] + source[Id]} groupType={groupType} linkDoc={linkDoc} sourceDoc={source} destinationDoc={destination} showEditor={action(() => this._editingLink = linkDoc)} />;
+            return <LinkMenuItem key={destination[Id] + source[Id]} groupType={groupType} linkDoc={linkDoc} sourceDoc={source} destinationDoc={destination} showEditor={action(() => this._editingLink = linkDoc)} />;
         });
     }
 

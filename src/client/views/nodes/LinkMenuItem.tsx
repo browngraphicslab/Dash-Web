@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { observer } from "mobx-react";
 import { DocumentManager } from "../../util/DocumentManager";
 import { undoBatch } from "../../util/UndoManager";
-import './LinkBox.scss';
+import './LinkMenuItem.scss';
 import React = require("react");
 import { Doc } from '../../../new_fields/Doc';
 import { StrCast, Cast } from '../../../new_fields/Types';
@@ -15,7 +15,7 @@ import { SelectionManager } from '../../util/SelectionManager';
 library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp);
 
 
-interface Props {
+interface LinkMenuItemProps {
     groupType: string;
     linkDoc: Doc;
     sourceDoc: Doc;
@@ -24,7 +24,7 @@ interface Props {
 }
 
 @observer
-export class LinkBox extends React.Component<Props> {
+export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     private _drag = React.createRef<HTMLDivElement>();
     @observable private _showMore: boolean = false;
     @action toggleShowMore() { this._showMore = !this._showMore; }

@@ -1,4 +1,4 @@
-import { observable } from "mobx";
+import { observable, action } from "mobx";
 import { StrCast, Cast } from "../../new_fields/Types";
 import { Doc, DocListCast } from "../../new_fields/Doc";
 import { listSpec } from "../../new_fields/Schema";
@@ -32,6 +32,7 @@ export class LinkManager {
     @observable public allLinks: Array<Doc> = []; // list of link docs
     @observable public groupMetadataKeys: Map<string, Array<string>> = new Map();
     // map of group type to list of its metadata keys; serves as a dictionary of groups to what kind of metadata it hodls
+    @observable public linkProxies: Array<Doc> = []; // list of linkbutton docs - used to visualize link when an anchors are not in the same context
 
     // finds all links that contain the given anchor
     public findAllRelatedLinks(anchor: Doc): Array<Doc> {
@@ -132,6 +133,18 @@ export class LinkManager {
         } else {
             linkDoc.anchor2Groups = new List<Doc>(groups);
         }
+    }
+
+    @action
+    public addLinkProxy(proxy: Doc) {
+        LinkManager.Instance.linkProxies.push(proxy);
+    }
+
+    public findLinkProxy(sourceViewId: string, targetViewId: string): Doc | undefined {
+        let index = LinkManager.Instance.linkProxies.findIndex(p => {
+            return StrCast(p.sourceViewId) === sourceViewId && StrCast(p.targetViewId) === targetViewId;
+        });
+        return index > -1 ? LinkManager.Instance.linkProxies[index] : undefined;
     }
 
 }

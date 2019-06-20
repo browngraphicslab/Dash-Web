@@ -1,4 +1,4 @@
-import { computed, IReactionDisposer, reaction } from "mobx";
+import { computed, IReactionDisposer, reaction, action } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast } from "../../../../new_fields/Doc";
 import { Id } from "../../../../new_fields/FieldSymbols";
@@ -13,6 +13,8 @@ import { CollectionFreeFormLinkView } from "./CollectionFreeFormLinkView";
 import React = require("react");
 import { CollectionFreeFormLinkWithProxyView } from "./CollectionFreeFormLinkWithProxyView";
 import { Docs } from "../../../documents/Documents";
+import { LinkButtonField } from "../../../../new_fields/LinkButtonField";
+import { LinkManager } from "../../../util/LinkManager";
 
 @observer
 export class CollectionFreeFormLinksView extends React.Component<CollectionViewProps> {
@@ -195,18 +197,32 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
                 if (sameContext) {
                     uniqueList.push(<CollectionFreeFormLinkView key={key} sourceView={u.sourceView} targetView={u.targetView} />);
                 } else {
-                    let proxyKey = Doc.AreProtosEqual(u.sourceView.Document, Cast(u.linkDoc.anchor1, Doc, new Doc)) ? "proxy1" : "proxy2";
-                    let proxy = Cast(u.linkDoc[proxyKey], Doc, new Doc);
+                    let proxy = LinkManager.Instance.findLinkProxy(StrCast(u.sourceView.props.Document[Id]), StrCast(u.targetView.props.Document[Id]));
+                    if (!proxy) {
+                        proxy = Docs.LinkButtonDocument(
+                            { sourceViewId: StrCast(u.sourceView.props.Document[Id]), targetViewId: StrCast(u.targetView.props.Document[Id]) },
+                            { width: 200, height: 100, borderRounding: 0 });
+                        let proxy1Proto = Doc.GetProto(proxy);
+                        proxy1Proto.sourceViewId = StrCast(u.sourceView.props.Document[Id]);
+                        proxy1Proto.targetViewId = StrCast(u.targetView.props.Document[Id]);
+                        proxy1Proto.isLinkButton = true;
 
-                    let context = u.targetView.props.ContainingCollectionView ? (" in the context of " + StrCast(u.targetView.props.ContainingCollectionView.props.Document.title)) : "";
-                    let text = proxyKey + " link to " + StrCast(u.targetView.props.Document.title) + context;
+                        // LinkManager.Instance.linkProxies.push(proxy);
+                        LinkManager.Instance.addLinkProxy(proxy);
+                    }
+                    uniqueList.push(<CollectionFreeFormLinkWithProxyView key={key} sourceView={u.sourceView} targetView={u.targetView} proxyDoc={proxy} />);
 
-                    let proxyProto = Doc.GetProto(proxy);
-                    proxyProto.data = text;
+                    // let proxy = LinkManager.Instance.findLinkProxy(StrCast(u.sourceView.props.Document[Id]), StrCast(u.targetView.props.Document[Id]));
+                    // if (proxy) {
+                    //     this.props.addDocument(proxy, false);
+                    //     uniqueList.push(<CollectionFreeFormLinkWithProxyView key={key} sourceView={u.sourceView} targetView={u.targetView} />);
+                    // }
+                    // let proxyKey = Doc.AreProtosEqual(u.sourceView.Document, Cast(u.linkDoc.anchor1, Doc, new Doc)) ? "proxy1" : "proxy2";
+                    // let proxy = Cast(u.linkDoc[proxyKey], Doc, new Doc);
+                    // this.props.addDocument(proxy, false);
 
-                    this.props.addDocument(proxy, false);
-                    uniqueList.push(<CollectionFreeFormLinkWithProxyView key={key} sourceView={u.sourceView} targetView={u.targetView}
-                        proxyDoc={proxy} addDocTab={this.props.addDocTab} />);
+                    // uniqueList.push(<CollectionFreeFormLinkWithProxyView key={key} sourceView={u.sourceView} targetView={u.targetView}
+                    //     proxyDoc={proxy} addDocTab={this.props.addDocTab} />);
                 }
             }
         });
