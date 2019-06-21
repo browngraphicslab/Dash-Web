@@ -104,7 +104,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
-    @computed get dataDoc() { return this.props.DataDoc; }
+    @computed get dataDoc() { return this.props.DataDoc ? this.props.DataDoc : this.props.Document; }
 
     dispatchTransaction = (tx: Transaction) => {
         if (this._editorView) {
@@ -112,7 +112,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             this._editorView.updateState(state);
             this._applyingChange = true;
             Doc.SetOnPrototype(this.dataDoc, this.props.fieldKey, new RichTextField(JSON.stringify(state.toJSON())));
-            Doc.SetOnPrototype(this.dataDoc, "documentText", state.doc.textBetween(0, state.doc.content.size, "\n\n"));
+            Doc.SetOnPrototype(this.dataDoc, this.props.fieldKey + "_text", state.doc.textBetween(0, state.doc.content.size, "\n\n"));
             this._applyingChange = false;
             let title = StrCast(this.dataDoc.title);
             if (title && title.startsWith("-") && this._editorView) {

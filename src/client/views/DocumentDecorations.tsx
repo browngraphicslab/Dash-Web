@@ -3,7 +3,7 @@ import { faLink } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../new_fields/Doc";
+import { Doc, WidthSym, HeightSym } from "../../new_fields/Doc";
 import { List } from "../../new_fields/List";
 import { listSpec } from "../../new_fields/Schema";
 import { Cast, NumCast, StrCast, BoolCast } from "../../new_fields/Types";
@@ -25,6 +25,7 @@ import { TemplateMenu } from "./TemplateMenu";
 import { Template, Templates } from "./Templates";
 import React = require("react");
 import { URLField } from '../../new_fields/URLField';
+import { templateLiteral } from 'babel-types';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -73,6 +74,23 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             if (text[0] === '#') {
                 this._fieldKey = text.slice(1, text.length);
                 this._title = this.selectionTitle;
+                let first = SelectionManager.SelectedDocuments()[0].props.Document!;
+                let collection = SelectionManager.SelectedDocuments()[0].props.ContainingCollectionView!.props.Document;
+                Doc.GetProto(collection)[this._fieldKey] = "Testing";
+                let template = Doc.MakeAlias(collection);
+                template.title = "FIELD-" + this._fieldKey;
+                template.layout = FormattedTextBox.LayoutString(this._fieldKey);
+                template.x = NumCast(first.x);
+                template.y = NumCast(first.y);
+                template.width = first[WidthSym]();
+                template.height = first[HeightSym]();
+                //{props.DataDoc.${fieldKey}}
+                template.templates = new List<string>([Templates.TitleBar(this._fieldKey)]);
+                Doc.AddDocToList(collection, "data", template);
+                SelectionManager.SelectedDocuments().map(dv => dv.props.removeDocument && dv.props.removeDocument(dv.props.Document));
+
+                // let template = SelectionManager.SelectedDocuments()[0].props.Document; template.proto = Doc.GetProto(collection)
+                // template.layout = FormattedTextBox.LayoutString(this._fieldKey);
             }
             else {
                 if (SelectionManager.SelectedDocuments().length > 0) {

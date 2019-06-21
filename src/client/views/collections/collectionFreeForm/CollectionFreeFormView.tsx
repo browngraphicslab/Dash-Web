@@ -294,18 +294,18 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
 
-    getDocumentViewProps(document: Doc): DocumentViewProps {
+    getDocumentViewProps(layoutDoc: Doc): DocumentViewProps {
         return {
-            Document: document,
-            DataDoc: this.props.DataDoc,
+            DataDoc: this.props.DataDoc !== this.props.Document ? this.props.DataDoc : layoutDoc,
+            Document: layoutDoc,
             addDocument: this.props.addDocument,
             removeDocument: this.props.removeDocument,
             moveDocument: this.props.moveDocument,
             ScreenToLocalTransform: this.getTransform,
             isTopMost: false,
-            selectOnLoad: document[Id] === this._selectOnLoaded,
-            PanelWidth: document[WidthSym],
-            PanelHeight: document[HeightSym],
+            selectOnLoad: layoutDoc[Id] === this._selectOnLoaded,
+            PanelWidth: layoutDoc[WidthSym],
+            PanelHeight: layoutDoc[HeightSym],
             ContentScaling: returnOne,
             ContainingCollectionView: this.props.CollectionView,
             focus: this.focusDocument,
