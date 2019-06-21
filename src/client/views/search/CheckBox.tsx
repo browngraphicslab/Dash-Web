@@ -78,15 +78,19 @@ export class CheckBox extends React.Component<CheckBoxProps>{
 
     @action.bound
     reset() {
-        if(this.props.default){
-            this._status = true;
-            this.checkTimeline.play();
-            this.checkTimeline.restart();
+        if (this.props.default) {
+            if (!this._status) {
+                this._status = true;
+                this.checkTimeline.play();
+                this.checkTimeline.restart();
+            }
         }
-        else{
-            this._status = false;
-            this.uncheckTimeline.play();
-            this.uncheckTimeline.restart();
+        else {
+            if (this._status) {
+                this._status = false;
+                this.uncheckTimeline.play();
+                this.uncheckTimeline.restart();
+            }
         }
 
         this.props.updateStatus(this.props.default);

@@ -30,6 +30,7 @@ import { CollectionView } from '../collections/CollectionView';
 import { CollectionPDFView } from '../collections/CollectionPDFView';
 import { CollectionVideoView } from '../collections/CollectionVideoView';
 import { CollectionFilters } from './CollectionFilters';
+import { NaviconButton } from './NaviconButton';
 
 export enum Keys {
     TITLE = "title",
@@ -82,14 +83,7 @@ export class SearchBox extends React.Component {
         ToggleBar.Instance.resetToggle();
         IconBar.Instance.selectAll();
         FieldFilters.Instance.resetFieldFilters();
-        // console.log("field filters at end")
-        // console.log("title", this.titleFieldStatus, "author:", this.authorFieldStatus, "data:", this.dataFieldStatus)
-        // console.log("should be true, true, true\n")
-        
         CollectionFilters.Instance.resetCollectionFilters();
-        // console.log("collection filters at end")
-        // console.log("normal;", this.collectionStatus, "self:", this.collectionSelfStatus, "parent:", this.collectionParentStatus)
-        // console.log("should be fase, true, true")
     }
 
     @action.bound
@@ -324,7 +318,7 @@ export class SearchBox extends React.Component {
 
     @action
     openFilter = () => {
-        this._filterOpen = true;
+        this._filterOpen = !this._filterOpen;
         this._resultsOpen = false;
         this._results = [];
     }

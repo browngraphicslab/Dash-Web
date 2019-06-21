@@ -47,6 +47,11 @@ export class CollectionFilters extends React.Component<CollectionFilterProps> {
             duration: 500,
             opacity: 1,
         });
+
+        if(this.collectionsSelected){
+            this.timeline.play();
+            this.timeline.reverse();
+        }
     }
 
     @action.bound
