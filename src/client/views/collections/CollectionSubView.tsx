@@ -176,8 +176,11 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 return;
             }
             if (html && !html.startsWith("<a")) {
-                if (html.indexOf("<img") === 0) {
-                    let split = html.split("\"")[1];
+                let tags = html.split("<");
+                if (tags[0] === "") tags.splice(0, 1);
+                let img = tags[0].startsWith("img") ? tags[0] : tags.length > 1 && tags[1].startsWith("img") ? tags[1] : "";
+                if (img) {
+                    let split = img.split("src=\"")[1].split("\"")[0];
                     let doc = Docs.ImageDocument(split, { ...options, width: 300 });
                     this.props.addDocument(doc, false);
                     return;

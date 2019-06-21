@@ -259,6 +259,11 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         this._isPointerDown = true;
+        let onPointerUp = action(() => {
+            window.removeEventListener("pointerup", onPointerUp)
+            this._isPointerDown = false
+        })
+        window.addEventListener("pointerup", onPointerUp);
         var className = (e.target as any).className;
         if (className === "messageCounter") {
             e.stopPropagation();
