@@ -70,7 +70,7 @@ class TreeView extends React.Component<TreeViewProps> {
     }
 
     @undoBatch delete = () => this.props.deleteDoc(this.props.document);
-    @undoBatch openRight = async () => this.props.addDocTab(this.props.document, "openRight");
+    @undoBatch openRight = async () => this.props.addDocTab(this.props.document, "onRight");
 
     onPointerDown = (e: React.PointerEvent) => e.stopPropagation()
     onPointerEnter = (e: React.PointerEvent): void => {
