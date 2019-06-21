@@ -1,6 +1,6 @@
 import { action, runInAction, observable } from "mobx";
 import { Doc, DocListCastAsync } from "../../new_fields/Doc";
-import { Cast } from "../../new_fields/Types";
+import { Cast, StrCast } from "../../new_fields/Types";
 import { emptyFunction } from "../../Utils";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import * as globalCssVariables from "../views/globalCssVariables.scss";
@@ -52,6 +52,7 @@ export async function DragLinkAsDocument(dragEle: HTMLElement, x: number, y: num
 
     let moddrag = await Cast(draggeddoc.annotationOn, Doc);
     let dragData = new DragManager.DocumentDragData(moddrag ? [moddrag] : [draggeddoc]);
+    dragData.dropAction = "alias" as dropActionType;
     DragManager.StartDocumentDrag([dragEle], dragData, x, y, {
         handlers: {
             dragComplete: action(emptyFunction),
@@ -82,6 +83,7 @@ export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: n
             if (doc) moddrag.push(doc);
         }
         let dragData = new DragManager.DocumentDragData(moddrag.length ? moddrag : draggedDocs);
+        dragData.dropAction = "alias" as dropActionType;
         // dragData.moveDocument = (document, targetCollection, addDocument) => {
         //     return false;
         // };
@@ -201,14 +203,18 @@ export namespace DragManager {
     export let StartDragFunctions: (() => void)[] = [];
 
     export function StartDocumentDrag(eles: HTMLElement[], dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
+        console.log("outside", dragData.userDropAction, dragData.dropAction);
         runInAction(() => StartDragFunctions.map(func => func()));
         StartDrag(eles, dragData, downX, downY, options,
-            (dropData: { [id: string]: any }) =>
+            (dropData: { [id: string]: any }) => {
+                console.log("DRAG", dragData.userDropAction, dragData.dropAction);
                 (dropData.droppedDocuments = dragData.userDropAction === "alias" || (!dragData.userDropAction && dragData.dropAction === "alias") ?
                     dragData.draggedDocuments.map(d => Doc.MakeAlias(d)) :
                     dragData.userDropAction === "copy" || (!dragData.userDropAction && dragData.dropAction === "copy") ?
                         dragData.draggedDocuments.map(d => Doc.MakeCopy(d, true)) :
-                        dragData.draggedDocuments));
+                        dragData.draggedDocuments
+                );
+            });
     }
 
     export function StartAnnotationDrag(eles: HTMLElement[], dragData: AnnotationDragData, downX: number, downY: number, options?: DragOptions) {

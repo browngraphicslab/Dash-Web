@@ -10,6 +10,7 @@ import { CollectionPDFView } from '../views/collections/CollectionPDFView';
 import { CollectionVideoView } from '../views/collections/CollectionVideoView';
 import { Id } from '../../new_fields/FieldSymbols';
 import { LinkManager } from './LinkManager';
+import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 
 
 export class DocumentManager {
@@ -84,6 +85,18 @@ export class DocumentManager {
 
     @computed
     public get LinkedDocumentViews() {
+        // console.log("linked");
+        // let docs = DocListCast(CurrentUserUtils.UserDocument.data);
+        // docs.forEach(d => {
+        //     console.log("d", StrCast(d.title));
+
+        // });
+
+        // let d = Cast(CurrentUserUtils.UserDocument.activeWorkspace, Doc, new Doc);
+        // console.log("DOC", StrCast(d.title));
+
+
+
         let linked = DocumentManager.Instance.DocumentViews.filter(dv => dv.isSelected() || BoolCast(dv.props.Document.libraryBrush, false)).reduce((pairs, dv) => {
             // console.log("FINDING LINKED DVs FOR", StrCast(dv.props.Document.title));
             let linksList = LinkManager.Instance.findAllRelatedLinks(dv.props.Document);

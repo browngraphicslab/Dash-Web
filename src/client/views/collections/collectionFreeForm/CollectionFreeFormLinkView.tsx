@@ -16,8 +16,10 @@ export interface CollectionFreeFormLinkViewProps {
     // removeDocument: (document: Doc) => boolean;
     // sameContext: boolean;
 
-    sourceView: DocumentView;
-    targetView: DocumentView;
+    // sourceView: DocumentView;
+    // targetView: DocumentView;
+    sourceView: Doc;
+    targetView: Doc;
 }
 
 @observer
@@ -49,11 +51,11 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         // let b = this.props.B;
         let a1 = this.props.sourceView;
         let a2 = this.props.targetView;
-        let x1 = NumCast(a1.Document.x) + (BoolCast(a1.Document.isMinimized, false) ? 5 : NumCast(a1.Document.width) / NumCast(a1.Document.zoomBasis, 1) / 2);
-        let y1 = NumCast(a1.Document.y) + (BoolCast(a1.Document.isMinimized, false) ? 5 : NumCast(a1.Document.height) / NumCast(a1.Document.zoomBasis, 1) / 2);
+        let x1 = NumCast(a1.x) + (BoolCast(a1.isMinimized, false) ? 5 : NumCast(a1.width) / NumCast(a1.zoomBasis, 1) / 2);
+        let y1 = NumCast(a1.y) + (BoolCast(a1.isMinimized, false) ? 5 : NumCast(a1.height) / NumCast(a1.zoomBasis, 1) / 2);
 
-        let x2 = NumCast(a2.Document.x) + (BoolCast(a2.Document.isMinimized, false) ? 5 : NumCast(a2.Document.width) / NumCast(a2.Document.zoomBasis, 1) / 2);
-        let y2 = NumCast(a2.Document.y) + (BoolCast(a2.Document.isMinimized, false) ? 5 : NumCast(a2.Document.height) / NumCast(a2.Document.zoomBasis, 1) / 2);
+        let x2 = NumCast(a2.x) + (BoolCast(a2.isMinimized, false) ? 5 : NumCast(a2.width) / NumCast(a2.zoomBasis, 1) / 2);
+        let y2 = NumCast(a2.y) + (BoolCast(a2.isMinimized, false) ? 5 : NumCast(a2.height) / NumCast(a2.zoomBasis, 1) / 2);
 
         return (
             <>
