@@ -12,6 +12,7 @@ import { observable, action } from 'mobx';
 import { LinkManager } from '../../util/LinkManager';
 import { DragLinksAsDocuments, DragLinkAsDocument } from '../../util/DragManager';
 import { SelectionManager } from '../../util/SelectionManager';
+import { CollectionDockingView } from '../collections/CollectionDockingView';
 library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp);
 
 
@@ -32,7 +33,11 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     @undoBatch
     onFollowLink = async (e: React.PointerEvent): Promise<void> => {
         e.stopPropagation();
-        DocumentManager.Instance.jumpToDocument(this.props.destinationDoc, e.altKey);
+        if (DocumentManager.Instance.getDocumentView(this.props.destinationDoc)) {
+            DocumentManager.Instance.jumpToDocument(this.props.destinationDoc, e.altKey);
+        } else {
+            CollectionDockingView.Instance.AddRightSplit(this.props.destinationDoc);
+        }
     }
 
     onEdit = (e: React.PointerEvent): void => {

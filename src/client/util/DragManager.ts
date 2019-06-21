@@ -203,11 +203,9 @@ export namespace DragManager {
     export let StartDragFunctions: (() => void)[] = [];
 
     export function StartDocumentDrag(eles: HTMLElement[], dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
-        console.log("outside", dragData.userDropAction, dragData.dropAction);
         runInAction(() => StartDragFunctions.map(func => func()));
         StartDrag(eles, dragData, downX, downY, options,
             (dropData: { [id: string]: any }) => {
-                console.log("DRAG", dragData.userDropAction, dragData.dropAction);
                 (dropData.droppedDocuments = dragData.userDropAction === "alias" || (!dragData.userDropAction && dragData.dropAction === "alias") ?
                     dragData.draggedDocuments.map(d => Doc.MakeAlias(d)) :
                     dragData.userDropAction === "copy" || (!dragData.userDropAction && dragData.dropAction === "copy") ?
