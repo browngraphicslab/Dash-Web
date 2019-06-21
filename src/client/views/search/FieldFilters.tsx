@@ -32,7 +32,7 @@ export class FieldFilters extends React.Component<FieldFilterProps> {
 
     render() {
         return (
-            <div>
+            <div className = "field-filters">
                 <CheckBox default = {true} numCount={3} parent={this} originalStatus={this.props.titleFieldStatus} updateStatus={this.props.updateTitleStatus} title={Keys.TITLE} />
                 <CheckBox default = {true} numCount={3} parent={this} originalStatus={this.props.authorFieldStatus} updateStatus={this.props.updateAuthorStatus} title={Keys.AUTHOR} />
                 <CheckBox default = {true} numCount={3} parent={this} originalStatus={this.props.dataFieldStatus} updateStatus={this.props.updateDataStatus} title={Keys.DATA} />

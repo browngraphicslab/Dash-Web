@@ -2,33 +2,23 @@ import * as React from 'react';
 import { observer } from 'mobx-react';
 import { observable, action, runInAction } from 'mobx';
 import "./SearchBox.scss";
-import { faSearch, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faMusic, faLink, faChartBar, faGlobeAsia, faBan, faThList, faWineGlassAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { library } from '@fortawesome/fontawesome-svg-core';
 import * as rp from 'request-promise';
 import { SearchItem } from './SearchItem';
 import { DocServer } from '../../DocServer';
-import { Doc, Opt } from '../../../new_fields/Doc';
+import { Doc } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { SetupDrag } from '../../util/DragManager';
 import { Docs, DocTypes } from '../../documents/Documents';
 import { RouteStore } from '../../../server/RouteStore';
 import { NumCast, Cast, StrCast } from '../../../new_fields/Types';
 import { SearchUtil } from '../../util/SearchUtil';
-import * as anime from 'animejs';
-import { updateFunction } from '../../../new_fields/util';
 import * as _ from "lodash";
-import { findDOMNode } from 'react-dom';
 import { ToggleBar } from './ToggleBar';
 import { IconBar } from './IconBar';
-import { type } from 'os';
-import { CheckBox } from './CheckBox';
 import { FieldFilters } from './FieldFilters';
 import { SelectionManager } from '../../util/SelectionManager';
 import { DocumentView } from '../nodes/DocumentView';
-import { CollectionView } from '../collections/CollectionView';
-import { CollectionPDFView } from '../collections/CollectionPDFView';
-import { CollectionVideoView } from '../collections/CollectionVideoView';
 import { CollectionFilters } from './CollectionFilters';
 import { NaviconButton } from './NaviconButton';
 
@@ -59,6 +49,10 @@ export class SearchBox extends React.Component {
     @observable collectionStatus = false;
     @observable collectionSelfStatus = true;
     @observable collectionParentStatus = true;
+    @observable private _wordStatusOpen: boolean = false;
+    @observable private _typeOpen: boolean = false;
+    @observable private _colOpen: boolean = false;
+    @observable private _fieldOpen: boolean = false;
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -72,11 +66,46 @@ export class SearchBox extends React.Component {
             }
         });
 
+
+        var acc = document.getElementsByClassName('filter-header');
+        // var i: number = 0;
+
+        console.log("hello")
+
+        for (var i = 0; i < acc.length; i++) {
+            // for(let entry of acc){
+            console.log("looping")
+            acc[i].addEventListener("click", function (this: HTMLElement) {
+                this.classList.toggle("active");
+
+                var panel = this.nextElementSibling as HTMLElement;
+                if (panel) {
+                    if (panel.style.display === "inline-block") {
+                        panel.style.display = "none";
+                    } else {
+                        panel.style.display = "inline-block";
+                    }
+                }
+            });
+        }
+
         //empties search query after 30 seconds of the search bar/filter box not being open
         // if (!this._resultsOpen && !this._filterOpen) {
         //     setTimeout(this.clearSearchQuery, 30000);
         // }
     }
+
+    @action.bound
+    toggleFieldOpen() { this._fieldOpen = !this._fieldOpen; }
+
+    @action.bound
+    toggleColOpen() { this._colOpen = !this._colOpen; }
+
+    @action.bound
+    toggleTypeOpen() { this._typeOpen = !this._typeOpen; }
+
+    @action.bound
+    toggleWordStatusOpen() { this._wordStatusOpen = !this._wordStatusOpen; }
 
     @action.bound
     resetFilters = () => {
@@ -457,37 +486,37 @@ export class SearchBox extends React.Component {
                     <div className="filter-form" onPointerDown={this.stopProp} id="filter" style={this._filterOpen ? { display: "flex" } : { display: "none" }}>
                         <div id="header">Filter Search Results</div>
                         <div>
-                            <div className="required-words filter-div">
-                                <div className = "filter-header">
+                            <div className="filter-div">
+                                <div className="filter-header">
                                     <div className='filter-title words'>Required words</div>
-                                    <a style = {{marginLeft: "auto"}}><NaviconButton/></a>
+                                    <div style={{ marginLeft: "auto" }}><NaviconButton onClick={this.toggleWordStatusOpen} /></div>
                                 </div>
-                                <ToggleBar originalStatus={this._basicWordStatus} optionOne={"Include Any Keywords"} optionTwo={"Include All Keywords"} />
+                                <div className="filter-panel"><ToggleBar originalStatus={this._basicWordStatus} optionOne={"Include Any Keywords"} optionTwo={"Include All Keywords"} /></div>
                             </div>
                             <div className="filter-div">
-                                <div className = "filter-header">
+                                <div className="filter-header">
                                     <div className="filter-title icon">Filter by type of node</div>
-                                    <a style = {{marginLeft: "auto"}}><NaviconButton/></a>
+                                    <div style={{ marginLeft: "auto" }}><NaviconButton onClick={this.toggleTypeOpen} /></div>
                                 </div>
-                                <IconBar />
+                                <div className="filter-panel"><IconBar /></div>
                             </div>
                             <div className="filter-div">
-                                <div className = "filter-header">
+                                <div className="filter-header">
                                     <div className='filter-title collection'>Search in current collections</div>
-                                    <a style = {{marginLeft: "auto"}}><NaviconButton/></a>
+                                    <div style={{ marginLeft: "auto" }}><NaviconButton onClick={this.toggleColOpen} /></div>
                                 </div>
-                                <CollectionFilters
+                                <div className="filter-panel"><CollectionFilters
                                     updateCollectionStatus={this.updateCollectionStatus} updateParentCollectionStatus={this.updateParentCollectionStatus} updateSelfCollectionStatus={this.updateSelfCollectionStatus}
-                                    collectionStatus={this.collectionStatus} collectionParentStatus={this.collectionParentStatus} collectionSelfStatus={this.collectionSelfStatus} />
+                                    collectionStatus={this.collectionStatus} collectionParentStatus={this.collectionParentStatus} collectionSelfStatus={this.collectionSelfStatus} /></div>
                             </div>
                             <div className="filter-div">
-                                <div className = "filter-header">
+                                <div className="filter-header">
                                     <div className="filter-title field">Filter by Basic Keys</div>
-                                    <a style = {{marginLeft: "auto"}}><NaviconButton/></a>
+                                    <div style={{ marginLeft: "auto" }}><NaviconButton onClick={this.toggleFieldOpen} /></div>
                                 </div>
-                                <FieldFilters
+                                <div className="filter-panel"><FieldFilters
                                     titleFieldStatus={this.titleFieldStatus} dataFieldStatus={this.dataFieldStatus} authorFieldStatus={this.authorFieldStatus}
-                                    updateAuthorStatus={this.updateAuthorStatus} updateDataStatus={this.updateDataStatus} updateTitleStatus={this.updateTitleStatus} />
+                                    updateAuthorStatus={this.updateAuthorStatus} updateDataStatus={this.updateDataStatus} updateTitleStatus={this.updateTitleStatus} /> </div>
                             </div>
                         </div>
                         <button className="filter-div reset-filter" onClick={this.resetFilters}>Reset Filters</button>
