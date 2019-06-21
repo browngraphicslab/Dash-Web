@@ -11,13 +11,16 @@ import { StandardLonghandProperties } from "csstype";
 import { runInThisContext } from "vm";
 import { DateField } from "../../../new_fields/DateField";
 import { DocumentManager } from "../../util/DocumentManager";
+import { DocumentView } from "./DocumentView";
+import { anchorPoints, Flyout } from "../TemplateMenu";
+import { LinkMenu } from "./LinkMenu";
+import { faCircle } from "@fortawesome/free-solid-svg-icons";
+
 
 
 
 interface IProp {
-    collection?: Doc;
-    node?: Doc;
-    position: number;
+    node: Doc;
 }
 
 @observer
@@ -26,14 +29,21 @@ export class Keyframe extends React.Component<IProp> {
     @observable private _display:string = "none"; 
     @observable private _duration:number = 200; 
     @observable private _bar = React.createRef<HTMLDivElement>(); 
+    @observable private _data:Doc = new Doc(); 
+    @observable private _position:number = 0;   
 
+
+    @action
     componentDidMount() {
-        console.log("mounted");
-        if (this.props.node){
-           
-         
-        }
-    }
+        let dv:DocumentView = DocumentManager.Instance.getDocumentView(this.props.node!)!;
+        this._data = new Doc(); 
+        this._position = this.props.node.currentBarX as number; 
+        this._data.duration = 200; 
+        this._data.start = this._position - (this._duration/2); 
+        this._data.end = this._position + (this._duration/2); 
+        
+        
+     }
 
     componentWillUnmount() {
         
@@ -54,6 +64,12 @@ export class Keyframe extends React.Component<IProp> {
     }
 
     @action 
+    onBarPointerDown = (e: React.PointerEvent) => {
+        console.log(e.clientX); 
+        this._position = e.clientX; 
+    }
+
+    @action 
     onKeyDown = (e: React.KeyboardEvent) => {
         e.preventDefault(); 
         e.stopPropagation(); 
@@ -71,26 +87,31 @@ export class Keyframe extends React.Component<IProp> {
 
     @action 
     onResizeLeft = (e:React.PointerEvent)=>{
+        e.preventDefault(); 
         let bar = this._bar.current!; 
-        bar.addEventListener("pointermove", this.onDragResizeLeft); 
+        document.addEventListener("pointermove", this.onDragResizeLeft); 
     }
 
     @action 
     onDragResizeLeft = (e:PointerEvent)=>{
         e.preventDefault(); 
-        e.stopPropagation(); 
-        let bar = this._bar.current!;  
+        e.stopPropagation();
+        console.log("Dragging");
+        let bar = this._bar.current!; 
         let barX = bar.getBoundingClientRect().left; 
         let offset = barX - e.clientX; 
         bar.style.width = `${bar.getBoundingClientRect().width + offset}px`; 
+        bar.style.transform = `translate(${e.clientX})`; 
+        document.addEventListener("pointerup", this.onResizeFinished); 
     }
 
     @action 
-    onResizeFinished =(e:React.PointerEvent) => {
+    onResizeFinished =(e:PointerEvent) => {
         e.preventDefault(); 
         e.stopPropagation(); 
         let bar = this._bar.current!; 
-        bar.removeEventListener("pointermove", this.onDragResizeLeft); 
+        document.removeEventListener("pointermove", this.onDragResizeLeft); 
+        document.removeEventListener("pointermove", this.onDragResizeRight); 
     }
    
     @action 
@@ -98,46 +119,44 @@ export class Keyframe extends React.Component<IProp> {
         e.preventDefault(); 
         e.stopPropagation(); 
         let bar = this._bar.current!; 
-        bar.addEventListener("pointermove", this.onDragResizeRight); 
+        document.addEventListener("pointermove", this.onDragResizeRight); 
     }
 
     @action 
     onDragResizeRight = (e:PointerEvent) => {
-        e.preventDefault(); 
+        e.preventDefault();  
         e.stopPropagation(); 
         let bar = this._bar.current!;  
         let barX = bar.getBoundingClientRect().right; 
         let offset = e.clientX - barX; 
         bar.style.width = `${bar.getBoundingClientRect().width + offset}px`; 
+        document.addEventListener("pointerup", this.onResizeFinished); 
+    }
+
+    @action
+    onResizeOut = (e:React.PointerEvent)=>{
+        let bar = this._bar.current!; 
+        document.addEventListener("pointerup", this.onDragResizeRight); 
+    }
+
+
+    @action 
+    changeFlyoutContent = () => {
+
+    }
+    
+    @action
+    onHover = (e:React.PointerEvent) => {
+
     }
     
     render() {
         return (
             <div>
-                <div className="bar" ref={this._bar} style={{ transform: `translate(${this.props.position - (this._duration/2)}px)`, width:`${this._duration}px`}} onPointerOver={this.onPointerEnter} onPointerLeave={this.onPointerOut}>
-                    <div className="leftResize" onPointerDown={this.onResizeLeft} ></div>
-                    <div className="rightResize" onPointerDown={this.onResizeRight}></div>
-                    <div className="menubox" style={{display: this._display}}>
-                        {/* <table className="menutable">
-                            <tr>
-                                <th>Time: </th>
-                                <input placeholder={this.props.position.toString()}></input>
-                            </tr>
-                            <tr>
-                            </tr>
-                            <tr>
-                                <th onPointerDown={this.onPointerDown}>Title</th>
-                                <th>{this.props.node!.title}</th>
-                            </tr>
-                            <tr>
-                                <th>X</th>
-                                <th>{this.props.node!.x}</th>
-                            </tr>
-                            <tr>
-                                <th>Y</th>
-                                <th>{this.props.node!.y}</th>
-                            </tr>
-                        </table>  */}
+                <div className="bar" ref={this._bar} style={{ transform: `translate(${this._position - (this._duration/2)}px)`, width:`${this._duration}px`}} onPointerDown={this.onBarPointerDown}>
+                    <div className="leftResize" onPointerDown={this.onResizeLeft}  ></div>
+                    <div className="rightResize" onPointerDown={this.onResizeRight} onPointerOut={this.onResizeOut}></div>
+                    <div className="menubox" style={{display: this._display}}>       
                     </div>
                 </div>
             </div>

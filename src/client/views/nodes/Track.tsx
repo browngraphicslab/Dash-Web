@@ -303,11 +303,12 @@ export class Track extends React.Component<props> {
         //     this.props.Document.keyframes = new List<List<Doc>>();
         // }
 
-        let keys = Doc.allKeys(this.props.node);
+        // let keys = Doc.allKeys(this.props.node);
+        // return reaction(() => keys.map(key => FieldValue(this.props.node[key])), data => {
+        //     console.log(data); 
+        // }); 
 
-        return reaction(() => keys.map(key => FieldValue(this.props.node[key])), data => {
-            console.log(data); 
-        }); 
+        this.props.node.currentBarX = this._currentBarX; 
     }
 
     /**
@@ -401,7 +402,10 @@ export class Track extends React.Component<props> {
         let inner = this._inner.current!; 
         let left = inner.getBoundingClientRect().left;
         let offsetX = Math.round(e.clientX - left);
-        this._keyframes.push(<Keyframe position={offsetX} />); 
+        this.props.node.currentBarX = offsetX; 
+        this._keyframes.push(<Keyframe node={this.props.node}/>); 
+
+       
     }
 
     render() {

@@ -11,6 +11,10 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { List } from "../../../new_fields/List";
 import { Self } from "../../../new_fields/FieldSymbols";
 import { Doc, DocListCast } from "../../../new_fields/Doc";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCircle, faPlayCircle, faBackward, faForward } from "@fortawesome/free-solid-svg-icons";
+
+
 
 @observer
 export class Timeline extends CollectionSubView(Document){
@@ -21,8 +25,9 @@ export class Timeline extends CollectionSubView(Document){
     @observable private _isPlaying:boolean = false; 
     @observable private _boxLength:number = 0; 
     @observable private _nodes:List<Doc> = new List<Doc>(); 
-    
+    @observable private _time = 100000; //DEFAULT
 
+    @observable private _ticks: number[] = []; 
     private _reactionDisposers: IReactionDisposer[] = [];
 
 
@@ -36,12 +41,26 @@ export class Timeline extends CollectionSubView(Document){
         }
         let childrenList = ((children[Self] as any).__fields) as List<Doc>;
         this._nodes = (childrenList) as List<Doc>;
+
+
+        //check if this is a video frame 
+
+        let boxWidth = scrubber.getBoundingClientRect().width; 
+        for (let i = 0; i < this._time; ) {
+            this._ticks.push(i); 
+            i += 1000; 
+        }
+        
     }
 
     componentWillUnmount(){
         
     }
 
+
+
+
+    //for playing
     @action
     onPlay = async (e: React.MouseEvent) => {
         if (this._isPlaying) {
@@ -77,12 +96,48 @@ export class Timeline extends CollectionSubView(Document){
         }
     }
 
+    //for scrubber action 
     @action 
     onScrubberDown = (e:React.PointerEvent) => {
+        e.preventDefault(); 
+        e.stopPropagation(); 
+        let scrubberbox = this._scrubberbox.current!;
+        //let left = scrubberbox.getBoundingClientRect().left;
+        
+        //let offsetX = Math.round(e.clientX - left);
+        let mouse = e.nativeEvent; 
+        this._currentBarX = mouse.offsetX; 
+        document.addEventListener("pointermove", this.onScrubberMove); 
+        document.addEventListener("pointerup", this.onScrubberFinished); 
+    }
+
+    @action 
+    onScrubberMove = (e: PointerEvent) => {
+        e.preventDefault(); 
+        e.stopPropagation(); 
         let scrubberbox = this._scrubberbox.current!;
         let left = scrubberbox.getBoundingClientRect().left;
         let offsetX = Math.round(e.clientX - left);
         this._currentBarX = offsetX; 
+    }
+
+    onScrubberFinished = (e: PointerEvent) => {
+        e.preventDefault(); 
+        e.stopPropagation(); 
+        let scrubberbox = this._scrubberbox.current!; 
+        document.removeEventListener("pointermove", this.onScrubberMove); 
+    }
+
+    toTime = (time:number):string => {
+        const inSeconds = time / 1000; 
+        let min:(string|number) = Math.floor(inSeconds / 60); 
+        let sec:(string|number) = inSeconds % 60; 
+
+        if (Math.floor(sec/10) === 0){
+            sec = "0" + sec; 
+        }
+        return `${min}:${sec}`; 
+        
     }
 
 
@@ -90,15 +145,20 @@ export class Timeline extends CollectionSubView(Document){
         return (
             <div className="timeline-container">
                 <div className="toolbox">
-                <button onClick={this.windBackward}> {"<"}  </button>
-                    <button onClick={this.onPlay}> Play </button>
-                    <button onClick={this.windForward}> {">"} </button>
+                    <div onClick={this.windBackward}> <FontAwesomeIcon icon={faBackward} size="lg"/> </div>  
+                    <div onClick={this.onPlay}> <FontAwesomeIcon icon={faPlayCircle} size="lg"/> </div>
+                    <div onClick={this.windForward}> <FontAwesomeIcon icon={faForward} size="lg"/> </div>
                 </div>  
-                <div className="scrubberbox" onPointerDown={this.onScrubberDown} ref ={this._scrubberbox}>
-                    <div className="scrubber" style={{transform:`translate(${this._currentBarX}px)`}}></div>
+                <div></div>
+                <div className="scrubberbox" ref ={this._scrubberbox}>
+                    {this._ticks.map(element => {return <div className="tick" style={{transform:`translate(${element / 20}px)`, position:"absolute"}}> <p>{this.toTime(element)}</p></div>})}
+                    
+                </div>
+                <div className="scrubber" onPointerDown = {this.onScrubberDown} style={{transform:`translate(${this._currentBarX}px)`}}>
+                    <FontAwesomeIcon className="scrubberhead" icon={faCircle}/>;
                 </div>
                 <div className="trackbox">  
-                    {this._nodes.map(doc => {return <Track node={(doc as any).value() as Doc}/>})}
+                    {this._nodes.map(doc => {return <Track node={(doc as any).value() as Doc}/>;})}
                 </div> 
             </div>
         ); 

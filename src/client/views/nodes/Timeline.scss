@@ -6,19 +6,45 @@
     position:absolute;
     background-color:$intermediate-color;
     .toolbox{
-        padding-top:10px; 
+        width: 200px; 
+        div{
+            position:relative; 
+            display:inline-block; 
+        }
     }
     .scrubberbox{
-        z-index:10; 
-        background-color: black; 
-        height: 20px;
+        position:relative; 
+        background-color: transparent; 
+        height: 30px;
         margin-left:calc(10% + 100px);
         width: calc(80% - 100px); 
-        .scrubber{
-            z-index:10; 
-            height:300px; 
-            width: 5px; 
-            background-color:green; 
+        overflow-x: scroll; 
+        overflow-y: visible; 
+        .tick{
+            height:100%; 
+            width: 1px; 
+            background-color:black; 
+
+        }
+        
+    }
+    .scrubberbox::-webkit-scrollbar{
+        display:none; 
+    }
+    .scrubber{
+        margin-left:calc(10% + 100px);
+        height: 100px; 
+        width: 2px; 
+        position:absolute;
+        z-index: 1001;
+        
+        background-color:black ; 
+        .scrubberhead{
+            height: 30px; 
+            width: 30px;
+            left: -15px;
+            top: -30px; 
+            position:absolute;                 
         }
     }
     .trackbox{

@@ -4,14 +4,14 @@
     height: 100%;
     width: 5px;
     background-color: green;
-    position: absolute;
+    position: relative;
     
     // pointer-events: none; 
     .menubox {
         width: 200px; 
         height: 200px;
         top: 50%;
-        position: absolute; 
+        position: relative; 
         background-color: $light-color; 
         .menutable{
             tr:nth-child(odd){
@@ -24,7 +24,9 @@
         left:-10px; 
         height:20px; 
         width:20px; 
-        background-color: black; 
+        border-radius: 50%; 
+        border: 1px black; 
+        background-color: transparent; 
         top: calc(50% - 10px); 
         position:absolute; 
     }
@@ -32,6 +34,7 @@
         right:-10px; 
         height:20px; 
         width:20px; 
+        border-radius: 50%; 
         top:calc(50% - 10px); 
         background-color:black; 
         position:absolute; 

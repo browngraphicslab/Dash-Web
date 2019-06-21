@@ -89,7 +89,8 @@ const schema = createSchema({
     nativeWidth: "number",
     nativeHeight: "number",
     backgroundColor: "string",
-    hidden: "boolean"
+    hidden: "boolean",
+    opacity: "number"
 });
 
 export const positionSchema = createSchema({
@@ -559,7 +560,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     background: this.Document.backgroundColor || "",
                     width: nativeWidth,
                     height: nativeHeight,
-                    transform: `scale(${scaling}, ${scaling})`
+                    transform: `scale(${scaling}, ${scaling})`,
+                    opacity: this.Document.opacity || 1 
                 }}
                 onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
 
