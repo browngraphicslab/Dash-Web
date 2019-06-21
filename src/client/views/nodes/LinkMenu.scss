@@ -11,27 +11,29 @@
 }
 
 .linkMenu-group {
-    margin-bottom: 10px;
+    // margin-bottom: 10px;
+    border-bottom: 0.5px solid lightgray; 
+    padding: 5px 0;
+
 
     &:last-child {
-        margin-bottom: 0;
+        border-bottom: none;
     }
 
     .linkMenu-group-name {
         padding: 4px 6px;
         line-height: 12px;
         border-radius: 5px;
-        margin-bottom: 2px;
+        font-weight: bold;
 
         &:hover {
             background-color: lightgray;
         }
     }
 
-    .linkMenu-group-wrapper {
-        border-top: 0.5px solid lightgray; 
-        padding-top: 4px;
-    }
+    // .linkMenu-group-wrapper {
+    //     padding-top: 4px;
+    // }
 }
 
 
