@@ -91,7 +91,9 @@ export namespace DocUtils {
     //     let protoSrc = source.proto ? source.proto : source;
     //     let protoTarg = target.proto ? target.proto : target;
     export function MakeLink(source: Doc, target: Doc, targetContext?: Doc) {
-        if (LinkManager.Instance.doesLinkExist(source, target)) return;
+        if (LinkManager.Instance.doesLinkExist(source, target)) {
+            console.log("LINK EXISTS"); return;
+        }
 
         UndoManager.RunInBatch(() => {
 

@@ -18,8 +18,19 @@
     }
 
     .linkMenu-group-name {
-        border-bottom: 0.5px solid lightgray; 
-        margin-bottom: 4px;
+        padding: 4px 6px;
+        line-height: 12px;
+        border-radius: 5px;
+        margin-bottom: 2px;
+
+        &:hover {
+            background-color: lightgray;
+        }
+    }
+
+    .linkMenu-group-wrapper {
+        border-top: 0.5px solid lightgray; 
+        padding-top: 4px;
     }
 }
 

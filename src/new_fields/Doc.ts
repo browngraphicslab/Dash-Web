@@ -3,11 +3,13 @@ import { serializable, primitive, map, alias, list } from "serializr";
 import { autoObject, SerializationHelper, Deserializable } from "../client/util/SerializationHelper";
 import { DocServer } from "../client/DocServer";
 import { setter, getter, getField, updateFunction, deleteProperty } from "./util";
-import { Cast, ToConstructor, PromiseValue, FieldValue, NumCast } from "./Types";
+import { Cast, ToConstructor, PromiseValue, FieldValue, NumCast, StrCast } from "./Types";
 import { listSpec } from "./Schema";
 import { ObjectField } from "./ObjectField";
 import { RefField, FieldId } from "./RefField";
 import { ToScriptString, SelfProxy, Parent, OnUpdate, Self, HandleUpdate, Update, Id } from "./FieldSymbols";
+import { LinkManager } from "../client/util/LinkManager";
+import { DocUtils } from "../client/documents/Documents";
 
 export namespace Field {
     export function toScriptString(field: Field): string {
@@ -247,6 +249,18 @@ export namespace Doc {
                 }
             }
         });
+        console.log("COPY", StrCast(doc.title));
+        let links = LinkManager.Instance.findAllRelatedLinks(doc);
+        links.forEach(linkDoc => {
+            let opp = LinkManager.Instance.findOppositeAnchor(linkDoc, doc);
+            console.log("OPP", StrCast(opp.title));
+            DocUtils.MakeLink(opp, copy);
+        });
+
+        LinkManager.Instance.allLinks.forEach(l => {
+            console.log("LINK", StrCast(Cast(l.anchor1, Doc, new Doc).title), StrCast(Cast(l.anchor2, Doc, new Doc).title));
+        });
+
         return copy;
     }
 

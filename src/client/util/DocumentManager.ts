@@ -85,50 +85,24 @@ export class DocumentManager {
 
     @computed
     public get LinkedDocumentViews() {
-        // console.log("linked");
-        // let docs = DocListCast(CurrentUserUtils.UserDocument.data);
-        // docs.forEach(d => {
-        //     console.log("d", StrCast(d.title));
-
-        // });
-
-        // let d = Cast(CurrentUserUtils.UserDocument.activeWorkspace, Doc, new Doc);
-        // console.log("DOC", StrCast(d.title));
-
-
-
-        let linked = DocumentManager.Instance.DocumentViews.filter(dv => dv.isSelected() || BoolCast(dv.props.Document.libraryBrush, false)).reduce((pairs, dv) => {
-            // console.log("FINDING LINKED DVs FOR", StrCast(dv.props.Document.title));
+        return DocumentManager.Instance.DocumentViews.filter(dv => dv.isSelected() || BoolCast(dv.props.Document.libraryBrush, false)).reduce((pairs, dv) => {
             let linksList = LinkManager.Instance.findAllRelatedLinks(dv.props.Document);
+            // let linksList = DocListCast(dv.props.Document.linkedToDocs);
             if (linksList && linksList.length) {
                 pairs.push(...linksList.reduce((pairs, link) => {
-                    // if (link) {
-                    let destination = LinkManager.Instance.findOppositeAnchor(link, dv.props.Document);
-                    // console.log("FINDING FOR", StrCast(dv.Document.title), StrCast(destination.title));
-
-                    if (destination) {
-                        let dvs = DocumentManager.Instance.getDocumentViews(destination);
-                        if (dvs.length > 0) {
-                            dvs.map(docView1 => {
-                                // console.log("PUSHING LINK BETWEEN", StrCast(dv.props.Document.title), StrCast(docView1.props.Document.title));
-                                // TODO: if any docviews are not in the same context, draw a proxy
-                                // let sameContent = dv.props.ContainingCollectionView === docView1.props.ContainingCollectionView;
-                                pairs.push({ anchor1View: dv, anchor2View: docView1, linkDoc: link });
-                                // console.log("PUSHED", StrCast(dv.props.Document.title), StrCast(docView1.Document.title));
-                            });
-                        } else {
-                            let dv = DocumentManager.Instance.getDocumentView(destination);
-                            dv ? console.log(StrCast(dv.props.Document.title)) : console.log("cant find");
-                        }
+                    if (link) {
+                        let linkToDoc = LinkManager.Instance.findOppositeAnchor(link, dv.props.Document);
+                        // console.log("FOUND ", DocumentManager.Instance.getDocumentViews(linkToDoc).length, "DOCVIEWS FOR", StrCast(linkToDoc.title), "WITH SOURCE", StrCast(dv.props.Document.title));
+                        DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 =>
+                            pairs.push({ a: dv, b: docView1, l: link }));
                     }
-                    // }
                     return pairs;
-                }, [] as { anchor1View: DocumentView, anchor2View: DocumentView, linkDoc: Doc }[]));
+                }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]));
             }
             return pairs;
-        }, [] as { anchor1View: DocumentView, anchor2View: DocumentView, linkDoc: Doc }[]);
-        return linked;
+        }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]);
     }
+
 
     @undoBatch
     public jumpToDocument = async (docDelegate: Doc, forceDockFunc: boolean = false, dockFunc?: (doc: Doc) => void, linkPage?: number, docContext?: Doc): Promise<void> => {

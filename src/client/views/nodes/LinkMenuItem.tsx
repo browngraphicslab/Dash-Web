@@ -21,7 +21,7 @@ interface LinkMenuItemProps {
     linkDoc: Doc;
     sourceDoc: Doc;
     destinationDoc: Doc;
-    showEditor: () => void;
+    showEditor: (linkDoc: Doc) => void;
 }
 
 @observer
@@ -42,7 +42,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
 
     onEdit = (e: React.PointerEvent): void => {
         e.stopPropagation();
-        this.props.showEditor();
+        this.props.showEditor(this.props.linkDoc);
     }
 
     renderMetadata = (): JSX.Element => {
@@ -95,12 +95,12 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
             <div className="linkMenu-item">
                 <div className={canExpand ? "linkMenu-item-content expand-three" : "linkMenu-item-content expand-two"}>
                     <div className="link-name">
-                        <p>{StrCast(this.props.destinationDoc.title)}</p>
+                        <p ref={this._drag} onPointerDown={this.onLinkButtonDown}>{StrCast(this.props.destinationDoc.title)}</p>
                         <div className="linkMenu-item-buttons">
                             {canExpand ? <div title="Show more" className="button" onPointerDown={() => this.toggleShowMore()}>
                                 <FontAwesomeIcon className="fa-icon" icon={this._showMore ? "chevron-up" : "chevron-down"} size="sm" /></div> : <></>}
                             <div title="Edit link" className="button" onPointerDown={this.onEdit}><FontAwesomeIcon className="fa-icon" icon="edit" size="sm" /></div>
-                            <div title="Follow link" className="button" ref={this._drag} onPointerDown={this.onLinkButtonDown} onPointerUp={this.onFollowLink}><FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" /></div>
+                            <div title="Follow link" className="button" onPointerDown={this.onFollowLink}><FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" /></div>
                         </div>
                     </div>
                     {this._showMore ? this.renderMetadata() : <></>}

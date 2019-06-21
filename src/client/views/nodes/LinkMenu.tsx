@@ -8,6 +8,9 @@ import React = require("react");
 import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { LinkManager } from "../../util/LinkManager";
+import { DragLinksAsDocuments, DragManager } from "../../util/DragManager";
+import { emptyFunction } from "../../../Utils";
+import { LinkMenuGroup } from "./LinkMenuGroup";
 
 interface Props {
     docView: DocumentView;
@@ -19,24 +22,11 @@ export class LinkMenu extends React.Component<Props> {
 
     @observable private _editingLink?: Doc;
 
-    renderGroup = (group: Doc[], groupType: string): Array<JSX.Element> => {
-        let source = this.props.docView.Document;
-        return group.map(linkDoc => {
-            let destination = LinkManager.Instance.findOppositeAnchor(linkDoc, source);
-            return <LinkMenuItem key={destination[Id] + source[Id]} groupType={groupType} linkDoc={linkDoc} sourceDoc={source} destinationDoc={destination} showEditor={action(() => this._editingLink = linkDoc)} />;
-        });
-    }
-
     renderAllGroups = (groups: Map<string, Array<Doc>>): Array<JSX.Element> => {
         let linkItems: Array<JSX.Element> = [];
         groups.forEach((group, groupType) => {
             linkItems.push(
-                <div key={groupType} className="linkMenu-group">
-                    <p className="linkMenu-group-name">{groupType}:</p>
-                    <div className="linkMenu-group-wrapper">
-                        {this.renderGroup(group, groupType)}
-                    </div>
-                </div>
+                <LinkMenuGroup key={groupType} sourceDoc={this.props.docView.props.Document} group={group} groupType={groupType} showEditor={action((linkDoc: Doc) => this._editingLink = linkDoc)} />
             );
         });
 
