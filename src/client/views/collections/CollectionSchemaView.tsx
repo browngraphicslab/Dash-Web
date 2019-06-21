@@ -347,9 +347,9 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @computed
     get previewPanel() {
-        trace();
         return <CollectionSchemaPreview
             Document={this.previewDocument}
+            DataDocument={this.previewDocument}
             width={this.previewWidth}
             height={this.previewHeight}
             getTransform={this.getPreviewTransform}
@@ -384,6 +384,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 }
 interface CollectionSchemaPreviewProps {
     Document?: Doc;
+    DataDocument?: Doc;
     width: () => number;
     height: () => number;
     CollectionView?: CollectionView | CollectionPDFView | CollectionVideoView;
@@ -422,9 +423,11 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
             <input className="collectionSchemaView-input" value={this.props.previewScript} onChange={this.onPreviewScriptChange}
                 style={{ left: `calc(50% - ${Math.min(75, (this.props.Document ? this.PanelWidth() / 2 : 75))}px)` }} />;
         return (<div className="collectionSchemaView-previewRegion" style={{ width: this.props.width(), height: "100%" }}>
-            {!this.props.Document || !this.props.width ? (null) : (
+            {!this.props.Document || !this.props.DataDocument || !this.props.width ? (null) : (
                 <div className="collectionSchemaView-previewDoc" style={{ transform: `translate(${this.centeringOffset}px, 0px)`, height: "100%" }}>
-                    <DocumentView DataDoc={this.props.Document} Document={this.props.Document} isTopMost={false} selectOnLoad={false}
+                    <DocumentView
+                        DataDoc={this.props.DataDocument}
+                        Document={this.props.Document} isTopMost={false} selectOnLoad={false}
                         addDocument={this.props.addDocument} removeDocument={this.props.removeDocument} moveDocument={this.props.moveDocument}
                         ScreenToLocalTransform={this.getTransform}
                         ContentScaling={this.contentScaling}

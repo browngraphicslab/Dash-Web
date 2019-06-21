@@ -80,6 +80,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 let template = Doc.MakeAlias(collection);
                 template.title = "FIELD-" + this._fieldKey;
                 template.layout = FormattedTextBox.LayoutString(this._fieldKey);
+                template.isTemplate = true;
                 template.x = NumCast(first.x);
                 template.y = NumCast(first.y);
                 template.width = first[WidthSym]();

@@ -64,6 +64,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
                     Doc.GetProto(collection).description = "my first templated box";
                     let template = Doc.MakeAlias(collection);
                     template.layout = FormattedTextBox.LayoutString("description");
+                    template.isTemplate = true;
                     template.x = 0;
                     template.y = 0;
                     template.width = 100;
@@ -76,6 +77,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
                     Doc.GetProto(this.props.Document).summary = "my first templated box";
                     let template = Doc.MakeAlias(this.props.Document);
                     template.layout = FormattedTextBox.LayoutString("summary");
+                    template.isTemplate = true;
                     template.x = 0;
                     template.y = 0;
                     template.width = 100;
@@ -88,7 +90,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
                     let otherdoc = Docs.TextDocument({ width: 100, height: 50, title: "applied template" });
                     Doc.GetProto(otherdoc).description = "THIS DESCRIPTION IS REALLY IMPORTANT!";
                     Doc.GetProto(otherdoc).summary = "THIS SUMMARY IS MEANINGFUL!";
-                    Doc.GetProto(otherdoc).layout = this.props.Document;
+                    Doc.GetProto(otherdoc).layout = Doc.MakeDelegate(this.props.Document);
                     this.props.addDocTab && this.props.addDocTab(otherdoc, "onRight");
                 }), icon: "project-diagram"
             });

@@ -276,6 +276,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 contentElement = <div ref={this._dref} style={{ display: "inline-block", height: this.props.panelHeight() }} key={this.props.document[Id]}>
                     <CollectionSchemaPreview
                         Document={this.props.document}
+                        DataDocument={this.props.document}
                         width={docWidth}
                         height={this.props.panelHeight}
                         getTransform={this.docTransform}

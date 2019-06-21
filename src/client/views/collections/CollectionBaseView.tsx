@@ -5,7 +5,7 @@ import { Doc, DocListCast, Opt } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
 import { listSpec } from '../../../new_fields/Schema';
-import { Cast, FieldValue, NumCast, PromiseValue } from '../../../new_fields/Types';
+import { Cast, FieldValue, NumCast, PromiseValue, StrCast } from '../../../new_fields/Types';
 import { SelectionManager } from '../../util/SelectionManager';
 import { ContextMenu } from '../ContextMenu';
 import { FieldViewProps } from '../nodes/FieldView';
@@ -77,10 +77,12 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         if (!(documentToAdd instanceof Doc)) {
             return false;
         }
-        let data = DocListCast(documentToAdd.data);
-        for (const doc of data) {
-            if (this.createsCycle(doc, containerDocument)) {
-                return true;
+        if (StrCast(documentToAdd.layout).indexOf("CollectionView") !== -1) {
+            let data = DocListCast(documentToAdd.data);
+            for (const doc of data) {
+                if (this.createsCycle(doc, containerDocument)) {
+                    return true;
+                }
             }
         }
         let annots = DocListCast(documentToAdd.annotations);
@@ -106,6 +108,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         if (curPage >= 0) {
             Doc.GetProto(doc).annotationOn = props.Document;
         }
+        allowDuplicates = true;
         if (!this.createsCycle(doc, props.Document)) {
             //TODO This won't create the field if it doesn't already exist
             const value = Cast(props.Document[props.fieldKey], listSpec(Doc));
@@ -124,8 +127,9 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
                 let zoom = NumCast(this.props.Document.scale, 1);
                 // Doc.GetProto(doc).zoomBasis = zoom;
             }
+            return true;
         }
-        return true;
+        return false;
     }
 
     @action.bound
