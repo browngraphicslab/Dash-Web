@@ -54,7 +54,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
             field = res.result;
         }
         if (Field.IsField(field, true)) {
-            let target = !eq ? doc : Doc.GetProto(doc);
+            let target = eq ? doc : Doc.GetProto(doc);
             target[key] = field;
             return true;
         }

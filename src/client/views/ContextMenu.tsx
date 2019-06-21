@@ -6,6 +6,7 @@ import "./ContextMenu.scss";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch, faCircle } from '@fortawesome/free-solid-svg-icons';
+import Measure from "react-measure";
 
 library.add(faSearch);
 library.add(faCircle);
@@ -23,14 +24,11 @@ export class ContextMenu extends React.Component {
     @observable private _yRelativeToTop: boolean = true;
     @observable selectedIndex = -1;
 
-    private _searchRef = React.createRef<HTMLInputElement>();
-
-    private ref: React.RefObject<HTMLDivElement>;
+    @observable private _width: number = 0;
+    @observable private _height: number = 0;
 
     constructor(props: Readonly<{}>) {
         super(props);
-
-        this.ref = React.createRef();
 
         ContextMenu.Instance = this;
     }
@@ -51,23 +49,42 @@ export class ContextMenu extends React.Component {
         return this._items;
     }
 
+    static readonly buffer = 20;
+    get pageX() {
+        const x = this._pageX;
+        if (x < 0) {
+            return 0;
+        }
+        const width = this._width;
+        if (x + width > window.innerWidth - ContextMenu.buffer) {
+            return window.innerWidth - ContextMenu.buffer - width;
+        }
+        return x;
+    }
+
+    get pageY() {
+        const y = this._pageY;
+        if (y < 0) {
+            return 0;
+        }
+        const height = this._height;
+        if (y + height > window.innerHeight - ContextMenu.buffer) {
+            return window.innerHeight - ContextMenu.buffer - height;
+        }
+        return y;
+    }
+
     @action
     displayMenu(x: number, y: number) {
         //maxX and maxY will change if the UI/font size changes, but will work for any amount
         //of items added to the menu
-        let maxX = window.innerWidth - 150;
-        let maxY = window.innerHeight - ((this._items.length + 1/*for search box*/) * 34 + 30);
 
-        this._pageX = x > maxX ? maxX : x;
-        this._pageY = y > maxY ? maxY : y;
+        this._pageX = x;
+        this._pageY = y;
 
         this._searchString = "";
 
         this._display = true;
-
-        if (this._searchRef.current) {
-            this._searchRef.current.focus();
-        }
     }
 
     @action
@@ -143,19 +160,33 @@ export class ContextMenu extends React.Component {
         if (!this._display) {
             return null;
         }
-        let style = this._yRelativeToTop ? { left: this._pageX, top: this._pageY } :
-            { left: this._pageX, bottom: this._pageY };
+        let style = this._yRelativeToTop ? { left: this.pageX, top: this.pageY } :
+            { left: this.pageX, bottom: this.pageY };
 
-        return (
-            <div className="contextMenu-cont" style={style} ref={this.ref}>
+        console.log(this._pageX);
+        console.log(this.pageX);
+        console.log();
+
+        const contents = (
+            <>
                 <span>
                     <span className="icon-background">
                         <FontAwesomeIcon icon="search" size="lg" />
                     </span>
-                    <input className="contextMenu-item contextMenu-description" type="text" placeholder="Search . . ." value={this._searchString} onKeyDown={this.onKeyDown} onChange={this.onChange} ref={this._searchRef} autoFocus />
+                    <input className="contextMenu-item contextMenu-description" type="text" placeholder="Search . . ." value={this._searchString} onKeyDown={this.onKeyDown} onChange={this.onChange} autoFocus />
                 </span>
                 {this.menuItems}
-            </div>
+            </>
+        );
+        return (
+            <Measure offset onResize={action((r: any) => { this._width = r.offset.width; this._height = r.offset.height; })}>
+                {({ measureRef }) => (
+                    <div className="contextMenu-cont" style={style} ref={measureRef}>
+                        {contents}
+                    </div>
+                )
+                }
+            </Measure>
         );
     }
 

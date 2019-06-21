@@ -1,6 +1,6 @@
 import { action, computed } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, HeightSym, WidthSym } from "../../../../new_fields/Doc";
+import { Doc, HeightSym, WidthSym, DocListCastAsync } from "../../../../new_fields/Doc";
 import { Id } from "../../../../new_fields/FieldSymbols";
 import { InkField, StrokeData } from "../../../../new_fields/InkField";
 import { createSchema, makeInterface } from "../../../../new_fields/Schema";
@@ -26,6 +26,7 @@ import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import v5 = require("uuid/v5");
 import PDFMenu from "../../pdf/PDFMenu";
+import { ContextMenu } from "../../ContextMenu";
 
 export const panZoomSchema = createSchema({
     panX: "number",
@@ -339,6 +340,33 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY));
     }
 
+    onContextMenu = () => {
+        ContextMenu.Instance.addItem({
+            description: "Arrange contents in grid",
+            event: async () => {
+                const docs = await DocListCastAsync(this.Document[this.props.fieldKey]);
+                if (docs) {
+                    let startX = this.Document.panX || 0;
+                    let x = startX;
+                    let y = this.Document.panY || 0;
+                    let i = 0;
+                    const width = Math.max(...docs.map(doc => NumCast(doc.width)));
+                    const height = Math.max(...docs.map(doc => NumCast(doc.height)));
+                    for (const doc of docs) {
+                        doc.x = x;
+                        doc.y = y;
+                        x += width + 20;
+                        if (++i === 6) {
+                            i = 0;
+                            x = startX;
+                            y += height + 20;
+                        }
+                    }
+                }
+            }
+        });
+    }
+
     private childViews = () => [
         <CollectionFreeFormBackgroundView key="backgroundView" {...this.props} {...this.getDocumentViewProps(this.props.Document)} />,
         ...this.views
@@ -349,7 +377,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return (
             <div className={containerName} ref={this.createDropTarget} onWheel={this.onPointerWheel}
                 style={{ borderRadius: "inherit" }}
-                onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onDrop.bind(this)} onDragOver={this.onDragOver} >
+                onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onDrop.bind(this)} onDragOver={this.onDragOver} onContextMenu={this.onContextMenu}>
                 <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments} isSelected={this.props.isSelected}
                     addDocument={this.addDocument} removeDocument={this.props.removeDocument} addLiveTextDocument={this.addLiveTextBox}
                     getContainerTransform={this.getContainerTransform} getTransform={this.getTransform}>
