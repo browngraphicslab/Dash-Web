@@ -74,24 +74,22 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             if (text[0] === '#') {
                 this._fieldKey = text.slice(1, text.length);
                 this._title = this.selectionTitle;
+            } else if (text[0] === ">") {
+                let metaKey = text.slice(1, text.length);
                 let first = SelectionManager.SelectedDocuments()[0].props.Document!;
                 let collection = SelectionManager.SelectedDocuments()[0].props.ContainingCollectionView!.props.Document;
-                Doc.GetProto(collection)[this._fieldKey] = "Testing";
+                Doc.GetProto(collection)[metaKey] = "-empty field-";
                 let template = Doc.MakeAlias(collection);
-                template.title = "FIELD-" + this._fieldKey;
-                template.layout = FormattedTextBox.LayoutString(this._fieldKey);
+                template.title = metaKey;
+                template.layout = FormattedTextBox.LayoutString(metaKey);
                 template.isTemplate = true;
                 template.x = NumCast(first.x);
                 template.y = NumCast(first.y);
                 template.width = first[WidthSym]();
                 template.height = first[HeightSym]();
-                //{props.DataDoc.${fieldKey}}
-                template.templates = new List<string>([Templates.TitleBar(this._fieldKey)]);
+                template.templates = new List<string>([Templates.TitleBar(metaKey)]);//`{props.DataDoc.${metaKey}_text}`)]);
                 Doc.AddDocToList(collection, "data", template);
                 SelectionManager.SelectedDocuments().map(dv => dv.props.removeDocument && dv.props.removeDocument(dv.props.Document));
-
-                // let template = SelectionManager.SelectedDocuments()[0].props.Document; template.proto = Doc.GetProto(collection)
-                // template.layout = FormattedTextBox.LayoutString(this._fieldKey);
             }
             else {
                 if (SelectionManager.SelectedDocuments().length > 0) {

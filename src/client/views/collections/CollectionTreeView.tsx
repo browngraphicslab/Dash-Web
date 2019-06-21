@@ -25,10 +25,13 @@ import { CollectionSchemaPreview } from './CollectionSchemaView';
 import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTreeView.scss";
 import React = require("react");
+import { FormattedTextBox } from '../nodes/FormattedTextBox';
 
 
 export interface TreeViewProps {
     document: Doc;
+    dataDoc: Doc;
+    containingCollection: Doc;
     deleteDoc: (doc: Doc) => boolean;
     moveDocument: DragManager.MoveFunction;
     dropAction: "alias" | "copy" | undefined;
@@ -142,7 +145,29 @@ class TreeView extends React.Component<TreeViewProps> {
         height={36}
         fontStyle={style}
         GetValue={() => StrCast(this.props.document[key])}
-        SetValue={(value: string) => (Doc.GetProto(this.props.document)[key] = value) ? true : true}
+        SetValue={(value: string) => {
+            let res = (Doc.GetProto(this.props.document)[key] = value) ? true : true;
+
+            if (value.startsWith(">")) {
+                let metaKey = value.slice(1, value.length);
+                let collection = this.props.containingCollection;
+                Doc.GetProto(collection)[metaKey] = "-empty field-";
+                let template = Doc.MakeAlias(collection);
+                template.title = metaKey;
+                template.embed = true;
+                template.layout = FormattedTextBox.LayoutString(metaKey);
+                template.x = 0;
+                template.y = 0;
+                template.width = 100;
+                template.height = 50;
+                template.isTemplate = true;
+                template.templates = new List<string>([Templates.TitleBar(metaKey)]);//`{props.DataDoc.${metaKey}_text}`)]);
+                Doc.AddDocToList(collection, "data", template);
+                this.delete();
+            }
+
+            return res;
+        }}
         OnFillDown={(value: string) => {
             Doc.GetProto(this.props.document)[key] = value;
             let doc = Docs.FreeformDocument([], { title: "", x: 0, y: 0, width: 100, height: 25, templates: new List<string>([Templates.Title.Layout]) });
@@ -269,14 +294,14 @@ class TreeView extends React.Component<TreeViewProps> {
         if (!this._collapsed) {
             if (!this.props.document.embed) {
                 contentElement = <ul key={this._chosenKey + "more"}>
-                    {TreeView.GetChildElements(doc instanceof Doc ? [doc] : DocListCast(docList), this.props.treeViewId, this._chosenKey, addDoc, remDoc, this.move,
+                    {TreeView.GetChildElements(doc instanceof Doc ? [doc] : DocListCast(docList), this.props.treeViewId, this.props.document, this.props.dataDoc, this._chosenKey, addDoc, remDoc, this.move,
                         this.props.dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active, this.props.panelWidth)}
                 </ul >;
             } else {
                 contentElement = <div ref={this._dref} style={{ display: "inline-block", height: this.props.panelHeight() }} key={this.props.document[Id]}>
                     <CollectionSchemaPreview
                         Document={this.props.document}
-                        DataDocument={this.props.document}
+                        DataDocument={this.props.dataDoc}
                         width={docWidth}
                         height={this.props.panelHeight}
                         getTransform={this.docTransform}
@@ -307,6 +332,8 @@ class TreeView extends React.Component<TreeViewProps> {
     public static GetChildElements(
         docs: Doc[],
         treeViewId: string,
+        containingCollection: Doc,
+        dataDoc: Doc,
         key: string,
         add: (doc: Doc, relativeTo?: Doc, before?: boolean) => boolean,
         remove: ((doc: Doc) => boolean),
@@ -338,6 +365,8 @@ class TreeView extends React.Component<TreeViewProps> {
             };
             return <TreeView
                 document={child}
+                dataDoc={dataDoc}
+                containingCollection={containingCollection}
                 treeViewId={treeViewId}
                 key={child[Id]}
                 indentDocument={indent}
@@ -419,7 +448,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                 </div>
                 <ul className="no-indent">
                     {
-                        TreeView.GetChildElements(this.childDocs, this.props.Document[Id], this.props.fieldKey, addDoc, this.remove,
+                        TreeView.GetChildElements(this.childDocs, this.props.Document[Id], this.props.Document, this.props.DataDoc, this.props.fieldKey, addDoc, this.remove,
                             moveDoc, dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.outerXf, this.props.active, this.props.PanelWidth)
                     }
                 </ul>

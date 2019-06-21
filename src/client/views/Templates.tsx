@@ -84,10 +84,10 @@ export namespace Templates {
             </div > `);
     }
 
-    export function TitleBar(titlestr: string) {
+    export function TitleBar(datastring: string) {
         return (`<div>
             <div style="height:25px; width:100%; background-color: rgba(0, 0, 0, .4); color: white; z-index: 100">
-                <span style="text-align:center;width:100%;font-size:20px;position:absolute;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${titlestr}</span>
+                <span style="text-align:center;width:100%;font-size:20px;position:absolute;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${datastring}</span>
             </div>
             <div style="height:calc(100% - 25px);">
                 <div style="width:100%;overflow:auto">{layout}</div>

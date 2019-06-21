@@ -59,33 +59,6 @@ export class CollectionView extends React.Component<FieldViewProps> {
             subItems.push({ description: "Stacking", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Stacking), icon: "th-list" });
             ContextMenu.Instance.addItem({ description: "View Modes...", subitems: subItems });
             ContextMenu.Instance.addItem({
-                description: "Add Description Template", event: undoBatch(() => {
-                    let collection = this.props.Document;
-                    Doc.GetProto(collection).description = "my first templated box";
-                    let template = Doc.MakeAlias(collection);
-                    template.layout = FormattedTextBox.LayoutString("description");
-                    template.isTemplate = true;
-                    template.x = 0;
-                    template.y = 0;
-                    template.width = 100;
-                    template.height = 25;
-                    Doc.AddDocToList(this.props.Document, "data", template);
-                }), icon: "project-diagram"
-            });
-            ContextMenu.Instance.addItem({
-                description: "Add Summary Template", event: undoBatch(() => {
-                    Doc.GetProto(this.props.Document).summary = "my first templated box";
-                    let template = Doc.MakeAlias(this.props.Document);
-                    template.layout = FormattedTextBox.LayoutString("summary");
-                    template.isTemplate = true;
-                    template.x = 0;
-                    template.y = 0;
-                    template.width = 100;
-                    template.height = 25;
-                    Doc.AddDocToList(this.props.Document, "data", template);
-                }), icon: "project-diagram"
-            });
-            ContextMenu.Instance.addItem({
                 description: "Apply Template", event: undoBatch(() => {
                     let otherdoc = Docs.TextDocument({ width: 100, height: 50, title: "applied template" });
                     Doc.GetProto(otherdoc).description = "THIS DESCRIPTION IS REALLY IMPORTANT!";
