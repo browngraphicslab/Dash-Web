@@ -263,7 +263,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             let color = "$dark-color";
             let icon = this.checkData(backup[i]);
             let display = () => this.show(keyvalue[i].doc);
-            let leftval = (((values[i] - values[0]) * this.barwidth / this._range) * (this.barwidth / (this.xmovement2 - this.xmovement)) - (this.xmovement * (this.barwidth - (10 / this.barwidth)) / (this.xmovement2 - this.xmovement))) * 0.97 + "px";
+            let leftval = (((values[i] - values[0]) * this.barwidth * 0.97 / this._range) * (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)) - (this.xmovement * (this.barwidth) / (this.barwidth - this.xmovement2 - this.xmovement))) + "px";
             for (let j = 0; j < backup.length; j++) {
                 if (j !== i) {
                     if (values[i] === values[j]) {
@@ -333,9 +333,9 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     className="searchBox-barChild searchBox-input" />
                 {String((this.xmovement * this._range / this.barwidth) + this._values[0])}
                 {this.preview4}
-                <input value={this.searchString} onChange={this.onChange} onKeyPress={this.enter} type="text" placeholder={String((this.xmovement2 * this._range / this.barwidth) + this._values[0])}
+                <input value={this.searchString} onChange={this.onChange} onKeyPress={this.enter} type="text" placeholder={String(((this.barwidth - this.xmovement2) * this._range / this.b arwidth) + this._values[0])}
                     className="searchBox-barChild searchBox-input" />
-                {String((this.xmovement2 * this._range / this.barwidth) + this._values[0])}
+                {String(((this.barwidth - this.xmovement2) * this._range / this.barwidth) + this._values[0])}
 
 
             </div>
@@ -351,12 +351,12 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 </div>
                 <div className="v2" onPointerDown={this.onPointerDown2} style={{
                     cursor: "ew-resize",
-                    position: "absolute", left: this.xmovement2,
+                    position: "absolute", right: this.xmovement2,
                     height: "100%",
                     zIndex: "2"
                 }}>
                 </div>
-                <div className="bar" onPointerDown={this.onPointerDown3} style={{ left: this.xmovement, width: this.xmovement2 - this.xmovement, height: "100%", position: "absolute" }}>
+                <div className="bar" onPointerDown={this.onPointerDown3} style={{ left: this.xmovement, width: this.barwidth - this.xmovement2 - this.xmovement, height: "100%", position: "absolute" }}>
                 </div>
                 <Measure onResize={() => this.updateWidth()}>
                     {({ measureRef }) => <div ref={measureRef}> </div>}
@@ -388,19 +388,20 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     enter = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Enter") {
             console.log(this.searchString);
-            var thing = ((parseFloat(this.searchString) - parseFloat(this._values[0])) * this.barwidth) / this._range;
+            var thing = (parseFloat(this.searchString) - parseFloat(this._values[0])) * this.barwidth / this._range;
             // // this.xmovement2 = !isNaN(parseFloat(e.target.value)) ? parseFloat(e.target.value) : 0;
             // this.xmovement2 = thing;s
             // this.searchString = String((this.xmovement2 * this._range / this.barwidth) + this._values[0]);
-            console.log(thing);
-            this.xmovement2 = thing;
+            console.log(this.barwidth);
+            console.log(this.barwidth - thing);
+            this.xmovement2 = this.barwidth - thing;
         }
     }
 
     @action
     enter2 = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Enter") {
-            var thing = ((parseFloat(this.searchString2) - parseFloat(this._values[0])) * this.barwidth) / this._range;
+            var thing = (parseFloat(this.searchString2) - parseFloat(this._values[0])) * this.barwidth / this._range;
             // // this.xmovement2 = !isNaN(parseFloat(e.target.value)) ? parseFloat(e.target.value) : 0;
             // this.xmovement = thing;
             // this.searchString2 = String((this.xmovement * this._range / this.barwidth) + this._values[0]);
@@ -493,19 +494,18 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @action
     onPointerDown4 = (e: React.PointerEvent): void => {
 
-        let temp = this.xmovement2 - this.xmovement;
+        let temp = this.barwidth - this.xmovement2 - this.xmovement;
         this.xmovement = e.pageX - document.body.clientWidth + document.getElementById('screen').clientWidth;
-
-        this.xmovement2 = temp + this.xmovement;
-        if (this.xmovement2 > this.barwidth) {
-            this.xmovement = this.barwidth - (this.xmovement2 - this.xmovement);
-            this.xmovement2 = this.barwidth;
+        if (this.xmovement < 0) {
+            this.xmovement = 0;
+        }
+        this.xmovement2 = this.barwidth - temp - this.xmovement;
+        if (this.xmovement2 < 0) {
+            this.xmovement += this.xmovement2;
+            this.xmovement2 = 0;
         }
         e.stopPropagation();
         e.preventDefault();
-
-
-
     }
 
     @action
@@ -521,7 +521,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     private xmovement = 0;
 
     @observable
-    private xmovement2 = this.barwidth;
+    private xmovement2 = 0;
 
 
 
@@ -533,8 +533,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         if (this.xmovement < 0) {
             this.xmovement = 0;
         }
-        if (this.xmovement > this.xmovement2 - 3) {
-            this.xmovement = this.xmovement2 - 3;
+        if (this.xmovement > this.barwidth - this.xmovement2 - 2) {
+            this.xmovement = this.barwidth - this.xmovement2 - 4;
         }
         console.log(this.barwidth);
         document.addEventListener("pointerup", this.onPointerUp);
@@ -546,12 +546,12 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         e.stopPropagation();
         e.preventDefault();
         console.log(this.xmovement2);
-        this.xmovement2 += e.movementX;
-        if (this.xmovement2 > this.barwidth - 6) {
-            this.xmovement2 = this.barwidth - 6;
+        this.xmovement2 -= e.movementX;
+        if (this.xmovement2 < 0) {
+            this.xmovement2 = 0;
         }
-        if (this.xmovement2 < this.xmovement + 3) {
-            this.xmovement2 = this.xmovement + 3;
+        if (this.xmovement2 > this.barwidth - this.xmovement - 3) {
+            this.xmovement2 = this.barwidth - this.xmovement - 3;
         }
 
         document.addEventListener("pointerup", this.onPointerUp);
@@ -563,17 +563,17 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         e.stopPropagation();
         e.preventDefault();
         console.log(this.xmovement2);
-        this.xmovement2 += e.movementX;
+        this.xmovement2 -= e.movementX;
         this.xmovement += e.movementX;
 
 
-        if (this.xmovement2 > this.barwidth - 6) {
-            this.xmovement2 = this.barwidth - 6;
+        if (this.xmovement2 < 0) {
+            this.xmovement2 = 0;
             this.xmovement -= e.movementX;
         }
         if (this.xmovement < 0) {
             this.xmovement = 0;
-            this.xmovement2 -= e.movementX;
+            this.xmovement2 += e.movementX;
         }
 
         document.addEventListener("pointerup", this.onPointerUp);
