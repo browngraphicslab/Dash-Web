@@ -9,7 +9,7 @@ import { Doc, DocListCast, Field, Opt } from "../../../new_fields/Doc";
 import { Id } from '../../../new_fields/FieldSymbols';
 import { FieldId } from "../../../new_fields/RefField";
 import { listSpec } from "../../../new_fields/Schema";
-import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { Cast, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
 import { emptyFunction, returnTrue, Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { DocumentManager } from '../../util/DocumentManager';
@@ -45,10 +45,12 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     private _containerRef = React.createRef<HTMLDivElement>();
     private _flush: boolean = false;
     private _ignoreStateChange = "";
+    private _isPointerDown = false;
 
     constructor(props: SubCollectionViewProps) {
         super(props);
-        CollectionDockingView.Instance = this;
+        if (props.addDocTab === emptyFunction) CollectionDockingView.Instance = this;
+        //Why is this here?
         (window as any).React = React;
         (window as any).ReactDOM = ReactDOM;
     }
@@ -248,6 +250,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
     @action
     onPointerUp = (e: React.PointerEvent): void => {
+        this._isPointerDown = false;
         if (this._flush) {
             this._flush = false;
             setTimeout(() => this.stateChanged(), 10);
@@ -255,6 +258,12 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     }
     @action
     onPointerDown = (e: React.PointerEvent): void => {
+        this._isPointerDown = true;
+        let onPointerUp = action(() => {
+            window.removeEventListener("pointerup", onPointerUp)
+            this._isPointerDown = false;
+        })
+        window.addEventListener("pointerup", onPointerUp);
         var className = (e.target as any).className;
         if (className === "messageCounter") {
             e.stopPropagation();
@@ -335,6 +344,15 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     tab.element.append(counter);
                     let upDiv = document.createElement("span");
                     const stack = tab.contentItem.parent;
+                    // shifts the focus to this tab when another tab is dragged over it
+                    tab.element[0].onmouseenter = (e: any) => {
+                        if (!this._isPointerDown) return;
+                        var activeContentItem = tab.header.parent.getActiveContentItem();
+                        if (tab.contentItem !== activeContentItem) {
+                            tab.header.parent.setActiveContentItem(tab.contentItem);
+                        }
+                        tab.setActive(true);
+                    };
                     ReactDOM.render(<ParentDocSelector Document={doc} addDocTab={(doc, location) => CollectionDockingView.Instance.AddTab(stack, doc)} />, upDiv);
                     tab.reactComponents = [upDiv];
                     tab.element.append(upDiv);
@@ -419,7 +437,9 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     @observable private _document: Opt<Doc>;
     get _stack(): any {
         let parent = (this.props as any).glContainer.parent.parent;
-        if (this._document && this._document.excludeFromLibrary && parent.parent && parent.parent.contentItems.length > 1) { return parent.parent.contentItems[1]; }
+        if (this._document && this._document.excludeFromLibrary && parent.parent && parent.parent.contentItems.length > 1) {
+            return parent.parent.contentItems[1];
+        }
         return parent;
     }
     constructor(props: any) {
@@ -428,7 +448,11 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
 
     nativeWidth = () => NumCast(this._document!.nativeWidth, this._panelWidth);
-    nativeHeight = () => NumCast(this._document!.nativeHeight, this._panelHeight);
+    nativeHeight = () => {
+        let nh = NumCast(this._document!.nativeHeight, this._panelHeight);
+        let res = BoolCast(this._document!.ignoreAspect) ? this._panelHeight : nh;
+        return res;
+    }
     contentScaling = () => {
         const nativeH = this.nativeHeight();
         const nativeW = this.nativeWidth();
@@ -449,6 +473,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         let docHeight = NumCast(this._document!.height);
         if (NumCast(this._document!.nativeWidth) || !docWidth || !this._panelWidth || !this._panelHeight) return 1;
         if (StrCast(this._document!.layout).indexOf("Collection") === -1 ||
+            !BoolCast(this._document!.fitToContents, false) ||
             NumCast(this._document!.viewType) !== CollectionViewType.Freeform) return 1;
         let scaling = Math.max(1, this._panelWidth / docWidth * docHeight > this._panelHeight ?
             this._panelHeight / docHeight : this._panelWidth / docWidth);

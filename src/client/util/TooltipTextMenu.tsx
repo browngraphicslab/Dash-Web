@@ -1,6 +1,6 @@
 import { action, IReactionDisposer, reaction } from "mobx";
 import { Dropdown, DropdownSubmenu, MenuItem, MenuItemSpec, renderGrouped, icons, } from "prosemirror-menu"; //no import css
-import { baseKeymap, lift } from "prosemirror-commands";
+import { baseKeymap, lift, deleteSelection } from "prosemirror-commands";
 import { history, redo, undo } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
 import { EditorState, Transaction, NodeSelection, TextSelection } from "prosemirror-state";
@@ -14,20 +14,22 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 import { wrapInList, bulletList, liftListItem, listItem, } from 'prosemirror-schema-list';
 import { liftTarget, RemoveMarkStep, AddMarkStep } from 'prosemirror-transform';
 import {
-    faListUl,
+    faListUl, faGrinTongueSquint,
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { FieldViewProps } from "../views/nodes/FieldView";
 import { throwStatement } from "babel-types";
+const { openPrompt, TextField } = require("./ProsemirrorCopy/prompt.js");
 import { View } from "@react-pdf/renderer";
 import { DragManager } from "./DragManager";
 import { Doc, Opt, Field } from "../../new_fields/Doc";
-import { Utils } from "../northstar/utils/Utils";
 import { DocServer } from "../DocServer";
 import { CollectionFreeFormDocumentView } from "../views/nodes/CollectionFreeFormDocumentView";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { DocumentManager } from "./DocumentManager";
 import { Id } from "../../new_fields/FieldSymbols";
+import { Utils } from "../../Utils";
+// import { wrap } from "module";
 
 const SVG = "http://www.w3.org/2000/svg";
 
@@ -46,6 +48,8 @@ export class TooltipTextMenu {
     private fontStylesToName: Map<MarkType, string>;
     private listTypeToIcon: Map<NodeType, string>;
     private fontSizeIndicator: HTMLSpanElement = document.createElement("span");
+    private link: HTMLAnchorElement;
+
     private linkEditor?: HTMLDivElement;
     private linkText?: HTMLDivElement;
     private linkDrag?: HTMLImageElement;
@@ -68,12 +72,13 @@ export class TooltipTextMenu {
         library.add(faListUl);
         //add the buttons to the tooltip
         let items = [
-            { command: toggleMark(schema.marks.strong), dom: this.icon("B", "strong") },
-            { command: toggleMark(schema.marks.em), dom: this.icon("i", "em") },
-            { command: toggleMark(schema.marks.underline), dom: this.icon("U", "underline") },
-            { command: toggleMark(schema.marks.strikethrough), dom: this.icon("S", "strikethrough") },
-            { command: toggleMark(schema.marks.superscript), dom: this.icon("s", "superscript") },
-            { command: toggleMark(schema.marks.subscript), dom: this.icon("s", "subscript") },
+            { command: toggleMark(schema.marks.strong), dom: this.icon("B", "strong", "Bold") },
+            { command: toggleMark(schema.marks.em), dom: this.icon("i", "em", "Italic") },
+            { command: toggleMark(schema.marks.underline), dom: this.icon("U", "underline", "Underline") },
+            { command: toggleMark(schema.marks.strikethrough), dom: this.icon("S", "strikethrough", "Strikethrough") },
+            { command: toggleMark(schema.marks.superscript), dom: this.icon("s", "superscript", "Superscript") },
+            { command: toggleMark(schema.marks.subscript), dom: this.icon("s", "subscript", "Subscript") },
+            { command: deleteSelection, dom: this.icon("C", 'collapse', 'Collapse') }
             // { command: wrapInList(schema.nodes.bullet_list), dom: this.icon(":", "bullets") },
             // { command: wrapInList(schema.nodes.ordered_list), dom: this.icon("1)", "bullets") },
             // { command: lift, dom: this.icon("<", "lift") },
@@ -86,7 +91,10 @@ export class TooltipTextMenu {
             dom.addEventListener("pointerdown", e => {
                 e.preventDefault();
                 view.focus();
-                command(view.state, view.dispatch, view);
+                if (dom.contains(e.target as Node)) {
+                    e.stopPropagation();
+                    command(view.state, view.dispatch, view);
+                }
             });
 
         });
@@ -120,6 +128,13 @@ export class TooltipTextMenu {
         this.listTypeToIcon.set(schema.nodes.ordered_list, "1)");
         this.listTypes = Array.from(this.listTypeToIcon.keys());
 
+        this.link = document.createElement("a");
+        this.link.target = "_blank";
+        this.link.style.color = "white";
+        this.tooltip.appendChild(this.link);
+
+        this.tooltip.appendChild(this.createLink().render(this.view).dom);
+
         this.update(view, undefined);
     }
 
@@ -131,13 +146,13 @@ export class TooltipTextMenu {
         //font SIZES
         let fontSizeBtns: MenuItem[] = [];
         this.fontSizeToNum.forEach((number, mark) => {
-            fontSizeBtns.push(this.dropdownMarkBtn(String(number), "width: 50px;", mark, this.view, this.changeToMarkInGroup, this.fontSizes));
+            fontSizeBtns.push(this.dropdownMarkBtn(String(number), "color: black; width: 50px;", mark, this.view, this.changeToMarkInGroup, this.fontSizes));
         });
 
         if (this.fontSizeDom) { this.tooltip.removeChild(this.fontSizeDom); }
         this.fontSizeDom = (new Dropdown(cut(fontSizeBtns), {
             label: label,
-            css: "color:white; min-width: 60px; padding-left: 5px; margin-right: 0;"
+            css: "color:black; min-width: 60px; padding-left: 5px; margin-right: 0;"
         }) as MenuItem).render(this.view).dom;
         this.tooltip.appendChild(this.fontSizeDom);
     }
@@ -150,13 +165,13 @@ export class TooltipTextMenu {
         //font STYLES
         let fontBtns: MenuItem[] = [];
         this.fontStylesToName.forEach((name, mark) => {
-            fontBtns.push(this.dropdownMarkBtn(name, "font-family: " + name + ", sans-serif; width: 125px;", mark, this.view, this.changeToMarkInGroup, this.fontStyles));
+            fontBtns.push(this.dropdownMarkBtn(name, "color: black; font-family: " + name + ", sans-serif; width: 125px;", mark, this.view, this.changeToMarkInGroup, this.fontStyles));
         });
 
         if (this.fontStyleDom) { this.tooltip.removeChild(this.fontStyleDom); }
         this.fontStyleDom = (new Dropdown(cut(fontBtns), {
             label: label,
-            css: "color:white; width: 125px; margin-left: -3px; padding-left: 2px;"
+            css: "color:black; width: 125px; margin-left: -3px; padding-left: 2px;"
         }) as MenuItem).render(this.view).dom;
 
         this.tooltip.appendChild(this.fontStyleDom);
@@ -165,7 +180,7 @@ export class TooltipTextMenu {
     updateLinkMenu() {
         if (!this.linkEditor || !this.linkText) {
             this.linkEditor = document.createElement("div");
-            this.linkEditor.style.color = "white";
+            this.linkEditor.style.color = "black";
             this.linkText = document.createElement("div");
             this.linkText.style.cssFloat = "left";
             this.linkText.style.marginRight = "5px";
@@ -174,13 +189,13 @@ export class TooltipTextMenu {
             this.linkText.style.whiteSpace = "nowrap";
             this.linkText.style.width = "150px";
             this.linkText.style.overflow = "hidden";
-            this.linkText.style.color = "white";
+            this.linkText.style.color = "black";
             this.linkText.onpointerdown = (e: PointerEvent) => { e.stopPropagation(); };
             let linkBtn = document.createElement("div");
             linkBtn.textContent = ">>";
-            linkBtn.style.width = "20px";
-            linkBtn.style.height = "20px";
-            linkBtn.style.color = "white";
+            linkBtn.style.width = "10px";
+            linkBtn.style.height = "10px";
+            linkBtn.style.color = "black";
             linkBtn.style.cssFloat = "left";
             linkBtn.onpointerdown = (e: PointerEvent) => {
                 let node = this.view.state.selection.$from.nodeAfter;
@@ -207,7 +222,7 @@ export class TooltipTextMenu {
             this.linkDrag.src = "https://seogurusnyc.com/wp-content/uploads/2016/12/link-1.png";
             this.linkDrag.style.width = "20px";
             this.linkDrag.style.height = "20px";
-            this.linkDrag.style.color = "white";
+            this.linkDrag.style.color = "black";
             this.linkDrag.style.background = "black";
             this.linkDrag.style.cssFloat = "left";
             this.linkDrag.onpointerdown = (e: PointerEvent) => {
@@ -228,6 +243,22 @@ export class TooltipTextMenu {
             this.linkEditor.appendChild(this.linkText);
             this.linkEditor.appendChild(linkBtn);
             this.tooltip.appendChild(this.linkEditor);
+
+            let starButton = document.createElement("span");
+            // starButton.style.width = '10px';
+            // starButton.style.height = '10px';
+            starButton.style.marginLeft = '10px';
+            starButton.textContent = "Summarize";
+            starButton.style.color = 'black';
+            starButton.style.height = '20px';
+            starButton.style.backgroundColor = 'white';
+            starButton.style.textAlign = 'center';
+            starButton.onclick = () => {
+                let state = this.view.state;
+                this.insertStar(state, this.view.dispatch);
+            };
+
+            this.tooltip.appendChild(starButton);
         }
 
         let node = this.view.state.selection.$from.nodeAfter;
@@ -253,6 +284,16 @@ export class TooltipTextMenu {
         link = node && node.marks.find(m => m.type.name === "link");
     }
 
+    insertStar(state: EditorState<any>, dispatch: any) {
+        console.log("creating star...");
+        let newNode = schema.nodes.star.create({ visibility: false, oldtext: state.selection.content(), oldtextslice: state.selection.content().toJSON(), oldtextlen: state.selection.to - state.selection.from });
+        if (dispatch) {
+            console.log(newNode.attrs.oldtext.toString());
+            dispatch(state.tr.replaceSelectionWith(newNode));
+        }
+        return true;
+    }
+
     //will display a remove-list-type button if selection is in list, otherwise will show list type dropdown
     updateListItemDropdown(label: string, listTypeBtn: Node) {
         //remove old btn
@@ -261,14 +302,14 @@ export class TooltipTextMenu {
         //Make a dropdown of all list types
         let toAdd: MenuItem[] = [];
         this.listTypeToIcon.forEach((icon, type) => {
-            toAdd.push(this.dropdownNodeBtn(icon, "width: 40px;", type, this.view, this.listTypes, this.changeToNodeType));
+            toAdd.push(this.dropdownNodeBtn(icon, "color: black; width: 40px;", type, this.view, this.listTypes, this.changeToNodeType));
         });
         //option to remove the list formatting
-        toAdd.push(this.dropdownNodeBtn("X", "width: 40px;", undefined, this.view, this.listTypes, this.changeToNodeType));
+        toAdd.push(this.dropdownNodeBtn("X", "color: black; width: 40px;", undefined, this.view, this.listTypes, this.changeToNodeType));
 
         listTypeBtn = (new Dropdown(toAdd, {
             label: label,
-            css: "color:white; width: 40px;"
+            css: "color:black; width: 40px;"
         }) as MenuItem).render(this.view).dom;
 
         //add this new button and return it
@@ -332,6 +373,43 @@ export class TooltipTextMenu {
         });
     }
 
+    createLink() {
+        let markType = schema.marks.link;
+        return new MenuItem({
+            title: "Add or remove link",
+            label: "Add or remove link",
+            execEvent: "",
+            icon: icons.link,
+            css: "color:white;",
+            class: "menuicon",
+            enable(state) { return !state.selection.empty; },
+            run: (state, dispatch, view) => {
+                // to remove link
+                if (this.markActive(state, markType)) {
+                    toggleMark(markType)(state, dispatch);
+                    return true;
+                }
+                // to create link
+                openPrompt({
+                    title: "Create a link",
+                    fields: {
+                        href: new TextField({
+                            label: "Link target",
+                            required: true
+                        }),
+                        title: new TextField({ label: "Title" })
+                    },
+                    callback(attrs: any) {
+                        toggleMark(markType, attrs)(view.state, view.dispatch);
+                        view.focus();
+                    },
+                    flyout_top: 0,
+                    flyout_left: 0
+                });
+            }
+        });
+    }
+
     //makes a button for the drop down FOR NODE TYPES
     //css is the style you want applied to the button
     dropdownNodeBtn(label: string, css: string, nodeType: NodeType | undefined, view: EditorView, groupNodes: NodeType[], changeToNodeInGroup: (nodeType: NodeType<any> | undefined, view: EditorView, groupNodes: NodeType[]) => any) {
@@ -348,13 +426,19 @@ export class TooltipTextMenu {
         });
     }
 
+    markActive = function (state: EditorState<any>, type: MarkType<Schema<string, string>>) {
+        let { from, $from, to, empty } = state.selection;
+        if (empty) return type.isInSet(state.storedMarks || $from.marks());
+        else return state.doc.rangeHasMark(from, to, type);
+    };
+
     // Helper function to create menu icons
-    icon(text: string, name: string) {
+    icon(text: string, name: string, title: string = name) {
         let span = document.createElement("span");
         span.className = name + " menuicon";
-        span.title = name;
+        span.title = title;
         span.textContent = text;
-        span.style.color = "white";
+        span.style.color = "black";
         return span;
     }
 
@@ -395,6 +479,20 @@ export class TooltipTextMenu {
         };
     }
 
+    getMarksInSelection(state: EditorState<any>, targets: MarkType<any>[]) {
+        let found: Mark<any>[] = [];
+        let { from, to } = state.selection as TextSelection;
+        state.doc.nodesBetween(from, to, (node) => {
+            let marks = node.marks;
+            if (marks) {
+                marks.forEach(m => {
+                    if (targets.includes(m.type)) found.push(m);
+                });
+            }
+        });
+        return found;
+    }
+
     //updates the tooltip menu when the selection changes
     update(view: EditorView, lastState: EditorState | undefined) {
         let state = view.state;
@@ -407,6 +505,14 @@ export class TooltipTextMenu {
             this.tooltip.style.display = "none";
             return;
         }
+
+        let linksInSelection = this.activeMarksOnSelection([schema.marks.link]);
+        if (linksInSelection.length > 0) {
+            let attributes = this.getMarksInSelection(this.view.state, [schema.marks.link])[0].attrs;
+            this.link.href = attributes.href;
+            this.link.textContent = attributes.title;
+            this.link.style.visibility = "visible";
+        } else this.link.style.visibility = "hidden";
 
         // Otherwise, reposition it and update its content
         this.tooltip.style.display = "";
@@ -421,8 +527,14 @@ export class TooltipTextMenu {
         let width = Math.abs(start.left - end.left) / 2 * this.editorProps.ScreenToLocalTransform().Scale;
         let mid = Math.min(start.left, end.left) + width;
 
-        this.tooltip.style.width = 225 + "px";
+        //this.tooltip.style.width = 225 + "px";
         this.tooltip.style.bottom = (box.bottom - start.top) * this.editorProps.ScreenToLocalTransform().Scale + "px";
+        this.tooltip.style.top = "-100px";
+        //this.tooltip.style.height = "100px";
+
+        // let transform = this.editorProps.ScreenToLocalTransform();
+        // this.tooltip.style.width = `${225 / transform.Scale}px`;
+        // Utils
 
         //UPDATE LIST ITEM DROPDOWN
         this.listTypeBtnDom = this.updateListItemDropdown(":", this.listTypeBtnDom!);

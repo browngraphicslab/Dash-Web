@@ -40,7 +40,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             focus: emptyFunction,
             PanelWidth: returnZero,
             PanelHeight: returnZero,
-            addDocTab: emptyFunction
+            addDocTab: returnZero,
         };
         let contents = <FieldView {...props} />;
         let fieldKey = Object.keys(props.Document).indexOf(props.fieldKey) !== -1 ? props.fieldKey : "(" + props.fieldKey + ")";
@@ -61,10 +61,11 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
                 </td>
                 <td className="keyValuePair-td-value" style={{ width: `${100 - this.props.keyWidth}%` }}>
                     <EditableView contents={contents} height={36} GetValue={() => {
+                        const onDelegate = Object.keys(props.Document).includes(props.fieldKey);
 
                         let field = FieldValue(props.Document[props.fieldKey]);
                         if (Field.IsField(field)) {
-                            return Field.toScriptString(field);
+                            return (onDelegate ? "=" : "") + Field.toScriptString(field);
                         }
                         return "";
                     }}

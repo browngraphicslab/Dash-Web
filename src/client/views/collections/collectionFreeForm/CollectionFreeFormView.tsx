@@ -1,6 +1,6 @@
 import { action, computed } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, HeightSym, WidthSym } from "../../../../new_fields/Doc";
+import { Doc, HeightSym, WidthSym, DocListCastAsync } from "../../../../new_fields/Doc";
 import { Id } from "../../../../new_fields/FieldSymbols";
 import { InkField, StrokeData } from "../../../../new_fields/InkField";
 import { createSchema, makeInterface } from "../../../../new_fields/Schema";
@@ -25,6 +25,8 @@ import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import v5 = require("uuid/v5");
+import PDFMenu from "../../pdf/PDFMenu";
+import { ContextMenu } from "../../ContextMenu";
 
 export const panZoomSchema = createSchema({
     panX: "number",
@@ -80,30 +82,45 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @undoBatch
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
-        if (super.drop(e, de) && de.data instanceof DragManager.DocumentDragData) {
-            if (de.data.droppedDocuments.length) {
-                let dragDoc = de.data.droppedDocuments[0];
-                let zoom = NumCast(dragDoc.zoomBasis, 1);
-                let [xp, yp] = this.getTransform().transformPoint(de.x, de.y);
-                let x = xp - de.data.xOffset / zoom;
-                let y = yp - de.data.yOffset / zoom;
-                let dropX = NumCast(de.data.droppedDocuments[0].x);
-                let dropY = NumCast(de.data.droppedDocuments[0].y);
-                de.data.droppedDocuments.forEach(d => {
-                    d.x = x + NumCast(d.x) - dropX;
-                    d.y = y + NumCast(d.y) - dropY;
-                    if (!NumCast(d.width)) {
-                        d.width = 300;
-                    }
-                    if (!NumCast(d.height)) {
-                        let nw = NumCast(d.nativeWidth);
-                        let nh = NumCast(d.nativeHeight);
-                        d.height = nw && nh ? nh / nw * NumCast(d.width) : 300;
-                    }
-                    this.bringToFront(d);
-                });
+        if (super.drop(e, de)) {
+            if (de.data instanceof DragManager.DocumentDragData) {
+                if (de.data.droppedDocuments.length) {
+                    let dragDoc = de.data.droppedDocuments[0];
+                    let zoom = NumCast(dragDoc.zoomBasis, 1);
+                    let [xp, yp] = this.getTransform().transformPoint(de.x, de.y);
+                    let x = xp - de.data.xOffset / zoom;
+                    let y = yp - de.data.yOffset / zoom;
+                    let dropX = NumCast(de.data.droppedDocuments[0].x);
+                    let dropY = NumCast(de.data.droppedDocuments[0].y);
+                    de.data.droppedDocuments.forEach(d => {
+                        d.x = x + NumCast(d.x) - dropX;
+                        d.y = y + NumCast(d.y) - dropY;
+                        if (!NumCast(d.width)) {
+                            d.width = 300;
+                        }
+                        if (!NumCast(d.height)) {
+                            let nw = NumCast(d.nativeWidth);
+                            let nh = NumCast(d.nativeHeight);
+                            d.height = nw && nh ? nh / nw * NumCast(d.width) : 300;
+                        }
+                        this.bringToFront(d);
+                    });
+                }
             }
-            return true;
+            else if (de.data instanceof DragManager.AnnotationDragData) {
+                if (de.data.dropDocument) {
+                    let dragDoc = de.data.dropDocument;
+                    let zoom = NumCast(dragDoc.zoomBasis, 1);
+                    let [xp, yp] = this.getTransform().transformPoint(de.x, de.y);
+                    let x = xp - de.data.xOffset / zoom;
+                    let y = yp - de.data.yOffset / zoom;
+                    let dropX = NumCast(de.data.dropDocument.x);
+                    let dropY = NumCast(de.data.dropDocument.y);
+                    dragDoc.x = x + NumCast(dragDoc.x) - dropX;
+                    dragDoc.y = y + NumCast(dragDoc.y) - dropY;
+                    this.bringToFront(dragDoc);
+                }
+            }
         }
         return false;
     }
@@ -133,6 +150,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             let docs = this.childDocs || [];
             let [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
             if (!this.isAnnotationOverlay) {
+                PDFMenu.Instance.fadeOut(true);
                 let minx = docs.length ? NumCast(docs[0].x) : 0;
                 let maxx = docs.length ? NumCast(docs[0].width) / NumCast(docs[0].zoomBasis, 1) + minx : minx;
                 let miny = docs.length ? NumCast(docs[0].y) : 0;
@@ -322,6 +340,33 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY));
     }
 
+    onContextMenu = () => {
+        ContextMenu.Instance.addItem({
+            description: "Arrange contents in grid",
+            event: async () => {
+                const docs = await DocListCastAsync(this.Document[this.props.fieldKey]);
+                if (docs) {
+                    let startX = this.Document.panX || 0;
+                    let x = startX;
+                    let y = this.Document.panY || 0;
+                    let i = 0;
+                    const width = Math.max(...docs.map(doc => NumCast(doc.width)));
+                    const height = Math.max(...docs.map(doc => NumCast(doc.height)));
+                    for (const doc of docs) {
+                        doc.x = x;
+                        doc.y = y;
+                        x += width + 20;
+                        if (++i === 6) {
+                            i = 0;
+                            x = startX;
+                            y += height + 20;
+                        }
+                    }
+                }
+            }
+        });
+    }
+
     private childViews = () => [
         <CollectionFreeFormBackgroundView key="backgroundView" {...this.props} {...this.getDocumentViewProps(this.props.Document)} />,
         ...this.views
@@ -332,7 +377,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return (
             <div className={containerName} ref={this.createDropTarget} onWheel={this.onPointerWheel}
                 style={{ borderRadius: "inherit" }}
-                onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onDrop.bind(this)} onDragOver={this.onDragOver} >
+                onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onDrop.bind(this)} onDragOver={this.onDragOver} onContextMenu={this.onContextMenu}>
                 <MarqueeView container={this} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments} isSelected={this.props.isSelected}
                     addDocument={this.addDocument} removeDocument={this.props.removeDocument} addLiveTextDocument={this.addLiveTextBox}
                     getContainerTransform={this.getContainerTransform} getTransform={this.getTransform}>

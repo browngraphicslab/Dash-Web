@@ -59,9 +59,9 @@ export class DocumentManager {
         let toReturn: DocumentView | null = null;
         let passes = preferredCollection ? [preferredCollection, undefined] : [undefined];
 
-        for (let i = 0; i < passes.length; i++) {
+        for (let pass of passes) {
             DocumentManager.Instance.DocumentViews.map(view => {
-                if (view.props.Document[Id] === id && (!passes[i] || view.props.ContainingCollectionView === preferredCollection)) {
+                if (view.props.Document[Id] === id && (!pass || view.props.ContainingCollectionView === preferredCollection)) {
                     toReturn = view;
                     return;
                 }
@@ -69,7 +69,7 @@ export class DocumentManager {
             if (!toReturn) {
                 DocumentManager.Instance.DocumentViews.map(view => {
                     let doc = view.props.Document.proto;
-                    if (doc && doc[Id] === id && (!passes[i] || view.props.ContainingCollectionView === preferredCollection)) {
+                    if (doc && doc[Id] === id && (!pass || view.props.ContainingCollectionView === preferredCollection)) {
                         toReturn = view;
                     }
                 });

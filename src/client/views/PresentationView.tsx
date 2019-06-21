@@ -18,7 +18,6 @@ interface PresListProps extends PresViewProps {
     gotoDocument(index: number): void;
 }
 
-
 @observer
 /**
  * Component that takes in a document prop and a boolean whether it's collapsed or not.

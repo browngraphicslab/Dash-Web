@@ -86,9 +86,9 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
-        if (e.shiftKey && e.ctrlKey)
-
-        {e.stopPropagation();}
+        if (e.shiftKey && e.ctrlKey) {
+            e.stopPropagation(); // allows default system drag drop of images with shift+ctrl only
+        } else e.preventDefault();
         // if (Date.now() - this._lastTap < 300) {
         //     if (e.buttons === 1) {
         //         this._downX = e.clientX;
@@ -188,8 +188,9 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     }
     @action onError = () => {
         let timeout = this._curSuffix === "_s" ? this._smallRetryCount : this._curSuffix === "_m" ? this._mediumRetryCount : this._largeRetryCount;
-        if (timeout < 10)
-           { setTimeout(this.retryPath, Math.min(10000, timeout * 5));}
+        if (timeout < 10) {
+            setTimeout(this.retryPath, Math.min(10000, timeout * 5));
+        }
     }
     _curSuffix = "_m";
     render() {
@@ -217,7 +218,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         let aspect = (rotation % 180) ? this.props.Document[HeightSym]() / this.props.Document[WidthSym]() : 1;
         let shift = (rotation % 180) ? (nativeHeight - nativeWidth / aspect) / 2 : 0;
         return (
-            <div id={id} className={`imageBox-cont${interactive}`}
+            <div id={id} className={`imageBox-cont${interactive}`} style={{ background: "transparent" }}
                 onPointerDown={this.onPointerDown}
                 onDrop={this.onDrop} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
                 <img id={id}

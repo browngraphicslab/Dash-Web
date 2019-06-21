@@ -4,6 +4,7 @@ import { Cast } from "../../new_fields/Types";
 import { emptyFunction } from "../../Utils";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import * as globalCssVariables from "../views/globalCssVariables.scss";
+import { URLField } from "../../new_fields/URLField";
 import { SelectionManager } from "./SelectionManager";
 
 export type dropActionType = "alias" | "copy" | undefined;
@@ -156,6 +157,22 @@ export namespace DragManager {
         [id: string]: any;
     }
 
+    export class AnnotationDragData {
+        constructor(dragDoc: Doc, annotationDoc: Doc, dropDoc: Doc) {
+            this.dragDocument = dragDoc;
+            this.dropDocument = dropDoc;
+            this.annotationDocument = annotationDoc;
+            this.xOffset = this.yOffset = 0;
+        }
+        dragDocument: Doc;
+        annotationDocument: Doc;
+        dropDocument: Doc;
+        xOffset: number;
+        yOffset: number;
+        dropAction: dropActionType;
+        userDropAction: dropActionType;
+    }
+
     export let StartDragFunctions: (() => void)[] = [];
 
     export function StartDocumentDrag(eles: HTMLElement[], dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
@@ -167,6 +184,10 @@ export namespace DragManager {
                     dragData.userDropAction === "copy" || (!dragData.userDropAction && dragData.dropAction === "copy") ?
                         dragData.draggedDocuments.map(d => Doc.MakeCopy(d, true)) :
                         dragData.draggedDocuments));
+    }
+
+    export function StartAnnotationDrag(eles: HTMLElement[], dragData: AnnotationDragData, downX: number, downY: number, options?: DragOptions) {
+        StartDrag(eles, dragData, downX, downY, options);
     }
 
     export class LinkDragData {
@@ -181,7 +202,21 @@ export namespace DragManager {
         [id: string]: any;
     }
 
+    export class EmbedDragData {
+        constructor(embeddableSourceDoc: Doc) {
+            this.embeddableSourceDoc = embeddableSourceDoc;
+            this.urlField = embeddableSourceDoc.data instanceof URLField ? embeddableSourceDoc.data : undefined;
+        }
+        embeddableSourceDoc: Doc;
+        urlField?: URLField;
+        [id: string]: any;
+    }
+
     export function StartLinkDrag(ele: HTMLElement, dragData: LinkDragData, downX: number, downY: number, options?: DragOptions) {
+        StartDrag([ele], dragData, downX, downY, options);
+    }
+
+    export function StartEmbedDrag(ele: HTMLElement, dragData: EmbedDragData, downX: number, downY: number, options?: DragOptions) {
         StartDrag([ele], dragData, downX, downY, options);
     }
 
@@ -202,7 +237,7 @@ export namespace DragManager {
         let ys: number[] = [];
 
         const docs: Doc[] =
-            dragData instanceof DocumentDragData ? dragData.draggedDocuments : [];
+            dragData instanceof DocumentDragData ? dragData.draggedDocuments : dragData instanceof AnnotationDragData ? [dragData.dragDocument] : [];
         let dragElements = eles.map(ele => {
             const w = ele.offsetWidth,
                 h = ele.offsetHeight;
@@ -246,6 +281,8 @@ export namespace DragManager {
             //     }
             // }
             let set = dragElement.getElementsByTagName('*');
+            if (dragElement.hasAttribute("style")) (dragElement as any).style.pointerEvents = "none";
+            // tslint:disable-next-line: prefer-for-of
             for (let i = 0; i < set.length; i++) {
                 if (set[i].hasAttribute("style")) {
                     let s = set[i];

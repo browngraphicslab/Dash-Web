@@ -1,14 +1,16 @@
 import { action, observable, reaction } from 'mobx';
 import { observer } from 'mobx-react';
+import "normalize.css";
 import * as React from 'react';
+import { Doc } from '../../new_fields/Doc';
+import { BoolCast } from '../../new_fields/Types';
 import { emptyFunction, returnTrue, returnZero, Utils } from '../../Utils';
 import { DragManager } from '../util/DragManager';
 import { Transform } from '../util/Transform';
-import "normalize.css";
+import { CollectionDockingView } from './collections/CollectionDockingView';
 import "./MainOverlayTextBox.scss";
 import { FormattedTextBox } from './nodes/FormattedTextBox';
-import { CollectionDockingView } from './collections/CollectionDockingView';
-import { Doc } from '../../new_fields/Doc';
+import { For } from 'babel-types';
 
 interface MainOverlayTextBoxProps {
 }
@@ -22,7 +24,10 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
     private _textHideOnLeave?: boolean;
     private _textTargetDiv: HTMLDivElement | undefined;
     private _textProxyDiv: React.RefObject<HTMLDivElement>;
-    public TextDoc?: Doc;
+    private _textBottom: boolean | undefined;
+    private _textAutoHeight: boolean | undefined;
+    private _textBox: FormattedTextBox | undefined;
+    @observable public TextDoc?: Doc;
 
     constructor(props: MainOverlayTextBoxProps) {
         super(props);
@@ -30,11 +35,12 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
         MainOverlayTextBox.Instance = this;
         reaction(() => FormattedTextBox.InputBoxOverlay,
             (box?: FormattedTextBox) => {
+                this._textBox = box;
                 if (box) {
                     this.TextDoc = box.props.Document;
                     let sxf = Utils.GetScreenTransform(box ? box.CurrentDiv : undefined);
                     let xf = () => { box.props.ScreenToLocalTransform(); return new Transform(-sxf.translateX, -sxf.translateY, 1 / sxf.scale); };
-                    this.setTextDoc(box.props.fieldKey, box.CurrentDiv, xf);
+                    this.setTextDoc(box.props.fieldKey, box.CurrentDiv, xf, BoolCast(box.props.Document.autoHeight, false) || box.props.height === "min-content");
                 }
                 else {
                     this.TextDoc = undefined;
@@ -44,15 +50,18 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
     }
 
     @action
-    private setTextDoc(textFieldKey?: string, div?: HTMLDivElement, tx?: () => Transform) {
+    private setTextDoc(textFieldKey?: string, div?: HTMLDivElement, tx?: () => Transform, autoHeight?: boolean) {
         if (this._textTargetDiv) {
             this._textTargetDiv.style.color = this._textColor;
         }
+        this._textAutoHeight = autoHeight;
         this.TextFieldKey = textFieldKey!;
-        this._textXf = tx ? tx : () => Transform.Identity();
+        let txf = tx ? tx : () => Transform.Identity();
+        this._textXf = txf;
         this._textTargetDiv = div;
         this._textHideOnLeave = FormattedTextBox.InputBoxOverlay && FormattedTextBox.InputBoxOverlay.props.hideOnLeave;
         if (div) {
+            this._textBottom = div.parentElement && div.parentElement.style.bottom ? true : false;
             this._textColor = (getComputedStyle(div) as any).color;
             div.style.color = "transparent";
         }
@@ -99,16 +108,21 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
         }
     }
     render() {
+        this.TextDoc;
         if (FormattedTextBox.InputBoxOverlay && this._textTargetDiv) {
             let textRect = this._textTargetDiv.getBoundingClientRect();
             let s = this._textXf().Scale;
-            let auto = FormattedTextBox.InputBoxOverlay.props.height;
-            return <div className="mainOverlayTextBox-textInput" style={{ transform: `translate(${textRect.left}px, ${textRect.top}px) scale(${1 / s},${1 / s})`, width: "auto", height: "auto" }} >
+            let location = this._textBottom ? textRect.bottom : textRect.top;
+            let hgt = this._textAutoHeight || this._textBottom ? "auto" : this._textTargetDiv.clientHeight;
+            return <div className="mainOverlayTextBox-textInput" style={{ transform: `translate(${textRect.left}px, ${location}px) scale(${1 / s},${1 / s})`, width: "auto", height: "0px" }} >
                 <div className="mainOverlayTextBox-textInput" onPointerDown={this.textBoxDown} ref={this._textProxyDiv} onScroll={this.textScroll}
-                    style={{ width: `${textRect.width * s}px`, height: auto ? "auto" : `${textRect.height * s}px` }}>
-                    <FormattedTextBox color={`${this._textColor}`} fieldKey={this.TextFieldKey} hideOnLeave={this._textHideOnLeave} isOverlay={true} Document={FormattedTextBox.InputBoxOverlay.props.Document} isSelected={returnTrue} select={emptyFunction} isTopMost={true}
-                        selectOnLoad={true} ContainingCollectionView={undefined} whenActiveChanged={emptyFunction} active={returnTrue}
-                        ScreenToLocalTransform={this._textXf} PanelWidth={returnZero} PanelHeight={returnZero} focus={emptyFunction} addDocTab={this.addDocTab} />
+                    style={{ width: `${textRect.width * s}px`, height: "0px" }}>
+                    <div style={{ height: hgt, width: "100%", position: "absolute", bottom: this._textBottom ? "0px" : undefined }}>
+                        <FormattedTextBox color={`${this._textColor}`} fieldKey={this.TextFieldKey} hideOnLeave={this._textHideOnLeave} isOverlay={true} Document={FormattedTextBox.InputBoxOverlay.props.Document}
+                            isSelected={returnTrue} select={emptyFunction} isTopMost={true} selectOnLoad={true}
+                            ContainingCollectionView={undefined} whenActiveChanged={emptyFunction} active={returnTrue}
+                            ScreenToLocalTransform={this._textXf} PanelWidth={returnZero} PanelHeight={returnZero} focus={emptyFunction} addDocTab={this.addDocTab} />
+                    </div>
                 </div>
             </ div>;
         }

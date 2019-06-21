@@ -125,8 +125,7 @@ export class HistogramBox extends React.Component<FieldViewProps> {
                                 let mapped = brushingDocs.map((brush, i) => {
                                     brush.backgroundColor = StyleConstants.BRUSH_COLORS[i % StyleConstants.BRUSH_COLORS.length];
                                     let brushed = DocListCast(brush.brushingDocs);
-                                    if (!brushed.length)
-                                        {return null;}
+                                    if (!brushed.length) return null;
                                     return { l: brush, b: brushed[0][Id] === proto[Id] ? brushed[1] : brushed[0] };
                                 });
                                 runInAction(() => this.HistoOp.BrushLinks.splice(0, this.HistoOp.BrushLinks.length, ...mapped.filter(m => m) as { l: Doc, b: Doc }[]));

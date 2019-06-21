@@ -12,11 +12,11 @@ export namespace SelectionManager {
         @action
         SelectDoc(docView: DocumentView, ctrlPressed: boolean): void {
             // if doc is not in SelectedDocuments, add it
-            if (!ctrlPressed) {
-                this.DeselectAll();
-            }
-
             if (manager.SelectedDocuments.indexOf(docView) === -1) {
+                if (!ctrlPressed) {
+                    this.DeselectAll();
+                }
+
                 manager.SelectedDocuments.push(docView);
                 docView.props.whenActiveChanged(true);
             }
@@ -66,7 +66,7 @@ export namespace SelectionManager {
     export function GetIsDragging() { return manager.IsDragging; }
 
     export function SelectedDocuments(): Array<DocumentView> {
-        return manager.SelectedDocuments;
+        return manager.SelectedDocuments.slice();
     }
     export function ViewsSortedHorizontally(): DocumentView[] {
         let sorted = SelectionManager.SelectedDocuments().slice().sort((doc1, doc2) => {

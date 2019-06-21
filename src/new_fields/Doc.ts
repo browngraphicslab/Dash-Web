@@ -132,6 +132,16 @@ export class Doc extends RefField {
                 this[fKey] = value;
             }
         }
+        const unset = diff.$unset;
+        if (unset) {
+            for (const key in unset) {
+                if (!key.startsWith("fields.")) {
+                    continue;
+                }
+                const fKey = key.substring(7);
+                delete this[fKey];
+            }
+        }
     }
 }
 
@@ -186,7 +196,8 @@ export namespace Doc {
     }
 
     // compare whether documents or their protos match
-    export function AreProtosEqual(doc: Doc, other: Doc) {
+    export function AreProtosEqual(doc?: Doc, other?: Doc) {
+        if (!doc || !other) return false;
         let r = (doc === other);
         let r2 = (doc.proto === other);
         let r3 = (other.proto === doc);
@@ -196,7 +207,7 @@ export namespace Doc {
 
     // gets the document's prototype or returns the document if it is a prototype
     export function GetProto(doc: Doc) {
-        return Doc.GetT(doc, "isPrototype", "boolean", true) ? doc : doc.proto!;
+        return Doc.GetT(doc, "isPrototype", "boolean", true) ? doc : (doc.proto || doc);
     }
 
     export function allKeys(doc: Doc): string[] {
@@ -209,6 +220,16 @@ export namespace Doc {
         }
 
         return Array.from(results);
+    }
+
+    export function AddDocToList(target: Doc, key: string, doc: Doc, relativeTo?: Doc, before?: boolean) {
+        let list = Cast(target[key], listSpec(Doc));
+        if (list) {
+            let ind = relativeTo ? list.indexOf(relativeTo) : -1;
+            if (ind === -1) list.push(doc);
+            else list.splice(before ? ind : ind + 1, 0, doc);
+        }
+        return true;
     }
 
     export function MakeAlias(doc: Doc) {
