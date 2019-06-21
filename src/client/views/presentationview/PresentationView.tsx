@@ -247,6 +247,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
     retrieveGroupMappings = async () => {
         let castedGroupDocs = await DocListCastAsync(this.presGroupBackUp.groupDocs);
         if (castedGroupDocs !== undefined) {
+            //runInAction(() => this.groupMappings = new Map());
             castedGroupDocs.forEach(async (groupDoc: Doc, index: number) => {
                 let castedGrouping = await DocListCastAsync(groupDoc.grouping);
                 let castedKey = StrCast(groupDoc.presentIdStore, null);
@@ -570,6 +571,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
                 // }, "guid assignment");
             });
         }
+        runInAction(() => this.groupMappings = new Map());
     }
 
     /**
@@ -678,6 +680,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
         this.presentationsKeyMapping.set(newPresentationDoc, newGuid);
         this.resetGroupIds();
         this.resetPresentation();
+        this.presElementsMappings = new Map();
         this.currentSelectedPresValue = newGuid;
         this.setPresentationBackUps();
 
@@ -694,6 +697,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
         this.curPresentation = this.presentationsMapping.get(selectedGuid)!;
         this.resetGroupIds();
         this.resetPresentation();
+        this.presElementsMappings = new Map();
         this.currentSelectedPresValue = selectedGuid;
         this.setPresentationBackUps();
 
@@ -759,13 +763,25 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
             let curGuid = this.currentSelectedPresValue!;
             let curPresStatus = this.presStatus;
+
+            this.curPresentation = nextDoc;
+            this.resetGroupIds();
+            this.resetPresentation();
+            this.currentSelectedPresValue = this.presentationsKeyMapping.get(nextDoc)!.toString();
+            this.setPresentationBackUps();
+            let currentGroups = this.groupMappings;
+            let curPresElemMapping = this.presElementsMappings;
             UndoManager.AddEvent({
                 undo: action(() => {
                     this.curPresentation = removedDoc!;
-                    this.presStatus = curPresStatus;
                     this.presentationsMapping.set(curGuid, removedDoc!);
                     this.presentationsKeyMapping.set(removedDoc!, curGuid);
                     this.currentSelectedPresValue = curGuid;
+                    //this.resetGroupIds();
+                    //this.resetPresentation();
+                    this.presStatus = curPresStatus;
+                    this.groupMappings = currentGroups;
+                    this.presElementsMappings = curPresElemMapping;
                     this.setPresentationBackUps();
 
                 }),
@@ -775,16 +791,13 @@ export class PresentationView extends React.Component<PresViewProps>  {
                     this.presentationsKeyMapping.delete(removedDoc!);
                     this.presentationsMapping.delete(curGuid);
                     this.currentSelectedPresValue = this.presentationsKeyMapping.get(nextDoc)!.toString();
+                    //this.resetGroupIds();
+                    // this.resetPresentation();
                     this.setPresentationBackUps();
 
                 }),
             });
 
-            this.curPresentation = nextDoc;
-            this.resetGroupIds();
-            this.resetPresentation();
-            this.currentSelectedPresValue = this.presentationsKeyMapping.get(nextDoc)!.toString();
-            this.setPresentationBackUps();
             batch.end();
         }
     }
