@@ -7,12 +7,13 @@ import { Doc } from "../../../new_fields/Doc";
 import { LinkManager } from "../../util/LinkManager";
 import { Docs } from "../../documents/Documents";
 import { Utils } from "../../../Utils";
-import { faArrowLeft, faEllipsisV, faTable, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faArrowLeft, faEllipsisV, faTable, faTrash, faCog } from '@fortawesome/free-solid-svg-icons';
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { SetupDrag } from "../../util/DragManager";
+import { anchorPoints, Flyout } from "../DocumentDecorations";
 
-library.add(faArrowLeft, faEllipsisV, faTable, faTrash);
+library.add(faArrowLeft, faEllipsisV, faTable, faTrash, faCog);
 
 
 interface GroupTypesDropdownProps {
@@ -256,9 +257,9 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
             let docs: Doc[] = LinkManager.Instance.findAllMetadataDocsInGroup(groupType);
             let createTable = action(() => Docs.SchemaDocument(["anchor1", "anchor2", ...keys!], docs, { width: 200, height: 200, title: groupType + " table" }));
             let ref = React.createRef<HTMLDivElement>();
-            return <div className="linkEditor-groupOpts" ref={ref}><button onPointerDown={SetupDrag(ref, createTable)}><FontAwesomeIcon icon="table" size="sm" /></button></div>;
+            return <div ref={ref}><button className="linkEditor-button" onPointerDown={SetupDrag(ref, createTable)}><FontAwesomeIcon icon="table" size="sm" /></button></div>;
         } else {
-            return <button className="linkEditor-groupOpts" disabled><FontAwesomeIcon icon="table" size="sm" /></button>;
+            return <button className="linkEditor-button" disabled><FontAwesomeIcon icon="table" size="sm" /></button>;
         }
     }
 
@@ -273,12 +274,20 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                     </div>
                     {this.renderMetadata(groupId)}
                     <div className="linkEditor-group-buttons">
-                        {groupDoc.type === "New Group" ? <button className="linkEditor-groupOpts" disabled={true} title="Add KVP">+</button> :
-                            <button className="linkEditor-groupOpts" onClick={() => this.addMetadata(StrCast(groupDoc.proto!.type))} title="Add KVP">+</button>}
-                        <button className="linkEditor-groupOpts" onClick={() => this.copyGroup(groupId, type)} title="Copy group to opposite anchor">↔</button>
-                        <button className="linkEditor-groupOpts" onClick={() => this.removeGroupFromLink(groupId, type)} title="Remove group from link">x</button>
-                        <button className="linkEditor-groupOpts" onClick={() => this.deleteGroup(groupId, type)} title="Delete group">xx</button>
+                        {groupDoc.type === "New Group" ? <button className="linkEditor-button" disabled={true} title="Add KVP">+</button> :
+                            <button className="linkEditor-button" onClick={() => this.addMetadata(StrCast(groupDoc.proto!.type))} title="Add KVP">+</button>}
                         {this.viewGroupAsTable(groupId, type)}
+                        <Flyout
+                            anchorPoint={anchorPoints.LEFT_TOP}
+                            content={
+                                <>
+                                    <button className="linkEditor-groupOpts" onClick={() => this.copyGroup(groupId, type)} title="Copy group to opposite anchor">↔</button>
+                                    <button className="linkEditor-groupOpts" onClick={() => this.removeGroupFromLink(groupId, type)} title="Remove group from link">x</button>
+                                    <button className="linkEditor-groupOpts" onClick={() => this.deleteGroup(groupId, type)} title="Delete group">xx</button>
+                                </>
+                            }>
+                            <button className="linkEditor-button" title="Delete group"><FontAwesomeIcon icon="cog" size="sm" /></button>
+                        </Flyout >
                     </div>
                 </div>
             );
@@ -290,6 +299,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
 
     @action
     addMetadata = (groupType: string): void => {
+        console.log("ADD MD");
         let mdKeys = LinkManager.Instance.groupMetadataKeys.get(groupType);
         if (mdKeys) {
             // only add "new key" if there is no other key with value "new key"; prevents spamming
@@ -331,11 +341,11 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                 <button className="linkEditor-back" onPointerDown={() => this.props.showLinks()}><FontAwesomeIcon icon="arrow-left" size="sm" /></button>
                 <div className="linkEditor-info">
                     <p className="linkEditor-linkedTo">editing link to: <b>{destination.proto!.title}</b></p>
-                    <button className="linkEditor-delete" onPointerDown={() => this.deleteLink()} title="Delete link"><FontAwesomeIcon icon="trash" size="sm" /></button>
+                    <button className="linkEditor-delete linkEditor-button" onPointerDown={() => this.deleteLink()} title="Delete link"><FontAwesomeIcon icon="trash" size="sm" /></button>
                 </div>
                 <div className="linkEditor-groupsLabel">
                     <b>Relationships:</b>
-                    <button onClick={() => this.addGroup()} title="Add Group">+</button>
+                    <button className="linkEditor-button" onClick={() => this.addGroup()} title=" Add Group">+</button>
                 </div>
                 {groups.length > 0 ? groups : <div className="linkEditor-group">There are currently no relationships associated with this link.</div>}
             </div>

@@ -234,31 +234,26 @@ export namespace Doc {
     export function MakeCopy(doc: Doc, copyProto: boolean = false): Doc {
         const copy = new Doc;
         Object.keys(doc).forEach(key => {
+            console.log(key);
             const field = doc[key];
             if (key === "proto" && copyProto) {
+                console.log(1);
                 if (field instanceof Doc) {
+                    console.log(2);
                     copy[key] = Doc.MakeCopy(field);
                 }
             } else {
                 if (field instanceof RefField) {
+                    console.log(3);
                     copy[key] = field;
                 } else if (field instanceof ObjectField) {
+                    console.log(4);
                     copy[key] = ObjectField.MakeCopy(field);
                 } else {
+                    console.log(5);
                     copy[key] = field;
                 }
             }
-        });
-        console.log("COPY", StrCast(doc.title));
-        let links = LinkManager.Instance.findAllRelatedLinks(doc);
-        links.forEach(linkDoc => {
-            let opp = LinkManager.Instance.findOppositeAnchor(linkDoc, doc);
-            console.log("OPP", StrCast(opp.title));
-            DocUtils.MakeLink(opp, copy);
-        });
-
-        LinkManager.Instance.allLinks.forEach(l => {
-            console.log("LINK", StrCast(Cast(l.anchor1, Doc, new Doc).title), StrCast(Cast(l.anchor2, Doc, new Doc).title));
         });
 
         return copy;

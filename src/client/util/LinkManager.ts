@@ -3,6 +3,7 @@ import { StrCast, Cast } from "../../new_fields/Types";
 import { Doc, DocListCast } from "../../new_fields/Doc";
 import { listSpec } from "../../new_fields/Schema";
 import { List } from "../../new_fields/List";
+import { Id } from "../../new_fields/FieldSymbols";
 
 
 /* 
@@ -36,8 +37,13 @@ export class LinkManager {
 
     // finds all links that contain the given anchor
     public findAllRelatedLinks(anchor: Doc): Array<Doc> {
-        return LinkManager.Instance.allLinks.filter(
-            link => Doc.AreProtosEqual(anchor, Cast(link.anchor1, Doc, new Doc)) || Doc.AreProtosEqual(anchor, Cast(link.anchor2, Doc, new Doc)));
+        return LinkManager.Instance.allLinks.filter(link => {
+            let protomatch1 = Doc.AreProtosEqual(anchor, Cast(link.anchor1, Doc, new Doc));
+            let protomatch2 = Doc.AreProtosEqual(anchor, Cast(link.anchor2, Doc, new Doc));
+            let idmatch1 = StrCast(anchor[Id]) === StrCast(Cast(link.anchor1, Doc, new Doc)[Id]);
+            let idmatch2 = StrCast(anchor[Id]) === StrCast(Cast(link.anchor2, Doc, new Doc)[Id]);
+            return protomatch1 || protomatch2 || idmatch1 || idmatch2;
+        });
     }
 
     // returns map of group type to anchor's links in that group type

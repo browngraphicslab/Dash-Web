@@ -90,7 +90,7 @@ export namespace DocUtils {
     // export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", tags: string = "Default") {
     //     let protoSrc = source.proto ? source.proto : source;
     //     let protoTarg = target.proto ? target.proto : target;
-    export function MakeLink(source: Doc, target: Doc, targetContext?: Doc) {
+    export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", tags: string = "Default") {
         if (LinkManager.Instance.doesLinkExist(source, target)) {
             console.log("LINK EXISTS"); return;
         }
@@ -99,9 +99,10 @@ export namespace DocUtils {
 
             let linkDoc = Docs.TextDocument({ width: 100, height: 30, borderRounding: -1 });
             let linkDocProto = Doc.GetProto(linkDoc);
-            // linkDocProto.title = title === "" ? source.title + " to " + target.title : title;
-            // linkDocProto.linkDescription = description;
-            // linkDocProto.linkTags = tags;
+
+            linkDocProto.title = title; //=== "" ? source.title + " to " + target.title : title;
+            linkDocProto.linkDescription = description;
+            linkDocProto.linkTags = tags;
 
             linkDocProto.anchor1 = source;
             linkDocProto.anchor1Page = source.curPage;
