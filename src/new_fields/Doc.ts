@@ -166,6 +166,14 @@ export namespace Doc {
     export function IsPrototype(doc: Doc) {
         return GetT(doc, "isPrototype", "boolean", true);
     }
+    export async function SetInPlace(doc: Doc, key: string, value: Field | undefined, defaultProto: boolean) {
+        let hasProto = doc.proto instanceof Doc;
+        let onDeleg = Object.getOwnPropertyNames(doc).indexOf(key) !== -1;
+        let onProto = Object.getOwnPropertyNames(doc.proto).indexOf(key) !== -1;
+        if (onDeleg || !hasProto || (!onProto && !defaultProto))
+            doc[key] = value;
+        else doc.proto![key] = value;
+    }
     export async function SetOnPrototype(doc: Doc, key: string, value: Field) {
         const proto = Object.getOwnPropertyNames(doc).indexOf("isPrototype") === -1 ? doc.proto : doc;
 

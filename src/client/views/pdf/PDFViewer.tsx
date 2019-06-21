@@ -203,7 +203,6 @@ class Viewer extends React.Component<IViewerProps> {
             this._isPage[page] = "page";
             this._visibleElements[page] = (
                 <Page
-                    size={this._pageSizes[page]}
                     pdf={this.props.pdf}
                     page={page}
                     numPages={this.props.pdf.numPages}

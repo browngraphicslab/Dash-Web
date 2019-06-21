@@ -166,7 +166,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let dragDocView = SelectionManager.SelectedDocuments()[0];
         const [left, top] = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).inverse().transformPoint(0, 0);
         const [xoff, yoff] = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).transformDirection(e.x - left, e.y - top);
-        let dragData = new DragManager.DocumentDragData(SelectionManager.SelectedDocuments().map(dv => dv.props.Document));
+        let dragData = new DragManager.DocumentDragData(SelectionManager.SelectedDocuments().map(dv => dv.props.Document), SelectionManager.SelectedDocuments().map(dv => dv.props.DataDoc));
         dragData.xOffset = xoff;
         dragData.yOffset = yoff;
         dragData.moveDocument = SelectionManager.SelectedDocuments()[0].props.moveDocument;
@@ -485,9 +485,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 let doc = PositionDocument(element.props.Document);
                 let nwidth = doc.nativeWidth || 0;
                 let nheight = doc.nativeHeight || 0;
-                let zoomBasis = NumCast(doc.zoomBasis, 1);
-                let width = (doc.width || 0) / zoomBasis;
-                let height = (doc.height || (nheight / nwidth * width)) / zoomBasis;
+                let width = (doc.width || 0);
+                let height = (doc.height || (nheight / nwidth * width));
                 let scale = element.props.ScreenToLocalTransform().Scale;
                 let actualdW = Math.max(width + (dW * scale), 20);
                 let actualdH = Math.max(height + (dH * scale), 20);
@@ -502,25 +501,27 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 }
                 if (nwidth > 0 && nheight > 0) {
                     if (Math.abs(dW) > Math.abs(dH)) {
-                        if (!fixedAspect) proto.nativeWidth = zoomBasis * actualdW / (doc.width || 1) * NumCast(proto.nativeWidth);
-                        doc.width = zoomBasis * actualdW;
-                        // doc.zoomBasis = zoomBasis * width / actualdW;
+                        if (!fixedAspect) {
+                            Doc.SetInPlace(element.props.Document, "nativeWidth", actualdW / (doc.width || 1) * (doc.nativeWidth || 0), true);
+                        }
+                        doc.width = actualdW;
                         if (fixedAspect) doc.height = nheight / nwidth * doc.width;
-                        else doc.height = zoomBasis * actualdH;
-                        proto.nativeHeight = (doc.height || 0) / doc.width * NumCast(proto.nativeWidth);
+                        else doc.height = actualdH;
+                        Doc.SetInPlace(element.props.Document, "nativeHeight", (doc.height || 0) / doc.width * (doc.nativeWidth || 0), true);
                     }
                     else {
-                        if (!fixedAspect) proto.nativeHeight = zoomBasis * actualdH / (doc.height || 1) * NumCast(proto.nativeHeight);
-                        doc.height = zoomBasis * actualdH;
-                        //doc.zoomBasis = zoomBasis * height / actualdH;
+                        if (!fixedAspect) {
+                            Doc.SetInPlace(element.props.Document, "nativeHeight", actualdH / (doc.height || 1) * (doc.nativeHeight || 0), true);
+                        }
+                        doc.height = actualdH;
                         if (fixedAspect) doc.width = nwidth / nheight * doc.height;
-                        else doc.width = zoomBasis * actualdW;
-                        proto.nativeWidth = (doc.width || 0) / doc.height * NumCast(proto.nativeHeight);
+                        else doc.width = actualdW;
+                        Doc.SetInPlace(element.props.Document, "nativeWidth", (doc.width || 0) / doc.height * (doc.nativeHeight || 0), true);
                     }
                 } else {
-                    dW && (doc.width = zoomBasis * actualdW);
-                    dH && (doc.height = zoomBasis * actualdH);
-                    proto.autoHeight = undefined;
+                    dW && (doc.width = actualdW);
+                    dH && (doc.height = actualdH);
+                    Doc.SetInPlace(element.props.Document, "autoHeight", undefined, true);
                 }
             }
         });

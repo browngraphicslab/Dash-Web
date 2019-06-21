@@ -81,7 +81,7 @@ export interface DocumentViewProps {
     parentActive: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     bringToFront: (doc: Doc) => void;
-    addDocTab: (doc: Doc, where: string) => void;
+    addDocTab: (doc: Doc, dataDoc: Doc, where: string) => void;
     animateBetweenIcon?: (iconPos: number[], startTime: number, maximizing: boolean) => void;
 }
 
@@ -212,8 +212,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     startDragging(x: number, y: number, dropAction: dropActionType, dragSubBullets: boolean) {
         if (this._mainCont.current) {
             let allConnected = [this.props.Document, ...(dragSubBullets ? DocListCast(this.props.Document.subBulletDocs) : [])];
+            let alldataConnected = [this.props.DataDoc, ...(dragSubBullets ? DocListCast(this.props.Document.subBulletDocs) : [])];
             const [left, top] = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(0, 0);
-            let dragData = new DragManager.DocumentDragData(allConnected);
+            let dragData = new DragManager.DocumentDragData(allConnected, alldataConnected);
             const [xoff, yoff] = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).transformDirection(x - left, y - top);
             dragData.dropAction = dropAction;
             dragData.xOffset = xoff;
@@ -268,7 +269,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let altKey = e.altKey;
         let ctrlKey = e.ctrlKey;
         if (this._doubleTap && !this.props.isTopMost) {
-            this.props.addDocTab(this.props.Document, "inTab");
+            this.props.addDocTab(this.props.Document, this.props.DataDoc, "inTab");
             SelectionManager.DeselectAll();
             this.props.Document.libraryBrush = false;
         }
@@ -311,7 +312,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                         if (dataDocs) {
                             expandedDocs.forEach(maxDoc =>
                                 (!CollectionDockingView.Instance.CloseRightSplit(Doc.GetProto(maxDoc)) &&
-                                    this.props.addDocTab(getDispDoc(maxDoc), maxLocation)));
+                                    this.props.addDocTab(getDispDoc(maxDoc), getDispDoc(maxDoc), maxLocation)));
                         }
                     } else {
                         let scrpt = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(NumCast(this.Document.width) / 2, NumCast(this.Document.height) / 2);
@@ -334,7 +335,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     if (!linkedFwdDocs.some(l => l instanceof Promise)) {
                         let maxLocation = StrCast(linkedFwdDocs[altKey ? 1 : 0].maximizeLocation, "inTab");
                         let targetContext = !Doc.AreProtosEqual(linkedFwdContextDocs[altKey ? 1 : 0], this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document) ? linkedFwdContextDocs[altKey ? 1 : 0] : undefined;
-                        DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0], ctrlKey, document => this.props.addDocTab(document, maxLocation), linkedFwdPage[altKey ? 1 : 0], targetContext);
+                        DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0], ctrlKey, document => this.props.addDocTab(document, document, maxLocation), linkedFwdPage[altKey ? 1 : 0], targetContext);
                     }
                 }
             }
@@ -345,7 +346,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this._downY = e.clientY;
         this._hitExpander = DocListCast(this.props.Document.subBulletDocs).length > 0;
         if (e.shiftKey && e.buttons === 1 && CollectionDockingView.Instance) {
-            CollectionDockingView.Instance.StartOtherDrag([Doc.MakeAlias(this.props.Document)], e);
+            CollectionDockingView.Instance.StartOtherDrag(e, [Doc.MakeAlias(this.props.Document)], [this.props.DataDoc]);
             e.stopPropagation();
         } else {
             if (this.active) e.stopPropagation(); // events stop at the lowest document that is active.  
@@ -376,7 +377,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     deleteClicked = (): void => { this.props.removeDocument && this.props.removeDocument(this.props.Document); };
-    fieldsClicked = (): void => { this.props.addDocTab(Docs.KVPDocument(this.props.Document, { width: 300, height: 300 }), "onRight"); };
+    fieldsClicked = (): void => { let kvp = Docs.KVPDocument(this.props.Document, { width: 300, height: 300 }); this.props.addDocTab(kvp, kvp, "onRight"); };
     makeBtnClicked = (): void => {
         let doc = Doc.GetProto(this.props.Document);
         doc.isButton = !BoolCast(doc.isButton, false);
@@ -390,7 +391,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
     fullScreenClicked = (): void => {
-        CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(Doc.MakeCopy(this.props.Document, false));
+        CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(Doc.MakeAlias(this.props.Document), this.props.DataDoc);
         SelectionManager.DeselectAll();
     }
 
@@ -473,10 +474,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const cm = ContextMenu.Instance;
         let subitems: ContextMenuProps[] = [];
         subitems.push({ description: "Open Full Screen", event: this.fullScreenClicked, icon: "desktop" });
-        subitems.push({ description: "Open Tab", event: () => this.props.addDocTab && this.props.addDocTab(this.props.Document, "inTab"), icon: "folder" });
-        subitems.push({ description: "Open Tab Alias", event: () => this.props.addDocTab && this.props.addDocTab(Doc.MakeAlias(this.props.Document), "inTab"), icon: "folder" });
-        subitems.push({ description: "Open Right", event: () => this.props.addDocTab && this.props.addDocTab(this.props.Document, "onRight"), icon: "caret-square-right" });
-        subitems.push({ description: "Open Right Alias", event: () => this.props.addDocTab && this.props.addDocTab(Doc.MakeAlias(this.props.Document), "onRight"), icon: "caret-square-right" });
+        subitems.push({ description: "Open Tab", event: () => this.props.addDocTab && this.props.addDocTab(this.props.Document, this.props.DataDoc, "inTab"), icon: "folder" });
+        subitems.push({ description: "Open Tab Alias", event: () => this.props.addDocTab && this.props.addDocTab(Doc.MakeAlias(this.props.Document), this.props.DataDoc, "inTab"), icon: "folder" });
+        subitems.push({ description: "Open Right", event: () => this.props.addDocTab && this.props.addDocTab(this.props.Document, this.props.DataDoc, "onRight"), icon: "caret-square-right" });
+        subitems.push({ description: "Open Right Alias", event: () => this.props.addDocTab && this.props.addDocTab(Doc.MakeAlias(this.props.Document), this.props.DataDoc, "onRight"), icon: "caret-square-right" });
         subitems.push({ description: "Open Fields", event: this.fieldsClicked, icon: "layer-group" });
         cm.addItem({ description: "Open...", subitems: subitems, icon: "external-link-alt" });
         cm.addItem({ description: BoolCast(this.props.Document.ignoreAspect, false) || !this.props.Document.nativeWidth || !this.props.Document.nativeHeight ? "Freeze" : "Unfreeze", event: this.freezeNativeDimensions, icon: "edit" });
@@ -486,7 +487,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         cm.addItem({
             description: "Find aliases", event: async () => {
                 const aliases = await SearchUtil.GetAliasesOfDocument(this.props.Document);
-                this.props.addDocTab && this.props.addDocTab(Docs.SchemaDocument(["title"], aliases, {}), "onRight");
+                this.props.addDocTab && this.props.addDocTab(Docs.SchemaDocument(["title"], aliases, {}), Docs.SchemaDocument(["title"], aliases, {}), "onRight"); // bcz: dataDoc?
             }, icon: "search"
         });
         cm.addItem({ description: "Center View", event: () => this.props.focus(this.props.Document), icon: "crosshairs" });

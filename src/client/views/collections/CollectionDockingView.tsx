@@ -28,7 +28,7 @@ import { MainView } from '../MainView';
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
     public static Instance: CollectionDockingView;
-    public static makeDocumentConfig(document: Doc, width?: number) {
+    public static makeDocumentConfig(document: Doc, dataDoc: Doc, width?: number) {
         return {
             type: 'react-component',
             component: 'DocumentFrameRenderer',
@@ -36,6 +36,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             width: width,
             props: {
                 documentId: document[Id],
+                dataDocumentId: dataDoc[Id]
                 //collectionDockingView: CollectionDockingView.Instance
             }
         };
@@ -56,19 +57,19 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     }
     hack: boolean = false;
     undohack: any = null;
-    public StartOtherDrag(dragDocs: Doc[], e: any) {
+    public StartOtherDrag(e: any, dragDocs: Doc[], dragDataDocs?: Doc[]) {
         this.hack = true;
         this.undohack = UndoManager.StartBatch("goldenDrag");
-        dragDocs.map(dragDoc =>
-            this.AddRightSplit(dragDoc, true).contentItems[0].tab._dragListener.
+        dragDocs.map((dragDoc, i) =>
+            this.AddRightSplit(dragDoc, dragDataDocs ? dragDataDocs[i] : dragDoc, true).contentItems[0].tab._dragListener.
                 onMouseDown({ pageX: e.pageX, pageY: e.pageY, preventDefault: emptyFunction, button: 0 }));
     }
 
     @action
-    public OpenFullScreen(document: Doc) {
+    public OpenFullScreen(document: Doc, dataDoc: Doc) {
         let newItemStackConfig = {
             type: 'stack',
-            content: [CollectionDockingView.makeDocumentConfig(document)]
+            content: [CollectionDockingView.makeDocumentConfig(document, dataDoc)]
         };
         var docconfig = this._goldenLayout.root.layoutManager.createContentItem(newItemStackConfig, this._goldenLayout);
         this._goldenLayout.root.contentItems[0].addChild(docconfig);
@@ -123,14 +124,14 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     //  Creates a vertical split on the right side of the docking view, and then adds the Document to that split
     //
     @action
-    public AddRightSplit = (document: Doc, minimize: boolean = false) => {
+    public AddRightSplit = (document: Doc, dataDoc: Doc, minimize: boolean = false) => {
         let docs = Cast(this.props.Document.data, listSpec(Doc));
         if (docs) {
             docs.push(document);
         }
         let newItemStackConfig = {
             type: 'stack',
-            content: [CollectionDockingView.makeDocumentConfig(document)]
+            content: [CollectionDockingView.makeDocumentConfig(document, dataDoc)]
         };
 
         var newContentItem = this._goldenLayout.root.layoutManager.createContentItem(newItemStackConfig, this._goldenLayout);
@@ -160,12 +161,12 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         return newContentItem;
     }
     @action
-    public AddTab = (stack: any, document: Doc) => {
+    public AddTab = (stack: any, document: Doc, dataDocument: Doc) => {
         let docs = Cast(this.props.Document.data, listSpec(Doc));
         if (docs) {
             docs.push(document);
         }
-        let docContentConfig = CollectionDockingView.makeDocumentConfig(document);
+        let docContentConfig = CollectionDockingView.makeDocumentConfig(document, dataDocument);
         var newContentItem = stack.layoutManager.createContentItem(docContentConfig, this._goldenLayout);
         stack.addChild(newContentItem.contentItems[0], undefined);
         this.layoutChanged();
@@ -281,14 +282,16 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 let x = e.clientX;
                 let y = e.clientY;
                 let docid = (e.target as any).DashDocId;
+                let datadocid = (e.target as any).DashDataDocId;
                 let tab = (e.target as any).parentElement as HTMLElement;
                 let glTab = (e.target as any).Tab;
                 if (glTab && glTab.contentItem && glTab.contentItem.parent) {
                     glTab.contentItem.parent.setActiveContentItem(glTab.contentItem);
                 }
-                DocServer.GetRefField(docid).then(action((f: Opt<Field>) => {
+                DocServer.GetRefField(docid).then(action(async (f: Opt<Field>) => {
                     if (f instanceof Doc) {
-                        DragManager.StartDocumentDrag([tab], new DragManager.DocumentDragData([f]), x, y,
+                        let dataDoc = (datadocid !== docid) ? await DocServer.GetRefField(datadocid) : f;
+                        DragManager.StartDocumentDrag([tab], new DragManager.DocumentDragData([f], [dataDoc instanceof Doc ? dataDoc : f]), x, y,
                             {
                                 handlers: {
                                     dragComplete: emptyFunction,
@@ -338,33 +341,34 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             if (tab.contentItem.config.fixed) {
                 tab.contentItem.parent.config.fixed = true;
             }
-            DocServer.GetRefField(tab.contentItem.config.props.documentId).then(async doc => {
-                if (doc instanceof Doc) {
-                    let counter: any = this.htmlToElement(`<span class="messageCounter">0</div>`);
-                    tab.element.append(counter);
-                    let upDiv = document.createElement("span");
-                    const stack = tab.contentItem.parent;
-                    // shifts the focus to this tab when another tab is dragged over it
-                    tab.element[0].onmouseenter = (e: any) => {
-                        if (!this._isPointerDown) return;
-                        var activeContentItem = tab.header.parent.getActiveContentItem();
-                        if (tab.contentItem !== activeContentItem) {
-                            tab.header.parent.setActiveContentItem(tab.contentItem);
-                        }
-                        tab.setActive(true);
-                    };
-                    ReactDOM.render(<ParentDocSelector Document={doc} addDocTab={(doc, location) => CollectionDockingView.Instance.AddTab(stack, doc)} />, upDiv);
-                    tab.reactComponents = [upDiv];
-                    tab.element.append(upDiv);
-                    counter.DashDocId = tab.contentItem.config.props.documentId;
-                    tab.reactionDisposer = reaction(() => [doc.linkedFromDocs, doc.LinkedToDocs, doc.title],
-                        () => {
-                            counter.innerHTML = DocListCast(doc.linkedFromDocs).length + DocListCast(doc.linkedToDocs).length;
-                            tab.titleElement[0].textContent = doc.title;
-                        }, { fireImmediately: true });
-                    tab.titleElement[0].DashDocId = tab.contentItem.config.props.documentId;
-                }
-            });
+            let doc = await DocServer.GetRefField(tab.contentItem.config.props.documentId) as Doc;
+            let dataDoc = await DocServer.GetRefField(tab.contentItem.config.props.dataDocumentId) as Doc;
+            if (doc instanceof Doc && dataDoc instanceof Doc) {
+                let counter: any = this.htmlToElement(`<span class="messageCounter">0</div>`);
+                tab.element.append(counter);
+                let upDiv = document.createElement("span");
+                const stack = tab.contentItem.parent;
+                // shifts the focus to this tab when another tab is dragged over it
+                tab.element[0].onmouseenter = (e: any) => {
+                    if (!this._isPointerDown) return;
+                    var activeContentItem = tab.header.parent.getActiveContentItem();
+                    if (tab.contentItem !== activeContentItem) {
+                        tab.header.parent.setActiveContentItem(tab.contentItem);
+                    }
+                    tab.setActive(true);
+                };
+                ReactDOM.render(<ParentDocSelector Document={doc} addDocTab={(doc, dataDoc, location) => CollectionDockingView.Instance.AddTab(stack, doc, dataDoc)} />, upDiv);
+                tab.reactComponents = [upDiv];
+                tab.element.append(upDiv);
+                counter.DashDocId = tab.contentItem.config.props.documentId;
+                counter.DashDataDocId = tab.contentItem.config.props.dataDocumentId;
+                tab.reactionDisposer = reaction(() => [doc.linkedFromDocs, doc.LinkedToDocs, doc.title],
+                    () => {
+                        counter.innerHTML = DocListCast(doc.linkedFromDocs).length + DocListCast(doc.linkedToDocs).length;
+                        tab.titleElement[0].textContent = doc.title;
+                    }, { fireImmediately: true });
+                tab.titleElement[0].DashDocId = tab.contentItem.config.props.documentId;
+            }
         }
         tab.titleElement[0].Tab = tab;
         tab.closeElement.off('click') //unbind the current click handler
@@ -427,6 +431,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
 interface DockedFrameProps {
     documentId: FieldId;
+    dataDocumentId: FieldId;
     //collectionDockingView: CollectionDockingView
 }
 @observer
@@ -435,6 +440,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     @observable private _panelWidth = 0;
     @observable private _panelHeight = 0;
     @observable private _document: Opt<Doc>;
+    @observable private _dataDoc: Opt<Doc>;
     get _stack(): any {
         let parent = (this.props as any).glContainer.parent.parent;
         if (this._document && this._document.excludeFromLibrary && parent.parent && parent.parent.contentItems.length > 1) {
@@ -444,7 +450,11 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
     constructor(props: any) {
         super(props);
-        DocServer.GetRefField(this.props.documentId).then(action((f: Opt<Field>) => this._document = f as Doc));
+        DocServer.GetRefField(this.props.documentId).then(action((f: Opt<Field>) => {
+            this._document = f as Doc;
+            if (!this.props.dataDocumentId || this.props.documentId === this.props.dataDocumentId) this._dataDoc = this._document;
+        }));
+        if (this.props.dataDocumentId && this.props.documentId !== this.props.dataDocumentId) DocServer.GetRefField(this.props.dataDocumentId).then(action((f: Opt<Field>) => this._dataDoc = f as Doc));
     }
 
     nativeWidth = () => NumCast(this._document!.nativeWidth, this._panelWidth);
@@ -481,17 +491,17 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
     get previewPanelCenteringOffset() { return (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2; }
 
-    addDocTab = (doc: Doc, location: string) => {
+    addDocTab = (doc: Doc, dataDoc: Doc, location: string) => {
         if (doc.dockingConfig) {
             MainView.Instance.openWorkspace(doc);
         } else if (location === "onRight") {
-            CollectionDockingView.Instance.AddRightSplit(doc);
+            CollectionDockingView.Instance.AddRightSplit(doc, dataDoc);
         } else {
-            CollectionDockingView.Instance.AddTab(this._stack, doc);
+            CollectionDockingView.Instance.AddTab(this._stack, doc, dataDoc);
         }
     }
     get content() {
-        if (!this._document) {
+        if (!this._document || !this._dataDoc) {
             return (null);
         }
         return (
@@ -499,7 +509,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                 style={{ transform: `translate(${this.previewPanelCenteringOffset}px, 0px) scale(${this.scaleToFitMultiplier}, ${this.scaleToFitMultiplier})` }}>
                 <DocumentView key={this._document[Id]}
                     Document={this._document}
-                    DataDoc={this._document}
+                    DataDoc={this._dataDoc}
                     bringToFront={emptyFunction}
                     addDocument={undefined}
                     removeDocument={undefined}

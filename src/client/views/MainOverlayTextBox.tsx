@@ -82,10 +82,10 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
     }
     @action
     textBoxMove = (e: PointerEvent) => {
-        if (e.movementX > 1 || e.movementY > 1) {
+        if ((e.movementX > 1 || e.movementY > 1) && FormattedTextBox.InputBoxOverlay) {
             document.removeEventListener("pointermove", this.textBoxMove);
             document.removeEventListener('pointerup', this.textBoxUp);
-            let dragData = new DragManager.DocumentDragData(FormattedTextBox.InputBoxOverlay ? [FormattedTextBox.InputBoxOverlay.props.Document] : []);
+            let dragData = new DragManager.DocumentDragData([FormattedTextBox.InputBoxOverlay.props.Document], [FormattedTextBox.InputBoxOverlay.props.DataDoc]);
             const [left, top] = this._textXf().inverse().transformPoint(0, 0);
             dragData.xOffset = e.clientX - left;
             dragData.yOffset = e.clientY - top;
@@ -102,9 +102,9 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
         document.removeEventListener('pointerup', this.textBoxUp);
     }
 
-    addDocTab = (doc: Doc, location: string) => {
+    addDocTab = (doc: Doc, dataDoc: Doc, location: string) => {
         if (true) { // location === "onRight") { need to figure out stack to add "inTab"
-            CollectionDockingView.Instance.AddRightSplit(doc);
+            CollectionDockingView.Instance.AddRightSplit(doc, dataDoc);
         }
     }
     render() {

@@ -15,7 +15,8 @@ export function SetupDrag(_reference: React.RefObject<HTMLElement>, docFunc: () 
 
         document.removeEventListener("pointermove", onRowMove);
         document.removeEventListener('pointerup', onRowUp);
-        var dragData = new DragManager.DocumentDragData([await docFunc()]);
+        let doc = await docFunc();
+        var dragData = new DragManager.DocumentDragData([doc], [doc]);
         dragData.dropAction = dropAction;
         dragData.moveDocument = moveFunc;
         dragData.options = options;
@@ -31,7 +32,7 @@ export function SetupDrag(_reference: React.RefObject<HTMLElement>, docFunc: () 
         if (e.button === 0) {
             e.stopPropagation();
             if (e.shiftKey && CollectionDockingView.Instance) {
-                CollectionDockingView.Instance.StartOtherDrag([await docFunc()], e);
+                CollectionDockingView.Instance.StartOtherDrag(e, [await docFunc()]);
             } else {
                 document.addEventListener("pointermove", onRowMove);
                 document.addEventListener("pointerup", onRowUp);
@@ -59,7 +60,8 @@ export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: n
             let doc = await Cast(draggedDoc.annotationOn, Doc);
             if (doc) moddrag.push(doc);
         }
-        let dragData = new DragManager.DocumentDragData(moddrag.length ? moddrag : draggedDocs);
+        let linkDocs = moddrag.length ? moddrag : draggedDocs;
+        let dragData = new DragManager.DocumentDragData(linkDocs, linkDocs); // bcz: dataDocs?
         DragManager.StartDocumentDrag([dragEle], dragData, x, y, {
             handlers: {
                 dragComplete: action(emptyFunction),
@@ -141,13 +143,15 @@ export namespace DragManager {
 
     export type MoveFunction = (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     export class DocumentDragData {
-        constructor(dragDoc: Doc[]) {
+        constructor(dragDoc: Doc[], dragDataDocs: Doc[]) {
             this.draggedDocuments = dragDoc;
+            this.draggedDataDocs = dragDataDocs;
             this.droppedDocuments = dragDoc;
             this.xOffset = 0;
             this.yOffset = 0;
         }
         draggedDocuments: Doc[];
+        draggedDataDocs: Doc[];
         droppedDocuments: Doc[];
         xOffset: number;
         yOffset: number;
@@ -238,6 +242,8 @@ export namespace DragManager {
 
         const docs: Doc[] =
             dragData instanceof DocumentDragData ? dragData.draggedDocuments : dragData instanceof AnnotationDragData ? [dragData.dragDocument] : [];
+        const datadocs: Doc[] =
+            dragData instanceof DocumentDragData ? dragData.draggedDataDocs : dragData instanceof AnnotationDragData ? [dragData.dragDocument] : [];
         let dragElements = eles.map(ele => {
             const w = ele.offsetWidth,
                 h = ele.offsetHeight;
@@ -314,12 +320,12 @@ export namespace DragManager {
             }
             if (e.shiftKey && CollectionDockingView.Instance) {
                 AbortDrag();
-                CollectionDockingView.Instance.StartOtherDrag(docs, {
+                CollectionDockingView.Instance.StartOtherDrag({
                     pageX: e.pageX,
                     pageY: e.pageY,
                     preventDefault: emptyFunction,
                     button: 0
-                });
+                }, docs, datadocs);
             }
             //TODO: Why can't we use e.movementX and e.movementY?
             let moveX = e.pageX - lastX;

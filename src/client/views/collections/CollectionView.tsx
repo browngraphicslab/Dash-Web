@@ -18,6 +18,7 @@ import { Doc } from '../../../new_fields/Doc';
 import { FormattedTextBox } from '../nodes/FormattedTextBox';
 import { Docs } from '../../documents/Documents';
 import { List } from '../../../new_fields/List';
+import { ImageField } from '../../../new_fields/URLField';
 export const COLLECTION_BORDER_WIDTH = 2;
 
 library.add(faTh);
@@ -63,8 +64,9 @@ export class CollectionView extends React.Component<FieldViewProps> {
                     let otherdoc = Docs.TextDocument({ width: 100, height: 50, title: "applied template" });
                     Doc.GetProto(otherdoc).description = "THIS DESCRIPTION IS REALLY IMPORTANT!";
                     Doc.GetProto(otherdoc).summary = "THIS SUMMARY IS MEANINGFUL!";
+                    Doc.GetProto(otherdoc).photo = new ImageField("http://www.cs.brown.edu/~bcz/snowbeast.JPG");
                     Doc.GetProto(otherdoc).layout = Doc.MakeDelegate(this.props.Document);
-                    this.props.addDocTab && this.props.addDocTab(otherdoc, "onRight");
+                    this.props.addDocTab && this.props.addDocTab(otherdoc, otherdoc, "onRight");
                 }), icon: "project-diagram"
             });
         }

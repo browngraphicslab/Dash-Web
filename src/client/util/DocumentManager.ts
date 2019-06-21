@@ -138,7 +138,7 @@ export class DocumentManager {
                         docContext.panTransformType = "Ease";
                         targetContextView.props.focus(docDelegate);
                     } else {
-                        (dockFunc || CollectionDockingView.Instance.AddRightSplit)(docContext);
+                        (dockFunc || CollectionDockingView.Instance.AddRightSplit)(docContext, docContext);
                         setTimeout(() => {
                             this.jumpToDocument(docDelegate, forceDockFunc, dockFunc, linkPage);
                         }, 10);
@@ -147,7 +147,7 @@ export class DocumentManager {
                     const actualDoc = Doc.MakeAlias(docDelegate);
                     actualDoc.libraryBrush = true;
                     if (linkPage !== undefined) actualDoc.curPage = linkPage;
-                    (dockFunc || CollectionDockingView.Instance.AddRightSplit)(actualDoc);
+                    (dockFunc || CollectionDockingView.Instance.AddRightSplit)(actualDoc, actualDoc);
                 }
             } else {
                 let contextView: DocumentView | null;
@@ -156,7 +156,7 @@ export class DocumentManager {
                     contextDoc.panTransformType = "Ease";
                     contextView.props.focus(docDelegate);
                 } else {
-                    (dockFunc || CollectionDockingView.Instance.AddRightSplit)(contextDoc);
+                    (dockFunc || CollectionDockingView.Instance.AddRightSplit)(contextDoc, contextDoc);
                     setTimeout(() => {
                         this.jumpToDocument(docDelegate, forceDockFunc, dockFunc, linkPage);
                     }, 10);

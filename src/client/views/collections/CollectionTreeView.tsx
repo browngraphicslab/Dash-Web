@@ -26,6 +26,8 @@ import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTreeView.scss";
 import React = require("react");
 import { FormattedTextBox } from '../nodes/FormattedTextBox';
+import { ImageField } from '../../../new_fields/URLField';
+import { ImageBox } from '../nodes/ImageBox';
 
 
 export interface TreeViewProps {
@@ -35,7 +37,7 @@ export interface TreeViewProps {
     deleteDoc: (doc: Doc) => boolean;
     moveDocument: DragManager.MoveFunction;
     dropAction: "alias" | "copy" | undefined;
-    addDocTab: (doc: Doc, where: string) => void;
+    addDocTab: (doc: Doc, dataDoc: Doc, where: string) => void;
     panelWidth: () => number;
     panelHeight: () => number;
     addDocument: (doc: Doc, relativeTo?: Doc, before?: boolean) => boolean;
@@ -73,7 +75,7 @@ class TreeView extends React.Component<TreeViewProps> {
     }
 
     @undoBatch delete = () => this.props.deleteDoc(this.props.document);
-    @undoBatch openRight = async () => this.props.addDocTab(this.props.document, "onRight");
+    @undoBatch openRight = async () => this.props.addDocTab(this.props.document, this.props.dataDoc, "onRight");
 
     onPointerDown = (e: React.PointerEvent) => e.stopPropagation();
     onPointerEnter = (e: React.PointerEvent): void => {
@@ -148,6 +150,25 @@ class TreeView extends React.Component<TreeViewProps> {
         SetValue={(value: string) => {
             let res = (Doc.GetProto(this.props.document)[key] = value) ? true : true;
 
+            if (value.startsWith(">>")) {
+                let metaKey = value.slice(2, value.length);
+                let collection = this.props.containingCollection;
+                Doc.GetProto(collection)[metaKey] = new ImageField("http://www.cs.brown.edu/~bcz/face.gif");
+                let template = Doc.MakeAlias(collection);
+                template.title = metaKey;
+                template.embed = true;
+                template.layout = ImageBox.LayoutString(metaKey);
+                template.x = 0;
+                template.y = 0;
+                template.nativeWidth = 300;
+                template.nativeHeight = 300;
+                template.width = 300;
+                template.height = 300;
+                template.isTemplate = true;
+                template.templates = new List<string>([Templates.TitleBar(metaKey)]);//`{props.DataDoc.${metaKey}_text}`)]);
+                Doc.AddDocToList(collection, "data", template);
+                this.delete();
+            }
             if (value.startsWith(">")) {
                 let metaKey = value.slice(1, value.length);
                 let collection = this.props.containingCollection;
@@ -236,10 +257,10 @@ class TreeView extends React.Component<TreeViewProps> {
     onWorkspaceContextMenu = (e: React.MouseEvent): void => {
         if (!e.isPropagationStopped()) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
             ContextMenu.Instance.addItem({ description: "Open as Workspace", event: undoBatch(() => MainView.Instance.openWorkspace(this.props.document)) });
-            ContextMenu.Instance.addItem({ description: "Open Fields", event: () => this.props.addDocTab(Docs.KVPDocument(this.props.document, { width: 300, height: 300 }), "onRight"), icon: "layer-group" });
+            ContextMenu.Instance.addItem({ description: "Open Fields", event: () => { let kvp = Docs.KVPDocument(this.props.document, { width: 300, height: 300 }); this.props.addDocTab(kvp, kvp, "onRight"); }, icon: "layer-group" });
             if (NumCast(this.props.document.viewType) !== CollectionViewType.Docking) {
-                ContextMenu.Instance.addItem({ description: "Open Tab", event: () => this.props.addDocTab(this.props.document, "inTab"), icon: "folder" });
-                ContextMenu.Instance.addItem({ description: "Open Right", event: () => this.props.addDocTab(this.props.document, "onRight"), icon: "caret-square-right" });
+                ContextMenu.Instance.addItem({ description: "Open Tab", event: () => this.props.addDocTab(this.props.document, this.props.dataDoc, "inTab"), icon: "folder" });
+                ContextMenu.Instance.addItem({ description: "Open Right", event: () => this.props.addDocTab(this.props.document, this.props.dataDoc, "onRight"), icon: "caret-square-right" });
                 if (DocumentManager.Instance.getDocumentViews(this.props.document).length) {
                     ContextMenu.Instance.addItem({ description: "Focus", event: () => DocumentManager.Instance.getDocumentViews(this.props.document).map(view => view.props.focus(this.props.document)) });
                 }
@@ -339,7 +360,7 @@ class TreeView extends React.Component<TreeViewProps> {
         remove: ((doc: Doc) => boolean),
         move: DragManager.MoveFunction,
         dropAction: dropActionType,
-        addDocTab: (doc: Doc, where: string) => void,
+        addDocTab: (doc: Doc, dataDoc: Doc, where: string) => void,
         screenToLocalXf: () => Transform,
         outerXf: () => { translateX: number, translateY: number },
         active: () => boolean,
