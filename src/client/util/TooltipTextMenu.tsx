@@ -7,6 +7,7 @@ import { EditorState, Transaction, NodeSelection, TextSelection } from "prosemir
 import { EditorView } from "prosemirror-view";
 import { schema } from "./RichTextSchema";
 import { Schema, NodeType, MarkType, Mark } from "prosemirror-model";
+import { Node as ProsNode } from "prosemirror-model"
 import React = require("react");
 import "./TooltipTextMenu.scss";
 const { toggleMark, setBlockType, wrapIn } = require("prosemirror-commands");
@@ -30,6 +31,7 @@ import { DocumentManager } from "./DocumentManager";
 import { Id } from "../../new_fields/FieldSymbols";
 import { Utils } from "../../Utils";
 import { FormattedTextBoxProps } from "../views/nodes/FormattedTextBox";
+import { text } from "body-parser";
 // import { wrap } from "module";
 
 const SVG = "http://www.w3.org/2000/svg";
@@ -290,7 +292,7 @@ export class TooltipTextMenu {
     }
 
     //will display a remove-list-type button if selection is in list, otherwise will show list type dropdown
-    updateListItemDropdown(label: string, listTypeBtn: Node) {
+    updateListItemDropdown(label: string, listTypeBtn: any) {
         //remove old btn
         if (listTypeBtn) { this.tooltip.removeChild(listTypeBtn); }
 
@@ -516,7 +518,7 @@ export class TooltipTextMenu {
             //return;
         }
 
-        let linksInSelection = this.activeMarksOnSelection([schema.marks.link]);
+        //let linksInSelection = this.activeMarksOnSelection([schema.marks.link]);
         // if (linksInSelection.length > 0) {
         //     let attributes = this.getMarksInSelection(this.view.state, [schema.marks.link])[0].attrs;
         //     this.link.href = attributes.href;
@@ -583,17 +585,47 @@ export class TooltipTextMenu {
         let { empty, $cursor, ranges } = this.view.state.selection as TextSelection;
         let state = this.view.state;
         let dispatch = this.view.dispatch;
-
-        let activeMarks = markGroup.filter(mark => {
-            if (dispatch) {
-                let has = false, tr = state.tr;
-                for (let i = 0; !has && i < ranges.length; i++) {
-                    let { $from, $to } = ranges[i];
-                    return state.doc.rangeHasMark($from.pos, $to.pos, mark);
+        let activeMarks: MarkType[];
+        if (!empty) {
+            activeMarks = markGroup.filter(mark => {
+                if (dispatch) {
+                    let has = false, tr = state.tr;
+                    for (let i = 0; !has && i < ranges.length; i++) {
+                        let { $from, $to } = ranges[i];
+                        return state.doc.rangeHasMark($from.pos, $to.pos, mark);
+                    }
                 }
+                return false;
+            });
+        }
+        else {
+            let pos = this.view.state.selection.$from;
+            let ref_node: ProsNode;
+            if (pos.nodeAfter !== null && pos.nodeAfter !== undefined) {
+                ref_node = pos.nodeAfter;
             }
-            return false;
-        });
+            else if (pos.nodeBefore !== null && pos.nodeBefore !== undefined) {
+                ref_node = pos.nodeBefore;
+            }
+            else {
+                return [];
+            }
+            let text_node_type: NodeType;
+            if (ref_node.isText) {
+                text_node_type = ref_node.type;
+            }
+            else {
+                return [];
+            }
+
+            activeMarks = markGroup.filter(mark_type => {
+                if (dispatch) {
+                    let mark = state.schema.mark(mark_type);
+                    return ref_node.marks.includes(mark);
+                }
+                return false;
+            });
+        }
         return activeMarks;
     }
 
