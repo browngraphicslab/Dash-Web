@@ -14,7 +14,7 @@ import { Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
 import { emptyFunction, returnFalse, returnZero } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { Gateway } from "../../northstar/manager/Gateway";
-import { SetupDrag } from "../../util/DragManager";
+import { SetupDrag, DragManager } from "../../util/DragManager";
 import { CompileScript } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
 import { COLLECTION_BORDER_WIDTH, MAX_ROW_HEIGHT } from '../../views/globalCssVariables.scss';
@@ -29,6 +29,7 @@ import "./CollectionSchemaView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
+import { undoBatch } from "../../util/UndoManager";
 
 
 library.add(faCog);
@@ -347,9 +348,10 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @computed
     get previewPanel() {
-        return <CollectionSchemaPreview
+        return <div ref={this.createTarget}><CollectionSchemaPreview
             Document={this.previewDocument}
             DataDocument={this.previewDocument}
+            childDocs={this.childDocs}
             width={this.previewWidth}
             height={this.previewHeight}
             getTransform={this.getPreviewTransform}
@@ -362,7 +364,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             addDocTab={this.props.addDocTab}
             setPreviewScript={this.setPreviewScript}
             previewScript={this.previewScript}
-        />;
+        /></div>;
     }
     @action
     setPreviewScript = (script: string) => {
@@ -385,6 +387,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 interface CollectionSchemaPreviewProps {
     Document?: Doc;
     DataDocument?: Doc;
+    childDocs?: Doc[];
     width: () => number;
     height: () => number;
     CollectionView?: CollectionView | CollectionPDFView | CollectionVideoView;
@@ -401,6 +404,8 @@ interface CollectionSchemaPreviewProps {
 
 @observer
 export class CollectionSchemaPreview extends React.Component<CollectionSchemaPreviewProps>{
+    private dropDisposer?: DragManager.DragDropDisposer;
+    _mainCont?: HTMLDivElement;
     private get nativeWidth() { return NumCast(this.props.Document!.nativeWidth, this.props.width()); }
     private get nativeHeight() { return NumCast(this.props.Document!.nativeHeight, this.props.height()); }
     private contentScaling = () => {
@@ -409,6 +414,28 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
             return this.props.height() / (this.nativeHeight ? this.nativeHeight : this.props.height());
         }
         return wscale;
+    }
+    protected createDropTarget = (ele: HTMLDivElement) => {
+    }
+    private createTarget = (ele: HTMLDivElement) => {
+        this._mainCont = ele;
+        this.dropDisposer && this.dropDisposer();
+        if (ele) {
+            this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
+        }
+    }
+
+    @undoBatch
+    @action
+    drop = (e: Event, de: DragManager.DropEvent) => {
+        if (de.data instanceof DragManager.DocumentDragData) {
+            let docDrag = de.data;
+            this.props.childDocs && this.props.childDocs.map(otherdoc => {
+                Doc.GetProto(otherdoc).layout = Doc.MakeDelegate(docDrag.draggedDocuments[0]);
+            });
+            e.stopPropagation();
+        }
+        return true;
     }
     private PanelWidth = () => this.nativeWidth * this.contentScaling();
     private PanelHeight = () => this.nativeHeight * this.contentScaling();
@@ -420,8 +447,8 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
     }
     render() {
         let input = this.props.previewScript === undefined ? (null) :
-            <input className="collectionSchemaView-input" value={this.props.previewScript} onChange={this.onPreviewScriptChange}
-                style={{ left: `calc(50% - ${Math.min(75, (this.props.Document ? this.PanelWidth() / 2 : 75))}px)` }} />;
+            <div ref={this.createTarget}><input className="collectionSchemaView-input" value={this.props.previewScript} onChange={this.onPreviewScriptChange}
+                style={{ left: `calc(50% - ${Math.min(75, (this.props.Document ? this.PanelWidth() / 2 : 75))}px)` }} /></div>;
         return (<div className="collectionSchemaView-previewRegion" style={{ width: this.props.width(), height: "100%" }}>
             {!this.props.Document || !this.props.DataDocument || !this.props.width ? (null) : (
                 <div className="collectionSchemaView-previewDoc" style={{ transform: `translate(${this.centeringOffset}px, 0px)`, height: "100%" }}>
