@@ -68,7 +68,6 @@ export class IconBar extends React.Component {
     render() {
         return (
             <div>
-                <div className="filter icon-title">Filter by type of node</div>
                 <div className="filter icon-bar">
                 <div className="filter type-outer">
                         <div className={"type-icon none not-selected"}

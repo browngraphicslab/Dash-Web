@@ -1,12 +1,6 @@
 @import "../globalCssVariables";
 
-
-@import url(https://fonts.googleapis.com/css?family=Montserrat:400,700);
-
-// $background: #3d566e;
-$color: #ecf0f1;
-
-$height-icon: 20px;
+$height-icon: 15px;
 $width-line: 30px;
 $height-line: 4px;
 
@@ -14,14 +8,6 @@ $transition-time: 0.4s;
 $rotation: 45deg;
 $translateY: ($height-icon / 2);
 $translateX: 0;
-
-// body {
-//   background: $background;
-//   color: $color;
-//   font-family: 'Montserrat', sans-serif;
-//   -webkit-font-smoothing: antialiased;
-//   text-align:center;
-// }
 
 #hamburger-icon {
   width:$width-line;
@@ -32,7 +18,7 @@ $translateX: 0;
   
   .line {
     display:block;
-    background:$color;
+    background:$alt-accent;
     width:$width-line;
     height:$height-line;
     position:absolute;

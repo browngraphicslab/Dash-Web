@@ -74,7 +74,6 @@ export class CollectionFilters extends React.Component<CollectionFilterProps> {
     render() {
         return (
             <div>
-                <div className='collection-title'>Search in current collections</div>
                 <div className="collection-filters">
                     <div className="collection-filters main">
                         <CheckBox default={false} title={"limit to current collection"} parent={this} numCount={3} updateStatus={this.updateColStat} originalStatus={this.props.collectionStatus} />

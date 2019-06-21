@@ -32,6 +32,13 @@
 
 }
 
+.filter-title{
+    font-size: 18;
+    text-transform: uppercase;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
 .searchBox-results {
     margin-left: 27px; //Is there a better way to do this?
 }
@@ -46,6 +53,11 @@
     color: $light-color;
     flex-direction: column;
     display: inline-block;
+
+    .filter-header{
+        display: flex;
+        align-items: center;
+    }
 }
 
 #filter{
@@ -79,18 +91,11 @@
     margin-bottom: 5px;
 }
 
-.type-of-node{
-    height: 90px;
-}
-
-.required-words{
+.filter-div{
+    margin-top: 10px;
+    margin-bottom: 10px;
     display: inline-block;
     width: 100%;
-}
-
-.filter-div{
-    margin-top: 5px;
-    margin-bottom: 5px;
 }
 
 .collection-title{
@@ -109,7 +114,6 @@
     height: 50px;
     text-transform: uppercase;
     text-align: left;
-    // width: 80%;
     font-weight: bold;
 }
 

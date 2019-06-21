@@ -409,58 +409,23 @@ export class SearchBox extends React.Component {
     }
 
     @action.bound
-    updateTitleStatus(newStat: boolean) {
-        this.titleFieldStatus = newStat;
-    }
-
+    updateTitleStatus(newStat: boolean) { this.titleFieldStatus = newStat; }
     @action.bound
-    updateAuthorStatus(newStat: boolean) {
-        this.authorFieldStatus = newStat;
-    }
-
+    updateAuthorStatus(newStat: boolean) { this.authorFieldStatus = newStat; }
     @action.bound
-    updateDataStatus(newStat: boolean) {
-        this.dataFieldStatus = newStat;
-    }
-
+    updateDataStatus(newStat: boolean) { this.dataFieldStatus = newStat; }
     @action.bound
-    updateCollectionStatus(newStat: boolean) {
-        this.collectionStatus = newStat;
-    }
-
+    updateCollectionStatus(newStat: boolean) { this.collectionStatus = newStat; }
     @action.bound
-    updateSelfCollectionStatus(newStat: boolean) {
-        this.collectionSelfStatus = newStat;
-    }
-
+    updateSelfCollectionStatus(newStat: boolean) { this.collectionSelfStatus = newStat; }
     @action.bound
-    updateParentCollectionStatus(newStat: boolean) {
-        this.collectionParentStatus = newStat;
-    }
-
-    getCollectionStatus() {
-        return this.collectionStatus;
-    }
-
-    getSelfCollectionStatus() {
-        return this.collectionSelfStatus;
-    }
-
-    getParentCollectionStatus() {
-        return this.collectionParentStatus;
-    }
-
-    getTitleStatus() {
-        return this.titleFieldStatus;
-    }
-
-    getAuthorStatus() {
-        return this.authorFieldStatus;
-    }
-
-    getDataStatus() {
-        return this.dataFieldStatus;
-    }
+    updateParentCollectionStatus(newStat: boolean) { this.collectionParentStatus = newStat; }
+    getCollectionStatus() { return this.collectionStatus; }
+    getSelfCollectionStatus() { return this.collectionSelfStatus; }
+    getParentCollectionStatus() { return this.collectionParentStatus; }
+    getTitleStatus() { return this.titleFieldStatus; }
+    getAuthorStatus() { return this.authorFieldStatus; }
+    getDataStatus() { return this.dataFieldStatus; }
 
     // Useful queries:
     // Delegates of a document: {!join from=id to=proto_i}id:{protoId}
@@ -490,26 +455,42 @@ export class SearchBox extends React.Component {
                 </div>
                 {this._filterOpen ? (
                     <div className="filter-form" onPointerDown={this.stopProp} id="filter" style={this._filterOpen ? { display: "flex" } : { display: "none" }}>
-                        <div className="filter-form filter-div" id="header">Filter Search Results</div>
-                        <div className="filter-form " id="option">
+                        <div id="header">Filter Search Results</div>
+                        <div>
                             <div className="required-words filter-div">
+                                <div className = "filter-header">
+                                    <div className='filter-title words'>Required words</div>
+                                    <a style = {{marginLeft: "auto"}}><NaviconButton/></a>
+                                </div>
                                 <ToggleBar originalStatus={this._basicWordStatus} optionOne={"Include Any Keywords"} optionTwo={"Include All Keywords"} />
                             </div>
-                            <div className="type-of-node filter-div">
+                            <div className="filter-div">
+                                <div className = "filter-header">
+                                    <div className="filter-title icon">Filter by type of node</div>
+                                    <a style = {{marginLeft: "auto"}}><NaviconButton/></a>
+                                </div>
                                 <IconBar />
                             </div>
-                            <div className="filter-collection filter-div">
-                                <CollectionFilters 
-                                updateCollectionStatus = {this.updateCollectionStatus} updateParentCollectionStatus = {this.updateParentCollectionStatus} updateSelfCollectionStatus = {this.updateSelfCollectionStatus}
-                                collectionStatus = {this.collectionStatus} collectionParentStatus = {this.collectionParentStatus} collectionSelfStatus = {this.collectionSelfStatus}/>
+                            <div className="filter-div">
+                                <div className = "filter-header">
+                                    <div className='filter-title collection'>Search in current collections</div>
+                                    <a style = {{marginLeft: "auto"}}><NaviconButton/></a>
+                                </div>
+                                <CollectionFilters
+                                    updateCollectionStatus={this.updateCollectionStatus} updateParentCollectionStatus={this.updateParentCollectionStatus} updateSelfCollectionStatus={this.updateSelfCollectionStatus}
+                                    collectionStatus={this.collectionStatus} collectionParentStatus={this.collectionParentStatus} collectionSelfStatus={this.collectionSelfStatus} />
                             </div>
-                            <div className="where-in-doc filter-div">
-                                <FieldFilters 
-                                titleFieldStatus={this.titleFieldStatus} dataFieldStatus={this.dataFieldStatus} authorFieldStatus={this.authorFieldStatus}
+                            <div className="filter-div">
+                                <div className = "filter-header">
+                                    <div className="filter-title field">Filter by Basic Keys</div>
+                                    <a style = {{marginLeft: "auto"}}><NaviconButton/></a>
+                                </div>
+                                <FieldFilters
+                                    titleFieldStatus={this.titleFieldStatus} dataFieldStatus={this.dataFieldStatus} authorFieldStatus={this.authorFieldStatus}
                                     updateAuthorStatus={this.updateAuthorStatus} updateDataStatus={this.updateDataStatus} updateTitleStatus={this.updateTitleStatus} />
                             </div>
                         </div>
-                        <button className="reset-filter" onClick={this.resetFilters}>Reset Filters</button>
+                        <button className="filter-div reset-filter" onClick={this.resetFilters}>Reset Filters</button>
                     </div>
                 ) : undefined}
             </div>
