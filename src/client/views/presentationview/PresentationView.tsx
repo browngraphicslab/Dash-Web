@@ -672,12 +672,19 @@ export class PresentationView extends React.Component<PresViewProps>  {
      */
     @action
     addNewPresentation = (presTitle: string) => {
+        //creating a new presentation doc
         let newPresentationDoc = Docs.TreeDocument([], { title: presTitle });
         this.props.Documents.push(newPresentationDoc);
+
+        //setting that new doc as current
         this.curPresentation = newPresentationDoc;
+
+        //storing the doc in local copies for easier access
         let newGuid = Utils.GenerateGuid();
         this.presentationsMapping.set(newGuid, newPresentationDoc);
         this.presentationsKeyMapping.set(newPresentationDoc, newGuid);
+
+        //resetting the previous presentation's actions so that new presentation can be loaded.
         this.resetGroupIds();
         this.resetPresentation();
         this.presElementsMappings = new Map();
@@ -693,8 +700,12 @@ export class PresentationView extends React.Component<PresViewProps>  {
      */
     @action
     getSelectedPresentation = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        //get the guid of the selected presentation
         let selectedGuid = e.target.value;
+        //set that as current presentation
         this.curPresentation = this.presentationsMapping.get(selectedGuid)!;
+
+        //reset current Presentations local things so that new one can be loaded
         this.resetGroupIds();
         this.resetPresentation();
         this.presElementsMappings = new Map();
@@ -753,32 +764,44 @@ export class PresentationView extends React.Component<PresViewProps>  {
         if (this.presentationsMapping.size !== 1) {
             let presentationList = Cast(this.props.Documents, listSpec(Doc));
             let batch = UndoManager.StartBatch("presRemoval");
+
+            //getting the presentation that will be removed
             let removedDoc = this.presentationsMapping.get(this.currentSelectedPresValue!);
+            //that presentation is removed
             presentationList!.splice(presentationList!.indexOf(removedDoc!), 1);
+
+            //its mappings are removed from local copies
             this.presentationsKeyMapping.delete(removedDoc!);
             this.presentationsMapping.delete(this.currentSelectedPresValue!);
+
+            //the next presentation is set as current
             let remainingPresentations = this.presentationsMapping.values();
             let nextDoc = remainingPresentations.next().value;
+            this.curPresentation = nextDoc;
 
 
+            //Storing these for being able to undo changes
             let curGuid = this.currentSelectedPresValue!;
             let curPresStatus = this.presStatus;
 
-            this.curPresentation = nextDoc;
+            //resetting the groups and presentation actions so that next presentation gets loaded
             this.resetGroupIds();
             this.resetPresentation();
             this.currentSelectedPresValue = this.presentationsKeyMapping.get(nextDoc)!.toString();
             this.setPresentationBackUps();
+
+            //Storing for undo
             let currentGroups = this.groupMappings;
             let curPresElemMapping = this.presElementsMappings;
+
+            //Event to undo actions that are not related to doc directly, aka. local things
             UndoManager.AddEvent({
                 undo: action(() => {
                     this.curPresentation = removedDoc!;
                     this.presentationsMapping.set(curGuid, removedDoc!);
                     this.presentationsKeyMapping.set(removedDoc!, curGuid);
                     this.currentSelectedPresValue = curGuid;
-                    //this.resetGroupIds();
-                    //this.resetPresentation();
+
                     this.presStatus = curPresStatus;
                     this.groupMappings = currentGroups;
                     this.presElementsMappings = curPresElemMapping;
@@ -791,8 +814,6 @@ export class PresentationView extends React.Component<PresViewProps>  {
                     this.presentationsKeyMapping.delete(removedDoc!);
                     this.presentationsMapping.delete(curGuid);
                     this.currentSelectedPresValue = this.presentationsKeyMapping.get(nextDoc)!.toString();
-                    //this.resetGroupIds();
-                    // this.resetPresentation();
                     this.setPresentationBackUps();
 
                 }),
