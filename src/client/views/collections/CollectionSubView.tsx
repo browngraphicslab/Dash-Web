@@ -4,7 +4,7 @@ import CursorField from "../../../new_fields/CursorField";
 import { Doc, DocListCast, Opt } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
-import { Cast, PromiseValue } from "../../../new_fields/Types";
+import { Cast, PromiseValue, BoolCast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { RouteStore } from "../../../server/RouteStore";
 import { DocServer } from "../../DocServer";
@@ -48,7 +48,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         get childDocs() {
             //TODO tfs: This might not be what we want?
             //This linter error can't be fixed because of how js arguments work, so don't switch this to filter(FieldValue)
-            return DocListCast(this.props.Document[this.props.fieldKey]);
+            return DocListCast((BoolCast(this.props.Document.isTemplate) ? this.props.DataDoc : this.props.Document)[this.props.fieldKey]);
         }
 
         @action

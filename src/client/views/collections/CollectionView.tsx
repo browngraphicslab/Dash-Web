@@ -66,6 +66,13 @@ export class CollectionView extends React.Component<FieldViewProps> {
                     Doc.GetProto(otherdoc).summary = "THIS SUMMARY IS MEANINGFUL!";
                     Doc.GetProto(otherdoc).photo = new ImageField("http://www.cs.brown.edu/~bcz/snowbeast.JPG");
                     Doc.GetProto(otherdoc).layout = Doc.MakeDelegate(this.props.Document);
+                    Doc.GetProto(otherdoc).publication = new List<Doc>([
+                        Docs.TextDocument({ documentText: "hello world!", width: 300, height: 300 }),
+                        Docs.ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { width: 300, height: 300 }),
+                        Docs.ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { width: 300, height: 300 }),
+                        Docs.ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { width: 300, height: 300 }),
+                        Docs.TextDocument({ documentText: "hello world!", width: 300, height: 300 }),
+                    ]);
                     this.props.addDocTab && this.props.addDocTab(otherdoc, otherdoc, "onRight");
                 }), icon: "project-diagram"
             });

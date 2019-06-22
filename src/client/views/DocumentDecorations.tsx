@@ -26,6 +26,7 @@ import { Template, Templates } from "./Templates";
 import React = require("react");
 import { URLField } from '../../new_fields/URLField';
 import { templateLiteral } from 'babel-types';
+import { CollectionViewType } from './collections/CollectionBaseView';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -74,6 +75,26 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             if (text[0] === '#') {
                 this._fieldKey = text.slice(1, text.length);
                 this._title = this.selectionTitle;
+            } else if (text.startsWith(">>>")) {
+                let metaKey = text.slice(3, text.length);
+                let collection = SelectionManager.SelectedDocuments()[0].props.ContainingCollectionView!.props.Document;
+                Doc.GetProto(collection)[metaKey] = new List<Doc>([
+                    Docs.ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { width: 300, height: 300 }),
+                    Docs.TextDocument({ documentText: "hello world!", width: 300, height: 300 }),
+                ]);
+                let template = Doc.MakeAlias(collection);
+                template.title = metaKey;
+                template.embed = true;
+                template.layout = CollectionView.LayoutString(metaKey);
+                template.viewType = CollectionViewType.Freeform;
+                template.x = 0;
+                template.y = 0;
+                template.width = 300;
+                template.height = 300;
+                template.isTemplate = true;
+                template.templates = new List<string>([Templates.TitleBar(metaKey)]);//`{props.DataDoc.${metaKey}_text}`)]);
+                Doc.AddDocToList(collection, "data", template);
+                SelectionManager.SelectedDocuments().map(dv => dv.props.removeDocument && dv.props.removeDocument(dv.props.Document));
             } else if (text[0] === ">") {
                 let metaKey = text.slice(1, text.length);
                 let first = SelectionManager.SelectedDocuments()[0].props.Document!;

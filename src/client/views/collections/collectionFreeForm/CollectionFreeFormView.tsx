@@ -45,6 +45,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private get _pwidth() { return this.props.PanelWidth(); }
     private get _pheight() { return this.props.PanelHeight(); }
 
+    @computed get dataDoc() { return this.props.DataDoc && BoolCast(this.props.Document.isTemplate) ? this.props.DataDoc : this.props.Document; }
     @computed get nativeWidth() { return this.Document.nativeWidth || 0; }
     @computed get nativeHeight() { return this.Document.nativeHeight || 0; }
     public get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldKey === "annotations"; }
@@ -163,7 +164,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     return [[range[0][0] > x ? x : range[0][0], range[0][1] < xe ? xe : range[0][1]],
                     [range[1][0] > y ? y : range[1][0], range[1][1] < ye ? ye : range[1][1]]];
                 }, [[minx, maxx], [miny, maxy]]);
-                let ink = Cast(this.props.Document.ink, InkField);
+                let ink = Cast(this.dataDoc.ink, InkField);
                 if (ink && ink.inkData) {
                     ink.inkData.forEach((value: StrokeData, key: string) => {
                         let bounds = InkingCanvas.StrokeRect(value);
@@ -296,7 +297,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     getDocumentViewProps(layoutDoc: Doc): DocumentViewProps {
         return {
-            DataDoc: this.props.DataDoc !== this.props.Document ? this.props.DataDoc : layoutDoc,
+            DataDoc: this.props.DataDoc !== this.props.Document && !BoolCast(this.props.Document.isTemplate) ? this.props.DataDoc : layoutDoc,
             Document: layoutDoc,
             addDocument: this.props.addDocument,
             removeDocument: this.props.removeDocument,

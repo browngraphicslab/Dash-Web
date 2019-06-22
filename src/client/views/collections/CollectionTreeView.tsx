@@ -28,6 +28,8 @@ import React = require("react");
 import { FormattedTextBox } from '../nodes/FormattedTextBox';
 import { ImageField } from '../../../new_fields/URLField';
 import { ImageBox } from '../nodes/ImageBox';
+import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
+import { CollectionView } from './CollectionView';
 
 
 export interface TreeViewProps {
@@ -150,42 +152,63 @@ class TreeView extends React.Component<TreeViewProps> {
         SetValue={(value: string) => {
             let res = (Doc.GetProto(this.props.document)[key] = value) ? true : true;
 
-            if (value.startsWith(">>")) {
-                let metaKey = value.slice(2, value.length);
+            if (value.startsWith(">>>")) {
+                let metaKey = value.slice(3, value.length);
                 let collection = this.props.containingCollection;
-                Doc.GetProto(collection)[metaKey] = new ImageField("http://www.cs.brown.edu/~bcz/face.gif");
+                Doc.GetProto(collection)[metaKey] = new List<Doc>([
+                    Docs.ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { width: 300, height: 300 }),
+                    Docs.TextDocument({ documentText: "hello world!", width: 300, height: 300 }),
+                ]);
                 let template = Doc.MakeAlias(collection);
                 template.title = metaKey;
                 template.embed = true;
-                template.layout = ImageBox.LayoutString(metaKey);
+                template.layout = CollectionView.LayoutString(metaKey);
+                template.viewType = CollectionViewType.Freeform;
                 template.x = 0;
                 template.y = 0;
-                template.nativeWidth = 300;
-                template.nativeHeight = 300;
                 template.width = 300;
                 template.height = 300;
                 template.isTemplate = true;
                 template.templates = new List<string>([Templates.TitleBar(metaKey)]);//`{props.DataDoc.${metaKey}_text}`)]);
                 Doc.AddDocToList(collection, "data", template);
                 this.delete();
-            }
-            if (value.startsWith(">")) {
-                let metaKey = value.slice(1, value.length);
-                let collection = this.props.containingCollection;
-                Doc.GetProto(collection)[metaKey] = "-empty field-";
-                let template = Doc.MakeAlias(collection);
-                template.title = metaKey;
-                template.embed = true;
-                template.layout = FormattedTextBox.LayoutString(metaKey);
-                template.x = 0;
-                template.y = 0;
-                template.width = 100;
-                template.height = 50;
-                template.isTemplate = true;
-                template.templates = new List<string>([Templates.TitleBar(metaKey)]);//`{props.DataDoc.${metaKey}_text}`)]);
-                Doc.AddDocToList(collection, "data", template);
-                this.delete();
-            }
+            } else
+                if (value.startsWith(">>")) {
+                    let metaKey = value.slice(2, value.length);
+                    let collection = this.props.containingCollection;
+                    Doc.GetProto(collection)[metaKey] = new ImageField("http://www.cs.brown.edu/~bcz/face.gif");
+                    let template = Doc.MakeAlias(collection);
+                    template.title = metaKey;
+                    template.embed = true;
+                    template.layout = ImageBox.LayoutString(metaKey);
+                    template.x = 0;
+                    template.y = 0;
+                    template.nativeWidth = 300;
+                    template.nativeHeight = 300;
+                    template.width = 300;
+                    template.height = 300;
+                    template.isTemplate = true;
+                    template.templates = new List<string>([Templates.TitleBar(metaKey)]);//`{props.DataDoc.${metaKey}_text}`)]);
+                    Doc.AddDocToList(collection, "data", template);
+                    this.delete();
+                } else
+                    if (value.startsWith(">")) {
+                        let metaKey = value.slice(1, value.length);
+                        let collection = this.props.containingCollection;
+                        Doc.GetProto(collection)[metaKey] = "-empty field-";
+                        let template = Doc.MakeAlias(collection);
+                        template.title = metaKey;
+                        template.embed = true;
+                        template.layout = FormattedTextBox.LayoutString(metaKey);
+                        template.x = 0;
+                        template.y = 0;
+                        template.width = 100;
+                        template.height = 50;
+                        template.isTemplate = true;
+                        template.templates = new List<string>([Templates.TitleBar(metaKey)]);//`{props.DataDoc.${metaKey}_text}`)]);
+                        Doc.AddDocToList(collection, "data", template);
+                        this.delete();
+                    }
 
             return res;
         }}

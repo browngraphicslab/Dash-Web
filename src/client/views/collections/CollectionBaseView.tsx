@@ -5,7 +5,7 @@ import { Doc, DocListCast, Opt } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
 import { listSpec } from '../../../new_fields/Schema';
-import { Cast, FieldValue, NumCast, PromiseValue, StrCast } from '../../../new_fields/Types';
+import { Cast, FieldValue, NumCast, PromiseValue, StrCast, BoolCast } from '../../../new_fields/Types';
 import { SelectionManager } from '../../util/SelectionManager';
 import { ContextMenu } from '../ContextMenu';
 import { FieldViewProps } from '../nodes/FieldView';
@@ -60,6 +60,8 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         }
     }
 
+    @computed get dataDoc() { return (BoolCast(this.props.Document.isTemplate) ? this.props.DataDoc : this.props.Document); }
+
     active = (): boolean => {
         var isSelected = this.props.isSelected();
         var topMost = this.props.isTopMost;
@@ -102,30 +104,21 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
 
     @action.bound
     addDocument(doc: Doc, allowDuplicates: boolean = false): boolean {
-        let props = this.props;
-        var curPage = NumCast(props.Document.curPage, -1);
+        var curPage = NumCast(this.props.Document.curPage, -1);
         Doc.GetProto(doc).page = curPage;
         if (curPage >= 0) {
-            Doc.GetProto(doc).annotationOn = props.Document;
+            Doc.GetProto(doc).annotationOn = this.props.Document;
         }
         allowDuplicates = true;
-        if (!this.createsCycle(doc, props.Document)) {
+        if (!this.createsCycle(doc, this.dataDoc)) {
             //TODO This won't create the field if it doesn't already exist
-            const value = Cast(props.Document[props.fieldKey], listSpec(Doc));
-            let alreadyAdded = true;
+            const value = Cast(this.dataDoc[this.props.fieldKey], listSpec(Doc));
             if (value !== undefined) {
                 if (allowDuplicates || !value.some(v => v instanceof Doc && v[Id] === doc[Id])) {
-                    alreadyAdded = false;
                     value.push(doc);
                 }
             } else {
-                alreadyAdded = false;
-                Doc.SetOnPrototype(this.props.Document, this.props.fieldKey, new List([doc]));
-            }
-            // set the ZoomBasis only if hasn't already been set -- bcz: maybe set/resetting the ZoomBasis should be a parameter to addDocument?
-            if (!alreadyAdded && (this.collectionViewType === CollectionViewType.Freeform || this.collectionViewType === CollectionViewType.Invalid)) {
-                let zoom = NumCast(this.props.Document.scale, 1);
-                // Doc.GetProto(doc).zoomBasis = zoom;
+                Doc.SetOnPrototype(this.dataDoc, this.props.fieldKey, new List([doc]));
             }
             return true;
         }
@@ -136,22 +129,12 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
     removeDocument(doc: Doc): boolean {
         let docView = DocumentManager.Instance.getDocumentView(doc, this.props.ContainingCollectionView);
         docView && SelectionManager.DeselectDoc(docView);
-        const props = this.props;
         //TODO This won't create the field if it doesn't already exist
-        const value = Cast(props.Document[props.fieldKey], listSpec(Doc), []);
-        let index = -1;
-        for (let i = 0; i < value.length; i++) {
-            let v = value[i];
-            if (v instanceof Doc && v[Id] === doc[Id]) {
-                index = i;
-                break;
-            }
-        }
-        PromiseValue(Cast(doc.annotationOn, Doc)).then(annotationOn => {
-            if (annotationOn === props.Document) {
-                doc.annotationOn = undefined;
-            }
-        });
+        const value = Cast(this.dataDoc[this.props.fieldKey], listSpec(Doc), []);
+        let index = value.reduce((p, v, i) => (v instanceof Doc && v[Id] === doc[Id]) ? i : p, -1);
+        PromiseValue(Cast(doc.annotationOn, Doc)).then(annotationOn =>
+            annotationOn === this.dataDoc.Document && (doc.annotationOn = undefined)
+        );
 
         if (index !== -1) {
             value.splice(index, 1);
@@ -165,7 +148,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
 
     @action.bound
     moveDocument(doc: Doc, targetCollection: Doc, addDocument: (doc: Doc) => boolean): boolean {
-        if (Doc.AreProtosEqual(this.props.Document, targetCollection)) {
+        if (Doc.AreProtosEqual(this.dataDoc, targetCollection)) {
             return true;
         }
         if (this.removeDocument(doc)) {
