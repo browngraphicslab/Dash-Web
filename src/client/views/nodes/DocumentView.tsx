@@ -536,7 +536,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get nativeWidth() { return this.Document.nativeWidth || 0; }
     @computed get nativeHeight() { return this.Document.nativeHeight || 0; }
     @computed get contents() {
-        console.log("dv = " + this.props.Document.title + " " + this.props.DataDoc.title);
         return (
             <DocumentContentsView {...this.props} isSelected={this.isSelected} select={this.select} selectOnLoad={this.props.selectOnLoad} layoutKey={"layout"} />);
     }
@@ -545,6 +544,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (this.Document.hidden) {
             return null;
         }
+        let backgroundColor = this.props.Document.layout instanceof Doc ? StrCast(this.props.Document.layout.backgroundColor) : this.Document.backgroundColor;
         var scaling = this.props.ContentScaling();
         var nativeWidth = this.nativeWidth > 0 ? `${this.nativeWidth}px` : "100%";
         var nativeHeight = BoolCast(this.props.Document.ignoreAspect) ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
@@ -559,7 +559,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                         `${1 * this.props.ScreenToLocalTransform().Scale}px`
                         : "0px",
                     borderRadius: "inherit",
-                    background: this.Document.backgroundColor || "",
+                    background: backgroundColor || "",
                     width: nativeWidth,
                     height: nativeHeight,
                     transform: `scale(${scaling}, ${scaling})`
