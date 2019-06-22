@@ -451,10 +451,11 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     constructor(props: any) {
         super(props);
         DocServer.GetRefField(this.props.documentId).then(action((f: Opt<Field>) => {
-            this._document = f as Doc;
-            if (!this.props.dataDocumentId || this.props.documentId === this.props.dataDocumentId) this._dataDoc = this._document;
+            this._dataDoc = this._document = f as Doc;
+            if (this.props.dataDocumentId && this.props.documentId !== this.props.dataDocumentId) {
+                DocServer.GetRefField(this.props.dataDocumentId).then(action((f: Opt<Field>) => this._dataDoc = f as Doc));
+            }
         }));
-        if (this.props.dataDocumentId && this.props.documentId !== this.props.dataDocumentId) DocServer.GetRefField(this.props.dataDocumentId).then(action((f: Opt<Field>) => this._dataDoc = f as Doc));
     }
 
     nativeWidth = () => NumCast(this._document!.nativeWidth, this._panelWidth);
@@ -506,7 +507,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         }
         return (
             <div className="collectionDockingView-content" ref={this._mainCont}
-                style={{ transform: `translate(${this.previewPanelCenteringOffset}px, 0px) scale(${this.scaleToFitMultiplier}, ${this.scaleToFitMultiplier})` }}>
+                style={{ transform: `translate(${this.previewPanelCenteringOffset}px, 0px) scale(${this.scaleToFitMultiplier})` }}>
                 <DocumentView key={this._document[Id]}
                     Document={this._document}
                     DataDoc={this._dataDoc}
