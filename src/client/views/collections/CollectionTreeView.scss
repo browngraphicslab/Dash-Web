@@ -43,13 +43,12 @@
         display: inline;
     }
 
-
-    .coll-title {
-        width: max-content;
+    .editableView-input, .editableView-container-editing {
         display: block;
+        text-overflow: ellipsis;
         font-size: 24px;
+        white-space: nowrap;
     }
-
 }
 .collectionTreeView-keyHeader {
     font-style: italic;

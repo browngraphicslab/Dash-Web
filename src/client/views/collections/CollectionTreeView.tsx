@@ -483,25 +483,24 @@ export class CollectionTreeView extends CollectionSubView(Document) {
 
         return !this.childDocs ? (null) : (
             <div id="body" className="collectionTreeView-dropTarget"
+                style={{ overflow: dropAction ? "auto" : "hidden" }}
                 onContextMenu={this.onContextMenu}
                 onWheel={(e: React.WheelEvent) => this.props.isSelected() && e.stopPropagation()}
                 onDrop={this.onTreeDrop}
                 ref={this.createTreeDropTarget}>
-                <div className="coll-title">
-                    <EditableView
-                        contents={this.props.DataDoc.title}
-                        display={"inline"}
-                        height={72}
-                        GetValue={() => StrCast(this.props.DataDoc.title)}
-                        SetValue={(value: string) => (Doc.GetProto(this.props.DataDoc).title = value) ? true : true}
-                        OnFillDown={(value: string) => {
-                            Doc.GetProto(this.props.Document).title = value;
-                            let doc = Docs.FreeformDocument([], { title: "", x: 0, y: 0, width: 100, height: 25, templates: new List<string>([Templates.Title.Layout]) });
-                            TreeView.loadId = doc[Id];
-                            Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, this.childDocs.length ? this.childDocs[0] : undefined, true);
-                        }} />
-                </div>
-                <ul className="no-indent">
+                <EditableView
+                    contents={this.props.DataDoc.title}
+                    display={"block"}
+                    height={72}
+                    GetValue={() => StrCast(this.props.DataDoc.title)}
+                    SetValue={(value: string) => (Doc.GetProto(this.props.DataDoc).title = value) ? true : true}
+                    OnFillDown={(value: string) => {
+                        Doc.GetProto(this.props.Document).title = value;
+                        let doc = Docs.FreeformDocument([], { title: "", x: 0, y: 0, width: 100, height: 25, templates: new List<string>([Templates.Title.Layout]) });
+                        TreeView.loadId = doc[Id];
+                        Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, this.childDocs.length ? this.childDocs[0] : undefined, true);
+                    }} />
+                <ul className="no-indent" style={{ width: dropAction ? "max-content" : "undefined" }} >
                     {
                         TreeView.GetChildElements(this.childDocs, this.props.Document[Id], this.props.Document, this.props.DataDoc, this.props.fieldKey, addDoc, this.remove,
                             moveDoc, dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.outerXf, this.props.active, this.props.PanelWidth)
