@@ -501,8 +501,7 @@ export class SummarizedView {
                 let length = to - from;
                 let newSelection = TextSelection.create(view.state.doc, y + 1, y + 1 + length);
                 node.attrs.text = newSelection.content();
-                view.dispatch(view.state.tr.setSelection(newSelection));
-                view.dispatch(view.state.tr.deleteSelection(view.state, () => { }));
+                view.dispatch(view.state.tr.setSelection(newSelection).deleteSelection(view.state, () => { }));
                 self._collapsed.textContent = "㊉";
             } else {
                 node.attrs.visibility = !node.attrs.visibility;
@@ -513,9 +512,8 @@ export class SummarizedView {
                 console.log("PASTING " + node.attrs.text.toString());
                 view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, y + 1, y + 1)));
                 const from = view.state.selection.from;
-                view.dispatch(view.state.tr.replaceSelection(node.attrs.text).addMark(from, from + node.attrs.oldtextlen, mark));
-                //view.dispatch(view.state.tr.setSelection(view.state.doc, from + node.attrs.oldtextlen + 1, from + node.attrs.oldtextlen + 1));
-                view.dispatch(view.state.tr.removeStoredMark(mark));
+                let size = node.attrs.text.size;
+                view.dispatch(view.state.tr.replaceSelection(node.attrs.text).addMark(from, from + size, mark).removeStoredMark(mark));
                 self._collapsed.textContent = "㊀";
             }
             e.preventDefault();
@@ -548,16 +546,16 @@ export class SummarizedView {
         let visited = new Set();
         for (let i: number = start + 1; i < this._view.state.doc.nodeSize - 1; i++) {
             console.log("ITER:", i);
+            let skip = false;
             this._view.state.doc.nodesBetween(start, i, (node: Node, pos: number, parent: Node, index: number) => {
-                if (node.isLeaf) {
-                    if (node.marks.includes(_mark) && !visited.has(node)) {
+                if (node.isLeaf && !visited.has(node) && !skip) {
+                    if (node.marks.includes(_mark)) {
                         visited.add(node);
                         //endPos += node.nodeSize + 1;
                         endPos = i + node.nodeSize - 1;
                         console.log("node contains mark!");
                     }
-                    else { }
-
+                    else skip = true;
                 }
             });
         }
