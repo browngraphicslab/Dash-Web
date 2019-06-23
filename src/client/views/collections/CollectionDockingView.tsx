@@ -136,10 +136,11 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
         var newContentItem = this._goldenLayout.root.layoutManager.createContentItem(newItemStackConfig, this._goldenLayout);
 
-        if (this._goldenLayout.root.contentItems[0].isRow) {
+        if (this._goldenLayout.root.contentItems.length === 0) {
+            this._goldenLayout.root.addChild(newContentItem);
+        } else if (this._goldenLayout.root.contentItems[0].isRow) {
             this._goldenLayout.root.contentItems[0].addChild(newContentItem);
-        }
-        else {
+        } else {
             var collayout = this._goldenLayout.root.contentItems[0];
             var newRow = collayout.layoutManager.createContentItem({ type: "row" }, this._goldenLayout);
             collayout.parent.replaceChild(collayout, newRow);
