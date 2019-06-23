@@ -483,9 +483,9 @@ export class CollectionTreeView extends CollectionSubView(Document) {
 
         return !this.childDocs ? (null) : (
             <div id="body" className="collectionTreeView-dropTarget"
-                style={{ overflow: dropAction ? "auto" : "hidden" }}
+                style={{ overflow: "auto" }}
                 onContextMenu={this.onContextMenu}
-                onWheel={(e: React.WheelEvent) => this.props.isSelected() && e.stopPropagation()}
+                onWheel={(e: React.WheelEvent) => (e.target as any).scrollHeight > (e.target as any).clientHeight && e.stopPropagation()}
                 onDrop={this.onTreeDrop}
                 ref={this.createTreeDropTarget}>
                 <EditableView
@@ -500,7 +500,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                         TreeView.loadId = doc[Id];
                         Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, this.childDocs.length ? this.childDocs[0] : undefined, true);
                     }} />
-                <ul className="no-indent" style={{ width: dropAction ? "max-content" : "undefined" }} >
+                <ul className="no-indent" style={{ width: "max-content" }} >
                     {
                         TreeView.GetChildElements(this.childDocs, this.props.Document[Id], this.props.Document, this.props.DataDoc, this.props.fieldKey, addDoc, this.remove,
                             moveDoc, dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.outerXf, this.props.active, this.props.PanelWidth)
