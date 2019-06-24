@@ -88,7 +88,7 @@ export namespace DocUtils {
         let protoTarg = target.proto ? target.proto : target;
         UndoManager.RunInBatch(() => {
             let linkDoc = Docs.TextDocument({ width: 100, height: 30, borderRounding: -1});
-            // linkDoc.type = DocTypes.LINK;
+            linkDoc.type = DocTypes.LINK;
             let linkDocProto = Doc.GetProto(linkDoc);
             linkDocProto.title = title === "" ? source.title + " to " + target.title : title;
             linkDocProto.linkDescription = description;
@@ -179,12 +179,12 @@ export namespace Docs {
     }
     function CreateTextPrototype(): Doc {
         let textProto = setupPrototypeOptions(textProtoId, "TEXT_PROTO", FormattedTextBox.LayoutString(),
-            { x: 0, y: 0, width: 300, backgroundColor: "#f1efeb" });
+            { x: 0, y: 0, width: 300, backgroundColor: "#f1efeb", type: DocTypes.TEXT });
         return textProto;
     }
     function CreatePdfPrototype(): Doc {
         let pdfProto = setupPrototypeOptions(pdfProtoId, "PDF_PROTO", CollectionPDFView.LayoutString("annotations"),
-            { x: 0, y: 0, width: 300, height: 300, backgroundLayout: PDFBox.LayoutString(), curPage: 1 });
+            { x: 0, y: 0, width: 300, height: 300, backgroundLayout: PDFBox.LayoutString(), curPage: 1, type: DocTypes.PDF });
         return pdfProto;
     }
     function CreateWebPrototype(): Doc {

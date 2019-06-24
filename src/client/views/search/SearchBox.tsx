@@ -71,25 +71,6 @@ export class SearchBox extends React.Component {
                 this.closeSearch();
             }
         });
-
-        //empties search query after 30 seconds of the search bar/filter box not being open
-        // if (!this._resultsOpen && !this._filterOpen) {
-        //     setTimeout(this.clearSearchQuery, 30000);
-        // }
-    }
-
-    closeFilterVisual() {
-        $('document').ready(function () {
-            var form = document.getElementById("filter-form");
-
-            if(form){
-            if(form.style.maxHeight) {
-                form.style.maxHeight = null;
-                form.style
-            }
-
-        }
-        });
     }
 
     setupAccordion() {
@@ -227,11 +208,9 @@ export class SearchBox extends React.Component {
         else {
             selectedDocs.forEach(async element => {
                 let layout: string = StrCast(element.props.Document.baseLayout);
-                // console.log("doc title:", element.props.Document.title)
                 //checks if selected view (element) is a collection. if it is, adds to list to search through
                 if (layout.indexOf("Collection") > -1) {
                     console.log("current doc is a collection")
-                    // console.log(element.props.Document)
                     //makes sure collections aren't added more than once
                     if (!collections.includes(element.props.Document)) {
                         collections.push(element.props.Document);
@@ -262,7 +241,6 @@ export class SearchBox extends React.Component {
         //if this._wordstatus is false, all words are required and a + is added before each
         if (!this._basicWordStatus) {
             query = this.basicRequireWords(query);
-            console.log(query)
             query = query.replace(/\s+/g, ' ').trim();
         }
 
@@ -271,6 +249,7 @@ export class SearchBox extends React.Component {
             query = this.addCollectionFilter(query);
             query = query.replace(/\s+/g, ' ').trim();
         }
+        console.log(query)
         return query;
     }
 
@@ -297,6 +276,7 @@ export class SearchBox extends React.Component {
         let results: Doc[];
 
         query = this.getFinalQuery(query);
+        console.log(query)
 
         //if there is no query there should be no result
         if (query === "") {
@@ -306,6 +286,8 @@ export class SearchBox extends React.Component {
             //gets json result into a list of documents that can be used
             results = await this.getResults(query);
         }
+
+        console.log(results);
 
         runInAction(() => {
             this._resultsOpen = true;
@@ -330,14 +312,18 @@ export class SearchBox extends React.Component {
                 docs.push(field);
             }
         }
+        console.log(docs)
         return this.filterDocsByType(docs);
     }
 
     //this.icons will now include all the icons that need to be included
     @action filterDocsByType(docs: Doc[]) {
+        console.log(this._icons)
         let finalDocs: Doc[] = [];
         docs.forEach(doc => {
+            console.log(doc.layout)
             let layoutresult = Cast(doc.type, "string", "");
+            console.log(layoutresult)
             if (this._icons.includes(layoutresult)) {
                 finalDocs.push(doc);
             }

@@ -8,6 +8,8 @@ import "./SearchBox.scss";
 import "./CollectionFilters.scss";
 import { FieldFilters } from './FieldFilters';
 import * as anime from 'animejs';
+import { DocumentView } from '../nodes/DocumentView';
+import { SelectionManager } from '../../util/SelectionManager';
 
 interface CollectionFilterProps {
     collectionStatus: boolean;
@@ -48,7 +50,7 @@ export class CollectionFilters extends React.Component<CollectionFilterProps> {
             opacity: 1,
         });
 
-        if(this.collectionsSelected){
+        if (this.collectionsSelected) {
             this.timeline.play();
             this.timeline.reverse();
         }
@@ -61,10 +63,10 @@ export class CollectionFilters extends React.Component<CollectionFilterProps> {
     updateColStat(val: boolean) {
         this.props.updateCollectionStatus(val);
 
-        if (this.collectionsSelected !== val) {
-            this.timeline.play();
-            this.timeline.reverse();
-        }
+            if (this.collectionsSelected !== val) {
+                this.timeline.play();
+                this.timeline.reverse();
+            }
 
         this.collectionsSelected = val;
     }

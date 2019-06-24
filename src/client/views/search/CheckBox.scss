@@ -9,7 +9,7 @@
         display: flex;
         position: relative;
         justify-content: center;
-        align-items: center; 
+        align-items: center;
         margin-top: 0px;
     }
 
@@ -24,12 +24,12 @@
         border-color: $alt-accent;
         border-width: 2px;
         -webkit-transition: all 0.2s ease-in-out;
-    -moz-transition: all 0.2s ease-in-out;
-    -o-transition: all 0.2s ease-in-out;
-    transition: all 0.2s ease-in-out;
+        -moz-transition: all 0.2s ease-in-out;
+        -o-transition: all 0.2s ease-in-out;
+        transition: all 0.2s ease-in-out;
     }
 
-    .check-container:hover ~ .check-box {
+    .check-container:hover~.check-box {
         background-color: $intermediate-color;
     }
 
