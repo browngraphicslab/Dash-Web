@@ -229,11 +229,15 @@ class Viewer extends React.Component<IViewerProps> {
         let handleError = () => this.getRenderedPage(page);
         if (this._isPage[page] !== "image") {
             this._isPage[page] = "image";
-            const address = this.props.url;
-            let res = JSON.parse(await rp.get(DocServer.prepend(`/thumbnail${address.substring("files/".length, address.length - ".pdf".length)}-${page + 1}.PNG`)));
-            runInAction(() => this._visibleElements[page] =
-                <img key={res.path} src={res.path} onError={handleError}
-                    style={{ width: `${parseInt(res.width) * scale}px`, height: `${parseInt(res.height) * scale}px` }} />);
+            const address = this.props.url
+            try {
+                let res = JSON.parse(await rp.get(DocServer.prepend(`/thumbnail${address.substring("files/".length, address.length - ".pdf".length)}-${page + 1}.PNG`)));
+                runInAction(() => this._visibleElements[page] =
+                    <img key={res.path} src={res.path} onError={handleError}
+                        style={{ width: `${parseInt(res.width) * scale}px`, height: `${parseInt(res.height) * scale}px` }} />);
+            } catch (e) {
+
+            }
         }
     }
 

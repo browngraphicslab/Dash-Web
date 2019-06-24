@@ -1,9 +1,9 @@
-import { action, IReactionDisposer, observable, reaction, trace, untracked } from 'mobx';
+import { action, IReactionDisposer, observable, reaction, trace, untracked, computed } from 'mobx';
 import { observer } from "mobx-react";
 import 'react-image-lightbox/style.css';
 import { WidthSym } from "../../../new_fields/Doc";
 import { makeInterface } from "../../../new_fields/Schema";
-import { Cast, NumCast } from "../../../new_fields/Types";
+import { Cast, NumCast, BoolCast } from "../../../new_fields/Types";
 import { PdfField } from "../../../new_fields/URLField";
 //@ts-ignore
 // import { Document, Page } from "react-pdf";
@@ -27,6 +27,8 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
 
     @observable private _alt = false;
     @observable private _scrollY: number = 0;
+    @computed get dataDoc() { return this.props.DataDoc && BoolCast(this.props.Document.isTemplate) ? this.props.DataDoc : this.props.Document; }
+
     private _reactionDisposer?: IReactionDisposer;
 
     componentDidMount() {
@@ -34,20 +36,20 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     }
 
     public GetPage() {
-        return Math.floor(NumCast(this.props.Document.scrollY) / NumCast(this.Document.pdfHeight)) + 1;
+        return Math.floor(NumCast(this.props.Document.scrollY) / NumCast(this.dataDoc.pdfHeight)) + 1;
     }
     public BackPage() {
-        let cp = Math.ceil(NumCast(this.props.Document.scrollY) / NumCast(this.Document.pdfHeight)) + 1;
+        let cp = Math.ceil(NumCast(this.props.Document.scrollY) / NumCast(this.dataDoc.pdfHeight)) + 1;
         cp = cp - 1;
         if (cp > 0) {
             this.props.Document.curPage = cp;
-            this.props.Document.scrollY = (cp - 1) * NumCast(this.Document.pdfHeight);
+            this.props.Document.scrollY = (cp - 1) * NumCast(this.dataDoc.pdfHeight);
         }
     }
     public GotoPage(p: number) {
         if (p > 0 && p <= NumCast(this.props.Document.numPages)) {
             this.props.Document.curPage = p;
-            this.props.Document.scrollY = (p - 1) * NumCast(this.Document.pdfHeight);
+            this.props.Document.scrollY = (p - 1) * NumCast(this.dataDoc.pdfHeight);
         }
     }
 
@@ -55,7 +57,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         let cp = this.GetPage() + 1;
         if (cp <= NumCast(this.props.Document.numPages)) {
             this.props.Document.curPage = cp;
-            this.props.Document.scrollY = (cp - 1) * NumCast(this.Document.pdfHeight);
+            this.props.Document.scrollY = (cp - 1) * NumCast(this.dataDoc.pdfHeight);
         }
     }
 
@@ -68,7 +70,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
 
     loaded = (nw: number, nh: number, np: number) => {
         if (this.props.Document) {
-            let doc = this.props.Document.proto ? this.props.Document.proto : this.props.Document;
+            let doc = this.dataDoc;
             doc.numPages = np;
             if (doc.nativeWidth && doc.nativeHeight) return;
             let oldaspect = NumCast(doc.nativeHeight) / NumCast(doc.nativeWidth, 1);
@@ -96,19 +98,19 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
 
     render() {
         // uses mozilla pdf as default
-        const pdfUrl = Cast(this.props.Document.data, PdfField, new PdfField(window.origin + RouteStore.corsProxy + "/https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf"));
+        const pdfUrl = Cast(this.props.Document.data, PdfField);
+        if (!(pdfUrl instanceof PdfField)) return <div>{`pdf, ${this.props.Document.data}, not found`}</div>;
         let classname = "pdfBox-cont" + (this.props.active() && !InkingControl.Instance.selectedTool && !this._alt ? "-interactive" : "");
         return (
-            <div onScroll={this.onScroll}
+            <div className={classname}
+                onScroll={this.onScroll}
                 style={{
-                    height: "100%",
-                    overflowY: "scroll", overflowX: "hidden",
                     marginTop: `${NumCast(this.props.ContainingCollectionView!.props.Document.panY)}px`
                 }}
                 ref={this.createRef}
                 onWheel={(e: React.WheelEvent) => {
                     e.stopPropagation();
-                }} className={classname}>
+                }}>
                 <PDFViewer url={pdfUrl.url.pathname} loaded={this.loaded} scrollY={this._scrollY} parent={this} />
                 {/* <div style={{ width: "100px", height: "300px" }}></div> */}
             </div>

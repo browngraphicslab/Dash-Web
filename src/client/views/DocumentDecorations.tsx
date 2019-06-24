@@ -77,7 +77,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 this._fieldKey = text.slice(1, text.length);
                 this._title = this.selectionTitle;
             } else if (text.startsWith(">")) {
-                let metaKey = text.slice(text.startsWith(">>>") ? 3 : text.startsWith(">>") ? 2 : 1, text.length);
+                let metaKey = text.slice(1, text.length - 1);
                 let field = SelectionManager.SelectedDocuments()[0];
                 let collectionKey = field.props.ContainingCollectionView!.props.fieldKey;
                 let collection = field.props.ContainingCollectionView!.props.Document;
