@@ -3,6 +3,8 @@ import { observer } from 'mobx-react';
 import { observable, action, runInAction } from 'mobx';
 import "./SearchBox.scss";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTimes } from '@fortawesome/free-solid-svg-icons';
+import { library, icon } from '@fortawesome/fontawesome-svg-core';
 import * as rp from 'request-promise';
 import { SearchItem } from './SearchItem';
 import { DocServer } from '../../DocServer';
@@ -21,6 +23,9 @@ import { SelectionManager } from '../../util/SelectionManager';
 import { DocumentView } from '../nodes/DocumentView';
 import { CollectionFilters } from './CollectionFilters';
 import { NaviconButton } from './NaviconButton';
+import * as $ from 'jquery';
+
+library.add(faTimes);
 
 export enum Keys {
     TITLE = "title",
@@ -66,17 +71,22 @@ export class SearchBox extends React.Component {
             }
         });
 
+        //empties search query after 30 seconds of the search bar/filter box not being open
+        // if (!this._resultsOpen && !this._filterOpen) {
+        //     setTimeout(this.clearSearchQuery, 30000);
+        // }
+    }
 
-        var acc = document.getElementsByClassName('filter-header');
-        // var i: number = 0;
-
-        console.log("hello")
+    setupAccordion() {
+        $('document').ready(function(){
+            var acc = document.getElementsByClassName('filter-header');
 
         for (var i = 0; i < acc.length; i++) {
             // for(let entry of acc){
-            console.log("looping")
             acc[i].addEventListener("click", function (this: HTMLElement) {
                 this.classList.toggle("active");
+
+                console.log(this.childNodes)
 
                 var panel = this.nextElementSibling as HTMLElement;
                 if (panel) {
@@ -88,24 +98,8 @@ export class SearchBox extends React.Component {
                 }
             });
         }
-
-        //empties search query after 30 seconds of the search bar/filter box not being open
-        // if (!this._resultsOpen && !this._filterOpen) {
-        //     setTimeout(this.clearSearchQuery, 30000);
-        // }
+      });
     }
-
-    @action.bound
-    toggleFieldOpen() { this._fieldOpen = !this._fieldOpen; }
-
-    @action.bound
-    toggleColOpen() { this._colOpen = !this._colOpen; }
-
-    @action.bound
-    toggleTypeOpen() { this._typeOpen = !this._typeOpen; }
-
-    @action.bound
-    toggleWordStatusOpen() { this._wordStatusOpen = !this._wordStatusOpen; }
 
     @action.bound
     resetFilters = () => {
@@ -333,9 +327,7 @@ export class SearchBox extends React.Component {
     }
 
     enter = (e: React.KeyboardEvent) => {
-        if (e.key === "Enter") {
-            this.submitSearch();
-        }
+        if (e.key === "Enter") { this.submitSearch(); }
     }
 
     @action.bound
@@ -350,6 +342,8 @@ export class SearchBox extends React.Component {
         this._filterOpen = !this._filterOpen;
         this._resultsOpen = false;
         this._results = [];
+
+        this.setupAccordion();
     }
 
     collectionRef = React.createRef<HTMLSpanElement>();
@@ -402,24 +396,16 @@ export class SearchBox extends React.Component {
 
     //if true, any keywords can be used. if false, all keywords are required.
     @action.bound
-    handleWordQueryChange = () => {
-        this._basicWordStatus = !this._basicWordStatus;
-    }
+    handleWordQueryChange = () => { this._basicWordStatus = !this._basicWordStatus; }
 
     @action
-    getBasicWordStatus() {
-        return this._basicWordStatus;
-    }
+    getBasicWordStatus() { return this._basicWordStatus; }
 
     @action.bound
-    updateIcon(newArray: string[]) {
-        this._icons = newArray;
-    }
+    updateIcon(newArray: string[]) { this._icons = newArray; }
 
     @action.bound
-    getIcons(): string[] {
-        return this._icons;
-    }
+    getIcons(): string[] { return this._icons; }
 
     private _pointerTime: number = -1;
 
@@ -438,17 +424,38 @@ export class SearchBox extends React.Component {
     }
 
     @action.bound
+    closeFilter() { this._filterOpen = false; }
+
+    @action.bound
+    toggleFieldOpen() { this._fieldOpen = !this._fieldOpen; }
+
+    @action.bound
+    toggleColOpen() { this._colOpen = !this._colOpen; }
+
+    @action.bound
+    toggleTypeOpen() { this._typeOpen = !this._typeOpen; }
+
+    @action.bound
+    toggleWordStatusOpen() { this._wordStatusOpen = !this._wordStatusOpen; }
+
+    @action.bound
     updateTitleStatus(newStat: boolean) { this.titleFieldStatus = newStat; }
+
     @action.bound
     updateAuthorStatus(newStat: boolean) { this.authorFieldStatus = newStat; }
+
     @action.bound
     updateDataStatus(newStat: boolean) { this.dataFieldStatus = newStat; }
+
     @action.bound
     updateCollectionStatus(newStat: boolean) { this.collectionStatus = newStat; }
+
     @action.bound
     updateSelfCollectionStatus(newStat: boolean) { this.collectionSelfStatus = newStat; }
+
     @action.bound
     updateParentCollectionStatus(newStat: boolean) { this.collectionParentStatus = newStat; }
+
     getCollectionStatus() { return this.collectionStatus; }
     getSelfCollectionStatus() { return this.collectionSelfStatus; }
     getParentCollectionStatus() { return this.collectionParentStatus; }
@@ -484,14 +491,20 @@ export class SearchBox extends React.Component {
                 </div>
                 {this._filterOpen ? (
                     <div className="filter-form" onPointerDown={this.stopProp} id="filter" style={this._filterOpen ? { display: "flex" } : { display: "none" }}>
-                        <div id="header">Filter Search Results</div>
+                        <div style={{ display: "flex", width: "100%"}}>
+                            <div id="header">Filter Search Results</div>
+                            <div className = "close-icon" onClick = {this.closeFilter}><FontAwesomeIcon className="fontawesome-icon" icon={faTimes} size = "2x"/></div>
+                        </div>
                         <div>
                             <div className="filter-div">
                                 <div className="filter-header">
                                     <div className='filter-title words'>Required words</div>
                                     <div style={{ marginLeft: "auto" }}><NaviconButton onClick={this.toggleWordStatusOpen} /></div>
                                 </div>
-                                <div className="filter-panel"><ToggleBar originalStatus={this._basicWordStatus} optionOne={"Include Any Keywords"} optionTwo={"Include All Keywords"} /></div>
+                                <div className="filter-panel" >
+                                    <ToggleBar 
+                                    originalStatus={this._basicWordStatus} optionOne={"Include Any Keywords"} optionTwo={"Include All Keywords"} />
+                                    </div>
                             </div>
                             <div className="filter-div">
                                 <div className="filter-header">

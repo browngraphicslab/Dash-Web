@@ -55,9 +55,7 @@ export class CollectionFilters extends React.Component<CollectionFilterProps> {
     }
 
     @action.bound
-    resetCollectionFilters() {
-        this.resetBoolean = true;
-    }
+    resetCollectionFilters() { this.resetBoolean = true; }
 
     @action.bound
     updateColStat(val: boolean) {

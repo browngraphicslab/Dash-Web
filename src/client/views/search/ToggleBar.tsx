@@ -39,16 +39,23 @@ export class ToggleBar extends React.Component<ToggleBarProps>{
         let barwidth = 0;
         let togwidth = 0;
         if (bar && tog) {
-            barwidth = bar.clientWidth;
-            togwidth = tog.clientWidth;
+            console.log("they exist")
+            barwidth = bar.getBoundingClientRect().width;
+            // barwidth = bar.clientWidth;
+            console.log(barwidth)
+            togwidth = tog.getBoundingClientRect().width;
+            // togwidth = tog.clientWidth;
+            console.log(togwidth)
         }
         let totalWidth = (barwidth - togwidth - 10);
+        console.log(totalWidth)
         return totalWidth;
     }
 
     componentDidMount = () => {
 
-        let totalWidth = this.totalWidth;
+        // let totalWidth = this.totalWidth;
+        let totalWidth = 265;
 
         if (this._originalStatus) {
             this.forwardTimeline.add({

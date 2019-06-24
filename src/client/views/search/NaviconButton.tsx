@@ -6,6 +6,7 @@ import { observable } from 'mobx';
 
 export interface NaviconProps{
     onClick(): void;
+    outsideClick(): void;
 }
 
 

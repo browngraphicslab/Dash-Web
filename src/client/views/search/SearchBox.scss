@@ -70,6 +70,22 @@
 
     .filter-panel {
         display: none;
+        width: 100%;
+    }
+
+    .close-icon {
+        height: 100%;
+        opacity: .6;
+        justify-content: right;
+        position: relative;
+        .fontawesome-icon {
+            margin-right: 0px;
+            height: 30px;
+        }
+    }
+
+    .close-icon:hover{
+        opacity: 1;
     }
 }
 
@@ -82,7 +98,7 @@
     text-transform: uppercase;
     letter-spacing: 2px;
     font-size: 25;
-    height: 40px;
+    width: 100%;
 }
 
 .searchBox-results {
