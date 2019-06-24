@@ -9,7 +9,7 @@ import { KeyValuePair } from "./KeyValuePair";
 import React = require("react");
 import { NumCast, Cast, FieldValue } from "../../../new_fields/Types";
 import { Doc, Field } from "../../../new_fields/Doc";
-import { ComputedField } from "../../../fields/ScriptField";
+import { ComputedField } from "../../../new_fields/ScriptField";
 
 @observer
 export class KeyValueBox extends React.Component<FieldViewProps> {

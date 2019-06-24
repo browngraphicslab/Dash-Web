@@ -12,7 +12,7 @@ import { Doc, Field } from '../../new_fields/Doc';
 import { ImageField, PdfField, VideoField, AudioField } from '../../new_fields/URLField';
 import { List } from '../../new_fields/List';
 import { RichTextField } from '../../new_fields/RichTextField';
-import { ScriptField, ComputedField } from '../../fields/ScriptField';
+import { ScriptField, ComputedField } from '../../new_fields/ScriptField';
 
 export interface ScriptSucccess {
     success: true;

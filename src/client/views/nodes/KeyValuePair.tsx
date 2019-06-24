@@ -11,7 +11,6 @@ import "./KeyValuePair.scss";
 import React = require("react");
 import { Doc, Opt, Field } from '../../../new_fields/Doc';
 import { FieldValue } from '../../../new_fields/Types';
-import { ComputedField } from '../../../fields/ScriptField';
 import { KeyValueBox } from './KeyValueBox';
 
 // Represents one row in a key value plane
