@@ -35,29 +35,25 @@ import { HtmlField } from "../../../new_fields/HtmlField";
 import { ProxyField } from "../../../new_fields/Proxy";
 import { auto } from "async";
 import Measure from "react-measure";
+import { COLLECTION_BORDER_WIDTH } from "../globalCssVariables.scss";
 
 
 
 
 export interface FieldViewProps {
-    fieldKey: string;
-    ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
-    Document: Doc;
-    isSelected: () => boolean;
-    select: (isCtrlPressed: boolean) => void;
-    isTopMost: boolean;
-    selectOnLoad: boolean;
-    addDocument?: (document: Doc, allowDuplicates?: boolean) => boolean;
-    addDocTab: (document: Doc, where: string) => void;
-    removeDocument?: (document: Doc) => boolean;
-    moveDocument?: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
-    ScreenToLocalTransform: () => Transform;
+    Document?: Doc;
+    width: () => number;
+    height: () => number;
+    CollectionView: CollectionView | CollectionPDFView | CollectionVideoView;
+    getTransform: () => Transform;
+    addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
+    removeDocument: (document: Doc) => boolean;
     active: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
-    focus: (doc: Doc) => void;
-    PanelWidth: () => number;
-    PanelHeight: () => number;
-    setVideoBox?: (player: VideoBox) => void;
+    addDocTab: (document: Doc, where: string) => void;
+    setPreviewScript: (script: string) => void;
+    previewScript?: string;
+
 }
 
 
@@ -76,6 +72,7 @@ class KeyToggle extends React.Component<{ keyName: string, toggle: (key: string)
         );
     }
 }
+
 
 @observer
 export class CollectionTimelineView extends CollectionSubView(doc => doc) {
@@ -210,6 +207,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         let buttons2 = [];
         this._range = 1;
         let arr: Doc[] = [];
+        let selected: boolean[] = [];
 
         this.childDocs.filter(d => !d.isMinimized).map((d, i) => {
             arr.push(d);
@@ -264,6 +262,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             let icon = this.checkData(backup[i]);
             let display = () => this.show(keyvalue[i].doc);
             let leftval = (((values[i] - values[0]) * this.barwidth * 0.97 / this._range) * (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)) - (this.xmovement * (this.barwidth) / (this.barwidth - this.xmovement2 - this.xmovement))) + "px";
+            let leftval2 = (((values[i] - values[0]) * this.barwidth * 0.97 / this._range) * (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)) - (this.xmovement * (this.barwidth) / (this.barwidth - this.xmovement2 - this.xmovement)));
             for (let j = 0; j < backup.length; j++) {
                 if (j !== i) {
                     if (values[i] === values[j]) {
@@ -272,17 +271,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     }
                 }
             }
+            selected[i] = false;
             buttons.push(
-                <div><button className="toolbar-button round-button" title="Notifs"
-                    onClick={display} style={{
-                        position: "absolute",
-                        background: color,
-                        top: "70%", height: "5%", left: leftval,
-                    }}>
-
-                    <FontAwesomeIcon icon={icon} size="sm" />
-
-                </button>
+                <div onClick={display} style={{ top: "70%", position: "absolute", left: leftval, width: "100px", height: "100px", border: "3px solid" }}>
+                    {this.documentpreview(docs[i], leftval2, 500)}
                 </div>);
             buttons2.push(
                 <div
@@ -333,7 +325,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     className="searchBox-barChild searchBox-input" />
                 {String((this.xmovement * this._range / this.barwidth) + this._values[0])}
                 {this.preview4}
-                <input value={this.searchString} onChange={this.onChange} onKeyPress={this.enter} type="text" placeholder={String(((this.barwidth - this.xmovement2) * this._range / this.b arwidth) + this._values[0])}
+                <input value={this.searchString} onChange={this.onChange} onKeyPress={this.enter} type="text" placeholder={String(((this.barwidth - this.xmovement2) * this._range / this.barwidth) + this._values[0])}
                     className="searchBox-barChild searchBox-input" />
                 {String(((this.barwidth - this.xmovement2) * this._range / this.barwidth) + this._values[0])}
 
@@ -418,7 +410,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     searchString2: string = "";
 
 
-
+    @action
     checkData = (document: Doc): IconProp => {
         let field = document.data;
         if (field instanceof AudioField) {
@@ -445,27 +437,44 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         return faBell;
     }
 
-    documentpreview(document: Doc) {
-        let returnHundred = () => 100;
-        return (<DocumentContentsView Document={document}
-            addDocument={undefined}
-            addDocTab={this.props.addDocTab}
-            removeDocument={undefined}
-            ScreenToLocalTransform={Transform.Identity}
-            ContentScaling={returnOne}
-            PanelWidth={returnHundred}
-            PanelHeight={returnHundred}
-            isTopMost={true}
-            selectOnLoad={false}
-            focus={emptyFunction}
-            isSelected={this.props.isSelected}
-            select={returnFalse}
-            layoutKey={"layout"}
-            ContainingCollectionView={this.props.ContainingCollectionView}
-            parentActive={this.props.active}
-            whenActiveChanged={this.props.whenActiveChanged}
-            bringToFront={emptyFunction} />)
+
+
+
+    documentpreview(d: Doc, x: number, y: number) {
+        return (
+            <div>
+                <FontAwesomeIcon icon={this.checkData(d)} size="sm" />
+                <DocumentContentsView Document={d}
+                    addDocument={undefined}
+                    addDocTab={this.props.addDocTab}
+                    removeDocument={undefined}
+                    ScreenToLocalTransform={Transform.Identity}
+                    ContentScaling={returnOne}
+                    PanelWidth={() => 100}
+                    PanelHeight={() => 100}
+                    isTopMost={false}
+                    selectOnLoad={false}
+                    focus={emptyFunction}
+                    isSelected={this.props.isSelected}
+                    select={returnFalse}
+                    layoutKey={"layout"}
+                    ContainingCollectionView={this.props.ContainingCollectionView}
+                    parentActive={this.props.active}
+                    whenActiveChanged={this.props.whenActiveChanged}
+                    bringToFront={emptyFunction} />
+                {d.title}
+            </div>
+
+
+        );
     }
+
+
+    @computed get previewWidth() { return () => 94; }
+    @computed get previewHeight() { return () => 94; }
+
+
+
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
@@ -590,7 +599,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     render() {
         this.updateWidth();
         return (
-            <div className="collectionTimelineView" id="poop" style={{ marginLeft: "1%", width: "98%", height: "100%" }}
+            <div className="collectionTimelineView" id="yeet" style={{ marginLeft: "1%", width: "98%", height: "100%" }}
                 onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
                 <hr style={{ top: "70%", display: "block", width: "100%", border: "10", position: "absolute" }} />
                 {this.buttonloop()}
@@ -599,3 +608,5 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         );
     }
 }
+
+

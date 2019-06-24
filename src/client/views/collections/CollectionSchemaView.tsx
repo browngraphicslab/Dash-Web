@@ -382,20 +382,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         );
     }
 }
-interface CollectionSchemaPreviewProps {
-    Document?: Doc;
-    width: () => number;
-    height: () => number;
-    CollectionView: CollectionView | CollectionPDFView | CollectionVideoView;
-    getTransform: () => Transform;
-    addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
-    removeDocument: (document: Doc) => boolean;
-    active: () => boolean;
-    whenActiveChanged: (isActive: boolean) => void;
-    addDocTab: (document: Doc, where: string) => void;
-    setPreviewScript: (script: string) => void;
-    previewScript?: string;
-}
+
 
 @observer
 export class CollectionSchemaPreview extends React.Component<CollectionSchemaPreviewProps>{
