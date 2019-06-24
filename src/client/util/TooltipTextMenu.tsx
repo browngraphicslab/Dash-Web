@@ -6,7 +6,7 @@ import { keymap } from "prosemirror-keymap";
 import { EditorState, Transaction, NodeSelection, TextSelection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { schema } from "./RichTextSchema";
-import { Schema, NodeType, MarkType, Mark } from "prosemirror-model";
+import { Schema, NodeType, MarkType, Mark, ResolvedPos } from "prosemirror-model";
 import { Node as ProsNode } from "prosemirror-model"
 import React = require("react");
 import "./TooltipTextMenu.scss";
@@ -32,6 +32,7 @@ import { Id } from "../../new_fields/FieldSymbols";
 import { Utils } from "../../Utils";
 import { FormattedTextBoxProps } from "../views/nodes/FormattedTextBox";
 import { text } from "body-parser";
+import { type } from "os";
 // import { wrap } from "module";
 
 const SVG = "http://www.w3.org/2000/svg";
@@ -60,6 +61,8 @@ export class TooltipTextMenu {
     private fontSizeDom?: Node;
     private fontStyleDom?: Node;
     private listTypeBtnDom?: Node;
+
+    private _activeMarks: Mark[] = [];
 
     constructor(view: EditorView, editorProps: FieldViewProps & FormattedTextBoxProps) {
         this.view = view;
@@ -123,6 +126,7 @@ export class TooltipTextMenu {
         this.fontSizeToNum.set(schema.marks.p32, 32);
         this.fontSizeToNum.set(schema.marks.p48, 48);
         this.fontSizeToNum.set(schema.marks.p72, 72);
+        //this.fontSizeToNum.set(schema.marks.pFontSize,schema.marks.pFontSize.)
         this.fontSizes = Array.from(this.fontSizeToNum.keys());
 
         //list types
@@ -282,8 +286,20 @@ export class TooltipTextMenu {
     }
 
     insertStar(state: EditorState<any>, dispatch: any) {
-        console.log("creating star...");
-        let newNode = schema.nodes.star.create({ visibility: false, text: state.selection.content(), oldtextslice: state.selection.content().toJSON(), oldtextlen: state.selection.to - state.selection.from });
+        if (state.selection.empty) {
+            let mark = state.schema.mark(state.schema.marks.highlight)
+            if (this._activeMarks.includes(mark)) {
+                const ind = this._activeMarks.indexOf(mark);
+                this._activeMarks.splice(ind, 1);
+            }
+            else {
+                this._activeMarks.push(mark);
+            }
+            dispatch(state.tr.insertText(" ").setStoredMarks(this._activeMarks));
+            //dispatch(state.tr.setStoredMarks(this._activeMarks));
+            return true;
+        }
+        let newNode = schema.nodes.star.create({ visibility: false, text: state.selection.content(), textslice: state.selection.content().toJSON(), textlen: state.selection.to - state.selection.from });
         if (dispatch) {
             //console.log(newNode.attrs.text.toString());
             dispatch(state.tr.replaceSelectionWith(newNode));
@@ -315,7 +331,7 @@ export class TooltipTextMenu {
     }
 
     //for a specific grouping of marks (passed in), remove all and apply the passed-in one to the selected text
-    changeToMarkInGroup(markType: MarkType, view: EditorView, fontMarks: MarkType[]) {
+    changeToMarkInGroup = (markType: MarkType, view: EditorView, fontMarks: MarkType[]) => {
         let { empty, $cursor, ranges } = view.state.selection as TextSelection;
         let state = view.state;
         let dispatch = view.dispatch;
@@ -341,7 +357,18 @@ export class TooltipTextMenu {
                     }
                 }
             }
-        }); //actually apply font
+        });
+        // fontsize
+        // if (markType.name[0] === 'p') {
+        //     let size = this.fontSizeToNum.get(markType);
+        //     if (size) { this.updateFontSizeDropdown(String(size) + " pt"); }
+        // }
+        // else {
+        //     let fontName = this.fontStylesToName.get(markType);
+        //     if (fontName) { this.updateFontStyleDropdown(fontName); }
+        // }
+        //this.update(view, undefined);
+        //actually apply font
         return toggleMark(markType)(view.state, view.dispatch, view);
     }
 
@@ -529,53 +556,46 @@ export class TooltipTextMenu {
         // Otherwise, reposition it and update its content
         //this.tooltip.style.display = "";
         let { from, to } = state.selection;
-        let start = view.coordsAtPos(from), end = view.coordsAtPos(to);
-        // The box in which the tooltip is positioned, to use as base
-        //let box = this.tooltip.offsetParent!.getBoundingClientRect();
-        // Find a center-ish x position from the selection endpoints (when
-        // crossing lines, end may be more to the left)
-        let left = Math.max((start.left + end.left) / 2, start.left + 3);
-        //this.tooltip.style.left = (left - box.left) * this.editorProps.ScreenToLocalTransform().Scale + "px";
-        let width = Math.abs(start.left - end.left) / 2 * this.editorProps.ScreenToLocalTransform().Scale;
-        let mid = Math.min(start.left, end.left) + width;
-
-        //this.tooltip.style.width = 225 + "px";
-        // this.tooltip.style.bottom = (box.bottom - start.top) * this.editorProps.ScreenToLocalTransform().Scale + "px";
-        // this.tooltip.style.top = "-100px";
-        //this.tooltip.style.height = "100px";
-
-        // let transform = this.editorProps.ScreenToLocalTransform();
-        // this.tooltip.style.width = `${225 / transform.Scale}px`;
-        // Utils
 
         //UPDATE LIST ITEM DROPDOWN
         this.listTypeBtnDom = this.updateListItemDropdown(":", this.listTypeBtnDom!);
+        //this._activeMarks = [];
 
         //UPDATE FONT STYLE DROPDOWN
         let activeStyles = this.activeMarksOnSelection(this.fontStyles);
-        if (activeStyles.length === 1) {
-            // if we want to update something somewhere with active font name
-            let fontName = this.fontStylesToName.get(activeStyles[0]);
-            if (fontName) { this.updateFontStyleDropdown(fontName); }
-        } else if (activeStyles.length === 0) {
-            //crimson on default
-            this.updateFontStyleDropdown("Crimson Text");
-        } else {
-            this.updateFontStyleDropdown("Various");
+        if (activeStyles !== undefined) {
+            // activeStyles.forEach((markType) => {
+            //     this._activeMarks.push(this.view.state.schema.mark(markType));
+            // });
+            if (activeStyles.length === 1) {
+                // if we want to update something somewhere with active font name
+                let fontName = this.fontStylesToName.get(activeStyles[0]);
+                if (fontName) { this.updateFontStyleDropdown(fontName); }
+            } else if (activeStyles.length === 0) {
+                //crimson on default
+                this.updateFontStyleDropdown("Crimson Text");
+            } else {
+                this.updateFontStyleDropdown("Various");
+            }
         }
 
         //UPDATE FONT SIZE DROPDOWN
         let activeSizes = this.activeMarksOnSelection(this.fontSizes);
-        if (activeSizes.length === 1) { //if there's only one active font size
-            let size = this.fontSizeToNum.get(activeSizes[0]);
-            if (size) { this.updateFontSizeDropdown(String(size) + " pt"); }
-        } else if (activeSizes.length === 0) {
-            //should be 14 on default  
-            this.updateFontSizeDropdown("14 pt");
-        } else { //multiple font sizes selected
-            this.updateFontSizeDropdown("Various");
+        if (activeSizes !== undefined) {
+            if (activeSizes.length === 1) { //if there's only one active font size
+                // activeSizes.forEach((markType) => {
+                //     this._activeMarks.push(this.view.state.schema.mark(markType));
+                // });
+                let size = this.fontSizeToNum.get(activeSizes[0]);
+                if (size) { this.updateFontSizeDropdown(String(size) + " pt"); }
+            } else if (activeSizes.length === 0) {
+                //should be 14 on default  
+                this.updateFontSizeDropdown("14 pt");
+            } else { //multiple font sizes selected
+                this.updateFontSizeDropdown("Various");
+            }
         }
-
+        this.view.dispatch(this.view.state.tr.setStoredMarks(this._activeMarks));
         this.updateLinkMenu();
     }
 
@@ -599,34 +619,56 @@ export class TooltipTextMenu {
             });
         }
         else {
-            let pos = this.view.state.selection.$from;
-            let ref_node: ProsNode;
-            if (pos.nodeAfter !== null && pos.nodeAfter !== undefined) {
-                ref_node = pos.nodeAfter;
-            }
-            else if (pos.nodeBefore !== null && pos.nodeBefore !== undefined) {
-                ref_node = pos.nodeBefore;
-            }
-            else {
-                return [];
-            }
-            let text_node_type: NodeType;
-            if (ref_node.isText) {
-                text_node_type = ref_node.type;
+            const pos = this.view.state.selection.$from;
+            const ref_node: ProsNode = this.reference_node(pos);
+            if (ref_node !== null && ref_node !== this.view.state.doc) {
+                let text_node_type: NodeType;
+                if (ref_node.isText) {
+                    text_node_type = ref_node.type;
+                }
+                else {
+                    return [];
+                }
+
+                this._activeMarks = ref_node.marks;
+
+                activeMarks = markGroup.filter(mark_type => {
+                    if (dispatch) {
+                        let mark = state.schema.mark(mark_type);
+                        return ref_node.marks.includes(mark);
+                    }
+                    return false;
+                });
+                return activeMarks;
             }
             else {
                 return [];
             }
 
-            activeMarks = markGroup.filter(mark_type => {
-                if (dispatch) {
-                    let mark = state.schema.mark(mark_type);
-                    return ref_node.marks.includes(mark);
-                }
-                return false;
-            });
         }
-        return activeMarks;
+    }
+
+    reference_node(pos: ResolvedPos<any>): ProsNode {
+        let ref_node: ProsNode = this.view.state.doc;
+        if (pos.nodeAfter !== null && pos.nodeAfter !== undefined) {
+            ref_node = pos.nodeAfter;
+        }
+        else if (pos.nodeBefore !== null && pos.nodeBefore !== undefined) {
+            ref_node = pos.nodeBefore;
+        }
+        else if (pos.pos > 0) {
+            let skip = false;
+            for (let i: number = pos.pos - 1; i > 0; i--) {
+                this.view.state.doc.nodesBetween(i, pos.pos, (node: ProsNode, pos: number, parent: ProsNode, index: number) => {
+                    if (node.isLeaf && !skip) {
+                        ref_node = node;
+                        skip = true;
+                    }
+
+                });
+            }
+        }
+        return ref_node;
     }
 
     destroy() { this.tooltip.remove(); }
