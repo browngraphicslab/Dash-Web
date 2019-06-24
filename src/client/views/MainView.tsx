@@ -1,8 +1,9 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
-import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faTree, faUndoAlt, faBell } from '@fortawesome/free-solid-svg-icons';
+import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faThumbtack, faRedoAlt, faTable, faTree, faUndoAlt, faBell, faCommentAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, runInAction, trace } from 'mobx';
 import { observer } from 'mobx-react';
+import { CirclePicker, SliderPicker, BlockPicker, TwitterPicker, SketchPicker } from 'react-color';
 import "normalize.css";
 import * as React from 'react';
 import Measure from 'react-measure';
@@ -32,6 +33,8 @@ import { listSpec } from '../../new_fields/Schema';
 import { Id } from '../../new_fields/FieldSymbols';
 import { HistoryUtil } from '../util/History';
 import { CollectionBaseView } from './collections/CollectionBaseView';
+import PDFMenu from './pdf/PDFMenu';
+import { InkTool } from '../../new_fields/InkField';
 
 
 @observer
@@ -88,6 +91,8 @@ export class MainView extends React.Component {
         library.add(faFilm);
         library.add(faMusic);
         library.add(faTree);
+        library.add(faCommentAlt);
+        library.add(faThumbtack);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
@@ -100,6 +105,12 @@ export class MainView extends React.Component {
             if (e.key === "Escape") {
                 DragManager.AbortDrag();
                 SelectionManager.DeselectAll();
+            } else if (e.key === "z" && e.ctrlKey) {
+                e.preventDefault();
+                UndoManager.Undo();
+            } else if ((e.key === "y" && e.ctrlKey) || (e.key === "z" && e.ctrlKey && e.shiftKey)) {
+                e.preventDefault();
+                UndoManager.Redo();
             }
         }, false); // drag event handler
         // click interactions for the context menu
@@ -107,7 +118,7 @@ export class MainView extends React.Component {
 
             const targets = document.elementsFromPoint(e.x, e.y);
             if (targets && targets.length && targets[0].className.toString().indexOf("contextMenu") === -1) {
-                ContextMenu.Instance.clearItems();
+                ContextMenu.Instance.closeMenu();
             }
         }), true);
     }
@@ -217,37 +228,37 @@ export class MainView extends React.Component {
         </Measure>;
     }
 
+    selected = (tool: InkTool) => {
+        if (!InkingControl.Instance || InkingControl.Instance.selectedTool === InkTool.None) return { display: "none" };
+        if (InkingControl.Instance.selectedTool === tool) {
+            return { color: "#61aaa3", fontSize: "50%" };
+        }
+        return { fontSize: "50%" };
+    }
+
+    onColorClick = (e: React.MouseEvent) => {
+        let target = (e.nativeEvent as any).path[0];
+        let parent = (e.nativeEvent as any).path[1];
+        if (target.localName === "input" || parent.localName === "span") {
+            e.stopPropagation();
+        }
+    }
+
+
+    @observable private _colorPickerDisplay = false;
     /* for the expandable add nodes menu. Not included with the miscbuttons because once it expands it expands the whole div with it, making canvas interactions limited. */
     nodesMenu() {
 
         let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
-        let pdfurl = "http://www.adobe.com/support/products/enterprise/knowledgecenter/media/c27211_sample_explain.pdf";
-        let weburl = "https://cs.brown.edu/courses/cs166/";
-        let audiourl = "http://techslides.com/demos/samples/sample.mp3";
-        let videourl = "http://techslides.com/demos/sample-videos/small.mp4";
 
-        let addTextNode = action(() => Docs.TextDocument({ borderRounding: -1, width: 200, height: 200, title: "a text note" }));
         let addColNode = action(() => Docs.FreeformDocument([], { width: this.pwidth * .7, height: this.pheight, title: "a freeform collection" }));
-        let addSchemaNode = action(() => Docs.SchemaDocument(["title"], [], { width: 200, height: 200, title: "a schema collection" }));
         let addTreeNode = action(() => CurrentUserUtils.UserDocument);
-        //let addTreeNode = action(() => Docs.TreeDocument([CurrentUserUtils.UserDocument], { width: 250, height: 400, title: "Library:" + CurrentUserUtils.email, dropAction: "alias" }));
-        // let addTreeNode = action(() => Docs.TreeDocument(this._northstarSchemas, { width: 250, height: 400, title: "northstar schemas", dropAction: "copy"  }));
-        let addVideoNode = action(() => Docs.VideoDocument(videourl, { width: 200, title: "video node" }));
-        let addPDFNode = action(() => Docs.PdfDocument(pdfurl, { width: 200, height: 200, title: "a pdf doc" }));
         let addImageNode = action(() => Docs.ImageDocument(imgurl, { width: 200, title: "an image of a cat" }));
-        let addWebNode = action(() => Docs.WebDocument(weburl, { width: 200, height: 200, title: "a sample web page" }));
-        let addAudioNode = action(() => Docs.AudioDocument(audiourl, { width: 200, height: 200, title: "audio node" }));
 
         let btns: [React.RefObject<HTMLDivElement>, IconName, string, () => Doc][] = [
-            [React.createRef<HTMLDivElement>(), "font", "Add Textbox", addTextNode],
             [React.createRef<HTMLDivElement>(), "image", "Add Image", addImageNode],
-            [React.createRef<HTMLDivElement>(), "file-pdf", "Add PDF", addPDFNode],
-            [React.createRef<HTMLDivElement>(), "film", "Add Video", addVideoNode],
-            [React.createRef<HTMLDivElement>(), "music", "Add Audio", addAudioNode],
-            [React.createRef<HTMLDivElement>(), "globe-asia", "Add Web Clipping", addWebNode],
             [React.createRef<HTMLDivElement>(), "object-group", "Add Collection", addColNode],
             [React.createRef<HTMLDivElement>(), "tree", "Add Tree", addTreeNode],
-            [React.createRef<HTMLDivElement>(), "table", "Add Schema", addSchemaNode],
         ];
 
         return < div id="add-nodes-menu" >
@@ -256,15 +267,36 @@ export class MainView extends React.Component {
 
             <div id="add-options-content">
                 <ul id="add-options-list">
+                    <li key="search"><button className="add-button round-button" title="Search" onClick={this.toggleSearch}><FontAwesomeIcon icon="search" size="sm" /></button></li>
+                    <li key="undo"><button className="add-button round-button" title="Undo" onClick={() => UndoManager.Undo()}><FontAwesomeIcon icon="undo-alt" size="sm" /></button></li>
+                    <li key="redo"><button className="add-button round-button" title="Redo" onClick={() => UndoManager.Redo()}><FontAwesomeIcon icon="redo-alt" size="sm" /></button></li>
+                    <li key="color"><button className="add-button round-button" title="Redo" onClick={() => this.toggleColorPicker()}><div className="toolbar-color-button" style={{ backgroundColor: InkingControl.Instance.selectedColor }} >
+
+                        <div className="toolbar-color-picker" onClick={this.onColorClick} style={this._colorPickerDisplay ? { color: "black", display: "block" } : { color: "black", display: "none" }}>
+                            <SketchPicker color={InkingControl.Instance.selectedColor} onChange={InkingControl.Instance.switchColor} />
+                        </div>
+                    </div></button></li>
                     {btns.map(btn =>
                         <li key={btn[1]} ><div ref={btn[0]}>
                             <button className="round-button add-button" title={btn[2]} onPointerDown={SetupDrag(btn[0], btn[3])}>
                                 <FontAwesomeIcon icon={btn[1]} size="sm" />
                             </button>
                         </div></li>)}
+                    <li key="ink" style={{ paddingRight: "6px" }}><button className="toolbar-button round-button" title="Ink" onClick={() => InkingControl.Instance.toggleDisplay()}><FontAwesomeIcon icon="pen-nib" size="sm" /> </button></li>
+                    <li key="pen"><button onClick={() => InkingControl.Instance.switchTool(InkTool.Pen)} style={this.selected(InkTool.Pen)}><FontAwesomeIcon icon="pen" size="lg" title="Pen" /></button></li>
+                    <li key="marker"><button onClick={() => InkingControl.Instance.switchTool(InkTool.Highlighter)} style={this.selected(InkTool.Highlighter)}><FontAwesomeIcon icon="highlighter" size="lg" title="Pen" /></button></li>
+                    <li key="eraser"><button onClick={() => InkingControl.Instance.switchTool(InkTool.Eraser)} style={this.selected(InkTool.Eraser)}><FontAwesomeIcon icon="eraser" size="lg" title="Pen" /></button></li>
+                    <li key="inkControls"><InkingControl /></li>
                 </ul>
             </div>
         </div >;
+    }
+
+
+
+    @action
+    toggleColorPicker = () => {
+        this._colorPickerDisplay = !this._colorPickerDisplay;
     }
 
     /* @TODO this should really be moved into a moveable toolbar component, but for now let's put it here to meet the deadline */
@@ -276,7 +308,6 @@ export class MainView extends React.Component {
         let logoutRef = React.createRef<HTMLDivElement>();
 
         return [
-            <button className="clear-db-button" key="clear-db" onClick={e => e.shiftKey && e.altKey && DocServer.DeleteDatabase()}>Clear Database</button>,
             <div id="toolbar" key="toolbar">
                 <div ref={notifsRef}>
                     <button className="toolbar-button round-button" title="Notifs"
@@ -287,10 +318,6 @@ export class MainView extends React.Component {
                         {length}
                     </div>
                 </div>
-                <button className="toolbar-button round-button" title="Search" onClick={this.toggleSearch}><FontAwesomeIcon icon="search" size="sm" /></button>
-                <button className="toolbar-button round-button" title="Undo" onClick={() => UndoManager.Undo()}><FontAwesomeIcon icon="undo-alt" size="sm" /></button>
-                <button className="toolbar-button round-button" title="Redo" onClick={() => UndoManager.Redo()}><FontAwesomeIcon icon="redo-alt" size="sm" /></button>
-                <button className="toolbar-button round-button" title="Ink" onClick={() => InkingControl.Instance.toggleDisplay()}><FontAwesomeIcon icon="pen-nib" size="sm" /></button>
             </div >,
             this.isSearchVisible ? <div className="main-searchDiv" key="search" style={{ top: '34px', right: '1px', position: 'absolute' }} > <SearchBox /> </div> : null,
             <div className="main-buttonDiv" key="logout" style={{ bottom: '0px', right: '1px', position: 'absolute' }} ref={logoutRef}>
@@ -315,6 +342,7 @@ export class MainView extends React.Component {
                 {this.nodesMenu()}
                 {this.miscButtons}
                 <InkingControl />
+                <PDFMenu />
                 <MainOverlayTextBox />
             </div>
         );

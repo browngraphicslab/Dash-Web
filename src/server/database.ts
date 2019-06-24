@@ -120,9 +120,9 @@ export class Database {
         }
     }
 
-    public query(query: any): Promise<mongodb.Cursor> {
+    public query(query: any, collectionName = "newDocuments"): Promise<mongodb.Cursor> {
         if (this.db) {
-            return Promise.resolve<mongodb.Cursor>(this.db.collection('newDocuments').find(query));
+            return Promise.resolve<mongodb.Cursor>(this.db.collection(collectionName).find(query));
         } else {
             return new Promise<mongodb.Cursor>(res => {
                 this.onConnect.push(() => res(this.query(query)));

@@ -2,7 +2,7 @@ import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
 import { emptyFunction, returnFalse, returnZero, returnTrue } from '../../../Utils';
-import { CompileScript } from "../../util/Scripting";
+import { CompileScript, CompiledScript, ScriptOptions } from "../../util/Scripting";
 import { Transform } from '../../util/Transform';
 import { EditableView } from "../EditableView";
 import { FieldView, FieldViewProps } from './FieldView';
@@ -11,6 +11,7 @@ import "./KeyValuePair.scss";
 import React = require("react");
 import { Doc, Opt, Field } from '../../../new_fields/Doc';
 import { FieldValue } from '../../../new_fields/Types';
+import { KeyValueBox } from './KeyValueBox';
 
 // Represents one row in a key value plane
 
@@ -38,7 +39,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             focus: emptyFunction,
             PanelWidth: returnZero,
             PanelHeight: returnZero,
-            addDocTab: emptyFunction
+            addDocTab: returnZero,
         };
         let contents = <FieldView {...props} />;
         let fieldKey = Object.keys(props.Document).indexOf(props.fieldKey) !== -1 ? props.fieldKey : "(" + props.fieldKey + ")";
@@ -59,27 +60,16 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
                 </td>
                 <td className="keyValuePair-td-value" style={{ width: `${100 - this.props.keyWidth}%` }}>
                     <EditableView contents={contents} height={36} GetValue={() => {
+                        const onDelegate = Object.keys(props.Document).includes(props.fieldKey);
 
                         let field = FieldValue(props.Document[props.fieldKey]);
                         if (Field.IsField(field)) {
-                            return Field.toScriptString(field);
+                            return (onDelegate ? "=" : "") + Field.toScriptString(field);
                         }
                         return "";
                     }}
-                        SetValue={(value: string) => {
-                            let script = CompileScript(value, { addReturn: true });
-                            if (!script.compiled) {
-                                return false;
-                            }
-                            let res = script.run();
-                            if (!res.success) return false;
-                            const field = res.result;
-                            if (Field.IsField(field, true)) {
-                                props.Document[props.fieldKey] = field;
-                                return true;
-                            }
-                            return false;
-                        }}>
+                        SetValue={(value: string) =>
+                            KeyValueBox.SetField(props.Document, props.fieldKey, value)}>
                     </EditableView></td>
             </tr>
         );

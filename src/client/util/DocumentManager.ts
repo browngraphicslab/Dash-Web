@@ -35,9 +35,9 @@ export class DocumentManager {
         let toReturn: DocumentView | null = null;
         let passes = preferredCollection ? [preferredCollection, undefined] : [undefined];
 
-        for (let i = 0; i < passes.length; i++) {
+        for (let pass of passes) {
             DocumentManager.Instance.DocumentViews.map(view => {
-                if (view.props.Document[Id] === id && (!passes[i] || view.props.ContainingCollectionView === preferredCollection)) {
+                if (view.props.Document[Id] === id && (!pass || view.props.ContainingCollectionView === preferredCollection)) {
                     toReturn = view;
                     return;
                 }
@@ -45,7 +45,7 @@ export class DocumentManager {
             if (!toReturn) {
                 DocumentManager.Instance.DocumentViews.map(view => {
                     let doc = view.props.Document.proto;
-                    if (doc && doc[Id] === id && (!passes[i] || view.props.ContainingCollectionView === preferredCollection)) {
+                    if (doc && doc[Id] === id && (!pass || view.props.ContainingCollectionView === preferredCollection)) {
                         toReturn = view;
                     }
                 });
@@ -115,7 +115,7 @@ export class DocumentManager {
     }
 
     @undoBatch
-    public jumpToDocument = async (docDelegate: Doc, forceDockFunc: boolean = false, dockFunc?: (doc: Doc) => void, linkPage?: number): Promise<void> => {
+    public jumpToDocument = async (docDelegate: Doc, forceDockFunc: boolean = false, dockFunc?: (doc: Doc) => void, linkPage?: number, docContext?: Doc): Promise<void> => {
         let doc = Doc.GetProto(docDelegate);
         const contextDoc = await Cast(doc.annotationOn, Doc);
         if (contextDoc) {
@@ -123,6 +123,7 @@ export class DocumentManager {
             const curPage = NumCast(contextDoc.curPage, page);
             if (page !== curPage) contextDoc.curPage = page;
         }
+
         let docView: DocumentView | null;
         // using forceDockFunc as a flag for splitting linked to doc to the right...can change later if needed
         if (!forceDockFunc && (docView = DocumentManager.Instance.getDocumentView(doc))) {
@@ -131,18 +132,34 @@ export class DocumentManager {
             docView.props.focus(docView.props.Document);
         } else {
             if (!contextDoc) {
-                const actualDoc = Doc.MakeAlias(docDelegate);
-                actualDoc.libraryBrush = true;
-                if (linkPage !== undefined) actualDoc.curPage = linkPage;
-                (dockFunc || CollectionDockingView.Instance.AddRightSplit)(actualDoc);
+                if (docContext) {
+                    let targetContextView: DocumentView | null;
+                    if (!forceDockFunc && docContext && (targetContextView = DocumentManager.Instance.getDocumentView(docContext))) {
+                        docContext.panTransformType = "Ease";
+                        targetContextView.props.focus(docDelegate);
+                    } else {
+                        (dockFunc || CollectionDockingView.Instance.AddRightSplit)(docContext);
+                        setTimeout(() => {
+                            this.jumpToDocument(docDelegate, forceDockFunc, dockFunc, linkPage);
+                        }, 10);
+                    }
+                } else {
+                    const actualDoc = Doc.MakeAlias(docDelegate);
+                    actualDoc.libraryBrush = true;
+                    if (linkPage !== undefined) actualDoc.curPage = linkPage;
+                    (dockFunc || CollectionDockingView.Instance.AddRightSplit)(actualDoc);
+                }
             } else {
                 let contextView: DocumentView | null;
                 docDelegate.libraryBrush = true;
                 if (!forceDockFunc && (contextView = DocumentManager.Instance.getDocumentView(contextDoc))) {
                     contextDoc.panTransformType = "Ease";
-                    contextView.props.focus(contextDoc);
+                    contextView.props.focus(docDelegate);
                 } else {
                     (dockFunc || CollectionDockingView.Instance.AddRightSplit)(contextDoc);
+                    setTimeout(() => {
+                        this.jumpToDocument(docDelegate, forceDockFunc, dockFunc, linkPage);
+                    }, 10);
                 }
             }
         }

@@ -18,6 +18,7 @@ import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
 import React = require("react");
 import { FormattedTextBox } from "../nodes/FormattedTextBox";
+import { Id } from "../../../new_fields/FieldSymbols";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
@@ -35,9 +36,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
     class CollectionSubView extends DocComponent<SubCollectionViewProps, T>(schemaCtor) {
         private dropDisposer?: DragManager.DragDropDisposer;
         protected createDropTarget = (ele: HTMLDivElement) => {
-            if (this.dropDisposer) {
-                this.dropDisposer();
-            }
+            this.dropDisposer && this.dropDisposer();
             if (ele) {
                 this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
             }
@@ -81,31 +80,21 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         @action
         protected drop(e: Event, de: DragManager.DropEvent): boolean {
             if (de.data instanceof DragManager.DocumentDragData) {
-                if (de.data.dropAction || de.data.userDropAction) {
-                    ["width", "height", "curPage"].map(key =>
-                        de.data.draggedDocuments.map((draggedDocument: Doc, i: number) =>
-                            PromiseValue(Cast(draggedDocument[key], "number")).then(f => f && (de.data.droppedDocuments[i][key] = f))));
-                }
                 let added = false;
                 if (de.data.dropAction || de.data.userDropAction) {
-                    added = de.data.droppedDocuments.reduce((added: boolean, d) => {
-                        let moved = this.props.addDocument(d);
-                        return moved || added;
-                    }, false);
+                    added = de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
                 } else if (de.data.moveDocument) {
-                    const move = de.data.moveDocument;
-                    added = de.data.droppedDocuments.reduce((added: boolean, d) => {
-                        let moved = move(d, this.props.Document, this.props.addDocument);
-                        return moved || added;
-                    }, false);
+                    let movedDocs = de.data.options === this.props.Document[Id] ? de.data.draggedDocuments : de.data.droppedDocuments;
+                    added = movedDocs.reduce((added: boolean, d) =>
+                        de.data.moveDocument(d, this.props.Document, this.props.addDocument) || added, false);
                 } else {
-                    added = de.data.droppedDocuments.reduce((added: boolean, d) => {
-                        let moved = this.props.addDocument(d);
-                        return moved || added;
-                    }, false);
+                    added = de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
                 }
                 e.stopPropagation();
                 return added;
+            }
+            else if (de.data instanceof DragManager.AnnotationDragData) {
+                return this.props.addDocument(de.data.dropDocument);
             }
             return false;
         }
@@ -182,14 +171,35 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                         this.props.addDocument && this.props.addDocument(Docs.WebDocument(href, options));
                     }
                 } else if (text) {
-                    this.props.addDocument && this.props.addDocument(Docs.TextDocument({ ...options, documentText: "@@@" + text }), false);
+                    this.props.addDocument && this.props.addDocument(Docs.TextDocument({ ...options, width: 100, height: 25, documentText: "@@@" + text }), false);
                 }
                 return;
             }
-            if (html && html.indexOf("<img") !== 0 && !html.startsWith("<a")) {
-                let htmlDoc = Docs.HtmlDocument(html, { ...options, width: 300, height: 300, documentText: text });
-                this.props.addDocument(htmlDoc, false);
-                return;
+            if (html && !html.startsWith("<a")) {
+                let tags = html.split("<");
+                if (tags[0] === "") tags.splice(0, 1);
+                let img = tags[0].startsWith("img") ? tags[0] : tags.length > 1 && tags[1].startsWith("img") ? tags[1] : "";
+                if (img) {
+                    let split = img.split("src=\"")[1].split("\"")[0];
+                    let doc = Docs.ImageDocument(split, { ...options, width: 300 });
+                    this.props.addDocument(doc, false);
+                    return;
+                } else {
+                    let path = window.location.origin + "/doc/";
+                    if (text.startsWith(path)) {
+                        let docid = text.replace(DocServer.prepend("/doc/"), "").split("?")[0];
+                        DocServer.GetRefField(docid).then(f => {
+                            if (f instanceof Doc) {
+                                if (options.x || options.y) { f.x = options.x; f.y = options.y; } // should be in CollectionFreeFormView
+                                (f instanceof Doc) && this.props.addDocument(f, false);
+                            }
+                        });
+                    } else {
+                        let htmlDoc = Docs.HtmlDocument(html, { ...options, width: 300, height: 300, documentText: text });
+                        this.props.addDocument(htmlDoc, false);
+                    }
+                    return;
+                }
             }
             if (text && text.indexOf("www.youtube.com/watch") !== -1) {
                 const url = text.replace("youtube.com/watch?v=", "youtube.com/embed/");

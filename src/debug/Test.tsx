@@ -6,7 +6,6 @@ import { ImageField } from '../new_fields/URLField';
 import { Doc } from '../new_fields/Doc';
 import { List } from '../new_fields/List';
 
-
 const schema1 = createSchema({
     hello: "number",
     test: "string",
