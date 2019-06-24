@@ -77,14 +77,18 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 this._fieldKey = text.slice(1, text.length);
                 this._title = this.selectionTitle;
             } else if (text.startsWith(">")) {
-                let metaKey = text.slice(1, text.length - 1);
                 let field = SelectionManager.SelectedDocuments()[0];
-                let collectionKey = field.props.ContainingCollectionView!.props.fieldKey;
                 let collection = field.props.ContainingCollectionView!.props.Document;
-                let collectionKeyProp = `fieldKey={"${collectionKey}"}`;
-                let collectionAnnotationsKeyProp = `fieldKey={"annotations"}`;
+
+                let metaKey = text.slice(1, text.length - 1);
                 let metaKeyProp = `fieldKey={"${metaKey}"}`;
-                let metaAnnotationsKeyProp = `fieldKey={"${metaKey}_annotations"}`;
+                let metaAnoKey = metaKey + "_annotations";
+                let metaAnoKeyProp = `fieldKey={"${metaAnoKey}"}`;
+                let collectionKey = field.props.ContainingCollectionView!.props.fieldKey;
+                let collectionKeyProp = `fieldKey={"${collectionKey}"}`;
+                let collectionAnoKey = "annotations";
+                let collectionAnoKeyProp = `fieldKey={"${collectionAnoKey}"}`;
+
                 let template = Doc.MakeAlias(field.props.Document);
                 template.proto = collection;
                 template.title = metaKey;
@@ -95,7 +99,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 template.templates = new List<string>([Templates.TitleBar(metaKey)]);
                 template.layout = StrCast(field.props.Document.layout).replace(collectionKeyProp, metaKeyProp);
                 if (field.props.Document.backgroundLayout) {
-                    template.layout = StrCast(field.props.Document.layout).replace(collectionAnnotationsKeyProp, metaAnnotationsKeyProp);
+                    template.layout = StrCast(field.props.Document.layout).replace(collectionAnoKeyProp, metaAnoKeyProp);
                     template.backgroundLayout = StrCast(field.props.Document.backgroundLayout).replace(collectionKeyProp, metaKeyProp);
                 }
                 Doc.AddDocToList(collection, collectionKey, template);
