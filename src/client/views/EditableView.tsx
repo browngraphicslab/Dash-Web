@@ -29,6 +29,7 @@ export interface EditableProps {
     display?: string;
     oneLine?: boolean;
     editing?: boolean;
+    onClick?: (e: React.MouseEvent) => boolean;
 }
 
 /**
@@ -65,14 +66,20 @@ export class EditableView extends React.Component<EditableProps> {
 
     @action
     onClick = (e: React.MouseEvent) => {
-        this._editing = true;
+        if (!this.props.onClick || !this.props.onClick(e)) {
+            this._editing = true;
+        }
+        e.stopPropagation();
+    }
+
+    stopPropagation(e: React.SyntheticEvent) {
         e.stopPropagation();
     }
 
     render() {
         if (this._editing) {
             return <input className="editableView-input" defaultValue={this.props.GetValue()} onKeyDown={this.onKeyDown} autoFocus
-                onBlur={action(() => this._editing = false)}
+                onBlur={action(() => this._editing = false)} onPointerDown={this.stopPropagation} onClick={this.stopPropagation} onPointerUp={this.stopPropagation}
                 style={{ display: this.props.display }} />;
         } else {
             return (

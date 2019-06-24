@@ -15,9 +15,11 @@ import { listSpec } from "../../../new_fields/Schema";
 import { menuBar } from "prosemirror-menu";
 import { AnnotationTypes, PDFViewer, scale } from "./PDFViewer";
 import PDFMenu from "./PDFMenu";
+import { UndoManager } from "../../util/UndoManager";
 
 
 interface IPageProps {
+    size: { width: number, height: number };
     pdf: Opt<Pdfjs.PDFDocumentProxy>;
     name: string;
     numPages: number;
@@ -35,8 +37,8 @@ interface IPageProps {
 @observer
 export default class Page extends React.Component<IPageProps> {
     @observable private _state: string = "N/A";
-    @observable private _width: number = 0;
-    @observable private _height: number = 0;
+    @observable private _width: number = this.props.size.width;
+    @observable private _height: number = this.props.size.height;
     @observable private _page: Opt<Pdfjs.PDFPageProxy>;
     @observable private _currPage: number = this.props.page + 1;
     @observable private _marqueeX: number = 0;
@@ -51,7 +53,6 @@ export default class Page extends React.Component<IPageProps> {
     private _marquee: React.RefObject<HTMLDivElement>;
     private _curly: React.RefObject<HTMLImageElement>;
     private _marqueeing: boolean = false;
-    private _dragging: boolean = false;
     private _reactionDisposer?: IReactionDisposer;
 
     constructor(props: IPageProps) {
@@ -151,13 +152,8 @@ export default class Page extends React.Component<IPageProps> {
      */
     @action
     startDrag = (e: PointerEvent): void => {
-        // the first 5 lines is a hack to prevent text selection while dragging
         e.preventDefault();
         e.stopPropagation();
-        if (this._dragging) {
-            return;
-        }
-        this._dragging = true;
         let thisDoc = this.props.parent.Document;
         // document that this annotation is linked to
         let targetDoc = Docs.TextDocument({ width: 200, height: 200, title: "New Annotation" });
@@ -168,7 +164,7 @@ export default class Page extends React.Component<IPageProps> {
         if (this._textLayer.current) {
             DragManager.StartAnnotationDrag([this._textLayer.current], dragData, e.pageX, e.pageY, {
                 handlers: {
-                    dragComplete: action(emptyFunction),
+                    dragComplete: emptyFunction,
                 },
                 hideSource: false
             });
@@ -179,7 +175,6 @@ export default class Page extends React.Component<IPageProps> {
     endDrag = (e: PointerEvent): void => {
         // document.removeEventListener("pointermove", this.startDrag);
         // document.removeEventListener("pointerup", this.endDrag);
-        this._dragging = false;
         e.stopPropagation();
     }
 
@@ -195,6 +190,9 @@ export default class Page extends React.Component<IPageProps> {
             // document.addEventListener("pointerup", this.endDrag);
         }
         else if (e.button === 0) {
+            PDFMenu.Instance.StartDrag = this.startDrag;
+            PDFMenu.Instance.Highlight = this.highlight;
+            PDFMenu.Instance.Status = "pdf";
             PDFMenu.Instance.fadeOut(true);
             let target: any = e.target;
             if (target && target.parentElement === this._textLayer.current) {
@@ -329,68 +327,6 @@ export default class Page extends React.Component<IPageProps> {
             PDFMenu.Instance.StartDrag = this.startDrag;
             PDFMenu.Instance.Highlight = this.highlight;
         }
-        // let x = (e.clientX - boundingRect.left) * (current.offsetWidth / boundingRect.width);
-        // let y = (e.clientY - boundingRect.top) * (current.offsetHeight / boundingRect.height);
-        // if (this._marqueeing) {
-        //     this._marqueeing = false;
-        //     if (this._marquee.current) {
-        //         let copy = document.createElement("div");
-        //         // make a copy of the marquee
-        //         copy.style.left = this._marquee.current.style.left;
-        //         copy.style.top = this._marquee.current.style.top;
-        //         copy.style.width = this._marquee.current.style.width;
-        //         copy.style.height = this._marquee.current.style.height;
-
-        //         // apply the appropriate background, opacity, and transform
-        //         let { background, opacity, transform } = this.getCurlyTransform();
-        //         copy.style.background = background;
-        //         // if curly bracing, add a curly brace
-        //         if (opacity === "1" && this._curly.current) {
-        //             copy.style.opacity = opacity;
-        //             let img = this._curly.current.cloneNode();
-        //             (img as any).style.opacity = opacity;
-        //             (img as any).style.transform = transform;
-        //             copy.appendChild(img);
-        //         }
-        //         else {
-        //             copy.style.opacity = this._marquee.current.style.opacity;
-        //         }
-        //         copy.className = this._marquee.current.className;
-        //         this.props.createAnnotation(copy, this.props.page);
-        //         this._marquee.current.style.opacity = "0";
-        //     }
-
-        //     this._marqueeHeight = this._marqueeWidth = 0;
-        // }
-        // else {
-        //     let sel = window.getSelection();
-        //     // if selecting over a range of things
-        //     if (sel && sel.type === "Range") {
-        //         let clientRects = sel.getRangeAt(0).getClientRects();
-        //         if (this._textLayer.current) {
-        //             let boundingRect = this._textLayer.current.getBoundingClientRect();
-        //             for (let i = 0; i < clientRects.length; i++) {
-        //                 let rect = clientRects.item(i);
-        //                 if (rect) {
-        //                     let annoBox = document.createElement("div");
-        //                     annoBox.className = "pdfViewer-annotationBox";
-        //                     // transforms the positions from screen onto the pdf div
-        //                     annoBox.style.top = ((rect.top - boundingRect.top) * (this._textLayer.current.offsetHeight / boundingRect.height)).toString();
-        //                     annoBox.style.left = ((rect.left - boundingRect.left) * (this._textLayer.current.offsetWidth / boundingRect.width)).toString();
-        //                     annoBox.style.width = (rect.width * this._textLayer.current.offsetWidth / boundingRect.width).toString();
-        //                     annoBox.style.height = (rect.height * this._textLayer.current.offsetHeight / boundingRect.height).toString();
-        //                     this.props.createAnnotation(annoBox, this.props.page);
-        //                 }
-        //             }
-        //         }
-        //         // clear selection
-        //         if (sel.empty) {  // Chrome
-        //             sel.empty();
-        //         } else if (sel.removeAllRanges) {  // Firefox
-        //             sel.removeAllRanges();
-        //         }
-        //     }
-        // }
         document.removeEventListener("pointermove", this.onSelectStart);
         document.removeEventListener("pointerup", this.onSelectEnd);
     }
@@ -403,7 +339,6 @@ export default class Page extends React.Component<IPageProps> {
             for (let i = 0; i < clientRects.length; i++) {
                 let rect = clientRects.item(i);
                 if (rect && rect.width !== this._textLayer.current.getBoundingClientRect().width && rect.height !== this._textLayer.current.getBoundingClientRect().height) {
-                    console.log(rect);
                     let annoBox = document.createElement("div");
                     annoBox.className = "pdfViewer-annotationBox";
                     // transforms the positions from screen onto the pdf div

@@ -415,6 +415,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     opacity: this.props.hideOnLeave ? (this._entered || this.props.isSelected() || this.props.Document.libraryBrush ? 1 : 0.1) : 1,
                     color: this.props.color ? this.props.color : this.props.hideOnLeave ? "white" : "initial",
                     pointerEvents: interactive ? "all" : "none",
+                    fontSize: "13px"
                 }}
                 onKeyDown={this.onKeyPress}
                 onFocus={this.onFocused}

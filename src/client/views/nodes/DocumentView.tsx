@@ -1,5 +1,5 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faAlignCenter, faCaretSquareRight, faCompressArrowsAlt, faUnlock, faLock, faExpandArrowsAlt, faLayerGroup, faSquare, faTrash, faConciergeBell, faFolder, faShare, faMapPin, faLink, faFingerprint, faCrosshairs, faDesktop } from '@fortawesome/free-solid-svg-icons';
+import * as fa from '@fortawesome/free-solid-svg-icons';
 import { action, computed, IReactionDisposer, reaction, trace, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, HeightSym, Opt, WidthSym, DocListCastAsync } from "../../../new_fields/Doc";
@@ -34,23 +34,24 @@ import { ContextMenuProps } from '../ContextMenuItem';
 import { RouteStore } from '../../../server/RouteStore';
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
-library.add(faTrash);
-library.add(faShare);
-library.add(faExpandArrowsAlt);
-library.add(faCompressArrowsAlt);
-library.add(faLayerGroup);
-library.add(faAlignCenter);
-library.add(faCaretSquareRight);
-library.add(faSquare);
-library.add(faConciergeBell);
-library.add(faFolder);
-library.add(faMapPin);
-library.add(faLink);
-library.add(faFingerprint);
-library.add(faCrosshairs);
-library.add(faDesktop);
-library.add(faUnlock);
-library.add(faLock);
+library.add(fa.faTrash);
+library.add(fa.faShare);
+library.add(fa.faExpandArrowsAlt);
+library.add(fa.faCompressArrowsAlt);
+library.add(fa.faLayerGroup);
+library.add(fa.faExternalLinkAlt);
+library.add(fa.faAlignCenter);
+library.add(fa.faCaretSquareRight);
+library.add(fa.faSquare);
+library.add(fa.faConciergeBell);
+library.add(fa.faFolder);
+library.add(fa.faMapPin);
+library.add(fa.faLink);
+library.add(fa.faFingerprint);
+library.add(fa.faCrosshairs);
+library.add(fa.faDesktop);
+library.add(fa.faUnlock);
+library.add(fa.faLock);
 
 const linkSchema = createSchema({
     title: "string",
@@ -88,6 +89,7 @@ const schema = createSchema({
     nativeWidth: "number",
     nativeHeight: "number",
     backgroundColor: "string",
+    hidden: "boolean"
 });
 
 export const positionSchema = createSchema({
@@ -235,7 +237,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     static _undoBatch?: UndoManager.Batch = undefined;
     @action
-    public collapseTargetsToPoint = async (scrpt: number[], expandedDocs: Doc[] | undefined): Promise<void> => {
+    public collapseTargetsToPoint = (scrpt: number[], expandedDocs: Doc[] | undefined): void => {
         SelectionManager.DeselectAll();
         if (expandedDocs) {
             if (!DocumentView._undoBatch) {
@@ -446,7 +448,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this.templates = this.templates;
     }
 
-    freezeNativeDimensions = (e: React.MouseEvent): void => {
+    freezeNativeDimensions = (): void => {
         let proto = Doc.GetProto(this.props.Document);
         if (proto.ignoreAspect === undefined && !proto.nativeWidth) {
             proto.nativeWidth = this.props.PanelWidth();
@@ -475,7 +477,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         subitems.push({ description: "Open Right", event: () => this.props.addDocTab && this.props.addDocTab(this.props.Document, "onRight"), icon: "caret-square-right" });
         subitems.push({ description: "Open Right Alias", event: () => this.props.addDocTab && this.props.addDocTab(Doc.MakeAlias(this.props.Document), "onRight"), icon: "caret-square-right" });
         subitems.push({ description: "Open Fields", event: this.fieldsClicked, icon: "layer-group" });
-        cm.addItem({ description: "Open...", subitems: subitems });
+        cm.addItem({ description: "Open...", subitems: subitems, icon: "external-link-alt" });
         cm.addItem({ description: BoolCast(this.props.Document.ignoreAspect, false) || !this.props.Document.nativeWidth || !this.props.Document.nativeHeight ? "Freeze" : "Unfreeze", event: this.freezeNativeDimensions, icon: "edit" });
         cm.addItem({ description: "Pin to Pres", event: () => PresentationView.Instance.PinDoc(this.props.Document), icon: "map-pin" });
         cm.addItem({ description: BoolCast(this.props.Document.lockedPosition) ? "Unlock Pos" : "Lock Pos", event: () => this.props.Document.lockedPosition = BoolCast(this.props.Document.lockedPosition) ? undefined : true, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
@@ -537,6 +539,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     render() {
+        if (this.Document.hidden) {
+            return null;
+        }
         var scaling = this.props.ContentScaling();
         var nativeWidth = this.nativeWidth > 0 ? `${this.nativeWidth}px` : "100%";
         var nativeHeight = BoolCast(this.props.Document.ignoreAspect) ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";

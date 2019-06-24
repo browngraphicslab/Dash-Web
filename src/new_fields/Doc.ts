@@ -207,7 +207,7 @@ export namespace Doc {
 
     // gets the document's prototype or returns the document if it is a prototype
     export function GetProto(doc: Doc) {
-        return Doc.GetT(doc, "isPrototype", "boolean", true) ? doc : doc.proto!;
+        return Doc.GetT(doc, "isPrototype", "boolean", true) ? doc : (doc.proto || doc);
     }
 
     export function allKeys(doc: Doc): string[] {
@@ -220,6 +220,16 @@ export namespace Doc {
         }
 
         return Array.from(results);
+    }
+
+    export function AddDocToList(target: Doc, key: string, doc: Doc, relativeTo?: Doc, before?: boolean) {
+        let list = Cast(target[key], listSpec(Doc));
+        if (list) {
+            let ind = relativeTo ? list.indexOf(relativeTo) : -1;
+            if (ind === -1) list.push(doc);
+            else list.splice(before ? ind : ind + 1, 0, doc);
+        }
+        return true;
     }
 
     export function MakeAlias(doc: Doc) {
