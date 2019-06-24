@@ -21,7 +21,7 @@ import React = require("react");
 import PDFMenu from "./PDFMenu";
 import { UndoManager } from "../../util/UndoManager";
 import { ScriptField } from "../../../fields/ScriptField";
-import { CompileScript, CompiledScript } from "../../util/Scripting";
+import { CompileScript, CompiledScript, CompileResult } from "../../util/Scripting";
 
 export const scale = 2;
 interface IPDFViewerProps {
@@ -77,7 +77,7 @@ class Viewer extends React.Component<IViewerProps> {
     @observable private _pageSizes: { width: number, height: number }[] = [];
     @observable private _annotations: Doc[] = [];
     @observable private _savedAnnotations: Dictionary<number, HTMLDivElement[]> = new Dictionary<number, HTMLDivElement[]>();
-    @observable private _script: ScriptField | undefined = this.props.parent.Document.filterScript;
+    @observable private _script: CompileResult | undefined;
 
     private _pageBuffer: number = 1;
     private _annotationLayer: React.RefObject<HTMLDivElement> = React.createRef();
@@ -85,6 +85,14 @@ class Viewer extends React.Component<IViewerProps> {
     private _annotationReactionDisposer?: IReactionDisposer;
     private _dropDisposer?: DragManager.DragDropDisposer;
     private _filterReactionDisposer?: IReactionDisposer;
+
+    @action
+        constructor(props: IViewerProps) {
+            super(props);
+
+            let scriptfield = Cast(this.props.parent.Document.filterScript, ScriptField);
+            this._script = scriptfield ? CompileScript(scriptfield.scriptString, { params: { this: Doc.name } }) : CompileScript("return true");;
+        }
 
     componentDidUpdate = (prevProps: IViewerProps) => {
         if (this.scrollY !== prevProps.scrollY) {
@@ -112,7 +120,10 @@ class Viewer extends React.Component<IViewerProps> {
             this._filterReactionDisposer = reaction(
                 () => this.props.parent.Document.filterScript || this.props.parent.props.ContainingCollectionView!.props.Document.filterScript,
                 () => {
-                    this._script = Cast(this.props.parent.Document.filterScript, ScriptField);
+                    runInAction(() => {
+                        let scriptfield = Cast(this.props.parent.Document.filterScript, ScriptField);
+                        this._script = scriptfield ? CompileScript(scriptfield.scriptString, { params: { this: Doc.name } }) : CompileScript("return true");;
+                    });
                 }
             );
         }
@@ -121,6 +132,7 @@ class Viewer extends React.Component<IViewerProps> {
     componentWillUnmount = () => {
         this._reactionDisposer && this._reactionDisposer();
         this._annotationReactionDisposer && this._annotationReactionDisposer();
+        this._filterReactionDisposer && this._filterReactionDisposer();
     }
 
     @action
@@ -159,10 +171,12 @@ class Viewer extends React.Component<IViewerProps> {
 
     makeAnnotationDocument = (sourceDoc: Doc | undefined, s: number, color: string): Doc => {
         let annoDocs: Doc[] = [];
-        let mainAnnoDoc = new Doc();
+        let mainAnnoDoc = Docs.CreateInstance(new Doc(), "", {});
+
+        mainAnnoDoc.page = Math.round(Math.random());
         this._savedAnnotations.forEach((key: number, value: HTMLDivElement[]) => {
             for (let anno of value) {
-                let annoDoc = Docs.CreateInstance(new Doc(), this.props.parent.Document, {});
+                let annoDoc = new Doc();
                 if (anno.style.left) annoDoc.x = parseInt(anno.style.left) / scale;
                 if (anno.style.top) annoDoc.y = parseInt(anno.style.top) / scale;
                 if (anno.style.height) annoDoc.height = parseInt(anno.style.height) / scale;
@@ -360,7 +374,7 @@ class Viewer extends React.Component<IViewerProps> {
     }
 
     render() {
-        let compiled = this._script ? CompileScript(this._script.scriptString, { params: { this: Doc.name } }) : CompileScript("return true");
+        let compiled = this._script;
         return (
             <div ref={this.mainCont} style={{ pointerEvents: "all" }}>
                 <div className="viewer">
@@ -372,7 +386,15 @@ class Viewer extends React.Component<IViewerProps> {
                         pointerEvents: this.props.parent.props.active() ? "none" : "all"
                     }}>
                     <div className="pdfViewer-annotationLayer-subCont" ref={this._annotationLayer}>
-                        {this._annotations.filter(anno => compiled.compiled ? compiled.run(anno) : true).map(anno => this.renderAnnotation(anno))}
+                        {this._annotations.filter(anno => {
+                            if (compiled && compiled.compiled) {
+                                let run = compiled.run({ this: anno });
+                                if (run.success) {
+                                    return run.result;
+                                }
+                            }
+                            return true;
+                        }).map(anno => this.renderAnnotation(anno))}
                     </div>
                 </div>
             </div >

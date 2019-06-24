@@ -19,6 +19,8 @@ import "./PDFBox.scss";
 import React = require("react");
 import { CompileScript } from '../../util/Scripting';
 import { ScriptField } from '../../../fields/ScriptField';
+import { Flyout, anchorPoints } from '../DocumentDecorations';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 type PdfDocument = makeInterface<[typeof positionSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(positionSchema, pageSchema);
@@ -29,8 +31,12 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
 
     @observable private _alt = false;
     @observable private _scrollY: number = 0;
+    @observable private _flyout: boolean = false;
     private _mainCont: React.RefObject<HTMLDivElement>;
     private _reactionDisposer?: IReactionDisposer;
+    private _keyValue: string = "";
+    private _valueValue: string = "";
+    private _scriptValue: string = "";
 
     constructor(props: FieldViewProps) {
         super(props);
@@ -45,7 +51,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
             }
         );
 
-        let script = CompileScript("return this.page === 2", { params: { this: Doc.name } });
+        let script = CompileScript("return this.page === 0", { params: { this: Doc.name } });
         if (script.compiled) {
             this.props.Document.filterScript = new ScriptField(script);
         }
@@ -53,6 +59,10 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
 
     componentDidMount() {
         if (this.props.setPdfBox) this.props.setPdfBox(this);
+    }
+
+    componentWillUnmount() {
+        this._reactionDisposer && this._reactionDisposer();
     }
 
     public GetPage() {
@@ -81,7 +91,75 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         }
     }
 
-    createRef = (ele: HTMLDivElement | null) => {
+    private newKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        this._keyValue = e.currentTarget.value;
+    }
+
+    private newValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        this._valueValue = e.currentTarget.value;
+    }
+
+    private newScriptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        this._scriptValue = e.currentTarget.value;
+    }
+
+    private applyFilter = (e: React.MouseEvent<HTMLButtonElement>) => {
+        let scriptText = "";
+        if (this._scriptValue.length > 0) {
+            scriptText = this._scriptValue;
+        } else if (this._keyValue.length > 0 && this._valueValue.length > 0) {
+            scriptText = `return this.${this._keyValue} === ${this._valueValue}`;
+        }
+        let script = CompileScript(scriptText, { params: { this: Doc.name } });
+        if (script.compiled) {
+            this.props.Document.filterScript = new ScriptField(script);
+        }
+    }
+
+    @action
+    private toggleFlyout = () => {
+        this._flyout = !this._flyout;
+    }
+
+    settingsPanel() {
+        return !this.props.active() ? (null) :
+            (
+                <div className="pdfBox-settingsCont" onPointerDown={(e) => e.stopPropagation()}>
+                    <button className="pdfBox-settingsButton" onClick={this.toggleFlyout}
+                        style={{ marginTop: `${NumCast(this.props.ContainingCollectionView!.props.Document.panY)}px` }}>
+                        <div className="pdfBox-settingsButton-arrow"
+                            style={{
+                                borderTop: `25px solid ${this._flyout ? "#121721" : "transparent"}`,
+                                borderBottom: `25px solid ${this._flyout ? "#121721" : "transparent"}`,
+                                borderRight: `25px solid ${this._flyout ? "transparent" : "#121721"}`,
+                                transform: `scaleX(${this._flyout ? -1 : 1})`
+                            }}></div>
+                        <div className="pdfBox-settingsButton-iconCont">
+                            <FontAwesomeIcon style={{ color: "white" }} icon="cog" size="3x" />
+                        </div>
+                    </button>
+                    <div className="pdfBox-settingsFlyout" style={{ left: `${this._flyout ? -600 : 100}px` }} >
+                        <div className="pdfBox-settingsFlyout-title">
+                            Annotation View Settings
+                        </div>
+                        <div className="pdfBox-settingsFlyout-kvpInput">
+                            <input placeholder="Key" className="pdfBox-settingsFlyout-input" onChange={this.newKeyChange}
+                                style={{ gridColumn: 1 }} />
+                            <input placeholder="Value" className="pdfBox-settingsFlyout-input" onChange={this.newValueChange}
+                                style={{ gridColumn: 3 }} />
+                        </div>
+                        <div className="pdfBox-settingsFlyout-kvpInput">
+                            <input placeholder="Custom Script" onChange={this.newScriptChange} style={{ gridColumn: "1 / 4" }} />
+                        </div>
+                        <div className="pdfBox-settingsFlyout-kvpInput">
+                            <button style={{ gridColumn: 3 }} onClick={this.applyFilter}>
+                                <FontAwesomeIcon style={{ color: "white" }} icon="check" size="lg" />
+                                &nbsp; Apply
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
     }
 
     loaded = (nw: number, nh: number, np: number) => {
@@ -129,6 +207,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
                 }} className={classname}>
                 <PDFViewer url={pdfUrl.url.pathname} loaded={this.loaded} scrollY={this._scrollY} parent={this} />
                 {/* <div style={{ width: "100px", height: "300px" }}></div> */}
+                {this.settingsPanel()}
             </div>
         );
     }
