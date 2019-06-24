@@ -364,7 +364,6 @@ export default class PresentationElement extends React.Component<PresentationEle
         let p = this.props;
         let title = p.document.title;
 
-
         //to get currently selected presentation doc
         let selected = NumCast(p.mainDocument.selectedDoc, 0);
 

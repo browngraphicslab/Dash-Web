@@ -9,13 +9,13 @@ import { listSpec } from "../../../new_fields/Schema";
 import { Cast, NumCast, FieldValue, PromiseValue, StrCast, BoolCast } from "../../../new_fields/Types";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
-import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import PresentationElement, { buttonIndex } from "./PresentationElement";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowRight, faArrowLeft, faPlay, faStop, faPlus, faTimes, faMinus, faEdit } from '@fortawesome/free-solid-svg-icons';
 import { Docs } from "../../documents/Documents";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
+import PresentationViewList from "./PresentationList";
 
 library.add(faArrowLeft);
 library.add(faArrowRight);
@@ -30,86 +30,6 @@ library.add(faEdit);
 export interface PresViewProps {
     Documents: List<Doc>;
 }
-
-interface PresListProps {
-    mainDocument: Doc;
-    deleteDocument(index: number): void;
-    gotoDocument(index: number, fromDoc: number): Promise<void>;
-    groupMappings: Map<String, Doc[]>;
-    presElementsMappings: Map<Doc, PresentationElement>;
-    setChildrenDocs: (docList: Doc[]) => void;
-    presStatus: boolean;
-    presButtonBackUp: Doc;
-    presGroupBackUp: Doc;
-}
-
-
-@observer
-/**
- * Component that takes in a document prop and a boolean whether it's collapsed or not.
- */
-class PresentationViewList extends React.Component<PresListProps> {
-
-
-
-    /**
-     * Method that initializes presentation ids for the
-     * docs that is in the presentation, when presentation list
-     * gets re-rendered. It makes sure to not assign ids to the
-     * docs that are in the group, so that mapping won't be disrupted.
-     */
-
-    @action
-    initializeGroupIds = async (docList: Doc[]) => {
-        docList.forEach(async (doc: Doc, index: number) => {
-            let docGuid = StrCast(doc.presentId, null);
-            //checking if part of group
-            let storedGuids: string[] = [];
-            let castedGroupDocs = await DocListCastAsync(this.props.presGroupBackUp.groupDocs);
-            //making sure the docs that were in groups, which were stored, to not get new guids.
-            if (castedGroupDocs !== undefined) {
-                castedGroupDocs.forEach((doc: Doc) => {
-                    let storedGuid = StrCast(doc.presentIdStore, null);
-                    if (storedGuid) {
-                        storedGuids.push(storedGuid);
-                    }
-
-                });
-            }
-            if (!this.props.groupMappings.has(docGuid) && !storedGuids.includes(docGuid)) {
-                doc.presentId = Utils.GenerateGuid();
-            }
-        });
-    }
-
-    /**
-     * Initially every document starts with a viewScale 1, which means
-     * that they will be displayed in a canvas with scale 1.
-     */
-    @action
-    initializeScaleViews = (docList: Doc[]) => {
-        docList.forEach((doc: Doc) => {
-            let curScale = NumCast(doc.viewScale, null);
-            if (curScale === undefined) {
-                doc.viewScale = 1;
-            }
-        });
-    }
-
-    render() {
-        const children = DocListCast(this.props.mainDocument.data);
-        this.initializeGroupIds(children);
-        this.initializeScaleViews(children);
-        this.props.setChildrenDocs(children);
-        return (
-
-            <div className="presentationView-listCont">
-                {children.map((doc: Doc, index: number) => <PresentationElement ref={(e) => { if (e) { this.props.presElementsMappings.set(doc, e); } }} key={doc[Id]} mainDocument={this.props.mainDocument} document={doc} index={index} deleteDocument={this.props.deleteDocument} gotoDocument={this.props.gotoDocument} groupMappings={this.props.groupMappings} allListElements={children} presStatus={this.props.presStatus} presButtonBackUp={this.props.presButtonBackUp} presGroupBackUp={this.props.presGroupBackUp} />)}
-            </div>
-        );
-    }
-}
-
 
 @observer
 export class PresentationView extends React.Component<PresViewProps>  {
@@ -247,7 +167,6 @@ export class PresentationView extends React.Component<PresViewProps>  {
     retrieveGroupMappings = async () => {
         let castedGroupDocs = await DocListCastAsync(this.presGroupBackUp.groupDocs);
         if (castedGroupDocs !== undefined) {
-            //runInAction(() => this.groupMappings = new Map());
             castedGroupDocs.forEach(async (groupDoc: Doc, index: number) => {
                 let castedGrouping = await DocListCastAsync(groupDoc.grouping);
                 let castedKey = StrCast(groupDoc.presentIdStore, null);
@@ -562,13 +481,11 @@ export class PresentationView extends React.Component<PresViewProps>  {
         if (castedGroupDocs !== undefined) {
             castedGroupDocs.forEach(async (groupDoc: Doc, index: number) => {
                 let castedGrouping = await DocListCastAsync(groupDoc.grouping);
-                // UndoManager.RunInBatch(() => {
                 if (castedGrouping) {
                     castedGrouping.forEach((doc: Doc) => {
                         doc.presentId = Utils.GenerateGuid();
                     });
                 }
-                // }, "guid assignment");
             });
         }
         runInAction(() => this.groupMappings = new Map());
@@ -839,8 +756,6 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
         let width = NumCast(this.curPresentation.width);
 
-
-        //TODO: next and back should be icons
         return (
             <div className="presentationView-cont" style={{ width: width, overflow: "hidden" }}>
                 <div className="presentationView-heading">
