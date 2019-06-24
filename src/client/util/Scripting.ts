@@ -39,7 +39,6 @@ export interface CompileError {
 }
 
 export type CompileResult = CompiledScript | CompileError;
-
 function Run(script: string | undefined, customParams: string[], diagnostics: any[], originalScript: string, options: ScriptOptions): CompileResult {
     const errors = diagnostics.some(diag => diag.category === ts.DiagnosticCategory.Error);
     if ((options.typecheck !== false && errors) || !script) {
@@ -64,10 +63,20 @@ function Run(script: string | undefined, customParams: string[], diagnostics: an
             }
         }
         let thisParam = args.this || capturedVariables.this;
+        let batch: { end(): void } | undefined = undefined;
         try {
+            if (!options.editable) {
+                batch = Doc.MakeReadOnly();
+            }
             const result = compiledFunction.apply(thisParam, params).apply(thisParam, argsArray);
+            if (batch) {
+                batch.end();
+            }
             return { success: true, result };
         } catch (error) {
+            if (batch) {
+                batch.end();
+            }
             return { success: false, error };
         }
     };
@@ -133,6 +142,7 @@ export interface ScriptOptions {
     params?: { [name: string]: string };
     capturedVariables?: { [name: string]: Field };
     typecheck?: boolean;
+    editable?: boolean;
 }
 
 export function CompileScript(script: string, options: ScriptOptions = {}): CompileResult {

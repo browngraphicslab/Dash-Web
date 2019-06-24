@@ -3,7 +3,7 @@ import { CompiledScript, CompileScript } from "../client/util/Scripting";
 import { Copy, ToScriptString, Parent, SelfProxy } from "../new_fields/FieldSymbols";
 import { serializable, createSimpleSchema, map, primitive, object, deserialize, PropSchema, custom, SKIP } from "serializr";
 import { Deserializable } from "../client/util/SerializationHelper";
-import { computed } from "mobx";
+import { Doc } from "../new_fields/Doc";
 
 function optional(propSchema: PropSchema) {
     return custom(value => {
@@ -23,6 +23,7 @@ const optionsSchema = createSimpleSchema({
     requiredType: true,
     addReturn: true,
     typecheck: true,
+    readonly: true,
     params: optional(map(primitive()))
 });
 
@@ -86,9 +87,9 @@ export class ScriptField extends ObjectField {
 
 @Deserializable("computed", deserializeScript)
 export class ComputedField extends ScriptField {
-    @computed
-    get value() {
-        const val = this._script.run({ this: (this[Parent] as any)[SelfProxy] });
+    //TODO maybe add an observable cache based on what is passed in for doc, considering there shouldn't really be that many possible values for doc
+    value(doc: Doc) {
+        const val = this._script.run({ this: doc });
         if (val.success) {
             return val.result;
         }

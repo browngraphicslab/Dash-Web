@@ -2,7 +2,7 @@ import { observable, action } from "mobx";
 import { serializable, primitive, map, alias, list } from "serializr";
 import { autoObject, SerializationHelper, Deserializable } from "../client/util/SerializationHelper";
 import { DocServer } from "../client/DocServer";
-import { setter, getter, getField, updateFunction, deleteProperty } from "./util";
+import { setter, getter, getField, updateFunction, deleteProperty, makeEditable, makeReadOnly } from "./util";
 import { Cast, ToConstructor, PromiseValue, FieldValue, NumCast } from "./Types";
 import { listSpec } from "./Schema";
 import { ObjectField } from "./ObjectField";
@@ -156,6 +156,15 @@ export namespace Doc {
     //         return Cast(field, ctor);
     //     });
     // }
+    export function MakeReadOnly(): { end(): void } {
+        makeReadOnly();
+        return {
+            end() {
+                makeEditable();
+            }
+        };
+    }
+
     export function Get(doc: Doc, key: string, ignoreProto: boolean = false): FieldResult {
         const self = doc[Self];
         return getField(self, key, ignoreProto);

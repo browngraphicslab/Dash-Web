@@ -38,10 +38,11 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     }
     public static SetField(doc: Doc, key: string, value: string) {
         let eq = value.startsWith("=");
+        let target = eq ? doc : Doc.GetProto(doc);
         value = eq ? value.substr(1) : value;
         let dubEq = value.startsWith(":=");
         value = dubEq ? value.substr(2) : value;
-        let options: ScriptOptions = { addReturn: true };
+        let options: ScriptOptions = { addReturn: true, params: { this: "Doc" } };
         if (dubEq) options.typecheck = false;
         let script = CompileScript(value, options);
         if (!script.compiled) {
@@ -49,12 +50,11 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         }
         let field = new ComputedField(script);
         if (!dubEq) {
-            let res = script.run();
+            let res = script.run({ this: target });
             if (!res.success) return false;
             field = res.result;
         }
         if (Field.IsField(field, true)) {
-            let target = eq ? doc : Doc.GetProto(doc);
             target[key] = field;
             return true;
         }
