@@ -4,15 +4,15 @@
     border-width: $COLLECTION_BORDER_WIDTH;
     border-color: transparent;
     border-style: solid;
-    border-radius: $border-radius;
+    border-radius: inherit;
     box-sizing: border-box;
     height: 100%;
-    padding: 20px;
+    padding-top: 20px;
     padding-left: 10px;
     padding-right: 0px;
     background: $light-color-secondary;
     font-size: 13px;
-    overflow: scroll;
+    overflow: auto;
 
     ul {
         list-style: none;
@@ -50,10 +50,13 @@
         font-size: 24px;
     }
 
-    .collectionTreeView-keyHeader {
-        font-style: italic;
-        font-size: 8pt;
-    }
+}
+.collectionTreeView-keyHeader {
+    font-style: italic;
+    font-size: 8pt;
+    margin-left: 3px;
+    display:none;
+    background: lightgray;
 }
 
 .docContainer {
@@ -74,6 +77,9 @@
 }
 
 .treeViewItem-header:hover {
+    .collectionTreeView-keyHeader {
+        display:inherit;
+    }
     .treeViewItem-openRight {
         display: inline-block;
         height:13px;

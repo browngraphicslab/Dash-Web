@@ -1,5 +1,5 @@
 import React = require("react");
-import { action, computed, IReactionDisposer, reaction } from "mobx";
+import { action, computed, IReactionDisposer, reaction, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, HeightSym, WidthSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
@@ -10,6 +10,7 @@ import { DocumentView } from "../nodes/DocumentView";
 import { CollectionSchemaPreview } from "./CollectionSchemaView";
 import "./CollectionStackingView.scss";
 import { CollectionSubView } from "./CollectionSubView";
+import { Transform } from "../../util/Transform";
 
 @observer
 export class CollectionStackingView extends CollectionSubView(doc => doc) {
@@ -66,18 +67,17 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         let children = this.childDocs.filter(d => !d.isMinimized);
         return children.map((d, i) => {
             let dref = React.createRef<HTMLDivElement>();
-            let script = undefined;
-            let colWidth = () => d.nativeWidth ? Math.min(d[WidthSym](), this.columnWidth) : this.columnWidth;
-            let rowHeight = () => this.singleColDocHeight(d);
             let dxf = () => this.getDocTransform(d, dref.current!).scale(this.columnWidth / d[WidthSym]());
-            return <div className="collectionStackingView-masonryDoc"
+            let width = () => d.nativeWidth ? Math.min(d[WidthSym](), this.columnWidth) : this.columnWidth;
+            let height = () => this.singleColDocHeight(d);
+            return <div className="collectionStackingView-columnDoc"
                 key={d[Id]}
                 ref={dref}
-                style={{ width: colWidth(), height: rowHeight(), marginLeft: "auto", marginRight: "auto" }} >
+                style={{ width: width(), height: height() }} >
                 <CollectionSchemaPreview
                     Document={d}
-                    width={colWidth}
-                    height={rowHeight}
+                    width={width}
+                    height={height}
                     getTransform={dxf}
                     CollectionView={this.props.CollectionView}
                     addDocument={this.props.addDocument}
@@ -87,7 +87,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     whenActiveChanged={this.props.whenActiveChanged}
                     addDocTab={this.props.addDocTab}
                     setPreviewScript={emptyFunction}
-                    previewScript={script}>
+                    previewScript={undefined}>
                 </CollectionSchemaPreview>
             </div>;
         });
@@ -95,45 +95,31 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     @computed
     get children() {
         return this.childDocs.filter(d => !d.isMinimized).map((d, i) => {
+            let aspect = d.nativeHeight ? NumCast(d.nativeWidth) / NumCast(d.nativeHeight) : undefined;
             let dref = React.createRef<HTMLDivElement>();
             let dxf = () => this.getDocTransform(d, dref.current!).scale(this.columnWidth / d[WidthSym]());
-            let renderScale = this.columnWidth / NumCast(d.nativeWidth, this.columnWidth);
-            let aspect = NumCast(d.nativeWidth) / NumCast(d.nativeHeight);
-            let width = () => this.columnWidth;
+            let width = () => d.nativeWidth ? Math.min(d[WidthSym](), this.columnWidth) : this.columnWidth;
             let height = () => aspect ? width() / aspect : d[HeightSym]()
             let rowSpan = Math.ceil((height() + this.gridGap) / (this._gridSize + this.gridGap));
-            let childFocus = (doc: Doc) => {
-                doc.libraryBrush = true;
-                this.props.focus(this.props.Document); // just focus on this collection, not the underlying document because the API doesn't support adding an offset to focus on and we can't pan zoom our contents to be centered.
-            };
             return (<div className="collectionStackingView-masonryDoc"
                 key={d[Id]}
                 ref={dref}
-                style={{
-                    width: width(),
-                    height: height(),
-                    transformOrigin: "top left",
-                    gridRowEnd: `span ${rowSpan}`,
-                    gridColumnEnd: `span 1`,
-                    transform: `scale(${renderScale})`
-                }} >
-                <DocumentView key={d[Id]} Document={d}
+                style={{ gridRowEnd: `span ${rowSpan}` }} >
+                <CollectionSchemaPreview
+                    Document={d}
+                    CollectionView={this.props.CollectionView}
                     addDocument={this.props.addDocument}
+                    moveDocument={this.props.moveDocument}
                     removeDocument={this.props.removeDocument}
-                    moveDocument={this.moveDocument}
-                    ContainingCollectionView={this.props.CollectionView}
-                    isTopMost={false}
-                    ScreenToLocalTransform={dxf}
-                    focus={childFocus}
-                    ContentScaling={returnOne}
-                    PanelWidth={width}
-                    PanelHeight={height}
-                    selectOnLoad={false}
-                    parentActive={this.props.active}
+                    getTransform={dxf}
+                    width={width}
+                    height={height}
+                    active={this.props.active}
                     addDocTab={this.props.addDocTab}
-                    bringToFront={emptyFunction}
                     whenActiveChanged={this.props.whenActiveChanged}
-                />
+                    setPreviewScript={emptyFunction}
+                    previewScript={undefined}>
+                </CollectionSchemaPreview>
             </div>);
         });
     }

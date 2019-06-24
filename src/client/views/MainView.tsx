@@ -3,7 +3,7 @@ import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, runInAction, trace } from 'mobx';
 import { observer } from 'mobx-react';
-import { CirclePicker, SliderPicker, BlockPicker, TwitterPicker } from 'react-color';
+import { CirclePicker, SliderPicker, BlockPicker, TwitterPicker, SketchPicker } from 'react-color';
 import "normalize.css";
 import * as React from 'react';
 import Measure from 'react-measure';
@@ -274,8 +274,8 @@ export class MainView extends React.Component {
                     <li key="redo"><button className="add-button round-button" title="Redo" onClick={() => UndoManager.Redo()}><FontAwesomeIcon icon="redo-alt" size="sm" /></button></li>
                     <li key="color"><button className="add-button round-button" title="Redo" onClick={() => this.toggleColorPicker()}><div className="toolbar-color-button" style={{ backgroundColor: InkingControl.Instance.selectedColor }} >
 
-                        <div className="toolbar-color-picker" onClick={this.onColorClick} style={this._colorPickerDisplay ? { display: "block" } : { display: "none" }}>
-                            <TwitterPicker color={InkingControl.Instance.selectedColor} onChange={InkingControl.Instance.switchColor} />
+                        <div className="toolbar-color-picker" onClick={this.onColorClick} style={this._colorPickerDisplay ? { color: "black", display: "block" } : { color: "black", display: "none" }}>
+                            <SketchPicker color={InkingControl.Instance.selectedColor} onChange={InkingControl.Instance.switchColor} />
                         </div>
                     </div></button></li>
                     {btns.map(btn =>

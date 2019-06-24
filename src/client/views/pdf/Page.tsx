@@ -20,6 +20,7 @@ import { copy } from "typescript-collections/dist/lib/arrays";
 
 
 interface IPageProps {
+    size: { width: number, height: number };
     pdf: Opt<Pdfjs.PDFDocumentProxy>;
     name: string;
     numPages: number;
@@ -37,8 +38,8 @@ interface IPageProps {
 @observer
 export default class Page extends React.Component<IPageProps> {
     @observable private _state: string = "N/A";
-    @observable private _width: number = 0;
-    @observable private _height: number = 0;
+    @observable private _width: number = this.props.size.width;
+    @observable private _height: number = this.props.size.height;
     @observable private _page: Opt<Pdfjs.PDFPageProxy>;
     @observable private _currPage: number = this.props.page + 1;
     @observable private _marqueeX: number = 0;

@@ -385,7 +385,7 @@ interface CollectionSchemaPreviewProps {
     Document?: Doc;
     width: () => number;
     height: () => number;
-    CollectionView: CollectionView | CollectionPDFView | CollectionVideoView;
+    CollectionView?: CollectionView | CollectionPDFView | CollectionVideoView;
     getTransform: () => Transform;
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
     moveDocument: (document: Doc, target: Doc, addDoc: ((doc: Doc) => boolean)) => boolean;
