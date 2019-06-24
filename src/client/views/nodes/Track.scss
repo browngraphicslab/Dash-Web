@@ -5,7 +5,7 @@
     .datapane{
         top:0px; 
         width: 100px; 
-        height: 100px; 
+        height: 75px; 
         background-color: $light-color-secondary; 
         position:relative; 
         float:left; 
@@ -16,7 +16,7 @@
         .inner {  
             top:0px; 
             float:right; 
-            height: 100px;
+            height: 75px;
             width: calc(100% - 100px); 
             background-color: $light-color;     
             border-style:solid;        

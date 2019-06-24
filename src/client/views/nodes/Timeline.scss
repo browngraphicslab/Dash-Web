@@ -12,49 +12,52 @@
             display:inline-block; 
         }
     }
-    .scrubberbox{
+    .info-container{
+        top: 10px; 
+        margin-left: 10%; 
         position:relative; 
-        background-color: transparent; 
-        height: 30px;
-        margin-left:calc(10% + 100px);
-        width: calc(80% - 100px); 
-        overflow-x: scroll; 
-        overflow-y: visible; 
-        .tick{
-            height:100%; 
-            width: 1px; 
-            background-color:black; 
+        height: 80%; 
+        width: 80%; 
+        overflow-x: hidden; 
+        
+        .scrubberbox{
+            position:relative; 
+            background-color: transparent; 
+            height: 30px;
+            width:100%; 
+           
+            .tick{
+                height:100%; 
+                width: 1px; 
+                background-color:black; 
+
+            }   
+        }
+        .scrubber{
+            height: 100px; 
+            width: 2px; 
+            position:absolute;
+            z-index: 1001;
+            background-color:black ; 
+            .scrubberhead{
+                height: 30px; 
+                width: 30px;
+                left: -15px;
+                //top: -40px; 
+                position:absolute;                 
+            }
+        }
+
+        .trackbox{
+            top: 30px; 
+            height:calc(100%);
+            width:100%;
+            border:1px;
+            overflow:auto;
+            background-color:white;
+            position:absolute;
 
         }
-        
     }
-    .scrubberbox::-webkit-scrollbar{
-        display:none; 
-    }
-    .scrubber{
-        margin-left:calc(10% + 100px);
-        height: 100px; 
-        width: 2px; 
-        position:absolute;
-        z-index: 1001;
-        
-        background-color:black ; 
-        .scrubberhead{
-            height: 30px; 
-            width: 30px;
-            left: -15px;
-            top: -30px; 
-            position:absolute;                 
-        }
-    }
-    .trackbox{
-        height:60%;
-        width:80%;
-        border:1px;
-        overflow:auto;
-        background-color:white;
-        margin-Left:10%;
-        position:absolute;
-
-    }
+    
 }

@@ -362,7 +362,6 @@ export class Track extends React.Component<props> {
     onInnerPointerDown = (e:React.PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log("on timeline"); 
         if (this._inner.current) {
             this._barMoved = true;
             // let mouse = e.nativeEvent;

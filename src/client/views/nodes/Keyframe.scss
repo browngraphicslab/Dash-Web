@@ -3,13 +3,13 @@
 .bar {
     height: 100%;
     width: 5px;
-    background-color: green;
-    position: relative;
+    background-color: #4d9900;
+    position: absolute;
     
     // pointer-events: none; 
     .menubox {
         width: 200px; 
-        height: 200px;
+        height:200px;
         top: 50%;
         position: relative; 
         background-color: $light-color; 
@@ -21,25 +21,63 @@
     }
 
     .leftResize{
-        left:-10px; 
-        height:20px; 
-        width:20px; 
+        left:-12.5px; 
+        height:25px; 
+        width:25px; 
         border-radius: 50%; 
-        border: 1px black; 
-        background-color: transparent; 
-        top: calc(50% - 10px); 
+        background-color: white;
+        border:3px solid black;
+        top: calc(50% - 12.5px); 
+        z-index: 1000; 
         position:absolute; 
     }
     .rightResize{
-        right:-10px; 
-        height:20px; 
-        width:20px; 
+        right:-12.5px; 
+        height:25px; 
+        width:25px; 
         border-radius: 50%; 
-        top:calc(50% - 10px); 
-        background-color:black; 
+        top:calc(50% - 12.5px); 
+        background-color:white; 
+        border:3px solid black;
+        z-index: 1000; 
         position:absolute; 
-
+    }
+    .fadeLeft{
+        left:0px; 
+        height:100%; 
+        position:absolute; 
+        pointer-events: none; 
+        background: linear-gradient(to left, #4d9900 10%,  $light-color);
     }
 
+    .fadeRight{
+        right:0px; 
+        height:100%; 
+        position:absolute; 
+        pointer-events: none; 
+        background: linear-gradient(to right, #4d9900 10%,  $light-color);
+    }
+    .divider{
+        height:100%; 
+        width: 1px; 
+        position: absolute; 
+        background-color:black; 
+        cursor: col-resize; 
+    }
+    .keyframe{
+        height:100%; 
+        position:absolute;
+    }
+    .keyframeCircle{        
+        left:-15px;         
+        height:30px; 
+        width:30px; 
+        border-radius: 50%; 
+        top:calc(50% - 15px); 
+        background-color:white; 
+        border:3px solid green;
+        z-index: 1000; 
+        position:absolute; 
+    }
 
 }
