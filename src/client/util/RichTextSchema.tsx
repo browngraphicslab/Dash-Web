@@ -1,10 +1,11 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { Schema, NodeSpec, MarkSpec, DOMOutputSpecArray, NodeType, Slice } from "prosemirror-model";
+import { Schema, NodeSpec, MarkSpec, DOMOutputSpecArray, NodeType, Slice, Mark, Node } from "prosemirror-model";
 import { joinUp, lift, setBlockType, toggleMark, wrapIn, selectNodeForward, deleteSelection } from 'prosemirror-commands';
 import { redo, undo } from 'prosemirror-history';
 import { orderedList, bulletList, listItem, } from 'prosemirror-schema-list';
 import { EditorState, Transaction, NodeSelection, TextSelection, Selection, } from "prosemirror-state";
 import { EditorView, } from "prosemirror-view";
+import { View } from '@react-pdf/renderer';
 
 const pDOM: DOMOutputSpecArray = ["p", 0], blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
@@ -89,7 +90,7 @@ export const nodes: { [index: string]: NodeSpec } = {
         inline: true,
         attrs: {
             visibility: { default: false },
-            oldtext: { default: undefined },
+            text: { default: undefined },
             oldtextslice: { default: undefined },
             oldtextlen: { default: 0 }
 
@@ -280,8 +281,8 @@ export const marks: { [index: string]: MarkSpec } = {
         toDOM: () => ['sup']
     },
 
-    collapse: {
-        parseDOM: [{ style: 'color: blue' }],
+    highlight: {
+        parseDOM: [{ style: 'background: #d9dbdd' }],
         toDOM() {
             return ['span', {
                 style: 'color: blue'
@@ -479,6 +480,7 @@ export class ImageResizeView {
 export class SummarizedView {
     // TODO: highlight text that is summarized. to find end of region, walk along mark
     _collapsed: HTMLElement;
+    _view: any;
     constructor(node: any, view: any, getPos: any) {
         this._collapsed = document.createElement("span");
         this._collapsed.textContent = "㊉";
@@ -487,24 +489,32 @@ export class SummarizedView {
         this._collapsed.style.position = "relative";
         this._collapsed.style.width = "40px";
         this._collapsed.style.height = "20px";
+        let self = this;
+        this._view = view;
         this._collapsed.onpointerdown = function (e: any) {
             console.log("star pressed!");
             if (node.attrs.visibility) {
                 node.attrs.visibility = !node.attrs.visibility;
                 console.log("content is visible");
                 let y = getPos();
-                view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, y + 1, y + 1 + node.attrs.oldtextlen)));
-                view.dispatch(view.state.tr.deleteSelection(view.state, () => { }));
-                //this._collapsed.textContent = "㊀";
+                let { from, to } = self.updateSummarizedText(y + 1, view.state.schema.marks.highlight);
+                let length = to - from;
+                let newSelection = TextSelection.create(view.state.doc, y + 1, y + 1 + length);
+                node.attrs.text = newSelection.content();
+                view.dispatch(view.state.tr.setSelection(newSelection).deleteSelection(view.state, () => { }));
+                self._collapsed.textContent = "㊉";
             } else {
                 node.attrs.visibility = !node.attrs.visibility;
                 console.log("content is invisible");
                 let y = getPos();
-                let mark = view.state.schema.mark(view.state.schema.marks.underline);
-                console.log("PASTING " + node.attrs.oldtext.toString());
+                console.log(y);
+                let mark = view.state.schema.mark(view.state.schema.marks.highlight);
+                console.log("PASTING " + node.attrs.text.toString());
                 view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, y + 1, y + 1)));
-                view.dispatch(view.state.tr.replaceSelection(node.attrs.oldtext).addMark(view.state.selection.from, view.state.selection.from + node.attrs.oldtextlen, mark));
-                //this._collapsed.textContent = "㊉";
+                const from = view.state.selection.from;
+                let size = node.attrs.text.size;
+                view.dispatch(view.state.tr.replaceSelection(node.attrs.text).addMark(from, from + size, mark).removeStoredMark(mark));
+                self._collapsed.textContent = "㊀";
             }
             e.preventDefault();
             e.stopPropagation();
@@ -513,6 +523,45 @@ export class SummarizedView {
 
     }
     selectNode() {
+    }
+
+    updateSummarizedText(start?: any, mark?: any) {
+        let $start = this._view.state.doc.resolve(start);
+        let endPos = start;
+        //let first_startPos = $start.start(), endPos = first_startPos;
+        // let startIndex = $start.index(), endIndex = $start.indexAfter();
+        // let nodeAfter = $start.nodeAfter;
+        // while (startIndex > 0 && mark.isInSet($start.parent.child(startIndex - 1).marks)) startIndex--;
+        // while (endIndex < $start.parent.childCount && mark.isInSet($start.parent.child(endIndex).marks)) endIndex++;
+        // let startPos = $start.start(), endPos = startPos;
+        // for (let i = 0; i < endIndex; i++) {
+        //     let size = $start.parent.child(i).nodeSize;
+        //     console.log($start.parent.child(i).childCount);
+        //     if (i < startIndex) startPos += size;
+        //     endPos += size;
+        // }
+        let _mark = this._view.state.schema.mark(this._view.state.schema.marks.highlight);
+        // first_startPos = start;
+        // endPos = first_startPos;
+        let visited = new Set();
+        for (let i: number = start + 1; i < this._view.state.doc.nodeSize - 1; i++) {
+            console.log("ITER:", i);
+            let skip = false;
+            this._view.state.doc.nodesBetween(start, i, (node: Node, pos: number, parent: Node, index: number) => {
+                if (node.isLeaf && !visited.has(node) && !skip) {
+                    if (node.marks.includes(_mark)) {
+                        visited.add(node);
+                        //endPos += node.nodeSize + 1;
+                        endPos = i + node.nodeSize - 1;
+                        console.log("node contains mark!");
+                    }
+                    else skip = true;
+                }
+            });
+        }
+        console.log(start);
+        console.log(endPos);
+        return { from: start, to: endPos };
     }
 
     deselectNode() {

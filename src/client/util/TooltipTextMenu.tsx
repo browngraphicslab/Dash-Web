@@ -7,6 +7,7 @@ import { EditorState, Transaction, NodeSelection, TextSelection } from "prosemir
 import { EditorView } from "prosemirror-view";
 import { schema } from "./RichTextSchema";
 import { Schema, NodeType, MarkType, Mark } from "prosemirror-model";
+import { Node as ProsNode } from "prosemirror-model"
 import React = require("react");
 import "./TooltipTextMenu.scss";
 const { toggleMark, setBlockType, wrapIn } = require("prosemirror-commands");
@@ -29,6 +30,8 @@ import { CollectionDockingView } from "../views/collections/CollectionDockingVie
 import { DocumentManager } from "./DocumentManager";
 import { Id } from "../../new_fields/FieldSymbols";
 import { Utils } from "../../Utils";
+import { FormattedTextBoxProps } from "../views/nodes/FormattedTextBox";
+import { text } from "body-parser";
 // import { wrap } from "module";
 
 const SVG = "http://www.w3.org/2000/svg";
@@ -42,7 +45,7 @@ export class TooltipTextMenu {
     private fontStyles: MarkType[];
     private fontSizes: MarkType[];
     private listTypes: NodeType[];
-    private editorProps: FieldViewProps;
+    private editorProps: FieldViewProps & FormattedTextBoxProps;
     private state: EditorState;
     private fontSizeToNum: Map<MarkType, number>;
     private fontStylesToName: Map<MarkType, string>;
@@ -58,7 +61,7 @@ export class TooltipTextMenu {
     private fontStyleDom?: Node;
     private listTypeBtnDom?: Node;
 
-    constructor(view: EditorView, editorProps: FieldViewProps) {
+    constructor(view: EditorView, editorProps: FieldViewProps & FormattedTextBoxProps) {
         this.view = view;
         this.state = view.state;
         this.editorProps = editorProps;
@@ -66,7 +69,7 @@ export class TooltipTextMenu {
         this.tooltip.className = "tooltipMenu";
 
         //add the div which is the tooltip
-        view.dom.parentNode!.parentNode!.appendChild(this.tooltip);
+        //view.dom.parentNode!.parentNode!.appendChild(this.tooltip);
 
         //add additional icons
         library.add(faListUl);
@@ -131,11 +134,21 @@ export class TooltipTextMenu {
         this.link = document.createElement("a");
         this.link.target = "_blank";
         this.link.style.color = "white";
-        this.tooltip.appendChild(this.link);
+        //this.tooltip.appendChild(this.link);
 
         this.tooltip.appendChild(this.createLink().render(this.view).dom);
 
+        this.tooltip.appendChild(this.createStar().render(this.view).dom);
+
         this.update(view, undefined);
+
+        //view.dom.parentNode!.parentNode!.insertBefore(this.tooltip, view.dom.parentNode);
+
+        // quick and dirty null check
+        const outer_div = this.editorProps.outer_div;
+        outer_div && outer_div(this.tooltip);
+
+        console.log("hi");
     }
 
     //label of dropdown will change to given label
@@ -189,13 +202,13 @@ export class TooltipTextMenu {
             this.linkText.style.whiteSpace = "nowrap";
             this.linkText.style.width = "150px";
             this.linkText.style.overflow = "hidden";
-            this.linkText.style.color = "black";
+            this.linkText.style.color = "white";
             this.linkText.onpointerdown = (e: PointerEvent) => { e.stopPropagation(); };
             let linkBtn = document.createElement("div");
             linkBtn.textContent = ">>";
             linkBtn.style.width = "10px";
             linkBtn.style.height = "10px";
-            linkBtn.style.color = "black";
+            linkBtn.style.color = "white";
             linkBtn.style.cssFloat = "left";
             linkBtn.onpointerdown = (e: PointerEvent) => {
                 let node = this.view.state.selection.$from.nodeAfter;
@@ -239,26 +252,10 @@ export class TooltipTextMenu {
                         hideSource: false
                     });
             };
-            this.linkEditor.appendChild(this.linkDrag);
-            this.linkEditor.appendChild(this.linkText);
-            this.linkEditor.appendChild(linkBtn);
-            this.tooltip.appendChild(this.linkEditor);
-
-            let starButton = document.createElement("span");
-            // starButton.style.width = '10px';
-            // starButton.style.height = '10px';
-            starButton.style.marginLeft = '10px';
-            starButton.textContent = "Summarize";
-            starButton.style.color = 'black';
-            starButton.style.height = '20px';
-            starButton.style.backgroundColor = 'white';
-            starButton.style.textAlign = 'center';
-            starButton.onclick = () => {
-                let state = this.view.state;
-                this.insertStar(state, this.view.dispatch);
-            };
-
-            this.tooltip.appendChild(starButton);
+            // this.linkEditor.appendChild(this.linkDrag);
+            // this.linkEditor.appendChild(this.linkText);
+            // this.linkEditor.appendChild(linkBtn);
+            //this.tooltip.appendChild(this.linkEditor);
         }
 
         let node = this.view.state.selection.$from.nodeAfter;
@@ -286,16 +283,16 @@ export class TooltipTextMenu {
 
     insertStar(state: EditorState<any>, dispatch: any) {
         console.log("creating star...");
-        let newNode = schema.nodes.star.create({ visibility: false, oldtext: state.selection.content(), oldtextslice: state.selection.content().toJSON(), oldtextlen: state.selection.to - state.selection.from });
+        let newNode = schema.nodes.star.create({ visibility: false, text: state.selection.content(), oldtextslice: state.selection.content().toJSON(), oldtextlen: state.selection.to - state.selection.from });
         if (dispatch) {
-            console.log(newNode.attrs.oldtext.toString());
+            //console.log(newNode.attrs.text.toString());
             dispatch(state.tr.replaceSelectionWith(newNode));
         }
         return true;
     }
 
     //will display a remove-list-type button if selection is in list, otherwise will show list type dropdown
-    updateListItemDropdown(label: string, listTypeBtn: Node) {
+    updateListItemDropdown(label: string, listTypeBtn: any) {
         //remove old btn
         if (listTypeBtn) { this.tooltip.removeChild(listTypeBtn); }
 
@@ -373,6 +370,21 @@ export class TooltipTextMenu {
         });
     }
 
+    createStar() {
+        return new MenuItem({
+            title: "Summarize",
+            label: "Summarize",
+            icon: icons.join,
+            css: "color:white;",
+            class: "summarize",
+            execEvent: "",
+            run: (state, dispatch, view) => {
+                this.insertStar(state, dispatch);
+            }
+
+        });
+    }
+
     createLink() {
         let markType = schema.marks.link;
         return new MenuItem({
@@ -438,7 +450,7 @@ export class TooltipTextMenu {
         span.className = name + " menuicon";
         span.title = title;
         span.textContent = text;
-        span.style.color = "black";
+        span.style.color = "white";
         return span;
     }
 
@@ -502,34 +514,34 @@ export class TooltipTextMenu {
 
         // Hide the tooltip if the selection is empty
         if (state.selection.empty) {
-            this.tooltip.style.display = "none";
-            return;
+            //this.tooltip.style.display = "none";
+            //return;
         }
 
-        let linksInSelection = this.activeMarksOnSelection([schema.marks.link]);
-        if (linksInSelection.length > 0) {
-            let attributes = this.getMarksInSelection(this.view.state, [schema.marks.link])[0].attrs;
-            this.link.href = attributes.href;
-            this.link.textContent = attributes.title;
-            this.link.style.visibility = "visible";
-        } else this.link.style.visibility = "hidden";
+        //let linksInSelection = this.activeMarksOnSelection([schema.marks.link]);
+        // if (linksInSelection.length > 0) {
+        //     let attributes = this.getMarksInSelection(this.view.state, [schema.marks.link])[0].attrs;
+        //     this.link.href = attributes.href;
+        //     this.link.textContent = attributes.title;
+        //     this.link.style.visibility = "visible";
+        // } else this.link.style.visibility = "hidden";
 
         // Otherwise, reposition it and update its content
-        this.tooltip.style.display = "";
+        //this.tooltip.style.display = "";
         let { from, to } = state.selection;
         let start = view.coordsAtPos(from), end = view.coordsAtPos(to);
         // The box in which the tooltip is positioned, to use as base
-        let box = this.tooltip.offsetParent!.getBoundingClientRect();
+        //let box = this.tooltip.offsetParent!.getBoundingClientRect();
         // Find a center-ish x position from the selection endpoints (when
         // crossing lines, end may be more to the left)
         let left = Math.max((start.left + end.left) / 2, start.left + 3);
-        this.tooltip.style.left = (left - box.left) * this.editorProps.ScreenToLocalTransform().Scale + "px";
+        //this.tooltip.style.left = (left - box.left) * this.editorProps.ScreenToLocalTransform().Scale + "px";
         let width = Math.abs(start.left - end.left) / 2 * this.editorProps.ScreenToLocalTransform().Scale;
         let mid = Math.min(start.left, end.left) + width;
 
         //this.tooltip.style.width = 225 + "px";
-        this.tooltip.style.bottom = (box.bottom - start.top) * this.editorProps.ScreenToLocalTransform().Scale + "px";
-        this.tooltip.style.top = "-100px";
+        // this.tooltip.style.bottom = (box.bottom - start.top) * this.editorProps.ScreenToLocalTransform().Scale + "px";
+        // this.tooltip.style.top = "-100px";
         //this.tooltip.style.height = "100px";
 
         // let transform = this.editorProps.ScreenToLocalTransform();
@@ -573,17 +585,47 @@ export class TooltipTextMenu {
         let { empty, $cursor, ranges } = this.view.state.selection as TextSelection;
         let state = this.view.state;
         let dispatch = this.view.dispatch;
-
-        let activeMarks = markGroup.filter(mark => {
-            if (dispatch) {
-                let has = false, tr = state.tr;
-                for (let i = 0; !has && i < ranges.length; i++) {
-                    let { $from, $to } = ranges[i];
-                    return state.doc.rangeHasMark($from.pos, $to.pos, mark);
+        let activeMarks: MarkType[];
+        if (!empty) {
+            activeMarks = markGroup.filter(mark => {
+                if (dispatch) {
+                    let has = false, tr = state.tr;
+                    for (let i = 0; !has && i < ranges.length; i++) {
+                        let { $from, $to } = ranges[i];
+                        return state.doc.rangeHasMark($from.pos, $to.pos, mark);
+                    }
                 }
+                return false;
+            });
+        }
+        else {
+            let pos = this.view.state.selection.$from;
+            let ref_node: ProsNode;
+            if (pos.nodeAfter !== null && pos.nodeAfter !== undefined) {
+                ref_node = pos.nodeAfter;
             }
-            return false;
-        });
+            else if (pos.nodeBefore !== null && pos.nodeBefore !== undefined) {
+                ref_node = pos.nodeBefore;
+            }
+            else {
+                return [];
+            }
+            let text_node_type: NodeType;
+            if (ref_node.isText) {
+                text_node_type = ref_node.type;
+            }
+            else {
+                return [];
+            }
+
+            activeMarks = markGroup.filter(mark_type => {
+                if (dispatch) {
+                    let mark = state.schema.mark(mark_type);
+                    return ref_node.marks.includes(mark);
+                }
+                return false;
+            });
+        }
         return activeMarks;
     }
 

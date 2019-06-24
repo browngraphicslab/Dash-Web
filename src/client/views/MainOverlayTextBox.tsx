@@ -24,9 +24,11 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
     private _textHideOnLeave?: boolean;
     private _textTargetDiv: HTMLDivElement | undefined;
     private _textProxyDiv: React.RefObject<HTMLDivElement>;
+    private _outerdiv = (dominus: HTMLElement | null) => this._dominus && dominus && dominus.appendChild(this._dominus);
     private _textBottom: boolean | undefined;
     private _textAutoHeight: boolean | undefined;
     private _textBox: FormattedTextBox | undefined;
+    private _dominus?: HTMLElement;
     @observable public TextDoc?: Doc;
 
     constructor(props: MainOverlayTextBoxProps) {
@@ -114,7 +116,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
             let s = this._textXf().Scale;
             let location = this._textBottom ? textRect.bottom : textRect.top;
             let hgt = this._textAutoHeight || this._textBottom ? "auto" : this._textTargetDiv.clientHeight;
-            return <div className="mainOverlayTextBox-textInput" style={{ transform: `translate(${textRect.left}px, ${location}px) scale(${1 / s},${1 / s})`, width: "auto", height: "0px" }} >
+            return <div ref={this._outerdiv} className="unscaled_div" style={{ transform: `translate(${textRect.left}px, ${location}px)` }} ><div className="mainOverlayTextBox-textInput" style={{ transform: `scale(${1 / s},${1 / s})`, width: "auto", height: "0px" }} >
                 <div className="mainOverlayTextBox-textInput" onPointerDown={this.textBoxDown} ref={this._textProxyDiv} onScroll={this.textScroll}
                     style={{ width: `${textRect.width * s}px`, height: "0px" }}>
                     <div style={{ height: hgt, width: "100%", position: "absolute", bottom: this._textBottom ? "0px" : undefined }}>
@@ -123,9 +125,10 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
                             DataDoc={FormattedTextBox.InputBoxOverlay.props.DataDoc}
                             isSelected={returnTrue} select={emptyFunction} isTopMost={true} selectOnLoad={true}
                             ContainingCollectionView={undefined} whenActiveChanged={emptyFunction} active={returnTrue}
-                            ScreenToLocalTransform={this._textXf} PanelWidth={returnZero} PanelHeight={returnZero} focus={emptyFunction} addDocTab={this.addDocTab} />
+                            ScreenToLocalTransform={this._textXf} PanelWidth={returnZero} PanelHeight={returnZero} focus={emptyFunction} addDocTab={this.addDocTab} outer_div={(dominus: HTMLElement) => this._dominus = dominus} />
                     </div>
                 </div>
+            </div>
             </ div>;
         }
         else return (null);

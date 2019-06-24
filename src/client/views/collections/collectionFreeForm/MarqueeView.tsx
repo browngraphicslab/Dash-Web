@@ -50,7 +50,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             document.removeEventListener("pointerup", this.onPointerUp, true);
             document.removeEventListener("pointermove", this.onPointerMove, true);
         }
-        if (all) {
+        if (rem_keydown) {
             document.removeEventListener("keydown", this.marqueeCommand, true);
         }
         this._visible = false;
@@ -95,7 +95,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 }
             });
         } else if (!e.ctrlKey) {
-            let newBox = Docs.TextDocument({ width: 200, height: 30, x: x, y: y, title: "-typed text-" });
+            let newBox = Docs.TextDocument({ width: 200, height: 50, x: x, y: y, title: "-typed text-" });
             newBox.proto!.autoHeight = true;
             this.props.addLiveTextDocument(newBox);
         }

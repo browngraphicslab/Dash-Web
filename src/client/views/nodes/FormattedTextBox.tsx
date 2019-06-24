@@ -45,6 +45,7 @@ export interface FormattedTextBoxProps {
     hideOnLeave?: boolean;
     height?: string;
     color?: string;
+    outer_div?: (domminus: HTMLElement) => void;
 }
 
 const richTextSchema = createSchema({
@@ -60,6 +61,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         return FieldView.LayoutString(FormattedTextBox, fieldStr);
     }
     private _ref: React.RefObject<HTMLDivElement>;
+    private _outerdiv?: (dominus: HTMLElement) => void;
     private _proseRef?: HTMLDivElement;
     private _editorView: Opt<EditorView>;
     private _toolTipTextMenu: TooltipTextMenu | undefined = undefined;
@@ -97,6 +99,10 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     constructor(props: FieldViewProps) {
         super(props);
+        if (this.props.outer_div) {
+            this._outerdiv = this.props.outer_div;
+            console.log("yay");
+        }
 
         this._ref = React.createRef();
         if (this.props.isOverlay) {
@@ -256,7 +262,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (e.button === 0 && this.props.isSelected() && !e.altKey && !e.ctrlKey && !e.metaKey) {
             e.stopPropagation();
             if (this._toolTipTextMenu && this._toolTipTextMenu.tooltip) {
-                this._toolTipTextMenu.tooltip.style.opacity = "0";
+                //this._toolTipTextMenu.tooltip.style.opacity = "0";
             }
         }
         let ctrlKey = e.ctrlKey;
@@ -291,7 +297,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
     onPointerUp = (e: React.PointerEvent): void => {
         if (this._toolTipTextMenu && this._toolTipTextMenu.tooltip) {
-            this._toolTipTextMenu.tooltip.style.opacity = "1";
+            //this._toolTipTextMenu.tooltip.style.opacity = "1";
         }
         if (e.buttons === 1 && this.props.isSelected() && !e.altKey) {
             e.stopPropagation();

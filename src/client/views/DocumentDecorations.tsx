@@ -656,7 +656,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 left: bounds.x - this._resizeBorderWidth / 2,
                 top: bounds.y - this._resizeBorderWidth / 2,
                 pointerEvents: this.Interacting ? "none" : "all",
-                zIndex: SelectionManager.SelectedDocuments().length > 1 ? 1000 : 0,
+                zIndex: SelectionManager.SelectedDocuments().length > 1 ? 900 : 0,
             }} onPointerDown={this.onBackgroundDown} onContextMenu={(e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); }} >
             </div>
             <div className="documentDecorations-container" style={{
