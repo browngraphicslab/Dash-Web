@@ -92,7 +92,7 @@ export class SearchBox extends React.Component {
                         }, 200);
                         setTimeout(() => {
                             panel.style.opacity = "1";
-                        }, 50)
+                        }, 50);
                         panel.style.maxHeight = panel.scrollHeight + "px";
                         
                     }

@@ -129,7 +129,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
         return num.toString() + " links";
     }
 
-    pointerDown = (e: React.PointerEvent) => { SearchBox.Instance.openSearch(e); }
+    pointerDown = (e: React.PointerEvent) => { SearchBox.Instance.openSearch(e); };
 
     highlightDoc = (e: React.PointerEvent) => {
         let docViews: DocumentView[] = DocumentManager.Instance.getAllDocumentViews(this.props.doc);

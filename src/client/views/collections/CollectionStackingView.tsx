@@ -99,7 +99,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             let dref = React.createRef<HTMLDivElement>();
             let dxf = () => this.getDocTransform(d, dref.current!).scale(this.columnWidth / d[WidthSym]());
             let width = () => d.nativeWidth ? Math.min(d[WidthSym](), this.columnWidth) : this.columnWidth;
-            let height = () => aspect ? width() / aspect : d[HeightSym]()
+            let height = () => aspect ? width() / aspect : d[HeightSym]();
             let rowSpan = Math.ceil((height() + this.gridGap) / (this._gridSize + this.gridGap));
             return (<div className="collectionStackingView-masonryDoc"
                 key={d[Id]}

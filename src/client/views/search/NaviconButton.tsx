@@ -20,7 +20,7 @@ export class NaviconButton extends React.Component<NaviconProps> {
                 that.ref.current.classList.toggle('active');
                 return false;
             }
-        })};
+        });}
     }
 
     render() {
