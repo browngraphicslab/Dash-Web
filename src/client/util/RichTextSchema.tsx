@@ -350,6 +350,16 @@ export const marks: { [index: string]: MarkSpec } = {
 
 
     /** FONT SIZES */
+    pFontSize: {
+        attrs: {
+            fontSize: { default: 10 }
+        },
+        inclusive: false,
+        parseDOM: [{ style: 'font-size: 10px;' }],
+        toDOM: (node) => ['span', {
+            style: `font-size: ${node.attrs.fontSize}px;`
+        }]
+    },
 
     p10: {
         parseDOM: [{ style: 'font-size: 10px;' }],
