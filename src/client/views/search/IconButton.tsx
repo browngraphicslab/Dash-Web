@@ -137,24 +137,16 @@ export class IconButton extends React.Component<IconButtonProps>{
     };
 
     @action.bound
-    public reset() {
-        this.isSelected = false;
-    }
+    public reset() { this.isSelected = false; }
 
     @action.bound
-    public select() {
-        this.isSelected = true;
-    }
+    public select() { this.isSelected = true; }
 
     @action
-    onMouseLeave = () => {
-        this.hover = false;
-    }
+    onMouseLeave = () => { this.hover = false; }
 
     @action
-    onMouseEnter = () => {
-        this.hover = true;
-    }
+    onMouseEnter = () => { this.hover = true; }
 
     getFA = () => {
         switch (this.props.type) {

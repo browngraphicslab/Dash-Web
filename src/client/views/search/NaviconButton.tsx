@@ -8,7 +8,6 @@ export interface NaviconProps{
     onClick(): void;
 }
 
-
 export class NaviconButton extends React.Component<NaviconProps> {
 
     @observable ref: React.RefObject<HTMLAnchorElement> = React.createRef();

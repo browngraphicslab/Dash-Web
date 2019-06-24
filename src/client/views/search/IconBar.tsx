@@ -44,14 +44,10 @@ export class IconBar extends React.Component {
     }
 
     @action.bound
-    getList = (): string[] => {
-        return SearchBox.Instance.getIcons();
-    }
+    getList = (): string[] => { return SearchBox.Instance.getIcons(); }
 
     @action.bound
-    updateList(newList: string[]) {
-        SearchBox.Instance.updateIcon(newList);
-    }
+    updateList(newList: string[]) { SearchBox.Instance.updateIcon(newList); }
 
     @action.bound
     resetSelf = () => {

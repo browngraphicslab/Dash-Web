@@ -69,7 +69,6 @@ export class SelectorContextMenu extends React.Component<SearchItemProps> {
         };
     }
 
-    //these all need class names in order to find ancestor - please do not delete
     render() {
         return (
             < div className="parents">
@@ -119,9 +118,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
     }
 
     @computed
-    get linkCount() {
-        return Cast(this.props.doc.linkedToDocs, listSpec(Doc), []).length + Cast(this.props.doc.linkedFromDocs, listSpec(Doc), []).length;
-    }
+    get linkCount() { return Cast(this.props.doc.linkedToDocs, listSpec(Doc), []).length + Cast(this.props.doc.linkedFromDocs, listSpec(Doc), []).length; }
 
     @computed
     get linkString(): string {
@@ -132,9 +129,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
         return num.toString() + " links";
     }
 
-    pointerDown = (e: React.PointerEvent) => {
-        SearchBox.Instance.openSearch(e);
-    }
+    pointerDown = (e: React.PointerEvent) => { SearchBox.Instance.openSearch(e); }
 
     highlightDoc = (e: React.PointerEvent) => {
         let docViews: DocumentView[] = DocumentManager.Instance.getAllDocumentViews(this.props.doc);
