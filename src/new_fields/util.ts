@@ -21,7 +21,9 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
         target[prop] = value;
         return true;
     }
-    value = value[SelfProxy] || value;
+    if (value !== undefined) {
+        value = value[SelfProxy] || value;
+    }
     const curValue = target.__fields[prop];
     if (curValue === value || (curValue instanceof ProxyField && value instanceof RefField && curValue.fieldId === value[Id])) {
         // TODO This kind of checks correctly in the case that curValue is a ProxyField and value is a RefField, but technically
