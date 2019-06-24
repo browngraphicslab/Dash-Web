@@ -125,7 +125,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         return !this.props.active() ? (null) :
             (
                 <div className="pdfBox-settingsCont" onPointerDown={(e) => e.stopPropagation()}>
-                    <button className="pdfBox-settingsButton" onClick={this.toggleFlyout}
+                    <button className="pdfBox-settingsButton" onClick={this.toggleFlyout} title="Open Annotation Settings"
                         style={{ marginTop: `${NumCast(this.props.ContainingCollectionView!.props.Document.panY)}px` }}>
                         <div className="pdfBox-settingsButton-arrow"
                             style={{
