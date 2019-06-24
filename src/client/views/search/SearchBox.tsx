@@ -78,6 +78,20 @@ export class SearchBox extends React.Component {
         // }
     }
 
+    closeFilterVisual() {
+        $('document').ready(function () {
+            var form = document.getElementById("filter-form");
+
+            if(form){
+            if(form.style.maxHeight) {
+                form.style.maxHeight = null;
+                form.style
+            }
+
+        }
+        });
+    }
+
     setupAccordion() {
         $('document').ready(function () {
             var acc = document.getElementsByClassName('filter-header');
@@ -87,21 +101,6 @@ export class SearchBox extends React.Component {
                     this.classList.toggle("active");
 
                     var panel = this.nextElementSibling as HTMLElement;
-                    // if (panel) {
-                    //     console.log(panel.style.transform)
-                    //     if (panel.style.display === "inline-block") {
-                    //         panel.style.opacity = "0";
-                    //         // panel.style.transform = "scaleY(0)"
-                    //         setTimeout(function(){
-                    //             panel.style.display = "none";
-                    //         }, 200);
-
-                    //     } else {
-                    //         panel.style.opacity = "1";
-                    //         // panel.style.transform = "scaleY(1)"
-                    //         panel.style.display = "inline-block";
-                    //     }
-                    // }
                     if (panel.style.maxHeight) {
                         panel.style.overflow = "hidden";
                         panel.style.maxHeight = null;
@@ -529,7 +528,7 @@ export class SearchBox extends React.Component {
                     ) : undefined}
                 </div>
                 {this._filterOpen ? (
-                    <div className="filter-form" onPointerDown={this.stopProp} id="filter" style={this._filterOpen ? { display: "flex" } : { display: "none" }}>
+                    <div className="filter-form" onPointerDown={this.stopProp} id="filter-form" style={this._filterOpen ? { display: "flex" } : { display: "none" }}>
                         <div style={{ display: "flex", width: "100%" }}>
                             <div id="header">Filter Search Results</div>
                             <div className="close-icon" onClick={this.closeFilter}>

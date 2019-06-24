@@ -81,7 +81,6 @@ export class ToggleBar extends React.Component<ToggleBarProps>{
     onclick() {
         this.forwardTimeline.play();
         this.forwardTimeline.reverse();
-        // SearchBox.Instance.handleWordQueryChange();
         this.props.handleChange();
     }
 
@@ -90,7 +89,6 @@ export class ToggleBar extends React.Component<ToggleBarProps>{
         if (!this.props.getStatus()) {
             this.forwardTimeline.play();
             this.forwardTimeline.reverse();
-            // SearchBox.Instance.handleWordQueryChange();
             this.props.handleChange();
         }
     }

@@ -49,14 +49,16 @@
 }
 
 .filter-form {
+    padding: 25px;
+    width: 600px;
     background: $dark-color;
-    height: auto;
-    overflow: auto;
     position: relative;
     right: 1px;
     color: $light-color;
     flex-direction: column;
     display: inline-block;
+    transform-origin: top;
+    overflow: auto;
 
     .filter-header {
         display: flex;
@@ -112,11 +114,6 @@
     .close-icon:hover {
         opacity: 1;
     }
-}
-
-#filter {
-    padding: 25px;
-    width: 600px;
 }
 
 #header {
