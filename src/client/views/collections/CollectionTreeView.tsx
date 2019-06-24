@@ -28,7 +28,6 @@ import React = require("react");
 import { FormattedTextBox } from '../nodes/FormattedTextBox';
 import { ImageField } from '../../../new_fields/URLField';
 import { ImageBox } from '../nodes/ImageBox';
-import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
 import { CollectionView } from './CollectionView';
 
 
@@ -71,11 +70,23 @@ class TreeView extends React.Component<TreeViewProps> {
     @observable _collapsed: boolean = true;
 
     @computed get fieldKey() {
+        let keys = Array.from(Object.keys(this.dataDoc));
+        if (this.dataDoc.proto instanceof Doc) {
+            keys.push(...Array.from(Object.keys(this.dataDoc.proto)));
+            while (keys.indexOf("proto") !== -1) keys.splice(keys.indexOf("proto"), 1);
+        }
+        let keyList: string[] = [];
+        keys.map(key => {
+            let docList = Cast(this.dataDoc[key], listSpec(Doc));
+            if (docList && docList.length > 0) {
+                keyList.push(key);
+            }
+        });
         let layout = StrCast(this.props.document.layout);
         if (layout.indexOf("fieldKey={\"") !== -1) {
             return layout.split("fieldKey={\"")[1].split("\"")[0];
         }
-        return "data";
+        return keyList.length ? keyList[0] : "data";
     }
 
     @computed get dataDoc() { return (BoolCast(this.props.document.isTemplate) ? this.props.dataDoc : this.props.document); }
@@ -163,63 +174,39 @@ class TreeView extends React.Component<TreeViewProps> {
         SetValue={(value: string) => {
             let res = (Doc.GetProto(this.dataDoc)[key] = value) ? true : true;
 
-            if (value.startsWith(">>>")) {
-                let metaKey = value.slice(3, value.length);
+            if (value.startsWith(">")) {
+                let metaKey = value.slice(value.startsWith(">>>") ? 3 : value.startsWith(">>") ? 2 : 1, value.length);
                 let collection = this.props.containingCollection;
-                Doc.GetProto(collection)[metaKey] = new List<Doc>([
-                    Docs.ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { width: 300, height: 300 }),
-                    Docs.TextDocument({ documentText: "hello world!", width: 300, height: 300 }),
-                ]);
                 let template = Doc.MakeAlias(collection);
                 template.title = metaKey;
                 template.embed = true;
-                template.layout = CollectionView.LayoutString(metaKey);
-                template.viewType = CollectionViewType.Freeform;
                 template.x = 0;
                 template.y = 0;
                 template.width = 300;
                 template.height = 300;
                 template.isTemplate = true;
                 template.templates = new List<string>([Templates.TitleBar(metaKey)]);//`{props.DataDoc.${metaKey}_text}`)]);
-                Doc.AddDocToList(collection, "data", template);
-                this.delete();
-            } else
-                if (value.startsWith(">>")) {
-                    let metaKey = value.slice(2, value.length);
-                    let collection = this.props.containingCollection;
+                if (value.startsWith(">>>")) { // Collection
+                    Doc.GetProto(collection)[metaKey] = new List<Doc>([
+                        Docs.ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { width: 300, height: 300 }),
+                        Docs.TextDocument({ documentText: "hello world!", width: 300, height: 300 }),
+                    ]);
+                    template.layout = CollectionView.LayoutString(metaKey);
+                    template.viewType = CollectionViewType.Freeform;
+                } else if (value.startsWith(">>")) { // Image
                     Doc.GetProto(collection)[metaKey] = new ImageField("http://www.cs.brown.edu/~bcz/face.gif");
-                    let template = Doc.MakeAlias(collection);
-                    template.title = metaKey;
-                    template.embed = true;
                     template.layout = ImageBox.LayoutString(metaKey);
-                    template.x = 0;
-                    template.y = 0;
                     template.nativeWidth = 300;
                     template.nativeHeight = 300;
-                    template.width = 300;
-                    template.height = 300;
-                    template.isTemplate = true;
-                    template.templates = new List<string>([Templates.TitleBar(metaKey)]);//`{props.DataDoc.${metaKey}_text}`)]);
-                    Doc.AddDocToList(collection, "data", template);
-                    this.delete();
-                } else
-                    if (value.startsWith(">")) {
-                        let metaKey = value.slice(1, value.length);
-                        let collection = this.props.containingCollection;
-                        Doc.GetProto(collection)[metaKey] = "-empty field-";
-                        let template = Doc.MakeAlias(collection);
-                        template.title = metaKey;
-                        template.embed = true;
-                        template.layout = FormattedTextBox.LayoutString(metaKey);
-                        template.x = 0;
-                        template.y = 0;
-                        template.width = 100;
-                        template.height = 50;
-                        template.isTemplate = true;
-                        template.templates = new List<string>([Templates.TitleBar(metaKey)]);//`{props.DataDoc.${metaKey}_text}`)]);
-                        Doc.AddDocToList(collection, "data", template);
-                        this.delete();
-                    }
+                } else if (value.startsWith(">")) {  // Text
+                    Doc.GetProto(collection)[metaKey] = "-empty field-";
+                    template.layout = FormattedTextBox.LayoutString(metaKey);
+                    template.width = 100;
+                    template.height = 50;
+                }
+                Doc.AddDocToList(collection, "data", template);
+                this.delete();
+            }
 
             return res;
         }}
@@ -238,14 +225,8 @@ class TreeView extends React.Component<TreeViewProps> {
             keys.push(...Array.from(Object.keys(this.dataDoc.proto)));
             while (keys.indexOf("proto") !== -1) keys.splice(keys.indexOf("proto"), 1);
         }
-        let keyList: string[] = [];
-        keys.map(key => {
-            let docList = Cast(this.dataDoc[key], listSpec(Doc));
-            let doc = Cast(this.dataDoc[key], Doc);
-            if (doc instanceof Doc || docList) {
-                keyList.push(key);
-            }
-        });
+        let keyList: string[] = keys.reduce((l, key) => Cast(this.dataDoc[key], listSpec(Doc)) ? [...l, key] : l, [] as string[]);
+        keys.map(key => Cast(this.dataDoc[key], Doc) instanceof Doc && keyList.push(key));
         if (keyList.indexOf(this.fieldKey) !== -1) {
             keyList.splice(keyList.indexOf(this.fieldKey), 1);
         }
@@ -291,16 +272,16 @@ class TreeView extends React.Component<TreeViewProps> {
     onWorkspaceContextMenu = (e: React.MouseEvent): void => {
         if (!e.isPropagationStopped()) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
             ContextMenu.Instance.addItem({ description: "Open as Workspace", event: undoBatch(() => MainView.Instance.openWorkspace(this.dataDoc)) });
-            ContextMenu.Instance.addItem({ description: "Open Fields", event: () => { let kvp = Docs.KVPDocument(this.dataDoc, { width: 300, height: 300 }); this.props.addDocTab(kvp, kvp, "onRight"); }, icon: "layer-group" });
+            ContextMenu.Instance.addItem({ description: "Open Fields", event: () => { let kvp = Docs.KVPDocument(this.props.document, { width: 300, height: 300 }); this.props.addDocTab(kvp, kvp, "onRight"); }, icon: "layer-group" });
             if (NumCast(this.props.document.viewType) !== CollectionViewType.Docking) {
-                ContextMenu.Instance.addItem({ description: "Open Tab", event: () => this.props.addDocTab(this.props.document, this.props.document, "inTab"), icon: "folder" });
-                ContextMenu.Instance.addItem({ description: "Open Right", event: () => this.props.addDocTab(this.props.document, this.props.document, "onRight"), icon: "caret-square-right" });
+                ContextMenu.Instance.addItem({ description: "Open Tab", event: () => this.props.addDocTab(this.props.document, this.dataDoc, "inTab"), icon: "folder" });
+                ContextMenu.Instance.addItem({ description: "Open Right", event: () => this.props.addDocTab(this.props.document, this.dataDoc, "onRight"), icon: "caret-square-right" });
                 if (DocumentManager.Instance.getDocumentViews(this.dataDoc).length) {
                     ContextMenu.Instance.addItem({ description: "Focus", event: () => DocumentManager.Instance.getDocumentViews(this.dataDoc).map(view => view.props.focus(this.props.document)) });
                 }
-                ContextMenu.Instance.addItem({ description: "Delete Item", event: undoBatch(() => this.props.deleteDoc(this.dataDoc)) });
+                ContextMenu.Instance.addItem({ description: "Delete Item", event: undoBatch(() => this.props.deleteDoc(this.props.document)) });
             } else {
-                ContextMenu.Instance.addItem({ description: "Delete Workspace", event: undoBatch(() => this.props.deleteDoc(this.dataDoc)) });
+                ContextMenu.Instance.addItem({ description: "Delete Workspace", event: undoBatch(() => this.props.deleteDoc(this.props.document)) });
             }
             ContextMenu.Instance.displayMenu(e.pageX > 156 ? e.pageX - 156 : 0, e.pageY - 15);
             e.stopPropagation();
@@ -349,14 +330,14 @@ class TreeView extends React.Component<TreeViewProps> {
         if (!this._collapsed) {
             if (!this.props.document.embed) {
                 contentElement = <ul key={this._chosenKey + "more"}>
-                    {TreeView.GetChildElements(doc instanceof Doc ? [doc] : DocListCast(docList), this.props.treeViewId, this.props.document, this.props.dataDoc, this._chosenKey, addDoc, remDoc, this.move,
+                    {TreeView.GetChildElements(doc instanceof Doc ? [doc] : DocListCast(docList), this.props.treeViewId, this.props.document, this.dataDoc, this._chosenKey, addDoc, remDoc, this.move,
                         this.props.dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active, this.props.panelWidth)}
                 </ul >;
             } else {
                 contentElement = <div ref={this._dref} style={{ display: "inline-block", height: this.props.panelHeight() }} key={this.props.document[Id]}>
                     <CollectionSchemaPreview
                         Document={this.props.document}
-                        DataDocument={this.props.dataDoc}
+                        DataDocument={this.dataDoc}
                         width={docWidth}
                         height={this.props.panelHeight}
                         getTransform={this.docTransform}
@@ -400,7 +381,7 @@ class TreeView extends React.Component<TreeViewProps> {
         active: () => boolean,
         panelWidth: () => number,
     ) {
-        let docList = docs.filter(child => !child.excludeFromLibrary && (key !== this.fieldKey || !child.isMinimized));
+        let docList = docs.filter(child => !child.excludeFromLibrary);
         let rowWidth = () => panelWidth() - 20;
         return docList.map((child, i) => {
             let indent = i === 0 ? undefined : () => {
@@ -475,6 +456,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
 
     outerXf = () => Utils.GetScreenTransform(this._mainEle!);
     onTreeDrop = (e: React.DragEvent) => this.onDrop(e, {});
+    @computed get dataDoc() { return (BoolCast(this.props.DataDoc.isTemplate) ? this.props.DataDoc : this.props.Document); }
 
     render() {
         let dropAction = StrCast(this.props.Document.dropAction) as dropActionType;
@@ -502,7 +484,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                     }} />
                 <ul className="no-indent" style={{ width: "max-content" }} >
                     {
-                        TreeView.GetChildElements(this.childDocs, this.props.Document[Id], this.props.Document, this.props.DataDoc, this.props.fieldKey, addDoc, this.remove,
+                        TreeView.GetChildElements(this.childDocs, this.props.Document[Id], this.props.Document, this.dataDoc, this.props.fieldKey, addDoc, this.remove,
                             moveDoc, dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.outerXf, this.props.active, this.props.PanelWidth)
                     }
                 </ul>

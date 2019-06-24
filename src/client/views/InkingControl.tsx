@@ -8,6 +8,7 @@ import { faPen, faHighlighter, faEraser, faBan } from '@fortawesome/free-solid-s
 import { SelectionManager } from "../util/SelectionManager";
 import { InkTool } from "../../new_fields/InkField";
 import { Doc } from "../../new_fields/Doc";
+import { InkingCanvas } from "./InkingCanvas";
 
 library.add(faPen, faHighlighter, faEraser, faBan);
 
@@ -39,7 +40,7 @@ export class InkingControl extends React.Component {
     @action
     switchColor = (color: ColorResult): void => {
         this._selectedColor = color.hex + (color.rgb.a !== undefined ? this.decimalToHexString(Math.round(color.rgb.a * 255)) : "ff");
-        SelectionManager.SelectedDocuments().forEach(doc => Doc.GetProto(doc.props.Document).backgroundColor = this._selectedColor);
+        if (InkingControl.Instance.selectedTool === InkTool.None) SelectionManager.SelectedDocuments().forEach(doc => Doc.GetProto(doc.props.Document).backgroundColor = this._selectedColor);
     }
 
     @action

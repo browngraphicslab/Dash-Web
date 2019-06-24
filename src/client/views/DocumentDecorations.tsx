@@ -24,9 +24,10 @@ import { LinkMenu } from "./nodes/LinkMenu";
 import { TemplateMenu } from "./TemplateMenu";
 import { Template, Templates } from "./Templates";
 import React = require("react");
-import { URLField } from '../../new_fields/URLField';
+import { URLField, ImageField } from '../../new_fields/URLField';
 import { templateLiteral } from 'babel-types';
 import { CollectionViewType } from './collections/CollectionBaseView';
+import { ImageBox } from './nodes/ImageBox';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -75,41 +76,29 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             if (text[0] === '#') {
                 this._fieldKey = text.slice(1, text.length);
                 this._title = this.selectionTitle;
-            } else if (text.startsWith(">>>")) {
-                let metaKey = text.slice(3, text.length);
-                let collection = SelectionManager.SelectedDocuments()[0].props.ContainingCollectionView!.props.Document;
-                Doc.GetProto(collection)[metaKey] = new List<Doc>([
-                    Docs.ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { width: 300, height: 300 }),
-                    Docs.TextDocument({ documentText: "hello world!", width: 300, height: 300 }),
-                ]);
-                let template = Doc.MakeAlias(collection);
+            } else if (text.startsWith(">")) {
+                let metaKey = text.slice(text.startsWith(">>>") ? 3 : text.startsWith(">>") ? 2 : 1, text.length);
+                let field = SelectionManager.SelectedDocuments()[0];
+                let collectionKey = field.props.ContainingCollectionView!.props.fieldKey;
+                let collection = field.props.ContainingCollectionView!.props.Document;
+                let collectionKeyProp = `fieldKey={"${collectionKey}"}`;
+                let collectionAnnotationsKeyProp = `fieldKey={"annotations"}`;
+                let metaKeyProp = `fieldKey={"${metaKey}"}`;
+                let metaAnnotationsKeyProp = `fieldKey={"${metaKey}_annotations"}`;
+                let template = Doc.MakeAlias(field.props.Document);
+                template.proto = collection;
                 template.title = metaKey;
+                template.nativeWidth = Cast(field.nativeWidth, "number");
+                template.nativeHeight = Cast(field.nativeHeight, "number");
                 template.embed = true;
-                template.layout = CollectionView.LayoutString(metaKey);
-                template.viewType = CollectionViewType.Freeform;
-                template.x = 0;
-                template.y = 0;
-                template.width = 300;
-                template.height = 300;
                 template.isTemplate = true;
-                template.templates = new List<string>([Templates.TitleBar(metaKey)]);//`{props.DataDoc.${metaKey}_text}`)]);
-                Doc.AddDocToList(collection, "data", template);
-                SelectionManager.SelectedDocuments().map(dv => dv.props.removeDocument && dv.props.removeDocument(dv.props.Document));
-            } else if (text[0] === ">") {
-                let metaKey = text.slice(1, text.length);
-                let first = SelectionManager.SelectedDocuments()[0].props.Document!;
-                let collection = SelectionManager.SelectedDocuments()[0].props.ContainingCollectionView!.props.Document;
-                Doc.GetProto(collection)[metaKey] = "-empty field-";
-                let template = Doc.MakeAlias(collection);
-                template.title = metaKey;
-                template.layout = FormattedTextBox.LayoutString(metaKey);
-                template.isTemplate = true;
-                template.x = NumCast(first.x);
-                template.y = NumCast(first.y);
-                template.width = first[WidthSym]();
-                template.height = first[HeightSym]();
-                template.templates = new List<string>([Templates.TitleBar(metaKey)]);//`{props.DataDoc.${metaKey}_text}`)]);
-                Doc.AddDocToList(collection, "data", template);
+                template.templates = new List<string>([Templates.TitleBar(metaKey)]);
+                template.layout = StrCast(field.props.Document.layout).replace(collectionKeyProp, metaKeyProp);
+                if (field.props.Document.backgroundLayout) {
+                    template.layout = StrCast(field.props.Document.layout).replace(collectionAnnotationsKeyProp, metaAnnotationsKeyProp);
+                    template.backgroundLayout = StrCast(field.props.Document.backgroundLayout).replace(collectionKeyProp, metaKeyProp);
+                }
+                Doc.AddDocToList(collection, collectionKey, template);
                 SelectionManager.SelectedDocuments().map(dv => dv.props.removeDocument && dv.props.removeDocument(dv.props.Document));
             }
             else {

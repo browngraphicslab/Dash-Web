@@ -2,8 +2,10 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 import { faProjectDiagram, faSignature, faSquare, faTh, faThList, faTree } from '@fortawesome/free-solid-svg-icons';
 import { observer } from "mobx-react";
 import * as React from 'react';
+import { Doc } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
+import { Docs } from '../../documents/Documents';
 import { undoBatch } from '../../util/UndoManager';
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
@@ -14,11 +16,6 @@ import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormV
 import { CollectionSchemaView } from "./CollectionSchemaView";
 import { CollectionStackingView } from './CollectionStackingView';
 import { CollectionTreeView } from "./CollectionTreeView";
-import { Doc } from '../../../new_fields/Doc';
-import { FormattedTextBox } from '../nodes/FormattedTextBox';
-import { Docs } from '../../documents/Documents';
-import { List } from '../../../new_fields/List';
-import { ImageField } from '../../../new_fields/URLField';
 export const COLLECTION_BORDER_WIDTH = 2;
 
 library.add(faTh);
@@ -62,17 +59,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
             ContextMenu.Instance.addItem({
                 description: "Apply Template", event: undoBatch(() => {
                     let otherdoc = Docs.TextDocument({ width: 100, height: 50, title: "applied template" });
-                    Doc.GetProto(otherdoc).description = "THIS DESCRIPTION IS REALLY IMPORTANT!";
-                    Doc.GetProto(otherdoc).summary = "THIS SUMMARY IS MEANINGFUL!";
-                    Doc.GetProto(otherdoc).photo = new ImageField("http://www.cs.brown.edu/~bcz/snowbeast.JPG");
                     Doc.GetProto(otherdoc).layout = Doc.MakeDelegate(this.props.Document);
-                    Doc.GetProto(otherdoc).publication = new List<Doc>([
-                        Docs.TextDocument({ documentText: "hello world!", width: 300, height: 300 }),
-                        Docs.ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { width: 300, height: 300 }),
-                        Docs.ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { width: 300, height: 300 }),
-                        Docs.ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { width: 300, height: 300 }),
-                        Docs.TextDocument({ documentText: "hello world!", width: 300, height: 300 }),
-                    ]);
                     this.props.addDocTab && this.props.addDocTab(otherdoc, otherdoc, "onRight");
                 }), icon: "project-diagram"
             });

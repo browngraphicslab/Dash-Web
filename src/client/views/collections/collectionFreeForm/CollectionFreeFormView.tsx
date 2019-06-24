@@ -370,7 +370,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     private childViews = () => [
-        <CollectionFreeFormBackgroundView key="backgroundView" {...this.props} {...this.getDocumentViewProps(this.props.Document)} />,
+        <CollectionFreeFormBackgroundView key="backgroundView" {...this.props} {...this.getDocumentViewProps(this.props.Document)} DataDoc={this.props.DataDoc} />,
         ...this.views
     ]
     render() {
@@ -387,7 +387,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         easing={easing} zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
 
                         <CollectionFreeFormLinksView {...this.props} key="freeformLinks">
-                            <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} >
+                            <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.DataDoc} inkFieldKey={this.props.fieldKey + "_ink"} >
                                 {this.childViews}
                             </InkingCanvas>
                         </CollectionFreeFormLinksView>
@@ -414,6 +414,7 @@ class CollectionFreeFormOverlayView extends React.Component<DocumentViewProps & 
 @observer
 class CollectionFreeFormBackgroundView extends React.Component<DocumentViewProps & { isSelected: () => boolean }> {
     @computed get backgroundView() {
+        let props = this.props;
         return (<DocumentContentsView {...this.props} layoutKey={"backgroundLayout"}
             isTopMost={this.props.isTopMost} isSelected={this.props.isSelected} select={emptyFunction} />);
     }

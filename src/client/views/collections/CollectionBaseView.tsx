@@ -100,7 +100,6 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         }
         return false;
     }
-    @computed get isAnnotationOverlay() { return this.props.fieldKey === "annotations"; }
 
     @action.bound
     addDocument(doc: Doc, allowDuplicates: boolean = false): boolean {
