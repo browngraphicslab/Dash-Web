@@ -24,6 +24,7 @@ import { DocumentView } from '../nodes/DocumentView';
 import { CollectionFilters } from './CollectionFilters';
 import { NaviconButton } from './NaviconButton';
 import * as $ from 'jquery';
+import * as anime from 'animejs';
 
 library.add(faTimes);
 
@@ -78,27 +79,63 @@ export class SearchBox extends React.Component {
     }
 
     setupAccordion() {
-        $('document').ready(function(){
+        $('document').ready(function () {
             var acc = document.getElementsByClassName('filter-header');
 
-        for (var i = 0; i < acc.length; i++) {
-            // for(let entry of acc){
-            acc[i].addEventListener("click", function (this: HTMLElement) {
-                this.classList.toggle("active");
+            for (var i = 0; i < acc.length; i++) {
+                acc[i].addEventListener("click", function (this: HTMLElement) {
+                    this.classList.toggle("active");
 
-                console.log(this.childNodes)
+                    var panel = this.nextElementSibling as HTMLElement;
+                    // if (panel) {
+                    //     console.log(panel.style.transform)
+                    //     if (panel.style.display === "inline-block") {
+                    //         panel.style.opacity = "0";
+                    //         // panel.style.transform = "scaleY(0)"
+                    //         setTimeout(function(){
+                    //             panel.style.display = "none";
+                    //         }, 200);
 
-                var panel = this.nextElementSibling as HTMLElement;
-                if (panel) {
-                    if (panel.style.display === "inline-block") {
-                        panel.style.display = "none";
+                    //     } else {
+                    //         panel.style.opacity = "1";
+                    //         // panel.style.transform = "scaleY(1)"
+                    //         panel.style.display = "inline-block";
+                    //     }
+                    // }
+                    if (panel.style.maxHeight) {
+                        panel.style.overflow = "hidden";
+                        panel.style.maxHeight = null;
+                        panel.style.opacity = "0";
                     } else {
-                        panel.style.display = "inline-block";
+                        setTimeout(() => {
+                            panel.style.overflow = "visible";
+                        }, 200);
+                        setTimeout(() => {
+                            panel.style.opacity = "1";
+                        }, 50)
+                        panel.style.maxHeight = panel.scrollHeight + "px";
+                        
                     }
+                });
+            }
+        });
+    }
+
+    @action.bound
+    minimizeAll() {
+        $('document').ready(function () {
+            var acc = document.getElementsByClassName('filter-header');
+
+            for (var i = 0; i < acc.length; i++) {
+                let classList = acc[i].classList;
+                if (classList.contains("active")) {
+                    acc[i].classList.toggle("active");
+                    var panel = acc[i].nextElementSibling as HTMLElement;
+                    panel.style.overflow = "hidden";
+                    panel.style.maxHeight = null;
                 }
-            });
-        }
-      });
+            }
+        });
     }
 
     @action.bound
@@ -423,6 +460,8 @@ export class SearchBox extends React.Component {
         this._pointerTime = e.timeStamp;
     }
 
+
+
     @action.bound
     closeFilter() { this._filterOpen = false; }
 
@@ -491,9 +530,11 @@ export class SearchBox extends React.Component {
                 </div>
                 {this._filterOpen ? (
                     <div className="filter-form" onPointerDown={this.stopProp} id="filter" style={this._filterOpen ? { display: "flex" } : { display: "none" }}>
-                        <div style={{ display: "flex", width: "100%"}}>
+                        <div style={{ display: "flex", width: "100%" }}>
                             <div id="header">Filter Search Results</div>
-                            <div className = "close-icon" onClick = {this.closeFilter}><FontAwesomeIcon className="fontawesome-icon" icon={faTimes} size = "2x"/></div>
+                            <div className="close-icon" onClick={this.closeFilter}>
+                                <span className="line line-1"></span>
+                                <span className="line line-2"></span></div>
                         </div>
                         <div>
                             <div className="filter-div">
@@ -502,9 +543,9 @@ export class SearchBox extends React.Component {
                                     <div style={{ marginLeft: "auto" }}><NaviconButton onClick={this.toggleWordStatusOpen} /></div>
                                 </div>
                                 <div className="filter-panel" >
-                                    <ToggleBar 
-                                    originalStatus={this._basicWordStatus} optionOne={"Include Any Keywords"} optionTwo={"Include All Keywords"} />
-                                    </div>
+                                    <ToggleBar handleChange={this.handleWordQueryChange} getStatus={this.getBasicWordStatus}
+                                        originalStatus={this._basicWordStatus} optionOne={"Include Any Keywords"} optionTwo={"Include All Keywords"} />
+                                </div>
                             </div>
                             <div className="filter-div">
                                 <div className="filter-header">
@@ -532,7 +573,12 @@ export class SearchBox extends React.Component {
                                     updateAuthorStatus={this.updateAuthorStatus} updateDataStatus={this.updateDataStatus} updateTitleStatus={this.updateTitleStatus} /> </div>
                             </div>
                         </div>
-                        <button className="filter-div reset-filter" onClick={this.resetFilters}>Reset Filters</button>
+                        <div className="filter-buttons" style={{ display: "flex", justifyContent: "space-around" }}>
+                            <button className="minimizwe-filter" onClick={this.minimizeAll}>Minimize All</button>
+                            <button className="advanced-filter" >Advanced Filters</button>
+                            <button className="save-filter" >Save Filters</button>
+                            <button className="reset-filter" onClick={this.resetFilters}>Reset Filters</button>
+                        </div>
                     </div>
                 ) : undefined}
             </div>

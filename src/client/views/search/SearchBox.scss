@@ -1,4 +1,5 @@
 @import "../globalCssVariables";
+@import "./NaviconButton.scss";
 
 .searchBox-bar {
     height: 32px;
@@ -49,7 +50,6 @@
 
 .filter-form {
     background: $dark-color;
-    // height: 400px;
     height: auto;
     overflow: auto;
     position: relative;
@@ -64,27 +64,52 @@
         margin-bottom: 10px;
     }
 
-    .filter-header:hover .filter-title{
+    .filter-header:hover .filter-title {
         transform: scale(1.05);
     }
 
     .filter-panel {
-        display: none;
+        max-height: 0px;
         width: 100%;
+        overflow: hidden;
+        opacity: 0;
+        transform-origin: top;
+        -webkit-transition: all 0.2s ease-in-out;
+        -moz-transition: all 0.2s ease-in-out;
+        -o-transition: all 0.2s ease-in-out;
+        transition: all 0.2s ease-in-out;
     }
 
     .close-icon {
-        height: 100%;
+        width: 20%;
         opacity: .6;
-        justify-content: right;
         position: relative;
-        .fontawesome-icon {
-            margin-right: 0px;
-            height: 30px;
+        display: inline-block;
+
+        .line {
+            display: block;
+            background: $alt-accent;
+            width: $width-line;
+            height: $height-line;
+            position: absolute;
+            right: 0;
+            border-radius: ($height-line / 2);
+
+            &.line-1 {
+                transform: rotate(45deg);
+                top: 45%;
+            }
+
+            &.line-2 {
+                transform: rotate(-45deg);
+                top: 45%;
+            }
         }
+
+
     }
 
-    .close-icon:hover{
+    .close-icon:hover {
         opacity: 1;
     }
 }
@@ -98,7 +123,7 @@
     text-transform: uppercase;
     letter-spacing: 2px;
     font-size: 25;
-    width: 100%;
+    width: 80%;
 }
 
 .searchBox-results {
@@ -120,11 +145,19 @@
     margin-bottom: 5px;
 }
 
+.filter-buttons {
+    border-color: rgba(178, 206, 248, .2); // $darker-alt-accent
+    border-top-style: solid;
+    padding-top: 10px;
+}
+
 .filter-div {
     margin-top: 10px;
     margin-bottom: 10px;
-    display: inline-block;
+    display: block;
     width: 100%;
+    border-color: rgba(178, 206, 248, .2); // $darker-alt-accent
+    border-top-style: solid;
 }
 
 .collection-title {
@@ -150,5 +183,4 @@
     width: 100%;
     display: grid;
     grid-template-columns: 18% 20% 60%;
-    // white-space: space-between;
 }

@@ -6,7 +6,6 @@ import { observable } from 'mobx';
 
 export interface NaviconProps{
     onClick(): void;
-    outsideClick(): void;
 }
 
 
@@ -20,7 +19,6 @@ export class NaviconButton extends React.Component<NaviconProps> {
             e.preventDefault();
             if(that.ref.current){
                 that.ref.current.classList.toggle('active');
-                console.log("toggling 2")
                 return false;
             }
         })};
