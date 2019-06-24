@@ -40,9 +40,9 @@ export class LinkManager {
         return LinkManager.Instance.allLinks.filter(link => {
             let protomatch1 = Doc.AreProtosEqual(anchor, Cast(link.anchor1, Doc, new Doc));
             let protomatch2 = Doc.AreProtosEqual(anchor, Cast(link.anchor2, Doc, new Doc));
-            let idmatch1 = StrCast(anchor[Id]) === StrCast(Cast(link.anchor1, Doc, new Doc)[Id]);
-            let idmatch2 = StrCast(anchor[Id]) === StrCast(Cast(link.anchor2, Doc, new Doc)[Id]);
-            return protomatch1 || protomatch2 || idmatch1 || idmatch2;
+            // let idmatch1 = StrCast(anchor[Id]) === StrCast(Cast(link.anchor1, Doc, new Doc)[Id]);
+            // let idmatch2 = StrCast(anchor[Id]) === StrCast(Cast(link.anchor2, Doc, new Doc)[Id]);
+            return protomatch1 || protomatch2;// || idmatch1 || idmatch2;
         });
     }
 

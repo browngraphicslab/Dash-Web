@@ -7,7 +7,7 @@ import * as globalCssVariables from "../views/globalCssVariables.scss";
 import { LinkManager } from "./LinkManager";
 import { URLField } from "../../new_fields/URLField";
 import { SelectionManager } from "./SelectionManager";
-import { Docs } from "../documents/Documents";
+import { Docs, DocUtils } from "../documents/Documents";
 import { DocumentManager } from "./DocumentManager";
 
 export type dropActionType = "alias" | "copy" | undefined;
@@ -51,7 +51,7 @@ export async function DragLinkAsDocument(dragEle: HTMLElement, x: number, y: num
     let moddrag = await Cast(draggeddoc.annotationOn, Doc);
     let dragData = new DragManager.DocumentDragData(moddrag ? [moddrag] : [draggeddoc]);
     dragData.dropAction = "alias" as dropActionType;
-    DragManager.StartLinkedDocumentDrag([dragEle], dragData, x, y, {
+    DragManager.StartLinkedDocumentDrag([dragEle], sourceDoc, dragData, x, y, {
         handlers: {
             dragComplete: action(emptyFunction),
         },
@@ -95,7 +95,7 @@ export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: n
         //                 dragData.draggedDocuments
         //         );
         //     });
-        DragManager.StartLinkedDocumentDrag([dragEle], dragData, x, y, {
+        DragManager.StartLinkedDocumentDrag([dragEle], sourceDoc, dragData, x, y, {
             handlers: {
                 dragComplete: action(emptyFunction),
             },
@@ -223,7 +223,7 @@ export namespace DragManager {
             });
     }
 
-    export function StartLinkedDocumentDrag(eles: HTMLElement[], dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
+    export function StartLinkedDocumentDrag(eles: HTMLElement[], sourceDoc: Doc, dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
 
         runInAction(() => StartDragFunctions.map(func => func()));
         StartDrag(eles, dragData, downX, downY, options,
@@ -233,16 +233,12 @@ export namespace DragManager {
                     // console.log("DRAG", StrCast(d.title));
 
                     if (dv) {
-                        console.log("DRAG", StrCast(d.title), "has view");
                         if (dv.props.ContainingCollectionView === SelectionManager.SelectedDocuments()[0].props.ContainingCollectionView) {
-                            console.log("DRAG", StrCast(d.title), "same");
                             return d;
                         } else {
-                            console.log("DRAG", StrCast(d.title), "diff");
                             return Doc.MakeAlias(d);
                         }
                     } else {
-                        console.log("DRAG", StrCast(d.title), "has no view");
                         return Doc.MakeAlias(d);
                     }
                     // return (dv && dv.props.ContainingCollectionView !== SelectionManager.SelectedDocuments()[0].props.ContainingCollectionView) || !dv ?

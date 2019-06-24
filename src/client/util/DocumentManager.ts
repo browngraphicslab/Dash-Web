@@ -85,20 +85,19 @@ export class DocumentManager {
 
     @computed
     public get LinkedDocumentViews() {
+        console.log("link");
         return DocumentManager.Instance.DocumentViews.filter(dv => dv.isSelected() || BoolCast(dv.props.Document.libraryBrush, false)).reduce((pairs, dv) => {
             let linksList = LinkManager.Instance.findAllRelatedLinks(dv.props.Document);
-            // let linksList = DocListCast(dv.props.Document.linkedToDocs);
-            if (linksList && linksList.length) {
-                pairs.push(...linksList.reduce((pairs, link) => {
-                    if (link) {
-                        let linkToDoc = LinkManager.Instance.findOppositeAnchor(link, dv.props.Document);
-                        // console.log("FOUND ", DocumentManager.Instance.getDocumentViews(linkToDoc).length, "DOCVIEWS FOR", StrCast(linkToDoc.title), "WITH SOURCE", StrCast(dv.props.Document.title));
-                        DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 =>
-                            pairs.push({ a: dv, b: docView1, l: link }));
-                    }
-                    return pairs;
-                }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]));
-            }
+            pairs.push(...linksList.reduce((pairs, link) => {
+                if (link) {
+                    let linkToDoc = LinkManager.Instance.findOppositeAnchor(link, dv.props.Document);
+                    DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 => {
+                        pairs.push({ a: dv, b: docView1, l: link });
+                    });
+                }
+                return pairs;
+            }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]));
+            // }
             return pairs;
         }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]);
     }
