@@ -218,7 +218,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         } else {
             // if (modes[e.deltaMode] === 'pixels') coefficient = 50;
             // else if (modes[e.deltaMode] === 'lines') coefficient = 1000; // This should correspond to line-height??
-            let deltaScale = (1 - (e.deltaY / coefficient));
+            let deltaScale = e.deltaY > 0 ? (1 / 1.1) : 1.1;
             if (deltaScale * this.zoomScaling() < 1 && this.isAnnotationOverlay) {
                 deltaScale = 1 / this.zoomScaling();
             }
