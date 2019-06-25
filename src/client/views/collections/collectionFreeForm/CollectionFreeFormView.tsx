@@ -27,6 +27,8 @@ import React = require("react");
 import v5 = require("uuid/v5");
 import PDFMenu from "../../pdf/PDFMenu";
 import { ContextMenu } from "../../ContextMenu";
+import { Docs } from "../../../documents/Documents";
+import { thisExpression } from "babel-types";
 
 export const panZoomSchema = createSchema({
     panX: "number",
@@ -369,6 +371,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         });
     }
 
+    @computed get extDoc() {
+        return this.dataDoc && this.props.fieldExt && this.dataDoc[this.props.fieldKey + "_ext"] instanceof Doc ? this.dataDoc[this.props.fieldKey + "_ext"] as Doc : this.dataDoc;
+    }
+
     private childViews = () => [
         <CollectionFreeFormBackgroundView key="backgroundView" {...this.props} {...this.getDocumentViewProps(this.props.Document)} DataDoc={this.props.DataDoc} />,
         ...this.views
@@ -376,6 +382,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     render() {
         const containerName = `collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`;
         const easing = () => this.props.Document.panTransformType === "Ease";
+        if (this.dataDoc && this.props.fieldExt && this.dataDoc[this.props.fieldKey + "_ext"] === undefined) {
+            setTimeout(() => { console.log("Extending: " + this.dataDoc.title); let doc = new Doc(this.dataDoc[Id] + this.props.fieldKey, true); doc.title = "Extension"; this.dataDoc[this.props.fieldKey + "_ext"] = doc; }, 0);
+        }
         return (
             <div className={containerName} ref={this.createDropTarget} onWheel={this.onPointerWheel}
                 style={{ borderRadius: "inherit" }}
@@ -387,7 +396,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         easing={easing} zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
 
                         <CollectionFreeFormLinksView {...this.props} key="freeformLinks">
-                            <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.DataDoc} inkFieldKey={this.props.fieldKey + "_ink"} >
+                            <InkingCanvas getScreenTransform={this.getTransform} Document={this.extDoc} inkFieldKey={this.props.fieldExt ? "ink" : this.props.fieldKey + "_ink"} >
                                 {this.childViews}
                             </InkingCanvas>
                         </CollectionFreeFormLinksView>

@@ -80,14 +80,12 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 let field = SelectionManager.SelectedDocuments()[0];
                 let collection = field.props.ContainingCollectionView!.props.Document;
 
-                let metaKey = text.slice(1, text.length - 1);
-                let metaKeyProp = `fieldKey={"${metaKey}"}`;
-                let metaAnoKey = metaKey + "_annotations";
-                let metaAnoKeyProp = `fieldKey={"${metaAnoKey}"}`;
                 let collectionKey = field.props.ContainingCollectionView!.props.fieldKey;
                 let collectionKeyProp = `fieldKey={"${collectionKey}"}`;
-                let collectionAnoKey = "annotations";
-                let collectionAnoKeyProp = `fieldKey={"${collectionAnoKey}"}`;
+                let collectionAnoKeyProp = `fieldKey={"annotations"}`;
+                let metaKey = text.slice(1, text.length);
+                let metaKeyProp = `fieldKey={"${metaKey}"}`;
+                let metaAnoKeyProp = `fieldKey={"${metaKey}"} fieldExt={"annotations"}`;
 
                 let template = Doc.MakeAlias(field.props.Document);
                 template.proto = collection;

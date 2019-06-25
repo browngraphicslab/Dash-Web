@@ -30,6 +30,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             DataDoc: this.props.doc,
             ContainingCollectionView: undefined,
             fieldKey: this.props.keyName,
+            fieldExt: "",
             isSelected: returnFalse,
             select: emptyFunction,
             renderDepth: 1,

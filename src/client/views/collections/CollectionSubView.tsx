@@ -1,4 +1,4 @@
-import { action } from "mobx";
+import { action, computed } from "mobx";
 import * as rp from 'request-promise';
 import CursorField from "../../../new_fields/CursorField";
 import { Doc, DocListCast, Opt } from "../../../new_fields/Doc";
@@ -45,10 +45,17 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             this.createDropTarget(ele);
         }
 
+
+        @computed get extDoc() {
+            return this.props.DataDoc && this.props.fieldExt && this.props.DataDoc[this.props.fieldKey + "_ext"] instanceof Doc ? this.props.DataDoc[this.props.fieldKey + "_ext"] as Doc : this.props.DataDoc;
+        }
+        @computed get extField() {
+            return this.props.DataDoc && this.props.fieldExt && this.props.DataDoc[this.props.fieldKey + "_ext"] instanceof Doc ? this.props.fieldExt : this.props.fieldKey;
+        }
         get childDocs() {
             //TODO tfs: This might not be what we want?
             //This linter error can't be fixed because of how js arguments work, so don't switch this to filter(FieldValue)
-            return DocListCast((BoolCast(this.props.Document.isTemplate) ? this.props.DataDoc : this.props.Document)[this.props.fieldKey]);
+            return DocListCast((BoolCast(this.props.Document.isTemplate) ? this.extDoc : this.props.Document)[this.extField]);
         }
 
         @action

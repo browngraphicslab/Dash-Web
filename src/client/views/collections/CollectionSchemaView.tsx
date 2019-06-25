@@ -101,6 +101,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             Document: rowProps.original,
             DataDoc: rowProps.original,
             fieldKey: rowProps.column.id as string,
+            fieldExt: "",
             ContainingCollectionView: this.props.CollectionView,
             isSelected: returnFalse,
             select: emptyFunction,

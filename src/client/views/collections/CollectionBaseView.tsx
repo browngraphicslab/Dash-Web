@@ -74,6 +74,13 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         this.props.whenActiveChanged(isActive);
     }
 
+    @computed get extDoc() {
+        return this.dataDoc && this.props.fieldExt && this.dataDoc[this.props.fieldKey + "_ext"] instanceof Doc ? this.dataDoc[this.props.fieldKey + "_ext"] as Doc : this.dataDoc;
+    }
+    @computed get extField() {
+        return this.dataDoc && this.props.fieldExt && this.dataDoc[this.props.fieldKey + "_ext"] instanceof Doc ? this.props.fieldExt : this.props.fieldKey;
+    }
+
     @action.bound
     addDocument(doc: Doc, allowDuplicates: boolean = false): boolean {
         var curPage = NumCast(this.props.Document.curPage, -1);
@@ -82,14 +89,13 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
             Doc.GetProto(doc).annotationOn = this.props.Document;
         }
         allowDuplicates = true;
-        //TODO This won't create the field if it doesn't already exist
-        const value = Cast(this.dataDoc[this.props.fieldKey], listSpec(Doc));
+        const value = Cast(this.extDoc[this.extField], listSpec(Doc));
         if (value !== undefined) {
             if (allowDuplicates || !value.some(v => v instanceof Doc && v[Id] === doc[Id])) {
                 value.push(doc);
             }
         } else {
-            Doc.SetOnPrototype(this.dataDoc, this.props.fieldKey, new List([doc]));
+            Doc.SetOnPrototype(this.extDoc, this.extField, new List([doc]));
         }
         return true;
     }
