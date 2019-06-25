@@ -45,6 +45,7 @@ const TimeAndPosition = makeInterface(TimeAndPositionSchema);
 
 interface props{
     node: Doc; 
+    currentBarX: number; 
 }
 
 @observer
@@ -308,7 +309,22 @@ export class Track extends React.Component<props> {
         //     console.log(data); 
         // }); 
 
-        this.props.node.currentBarX = this._currentBarX; 
+
+        reaction (() => this.props.currentBarX, () => {
+            console.log("react"); 
+            this._data.forEach((datum) => {
+                if (this.props.currentBarX >= (datum.begin as number) && this.props.currentBarX <= (datum.end as number)){
+                    this.props.node.hidden = false; 
+                } else {
+                    this.props.node.hidden = true; 
+                }
+            }); 
+            // if (this.props.currentBarX  !== this._position){
+            //     this.props.node.hidden = true; 
+            // } else {
+            //     this.props.node.hidden = false; 
+            // }
+        }); 
     }
 
     /**
@@ -319,108 +335,29 @@ export class Track extends React.Component<props> {
         this._reactionDisposers = [];
     }
 
-    /**
-     * Displays yellow bars per node when selected
-     */
-    displayKeyFrames = (doc: Doc) => {
-        let views: (JSX.Element | null)[] = [];
-        DocListCast(this._data).forEach((node, i) => {
-            if (node === doc) {
-                //set it to views
-                views = DocListCast(this._keyframes[i]).map(tp => {
-                    const timeandpos = TimeAndPosition(tp);
-                    let time = timeandpos.time;
-                    let bar = <Keyframe position={time}></Keyframe>;
-                    return bar;
-                });
-            }
-        });
-        return views;
-    }
-
-    /** 
-     * when user lifts the pointer. Removes pointer move event and no longer tracks green bar moving
-     * @param e react pointer event
-     */
-    @action
-    onInnerPointerUp = (e:React.PointerEvent) => {
-        e.preventDefault(); 
-        e.stopPropagation();
-        if (this._inner.current) {
-            // if (!this._isPlaying) {
-            //     this._barMoved = false;
-            // }
-            this._inner.current.removeEventListener("pointermove", this.onInnerPointerMove);
-        }
-    }
-
-    /**
-     * called when user clicks on a certain part of the inner. This will move the green bar to that position. 
-     * @param e react pointer event
-     */
-    @action
-    onInnerPointerDown = (e:React.PointerEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (this._inner.current) {
-            this._barMoved = true;
-            // let mouse = e.nativeEvent;
-            // let offsetX = Math.round(mouse.offsetX);
-            let left = this._inner.current.getBoundingClientRect().left;
-            let offsetX = Math.round(e.clientX - left);
-            //this._currentBarX = offsetX;
-            this._inner.current.removeEventListener("pointermove", this.onInnerPointerMove);
-            this._inner.current.addEventListener("pointermove", this.onInnerPointerMove);
-            this.timeChange(this._currentBarX);
-        
-
-        }
-    }
-
-    /**
-     * Called when you drag the green bar across the inner div. 
-     * @param e pointer event
-     */
-    @action
-    onInnerPointerMove = (e: PointerEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        this._barMoved = true;
-        if (this._inner.current) {
-            let left = this._inner.current.getBoundingClientRect().left;
-            let offsetX = Math.round(e.clientX - left);
-            this._currentBarX = offsetX;
-            this.timeChange(this._currentBarX);
-        }
-    }
-
     @observable private _keyframes: JSX.Element[] = []; 
-
+    @observable private _data: Doc[] = []; 
     @action 
     onInnerDoubleClick = (e: React.MouseEvent) => {
         let inner = this._inner.current!; 
         let left = inner.getBoundingClientRect().left;
         let offsetX = Math.round(e.clientX - left);
-        this.props.node.currentBarX = offsetX; 
-        this._keyframes.push(<Keyframe node={this.props.node}/>); 
-
-       
+        this.props.node.position = offsetX; 
+        let datum = new Doc(); 
+        datum.begin = offsetX; 
+        datum.end = offsetX + 200; 
+        this._data.push(datum); 
+        this._keyframes.push(<Keyframe node={this.props.node} currentBarX={this.props.currentBarX}/>); 
     }
 
     render() {
         return (
             <div className="track-container">
-                <div className="datapane">
-                    <p>{this.props.node.title}</p>
-                </div>
                 <div className="track">
                     <div className="inner" ref={this._inner} onDoubleClick={this.onInnerDoubleClick}>
                         {this._keyframes.map((element)=> element)}
                     </div>
                 </div>
-                {/* <button onClick={this.onRecord}>Record</button>
-                <input placeholder={this._currentBarX.toString()} ref={this._timeInput} onKeyDown={this.onTimeEntered} ></input>
-                <button onClick={this.onPlay} ref={this._playButton}> Play </button>*/}
             </div>
         );
     }

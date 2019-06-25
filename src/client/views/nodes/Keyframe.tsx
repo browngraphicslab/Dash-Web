@@ -15,12 +15,14 @@ import { DocumentView } from "./DocumentView";
 import { anchorPoints, Flyout } from "../TemplateMenu";
 import { LinkMenu } from "./LinkMenu";
 import { faCircle } from "@fortawesome/free-solid-svg-icons";
+import { node } from "prop-types";
 
 
 
 
 interface IProp {
     node: Doc;
+    currentBarX: number; 
 }
 
 @observer
@@ -37,12 +39,16 @@ export class Keyframe extends React.Component<IProp> {
 
     @action
     componentDidMount() {
-        let dv:DocumentView = DocumentManager.Instance.getDocumentView(this.props.node!)!;
-        this._data = new Doc(); 
-        this._position = this.props.node.currentBarX as number; 
-        this._data.duration = 200; 
-        this._data.start = this._position - (this._duration/2); 
-        this._data.end = this._position + (this._duration/2); 
+        this._position = this.props.node.position as number; 
+        reaction (() => this.props.currentBarX, () => {
+            console.log("reaction triggered!"); 
+            if (this.props.currentBarX  !== this._position){
+                this.props.node.hidden = true; 
+            } else {
+                this.props.node.hidden = false; 
+            }
+        }); 
+        
      }
 
     componentWillUnmount() {

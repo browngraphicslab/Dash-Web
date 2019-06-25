@@ -2,30 +2,43 @@
 
 .timeline-container{
     width:100%;
-    height:200px; 
+    height:300px; 
     position:absolute;
-    background-color:$intermediate-color;
+    background-color: $light-color-secondary;
+    box-shadow: 0px 10px 20px; 
     .toolbox{
-        width: 200px; 
+        position:absolute; 
+        width: 100%;   
+        top: 10px; 
+        left: 20px; 
         div{
+            float:left; 
+            margin-left: 10px; 
             position:relative; 
-            display:inline-block; 
+            .overview{
+                width: 200px; 
+                height: 100%; 
+                background-color: black; 
+                position:absolute; 
+            }
         }
     }
-    .info-container{
-        top: 10px; 
-        margin-left: 10%; 
-        position:relative; 
-        height: 80%; 
-        width: 80%; 
-        overflow-x: hidden; 
-        
+    .info-container{ 
+        margin-top: 50px; 
+        right:20px; 
+        position:absolute; 
+        height: calc(100% - 100px); 
+        width: calc(100% - 140px); 
+        overflow: hidden;
+        padding:0px; 
+        // box-shadow: 0px 10px 20px  grey inset; 
+
         .scrubberbox{
-            position:relative; 
+            position:absolute; 
             background-color: transparent; 
             height: 30px;
             width:100%; 
-           
+            
             .tick{
                 height:100%; 
                 width: 1px; 
@@ -34,30 +47,60 @@
             }   
         }
         .scrubber{
-            height: 100px; 
+            top:30px; 
+            height: 100%; 
             width: 2px; 
             position:absolute;
             z-index: 1001;
-            background-color:black ; 
+            background-color:black; 
             .scrubberhead{
+                top: -30px; 
                 height: 30px; 
                 width: 30px;
+                background-color:transparent; 
+                border-radius: 50%; 
+                border: 5px solid black; 
                 left: -15px;
-                //top: -40px; 
                 position:absolute;                 
             }
         }
 
         .trackbox{
             top: 30px; 
-            height:calc(100%);
+            height:calc(100% - 30px);
             width:100%;
             border:1px;
-            overflow:auto;
+            overflow:hidden;
             background-color:white;
             position:absolute;
 
         }
+        
     }
-    
+    .title-container{
+        margin-top: 80px; 
+        margin-left: 20px; 
+        height: calc(100% - 100px - 30px); 
+        width: 100px; 
+        background-color:white;
+        overflow: hidden;  
+        .datapane{
+            top:0px; 
+            width: 100px; 
+            height: 75px; 
+            border: 1px solid $dark-color;
+            background-color: $intermediate-color; 
+            color: white; 
+            position:relative; 
+            float:left; 
+            border-style:solid; 
+        }
+    }
+    .resize{
+        bottom: 5px; 
+        position:absolute; 
+        height: 30px; 
+        width: 50px; 
+        left: calc(50% - 25px);
+    }
 }

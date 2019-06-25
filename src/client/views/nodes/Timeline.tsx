@@ -5,34 +5,38 @@ import { CollectionSubView } from "../collections/CollectionSubView";
 import { Document, listSpec, createSchema, makeInterface, defaultSpec } from "../../../new_fields/Schema";
 import { observer} from "mobx-react";
 import { Track } from "./Track";
-import { observable, reaction, action, IReactionDisposer, observe, IObservableArray, computed, toJS, Reaction } from "mobx";
+import { observable, reaction, action, IReactionDisposer, observe, IObservableArray, computed, toJS, Reaction, IObservableObject } from "mobx";
 import { Cast } from "../../../new_fields/Types";
 import { SelectionManager } from "../../util/SelectionManager";
 import { List } from "../../../new_fields/List";
 import { Self } from "../../../new_fields/FieldSymbols";
 import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCircle, faPlayCircle, faBackward, faForward } from "@fortawesome/free-solid-svg-icons";
+import { faCircle, faPlayCircle, faBackward, faForward, faGripLines } from "@fortawesome/free-solid-svg-icons";
 import { DocumentContentsView } from "./DocumentContentsView";
 
 
 
 @observer
 export class Timeline extends CollectionSubView(Document){
+    private readonly DEFAULT_CONTAINER_HEIGHT:number = 300; 
+    private readonly MIN_CONTAINER_HEIGHT:number = 205; 
+    private readonly MAX_CONTAINER_HEIGHT:number = 800; 
 
-    @observable private _scrubberbox = React.createRef<HTMLDivElement>()
+
+    @observable private _scrubberbox = React.createRef<HTMLDivElement>();
     @observable private _trackbox = React.createRef<HTMLDivElement>(); 
+    @observable private _titleContainer = React.createRef<HTMLDivElement>(); 
     @observable private _currentBarX:number = 0; 
     @observable private _windSpeed:number = 1; 
     @observable private _isPlaying:boolean = false; 
     @observable private _boxLength:number = 0; 
+    @observable private _containerHeight:number = this.DEFAULT_CONTAINER_HEIGHT; 
     @observable private _nodes:List<Doc> = new List<Doc>(); 
     @observable private _time = 100000; //DEFAULT
 
     @observable private _infoContainer = React.createRef<HTMLDivElement>(); 
-    @observable private _panX = 0; 
     @observable private _ticks: number[] = []; 
-    private _reactionDisposers: IReactionDisposer[] = [];
 
 
     @action
@@ -46,23 +50,24 @@ export class Timeline extends CollectionSubView(Document){
         let childrenList = ((children[Self] as any).__fields) as List<Doc>;
         this._nodes = (childrenList) as List<Doc>;
 
+        reaction( () => this._time,  time => {
+            let infoContainer = this._infoContainer.current!; 
+            let trackbox = this._trackbox.current!; 
+            this._boxLength = infoContainer.scrollWidth; 
+            trackbox.style.width = `${this._boxLength}`; 
+        }); 
 
         //check if this is a video frame 
-
-        let boxWidth = scrubber.getBoundingClientRect().width; 
         for (let i = 0; i < this._time; ) {
             this._ticks.push(i); 
             i += 1000; 
-        }
+        }        
     }
 
+    @action
     componentDidUpdate(){
-        let infoContainer = this._infoContainer.current!; 
-        let trackbox = this._trackbox.current!; 
-        this._boxLength = infoContainer.scrollWidth; 
-        trackbox.style.width = `${this._boxLength}`; 
+        this._time = 100001; 
     }
-
     componentWillUnmount(){
         
     }
@@ -80,8 +85,6 @@ export class Timeline extends CollectionSubView(Document){
 
     @action
     changeCurrentX = () => { 
-        console.log(this._currentBarX); 
-            console.log(this._boxLength); 
         if (this._currentBarX === this._boxLength && this._isPlaying) {
             this._currentBarX = 0;
         }
@@ -110,14 +113,10 @@ export class Timeline extends CollectionSubView(Document){
     onScrubberDown = (e:React.PointerEvent) => {
         e.preventDefault(); 
         e.stopPropagation(); 
-        let scrubberbox = this._scrubberbox.current!;
-        //let left = scrubberbox.getBoundingClientRect().left;
-        
-        //let offsetX = Math.round(e.clientX - left);
-        let mouse = e.nativeEvent; 
-        this._currentBarX = mouse.offsetX; 
         document.addEventListener("pointermove", this.onScrubberMove); 
-        document.addEventListener("pointerup", this.onScrubberFinished); 
+        document.addEventListener("pointerup", () => {
+            document.removeEventListener("pointermove", this.onScrubberMove); 
+        }); 
      }
 
     @action 
@@ -130,13 +129,17 @@ export class Timeline extends CollectionSubView(Document){
         this._currentBarX = offsetX; 
     }
 
-    onScrubberFinished = (e: PointerEvent) => {
+    @action 
+    onScrubberClick = (e:React.MouseEvent) => {
         e.preventDefault(); 
         e.stopPropagation(); 
         let scrubberbox = this._scrubberbox.current!; 
-        document.removeEventListener("pointermove", this.onScrubberMove);       
+        let offset = scrubberbox.scrollLeft + e.clientX - scrubberbox.getBoundingClientRect().left; 
+        this._currentBarX = offset; 
+       ; 
     }
 
+    @action
     toTime = (time:number):string => {
         const inSeconds = time / 1000; 
         let min:(string|number) = Math.floor(inSeconds / 60); 
@@ -155,7 +158,9 @@ export class Timeline extends CollectionSubView(Document){
         e.preventDefault(); 
         e.stopPropagation(); 
         document.addEventListener("pointermove", this.onPanMove); 
-        document.addEventListener("pointerup", this.onPanUp);
+        document.addEventListener("pointerup", () => {
+            document.removeEventListener("pointermove", this.onPanMove); 
+        });
     }
 
     @action 
@@ -163,35 +168,77 @@ export class Timeline extends CollectionSubView(Document){
         e.preventDefault(); 
         e.stopPropagation(); 
         let infoContainer = this._infoContainer.current!; 
-        infoContainer.scrollLeft = infoContainer.scrollLeft - e.movementX; 
+        let trackbox = this._trackbox.current!; 
+        let titleContainer = this._titleContainer.current!; 
+        infoContainer.scrollLeft = infoContainer.scrollLeft - e.movementX;         
+        trackbox.scrollTop = trackbox.scrollTop - e.movementY; 
+        titleContainer.scrollTop = titleContainer.scrollTop - e.movementY; 
+    }
+
+
+
+    @action 
+    onResizeDown = (e:React.PointerEvent) => {
+        e.preventDefault(); 
+        e.stopPropagation(); 
+        document.addEventListener("pointermove", this.onResizeMove); 
+        document.addEventListener("pointerup", () => {
+            document.removeEventListener("pointermove", this.onResizeMove);
+        }); 
     }
 
     @action 
-    onPanUp = (e:PointerEvent) => {
+    onResizeMove = (e:PointerEvent) => {
         e.preventDefault(); 
         e.stopPropagation(); 
-        document.removeEventListener("pointermove", this.onPanMove); 
+        let offset = e.clientY - this._containerHeight; 
+        if (this._containerHeight + offset <= this.MIN_CONTAINER_HEIGHT ){
+            this._containerHeight = this.MIN_CONTAINER_HEIGHT;
+        } else if (this._containerHeight + offset >= this.MAX_CONTAINER_HEIGHT){
+            this._containerHeight = this.MAX_CONTAINER_HEIGHT; 
+        } else {
+            this._containerHeight += offset; 
+        }
     }
+
+    @action 
+    minimize = (e:React.MouseEvent) => {
+        this._containerHeight = 0; 
+    }
+
 
     render(){
         return (
-            <div className="timeline-container">
+            <div className="timeline-container" style={{height:`${this._containerHeight}px`}}>
                 <div className="toolbox">
-                    <div onClick={this.windBackward}> <FontAwesomeIcon icon={faBackward} size="lg"/> </div>  
-                    <div onClick={this.onPlay}> <FontAwesomeIcon icon={faPlayCircle} size="lg"/> </div>
-                    <div onClick={this.windForward}> <FontAwesomeIcon icon={faForward} size="lg"/> </div>
+                    <div onClick={this.windBackward}> <FontAwesomeIcon icon={faBackward} size="2x"/> </div>  
+                    <div onClick={this.onPlay}> <FontAwesomeIcon icon={faPlayCircle} size="2x"/> </div>
+                    <div onClick={this.windForward}> <FontAwesomeIcon icon={faForward} size="2x"/> </div>
+                    <div>
+                        <p>Timeline Overview</p>
+                        <div className="overview"></div>
+                    </div>
                 </div>  
-                <div className="info-container" ref ={this._infoContainer} onPointerDown={this.onPanDown}> 
-                    <div className="scrubberbox" ref ={this._scrubberbox}>
-                        {this._ticks.map(element => {return <div className="tick" style={{transform:`translate(${element / 20}px)`, position:"absolute"}}> <p>{this.toTime(element)}</p></div>})}
+                <div className="info-container" ref ={this._infoContainer}> 
+                    <div className="scrubberbox" ref ={this._scrubberbox} onClick={this.onScrubberClick}>
+                        {this._ticks.map(element => {return <div className="tick" style={{transform:`translate(${element / 20}px)`, position:"absolute", pointerEvent:"none"}}> <p>{this.toTime(element)}</p></div>})}
                     </div>
                     <div className="scrubber" onPointerDown = {this.onScrubberDown} style={{transform:`translate(${this._currentBarX}px)`}}>
-                        <FontAwesomeIcon className="scrubberhead" icon={faCircle}/>;
+                        <div className="scrubberhead"></div>
                     </div>
-                    <div className="trackbox" ref={this._trackbox}>  
-                        {this._nodes.map(doc => {return <Track node={(doc as any).value() as Doc}/>;})}
+                    <div className="trackbox" ref={this._trackbox} onPointerDown={this.onPanDown}>  
+                        {this._nodes.map(doc => {return <Track node={(doc as any).value() as Doc} currentBarX = {this._currentBarX}/>;})}
                     </div> 
+                </div> 
+                <div className="title-container" ref={this._titleContainer}>
+                    {this._nodes.map(doc => {return <div className="datapane">
+                        <p>{((doc as any).value() as Doc).title}</p>
+                    </div>;})}
                 </div>
+                <div onPointerDown ={this.onResizeDown}>
+                     <FontAwesomeIcon className="resize" icon={faGripLines} /> 
+                </div>                   
+
             </div>
         ); 
     }

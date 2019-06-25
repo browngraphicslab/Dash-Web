@@ -1,25 +1,14 @@
 @import "./../globalCssVariables.scss"; 
 
 .track-container{
-   
-    .datapane{
-        top:0px; 
-        width: 100px; 
-        height: 75px; 
-        background-color: $light-color-secondary; 
-        position:relative; 
-        float:left; 
-        border-style:solid; 
-    }
 
     .track {
         .inner {  
             top:0px; 
-            float:right; 
             height: 75px;
-            width: calc(100% - 100px); 
+            width: calc(100%); 
             background-color: $light-color;     
-            border-style:solid;        
+            border: 1px solid $dark-color;        
             position:relative; 
         }
     }
