@@ -84,7 +84,7 @@ export class TooltipTextMenu {
             { command: toggleMark(schema.marks.strikethrough), dom: this.icon("S", "strikethrough", "Strikethrough") },
             { command: toggleMark(schema.marks.superscript), dom: this.icon("s", "superscript", "Superscript") },
             { command: toggleMark(schema.marks.subscript), dom: this.icon("s", "subscript", "Subscript") },
-            { command: deleteSelection, dom: this.icon("C", 'collapse', 'Collapse') }
+            { command: toggleMark(schema.marks.highlight), dom: this.icon("H", 'blue', 'Blue') }
             // { command: wrapInList(schema.nodes.bullet_list), dom: this.icon(":", "bullets") },
             // { command: wrapInList(schema.nodes.ordered_list), dom: this.icon("1)", "bullets") },
             // { command: lift, dom: this.icon("<", "lift") },
@@ -144,6 +144,8 @@ export class TooltipTextMenu {
 
         this.tooltip.appendChild(this.createStar().render(this.view).dom);
 
+        this.updateListItemDropdown(":", this.listTypeBtnDom);
+
         this.update(view, undefined);
 
         //view.dom.parentNode!.parentNode!.insertBefore(this.tooltip, view.dom.parentNode);
@@ -166,12 +168,15 @@ export class TooltipTextMenu {
             fontSizeBtns.push(this.dropdownMarkBtn(String(number), "color: black; width: 50px;", mark, this.view, this.changeToMarkInGroup, this.fontSizes));
         });
 
-        if (this.fontSizeDom) { this.tooltip.removeChild(this.fontSizeDom); }
-        this.fontSizeDom = (new Dropdown(cut(fontSizeBtns), {
+        let newfontSizeDom = (new Dropdown(cut(fontSizeBtns), {
             label: label,
             css: "color:black; min-width: 60px; padding-left: 5px; margin-right: 0;"
         }) as MenuItem).render(this.view).dom;
-        this.tooltip.appendChild(this.fontSizeDom);
+        if (this.fontSizeDom) { this.tooltip.replaceChild(newfontSizeDom, this.fontSizeDom); }
+        else {
+            this.tooltip.appendChild(newfontSizeDom);
+        }
+        this.fontSizeDom = newfontSizeDom;
     }
 
     //label of dropdown will change to given label
@@ -185,13 +190,16 @@ export class TooltipTextMenu {
             fontBtns.push(this.dropdownMarkBtn(name, "color: black; font-family: " + name + ", sans-serif; width: 125px;", mark, this.view, this.changeToMarkInGroup, this.fontStyles));
         });
 
-        if (this.fontStyleDom) { this.tooltip.removeChild(this.fontStyleDom); }
-        this.fontStyleDom = (new Dropdown(cut(fontBtns), {
+        let newfontStyleDom = (new Dropdown(cut(fontBtns), {
             label: label,
             css: "color:black; width: 125px; margin-left: -3px; padding-left: 2px;"
         }) as MenuItem).render(this.view).dom;
+        if (this.fontStyleDom) { this.tooltip.replaceChild(newfontStyleDom, this.fontStyleDom); }
+        else {
+            this.tooltip.appendChild(newfontStyleDom);
+        }
+        this.fontStyleDom = newfontStyleDom;
 
-        this.tooltip.appendChild(this.fontStyleDom);
     }
 
     updateLinkMenu() {
@@ -286,19 +294,6 @@ export class TooltipTextMenu {
     }
 
     insertStar(state: EditorState<any>, dispatch: any) {
-        if (state.selection.empty) {
-            let mark = state.schema.mark(state.schema.marks.highlight)
-            if (this._activeMarks.includes(mark)) {
-                const ind = this._activeMarks.indexOf(mark);
-                this._activeMarks.splice(ind, 1);
-            }
-            else {
-                this._activeMarks.push(mark);
-            }
-            dispatch(state.tr.insertText(" ").setStoredMarks(this._activeMarks));
-            //dispatch(state.tr.setStoredMarks(this._activeMarks));
-            return true;
-        }
         let newNode = schema.nodes.star.create({ visibility: false, text: state.selection.content(), textslice: state.selection.content().toJSON(), textlen: state.selection.to - state.selection.from });
         if (dispatch) {
             //console.log(newNode.attrs.text.toString());
@@ -359,15 +354,14 @@ export class TooltipTextMenu {
             }
         });
         // fontsize
-        // if (markType.name[0] === 'p') {
-        //     let size = this.fontSizeToNum.get(markType);
-        //     if (size) { this.updateFontSizeDropdown(String(size) + " pt"); }
-        // }
-        // else {
-        //     let fontName = this.fontStylesToName.get(markType);
-        //     if (fontName) { this.updateFontStyleDropdown(fontName); }
-        // }
-        //this.update(view, undefined);
+        if (markType.name[0] === 'p') {
+            let size = this.fontSizeToNum.get(markType);
+            if (size) { this.updateFontSizeDropdown(String(size) + " pt"); }
+        }
+        else {
+            let fontName = this.fontStylesToName.get(markType);
+            if (fontName) { this.updateFontStyleDropdown(fontName); }
+        }
         //actually apply font
         return toggleMark(markType)(view.state, view.dispatch, view);
     }
@@ -558,7 +552,7 @@ export class TooltipTextMenu {
         let { from, to } = state.selection;
 
         //UPDATE LIST ITEM DROPDOWN
-        this.listTypeBtnDom = this.updateListItemDropdown(":", this.listTypeBtnDom!);
+        //this.listTypeBtnDom = this.updateListItemDropdown(":", this.listTypeBtnDom!);
         //this._activeMarks = [];
 
         //UPDATE FONT STYLE DROPDOWN

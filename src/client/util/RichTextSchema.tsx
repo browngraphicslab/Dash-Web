@@ -509,6 +509,7 @@ export class SummarizedView {
                 let newSelection = TextSelection.create(view.state.doc, y + 1, y + 1 + length);
                 // update attrs of node
                 node.attrs.text = newSelection.content();
+                node.attrs.textslice = newSelection.content().toJSON();
                 view.dispatch(view.state.tr.setSelection(newSelection).deleteSelection(view.state, () => { }));
                 self._collapsed.textContent = "㊉";
             } else {
