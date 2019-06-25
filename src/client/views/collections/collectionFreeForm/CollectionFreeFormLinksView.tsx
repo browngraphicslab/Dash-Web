@@ -98,17 +98,17 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
         //     console.log("CONNECTION", StrCast(d.a.props.Document.title), StrCast(d.b.props.Document.title));
         // });
 
-        console.log("CONNECTIONS");
+        // console.log("CONNECTIONS");
 
         let connections = DocumentManager.Instance.LinkedDocumentViews.reduce((drawnPairs, connection) => {
             let srcViews = this.documentAnchors(connection.a);
             let targetViews = this.documentAnchors(connection.b);
 
-            console.log(srcViews.length, targetViews.length);
+            // console.log(srcViews.length, targetViews.length);
             let possiblePairs: { a: Doc, b: Doc, }[] = [];
             srcViews.map(sv => {
                 targetViews.map(tv => {
-                    console.log("PUSH", StrCast(sv.props.Document.title), StrCast(sv.props.Document.id), StrCast(tv.props.Document.title), StrCast(tv.props.Document.id));
+                    // console.log("PUSH", StrCast(sv.props.Document.title), StrCast(sv.props.Document.id), StrCast(tv.props.Document.title), StrCast(tv.props.Document.id));
                     possiblePairs.push({ a: sv.props.Document, b: tv.props.Document });
                 });
             });
@@ -142,7 +142,6 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
     }
 
     render() {
-        console.log("\n");
         return (
             <div className="collectionfreeformlinksview-container">
                 <svg className="collectionfreeformlinksview-svgCanvas">

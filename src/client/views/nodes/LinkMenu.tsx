@@ -38,7 +38,7 @@ export class LinkMenu extends React.Component<Props> {
 
     render() {
         let sourceDoc = this.props.docView.props.Document;
-        let groups: Map<string, Doc[]> = LinkManager.Instance.findRelatedGroupedLinks(sourceDoc);
+        let groups: Map<string, Doc[]> = LinkManager.Instance.getRelatedGroupedLinks(sourceDoc);
         if (this._editingLink === undefined) {
             return (
                 <div className="linkMenu">

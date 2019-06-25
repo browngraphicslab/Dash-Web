@@ -354,9 +354,9 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     tab.reactComponents = [upDiv];
                     tab.element.append(upDiv);
                     counter.DashDocId = tab.contentItem.config.props.documentId;
-                    tab.reactionDisposer = reaction(() => [LinkManager.Instance.findAllRelatedLinks(doc), doc.title],
+                    tab.reactionDisposer = reaction(() => [LinkManager.Instance.getAllRelatedLinks(doc), doc.title],
                         () => {
-                            counter.innerHTML = LinkManager.Instance.findAllRelatedLinks(doc).length;
+                            counter.innerHTML = LinkManager.Instance.getAllRelatedLinks(doc).length;
                             tab.titleElement[0].textContent = doc.title;
                         }, { fireImmediately: true });
                     tab.titleElement[0].DashDocId = tab.contentItem.config.props.documentId;

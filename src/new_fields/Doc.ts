@@ -234,23 +234,20 @@ export namespace Doc {
     export function MakeCopy(doc: Doc, copyProto: boolean = false): Doc {
         const copy = new Doc;
         Object.keys(doc).forEach(key => {
-            console.log(key);
             const field = doc[key];
             if (key === "proto" && copyProto) {
-                console.log(1);
                 if (field instanceof Doc) {
-                    console.log(2);
                     copy[key] = Doc.MakeCopy(field);
                 }
             } else {
                 if (field instanceof RefField) {
-                    console.log(3);
+                    console.log("equals field, ref", key);
                     copy[key] = field;
                 } else if (field instanceof ObjectField) {
-                    console.log(4);
+                    console.log("copy field, object", key);
                     copy[key] = ObjectField.MakeCopy(field);
                 } else {
-                    console.log(5);
+                    console.log("equals field", key);
                     copy[key] = field;
                 }
             }

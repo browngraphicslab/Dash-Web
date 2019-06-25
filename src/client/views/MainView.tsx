@@ -35,6 +35,8 @@ import { HistoryUtil } from '../util/History';
 import { CollectionBaseView } from './collections/CollectionBaseView';
 import PDFMenu from './pdf/PDFMenu';
 import { InkTool } from '../../new_fields/InkField';
+import { LinkManager } from '../util/LinkManager';
+import { List } from '../../new_fields/List';
 
 
 @observer
@@ -146,6 +148,11 @@ export class MainView extends React.Component {
             let freeformDoc = Docs.FreeformDocument([], { x: 0, y: 400, width: this.pwidth * .7, height: this.pheight, title: `WS collection ${list.length + 1}` });
             var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(CurrentUserUtils.UserDocument, 150), CollectionDockingView.makeDocumentConfig(freeformDoc, 600)] }] };
             let mainDoc = Docs.DockDocument([CurrentUserUtils.UserDocument, freeformDoc], JSON.stringify(dockingLayout), { title: `Workspace ${list.length + 1}` }, id);
+            if (!CurrentUserUtils.UserDocument.linkManagerDoc) {
+                let linkManagerDoc = new Doc();
+                linkManagerDoc.allLinks = new List<Doc>([]);
+                CurrentUserUtils.UserDocument.linkManagerDoc = linkManagerDoc;
+            }
             list.push(mainDoc);
             // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
             setTimeout(() => {

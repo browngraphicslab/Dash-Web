@@ -73,7 +73,7 @@ class TreeView extends React.Component<TreeViewProps> {
     @undoBatch delete = () => this.props.deleteDoc(this.props.document);
     @undoBatch openRight = async () => this.props.addDocTab(this.props.document, "openRight");
 
-    onPointerDown = (e: React.PointerEvent) => e.stopPropagation()
+    onPointerDown = (e: React.PointerEvent) => e.stopPropagation();
     onPointerEnter = (e: React.PointerEvent): void => {
         this.props.active() && (this.props.document.libraryBrush = true);
         if (e.buttons === 1 && SelectionManager.GetIsDragging()) {
@@ -115,7 +115,7 @@ class TreeView extends React.Component<TreeViewProps> {
         return this.props.document !== target && this.props.deleteDoc(doc) && addDoc(doc);
     }
     @action
-    indent = () => this.props.addDocument(this.props.document) && this.delete();
+    indent = () => this.props.addDocument(this.props.document) && this.delete()
 
     renderBullet() {
         let docList = Cast(this.props.document["data"], listSpec(Doc));
@@ -167,7 +167,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 keyList.push(key);
             }
         });
-        if (LinkManager.Instance.findAllRelatedLinks(this.props.document).length > 0) keyList.push("links");
+        if (LinkManager.Instance.getAllRelatedLinks(this.props.document).length > 0) keyList.push("links");
         if (keyList.indexOf("data") !== -1) {
             keyList.splice(keyList.indexOf("data"), 1);
         }
@@ -281,9 +281,9 @@ class TreeView extends React.Component<TreeViewProps> {
         let ele: JSX.Element[] = [];
         let remDoc = (doc: Doc) => this.remove(doc, this._chosenKey);
         let addDoc = (doc: Doc, addBefore?: Doc, before?: boolean) => TreeView.AddDocToList(this.props.document, this._chosenKey, doc, addBefore, before);
-        let groups = LinkManager.Instance.findRelatedGroupedLinks(this.props.document);
+        let groups = LinkManager.Instance.getRelatedGroupedLinks(this.props.document);
         groups.forEach((groupLinkDocs, groupType) => {
-            let destLinks = groupLinkDocs.map(d => LinkManager.Instance.findOppositeAnchor(d, this.props.document));
+            let destLinks = groupLinkDocs.map(d => LinkManager.Instance.getOppositeAnchor(d, this.props.document));
             ele.push(
                 <div key={"treeviewlink-" + groupType + "subtitle"}>
                     <div className="collectionTreeView-subtitle">{groupType}:</div>
@@ -325,7 +325,7 @@ class TreeView extends React.Component<TreeViewProps> {
                         addDocTab={this.props.addDocTab}
                         setPreviewScript={emptyFunction}>
                     </CollectionSchemaPreview>
-                </div>
+                </div>;
             }
         }
         return <div className="treeViewItem-container" ref={this.createTreeDropTarget} onContextMenu={this.onWorkspaceContextMenu}>
@@ -364,14 +364,14 @@ class TreeView extends React.Component<TreeViewProps> {
                     TreeView.AddDocToList(docList[i - 1], fieldKey, child);
                     remove(child);
                 }
-            }
+            };
             let addDocument = (doc: Doc, relativeTo?: Doc, before?: boolean) => {
                 return add(doc, relativeTo ? relativeTo : docList[i], before !== undefined ? before : false);
-            }
+            };
             let rowHeight = () => {
                 let aspect = NumCast(child.nativeWidth, 0) / NumCast(child.nativeHeight, 0);
                 return aspect ? Math.min(child[WidthSym](), rowWidth()) / aspect : child[HeightSym]();
-            }
+            };
             return <TreeView
                 document={child}
                 treeViewId={treeViewId}

@@ -46,7 +46,7 @@ export function SetupDrag(_reference: React.RefObject<HTMLElement>, docFunc: () 
 }
 
 export async function DragLinkAsDocument(dragEle: HTMLElement, x: number, y: number, linkDoc: Doc, sourceDoc: Doc) {
-    let draggeddoc = LinkManager.Instance.findOppositeAnchor(linkDoc, sourceDoc);
+    let draggeddoc = LinkManager.Instance.getOppositeAnchor(linkDoc, sourceDoc);
 
     let moddrag = await Cast(draggeddoc.annotationOn, Doc);
     let dragData = new DragManager.DocumentDragData(moddrag ? [moddrag] : [draggeddoc]);
@@ -66,10 +66,10 @@ export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: n
     // TODO: if not in same context then don't drag
 
     if (srcTarg) {
-        let linkDocs = LinkManager.Instance.findAllRelatedLinks(srcTarg);
+        let linkDocs = LinkManager.Instance.getAllRelatedLinks(srcTarg);
         if (linkDocs) {
             draggedDocs = linkDocs.map(link => {
-                return LinkManager.Instance.findOppositeAnchor(link, sourceDoc);
+                return LinkManager.Instance.getOppositeAnchor(link, sourceDoc);
             });
         }
     }
@@ -236,10 +236,16 @@ export namespace DragManager {
                         if (dv.props.ContainingCollectionView === SelectionManager.SelectedDocuments()[0].props.ContainingCollectionView) {
                             return d;
                         } else {
-                            return Doc.MakeAlias(d);
+                            // return d;
+                            let r = Doc.MakeAlias(d);
+                            // DocUtils.MakeLink(sourceDoc, r);
+                            return r;
                         }
                     } else {
-                        return Doc.MakeAlias(d);
+                        // return d;
+                        let r = Doc.MakeAlias(d);
+                        // DocUtils.MakeLink(sourceDoc, r);
+                        return r;
                     }
                     // return (dv && dv.props.ContainingCollectionView !== SelectionManager.SelectedDocuments()[0].props.ContainingCollectionView) || !dv ?
                     //     Doc.MakeAlias(d) : d;
@@ -282,10 +288,10 @@ export namespace DragManager {
         StartDrag([ele], dragData, downX, downY, options);
     }
 
-    export function StartLinkProxyDrag(ele: HTMLElement, dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
-        runInAction(() => StartDragFunctions.map(func => func()));
-        StartDrag([ele], dragData, downX, downY, options);
-    }
+    // export function StartLinkProxyDrag(ele: HTMLElement, dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
+    //     runInAction(() => StartDragFunctions.map(func => func()));
+    //     StartDrag([ele], dragData, downX, downY, options);
+    // }
 
     export let AbortDrag: () => void = emptyFunction;
 

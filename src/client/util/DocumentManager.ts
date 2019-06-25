@@ -85,12 +85,11 @@ export class DocumentManager {
 
     @computed
     public get LinkedDocumentViews() {
-        console.log("link");
-        return DocumentManager.Instance.DocumentViews.filter(dv => dv.isSelected() || BoolCast(dv.props.Document.libraryBrush, false)).reduce((pairs, dv) => {
-            let linksList = LinkManager.Instance.findAllRelatedLinks(dv.props.Document);
+        let pairs = DocumentManager.Instance.DocumentViews.filter(dv => dv.isSelected() || BoolCast(dv.props.Document.libraryBrush, false)).reduce((pairs, dv) => {
+            let linksList = LinkManager.Instance.getAllRelatedLinks(dv.props.Document);
             pairs.push(...linksList.reduce((pairs, link) => {
                 if (link) {
-                    let linkToDoc = LinkManager.Instance.findOppositeAnchor(link, dv.props.Document);
+                    let linkToDoc = LinkManager.Instance.getOppositeAnchor(link, dv.props.Document);
                     DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 => {
                         pairs.push({ a: dv, b: docView1, l: link });
                     });
@@ -100,6 +99,13 @@ export class DocumentManager {
             // }
             return pairs;
         }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]);
+
+        // console.log("LINKED DOCUMENT VIEWS");
+        // pairs.forEach(p => {
+        //     console.log(StrCast(p.a.Document.title), p.a.props.Document[Id], StrCast(p.b.Document.title), p.b.props.Document[Id]);
+        // });
+
+        return pairs;
     }
 
 
