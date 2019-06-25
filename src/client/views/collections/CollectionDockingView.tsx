@@ -535,7 +535,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                     PanelWidth={this.nativeWidth}
                     PanelHeight={this.nativeHeight}
                     ScreenToLocalTransform={this.ScreenToLocalTransform}
-                    isTopMost={true}
+                    renderDepth={0}
                     selectOnLoad={false}
                     parentActive={returnTrue}
                     whenActiveChanged={emptyFunction}

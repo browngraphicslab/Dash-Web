@@ -153,7 +153,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @computed
     get Bounds(): { x: number, y: number, b: number, r: number } {
         return SelectionManager.SelectedDocuments().reduce((bounds, documentView) => {
-            if (documentView.props.isTopMost) {
+            if (documentView.props.renderDepth === 0) {
                 return bounds;
             }
             let transform = (documentView.props.ScreenToLocalTransform().scale(documentView.props.ContentScaling())).inverse();

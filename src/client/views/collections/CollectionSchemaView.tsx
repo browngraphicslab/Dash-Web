@@ -104,7 +104,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             ContainingCollectionView: this.props.CollectionView,
             isSelected: returnFalse,
             select: emptyFunction,
-            isTopMost: false,
+            renderDepth: this.props.renderDepth + 1,
             selectOnLoad: false,
             ScreenToLocalTransform: Transform.Identity,
             focus: emptyFunction,
@@ -454,7 +454,7 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
                 <div className="collectionSchemaView-previewDoc" style={{ transform: `translate(${this.centeringOffset}px, 0px)`, height: "100%" }}>
                     <DocumentView
                         DataDoc={this.props.DataDocument}
-                        Document={this.props.Document} isTopMost={false} selectOnLoad={false}
+                        Document={this.props.Document} renderDepth={0} selectOnLoad={false}
                         addDocument={this.props.addDocument} removeDocument={this.props.removeDocument} moveDocument={this.props.moveDocument}
                         ScreenToLocalTransform={this.getTransform}
                         ContentScaling={this.contentScaling}

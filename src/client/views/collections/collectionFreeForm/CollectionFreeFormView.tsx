@@ -199,7 +199,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             var dv = DocumentManager.Instance.getDocumentView(doc);
             return dv && SelectionManager.IsSelected(dv) ? true : false;
         });
-        if (!this.props.isSelected() && !childSelected && !this.props.isTopMost) {
+        if (!this.props.isSelected() && !childSelected && this.props.renderDepth > 0) {
             return;
         }
         e.stopPropagation();
@@ -303,7 +303,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             removeDocument: this.props.removeDocument,
             moveDocument: this.props.moveDocument,
             ScreenToLocalTransform: this.getTransform,
-            isTopMost: false,
+            renderDepth: this.props.renderDepth + 1,
             selectOnLoad: layoutDoc[Id] === this._selectOnLoaded,
             PanelWidth: layoutDoc[WidthSym],
             PanelHeight: layoutDoc[HeightSym],
@@ -404,7 +404,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 class CollectionFreeFormOverlayView extends React.Component<DocumentViewProps & { isSelected: () => boolean }> {
     @computed get overlayView() {
         return (<DocumentContentsView {...this.props} layoutKey={"overlayLayout"}
-            isTopMost={this.props.isTopMost} isSelected={this.props.isSelected} select={emptyFunction} />);
+            renderDepth={this.props.renderDepth} isSelected={this.props.isSelected} select={emptyFunction} />);
     }
     render() {
         return this.overlayView;
@@ -416,7 +416,7 @@ class CollectionFreeFormBackgroundView extends React.Component<DocumentViewProps
     @computed get backgroundView() {
         let props = this.props;
         return (<DocumentContentsView {...this.props} layoutKey={"backgroundLayout"}
-            isTopMost={this.props.isTopMost} isSelected={this.props.isSelected} select={emptyFunction} />);
+            renderDepth={this.props.renderDepth} isSelected={this.props.isSelected} select={emptyFunction} />);
     }
     render() {
         return this.props.Document.backgroundLayout ? this.backgroundView : (null);

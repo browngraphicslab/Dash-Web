@@ -123,7 +123,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
                         <FormattedTextBox color={`${this._textColor}`} fieldKey={this.TextFieldKey} hideOnLeave={this._textHideOnLeave} isOverlay={true}
                             Document={FormattedTextBox.InputBoxOverlay.props.Document}
                             DataDoc={FormattedTextBox.InputBoxOverlay.props.DataDoc}
-                            isSelected={returnTrue} select={emptyFunction} isTopMost={true} selectOnLoad={true}
+                            isSelected={returnTrue} select={emptyFunction} renderDepth={0} selectOnLoad={true}
                             ContainingCollectionView={undefined} whenActiveChanged={emptyFunction} active={returnTrue}
                             ScreenToLocalTransform={this._textXf} PanelWidth={returnZero} PanelHeight={returnZero} focus={emptyFunction} addDocTab={this.addDocTab} outer_div={(dominus: HTMLElement) => this._dominus = dominus} />
                     </div>

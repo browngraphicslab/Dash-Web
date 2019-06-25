@@ -492,7 +492,7 @@ interface IAnnotationProps {
 //                         <DocumentView Document={targetDoc}
 //                             ContainingCollectionView={undefined}
 //                             ScreenToLocalTransform={this.props.parent.props.parent.props.ScreenToLocalTransform}
-//                             isTopMost={false}
+//                             renderDepth={1} // what should renderDepth be?
 //                             ContentScaling={() => 1}
 //                             PanelWidth={() => NumCast(this.props.parent.props.parent.Document.nativeWidth)}
 //                             PanelHeight={() => NumCast(this.props.parent.props.parent.Document.nativeHeight)}

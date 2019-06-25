@@ -103,6 +103,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     }
 
     render() {
+        if (this.props.renderDepth > 7) return (null);
         if (!this.layout && (this.props.layoutKey !== "overlayLayout" || !this.templates.length)) return (null);
         return <ObserverJsxParser
             components={{ FormattedTextBox, ImageBox, IconBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox }}

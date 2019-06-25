@@ -64,8 +64,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
 
     active = (): boolean => {
         var isSelected = this.props.isSelected();
-        var topMost = this.props.isTopMost;
-        return isSelected || this._isChildActive || topMost;
+        return isSelected || this._isChildActive || this.props.renderDepth === 0;
     }
 
     //TODO should this be observable?
@@ -73,32 +72,6 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
     whenActiveChanged = (isActive: boolean) => {
         this._isChildActive = isActive;
         this.props.whenActiveChanged(isActive);
-    }
-
-    createsCycle(documentToAdd: Doc, containerDocument: Doc): boolean {
-        if (!(documentToAdd instanceof Doc)) {
-            return false;
-        }
-        if (StrCast(documentToAdd.layout).indexOf("CollectionView") !== -1) {
-            let data = DocListCast(documentToAdd.data);
-            for (const doc of data) {
-                if (this.createsCycle(doc, containerDocument)) {
-                    return true;
-                }
-            }
-        }
-        let annots = DocListCast(documentToAdd.annotations);
-        for (const annot of annots) {
-            if (this.createsCycle(annot, containerDocument)) {
-                return true;
-            }
-        }
-        for (let containerProto: Opt<Doc> = containerDocument; containerProto !== undefined; containerProto = FieldValue(containerProto.proto)) {
-            if (containerProto[Id] === documentToAdd[Id]) {
-                return true;
-            }
-        }
-        return false;
     }
 
     @action.bound
@@ -109,19 +82,16 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
             Doc.GetProto(doc).annotationOn = this.props.Document;
         }
         allowDuplicates = true;
-        if (!this.createsCycle(doc, this.dataDoc)) {
-            //TODO This won't create the field if it doesn't already exist
-            const value = Cast(this.dataDoc[this.props.fieldKey], listSpec(Doc));
-            if (value !== undefined) {
-                if (allowDuplicates || !value.some(v => v instanceof Doc && v[Id] === doc[Id])) {
-                    value.push(doc);
-                }
-            } else {
-                Doc.SetOnPrototype(this.dataDoc, this.props.fieldKey, new List([doc]));
+        //TODO This won't create the field if it doesn't already exist
+        const value = Cast(this.dataDoc[this.props.fieldKey], listSpec(Doc));
+        if (value !== undefined) {
+            if (allowDuplicates || !value.some(v => v instanceof Doc && v[Id] === doc[Id])) {
+                value.push(doc);
             }
-            return true;
+        } else {
+            Doc.SetOnPrototype(this.dataDoc, this.props.fieldKey, new List([doc]));
         }
-        return false;
+        return true;
     }
 
     @action.bound

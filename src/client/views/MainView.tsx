@@ -211,7 +211,7 @@ export class MainView extends React.Component {
                 ContentScaling={returnOne}
                 PanelWidth={this.getPWidth}
                 PanelHeight={this.getPHeight}
-                isTopMost={true}
+                renderDepth={0}
                 selectOnLoad={false}
                 focus={emptyFunction}
                 parentActive={returnTrue}

@@ -72,7 +72,7 @@ export interface DocumentViewProps {
     removeDocument?: (doc: Doc) => boolean;
     moveDocument?: (doc: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
-    isTopMost: boolean;
+    renderDepth: number;
     ContentScaling: () => number;
     PanelWidth: () => number;
     PanelHeight: () => number;
@@ -120,7 +120,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     public get ContentDiv() { return this._mainCont.current; }
     @computed get active(): boolean { return SelectionManager.IsSelected(this) || this.props.parentActive(); }
-    @computed get topMost(): boolean { return this.props.isTopMost; }
+    @computed get topMost(): boolean { return this.props.renderDepth === 0; }
     @computed get templates(): List<string> {
         let field = this.props.Document.templates;
         if (field && field instanceof List) {
@@ -268,7 +268,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         e.stopPropagation();
         let altKey = e.altKey;
         let ctrlKey = e.ctrlKey;
-        if (this._doubleTap && !this.props.isTopMost) {
+        if (this._doubleTap && !this.props.renderDepth) {
             this.props.addDocTab(this.props.Document, this.props.DataDoc, "inTab");
             SelectionManager.DeselectAll();
             this.props.Document.libraryBrush = false;
@@ -436,7 +436,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @action
     addTemplate = (template: Template) => {
         this.templates.push(template.Layout);
-        this.templates = this.templates;
     }
 
     @action
@@ -447,7 +446,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 break;
             }
         }
-        this.templates = this.templates;
     }
 
     freezeNativeDimensions = (): void => {
@@ -549,7 +547,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         var nativeWidth = this.nativeWidth > 0 ? `${this.nativeWidth}px` : "100%";
         var nativeHeight = BoolCast(this.props.Document.ignoreAspect) ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
         return (
-            <div className={`documentView-node${this.props.isTopMost ? "-topmost" : ""}`}
+            <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
                 style={{
                     outlineColor: "maroon",
@@ -565,7 +563,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     transform: `scale(${scaling}, ${scaling})`
                 }}
                 onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
-
                 onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}
             >
                 {this.contents}

@@ -344,7 +344,7 @@ export namespace Docs {
         {layout}
     </div>
     <div style="height:(100% + 25px); width:100%; position:absolute">
-        <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={"caption"} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
+        <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={"caption"} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} renderDepth={renderDepth}/>
     </div>
 </div>       
         `);
@@ -356,7 +356,7 @@ export namespace Docs {
             {layout}
         </div>
         <div style="height:25px; width:100%; position:absolute">
-            <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={"caption"} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
+            <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={"caption"} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} renderDepth={renderDepth}/>
         </div>
     </div>       
             `);
@@ -379,7 +379,7 @@ export namespace Docs {
             {layout}
         </div>
         <div style="height:15%; width:100%; position:absolute">
-            <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={"caption"} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
+            <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={"caption"} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} renderDepth={renderDepth}/>
         </div>
     </div>       
             `);

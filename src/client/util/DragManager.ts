@@ -28,7 +28,6 @@ export function SetupDrag(_reference: React.RefObject<HTMLElement>, docFunc: () 
         document.removeEventListener('pointerup', onRowUp);
     };
     let onItemDown = async (e: React.PointerEvent) => {
-        // if (this.props.isSelected() || this.props.isTopMost) {
         if (e.button === 0) {
             e.stopPropagation();
             if (e.shiftKey && CollectionDockingView.Instance) {
@@ -38,7 +37,6 @@ export function SetupDrag(_reference: React.RefObject<HTMLElement>, docFunc: () 
                 document.addEventListener("pointerup", onRowUp);
             }
         }
-        //}
     };
     return onItemDown;
 }

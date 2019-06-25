@@ -33,7 +33,7 @@ export interface FieldViewProps {
     DataDoc: Doc;
     isSelected: () => boolean;
     select: (isCtrlPressed: boolean) => void;
-    isTopMost: boolean;
+    renderDepth: number;
     selectOnLoad: boolean;
     addDocument?: (document: Doc, allowDuplicates?: boolean) => boolean;
     addDocTab: (document: Doc, dataDoc: Doc, where: string) => void;
@@ -97,7 +97,7 @@ export class FieldView extends React.Component<FieldViewProps> {
             //         ContentScaling={returnOne}
             //         PanelWidth={returnHundred}
             //         PanelHeight={returnHundred}
-            //         isTopMost={true} //TODO Why is this top most?
+            //         renderDepth={0} //TODO Why is renderDepth reset?
             //         selectOnLoad={false}
             //         focus={emptyFunction}
             //         isSelected={this.props.isSelected}

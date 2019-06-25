@@ -32,7 +32,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             fieldKey: this.props.keyName,
             isSelected: returnFalse,
             select: emptyFunction,
-            isTopMost: false,
+            renderDepth: 1,
             selectOnLoad: false,
             active: returnFalse,
             whenActiveChanged: emptyFunction,
