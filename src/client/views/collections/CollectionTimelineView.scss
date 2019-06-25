@@ -17,11 +17,13 @@
 
 
     .unselected {
-        border: 3px solid;
+        border: 3px solid black;
+        z-index: -2;
     }
 
     .selected {
         border: 3px solid $intermediate-color;
+        z-index: -1;
 
     }
 

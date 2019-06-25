@@ -286,8 +286,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 }
             }
             buttons.push(
-                <div className="unselected" id={"button" + String(i)} onClick={display} style={{ top: "70%", position: "absolute", left: leftval, width: "100px", height: "100px" }}>
-                    <div className="window" style={{ overflow: "hidden", zIndex: -55 }}>
+                <div onClick={display} style={{ top: "70%", position: "absolute", left: leftval, width: "100px", height: "100px" }}>
+                    <div className="unselected" id={"button" + String(i)} style={{ position: "absolute", width: "100px", height: "100px" }}>
                         {this.documentpreview(docs[i], leftval2, 500)}
                     </div>
                 </div>);
@@ -353,7 +353,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             </div>
             <div className="selection" style={{
                 whiteSpace: "nowrap", borderRadius: "0px 0px 5px 5px", border: "1px",
-                overflow: "hidden", textOverflow: "ellipsis", top: "78%", zIndex: 999, position: "absolute", left: (this.leftselect !== -2 ? (((values[this.leftselect] - values[0]) * this.barwidth * 0.97 / this._range) * (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)) - (this.xmovement * (this.barwidth) / (this.barwidth - this.xmovement2 - this.xmovement))) + "px" : "-9999px"), width: "100px", height: "30px"
+                overflow: "hidden", textOverflow: "ellipsis", top: "78%", zIndex: 99, position: "absolute", left: (this.leftselect !== -2 ? (((values[this.leftselect] - values[0]) * this.barwidth * 0.97 / this._range) * (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)) - (this.xmovement * (this.barwidth) / (this.barwidth - this.xmovement2 - this.xmovement))) + "px" : "-9999px"), width: "100px", height: "30px"
             }}>
                 {this.nameselect}
             </div>
@@ -487,25 +487,26 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         return (
             <div>
                 {/*<FontAwesomeIcon icon={this.checkData(d)} size="sm" />*/}
-                <div className="window" style={{ background: "black" }}>
-                    <DocumentView
+                <div className="window" style={{ pointerEvents: "none", zIndex: 10, width: "94px", height: "94px", position: "absolute" }}></div>
+                <div className="window" style={{ background: "white", pointerEvents: "none", zIndex: -1, position: "absolute", width: "94px", height: "94px" }}>
+
+                    <CollectionTimelinePreview
                         Document={d}
-                        addDocument={undefined}
-                        addDocTab={this.props.addDocTab}
-                        removeDocument={undefined}
-                        ScreenToLocalTransform={Transform.Identity}
-                        ContentScaling={returnOne}
-                        PanelWidth={() => 1}
-                        PanelHeight={() => 1}
-                        isTopMost={false}
-                        selectOnLoad={false}
-                        focus={emptyFunction}
-                        ContainingCollectionView={this.props.ContainingCollectionView}
-                        parentActive={this.props.active}
+                        width={() => 94}
+                        height={() => 94}
+                        getTransform={() => new Transform(0, 0, 1)}
+                        CollectionView={this.props.CollectionView}
+                        moveDocument={this.props.moveDocument}
+                        addDocument={this.props.addDocument}
+                        removeDocument={this.props.removeDocument}
+                        active={this.props.active}
                         whenActiveChanged={this.props.whenActiveChanged}
-                        bringToFront={emptyFunction} />
+                        addDocTab={this.props.addDocTab}
+                    />
                 </div>
-            </div>
+
+            </div >
+
 
 
         );
@@ -639,7 +640,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         return (
             <div className="collectionTimelineView" id="yeet" style={{ marginLeft: "1%", width: "98%", height: "100%" }}
                 onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
-                <hr style={{ top: "70%", display: "block", width: "100%", border: "10", position: "absolute" }} />
+                <hr style={{ top: "70%", display: "block", width: "100%", border: "10", position: "absolute", zIndex: -9999 }} />
                 {this.buttonloop()}
                 {this.tableOptionsPanel}
             </div>
@@ -647,4 +648,54 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     }
 }
 
+interface CollectionTimelinePreviewProps {
+    Document?: Doc;
+    width: () => number;
+    height: () => number;
+    CollectionView?: CollectionView | CollectionPDFView | CollectionVideoView;
+    getTransform: () => Transform;
+    addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
+    moveDocument: (document: Doc, target: Doc, addDoc: ((doc: Doc) => boolean)) => boolean;
+    removeDocument: (document: Doc) => boolean;
+    active: () => boolean;
+    whenActiveChanged: (isActive: boolean) => void;
+    addDocTab: (document: Doc, where: string) => void;
 
+}
+
+@observer
+export class CollectionTimelinePreview extends React.Component<CollectionTimelinePreviewProps>{
+    private get nativeWidth() { return NumCast(this.props.Document!.nativeWidth, this.props.width()); }
+    private get nativeHeight() { return NumCast(this.props.Document!.nativeHeight, this.props.height()); }
+    private contentScaling = () => {
+        let wscale = this.props.width() / (this.nativeWidth ? this.nativeWidth : this.props.width());
+        if (wscale * this.nativeHeight > this.props.height()) {
+            return this.props.height() / (this.nativeHeight ? this.nativeHeight : this.props.height());
+        }
+        return wscale;
+    }
+    private PanelWidth = () => this.nativeWidth * this.contentScaling();
+    private PanelHeight = () => this.nativeHeight * this.contentScaling();
+    private getTransform = () => this.props.getTransform().translate(-this.centeringOffset, 0).scale(1 / this.contentScaling());
+    get centeringOffset() { return (this.props.width() - this.nativeWidth * this.contentScaling()) / 2; }
+
+    render() {
+        return (<div className="collectionSchemaView-previewRegion" style={{ width: this.props.width(), height: "100%" }}>
+            {!this.props.Document || !this.props.width ? (null) : (
+                <div className="collectionSchemaView-previewDoc" style={{ transform: `translate(${this.centeringOffset}px, 0px)`, height: "100%" }}>
+                    <DocumentView Document={this.props.Document} isTopMost={false} selectOnLoad={false}
+                        addDocument={this.props.addDocument} removeDocument={this.props.removeDocument} moveDocument={this.props.moveDocument}
+                        ScreenToLocalTransform={this.getTransform}
+                        ContentScaling={this.contentScaling}
+                        PanelWidth={this.PanelWidth} PanelHeight={this.PanelHeight}
+                        ContainingCollectionView={this.props.CollectionView}
+                        focus={emptyFunction}
+                        parentActive={this.props.active}
+                        whenActiveChanged={this.props.whenActiveChanged}
+                        bringToFront={emptyFunction}
+                        addDocTab={this.props.addDocTab}
+                    />
+                </div>)}
+        </div>);
+    }
+}
