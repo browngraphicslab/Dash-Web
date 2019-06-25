@@ -63,7 +63,7 @@ export class IconBar extends React.Component {
                 <div className="type-outer">
                     <div className={"type-icon all"}
                         onClick={this.selectAll}>
-                        <FontAwesomeIcon className="fontawesome-icon" icon={faCheckCircle} />
+                    <FontAwesomeIcon className="fontawesome-icon" icon={faCheckCircle} />
                     </div>
                     <div className="filter-description">Select All</div>
                 </div>
