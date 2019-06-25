@@ -34,7 +34,7 @@ import { dropActionType } from "../util/DragManager";
 import { DateField } from "../../new_fields/DateField";
 import { UndoManager } from "../util/UndoManager";
 import { RouteStore } from "../../server/RouteStore";
-var requestImageSize = require('request-image-size');
+var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 
 export enum DocTypes {
