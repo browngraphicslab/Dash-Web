@@ -16,6 +16,23 @@
     box-sizing: border-box;
 
 
+    .unselected {
+        border: 3px solid;
+    }
+
+    .selected {
+        border: 3px solid $intermediate-color;
+
+    }
+
+    .selection {
+        background: $intermediate-color;
+    }
+
+    .window {
+        pointer-events: none;
+    }
+
 }
 
 .v1 {
@@ -38,6 +55,9 @@
 .viewpanel {
     background: $light-color;
 }
+
+
+
 
 
 //options menu styling
