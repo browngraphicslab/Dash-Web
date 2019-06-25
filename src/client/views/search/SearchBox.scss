@@ -19,6 +19,7 @@
         }
 
         &.searchBox-input {
+            display: block;
             width: 130px;
             -webkit-transition: width 0.4s;
             transition: width 0.4s;

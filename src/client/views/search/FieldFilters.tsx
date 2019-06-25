@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { observable } from 'mobx';
 import { CheckBox } from './CheckBox';
-import { Keys } from './SearchBox';
+import { Keys } from './FilterBox';
 import "./FieldFilters.scss";
 
 export interface FieldFilterProps {
@@ -16,7 +16,7 @@ export interface FieldFilterProps {
 export class FieldFilters extends React.Component<FieldFilterProps> {
 
     static Instance: FieldFilters;
-    
+
     @observable public _resetBoolean = false;
     @observable public _resetCounter: number = 0;
 

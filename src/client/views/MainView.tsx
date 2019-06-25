@@ -24,7 +24,7 @@ import "./Main.scss";
 import { MainOverlayTextBox } from './MainOverlayTextBox';
 import { DocumentView } from './nodes/DocumentView';
 import { PreviewCursor } from './PreviewCursor';
-import { SearchBox } from './search/SearchBox';
+import { FilterBox } from './search/FilterBox';
 import { SelectionManager } from '../util/SelectionManager';
 import { FieldResult, Field, Doc, Opt, DocListCast } from '../../new_fields/Doc';
 import { Cast, FieldValue, StrCast, PromiseValue } from '../../new_fields/Types';
@@ -336,7 +336,7 @@ export class MainView extends React.Component {
                     </div>
                 </div>
             </div >,
-            this.isSearchVisible ? <div className="main-searchDiv" key="search" style={{ top: '34px', right: '1px', position: 'absolute' }} > <SearchBox /> </div> : null,
+            this.isSearchVisible ? <div className="main-searchDiv" key="search" style={{ top: '34px', right: '1px', position: 'absolute' }} > <FilterBox /> </div> : null,
             <div className="main-buttonDiv" key="logout" style={{ bottom: '0px', right: '1px', position: 'absolute' }} ref={logoutRef}>
                 <button onClick={() => request.get(DocServer.prepend(RouteStore.logout), emptyFunction)}>Log Out</button></div>
         ];

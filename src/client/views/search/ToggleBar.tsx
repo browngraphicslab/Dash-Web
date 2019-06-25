@@ -4,7 +4,6 @@ import { observable, action, runInAction, computed } from 'mobx';
 import "./SearchBox.scss";
 import "./ToggleBar.scss";
 import * as anime from 'animejs';
-import { SearchBox } from './SearchBox';
 
 export interface ToggleBarProps {
     originalStatus: boolean;

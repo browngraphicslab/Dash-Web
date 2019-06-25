@@ -2,133 +2,68 @@ import * as React from 'react';
 import { observer } from 'mobx-react';
 import { observable, action, runInAction } from 'mobx';
 import "./SearchBox.scss";
+import "./FilterBox.scss";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes } from '@fortawesome/free-solid-svg-icons';
-import { library, icon } from '@fortawesome/fontawesome-svg-core';
-import * as rp from 'request-promise';
+import { SetupDrag } from '../../util/DragManager';
+import { Docs } from '../../documents/Documents';
+import { NumCast } from '../../../new_fields/Types';
+import { Doc } from '../../../new_fields/Doc';
 import { SearchItem } from './SearchItem';
 import { DocServer } from '../../DocServer';
-import { Doc } from '../../../new_fields/Doc';
+import * as rp from 'request-promise';
 import { Id } from '../../../new_fields/FieldSymbols';
-import { SetupDrag } from '../../util/DragManager';
-import { Docs, DocTypes } from '../../documents/Documents';
-import { RouteStore } from '../../../server/RouteStore';
-import { NumCast, Cast, StrCast } from '../../../new_fields/Types';
 import { SearchUtil } from '../../util/SearchUtil';
-import * as _ from "lodash";
-import { ToggleBar } from './ToggleBar';
-import { IconBar } from './IconBar';
-import { FieldFilters } from './FieldFilters';
-import { SelectionManager } from '../../util/SelectionManager';
-import { DocumentView } from '../nodes/DocumentView';
-import { CollectionFilters } from './CollectionFilters';
-import { NaviconButton } from './NaviconButton';
-import * as $ from 'jquery';
-import * as anime from 'animejs';
-import "./FilterBox.scss";
+import { RouteStore } from '../../../server/RouteStore';
+import { FilterBox } from './FilterBox';
 
-library.add(faTimes);
-
-export enum Keys {
-    TITLE = "title",
-    AUTHOR = "author",
-    DATA = "data"
+export interface SearchBoxProps {
+    // setUnfilteredResults(docs: Doc[]): void;
+    // getFilteredResults(): Doc[];
+    // getFinalQuery(str: string): string;
+    
+    // submitSearch(): void;
 }
 
-@observer
-export class SearchBox extends React.Component {
-
-    static Instance: SearchBox;
-    public _allIcons: string[] = [DocTypes.AUDIO, DocTypes.COL, DocTypes.HIST, DocTypes.IMG, DocTypes.LINK, DocTypes.PDF, DocTypes.TEXT, DocTypes.VID, DocTypes.WEB];
+export class SearchBox extends React.Component<SearchBoxProps> {
 
     @observable private _searchString: string = "";
-    //if true, any keywords can be used. if false, all keywords are required.
-    @observable private _basicWordStatus: boolean = true;
-    @observable private _filterOpen: boolean = false;
     @observable private _resultsOpen: boolean = false;
     @observable private _results: Doc[] = [];
     @observable private _openNoResults: boolean = false;
-    @observable private _icons: string[] = this._allIcons;
-    @observable private _titleFieldStatus: boolean = true;
-    @observable private _authorFieldStatus: boolean = true;
-    @observable private _dataFieldStatus: boolean = true;
-    @observable private _collectionStatus = false;
-    @observable private _collectionSelfStatus = true;
-    @observable private _collectionParentStatus = true;
-    @observable private _wordStatusOpen: boolean = false;
-    @observable private _typeOpen: boolean = false;
-    @observable private _colOpen: boolean = false;
-    @observable private _fieldOpen: boolean = false;
+    // private _pointerTime: number = -1;
+    static Instance: SearchBox;
 
-    constructor(props: Readonly<{}>) {
+    constructor(props: SearchBoxProps){
         super(props);
+
         SearchBox.Instance = this;
     }
 
-    componentDidMount = () => {
-        document.addEventListener("pointerdown", (e) => {
-            if (e.timeStamp !== this._pointerTime) {
-                this.closeSearch();
-            }
+    // componentDidMount = () => {
+    //     document.addEventListener("pointerdown", (e) => {
+    //         console.log(e.timeStamp, FilterBox.Instance._pointerTime)
+    //         console.log("this is in the click for determining whether or not to close search")
+    //         if (e.timeStamp !== FilterBox.Instance._pointerTime) {
+    //             this.closeSearch();
+    //         }
+    //     });
+    // }
+
+    @action
+    getViews = async (doc: Doc) => {
+        const results = await SearchUtil.GetViewsOfDocument(doc);
+        let toReturn: Doc[] = [];
+        await runInAction(() => {
+            toReturn = results;
         });
-    }
-
-    setupAccordion() {
-        $('document').ready(function () {
-            var acc = document.getElementsByClassName('filter-header');
-
-            for (var i = 0; i < acc.length; i++) {
-                acc[i].addEventListener("click", function (this: HTMLElement) {
-                    this.classList.toggle("active");
-
-                    var panel = this.nextElementSibling as HTMLElement;
-                    if (panel.style.maxHeight) {
-                        panel.style.overflow = "hidden";
-                        panel.style.maxHeight = null;
-                        panel.style.opacity = "0";
-                    } else {
-                        setTimeout(() => {
-                            panel.style.overflow = "visible";
-                        }, 200);
-                        setTimeout(() => {
-                            panel.style.opacity = "1";
-                        }, 50);
-                        panel.style.maxHeight = panel.scrollHeight + "px";
-                        
-                    }
-                });
-            }
-        });
-    }
-
-    @action.bound
-    minimizeAll() {
-        $('document').ready(function () {
-            var acc = document.getElementsByClassName('filter-header');
-
-            for (var i = 0; i < acc.length; i++) {
-                let classList = acc[i].classList;
-                if (classList.contains("active")) {
-                    acc[i].classList.toggle("active");
-                    var panel = acc[i].nextElementSibling as HTMLElement;
-                    panel.style.overflow = "hidden";
-                    panel.style.maxHeight = null;
-                }
-            }
-        });
-    }
-
-    @action.bound
-    resetFilters = () => {
-        ToggleBar.Instance.resetToggle();
-        IconBar.Instance.selectAll();
-        FieldFilters.Instance.resetFieldFilters();
-        CollectionFilters.Instance.resetCollectionFilters();
+        return toReturn;
     }
 
     @action.bound
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
         this._searchString = e.target.value;
+        console.log(this._searchString)
+        e.stopPropagation();
 
         if (this._searchString === "") {
             this._results = [];
@@ -136,138 +71,37 @@ export class SearchBox extends React.Component {
         }
     }
 
-    @action.bound
-    clearSearchQuery() {
-        this._searchString = "";
-        this._results = [];
+    enter = (e: React.KeyboardEvent) => {
+        
+        if (e.key === "Enter") { this.submitSearch(); }
     }
 
-    basicRequireWords(query: string): string {
-        let oldWords = query.split(" ");
-        let newWords: string[] = [];
-        oldWords.forEach(word => {
-            let newWrd = "+" + word;
-            newWords.push(newWrd);
-        });
-        query = newWords.join(" ");
-
-        return query;
-    }
-
-    basicFieldFilters(query: string, type: string): string {
-        let oldWords = query.split(" ");
-        let mod = "";
-
-        if (type === Keys.AUTHOR) {
-            mod = " author_t:";
-        } if (type === Keys.DATA) {
-            //TODO
-        } if (type === Keys.TITLE) {
-            mod = " title_t:";
-        }
-
-        let newWords: string[] = [];
-        oldWords.forEach(word => {
-            let newWrd = mod + word;
-            newWords.push(newWrd);
-        });
-
-        query = newWords.join(" ");
-
-        return query;
-    }
-
-    applyBasicFieldFilters(query: string) {
-        let finalQuery = "";
-
-        if (this._titleFieldStatus) {
-            finalQuery = finalQuery + this.basicFieldFilters(query, Keys.TITLE);
-        }
-        if (this._authorFieldStatus) {
-            finalQuery = finalQuery + this.basicFieldFilters(query, Keys.AUTHOR);
-        }
-        if (this._dataFieldStatus) {
-            finalQuery = finalQuery + this.basicFieldFilters(query, Keys.DATA);
-        }
-        return finalQuery;
-    }
-
-    get fieldFiltersApplied() { return !(this._dataFieldStatus && this._authorFieldStatus && this._titleFieldStatus); }
-
-    //TODO: basically all of this
-    //gets all of the collections of all the docviews that are selected
-    //if a collection is the only thing selected, search only in that collection (not its container)
-    getCurCollections(): Doc[] {
-        let selectedDocs: DocumentView[] = SelectionManager.SelectedDocuments();
-        let collections: Doc[] = [];
-
-            selectedDocs.forEach(async element => {
-                let layout: string = StrCast(element.props.Document.baseLayout);
-                //checks if selected view (element) is a collection. if it is, adds to list to search through
-                if (layout.indexOf("Collection") > -1) {
-                    //makes sure collections aren't added more than once
-                    if (!collections.includes(element.props.Document)) {
-                        collections.push(element.props.Document);
-                    }
-                }
-                //gets the selected doc's containing view
-                let containingView = element.props.ContainingCollectionView;
-                //makes sure collections aren't added more than once
-                if (containingView && !collections.includes(containingView.props.Document)) {
-                    collections.push(containingView.props.Document);
-                }
+    public static async convertDataUri(imageUri: string, returnedFilename: string) {
+        try {
+            let posting = DocServer.prepend(RouteStore.dataUriToImage);
+            const returnedUri = await rp.post(posting, {
+                body: {
+                    uri: imageUri,
+                    name: returnedFilename
+                },
+                json: true,
             });
+            return returnedUri;
 
-        return collections;
-    }
-
-    getFinalQuery(query: string): string {
-        //alters the query so it looks in the correct fields
-        //if this is true, then not all of the field boxes are checked
-        //TODO: data
-        if (this.fieldFiltersApplied) {
-            query = this.applyBasicFieldFilters(query);
-            query = query.replace(/\s+/g, ' ').trim();
+        } catch (e) {
+            console.log(e);
         }
-
-        //alters the query based on if all words or any words are required
-        //if this._wordstatus is false, all words are required and a + is added before each
-        if (!this._basicWordStatus) {
-            query = this.basicRequireWords(query);
-            query = query.replace(/\s+/g, ' ').trim();
-        }
-
-        //if should be searched in a specific collection
-        if (this._collectionStatus) {
-            query = this.addCollectionFilter(query);
-            query = query.replace(/\s+/g, ' ').trim();
-        }
-        return query;
-    }
-
-    addCollectionFilter(query: string): string {
-        let collections: Doc[] = this.getCurCollections();
-        let oldWords = query.split(" ");
-
-        let collectionString: string[] = [];
-        collections.forEach(doc => {
-            let proto = doc.proto;
-            let protoId = (proto || doc)[Id];
-            let colString: string = "{!join from=data_l to=id}id:" + protoId + " ";
-            collectionString.push(colString);
-        });
-
-        let finalColString = collectionString.join(" ");
-        finalColString = finalColString.trim();
-        return "+(" + finalColString + ")" + query;
     }
 
     @action
     submitSearch = async () => {
-        let query = this._searchString;
+        console.log("submitting")
+        let query = this._searchString; // searchbox gets query
+        console.log(this._searchString)
         let results: Doc[];
 
-        query = this.getFinalQuery(query);
+        // query = this.props.getFinalQuery(query); // sends to filterbox to modify and gets final query back
+        query = FilterBox.Instance.getFinalQuery(query);
 
         //if there is no query there should be no result
         if (query === "") {
@@ -275,11 +109,15 @@ export class SearchBox extends React.Component {
         }
         else {
             //gets json result into a list of documents that can be used
+            // results = await this.props.getFilteredResults(query);
+
+            //these are filtered by type
             results = await this.getResults(query);
         }
 
         runInAction(() => {
             this._resultsOpen = true;
+            console.log("opening results")
             this._results = results;
             this._openNoResults = true;
         });
@@ -301,61 +139,15 @@ export class SearchBox extends React.Component {
                 docs.push(field);
             }
         }
-        return this.filterDocsByType(docs);
-    }
-
-    //this.icons will now include all the icons that need to be included
-    @action filterDocsByType(docs: Doc[]) {
-        let finalDocs: Doc[] = [];
-        docs.forEach(doc => {
-            let layoutresult = Cast(doc.type, "string", "");
-            if (this._icons.includes(layoutresult)) {
-                finalDocs.push(doc);
-            }
-        });
-        return finalDocs;
-    }
-
-    public static async convertDataUri(imageUri: string, returnedFilename: string) {
-        try {
-            let posting = DocServer.prepend(RouteStore.dataUriToImage);
-            const returnedUri = await rp.post(posting, {
-                body: {
-                    uri: imageUri,
-                    name: returnedFilename
-                },
-                json: true,
-            });
-            return returnedUri;
-
-        } catch (e) {
-            console.log(e);
-        }
-    }
-
-    enter = (e: React.KeyboardEvent) => {
-        if (e.key === "Enter") { this.submitSearch(); }
-    }
-
-    @action.bound
-    closeSearch = () => {
-        this._filterOpen = false;
-        this._resultsOpen = false;
-        this._results = [];
-    }
-
-    @action
-    openFilter = () => {
-        this._filterOpen = !this._filterOpen;
-        this._resultsOpen = false;
-        this._results = [];
-
-        this.setupAccordion();
+        // this.props.setUnfilteredResults(docs);
+        // return docs;
+        return FilterBox.Instance.filterDocsByType(docs);
     }
 
     collectionRef = React.createRef<HTMLSpanElement>();
     startDragCollection = async () => {
-        const results = await this.getResults(this._searchString);
+        // const results = await this.getResults(this._searchString);
+        const results = await this.getResults(FilterBox.Instance.getFinalQuery(this._searchString));
         const docs = results.map(doc => {
             const isProto = Doc.GetT(doc, "isPrototype", "boolean", true);
             if (isProto) {
@@ -391,94 +183,35 @@ export class SearchBox extends React.Component {
         return Docs.FreeformDocument(docs, { width: 400, height: 400, panX: 175, panY: 175, backgroundColor: "grey", title: `Search Docs: "${this._searchString}"` });
     }
 
-    @action
-    getViews = async (doc: Doc) => {
-        const results = await SearchUtil.GetViewsOfDocument(doc);
-        let toReturn: Doc[] = [];
-        await runInAction(() => {
-            toReturn = results;
-        });
-        return toReturn;
-    }
-
-    //if true, any keywords can be used. if false, all keywords are required.
-    @action.bound
-    handleWordQueryChange = () => { this._basicWordStatus = !this._basicWordStatus; }
-
-    @action
-    getBasicWordStatus() { return this._basicWordStatus; }
-
-    @action.bound
-    updateIcon(newArray: string[]) { this._icons = newArray; }
-
-    @action.bound
-    getIcons(): string[] { return this._icons; }
-
-    private _pointerTime: number = -1;
-
-    stopProp = (e: React.PointerEvent) => {
-        e.stopPropagation();
-        this._pointerTime = e.timeStamp;
-    }
-
     @action.bound
     openSearch(e: React.PointerEvent) {
+        console.log("opening search")
         e.stopPropagation();
+        // FilterBox.Instance.setPointerTime(e.timeStamp);
         this._openNoResults = false;
-        this._filterOpen = false;
+        FilterBox.Instance.closeFilter();
         this._resultsOpen = true;
-        this._pointerTime = e.timeStamp;
     }
 
+    @action.bound
+    closeSearch = () => {
+        console.log("closing search")
 
+        FilterBox.Instance.closeFilter();
+        this.closeResults();
+        console.log(this._resultsOpen)
+    }
 
     @action.bound
-    closeFilter() { this._filterOpen = false; }
+    closeResults() {
+        console.log("closing results")
+        this._resultsOpen = false;
+        this._results = [];
+    }
 
-    @action.bound
-    toggleFieldOpen() { this._fieldOpen = !this._fieldOpen; }
-
-    @action.bound
-    toggleColOpen() { this._colOpen = !this._colOpen; }
-
-    @action.bound
-    toggleTypeOpen() { this._typeOpen = !this._typeOpen; }
-
-    @action.bound
-    toggleWordStatusOpen() { this._wordStatusOpen = !this._wordStatusOpen; }
-
-    @action.bound
-    updateTitleStatus(newStat: boolean) { this._titleFieldStatus = newStat; }
-
-    @action.bound
-    updateAuthorStatus(newStat: boolean) { this._authorFieldStatus = newStat; }
-
-    @action.bound
-    updateDataStatus(newStat: boolean) { this._dataFieldStatus = newStat; }
-
-    @action.bound
-    updateCollectionStatus(newStat: boolean) { this._collectionStatus = newStat; }
-
-    @action.bound
-    updateSelfCollectionStatus(newStat: boolean) { this._collectionSelfStatus = newStat; }
-
-    @action.bound
-    updateParentCollectionStatus(newStat: boolean) { this._collectionParentStatus = newStat; }
-
-    getCollectionStatus() { return this._collectionStatus; }
-    getSelfCollectionStatus() { return this._collectionSelfStatus; }
-    getParentCollectionStatus() { return this._collectionParentStatus; }
-    getTitleStatus() { return this._titleFieldStatus; }
-    getAuthorStatus() { return this._authorFieldStatus; }
-    getDataStatus() { return this._dataFieldStatus; }
-
-    // Useful queries:
-    // Delegates of a document: {!join from=id to=proto_i}id:{protoId}
-    // Documents in a collection: {!join from=data_l to=id}id:{collectionProtoId} //id of collections prototype
     render() {
-        return (
-            <div>
-                <div className="searchBox-container">
+        return(
+            <div className="searchBox-container">
                     <div className="searchBox-bar">
                         <span className="searchBox-barChild searchBox-collection" onPointerDown={SetupDrag(this.collectionRef, this.startDragCollection)} ref={this.collectionRef}>
                             <FontAwesomeIcon icon="object-group" size="lg" />
@@ -486,72 +219,16 @@ export class SearchBox extends React.Component {
                         <input value={this._searchString} onChange={this.onChange} type="text" placeholder="Search..."
                             className="searchBox-barChild searchBox-input" onPointerDown={this.openSearch} onKeyPress={this.enter}
                             style={{ width: this._resultsOpen ? "500px" : "100px" }} />
-                        <button className="searchBox-barChild searchBox-filter" onClick={this.openFilter} onPointerDown={this.stopProp}>Filter</button>
                     </div>
-                    {this._resultsOpen ? (
-                        <div className="searchBox-results">
+                        <div className="searchBox-results" style = {this._resultsOpen ? {display: "flex"} : {display: "none"}}>
                             {(this._results.length !== 0) ? (
                                 this._results.map(result => <SearchItem doc={result} key={result[Id]} />)
                             ) :
                                 this._openNoResults ? (<div className="no-result">No Search Results</div>) : null}
 
                         </div>
-                    ) : undefined}
                 </div>
-                {this._filterOpen ? (
-                    <div className="filter-form" onPointerDown={this.stopProp} id="filter-form" style={this._filterOpen ? { display: "flex" } : { display: "none" }}>
-                        <div className = "top-filter-header" style={{ display: "flex", width: "100%" }}>
-                            <div id="header">Filter Search Results</div>
-                            <div className="close-icon" onClick={this.closeFilter}>
-                                <span className="line line-1"></span>
-                                <span className="line line-2"></span></div>
-                        </div>
-                        <div className = "filter-options">
-                            <div className="filter-div">
-                                <div className="filter-header">
-                                    <div className='filter-title words'>Required words</div>
-                                    <div style={{ marginLeft: "auto" }}><NaviconButton onClick={this.toggleWordStatusOpen} /></div>
-                                </div>
-                                <div className="filter-panel" >
-                                    <ToggleBar handleChange={this.handleWordQueryChange} getStatus={this.getBasicWordStatus}
-                                        originalStatus={this._basicWordStatus} optionOne={"Include Any Keywords"} optionTwo={"Include All Keywords"} />
-                                </div>
-                            </div>
-                            <div className="filter-div">
-                                <div className="filter-header">
-                                    <div className="filter-title icon">Filter by type of node</div>
-                                    <div style={{ marginLeft: "auto" }}><NaviconButton onClick={this.toggleTypeOpen} /></div>
-                                </div>
-                                <div className="filter-panel"><IconBar /></div>
-                            </div>
-                            <div className="filter-div">
-                                <div className="filter-header">
-                                    <div className='filter-title collection'>Search in current collections</div>
-                                    <div style={{ marginLeft: "auto" }}><NaviconButton onClick={this.toggleColOpen} /></div>
-                                </div>
-                                <div className="filter-panel"><CollectionFilters
-                                    updateCollectionStatus={this.updateCollectionStatus} updateParentCollectionStatus={this.updateParentCollectionStatus} updateSelfCollectionStatus={this.updateSelfCollectionStatus}
-                                    collectionStatus={this._collectionStatus} collectionParentStatus={this._collectionParentStatus} collectionSelfStatus={this._collectionSelfStatus} /></div>
-                            </div>
-                            <div className="filter-div">
-                                <div className="filter-header">
-                                    <div className="filter-title field">Filter by Basic Keys</div>
-                                    <div style={{ marginLeft: "auto" }}><NaviconButton onClick={this.toggleFieldOpen} /></div>
-                                </div>
-                                <div className="filter-panel"><FieldFilters
-                                    titleFieldStatus={this._titleFieldStatus} dataFieldStatus={this._dataFieldStatus} authorFieldStatus={this._authorFieldStatus}
-                                    updateAuthorStatus={this.updateAuthorStatus} updateDataStatus={this.updateDataStatus} updateTitleStatus={this.updateTitleStatus} /> </div>
-                            </div>
-                        </div>
-                        <div className="filter-buttons" style={{ display: "flex", justifyContent: "space-around" }}>
-                            <button className="minimize-filter" onClick={this.minimizeAll}>Minimize All</button>
-                            <button className="advanced-filter" >Advanced Filters</button>
-                            <button className="save-filter" >Save Filters</button>
-                            <button className="reset-filter" onClick={this.resetFilters}>Reset Filters</button>
-                        </div>
-                    </div>
-                ) : undefined}
-            </div>
-        );
+        )
     }
+
 }

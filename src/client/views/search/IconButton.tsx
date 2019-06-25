@@ -11,7 +11,7 @@ import '../globalCssVariables.scss';
 import * as _ from "lodash";
 import { IconBar } from './IconBar';
 import { props } from 'bluebird';
-import { SearchBox } from './SearchBox';
+import { FilterBox } from './FilterBox';
 import { Search } from '../../../server/Search';
 
 library.add(faSearch);
@@ -33,7 +33,7 @@ interface IconButtonProps {
 @observer
 export class IconButton extends React.Component<IconButtonProps>{
 
-    @observable private _isSelected: boolean = SearchBox.Instance.getIcons().indexOf(this.props.type) !== -1;
+    @observable private _isSelected: boolean = FilterBox.Instance.getIcons().indexOf(this.props.type) !== -1;
     @observable private _hover = false;
     private _resetReaction?: IReactionDisposer;
     private _selectAllReaction?: IReactionDisposer;
@@ -107,7 +107,7 @@ export class IconButton extends React.Component<IconButtonProps>{
 
     @action.bound
     onClick = () => {
-        let newList: string[] = SearchBox.Instance.getIcons();
+        let newList: string[] = FilterBox.Instance.getIcons();
 
         if (!this._isSelected) {
             this._isSelected = true;
@@ -118,7 +118,7 @@ export class IconButton extends React.Component<IconButtonProps>{
             _.pull(newList, this.props.type);
         }
 
-        SearchBox.Instance.updateIcon(newList);
+        FilterBox.Instance.updateIcon(newList);
     }
 
     selected = {
