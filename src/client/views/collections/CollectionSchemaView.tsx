@@ -454,8 +454,12 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
                 <div className="collectionSchemaView-previewDoc" style={{ transform: `translate(${this.centeringOffset}px, 0px)`, height: "100%" }}>
                     <DocumentView
                         DataDoc={this.props.DataDocument}
-                        Document={this.props.Document} renderDepth={0} selectOnLoad={false}
-                        addDocument={this.props.addDocument} removeDocument={this.props.removeDocument} moveDocument={this.props.moveDocument}
+                        Document={this.props.Document}
+                        renderDepth={1}
+                        selectOnLoad={false}
+                        addDocument={this.props.addDocument}
+                        removeDocument={this.props.removeDocument}
+                        moveDocument={this.props.moveDocument}
                         ScreenToLocalTransform={this.getTransform}
                         ContentScaling={this.contentScaling}
                         PanelWidth={this.PanelWidth} PanelHeight={this.PanelHeight}
