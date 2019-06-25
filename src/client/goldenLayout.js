@@ -2926,6 +2926,9 @@
             if (this.contentItem.parent.isMaximised === true) {
                 this.contentItem.parent.toggleMaximise();
             }
+
+            this.contentItem.parent.isDragged = true; // used to ignore confirmation box for stack close
+
             new lm.controls.DragProxy(
                 x,
                 y,
@@ -3152,7 +3155,7 @@
 		 */
         removeChild: function (contentItem, keepChild) {
 
-			/*
+            /*
 			 * Get the position of the item that's to be removed within all content items this node contains
 			 */
             var index = lm.utils.indexOf(contentItem, this.contentItems);
@@ -3946,6 +3949,15 @@
 		 * @returns {void}
 		 */
         removeChild: function (contentItem, keepChild) {
+            // if deleting stack manually, provide confirmation box
+            if (!contentItem.isDragged) {
+                contentItem.isDragged = !contentItem.isDragged;
+
+                let deleteStack = confirm('delete stack?');
+                if (!deleteStack) {
+                    return;
+                }
+            }
             var removedItemSize = contentItem.config[this._dimension],
                 index = lm.utils.indexOf(contentItem, this.contentItems),
                 splitterIndex = Math.max(index - 1, 0),
@@ -4498,6 +4510,7 @@
         },
 
         addChild: function (contentItem, index) {
+            console.log("ADDING CHILD", contentItem);
             contentItem = this.layoutManager._$normalizeContentItem(contentItem, this);
             lm.items.AbstractContentItem.prototype.addChild.call(this, contentItem, index);
             this.childElementContainer.append(contentItem.element);
