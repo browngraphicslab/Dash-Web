@@ -50,7 +50,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @computed get dataDoc() { return this.props.DataDoc && BoolCast(this.props.Document.isTemplate) ? this.props.DataDoc : this.props.Document; }
     @computed get nativeWidth() { return this.Document.nativeWidth || 0; }
     @computed get nativeHeight() { return this.Document.nativeHeight || 0; }
-    public get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldKey === "annotations"; }
+    public get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldExt === "annotations"; }
     private get borderWidth() { return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH; }
     private panX = () => this.Document.panX || 0;
     private panY = () => this.Document.panY || 0;
@@ -383,7 +383,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         const containerName = `collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`;
         const easing = () => this.props.Document.panTransformType === "Ease";
         if (this.dataDoc && this.props.fieldExt && this.dataDoc[this.props.fieldKey + "_ext"] === undefined) {
-            setTimeout(() => { console.log("Extending: " + this.dataDoc.title); let doc = new Doc(this.dataDoc[Id] + this.props.fieldKey, true); doc.title = "Extension"; this.dataDoc[this.props.fieldKey + "_ext"] = doc; }, 0);
+            console.log("Timeout " + this.dataDoc.title + " " + this.props.fieldKey);
+            setTimeout(() => Doc.MakeFieldExtension(this.dataDoc, this.props.fieldKey), 0);
         }
         return (
             <div className={containerName} ref={this.createDropTarget} onWheel={this.onPointerWheel}

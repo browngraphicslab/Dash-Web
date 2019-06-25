@@ -17,6 +17,7 @@ import { IconBox } from "./IconBox";
 import { ImageBox } from "./ImageBox";
 import { PDFBox } from "./PDFBox";
 import { VideoBox } from "./VideoBox";
+import { Id } from "../../../new_fields/FieldSymbols";
 
 
 //
@@ -85,7 +86,7 @@ export class FieldView extends React.Component<FieldViewProps> {
             return <p>{field.date.toLocaleString()}</p>;
         }
         else if (field instanceof Doc) {
-            return <p><b>{field.title}</b></p>;
+            return <p><b>{field.title + " + " + field[Id]}</b></p>;
             // let returnHundred = () => 100;
             // return (
             //     <DocumentContentsView Document={field}

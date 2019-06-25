@@ -249,6 +249,16 @@ export namespace Doc {
         return true;
     }
 
+    export function MakeFieldExtension(doc: Doc, fieldKey: string) {
+        let fieldExtension = new Doc(doc[Id] + fieldKey, true);
+        fieldExtension.title = "Extension of " + doc.title + "'s field:" + fieldKey;
+        let proto: Doc | undefined = doc;
+        while (proto && !Doc.IsPrototype(proto)) {
+            proto = proto.proto;
+        }
+        (proto ? proto : doc)[fieldKey + "_ext"] = fieldExtension;
+    }
+
     export function MakeAlias(doc: Doc) {
         if (!GetT(doc, "isPrototype", "boolean", true)) {
             return Doc.MakeCopy(doc);

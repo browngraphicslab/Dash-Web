@@ -95,7 +95,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
                 value.push(doc);
             }
         } else {
-            Doc.SetOnPrototype(this.extDoc, this.extField, new List([doc]));
+            Doc.GetProto(this.extDoc)[this.extField] = new List([doc]);
         }
         return true;
     }
