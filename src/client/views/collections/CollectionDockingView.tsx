@@ -24,6 +24,10 @@ import { SubCollectionViewProps } from "./CollectionSubView";
 import { ParentDocSelector } from './ParentDocumentSelector';
 import React = require("react");
 import { MainView } from '../MainView';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { faFile } from '@fortawesome/free-solid-svg-icons';
+library.add(faFile);
 
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
@@ -262,7 +266,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     onPointerDown = (e: React.PointerEvent): void => {
         this._isPointerDown = true;
         let onPointerUp = action(() => {
-            window.removeEventListener("pointerup", onPointerUp)
+            window.removeEventListener("pointerup", onPointerUp);
             this._isPointerDown = false;
         });
         window.addEventListener("pointerup", onPointerUp);
@@ -277,7 +281,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             DocServer.GetRefField(docid).then(action(async (sourceDoc: Opt<Field>) =>
                 (sourceDoc instanceof Doc) && DragLinksAsDocuments(tab, x, y, sourceDoc)));
         } else
-            if ((className === "lm_title" || className === "lm_tab lm_active") && !e.shiftKey) {
+            if ((className === "lm_title" || className === "lm_tab lm_active") && e.shiftKey) {
                 e.stopPropagation();
                 e.preventDefault();
                 let x = e.clientX;
@@ -297,7 +301,8 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                                 handlers: {
                                     dragComplete: emptyFunction,
                                 },
-                                hideSource: false
+                                hideSource: false,
+                                withoutShiftDrag: true
                             });
                     }
                 }));
@@ -345,8 +350,11 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             let doc = await DocServer.GetRefField(tab.contentItem.config.props.documentId) as Doc;
             let dataDoc = await DocServer.GetRefField(tab.contentItem.config.props.dataDocumentId) as Doc;
             if (doc instanceof Doc && dataDoc instanceof Doc) {
-                let counter: any = this.htmlToElement(`<span class="messageCounter">0</div>`);
-                tab.element.append(counter);
+                let dragSpan = document.createElement("span");
+                dragSpan.style.position = "relative";
+                dragSpan.style.bottom = "6px";
+                dragSpan.style.paddingLeft = "4px";
+                dragSpan.style.paddingRight = "2px";
                 let upDiv = document.createElement("span");
                 const stack = tab.contentItem.parent;
                 // shifts the focus to this tab when another tab is dragged over it
@@ -358,16 +366,24 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     }
                     tab.setActive(true);
                 };
-                ReactDOM.render(<ParentDocSelector Document={doc} addDocTab={(doc, dataDoc, location) => CollectionDockingView.Instance.AddTab(stack, doc, dataDoc)} />, upDiv);
-                tab.reactComponents = [upDiv];
+                ReactDOM.render(<span onPointerDown={
+                    e => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        DragManager.StartDocumentDrag([dragSpan], new DragManager.DocumentDragData([doc], [dataDoc]), e.clientX, e.clientY, {
+                            handlers: { dragComplete: emptyFunction },
+                            hideSource: false
+                        });
+                    }}><FontAwesomeIcon icon="file" size="lg" /></span>, dragSpan);
+                ReactDOM.render(<ParentDocSelector Document={doc} addDocTab={doc => CollectionDockingView.Instance.AddTab(stack, doc, dataDoc)} />, upDiv);
+                tab.reactComponents = [dragSpan, upDiv];
+                tab.element.append(dragSpan);
                 tab.element.append(upDiv);
-                counter.DashDocId = tab.contentItem.config.props.documentId;
-                counter.DashDataDocId = tab.contentItem.config.props.dataDocumentId;
-                tab.reactionDisposer = reaction(() => [doc.linkedFromDocs, doc.LinkedToDocs, doc.title],
+                tab.reactionDisposer = reaction(() => [doc.title],
                     () => {
-                        counter.innerHTML = DocListCast(doc.linkedFromDocs).length + DocListCast(doc.linkedToDocs).length;
                         tab.titleElement[0].textContent = doc.title;
                     }, { fireImmediately: true });
+                //TODO why can't this just be doc instead of the id?
                 tab.titleElement[0].DashDocId = tab.contentItem.config.props.documentId;
             }
         }

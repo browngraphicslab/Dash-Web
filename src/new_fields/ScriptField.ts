@@ -1,9 +1,9 @@
-import { ObjectField } from "../new_fields/ObjectField";
+import { ObjectField } from "./ObjectField";
 import { CompiledScript, CompileScript } from "../client/util/Scripting";
-import { Copy, ToScriptString, Parent, SelfProxy } from "../new_fields/FieldSymbols";
+import { Copy, ToScriptString, Parent, SelfProxy } from "./FieldSymbols";
 import { serializable, createSimpleSchema, map, primitive, object, deserialize, PropSchema, custom, SKIP } from "serializr";
 import { Deserializable } from "../client/util/SerializationHelper";
-import { computed } from "mobx";
+import { Doc } from "../new_fields/Doc";
 
 function optional(propSchema: PropSchema) {
     return custom(value => {
@@ -23,35 +23,32 @@ const optionsSchema = createSimpleSchema({
     requiredType: true,
     addReturn: true,
     typecheck: true,
+    readonly: true,
     params: optional(map(primitive()))
 });
 
+const scriptSchema = createSimpleSchema({
+    options: object(optionsSchema),
+    originalScript: true
+});
+
 function deserializeScript(script: ScriptField) {
-    const comp = CompileScript(script.scriptString, script.options);
+    const comp = CompileScript(script.script.originalScript, script.script.options);
     if (!comp.compiled) {
         throw new Error("Couldn't compile loaded script");
     }
-    (script as any)._script = comp;
+    (script as any).script = comp;
 }
 
 @Deserializable("script", deserializeScript)
 export class ScriptField extends ObjectField {
-    protected readonly _script: CompiledScript;
+    @serializable(object(scriptSchema))
+    readonly script: CompiledScript;
 
     constructor(script: CompiledScript) {
         super();
 
-        this._script = script;
-    }
-
-    @serializable(custom(object(optionsSchema).serializer, () => SKIP))
-    get options() {
-        return this._script && this._script.options;
-    }
-
-    @serializable(custom(primitive().serializer, () => SKIP))
-    get scriptString(): string {
-        return this._script && this._script.originalScript;
+        this.script = script;
     }
 
     //     init(callback: (res: Field) => any) {
@@ -76,7 +73,7 @@ export class ScriptField extends ObjectField {
     //     }
 
     [Copy](): ObjectField {
-        return new ScriptField(this._script);
+        return new ScriptField(this.script);
     }
 
     [ToScriptString]() {
@@ -86,9 +83,9 @@ export class ScriptField extends ObjectField {
 
 @Deserializable("computed", deserializeScript)
 export class ComputedField extends ScriptField {
-    @computed
-    get value() {
-        const val = this._script.run({ this: (this[Parent] as any)[SelfProxy] });
+    //TODO maybe add an observable cache based on what is passed in for doc, considering there shouldn't really be that many possible values for doc
+    value(doc: Doc) {
+        const val = this.script.run({ this: doc });
         if (val.success) {
             return val.result;
         }
