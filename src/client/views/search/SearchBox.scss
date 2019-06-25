@@ -8,170 +8,54 @@
     align-items: center;
     padding-left: 2px;
     padding-right: 2px;
-
-    .searchBox-input {
-        width: 130px;
-        -webkit-transition: width 0.4s;
-        transition: width 0.4s;
-        align-self: stretch;
-    }
-
-    .searchBox-input:focus {
-        width: 500px;
-        outline: 3px solid lightblue;
-    }
+    // padding: 2px;
 
     .searchBox-barChild {
-        flex: 0 1 auto;
-        margin-left: 2px;
-        margin-right: 2px;
-    }
 
-    .searchBox-filter {
-        align-self: stretch;
-    }
-
-}
-
-.filter-title {
-    font-size: 18;
-    text-transform: uppercase;
-    margin-top: 10px;
-    margin-bottom: 10px;
-    -webkit-transition: all 0.2s ease-in-out;
-    -moz-transition: all 0.2s ease-in-out;
-    -o-transition: all 0.2s ease-in-out;
-    transition: all 0.2s ease-in-out;
-}
-
-.searchBox-results {
-    margin-left: 27px; //Is there a better way to do this?
-}
-
-.filter-form {
-    padding: 25px;
-    width: 600px;
-    background: $dark-color;
-    position: relative;
-    right: 1px;
-    color: $light-color;
-    flex-direction: column;
-    display: inline-block;
-    transform-origin: top;
-    overflow: auto;
-
-    .filter-header {
-        display: flex;
-        align-items: center;
-        margin-bottom: 10px;
-    }
-
-    .filter-header:hover .filter-title {
-        transform: scale(1.05);
-    }
-
-    .filter-panel {
-        max-height: 0px;
-        width: 100%;
-        overflow: hidden;
-        opacity: 0;
-        transform-origin: top;
-        -webkit-transition: all 0.2s ease-in-out;
-        -moz-transition: all 0.2s ease-in-out;
-        -o-transition: all 0.2s ease-in-out;
-        transition: all 0.2s ease-in-out;
-    }
-
-    .close-icon {
-        width: 20%;
-        opacity: .6;
-        position: relative;
-        display: inline-block;
-
-        .line {
-            display: block;
-            background: $alt-accent;
-            width: $width-line;
-            height: $height-line;
-            position: absolute;
-            right: 0;
-            border-radius: ($height-line / 2);
-
-            &.line-1 {
-                transform: rotate(45deg);
-                top: 45%;
-            }
-
-            &.line-2 {
-                transform: rotate(-45deg);
-                top: 45%;
-            }
+        &.searchBox-collection {
+            flex: 0 1 auto;
+            margin-left: 2px;
+            margin-right: 2px
         }
 
+        &.searchBox-input {
+            width: 130px;
+            -webkit-transition: width 0.4s;
+            transition: width 0.4s;
+            align-self: stretch;
+            margin-left: 2px;
+            margin-right: 2px
+        }
 
+        .searchBox-input:focus {
+            width: 500px;
+            outline: 3px solid lightblue;
+        }
+
+        &.searchBox-filter {
+            align-self: stretch;
+            margin-left: 2px;
+            margin-right: 2px
+        }
     }
-
-    .close-icon:hover {
-        opacity: 1;
-    }
-}
-
-#header {
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    font-size: 25;
-    width: 80%;
 }
 
 .searchBox-results {
+    margin-left: 27px;
     top: 300px;
     display: flex;
     flex-direction: column;
     margin-right: 72px;
-}
 
-.filter-collection {
-    display: inline-block;
-    width: 100%;
-}
-
-.field-title {
-    color: $light-color;
-    text-transform: uppercase;
-    margin-top: 5px;
-    margin-bottom: 5px;
-}
-
-.filter-buttons {
-    border-color: rgba(178, 206, 248, .2); // $darker-alt-accent
-    border-top-style: solid;
-    padding-top: 10px;
-}
-
-.filter-div {
-    margin-top: 10px;
-    margin-bottom: 10px;
-    display: block;
-    width: 100%;
-    border-color: rgba(178, 206, 248, .2); // $darker-alt-accent
-    border-top-style: solid;
-}
-
-.collection-title {
-    color: $light-color;
-    text-transform: uppercase;
-    margin-top: 5px;
-    margin-bottom: 5px;
-}
-
-.no-result {
-    width: 500px;
-    background: $light-color-secondary;
-    border-color: $intermediate-color;
-    border-bottom-style: solid;
-    padding: 10px;
-    height: 50px;
-    text-transform: uppercase;
-    text-align: left;
-    font-weight: bold;
+    .no-result {
+        width: 500px;
+        background: $light-color-secondary;
+        border-color: $intermediate-color;
+        border-bottom-style: solid;
+        padding: 10px;
+        height: 50px;
+        text-transform: uppercase;
+        text-align: left;
+        font-weight: bold;
+    }
 }

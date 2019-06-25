@@ -1,8 +1,9 @@
 import * as React from 'react';
 import { observer } from 'mobx-react';
 import { observable, action } from 'mobx';
-import "./SearchBox.scss";
+// import "./SearchBox.scss";
 import "./IconBar.scss";
+import "./IconButton.scss";
 import { DocTypes } from '../../documents/Documents';
 import { faSearch, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faMusic, faLink, faChartBar, faGlobeAsia, faBan, faTimesCircle, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -28,11 +29,10 @@ export class IconBar extends React.Component {
 
     static Instance: IconBar;
 
-    allIcons: string[] = [DocTypes.AUDIO, DocTypes.COL, DocTypes.HIST, DocTypes.IMG, DocTypes.LINK, DocTypes.PDF, DocTypes.TEXT, DocTypes.VID, DocTypes.WEB];
-    @observable public ResetClicked: boolean = false;
-    @observable public SelectAllClicked: boolean = false;
-    public Reset: number = 0;
-    public Select: number = 0;
+    @observable public _resetClicked: boolean = false;
+    @observable public _selectAllClicked: boolean = false;
+    @observable public _reset: number = 0;
+    @observable public _select: number = 0;
 
     constructor(props: any) {
         super(props);
@@ -47,37 +47,37 @@ export class IconBar extends React.Component {
 
     @action.bound
     resetSelf = () => {
-        this.ResetClicked = true;
+        this._resetClicked = true;
         this.updateList([]);
     }
 
     @action.bound
     selectAll = () => {
-        this.SelectAllClicked = true;
-        this.updateList(this.allIcons);
+        this._selectAllClicked = true;
+        this.updateList(SearchBox.Instance._allIcons);
     }
 
     render() {
         return (
-            <div className="icon-bar">
-                <div className="type-outer">
-                    <div className={"type-icon all"}
-                        onClick={this.selectAll}>
-                        <FontAwesomeIcon className="fontawesome-icon" icon={faCheckCircle} />
+                <div className="icon-bar">
+                    <div className="type-outer">
+                        <div className={"type-icon all"}
+                            onClick={this.selectAll}>
+                            <FontAwesomeIcon className="fontawesome-icon" icon={faCheckCircle} />
+                        </div>
+                        <div className="filter-description">Select All</div>
                     </div>
-                    <div className="filter-description">Select All</div>
-                </div>
-                {this.allIcons.map((type: string) =>
-                    <IconButton type={type} />
-                )}
-                <div className="type-outer">
-                    <div className={"type-icon none"}
-                        onClick={this.resetSelf}>
-                        <FontAwesomeIcon className="fontawesome-icon" icon={faTimesCircle} />
+                    {SearchBox.Instance._allIcons.map((type: string) =>
+                        <IconButton type={type} />
+                    )}
+                    <div className="type-outer">
+                        <div className={"type-icon none"}
+                            onClick={this.resetSelf}>
+                            <FontAwesomeIcon className="fontawesome-icon" icon={faTimesCircle} />
+                        </div>
+                        <div className="filter-description">Clear</div>
                     </div>
-                    <div className="filter-description">Clear</div>
                 </div>
-            </div>
         );
     }
 }

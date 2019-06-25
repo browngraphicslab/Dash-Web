@@ -10,36 +10,38 @@ $translateY: ($height-icon / 2);
 $translateX: 0;
 
 #hamburger-icon {
-  width:$width-line;
-  height:$height-icon;
-  position:relative;
-  display:block;
-  transition: all $transition-time;
-    -webkit-transition: all $transition-time;
-    -moz-transition: all $transition-time;
-  
-  .line {
-    display:block;
-    background:$alt-accent;
-    width:$width-line;
-    height:$height-line;
-    position:absolute;
-    left:0;
-    border-radius:($height-line / 2);
+    width: $width-line;
+    height: $height-icon;
+    position: relative;
+    display: block;
     transition: all $transition-time;
     -webkit-transition: all $transition-time;
     -moz-transition: all $transition-time;
-    
-    &.line-1 {
-      top:0;
+
+    .line {
+        display: block;
+        background: $alt-accent;
+        width: $width-line;
+        height: $height-line;
+        position: absolute;
+        left: 0;
+        border-radius: ($height-line / 2);
+        transition: all $transition-time;
+        -webkit-transition: all $transition-time;
+        -moz-transition: all $transition-time;
+
+        &.line-1 {
+            top: 0;
+        }
+
+        &.line-2 {
+            top: 50%;
+        }
+
+        &.line-3 {
+            top: 100%;
+        }
     }
-    &.line-2 {
-      top:50%;
-    }
-    &.line-3 {
-      top:100%;
-    }
-  }
 }
 
 .filter-header.active {
@@ -48,9 +50,11 @@ $translateX: 0;
         -webkit-transform: translateY($translateY) translateX($translateX) rotate($rotation);
         -moz-transform: translateY($translateY) translateX($translateX) rotate($rotation);
     }
+
     .line-2 {
-        opacity:0;
+        opacity: 0;
     }
+
     .line-3 {
         transform: translateY($translateY * -1) translateX($translateX) rotate($rotation * -1);
         -webkit-transform: translateY($translateY * -1) translateX($translateX) rotate($rotation * -1);
@@ -61,5 +65,5 @@ $translateX: 0;
 .filter-header:hover #hamburger-icon {
     transform: scale(1.1);
     -webkit-transform: scale(1.1);
-        -moz-transform: scale(1.1);
+    -moz-transform: scale(1.1);
 }

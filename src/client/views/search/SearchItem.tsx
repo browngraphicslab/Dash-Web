@@ -17,6 +17,7 @@ import { CollectionViewType } from "../collections/CollectionBaseView";
 import { DocTypes } from "../../documents/Documents";
 import { SearchBox } from "./SearchBox";
 import { DocumentView } from "../nodes/DocumentView";
+import "./SelectorContextMenu.scss";
 
 export interface SearchItemProps {
     doc: Doc;
@@ -39,7 +40,6 @@ export class SelectorContextMenu extends React.Component<SearchItemProps> {
 
     constructor(props: SearchItemProps) {
         super(props);
-
         this.fetchDocuments();
     }
 

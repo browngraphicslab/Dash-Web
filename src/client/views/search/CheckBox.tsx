@@ -16,11 +16,11 @@ interface CheckBoxProps {
 @observer
 export class CheckBox extends React.Component<CheckBoxProps>{
     // true = checked, false = unchecked
-    @observable _status: boolean;
-    @observable uncheckTimeline: anime.AnimeTimelineInstance;
-    @observable checkTimeline: anime.AnimeTimelineInstance;
-    @observable checkRef: any;
-    @observable _resetReaction?: IReactionDisposer;
+    @observable private _status: boolean;
+    @observable private uncheckTimeline: anime.AnimeTimelineInstance;
+    @observable private checkTimeline: anime.AnimeTimelineInstance;
+    @observable private checkRef: any;
+    @observable private _resetReaction?: IReactionDisposer;
 
 
     constructor(props: CheckBoxProps) {
@@ -60,15 +60,15 @@ export class CheckBox extends React.Component<CheckBoxProps>{
         }
 
         this._resetReaction = reaction(
-            () => this.props.parent.resetBoolean,
+            () => this.props.parent._resetBoolean,
             () => {
-                if (this.props.parent.resetBoolean) {
+                if (this.props.parent._resetBoolean) {
                     runInAction(() => {
                         this.reset();
-                        this.props.parent.resetCounter++;
-                        if (this.props.parent.resetCounter === this.props.numCount) {
-                            this.props.parent.resetCounter = 0;
-                            this.props.parent.resetBoolean = false;
+                        this.props.parent._resetCounter++;
+                        if (this.props.parent._resetCounter === this.props.numCount) {
+                            this.props.parent._resetCounter = 0;
+                            this.props.parent._resetBoolean = false;
                         }
                     });
                 }

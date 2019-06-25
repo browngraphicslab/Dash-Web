@@ -16,8 +16,9 @@ export interface FieldFilterProps {
 export class FieldFilters extends React.Component<FieldFilterProps> {
 
     static Instance: FieldFilters;
-    @observable public resetBoolean = false;
-    @observable public resetCounter: number = 0;
+    
+    @observable public _resetBoolean = false;
+    @observable public _resetCounter: number = 0;
 
     constructor(props: FieldFilterProps) {
         super(props);
@@ -25,15 +26,15 @@ export class FieldFilters extends React.Component<FieldFilterProps> {
     }
 
     resetFieldFilters() {
-        this.resetBoolean = true;
+        this._resetBoolean = true;
     }
 
     render() {
         return (
-            <div className = "field-filters">
-                <CheckBox default = {true} numCount={3} parent={this} originalStatus={this.props.titleFieldStatus} updateStatus={this.props.updateTitleStatus} title={Keys.TITLE} />
-                <CheckBox default = {true} numCount={3} parent={this} originalStatus={this.props.authorFieldStatus} updateStatus={this.props.updateAuthorStatus} title={Keys.AUTHOR} />
-                <CheckBox default = {true} numCount={3} parent={this} originalStatus={this.props.dataFieldStatus} updateStatus={this.props.updateDataStatus} title={Keys.DATA} />
+            <div className="field-filters">
+                <CheckBox default={true} numCount={3} parent={this} originalStatus={this.props.titleFieldStatus} updateStatus={this.props.updateTitleStatus} title={Keys.TITLE} />
+                <CheckBox default={true} numCount={3} parent={this} originalStatus={this.props.authorFieldStatus} updateStatus={this.props.updateAuthorStatus} title={Keys.AUTHOR} />
+                <CheckBox default={true} numCount={3} parent={this} originalStatus={this.props.dataFieldStatus} updateStatus={this.props.updateDataStatus} title={Keys.DATA} />
             </div>
         );
     }

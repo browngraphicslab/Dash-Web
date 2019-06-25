@@ -18,15 +18,15 @@ export interface ToggleBarProps {
 export class ToggleBar extends React.Component<ToggleBarProps>{
     static Instance: ToggleBar;
 
-    @observable forwardTimeline: anime.AnimeTimelineInstance;
-    @observable _toggleButton: React.RefObject<HTMLDivElement>;
-    @observable _originalStatus: boolean = this.props.originalStatus;
+    @observable private _forwardTimeline: anime.AnimeTimelineInstance;
+    @observable private _toggleButton: React.RefObject<HTMLDivElement>;
+    @observable private _originalStatus: boolean = this.props.originalStatus;
 
     constructor(props: ToggleBarProps) {
         super(props);
         ToggleBar.Instance = this;
         this._toggleButton = React.createRef();
-        this.forwardTimeline = anime.timeline({
+        this._forwardTimeline = anime.timeline({
             loop: false,
             autoplay: false,
             direction: "reverse",
@@ -38,7 +38,7 @@ export class ToggleBar extends React.Component<ToggleBarProps>{
         let totalWidth = 265;
 
         if (this._originalStatus) {
-            this.forwardTimeline.add({
+            this._forwardTimeline.add({
                 targets: this._toggleButton.current,
                 translateX: totalWidth,
                 easing: "easeInOutQuad",
@@ -46,7 +46,7 @@ export class ToggleBar extends React.Component<ToggleBarProps>{
             });
         }
         else {
-            this.forwardTimeline.add({
+            this._forwardTimeline.add({
                 targets: this._toggleButton.current,
                 translateX: -totalWidth,
                 easing: "easeInOutQuad",
@@ -57,16 +57,16 @@ export class ToggleBar extends React.Component<ToggleBarProps>{
 
     @action.bound
     onclick() {
-        this.forwardTimeline.play();
-        this.forwardTimeline.reverse();
+        this._forwardTimeline.play();
+        this._forwardTimeline.reverse();
         this.props.handleChange();
     }
 
     @action.bound
     public resetToggle = () => {
         if (!this.props.getStatus()) {
-            this.forwardTimeline.play();
-            this.forwardTimeline.reverse();
+            this._forwardTimeline.play();
+            this._forwardTimeline.reverse();
             this.props.handleChange();
         }
     }

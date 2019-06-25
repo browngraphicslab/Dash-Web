@@ -25,6 +25,7 @@ import { CollectionFilters } from './CollectionFilters';
 import { NaviconButton } from './NaviconButton';
 import * as $ from 'jquery';
 import * as anime from 'animejs';
+import "./FilterBox.scss";
 
 library.add(faTimes);
 
@@ -38,23 +39,22 @@ export enum Keys {
 export class SearchBox extends React.Component {
 
     static Instance: SearchBox;
+    public _allIcons: string[] = [DocTypes.AUDIO, DocTypes.COL, DocTypes.HIST, DocTypes.IMG, DocTypes.LINK, DocTypes.PDF, DocTypes.TEXT, DocTypes.VID, DocTypes.WEB];
 
-    @observable _searchString: string = "";
+    @observable private _searchString: string = "";
     //if true, any keywords can be used. if false, all keywords are required.
-    @observable _basicWordStatus: boolean = true;
+    @observable private _basicWordStatus: boolean = true;
     @observable private _filterOpen: boolean = false;
     @observable private _resultsOpen: boolean = false;
     @observable private _results: Doc[] = [];
     @observable private _openNoResults: boolean = false;
-    allIcons: string[] = [DocTypes.AUDIO, DocTypes.COL, DocTypes.HIST, DocTypes.IMG, DocTypes.LINK, DocTypes.PDF, DocTypes.TEXT, DocTypes.VID, DocTypes.WEB];
-    @observable _icons: string[] = this.allIcons;
-    @observable _selectedTypes: any[] = [];
-    @observable titleFieldStatus: boolean = true;
-    @observable authorFieldStatus: boolean = true;
-    @observable dataFieldStatus: boolean = true;
-    @observable collectionStatus = false;
-    @observable collectionSelfStatus = true;
-    @observable collectionParentStatus = true;
+    @observable private _icons: string[] = this._allIcons;
+    @observable private _titleFieldStatus: boolean = true;
+    @observable private _authorFieldStatus: boolean = true;
+    @observable private _dataFieldStatus: boolean = true;
+    @observable private _collectionStatus = false;
+    @observable private _collectionSelfStatus = true;
+    @observable private _collectionParentStatus = true;
     @observable private _wordStatusOpen: boolean = false;
     @observable private _typeOpen: boolean = false;
     @observable private _colOpen: boolean = false;
@@ -180,19 +180,19 @@ export class SearchBox extends React.Component {
     applyBasicFieldFilters(query: string) {
         let finalQuery = "";
 
-        if (this.titleFieldStatus) {
+        if (this._titleFieldStatus) {
             finalQuery = finalQuery + this.basicFieldFilters(query, Keys.TITLE);
         }
-        if (this.authorFieldStatus) {
+        if (this._authorFieldStatus) {
             finalQuery = finalQuery + this.basicFieldFilters(query, Keys.AUTHOR);
         }
-        if (this.dataFieldStatus) {
+        if (this._dataFieldStatus) {
             finalQuery = finalQuery + this.basicFieldFilters(query, Keys.DATA);
         }
         return finalQuery;
     }
 
-    get fieldFiltersApplied() { return !(this.dataFieldStatus && this.authorFieldStatus && this.titleFieldStatus); }
+    get fieldFiltersApplied() { return !(this._dataFieldStatus && this._authorFieldStatus && this._titleFieldStatus); }
 
     //TODO: basically all of this
     //gets all of the collections of all the docviews that are selected
@@ -238,7 +238,7 @@ export class SearchBox extends React.Component {
         }
 
         //if should be searched in a specific collection
-        if (this.collectionStatus) {
+        if (this._collectionStatus) {
             query = this.addCollectionFilter(query);
             query = query.replace(/\s+/g, ' ').trim();
         }
@@ -448,29 +448,29 @@ export class SearchBox extends React.Component {
     toggleWordStatusOpen() { this._wordStatusOpen = !this._wordStatusOpen; }
 
     @action.bound
-    updateTitleStatus(newStat: boolean) { this.titleFieldStatus = newStat; }
+    updateTitleStatus(newStat: boolean) { this._titleFieldStatus = newStat; }
 
     @action.bound
-    updateAuthorStatus(newStat: boolean) { this.authorFieldStatus = newStat; }
+    updateAuthorStatus(newStat: boolean) { this._authorFieldStatus = newStat; }
 
     @action.bound
-    updateDataStatus(newStat: boolean) { this.dataFieldStatus = newStat; }
+    updateDataStatus(newStat: boolean) { this._dataFieldStatus = newStat; }
 
     @action.bound
-    updateCollectionStatus(newStat: boolean) { this.collectionStatus = newStat; }
+    updateCollectionStatus(newStat: boolean) { this._collectionStatus = newStat; }
 
     @action.bound
-    updateSelfCollectionStatus(newStat: boolean) { this.collectionSelfStatus = newStat; }
+    updateSelfCollectionStatus(newStat: boolean) { this._collectionSelfStatus = newStat; }
 
     @action.bound
-    updateParentCollectionStatus(newStat: boolean) { this.collectionParentStatus = newStat; }
+    updateParentCollectionStatus(newStat: boolean) { this._collectionParentStatus = newStat; }
 
-    getCollectionStatus() { return this.collectionStatus; }
-    getSelfCollectionStatus() { return this.collectionSelfStatus; }
-    getParentCollectionStatus() { return this.collectionParentStatus; }
-    getTitleStatus() { return this.titleFieldStatus; }
-    getAuthorStatus() { return this.authorFieldStatus; }
-    getDataStatus() { return this.dataFieldStatus; }
+    getCollectionStatus() { return this._collectionStatus; }
+    getSelfCollectionStatus() { return this._collectionSelfStatus; }
+    getParentCollectionStatus() { return this._collectionParentStatus; }
+    getTitleStatus() { return this._titleFieldStatus; }
+    getAuthorStatus() { return this._authorFieldStatus; }
+    getDataStatus() { return this._dataFieldStatus; }
 
     // Useful queries:
     // Delegates of a document: {!join from=id to=proto_i}id:{protoId}
@@ -480,8 +480,8 @@ export class SearchBox extends React.Component {
             <div>
                 <div className="searchBox-container">
                     <div className="searchBox-bar">
-                        <span onPointerDown={SetupDrag(this.collectionRef, this.startDragCollection)} ref={this.collectionRef}>
-                            <FontAwesomeIcon icon="object-group" className="searchBox-barChild" size="lg" />
+                        <span className="searchBox-barChild searchBox-collection" onPointerDown={SetupDrag(this.collectionRef, this.startDragCollection)} ref={this.collectionRef}>
+                            <FontAwesomeIcon icon="object-group" size="lg" />
                         </span>
                         <input value={this._searchString} onChange={this.onChange} type="text" placeholder="Search..."
                             className="searchBox-barChild searchBox-input" onPointerDown={this.openSearch} onKeyPress={this.enter}
@@ -500,13 +500,13 @@ export class SearchBox extends React.Component {
                 </div>
                 {this._filterOpen ? (
                     <div className="filter-form" onPointerDown={this.stopProp} id="filter-form" style={this._filterOpen ? { display: "flex" } : { display: "none" }}>
-                        <div style={{ display: "flex", width: "100%" }}>
+                        <div className = "top-filter-header" style={{ display: "flex", width: "100%" }}>
                             <div id="header">Filter Search Results</div>
                             <div className="close-icon" onClick={this.closeFilter}>
                                 <span className="line line-1"></span>
                                 <span className="line line-2"></span></div>
                         </div>
-                        <div>
+                        <div className = "filter-options">
                             <div className="filter-div">
                                 <div className="filter-header">
                                     <div className='filter-title words'>Required words</div>
@@ -531,7 +531,7 @@ export class SearchBox extends React.Component {
                                 </div>
                                 <div className="filter-panel"><CollectionFilters
                                     updateCollectionStatus={this.updateCollectionStatus} updateParentCollectionStatus={this.updateParentCollectionStatus} updateSelfCollectionStatus={this.updateSelfCollectionStatus}
-                                    collectionStatus={this.collectionStatus} collectionParentStatus={this.collectionParentStatus} collectionSelfStatus={this.collectionSelfStatus} /></div>
+                                    collectionStatus={this._collectionStatus} collectionParentStatus={this._collectionParentStatus} collectionSelfStatus={this._collectionSelfStatus} /></div>
                             </div>
                             <div className="filter-div">
                                 <div className="filter-header">
@@ -539,12 +539,12 @@ export class SearchBox extends React.Component {
                                     <div style={{ marginLeft: "auto" }}><NaviconButton onClick={this.toggleFieldOpen} /></div>
                                 </div>
                                 <div className="filter-panel"><FieldFilters
-                                    titleFieldStatus={this.titleFieldStatus} dataFieldStatus={this.dataFieldStatus} authorFieldStatus={this.authorFieldStatus}
+                                    titleFieldStatus={this._titleFieldStatus} dataFieldStatus={this._dataFieldStatus} authorFieldStatus={this._authorFieldStatus}
                                     updateAuthorStatus={this.updateAuthorStatus} updateDataStatus={this.updateDataStatus} updateTitleStatus={this.updateTitleStatus} /> </div>
                             </div>
                         </div>
                         <div className="filter-buttons" style={{ display: "flex", justifyContent: "space-around" }}>
-                            <button className="minimizwe-filter" onClick={this.minimizeAll}>Minimize All</button>
+                            <button className="minimize-filter" onClick={this.minimizeAll}>Minimize All</button>
                             <button className="advanced-filter" >Advanced Filters</button>
                             <button className="save-filter" >Save Filters</button>
                             <button className="reset-filter" onClick={this.resetFilters}>Reset Filters</button>

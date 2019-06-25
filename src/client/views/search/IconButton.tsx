@@ -2,7 +2,7 @@ import * as React from 'react';
 import { observer } from 'mobx-react';
 import { observable, action, runInAction, IReactionDisposer, reaction } from 'mobx';
 import "./SearchBox.scss";
-import "./IconBar.scss";
+import "./IconButton.scss";
 import { faSearch, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faMusic, faLink, faChartBar, faGlobeAsia, faBan, faVideo, faCaretDown } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { library, icon } from '@fortawesome/fontawesome-svg-core';
@@ -33,9 +33,8 @@ interface IconButtonProps {
 @observer
 export class IconButton extends React.Component<IconButtonProps>{
 
-    @observable isSelected: boolean = SearchBox.Instance.getIcons().indexOf(this.props.type) !== -1;
-    @observable hover = false;
-
+    @observable private _isSelected: boolean = SearchBox.Instance.getIcons().indexOf(this.props.type) !== -1;
+    @observable private _hover = false;
     private _resetReaction?: IReactionDisposer;
     private _selectAllReaction?: IReactionDisposer;
 
@@ -47,30 +46,30 @@ export class IconButton extends React.Component<IconButtonProps>{
 
     componentDidMount = () => {
         this._resetReaction = reaction(
-            () => IconBar.Instance.ResetClicked,
+            () => IconBar.Instance._resetClicked,
             () => {
-                if (IconBar.Instance.ResetClicked) {
+                if (IconBar.Instance._resetClicked) {
                     runInAction(() => {
                         this.reset();
-                        IconBar.Instance.Reset++;
-                        if (IconBar.Instance.Reset === 9) {
-                            IconBar.Instance.Reset = 0;
-                            IconBar.Instance.ResetClicked = false;
+                        IconBar.Instance._reset++;
+                        if (IconBar.Instance._reset === 9) {
+                            IconBar.Instance._reset = 0;
+                            IconBar.Instance._resetClicked = false;
                         }
                     });
                 }
             },
         );
         this._selectAllReaction = reaction(
-            () => IconBar.Instance.SelectAllClicked,
+            () => IconBar.Instance._selectAllClicked,
             () => {
-                if (IconBar.Instance.SelectAllClicked) {
+                if (IconBar.Instance._selectAllClicked) {
                     runInAction(() => {
                         this.select();
-                        IconBar.Instance.Select++;
-                        if (IconBar.Instance.Select === 9) {
-                            IconBar.Instance.Select = 0;
-                            IconBar.Instance.SelectAllClicked = false;
+                        IconBar.Instance._select++;
+                        if (IconBar.Instance._select === 9) {
+                            IconBar.Instance._select = 0;
+                            IconBar.Instance._selectAllClicked = false;
                         }
                     });
                 }
@@ -110,12 +109,12 @@ export class IconButton extends React.Component<IconButtonProps>{
     onClick = () => {
         let newList: string[] = SearchBox.Instance.getIcons();
 
-        if (!this.isSelected) {
-            this.isSelected = true;
+        if (!this._isSelected) {
+            this._isSelected = true;
             newList.push(this.props.type);
         }
         else {
-            this.isSelected = false;
+            this._isSelected = false;
             _.pull(newList, this.props.type);
         }
 
@@ -137,16 +136,16 @@ export class IconButton extends React.Component<IconButtonProps>{
     };
 
     @action.bound
-    public reset() { this.isSelected = false; }
+    public reset() { this._isSelected = false; }
 
     @action.bound
-    public select() { this.isSelected = true; }
+    public select() { this._isSelected = true; }
 
     @action
-    onMouseLeave = () => { this.hover = false; }
+    onMouseLeave = () => { this._hover = false; }
 
     @action
-    onMouseEnter = () => { this.hover = true; }
+    onMouseEnter = () => { this._hover = true; }
 
     getFA = () => {
         switch (this.props.type) {
@@ -182,7 +181,7 @@ export class IconButton extends React.Component<IconButtonProps>{
                 onMouseLeave={this.onMouseLeave}
                 onClick={this.onClick}>
                 <div className="type-icon" id={this.props.type + "-icon"}
-                    style={this.hover ? this.hoverStyle : this.isSelected ? this.selected : this.notSelected}
+                    style={this._hover ? this.hoverStyle : this._isSelected ? this.selected : this.notSelected}
                 >
                     {this.getFA()}
                 </div>

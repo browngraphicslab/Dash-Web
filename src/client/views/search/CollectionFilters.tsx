@@ -17,18 +17,19 @@ export class CollectionFilters extends React.Component<CollectionFilterProps> {
 
     static Instance: CollectionFilters;
 
-    @observable public resetBoolean = false;
-    @observable public resetCounter: number = 0;
-    @observable collectionsSelected = this.props.collectionStatus;
-    @observable timeline: anime.AnimeTimelineInstance;
-    @observable ref: any;
+    @observable public _resetBoolean = false;
+    @observable public _resetCounter: number = 0;
+    
+    @observable private _collectionsSelected = this.props.collectionStatus;
+    @observable private _timeline: anime.AnimeTimelineInstance;
+    @observable private _ref: any;
 
     constructor(props: CollectionFilterProps) {
         super(props);
         CollectionFilters.Instance = this;
-        this.ref = React.createRef();
+        this._ref = React.createRef();
 
-        this.timeline = anime.timeline({
+        this._timeline = anime.timeline({
             loop: false,
             autoplay: false,
             direction: "reverse",
@@ -36,32 +37,32 @@ export class CollectionFilters extends React.Component<CollectionFilterProps> {
     }
 
     componentDidMount = () => {
-        this.timeline.add({
-            targets: this.ref.current,
+        this._timeline.add({
+            targets: this._ref.current,
             easing: "easeInOutQuad",
             duration: 500,
             opacity: 1,
         });
 
-        if (this.collectionsSelected) {
-            this.timeline.play();
-            this.timeline.reverse();
+        if (this._collectionsSelected) {
+            this._timeline.play();
+            this._timeline.reverse();
         }
     }
 
     @action.bound
-    resetCollectionFilters() { this.resetBoolean = true; }
+    resetCollectionFilters() { this._resetBoolean = true; }
 
     @action.bound
     updateColStat(val: boolean) {
         this.props.updateCollectionStatus(val);
 
-            if (this.collectionsSelected !== val) {
-                this.timeline.play();
-                this.timeline.reverse();
-            }
+        if (this._collectionsSelected !== val) {
+            this._timeline.play();
+            this._timeline.reverse();
+        }
 
-        this.collectionsSelected = val;
+        this._collectionsSelected = val;
     }
 
     render() {
@@ -70,8 +71,8 @@ export class CollectionFilters extends React.Component<CollectionFilterProps> {
                 <div className="collection-filters">
                     <div className="collection-filters main">
                         <CheckBox default={false} title={"limit to current collection"} parent={this} numCount={3} updateStatus={this.updateColStat} originalStatus={this.props.collectionStatus} />
-                    </div> 
-                    <div className="collection-filters optional" ref={this.ref}>
+                    </div>
+                    <div className="collection-filters optional" ref={this._ref}>
                         <CheckBox default={true} title={"Search in self"} parent={this} numCount={3} updateStatus={this.props.updateSelfCollectionStatus} originalStatus={this.props.collectionSelfStatus} />
                         <CheckBox default={true} title={"Search in parent"} parent={this} numCount={3} updateStatus={this.props.updateParentCollectionStatus} originalStatus={this.props.collectionParentStatus} />
                     </div>
