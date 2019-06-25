@@ -70,11 +70,10 @@ export class FilterBox extends React.Component {
 
     // might need to add to search box
     componentDidMount = () => {
-
         document.addEventListener("pointerdown", (e) => {
             if (e.timeStamp !== this._pointerTime) {
-                // this.closeSearch();
                 SearchBox.Instance.closeSearch();
+                console.log("closing search from inside component did mount")
             }
         });
     }
@@ -281,12 +280,6 @@ export class FilterBox extends React.Component {
     // }
     //--------------------------------------------------------------------------------------------------------------
 
-    // @action.bound
-    // closeSearch = () => {
-    //     this._filterOpen = false;
-    //     this._resultsOpen = false;
-    //     this._results = [];
-    // }
 
     @action.bound
     openFilter = () => {
@@ -320,16 +313,6 @@ export class FilterBox extends React.Component {
     setPointerTime(time: number) {
         this._pointerTime = time;
     }
-
-    // @action.bound
-    // openSearch(e: React.PointerEvent) {
-    //     e.stopPropagation();
-    //     this._openNoResults = false;
-    //     this._filterOpen = false;
-    //     this._resultsOpen = true;
-    //     this._pointerTime = e.timeStamp;
-    // }
-
 
     @action.bound
     public closeFilter() {

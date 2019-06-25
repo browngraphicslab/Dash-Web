@@ -39,16 +39,6 @@ export class SearchBox extends React.Component<SearchBoxProps> {
         SearchBox.Instance = this;
     }
 
-    // componentDidMount = () => {
-    //     document.addEventListener("pointerdown", (e) => {
-    //         console.log(e.timeStamp, FilterBox.Instance._pointerTime)
-    //         console.log("this is in the click for determining whether or not to close search")
-    //         if (e.timeStamp !== FilterBox.Instance._pointerTime) {
-    //             this.closeSearch();
-    //         }
-    //     });
-    // }
-
     @action
     getViews = async (doc: Doc) => {
         const results = await SearchUtil.GetViewsOfDocument(doc);
