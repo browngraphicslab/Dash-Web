@@ -25,7 +25,7 @@ export class SearchBox extends React.Component {
     @observable private _openNoResults: boolean = false;
     static Instance: SearchBox;
 
-    constructor(props: any){
+    constructor(props: any) {
         super(props);
 
         SearchBox.Instance = this;
@@ -112,8 +112,6 @@ export class SearchBox extends React.Component {
                 docs.push(field);
             }
         }
-        // this.props.setUnfilteredResults(docs);
-        // return docs;
         return FilterBox.Instance.filterDocsByType(docs);
     }
 
@@ -177,25 +175,26 @@ export class SearchBox extends React.Component {
     }
 
     render() {
-        return(
+        return (
             <div className="searchBox-container">
-                    <div className="searchBox-bar">
-                        <span className="searchBox-barChild searchBox-collection" onPointerDown={SetupDrag(this.collectionRef, this.startDragCollection)} ref={this.collectionRef}>
-                            <FontAwesomeIcon icon="object-group" size="lg" />
-                        </span>
-                        <input value={this._searchString} onChange={this.onChange} type="text" placeholder="Search..."
-                            className="searchBox-barChild searchBox-input" onPointerDown={this.openSearch} onKeyPress={this.enter}
-                            style={{ width: this._resultsOpen ? "500px" : "100px" }} />
-                    </div>
-                        <div className="searchBox-results" style = {this._resultsOpen ? {display: "flex"} : {display: "none"}}>
-                            {(this._results.length !== 0) ? (
-                                this._results.map(result => <SearchItem doc={result} key={result[Id]} />)
-                            ) :
-                                this._openNoResults ? (<div className="no-result">No Search Results</div>) : null}
-
-                        </div>
+                <div className="searchBox-bar">
+                    <span className="searchBox-barChild searchBox-collection" onPointerDown={SetupDrag(this.collectionRef, this.startDragCollection)} ref={this.collectionRef}>
+                        <FontAwesomeIcon icon="object-group" size="lg" />
+                    </span>
+                    <input value={this._searchString} onChange={this.onChange} type="text" placeholder="Search..."
+                        className="searchBox-barChild searchBox-input" onPointerDown={this.openSearch} onKeyPress={this.enter}
+                        style={{ width: this._resultsOpen ? "500px" : "100px" }} />
+                    <button className="searchBox-barChild searchBox-filter" onClick={FilterBox.Instance.openFilter} onPointerDown={FilterBox.Instance.stopProp}>Filter</button>
                 </div>
-        )
+                <div className="searchBox-results" style={this._resultsOpen ? { display: "flex" } : { display: "none" }}>
+                    {(this._results.length !== 0) ? (
+                        this._results.map(result => <SearchItem doc={result} key={result[Id]} />)
+                    ) :
+                        this._openNoResults ? (<div className="no-result">No Search Results</div>) : null}
+
+                </div>
+            </div>
+        );
     }
 
 }

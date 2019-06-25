@@ -1,20 +1,13 @@
 import * as React from 'react';
 import { observer } from 'mobx-react';
-import { observable, action, runInAction } from 'mobx';
+import { observable, action } from 'mobx';
 import "./SearchBox.scss";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
-import { library, icon } from '@fortawesome/fontawesome-svg-core';
-import * as rp from 'request-promise';
-import { SearchItem } from './SearchItem';
-import { DocServer } from '../../DocServer';
+import { library} from '@fortawesome/fontawesome-svg-core';
 import { Doc } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
-import { SetupDrag } from '../../util/DragManager';
-import { Docs, DocTypes } from '../../documents/Documents';
-import { RouteStore } from '../../../server/RouteStore';
-import { NumCast, Cast, StrCast } from '../../../new_fields/Types';
-import { SearchUtil } from '../../util/SearchUtil';
+import { DocTypes } from '../../documents/Documents';
+import { Cast, StrCast } from '../../../new_fields/Types';
 import * as _ from "lodash";
 import { ToggleBar } from './ToggleBar';
 import { IconBar } from './IconBar';
@@ -24,7 +17,6 @@ import { DocumentView } from '../nodes/DocumentView';
 import { CollectionFilters } from './CollectionFilters';
 import { NaviconButton } from './NaviconButton';
 import * as $ from 'jquery';
-import * as anime from 'animejs';
 import "./FilterBox.scss";
 import { SearchBox } from './SearchBox';
 
@@ -63,7 +55,6 @@ export class FilterBox extends React.Component {
         FilterBox.Instance = this;
     }
 
-    // might need to add to search box
     componentDidMount = () => {
         document.addEventListener("pointerdown", (e) => {
             if (e.timeStamp !== this._pointerTime) {
@@ -124,18 +115,6 @@ export class FilterBox extends React.Component {
         FieldFilters.Instance.resetFieldFilters();
         CollectionFilters.Instance.resetCollectionFilters();
     }
-
-    //--------------------------------------------------------------------------------------------------------------
-    // @action.bound
-    // onChange(e: React.ChangeEvent<HTMLInputElement>) {
-    //     this._searchString = e.target.value;
-
-    //     if (this._searchString === "") {
-    //         this._results = [];
-    //         this._openNoResults = false;
-    //     }
-    // }
-    //--------------------------------------------------------------------------------------------------------------
 
     basicRequireWords(query: string): string {
         let oldWords = query.split(" ");
@@ -343,7 +322,6 @@ export class FilterBox extends React.Component {
         return (
             <div>
                 <div style={{ display: "flex", flexDirection: "row-reverse" }}>
-                    <button className="searchBox-barChild searchBox-filter" onClick={this.openFilter} onPointerDown={this.stopProp}>Filter</button>
                     <SearchBox />
                 </div>
                 {this._filterOpen ? (
