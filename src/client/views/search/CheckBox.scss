@@ -11,48 +11,49 @@
         justify-content: center;
         align-items: center;
         margin-top: 0px;
+
+        .check-container:hover~.check-box {
+            background-color: $intermediate-color;
+        }
+    
+        .check-container {
+            width: 40px;
+            height: 40px;
+            position: absolute;
+            z-index: 1000;
+
+            .checkmark {
+                z-index: 1000;
+                position: absolute;
+                fill-opacity: 0;
+                stroke-width: 4px;
+                stroke: white;
+            }
+        }
+
+        .check-box {
+            z-index: 900;
+            position: relative;
+            height: 20px;
+            width: 20px;
+            overflow: visible;
+            background-color: transparent;
+            border-style: solid;
+            border-color: $alt-accent;
+            border-width: 2px;
+            -webkit-transition: all 0.2s ease-in-out;
+            -moz-transition: all 0.2s ease-in-out;
+            -o-transition: all 0.2s ease-in-out;
+            transition: all 0.2s ease-in-out;
+        }
     }
 
-    .check-box {
-        z-index: 900;
-        position: relative;
-        height: 20px;
-        width: 20px;
-        overflow: visible;
-        background-color: transparent;
-        border-style: solid;
-        border-color: $alt-accent;
-        border-width: 2px;
-        -webkit-transition: all 0.2s ease-in-out;
-        -moz-transition: all 0.2s ease-in-out;
-        -o-transition: all 0.2s ease-in-out;
-        transition: all 0.2s ease-in-out;
-    }
-
-    .check-container:hover~.check-box {
-        background-color: $intermediate-color;
-    }
-
-    .check-container {
-        width: 40px;
-        height: 40px;
-        position: absolute;
-        z-index: 1000;
-    }
-
-    .checkmark {
-        z-index: 1000;
-        position: absolute;
-        fill-opacity: 0;
-        stroke-width: 4px;
-        stroke: white;
+    .checkbox-title {
+        display: flex;
+        align-items: center;
+        text-transform: capitalize;
+        margin-left: 15px;
     }
 
 }
 
-.checkbox-title {
-    display: flex;
-    align-items: center;
-    text-transform: capitalize;
-    margin-left: 15px;
-}

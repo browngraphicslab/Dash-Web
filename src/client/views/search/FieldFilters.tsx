@@ -1,10 +1,8 @@
 import * as React from 'react';
-import { observer } from 'mobx-react';
-import { observable, action, runInAction, } from 'mobx';
-import "./SearchBox.scss";
+import { observable } from 'mobx';
 import { CheckBox } from './CheckBox';
 import { Keys } from './SearchBox';
-import "./SearchBox.scss";
+import "./FieldFilters.scss";
 
 export interface FieldFilterProps {
     titleFieldStatus: boolean;

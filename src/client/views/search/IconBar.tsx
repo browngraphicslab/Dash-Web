@@ -1,18 +1,14 @@
 import * as React from 'react';
 import { observer } from 'mobx-react';
-import { observable, action, runInAction } from 'mobx';
+import { observable, action } from 'mobx';
 import "./SearchBox.scss";
 import "./IconBar.scss";
-import * as anime from 'animejs';
 import { DocTypes } from '../../documents/Documents';
 import { faSearch, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faMusic, faLink, faChartBar, faGlobeAsia, faBan, faTimesCircle, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { library, icon } from '@fortawesome/fontawesome-svg-core';
+import { library } from '@fortawesome/fontawesome-svg-core';
 import * as _ from "lodash";
-import $ from 'jquery';
-import { array } from 'prop-types';
 import { IconButton } from './IconButton';
-import { list } from 'serializr';
 import { SearchBox } from './SearchBox';
 
 library.add(faSearch);
@@ -31,7 +27,7 @@ library.add(faBan);
 export class IconBar extends React.Component {
 
     static Instance: IconBar;
-    
+
     allIcons: string[] = [DocTypes.AUDIO, DocTypes.COL, DocTypes.HIST, DocTypes.IMG, DocTypes.LINK, DocTypes.PDF, DocTypes.TEXT, DocTypes.VID, DocTypes.WEB];
     @observable public ResetClicked: boolean = false;
     @observable public SelectAllClicked: boolean = false;
@@ -63,25 +59,23 @@ export class IconBar extends React.Component {
 
     render() {
         return (
-            <div>
-                <div className="filter icon-bar">
-                <div className="filter type-outer">
-                        <div className={"type-icon none not-selected"}
-                            onClick={this.selectAll}>
-                            <FontAwesomeIcon className="fontawesome-icon" icon={faCheckCircle} />
-                        </div>
-                        <div className="filter-description">Select All</div>
+            <div className="icon-bar">
+                <div className="type-outer">
+                    <div className={"type-icon all"}
+                        onClick={this.selectAll}>
+                        <FontAwesomeIcon className="fontawesome-icon" icon={faCheckCircle} />
                     </div>
-                    {this.allIcons.map((type: string) =>
-                        <IconButton type={type}/>
-                    )}
-                    <div className="filter type-outer">
-                        <div className={"type-icon none not-selected"}
-                            onClick={this.resetSelf}>
-                            <FontAwesomeIcon className="fontawesome-icon" icon={faTimesCircle} />
-                        </div>
-                        <div className="filter-description">Clear</div>
+                    <div className="filter-description">Select All</div>
+                </div>
+                {this.allIcons.map((type: string) =>
+                    <IconButton type={type} />
+                )}
+                <div className="type-outer">
+                    <div className={"type-icon none"}
+                        onClick={this.resetSelf}>
+                        <FontAwesomeIcon className="fontawesome-icon" icon={faTimesCircle} />
                     </div>
+                    <div className="filter-description">Clear</div>
                 </div>
             </div>
         );

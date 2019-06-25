@@ -1,15 +1,8 @@
 import * as React from 'react';
-import { observer } from 'mobx-react';
-import { observable, action, runInAction } from 'mobx';
-import "./SearchBox.scss";
+import { observable, action } from 'mobx';
 import { CheckBox } from './CheckBox';
-import { Keys } from './SearchBox';
-import "./SearchBox.scss";
 import "./CollectionFilters.scss";
-import { FieldFilters } from './FieldFilters';
 import * as anime from 'animejs';
-import { DocumentView } from '../nodes/DocumentView';
-import { SelectionManager } from '../../util/SelectionManager';
 
 interface CollectionFilterProps {
     collectionStatus: boolean;
@@ -77,7 +70,7 @@ export class CollectionFilters extends React.Component<CollectionFilterProps> {
                 <div className="collection-filters">
                     <div className="collection-filters main">
                         <CheckBox default={false} title={"limit to current collection"} parent={this} numCount={3} updateStatus={this.updateColStat} originalStatus={this.props.collectionStatus} />
-                    </div>
+                    </div> 
                     <div className="collection-filters optional" ref={this.ref}>
                         <CheckBox default={true} title={"Search in self"} parent={this} numCount={3} updateStatus={this.props.updateSelfCollectionStatus} originalStatus={this.props.collectionSelfStatus} />
                         <CheckBox default={true} title={"Search in parent"} parent={this} numCount={3} updateStatus={this.props.updateParentCollectionStatus} originalStatus={this.props.collectionParentStatus} />
