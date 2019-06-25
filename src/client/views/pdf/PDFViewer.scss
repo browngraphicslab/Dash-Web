@@ -1,9 +1,3 @@
-.textLayer {
-    div {
-        user-select: text;
-    }
-}
-
 .viewer-button-cont {
     position: absolute;
     display: flex;
@@ -20,8 +14,51 @@
     border-radius: 5px;
 }
 
-.textLayer {
-    user-select: auto;
+.viewer {
+    // position: absolute;
+    // top: 0;
+}
+
+.pdfViewer-text {
+
+    .page {
+        .canvasWrapper {
+            display: none;
+        }
+
+        .textLayer {
+            position: relative;
+            user-select: none;
+        }
+    }
+}
+
+.page-cont {
+    .textLayer {
+        user-select: auto;
+
+        div {
+            user-select: text;
+        }
+    }
+}
+
+.pdfViewer-overlayCont {
+    position: absolute;
+    width: 100%;
+    height: 100px;
+    background: #121721;
+    bottom: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+
+    .pdfViewer-overlaySearchBar {
+        width: 20%;
+        height: 100%;
+        font-size: 30px;
+    }
 }
 
 .pdfViewer-annotationBox {
