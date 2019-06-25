@@ -425,7 +425,7 @@ class Viewer extends React.Component<IViewerProps> {
 
         if (!this._pdfFindController) {
             if (container && viewer) {
-                let simpleLinkService = new PDFJSViewer.SimpleLinkService();
+                let simpleLinkService = new SimpleLinkService();
                 let pdfViewer = new PDFJSViewer.PDFViewer({
                     container: container,
                     viewer: viewer,
@@ -594,4 +594,41 @@ class RegionAnnotation extends React.Component<IAnnotationProps> {
                 style={{ top: this.props.y * scale, left: this.props.x * scale, width: this.props.width * scale, height: this.props.height * scale, pointerEvents: "all", backgroundColor: StrCast(this.props.document.color) }}></div>
         );
     }
+}
+
+class SimpleLinkService {
+    externalLinkTarget: any = null;
+    externalLinkRel: any = null;
+    pdf: any = null;
+
+    constructor() { }
+
+    navigateTo(dest: any) { }
+
+    getDestinationHash(dest: any) { return "#"; }
+
+    getAnchorUrl(hash: any) { return "#"; }
+
+    setHash(hash: any) { }
+
+    executeNamedAction(action: any) { }
+
+    cachePageRef(pageNum: any, pageRef: any) { }
+
+    get pagesCount() {
+        return this.pdf ? this.pdf.numPages : 0;
+    }
+
+    get page() {
+        return 0;
+    }
+
+    setPdf(pdf: any) {
+        this.pdf = pdf;
+    }
+
+    get rotation() {
+        return 0;
+    }
+    set rotation(value: any) { }
 }
