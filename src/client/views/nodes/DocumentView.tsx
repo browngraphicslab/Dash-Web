@@ -92,6 +92,7 @@ const schema = createSchema({
     nativeWidth: "number",
     nativeHeight: "number",
     backgroundColor: "string",
+    hidden: "boolean"
 });
 
 export const positionSchema = createSchema({
@@ -241,7 +242,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     static _undoBatch?: UndoManager.Batch = undefined;
     @action
-    public collapseTargetsToPoint = async (scrpt: number[], expandedDocs: Doc[] | undefined): Promise<void> => {
+    public collapseTargetsToPoint = (scrpt: number[], expandedDocs: Doc[] | undefined): void => {
         SelectionManager.DeselectAll();
         if (expandedDocs) {
             if (!DocumentView._undoBatch) {
@@ -548,6 +549,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     render() {
+        if (this.Document.hidden) {
+            return null;
+        }
         var scaling = this.props.ContentScaling();
         var nativeWidth = this.nativeWidth > 0 ? `${this.nativeWidth}px` : "100%";
 

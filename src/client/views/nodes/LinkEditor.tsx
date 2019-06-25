@@ -86,6 +86,8 @@ class LinkMetadataEditor extends React.Component<LinkMetadataEditorProps> {
     setMetadataKey = (value: string): void => {
         let groupMdKeys = LinkManager.Instance.getMetadataKeysInGroup(this.props.groupType);
 
+        // console.log("set", ...groupMdKeys, typeof (groupMdKeys[0]));
+
         // don't allow user to create existing key
         let newIndex = groupMdKeys.findIndex(key => key.toUpperCase() === value.toUpperCase());
         if (newIndex > -1) {
@@ -98,14 +100,13 @@ class LinkMetadataEditor extends React.Component<LinkMetadataEditorProps> {
 
         // set new value for key
         let currIndex = groupMdKeys.findIndex(key => {
-            console.log("finding index this", key.toUpperCase(), "that", this._key.toUpperCase());
             return StrCast(key).toUpperCase() === this._key.toUpperCase();
         });
         if (currIndex === -1) console.error("LinkMetadataEditor: key was not found");
         groupMdKeys[currIndex] = value;
 
         this._key = value;
-        LinkManager.Instance.setMetadataKeysForGroup(this.props.groupType, groupMdKeys);
+        LinkManager.Instance.setMetadataKeysForGroup(this.props.groupType, [...groupMdKeys]);
     }
 
     @action
@@ -149,9 +150,7 @@ export class LinkGroupEditor extends React.Component<LinkGroupEditorProps> {
 
     @action
     setGroupType = (groupType: string): void => {
-        console.log("SET GROUP TYPE TO", groupType);
         this.props.groupDoc.type = groupType;
-        console.log("GROUP TYPE HAS BEEN SET TO ", StrCast(this.props.groupDoc.type));
     }
 
     removeGroupFromLink = (groupType: string): void => {
@@ -201,6 +200,7 @@ export class LinkGroupEditor extends React.Component<LinkGroupEditorProps> {
         let mdDoc = Cast(groupDoc.metadata, Doc, new Doc);
         let groupType = StrCast(groupDoc.type);
         let groupMdKeys = LinkManager.Instance.getMetadataKeysInGroup(groupType);
+
         if (groupMdKeys) {
             groupMdKeys.forEach((key, index) => {
                 metadata.push(
@@ -213,8 +213,11 @@ export class LinkGroupEditor extends React.Component<LinkGroupEditorProps> {
 
     viewGroupAsTable = (groupType: string): JSX.Element => {
         let keys = LinkManager.Instance.getMetadataKeysInGroup(groupType);
+        let cols = ["anchor1", "anchor2", ...[...keys]];
+        // keys.forEach(k => cols.push(k));
+        // console.log("COLS", ...cols);
         let docs: Doc[] = LinkManager.Instance.getAllMetadataDocsInGroup(groupType);
-        let createTable = action(() => Docs.SchemaDocument(["anchor1", "anchor2", ...keys], docs, { width: 500, height: 300, title: groupType + " table" }));
+        let createTable = action(() => Docs.SchemaDocument(cols, docs, { width: 500, height: 300, title: groupType + " table" }));
         let ref = React.createRef<HTMLDivElement>();
         return <div ref={ref}><button className="linkEditor-button" onPointerDown={SetupDrag(ref, createTable)}><FontAwesomeIcon icon="table" size="sm" /></button></div>;
     }
@@ -258,10 +261,6 @@ export class LinkGroupEditor extends React.Component<LinkGroupEditorProps> {
             </div>
         );
     }
-    // else {
-    //     return <></>;
-    // }
-    // }
 }
 
 
@@ -298,16 +297,9 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         let destination = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
 
         let groupList = LinkManager.Instance.getAnchorGroups(this.props.linkDoc, this.props.sourceDoc);
-        console.log("NUM GROUPS", groupList.length);
         let groups = groupList.map(groupDoc => {
             return <LinkGroupEditor key={"gred-" + StrCast(groupDoc.type)} linkDoc={this.props.linkDoc} sourceDoc={this.props.sourceDoc} groupDoc={groupDoc} />;
         });
-
-
-        // let groups: Array<JSX.Element> = [];
-        // this._groups.forEach((groupDoc, groupId) => {
-        //     groups.push(this.renderGroup(groupId, groupDoc));
-        // });
 
         return (
             <div className="linkEditor">

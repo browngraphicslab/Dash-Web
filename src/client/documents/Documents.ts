@@ -35,11 +35,7 @@ import { DateField } from "../../new_fields/DateField";
 import { UndoManager } from "../util/UndoManager";
 import { RouteStore } from "../../server/RouteStore";
 import { LinkManager } from "../util/LinkManager";
-// import { LinkButtonBox } from "../views/nodes/LinkButtonBox";
-// import { LinkButtonField, LinkButtonData } from "../../new_fields/LinkButtonField";
-import { DocumentManager } from "../util/DocumentManager";
-import { Id } from "../../new_fields/FieldSymbols";
-var requestImageSize = require('request-image-size');
+var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 
 export interface DocumentOptions {

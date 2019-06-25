@@ -25,7 +25,10 @@ import { ParentDocSelector } from './ParentDocumentSelector';
 import React = require("react");
 import { MainView } from '../MainView';
 import { LinkManager } from '../../util/LinkManager';
-
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { faFile } from '@fortawesome/free-solid-svg-icons';
+library.add(faFile);
 
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
@@ -137,10 +140,11 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
         var newContentItem = this._goldenLayout.root.layoutManager.createContentItem(newItemStackConfig, this._goldenLayout);
 
-        if (this._goldenLayout.root.contentItems[0].isRow) {
+        if (this._goldenLayout.root.contentItems.length === 0) {
+            this._goldenLayout.root.addChild(newContentItem);
+        } else if (this._goldenLayout.root.contentItems[0].isRow) {
             this._goldenLayout.root.contentItems[0].addChild(newContentItem);
-        }
-        else {
+        } else {
             var collayout = this._goldenLayout.root.contentItems[0];
             var newRow = collayout.layoutManager.createContentItem({ type: "row" }, this._goldenLayout);
             collayout.parent.replaceChild(collayout, newRow);
@@ -261,6 +265,11 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         this._isPointerDown = true;
+        let onPointerUp = action(() => {
+            window.removeEventListener("pointerup", onPointerUp);
+            this._isPointerDown = false;
+        });
+        window.addEventListener("pointerup", onPointerUp);
         var className = (e.target as any).className;
         if (className === "messageCounter") {
             e.stopPropagation();
@@ -272,7 +281,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             DocServer.GetRefField(docid).then(action(async (sourceDoc: Opt<Field>) =>
                 (sourceDoc instanceof Doc) && DragLinksAsDocuments(tab, x, y, sourceDoc)));
         } else
-            if ((className === "lm_title" || className === "lm_tab lm_active") && !e.shiftKey) {
+            if ((className === "lm_title" || className === "lm_tab lm_active") && e.shiftKey) {
                 e.stopPropagation();
                 e.preventDefault();
                 let x = e.clientX;
@@ -290,7 +299,8 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                                 handlers: {
                                     dragComplete: emptyFunction,
                                 },
-                                hideSource: false
+                                hideSource: false,
+                                withoutShiftDrag: true
                             });
                     }
                 }));
@@ -337,8 +347,11 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             }
             DocServer.GetRefField(tab.contentItem.config.props.documentId).then(async doc => {
                 if (doc instanceof Doc) {
-                    let counter: any = this.htmlToElement(`<span class="messageCounter">0</div>`);
-                    tab.element.append(counter);
+                    let dragSpan = document.createElement("span");
+                    dragSpan.style.position = "relative";
+                    dragSpan.style.bottom = "6px";
+                    dragSpan.style.paddingLeft = "4px";
+                    dragSpan.style.paddingRight = "2px";
                     let upDiv = document.createElement("span");
                     const stack = tab.contentItem.parent;
                     // shifts the focus to this tab when another tab is dragged over it
@@ -350,15 +363,24 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                         }
                         tab.setActive(true);
                     };
-                    ReactDOM.render(<ParentDocSelector Document={doc} addDocTab={(doc, location) => CollectionDockingView.Instance.AddTab(stack, doc)} />, upDiv);
-                    tab.reactComponents = [upDiv];
+                    ReactDOM.render(<span onPointerDown={
+                        e => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            DragManager.StartDocumentDrag([dragSpan], new DragManager.DocumentDragData([doc]), e.clientX, e.clientY, {
+                                handlers: { dragComplete: emptyFunction },
+                                hideSource: false
+                            });
+                        }}><FontAwesomeIcon icon="file" size="lg" /></span>, dragSpan);
+                    ReactDOM.render(<ParentDocSelector Document={doc} addDocTab={doc => CollectionDockingView.Instance.AddTab(stack, doc)} />, upDiv);
+                    tab.reactComponents = [dragSpan, upDiv];
+                    tab.element.append(dragSpan);
                     tab.element.append(upDiv);
-                    counter.DashDocId = tab.contentItem.config.props.documentId;
-                    tab.reactionDisposer = reaction(() => [LinkManager.Instance.getAllRelatedLinks(doc), doc.title],
+                    tab.reactionDisposer = reaction(() => [doc.title],
                         () => {
-                            counter.innerHTML = LinkManager.Instance.getAllRelatedLinks(doc).length;
                             tab.titleElement[0].textContent = doc.title;
                         }, { fireImmediately: true });
+                    //TODO why can't this just be doc instead of the id?
                     tab.titleElement[0].DashDocId = tab.contentItem.config.props.documentId;
                 }
             });

@@ -125,6 +125,8 @@ export namespace DragManager {
         handlers: DragHandlers;
 
         hideSource: boolean | (() => boolean);
+
+        withoutShiftDrag?: boolean;
     }
 
     export interface DragDropDisposer {
@@ -385,7 +387,7 @@ export namespace DragManager {
             if (dragData instanceof DocumentDragData) {
                 dragData.userDropAction = e.ctrlKey || e.altKey ? "alias" : undefined;
             }
-            if (e.shiftKey && CollectionDockingView.Instance) {
+            if (((options && !options.withoutShiftDrag) || !options) && e.shiftKey && CollectionDockingView.Instance) {
                 AbortDrag();
                 CollectionDockingView.Instance.StartOtherDrag(docs, {
                     pageX: e.pageX,

@@ -11,7 +11,6 @@ import "./KeyValuePair.scss";
 import React = require("react");
 import { Doc, Opt, Field } from '../../../new_fields/Doc';
 import { FieldValue } from '../../../new_fields/Types';
-import { ComputedField } from '../../../fields/ScriptField';
 import { KeyValueBox } from './KeyValueBox';
 
 // Represents one row in a key value plane
@@ -61,10 +60,11 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
                 </td>
                 <td className="keyValuePair-td-value" style={{ width: `${100 - this.props.keyWidth}%` }}>
                     <EditableView contents={contents} height={36} GetValue={() => {
+                        const onDelegate = Object.keys(props.Document).includes(props.fieldKey);
 
                         let field = FieldValue(props.Document[props.fieldKey]);
                         if (Field.IsField(field)) {
-                            return Field.toScriptString(field);
+                            return (onDelegate ? "=" : "") + Field.toScriptString(field);
                         }
                         return "";
                     }}

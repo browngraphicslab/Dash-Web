@@ -50,7 +50,6 @@ export class LinkManager {
     public addLink(linkDoc: Doc): boolean {
         let linkList = LinkManager.Instance.getAllLinks();
         linkList.push(linkDoc);
-        console.log("link man doc", LinkManager.Instance.LinkManagerDoc);
         if (LinkManager.Instance.LinkManagerDoc) {
             LinkManager.Instance.LinkManagerDoc.allLinks = new List<Doc>(linkList);
             return true;
@@ -96,6 +95,10 @@ export class LinkManager {
     public deleteGroupType(groupType: string): boolean {
         if (LinkManager.Instance.LinkManagerDoc) {
             if (LinkManager.Instance.LinkManagerDoc[groupType]) {
+                let groupTypes = LinkManager.Instance.getAllGroupTypes();
+                let index = groupTypes.findIndex(type => type.toUpperCase() === groupType.toUpperCase());
+                if (index > -1) groupTypes.splice(index, 1);
+                LinkManager.Instance.LinkManagerDoc.allGroupTypes = new List<string>(groupTypes);
                 LinkManager.Instance.LinkManagerDoc[groupType] = undefined;
                 LinkManager.Instance.getAllLinks().forEach(linkDoc => {
                     LinkManager.Instance.removeGroupFromAnchor(linkDoc, Cast(linkDoc.anchor1, Doc, new Doc), groupType);
@@ -214,11 +217,8 @@ export class LinkManager {
 
     public setMetadataKeysForGroup(groupType: string, keys: string[]): boolean {
         if (LinkManager.Instance.LinkManagerDoc) {
-            // if (LinkManager.Instance.LinkManagerDoc[groupType]) {
             LinkManager.Instance.LinkManagerDoc[groupType] = new List<string>(keys);
             return true;
-            // }
-            // return false;
         }
         return false;
     }

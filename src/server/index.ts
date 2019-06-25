@@ -1,3 +1,4 @@
+require('dotenv').config();
 import * as bodyParser from 'body-parser';
 import { exec } from 'child_process';
 import * as cookieParser from 'cookie-parser';
@@ -44,6 +45,17 @@ const mongoose = require('mongoose');
 const probe = require("probe-image-size");
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
+
+const release = process.env.RELEASE === "true";
+if (process.env.RELEASE === "true") {
+    console.log("Running server in release mode");
+} else {
+    console.log("Running server in debug mode");
+}
+console.log(process.env.PWD);
+let clientUtils = fs.readFileSync("./src/client/util/ClientUtils.ts.temp", "utf8");
+clientUtils = `//AUTO-GENERATED FILE: DO NOT EDIT\n${clientUtils.replace('"mode"', String(release))}`;
+fs.writeFileSync("./src/client/util/ClientUtils.ts", clientUtils, "utf8");
 
 const mongoUrl = 'mongodb://localhost:27017/Dash';
 mongoose.connect(mongoUrl);
@@ -406,11 +418,21 @@ app.post(RouteStore.reset, postReset);
 app.use(RouteStore.corsProxy, (req, res) =>
     req.pipe(request(req.url.substring(1))).pipe(res));
 
-app.get(RouteStore.delete, (req, res) =>
-    deleteFields().then(() => res.redirect(RouteStore.home)));
+app.get(RouteStore.delete, (req, res) => {
+    if (release) {
+        res.send("no");
+        return;
+    }
+    deleteFields().then(() => res.redirect(RouteStore.home));
+});
 
-app.get(RouteStore.deleteAll, (req, res) =>
-    deleteAll().then(() => res.redirect(RouteStore.home)));
+app.get(RouteStore.deleteAll, (req, res) => {
+    if (release) {
+        res.send("no");
+        return;
+    }
+    deleteAll().then(() => res.redirect(RouteStore.home));
+});
 
 app.use(wdm(compiler, { publicPath: config.output.publicPath }));
 
@@ -435,7 +457,9 @@ server.on("connection", function (socket: Socket) {
     Utils.AddServerHandler(socket, MessageStore.SetField, (args) => setField(socket, args));
     Utils.AddServerHandlerCallback(socket, MessageStore.GetField, getField);
     Utils.AddServerHandlerCallback(socket, MessageStore.GetFields, getFields);
-    Utils.AddServerHandler(socket, MessageStore.DeleteAll, deleteFields);
+    if (!release) {
+        Utils.AddServerHandler(socket, MessageStore.DeleteAll, deleteFields);
+    }
 
     Utils.AddServerHandler(socket, MessageStore.CreateField, CreateField);
     Utils.AddServerHandler(socket, MessageStore.UpdateField, diff => UpdateField(socket, diff));
