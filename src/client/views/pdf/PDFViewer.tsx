@@ -20,8 +20,8 @@ import "./PDFViewer.scss";
 import React = require("react");
 import PDFMenu from "./PDFMenu";
 import { UndoManager } from "../../util/UndoManager";
-import { ScriptField } from "../../../fields/ScriptField";
 import { CompileScript, CompiledScript, CompileResult } from "../../util/Scripting";
+import { ScriptField } from "../../../new_fields/ScriptField";
 
 export const scale = 2;
 interface IPDFViewerProps {
@@ -63,8 +63,6 @@ interface IViewerProps {
     url: string;
 }
 
-const PinRadius = 25;
-
 /**
  * Handles rendering and virtualization of the pdf
  */
@@ -85,14 +83,18 @@ class Viewer extends React.Component<IViewerProps> {
     private _annotationReactionDisposer?: IReactionDisposer;
     private _dropDisposer?: DragManager.DragDropDisposer;
     private _filterReactionDisposer?: IReactionDisposer;
+    private _viewer: React.RefObject<HTMLDivElement>;
+    private _mainCont: React.RefObject<HTMLDivElement>;
+    private _textContent: Pdfjs.TextContent[] = [];
 
-    @action
-        constructor(props: IViewerProps) {
-            super(props);
+    constructor(props: IViewerProps) {
+        super(props);
 
-            let scriptfield = Cast(this.props.parent.Document.filterScript, ScriptField);
-            this._script = scriptfield ? CompileScript(scriptfield.scriptString, { params: { this: Doc.name } }) : CompileScript("return true");;
-        }
+        let scriptfield = Cast(this.props.parent.Document.filterScript, ScriptField);
+        this._script = scriptfield ? scriptfield.script : CompileScript("return true");
+        this._viewer = React.createRef();
+        this._mainCont = React.createRef();
+    }
 
     componentDidUpdate = (prevProps: IViewerProps) => {
         if (this.scrollY !== prevProps.scrollY) {
@@ -118,14 +120,29 @@ class Viewer extends React.Component<IViewerProps> {
 
         if (this.props.parent.props.ContainingCollectionView) {
             this._filterReactionDisposer = reaction(
-                () => this.props.parent.Document.filterScript || this.props.parent.props.ContainingCollectionView!.props.Document.filterScript,
+                () => this.props.parent.Document.filterScript,
                 () => {
                     runInAction(() => {
                         let scriptfield = Cast(this.props.parent.Document.filterScript, ScriptField);
-                        this._script = scriptfield ? CompileScript(scriptfield.scriptString, { params: { this: Doc.name } }) : CompileScript("return true");;
+                        this._script = scriptfield ? scriptfield.script : CompileScript("return true");
+                        if (this.props.parent.props.ContainingCollectionView) {
+                            let ccvAnnos = DocListCast(this.props.parent.props.ContainingCollectionView.props.Document.annotations);
+                            ccvAnnos.forEach(d => {
+                                if (this._script && this._script.compiled) {
+                                    let run = this._script.run(d);
+                                    if (run.success) {
+                                        d.opacity = run.result ? 1 : 0;
+                                    }
+                                }
+                            })
+                        }
                     });
                 }
             );
+        }
+
+        if (this._mainCont.current) {
+            this._dropDisposer = this._mainCont.current && DragManager.MakeDropTarget(this._mainCont.current, { handlers: { drop: this.drop.bind(this) } });
         }
     }
 
@@ -133,6 +150,7 @@ class Viewer extends React.Component<IViewerProps> {
         this._reactionDisposer && this._reactionDisposer();
         this._annotationReactionDisposer && this._annotationReactionDisposer();
         this._filterReactionDisposer && this._filterReactionDisposer();
+        this._dropDisposer && this._dropDisposer();
     }
 
     @action
@@ -140,10 +158,14 @@ class Viewer extends React.Component<IViewerProps> {
         if (this._pageSizes.length === 0) {
             let pageSizes = Array<{ width: number, height: number }>(this.props.pdf.numPages);
             this._isPage = Array<string>(this.props.pdf.numPages);
+            this._textContent = Array<Pdfjs.TextContent>(this.props.pdf.numPages);
             for (let i = 0; i < this.props.pdf.numPages; i++) {
                 await this.props.pdf.getPage(i + 1).then(page => runInAction(() => {
                     // pageSizes[i] = { width: page.view[2] * scale, height: page.view[3] * scale };
                     let x = page.getViewport(scale);
+                    page.getTextContent().then((text: Pdfjs.TextContent) => {
+                        this._textContent[i] = text;
+                    })
                     pageSizes[i] = { width: x.width, height: x.height };
                 }));
             }
@@ -159,13 +181,6 @@ class Viewer extends React.Component<IViewerProps> {
             }
             this.props.parent.Document.scrollY = 0;
             this.props.parent.Document.scrollY = startY + 1;
-        }
-    }
-
-    private mainCont = (div: HTMLDivElement | null) => {
-        this._dropDisposer && this._dropDisposer();
-        if (div) {
-            this._dropDisposer = div && DragManager.MakeDropTarget(div, { handlers: { drop: this.drop.bind(this) } });
         }
     }
 
@@ -222,6 +237,7 @@ class Viewer extends React.Component<IViewerProps> {
     pageLoaded = (index: number, page: Pdfjs.PDFPageViewport): void => {
         this.props.loaded(page.width, page.height, this.props.pdf.numPages);
     }
+
     @action
     getPlaceholderPage = (page: number) => {
         if (this._isPage[page] !== "none") {
@@ -232,6 +248,7 @@ class Viewer extends React.Component<IViewerProps> {
             );
         }
     }
+
     @action
     getRenderedPage = (page: number) => {
         if (this._isPage[page] !== "page") {
@@ -374,11 +391,16 @@ class Viewer extends React.Component<IViewerProps> {
         return res;
     }
 
+    pointerDown = () => {
+
+        let x = this._textContent;
+    }
+
     render() {
         let compiled = this._script;
         return (
-            <div ref={this.mainCont} style={{ pointerEvents: "all" }}>
-                <div className="viewer">
+            <div ref={this._mainCont} style={{ pointerEvents: "all" }} onPointerDown={this.pointerDown}>
+                <div className="viewer" ref={this._viewer}>
                     {this._visibleElements}
                 </div>
                 <div className="pdfViewer-annotationLayer"
@@ -472,10 +494,21 @@ class RegionAnnotation extends React.Component<IAnnotationProps> {
         }
         if (e.button === 2) {
             PDFMenu.Instance.Status = "annotation";
-            PDFMenu.Instance.Delete = this.deleteAnnotation;
+            PDFMenu.Instance.Delete = this.deleteAnnotation.bind(this);
             PDFMenu.Instance.Pinned = false;
+            PDFMenu.Instance.AddTag = this.addTag.bind(this);
             PDFMenu.Instance.jumpTo(e.clientX, e.clientY, true);
         }
+    }
+
+    addTag = (key: string, value: string): boolean => {
+        let group = FieldValue(Cast(this.props.document.group, Doc));
+        if (group) {
+            let valNum = parseInt(value);
+            group[key] = isNaN(valNum) ? value : valNum;
+            return true;
+        }
+        return false;
     }
 
     render() {

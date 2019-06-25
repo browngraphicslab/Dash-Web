@@ -18,9 +18,9 @@ import { pageSchema } from "./ImageBox";
 import "./PDFBox.scss";
 import React = require("react");
 import { CompileScript } from '../../util/Scripting';
-import { ScriptField } from '../../../fields/ScriptField';
 import { Flyout, anchorPoints } from '../DocumentDecorations';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { ScriptField } from '../../../new_fields/ScriptField';
 
 type PdfDocument = makeInterface<[typeof positionSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(positionSchema, pageSchema);
@@ -37,6 +37,9 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     private _keyValue: string = "";
     private _valueValue: string = "";
     private _scriptValue: string = "";
+    private _keyRef: React.RefObject<HTMLInputElement>;
+    private _valueRef: React.RefObject<HTMLInputElement>;
+    private _scriptRef: React.RefObject<HTMLInputElement>;
 
     constructor(props: FieldViewProps) {
         super(props);
@@ -51,10 +54,9 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
             }
         );
 
-        let script = CompileScript("return this.page === 0", { params: { this: Doc.name } });
-        if (script.compiled) {
-            this.props.Document.filterScript = new ScriptField(script);
-        }
+        this._keyRef = React.createRef();
+        this._valueRef = React.createRef();
+        this._scriptRef = React.createRef();
     }
 
     componentDidMount() {
@@ -99,16 +101,20 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         this._valueValue = e.currentTarget.value;
     }
 
+    @action
     private newScriptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         this._scriptValue = e.currentTarget.value;
     }
 
-    private applyFilter = (e: React.MouseEvent<HTMLButtonElement>) => {
+    private applyFilter = () => {
         let scriptText = "";
         if (this._scriptValue.length > 0) {
             scriptText = this._scriptValue;
         } else if (this._keyValue.length > 0 && this._valueValue.length > 0) {
             scriptText = `return this.${this._keyValue} === ${this._valueValue}`;
+        }
+        else {
+            scriptText = "return true";
         }
         let script = CompileScript(scriptText, { params: { this: Doc.name } });
         if (script.compiled) {
@@ -119,6 +125,22 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     @action
     private toggleFlyout = () => {
         this._flyout = !this._flyout;
+    }
+
+    @action
+    private resetFilters = () => {
+        this._keyValue = this._valueValue = "";
+        this._scriptValue = "return true";
+        if (this._keyRef.current) {
+            this._keyRef.current.value = "";
+        }
+        if (this._valueRef.current) {
+            this._valueRef.current.value = "";
+        }
+        if (this._scriptRef.current) {
+            this._scriptRef.current.value = "";
+        }
+        this.applyFilter();
     }
 
     settingsPanel() {
@@ -144,14 +166,18 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
                         </div>
                         <div className="pdfBox-settingsFlyout-kvpInput">
                             <input placeholder="Key" className="pdfBox-settingsFlyout-input" onChange={this.newKeyChange}
-                                style={{ gridColumn: 1 }} />
+                                style={{ gridColumn: 1 }} ref={this._keyRef} />
                             <input placeholder="Value" className="pdfBox-settingsFlyout-input" onChange={this.newValueChange}
-                                style={{ gridColumn: 3 }} />
+                                style={{ gridColumn: 3 }} ref={this._valueRef} />
                         </div>
                         <div className="pdfBox-settingsFlyout-kvpInput">
-                            <input placeholder="Custom Script" onChange={this.newScriptChange} style={{ gridColumn: "1 / 4" }} />
+                            <input placeholder="Custom Script" onChange={this.newScriptChange} style={{ gridColumn: "1 / 4" }} ref={this._scriptRef} />
                         </div>
                         <div className="pdfBox-settingsFlyout-kvpInput">
+                            <button style={{ gridColumn: 1 }} onClick={this.resetFilters}>
+                                <FontAwesomeIcon style={{ color: "white" }} icon="trash" size="lg" />
+                                &nbsp; Reset Filters
+                            </button>
                             <button style={{ gridColumn: 3 }} onClick={this.applyFilter}>
                                 <FontAwesomeIcon style={{ color: "white" }} icon="check" size="lg" />
                                 &nbsp; Apply
