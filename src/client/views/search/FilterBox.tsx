@@ -287,7 +287,7 @@ export class FilterBox extends React.Component {
         // this._resultsOpen = false;
         // this._results = [];
         SearchBox.Instance.closeResults();
-        console.log("opening filter")
+        // console.log("opening filter")
         this.setupAccordion();
     }
 
@@ -306,12 +306,8 @@ export class FilterBox extends React.Component {
 
     stopProp = (e: React.PointerEvent) => {
         e.stopPropagation();
-        this.setPointerTime(e.timeStamp);
-        console.log("stopping prop")
-    }
-
-    setPointerTime(time: number) {
-        this._pointerTime = time;
+        this._pointerTime = e.timeStamp;
+        console.log("stopping prop");
     }
 
     @action.bound

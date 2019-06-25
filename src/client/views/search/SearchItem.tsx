@@ -18,6 +18,7 @@ import { DocTypes } from "../../documents/Documents";
 import { FilterBox } from "./FilterBox";
 import { DocumentView } from "../nodes/DocumentView";
 import "./SelectorContextMenu.scss";
+import { SearchBox } from "./SearchBox";
 
 export interface SearchItemProps {
     doc: Doc;
@@ -129,7 +130,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
         return num.toString() + " links";
     }
 
-    pointerDown = (e: React.PointerEvent) => { FilterBox.Instance.openSearch(e); };
+    pointerDown = (e: React.PointerEvent) => { SearchBox.Instance.openSearch(e); };
 
     highlightDoc = (e: React.PointerEvent) => {
         let docViews: DocumentView[] = DocumentManager.Instance.getAllDocumentViews(this.props.doc);

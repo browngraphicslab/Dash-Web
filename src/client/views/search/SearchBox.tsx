@@ -52,8 +52,8 @@ export class SearchBox extends React.Component<SearchBoxProps> {
     @action.bound
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
         this._searchString = e.target.value;
-        console.log(this._searchString)
-        e.stopPropagation();
+        // console.log(this._searchString)
+        // e.stopPropagation();
 
         if (this._searchString === "") {
             this._results = [];
@@ -85,9 +85,9 @@ export class SearchBox extends React.Component<SearchBoxProps> {
 
     @action
     submitSearch = async () => {
-        console.log("submitting")
+        // console.log("submitting")
         let query = this._searchString; // searchbox gets query
-        console.log(this._searchString)
+        // console.log(this._searchString)
         let results: Doc[];
 
         // query = this.props.getFinalQuery(query); // sends to filterbox to modify and gets final query back
@@ -107,7 +107,7 @@ export class SearchBox extends React.Component<SearchBoxProps> {
 
         runInAction(() => {
             this._resultsOpen = true;
-            console.log("opening results")
+            // console.log("opening results")
             this._results = results;
             this._openNoResults = true;
         });
@@ -175,8 +175,8 @@ export class SearchBox extends React.Component<SearchBoxProps> {
 
     @action.bound
     openSearch(e: React.PointerEvent) {
-        console.log("opening search")
-        e.stopPropagation();
+        // console.log("opening search")
+        // e.stopPropagation();
         // FilterBox.Instance.setPointerTime(e.timeStamp);
         this._openNoResults = false;
         FilterBox.Instance.closeFilter();
@@ -185,16 +185,16 @@ export class SearchBox extends React.Component<SearchBoxProps> {
 
     @action.bound
     closeSearch = () => {
-        console.log("closing search")
+        // console.log("closing search")
 
         FilterBox.Instance.closeFilter();
         this.closeResults();
-        console.log(this._resultsOpen)
+        // console.log(this._resultsOpen)
     }
 
     @action.bound
     closeResults() {
-        console.log("closing results")
+        // console.log("closing results")
         this._resultsOpen = false;
         this._results = [];
     }
