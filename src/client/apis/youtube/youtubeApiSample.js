@@ -1,7 +1,5 @@
-let fs = require('fs');
-let readline = require('readline');
-let { google } = require('googleapis');
-let OAuth2 = google.auth.OAuth2;
+import { Utils } from "tslint";
+
 
 // If modifying these scopes, delete your previously saved credentials
 // at ~/.credentials/youtube-nodejs-quickstart.json
@@ -10,17 +8,13 @@ let TOKEN_DIR = (process.env.HOME || process.env.HOMEPATH ||
     process.env.USERPROFILE) + '/.credentials/';
 let TOKEN_PATH = TOKEN_DIR + 'youtube-nodejs-quickstart.json';
 
-function readFsFile() {
-    // Load client secrets from a local file.
-    fs.readFile('client_secret.json', function processClientSecrets(err, content) {
-        if (err) {
-            console.log('Error loading client secret file: ' + err);
-            return;
-        }
-        // Authorize a client with the loaded credentials, then call the YouTube API.
-        authorize(JSON.parse(content), getChannel);
-    });
+
+
+function authorizedGetChannel(apiKey) {
+    // Authorize a client with the loaded credentials, then call the YouTube API.
+    authorize(JSON.parse(apiKey), getChannel);
 }
+
 
 /**
  * Create an OAuth2 client with the given credentials, and then execute the

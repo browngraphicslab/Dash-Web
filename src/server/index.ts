@@ -39,6 +39,11 @@ import { debug } from 'util';
 import _ = require('lodash');
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
+//let fs = require('fs');
+let readline = require('readline');
+let { google } = require('googleapis');
+let OAuth2 = google.auth.OAuth2;
+
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
 
@@ -310,6 +315,7 @@ server.on("connection", function (socket: Socket) {
     Utils.AddServerHandler(socket, MessageStore.DeleteAll, deleteFields);
 
     Utils.AddServerHandler(socket, MessageStore.CreateField, CreateField);
+    Utils.AddServerHandlerCallback(socket, MessageStore.YoutubeApiKey, GetYoutubeApiKey);
     Utils.AddServerHandler(socket, MessageStore.UpdateField, diff => UpdateField(socket, diff));
     Utils.AddServerHandlerCallback(socket, MessageStore.GetRefField, GetRefField);
     Utils.AddServerHandlerCallback(socket, MessageStore.GetRefFields, GetRefFields);
@@ -358,6 +364,17 @@ function GetRefField([id, callback]: [string, (result?: Transferable) => void]) 
 
 function GetRefFields([ids, callback]: [string[], (result?: Transferable[]) => void]) {
     Database.Instance.getDocuments(ids, callback, "newDocuments");
+}
+
+function GetYoutubeApiKey(callback: (result?: string) => void) {
+    // Load client secrets from a local file.
+    fs.readFile('client_secret.json', function processClientSecrets(err: any, content: any) {
+        if (err) {
+            console.log('Error loading client secret file: ' + err);
+            return;
+        }
+        callback(content);
+    });
 }
 
 
@@ -443,3 +460,4 @@ function CreateField(newValue: any) {
 
 server.listen(serverPort);
 console.log(`listening on port ${serverPort}`);
+

@@ -23,7 +23,7 @@ import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { IconBox } from "../views/nodes/IconBox";
 import { Field, Doc, Opt } from "../../new_fields/Doc";
 import { OmitKeys } from "../../Utils";
-import { ImageField, VideoField, AudioField, PdfField, WebField } from "../../new_fields/URLField";
+import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
 import { List } from "../../new_fields/List";
 import { Cast, NumCast } from "../../new_fields/Types";
@@ -35,6 +35,8 @@ import { dropActionType } from "../util/DragManager";
 import { DateField } from "../../new_fields/DateField";
 import { UndoManager } from "../util/UndoManager";
 import { RouteStore } from "../../server/RouteStore";
+import { createInstance } from "@react-pdf/renderer";
+import { YoutubeBox } from "../apis/youtube/YoutubeBox";
 var requestImageSize = require('request-image-size');
 var path = require('path');
 
@@ -113,6 +115,7 @@ export namespace Docs {
     let audioProto: Doc;
     let pdfProto: Doc;
     let iconProto: Doc;
+    let youtubeProto: Doc;
     const textProtoId = "textProto";
     const histoProtoId = "histoProto";
     const pdfProtoId = "pdfProto";
@@ -123,9 +126,10 @@ export namespace Docs {
     const videoProtoId = "videoProto";
     const audioProtoId = "audioProto";
     const iconProtoId = "iconProto";
+    const youtubeProtoId = "youtubeProto";
 
     export function initProtos(): Promise<void> {
-        return DocServer.GetRefFields([textProtoId, histoProtoId, collProtoId, imageProtoId, webProtoId, kvpProtoId, videoProtoId, audioProtoId, pdfProtoId, iconProtoId]).then(fields => {
+        return DocServer.GetRefFields([textProtoId, histoProtoId, collProtoId, imageProtoId, webProtoId, kvpProtoId, videoProtoId, audioProtoId, pdfProtoId, iconProtoId, youtubeProtoId]).then(fields => {
             textProto = fields[textProtoId] as Doc || CreateTextPrototype();
             histoProto = fields[histoProtoId] as Doc || CreateHistogramPrototype();
             collProto = fields[collProtoId] as Doc || CreateCollectionPrototype();
@@ -136,6 +140,7 @@ export namespace Docs {
             audioProto = fields[audioProtoId] as Doc || CreateAudioPrototype();
             pdfProto = fields[pdfProtoId] as Doc || CreatePdfPrototype();
             iconProto = fields[iconProtoId] as Doc || CreateIconPrototype();
+            youtubeProto = fields[youtubeProtoId] as Doc || CreateYoutubePrototype();
         });
     }
 
@@ -183,6 +188,13 @@ export namespace Docs {
             { x: 0, y: 0, width: 300, height: 300 });
         return webProto;
     }
+    function CreateYoutubePrototype(): Doc {
+        let webProto = setupPrototypeOptions(youtubeProtoId, "YOUTUBE_PROTO", YoutubeBox.LayoutString(),
+            { x: 0, y: 0, width: 300, height: 300 });
+        return webProto;
+    }
+
+
     function CreateCollectionPrototype(): Doc {
         let collProto = setupPrototypeOptions(collProtoId, "COLLECTION_PROTO", CollectionView.LayoutString("data"),
             { panX: 0, panY: 0, scale: 1, width: 500, height: 500 });
@@ -238,6 +250,10 @@ export namespace Docs {
         // doc.SetText(KeyStore.OverlayLayout, FixedCaption());
         // return doc;
     }
+    export function YoutubeDocument(url: string, options: DocumentOptions = {}) {
+        return CreateInstance(youtubeProto, new YoutubeField(new URL(url)), options);
+    }
+
     export function VideoDocument(url: string, options: DocumentOptions = {}) {
         return CreateInstance(videoProto, new VideoField(new URL(url)), options);
     }

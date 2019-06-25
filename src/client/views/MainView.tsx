@@ -1,5 +1,5 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
-import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faTree, faUndoAlt, faBell } from '@fortawesome/free-solid-svg-icons';
+import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faTree, faUndoAlt, faBell, faPlay } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, runInAction, trace } from 'mobx';
 import { observer } from 'mobx-react';
@@ -89,6 +89,7 @@ export class MainView extends React.Component {
         library.add(faFilm);
         library.add(faMusic);
         library.add(faTree);
+        library.add(faPlay);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
@@ -226,6 +227,7 @@ export class MainView extends React.Component {
         let weburl = "https://cs.brown.edu/courses/cs166/";
         let audiourl = "http://techslides.com/demos/samples/sample.mp3";
         let videourl = "http://techslides.com/demos/sample-videos/small.mp4";
+        let youtubeurl = "https://www.youtube.com/embed/TqcApsGRzWw";
 
         let addTextNode = action(() => Docs.TextDocument({ borderRounding: -1, width: 200, height: 200, title: "a text note" }));
         let addColNode = action(() => Docs.FreeformDocument([], { width: this.pwidth * .7, height: this.pheight, title: "a freeform collection" }));
@@ -238,6 +240,7 @@ export class MainView extends React.Component {
         let addImageNode = action(() => Docs.ImageDocument(imgurl, { width: 200, title: "an image of a cat" }));
         let addWebNode = action(() => Docs.WebDocument(weburl, { width: 200, height: 200, title: "a sample web page" }));
         let addAudioNode = action(() => Docs.AudioDocument(audiourl, { width: 200, height: 200, title: "audio node" }));
+        let addYoutubeSearcher = action(() => Docs.YoutubeDocument(youtubeurl, { width: 200, height: 200, title: "youtube node" }));
 
         let btns: [React.RefObject<HTMLDivElement>, IconName, string, () => Doc][] = [
             [React.createRef<HTMLDivElement>(), "font", "Add Textbox", addTextNode],
@@ -249,6 +252,7 @@ export class MainView extends React.Component {
             [React.createRef<HTMLDivElement>(), "object-group", "Add Collection", addColNode],
             [React.createRef<HTMLDivElement>(), "tree", "Add Tree", addTreeNode],
             [React.createRef<HTMLDivElement>(), "table", "Add Schema", addSchemaNode],
+            [React.createRef<HTMLDivElement>(), "play", "Add Youtube Searcher", addYoutubeSearcher]
         ];
 
         return < div id="add-nodes-menu" >

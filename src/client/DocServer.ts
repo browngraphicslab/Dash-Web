@@ -47,6 +47,12 @@ export namespace DocServer {
         }
     }
 
+    export async function getYoutubeApiKey() {
+        let apiKey = await Utils.EmitCallback(_socket, MessageStore.YoutubeApiKey, undefined);
+        return apiKey;
+    }
+
+
     export async function GetRefFields(ids: string[]): Promise<{ [id: string]: Opt<RefField> }> {
         const requestedIds: string[] = [];
         const waitingIds: string[] = [];

@@ -45,4 +45,5 @@ export namespace MessageStore {
     export const GetRefFields = new Message<string[]>("Get Ref Fields");
     export const UpdateField = new Message<Diff>("Update Ref Field");
     export const CreateField = new Message<Reference>("Create Ref Field");
+    export const YoutubeApiKey = new Message<string>("Youtube Api Key");
 }
