@@ -42,13 +42,9 @@ export class FilterBox extends React.Component {
     static Instance: FilterBox;
     public _allIcons: string[] = [DocTypes.AUDIO, DocTypes.COL, DocTypes.HIST, DocTypes.IMG, DocTypes.LINK, DocTypes.PDF, DocTypes.TEXT, DocTypes.VID, DocTypes.WEB];
 
-    // @observable private _searchString: string = "";
     //if true, any keywords can be used. if false, all keywords are required.
     @observable private _basicWordStatus: boolean = true;
     @observable private _filterOpen: boolean = false;
-    // @observable private _resultsOpen: boolean = false;
-    // @observable private _results: Doc[] = [];
-    // @observable private _openNoResults: boolean = false;
     @observable private _icons: string[] = this._allIcons;
     @observable private _titleFieldStatus: boolean = true;
     @observable private _authorFieldStatus: boolean = true;
@@ -62,7 +58,6 @@ export class FilterBox extends React.Component {
     @observable private _fieldOpen: boolean = false;
     public _pointerTime: number = -1;
 
-
     constructor(props: Readonly<{}>) {
         super(props);
         FilterBox.Instance = this;
@@ -73,7 +68,6 @@ export class FilterBox extends React.Component {
         document.addEventListener("pointerdown", (e) => {
             if (e.timeStamp !== this._pointerTime) {
                 SearchBox.Instance.closeSearch();
-                console.log("closing search from inside component did mount")
             }
         });
     }
@@ -274,20 +268,11 @@ export class FilterBox extends React.Component {
         });
         return finalDocs;
     }
-    //--------------------------------------------------------------------------------------------------------------
-    // enter = (e: React.KeyboardEvent) => {
-    //     if (e.key === "Enter") { this.submitSearch(); }
-    // }
-    //--------------------------------------------------------------------------------------------------------------
-
 
     @action.bound
     openFilter = () => {
         this._filterOpen = !this._filterOpen;
-        // this._resultsOpen = false;
-        // this._results = [];
         SearchBox.Instance.closeResults();
-        // console.log("opening filter")
         this.setupAccordion();
     }
 
@@ -307,7 +292,6 @@ export class FilterBox extends React.Component {
     stopProp = (e: React.PointerEvent) => {
         e.stopPropagation();
         this._pointerTime = e.timeStamp;
-        console.log("stopping prop");
     }
 
     @action.bound

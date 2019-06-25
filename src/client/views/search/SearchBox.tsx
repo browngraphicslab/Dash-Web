@@ -16,24 +16,16 @@ import { SearchUtil } from '../../util/SearchUtil';
 import { RouteStore } from '../../../server/RouteStore';
 import { FilterBox } from './FilterBox';
 
-export interface SearchBoxProps {
-    // setUnfilteredResults(docs: Doc[]): void;
-    // getFilteredResults(): Doc[];
-    // getFinalQuery(str: string): string;
-    
-    // submitSearch(): void;
-}
-
-export class SearchBox extends React.Component<SearchBoxProps> {
+@observer
+export class SearchBox extends React.Component {
 
     @observable private _searchString: string = "";
     @observable private _resultsOpen: boolean = false;
     @observable private _results: Doc[] = [];
     @observable private _openNoResults: boolean = false;
-    // private _pointerTime: number = -1;
     static Instance: SearchBox;
 
-    constructor(props: SearchBoxProps){
+    constructor(props: any){
         super(props);
 
         SearchBox.Instance = this;
@@ -52,8 +44,6 @@ export class SearchBox extends React.Component<SearchBoxProps> {
     @action.bound
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
         this._searchString = e.target.value;
-        // console.log(this._searchString)
-        // e.stopPropagation();
 
         if (this._searchString === "") {
             this._results = [];
@@ -62,7 +52,6 @@ export class SearchBox extends React.Component<SearchBoxProps> {
     }
 
     enter = (e: React.KeyboardEvent) => {
-        
         if (e.key === "Enter") { this.submitSearch(); }
     }
 
@@ -85,12 +74,9 @@ export class SearchBox extends React.Component<SearchBoxProps> {
 
     @action
     submitSearch = async () => {
-        // console.log("submitting")
         let query = this._searchString; // searchbox gets query
-        // console.log(this._searchString)
         let results: Doc[];
 
-        // query = this.props.getFinalQuery(query); // sends to filterbox to modify and gets final query back
         query = FilterBox.Instance.getFinalQuery(query);
 
         //if there is no query there should be no result
@@ -99,15 +85,12 @@ export class SearchBox extends React.Component<SearchBoxProps> {
         }
         else {
             //gets json result into a list of documents that can be used
-            // results = await this.props.getFilteredResults(query);
-
             //these are filtered by type
             results = await this.getResults(query);
         }
 
         runInAction(() => {
             this._resultsOpen = true;
-            // console.log("opening results")
             this._results = results;
             this._openNoResults = true;
         });
@@ -136,7 +119,6 @@ export class SearchBox extends React.Component<SearchBoxProps> {
 
     collectionRef = React.createRef<HTMLSpanElement>();
     startDragCollection = async () => {
-        // const results = await this.getResults(this._searchString);
         const results = await this.getResults(FilterBox.Instance.getFinalQuery(this._searchString));
         const docs = results.map(doc => {
             const isProto = Doc.GetT(doc, "isPrototype", "boolean", true);
@@ -175,26 +157,21 @@ export class SearchBox extends React.Component<SearchBoxProps> {
 
     @action.bound
     openSearch(e: React.PointerEvent) {
-        // console.log("opening search")
-        // e.stopPropagation();
-        // FilterBox.Instance.setPointerTime(e.timeStamp);
+        e.stopPropagation();
         this._openNoResults = false;
         FilterBox.Instance.closeFilter();
         this._resultsOpen = true;
+        FilterBox.Instance._pointerTime = e.timeStamp;
     }
 
     @action.bound
     closeSearch = () => {
-        // console.log("closing search")
-
         FilterBox.Instance.closeFilter();
         this.closeResults();
-        // console.log(this._resultsOpen)
     }
 
     @action.bound
     closeResults() {
-        // console.log("closing results")
         this._resultsOpen = false;
         this._results = [];
     }
