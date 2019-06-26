@@ -43,6 +43,7 @@ import { Response } from 'express-serve-static-core';
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const probe = require("probe-image-size");
+var SolrNode = require('solr-node');
 var shell = require('shelljs');
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
@@ -141,7 +142,6 @@ app.get("/pull", (req, res) =>
 
 // SEARCH
 const solrURL = "http://localhost:8983/solr/#/dash";
-shell.echo("sorry this requires git")
 
 // GETTERS
 

@@ -9,7 +9,7 @@ import { Utils } from "../../../Utils";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFile as fileSolid, faLocationArrow, faArrowUp, faSearch } from '@fortawesome/free-solid-svg-icons';
-import { faFile as fileRegular } from '@fortawesome/free-regular-svg-icons';
+import { faFile as fileRegular } from '@fortawesome/free-solid-svg-icons';
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 
