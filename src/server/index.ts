@@ -24,7 +24,7 @@ import { getForgot, getLogin, getLogout, getReset, getSignup, postForgot, postLo
 import { DashUserModel } from './authentication/models/user_model';
 import { Client } from './Client';
 import { Database } from './database';
-import { MessageStore, Transferable, Types, Diff } from "./Message";
+import { MessageStore, Transferable, Types, Diff, YoutubeQueryTypes as YoutubeQueryType } from "./Message";
 import { RouteStore } from './RouteStore';
 const app = express();
 const config = require('../../webpack.config');
@@ -37,15 +37,16 @@ import c = require("crypto");
 import { Search } from './Search';
 import { debug } from 'util';
 import _ = require('lodash');
+import * as YoutubeApi from './youtubeApi/youtubeApiSample.js';
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
-//let fs = require('fs');
-let readline = require('readline');
-let { google } = require('googleapis');
-let OAuth2 = google.auth.OAuth2;
+// let { google } = require('googleapis');
+// let OAuth2 = google.auth.OAuth2;
 
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
+let youtubeApiKey: string;
+YoutubeApi.readApiKey((apiKey: string) => youtubeApiKey = apiKey);
 
 const mongoUrl = 'mongodb://localhost:27017/Dash';
 mongoose.connect(mongoUrl);
@@ -315,7 +316,7 @@ server.on("connection", function (socket: Socket) {
     Utils.AddServerHandler(socket, MessageStore.DeleteAll, deleteFields);
 
     Utils.AddServerHandler(socket, MessageStore.CreateField, CreateField);
-    Utils.AddServerHandlerCallback(socket, MessageStore.YoutubeApiKey, GetYoutubeApiKey);
+    Utils.AddServerHandlerCallback(socket, MessageStore.YoutubeApiQuery, HandleYoutubeQuery);
     Utils.AddServerHandler(socket, MessageStore.UpdateField, diff => UpdateField(socket, diff));
     Utils.AddServerHandlerCallback(socket, MessageStore.GetRefField, GetRefField);
     Utils.AddServerHandlerCallback(socket, MessageStore.GetRefFields, GetRefFields);
@@ -366,17 +367,13 @@ function GetRefFields([ids, callback]: [string[], (result?: Transferable[]) => v
     Database.Instance.getDocuments(ids, callback, "newDocuments");
 }
 
-function GetYoutubeApiKey(callback: (result?: string) => void) {
-    // Load client secrets from a local file.
-    fs.readFile('client_secret.json', function processClientSecrets(err: any, content: any) {
-        if (err) {
-            console.log('Error loading client secret file: ' + err);
-            return;
-        }
-        callback(content);
-    });
+function HandleYoutubeQuery([type, callback]: [YoutubeQueryType, (result?: string) => void]) {
+    switch (type) {
+        case YoutubeQueryType.Channels:
+            YoutubeApi.authorizedGetChannel(youtubeApiKey);
+            break;
+    }
 }
-
 
 const suffixMap: { [type: string]: (string | [string, string | ((json: any) => any)]) } = {
     "number": "_n",

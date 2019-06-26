@@ -7,7 +7,6 @@ import { observer } from "mobx-react";
 import { computed, reaction, IReactionDisposer } from 'mobx';
 import { DocumentDecorations } from "../../views/DocumentDecorations";
 import { InkingControl } from "../../views/InkingControl";
-import * as YoutubeApi from "./youtubeApiSample";
 import { Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 
@@ -15,14 +14,11 @@ import { DocServer } from "../../DocServer";
 @observer
 export class YoutubeBox extends React.Component<FieldViewProps> {
 
-    private youtubeApiKey: string = "";
 
     public static LayoutString() { return FieldView.LayoutString(YoutubeBox); }
 
-    async componentWillMount() {
-        let apiKey = await DocServer.getYoutubeApiKey();
-        this.youtubeApiKey = apiKey;
-        YoutubeApi.authorizedGetChannel(this.youtubeApiKey);
+    componentWillMount() {
+        DocServer.getYoutubeChannels();
     }
 
     _ignore = 0;
@@ -45,7 +41,6 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
     render() {
         let field = this.props.Document[this.props.fieldKey];
         let view;
-        YoutubeApi.readFsFile();
         if (field instanceof HtmlField) {
             view = <span id="webBox-htmlSpan" dangerouslySetInnerHTML={{ __html: field.html }} />;
         } else if (field instanceof WebField) {

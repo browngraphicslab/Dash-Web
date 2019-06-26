@@ -1,5 +1,5 @@
 import * as OpenSocket from 'socket.io-client';
-import { MessageStore } from "./../server/Message";
+import { MessageStore, YoutubeQueryTypes } from "./../server/Message";
 import { Opt } from '../new_fields/Doc';
 import { Utils, emptyFunction } from '../Utils';
 import { SerializationHelper } from './util/SerializationHelper';
@@ -47,8 +47,8 @@ export namespace DocServer {
         }
     }
 
-    export async function getYoutubeApiKey() {
-        let apiKey = await Utils.EmitCallback(_socket, MessageStore.YoutubeApiKey, undefined);
+    export async function getYoutubeChannels() {
+        let apiKey = await Utils.EmitCallback(_socket, MessageStore.YoutubeApiQuery, YoutubeQueryTypes.Channels);
         return apiKey;
     }
 
