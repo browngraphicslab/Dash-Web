@@ -31,6 +31,7 @@ export interface TreeViewProps {
     document: Doc;
     dataDoc?: Doc;
     containingCollection: Doc;
+    renderDepth: number;
     deleteDoc: (doc: Doc) => boolean;
     moveDocument: DragManager.MoveFunction;
     dropAction: "alias" | "copy" | undefined;
@@ -289,7 +290,7 @@ class TreeView extends React.Component<TreeViewProps> {
             if (!this.props.document.embed) {
                 contentElement = <ul key={this._chosenKey + "more"}>
                     {TreeView.GetChildElements(doc instanceof Doc ? [doc] : DocListCast(docList), this.props.treeViewId, this.props.document, this.props.dataDoc, this._chosenKey, addDoc, remDoc, this.move,
-                        this.props.dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active, this.props.panelWidth)}
+                        this.props.dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active, this.props.panelWidth, this.props.renderDepth)}
                 </ul >;
             } else {
                 console.log("PW = " + this.props.panelWidth());
@@ -297,6 +298,7 @@ class TreeView extends React.Component<TreeViewProps> {
                     <CollectionSchemaPreview
                         Document={this.props.document}
                         DataDocument={this.resolvedDataDoc}
+                        renderDepth={this.props.renderDepth}
                         width={docWidth}
                         height={this.props.panelHeight}
                         getTransform={this.docTransform}
@@ -339,6 +341,7 @@ class TreeView extends React.Component<TreeViewProps> {
         outerXf: () => { translateX: number, translateY: number },
         active: () => boolean,
         panelWidth: () => number,
+        renderDepth: number
     ) {
         let docList = docs.filter(child => !child.excludeFromLibrary);
         let rowWidth = () => panelWidth() - 20;
@@ -365,6 +368,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 treeViewId={treeViewId}
                 key={child[Id]}
                 indentDocument={indent}
+                renderDepth={renderDepth}
                 deleteDoc={remove}
                 addDocument={addDocument}
                 panelWidth={rowWidth}
@@ -445,7 +449,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                 <ul className="no-indent" style={{ width: "max-content" }} >
                     {
                         TreeView.GetChildElements(this.childDocs, this.props.Document[Id], this.props.Document, this.props.DataDoc, this.props.fieldKey, addDoc, this.remove,
-                            moveDoc, dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.outerXf, this.props.active, this.props.PanelWidth)
+                            moveDoc, dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.outerXf, this.props.active, this.props.PanelWidth, this.props.renderDepth)
                     }
                 </ul>
             </div >

@@ -48,6 +48,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         @computed get extensionDoc() { return Doc.resolvedFieldDataDoc(BoolCast(this.props.Document.isTemplate) && this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt); }
 
         get childDocs() {
+            let self = this;
             //TODO tfs: This might not be what we want?
             //This linter error can't be fixed because of how js arguments work, so don't switch this to filter(FieldValue)
             return DocListCast((BoolCast(this.props.Document.isTemplate) ? this.extensionDoc : this.props.Document)[this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey]);

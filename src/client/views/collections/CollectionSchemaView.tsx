@@ -351,23 +351,26 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @computed
     get previewPanel() {
-        return <div ref={this.createTarget}><CollectionSchemaPreview
-            Document={this.previewDocument}
-            DataDocument={BoolCast(this.props.Document.isTemplate) ? this.previewDocument : this.props.DataDoc}
-            childDocs={this.childDocs}
-            width={this.previewWidth}
-            height={this.previewHeight}
-            getTransform={this.getPreviewTransform}
-            CollectionView={this.props.CollectionView}
-            moveDocument={this.props.moveDocument}
-            addDocument={this.props.addDocument}
-            removeDocument={this.props.removeDocument}
-            active={this.props.active}
-            whenActiveChanged={this.props.whenActiveChanged}
-            addDocTab={this.props.addDocTab}
-            setPreviewScript={this.setPreviewScript}
-            previewScript={this.previewScript}
-        /></div>;
+        return <div ref={this.createTarget}>
+            <CollectionSchemaPreview
+                Document={this.previewDocument}
+                DataDocument={BoolCast(this.props.Document.isTemplate) ? this.previewDocument : this.props.DataDoc}
+                childDocs={this.childDocs}
+                renderDepth={this.props.renderDepth}
+                width={this.previewWidth}
+                height={this.previewHeight}
+                getTransform={this.getPreviewTransform}
+                CollectionView={this.props.CollectionView}
+                moveDocument={this.props.moveDocument}
+                addDocument={this.props.addDocument}
+                removeDocument={this.props.removeDocument}
+                active={this.props.active}
+                whenActiveChanged={this.props.whenActiveChanged}
+                addDocTab={this.props.addDocTab}
+                setPreviewScript={this.setPreviewScript}
+                previewScript={this.previewScript}
+            />
+        </div>;
     }
     @action
     setPreviewScript = (script: string) => {
@@ -391,6 +394,7 @@ interface CollectionSchemaPreviewProps {
     Document?: Doc;
     DataDocument?: Doc;
     childDocs?: Doc[];
+    renderDepth: number;
     width: () => number;
     height: () => number;
     CollectionView?: CollectionView | CollectionPDFView | CollectionVideoView;
@@ -458,7 +462,7 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
                     <DocumentView
                         DataDoc={this.props.Document.layout instanceof Doc ? this.props.Document : this.props.DataDocument}
                         Document={this.props.Document}
-                        renderDepth={1}
+                        renderDepth={this.props.renderDepth + 1}
                         selectOnLoad={false}
                         addDocument={this.props.addDocument}
                         removeDocument={this.props.removeDocument}
