@@ -30,6 +30,7 @@ import { CollectionSubView } from "./CollectionSubView";
 import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
 import { undoBatch } from "../../util/UndoManager";
+import { timesSeries } from "async";
 
 
 library.add(faCog);
@@ -117,9 +118,10 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         };
         let fieldContentView = <FieldView {...props} />;
         let reference = React.createRef<HTMLDivElement>();
-        let onItemDown = (e: React.PointerEvent) =>
+        let onItemDown = (e: React.PointerEvent) => {
             (this.props.CollectionView.props.isSelected() ?
                 SetupDrag(reference, () => props.Document, this.props.moveDocument, this.props.Document.schemaDoc ? "copy" : undefined)(e) : undefined);
+        };
         let applyToDoc = (doc: Doc, run: (args?: { [name: string]: any }) => any) => {
             const res = run({ this: doc });
             if (!res.success) return false;
@@ -284,7 +286,8 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @computed
     get previewDocument(): Doc | undefined {
         const selected = this.childDocs.length > this._selectedIndex ? this.childDocs[this._selectedIndex] : undefined;
-        return selected ? (this.previewScript && this.previewScript !== "this" ? FieldValue(Cast(selected[this.previewScript], Doc)) : selected) : undefined;
+        let pdc = selected ? (this.previewScript && this.previewScript !== "this" ? FieldValue(Cast(selected[this.previewScript], Doc)) : selected) : undefined;
+        return pdc;
     }
 
     getPreviewTransform = (): Transform => this.props.ScreenToLocalTransform().translate(
@@ -446,15 +449,14 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
         this.props.setPreviewScript(e.currentTarget.value);
     }
     render() {
-        let self = this;
         let input = this.props.previewScript === undefined ? (null) :
             <div ref={this.createTarget}><input className="collectionSchemaView-input" value={this.props.previewScript} onChange={this.onPreviewScriptChange}
                 style={{ left: `calc(50% - ${Math.min(75, (this.props.Document ? this.PanelWidth() / 2 : 75))}px)` }} /></div>;
         return (<div className="collectionSchemaView-previewRegion" style={{ width: this.props.width(), height: "100%" }}>
-            {!this.props.Document || !this.props.DataDocument || !this.props.width ? (null) : (
+            {!this.props.Document || !this.props.width ? (null) : (
                 <div className="collectionSchemaView-previewDoc" style={{ transform: `translate(${this.centeringOffset}px, 0px)`, height: "100%" }}>
                     <DocumentView
-                        DataDoc={this.props.DataDocument}
+                        DataDoc={this.props.Document.layout instanceof Doc ? this.props.Document : this.props.DataDocument}
                         Document={this.props.Document}
                         renderDepth={1}
                         selectOnLoad={false}

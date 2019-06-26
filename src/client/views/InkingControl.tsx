@@ -40,7 +40,7 @@ export class InkingControl extends React.Component {
     @action
     switchColor = (color: ColorResult): void => {
         this._selectedColor = color.hex + (color.rgb.a !== undefined ? this.decimalToHexString(Math.round(color.rgb.a * 255)) : "ff");
-        if (InkingControl.Instance.selectedTool === InkTool.None) SelectionManager.SelectedDocuments().forEach(doc => Doc.GetProto(doc.props.Document).backgroundColor = this._selectedColor);
+        if (InkingControl.Instance.selectedTool === InkTool.None) SelectionManager.SelectedDocuments().forEach(doc => (doc.props.Document.isTemplate ? doc.props.Document : Doc.GetProto(doc.props.Document)).backgroundColor = this._selectedColor);
     }
 
     @action

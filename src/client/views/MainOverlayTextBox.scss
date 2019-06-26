@@ -18,8 +18,8 @@
         left: 0;
     }
 }
-.unscaled_div{
-    width: 500px;
+.mainOverlayTextBox-.unscaled_div{
     z-index: 10000;
     position: absolute;
+    pointer-events: none;
 }

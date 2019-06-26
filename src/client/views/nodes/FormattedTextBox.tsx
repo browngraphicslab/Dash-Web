@@ -222,8 +222,13 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         let field = doc ? Cast(doc[fieldKey], RichTextField) : undefined;
         let startup = StrCast(doc.documentText);
         startup = startup.startsWith("@@@") ? startup.replace("@@@", "") : "";
-        if (!startup && !field && doc) {
-            startup = StrCast(doc[fieldKey]);
+        if (!field && doc) {
+            let text = StrCast(doc[fieldKey]);
+            if (text) {
+                startup = text;
+            } else if (Cast(doc[fieldKey], "number")) {
+                startup = NumCast(doc[fieldKey], 99).toString();
+            }
         }
         if (this._proseRef) {
             this._editorView = new EditorView(this._proseRef, {

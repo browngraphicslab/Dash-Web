@@ -76,7 +76,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                 style={{ width: width(), height: height() }} >
                 <CollectionSchemaPreview
                     Document={d}
-                    DataDocument={this.props.DataDoc !== this.props.Document ? this.props.DataDoc : d}
+                    DataDocument={this.props.Document.layout instanceof Doc ? this.props.Document : this.props.DataDoc}
                     width={width}
                     height={height}
                     getTransform={dxf}
@@ -108,7 +108,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                 style={{ gridRowEnd: `span ${rowSpan}` }} >
                 <CollectionSchemaPreview
                     Document={d}
-                    DataDocument={this.props.DataDoc !== this.props.Document ? this.props.DataDoc : d}
+                    DataDocument={this.props.Document.layout instanceof Doc ? this.props.Document : this.props.DataDoc}
                     CollectionView={this.props.CollectionView}
                     addDocument={this.props.addDocument}
                     moveDocument={this.props.moveDocument}
