@@ -7,6 +7,11 @@ import React = require("react");
 import { Doc } from "../../../new_fields/Doc";
 import { LinkManager } from "../../util/LinkManager";
 import { LinkMenuGroup } from "./LinkMenuGroup";
+import { faTrash } from '@fortawesome/free-solid-svg-icons';
+import { library } from "@fortawesome/fontawesome-svg-core";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+
+library.add(faTrash)
 
 interface Props {
     docView: DocumentView;
@@ -21,6 +26,10 @@ export class LinkMenu extends React.Component<Props> {
     @action
     componentWillReceiveProps() {
         this._editingLink = undefined;
+    }
+
+    clearAllLinks = () => {
+        LinkManager.Instance.deleteAllLinksOnAnchor(this.props.docView.props.Document);
     }
 
     renderAllGroups = (groups: Map<string, Array<Doc>>): Array<JSX.Element> => {
@@ -43,6 +52,7 @@ export class LinkMenu extends React.Component<Props> {
         if (this._editingLink === undefined) {
             return (
                 <div className="linkMenu">
+                    <button className="linkEditor-button linkEditor-clearButton" onClick={() => this.clearAllLinks()} title="Clear all links"><FontAwesomeIcon icon="trash" size="sm" /></button>
                     {/* <input id="linkMenu-searchBar" type="text" placeholder="Search..."></input> */}
                     <div className="linkMenu-list">
                         {this.renderAllGroups(groups)}

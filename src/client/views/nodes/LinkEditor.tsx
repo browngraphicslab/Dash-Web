@@ -278,6 +278,7 @@ export class LinkGroupEditor extends React.Component<LinkGroupEditorProps> {
                     <p className="linkEditor-group-row-label">type:</p>
                     <GroupTypesDropdown groupType={groupType} setGroupType={this.setGroupType} />
                 </div>
+                {this.renderMetadata().length > 0 ? <p className="linkEditor-group-row-label">metadata:</p> : <></>}
                 {this.renderMetadata()}
                 <div className="linkEditor-group-buttons">
                     {buttons}

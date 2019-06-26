@@ -47,8 +47,8 @@
     border-radius: 3px;
 
     .linkEditor-group-row {
-        display: flex;
-        margin-bottom: 6px;
+        // display: flex;
+        margin-bottom: 3px;
 
         .linkEditor-group-row-label {
             margin-right: 6px;
@@ -65,16 +65,16 @@
         }
 
         input {
-            width: calc(50% - 18px);
+            width: calc(50% - 16px);
             height: 20px;
         }
 
         button {
             width: 20px;
             height: 20px;
-            margin-left: 6px;
+            margin-left: 3px;
             padding: 0;
-            font-size: 14px;
+            font-size: 10px;
         }
     }
 }
@@ -84,6 +84,10 @@
     width: 100%;
     position: relative;
     z-index: 999;
+
+    input {
+        width: 100%;
+    }
 
     .linkEditor-options-wrapper {
         width: 100%;

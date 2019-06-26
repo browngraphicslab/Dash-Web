@@ -75,6 +75,11 @@ export class LinkManager {
         return related;
     }
 
+    public deleteAllLinksOnAnchor(anchor: Doc) {
+        let related = LinkManager.Instance.getAllRelatedLinks(anchor);
+        related.forEach(linkDoc => LinkManager.Instance.deleteLink(linkDoc));
+    }
+
     public addGroupType(groupType: string): boolean {
         if (LinkManager.Instance.LinkManagerDoc) {
             LinkManager.Instance.LinkManagerDoc[groupType] = new List<string>([]);
