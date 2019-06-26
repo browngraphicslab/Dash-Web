@@ -162,9 +162,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this._animateToIconDisposer = reaction(() => this.props.Document.isIconAnimating, (values) =>
             (values instanceof List) && this.animateBetweenIcon(values, values[2], values[3] ? true : false)
             , { fireImmediately: true });
-        // console.log("CREATED NEW DOC VIEW", StrCast(this.props.Document.title), DocumentManager.Instance.DocumentViews.length);
         DocumentManager.Instance.DocumentViews.push(this);
-        // console.log("ADDED TO DOC MAN", StrCast(this.props.Document.title), DocumentManager.Instance.DocumentViews.length);
     }
 
     animateBetweenIcon = (iconPos: number[], startTime: number, maximizing: boolean) => {

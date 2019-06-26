@@ -8,8 +8,10 @@ import React = require("react");
 import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { LinkManager } from "../../util/LinkManager";
-import { DragLinksAsDocuments, DragManager } from "../../util/DragManager";
+import { DragLinksAsDocuments, DragManager, SetupDrag } from "../../util/DragManager";
 import { emptyFunction } from "../../../Utils";
+import { Docs } from "../../documents/Documents";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 interface LinkMenuGroupProps {
     sourceDoc: Doc;
@@ -22,6 +24,7 @@ interface LinkMenuGroupProps {
 export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
 
     private _drag = React.createRef<HTMLDivElement>();
+    private _table = React.createRef<HTMLDivElement>();
 
     onLinkButtonDown = (e: React.PointerEvent): void => {
         e.stopPropagation();
@@ -55,6 +58,17 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
         e.stopPropagation();
     }
 
+    viewGroupAsTable = (groupType: string): JSX.Element => {
+        let keys = LinkManager.Instance.getMetadataKeysInGroup(groupType);
+        let index = keys.indexOf("");
+        if (index > -1) keys.splice(index, 1);
+        let cols = ["anchor1", "anchor2", ...[...keys]];
+        let docs: Doc[] = LinkManager.Instance.getAllMetadataDocsInGroup(groupType);
+        let createTable = action(() => Docs.SchemaDocument(cols, docs, { width: 500, height: 300, title: groupType + " table" }));
+        let ref = React.createRef<HTMLDivElement>();
+        return <div ref={ref}><button className="linkEditor-button linkEditor-tableButton" onPointerDown={SetupDrag(ref, createTable)} title="Drag to view relationship table"><FontAwesomeIcon icon="table" size="sm" /></button></div>;
+    }
+
     render() {
         let groupItems = this.props.group.map(linkDoc => {
             let destination = LinkManager.Instance.getOppositeAnchor(linkDoc, this.props.sourceDoc);
@@ -64,7 +78,10 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
 
         return (
             <div className="linkMenu-group">
-                <p className="linkMenu-group-name" ref={this._drag} onPointerDown={this.onLinkButtonDown} >{this.props.groupType}:</p>
+                <div className="linkMenu-group-name">
+                    <p ref={this._drag} onPointerDown={this.onLinkButtonDown}>{this.props.groupType}:</p>
+                    {this.viewGroupAsTable(this.props.groupType)}
+                </div>
                 <div className="linkMenu-group-wrapper">
                     {groupItems}
                 </div>

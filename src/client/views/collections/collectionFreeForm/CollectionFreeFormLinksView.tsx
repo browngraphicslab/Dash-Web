@@ -94,24 +94,12 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
 
     @computed
     get uniqueConnections() {
-        // DocumentManager.Instance.LinkedDocumentViews.forEach(d => {
-        //     console.log("CONNECTION", StrCast(d.a.props.Document.title), StrCast(d.b.props.Document.title));
-        // });
-
-        // console.log("CONNECTIONS");
-
         let connections = DocumentManager.Instance.LinkedDocumentViews.reduce((drawnPairs, connection) => {
             let srcViews = this.documentAnchors(connection.a);
             let targetViews = this.documentAnchors(connection.b);
 
-            // console.log(srcViews.length, targetViews.length);
             let possiblePairs: { a: Doc, b: Doc, }[] = [];
-            srcViews.map(sv => {
-                targetViews.map(tv => {
-                    // console.log("PUSH", StrCast(sv.props.Document.title), StrCast(sv.props.Document.id), StrCast(tv.props.Document.title), StrCast(tv.props.Document.id));
-                    possiblePairs.push({ a: sv.props.Document, b: tv.props.Document });
-                });
-            });
+            srcViews.map(sv => targetViews.map(tv => possiblePairs.push({ a: sv.props.Document, b: tv.props.Document })));
             possiblePairs.map(possiblePair => {
                 if (!drawnPairs.reduce((found, drawnPair) => {
                     let match1 = (Doc.AreProtosEqual(possiblePair.a, drawnPair.a) && Doc.AreProtosEqual(possiblePair.b, drawnPair.b));
@@ -132,13 +120,6 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
             return <CollectionFreeFormLinkView key={x} A={c.a} B={c.b} LinkDocs={c.l}
                 removeDocument={this.props.removeDocument} addDocument={this.props.addDocument} />;
         });
-
-        // return DocumentManager.Instance.LinkedDocumentViews.map(c => {
-        //     // let x = c.l.reduce((p, l) => p + l[Id], "");
-        //     let x = c.a.Document[Id] + c.b.Document[Id];
-        //     return <CollectionFreeFormLinkView key={x} A={c.a.props.Document} B={c.b.props.Document} LinkDoc={c.l}
-        //         removeDocument={this.props.removeDocument} addDocument={this.props.addDocument} />;
-        // });
     }
 
     render() {

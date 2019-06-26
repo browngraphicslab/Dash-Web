@@ -24,10 +24,6 @@ import { CurrentUserUtils } from "../../server/authentication/models/current_use
  * - user defined kvps 
  */
 export class LinkManager {
-    // static Instance: LinkManager;
-    // private constructor() {
-    //     LinkManager.Instance = this;
-    // }
 
     private static _instance: LinkManager;
     public static get Instance(): LinkManager {
@@ -36,12 +32,11 @@ export class LinkManager {
     private constructor() {
     }
 
+    // the linkmanagerdoc stores a list of docs representing all linkdocs in 'allLinks' and a list of strings representing all group types in 'allGroupTypes'
+    // lists of strings representing the metadata keys for each group type is stored under a key that is the same as the group type 
     public get LinkManagerDoc(): Doc | undefined {
         return FieldValue(Cast(CurrentUserUtils.UserDocument.linkManagerDoc, Doc));
     }
-    // @observable public allLinks: Array<Doc> = []; //List<Doc> = new List<Doc>([]); // list of link docs
-    // @observable public groupMetadataKeys: Map<string, Array<string>> = new Map();
-    // map of group type to list of its metadata keys; serves as a dictionary of groups to what kind of metadata it holds
 
     public getAllLinks(): Doc[] {
         return LinkManager.Instance.LinkManagerDoc ? LinkManager.Instance.LinkManagerDoc.allLinks ? DocListCast(LinkManager.Instance.LinkManagerDoc.allLinks) : [] : [];
@@ -160,14 +155,6 @@ export class LinkManager {
         LinkManager.Instance.setAnchorGroups(linkDoc, anchor, newGroups);
     }
 
-    // public doesAnchorHaveGroup(linkDoc: Doc, anchor: Doc, groupDoc: Doc): boolean {
-    //     let groups = LinkManager.Instance.getAnchorGroups(linkDoc, anchor);
-    //     let index = groups.findIndex(gDoc => {
-    //         return StrCast(groupDoc.type).toUpperCase() === StrCast(gDoc.type).toUpperCase();
-    //     });
-    //     return index > -1;
-    // }
-
     // returns map of group type to anchor's links in that group type
     public getRelatedGroupedLinks(anchor: Doc): Map<string, Array<Doc>> {
         let related = this.getAllRelatedLinks(anchor);
@@ -194,19 +181,6 @@ export class LinkManager {
         });
         return anchorGroups;
     }
-
-    // public addMetadataKeyToGroup(groupType: string, key: string): boolean {
-    //     if (LinkManager.Instance.LinkManagerDoc) {
-    //         if (LinkManager.Instance.LinkManagerDoc[groupType]) {
-    //             let keyList = LinkManager.Instance.findMetadataKeysInGroup(groupType);
-    //             keyList.push(key);
-    //             LinkManager.Instance.LinkManagerDoc[groupType] = new List<string>(keyList);
-    //             return true;
-    //         }
-    //         return false;
-    //     }
-    //     return false;
-    // }
 
     public getMetadataKeysInGroup(groupType: string): string[] {
         if (LinkManager.Instance.LinkManagerDoc) {
@@ -254,18 +228,4 @@ export class LinkManager {
             return Cast(linkDoc.anchor1, Doc, new Doc);
         }
     }
-
-
-    // @action
-    // public addLinkProxy(proxy: Doc) {
-    //     LinkManager.Instance.linkProxies.push(proxy);
-    // }
-
-    // public findLinkProxy(sourceViewId: string, targetViewId: string): Doc | undefined {
-    //     let index = LinkManager.Instance.linkProxies.findIndex(p => {
-    //         return StrCast(p.sourceViewId) === sourceViewId && StrCast(p.targetViewId) === targetViewId;
-    //     });
-    //     return index > -1 ? LinkManager.Instance.linkProxies[index] : undefined;
-    // }
-
 }

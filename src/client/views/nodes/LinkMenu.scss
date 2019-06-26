@@ -20,13 +20,28 @@
     }
 
     .linkMenu-group-name {
-        padding: 4px 6px;
-        line-height: 12px;
-        border-radius: 5px;
-        font-weight: bold;
+        display: flex;
 
         &:hover {
-            background-color: lightgray;
+            p {
+                background-color: lightgray;
+                width: calc(100% - 26px);
+            }
+            .linkEditor-tableButton {
+                display: block;
+            }
+        }
+
+        p {
+            width: 100%;
+            padding: 4px 6px;
+            line-height: 12px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .linkEditor-tableButton {
+            display: none;
         }
     }
 }

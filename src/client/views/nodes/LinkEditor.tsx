@@ -224,7 +224,6 @@ export class LinkGroupEditor extends React.Component<LinkGroupEditorProps> {
 
         groupMdKeys.forEach((key) => {
             let val = StrCast(mdDoc[key]);
-            console.log(key, val);
             metadata.push(
                 <LinkMetadataEditor key={"mded-" + this._metadataIds.get(key)} id={this._metadataIds.get(key)!} groupType={groupType} mdDoc={mdDoc} mdKey={key} mdValue={val} changeMdIdKey={this.changeMdIdKey} />
             );
