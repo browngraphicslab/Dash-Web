@@ -296,6 +296,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     getDocumentViewProps(layoutDoc: Doc): DocumentViewProps {
         let datadoc = BoolCast(this.props.Document.isTemplate) || this.props.DataDoc === this.props.Document ? undefined : this.props.DataDoc;
+        if (Cast(layoutDoc.layout, Doc) instanceof Doc) { // if this document is using a template to render, then set the dataDoc for the template to be this document
+            datadoc = layoutDoc;
+        }
         return {
             DataDoc: datadoc,
             Document: layoutDoc,
