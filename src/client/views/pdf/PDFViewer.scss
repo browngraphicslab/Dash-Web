@@ -53,12 +53,50 @@
     justify-content: center;
     align-items: center;
     padding: 20px;
+    overflow: hidden;
+    transition: left .5s;
+}
 
-    .pdfViewer-overlaySearchBar {
-        width: 20%;
-        height: 100%;
-        font-size: 30px;
+.pdfViewer-overlaySearchBar {
+    width: 20%;
+    height: 100%;
+    font-size: 30px;
+    padding: 5px;
+}
+
+.pdfViewer-overlayButton {
+    border-bottom-left-radius: 50%;
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+    height: 70px;
+    background: none;
+    padding: 0;
+    position: absolute;
+
+    .pdfViewer-overlayButton-arrow {
+        width: 0;
+        height: 0;
+        border-top: 25px solid transparent;
+        border-bottom: 25px solid transparent;
+        border-right: 25px solid #121721;
+        transition: all 0.5s;
     }
+
+    .pdfViewer-overlayButton-iconCont {
+        background: #121721;
+        height: 50px;
+        width: 70px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-left: -2px;
+        border-radius: 3px;
+    }
+}
+
+.pdfViewer-overlayButton:hover {
+    background: none;
 }
 
 .pdfViewer-annotationBox {

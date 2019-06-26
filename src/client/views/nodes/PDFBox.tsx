@@ -143,6 +143,12 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         this.applyFilter();
     }
 
+    scrollTo(y: number) {
+        if (this._mainCont.current) {
+            this._mainCont.current.scrollTo({ top: y });
+        }
+    }
+
     settingsPanel() {
         return !this.props.active() ? (null) :
             (

@@ -80,17 +80,23 @@ class Viewer extends React.Component<IViewerProps> {
     @observable private _script: CompileResult | undefined;
     @observable private _searching: boolean = false;
 
+    @observable public Index: number = -1;
+
     private _pageBuffer: number = 1;
     private _annotationLayer: React.RefObject<HTMLDivElement> = React.createRef();
     private _reactionDisposer?: IReactionDisposer;
     private _annotationReactionDisposer?: IReactionDisposer;
     private _dropDisposer?: DragManager.DragDropDisposer;
     private _filterReactionDisposer?: IReactionDisposer;
+    private _activeReactionDisposer?: IReactionDisposer;
     private _viewer: React.RefObject<HTMLDivElement>;
     private _mainCont: React.RefObject<HTMLDivElement>;
-    private _textContent: Pdfjs.TextContent[] = [];
+    // private _textContent: Pdfjs.TextContent[] = [];
     private _pdfFindController: any;
     private _searchString: string = "";
+    private _rendered: boolean = false;
+    private _pageIndex: number = -1;
+    private _matchIndex: number = 0;
 
     constructor(props: IViewerProps) {
         super(props);
@@ -122,6 +128,24 @@ class Viewer extends React.Component<IViewerProps> {
             (annotations: Doc[]) =>
                 annotations && annotations.length && this.renderAnnotations(annotations, true),
             { fireImmediately: true });
+
+        this._activeReactionDisposer = reaction(
+            () => this.props.parent.props.active(),
+            () => {
+                runInAction(() => {
+                    if (!this.props.parent.props.active()) {
+                        this._searching = false;
+                        this._pdfFindController = null;
+                        if (this._viewer.current) {
+                            let cns = this._viewer.current.childNodes;
+                            for (let i = cns.length - 1; i >= 0; i--) {
+                                cns.item(i).remove();
+                            }
+                        }
+                    }
+                });
+            }
+        )
 
         if (this.props.parent.props.ContainingCollectionView) {
             this._filterReactionDisposer = reaction(
@@ -158,24 +182,28 @@ class Viewer extends React.Component<IViewerProps> {
         this._dropDisposer && this._dropDisposer();
     }
 
+    scrollTo(y: number) {
+        this.props.parent.scrollTo(y);
+    }
+
     @action
     initialLoad = async () => {
         if (this._pageSizes.length === 0) {
             let pageSizes = Array<{ width: number, height: number }>(this.props.pdf.numPages);
             this._isPage = Array<string>(this.props.pdf.numPages);
-            this._textContent = Array<Pdfjs.TextContent>(this.props.pdf.numPages);
+            // this._textContent = Array<Pdfjs.TextContent>(this.props.pdf.numPages);
             for (let i = 0; i < this.props.pdf.numPages; i++) {
                 await this.props.pdf.getPage(i + 1).then(page => runInAction(() => {
                     // pageSizes[i] = { width: page.view[2] * scale, height: page.view[3] * scale };
                     let x = page.getViewport(scale);
-                    page.getTextContent().then((text: Pdfjs.TextContent) => {
-                        // let tc = new Pdfjs.TextContentItem()
-                        // let tc = {str: }
-                        this._textContent[i] = text;
-                        // text.items.forEach(t => {
-                        //     tcStr += t.str;
-                        // })
-                    });
+                    // page.getTextContent().then((text: Pdfjs.TextContent) => {
+                    //     // let tc = new Pdfjs.TextContentItem()
+                    //     // let tc = {str: }
+                    //     this._textContent[i] = text;
+                    //     // text.items.forEach(t => {
+                    //     //     tcStr += t.str;
+                    //     // })
+                    // });
                     pageSizes[i] = { width: x.width, height: x.height };
                 }));
             }
@@ -385,7 +413,7 @@ class Viewer extends React.Component<IViewerProps> {
         }
     }
 
-    renderAnnotation = (anno: Doc): JSX.Element[] => {
+    renderAnnotation = (anno: Doc, index: number): JSX.Element[] => {
         let annotationDocs = DocListCast(anno.annotations);
         let res = annotationDocs.map(a => {
             let type = NumCast(a.type);
@@ -393,7 +421,7 @@ class Viewer extends React.Component<IViewerProps> {
                 // case AnnotationTypes.Pin:
                 //     return <PinAnnotation parent={this} document={a} x={NumCast(a.x)} y={NumCast(a.y)} width={a[WidthSym]()} height={a[HeightSym]()} key={a[Id]} />;
                 case AnnotationTypes.Region:
-                    return <RegionAnnotation parent={this} document={a} x={NumCast(a.x)} y={NumCast(a.y)} width={a[WidthSym]()} height={a[HeightSym]()} key={a[Id]} />;
+                    return <RegionAnnotation parent={this} document={a} index={index} x={NumCast(a.x)} y={NumCast(a.y)} width={a[WidthSym]()} height={a[HeightSym]()} key={a[Id]} />;
                 default:
                     return <div></div>;
             }
@@ -403,14 +431,7 @@ class Viewer extends React.Component<IViewerProps> {
 
     @action
     pointerDown = () => {
-        this._searching = false;
-        this._pdfFindController = null;
-        if (this._viewer.current) {
-            let cns = this._viewer.current.childNodes;
-            for (let i = cns.length - 1; i >= 0; i--) {
-                cns.item(i).remove();
-            }
-        }
+        // this._searching = false;
     }
 
     @action
@@ -418,23 +439,20 @@ class Viewer extends React.Component<IViewerProps> {
         if (searchString.length === 0) {
             return;
         }
-        this._searching = true;
 
-        let container = this._mainCont.current;
-        let viewer = this._viewer.current;
-
-        if (!this._pdfFindController) {
-            if (container && viewer) {
-                let simpleLinkService = new SimpleLinkService();
-                let pdfViewer = new PDFJSViewer.PDFViewer({
-                    container: container,
-                    viewer: viewer,
-                    linkService: simpleLinkService
+        if (this._rendered) {
+            this._pdfFindController.executeCommand('find',
+                {
+                    caseSensitive: false,
+                    findPrevious: undefined,
+                    highlightAll: true,
+                    phraseSearch: true,
+                    query: searchString
                 });
-                simpleLinkService.setPdf(this.props.pdf);
-                container.addEventListener("pagesinit", () => {
-                    pdfViewer.currentScaleValue = 1;
-                });
+        }
+        else {
+            let container = this._mainCont.current;
+            if (container) {
                 container.addEventListener("pagerendered", () => {
                     console.log("rendered");
                     this._pdfFindController.executeCommand('find',
@@ -445,27 +463,149 @@ class Viewer extends React.Component<IViewerProps> {
                             phraseSearch: true,
                             query: searchString
                         });
+                    this._rendered = true;
                 });
-                pdfViewer.setDocument(this.props.pdf);
-                this._pdfFindController = new PDFJSViewer.PDFFindController(pdfViewer);
-                // this._pdfFindController._linkService = pdfLinkService;
-                pdfViewer.findController = this._pdfFindController;
             }
         }
-        else {
-            this._pdfFindController.executeCommand('find',
-                {
-                    caseSensitive: false,
-                    findPrevious: undefined,
-                    highlightAll: true,
-                    phraseSearch: true,
-                    query: searchString
-                });
-        }
+
+        // let viewer = this._viewer.current;
+
+        // if (!this._pdfFindController) {
+        //     if (container && viewer) {
+        //         let simpleLinkService = new SimpleLinkService();
+        //         let pdfViewer = new PDFJSViewer.PDFViewer({
+        //             container: container,
+        //             viewer: viewer,
+        //             linkService: simpleLinkService
+        //         });
+        //         simpleLinkService.setPdf(this.props.pdf);
+        //         container.addEventListener("pagesinit", () => {
+        //             pdfViewer.currentScaleValue = 1;
+        //         });
+        //         container.addEventListener("pagerendered", () => {
+        //             console.log("rendered");
+        //             this._pdfFindController.executeCommand('find',
+        //                 {
+        //                     caseSensitive: false,
+        //                     findPrevious: undefined,
+        //                     highlightAll: true,
+        //                     phraseSearch: true,
+        //                     query: searchString
+        //                 });
+        //         });
+        //         pdfViewer.setDocument(this.props.pdf);
+        //         this._pdfFindController = new PDFJSViewer.PDFFindController(pdfViewer);
+        //         // this._pdfFindController._linkService = pdfLinkService;
+        //         pdfViewer.findController = this._pdfFindController;
+        //     }
+        // }
+        // else {
+        //     this._pdfFindController.executeCommand('find',
+        //         {
+        //             caseSensitive: false,
+        //             findPrevious: undefined,
+        //             highlightAll: true,
+        //             phraseSearch: true,
+        //             query: searchString
+        //         });
+        // }
     }
 
     searchStringChanged = (e: React.ChangeEvent<HTMLInputElement>) => {
         this._searchString = e.currentTarget.value;
+    }
+
+    @action
+    toggleSearch = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        this._searching = !this._searching;
+
+        if (this._searching) {
+            let container = this._mainCont.current;
+            let viewer = this._viewer.current;
+
+            if (!this._pdfFindController) {
+                if (container && viewer) {
+                    let simpleLinkService = new SimpleLinkService();
+                    let pdfViewer = new PDFJSViewer.PDFViewer({
+                        container: container,
+                        viewer: viewer,
+                        linkService: simpleLinkService
+                    });
+                    simpleLinkService.setPdf(this.props.pdf);
+                    container.addEventListener("pagesinit", () => {
+                        pdfViewer.currentScaleValue = 1;
+                    });
+                    container.addEventListener("pagerendered", () => {
+                        console.log("rendered");
+                        this._rendered = true;
+                    });
+                    pdfViewer.setDocument(this.props.pdf);
+                    this._pdfFindController = new PDFJSViewer.PDFFindController(pdfViewer);
+                    // this._pdfFindController._linkService = pdfLinkService;
+                    pdfViewer.findController = this._pdfFindController;
+                }
+            }
+        }
+        else {
+            this._pdfFindController = null;
+            if (this._viewer.current) {
+                let cns = this._viewer.current.childNodes;
+                for (let i = cns.length - 1; i >= 0; i--) {
+                    cns.item(i).remove();
+                }
+            }
+        }
+    }
+
+    @action
+    prevAnnotation = (e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        if (this.Index > 0) {
+            this.Index--;
+        }
+    }
+
+    @action
+    nextAnnotation = (e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        let compiled = this._script;
+        if (this.Index < this._annotations.filter(anno => {
+            if (compiled && compiled.compiled) {
+                let run = compiled.run({ this: anno });
+                if (run.success) {
+                    return run.result;
+                }
+            }
+            return true;
+        }).length) {
+            this.Index++;
+        }
+    }
+
+    nextResult = () => {
+        // if (this._viewer.current) {
+        //     let results = this._pdfFindController.pageMatches;
+        //     if (results && results.length) {
+        //         if (this._pageIndex === this.props.pdf.numPages && this._matchIndex === results[this._pageIndex].length - 1) {
+        //             return;
+        //         }
+        //         if (this._pageIndex === -1 || this._matchIndex === results[this._pageIndex].length - 1) {
+        //             this._matchIndex = 0;
+        //             this._pageIndex++;
+        //         }
+        //         else {
+        //             this._matchIndex++;
+        //         }
+        //         this._pdfFindController._nextMatch()
+        // let nextMatch = this._viewer.current.children[this._pageIndex].children[1].children[results[this._pageIndex][this._matchIndex]];
+        // rconsole.log(nextMatch);
+        // this.props.parent.scrollTo(nextMatch.getBoundingClientRect().top);
+        // nextMatch.setAttribute("style", nextMatch.getAttribute("style") ? nextMatch.getAttribute("style") + ", background-color: green" : "background-color: green");
+        // }
+        // }
     }
 
     render() {
@@ -490,13 +630,39 @@ class Viewer extends React.Component<IViewerProps> {
                                 }
                             }
                             return true;
-                        }).map(anno => this.renderAnnotation(anno))}
+                        }).map((anno: Doc, index: number) => this.renderAnnotation(anno, index))}
                     </div>
                 </div>
-                <div className="pdfViewer-overlayCont" onPointerDown={(e) => e.stopPropagation()}>
+                <div className="pdfViewer-overlayCont" onPointerDown={(e) => e.stopPropagation()}
+                    style={{
+                        bottom: -this.props.scrollY,
+                        left: `${this._searching ? 0 : 100}%`
+                    }}>
+                    <button className="pdfViewer-overlayButton" title="Open Search Bar"></button>
+                    {/* <button title="Previous Result" onClick={() => this.search(this._searchString)}><FontAwesomeIcon icon="arrow-up" size="3x" color="white" /></button>
+                    <button title="Next Result" onClick={this.nextResult}><FontAwesomeIcon icon="arrow-down" size="3x" color="white" /></button> */}
                     <input placeholder="Search" className="pdfViewer-overlaySearchBar" onChange={this.searchStringChanged} />
                     <button title="Search" onClick={() => this.search(this._searchString)}><FontAwesomeIcon icon="search" size="3x" color="white" /></button>
                 </div>
+                <button className="pdfViewer-overlayButton" onClick={this.prevAnnotation} title="Previous Annotation"
+                    style={{ bottom: -this.props.scrollY + 280, right: 10, display: this.props.parent.props.active() ? "flex" : "none" }}>
+                    <div className="pdfViewer-overlayButton-iconCont" onPointerDown={(e) => e.stopPropagation()}>
+                        <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-up"} size="3x" />
+                    </div>
+                </button>
+                <button className="pdfViewer-overlayButton" onClick={this.nextAnnotation} title="Next Annotation"
+                    style={{ bottom: -this.props.scrollY + 200, right: 10, display: this.props.parent.props.active() ? "flex" : "none" }}>
+                    <div className="pdfViewer-overlayButton-iconCont" onPointerDown={(e) => e.stopPropagation()}>
+                        <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-down"} size="3x" />
+                    </div>
+                </button>
+                <button className="pdfViewer-overlayButton" onClick={this.toggleSearch} title="Open Search Bar"
+                    style={{ bottom: -this.props.scrollY + 10, right: 0, display: this.props.parent.props.active() ? "flex" : "none" }}>
+                    <div className="pdfViewer-overlayButton-arrow" onPointerDown={(e) => e.stopPropagation()}></div>
+                    <div className="pdfViewer-overlayButton-iconCont" onPointerDown={(e) => e.stopPropagation()}>
+                        <FontAwesomeIcon style={{ color: "white" }} icon={this._searching ? "times" : "search"} size="3x" />
+                    </div>
+                </button>
             </div >
         );
     }
@@ -511,14 +677,17 @@ interface IAnnotationProps {
     y: number;
     width: number;
     height: number;
+    index: number;
     parent: Viewer;
     document: Doc;
 }
 
+@observer
 class RegionAnnotation extends React.Component<IAnnotationProps> {
     @observable private _backgroundColor: string = "red";
 
     private _reactionDisposer?: IReactionDisposer;
+    private _scrollDisposer?: IReactionDisposer;
     private _mainCont: React.RefObject<HTMLDivElement>;
 
     constructor(props: IAnnotationProps) {
@@ -539,10 +708,20 @@ class RegionAnnotation extends React.Component<IAnnotationProps> {
             },
             { fireImmediately: true }
         );
+
+        this._scrollDisposer = reaction(
+            () => this.props.parent.Index,
+            () => {
+                if (this.props.parent.Index === this.props.index) {
+                    this.props.parent.scrollTo(this.props.y - 50);
+                }
+            }
+        )
     }
 
     componentWillUnmount() {
         this._reactionDisposer && this._reactionDisposer();
+        this._scrollDisposer && this._scrollDisposer();
     }
 
     deleteAnnotation = () => {
@@ -591,7 +770,14 @@ class RegionAnnotation extends React.Component<IAnnotationProps> {
     render() {
         return (
             <div className="pdfViewer-annotationBox" onPointerDown={this.onPointerDown} ref={this._mainCont}
-                style={{ top: this.props.y * scale, left: this.props.x * scale, width: this.props.width * scale, height: this.props.height * scale, pointerEvents: "all", backgroundColor: StrCast(this.props.document.color) }}></div>
+                style={{
+                    top: this.props.y * scale,
+                    left: this.props.x * scale,
+                    width: this.props.width * scale,
+                    height: this.props.height * scale,
+                    pointerEvents: "all",
+                    backgroundColor: this.props.parent.Index === this.props.index ? "goldenrod" : StrCast(this.props.document.color)
+                }}></div>
         );
     }
 }
@@ -600,8 +786,6 @@ class SimpleLinkService {
     externalLinkTarget: any = null;
     externalLinkRel: any = null;
     pdf: any = null;
-
-    constructor() { }
 
     navigateTo(dest: any) { }
 
