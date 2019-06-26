@@ -52,6 +52,10 @@ export namespace DocServer {
         return apiKey;
     }
 
+    export function getYoutubeVideos() {
+        Utils.EmitCallback(_socket, MessageStore.YoutubeApiQuery, YoutubeQueryTypes.SearchVideo);
+    }
+
 
     export async function GetRefFields(ids: string[]): Promise<{ [id: string]: Opt<RefField> }> {
         const requestedIds: string[] = [];

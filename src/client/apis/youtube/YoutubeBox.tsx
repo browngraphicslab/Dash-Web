@@ -19,6 +19,7 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
 
     componentWillMount() {
         DocServer.getYoutubeChannels();
+        DocServer.getYoutubeVideos();
     }
 
     _ignore = 0;

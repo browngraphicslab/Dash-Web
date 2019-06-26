@@ -372,6 +372,8 @@ function HandleYoutubeQuery([type, callback]: [YoutubeQueryType, (result?: strin
         case YoutubeQueryType.Channels:
             YoutubeApi.authorizedGetChannel(youtubeApiKey);
             break;
+        case YoutubeQueryType.SearchVideo:
+            YoutubeApi.authorizedGetVideos(youtubeApiKey);
     }
 }
 

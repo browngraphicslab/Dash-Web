@@ -23,9 +23,14 @@ module.exports.readApiKey = (callback) => {
 
 module.exports.authorizedGetChannel = (apiKey) => {
     //this didnt get called
-    console.log("I get called");
+    console.log("I get called   ", apiKey);
+    console.log(TOKEN_PATH);
     // Authorize a client with the loaded credentials, then call the YouTube API.
     authorize(JSON.parse(apiKey), getChannel);
+}
+
+module.exports.authorizedGetVideos = (apiKey) => {
+    authorize(JSON.parse(apiKey), getSampleVideos);
 }
 
 
@@ -131,5 +136,23 @@ function getChannel(auth) {
                 channels[0].snippet.title,
                 channels[0].statistics.viewCount);
         }
+    });
+}
+
+function getSampleVideos(auth) {
+    let service = google.youtube('v3');
+    service.search.list({
+        auth: auth,
+        part: 'id, snippet',
+        type: 'video',
+        q: 'istanbul',
+        maxResults: 3
+    }, function (err, response) {
+        if (err) {
+            console.log('The API returned an error: ' + err);
+            return;
+        }
+        let videos = response.data.items;
+        console.log('Videos found: ' + videos[0].id.videoId, " ", videos[0].snippet.title);
     });
 }
