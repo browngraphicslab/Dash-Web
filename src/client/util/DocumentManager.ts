@@ -68,7 +68,6 @@ export class DocumentManager {
         //gets document view that is in a freeform canvas collection
         DocumentManager.Instance.DocumentViews.map(view => {
             let doc = view.props.Document;
-            // if (view.props.ContainingCollectionView instanceof CollectionFreeFormView) {
 
             if (doc === toFind) {
                 toReturn.push(view);

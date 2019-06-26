@@ -1,15 +1,11 @@
 import { action, observable } from "mobx";
 import { observer } from "mobx-react";
 import { DocumentView } from "./DocumentView";
-import { LinkMenuItem } from "./LinkMenuItem";
 import { LinkEditor } from "./LinkEditor";
 import './LinkMenu.scss';
 import React = require("react");
-import { Doc, DocListCast } from "../../../new_fields/Doc";
-import { Id } from "../../../new_fields/FieldSymbols";
+import { Doc } from "../../../new_fields/Doc";
 import { LinkManager } from "../../util/LinkManager";
-import { DragLinksAsDocuments, DragManager } from "../../util/DragManager";
-import { emptyFunction } from "../../../Utils";
 import { LinkMenuGroup } from "./LinkMenuGroup";
 
 interface Props {
@@ -21,6 +17,11 @@ interface Props {
 export class LinkMenu extends React.Component<Props> {
 
     @observable private _editingLink?: Doc;
+
+    @action
+    componentWillReceiveProps() {
+        this._editingLink = undefined;
+    }
 
     renderAllGroups = (groups: Map<string, Array<Doc>>): Array<JSX.Element> => {
         let linkItems: Array<JSX.Element> = [];

@@ -11,7 +11,6 @@ import { faArrowLeft, faEllipsisV, faTable, faTrash, faCog, faExchangeAlt, faTim
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { SetupDrag } from "../../util/DragManager";
-import { anchorPoints, Flyout } from "../DocumentDecorations";
 
 library.add(faArrowLeft, faEllipsisV, faTable, faTrash, faCog, faExchangeAlt, faTimes, faPlus);
 
@@ -33,6 +32,11 @@ class GroupTypesDropdown extends React.Component<GroupTypesDropdownProps> {
     createGroup = (groupType: string): void => {
         this.props.setGroupType(groupType);
         LinkManager.Instance.addGroupType(groupType);
+    }
+
+    onChange = (val: string): void => {
+        this.setSearchTerm(val);
+        this.setGroupType(val);
     }
 
     renderOptions = (): JSX.Element[] | JSX.Element => {
@@ -59,12 +63,12 @@ class GroupTypesDropdown extends React.Component<GroupTypesDropdownProps> {
     render() {
         return (
             <div className="linkEditor-dropdown">
-                <input type="text" value={this._groupType} placeholder="Search for a group or create a new group"
-                    onChange={e => { this.setSearchTerm(e.target.value); this.setGroupType(e.target.value); }}></input>
+                <input type="text" value={this._groupType} placeholder="Search for or create a new group"
+                    onChange={e => this.onChange(e.target.value)}></input>
                 <div className="linkEditor-options-wrapper">
                     {this.renderOptions()}
                 </div>
-            </div>
+            </div >
         );
     }
 }
@@ -326,7 +330,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                 <button className="linkEditor-back" onPointerDown={() => this.props.showLinks()}><FontAwesomeIcon icon="arrow-left" size="sm" /></button>
                 <div className="linkEditor-info">
                     <p className="linkEditor-linkedTo">editing link to: <b>{destination.proto!.title}</b></p>
-                    <button className="linkEditor-delete linkEditor-button" onPointerDown={() => this.deleteLink()} title="Delete link"><FontAwesomeIcon icon="trash" size="sm" /></button>
+                    <button className="linkEditor-button" onPointerDown={() => this.deleteLink()} title="Delete link"><FontAwesomeIcon icon="trash" size="sm" /></button>
                 </div>
                 <div className="linkEditor-groupsLabel">
                     <b>Relationships:</b>

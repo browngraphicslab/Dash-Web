@@ -71,7 +71,6 @@ export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: n
             });
         }
     }
-    // draggedDocs.push(...draggedFromDocs);
     if (draggedDocs.length) {
         let moddrag: Doc[] = [];
         for (const draggedDoc of draggedDocs) {
@@ -79,20 +78,6 @@ export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: n
             if (doc) moddrag.push(doc);
         }
         let dragData = new DragManager.DocumentDragData(moddrag.length ? moddrag : draggedDocs);
-        // dragData.moveDocument = (document, targetCollection, addDocument) => {
-        //     return false;
-        // };
-
-        // runInAction(() => StartDragFunctions.map(func => func()));
-        // (eles, dragData, downX, downY, options,
-        //     (dropData: { [id: string]: any }) => {
-        //         (dropData.droppedDocuments = dragData.userDropAction === "alias" || (!dragData.userDropAction && dragData.dropAction === "alias") ?
-        //             dragData.draggedDocuments.map(d => Doc.MakeAlias(d)) :
-        //             dragData.userDropAction === "copy" || (!dragData.userDropAction && dragData.dropAction === "copy") ?
-        //                 dragData.draggedDocuments.map(d => Doc.MakeCopy(d, true)) :
-        //                 dragData.draggedDocuments
-        //         );
-        //     });
         DragManager.StartLinkedDocumentDrag([dragEle], sourceDoc, dragData, x, y, {
             handlers: {
                 dragComplete: action(emptyFunction),
@@ -230,19 +215,14 @@ export namespace DragManager {
             (dropData: { [id: string]: any }) => {
                 dropData.droppedDocuments = dragData.draggedDocuments.map(d => {
                     let dv = DocumentManager.Instance.getDocumentView(d);
-                    // return d;
                     if (dv) {
                         if (dv.props.ContainingCollectionView === SelectionManager.SelectedDocuments()[0].props.ContainingCollectionView) {
                             return d;
                         } else {
-                            let r = Doc.MakeAlias(d);
-                            // DocUtils.MakeLink(r, sourceDoc);
-                            return r;
+                            return Doc.MakeAlias(d);
                         }
                     } else {
-                        let r = Doc.MakeAlias(d);
-                        // DocUtils.MakeLink(r, sourceDoc);
-                        return r;
+                        return Doc.MakeAlias(d);
                     }
                 });
 

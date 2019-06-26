@@ -4,14 +4,13 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { observer } from "mobx-react";
 import { DocumentManager } from "../../util/DocumentManager";
 import { undoBatch } from "../../util/UndoManager";
-import './LinkMenuItem.scss';
+import './LinkMenu.scss';
 import React = require("react");
 import { Doc } from '../../../new_fields/Doc';
 import { StrCast, Cast } from '../../../new_fields/Types';
 import { observable, action } from 'mobx';
 import { LinkManager } from '../../util/LinkManager';
-import { DragLinksAsDocuments, DragLinkAsDocument } from '../../util/DragManager';
-import { SelectionManager } from '../../util/SelectionManager';
+import { DragLinkAsDocument } from '../../util/DragManager';
 import { CollectionDockingView } from '../collections/CollectionDockingView';
 library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp);
 

@@ -10,18 +10,15 @@
     margin-bottom: 6px;
 }
 
-.linKEditor-info {
+.linkEditor-info {
     border-bottom: 0.5px solid $light-color-secondary; 
     padding-bottom: 6px;
     margin-bottom: 6px;
     display: flex;
     justify-content: space-between;
 
-    .linkEditor-delete {
-        width: 20px;
-        height: 20px;
-        margin-left: 6px;
-        padding: 0;
+    .linkEditor-linkedTo {
+        width: calc(100% - 26px);
     }
 }
 
@@ -105,8 +102,7 @@
         cursor: pointer;
 
         &:hover {
-            background-color: $intermediate-color;
-            font-weight: bold;
+            background-color: lightgray;
         }
     }
 }

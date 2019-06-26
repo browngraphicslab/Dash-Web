@@ -151,7 +151,7 @@ export class LinkManager {
     // removes group doc of given group type only from given anchor on given link
     public removeGroupFromAnchor(linkDoc: Doc, anchor: Doc, groupType: string) {
         let groups = LinkManager.Instance.getAnchorGroups(linkDoc, anchor);
-        let newGroups = groups.filter(groupDoc => { StrCast(groupDoc.type).toUpperCase() !== groupType.toUpperCase() });
+        let newGroups = groups.filter(groupDoc => StrCast(groupDoc.type).toUpperCase() !== groupType.toUpperCase());
         LinkManager.Instance.setAnchorGroups(linkDoc, anchor, newGroups);
     }
 
@@ -165,23 +165,25 @@ export class LinkManager {
             if (groups.length > 0) {
                 groups.forEach(groupDoc => {
                     let groupType = StrCast(groupDoc.type);
-                    let group = anchorGroups.get(groupType);
-                    if (group) group.push(link);
-                    else group = [link];
-                    anchorGroups.set(groupType, group);
+                    if (groupType === "") {
+                        let group = anchorGroups.get("*");
+                        anchorGroups.set("*", group ? [...group, link] : [link]);
+                    } else {
+                        let group = anchorGroups.get(groupType);
+                        anchorGroups.set(groupType, group ? [...group, link] : [link]);
+                    }
                 });
             } else {
                 // if link is in no groups then put it in default group
                 let group = anchorGroups.get("*");
-                if (group) group.push(link);
-                else group = [link];
-                anchorGroups.set("*", group);
+                anchorGroups.set("*", group ? [...group, link] : [link]);
             }
 
         });
         return anchorGroups;
     }
 
+    // gets a list of strings representing the keys of the metadata associated with the given group type
     public getMetadataKeysInGroup(groupType: string): string[] {
         if (LinkManager.Instance.LinkManagerDoc) {
             return LinkManager.Instance.LinkManagerDoc[groupType] ? Cast(LinkManager.Instance.LinkManagerDoc[groupType], listSpec("string"), []) : [];
