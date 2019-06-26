@@ -268,8 +268,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         e.stopPropagation();
         let altKey = e.altKey;
         let ctrlKey = e.ctrlKey;
-        if (this._doubleTap && !this.props.renderDepth) {
-            this.props.addDocTab(this.props.Document, this.props.DataDoc, "inTab");
+        if (this._doubleTap && this.props.renderDepth) {
+            let fullScreenAlias = Doc.MakeAlias(this.props.Document);
+            fullScreenAlias.templates = new List<string>();
+            this.props.addDocTab(fullScreenAlias, this.props.DataDoc, "inTab");
             SelectionManager.DeselectAll();
             this.props.Document.libraryBrush = false;
         }
@@ -436,6 +438,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @action
     addTemplate = (template: Template) => {
         this.templates.push(template.Layout);
+        this.templates = this.templates;
     }
 
     @action
@@ -446,6 +449,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 break;
             }
         }
+        this.templates = this.templates;
     }
 
     freezeNativeDimensions = (): void => {

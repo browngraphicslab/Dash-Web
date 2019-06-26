@@ -85,7 +85,7 @@ class TreeView extends React.Component<TreeViewProps> {
         return keyList.length ? keyList[0] : "data";
     }
 
-    @computed get dataDoc() { return this.props.dataDoc; }
+    @computed get dataDoc() { return BoolCast(this.props.document.isTemplate) ? this.props.dataDoc : this.props.document; }
 
     protected createTreeDropTarget = (ele: HTMLDivElement) => {
         this._treedropDisposer && this._treedropDisposer();

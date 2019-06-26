@@ -47,7 +47,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @computed get nativeWidth() { return this.Document.nativeWidth || 0; }
     @computed get nativeHeight() { return this.Document.nativeHeight || 0; }
-    public get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldExt === "annotations"; }
+    public get isAnnotationOverlay() { return this.props.fieldKey === "annotations" || this.props.fieldExt === "annotations"; }
     private get borderWidth() { return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH; }
     private panX = () => this.Document.panX || 0;
     private panY = () => this.Document.panY || 0;
