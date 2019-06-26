@@ -17,14 +17,14 @@ import { DateTimeStep } from "../../northstar/model/idea/idea";
 import { date } from "serializr";
 import { DateField } from "../../../new_fields/DateField";
 import { List } from "../../../new_fields/List";
-import { DocumentContentsView } from "../nodes/DocumentContentsView";
+import { DocumentContentsView, JsxBindings } from "../nodes/DocumentContentsView";
 import { Transform } from "../../util/Transform";
 import { CollectionView } from "./CollectionView";
 import { CollectionPDFView } from "./CollectionPDFView";
 import { CollectionVideoView } from "./CollectionVideoView";
 import { VideoBox } from "../nodes/VideoBox";
 import { faFilePowerpoint, faShower, faVideo, faThumbsDown, faPlus } from "@fortawesome/free-solid-svg-icons";
-import { throwStatement, thisTypeAnnotation } from "babel-types";
+import { throwStatement, thisTypeAnnotation, JSXElement } from "babel-types";
 import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faTree, faUndoAlt, faBell } from '@fortawesome/free-solid-svg-icons';
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { ImageField, VideoField, AudioField, URLField, PdfField, WebField } from "../../../new_fields/URLField";
@@ -64,24 +64,15 @@ class KeyToggle extends React.Component<{ keyName: string, toggle: (key: string)
     }
 
     render() {
-        if (this.props.keyName === "x") {
-            return (
-                <div key={this.props.keyName}>
-                    <input type="radio" name="dude" onChange={() => this.props.toggle(this.props.keyName)} checked />
-                    {this.props.keyName}
-                </div>
-            );
-        }
-        else {
-            return (
-                <div key={this.props.keyName}>
-                    <input type="radio" name="dude" onChange={() => this.props.toggle(this.props.keyName)} />
-                    {this.props.keyName}
-                </div>
-            );
-        }
+        return (
+            <div key={this.props.keyName}>
+                <input type="radio" name="dude" onChange={() => this.props.toggle(this.props.keyName)} />
+                {this.props.keyName}
+            </div>
+        );
     }
 }
+
 
 
 @observer
@@ -89,11 +80,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @observable
     private sortstate: string = "x";
-
     private _range = 0;
-
-
-
 
     sortdate(a: Doc, b: Doc) {
         var adate: DateField = a.creationDate;
@@ -113,28 +100,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     }
 
 
-
-    get tableOptionsPanel() {
-        const docs = DocListCast(this.props.Document[this.props.fieldKey]);
-
-        let keys: { [key: string]: boolean } = {};
-        untracked(() => docs.map(doc => Doc.GetAllPrototypes(doc).map(proto => Object.keys(proto).forEach(key => keys[key] = false))));
-
-        return !this.props.active() ? (null) :
-            (<Flyout
-                anchorPoint={anchorPoints.RIGHT_TOP}
-                content={<div>
-                    <div id="schema-options-header"><h5><b>Options</b></h5></div>
-                    <div id="options-flyout-div">
-                        {Array.from(Object.keys(keys)).map(item =>
-                            (<KeyToggle key={item} keyName={item} toggle={this.toggleKey} />))}
-
-                    </div>
-                </div>
-                }>
-                <button id="schemaOptionsMenuBtn" ><FontAwesomeIcon style={{ color: "white" }} icon="cog" size="sm" /></button>
-            </Flyout>);
-    }
 
     @action
     toggleKey = (key: string) => {
@@ -168,18 +133,29 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     show(d: Doc, i: number) {
         let buttonid: string = "button" + String(i);
         var button = document.getElementById(buttonid);
+        if (this.prevselect === i) {
+            button.classList.toggle("selected");
+            button.classList.toggle("unselected");
+            this.prevselect = -1;
 
-        button.classList.toggle("unselected");
-        button.classList.toggle("selected");
-        if (this.prevselect !== -1) {
-            if (this.prevselect !== i) {
+        }
+        else {
+            button.classList.toggle("unselected");
+            button.classList.toggle("selected");
+            if (this.prevselect !== -1) {
+
                 let previd: string = "button" + String(this.prevselect);
                 var prevbutton = document.getElementById(previd);
                 prevbutton.classList.toggle("selected");
                 prevbutton.classList.toggle("unselected");
+
             }
+            this.prevselect = i;
+
         }
-        this.prevselect = i;
+
+
+
         this.preview = d;
         this.preview2 = Docs.KVPDocument(d, {});
         this.preview3 = document.title + "";
@@ -193,14 +169,16 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         if (button.className === "selected") {
             this.leftselect = i;
             this.nameselect = d.title;
+            this.overlapingdudes = this.overlapingdudes2[i];
+
         }
         else {
             this.leftselect = -2;
         }
 
     }
-
-
+    private overlapingdudes: JSX.Element[] = [];
+    private overlapingdudes2: JSX.Element[][] = [];
     @action
     updateleft(num: number, value: String | number | Date) {
         if (this.preview6 === num) {
@@ -213,7 +191,13 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.preview5 = value;
     }
 
+    @action
+    resetLeft() {
+        this.preview6 = -2;
+    }
+
     private _values: (String | number | Date)[] = [];
+    private ticks: JSX.Element[] = [];
 
     buttonloop() {
         let buttons = [];
@@ -269,28 +253,53 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this._values = values;
 
         let leftval = "0";
+        let overlaps = [];
 
         for (let i = 0; i < backup.length; i++) {
             let color = "$dark-color";
             let icon = this.checkData(backup[i]);
 
             leftval = (((values[i] - values[0]) * this.barwidth * 0.97 / this._range) * (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)) - (this.xmovement * (this.barwidth) / (this.barwidth - this.xmovement2 - this.xmovement))) + "px";
-            let display = () => this.show(keyvalue[i].doc, i);
+            let display = () => { this.show(keyvalue[i].doc, i); this.resetLeft(); };
             let leftval2 = (((values[i] - values[0]) * this.barwidth * 0.97 / this._range) * (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)) - (this.xmovement * (this.barwidth) / (this.barwidth - this.xmovement2 - this.xmovement)));
+            let overlap = false;
+            let thingies = [];
             for (let j = 0; j < backup.length; j++) {
                 if (j !== i) {
                     if (values[i] === values[j]) {
                         icon = faPlus;
-                        display = () => this.updateleft(i, values[i]);
+                        display = () => { this.show(keyvalue[i].doc, i); this.updateleft(i, values[i]); };
+                        overlap = true;
+                        thingies.push(
+                            <button className="toolbar-button round-button" title="Notifs"
+                                onClick={() => this.show(docs[j], j)}
+                                style={{
+                                    background: "$dark-color",
+                                }}>
+                                <FontAwesomeIcon icon={this.checkData(docs[j])} size="sm" />
+                            </button>
+                        );
                     }
                 }
             }
-            buttons.push(
-                <div onClick={display} style={{ top: "70%", position: "absolute", left: leftval, width: "100px", height: "100px" }}>
-                    <div className="unselected" id={"button" + String(i)} style={{ position: "absolute", width: "100px", height: "100px" }}>
-                        {this.documentpreview(docs[i], leftval2, 500)}
-                    </div>
-                </div>);
+            overlaps.push(thingies);
+            if (overlap === false) {
+                buttons.push(
+                    <div onClick={display} style={{ top: "70%", position: "absolute", left: leftval, width: "100px", height: "100px" }}>
+                        <div className="unselected" id={"button" + String(i)} style={{ position: "absolute", width: "100px", height: "100px", pointerEvents: "all" }}>
+                            {this.documentpreview(docs[i])}
+                        </div>
+                    </div>);
+            }
+            else {
+                buttons.push(
+                    <div onClick={display} style={{ top: "70%", position: "absolute", left: leftval, width: "100px", height: "100px" }}>
+                        <div className="unselected" id={"button" + String(i)} style={{ position: "absolute", background: "grey", width: "100px", height: "100px", zIndex: 0 }}>
+                            {thingies}
+                        </div>
+                    </div>);
+            }
+
             buttons2.push(
                 <div
                     style={{
@@ -302,8 +311,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 </div>);
         }
 
+        this.overlapingdudes2 = overlaps;
 
-        let overlaps = [];
         let checkvalue = this.preview5;
         let filtered = keyvalue.filter(function (keyvalue) {
             if (keyvalue.value === checkvalue) {
@@ -311,30 +320,73 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             }
         });
 
-        for (let i = 0; i < filtered.length; i++) {
-            overlaps.push(
-                <div><button className="toolbar-button round-button" title="Notifs"
-                    onClick={() => this.show(filtered[i].doc, i)}
-                    style={{
-                        background: "$dark-color",
-                    }}>
-                    <FontAwesomeIcon icon={this.checkData(filtered[i].doc)} size="sm" />
 
-                </button>
-                </div>);
+
+        let counter = 0;
+        this.ticks = [];
+        for (let i = 0; i < this.barwidth; i += this.barwidth / 1000) {
+            let leftval = ((i * (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)) - (this.xmovement * (this.barwidth) / (this.barwidth - this.xmovement2 - this.xmovement))) + "px");
+
+
+
+
+            if (counter % 100 === 0) {
+                this.ticks.push(
+                    <div className="max" id={"tick" + String(i)} style={{ position: "absolute", top: "0%", left: leftval, zIndex: -100 }}></div>
+                );
+
+            }
+
+            else if (counter % 50 === 0) {
+                this.ticks.push(
+                    <div className="max2" id={"tick" + String(i)} style={{ position: "absolute", top: "0%", left: leftval, zIndex: -100 }}></div>
+                );
+            }
+
+            else if (counter % 10 === 0) {
+                this.ticks.push(
+                    <div className="active" id={"tick" + String(i)} style={{ position: "absolute", top: "0%", left: leftval, zIndex: -100 }}></div>
+                );
+            }
+
+            else {
+                this.ticks.push(
+                    <div className="inactive" id={"tick" + String(i)} style={{ position: "absolute", top: "0%", left: leftval, zIndex: -100 }}></div>
+                );
+            }
+            counter++;
+
         }
 
+
+
+
+        const docs2 = DocListCast(this.props.Document[this.props.fieldKey]);
+
+        let keys: { [key: string]: boolean } = {};
+        untracked(() => docs2.map(doc => Doc.GetAllPrototypes(doc).map(proto => Object.keys(proto).forEach(key => keys[key] = false))));
+
+
         return (<div id="screen" >
-            <div className="backdropdocview" style={{ top: "5%", left: "10%", right: "50%", bottom: "40%", position: "absolute", borderBottom: "2px solid" }}>
-                {this.preview ? this.documentpreview(this.preview) : (null)}
+            <div style={{ position: "absolute", height: "60%", width: "20%", overflow: "scroll", border: "1px solid" }}>
+                <div id="schema-options-header"><h5><b>Options</b></h5></div>
+                <div id="options-flyout-div">
+                    {Array.from(Object.keys(keys)).map(item =>
+                        (<KeyToggle key={item} keyName={item} toggle={this.toggleKey} />))}
+
+                </div>
             </div>
-            <div className="backdropdocview" style={{ top: "5%", left: "50%", right: "10%", bottom: "40%", position: "absolute", borderBottom: "2px solid" }}>
-                {this.preview2 ? this.documentpreview(this.preview2) : (null)}
+            <div className="timeline" style={{ position: "absolute", height: "25px", width: "100%", top: String(document.body.clientHeight * 0.7 + 71) + "px", zIndex: -9999 }}>
+                {this.ticks}
             </div>
-            <div style={{ top: "62%", left: "25%", position: "absolute" }}>
+            <div style={{ left: "20%", width: "50%", height: "60%", position: "absolute", border: "1px solid" }}>
+                {this.preview ? this.documentpreview2(this.preview) : (null)}
+            </div>
+            <div style={{ left: "70%", height: "60%", position: "absolute", border: "1px solid", width: "30%" }}>
+                {this.preview2 ? this.documentpreview3(this.preview2) : (null)}
+            </div>
+            <div style={{ top: "60%", height: "8%", border: "1px solid", width: "100%", position: "absolute" }}>
                 {this.preview3}
-            </div>
-            <div style={{ top: "62%", left: "75%", position: "absolute" }}>
                 <input value={this.searchString2} onChange={this.onChange2} onKeyPress={this.enter2} type="text" placeholder={String((this.xmovement * this._range / this.barwidth) + this._values[0])}
                     className="searchBox-barChild searchBox-input" />
                 {String((this.xmovement * this._range / this.barwidth) + this._values[0])}
@@ -345,17 +397,17 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
 
             </div>
-            <div style={{
+            {/*<div style={{
                 borderRadius: "15px 5px 5px 15px", top: "65%", left: (this.preview6 !== -2 ? (((values[this.preview6] - values[0]) * this.barwidth * 0.97 / this._range) * (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)) - (this.xmovement * (this.barwidth) / (this.barwidth - this.xmovement2 - this.xmovement))) + "px" : "-9999px"),
                 position: "absolute", overflow: "auto", background: "$intermediate-color", height: "100px", width: "50px"
             }}>
                 {overlaps}
-            </div>
+        </div>*/}
             <div className="selection" style={{
                 whiteSpace: "nowrap", borderRadius: "0px 0px 5px 5px", border: "1px",
-                overflow: "hidden", textOverflow: "ellipsis", top: "78%", zIndex: 99, position: "absolute", left: (this.leftselect !== -2 ? (((values[this.leftselect] - values[0]) * this.barwidth * 0.97 / this._range) * (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)) - (this.xmovement * (this.barwidth) / (this.barwidth - this.xmovement2 - this.xmovement))) + "px" : "-9999px"), width: "100px", height: "30px"
+                overflow: "scroll", top: String(document.body.clientHeight * 0.7 + 70) + "px", zIndex: 99, position: "absolute", left: (this.leftselect !== -2 ? (((values[this.leftselect] - values[0]) * this.barwidth * 0.97 / this._range) * (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)) - (this.xmovement * (this.barwidth) / (this.barwidth - this.xmovement2 - this.xmovement))) + "px" : "-9999px"), width: "100px", height: "30px"
             }}>
-                {this.nameselect}
+                {(this.preview6 !== -2 ? this.overlapingdudes : this.nameselect)}
             </div>
             <div className="viewpanel" style={{ top: "5%", position: "absolute", right: "10%", bottom: "35%", background: "#GGGGGG", zIndex: -55, }}></div>
             <div>{buttons}</div>
@@ -483,10 +535,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
 
 
-    documentpreview(d: Doc, x: number, y: number) {
+    documentpreview(d: Doc) {
         return (
             <div>
-                {/*<FontAwesomeIcon icon={this.checkData(d)} size="sm" />*/}
+                <FontAwesomeIcon icon={this.checkData(d)} size="sm" style={{ position: "absolute" }} />
                 <div className="window" style={{ pointerEvents: "none", zIndex: 10, width: "94px", height: "94px", position: "absolute" }}></div>
                 <div className="window" style={{ background: "white", pointerEvents: "none", zIndex: -1, position: "absolute", width: "94px", height: "94px" }}>
 
@@ -494,6 +546,59 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         Document={d}
                         width={() => 94}
                         height={() => 94}
+                        getTransform={() => new Transform(0, 0, 1)}
+                        CollectionView={this.props.CollectionView}
+                        moveDocument={this.props.moveDocument}
+                        addDocument={this.props.addDocument}
+                        removeDocument={this.props.removeDocument}
+                        active={this.props.active}
+                        whenActiveChanged={this.props.whenActiveChanged}
+                        addDocTab={this.props.addDocTab}
+                    />
+                </div>
+
+            </div >
+
+
+
+        );
+    }
+
+    documentpreview2(d: Doc) {
+        return (
+            <div>
+                <div className="window" style={{ background: "white", pointerEvents: "none", height: "60%", zIndex: 0, position: "absolute", }}>
+                    <CollectionTimelinePreview
+                        Document={d}
+                        width={() => this.barwidth / 2}
+                        height={() => 500}
+                        getTransform={() => new Transform(0, 0, 1)}
+                        CollectionView={this.props.CollectionView}
+                        moveDocument={this.props.moveDocument}
+                        addDocument={this.props.addDocument}
+                        removeDocument={this.props.removeDocument}
+                        active={this.props.active}
+                        whenActiveChanged={this.props.whenActiveChanged}
+                        addDocTab={this.props.addDocTab}
+                    />
+                </div>
+
+            </div >
+
+
+
+        );
+    }
+
+
+    documentpreview3(d: Doc) {
+        return (
+            <div>
+                <div className="window" style={{ background: "white", pointerEvents: "none", height: "100%", zIndex: 0, position: "absolute", }}>
+                    <CollectionTimelinePreview
+                        Document={d}
+                        width={() => this.barwidth * 0.3}
+                        height={() => document.body.clientHeight * 0.59}
                         getTransform={() => new Transform(0, 0, 1)}
                         CollectionView={this.props.CollectionView}
                         moveDocument={this.props.moveDocument}
@@ -537,6 +642,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         document.addEventListener("pointermove", this.onPointerMove3);
         e.stopPropagation();
         e.preventDefault();
+
     }
 
     @action
@@ -577,6 +683,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     onPointerMove = (e: PointerEvent): void => {
         e.stopPropagation();
         e.preventDefault();
+
+        let prevx = this.barwidth - this.xmovement2 - this.xmovement;
         this.xmovement += e.movementX;
         if (this.xmovement < 0) {
             this.xmovement = 0;
@@ -584,8 +692,9 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         if (this.xmovement > this.barwidth - this.xmovement2 - 2) {
             this.xmovement = this.barwidth - this.xmovement2 - 4;
         }
-        console.log(this.barwidth);
         document.addEventListener("pointerup", this.onPointerUp);
+        let counter = 0;
+
 
     }
 
@@ -593,7 +702,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     onPointerMove2 = (e: PointerEvent): void => {
         e.stopPropagation();
         e.preventDefault();
-        console.log(this.xmovement2);
         this.xmovement2 -= e.movementX;
         if (this.xmovement2 < 0) {
             this.xmovement2 = 0;
@@ -610,7 +718,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     onPointerMove3 = (e: PointerEvent): void => {
         e.stopPropagation();
         e.preventDefault();
-        console.log(this.xmovement2);
         this.xmovement2 -= e.movementX;
         this.xmovement += e.movementX;
 
@@ -640,9 +747,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         return (
             <div className="collectionTimelineView" id="yeet" style={{ marginLeft: "1%", width: "98%", height: "100%" }}
                 onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
-                <hr style={{ top: "70%", display: "block", width: "100%", border: "10", position: "absolute", zIndex: -9999 }} />
                 {this.buttonloop()}
-                {this.tableOptionsPanel}
             </div>
         );
     }

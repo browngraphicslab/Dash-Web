@@ -35,6 +35,25 @@
         pointer-events: none;
     }
 
+    .inactive {
+        border: 0px;
+    }
+
+    .active {
+        border: 1px solid $intermediate-color;
+        height: 5px
+    }
+
+    .max {
+        border: 1px solid $intermediate-color;
+        height: 25px
+    }
+
+    .max2 {
+        border: 1px solid $intermediate-color;
+        height: 15px
+    }
+
 }
 
 .v1 {
@@ -50,12 +69,12 @@
     cursor: grab;
 }
 
-.backdropscroll {
+.viewpanel {
     background: $light-color;
 }
 
-.viewpanel {
-    background: $light-color;
+.timeline {
+    border-top: 1px solid $intermediate-color;
 }
 
 
