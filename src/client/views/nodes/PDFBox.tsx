@@ -27,7 +27,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
 
     @observable private _alt = false;
     @observable private _scrollY: number = 0;
-    @computed get dataDoc() { return this.props.DataDoc && BoolCast(this.props.Document.isTemplate) ? this.props.DataDoc : this.props.Document; }
+    @computed get dataDoc() { return BoolCast(this.props.Document.isTemplate) ? this.props.DataDoc : this.props.Document; }
 
     private _reactionDisposer?: IReactionDisposer;
 

@@ -89,7 +89,7 @@ class TreeView extends React.Component<TreeViewProps> {
         return keyList.length ? keyList[0] : "data";
     }
 
-    @computed get dataDoc() { return (BoolCast(this.props.document.isTemplate) ? this.props.dataDoc : this.props.document); }
+    @computed get dataDoc() { return BoolCast(this.props.document.isTemplate) ? this.props.dataDoc : this.props.document; }
 
     protected createTreeDropTarget = (ele: HTMLDivElement) => {
         this._treedropDisposer && this._treedropDisposer();
@@ -171,45 +171,7 @@ class TreeView extends React.Component<TreeViewProps> {
         height={36}
         fontStyle={style}
         GetValue={() => StrCast(this.props.document[key])}
-        SetValue={(value: string) => {
-            let res = (Doc.GetProto(this.dataDoc)[key] = value) ? true : true;
-
-            if (value.startsWith(">")) {
-                let metaKey = value.slice(value.startsWith(">>>") ? 3 : value.startsWith(">>") ? 2 : 1, value.length);
-                let collection = this.props.containingCollection;
-                let template = Doc.MakeAlias(collection);
-                template.title = metaKey;
-                template.embed = true;
-                template.x = 0;
-                template.y = 0;
-                template.width = 300;
-                template.height = 300;
-                template.isTemplate = true;
-                template.templates = new List<string>([Templates.TitleBar(metaKey)]);//`{props.DataDoc.${metaKey}_text}`)]);
-                if (value.startsWith(">>>")) { // Collection
-                    Doc.GetProto(collection)[metaKey] = new List<Doc>([
-                        Docs.ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { width: 300, height: 300 }),
-                        Docs.TextDocument({ documentText: "hello world!", width: 300, height: 300 }),
-                    ]);
-                    template.layout = CollectionView.LayoutString(metaKey);
-                    template.viewType = CollectionViewType.Freeform;
-                } else if (value.startsWith(">>")) { // Image
-                    Doc.GetProto(collection)[metaKey] = new ImageField("http://www.cs.brown.edu/~bcz/face.gif");
-                    template.layout = ImageBox.LayoutString(metaKey);
-                    template.nativeWidth = 300;
-                    template.nativeHeight = 300;
-                } else if (value.startsWith(">")) {  // Text
-                    Doc.GetProto(collection)[metaKey] = "-empty field-";
-                    template.layout = FormattedTextBox.LayoutString(metaKey);
-                    template.width = 100;
-                    template.height = 50;
-                }
-                Doc.AddDocToList(collection, "data", template);
-                this.delete();
-            }
-
-            return res;
-        }}
+        SetValue={(value: string) => (Doc.GetProto(this.dataDoc)[key] = value) ? true : true}
         OnFillDown={(value: string) => {
             Doc.GetProto(this.dataDoc)[key] = value;
             let doc = Docs.FreeformDocument([], { title: "", x: 0, y: 0, width: 100, height: 25, templates: new List<string>([Templates.Title.Layout]) });
@@ -456,7 +418,6 @@ export class CollectionTreeView extends CollectionSubView(Document) {
 
     outerXf = () => Utils.GetScreenTransform(this._mainEle!);
     onTreeDrop = (e: React.DragEvent) => this.onDrop(e, {});
-    @computed get dataDoc() { return (BoolCast(this.props.DataDoc.isTemplate) ? this.props.DataDoc : this.props.Document); }
 
     render() {
         let dropAction = StrCast(this.props.Document.dropAction) as dropActionType;

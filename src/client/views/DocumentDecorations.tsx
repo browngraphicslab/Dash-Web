@@ -82,10 +82,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
                 let collectionKey = field.props.ContainingCollectionView!.props.fieldKey;
                 let collectionKeyProp = `fieldKey={"${collectionKey}"}`;
-                let collectionAnoKeyProp = `fieldKey={"annotations"}`;
                 let metaKey = text.slice(1, text.length);
                 let metaKeyProp = `fieldKey={"${metaKey}"}`;
-                let metaAnoKeyProp = `fieldKey={"${metaKey}"} fieldExt={"annotations"}`;
 
                 let template = Doc.MakeAlias(field.props.Document);
                 template.proto = collection;
@@ -95,10 +93,13 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 template.embed = true;
                 template.isTemplate = true;
                 template.templates = new List<string>([Templates.TitleBar(metaKey)]);
-                template.layout = StrCast(field.props.Document.layout).replace(collectionKeyProp, metaKeyProp);
                 if (field.props.Document.backgroundLayout) {
+                    let metaAnoKeyProp = `fieldKey={"${metaKey}"} fieldExt={"annotations"}`;
+                    let collectionAnoKeyProp = `fieldKey={"annotations"}`;
                     template.layout = StrCast(field.props.Document.layout).replace(collectionAnoKeyProp, metaAnoKeyProp);
                     template.backgroundLayout = StrCast(field.props.Document.backgroundLayout).replace(collectionKeyProp, metaKeyProp);
+                } else {
+                    template.layout = StrCast(field.props.Document.layout).replace(collectionKeyProp, metaKeyProp);
                 }
                 Doc.AddDocToList(collection, collectionKey, template);
                 SelectionManager.SelectedDocuments().map(dv => dv.props.removeDocument && dv.props.removeDocument(dv.props.Document));

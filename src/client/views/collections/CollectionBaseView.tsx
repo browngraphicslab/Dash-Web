@@ -59,7 +59,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         }
     }
 
-    @computed get dataDoc() { return (BoolCast(this.props.Document.isTemplate) ? this.props.DataDoc : this.props.Document); }
+    @computed get dataDoc() { return BoolCast(this.props.Document.isTemplate) ? this.props.DataDoc : this.props.Document; }
 
     active = (): boolean => {
         var isSelected = this.props.isSelected();
@@ -104,7 +104,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         let docView = DocumentManager.Instance.getDocumentView(doc, this.props.ContainingCollectionView);
         docView && SelectionManager.DeselectDoc(docView);
         //TODO This won't create the field if it doesn't already exist
-        const value = Cast(this.dataDoc[this.props.fieldKey], listSpec(Doc), []);
+        const value = Cast(this.extDoc[this.extField], listSpec(Doc), []);
         let index = value.reduce((p, v, i) => (v instanceof Doc && v[Id] === doc[Id]) ? i : p, -1);
         PromiseValue(Cast(doc.annotationOn, Doc)).then(annotationOn =>
             annotationOn === this.dataDoc.Document && (doc.annotationOn = undefined)

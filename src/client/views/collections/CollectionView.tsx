@@ -58,7 +58,10 @@ export class CollectionView extends React.Component<FieldViewProps> {
             ContextMenu.Instance.addItem({ description: "View Modes...", subitems: subItems });
             ContextMenu.Instance.addItem({
                 description: "Apply Template", event: undoBatch(() => {
-                    let otherdoc = Docs.TextDocument({ width: 100, height: 50, title: "applied template" });
+                    let otherdoc = new Doc();
+                    otherdoc.width = 100;
+                    otherdoc.height = 50;
+                    Doc.GetProto(otherdoc).title = "applied(" + this.props.Document.title + ")";
                     Doc.GetProto(otherdoc).layout = Doc.MakeDelegate(this.props.Document);
                     this.props.addDocTab && this.props.addDocTab(otherdoc, otherdoc, "onRight");
                 }), icon: "project-diagram"
