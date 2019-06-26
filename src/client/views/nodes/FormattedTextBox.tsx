@@ -339,6 +339,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 return self._toolTipTextMenu = new TooltipTextMenu(_editorView, myprops);
             }
         });
+        //this.props.Document.tooltip = self._toolTipTextMenu;
     }
 
     tooltipLinkingMenuPlugin() {
