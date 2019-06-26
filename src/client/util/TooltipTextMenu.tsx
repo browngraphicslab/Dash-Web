@@ -207,7 +207,7 @@ export class TooltipTextMenu {
                         DocServer.GetRefField(docid).then(action((f: Opt<Field>) => {
                             if (f instanceof Doc) {
                                 if (DocumentManager.Instance.getDocumentView(f)) {
-                                    DocumentManager.Instance.getDocumentView(f)!.props.focus(f);
+                                    DocumentManager.Instance.getDocumentView(f)!.props.focus(f, false);
                                 }
                                 else if (CollectionDockingView.Instance) CollectionDockingView.Instance.AddRightSplit(f);
                             }

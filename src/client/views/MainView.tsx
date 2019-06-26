@@ -15,7 +15,7 @@ import { Docs } from '../documents/Documents';
 import { SetupDrag, DragManager } from '../util/DragManager';
 import { Transform } from '../util/Transform';
 import { UndoManager } from '../util/UndoManager';
-import { PresentationView } from './PresentationView';
+import { PresentationView } from './presentationview/PresentationView';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { ContextMenu } from './ContextMenu';
 import { DocumentDecorations } from './DocumentDecorations';
@@ -33,9 +33,9 @@ import { listSpec } from '../../new_fields/Schema';
 import { Id } from '../../new_fields/FieldSymbols';
 import { HistoryUtil } from '../util/History';
 import { CollectionBaseView } from './collections/CollectionBaseView';
+import { List } from '../../new_fields/List';
 import PDFMenu from './pdf/PDFMenu';
 import { InkTool } from '../../new_fields/InkField';
-
 
 @observer
 export class MainView extends React.Component {
@@ -49,7 +49,7 @@ export class MainView extends React.Component {
     private set mainContainer(doc: Opt<Doc>) {
         if (doc) {
             if (!("presentationView" in doc)) {
-                doc.presentationView = Docs.TreeDocument([], { title: "Presentation" });
+                doc.presentationView = new List<Doc>([Docs.TreeDocument([], { title: "Presentation" })]);
             }
             CurrentUserUtils.UserDocument.activeWorkspace = doc;
         }
@@ -216,13 +216,16 @@ export class MainView extends React.Component {
                 parentActive={returnTrue}
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
-                ContainingCollectionView={undefined} />;
-        const pres = mainCont ? FieldValue(Cast(mainCont.presentationView, Doc)) : undefined;
+                ContainingCollectionView={undefined}
+                zoomToScale={emptyFunction}
+                getScale={returnOne}
+            />;
+        let castRes = mainCont ? FieldValue(Cast(mainCont.presentationView, listSpec(Doc))) : undefined;
         return <Measure offset onResize={this.onResize}>
             {({ measureRef }) =>
                 <div ref={measureRef} id="mainContent-div" onDrop={this.onDrop}>
                     {content}
-                    {pres ? <PresentationView Document={pres} key="presentation" /> : null}
+                    {castRes ? <PresentationView Documents={castRes} key="presentation" /> : null}
                 </div>
             }
         </Measure>;
