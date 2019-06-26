@@ -133,8 +133,8 @@ class LinkMetadataEditor extends React.Component<LinkMetadataEditorProps> {
     render() {
         return (
             <div className="linkEditor-metadata-row">
-                <input className={this._keyError ? "linkEditor-error" : ""} type="text" value={this._key} placeholder="key" onChange={e => this.setMetadataKey(e.target.value)}></input>:
-                <input type="text" value={this._value === "new key" ? "" : this._value} placeholder="value" onChange={e => this.setMetadataValue(e.target.value)}></input>
+                <input className={this._keyError ? "linkEditor-error" : ""} type="text" value={this._key === "new key" ? "" : this._key} placeholder="key" onChange={e => this.setMetadataKey(e.target.value)}></input>:
+                <input type="text" value={this._value} placeholder="value" onChange={e => this.setMetadataValue(e.target.value)}></input>
                 <button onClick={() => this.removeMetadata()}><FontAwesomeIcon icon="times" size="sm" /></button>
             </div>
         );
@@ -221,6 +221,7 @@ export class LinkGroupEditor extends React.Component<LinkGroupEditorProps> {
 
         groupMdKeys.forEach((key) => {
             let val = StrCast(mdDoc[key]);
+            console.log(key, val);
             metadata.push(
                 <LinkMetadataEditor key={"mded-" + this._metadataIds.get(key)} id={this._metadataIds.get(key)!} groupType={groupType} mdDoc={mdDoc} mdKey={key} mdValue={val} changeMdIdKey={this.changeMdIdKey} />
             );

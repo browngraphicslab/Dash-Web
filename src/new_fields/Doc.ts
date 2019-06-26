@@ -260,13 +260,10 @@ export namespace Doc {
                 }
             } else {
                 if (field instanceof RefField) {
-                    console.log("equals field, ref", key);
                     copy[key] = field;
                 } else if (field instanceof ObjectField) {
-                    console.log("copy field, object", key);
                     copy[key] = ObjectField.MakeCopy(field);
                 } else {
-                    console.log("equals field", key);
                     copy[key] = field;
                 }
             }

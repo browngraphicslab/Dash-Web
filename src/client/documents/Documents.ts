@@ -35,6 +35,7 @@ import { DateField } from "../../new_fields/DateField";
 import { UndoManager } from "../util/UndoManager";
 import { RouteStore } from "../../server/RouteStore";
 import { LinkManager } from "../util/LinkManager";
+import { DocumentManager } from "../util/DocumentManager";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 
@@ -87,9 +88,9 @@ export namespace DocUtils {
     //     let protoSrc = source.proto ? source.proto : source;
     //     let protoTarg = target.proto ? target.proto : target;
     export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", tags: string = "Default") {
-        if (LinkManager.Instance.doesLinkExist(source, target)) {
-            return;
-        }
+        if (LinkManager.Instance.doesLinkExist(source, target)) return;
+        let sv = DocumentManager.Instance.getDocumentView(source);
+        if (sv && sv.props.ContainingCollectionView && sv.props.ContainingCollectionView.props.Document === target) return;
 
         UndoManager.RunInBatch(() => {
 

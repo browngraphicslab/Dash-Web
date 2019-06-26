@@ -63,8 +63,6 @@ export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: n
     let srcTarg = sourceDoc.proto;
     let draggedDocs: Doc[] = [];
 
-    // TODO: if not in same context then don't drag
-
     if (srcTarg) {
         let linkDocs = LinkManager.Instance.getAllRelatedLinks(srcTarg);
         if (linkDocs) {
@@ -232,25 +230,20 @@ export namespace DragManager {
             (dropData: { [id: string]: any }) => {
                 dropData.droppedDocuments = dragData.draggedDocuments.map(d => {
                     let dv = DocumentManager.Instance.getDocumentView(d);
-                    // console.log("DRAG", StrCast(d.title));
 
                     if (dv) {
                         if (dv.props.ContainingCollectionView === SelectionManager.SelectedDocuments()[0].props.ContainingCollectionView) {
                             return d;
                         } else {
-                            // return d;
                             let r = Doc.MakeAlias(d);
-                            // DocUtils.MakeLink(sourceDoc, r);
+                            // DocUtils.MakeLink(r, sourceDoc);
                             return r;
                         }
                     } else {
-                        // return d;
                         let r = Doc.MakeAlias(d);
-                        // DocUtils.MakeLink(sourceDoc, r);
+                        // DocUtils.MakeLink(r, sourceDoc);
                         return r;
                     }
-                    // return (dv && dv.props.ContainingCollectionView !== SelectionManager.SelectedDocuments()[0].props.ContainingCollectionView) || !dv ?
-                    //     Doc.MakeAlias(d) : d;
                 });
 
             });
@@ -289,11 +282,6 @@ export namespace DragManager {
     export function StartEmbedDrag(ele: HTMLElement, dragData: EmbedDragData, downX: number, downY: number, options?: DragOptions) {
         StartDrag([ele], dragData, downX, downY, options);
     }
-
-    // export function StartLinkProxyDrag(ele: HTMLElement, dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
-    //     runInAction(() => StartDragFunctions.map(func => func()));
-    //     StartDrag([ele], dragData, downX, downY, options);
-    // }
 
     export let AbortDrag: () => void = emptyFunction;
 
