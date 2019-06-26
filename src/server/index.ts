@@ -24,7 +24,7 @@ import { getForgot, getLogin, getLogout, getReset, getSignup, postForgot, postLo
 import { DashUserModel } from './authentication/models/user_model';
 import { Client } from './Client';
 import { Database } from './database';
-import { MessageStore, Transferable, Types, Diff, YoutubeQueryTypes as YoutubeQueryType } from "./Message";
+import { MessageStore, Transferable, Types, Diff, YoutubeQueryTypes as YoutubeQueryType, YoutubeQueryInput } from "./Message";
 import { RouteStore } from './RouteStore';
 const app = express();
 const config = require('../../webpack.config');
@@ -367,13 +367,13 @@ function GetRefFields([ids, callback]: [string[], (result?: Transferable[]) => v
     Database.Instance.getDocuments(ids, callback, "newDocuments");
 }
 
-function HandleYoutubeQuery([type, callback]: [YoutubeQueryType, (result?: string) => void]) {
-    switch (type) {
+function HandleYoutubeQuery([query, callback]: [YoutubeQueryInput, (result?: string) => void]) {
+    switch (query.type) {
         case YoutubeQueryType.Channels:
             YoutubeApi.authorizedGetChannel(youtubeApiKey);
             break;
         case YoutubeQueryType.SearchVideo:
-            YoutubeApi.authorizedGetVideos(youtubeApiKey);
+            YoutubeApi.authorizedGetVideos(youtubeApiKey, query.userInput);
     }
 }
 

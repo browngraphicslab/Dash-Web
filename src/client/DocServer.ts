@@ -48,12 +48,12 @@ export namespace DocServer {
     }
 
     export async function getYoutubeChannels() {
-        let apiKey = await Utils.EmitCallback(_socket, MessageStore.YoutubeApiQuery, YoutubeQueryTypes.Channels);
+        let apiKey = await Utils.EmitCallback(_socket, MessageStore.YoutubeApiQuery, { type: YoutubeQueryTypes.Channels });
         return apiKey;
     }
 
-    export function getYoutubeVideos() {
-        Utils.EmitCallback(_socket, MessageStore.YoutubeApiQuery, YoutubeQueryTypes.SearchVideo);
+    export function getYoutubeVideos(videoTitle: string) {
+        Utils.EmitCallback(_socket, MessageStore.YoutubeApiQuery, { type: YoutubeQueryTypes.SearchVideo, userInput: videoTitle });
     }
 
 

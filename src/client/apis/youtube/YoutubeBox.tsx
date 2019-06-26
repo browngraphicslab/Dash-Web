@@ -4,7 +4,7 @@ import { FieldViewProps, FieldView } from "../../views/nodes/FieldView";
 import { HtmlField } from "../../../new_fields/HtmlField";
 import { WebField } from "../../../new_fields/URLField";
 import { observer } from "mobx-react";
-import { computed, reaction, IReactionDisposer } from 'mobx';
+import { computed, reaction, IReactionDisposer, observable } from 'mobx';
 import { DocumentDecorations } from "../../views/DocumentDecorations";
 import { InkingControl } from "../../views/InkingControl";
 import { Utils } from "../../../Utils";
@@ -14,12 +14,12 @@ import { DocServer } from "../../DocServer";
 @observer
 export class YoutubeBox extends React.Component<FieldViewProps> {
 
+    @observable YoutubeSearchElement: HTMLInputElement | undefined;
 
     public static LayoutString() { return FieldView.LayoutString(YoutubeBox); }
 
     componentWillMount() {
         DocServer.getYoutubeChannels();
-        DocServer.getYoutubeVideos();
     }
 
     _ignore = 0;
@@ -39,19 +39,23 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
             e.stopPropagation();
         }
     }
+
+    onEnterKeyDown = (e: React.KeyboardEvent) => {
+        if (e.keyCode === 13) {
+            let submittedTitle = this.YoutubeSearchElement!.value;
+            console.log(submittedTitle);
+            this.YoutubeSearchElement!.value = "";
+            this.YoutubeSearchElement!.blur();
+            DocServer.getYoutubeVideos(submittedTitle);
+
+        }
+    }
+
     render() {
         let field = this.props.Document[this.props.fieldKey];
-        let view;
-        if (field instanceof HtmlField) {
-            view = <span id="webBox-htmlSpan" dangerouslySetInnerHTML={{ __html: field.html }} />;
-        } else if (field instanceof WebField) {
-            view = <iframe src={field.url.href} style={{ position: "absolute", width: "100%", height: "100%" }} />;
-        } else {
-            view = <iframe src={"https://crossorigin.me/https://cs.brown.edu"} style={{ position: "absolute", width: "100%", height: "100%" }} />;
-        }
         let content =
             <div style={{ width: "100%", height: "100%", position: "absolute" }} onWheel={this.onPostWheel} onPointerDown={this.onPostPointer} onPointerMove={this.onPostPointer} onPointerUp={this.onPostPointer}>
-                {view}
+                <input type="text" placeholder="Search for a video" onKeyDown={this.onEnterKeyDown} style={{ width: "100%", border: "1px solid black", padding: 5, textAlign: "center" }} ref={(e) => this.YoutubeSearchElement = e!} />
             </div>;
 
         let frozen = !this.props.isSelected() || DocumentDecorations.Instance.Interacting;

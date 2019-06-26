@@ -29,8 +29,8 @@ module.exports.authorizedGetChannel = (apiKey) => {
     authorize(JSON.parse(apiKey), getChannel);
 }
 
-module.exports.authorizedGetVideos = (apiKey) => {
-    authorize(JSON.parse(apiKey), getSampleVideos);
+module.exports.authorizedGetVideos = (apiKey, userInput) => {
+    authorize(JSON.parse(apiKey), getSampleVideos, { userInput: userInput });
 }
 
 
@@ -41,7 +41,7 @@ module.exports.authorizedGetVideos = (apiKey) => {
  * @param {Object} credentials The authorization client credentials.
  * @param {function} callback The callback to call with the authorized client.
  */
-function authorize(credentials, callback) {
+function authorize(credentials, callback, args = {}) {
     let clientSecret = credentials.installed.client_secret;
     let clientId = credentials.installed.client_id;
     let redirectUrl = credentials.installed.redirect_uris[0];
@@ -53,7 +53,7 @@ function authorize(credentials, callback) {
             getNewToken(oauth2Client, callback);
         } else {
             oauth2Client.credentials = JSON.parse(token);
-            callback(oauth2Client);
+            callback(oauth2Client, args);
         }
     });
 }
@@ -139,13 +139,13 @@ function getChannel(auth) {
     });
 }
 
-function getSampleVideos(auth) {
+function getSampleVideos(auth, args) {
     let service = google.youtube('v3');
     service.search.list({
         auth: auth,
         part: 'id, snippet',
         type: 'video',
-        q: 'istanbul',
+        q: args.userInput,
         maxResults: 3
     }, function (err, response) {
         if (err) {
