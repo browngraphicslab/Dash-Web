@@ -59,7 +59,7 @@ export class Pager extends React.Component {
                 <div className="search-arrows">
                     <div className = "arrow"
                     onPointerDown = {this.onLeftClick} style = {SearchBox.Instance._pageNum === 0 ? {opacity: .2} : this._leftHover ? {opacity: 1} : {opacity: .7}}
-                    onMouseEnter = {this.mouseInLeft} onMouseOut = {this.mouseOutLeft}>
+                    onMouseEnter = {this.mouseInLeft} onMouseLeave = {this.mouseOutLeft}>
                         <FontAwesomeIcon className="fontawesome-icon" icon={faArrowCircleLeft} />
                     </div>
                     <div className="pager-title">
@@ -67,7 +67,7 @@ export class Pager extends React.Component {
                     </div>
                     <div className = "arrow"
                     onPointerDown = {this.onRightClick} style = {SearchBox.Instance._pageNum === SearchBox.Instance._maxNum-1 ? {opacity: .2} : this._rightHover ? {opacity: 1} : {opacity: .7}}
-                    onMouseEnter = {this.mouseInRight} onMouseOut = {this.mouseOutRight}>
+                    onMouseEnter = {this.mouseInRight} onMouseLeave = {this.mouseOutRight}>
                         <FontAwesomeIcon className="fontawesome-icon" icon={faArrowCircleRight} />
                     </div>
                 </div>
