@@ -25,6 +25,8 @@
         &:hover {
             p {
                 background-color: lightgray;
+            }
+            p.expand-one {
                 width: calc(100% - 26px);
             }
             .linkEditor-tableButton {
@@ -131,8 +133,5 @@
     }
 }
 
-.linkEditor-clearButton {
-    float: right;
-}
 
 

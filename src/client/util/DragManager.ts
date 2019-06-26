@@ -9,6 +9,7 @@ import { URLField } from "../../new_fields/URLField";
 import { SelectionManager } from "./SelectionManager";
 import { Docs, DocUtils } from "../documents/Documents";
 import { DocumentManager } from "./DocumentManager";
+import { Id } from "../../new_fields/FieldSymbols";
 
 export type dropActionType = "alias" | "copy" | undefined;
 export function SetupDrag(_reference: React.RefObject<HTMLElement>, docFunc: () => Doc | Promise<Doc>, moveFunc?: DragManager.MoveFunction, dropAction?: dropActionType, options?: any, dontHideOnDrop?: boolean) {
@@ -213,19 +214,25 @@ export namespace DragManager {
         runInAction(() => StartDragFunctions.map(func => func()));
         StartDrag(eles, dragData, downX, downY, options,
             (dropData: { [id: string]: any }) => {
-                dropData.droppedDocuments = dragData.draggedDocuments.map(d => {
-                    let dv = DocumentManager.Instance.getDocumentView(d);
-                    if (dv) {
-                        if (dv.props.ContainingCollectionView === SelectionManager.SelectedDocuments()[0].props.ContainingCollectionView) {
-                            return d;
+                // dropData.droppedDocuments = 
+                console.log(dragData.draggedDocuments.length);
+                let droppedDocuments: Doc[] = dragData.draggedDocuments.reduce((droppedDocs: Doc[], d) => {
+                    let dvs = DocumentManager.Instance.getDocumentViews(d);
+                    console.log(StrCast(d.title), dvs.length);
+
+                    if (dvs.length) {
+                        let inContext = dvs.filter(dv => dv.props.ContainingCollectionView === SelectionManager.SelectedDocuments()[0].props.ContainingCollectionView);
+                        if (inContext.length) {
+                            inContext.forEach(dv => droppedDocs.push(dv.props.Document));
                         } else {
-                            return Doc.MakeAlias(d);
+                            droppedDocs.push(Doc.MakeAlias(d));
                         }
                     } else {
-                        return Doc.MakeAlias(d);
+                        droppedDocs.push(Doc.MakeAlias(d));
                     }
-                });
-
+                    return droppedDocs;
+                }, []);
+                dropData.droppedDocuments = droppedDocuments;
             });
     }
 

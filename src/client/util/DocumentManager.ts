@@ -72,11 +72,7 @@ export class DocumentManager {
             if (doc === toFind) {
                 toReturn.push(view);
             } else {
-                // if (Doc.AreProtosEqual(doc, toFind)) {
-                //     toReturn.push(view);
-
-                let docSrc = FieldValue(doc.proto);
-                if (docSrc && Object.is(docSrc, toFind)) {
+                if (Doc.AreProtosEqual(doc, toFind)) {
                     toReturn.push(view);
                 }
             }

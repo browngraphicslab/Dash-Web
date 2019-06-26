@@ -1,0 +1,792 @@
+[33mcommit cc1f3b32d60786b56280a8b3c00059aa7823af89[m
+Merge: a81677c deb8576
+Author: Fawn <fangrui_tong@brown.edu>
+Date:   Wed Jun 26 14:54:46 2019 -0400
+
+    merge
+
+[33mcommit a81677c7dffafa5134d4c5cbe893f7a886eaab63[m
+Author: Fawn <fangrui_tong@brown.edu>
+Date:   Wed Jun 26 14:48:16 2019 -0400
+
+    can clear links on a doc
+
+[33mcommit 69e37491908b5c189b94f780994c1f142c69be2e[m
+Author: Fawn <fangrui_tong@brown.edu>
+Date:   Wed Jun 26 14:15:40 2019 -0400
+
+    minor changes
+
+[33mcommit deb85766ac5648cc8e3ab4bf9d182ac5bbbbe144[m
+Merge: 219cabb 5e47775
+Author: Sam Wilkins <35748010+samwilkins333@users.noreply.github.com>
+Date:   Wed Jun 26 12:51:18 2019 -0400
+
+    Merge pull request #170 from browngraphicslab/presentation-selection-mohammad
+    
+    Presentation selection mohammad
+
+[33mcommit 5e477755b392128ab8b39c082f16dd67708be0d2[m
+Merge: 444f970 6d1f161
+Author: Sam Wilkins <samuel_wilkins@brown.edu>
+Date:   Wed Jun 26 12:48:45 2019 -0400
+
+    Merge branch 'presentation-selection-mohammad' of https://github.com/browngraphicslab/Dash-Web into presentation-selection-mohammad
+
+[33mcommit 444f970365a4280376e929e78c16090f6ae92739[m
+Merge: 64ffa0a 219cabb
+Author: Sam Wilkins <samuel_wilkins@brown.edu>
+Date:   Wed Jun 26 12:48:40 2019 -0400
+
+    merged with master
+
+[33mcommit 6d1f161de3c27ec07673b5e48a915961177b57b6[m
+Author: Sam Wilkins <35748010+samwilkins333@users.noreply.github.com>
+Date:   Wed Jun 26 12:39:54 2019 -0400
+
+    long line wrap
+
+[33mcommit f0632e4f6b608d05ef6d9f77d93da259c58c1e8d[m
+Author: Sam Wilkins <35748010+samwilkins333@users.noreply.github.com>
+Date:   Wed Jun 26 12:33:16 2019 -0400
+
+    long line wrap
+
+[33mcommit 0d5e2537520ca1e6a6b52f4d0f03aa2bcfc6c5c6[m
+Author: Sam Wilkins <35748010+samwilkins333@users.noreply.github.com>
+Date:   Wed Jun 26 12:30:16 2019 -0400
+
+    cleanup
+
+[33mcommit 8954bac59b50aa3618625379a17dbefe9aceca72[m
+Author: Sam Wilkins <35748010+samwilkins333@users.noreply.github.com>
+Date:   Wed Jun 26 12:29:07 2019 -0400
+
+    removed console.logs
+
+[33mcommit d0ff42632f8a155303e11945a1a974a15052f0db[m
+Author: Fawn <fangrui_tong@brown.edu>
+Date:   Wed Jun 26 11:40:36 2019 -0400
+
+    link menu styling
+
+[33mcommit a3c4aa24a9e9074da8f2421954f610c8178e10b1[m
+Author: Fawn <fangrui_tong@brown.edu>
+Date:   Tue Jun 25 21:28:15 2019 -0400
+
+    link metadata values appear on first load
+
+[33mcommit ca8a78de9957ad27d345ad51fdaee9dae3f096bd[m
+Author: Fawn <fangrui_tong@brown.edu>
+Date:   Tue Jun 25 20:44:34 2019 -0400
+
+    can't link to containing collection
+
+[33mcommit 2d300b0cd3d02c900865c61eacd539efed5289e6[m
+Author: Fawn <fangrui_tong@brown.edu>
+Date:   Tue Jun 25 20:18:14 2019 -0400
+
+    fixed link metadata rendering bug
+
+[33mcommit 2a698e88da5ef0a9fee1ff4ee69746f1242798c9[m
+Author: Fawn <fangrui_tong@brown.edu>
+Date:   Tue Jun 25 18:32:17 2019 -0400
+
+    fixed render links in treeview
+
+[33mcommit 7abe170ce5bd0c415e23456eb2bed26e8fdee7aa[m
+Merge: 41cf1e8 219cabb
+Author: Fawn <fangrui_tong@brown.edu>
+Date:   Tue Jun 25 18:23:26 2019 -0400
+
+    merge
+
+[33mcommit 41cf1e8536964764f18ab752140e484e36cbe464[m
+Author: Fawn <fangrui_tong@brown.edu>
+Date:   Tue Jun 25 17:09:36 2019 -0400
+
+    links can save
+
+[33mcommit 64ffa0accfc872c81035079527952aabaf56c6f6[m
+Author: Mohammad Amoush <mohammad_amoush@brown.edu>
+Date:   Tue Jun 25 13:16:45 2019 -0400
+
+    Small Css Fix On weight
+
+[33mcommit 219cabb3fe42ab199550efc3423b7aaed4e1ee93[m
+Author: Tyler Schicke <tyler_schicke@brown.edu>
+Date:   Mon Jun 24 22:45:19 2019 -0400
+
+    Switched shift drag of tabs to normal drag and added drag target for document drag
+
+[33mcommit d475b19e9ba7bc8870ec7bc1e10b5cc88decea0b[m
+Author: Tyler Schicke <tyler_schicke@brown.edu>
+Date:   Mon Jun 24 15:56:42 2019 -0400
+
+    fixed crash
+
+[33mcommit 522970375fe0227f9221a7e8be02875afd74ca63[m
+Author: Fawn <fangrui_tong@brown.edu>
+Date:   Mon Jun 24 14:01:29 2019 -0400
+
+    link menu styling
+
+[33mcommit addf0e443f64951a437701f0d5a087c1d5968faf[m
+Merge: c9f77d5 d01039b
+Author: tschicke-brown <tyler_schicke@brown.edu>
+Date:   Mon Jun 24 13:57:02 2019 -0400
+
+    Merge pull request #167 from browngraphicslab/schema_fixes
+    
+    Schema and scripting fixes
+
+[33mcommit d01039b10f0ebd328224c0b1a190b0f884a7c727[m
+Merge: 6abf829 c9f77d5
+Author: Tyler Schicke <tyler_schicke@brown.edu>
+Date:   Mon Jun 24 13:56:30 2019 -0400
+
+    Merge branch 'master' of github-tsch-brown:browngraphicslab/Dash-Web into schema_fixes
+
+[33mcommit c9f77d5aab98e6e7865cdcad957d5c937631775d[m
+Author: Tyler Schicke <tyler_schicke@brown.edu>
+Date:   Mon Jun 24 13:41:39 2019 -0400
+
+    Added ReadOnly mode for docs and changed computed values a bit
+
+[33mcommit e18662f2fa9e1d3dd1b0eb3b5531092258d05972[m
+Author: Mohammad Amoush <mohammad_amoush@brown.edu>
+Date:   Mon Jun 24 12:42:44 2019 -0400
+
+    Refactoring
+
+[33mcommit 52051829373bc4acfe9d705b64c30e3fddebf439[m
+Author: Tyler Schicke <tyler_schicke@brown.edu>
+Date:   Mon Jun 24 10:49:05 2019 -0400
+
+    Fixed image size stuff
+
+[33mcommit ac781d2fb714ca26fb364d00d5aeb7a20b008655[m
+Author: Tyler Schicke <tyler_schicke@brown.edu>
+Date:   Mon Jun 24 10:26:57 2019 -0400
+
+    Changed how zooming works
+
+[33mcommit 6e5cd0e991e2e6d7ae8de1d73ff273ba0737355c[m
+Author: Tyler Schicke <tschicke@gmail.com>
+Date:   Sun Jun 23 17:23:33 2019 -0400
+
+    Fixed shift dragging with no open panes
+
+[33mcommit 32ef8d83d5829e2faadbebaf6f9b694df5d7ea02[m
+Author: Fawn <fangrui_tong@brown.edu>
+Date:   Fri Jun 21 17:41:20 2019 -0400
+
+    link menu styling
+
+[33mcommit 7962aff8431b692af5229cd8e6c390bbe1110336[m
+Author: Fawn <fangrui_tong@brown.edu>
+Date:   Fri Jun 21 16:29:31 2019 -0400
+
+    link menu styling
+
+[33mcommit a4b34adcb34184728be0b69b33a561f6d10f0a98[m
+Author: Fawn <fangrui_tong@brown.edu>
+Date:   Fri Jun 21 16:27:03 2019 -0400
+
+    can drag just a group of links on a doc
+
+[33mcommit e1f5f341854944c533efdb7d36306edd1e1dc747[m
+Author: Mohammad Amoush <mohammad_amoush@brown.edu>
+Date:   Fri Jun 21 14:53:08 2019 -0400
+
+    Some More documentation
+
+[33mcommit 542f25d4af36cf0948696d45afba2e9e19f5bc37[m
+Author: Mohammad Amoush <mohammad_amoush@brown.edu>
+Date:   Fri Jun 21 14:47:11 2019 -0400
+
+    Redo Grouping Fixed
+
+[33mcommit 60f9122ea31d660d60d5429890c4eb0ef6d8613b[m
+Author: Fawn <fangrui_tong@brown.edu>
+Date:   Fri Jun 21 13:41:25 2019 -0400
+
+    following link without viewdoc opens it to right
+
+[33mcommit d78c651322ad228152b862eaa378946fe65cc9f9[m
+Author: Fawn <fangrui_tong@brown.edu>
+Date:   Fri Jun 21 13:32:23 2019 -0400
+
+    dragged links from menu are aliases
+
+[33mcommit 179afa6e80631fcb8899408c3961bf1757e5b19b[m
+Merge: ca5e29f a40e7bb
+Author: Bob Zeleznik <zzzman@gmail.com>
+Date:   Thu Jun 20 22:23:40 2019 -0400
+
+    Merge branch 'master' of https://github.com/browngraphicslab/Dash-Web
+
+[33mcommit ca5e29fdc7c238274eaf90682a8fa2ddc90e4e17[m
+Author: Bob Zeleznik <zzzman@gmail.com>
+Date:   Thu Jun 20 22:22:57 2019 -0400
+
+    fix to open on right, fix to image drag fro web, and layout fixes for stacking view multi-column
+
+[33mcommit a40e7bb5e9d1256002083d7e3f3c4db60cd8e9df[m
+Author: Sam Wilkins <35748010+samwilkins333@users.noreply.github.com>
+Date:   Thu Jun 20 19:41:39 2019 -0400
+
+    Fixed missed pointer up event
+
+[33mcommit f4b75a7c921181faeeee04fbd57cd24fbd57523e[m
+Author: Mohammad Amoush <mohammad_amoush@brown.edu>
+Date:   Thu Jun 20 19:16:42 2019 -0400
+
+    Undo/Redo First Version
+
+[33mcommit b1a2871fcca57ce934b8613b315a08eede188669[m
+Author: Fawn <fangrui_tong@brown.edu>
+Date:   Thu Jun 20 19:03:16 2019 -0400
+
+    link menu styling
+
+[33mcommit f2b54dc49205f8ea8944e26e43662a0c8dd08ed0[m
+Merge: 0cab79a 7d0f6c1
+Author: Tyler Schicke <tyler_schicke@brown.edu>
+Date:   Thu Jun 20 18:36:04 2019 -0400
+
+    Merge branch 'master' of github-tsch-brown:browngraphicslab/Dash-Web
+
+[33mcommit 0cab79a50719719e1dade40520a6967f7aa8f951[m
+Author: Tyler Schicke <tyler_schicke@brown.edu>
+Date:   Thu Jun 20 18:35:45 2019 -0400
+
+    Added debug and release modes to server and client
+
+[33mcommit fbfe9faca199b6dedd6844f1fa20cc02060a3c5a[m
+Author: Fawn <fangrui_tong@brown.edu>
+Date:   Thu Jun 20 18:25:49 2019 -0400
+
+    can see what docs are linked to in treeview:
+
+[33mcommit 7d0f6c18489f7155818611721985d9610b08d8e7[m
+Merge: d2dfc0f 46a2a9e
+Author: yipstanley <stanley_yip@brown.edu>
+Date:   Thu Jun 20 17:50:46 2019 -0400
+
+    Merge branch 'master' of https://github.com/browngraphicslab/Dash-Web
+
+[33mcommit 1f172642d12c4669960b8526324e4bd034994be4[m
+Author: Tyler Schicke <tyler_schicke@brown.edu>
+Date:   Thu Jun 20 17:44:24 2019 -0400
+
+    Added arrange documents in grid command
+
+[33mcommit d2dfc0f9d35f0084a7c0dea73215f5d21055f2f3[m
+Author: yipstanley <stanley_yip@brown.edu>
+Date:   Thu Jun 20 17:17:14 2019 -0400
+
+    pdf page sizes loading error
+
+[33mcommit e6ebed17e6ddb2ccee81d65fcb451a9b54302762[m
+Author: Fawn <fangrui_tong@brown.edu>
+Date:   Thu Jun 20 17:12:48 2019 -0400
+
+    links can be made from freeform view to treeview
+
+[33mcommit 46a2a9e1f10b63feeb21a1e186daeaef2ccbcda4[m
+Merge: a39b285 a5dc0e0
+Author: bob <bcz@cs.brown.edu>
+Date:   Thu Jun 20 17:11:29 2019 -0400
+
+    Merge branch 'master' of https://github.com/browngraphicslab/Dash-Web
+
+[33mcommit a39b2854b848006c19460685d7bf4005a9f650ae[m
+Author: bob <bcz@cs.brown.edu>
+Date:   Thu Jun 20 17:09:50 2019 -0400
+
+    moved AddDocToList to Doc utils
+
+[33mcommit a5dc0e04add05f2f5bf1e17f1ac0a5e0aba1ea41[m
+Author: Tyler Schicke <tyler_schicke@brown.edu>
+Date:   Thu Jun 20 16:27:44 2019 -0400
+
+    Added hidden flag to documents
+
+[33mcommit e88538bb8af2ba648da2326d0f6edd3e0186766e[m
+Author: Mohammad Amoush <mohammad_amoush@brown.edu>
+Date:   Thu Jun 20 15:45:07 2019 -0400
+
+    Title changing to presentations added
+
+[33mcommit 9b3e80def0be6c09c31b5176817a54323d217d81[m
+Author: Tyler Schicke <tyler_schicke@brown.edu>
+Date:   Thu Jun 20 15:06:41 2019 -0400
+
+    Handled more events in editable view
+
+[33mcommit 1f24c5010a1cf6365265ea1f02327bb81a98134a[m
+Author: Tyler Schicke <tyler_schicke@brown.edu>
+Date:   Thu Jun 20 14:54:55 2019 -0400
+
+    Doc.GetProto change and swapped KVP syntax
+
+[33mcommit 4360287e6cafcb59af1ae62fc31ddc161bcf2e51[m
+Author: Fawn <fangrui_tong@brown.edu>
+Date:   Thu Jun 20 12:56:13 2019 -0400
+
+    styling of link proxy
+
+[33mcommit 711abbeba69e4d9afc634b8edf019b12b6dff915[m
+Author: Mohammad Amoush <mohammad_amoush@brown.edu>
+Date:   Thu Jun 20 12:54:41 2019 -0400
+
+    Documentation and reset Presentation at removal fixed
+
+[33mcommit a0246ef84396545f79fc4a8b21de1a56cbf06aca[m
+Author: Fawn <fangrui_tong@brown.edu>
+Date:   Thu Jun 20 11:34:28 2019 -0400
+
+    merge
+
+[33mcommit 8dbfb3029a99eaf37a5234e9d9e33cc64f779b03[m
+Merge: af8e5cf e9d62f4
+Author: Tyler Schicke <tyler_schicke@brown.edu>
+Date:   Thu Jun 20 11:33:01 2019 -0400
+
+    Merge branch 'master' of github-tsch-brown:browngraphicslab/Dash-Web
+
+[33mcommit af8e5cf1bfbfa2d57b4fd89c72306a71d8cabe1d[m
+Author: Tyler Schicke <tyler_schicke@brown.edu>
+Date:   Thu Jun 20 11:32:54 2019 -0400
+
+    Fixed context menu search
+
+[33mcommit cd2db5bf11fb89e3cd7016f7f798d65698c74c5e[m
+Merge: 73f0378 e9d62f4
+Author: Fawn <fangrui_tong@brown.edu>
+Date:   Thu Jun 20 11:31:15 2019 -0400
+
+    merge
+
+[33mcommit 73f03785f938542a91b28b35043f2feda2bc1432[m
+Author: Fawn <fangrui_tong@brown.edu>
+Date:   Thu Jun 20 11:26:33 2019 -0400
+
+    merge
+
+[33mcommit e9d62f4ca0dbeb57e46239047041a8a04da7b504[m
+Author: bob <bcz@cs.brown.edu>
+Date:   Thu Jun 20 11:26:16 2019 -0400
+
+    changed color picker.   fixed delting selected docs.  fixed scaling items in nested panels.
+
+[33mcommit a5478b2d4cc3b66c6b58471cbb05c623d0109724[m
+Author: Tyler Schicke <tyler_schicke@brown.edu>
+Date:   Thu Jun 20 10:04:51 2019 -0400
+
+    "Fixed" search
+
+[33mcommit 01aee875e626c695fe208addaaa6f58aad387dd6[m
+Author: Tyler Schicke <tyler_schicke@brown.edu>
+Date:   Thu Jun 20 10:02:08 2019 -0400
+
+    Mostly keep context menu on screen
+
+[33mcommit 38de022621175bda7410df4444fcd2bbee0919cb[m
+Author: Bob Zeleznik <zzzman@gmail.com>
+Date:   Wed Jun 19 23:43:47 2019 -0400
+
+    slight tweaks.
+
+[33mcommit 9e55bfaad39aa47ab0594c6af7f1aa68e2a8db7a[m
+Merge: 118ecb1 827c589
+Author: Bob Zeleznik <zzzman@gmail.com>
+Date:   Wed Jun 19 22:40:57 2019 -0400
+
+    Merge branch 'master' of https://github.com/browngraphicslab/Dash-Web
+
+[33mcommit 118ecb14ce519bcbade12b3d52e11b22fcc371b3[m
+Author: Bob Zeleznik <zzzman@gmail.com>
+Date:   Wed Jun 19 22:40:54 2019 -0400
+
+    cleaned up and enhanced tree view
+
+[33mcommit c5e401cb0a7fec2279ceecbc8d1429dcdd2f04b9[m
+Author: Fawn <fangrui_tong@brown.edu>
+Date:   Wed Jun 19 22:27:21 2019 -0400
+
+    buttons on cut links functional except for when dragged from link menu
+
+[33mcommit 6fc6054dc7aea144fd967a8cb3fe7d8fe5ec6d6d[m
+Author: Mohammad Amoush <mohammad_amoush@brown.edu>
+Date:   Wed Jun 19 19:13:30 2019 -0400
+
+    Width of the presentations fixed, removal of presentations option added, backUP group and normal groups updated when a doc is removed from presentation by removing it from both
+
+[33mcommit 827c58950b649629c84211d41fdd4d041287801e[m
+Merge: 05e50f2 96c26c5
+Author: Tyler Schicke <tyler_schicke@brown.edu>
+Date:   Wed Jun 19 18:49:50 2019 -0400
+
+    Merge branch 'master' of github-tsch-brown:browngraphicslab/Dash-Web
+
+[33mcommit 96c26c57527d443784bde9752551bfa10b3ce4d2[m
+Author: Bob Zeleznik <zzzman@gmail.com>
+Date:   Wed Jun 19 18:34:45 2019 -0400
+
+    removed marquee summarizing icon
+
+[33mcommit 05e50f27a15e8a02ffb27606c51026d1b85bc677[m
+Author: Tyler Schicke <tyler_schicke@brown.edu>
+Date:   Wed Jun 19 17:36:52 2019 -0400
+
+    Added basic keyboard controls to context menu
+
+[33mcommit fa37e023b88127cb8a6b393a848200361a396fb4[m
+Merge: 565b27c 5b2a498
+Author: Tyler Schicke <tyler_schicke@brown.edu>
+Date:   Wed Jun 19 16:21:09 2019 -0400
+
+    Merge branch 'master' of github-tsch-brown:browngraphicslab/Dash-Web
+
+[33mcommit 565b27cca8953a60067de367cae4c0a99beb3cab[m
+Author: Tyler Schicke <tyler_schicke@brown.edu>
+Date:   Wed Jun 19 16:21:03 2019 -0400
+
+    started adding selection to context menu
+
+[33mcommit 5b2a498aca75bd53ffab61f998218bec546b8154[m
+Merge: 358437e 39e8a7a
+Author: bob <bcz@cs.brown.edu>
+Date:   Wed Jun 19 16:17:21 2019 -0400
+
+    Merge branch 'master' of https://github.com/browngraphicslab/Dash-Web
+
+[33mcommit 358437eeafe42e029ffe27702bde15a3fad54a3b[m
+Author: bob <bcz@cs.brown.edu>
+Date:   Wed Jun 19 16:17:18 2019 -0400
+
+    working version of embedded tree view docs.
+
+[33mcommit 4c1383e47f2203a00bc7f3d73c209f3149d6a772[m
+Author: Mohammad Amoush <mohammad_amoush@brown.edu>
+Date:   Wed Jun 19 15:53:05 2019 -0400
+
+    ...
+
+[33mcommit a288a2fd0a30a3a16dd01bc4e12dcf6bc117c766[m
+Author: Mohammad Amoush <mohammad_amoush@brown.edu>
+Date:   Wed Jun 19 15:25:24 2019 -0400
+
+    Navigation and Zoom Option For Manual Selection Added and New Presentation TItle Naming Added
+    
+    Now, You can manually click on navigate or zoom and navigate to that document if current was their index. A way to manually disregard groups, and just navigate to that doc.
+
+[33mcommit 39e8a7a365442cdc11024c4de8019184fd0057ac[m
+Merge: 5b6f13d 9ab4739
+Author: Stanley Yip <33562077+yipstanley@users.noreply.github.com>
+Date:   Wed Jun 19 15:05:38 2019 -0400
+
+    Merge pull request #163 from browngraphicslab/pdf_fixes
+    
+    deleting annotations
+
+[33mcommit 5b6f13d64e9e38b94df0ae61ffedcb0b34290045[m
+Merge: 35e73f3 4ebbdd8
+Author: Tyler Schicke <tyler_schicke@brown.edu>
+Date:   Wed Jun 19 15:04:46 2019 -0400
+
+    Merge branch 'master' of github-tsch-brown:browngraphicslab/Dash-Web
+
+[33mcommit 35e73f369a2145d8a042e0011a43e71763d57998[m
+Author: Tyler Schicke <tyler_schicke@brown.edu>
+Date:   Wed Jun 19 15:02:48 2019 -0400
+
+    added better search to context menu
+
+[33mcommit 9ab47393a2ce3d174ad3238422c2c310764be9af[m
+Author: yipstanley <stanley_yip@brown.edu>
+Date:   Wed Jun 19 14:40:28 2019 -0400
+
+    interaction improvements with delete button
+
+[33mcommit b9849810231e540a5898a56012abd32c197b23b5[m
+Author: yipstanley <stanley_yip@brown.edu>
+Date:   Wed Jun 19 14:39:15 2019 -0400
+
+    anna
+
+[33mcommit b960a876d6a31b3eaebb0ac6eca6f191a0d4c900[m
+Author: yipstanley <stanley_yip@brown.edu>
+Date:   Wed Jun 19 14:38:43 2019 -0400
+
+    oop
+
+[33mcommit 46d57bc21cda4703855b85a4603bd471975d845b[m
+Author: yipstanley <stanley_yip@brown.edu>
+Date:   Wed Jun 19 14:25:47 2019 -0400
+
+    deleting annotations
+
+[33mcommit f362dbfc237536c6c4a8c6d088c3dc818080f7c2[m
+Author: Fawn <fangrui_tong@brown.edu>
+Date:   Wed Jun 19 12:50:58 2019 -0400
+
+    both tail ends of a cut link appear on hover/focus of an anchor
+
+[33mcommit fb62f3b2e39bbe2dd3da5eaffedbaa8e60f06dbb[m
+Author: Mohammad Amoush <mohammad_amoush@brown.edu>
+Date:   Wed Jun 19 12:35:54 2019 -0400
+
+    Grouping for different presentations fixed
+
+[33mcommit 4ebbdd803cdf83806902509dfa0432ce3a139403[m
+Merge: 0bb2052 c056ade
+Author: Stanley Yip <33562077+yipstanley@users.noreply.github.com>
+Date:   Wed Jun 19 11:48:16 2019 -0400
+
+    Merge pull request #162 from browngraphicslab/pdf_fixes
+    
+    Pdf fixes
+
+[33mcommit c056adeca11f35972b5f75c6b1cc31292d5765d4[m
+Author: yipstanley <stanley_yip@brown.edu>
+Date:   Wed Jun 19 11:47:20 2019 -0400
+
+    push
+
+[33mcommit 37f327ab659e6fa1221f9f4ed7649402c5dedc00[m
+Author: yipstanley <stanley_yip@brown.edu>
+Date:   Wed Jun 19 11:24:32 2019 -0400
+
+    aspect ratio, dragging, and full screen scrolling fixed
+
+[33mcommit 0bb20528c8167b3ba1c4c88d97586d50ae183b4c[m
+Author: bob <bcz@cs.brown.edu>
+Date:   Wed Jun 19 10:37:36 2019 -0400
+
+    added highlight for expanded tree view items
+
+[33mcommit f60398d5db9041e09c809c16a0b885936ac11a3d[m
+Author: bob <bcz@cs.brown.edu>
+Date:   Wed Jun 19 10:21:37 2019 -0400
+
+    fixed multi-column stacking
+
+[33mcommit 0674331f3611d297028526c888c718a75b012e0a[m
+Author: bob <bcz@cs.brown.edu>
+Date:   Wed Jun 19 09:36:21 2019 -0400
+
+    fixed resizing stacking views.  changed defaults for new docs in treeView
+
+[33mcommit 1472d2b56aa64896f0a93f172322121d19cd1592[m
+Author: bob <bcz@cs.brown.edu>
+Date:   Wed Jun 19 09:11:35 2019 -0400
+
+    fixed lint errors.
+
+[33mcommit 8c94bb92b23dea138fa752929b6134e7214dfb60[m
+Merge: 3b880d7 13e301d
+Author: Bob Zeleznik <zzzman@gmail.com>
+Date:   Tue Jun 18 22:51:48 2019 -0400
+
+    Merge branch 'master' of https://github.com/browngraphicslab/Dash-Web
+
+[33mcommit 3b880d7b15b7107049ae27601b9f759b17f7fde9[m
+Author: Bob Zeleznik <zzzman@gmail.com>
+Date:   Tue Jun 18 22:51:46 2019 -0400
+
+    added initial keyboard shortcuts for adding and moving docs in TreeView.  fixed image drag bug.
+
+[33mcommit 13e301dea2f537b67b338cc6a98d3f3b5a8e1f36[m
+Author: Tyler Schicke <tyler_schicke@brown.edu>
+Date:   Tue Jun 18 20:58:32 2019 -0400
+
+    Fixed linter errors
+
+[33mcommit 464fa03d6ebb2a7aaef1d7622afa3e1e7ee816a3[m
+Author: Tyler Schicke <tyler_schicke@brown.edu>
+Date:   Tue Jun 18 20:11:31 2019 -0400
+
+    Context menu improvements and error fixes
+
+[33mcommit 4ffcff69a2fc767c6a03d46d7296b6a8c7ffd281[m
+Author: madelinegr <mgriswold99@gmail.com>
+Date:   Tue Jun 18 19:13:45 2019 -0400
+
+    Presentations Listed, Option to Change Added, and
+
+[33mcommit ca126adda9e4def83fb5c2e07e382917ca0b4ee0[m
+Author: Tyler Schicke <tyler_schicke@brown.edu>
+Date:   Tue Jun 18 17:24:59 2019 -0400
+
+    Fixed docking view?
+
+[33mcommit b0ac30172019713e1c75083c1199485d902e0eed[m
+Author: Tyler Schicke <tyler_schicke@brown.edu>
+Date:   Tue Jun 18 16:37:28 2019 -0400
+
+    Fixed zoomBasis stuff and added deletion handling for reponse from server
+
+[33mcommit 8e5afb5bbb47324a381b5184254e77eba7bd8536[m
+Author: Fawn <fangrui_tong@brown.edu>
+Date:   Tue Jun 18 16:30:24 2019 -0400
+
+    can click on button link to node in different context than source
+
+[33mcommit 6fcd0d8d6fb1471b8af460f6d80bdf0d0e681566[m
+Author: Fawn <fangrui_tong@brown.edu>
+Date:   Tue Jun 18 15:17:27 2019 -0400
+
+    added button to delete a link
+
+[33mcommit d91e7eec9a62363b383b929166cdf600b124334c[m
+Author: Fawn <fangrui_tong@brown.edu>
+Date:   Tue Jun 18 15:09:21 2019 -0400
+
+    links to nodes in different contexts render as a circle
+
+[33mcommit d3cad099d49690810166d0342f7c371bda0f007e[m
+Merge: 04668e2 b1af251
+Author: bob <bcz@cs.brown.edu>
+Date:   Tue Jun 18 13:30:55 2019 -0400
+
+    Merge branch 'master' of https://github.com/browngraphicslab/Dash-Web
+
+[33mcommit 04668e21313f6e62e5ab35ac737fc54191769a5a[m
+Author: bob <bcz@cs.brown.edu>
+Date:   Tue Jun 18 13:30:41 2019 -0400
+
+    fixed cleanup of marquee keyhandler.
+
+[33mcommit b1af251b058743798aa3fa3895d22327c8560dfc[m
+Author: Sam Wilkins <35748010+samwilkins333@users.noreply.github.com>
+Date:   Tue Jun 18 13:19:50 2019 -0400
+
+    Added pointer down flag for tab focus
+
+[33mcommit 9544576ec0167d64f564ae4c87d392eba07ff467[m
+Author: Sam Wilkins <35748010+samwilkins333@users.noreply.github.com>
+Date:   Tue Jun 18 13:18:34 2019 -0400
+
+    Added tab focusing on hover
+
+[33mcommit 2633f61d311528e62d50d4ff56f5884b3b51ac61[m
+Author: bob <bcz@cs.brown.edu>
+Date:   Tue Jun 18 13:12:15 2019 -0400
+
+    added undo/redo bindings for app.
+
+[33mcommit 3a25bad918c72f5d6de9a720de9e0d316c00f2fe[m
+Author: bob <bcz@cs.brown.edu>
+Date:   Tue Jun 18 13:03:28 2019 -0400
+
+    fixed issues with expanding text boxes that have a dynamic title
+
+[33mcommit f4fcf306e2579b7479610899a01c06fb157d47de[m
+Author: bob <bcz@cs.brown.edu>
+Date:   Tue Jun 18 12:03:14 2019 -0400
+
+    fixed goldenlayout nesting
+
+[33mcommit 4f0086f6ea948c1c5254db2acc93f6735987daa5[m
+Merge: 749eef1 d7ebe7b
+Author: bob <bcz@cs.brown.edu>
+Date:   Tue Jun 18 11:31:49 2019 -0400
+
+    Merge branch 'master' of https://github.com/browngraphicslab/Dash-Web
+
+[33mcommit 749eef13af1338225b2bec4dbcd7a50a5650d285[m
+Author: bob <bcz@cs.brown.edu>
+Date:   Tue Jun 18 11:31:46 2019 -0400
+
+    fixed image drag drop when not selected.
+
+[33mcommit d7ebe7b7d19cf7dc797443aa485293670c3ee4e2[m
+Merge: 66d4cc9 08872de
+Author: yipstanley <stanley_yip@brown.edu>
+Date:   Tue Jun 18 11:08:44 2019 -0400
+
+    Merge branch 'master' of https://github.com/browngraphicslab/Dash-Web
+
+[33mcommit 66d4cc94bcc69f590d90dd35823f93b8e2fb90d8[m
+Author: yipstanley <stanley_yip@brown.edu>
+Date:   Tue Jun 18 10:52:10 2019 -0400
+
+    selection fixes
+
+[33mcommit 08872def596af073c5f14336c8faf07f44561bbc[m
+Merge: 8d00265 c50ba1c
+Author: bob <bcz@cs.brown.edu>
+Date:   Tue Jun 18 10:28:31 2019 -0400
+
+    Merge branch 'master' of https://github.com/browngraphicslab/Dash-Web
+
+[33mcommit 8d0026573ad9a196f864490bcf07c78f54082bad[m
+Author: bob <bcz@cs.brown.edu>
+Date:   Tue Jun 18 10:28:29 2019 -0400
+
+    fixed selection within multicolumn stacking view.  added drop of html image selections.
+
+[33mcommit c50ba1c4cc01d5cd085dee0dae6f633164efeb80[m
+Merge: cc032e2 64e6a94
+Author: yipstanley <stanley_yip@brown.edu>
+Date:   Tue Jun 18 10:10:58 2019 -0400
+
+    Merge branch 'master' of https://github.com/browngraphicslab/Dash-Web
+
+[33mcommit cc032e2f60015728f64f46ef009c9306e36746a0[m
+Author: yipstanley <stanley_yip@brown.edu>
+Date:   Tue Jun 18 10:05:49 2019 -0400
+
+    fixes
+
+[33mcommit 64e6a941639aab8d7109178aa151a50909547309[m
+Author: Bob Zeleznik <zzzman@gmail.com>
+Date:   Tue Jun 18 09:05:41 2019 -0400
+
+    fixed index out of range
+
+[33mcommit 4b8324fcf44c5d3c3a4b3f6e98a4d1dfce84811b[m
+Author: Bob Zeleznik <zzzman@gmail.com>
+Date:   Tue Jun 18 08:53:01 2019 -0400
+
+    removed trace
+
+[33mcommit a3b8a57027d7c45ea19d259e1ec18fa6a8648c24[m
+Author: Bob Zeleznik <zzzman@gmail.com>
+Date:   Tue Jun 18 08:49:02 2019 -0400
+
+    looked like wrong code...
+
+[33mcommit 2f5c38c6a0a5220c2a31931c34d94e199854d703[m
+Author: Bob Zeleznik <zzzman@gmail.com>
+Date:   Tue Jun 18 08:36:37 2019 -0400
+
+    more streamlining
+
+[33mcommit 62c781c0c79ac395c5e117d208a90485ff1ba599[m
+Author: Bob Zeleznik <zzzman@gmail.com>
+Date:   Tue Jun 18 02:19:07 2019 -0400
+
+    faster loading of PDFs
+
+[33mcommit 4dc8c03562a0473becb895824740da487e16e771[m
+Author: Bob Zeleznik <zzzman@gmail.com>
+Date:   Tue Jun 18 00:17:58 2019 -0400
+
+    added dropping of Dash urls from gmail
+
+[33mcommit 9c7ff72a8ad249c05b672a46e3fbbb69ffca3a2a[m
+Merge: 8c64ffd 71b1cfb
+Author: Tyler Schicke <tyler_schicke@brown.edu>
+Date:   Mon Jun 17 23:04:22 2019 -0400
+
+    Merge branch 'master' of github-tsch-brown:browngraphicslab/Dash-Web
+
+[33mcommit 8c64ffd92e382050bc8727981cf9fb830e4f02a7[m
+Author: Tyler Schicke <tyler_schicke@brown.edu>
+Date:   Mon Jun 17 23:04:07 2019 -0400
+
+    Added share with user functionality
