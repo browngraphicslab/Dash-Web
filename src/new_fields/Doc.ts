@@ -249,22 +249,27 @@ export namespace Doc {
         return true;
     }
 
-    export function extDoc(doc: Doc, fieldKey: string, fieldExt: string) {
-        return doc && fieldExt && doc[fieldKey + "_ext"] instanceof Doc ? doc[fieldKey + "_ext"] as Doc : doc;
+    //
+    // Resolves a reference to a field by returning 'doc' if o field extension is specified,
+    // otherwise, it returns the extension document stored in doc.<fieldKey>_ext.
+    // This mechanism allows any fields to be extended with an extension document that can
+    // be used to capture field-specific metadata.  For example, an image field can be extended
+    // to store annotations, ink, and other data.
+    //
+    export function resolvedFieldDataDoc(doc: Doc, fieldKey: string, fieldExt: string) {
+        return fieldExt && doc[fieldKey + "_ext"] instanceof Doc ? doc[fieldKey + "_ext"] as Doc : doc;
     }
-    export function extField(doc: Doc, fieldKey: string, fieldExt: string) {
-        return doc && fieldExt && doc[fieldKey + "_ext"] instanceof Doc ? fieldExt : fieldKey;
-    }
-    export function UpdateFieldExtension(doc: Doc, fieldKey: string) {
-        if (doc && doc[fieldKey + "_ext"] === undefined) {
+
+    export function UpdateDocumentExtensionForField(doc: Doc, fieldKey: string) {
+        if (doc[fieldKey + "_ext"] === undefined) {
             setTimeout(() => {
-                let fieldExtension = new Doc(doc[Id] + fieldKey, true);
-                fieldExtension.title = "Extension of " + doc.title + "'s field:" + fieldKey;
+                let docExtensionForField = new Doc(doc[Id] + fieldKey, true);
+                docExtensionForField.title = "Extension of " + doc.title + "'s field:" + fieldKey;
                 let proto: Doc | undefined = doc;
                 while (proto && !Doc.IsPrototype(proto)) {
                     proto = proto.proto;
                 }
-                (proto ? proto : doc)[fieldKey + "_ext"] = fieldExtension;
+                (proto ? proto : doc)[fieldKey + "_ext"] = docExtensionForField;
             }, 0);
         }
     }

@@ -1,6 +1,6 @@
 import { action, computed } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, HeightSym, WidthSym, DocListCastAsync } from "../../../../new_fields/Doc";
+import { Doc, DocListCastAsync, HeightSym, WidthSym } from "../../../../new_fields/Doc";
 import { Id } from "../../../../new_fields/FieldSymbols";
 import { InkField, StrokeData } from "../../../../new_fields/InkField";
 import { createSchema, makeInterface } from "../../../../new_fields/Schema";
@@ -13,11 +13,13 @@ import { SelectionManager } from "../../../util/SelectionManager";
 import { Transform } from "../../../util/Transform";
 import { undoBatch } from "../../../util/UndoManager";
 import { COLLECTION_BORDER_WIDTH } from "../../../views/globalCssVariables.scss";
+import { ContextMenu } from "../../ContextMenu";
 import { InkingCanvas } from "../../InkingCanvas";
 import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
 import { DocumentContentsView } from "../../nodes/DocumentContentsView";
 import { DocumentViewProps, positionSchema } from "../../nodes/DocumentView";
 import { pageSchema } from "../../nodes/ImageBox";
+import PDFMenu from "../../pdf/PDFMenu";
 import { CollectionSubView } from "../CollectionSubView";
 import { CollectionFreeFormLinksView } from "./CollectionFreeFormLinksView";
 import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCursors";
@@ -25,10 +27,6 @@ import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import v5 = require("uuid/v5");
-import PDFMenu from "../../pdf/PDFMenu";
-import { ContextMenu } from "../../ContextMenu";
-import { Docs } from "../../../documents/Documents";
-import { thisExpression } from "babel-types";
 
 export const panZoomSchema = createSchema({
     panX: "number",
@@ -377,7 +375,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     render() {
         const containerName = `collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`;
         const easing = () => this.props.Document.panTransformType === "Ease";
-        if (this.props.fieldExt) Doc.UpdateFieldExtension(this.dataDoc, this.props.fieldKey);
+        if (this.props.fieldExt) Doc.UpdateDocumentExtensionForField(this.dataDoc, this.props.fieldKey);
         return (
             <div className={containerName} ref={this.createDropTarget} onWheel={this.onPointerWheel}
                 style={{ borderRadius: "inherit" }}
@@ -389,7 +387,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         easing={easing} zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
 
                         <CollectionFreeFormLinksView {...this.props} key="freeformLinks">
-                            <InkingCanvas getScreenTransform={this.getTransform} Document={this.extDoc} inkFieldKey={this.props.fieldExt ? "ink" : this.props.fieldKey + "_ink"} >
+                            <InkingCanvas getScreenTransform={this.getTransform} Document={this.dataDoc} inkFieldKey={this.props.fieldExt ? "ink" : this.props.fieldKey + "_ink"} >
                                 {this.childViews}
                             </InkingCanvas>
                         </CollectionFreeFormLinksView>

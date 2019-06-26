@@ -59,7 +59,8 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         }
     }
 
-    @computed get dataDoc() { return BoolCast(this.props.Document.isTemplate) ? this.props.DataDoc : this.props.Document; }
+    @computed get dataDoc() { return Doc.resolvedFieldDataDoc(BoolCast(this.props.Document.isTemplate) ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt); }
+    @computed get dataField() { return this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey; }
 
     active = (): boolean => {
         var isSelected = this.props.isSelected();
@@ -73,13 +74,6 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         this.props.whenActiveChanged(isActive);
     }
 
-    @computed get extDoc() {
-        return Doc.extDoc(this.dataDoc, this.props.fieldKey, this.props.fieldExt);
-    }
-    @computed get extField() {
-        return Doc.extField(this.dataDoc, this.props.fieldKey, this.props.fieldExt);
-    }
-
     @action.bound
     addDocument(doc: Doc, allowDuplicates: boolean = false): boolean {
         var curPage = NumCast(this.props.Document.curPage, -1);
@@ -88,13 +82,13 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
             Doc.GetProto(doc).annotationOn = this.props.Document;
         }
         allowDuplicates = true;
-        const value = Cast(this.extDoc[this.extField], listSpec(Doc));
+        const value = Cast(this.dataDoc[this.dataField], listSpec(Doc));
         if (value !== undefined) {
             if (allowDuplicates || !value.some(v => v instanceof Doc && v[Id] === doc[Id])) {
                 value.push(doc);
             }
         } else {
-            Doc.GetProto(this.extDoc)[this.extField] = new List([doc]);
+            Doc.GetProto(this.dataDoc)[this.dataField] = new List([doc]);
         }
         return true;
     }
@@ -104,7 +98,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         let docView = DocumentManager.Instance.getDocumentView(doc, this.props.ContainingCollectionView);
         docView && SelectionManager.DeselectDoc(docView);
         //TODO This won't create the field if it doesn't already exist
-        const value = Cast(this.extDoc[this.extField], listSpec(Doc), []);
+        const value = Cast(this.dataDoc[this.dataField], listSpec(Doc), []);
         let index = value.reduce((p, v, i) => (v instanceof Doc && v[Id] === doc[Id]) ? i : p, -1);
         PromiseValue(Cast(doc.annotationOn, Doc)).then(annotationOn =>
             annotationOn === this.dataDoc.Document && (doc.annotationOn = undefined)

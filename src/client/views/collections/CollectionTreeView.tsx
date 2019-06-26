@@ -1,7 +1,7 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faAngleRight, faCaretDown, faCaretRight, faTrashAlt, faCaretSquareRight, faCaretSquareDown } from '@fortawesome/free-solid-svg-icons';
+import { faAngleRight, faCaretDown, faCaretRight, faCaretSquareDown, faCaretSquareRight, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, observable, computed } from "mobx";
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, HeightSym, WidthSym } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
@@ -25,10 +25,6 @@ import { CollectionSchemaPreview } from './CollectionSchemaView';
 import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTreeView.scss";
 import React = require("react");
-import { FormattedTextBox } from '../nodes/FormattedTextBox';
-import { ImageField } from '../../../new_fields/URLField';
-import { ImageBox } from '../nodes/ImageBox';
-import { CollectionView } from './CollectionView';
 
 
 export interface TreeViewProps {
