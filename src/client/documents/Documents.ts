@@ -73,6 +73,7 @@ export namespace DocUtils {
         if (LinkManager.Instance.doesLinkExist(source, target)) return;
         let sv = DocumentManager.Instance.getDocumentView(source);
         if (sv && sv.props.ContainingCollectionView && sv.props.ContainingCollectionView.props.Document === target) return;
+        if (target === CurrentUserUtils.UserDocument) return;
 
         UndoManager.RunInBatch(() => {
 

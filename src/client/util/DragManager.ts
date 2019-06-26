@@ -215,10 +215,8 @@ export namespace DragManager {
         StartDrag(eles, dragData, downX, downY, options,
             (dropData: { [id: string]: any }) => {
                 // dropData.droppedDocuments = 
-                console.log(dragData.draggedDocuments.length);
                 let droppedDocuments: Doc[] = dragData.draggedDocuments.reduce((droppedDocs: Doc[], d) => {
                     let dvs = DocumentManager.Instance.getDocumentViews(d);
-                    console.log(StrCast(d.title), dvs.length);
 
                     if (dvs.length) {
                         let inContext = dvs.filter(dv => dv.props.ContainingCollectionView === SelectionManager.SelectedDocuments()[0].props.ContainingCollectionView);
