@@ -136,7 +136,6 @@ export class Timeline extends CollectionSubView(Document){
         let scrubberbox = this._scrubberbox.current!; 
         let offset = scrubberbox.scrollLeft + e.clientX - scrubberbox.getBoundingClientRect().left; 
         this._currentBarX = offset; 
-       ; 
     }
 
     @action
@@ -221,13 +220,17 @@ export class Timeline extends CollectionSubView(Document){
                 </div>  
                 <div className="info-container" ref ={this._infoContainer}> 
                     <div className="scrubberbox" ref ={this._scrubberbox} onClick={this.onScrubberClick}>
-                        {this._ticks.map(element => {return <div className="tick" style={{transform:`translate(${element / 20}px)`, position:"absolute", pointerEvent:"none"}}> <p>{this.toTime(element)}</p></div>})}
+                        {this._ticks.map(element => {
+                            return <div className="tick" style={{transform:`translate(${element / 20}px)`, position:"absolute", pointerEvent:"none"}}> <p>{this.toTime(element)}</p></div>;
+                        })}
                     </div>
                     <div className="scrubber" onPointerDown = {this.onScrubberDown} style={{transform:`translate(${this._currentBarX}px)`}}>
                         <div className="scrubberhead"></div>
                     </div>
                     <div className="trackbox" ref={this._trackbox} onPointerDown={this.onPanDown}>  
-                        {this._nodes.map(doc => {return <Track node={(doc as any).value() as Doc} currentBarX = {this._currentBarX}/>;})}
+                        {this._nodes.map(doc => {
+                            return <Track node={(doc as any).value() as Doc} currentBarX = {this._currentBarX}/>;
+                        })}
                     </div> 
                 </div> 
                 <div className="title-container" ref={this._titleContainer}>
