@@ -24,6 +24,8 @@ import { CompileScript, CompiledScript, CompileResult } from "../../util/Scripti
 import { ScriptField } from "../../../new_fields/ScriptField";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
+const PDFFindBar = require("pdfjs-dist/lib/web/pdf_find_bar");
+const getGlobalEventBus = require("pdfjs-dist/lib/web/dom_events");
 
 export const scale = 2;
 interface IPDFViewerProps {
@@ -97,6 +99,15 @@ class Viewer extends React.Component<IViewerProps> {
     private _rendered: boolean = false;
     private _pageIndex: number = -1;
     private _matchIndex: number = 0;
+    private _eventBus: any;
+    private _findField: React.RefObject<HTMLInputElement>;
+    private _searchCont: React.RefObject<HTMLDivElement>;
+    private _searchToggle: React.RefObject<HTMLButtonElement>;
+    private _nextButton: React.RefObject<HTMLButtonElement>;
+    private _previousButton: React.RefObject<HTMLButtonElement>;
+    private _entireWord: React.RefObject<HTMLInputElement>;
+    private _caseSensitivity: React.RefObject<HTMLInputElement>;
+    private _highlightAll: React.RefObject<HTMLInputElement>;
 
     constructor(props: IViewerProps) {
         super(props);
@@ -105,6 +116,14 @@ class Viewer extends React.Component<IViewerProps> {
         this._script = scriptfield ? scriptfield.script : CompileScript("return true");
         this._viewer = React.createRef();
         this._mainCont = React.createRef();
+        this._findField = React.createRef();
+        this._searchCont = React.createRef();
+        this._searchToggle = React.createRef();
+        this._nextButton = React.createRef();
+        this._previousButton = React.createRef();
+        this._entireWord = React.createRef();
+        this._caseSensitivity = React.createRef();
+        this._highlightAll = React.createRef();
     }
 
     componentDidUpdate = (prevProps: IViewerProps) => {
@@ -526,6 +545,7 @@ class Viewer extends React.Component<IViewerProps> {
 
             if (!this._pdfFindController) {
                 if (container && viewer) {
+                    this._eventBus = getGlobalEventBus.getGlobalEventBus();
                     let simpleLinkService = new SimpleLinkService();
                     let pdfViewer = new PDFJSViewer.PDFViewer({
                         container: container,
@@ -540,8 +560,41 @@ class Viewer extends React.Component<IViewerProps> {
                         console.log("rendered");
                         this._rendered = true;
                     });
+                    let options = {
+                        bar: this._searchCont.current,
+                        toggleButton: this._searchToggle.current,
+                        findField: this._findField.current,
+                        highlightAllCheckbox: this._highlightAll.current,
+                        caseSensitiveCheckbox: this._caseSensitivity.current,
+                        entireWordCheckbox: this._entireWord.current,
+                        findMsg: document.getElementById('findMsg'),
+                        findResultsCount: document.getElementById('findResultsCount'),
+                        findPreviousButton: this._previousButton.current,
+                        findNextButton: this._nextButton.current,
+                    }
+                    let findBar = new PDFFindBar.PDFFindBar(options, this._eventBus);
+                    this._eventBus.on("find", (evt: any) => {
+                        // this._pdfFindController.executeCommand('find', {
+                        //     query: "the",
+                        //     phraseSearch: true,
+                        //     caseSensitive: false,
+                        //     highlightAll: true,
+                        //     findPrevious: undefined
+                        // });
+                        this._pdfFindController.executeCommand('find' + evt.type, {
+                            query: evt.query,
+                            phraseSearch: evt.phraseSearch,
+                            caseSensitive: evt.caseSensitive,
+                            entireWord: evt.entireWord,
+                            highlightAll: true,
+                            findPrevious: evt.findPrevious
+                        });
+                    });
                     pdfViewer.setDocument(this.props.pdf);
                     this._pdfFindController = new PDFJSViewer.PDFFindController(pdfViewer);
+                    this._pdfFindController._eventBus = this._eventBus;
+                    pdfViewer.eventBus = this._eventBus;
+                    // findBar.open();
                     // this._pdfFindController._linkService = pdfLinkService;
                     pdfViewer.findController = this._pdfFindController;
                 }
@@ -637,11 +690,14 @@ class Viewer extends React.Component<IViewerProps> {
                     style={{
                         bottom: -this.props.scrollY,
                         left: `${this._searching ? 0 : 100}%`
-                    }}>
+                    }} ref={this._searchCont}>
                     <button className="pdfViewer-overlayButton" title="Open Search Bar"></button>
-                    {/* <button title="Previous Result" onClick={() => this.search(this._searchString)}><FontAwesomeIcon icon="arrow-up" size="3x" color="white" /></button>
-                    <button title="Next Result" onClick={this.nextResult}><FontAwesomeIcon icon="arrow-down" size="3x" color="white" /></button> */}
-                    <input placeholder="Search" className="pdfViewer-overlaySearchBar" onChange={this.searchStringChanged} />
+                    <input type="checkbox" ref={this._highlightAll} />
+                    <input type="checkbox" ref={this._caseSensitivity} />
+                    <input type="checkbox" ref={this._entireWord} />
+                    <button title="Previous Result" ref={this._previousButton}><FontAwesomeIcon icon="arrow-up" size="3x" color="white" /></button>
+                    <button title="Next Result" ref={this._nextButton}><FontAwesomeIcon icon="arrow-down" size="3x" color="white" /></button>
+                    <input placeholder="Search" ref={this._findField} className="pdfViewer-overlaySearchBar" onChange={this.searchStringChanged} />
                     <button title="Search" onClick={() => this.search(this._searchString)}><FontAwesomeIcon icon="search" size="3x" color="white" /></button>
                 </div>
                 <button className="pdfViewer-overlayButton" onClick={this.prevAnnotation} title="Previous Annotation"
@@ -656,7 +712,7 @@ class Viewer extends React.Component<IViewerProps> {
                         <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-down"} size="3x" />
                     </div>
                 </button>
-                <button className="pdfViewer-overlayButton" onClick={this.toggleSearch} title="Open Search Bar"
+                <button className="pdfViewer-overlayButton" onClick={this.toggleSearch} title="Open Search Bar" ref={this._searchToggle}
                     style={{ bottom: -this.props.scrollY + 10, right: 0, display: this.props.parent.props.active() ? "flex" : "none" }}>
                     <div className="pdfViewer-overlayButton-arrow" onPointerDown={(e) => e.stopPropagation()}></div>
                     <div className="pdfViewer-overlayButton-iconCont" onPointerDown={(e) => e.stopPropagation()}>
@@ -745,7 +801,7 @@ class RegionAnnotation extends React.Component<IAnnotationProps> {
         if (e.button === 0) {
             let targetDoc = Cast(this.props.document.target, Doc, null);
             if (targetDoc) {
-                DocumentManager.Instance.jumpToDocument(targetDoc);
+                DocumentManager.Instance.jumpToDocument(targetDoc, false);
             }
         }
         if (e.button === 2) {
@@ -786,6 +842,7 @@ class SimpleLinkService {
     externalLinkTarget: any = null;
     externalLinkRel: any = null;
     pdf: any = null;
+    _page: any = 0;
 
     navigateTo(dest: any) { }
 
@@ -804,7 +861,11 @@ class SimpleLinkService {
     }
 
     get page() {
-        return 0;
+        return this._page;
+    }
+
+    set page(value: any) {
+        this._page = value;
     }
 
     setPdf(pdf: any) {
