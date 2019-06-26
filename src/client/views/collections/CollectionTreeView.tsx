@@ -85,7 +85,7 @@ class TreeView extends React.Component<TreeViewProps> {
         return keyList.length ? keyList[0] : "data";
     }
 
-    @computed get dataDoc() { return BoolCast(this.props.document.isTemplate) ? this.props.dataDoc : this.props.document; }
+    @computed get dataDoc() { return this.props.dataDoc; }
 
     protected createTreeDropTarget = (ele: HTMLDivElement) => {
         this._treedropDisposer && this._treedropDisposer();
@@ -441,7 +441,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                     }} />
                 <ul className="no-indent" style={{ width: "max-content" }} >
                     {
-                        TreeView.GetChildElements(this.childDocs, this.props.Document[Id], this.props.Document, this.dataDoc, this.props.fieldKey, addDoc, this.remove,
+                        TreeView.GetChildElements(this.childDocs, this.props.Document[Id], this.props.Document, this.props.DataDoc, this.props.fieldKey, addDoc, this.remove,
                             moveDoc, dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.outerXf, this.props.active, this.props.PanelWidth)
                     }
                 </ul>

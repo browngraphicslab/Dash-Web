@@ -10,7 +10,7 @@ import { Doc, DocListCast, DocListCastAsync, Field } from "../../../new_fields/D
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
-import { Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
+import { Cast, FieldValue, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
 import { emptyFunction, returnFalse, returnZero } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { Gateway } from "../../northstar/manager/Gateway";
@@ -283,8 +283,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @computed
     get previewDocument(): Doc | undefined {
-        const children = DocListCast(this.props.Document[this.props.fieldKey]);
-        const selected = children.length > this._selectedIndex ? FieldValue(children[this._selectedIndex]) : undefined;
+        const selected = this.childDocs.length > this._selectedIndex ? this.childDocs[this._selectedIndex] : undefined;
         return selected ? (this.previewScript && this.previewScript !== "this" ? FieldValue(Cast(selected[this.previewScript], Doc)) : selected) : undefined;
     }
 
@@ -351,7 +350,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     get previewPanel() {
         return <div ref={this.createTarget}><CollectionSchemaPreview
             Document={this.previewDocument}
-            DataDocument={this.previewDocument}
+            DataDocument={BoolCast(this.props.Document.isTemplate) ? this.previewDocument : this.props.DataDoc}
             childDocs={this.childDocs}
             width={this.previewWidth}
             height={this.previewHeight}

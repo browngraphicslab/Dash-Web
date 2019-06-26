@@ -31,7 +31,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
 
     private SubView = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
         let props = { ...this.props, ...renderProps };
-        switch (type) {
+        switch (this.isAnnotationOverlay ? CollectionViewType.Freeform : type) {
             case CollectionViewType.Schema: return (<CollectionSchemaView {...props} CollectionView={this} />);
             case CollectionViewType.Docking: return (<CollectionDockingView {...props} CollectionView={this} />);
             case CollectionViewType.Tree: return (<CollectionTreeView {...props} CollectionView={this} />);
