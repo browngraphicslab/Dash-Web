@@ -205,9 +205,6 @@ export class MainView extends React.Component {
                 getScale={returnOne}
             />;
         let castRes = mainCont ? FieldValue(Cast(mainCont.presentationView, listSpec(Doc))) : undefined;
-        console.log("GETTING mainContent()");
-        console.log(castRes instanceof Promise);
-        console.log(castRes);
         return <Measure offset onResize={this.onResize}>
             {({ measureRef }) =>
                 <div ref={measureRef} id="mainContent-div">
