@@ -46,7 +46,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     private dropDisposer?: DragManager.DragDropDisposer;
 
 
-    @computed get dataDoc() { return BoolCast(this.props.Document.isTemplate) ? this.props.DataDoc : this.props.Document; }
+    @computed get dataDoc() { return BoolCast(this.props.Document.isTemplate) && this.props.DataDoc ? this.props.DataDoc : this.props.Document; }
 
 
     protected createDropTarget = (ele: HTMLDivElement) => {

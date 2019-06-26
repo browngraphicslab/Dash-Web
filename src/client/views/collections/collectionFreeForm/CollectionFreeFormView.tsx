@@ -163,7 +163,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     return [[range[0][0] > x ? x : range[0][0], range[0][1] < xe ? xe : range[0][1]],
                     [range[1][0] > y ? y : range[1][0], range[1][1] < ye ? ye : range[1][1]]];
                 }, [[minx, maxx], [miny, maxy]]);
-                let ink = Cast(this.dataDoc.ink, InkField);
+                let ink = Cast(this.extensionDoc.ink, InkField);
                 if (ink && ink.inkData) {
                     ink.inkData.forEach((value: StrokeData, key: string) => {
                         let bounds = InkingCanvas.StrokeRect(value);
@@ -295,8 +295,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
 
     getDocumentViewProps(layoutDoc: Doc): DocumentViewProps {
+        let datadoc = BoolCast(this.props.Document.isTemplate) || this.props.DataDoc === this.props.Document ? undefined : this.props.DataDoc;
         return {
-            DataDoc: BoolCast(this.props.Document.isTemplate) ? layoutDoc : this.props.DataDoc,
+            DataDoc: datadoc,
             Document: layoutDoc,
             addDocument: this.props.addDocument,
             removeDocument: this.props.removeDocument,
@@ -375,7 +376,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     render() {
         const containerName = `collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`;
         const easing = () => this.props.Document.panTransformType === "Ease";
-        if (this.props.fieldExt) Doc.UpdateDocumentExtensionForField(this.dataDoc, this.props.fieldKey);
+        if (this.props.fieldExt) Doc.UpdateDocumentExtensionForField(this.extensionDoc, this.props.fieldKey);
         return (
             <div className={containerName} ref={this.createDropTarget} onWheel={this.onPointerWheel}
                 style={{ borderRadius: "inherit" }}
@@ -387,7 +388,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         easing={easing} zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
 
                         <CollectionFreeFormLinksView {...this.props} key="freeformLinks">
-                            <InkingCanvas getScreenTransform={this.getTransform} Document={this.dataDoc} inkFieldKey={this.props.fieldExt ? "ink" : this.props.fieldKey + "_ink"} >
+                            <InkingCanvas getScreenTransform={this.getTransform} Document={this.extensionDoc} inkFieldKey={this.props.fieldExt ? "ink" : this.props.fieldKey + "_ink"} >
                                 {this.childViews}
                             </InkingCanvas>
                         </CollectionFreeFormLinksView>

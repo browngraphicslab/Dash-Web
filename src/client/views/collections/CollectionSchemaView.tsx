@@ -437,15 +437,16 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
         }
         return true;
     }
-    private PanelWidth = () => this.nativeWidth * this.contentScaling();
-    private PanelHeight = () => this.nativeHeight * this.contentScaling();
+    private PanelWidth = () => this.nativeWidth ? this.nativeWidth * this.contentScaling() : this.props.width();
+    private PanelHeight = () => this.nativeHeight ? this.nativeHeight * this.contentScaling() : this.props.height();
     private getTransform = () => this.props.getTransform().translate(-this.centeringOffset, 0).scale(1 / this.contentScaling());
-    get centeringOffset() { return (this.props.width() - this.nativeWidth * this.contentScaling()) / 2; }
+    get centeringOffset() { return this.nativeWidth ? (this.props.width() - this.nativeWidth * this.contentScaling()) / 2 : 0; }
     @action
     onPreviewScriptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         this.props.setPreviewScript(e.currentTarget.value);
     }
     render() {
+        let self = this;
         let input = this.props.previewScript === undefined ? (null) :
             <div ref={this.createTarget}><input className="collectionSchemaView-input" value={this.props.previewScript} onChange={this.onPreviewScriptChange}
                 style={{ left: `calc(50% - ${Math.min(75, (this.props.Document ? this.PanelWidth() / 2 : 75))}px)` }} /></div>;
@@ -462,7 +463,8 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
                         moveDocument={this.props.moveDocument}
                         ScreenToLocalTransform={this.getTransform}
                         ContentScaling={this.contentScaling}
-                        PanelWidth={this.PanelWidth} PanelHeight={this.PanelHeight}
+                        PanelWidth={this.PanelWidth}
+                        PanelHeight={this.PanelHeight}
                         ContainingCollectionView={this.props.CollectionView}
                         focus={emptyFunction}
                         parentActive={this.props.active}

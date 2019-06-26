@@ -178,7 +178,7 @@ export namespace Doc {
     export async function SetInPlace(doc: Doc, key: string, value: Field | undefined, defaultProto: boolean) {
         let hasProto = doc.proto instanceof Doc;
         let onDeleg = Object.getOwnPropertyNames(doc).indexOf(key) !== -1;
-        let onProto = Object.getOwnPropertyNames(doc.proto).indexOf(key) !== -1;
+        let onProto = hasProto && Object.getOwnPropertyNames(doc.proto).indexOf(key) !== -1;
         if (onDeleg || !hasProto || (!onProto && !defaultProto))
             doc[key] = value;
         else doc.proto![key] = value;

@@ -30,7 +30,7 @@ export interface FieldViewProps {
     fieldExt: string;
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
     Document: Doc;
-    DataDoc: Doc;
+    DataDoc?: Doc;
     isSelected: () => boolean;
     select: (isCtrlPressed: boolean) => void;
     renderDepth: number;

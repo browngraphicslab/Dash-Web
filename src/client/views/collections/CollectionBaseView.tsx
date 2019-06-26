@@ -59,7 +59,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         }
     }
 
-    @computed get dataDoc() { return Doc.resolvedFieldDataDoc(BoolCast(this.props.Document.isTemplate) ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt); }
+    @computed get dataDoc() { return Doc.resolvedFieldDataDoc(BoolCast(this.props.Document.isTemplate) ? this.props.DataDoc ? this.props.DataDoc : this.props.Document : this.props.Document, this.props.fieldKey, this.props.fieldExt); }
     @computed get dataField() { return this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey; }
 
     active = (): boolean => {
