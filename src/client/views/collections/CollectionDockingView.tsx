@@ -10,7 +10,7 @@ import { Id } from '../../../new_fields/FieldSymbols';
 import { FieldId } from "../../../new_fields/RefField";
 import { listSpec } from "../../../new_fields/Schema";
 import { Cast, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
-import { emptyFunction, returnTrue, Utils } from "../../../Utils";
+import { emptyFunction, returnTrue, Utils, returnOne } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { DocumentManager } from '../../util/DocumentManager';
 import { DragLinksAsDocuments, DragManager } from "../../util/DragManager";
@@ -529,7 +529,9 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                     whenActiveChanged={emptyFunction}
                     focus={emptyFunction}
                     addDocTab={this.addDocTab}
-                    ContainingCollectionView={undefined} />
+                    ContainingCollectionView={undefined}
+                    zoomToScale={emptyFunction}
+                    getScale={returnOne} />
             </div >);
     }
 
