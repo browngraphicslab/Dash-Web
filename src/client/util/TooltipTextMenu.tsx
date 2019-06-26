@@ -153,8 +153,6 @@ export class TooltipTextMenu {
         // quick and dirty null check
         const outer_div = this.editorProps.outer_div;
         outer_div && outer_div(this.tooltip);
-
-        console.log("hi");
     }
 
     //label of dropdown will change to given label
@@ -552,8 +550,6 @@ export class TooltipTextMenu {
         let { from, to } = state.selection;
 
         //UPDATE LIST ITEM DROPDOWN
-        //this.listTypeBtnDom = this.updateListItemDropdown(":", this.listTypeBtnDom!);
-        //this._activeMarks = [];
 
         //UPDATE FONT STYLE DROPDOWN
         let activeStyles = this.activeMarksOnSelection(this.fontStyles);
@@ -606,6 +602,7 @@ export class TooltipTextMenu {
                     let has = false, tr = state.tr;
                     for (let i = 0; !has && i < ranges.length; i++) {
                         let { $from, $to } = ranges[i];
+                        let hasmark: boolean = state.doc.rangeHasMark($from.pos, $to.pos, mark);
                         return state.doc.rangeHasMark($from.pos, $to.pos, mark);
                     }
                 }
@@ -633,13 +630,13 @@ export class TooltipTextMenu {
                     }
                     return false;
                 });
-                return activeMarks;
             }
             else {
                 return [];
             }
 
         }
+        return activeMarks;
     }
 
     reference_node(pos: ResolvedPos<any>): ProsNode {

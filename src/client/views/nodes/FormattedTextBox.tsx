@@ -101,7 +101,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         super(props);
         if (this.props.outer_div) {
             this._outerdiv = this.props.outer_div;
-            console.log("yay");
         }
 
         this._ref = React.createRef();
