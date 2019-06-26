@@ -1,8 +1,8 @@
-import { observable, computed, action } from "mobx";
+import { observable, computed, action, trace } from "mobx";
 import React = require("react");
 import { observer } from "mobx-react";
 import './LinkEditor.scss';
-import { StrCast, Cast } from "../../../new_fields/Types";
+import { StrCast, Cast, FieldValue } from "../../../new_fields/Types";
 import { Doc } from "../../../new_fields/Doc";
 import { LinkManager } from "../../util/LinkManager";
 import { Docs } from "../../documents/Documents";
@@ -215,7 +215,10 @@ export class LinkGroupEditor extends React.Component<LinkGroupEditorProps> {
     renderMetadata = (): JSX.Element[] => {
         let metadata: Array<JSX.Element> = [];
         let groupDoc = this.props.groupDoc;
-        let mdDoc = Cast(groupDoc.metadata, Doc, new Doc);
+        const mdDoc = FieldValue(Cast(groupDoc.metadata, Doc));
+        if (!mdDoc) {
+            return [];
+        }
         let groupType = StrCast(groupDoc.type);
         let groupMdKeys = LinkManager.Instance.getMetadataKeysInGroup(groupType);
 
@@ -265,7 +268,7 @@ export class LinkGroupEditor extends React.Component<LinkGroupEditorProps> {
                 </>
             );
         }
-
+        trace();
         return (
             <div className="linkEditor-group">
                 <div className="linkEditor-group-row">

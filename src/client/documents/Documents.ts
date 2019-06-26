@@ -68,25 +68,7 @@ export interface DocumentOptions {
 }
 const delegateKeys = ["x", "y", "width", "height", "panX", "panY"];
 
-// export interface LinkData {
-//     anchor1: Doc;
-//     anchor1Page: number;
-//     anchor1Tags: Array<{ tag: string, name: string, description: string }>;
-//     anchor2: Doc;
-//     anchor2Page: number;
-//     anchor2Tags: Array<{ tag: string, name: string, description: string }>;
-// }
-
-// export interface TagData {
-//     tag: string;
-//     name: string;
-//     description: string;
-// }
-
 export namespace DocUtils {
-    // export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", tags: string = "Default") {
-    //     let protoSrc = source.proto ? source.proto : source;
-    //     let protoTarg = target.proto ? target.proto : target;
     export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", tags: string = "Default") {
         if (LinkManager.Instance.doesLinkExist(source, target)) return;
         let sv = DocumentManager.Instance.getDocumentView(source);
@@ -154,7 +136,6 @@ export namespace Docs {
             audioProto = fields[audioProtoId] as Doc || CreateAudioPrototype();
             pdfProto = fields[pdfProtoId] as Doc || CreatePdfPrototype();
             iconProto = fields[iconProtoId] as Doc || CreateIconPrototype();
-            // linkProto = fields[linkProtoId] as Doc || CreateLinkPrototype();
         });
     }
 

@@ -73,6 +73,9 @@ export class DocumentManager {
             if (doc === toFind) {
                 toReturn.push(view);
             } else {
+                // if (Doc.AreProtosEqual(doc, toFind)) {
+                //     toReturn.push(view);
+
                 let docSrc = FieldValue(doc.proto);
                 if (docSrc && Object.is(docSrc, toFind)) {
                     toReturn.push(view);
@@ -99,11 +102,6 @@ export class DocumentManager {
             // }
             return pairs;
         }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]);
-
-        // console.log("LINKED DOCUMENT VIEWS");
-        // pairs.forEach(p => {
-        //     console.log(StrCast(p.a.Document.title), p.a.props.Document[Id], StrCast(p.b.Document.title), p.b.props.Document[Id]);
-        // });
 
         return pairs;
     }

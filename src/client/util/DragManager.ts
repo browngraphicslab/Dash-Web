@@ -230,7 +230,7 @@ export namespace DragManager {
             (dropData: { [id: string]: any }) => {
                 dropData.droppedDocuments = dragData.draggedDocuments.map(d => {
                     let dv = DocumentManager.Instance.getDocumentView(d);
-
+                    // return d;
                     if (dv) {
                         if (dv.props.ContainingCollectionView === SelectionManager.SelectedDocuments()[0].props.ContainingCollectionView) {
                             return d;
