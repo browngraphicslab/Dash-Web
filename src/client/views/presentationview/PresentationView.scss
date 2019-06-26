@@ -47,10 +47,20 @@
     padding-bottom: 3px;
     font-size: 25px;
     display: inline-block;
+    width: calc(100% - 160px);
 }
 
 .presentation-icon {
     float: right;
+}
+
+.presentation-interaction {
+    float: left;
+}
+
+.presentation-interaction-selected {
+    background: #505050;
+    float: left;
 }
 
 .presentationView-name {
@@ -59,8 +69,8 @@
 }
 
 .presentation-button {
-    margin-right: 12.5%;
-    margin-left: 12.5%;
+    margin-right: 2.5%;
+    margin-left: 2.5%;
     width: 25%;
 }
 

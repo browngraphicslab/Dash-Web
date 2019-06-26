@@ -6,12 +6,12 @@ import { action, computed, observable, trace, untracked } from "mobx";
 import { observer } from "mobx-react";
 import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults } from "react-table";
 import "react-table/react-table.css";
+import { emptyFunction, returnFalse, returnZero, returnOne } from "../../../Utils";
 import { Doc, DocListCast, DocListCastAsync, Field } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
-import { emptyFunction, returnFalse, returnZero } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { Gateway } from "../../northstar/manager/Gateway";
 import { SetupDrag } from "../../util/DragManager";
@@ -434,6 +434,8 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
                         whenActiveChanged={this.props.whenActiveChanged}
                         bringToFront={emptyFunction}
                         addDocTab={this.props.addDocTab}
+                        zoomToScale={emptyFunction}
+                        getScale={returnOne}
                     />
                 </div>)}
             {input}

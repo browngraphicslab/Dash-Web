@@ -23,7 +23,7 @@ import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";
 import { DocComponent } from "../DocComponent";
-import { PresentationView } from "../PresentationView";
+import { PresentationView } from "../presentationview/PresentationView";
 import { Template } from "./../Templates";
 import { DocumentContentsView } from "./DocumentContentsView";
 import * as rp from "request-promise";
@@ -75,12 +75,15 @@ export interface DocumentViewProps {
     ContentScaling: () => number;
     PanelWidth: () => number;
     PanelHeight: () => number;
-    focus: (doc: Doc) => void;
+    focus: (doc: Doc, willZoom: boolean) => void;
     selectOnLoad: boolean;
     parentActive: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     bringToFront: (doc: Doc) => void;
     addDocTab: (doc: Doc, where: string) => void;
+    collapseToPoint?: (scrpt: number[], expandedDocs: Doc[] | undefined) => void;
+    zoomToScale: (scale: number) => void;
+    getScale: () => number;
     animateBetweenIcon?: (iconPos: number[], startTime: number, maximizing: boolean) => void;
 }
 
@@ -89,6 +92,7 @@ const schema = createSchema({
     nativeWidth: "number",
     nativeHeight: "number",
     backgroundColor: "string",
+    opacity: "number",
     hidden: "boolean"
 });
 
@@ -343,7 +347,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     if (!linkedFwdDocs.some(l => l instanceof Promise)) {
                         let maxLocation = StrCast(linkedFwdDocs[altKey ? 1 : 0].maximizeLocation, "inTab");
                         let targetContext = !Doc.AreProtosEqual(linkedFwdContextDocs[altKey ? 1 : 0], this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document) ? linkedFwdContextDocs[altKey ? 1 : 0] : undefined;
-                        DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0], ctrlKey, document => this.props.addDocTab(document, maxLocation), linkedFwdPage[altKey ? 1 : 0], targetContext);
+                        DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0], ctrlKey, false, document => this.props.addDocTab(document, maxLocation), linkedFwdPage[altKey ? 1 : 0], targetContext);
                     }
                 }
             }
@@ -498,7 +502,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 this.props.addDocTab && this.props.addDocTab(Docs.SchemaDocument(["title"], aliases, {}), "onRight");
             }, icon: "search"
         });
-        cm.addItem({ description: "Center View", event: () => this.props.focus(this.props.Document), icon: "crosshairs" });
+        cm.addItem({ description: "Center View", event: () => this.props.focus(this.props.Document, false), icon: "crosshairs" });
         cm.addItem({ description: "Copy URL", event: () => Utils.CopyText(DocServer.prepend("/doc/" + this.props.Document[Id])), icon: "link" });
         cm.addItem({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "fingerprint" });
         cm.addItem({ description: "Delete", event: this.deleteClicked, icon: "trash" });
@@ -570,7 +574,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     width: nativeWidth,
                     height: nativeHeight,
                     transform: `scale(${scaling}, ${scaling})`,
-                    opacity: this._opacity
+                    opacity: NumCast(this.props.Document.opacity, 1)
                 }}
                 onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
 
