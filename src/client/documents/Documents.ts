@@ -18,7 +18,6 @@ import { action } from "mobx";
 import { ColumnAttributeModel } from "../northstar/core/attribute/AttributeModel";
 import { AttributeTransformationModel } from "../northstar/core/attribute/AttributeTransformationModel";
 import { AggregateFunction } from "../northstar/model/idea/idea";
-import { Template } from "../views/Templates";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { IconBox } from "../views/nodes/IconBox";
 import { Field, Doc, Opt } from "../../new_fields/Doc";
@@ -30,12 +29,12 @@ import { Cast, NumCast } from "../../new_fields/Types";
 import { IconField } from "../../new_fields/IconField";
 import { listSpec } from "../../new_fields/Schema";
 import { DocServer } from "../DocServer";
-import { StrokeData, InkField } from "../../new_fields/InkField";
+import { InkField } from "../../new_fields/InkField";
 import { dropActionType } from "../util/DragManager";
 import { DateField } from "../../new_fields/DateField";
 import { UndoManager } from "../util/UndoManager";
 import { RouteStore } from "../../server/RouteStore";
-var requestImageSize = require('request-image-size');
+var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 
 export interface DocumentOptions {
@@ -51,7 +50,6 @@ export interface DocumentOptions {
     panY?: number;
     page?: number;
     scale?: number;
-    baseLayout?: string;
     layout?: string;
     templates?: List<string>;
     viewType?: number;
@@ -69,31 +67,27 @@ export interface DocumentOptions {
 const delegateKeys = ["x", "y", "width", "height", "panX", "panY"];
 
 export namespace DocUtils {
-    export function MakeLink(source: Doc, target: Doc) {
+    export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", tags: string = "Default") {
         let protoSrc = source.proto ? source.proto : source;
         let protoTarg = target.proto ? target.proto : target;
         UndoManager.RunInBatch(() => {
             let linkDoc = Docs.TextDocument({ width: 100, height: 30, borderRounding: -1 });
-            //let linkDoc = new Doc;
-            linkDoc.proto!.title = "-link name-";
-            linkDoc.proto!.linkDescription = "";
-            linkDoc.proto!.linkTags = "Default";
+            let linkDocProto = Doc.GetProto(linkDoc);
+            linkDocProto.title = title === "" ? source.title + " to " + target.title : title;
+            linkDocProto.linkDescription = description;
+            linkDocProto.linkTags = tags;
 
-            linkDoc.proto!.linkedTo = target;
-            linkDoc.proto!.linkedToPage = target.curPage;
-            linkDoc.proto!.linkedFrom = source;
-            linkDoc.proto!.linkedFromPage = source.curPage;
+            linkDocProto.linkedTo = target;
+            linkDocProto.linkedFrom = source;
+            linkDocProto.linkedToPage = target.curPage;
+            linkDocProto.linkedFromPage = source.curPage;
+            linkDocProto.linkedToContext = targetContext;
 
             let linkedFrom = Cast(protoTarg.linkedFromDocs, listSpec(Doc));
-            if (!linkedFrom) {
-                protoTarg.linkedFromDocs = linkedFrom = new List<Doc>();
-            }
-            linkedFrom.push(linkDoc);
-
             let linkedTo = Cast(protoSrc.linkedToDocs, listSpec(Doc));
-            if (!linkedTo) {
-                protoSrc.linkedToDocs = linkedTo = new List<Doc>();
-            }
+            !linkedFrom && (protoTarg.linkedFromDocs = linkedFrom = new List<Doc>());
+            !linkedTo && (protoSrc.linkedToDocs = linkedTo = new List<Doc>());
+            linkedFrom.push(linkDoc);
             linkedTo.push(linkDoc);
             return linkDoc;
         }, "make link");
@@ -140,7 +134,7 @@ export namespace Docs {
     }
 
     function setupPrototypeOptions(protoId: string, title: string, layout: string, options: DocumentOptions): Doc {
-        return Doc.assign(new Doc(protoId, true), { ...options, title: title, layout: layout, baseLayout: layout });
+        return Doc.assign(new Doc(protoId, true), { ...options, title: title, layout: layout });
     }
     function SetInstanceOptions<U extends Field>(doc: Doc, options: DocumentOptions, value: U) {
         const deleg = Doc.MakeDelegate(doc);
@@ -170,12 +164,12 @@ export namespace Docs {
     }
     function CreateTextPrototype(): Doc {
         let textProto = setupPrototypeOptions(textProtoId, "TEXT_PROTO", FormattedTextBox.LayoutString(),
-            { x: 0, y: 0, width: 300, height: 150, backgroundColor: "#f1efeb" });
+            { x: 0, y: 0, width: 300, backgroundColor: "#f1efeb" });
         return textProto;
     }
     function CreatePdfPrototype(): Doc {
         let pdfProto = setupPrototypeOptions(pdfProtoId, "PDF_PROTO", CollectionPDFView.LayoutString("annotations"),
-            { x: 0, y: 0, nativeWidth: 1200, width: 300, backgroundLayout: PDFBox.LayoutString(), curPage: 1 });
+            { x: 0, y: 0, width: 300, height: 300, backgroundLayout: PDFBox.LayoutString(), curPage: 1 });
         return pdfProto;
     }
     function CreateWebPrototype(): Doc {
@@ -227,7 +221,7 @@ export namespace Docs {
                     inst.proto!.nativeWidth = size.width;
                 }
                 inst.proto!.nativeHeight = Number(inst.proto!.nativeWidth!) * aspect;
-                inst.proto!.height = NumCast(inst.proto!.width) * aspect;
+                inst.height = NumCast(inst.width) * aspect;
             })
             .catch((err: any) => console.log(err));
         return inst;

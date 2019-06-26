@@ -1,25 +1,25 @@
-import { action, observable, trace } from 'mobx';
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { faImage } from '@fortawesome/free-solid-svg-icons';
+import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
 import Lightbox from 'react-image-lightbox';
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
+import { Doc, HeightSym, WidthSym } from '../../../new_fields/Doc';
+import { List } from '../../../new_fields/List';
+import { createSchema, listSpec, makeInterface } from '../../../new_fields/Schema';
+import { Cast, FieldValue, NumCast, StrCast } from '../../../new_fields/Types';
+import { ImageField } from '../../../new_fields/URLField';
 import { Utils } from '../../../Utils';
 import { DragManager } from '../../util/DragManager';
 import { undoBatch } from '../../util/UndoManager';
 import { ContextMenu } from "../../views/ContextMenu";
+import { ContextMenuProps } from '../ContextMenuItem';
+import { DocComponent } from '../DocComponent';
+import { InkingControl } from '../InkingControl';
+import { positionSchema } from './DocumentView';
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
 import React = require("react");
-import { createSchema, makeInterface, listSpec } from '../../../new_fields/Schema';
-import { DocComponent } from '../DocComponent';
-import { positionSchema } from './DocumentView';
-import { FieldValue, Cast, StrCast, PromiseValue, NumCast } from '../../../new_fields/Types';
-import { ImageField } from '../../../new_fields/URLField';
-import { List } from '../../../new_fields/List';
-import { InkingControl } from '../InkingControl';
-import { Doc, WidthSym, HeightSym } from '../../../new_fields/Doc';
-import { faImage } from '@fortawesome/free-solid-svg-icons';
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { ContextMenuItemProps, ContextMenuProps } from '../ContextMenuItem';
 var path = require('path');
 
 
@@ -86,9 +86,9 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
-        if (e.shiftKey && e.ctrlKey)
-
-            e.stopPropagation();
+        if (e.shiftKey && e.ctrlKey) {
+            e.stopPropagation(); // allows default system drag drop of images with shift+ctrl only
+        } else e.preventDefault();
         // if (Date.now() - this._lastTap < 300) {
         //     if (e.buttons === 1) {
         //         this._downX = e.clientX;
@@ -136,12 +136,15 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
             subitems.push({ description: "Copy path", event: () => Utils.CopyText(url), icon: "expand-arrows-alt" });
             subitems.push({
                 description: "Rotate", event: action(() => {
-                    this.props.Document.rotation = (NumCast(this.props.Document.rotation) + 90) % 360;
+                    let proto = Doc.GetProto(this.props.Document);
                     let nw = this.props.Document.nativeWidth;
-                    this.props.Document.nativeWidth = this.props.Document.nativeHeight;
-                    this.props.Document.nativeHeight = nw;
+                    let nh = this.props.Document.nativeHeight;
                     let w = this.props.Document.width;
-                    this.props.Document.width = this.props.Document.height;
+                    let h = this.props.Document.height;
+                    proto.rotation = (NumCast(this.props.Document.rotation) + 90) % 360;
+                    proto.nativeWidth = nh;
+                    proto.nativeHeight = nw;
+                    this.props.Document.width = h;
                     this.props.Document.height = w;
                 }), icon: "expand-arrows-alt"
             });
@@ -185,8 +188,9 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     }
     @action onError = () => {
         let timeout = this._curSuffix === "_s" ? this._smallRetryCount : this._curSuffix === "_m" ? this._mediumRetryCount : this._largeRetryCount;
-        if (timeout < 10)
+        if (timeout < 10) {
             setTimeout(this.retryPath, Math.min(10000, timeout * 5));
+        }
     }
     _curSuffix = "_m";
     render() {
@@ -198,6 +202,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
 
         let id = (this.props as any).id; // bcz: used to set id = "isExpander" in templates.tsx
         let nativeWidth = FieldValue(this.Document.nativeWidth, pw);
+        let nativeHeight = FieldValue(this.Document.nativeHeight, 0);
         let paths: string[] = ["http://www.cs.brown.edu/~bcz/noImage.png"];
         // this._curSuffix = "";
         // if (w > 20) {
@@ -211,9 +216,9 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         let interactive = InkingControl.Instance.selectedTool ? "" : "-interactive";
         let rotation = NumCast(this.props.Document.rotation, 0);
         let aspect = (rotation % 180) ? this.props.Document[HeightSym]() / this.props.Document[WidthSym]() : 1;
-        let shift = (rotation % 180) ? (this.props.Document[HeightSym]() - this.props.Document[WidthSym]() / aspect) / 2 : 0;
+        let shift = (rotation % 180) ? (nativeHeight - nativeWidth / aspect) / 2 : 0;
         return (
-            <div id={id} className={`imageBox-cont${interactive}`}
+            <div id={id} className={`imageBox-cont${interactive}`} style={{ background: "transparent" }}
                 onPointerDown={this.onPointerDown}
                 onDrop={this.onDrop} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
                 <img id={id}

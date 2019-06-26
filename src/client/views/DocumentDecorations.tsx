@@ -1,33 +1,33 @@
-import { action, computed, observable, runInAction, untracked, reaction } from "mobx";
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { faLink } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { action, computed, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
+import { Doc } from "../../new_fields/Doc";
+import { List } from "../../new_fields/List";
+import { listSpec } from "../../new_fields/Schema";
+import { Cast, NumCast, StrCast, BoolCast } from "../../new_fields/Types";
 import { emptyFunction, Utils } from "../../Utils";
+import { Docs } from "../documents/Documents";
+import { DocumentManager } from "../util/DocumentManager";
 import { DragLinksAsDocuments, DragManager } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
 import { undoBatch } from "../util/UndoManager";
+import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
+import { CollectionView } from "./collections/CollectionView";
 import './DocumentDecorations.scss';
 import { DocumentView, PositionDocument } from "./nodes/DocumentView";
+import { FieldView } from "./nodes/FieldView";
+import { FormattedTextBox } from "./nodes/FormattedTextBox";
+import { IconBox } from "./nodes/IconBox";
 import { LinkMenu } from "./nodes/LinkMenu";
 import { TemplateMenu } from "./TemplateMenu";
-import React = require("react");
 import { Template, Templates } from "./Templates";
-import { CompileScript } from "../util/Scripting";
-import { IconBox } from "./nodes/IconBox";
-import { Cast, FieldValue, NumCast, StrCast } from "../../new_fields/Types";
-import { Doc, FieldResult } from "../../new_fields/Doc";
-import { listSpec } from "../../new_fields/Schema";
-import { Docs } from "../documents/Documents";
-import { List } from "../../new_fields/List";
+import React = require("react");
+import { URLField } from '../../new_fields/URLField';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
-import { faLink } from '@fortawesome/free-solid-svg-icons';
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
-import { CollectionView } from "./collections/CollectionView";
-import { DocumentManager } from "../util/DocumentManager";
-import { FormattedTextBox } from "./nodes/FormattedTextBox";
-import { FieldView } from "./nodes/FieldView";
 
 library.add(faLink);
 
@@ -42,6 +42,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     private _titleHeight = 20;
     private _linkButton = React.createRef<HTMLDivElement>();
     private _linkerButton = React.createRef<HTMLDivElement>();
+    private _embedButton = React.createRef<HTMLDivElement>();
     private _downX = 0;
     private _downY = 0;
     private _iconDoc?: Doc = undefined;
@@ -330,9 +331,24 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         document.removeEventListener("pointerup", this.onLinkerButtonUp);
         document.addEventListener("pointerup", this.onLinkerButtonUp);
     }
+
+    onEmbedButtonDown = (e: React.PointerEvent): void => {
+        e.stopPropagation();
+        document.removeEventListener("pointermove", this.onEmbedButtonMoved);
+        document.addEventListener("pointermove", this.onEmbedButtonMoved);
+        document.removeEventListener("pointerup", this.onEmbedButtonUp);
+        document.addEventListener("pointerup", this.onEmbedButtonUp);
+    }
+
     onLinkerButtonUp = (e: PointerEvent): void => {
         document.removeEventListener("pointermove", this.onLinkerButtonMoved);
         document.removeEventListener("pointerup", this.onLinkerButtonUp);
+        e.stopPropagation();
+    }
+
+    onEmbedButtonUp = (e: PointerEvent): void => {
+        document.removeEventListener("pointermove", this.onEmbedButtonMoved);
+        document.removeEventListener("pointerup", this.onEmbedButtonUp);
         e.stopPropagation();
     }
 
@@ -346,6 +362,25 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             let dragData = new DragManager.LinkDragData(selDoc.props.Document, container ? [container] : []);
             FormattedTextBox.InputBoxOverlay = undefined;
             DragManager.StartLinkDrag(this._linkerButton.current, dragData, e.pageX, e.pageY, {
+                handlers: {
+                    dragComplete: action(emptyFunction),
+                },
+                hideSource: false
+            });
+        }
+        e.stopPropagation();
+    }
+
+    @action
+    onEmbedButtonMoved = (e: PointerEvent): void => {
+        if (this._embedButton.current !== null) {
+            document.removeEventListener("pointermove", this.onEmbedButtonMoved);
+            document.removeEventListener("pointerup", this.onEmbedButtonUp);
+
+            let dragDocView = SelectionManager.SelectedDocuments()[0];
+            let dragData = new DragManager.EmbedDragData(dragDocView.props.Document);
+
+            DragManager.StartEmbedDrag(dragDocView.ContentDiv!, dragData, e.x, e.y, {
                 handlers: {
                     dragComplete: action(emptyFunction),
                 },
@@ -429,31 +464,46 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
         runInAction(() => FormattedTextBox.InputBoxOverlay = undefined);
         SelectionManager.SelectedDocuments().forEach(element => {
-            const rect = element.ContentDiv ? element.ContentDiv.getBoundingClientRect() : new DOMRect();
-
-            if (rect.width !== 0 && (dX != 0 || dY != 0 || dW != 0 || dH != 0)) {
+            if (dX !== 0 || dY !== 0 || dW !== 0 || dH !== 0) {
                 let doc = PositionDocument(element.props.Document);
-                let docHeightBefore = doc.height;
                 let nwidth = doc.nativeWidth || 0;
                 let nheight = doc.nativeHeight || 0;
                 let zoomBasis = NumCast(doc.zoomBasis, 1);
                 let width = (doc.width || 0) / zoomBasis;
                 let height = (doc.height || (nheight / nwidth * width)) / zoomBasis;
-                let scale = width / rect.width;
+                let scale = element.props.ScreenToLocalTransform().Scale;
                 let actualdW = Math.max(width + (dW * scale), 20);
                 let actualdH = Math.max(height + (dH * scale), 20);
                 doc.x = (doc.x || 0) + dX * (actualdW - width);
                 doc.y = (doc.y || 0) + dY * (actualdH - height);
+                let proto = Doc.GetProto(element.props.Document);
+                let fixedAspect = e.ctrlKey || (!BoolCast(proto.ignoreAspect, false) && nwidth && nheight);
+                if (fixedAspect && (!nwidth || !nheight)) {
+                    proto.nativeWidth = nwidth = doc.width || 0;
+                    proto.nativeHeight = nheight = doc.height || 0;
+                    proto.ignoreAspect = true;
+                }
                 if (nwidth > 0 && nheight > 0) {
                     if (Math.abs(dW) > Math.abs(dH)) {
-                        doc.zoomBasis = zoomBasis * width / actualdW;
+                        if (!fixedAspect) proto.nativeWidth = zoomBasis * actualdW / (doc.width || 1) * NumCast(proto.nativeWidth);
+                        doc.width = zoomBasis * actualdW;
+                        // doc.zoomBasis = zoomBasis * width / actualdW;
+                        if (fixedAspect) doc.height = nheight / nwidth * doc.width;
+                        else doc.height = zoomBasis * actualdH;
+                        proto.nativeHeight = (doc.height || 0) / doc.width * NumCast(proto.nativeWidth);
                     }
                     else {
-                        doc.zoomBasis = zoomBasis * height / actualdH;
+                        if (!fixedAspect) proto.nativeHeight = zoomBasis * actualdH / (doc.height || 1) * NumCast(proto.nativeHeight);
+                        doc.height = zoomBasis * actualdH;
+                        //doc.zoomBasis = zoomBasis * height / actualdH;
+                        if (fixedAspect) doc.width = nwidth / nheight * doc.height;
+                        else doc.width = zoomBasis * actualdW;
+                        proto.nativeWidth = (doc.width || 0) / doc.height * NumCast(proto.nativeHeight);
                     }
                 } else {
-                    doc.width = zoomBasis * actualdW;
-                    if (docHeightBefore === doc.height) doc.height = zoomBasis * actualdH;
+                    dW && (doc.width = zoomBasis * actualdW);
+                    dH && (doc.height = zoomBasis * actualdH);
+                    proto.autoHeight = undefined;
                 }
             }
         });
@@ -464,7 +514,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         e.stopPropagation();
         this._resizing = "";
         this.Interacting = false;
-        SelectionManager.ReselectAll();
         if (e.button === 0) {
             e.preventDefault();
             this._isPointerDown = false;
@@ -496,6 +545,19 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     //     e.stopPropagation();
     // }
 
+    considerEmbed = () => {
+        let thisDoc = SelectionManager.SelectedDocuments()[0].props.Document;
+        let canEmbed = thisDoc.data && thisDoc.data instanceof URLField;
+        if (!canEmbed) return (null);
+        return (
+            <div className="linkButtonWrapper">
+                <div style={{ paddingTop: 3, marginLeft: 30 }} title="Drag Embed" className="linkButton-linker" ref={this._embedButton} onPointerDown={this.onEmbedButtonDown}>
+                    <FontAwesomeIcon className="fa-image" icon="image" size="sm" />
+                </div>
+            </div>
+        );
+    }
+
     render() {
         var bounds = this.Bounds;
         let seldoc = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
@@ -523,11 +585,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
         let templates: Map<Template, boolean> = new Map();
         Array.from(Object.values(Templates.TemplateList)).map(template => {
-            let sorted = SelectionManager.ViewsSortedVertically().slice().sort((doc1, doc2) => {
-                if (NumCast(doc1.props.Document.x) > NumCast(doc2.props.Document.x)) return 1;
-                if (NumCast(doc1.props.Document.x) < NumCast(doc2.props.Document.x)) return -1;
-                return 0;
-            });
+            let sorted = SelectionManager.ViewsSortedVertically(); // slice().sort((doc1, doc2) => {
+            //     if (NumCast(doc1.props.Document.y) > NumCast(doc2.props.Document.x)) return 1;
+            //     if (NumCast(doc1.props.Document.x) < NumCast(doc2.props.Document.x)) return -1;
+            //     return 0;
+            // });
             let docTemps = sorted.reduce((res: string[], doc: DocumentView, i) => {
                 let temps = doc.props.Document.templates;
                 if (temps instanceof List) {
@@ -590,6 +652,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                         </div>
                     </div>
                     <TemplateMenu docs={SelectionManager.ViewsSortedVertically()} templates={templates} />
+                    {this.considerEmbed()}
                 </div>
             </div >
         </div>

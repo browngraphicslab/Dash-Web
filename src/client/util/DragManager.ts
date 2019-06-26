@@ -1,12 +1,14 @@
-import { action, runInAction } from "mobx";
+import { action, runInAction, observable } from "mobx";
 import { Doc, DocListCastAsync } from "../../new_fields/Doc";
 import { Cast } from "../../new_fields/Types";
 import { emptyFunction } from "../../Utils";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import * as globalCssVariables from "../views/globalCssVariables.scss";
+import { URLField } from "../../new_fields/URLField";
+import { SelectionManager } from "./SelectionManager";
 
 export type dropActionType = "alias" | "copy" | undefined;
-export function SetupDrag(_reference: React.RefObject<HTMLElement>, docFunc: () => Doc | Promise<Doc>, moveFunc?: DragManager.MoveFunction, dropAction?: dropActionType) {
+export function SetupDrag(_reference: React.RefObject<HTMLElement>, docFunc: () => Doc | Promise<Doc>, moveFunc?: DragManager.MoveFunction, dropAction?: dropActionType, options?: any, dontHideOnDrop?: boolean) {
     let onRowMove = async (e: PointerEvent) => {
         e.stopPropagation();
         e.preventDefault();
@@ -16,6 +18,8 @@ export function SetupDrag(_reference: React.RefObject<HTMLElement>, docFunc: () 
         var dragData = new DragManager.DocumentDragData([await docFunc()]);
         dragData.dropAction = dropAction;
         dragData.moveDocument = moveFunc;
+        dragData.options = options;
+        dragData.dontHideOnDrop = dontHideOnDrop;
         DragManager.StartDocumentDrag([_reference.current!], dragData, e.x, e.y);
     };
     let onRowUp = (): void => {
@@ -86,6 +90,8 @@ export namespace DragManager {
         handlers: DragHandlers;
 
         hideSource: boolean | (() => boolean);
+
+        withoutShiftDrag?: boolean;
     }
 
     export interface DragDropDisposer {
@@ -153,6 +159,22 @@ export namespace DragManager {
         [id: string]: any;
     }
 
+    export class AnnotationDragData {
+        constructor(dragDoc: Doc, annotationDoc: Doc, dropDoc: Doc) {
+            this.dragDocument = dragDoc;
+            this.dropDocument = dropDoc;
+            this.annotationDocument = annotationDoc;
+            this.xOffset = this.yOffset = 0;
+        }
+        dragDocument: Doc;
+        annotationDocument: Doc;
+        dropDocument: Doc;
+        xOffset: number;
+        yOffset: number;
+        dropAction: dropActionType;
+        userDropAction: dropActionType;
+    }
+
     export let StartDragFunctions: (() => void)[] = [];
 
     export function StartDocumentDrag(eles: HTMLElement[], dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
@@ -164,6 +186,10 @@ export namespace DragManager {
                     dragData.userDropAction === "copy" || (!dragData.userDropAction && dragData.dropAction === "copy") ?
                         dragData.draggedDocuments.map(d => Doc.MakeCopy(d, true)) :
                         dragData.draggedDocuments));
+    }
+
+    export function StartAnnotationDrag(eles: HTMLElement[], dragData: AnnotationDragData, downX: number, downY: number, options?: DragOptions) {
+        StartDrag(eles, dragData, downX, downY, options);
     }
 
     export class LinkDragData {
@@ -178,27 +204,42 @@ export namespace DragManager {
         [id: string]: any;
     }
 
+    export class EmbedDragData {
+        constructor(embeddableSourceDoc: Doc) {
+            this.embeddableSourceDoc = embeddableSourceDoc;
+            this.urlField = embeddableSourceDoc.data instanceof URLField ? embeddableSourceDoc.data : undefined;
+        }
+        embeddableSourceDoc: Doc;
+        urlField?: URLField;
+        [id: string]: any;
+    }
+
     export function StartLinkDrag(ele: HTMLElement, dragData: LinkDragData, downX: number, downY: number, options?: DragOptions) {
+        StartDrag([ele], dragData, downX, downY, options);
+    }
+
+    export function StartEmbedDrag(ele: HTMLElement, dragData: EmbedDragData, downX: number, downY: number, options?: DragOptions) {
         StartDrag([ele], dragData, downX, downY, options);
     }
 
     export let AbortDrag: () => void = emptyFunction;
 
     function StartDrag(eles: HTMLElement[], dragData: { [id: string]: any }, downX: number, downY: number, options?: DragOptions, finishDrag?: (dropData: { [id: string]: any }) => void) {
+        eles = eles.filter(e => e);
         if (!dragDiv) {
             dragDiv = document.createElement("div");
             dragDiv.className = "dragManager-dragDiv";
             dragDiv.style.pointerEvents = "none";
             DragManager.Root().appendChild(dragDiv);
         }
-
+        SelectionManager.SetIsDragging(true);
         let scaleXs: number[] = [];
         let scaleYs: number[] = [];
         let xs: number[] = [];
         let ys: number[] = [];
 
         const docs: Doc[] =
-            dragData instanceof DocumentDragData ? dragData.draggedDocuments : [];
+            dragData instanceof DocumentDragData ? dragData.draggedDocuments : dragData instanceof AnnotationDragData ? [dragData.dragDocument] : [];
         let dragElements = eles.map(ele => {
             const w = ele.offsetWidth,
                 h = ele.offsetHeight;
@@ -241,6 +282,16 @@ export namespace DragManager {
             //         pdfBox.replaceChild(img, pdfBox.children[0])
             //     }
             // }
+            let set = dragElement.getElementsByTagName('*');
+            if (dragElement.hasAttribute("style")) (dragElement as any).style.pointerEvents = "none";
+            // tslint:disable-next-line: prefer-for-of
+            for (let i = 0; i < set.length; i++) {
+                if (set[i].hasAttribute("style")) {
+                    let s = set[i];
+                    (s as any).style.pointerEvents = "none";
+                }
+            }
+
 
             dragDiv.appendChild(dragElement);
             return dragElement;
@@ -259,12 +310,11 @@ export namespace DragManager {
         let lastX = downX;
         let lastY = downY;
         const moveHandler = (e: PointerEvent) => {
-            e.stopPropagation();
-            e.preventDefault();
+            e.preventDefault(); // required or dragging text menu link item ends up dragging the link button as native drag/drop
             if (dragData instanceof DocumentDragData) {
                 dragData.userDropAction = e.ctrlKey || e.altKey ? "alias" : undefined;
             }
-            if (e.shiftKey && CollectionDockingView.Instance) {
+            if (((options && !options.withoutShiftDrag) || !options) && e.shiftKey && CollectionDockingView.Instance) {
                 AbortDrag();
                 CollectionDockingView.Instance.StartOtherDrag(docs, {
                     pageX: e.pageX,
@@ -284,6 +334,7 @@ export namespace DragManager {
         };
 
         let hideDragElements = () => {
+            SelectionManager.SetIsDragging(false);
             dragElements.map(dragElement => dragElement.parentNode === dragDiv && dragDiv.removeChild(dragElement));
             eles.map(ele => (ele.hidden = false));
         };
@@ -309,7 +360,7 @@ export namespace DragManager {
     }
 
     function dispatchDrag(dragEles: HTMLElement[], e: PointerEvent, dragData: { [index: string]: any }, options?: DragOptions, finishDrag?: (dragData: { [index: string]: any }) => void) {
-        let removed = dragEles.map(dragEle => {
+        let removed = dragData.dontHideOnDrop ? [] : dragEles.map(dragEle => {
             // let parent = dragEle.parentElement;
             // if (parent) parent.removeChild(dragEle);
             let ret = [dragEle, dragEle.style.width, dragEle.style.height];

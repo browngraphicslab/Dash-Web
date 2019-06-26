@@ -1,11 +1,9 @@
 import { observable, action, computed } from "mobx";
-
 import { CirclePicker, ColorResult } from 'react-color';
 import React = require("react");
 import { observer } from "mobx-react";
 import "./InkingControl.scss";
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPen, faHighlighter, faEraser, faBan } from '@fortawesome/free-solid-svg-icons';
 import { SelectionManager } from "../util/SelectionManager";
 import { InkTool } from "../../new_fields/InkField";
@@ -20,7 +18,6 @@ export class InkingControl extends React.Component {
     @observable private _selectedColor: string = "rgb(244, 67, 54)";
     @observable private _selectedWidth: string = "25";
     @observable private _open: boolean = false;
-    @observable private _colorPickerDisplay = false;
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -31,11 +28,18 @@ export class InkingControl extends React.Component {
     switchTool = (tool: InkTool): void => {
         this._selectedTool = tool;
     }
+    decimalToHexString(number: number) {
+        if (number < 0) {
+            number = 0xFFFFFFFF + number + 1;
+        }
+
+        return number.toString(16).toUpperCase();
+    }
 
     @action
     switchColor = (color: ColorResult): void => {
-        this._selectedColor = color.hex;
-        SelectionManager.SelectedDocuments().forEach(doc => Doc.GetProto(doc.props.Document).backgroundColor = color.hex);
+        this._selectedColor = color.hex + (color.rgb.a !== undefined ? this.decimalToHexString(Math.round(color.rgb.a * 255)) : "ff");
+        SelectionManager.SelectedDocuments().forEach(doc => Doc.GetProto(doc.props.Document).backgroundColor = this._selectedColor);
     }
 
     @action
@@ -58,45 +62,14 @@ export class InkingControl extends React.Component {
         return this._selectedWidth;
     }
 
-    selected = (tool: InkTool) => {
-        if (this._selectedTool === tool) {
-            return { color: "#61aaa3" };
-        }
-        return {};
-    }
-
     @action
     toggleDisplay = () => {
         this._open = !this._open;
+        this.switchTool(this._open ? InkTool.Pen : InkTool.None);
     }
-
-
-    @action
-    toggleColorPicker = () => {
-        this._colorPickerDisplay = !this._colorPickerDisplay;
-    }
-
     render() {
         return (
             <ul className="inking-control" style={this._open ? { display: "flex" } : { display: "none" }}>
-                <li className="ink-tools ink-panel">
-                    <div className="ink-tool-buttons">
-                        <button onClick={() => this.switchTool(InkTool.Pen)} style={this.selected(InkTool.Pen)}><FontAwesomeIcon icon="pen" size="lg" title="Pen" /></button>
-                        <button onClick={() => this.switchTool(InkTool.Highlighter)} style={this.selected(InkTool.Highlighter)}><FontAwesomeIcon icon="highlighter" size="lg" title="Highlighter" /></button>
-                        <button onClick={() => this.switchTool(InkTool.Eraser)} style={this.selected(InkTool.Eraser)}><FontAwesomeIcon icon="eraser" size="lg" title="Eraser" /></button>
-                        <button onClick={() => this.switchTool(InkTool.None)} style={this.selected(InkTool.None)}><FontAwesomeIcon icon="ban" size="lg" title="Pointer" /></button>
-                    </div>
-                </li>
-                <li className="ink-color ink-panel">
-                    <label>COLOR: </label>
-                    <div className="ink-color-display" style={{ backgroundColor: this._selectedColor }}
-                        onClick={() => this.toggleColorPicker()}>
-                        {/* {this._colorPickerDisplay ? <span>&#9660;</span> : <span>&#9650;</span>} */}
-                    </div>
-                    <div className="ink-color-picker" style={this._colorPickerDisplay ? { display: "block" } : { display: "none" }}>
-                        <CirclePicker onChange={this.switchColor} circleSize={22} width={"220"} />
-                    </div>
-                </li>
                 <li className="ink-size ink-panel">
                     <label htmlFor="stroke-width">SIZE: </label>
                     <input type="text" min="1" max="100" value={this._selectedWidth} name="stroke-width"
