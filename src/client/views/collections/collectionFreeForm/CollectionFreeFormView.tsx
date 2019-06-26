@@ -47,7 +47,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private get _pwidth() { return this.props.PanelWidth(); }
     private get _pheight() { return this.props.PanelHeight(); }
 
-    @computed get dataDoc() { return this.props.DataDoc && BoolCast(this.props.Document.isTemplate) ? this.props.DataDoc : this.props.Document; }
     @computed get nativeWidth() { return this.Document.nativeWidth || 0; }
     @computed get nativeHeight() { return this.Document.nativeHeight || 0; }
     public get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldExt === "annotations"; }
@@ -371,10 +370,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         });
     }
 
-    @computed get extDoc() {
-        return this.dataDoc && this.props.fieldExt && this.dataDoc[this.props.fieldKey + "_ext"] instanceof Doc ? this.dataDoc[this.props.fieldKey + "_ext"] as Doc : this.dataDoc;
-    }
-
     private childViews = () => [
         <CollectionFreeFormBackgroundView key="backgroundView" {...this.props} {...this.getDocumentViewProps(this.props.Document)} DataDoc={this.props.DataDoc} />,
         ...this.views
@@ -382,10 +377,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     render() {
         const containerName = `collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`;
         const easing = () => this.props.Document.panTransformType === "Ease";
-        if (this.dataDoc && this.props.fieldExt && this.dataDoc[this.props.fieldKey + "_ext"] === undefined) {
-            console.log("Timeout " + this.dataDoc.title + " " + this.props.fieldKey);
-            setTimeout(() => Doc.MakeFieldExtension(this.dataDoc, this.props.fieldKey), 0);
-        }
+        if (this.props.fieldExt) Doc.UpdateFieldExtension(this.dataDoc, this.props.fieldKey);
         return (
             <div className={containerName} ref={this.createDropTarget} onWheel={this.onPointerWheel}
                 style={{ borderRadius: "inherit" }}

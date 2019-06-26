@@ -69,14 +69,14 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         if (de.data instanceof DragManager.DocumentDragData) {
             de.data.droppedDocuments.forEach(action((drop: Doc) => {
                 if (/*this.dataDoc !== this.props.Document &&*/ drop.data instanceof ImageField) {
-                    this.dataDoc[this.props.fieldKey] = new ImageField(drop.data.url);
+                    Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new ImageField(drop.data.url);
                     e.stopPropagation();
                 } else {
                     let layout = StrCast(drop.backgroundLayout);
                     if (layout.indexOf(ImageBox.name) !== -1) {
                         let imgData = this.dataDoc[this.props.fieldKey];
                         if (imgData instanceof ImageField) {
-                            Doc.SetOnPrototype(this.dataDoc, this.props.fieldKey, new List([imgData]));
+                            Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new List([imgData]);
                         }
                         let imgList = Cast(this.dataDoc[this.props.fieldKey], listSpec(ImageField), [] as any[]);
                         if (imgList) {

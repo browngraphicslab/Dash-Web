@@ -224,7 +224,7 @@ export namespace Doc {
 
     // gets the document's prototype or returns the document if it is a prototype
     export function GetProto(doc: Doc) {
-        return Doc.GetT(doc, "isPrototype", "boolean", true) || doc.isTemplate ? doc : (doc.proto || doc);
+        return Doc.GetT(doc, "isPrototype", "boolean", true) ? doc : (doc.proto || doc);
     }
 
     export function allKeys(doc: Doc): string[] {
@@ -249,16 +249,25 @@ export namespace Doc {
         return true;
     }
 
-    export function MakeFieldExtension(doc: Doc, fieldKey: string) {
-        let fieldExtension = new Doc(doc[Id] + fieldKey, true);
-        fieldExtension.title = "Extension of " + doc.title + "'s field:" + fieldKey;
-        let proto: Doc | undefined = doc;
-        while (proto && !Doc.IsPrototype(proto)) {
-            proto = proto.proto;
-        }
-        (proto ? proto : doc)[fieldKey + "_ext"] = fieldExtension;
+    export function extDoc(doc: Doc, fieldKey: string, fieldExt: string) {
+        return doc && fieldExt && doc[fieldKey + "_ext"] instanceof Doc ? doc[fieldKey + "_ext"] as Doc : doc;
     }
-
+    export function extField(doc: Doc, fieldKey: string, fieldExt: string) {
+        return doc && fieldExt && doc[fieldKey + "_ext"] instanceof Doc ? fieldExt : fieldKey;
+    }
+    export function UpdateFieldExtension(doc: Doc, fieldKey: string) {
+        if (doc && doc[fieldKey + "_ext"] === undefined) {
+            setTimeout(() => {
+                let fieldExtension = new Doc(doc[Id] + fieldKey, true);
+                fieldExtension.title = "Extension of " + doc.title + "'s field:" + fieldKey;
+                let proto: Doc | undefined = doc;
+                while (proto && !Doc.IsPrototype(proto)) {
+                    proto = proto.proto;
+                }
+                (proto ? proto : doc)[fieldKey + "_ext"] = fieldExtension;
+            }, 0);
+        }
+    }
     export function MakeAlias(doc: Doc) {
         if (!GetT(doc, "isPrototype", "boolean", true)) {
             return Doc.MakeCopy(doc);

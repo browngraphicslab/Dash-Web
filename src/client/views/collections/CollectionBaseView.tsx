@@ -1,16 +1,16 @@
 import { action, computed, observable } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
-import { Doc, DocListCast, Opt } from '../../../new_fields/Doc';
+import { Doc } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
 import { listSpec } from '../../../new_fields/Schema';
-import { Cast, FieldValue, NumCast, PromiseValue, StrCast, BoolCast } from '../../../new_fields/Types';
+import { BoolCast, Cast, NumCast, PromiseValue } from '../../../new_fields/Types';
+import { DocumentManager } from '../../util/DocumentManager';
 import { SelectionManager } from '../../util/SelectionManager';
 import { ContextMenu } from '../ContextMenu';
 import { FieldViewProps } from '../nodes/FieldView';
 import './CollectionBaseView.scss';
-import { DocumentManager } from '../../util/DocumentManager';
 
 export enum CollectionViewType {
     Invalid,
@@ -35,7 +35,6 @@ export interface CollectionViewProps extends FieldViewProps {
     className?: string;
     contentRef?: React.Ref<HTMLDivElement>;
 }
-
 
 @observer
 export class CollectionBaseView extends React.Component<CollectionViewProps> {
@@ -75,10 +74,10 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
     }
 
     @computed get extDoc() {
-        return this.dataDoc && this.props.fieldExt && this.dataDoc[this.props.fieldKey + "_ext"] instanceof Doc ? this.dataDoc[this.props.fieldKey + "_ext"] as Doc : this.dataDoc;
+        return Doc.extDoc(this.dataDoc, this.props.fieldKey, this.props.fieldExt);
     }
     @computed get extField() {
-        return this.dataDoc && this.props.fieldExt && this.dataDoc[this.props.fieldKey + "_ext"] instanceof Doc ? this.props.fieldExt : this.props.fieldKey;
+        return Doc.extField(this.dataDoc, this.props.fieldKey, this.props.fieldExt);
     }
 
     @action.bound

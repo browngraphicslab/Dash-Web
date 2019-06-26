@@ -45,13 +45,15 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             this.createDropTarget(ele);
         }
 
+        @computed get dataDoc() { return this.props.DataDoc && BoolCast(this.props.Document.isTemplate) ? this.props.DataDoc : this.props.Document; }
 
         @computed get extDoc() {
-            return this.props.DataDoc && this.props.fieldExt && this.props.DataDoc[this.props.fieldKey + "_ext"] instanceof Doc ? this.props.DataDoc[this.props.fieldKey + "_ext"] as Doc : this.props.DataDoc;
+            return Doc.extDoc(this.dataDoc, this.props.fieldKey, this.props.fieldExt);
         }
         @computed get extField() {
-            return this.props.DataDoc && this.props.fieldExt && this.props.DataDoc[this.props.fieldKey + "_ext"] instanceof Doc ? this.props.fieldExt : this.props.fieldKey;
+            return Doc.extField(this.dataDoc, this.props.fieldKey, this.props.fieldExt);
         }
+
         get childDocs() {
             //TODO tfs: This might not be what we want?
             //This linter error can't be fixed because of how js arguments work, so don't switch this to filter(FieldValue)
