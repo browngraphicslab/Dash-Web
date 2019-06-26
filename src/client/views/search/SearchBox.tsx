@@ -198,9 +198,9 @@ export class SearchBox extends React.Component {
                     ) :
                         this._openNoResults ? (<div className="no-result">No Search Results</div>) : null}
                 </div>
-                <div style={this._results.length !== 0 ? { display: "flex" } : { display: "none" }}>
+                {/* <div style={this._results.length !== 0 ? { display: "flex" } : { display: "none" }}>
                     <Pager />
-                </div>
+                </div> */}
             </div>
         );
     }
