@@ -555,16 +555,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         var scaling = this.props.ContentScaling();
         var nativeWidth = this.nativeWidth > 0 ? `${this.nativeWidth}px` : "100%";
 
-        // // for linkbutton docs
-        // let isLinkButton = BoolCast(this.props.Document.isLinkButton);
-        // let activeDvs = DocumentManager.Instance.DocumentViews.filter(dv => dv.isSelected() || BoolCast(dv.props.Document.libraryBrush, false));
-        // let display = isLinkButton ? activeDvs.reduce((found, dv) => {
-        //     let matchSv = this.props.Document.sourceViewId === StrCast(dv.props.Document[Id]);
-        //     let matchTv = this.props.Document.targetViewId === StrCast(dv.props.Document[Id]);
-        //     let match = matchSv || matchTv;
-        //     return match || found;
-        // }, false) : true;
-
         var nativeHeight = BoolCast(this.props.Document.ignoreAspect) ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
         return (
             <div className={`documentView-node${this.props.isTopMost ? "-topmost" : ""}`}
@@ -581,7 +571,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     width: nativeWidth,
                     height: nativeHeight,
                     transform: `scale(${scaling}, ${scaling})`,
-                    // display: display ? "block" : "none"
                 }}
                 onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
                 onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}

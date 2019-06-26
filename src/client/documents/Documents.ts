@@ -88,7 +88,7 @@ export namespace DocUtils {
     //     let protoTarg = target.proto ? target.proto : target;
     export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", tags: string = "Default") {
         if (LinkManager.Instance.doesLinkExist(source, target)) {
-            console.log("LINK EXISTS"); return;
+            return;
         }
 
         UndoManager.RunInBatch(() => {
@@ -186,11 +186,6 @@ export namespace Docs {
             { x: 0, y: 0, width: Number(MINIMIZED_ICON_SIZE), height: Number(MINIMIZED_ICON_SIZE) });
         return iconProto;
     }
-    // function CreateLinkPrototype(): Doc {
-    //     let linkProto = setupPrototypeOptions(linkProtoId, "LINK_PROTO", LinkButtonBox.LayoutString(),
-    //         { x: 0, y: 0, width: 300 });
-    //     return linkProto;
-    // }
     function CreateTextPrototype(): Doc {
         let textProto = setupPrototypeOptions(textProtoId, "TEXT_PROTO", FormattedTextBox.LayoutString(),
             { x: 0, y: 0, width: 300, backgroundColor: "#f1efeb" });
@@ -277,9 +272,7 @@ export namespace Docs {
     export function IconDocument(icon: string, options: DocumentOptions = {}) {
         return CreateInstance(iconProto, new IconField(icon), options);
     }
-    // export function LinkButtonDocument(data: LinkButtonData, options: DocumentOptions = {}) {
-    //     return CreateInstance(linkProto, new LinkButtonField(data), options);
-    // }
+
     export function PdfDocument(url: string, options: DocumentOptions = {}) {
         return CreateInstance(pdfProto, new PdfField(new URL(url)), options);
     }

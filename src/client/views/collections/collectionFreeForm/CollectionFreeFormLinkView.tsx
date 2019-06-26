@@ -9,7 +9,6 @@ import v5 = require("uuid/v5");
 export interface CollectionFreeFormLinkViewProps {
     A: Doc;
     B: Doc;
-    // LinkDoc: Doc;
     LinkDocs: Doc[];
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
     removeDocument: (document: Doc) => boolean;

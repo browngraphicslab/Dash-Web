@@ -71,10 +71,12 @@ class GroupTypesDropdown extends React.Component<GroupTypesDropdownProps> {
 
 
 interface LinkMetadataEditorProps {
+    id: string;
     groupType: string;
     mdDoc: Doc;
     mdKey: string;
     mdValue: string;
+    changeMdIdKey: (id: string, newKey: string) => void;
 }
 @observer
 class LinkMetadataEditor extends React.Component<LinkMetadataEditorProps> {
@@ -85,8 +87,6 @@ class LinkMetadataEditor extends React.Component<LinkMetadataEditorProps> {
     @action
     setMetadataKey = (value: string): void => {
         let groupMdKeys = LinkManager.Instance.getMetadataKeysInGroup(this.props.groupType);
-
-        // console.log("set", ...groupMdKeys, typeof (groupMdKeys[0]));
 
         // don't allow user to create existing key
         let newIndex = groupMdKeys.findIndex(key => key.toUpperCase() === value.toUpperCase());
@@ -105,6 +105,7 @@ class LinkMetadataEditor extends React.Component<LinkMetadataEditorProps> {
         if (currIndex === -1) console.error("LinkMetadataEditor: key was not found");
         groupMdKeys[currIndex] = value;
 
+        this.props.changeMdIdKey(this.props.id, value);
         this._key = value;
         LinkManager.Instance.setMetadataKeysForGroup(this.props.groupType, [...groupMdKeys]);
     }
@@ -133,7 +134,7 @@ class LinkMetadataEditor extends React.Component<LinkMetadataEditorProps> {
         return (
             <div className="linkEditor-metadata-row">
                 <input className={this._keyError ? "linkEditor-error" : ""} type="text" value={this._key} placeholder="key" onChange={e => this.setMetadataKey(e.target.value)}></input>:
-                <input type="text" value={this._value} placeholder="value" onChange={e => this.setMetadataValue(e.target.value)}></input>
+                <input type="text" value={this._value === "new key" ? "" : this._value} placeholder="value" onChange={e => this.setMetadataValue(e.target.value)}></input>
                 <button onClick={() => this.removeMetadata()}><FontAwesomeIcon icon="times" size="sm" /></button>
             </div>
         );
@@ -147,6 +148,17 @@ interface LinkGroupEditorProps {
 }
 @observer
 export class LinkGroupEditor extends React.Component<LinkGroupEditorProps> {
+
+    private _metadataIds: Map<string, string> = new Map();
+
+    constructor(props: LinkGroupEditorProps) {
+        super(props);
+
+        let groupMdKeys = LinkManager.Instance.getMetadataKeysInGroup(StrCast(props.groupDoc.type));
+        groupMdKeys.forEach(key => {
+            this._metadataIds.set(key, Utils.GenerateGuid());
+        });
+    }
 
     @action
     setGroupType = (groupType: string): void => {
@@ -188,10 +200,16 @@ export class LinkGroupEditor extends React.Component<LinkGroupEditorProps> {
 
     @action
     addMetadata = (groupType: string): void => {
+        this._metadataIds.set("new key", Utils.GenerateGuid());
         let mdKeys = LinkManager.Instance.getMetadataKeysInGroup(groupType);
         // only add "new key" if there is no other key with value "new key"; prevents spamming
         if (mdKeys.indexOf("new key") === -1) mdKeys.push("new key");
         LinkManager.Instance.setMetadataKeysForGroup(groupType, mdKeys);
+    }
+
+    // for key rendering purposes
+    changeMdIdKey = (id: string, newKey: string) => {
+        this._metadataIds.set(newKey, id);
     }
 
     renderMetadata = (): JSX.Element[] => {
@@ -201,25 +219,24 @@ export class LinkGroupEditor extends React.Component<LinkGroupEditorProps> {
         let groupType = StrCast(groupDoc.type);
         let groupMdKeys = LinkManager.Instance.getMetadataKeysInGroup(groupType);
 
-        if (groupMdKeys) {
-            groupMdKeys.forEach((key, index) => {
-                metadata.push(
-                    <LinkMetadataEditor key={"mded-" + index} groupType={groupType} mdDoc={mdDoc} mdKey={key} mdValue={(mdDoc[key] === undefined) ? "" : StrCast(mdDoc[key])} />
-                );
-            });
-        }
+        groupMdKeys.forEach((key) => {
+            let val = StrCast(mdDoc[key]);
+            metadata.push(
+                <LinkMetadataEditor key={"mded-" + this._metadataIds.get(key)} id={this._metadataIds.get(key)!} groupType={groupType} mdDoc={mdDoc} mdKey={key} mdValue={val} changeMdIdKey={this.changeMdIdKey} />
+            );
+        });
         return metadata;
     }
 
     viewGroupAsTable = (groupType: string): JSX.Element => {
         let keys = LinkManager.Instance.getMetadataKeysInGroup(groupType);
+        let index = keys.indexOf("");
+        if (index > -1) keys.splice(index, 1);
         let cols = ["anchor1", "anchor2", ...[...keys]];
-        // keys.forEach(k => cols.push(k));
-        // console.log("COLS", ...cols);
         let docs: Doc[] = LinkManager.Instance.getAllMetadataDocsInGroup(groupType);
         let createTable = action(() => Docs.SchemaDocument(cols, docs, { width: 500, height: 300, title: groupType + " table" }));
         let ref = React.createRef<HTMLDivElement>();
-        return <div ref={ref}><button className="linkEditor-button" onPointerDown={SetupDrag(ref, createTable)}><FontAwesomeIcon icon="table" size="sm" /></button></div>;
+        return <div ref={ref}><button className="linkEditor-button" onPointerDown={SetupDrag(ref, createTable)} title="Drag to view relationship table"><FontAwesomeIcon icon="table" size="sm" /></button></div>;
     }
 
     render() {
@@ -233,7 +250,7 @@ export class LinkGroupEditor extends React.Component<LinkGroupEditorProps> {
                     <button className="linkEditor-button" disabled title="Copy group to opposite anchor"><FontAwesomeIcon icon="exchange-alt" size="sm" /></button>
                     <button className="linkEditor-button" onClick={() => this.removeGroupFromLink(groupType)} title="Remove group from link"><FontAwesomeIcon icon="times" size="sm" /></button>
                     <button className="linkEditor-button" disabled title="Delete group"><FontAwesomeIcon icon="trash" size="sm" /></button>
-                    <button className="linkEditor-button" disabled><FontAwesomeIcon icon="table" size="sm" /></button>
+                    <button className="linkEditor-button" disabled title="Drag to view relationship table"><FontAwesomeIcon icon="table" size="sm" /></button>
                 </>
             );
         } else {

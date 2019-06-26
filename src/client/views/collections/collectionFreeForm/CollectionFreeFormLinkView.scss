@@ -17,34 +17,3 @@
     transform: translate(10000px,10000px);
     pointer-events: all;
 }
-
-.linkview-ele {
-    transform: translate(10000px,10000px);
-    pointer-events: all;
-
-    &.linkview-line {
-        stroke: black;
-        stroke-width: 2px;
-        opacity: 0.5;
-    }
-}
-
-.linkview-button {
-    width: 200px;
-    height: 100px;
-    border-radius: 5px;
-    padding: 10px;
-    position: relative;
-    background-color: black;
-    cursor: pointer;
-
-    p {
-        width: calc(100% - 20px);
-        color: white;
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-    }
-
-}

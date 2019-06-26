@@ -156,7 +156,7 @@ export class LinkManager {
     // removes group doc of given group type only from given anchor on given link
     public removeGroupFromAnchor(linkDoc: Doc, anchor: Doc, groupType: string) {
         let groups = LinkManager.Instance.getAnchorGroups(linkDoc, anchor);
-        let newGroups = groups.filter(groupDoc => StrCast(groupDoc.type).toUpperCase() !== groupType.toUpperCase());
+        let newGroups = groups.filter(groupDoc => { StrCast(groupDoc.type).toUpperCase() !== groupType.toUpperCase() });
         LinkManager.Instance.setAnchorGroups(linkDoc, anchor, newGroups);
     }
 
