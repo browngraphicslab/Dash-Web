@@ -662,5 +662,7 @@ export class TooltipTextMenu {
         return ref_node;
     }
 
-    destroy() { this.tooltip.remove(); }
+    destroy() {
+        this.tooltip.remove();
+    }
 }
