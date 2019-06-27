@@ -25,8 +25,6 @@ import { Tapable } from "tapable";
 import { Keyframe, KeyframeData } from "./Keyframe";
 import { timingSafeEqual } from "crypto";
 import { node } from "prop-types";
-type Data = List<Doc>;
-type Keyframes = List<List<Doc>>;
 
 const PositionSchema = createSchema({
     x: defaultSpec("number", 0),
@@ -56,34 +54,36 @@ export class Track extends React.Component<IProp> {
     private _reactionDisposers: IReactionDisposer[] = [];
     private _selectionManagerChanged?: IReactionDisposer;
 
-    @observable private _currentBarX: number = 0;
     @observable private _keys = ["x", "y", "width", "height", "panX", "panY", "scale"];
 
-    // @computed private get _keyframes() {
-    //     return Cast(this.props.Document.keyframes, listSpec(Doc)) as any as List<List<Doc>>;
-    // }
 
-    // @computed private get _data() {
-    //     //return Cast(this.props.Document.dataa, listSpec(Doc)) as List<Doc>; 
-    //     return Cast(this.props.Document[this.props.fieldKey], listSpec(Doc))!;
-    // }
-
+    @computed
+    private get keyframes(){
+        return Cast(this.props.node.keyframes, listSpec(Doc)) as List<Doc> ; 
+    }
 
 
 
     @action
     timeChange = async (time: number) => {
-        let leftkf: (Doc | undefined) = this.calcMinLeft(time);
-        let rightkf: (Doc | undefined) = this.calcMinRight(time); 
-        if (this.props.node.keyframedata!.kfs!.length < 2){
-            return; 
-        }
+        let singlekfd = this.findKeyframe(time); 
+        let leftkf: (Doc | undefined) = this.calcMinLeft(singlekfd!);
+        let rightkf: (Doc | undefined) = this.calcMinRight(singlekfd!); 
+
         if (leftkf && rightkf){ 
-            this.interpolate(leftkf, rightkf, time); 
+            this.interpolate(leftkf, rightkf); 
         } else if(leftkf){
-
+            console.log("left exists"); 
+            this._keys.forEach(k => {
+                let data = leftkf!.key as Doc; 
+                this.props.node[k] = data[k]; 
+            }); 
         } else if (rightkf){
-
+            console.log("right exists"); 
+            this._keys.forEach(k => {
+                let data = rightkf!.key as Doc; 
+                this.props.node[k] = data[k]; 
+            }); 
         }
     }
 
@@ -94,12 +94,12 @@ export class Track extends React.Component<IProp> {
      * @param time 
      */
     @action
-    calcMinLeft = (time: number): (Doc|undefined) => { //returns the time of the closet keyframe to the left
+    calcMinLeft = (singlekfd: Doc): (Doc|undefined) => { //returns the time of the closet keyframe to the left
         let leftKf:Doc = new Doc();
-        leftKf.time = Infinity; 
-        this._data.forEach((kf) => {
+        leftKf.time = Infinity;  
+        (singlekfd.kfs! as List<Doc>).forEach((kf) => {
             kf = kf as Doc;
-            if (NumCast(kf.time) < time && NumCast(leftKf.time) > NumCast(kf.time)) {
+            if (NumCast(kf.time) < this.props.currentBarX && NumCast(leftKf.time) > NumCast(kf.time)) {
                 leftKf = kf;  
             }
         });
@@ -115,12 +115,12 @@ export class Track extends React.Component<IProp> {
      * @param time: time
      */
     @action
-    calcMinRight = (time: number): (Doc|undefined) => { //returns the time of the closest keyframe to the right 
+    calcMinRight = (singlekfd: Doc): (Doc|undefined) => { //returns the time of the closest keyframe to the right 
         let rightKf:Doc = new Doc();
         rightKf.time = Infinity; 
-        this._data.forEach((kf) => {
+        (singlekfd.kfs! as List<Doc>).forEach((kf) => {
             kf = kf as Doc;
-            if (NumCast(kf.time) > time && NumCast(rightKf.time) > NumCast(kf.time)) {
+            if (NumCast(kf.time) > this.props.currentBarX && NumCast(rightKf.time) > NumCast(kf.time)) {
                 rightKf = kf;  
             }
         });
@@ -140,61 +140,63 @@ export class Track extends React.Component<IProp> {
      * @param time time that you want to interpolate
      */
     @action
-    interpolate = async (kf1: Doc, kf2: Doc, time: number) => {
-        const keyFrame1 = (await kf1)!;
-        const keyFrame2 = (await kf2)!;
-
+    interpolate = async (kf1: Doc, kf2: Doc) => {
+        let node1 = kf1.key as Doc; 
+        let node2 = kf2.key as Doc; 
+        console.log(toJS(node1)); 
+        console.log(toJS(node2)); 
         const dif_time = NumCast(kf2.time) - NumCast(kf1.time);
-        const ratio = (time - NumCast(kf1.time)) / dif_time; //linear 
+        const ratio = (this.props.currentBarX - NumCast(kf1.time)) / dif_time; //linear 
 
         this._keys.forEach(key => {
-            const diff = NumCast(keyFrame2[key]) - NumCast(keyFrame1[key]);
+            const diff = NumCast(node2[key]) - NumCast(node1[key]);
             const adjusted = diff * ratio;
-            this.props.node[key] = NumCast(keyFrame1[key]) + adjusted;
+            this.props.node[key] = NumCast(node1[key]) + adjusted;
         });
     }
 
     @action
     componentDidMount() {
         this.props.node.hidden = true; 
+        this.props.node.opacity = 0; 
         this.props.node.keyframes = new List<Doc>(); 
-        let keyframes = Cast(this.props.node.keyframes, listSpec(Doc)) as List<Doc>; 
         reaction (() => this.props.currentBarX, () => {
-            keyframes.forEach((datum) => {
-                datum = KeyframeData(datum as Doc); 
-                if (keyframes.length !== 0){
-                    let kf:(Doc | undefined) = this.findKeyframe(this.props.currentBarX); 
-                    if (kf !== undefined){
+            this.keyframes.forEach((kfd) => {
+                kfd = KeyframeData(kfd as Doc); 
+                if (kfd.length !== 0){
+                    let singlekfd:(Doc | undefined) = this.findKeyframe(this.props.currentBarX); 
+                    if (singlekfd !== undefined){
                         this.props.node.hidden = false; 
-                        console.log(toJS(kf.kfs!));
+                        this.timeChange(this.props.currentBarX); 
+                    } else {
+                        this.props.node.hidden = true; 
                     }
                 }
             }); 
         }); 
 
-        reaction(() => {
-            let keys = Doc.allKeys(this.props.node); 
-            let x = keys.indexOf("keyframes"); 
-            let afterX = keys.slice(x + 1); 
-            let beforeX = keys.slice(0, x); 
-            keys = beforeX.concat(afterX); 
-            return keys.map(key => FieldValue(this.props.node[key]));
-        }, data => {
-            if (keyframes.length !== 0){
-                let kf:(Doc | undefined) = this.findKeyframe(this.props.currentBarX); 
-                console.log(kf + "from reaction wheh moving"); 
-            }
-        }); 
+        // reaction(() => {
+        //     let keys = Doc.allKeys(this.props.node); 
+        //     let x = keys.indexOf("keyframes"); 
+        //     let afterX = keys.slice(x + 1); 
+        //     let beforeX = keys.slice(0, x); 
+        //     keys = beforeX.concat(afterX); 
+        //     return keys.map(key => FieldValue(this.props.node[key]));
+        // }, data => {
+        //     if (this.keyframes.length !== 0){
+        //         let kf:(Doc | undefined) = this.findKeyframe(this.props.currentBarX); 
+        //     }
+        // }); 
     }
 
 
     @action 
     findKeyframe(time:number): (Doc | undefined){
         let foundKeyframe = undefined; 
-        (Cast(this.props.node.keyframes, listSpec(Doc)) as List<Doc>).map(kf => {
-            kf = kf as Doc; 
-            if (time >= NumCast(kf.position) && time <= (NumCast(kf.position) + NumCast(kf.duration))){
-                foundKeyframe = kf; 
+        this.keyframes.map(kfd => {
+            kfd = KeyframeData(kfd as Doc); 
+            if (time >= NumCast(kfd.position) && time <= (NumCast(kfd.position) + NumCast(kfd.duration))){
+                foundKeyframe = kfd; 
             }    
         }); 
         return foundKeyframe; 
@@ -209,10 +211,6 @@ export class Track extends React.Component<IProp> {
 
     @observable private _keyframes: JSX.Element[] = []; 
     
-    @computed
-    get keyframes() {
-       return Cast(this.props.node.keyframes, listSpec(Doc)) as List<Doc>;
-    }
 
     @action 
     onInnerDoubleClick = (e: React.MouseEvent) => {

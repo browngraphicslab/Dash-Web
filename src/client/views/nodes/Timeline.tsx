@@ -213,15 +213,15 @@ export class Timeline extends CollectionSubView(Document){
                     <div onClick={this.windBackward}> <FontAwesomeIcon icon={faBackward} size="2x"/> </div>  
                     <div onClick={this.onPlay}> <FontAwesomeIcon icon={faPlayCircle} size="2x"/> </div>
                     <div onClick={this.windForward}> <FontAwesomeIcon icon={faForward} size="2x"/> </div>
-                    <div>
+                    {/* <div>
                         <p>Timeline Overview</p>
                         <div className="overview"></div>
-                    </div>
+                    </div> */}
                 </div>  
                 <div className="info-container" ref ={this._infoContainer}> 
                     <div className="scrubberbox" ref ={this._scrubberbox} onClick={this.onScrubberClick}>
                         {this._ticks.map(element => {
-                            return <div className="tick" style={{transform:`translate(${element / 20}px)`, position:"absolute", pointerEvent:"none"}}> <p>{this.toTime(element)}</p></div>;
+                            return <div className="tick" style={{transform:`translate(${element / 20}px)`, position:"absolute", pointerEvents:"none"}}> <p>{this.toTime(element)}</p></div>;
                         })}
                     </div>
                     <div className="scrubber" onPointerDown = {this.onScrubberDown} style={{transform:`translate(${this._currentBarX}px)`}}>

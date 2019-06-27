@@ -20,6 +20,8 @@ import { List } from "../../../new_fields/List";
 import { createSchema, defaultSpec, makeInterface, listSpec } from "../../../new_fields/Schema";
 import { CollectionBaseView } from "../collections/CollectionBaseView";
 import { notDeepEqual } from "assert";
+import { DocUtils, Docs } from "../../documents/Documents";
+import { DragLinksAsDocuments } from "../../util/DragManager";
 
 
 
@@ -30,6 +32,8 @@ interface IProp {
 }
 
 const KeyDataSchema = createSchema({});  
+
+
 const TimeAndKeyDataSchema = createSchema({
     time: defaultSpec("number", 0),
     key: Doc
@@ -71,9 +75,7 @@ export class Keyframe extends React.Component<IProp> {
         // need edge case here when keyframe data already exists when loading.....................;
         // let keyframes = Cast(this.props.node.keyframes, listSpec(Doc)) as List<Doc>;
         // if keyframes.indexOf() 
-        
-        let keyframes = Cast(this.props.node.keyframes, listSpec(Doc)) as List<Doc>;     
-        keyframes.indexOf(this.props.keyframedata);
+
     }
 
     componentWillUnmount() {
@@ -95,15 +97,13 @@ export class Keyframe extends React.Component<IProp> {
     // }
 
     @computed
-    get keyframes() {
+    private get keyframes() {
         return Cast(this.props.node.keyframes, listSpec(Doc)) as List<Doc>;
     }
     @action 
     makeKeyData = (kfpos: number) => { //Kfpos is mouse offsetX, representing time 
         let hasData = false; 
-        let index = this.keyframes.indexOf(this.props.keyframedata); 
-        let kfd = KeyframeData(this.keyframes[index] as Doc); 
-        kfd.kfs!.forEach(TK => { //TK is TimeAndKey
+        this.kfd.kfs!.forEach(TK => { //TK is TimeAndKey
             TK = TK as Doc; 
             if (TK.time === kfpos){
                 hasData = true; 
@@ -112,11 +112,17 @@ export class Keyframe extends React.Component<IProp> {
         if (!hasData){
             let TK:Doc = new Doc(); 
             TK.time = kfpos; 
-            TK.key = this.props.node; 
-            kfd.kfs!.push(TK);
-            (this.keyframes[index] as Doc) = TK; 
+            TK.key = Doc.MakeCopy(this.props.node); 
+            this.kfd.kfs!.push(TK);
         } 
         
+    }
+
+
+    @computed
+    private get kfd(){
+        let index = this.keyframes.indexOf(this.props.keyframedata); 
+        return KeyframeData(this.keyframes[index] as Doc); 
     }
 
     @action 
@@ -133,12 +139,12 @@ export class Keyframe extends React.Component<IProp> {
     onBarPointerMove = (e:PointerEvent) => {
         e.preventDefault(); 
         e.stopPropagation(); 
-        if (this._position >= 0){
-            let futureX = this._position + e.movementX; 
+        if (this.kfd.position >= 0){
+            let futureX = this.kfd.position + e.movementX; 
             if (futureX <= 0){
-                this._position = 0; 
+                this.kfd.position = 0; 
             } else{
-                this._position += e.movementX; 
+                this.kfd.position += e.movementX; 
             }
         }
     }
@@ -171,7 +177,14 @@ export class Keyframe extends React.Component<IProp> {
         let barX = bar.getBoundingClientRect().left; 
         let offset = e.clientX - barX; 
         this._duration -= offset; 
-        this._position += offset; 
+        this.kfd.position += offset; 
+        this.kfd.kfs!.forEach(kf => {
+            kf = kf as Doc; 
+            kf.time = NumCast(kf.time) + offset; 
+        }); 
+        this._keyframes.forEach(num => {
+            num += offset; 
+        }); 
     }
    
     
@@ -184,6 +197,7 @@ export class Keyframe extends React.Component<IProp> {
         let offset = e.clientX - barX; 
         console.log(offset); 
         this._duration += offset; 
+        this.kfd.duration = this._duration; 
     }
 
     createDivider = (type?: string):JSX.Element => {
@@ -202,7 +216,8 @@ export class Keyframe extends React.Component<IProp> {
         let mouse = e.nativeEvent;
         let position = NumCast(this.props.keyframedata.position);  
         this._keyframes.push(mouse.offsetX); 
-        this.makeKeyData(position); 
+        this.makeKeyData(position + mouse.offsetX); 
+
     }
 
     render() {
@@ -217,7 +232,7 @@ export class Keyframe extends React.Component<IProp> {
                     {this._keyframes.map(kf => {return <div className="keyframe" style={{left: `${kf}px`}}>
                         {this.createDivider()}
                         <div className="keyframeCircle"></div>
-                    </div>})}
+                    </div>;})}
                     {this.createDivider("left")}
                     {this.createDivider("right")}
                 </div>
