@@ -125,8 +125,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     private _mainCont = React.createRef<HTMLDivElement>();
     private _dropDisposer?: DragManager.DragDropDisposer;
 
-    @observable private _opacity: number = this.Document.opacity ? NumCast(this.Document.opacity) : 1;
-
     public get ContentDiv() { return this._mainCont.current; }
     @computed get active(): boolean { return SelectionManager.IsSelected(this) || this.props.parentActive(); }
     @computed get topMost(): boolean { return this.props.renderDepth === 0; }
@@ -146,7 +144,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     _animateToIconDisposer?: IReactionDisposer;
     _reactionDisposer?: IReactionDisposer;
-    _opacityDisposer?: IReactionDisposer;
     @action
     componentDidMount() {
         if (this._mainCont.current) {
@@ -171,12 +168,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             (values instanceof List) && this.animateBetweenIcon(values, values[2], values[3] ? true : false)
             , { fireImmediately: true });
         DocumentManager.Instance.DocumentViews.push(this);
-        this._opacityDisposer = reaction(
-            () => NumCast(this.props.Document.opacity),
-            () => {
-                runInAction(() => this._opacity = NumCast(this.props.Document.opacity));
-            }
-        );
     }
 
     animateBetweenIcon = (iconPos: number[], startTime: number, maximizing: boolean) => {
@@ -218,7 +209,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (this._reactionDisposer) this._reactionDisposer();
         if (this._animateToIconDisposer) this._animateToIconDisposer();
         if (this._dropDisposer) this._dropDisposer();
-        if (this._opacityDisposer) this._opacityDisposer();
         DocumentManager.Instance.DocumentViews.splice(DocumentManager.Instance.DocumentViews.indexOf(this), 1);
     }
 
@@ -571,9 +561,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             return null;
         }
         let backgroundColor = this.props.Document.layout instanceof Doc ? StrCast(this.props.Document.layout.backgroundColor) : this.Document.backgroundColor;
-        var scaling = this.props.ContentScaling();
         var nativeWidth = this.nativeWidth > 0 ? `${this.nativeWidth}px` : "100%";
-
         var nativeHeight = BoolCast(this.props.Document.ignoreAspect) ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
         return (
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
@@ -581,15 +569,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 style={{
                     outlineColor: "maroon",
                     outlineStyle: "dashed",
-                    outlineWidth: BoolCast(this.props.Document.libraryBrush, false) ||
-                        BoolCast(this.props.Document.protoBrush, false) ?
-                        `${1 * this.props.ScreenToLocalTransform().Scale}px`
-                        : "0px",
+                    outlineWidth: BoolCast(this.props.Document.libraryBrush) || BoolCast(this.props.Document.protoBrush) ?
+                        `${this.props.ScreenToLocalTransform().Scale}px` : "0px",
                     borderRadius: "inherit",
-                    background: backgroundColor || "",
+                    background: backgroundColor,
                     width: nativeWidth,
                     height: nativeHeight,
-                    transform: `scale(${scaling}, ${scaling})`,
+                    transform: `scale(${this.props.ContentScaling()})`,
+                    opacity: this.Document.opacity
                 }}
                 onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
                 onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}
