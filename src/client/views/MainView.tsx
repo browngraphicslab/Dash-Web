@@ -1,5 +1,5 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
-import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faThumbtack, faRedoAlt, faTable, faTree, faUndoAlt, faBell, faCommentAlt } from '@fortawesome/free-solid-svg-icons';
+import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faArrowDown, faArrowUp, faCheck, faPenNib, faThumbtack, faRedoAlt, faTable, faTree, faUndoAlt, faBell, faCommentAlt, faCut } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, runInAction, trace } from 'mobx';
 import { observer } from 'mobx-react';
@@ -11,7 +11,7 @@ import * as request from 'request';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { RouteStore } from '../../server/RouteStore';
 import { emptyFunction, returnTrue, Utils, returnOne, returnZero } from '../../Utils';
-import { Docs } from '../documents/Documents';
+import { Docs, DocTypes } from '../documents/Documents';
 import { SetupDrag, DragManager } from '../util/DragManager';
 import { Transform } from '../util/Transform';
 import { UndoManager } from '../util/UndoManager';
@@ -24,10 +24,10 @@ import "./Main.scss";
 import { MainOverlayTextBox } from './MainOverlayTextBox';
 import { DocumentView } from './nodes/DocumentView';
 import { PreviewCursor } from './PreviewCursor';
-import { SearchBox } from './SearchBox';
+import { FilterBox } from './search/FilterBox';
 import { SelectionManager } from '../util/SelectionManager';
 import { FieldResult, Field, Doc, Opt, DocListCast } from '../../new_fields/Doc';
-import { Cast, FieldValue, StrCast } from '../../new_fields/Types';
+import { Cast, FieldValue, StrCast, PromiseValue } from '../../new_fields/Types';
 import { DocServer } from '../DocServer';
 import { listSpec } from '../../new_fields/Schema';
 import { Id } from '../../new_fields/FieldSymbols';
@@ -36,8 +36,7 @@ import { CollectionBaseView } from './collections/CollectionBaseView';
 import { List } from '../../new_fields/List';
 import PDFMenu from './pdf/PDFMenu';
 import { InkTool } from '../../new_fields/InkField';
-import { LinkManager } from '../util/LinkManager';
-import { List } from '../../new_fields/List';
+import * as _ from "lodash";
 
 @observer
 export class MainView extends React.Component {
@@ -48,6 +47,13 @@ export class MainView extends React.Component {
     @computed private get mainContainer(): Opt<Doc> {
         return FieldValue(Cast(CurrentUserUtils.UserDocument.activeWorkspace, Doc));
     }
+    @computed private get mainFreeform(): Opt<Doc> {
+        let docs = DocListCast(this.mainContainer!.data);
+        return (docs && docs.length > 1) ? docs[1] : undefined;
+    }
+    private globalDisplayFlags = observable({
+        jumpToVisible: false
+    });
     private set mainContainer(doc: Opt<Doc>) {
         if (doc) {
             if (!("presentationView" in doc)) {
@@ -55,6 +61,15 @@ export class MainView extends React.Component {
             }
             CurrentUserUtils.UserDocument.activeWorkspace = doc;
         }
+    }
+
+    componentWillMount() {
+        document.removeEventListener("keydown", this.globalKeyHandler);
+        document.addEventListener("keydown", this.globalKeyHandler);
+    }
+
+    componentWillUnMount() {
+        document.removeEventListener("keydown", this.globalKeyHandler);
     }
 
     constructor(props: Readonly<{}>) {
@@ -93,8 +108,12 @@ export class MainView extends React.Component {
         library.add(faFilm);
         library.add(faMusic);
         library.add(faTree);
+        library.add(faCut);
         library.add(faCommentAlt);
         library.add(faThumbtack);
+        library.add(faCheck);
+        library.add(faArrowDown);
+        library.add(faArrowUp);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
@@ -330,7 +349,7 @@ export class MainView extends React.Component {
                     </div>
                 </div>
             </div >,
-            this.isSearchVisible ? <div className="main-searchDiv" key="search" style={{ top: '34px', right: '1px', position: 'absolute' }} > <SearchBox /> </div> : null,
+            this.isSearchVisible ? <div className="main-searchDiv" key="search" style={{ top: '34px', right: '1px', position: 'absolute' }} > <FilterBox /> </div> : null,
             <div className="main-buttonDiv" key="logout" style={{ bottom: '0px', right: '1px', position: 'absolute' }} ref={logoutRef}>
                 <button onClick={() => request.get(DocServer.prepend(RouteStore.logout), emptyFunction)}>Log Out</button></div>
         ];
@@ -342,6 +361,39 @@ export class MainView extends React.Component {
     toggleSearch = () => {
         this.isSearchVisible = !this.isSearchVisible;
     }
+
+    @action
+    globalKeyHandler = (e: KeyboardEvent) => {
+        if (e.key === "Control" || !e.ctrlKey) return;
+
+        if (e.key === "v") return;
+        if (e.key === "c") return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        switch (e.key) {
+            case "ArrowRight":
+                if (this.mainFreeform) {
+                    CollectionDockingView.Instance.AddRightSplit(this.mainFreeform, undefined);
+                }
+                break;
+            case "ArrowLeft":
+                if (this.mainFreeform) {
+                    CollectionDockingView.Instance.CloseRightSplit(this.mainFreeform);
+                }
+                break;
+            case "o":
+                this.globalDisplayFlags.jumpToVisible = true;
+                break;
+            case "escape":
+                _.mapValues(this.globalDisplayFlags, () => false);
+                break;
+            case "f":
+                this.isSearchVisible = !this.isSearchVisible;
+        }
+    }
+
 
     render() {
         return (

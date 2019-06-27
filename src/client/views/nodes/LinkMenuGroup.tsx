@@ -46,7 +46,7 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
             document.removeEventListener("pointerup", this.onLinkButtonUp);
 
             let draggedDocs = this.props.group.map(linkDoc => LinkManager.Instance.getOppositeAnchor(linkDoc, this.props.sourceDoc));
-            let dragData = new DragManager.DocumentDragData(draggedDocs);
+            let dragData = new DragManager.DocumentDragData(draggedDocs, draggedDocs.map(d => undefined));
 
             DragManager.StartLinkedDocumentDrag([this._drag.current], this.props.sourceDoc, dragData, e.x, e.y, {
                 handlers: {

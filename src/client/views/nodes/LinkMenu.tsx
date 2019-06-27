@@ -12,6 +12,9 @@ import { library } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 library.add(faTrash);
+import { Cast, FieldValue, StrCast } from "../../../new_fields/Types";
+import { Id } from "../../../new_fields/FieldSymbols";
+import { DocTypes } from "../../documents/Documents";
 
 interface Props {
     docView: DocumentView;

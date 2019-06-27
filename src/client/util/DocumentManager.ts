@@ -32,6 +32,30 @@ export class DocumentManager {
         // this.DocumentViews = new Array<DocumentView>();
     }
 
+    //gets all views
+    public getDocumentViewsById(id: string) {
+        let toReturn: DocumentView[] = [];
+        DocumentManager.Instance.DocumentViews.map(view => {
+            if (view.props.Document[Id] === id) {
+                toReturn.push(view);
+            }
+        });
+        if (toReturn.length === 0) {
+            DocumentManager.Instance.DocumentViews.map(view => {
+                let doc = view.props.Document.proto;
+                if (doc && doc[Id]) {
+                    if(doc[Id] === id)
+                    {toReturn.push(view);}
+                }
+            });
+        }
+        return toReturn;
+    }
+
+    public getAllDocumentViews(doc: Doc){
+        return this.getDocumentViewsById(doc[Id]);
+    }
+
     public getDocumentViewById(id: string, preferredCollection?: CollectionView | CollectionPDFView | CollectionVideoView): DocumentView | null {
 
         let toReturn: DocumentView | null = null;
