@@ -404,7 +404,6 @@ export class MainView extends React.Component {
                 <ContextMenu />
                 {this.nodesMenu()}
                 {this.miscButtons}
-                <InkingControl />
                 <PDFMenu />
                 <MainOverlayTextBox />
             </div>

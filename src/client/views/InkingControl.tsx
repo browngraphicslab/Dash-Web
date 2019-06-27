@@ -1,5 +1,5 @@
 import { observable, action, computed } from "mobx";
-import { CirclePicker, ColorResult } from 'react-color';
+import { ColorResult } from 'react-color';
 import React = require("react");
 import { observer } from "mobx-react";
 import "./InkingControl.scss";
@@ -8,7 +8,6 @@ import { faPen, faHighlighter, faEraser, faBan } from '@fortawesome/free-solid-s
 import { SelectionManager } from "../util/SelectionManager";
 import { InkTool } from "../../new_fields/InkField";
 import { Doc } from "../../new_fields/Doc";
-import { InkingCanvas } from "./InkingCanvas";
 
 library.add(faPen, faHighlighter, faEraser, faBan);
 
@@ -18,7 +17,7 @@ export class InkingControl extends React.Component {
     @observable private _selectedTool: InkTool = InkTool.None;
     @observable private _selectedColor: string = "rgb(244, 67, 54)";
     @observable private _selectedWidth: string = "25";
-    @observable private _open: boolean = false;
+    @observable public _open: boolean = false;
 
     constructor(props: Readonly<{}>) {
         super(props);
