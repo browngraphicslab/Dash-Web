@@ -87,7 +87,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
     @observable _selected: boolean = false;
 
     onClick = () => {
-        CollectionDockingView.Instance.AddRightSplit(this.props.doc, undefined);
+        DocumentManager.Instance.jumpToDocument(this.props.doc, false);
     }
 
     @computed
