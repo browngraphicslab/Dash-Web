@@ -39,6 +39,13 @@
         color: $light-color;
     }
 
+    .collectionStackingView-columnDragger {
+        width: 15; 
+        height: 15; 
+        position: absolute;
+        margin-left: -5;
+    }
+
 
     .collectionStackingView-columnDoc, 
     .collectionStackingView-masonryDoc {
