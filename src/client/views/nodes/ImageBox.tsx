@@ -4,7 +4,7 @@ import { action, observable, computed } from 'mobx';
 import { observer } from "mobx-react";
 import Lightbox from 'react-image-lightbox';
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
-import { Doc, HeightSym, WidthSym } from '../../../new_fields/Doc';
+import { Doc, HeightSym, WidthSym, DocListCast } from '../../../new_fields/Doc';
 import { List } from '../../../new_fields/List';
 import { createSchema, listSpec, makeInterface } from '../../../new_fields/Schema';
 import { Cast, FieldValue, NumCast, StrCast, BoolCast } from '../../../new_fields/Types';
@@ -63,6 +63,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         console.log("IMPLEMENT ME PLEASE");
     }
 
+    @computed get extensionDoc() { return Doc.resolvedFieldDataDoc(this.dataDoc, this.props.fieldKey, "Alternates"); }
 
     @undoBatch
     drop = (e: Event, de: DragManager.DropEvent) => {
@@ -72,19 +73,17 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                     Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new ImageField(drop.data.url);
                     e.stopPropagation();
                 } else {
-                    let layout = StrCast(drop.backgroundLayout);
-                    if (layout.indexOf(ImageBox.name) !== -1) {
-                        let imgData = this.dataDoc[this.props.fieldKey];
-                        if (imgData instanceof ImageField) {
-                            Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new List([imgData]);
+                    if (this.extensionDoc !== this.dataDoc) {
+                        let layout = StrCast(drop.backgroundLayout);
+                        if (layout.indexOf(ImageBox.name) !== -1) {
+                            let imgData = this.extensionDoc.Alternates;
+                            if (!imgData) {
+                                Doc.GetProto(this.extensionDoc).Alternates = new List([]);
+                            }
+                            let imgList = Cast(this.extensionDoc.Alternates, listSpec(Doc), [] as any[]);
+                            imgList && imgList.push(drop);
+                            e.stopPropagation();
                         }
-                        let imgList = Cast(this.dataDoc[this.props.fieldKey], listSpec(ImageField), [] as any[]);
-                        if (imgList) {
-                            let field = drop.data;
-                            if (field instanceof ImageField) imgList.push(field);
-                            else if (field instanceof List) imgList.concat(field);
-                        }
-                        e.stopPropagation();
                     }
                 }
             }));
@@ -213,24 +212,28 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         let paths: string[] = ["http://www.cs.brown.edu/~bcz/noImage.png"];
         // this._curSuffix = "";
         // if (w > 20) {
+        let alts = DocListCast(this.extensionDoc.Alternates);
+        let altpaths: string[] = alts.filter(doc => doc.data instanceof ImageField).map(doc => this.choosePath((doc.data as ImageField).url));
         let field = this.dataDoc[this.props.fieldKey];
         // if (w < 100 && this._smallRetryCount < 10) this._curSuffix = "_s";
         // else if (w < 600 && this._mediumRetryCount < 10) this._curSuffix = "_m";
         // else if (this._largeRetryCount < 10) this._curSuffix = "_l";
         if (field instanceof ImageField) paths = [this.choosePath(field.url)];
-        else if (field instanceof List) paths = field.filter(val => val instanceof ImageField).map(p => this.choosePath((p as ImageField).url));
+        paths.push(...altpaths);
         // }
         let interactive = InkingControl.Instance.selectedTool ? "" : "-interactive";
         let rotation = NumCast(this.dataDoc.rotation, 0);
         let aspect = (rotation % 180) ? this.dataDoc[HeightSym]() / this.dataDoc[WidthSym]() : 1;
         let shift = (rotation % 180) ? (nativeHeight - nativeWidth / aspect) / 2 : 0;
+        Doc.UpdateDocumentExtensionForField(this.extensionDoc, this.props.fieldKey);
+        let srcpath = paths[Math.min(paths.length, this._photoIndex)];
         return (
             <div id={id} className={`imageBox-cont${interactive}`} style={{ background: "transparent" }}
                 onPointerDown={this.onPointerDown}
                 onDrop={this.onDrop} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
                 <img id={id}
                     key={this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
-                    src={paths[Math.min(paths.length, this._photoIndex)]}
+                    src={srcpath}
                     style={{ transform: `translate(0px, ${shift}px) rotate(${rotation}deg) scale(${aspect})` }}
                     // style={{ objectFit: (this._photoIndex === 0 ? undefined : "contain") }}
                     width={nativeWidth}
