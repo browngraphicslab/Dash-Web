@@ -7,6 +7,8 @@ import { wrapInList, splitListItem, liftListItem, sinkListItem } from "prosemirr
 import { undo, redo } from "prosemirror-history";
 import { undoInputRule } from "prosemirror-inputrules";
 import { Transaction, EditorState } from "prosemirror-state";
+import { TooltipTextMenu } from "./TooltipTextMenu";
+import { Statement } from "../northstar/model/idea/idea";
 
 const mac = typeof navigator !== "undefined" ? /Mac/.test(navigator.platform) : false;
 
@@ -95,6 +97,8 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
             return true;
         });
     }
+
+    bind("Mod-s", TooltipTextMenu.insertStar);
 
     return keys;
 }
