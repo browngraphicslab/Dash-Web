@@ -8,6 +8,8 @@ import { listSpec } from "./Schema";
 import { ObjectField } from "./ObjectField";
 import { RefField, FieldId } from "./RefField";
 import { ToScriptString, SelfProxy, Parent, OnUpdate, Self, HandleUpdate, Update, Id } from "./FieldSymbols";
+import { LinkManager } from "../client/util/LinkManager";
+import { DocUtils } from "../client/documents/Documents";
 
 export namespace Field {
     export function toScriptString(field: Field): string {
@@ -179,9 +181,9 @@ export namespace Doc {
         let hasProto = doc.proto instanceof Doc;
         let onDeleg = Object.getOwnPropertyNames(doc).indexOf(key) !== -1;
         let onProto = hasProto && Object.getOwnPropertyNames(doc.proto).indexOf(key) !== -1;
-        if (onDeleg || !hasProto || (!onProto && !defaultProto))
+        if (onDeleg || !hasProto || (!onProto && !defaultProto)) {
             doc[key] = value;
-        else doc.proto![key] = value;
+        } else doc.proto![key] = value;
     }
     export async function SetOnPrototype(doc: Doc, key: string, value: Field) {
         const proto = Object.getOwnPropertyNames(doc).indexOf("isPrototype") === -1 ? doc.proto : doc;
@@ -298,6 +300,7 @@ export namespace Doc {
                 }
             }
         });
+
         return copy;
     }
 

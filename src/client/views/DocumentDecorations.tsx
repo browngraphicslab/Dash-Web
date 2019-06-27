@@ -5,7 +5,6 @@ import { action, computed, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc } from "../../new_fields/Doc";
 import { List } from "../../new_fields/List";
-import { listSpec } from "../../new_fields/Schema";
 import { BoolCast, Cast, NumCast, StrCast } from "../../new_fields/Types";
 import { URLField } from '../../new_fields/URLField';
 import { emptyFunction, Utils } from "../../Utils";
@@ -25,6 +24,7 @@ import { LinkMenu } from "./nodes/LinkMenu";
 import { TemplateMenu } from "./TemplateMenu";
 import { Template, Templates } from "./Templates";
 import React = require("react");
+import { LinkManager } from '../util/LinkManager';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -600,9 +600,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let linkButton = null;
         if (SelectionManager.SelectedDocuments().length > 0) {
             let selFirst = SelectionManager.SelectedDocuments()[0];
-            let linkToSize = Cast(selFirst.props.Document.linkedToDocs, listSpec(Doc), []).length;
-            let linkFromSize = Cast(selFirst.props.Document.linkedFromDocs, listSpec(Doc), []).length;
-            let linkCount = linkToSize + linkFromSize;
+            let linkCount = LinkManager.Instance.getAllRelatedLinks(selFirst.props.Document).length;
             linkButton = (<Flyout
                 anchorPoint={anchorPoints.RIGHT_TOP}
                 content={<LinkMenu docView={selFirst}

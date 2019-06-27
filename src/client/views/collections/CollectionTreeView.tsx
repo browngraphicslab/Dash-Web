@@ -9,7 +9,7 @@ import { List } from '../../../new_fields/List';
 import { Document, listSpec } from '../../../new_fields/Schema';
 import { BoolCast, Cast, NumCast, StrCast } from '../../../new_fields/Types';
 import { emptyFunction, Utils } from '../../../Utils';
-import { Docs } from '../../documents/Documents';
+import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentManager } from '../../util/DocumentManager';
 import { DragManager, dropActionType, SetupDrag } from "../../util/DragManager";
 import { SelectionManager } from '../../util/SelectionManager';
@@ -25,6 +25,7 @@ import { CollectionSchemaPreview } from './CollectionSchemaView';
 import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTreeView.scss";
 import React = require("react");
+import { LinkManager } from '../../util/LinkManager';
 
 
 export interface TreeViewProps {
@@ -186,6 +187,7 @@ class TreeView extends React.Component<TreeViewProps> {
         }
         let keyList: string[] = keys.reduce((l, key) => Cast(this.resolvedDataDoc[key], listSpec(Doc)) ? [...l, key] : l, [] as string[]);
         keys.map(key => Cast(this.resolvedDataDoc[key], Doc) instanceof Doc && keyList.push(key));
+        if (LinkManager.Instance.getAllRelatedLinks(this.props.document).length > 0) keyList.push("links");
         if (keyList.indexOf(this.fieldKey) !== -1) {
             keyList.splice(keyList.indexOf(this.fieldKey), 1);
         }
@@ -236,7 +238,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 ContextMenu.Instance.addItem({ description: "Open Tab", event: () => this.props.addDocTab(this.props.document, this.resolvedDataDoc, "inTab"), icon: "folder" });
                 ContextMenu.Instance.addItem({ description: "Open Right", event: () => this.props.addDocTab(this.props.document, this.resolvedDataDoc, "onRight"), icon: "caret-square-right" });
                 if (DocumentManager.Instance.getDocumentViews(this.resolvedDataDoc).length) {
-                    ContextMenu.Instance.addItem({ description: "Focus", event: () => DocumentManager.Instance.getDocumentViews(this.resolvedDataDoc).map(view => view.props.focus(this.props.document)) });
+                    ContextMenu.Instance.addItem({ description: "Focus", event: () => DocumentManager.Instance.getDocumentViews(this.resolvedDataDoc).map(view => view.props.focus(this.props.document, true)) });
                 }
                 ContextMenu.Instance.addItem({ description: "Delete Item", event: undoBatch(() => this.props.deleteDoc(this.props.document)) });
             } else {
@@ -252,6 +254,12 @@ class TreeView extends React.Component<TreeViewProps> {
         let bounds = this.props.ScreenToLocalTransform().transformPoint(rect.left, rect.top + rect.height / 2);
         let before = x[1] < bounds[1];
         let inside = x[0] > bounds[0] + 75 || (!before && !this._collapsed);
+        if (de.data instanceof DragManager.LinkDragData) {
+            let sourceDoc = de.data.linkSourceDocument;
+            let destDoc = this.props.document;
+            DocUtils.MakeLink(sourceDoc, destDoc);
+            e.stopPropagation();
+        }
         if (de.data instanceof DragManager.DocumentDragData) {
             let addDoc = (doc: Doc) => this.props.addDocument(doc, this.resolvedDataDoc, before);
             if (inside) {
@@ -279,6 +287,26 @@ class TreeView extends React.Component<TreeViewProps> {
         return finalXf;
     }
 
+    renderLinks = () => {
+        let ele: JSX.Element[] = [];
+        let remDoc = (doc: Doc) => this.remove(doc, this._chosenKey);
+        let addDoc = (doc: Doc, addBefore?: Doc, before?: boolean) => Doc.AddDocToList(this.props.document, this._chosenKey, doc, addBefore, before);
+        let groups = LinkManager.Instance.getRelatedGroupedLinks(this.props.document);
+        groups.forEach((groupLinkDocs, groupType) => {
+            let destLinks = groupLinkDocs.map(d => LinkManager.Instance.getOppositeAnchor(d, this.props.document));
+            ele.push(
+                <div key={"treeviewlink-" + groupType + "subtitle"}>
+                    <div className="collectionTreeView-subtitle">{groupType}:</div>
+                    {
+                        TreeView.GetChildElements(destLinks, this.props.treeViewId, this.props.document, this.props.dataDoc, "treeviewlink-" + groupType, addDoc, remDoc, this.move,
+                            this.props.dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active, this.props.panelWidth, this.props.renderDepth)
+                    }
+                </div>
+            );
+        });
+        return ele;
+    }
+
     render() {
         let contentElement: (JSX.Element | null) = null;
         let docList = Cast(this.resolvedDataDoc[this._chosenKey], listSpec(Doc));
@@ -289,8 +317,9 @@ class TreeView extends React.Component<TreeViewProps> {
         if (!this._collapsed) {
             if (!this.props.document.embed) {
                 contentElement = <ul key={this._chosenKey + "more"}>
-                    {TreeView.GetChildElements(doc instanceof Doc ? [doc] : DocListCast(docList), this.props.treeViewId, this.props.document, this.props.dataDoc, this._chosenKey, addDoc, remDoc, this.move,
-                        this.props.dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active, this.props.panelWidth, this.props.renderDepth)}
+                    {this._chosenKey === "links" ? this.renderLinks() :
+                        TreeView.GetChildElements(doc instanceof Doc ? [doc] : DocListCast(docList), this.props.treeViewId, this.props.document, this.props.dataDoc, this._chosenKey, addDoc, remDoc, this.move,
+                            this.props.dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active, this.props.panelWidth, this.props.renderDepth)}
                 </ul >;
             } else {
                 console.log("PW = " + this.props.panelWidth());

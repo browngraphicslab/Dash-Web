@@ -7,7 +7,7 @@ import { EditorState, Transaction, NodeSelection, TextSelection } from "prosemir
 import { EditorView } from "prosemirror-view";
 import { schema } from "./RichTextSchema";
 import { Schema, NodeType, MarkType, Mark } from "prosemirror-model";
-import { Node as ProsNode } from "prosemirror-model"
+import { Node as ProsNode } from "prosemirror-model";
 import React = require("react");
 import "./TooltipTextMenu.scss";
 const { toggleMark, setBlockType, wrapIn } = require("prosemirror-commands");
@@ -220,7 +220,7 @@ export class TooltipTextMenu {
                         DocServer.GetRefField(docid).then(action((f: Opt<Field>) => {
                             if (f instanceof Doc) {
                                 if (DocumentManager.Instance.getDocumentView(f)) {
-                                    DocumentManager.Instance.getDocumentView(f)!.props.focus(f);
+                                    DocumentManager.Instance.getDocumentView(f)!.props.focus(f, false);
                                 }
                                 else if (CollectionDockingView.Instance) CollectionDockingView.Instance.AddRightSplit(f, f);
                             }

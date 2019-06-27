@@ -229,7 +229,7 @@ class Viewer extends React.Component<IViewerProps> {
         let handleError = () => this.getRenderedPage(page);
         if (this._isPage[page] !== "image") {
             this._isPage[page] = "image";
-            const address = this.props.url
+            const address = this.props.url;
             try {
                 let res = JSON.parse(await rp.get(DocServer.prepend(`/thumbnail${address.substring("files/".length, address.length - ".pdf".length)}-${page + 1}.PNG`)));
                 runInAction(() => this._visibleElements[page] =
@@ -571,7 +571,7 @@ class RegionAnnotation extends React.Component<IAnnotationProps> {
         if (e.button === 0) {
             let targetDoc = Cast(this.props.document.target, Doc, null);
             if (targetDoc) {
-                DocumentManager.Instance.jumpToDocument(targetDoc);
+                DocumentManager.Instance.jumpToDocument(targetDoc, true);
             }
         }
         if (e.button === 2) {
