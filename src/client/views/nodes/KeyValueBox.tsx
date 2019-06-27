@@ -145,7 +145,9 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     }
 
     getTemplate = async () => {
-        let parent = Docs.FreeformDocument([], { width: 800, height: 800, title: "Template" });
+        let parent = Docs.StackingDocument([], { width: 800, height: 800, title: "Template" });
+        parent.singleColumn = false;
+        parent.columnWidth = 50;
         for (let row of this.rows.filter(row => row.isChecked)) {
             await this.createTemplateField(parent, row);
             row.uncheck();
@@ -167,8 +169,8 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         let template = Doc.MakeAlias(target);
         template.proto = parent;
         template.title = metaKey;
-        template.nativeWidth = 300;
-        template.nativeHeight = 300;
+        template.nativeWidth = 0;
+        template.nativeHeight = 0;
         template.embed = true;
         template.isTemplate = true;
         template.templates = new List<string>([Templates.TitleBar(metaKey)]);
@@ -187,7 +189,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     inferType = (field: FieldResult, metaKey: string) => {
         let options = { width: 300, height: 300, title: metaKey };
         if (field instanceof RichTextField || typeof field === "string" || typeof field === "number") {
-            return Docs.TextDocument(options);
+            return Docs.StackingDocument(options);
         } else if (field instanceof List) {
             return Docs.FreeformDocument([], options);
         } else if (field instanceof ImageField) {
