@@ -220,13 +220,25 @@ export class Keyframe extends React.Component<IProp> {
 
     }
 
+    @action 
+    onMenuHover = (e: React.PointerEvent) => {
+        e.preventDefault(); 
+        e.stopPropagation(); 
+        if (this._display === "none"){
+            this._display = "grid"; 
+        } else {
+            this._display = "none"; 
+        }
+    }
+
+
+
     render() {
         return (
             <div>
                 <div className="bar" ref={this._bar} style={{ transform: `translate(${this.props.keyframedata.position}px)`, width:`${this._duration}px`}} onPointerDown={this.onBarPointerDown} onDoubleClick={this.createKeyframe}>
                     <div className="leftResize" onPointerDown={this.onResizeLeft} ></div>
                     <div className="rightResize" onPointerDown={this.onResizeRight}></div>
-                    {/* <div className="menubox" style={{display: this._display}}></div> */}
                     <div className="fadeLeft" style={{width:`${20}px`}}>{this.createDivider("left")}</div>
                     <div className="fadeRight" style={{width:`${20}px`}}>{this.createDivider("right")}</div>    
                     {this._keyframes.map(kf => {return <div className="keyframe" style={{left: `${kf}px`}}>
