@@ -101,7 +101,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         super(props);
         if (this.props.outer_div) {
             this._outerdiv = this.props.outer_div;
-            console.log("yay");
         }
 
         this._ref = React.createRef();
@@ -347,6 +346,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 return self._toolTipTextMenu = new TooltipTextMenu(_editorView, myprops);
             }
         });
+        //this.props.Document.tooltip = self._toolTipTextMenu;
     }
 
     tooltipLinkingMenuPlugin() {

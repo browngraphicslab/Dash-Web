@@ -91,8 +91,8 @@ export const nodes: { [index: string]: NodeSpec } = {
         attrs: {
             visibility: { default: false },
             text: { default: undefined },
-            oldtextslice: { default: undefined },
-            oldtextlen: { default: 0 }
+            textslice: { default: undefined },
+            textlen: { default: 0 }
 
         },
         group: "inline",
@@ -495,31 +495,27 @@ export class SummarizedView {
         this._collapsed = document.createElement("span");
         this._collapsed.textContent = "㊉";
         this._collapsed.style.opacity = "0.5";
-        // this._collapsed.style.background = "yellow";
         this._collapsed.style.position = "relative";
         this._collapsed.style.width = "40px";
         this._collapsed.style.height = "20px";
         let self = this;
         this._view = view;
         this._collapsed.onpointerdown = function (e: any) {
-            console.log("star pressed!");
             if (node.attrs.visibility) {
                 node.attrs.visibility = !node.attrs.visibility;
-                console.log("content is visible");
                 let y = getPos();
                 let { from, to } = self.updateSummarizedText(y + 1, view.state.schema.marks.highlight);
                 let length = to - from;
                 let newSelection = TextSelection.create(view.state.doc, y + 1, y + 1 + length);
+                // update attrs of node
                 node.attrs.text = newSelection.content();
+                node.attrs.textslice = newSelection.content().toJSON();
                 view.dispatch(view.state.tr.setSelection(newSelection).deleteSelection(view.state, () => { }));
                 self._collapsed.textContent = "㊉";
             } else {
                 node.attrs.visibility = !node.attrs.visibility;
-                console.log("content is invisible");
                 let y = getPos();
-                console.log(y);
                 let mark = view.state.schema.mark(view.state.schema.marks.highlight);
-                console.log("PASTING " + node.attrs.text.toString());
                 view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, y + 1, y + 1)));
                 const from = view.state.selection.from;
                 let size = node.attrs.text.size;
@@ -538,39 +534,21 @@ export class SummarizedView {
     updateSummarizedText(start?: any, mark?: any) {
         let $start = this._view.state.doc.resolve(start);
         let endPos = start;
-        //let first_startPos = $start.start(), endPos = first_startPos;
-        // let startIndex = $start.index(), endIndex = $start.indexAfter();
-        // let nodeAfter = $start.nodeAfter;
-        // while (startIndex > 0 && mark.isInSet($start.parent.child(startIndex - 1).marks)) startIndex--;
-        // while (endIndex < $start.parent.childCount && mark.isInSet($start.parent.child(endIndex).marks)) endIndex++;
-        // let startPos = $start.start(), endPos = startPos;
-        // for (let i = 0; i < endIndex; i++) {
-        //     let size = $start.parent.child(i).nodeSize;
-        //     console.log($start.parent.child(i).childCount);
-        //     if (i < startIndex) startPos += size;
-        //     endPos += size;
-        // }
+
         let _mark = this._view.state.schema.mark(this._view.state.schema.marks.highlight);
-        // first_startPos = start;
-        // endPos = first_startPos;
         let visited = new Set();
         for (let i: number = start + 1; i < this._view.state.doc.nodeSize - 1; i++) {
-            console.log("ITER:", i);
             let skip = false;
             this._view.state.doc.nodesBetween(start, i, (node: Node, pos: number, parent: Node, index: number) => {
                 if (node.isLeaf && !visited.has(node) && !skip) {
                     if (node.marks.includes(_mark)) {
                         visited.add(node);
-                        //endPos += node.nodeSize + 1;
                         endPos = i + node.nodeSize - 1;
-                        console.log("node contains mark!");
                     }
                     else skip = true;
                 }
             });
         }
-        console.log(start);
-        console.log(endPos);
         return { from: start, to: endPos };
     }
 
@@ -592,7 +570,7 @@ const fromJson = schema.nodeFromJSON;
 schema.nodeFromJSON = (json: any) => {
     let node = fromJson(json);
     if (json.type === "star") {
-        node.attrs.oldtext = Slice.fromJSON(schema, node.attrs.oldtextslice);
+        node.attrs.text = Slice.fromJSON(schema, node.attrs.textslice);
     }
     return node;
 };
