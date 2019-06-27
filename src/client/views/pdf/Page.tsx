@@ -16,6 +16,7 @@ import { menuBar } from "prosemirror-menu";
 import { AnnotationTypes, PDFViewer, scale } from "./PDFViewer";
 import PDFMenu from "./PDFMenu";
 import { UndoManager } from "../../util/UndoManager";
+import { copy } from "typescript-collections/dist/lib/arrays";
 
 
 interface IPageProps {
@@ -29,9 +30,9 @@ interface IPageProps {
     renderAnnotations: (annotations: Doc[], removeOld: boolean) => void;
     makePin: (x: number, y: number, page: number) => void;
     sendAnnotations: (annotations: HTMLDivElement[], page: number) => void;
-    receiveAnnotations: (page: number) => HTMLDivElement[] | undefined;
     createAnnotation: (div: HTMLDivElement, page: number) => void;
     makeAnnotationDocuments: (doc: Doc | undefined, scale: number, color: string) => Doc;
+    getScrollFromPage: (page: number) => number;
 }
 
 @observer
@@ -178,6 +179,18 @@ export default class Page extends React.Component<IPageProps> {
         e.stopPropagation();
     }
 
+    createSnippet = (marquee: { left: number, top: number, width: number, height: number }): void => {
+        let doc = this.props.parent.Document;
+        let view = Doc.MakeAlias(doc);
+        let data = Doc.MakeDelegate(doc.proto!);
+        view.proto = data;
+        view.nativeHeight = marquee.height;
+        view.startY = marquee.top + this.props.getScrollFromPage(this.props.page);
+        view.width = doc[WidthSym]();
+        let dragData = new DragManager.DocumentDragData([view]);
+        DragManager.StartDocumentDrag([], dragData, 0, 0);
+    }
+
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         // if alt+left click, drag and annotate
@@ -192,6 +205,7 @@ export default class Page extends React.Component<IPageProps> {
         else if (e.button === 0) {
             PDFMenu.Instance.StartDrag = this.startDrag;
             PDFMenu.Instance.Highlight = this.highlight;
+            PDFMenu.Instance.Snippet = this.createSnippet;
             PDFMenu.Instance.Status = "pdf";
             PDFMenu.Instance.fadeOut(true);
             let target: any = e.target;
@@ -281,10 +295,11 @@ export default class Page extends React.Component<IPageProps> {
             if (this._marquee.current) {
                 let copy = document.createElement("div");
                 // make a copy of the marquee
-                copy.style.left = this._marquee.current.style.left;
-                copy.style.top = this._marquee.current.style.top;
-                copy.style.width = this._marquee.current.style.width;
-                copy.style.height = this._marquee.current.style.height;
+                let style = this._marquee.current.style;
+                copy.style.left = style.left;
+                copy.style.top = style.top;
+                copy.style.width = style.width;
+                copy.style.height = style.height;
 
                 // apply the appropriate background, opacity, and transform
                 let { background, opacity, transform } = this.getCurlyTransform();
@@ -298,7 +313,7 @@ export default class Page extends React.Component<IPageProps> {
                     copy.appendChild(img);
                 }
                 else {
-                    copy.style.opacity = this._marquee.current.style.opacity;
+                    copy.style.opacity = style.opacity;
                 }
                 copy.className = this._marquee.current.className;
                 this.props.createAnnotation(copy, this.props.page);
@@ -306,6 +321,10 @@ export default class Page extends React.Component<IPageProps> {
             }
 
             if (this._marqueeWidth > 10 || this._marqueeHeight > 10) {
+                if (!e.ctrlKey) {
+                    PDFMenu.Instance.Status = "snippet";
+                    PDFMenu.Instance.Marquee = { left: this._marqueeX, top: this._marqueeY, width: this._marqueeWidth, height: this._marqueeHeight };
+                }
                 PDFMenu.Instance.jumpTo(e.clientX, e.clientY);
             }
 
