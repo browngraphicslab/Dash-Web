@@ -48,7 +48,7 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
             let draggedDocs = this.props.group.map(linkDoc => LinkManager.Instance.getOppositeAnchor(linkDoc, this.props.sourceDoc));
             let dragData = new DragManager.DocumentDragData(draggedDocs, draggedDocs.map(d => undefined));
 
-            DragManager.StartLinkedDocumentDrag([this._drag.current], this.props.sourceDoc, dragData, e.x, e.y, {
+            DragManager.StartLinkedDocumentDrag([this._drag.current], dragData, e.x, e.y, {
                 handlers: {
                     dragComplete: action(emptyFunction),
                 },
@@ -80,7 +80,8 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
             <div className="linkMenu-group">
                 <div className="linkMenu-group-name">
                     <p ref={this._drag} onPointerDown={this.onLinkButtonDown}
-                        className={this.props.groupType === "*" || this.props.groupType === "" ? "" : "expand-one"} > {this.props.groupType}:</p>
+                        className={this.props.groupType === "*" || this.props.groupType === "" ? "" : "expand-one"} >
+                        {this.props.groupType === "*" || this.props.groupType === "" ? "All links" : this.props.groupType}:</p>
                     {this.props.groupType === "*" || this.props.groupType === "" ? <></> : this.viewGroupAsTable(this.props.groupType)}
                 </div>
                 <div className="linkMenu-group-wrapper">
