@@ -52,8 +52,8 @@ export namespace DocServer {
         return apiKey;
     }
 
-    export function getYoutubeVideos(videoTitle: string) {
-        Utils.EmitCallback(_socket, MessageStore.YoutubeApiQuery, { type: YoutubeQueryTypes.SearchVideo, userInput: videoTitle });
+    export function getYoutubeVideos(videoTitle: string, callBack: (videos: any[]) => void) {
+        Utils.EmitCallback(_socket, MessageStore.YoutubeApiQuery, { type: YoutubeQueryTypes.SearchVideo, userInput: videoTitle }, callBack);
     }
 
 

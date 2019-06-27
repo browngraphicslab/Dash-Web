@@ -367,13 +367,13 @@ function GetRefFields([ids, callback]: [string[], (result?: Transferable[]) => v
     Database.Instance.getDocuments(ids, callback, "newDocuments");
 }
 
-function HandleYoutubeQuery([query, callback]: [YoutubeQueryInput, (result?: string) => void]) {
+function HandleYoutubeQuery([query, callback]: [YoutubeQueryInput, (result?: any[]) => void]) {
     switch (query.type) {
         case YoutubeQueryType.Channels:
             YoutubeApi.authorizedGetChannel(youtubeApiKey);
             break;
         case YoutubeQueryType.SearchVideo:
-            YoutubeApi.authorizedGetVideos(youtubeApiKey, query.userInput);
+            YoutubeApi.authorizedGetVideos(youtubeApiKey, query.userInput, callback);
     }
 }
 

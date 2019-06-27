@@ -29,8 +29,8 @@ module.exports.authorizedGetChannel = (apiKey) => {
     authorize(JSON.parse(apiKey), getChannel);
 }
 
-module.exports.authorizedGetVideos = (apiKey, userInput) => {
-    authorize(JSON.parse(apiKey), getSampleVideos, { userInput: userInput });
+module.exports.authorizedGetVideos = (apiKey, userInput, callBack) => {
+    authorize(JSON.parse(apiKey), getSampleVideos, { userInput: userInput, callBack: callBack });
 }
 
 
@@ -154,5 +154,6 @@ function getSampleVideos(auth, args) {
         }
         let videos = response.data.items;
         console.log('Videos found: ' + videos[0].id.videoId, " ", videos[0].snippet.title);
+        args.callBack(videos);
     });
 }

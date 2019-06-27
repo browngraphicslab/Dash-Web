@@ -4,7 +4,7 @@ import { FieldViewProps, FieldView } from "../../views/nodes/FieldView";
 import { HtmlField } from "../../../new_fields/HtmlField";
 import { WebField } from "../../../new_fields/URLField";
 import { observer } from "mobx-react";
-import { computed, reaction, IReactionDisposer, observable } from 'mobx';
+import { computed, reaction, IReactionDisposer, observable, action } from 'mobx';
 import { DocumentDecorations } from "../../views/DocumentDecorations";
 import { InkingControl } from "../../views/InkingControl";
 import { Utils } from "../../../Utils";
@@ -15,6 +15,8 @@ import { DocServer } from "../../DocServer";
 export class YoutubeBox extends React.Component<FieldViewProps> {
 
     @observable YoutubeSearchElement: HTMLInputElement | undefined;
+    @observable searchResultsFound: boolean = false;
+    @observable searchResults: any[] = [];
 
     public static LayoutString() { return FieldView.LayoutString(YoutubeBox); }
 
@@ -46,8 +48,29 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
             console.log(submittedTitle);
             this.YoutubeSearchElement!.value = "";
             this.YoutubeSearchElement!.blur();
-            DocServer.getYoutubeVideos(submittedTitle);
+            DocServer.getYoutubeVideos(submittedTitle, this.processesVideoResults);
 
+        }
+    }
+
+    @action
+    processesVideoResults = (videos: any[]) => {
+        this.searchResults = videos;
+        console.log("Callback got called");
+        if (this.searchResults.length > 0) {
+            this.searchResultsFound = true;
+        }
+    }
+
+    renderSearchResults = () => {
+        if (this.searchResultsFound) {
+            return <ul>
+                {this.searchResults.map((video) => {
+                    return <li key={video.id.videoId}>{video.snippet.title}</li>;
+                })}
+            </ul>;
+        } else {
+            return (null);
         }
     }
 
@@ -56,6 +79,7 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
         let content =
             <div style={{ width: "100%", height: "100%", position: "absolute" }} onWheel={this.onPostWheel} onPointerDown={this.onPostPointer} onPointerMove={this.onPostPointer} onPointerUp={this.onPostPointer}>
                 <input type="text" placeholder="Search for a video" onKeyDown={this.onEnterKeyDown} style={{ width: "100%", border: "1px solid black", padding: 5, textAlign: "center" }} ref={(e) => this.YoutubeSearchElement = e!} />
+                {this.renderSearchResults()}
             </div>;
 
         let frozen = !this.props.isSelected() || DocumentDecorations.Instance.Interacting;
