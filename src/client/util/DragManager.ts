@@ -51,7 +51,6 @@ export async function DragLinkAsDocument(dragEle: HTMLElement, x: number, y: num
     let moddrag = await Cast(draggeddoc.annotationOn, Doc);
     let dragdocs = moddrag ? [moddrag] : [draggeddoc];
     let dragData = new DragManager.DocumentDragData(dragdocs, dragdocs);
-    dragData.dropAction = "alias" as dropActionType;
     DragManager.StartLinkedDocumentDrag([dragEle], dragData, x, y, {
         handlers: {
             dragComplete: action(emptyFunction),
@@ -60,7 +59,7 @@ export async function DragLinkAsDocument(dragEle: HTMLElement, x: number, y: num
     });
 }
 
-export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: number, sourceDoc: Doc) {
+export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: number, sourceDoc: Doc, moveDocument?: DragManager.MoveFunction) {
     let srcTarg = sourceDoc.proto;
     let draggedDocs: Doc[] = [];
 
@@ -80,6 +79,7 @@ export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: n
         }
         let dragdocs = moddrag.length ? moddrag : draggedDocs;
         let dragData = new DragManager.DocumentDragData(dragdocs, dragdocs);
+        dragData.moveDocument = moveDocument;
         DragManager.StartLinkedDocumentDrag([dragEle], dragData, x, y, {
             handlers: {
                 dragComplete: action(emptyFunction),
@@ -221,25 +221,36 @@ export namespace DragManager {
         //     });
 
         runInAction(() => StartDragFunctions.map(func => func()));
-        StartDrag(eles, dragData, downX, downY, options); //,
-        // (dropData: { [id: string]: any }) => {
-        //     let droppedDocuments: Doc[] = dragData.draggedDocuments.reduce((droppedDocs: Doc[], d) => {
-        //         let dvs = DocumentManager.Instance.getDocumentViews(d);
+        StartDrag(eles, dragData, downX, downY, options,
+            (dropData: { [id: string]: any }) => {
+                (dropData.droppedDocuments = dragData.userDropAction === "alias" || (!dragData.userDropAction && dragData.dropAction === "alias") ?
+                    dragData.draggedDocuments.map(d => Doc.MakeAlias(d)) :
+                    dragData.userDropAction === "copy" || (!dragData.userDropAction && dragData.dropAction === "copy") ?
+                        dragData.draggedDocuments.map(d => Doc.MakeCopy(d, true)) :
+                        dragData.draggedDocuments
+                );
+            });
 
-        //         if (dvs.length) {
-        //             let inContext = dvs.filter(dv => dv.props.ContainingCollectionView === SelectionManager.SelectedDocuments()[0].props.ContainingCollectionView);
-        //             if (inContext.length) {
-        //                 inContext.forEach(dv => droppedDocs.push(dv.props.Document));
+        // runInAction(() => StartDragFunctions.map(func => func()));
+        // StartDrag(eles, dragData, downX, downY, options,
+        //     (dropData: { [id: string]: any }) => {
+        //         let droppedDocuments: Doc[] = dragData.draggedDocuments.reduce((droppedDocs: Doc[], d) => {
+        //             let dvs = DocumentManager.Instance.getDocumentViews(d);
+
+        //             if (dvs.length) {
+        //                 let inContext = dvs.filter(dv => dv.props.ContainingCollectionView === SelectionManager.SelectedDocuments()[0].props.ContainingCollectionView);
+        //                 if (inContext.length) {
+        //                     inContext.forEach(dv => droppedDocs.push(dv.props.Document));
+        //                 } else {
+        //                     droppedDocs.push(Doc.MakeAlias(d));
+        //                 }
         //             } else {
         //                 droppedDocs.push(Doc.MakeAlias(d));
         //             }
-        //         } else {
-        //             droppedDocs.push(Doc.MakeAlias(d));
-        //         }
-        //         return droppedDocs;
-        //     }, []);
-        //     dropData.droppedDocuments = droppedDocuments;
-        // });
+        //             return droppedDocs;
+        //         }, []);
+        //         dropData.droppedDocuments = droppedDocuments;
+        //     });
     }
 
     export function StartAnnotationDrag(eles: HTMLElement[], dragData: AnnotationDragData, downX: number, downY: number, options?: DragOptions) {

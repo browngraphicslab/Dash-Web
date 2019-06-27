@@ -182,19 +182,9 @@ export class LinkGroupEditor extends React.Component<LinkGroupEditorProps> {
         let sourceMdDoc = Cast(sourceGroupDoc.metadata, Doc, new Doc);
 
         let destDoc = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
-        // let destGroupList = LinkManager.Instance.getAnchorGroups(this.props.linkDoc, destDoc);
-        let keys = LinkManager.Instance.getMetadataKeysInGroup(groupType);
-
-        // create new metadata doc with copied kvp
-        let destMdDoc = new Doc();
-        destMdDoc.anchor1 = StrCast(sourceMdDoc.anchor2);
-        destMdDoc.anchor2 = StrCast(sourceMdDoc.anchor1);
-        keys.forEach(key => {
-            let val = sourceMdDoc[key] === undefined ? "" : StrCast(sourceMdDoc[key]);
-            destMdDoc[key] = val;
-        });
 
         // create new group doc with new metadata doc
+        let destMdDoc = Doc.MakeCopy(sourceMdDoc);
         let destGroupDoc = new Doc();
         destGroupDoc.type = groupType;
         destGroupDoc.metadata = destMdDoc;

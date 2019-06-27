@@ -439,7 +439,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             document.removeEventListener("pointermove", this.onLinkButtonMoved);
             document.removeEventListener("pointerup", this.onLinkButtonUp);
 
-            DragLinksAsDocuments(this._linkButton.current, e.x, e.y, SelectionManager.SelectedDocuments()[0].props.Document);
+            const doc = SelectionManager.SelectedDocuments()[0];
+            DragLinksAsDocuments(this._linkButton.current, e.x, e.y, doc.props.Document, doc.props.moveDocument);
         }
         e.stopPropagation();
     }

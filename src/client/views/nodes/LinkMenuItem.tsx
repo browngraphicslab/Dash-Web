@@ -90,13 +90,16 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         e.stopPropagation();
     }
 
+    onPointerEnter = (e: React.PointerEvent): void => { this.props.destinationDoc.libraryBrush = true; };
+    onPointerLeave = (e: React.PointerEvent): void => { this.props.destinationDoc.libraryBrush = false; };
+
     render() {
 
-        let keys = LinkManager.Instance.getMetadataKeysInGroup(this.props.groupType);//groupMetadataKeys.get(this.props.groupType);
+        let keys = LinkManager.Instance.getMetadataKeysInGroup(this.props.groupType);
         let canExpand = keys ? keys.length > 0 : false;
 
         return (
-            <div className="linkMenu-item">
+            <div className="linkMenu-item" onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
                 <div className={canExpand ? "linkMenu-item-content expand-three" : "linkMenu-item-content expand-two"}>
                     <div className="link-name">
                         <p ref={this._drag} onPointerDown={this.onLinkButtonDown}>{StrCast(this.props.destinationDoc.title)}</p>
