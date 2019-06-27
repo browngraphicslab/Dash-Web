@@ -1,11 +1,15 @@
 import { action, runInAction, observable } from "mobx";
 import { Doc, DocListCastAsync } from "../../new_fields/Doc";
-import { Cast } from "../../new_fields/Types";
+import { Cast, StrCast } from "../../new_fields/Types";
 import { emptyFunction } from "../../Utils";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import * as globalCssVariables from "../views/globalCssVariables.scss";
+import { LinkManager } from "./LinkManager";
 import { URLField } from "../../new_fields/URLField";
 import { SelectionManager } from "./SelectionManager";
+import { Docs, DocUtils } from "../documents/Documents";
+import { DocumentManager } from "./DocumentManager";
+import { Id } from "../../new_fields/FieldSymbols";
 
 export type dropActionType = "alias" | "copy" | undefined;
 export function SetupDrag(_reference: React.RefObject<HTMLElement>, docFunc: () => Doc | Promise<Doc>, moveFunc?: DragManager.MoveFunction, dropAction?: dropActionType, options?: any, dontHideOnDrop?: boolean) {
@@ -41,26 +45,42 @@ export function SetupDrag(_reference: React.RefObject<HTMLElement>, docFunc: () 
     return onItemDown;
 }
 
+export async function DragLinkAsDocument(dragEle: HTMLElement, x: number, y: number, linkDoc: Doc, sourceDoc: Doc) {
+    let draggeddoc = LinkManager.Instance.getOppositeAnchor(linkDoc, sourceDoc);
+
+    let moddrag = await Cast(draggeddoc.annotationOn, Doc);
+    let dragdocs = moddrag ? [moddrag] : [draggeddoc];
+    let dragData = new DragManager.DocumentDragData(dragdocs, dragdocs);
+    dragData.dropAction = "alias" as dropActionType;
+    DragManager.StartLinkedDocumentDrag([dragEle], sourceDoc, dragData, x, y, {
+        handlers: {
+            dragComplete: action(emptyFunction),
+        },
+        hideSource: false
+    });
+}
+
 export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: number, sourceDoc: Doc) {
     let srcTarg = sourceDoc.proto;
     let draggedDocs: Doc[] = [];
-    let draggedFromDocs: Doc[] = [];
+
     if (srcTarg) {
-        let linkToDocs = await DocListCastAsync(srcTarg.linkedToDocs);
-        let linkFromDocs = await DocListCastAsync(srcTarg.linkedFromDocs);
-        if (linkToDocs) draggedDocs = linkToDocs.map(linkDoc => Cast(linkDoc.linkedTo, Doc) as Doc);
-        if (linkFromDocs) draggedFromDocs = linkFromDocs.map(linkDoc => Cast(linkDoc.linkedFrom, Doc) as Doc);
+        let linkDocs = LinkManager.Instance.getAllRelatedLinks(srcTarg);
+        if (linkDocs) {
+            draggedDocs = linkDocs.map(link => {
+                return LinkManager.Instance.getOppositeAnchor(link, sourceDoc);
+            });
+        }
     }
-    draggedDocs.push(...draggedFromDocs);
     if (draggedDocs.length) {
         let moddrag: Doc[] = [];
         for (const draggedDoc of draggedDocs) {
             let doc = await Cast(draggedDoc.annotationOn, Doc);
             if (doc) moddrag.push(doc);
         }
-        let linkDocs = moddrag.length ? moddrag : draggedDocs;
-        let dragData = new DragManager.DocumentDragData(linkDocs, linkDocs); // bcz: dataDocs?
-        DragManager.StartDocumentDrag([dragEle], dragData, x, y, {
+        let dragdocs = moddrag.length ? moddrag : draggedDocs;
+        let dragData = new DragManager.DocumentDragData(dragdocs, dragdocs);
+        DragManager.StartLinkedDocumentDrag([dragEle], sourceDoc, dragData, x, y, {
             handlers: {
                 dragComplete: action(emptyFunction),
             },
@@ -182,12 +202,39 @@ export namespace DragManager {
     export function StartDocumentDrag(eles: HTMLElement[], dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
         runInAction(() => StartDragFunctions.map(func => func()));
         StartDrag(eles, dragData, downX, downY, options,
-            (dropData: { [id: string]: any }) =>
+            (dropData: { [id: string]: any }) => {
                 (dropData.droppedDocuments = dragData.userDropAction === "alias" || (!dragData.userDropAction && dragData.dropAction === "alias") ?
                     dragData.draggedDocuments.map(d => Doc.MakeAlias(d)) :
                     dragData.userDropAction === "copy" || (!dragData.userDropAction && dragData.dropAction === "copy") ?
                         dragData.draggedDocuments.map(d => Doc.MakeCopy(d, true)) :
-                        dragData.draggedDocuments));
+                        dragData.draggedDocuments
+                );
+            });
+    }
+
+    export function StartLinkedDocumentDrag(eles: HTMLElement[], sourceDoc: Doc, dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
+
+        runInAction(() => StartDragFunctions.map(func => func()));
+        StartDrag(eles, dragData, downX, downY, options,
+            (dropData: { [id: string]: any }) => {
+                // dropData.droppedDocuments = 
+                let droppedDocuments: Doc[] = dragData.draggedDocuments.reduce((droppedDocs: Doc[], d) => {
+                    let dvs = DocumentManager.Instance.getDocumentViews(d);
+
+                    if (dvs.length) {
+                        let inContext = dvs.filter(dv => dv.props.ContainingCollectionView === SelectionManager.SelectedDocuments()[0].props.ContainingCollectionView);
+                        if (inContext.length) {
+                            inContext.forEach(dv => droppedDocs.push(dv.props.Document));
+                        } else {
+                            droppedDocs.push(Doc.MakeAlias(d));
+                        }
+                    } else {
+                        droppedDocs.push(Doc.MakeAlias(d));
+                    }
+                    return droppedDocs;
+                }, []);
+                dropData.droppedDocuments = droppedDocuments;
+            });
     }
 
     export function StartAnnotationDrag(eles: HTMLElement[], dragData: AnnotationDragData, downX: number, downY: number, options?: DragOptions) {

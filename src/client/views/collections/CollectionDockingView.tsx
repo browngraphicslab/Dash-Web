@@ -24,6 +24,7 @@ import { SubCollectionViewProps } from "./CollectionSubView";
 import { ParentDocSelector } from './ParentDocumentSelector';
 import React = require("react");
 import { MainView } from '../MainView';
+import { LinkManager } from '../../util/LinkManager';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faFile } from '@fortawesome/free-solid-svg-icons';

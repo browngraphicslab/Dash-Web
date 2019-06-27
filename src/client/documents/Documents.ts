@@ -25,7 +25,7 @@ import { OmitKeys } from "../../Utils";
 import { ImageField, VideoField, AudioField, PdfField, WebField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
 import { List } from "../../new_fields/List";
-import { Cast, NumCast } from "../../new_fields/Types";
+import { Cast, NumCast, StrCast } from "../../new_fields/Types";
 import { IconField } from "../../new_fields/IconField";
 import { listSpec } from "../../new_fields/Schema";
 import { DocServer } from "../DocServer";
@@ -34,6 +34,8 @@ import { dropActionType } from "../util/DragManager";
 import { DateField } from "../../new_fields/DateField";
 import { UndoManager } from "../util/UndoManager";
 import { RouteStore } from "../../server/RouteStore";
+import { LinkManager } from "../util/LinkManager";
+import { DocumentManager } from "../util/DocumentManager";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 
@@ -68,27 +70,30 @@ const delegateKeys = ["x", "y", "width", "height", "panX", "panY"];
 
 export namespace DocUtils {
     export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", tags: string = "Default") {
-        let protoSrc = source.proto ? source.proto : source;
-        let protoTarg = target.proto ? target.proto : target;
+        if (LinkManager.Instance.doesLinkExist(source, target)) return;
+        let sv = DocumentManager.Instance.getDocumentView(source);
+        if (sv && sv.props.ContainingCollectionView && sv.props.ContainingCollectionView.props.Document === target) return;
+        if (target === CurrentUserUtils.UserDocument) return;
+
         UndoManager.RunInBatch(() => {
+
             let linkDoc = Docs.TextDocument({ width: 100, height: 30, borderRounding: -1 });
             let linkDocProto = Doc.GetProto(linkDoc);
-            linkDocProto.title = title === "" ? source.title + " to " + target.title : title;
+
+            linkDocProto.context = targetContext;
+            linkDocProto.title = title; //=== "" ? source.title + " to " + target.title : title;
             linkDocProto.linkDescription = description;
             linkDocProto.linkTags = tags;
 
-            linkDocProto.linkedTo = target;
-            linkDocProto.linkedFrom = source;
-            linkDocProto.linkedToPage = target.curPage;
-            linkDocProto.linkedFromPage = source.curPage;
-            linkDocProto.linkedToContext = targetContext;
+            linkDocProto.anchor1 = source;
+            linkDocProto.anchor1Page = source.curPage;
+            linkDocProto.anchor1Groups = new List<Doc>([]);
+            linkDocProto.anchor2 = target;
+            linkDocProto.anchor2Page = target.curPage;
+            linkDocProto.anchor2Groups = new List<Doc>([]);
 
-            let linkedFrom = Cast(protoTarg.linkedFromDocs, listSpec(Doc));
-            let linkedTo = Cast(protoSrc.linkedToDocs, listSpec(Doc));
-            !linkedFrom && (protoTarg.linkedFromDocs = linkedFrom = new List<Doc>());
-            !linkedTo && (protoSrc.linkedToDocs = linkedTo = new List<Doc>());
-            linkedFrom.push(linkDoc);
-            linkedTo.push(linkDoc);
+            LinkManager.Instance.addLink(linkDoc);
+
             return linkDoc;
         }, "make link");
     }
@@ -107,6 +112,7 @@ export namespace Docs {
     let audioProto: Doc;
     let pdfProto: Doc;
     let iconProto: Doc;
+    // let linkProto: Doc;
     const textProtoId = "textProto";
     const histoProtoId = "histoProto";
     const pdfProtoId = "pdfProto";
@@ -117,6 +123,7 @@ export namespace Docs {
     const videoProtoId = "videoProto";
     const audioProtoId = "audioProto";
     const iconProtoId = "iconProto";
+    // const linkProtoId = "linkProto";
 
     export function initProtos(): Promise<void> {
         return DocServer.GetRefFields([textProtoId, histoProtoId, collProtoId, imageProtoId, webProtoId, kvpProtoId, videoProtoId, audioProtoId, pdfProtoId, iconProtoId]).then(fields => {
@@ -248,6 +255,7 @@ export namespace Docs {
     export function IconDocument(icon: string, options: DocumentOptions = {}) {
         return CreateInstance(iconProto, new IconField(icon), options);
     }
+
     export function PdfDocument(url: string, options: DocumentOptions = {}) {
         return CreateInstance(pdfProto, new PdfField(new URL(url)), options);
     }
@@ -363,7 +371,7 @@ export namespace Docs {
     }
 
     /*
-
+ 
     this template requires an additional style setting on the collectionView-cont to make the layout relative
     
 .collectionView-cont {

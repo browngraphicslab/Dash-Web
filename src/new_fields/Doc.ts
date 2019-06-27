@@ -8,6 +8,8 @@ import { listSpec } from "./Schema";
 import { ObjectField } from "./ObjectField";
 import { RefField, FieldId } from "./RefField";
 import { ToScriptString, SelfProxy, Parent, OnUpdate, Self, HandleUpdate, Update, Id } from "./FieldSymbols";
+import { LinkManager } from "../client/util/LinkManager";
+import { DocUtils } from "../client/documents/Documents";
 
 export namespace Field {
     export function toScriptString(field: Field): string {
@@ -298,6 +300,7 @@ export namespace Doc {
                 }
             }
         });
+
         return copy;
     }
 
