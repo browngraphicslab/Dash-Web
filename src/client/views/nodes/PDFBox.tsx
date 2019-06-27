@@ -11,6 +11,8 @@ import { PdfField } from "../../../new_fields/URLField";
 import { RouteStore } from "../../../server/RouteStore";
 import { DocComponent } from "../DocComponent";
 import { InkingControl } from "../InkingControl";
+import { FilterBox } from "../search/FilterBox";
+import { Annotation } from './Annotation';
 import { PDFViewer } from "../pdf/PDFViewer";
 import { positionSchema } from "./DocumentView";
 import { FieldView, FieldViewProps } from './FieldView';
