@@ -97,9 +97,10 @@ export namespace DocUtils {
             let linkDocProto = Doc.GetProto(linkDoc);
 
             linkDocProto.context = targetContext;
-            linkDocProto.title = title; //=== "" ? source.title + " to " + target.title : title;
+            linkDocProto.title = title === "" ? source.title + " to " + target.title : title;
             linkDocProto.linkDescription = description;
             linkDocProto.linkTags = tags;
+            linkDocProto.type = DocTypes.LINK;
 
             linkDocProto.anchor1 = source;
             linkDocProto.anchor1Page = source.curPage;
