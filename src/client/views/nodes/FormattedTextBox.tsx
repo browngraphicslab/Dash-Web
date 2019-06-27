@@ -281,7 +281,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     this._linkClicked = href.replace(DocServer.prepend("/doc/"), "").split("?")[0];
                     if (this._linkClicked) {
                         DocServer.GetRefField(this._linkClicked).then(f => {
-                            (f instanceof Doc) && DocumentManager.Instance.jumpToDocument(f, ctrlKey, document => this.props.addDocTab(document, document, "inTab"));
+                            (f instanceof Doc) && DocumentManager.Instance.jumpToDocument(f, ctrlKey, false, document => this.props.addDocTab(document, document, "inTab"));
                         });
                         e.stopPropagation();
                         e.preventDefault();

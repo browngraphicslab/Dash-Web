@@ -179,9 +179,9 @@ export namespace Doc {
         let hasProto = doc.proto instanceof Doc;
         let onDeleg = Object.getOwnPropertyNames(doc).indexOf(key) !== -1;
         let onProto = hasProto && Object.getOwnPropertyNames(doc.proto).indexOf(key) !== -1;
-        if (onDeleg || !hasProto || (!onProto && !defaultProto))
+        if (onDeleg || !hasProto || (!onProto && !defaultProto)) {
             doc[key] = value;
-        else doc.proto![key] = value;
+        } else doc.proto![key] = value;
     }
     export async function SetOnPrototype(doc: Doc, key: string, value: Field) {
         const proto = Object.getOwnPropertyNames(doc).indexOf("isPrototype") === -1 ? doc.proto : doc;

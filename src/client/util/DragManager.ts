@@ -143,7 +143,7 @@ export namespace DragManager {
 
     export type MoveFunction = (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     export class DocumentDragData {
-        constructor(dragDoc: Doc[], dragDataDocs: Doc[]) {
+        constructor(dragDoc: Doc[], dragDataDocs: (Doc | undefined)[]) {
             this.draggedDocuments = dragDoc;
             this.draggedDataDocs = dragDataDocs;
             this.droppedDocuments = dragDoc;
@@ -151,7 +151,7 @@ export namespace DragManager {
             this.yOffset = 0;
         }
         draggedDocuments: Doc[];
-        draggedDataDocs: Doc[];
+        draggedDataDocs: (Doc | undefined)[];
         droppedDocuments: Doc[];
         xOffset: number;
         yOffset: number;
@@ -242,7 +242,7 @@ export namespace DragManager {
 
         const docs: Doc[] =
             dragData instanceof DocumentDragData ? dragData.draggedDocuments : dragData instanceof AnnotationDragData ? [dragData.dragDocument] : [];
-        const datadocs: Doc[] =
+        const datadocs: (Doc | undefined)[] =
             dragData instanceof DocumentDragData ? dragData.draggedDataDocs : dragData instanceof AnnotationDragData ? [dragData.dragDocument] : [];
         let dragElements = eles.map(ele => {
             const w = ele.offsetWidth,

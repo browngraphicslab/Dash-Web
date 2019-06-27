@@ -10,7 +10,7 @@ import { Id } from '../../../new_fields/FieldSymbols';
 import { FieldId } from "../../../new_fields/RefField";
 import { listSpec } from "../../../new_fields/Schema";
 import { Cast, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
-import { emptyFunction, returnTrue, Utils } from "../../../Utils";
+import { emptyFunction, returnTrue, Utils, returnOne } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { DocumentManager } from '../../util/DocumentManager';
 import { DragLinksAsDocuments, DragManager } from "../../util/DragManager";
@@ -32,7 +32,7 @@ library.add(faFile);
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
     public static Instance: CollectionDockingView;
-    public static makeDocumentConfig(document: Doc, dataDoc: Doc, width?: number) {
+    public static makeDocumentConfig(document: Doc, dataDoc: Doc | undefined, width?: number) {
         return {
             type: 'react-component',
             component: 'DocumentFrameRenderer',
@@ -40,7 +40,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             width: width,
             props: {
                 documentId: document[Id],
-                dataDocumentId: dataDoc[Id]
+                dataDocumentId: dataDoc ? dataDoc[Id] : ""
                 //collectionDockingView: CollectionDockingView.Instance
             }
         };
@@ -61,7 +61,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     }
     hack: boolean = false;
     undohack: any = null;
-    public StartOtherDrag(e: any, dragDocs: Doc[], dragDataDocs?: Doc[]) {
+    public StartOtherDrag(e: any, dragDocs: Doc[], dragDataDocs?: (Doc | undefined)[]) {
         this.hack = true;
         this.undohack = UndoManager.StartBatch("goldenDrag");
         dragDocs.map((dragDoc, i) =>
@@ -128,7 +128,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     //  Creates a vertical split on the right side of the docking view, and then adds the Document to that split
     //
     @action
-    public AddRightSplit = (document: Doc, dataDoc: Doc, minimize: boolean = false) => {
+    public AddRightSplit = (document: Doc, dataDoc: Doc | undefined, minimize: boolean = false) => {
         let docs = Cast(this.props.Document.data, listSpec(Doc));
         if (docs) {
             docs.push(document);
@@ -541,7 +541,9 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                     whenActiveChanged={emptyFunction}
                     focus={emptyFunction}
                     addDocTab={this.addDocTab}
-                    ContainingCollectionView={undefined} />
+                    ContainingCollectionView={undefined}
+                    zoomToScale={emptyFunction}
+                    getScale={returnOne} />
             </div >);
     }
 

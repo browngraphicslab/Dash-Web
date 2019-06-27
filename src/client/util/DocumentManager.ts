@@ -1,4 +1,4 @@
-import { computed, observable } from 'mobx';
+import { computed, observable, action } from 'mobx';
 import { DocumentView } from '../views/nodes/DocumentView';
 import { Doc, DocListCast, Opt } from '../../new_fields/Doc';
 import { FieldValue, Cast, NumCast, BoolCast } from '../../new_fields/Types';
@@ -115,7 +115,7 @@ export class DocumentManager {
     }
 
     @undoBatch
-    public jumpToDocument = async (docDelegate: Doc, forceDockFunc: boolean = false, dockFunc?: (doc: Doc) => void, linkPage?: number, docContext?: Doc): Promise<void> => {
+    public jumpToDocument = async (docDelegate: Doc, willZoom: boolean, forceDockFunc: boolean = false, dockFunc?: (doc: Doc) => void, linkPage?: number, docContext?: Doc): Promise<void> => {
         let doc = Doc.GetProto(docDelegate);
         const contextDoc = await Cast(doc.annotationOn, Doc);
         if (contextDoc) {
@@ -129,18 +129,18 @@ export class DocumentManager {
         if (!forceDockFunc && (docView = DocumentManager.Instance.getDocumentView(doc))) {
             docView.props.Document.libraryBrush = true;
             if (linkPage !== undefined) docView.props.Document.curPage = linkPage;
-            docView.props.focus(docView.props.Document);
+            docView.props.focus(docView.props.Document, willZoom);
         } else {
             if (!contextDoc) {
                 if (docContext) {
                     let targetContextView: DocumentView | null;
                     if (!forceDockFunc && docContext && (targetContextView = DocumentManager.Instance.getDocumentView(docContext))) {
                         docContext.panTransformType = "Ease";
-                        targetContextView.props.focus(docDelegate);
+                        targetContextView.props.focus(docDelegate, willZoom);
                     } else {
                         (dockFunc || CollectionDockingView.Instance.AddRightSplit)(docContext, docContext);
                         setTimeout(() => {
-                            this.jumpToDocument(docDelegate, forceDockFunc, dockFunc, linkPage);
+                            this.jumpToDocument(docDelegate, willZoom, forceDockFunc, dockFunc, linkPage);
                         }, 10);
                     }
                 } else {
@@ -154,14 +154,37 @@ export class DocumentManager {
                 docDelegate.libraryBrush = true;
                 if (!forceDockFunc && (contextView = DocumentManager.Instance.getDocumentView(contextDoc))) {
                     contextDoc.panTransformType = "Ease";
-                    contextView.props.focus(docDelegate);
+                    contextView.props.focus(docDelegate, willZoom);
                 } else {
                     (dockFunc || CollectionDockingView.Instance.AddRightSplit)(contextDoc, contextDoc);
                     setTimeout(() => {
-                        this.jumpToDocument(docDelegate, forceDockFunc, dockFunc, linkPage);
+                        this.jumpToDocument(docDelegate, willZoom, forceDockFunc, dockFunc, linkPage);
                     }, 10);
                 }
             }
+        }
+    }
+
+    @action
+    zoomIntoScale = (docDelegate: Doc, scale: number) => {
+        let doc = Doc.GetProto(docDelegate);
+
+        let docView: DocumentView | null;
+        docView = DocumentManager.Instance.getDocumentView(doc);
+        if (docView) {
+            docView.props.zoomToScale(scale);
+        }
+    }
+
+    getScaleOfDocView = (docDelegate: Doc) => {
+        let doc = Doc.GetProto(docDelegate);
+
+        let docView: DocumentView | null;
+        docView = DocumentManager.Instance.getDocumentView(doc);
+        if (docView) {
+            return docView.props.getScale();
+        } else {
+            return 1;
         }
     }
 }
