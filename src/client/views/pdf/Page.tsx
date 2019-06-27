@@ -31,7 +31,7 @@ interface IPageProps {
     makePin: (x: number, y: number, page: number) => void;
     sendAnnotations: (annotations: HTMLDivElement[], page: number) => void;
     createAnnotation: (div: HTMLDivElement, page: number) => void;
-    makeAnnotationDocuments: (doc: Doc | undefined, scale: number, color: string) => Doc;
+    makeAnnotationDocuments: (doc: Doc | undefined, scale: number, color: string, linkTo: boolean) => Doc;
     getScrollFromPage: (page: number) => number;
 }
 
@@ -137,7 +137,7 @@ export default class Page extends React.Component<IPageProps> {
     @action
     highlight = (targetDoc?: Doc, color: string = "red") => {
         // creates annotation documents for current highlights
-        let annotationDoc = this.props.makeAnnotationDocuments(targetDoc, scale, color);
+        let annotationDoc = this.props.makeAnnotationDocuments(targetDoc, scale, color, false);
         let targetAnnotations = Cast(this.props.parent.Document.annotations, listSpec(Doc));
         if (targetAnnotations === undefined) {
             Doc.GetProto(this.props.parent.Document).annotations = new List([annotationDoc]);

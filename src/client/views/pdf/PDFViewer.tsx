@@ -226,7 +226,8 @@ class Viewer extends React.Component<IViewerProps> {
         let annoDocs: Doc[] = [];
         let mainAnnoDoc = Docs.CreateInstance(new Doc(), "", {});
 
-        mainAnnoDoc.page = Math.round(Math.random());
+        mainAnnoDoc.title = "Annotation on " + StrCast(this.props.parent.Document.title);
+        mainAnnoDoc.pdfDoc = this.props.parent.Document;
         this._savedAnnotations.forEach((key: number, value: HTMLDivElement[]) => {
             for (let anno of value) {
                 let annoDoc = new Doc();
@@ -244,6 +245,7 @@ class Viewer extends React.Component<IViewerProps> {
             }
         });
 
+        mainAnnoDoc.y = Math.max((NumCast(annoDocs[0].y) * scale) - 100, 0);
         mainAnnoDoc.annotations = new List<Doc>(annoDocs);
         if (sourceDoc) {
             DocUtils.MakeLink(sourceDoc, mainAnnoDoc, undefined, `Annotation from ${StrCast(this.props.parent.Document.title)}`, "", StrCast(this.props.parent.Document.title));

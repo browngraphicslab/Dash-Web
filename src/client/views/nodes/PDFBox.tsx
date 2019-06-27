@@ -217,10 +217,12 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
 
     @action
     onScroll = (e: React.UIEvent<HTMLDivElement>) => {
+
         if (e.currentTarget) {
             this._scrollY = e.currentTarget.scrollTop;
             let ccv = this.props.ContainingCollectionView;
             if (ccv) {
+                ccv.props.Document.panTransformType = "None";
                 ccv.props.Document.scrollY = this._scrollY;
             }
         }
