@@ -351,6 +351,7 @@
         this._fMove = lm.utils.fnBind(this.onMouseMove, this);
         this._fUp = lm.utils.fnBind(this.onMouseUp, this);
         this._fDown = lm.utils.fnBind(this.onMouseDown, this);
+        this._fKey = lm.utils.fnBind(this.onKeyDown, this);
 
 
         this._eElement.on('mousedown touchstart', this._fDown);
@@ -362,6 +363,7 @@
         destroy: function () {
             this._eElement.unbind('mousedown touchstart', this._fDown);
             this._oDocument.unbind('mouseup touchend', this._fUp);
+            this._oDocument.unbind('keydown', this._fKey);
             this._eElement = null;
             this._oDocument = null;
             this._eBody = null;
@@ -376,9 +378,11 @@
                 this._nOriginalX = coordinates.x;
                 this._nOriginalY = coordinates.y;
 
-                this._oDocument.on('mousemove touchmove', this._fMove);
-                this._oDocument.one('mouseup touchend', this._fUp);
+                this.dragType = (oEvent.currentTarget !== undefined) ? oEvent.currentTarget.parentElement.className : "not_tab";
 
+                this._oDocument.on('mousemove touchmove', this._fMove);
+                this._oDocument.on('mouseup touchend', this._fUp);
+                this._oDocument.on('keydown', this._fKey);
                 this._timeout = setTimeout(lm.utils.fnBind(this._startDrag, this), this._nDelay);
             }
         },
@@ -416,10 +420,34 @@
                 this._oDocument.find('iframe').css('pointer-events', '');
                 this._oDocument.unbind('mousemove touchmove', this._fMove);
                 this._oDocument.unbind('mouseup touchend', this._fUp);
+                this._oDocument.unbind('keydown', this._fKey);
 
                 if (this._bDragging === true) {
                     this._bDragging = false;
                     this.emit('dragStop', oEvent, this._nOriginalX + this._nX);
+                }
+            }
+        },
+
+        onKeyDown: function (oEvent) {
+            if (this._timeout != null && oEvent.keyCode === 27) {
+                oEvent.preventDefault();
+                clearTimeout(this._timeout);
+
+                this._eBody.removeClass('lm_dragging');
+                this._eElement.removeClass('lm_dragging');
+                this._oDocument.find('iframe').css('pointer-events', '');
+                this._oDocument.unbind('mousemove touchmove', this._fMove);
+                this._oDocument.unbind('mouseup touchend', this._fUp);
+                this._oDocument.unbind('keydown', this._fKey);
+
+                if (this._bDragging === true) {
+                    this._bDragging = false;
+                    oEvent.coords = {
+                        x: this._nOriginalX,
+                        y: this._nOriginalY
+                    }
+                    this.emit('dragStopKey', oEvent, this._nOriginalX);
                 }
             }
         },
@@ -2052,6 +2080,7 @@
 
         this._dragListener.on('drag', this._onDrag, this);
         this._dragListener.on('dragStop', this._onDrop, this);
+        this._dragListener.on('dragStopKey', this._onDrop, this);
 
         this.element = $(lm.controls.DragProxy._template);
         if (originalParent && originalParent._side) {
@@ -2066,6 +2095,7 @@
         this.childElementContainer = this.element.find('.lm_content');
         this.childElementContainer.append(contentItem.element);
 
+        this._originalParent.isMoved = true;
         this._updateTree();
         this._layoutManager._$calculateItemAreas();
         this._setDimensions();
@@ -2153,41 +2183,60 @@
 		 *
 		 * @returns {void}
 		 */
-        _onDrop: function () {
+        _onDrop: function (keypressed) {
             this._layoutManager.dropTargetIndicator.hide();
+            this._originalParent.isMoved = false;
 
-			/*
-			 * Valid drop area found
-			 */
-            if (this._area !== null) {
+            /*
+             * Drag finished with the escape key
+             */
+            if (keypressed.code === 'Escape') {
+                if (this._dragListener.dragType === "not_tab") {
+                    this._contentItem._$destroy();
+                } else {
+                    this._area = this._layoutManager._$getArea(keypressed.coords.x, keypressed.coords.y);
+
+                    this._area.contentItem._$onDrop(this._contentItem, this._area);
+
+                }
+                /*
+                 * Valid drop area found
+                 */
+            } else if (this._area !== null) {
                 this._area.contentItem._$onDrop(this._contentItem, this._area);
 
-				/**
-				 * No valid drop area available at present, but one has been found before.
-				 * Use it
-				 */
+                /**
+                 * No valid drop area available at present, but one has been found before.
+                 * Use it
+                 */
             } else if (this._lastValidArea !== null) {
                 this._lastValidArea.contentItem._$onDrop(this._contentItem, this._lastValidArea);
 
-				/**
-				 * No valid drop area found during the duration of the drag. Return
-				 * content item to its original position if a original parent is provided.
-				 * (Which is not the case if the drag had been initiated by createDragSource)
-				 */
+                /**
+                 * No valid drop area found during the duration of the drag. Return
+                 * content item to its original position if a original parent is provided.
+                 * (Which is not the case if the drag had been initiated by createDragSource)
+                 */
             } else if (this._originalParent) {
                 this._originalParent.addChild(this._contentItem);
 
-				/**
-				 * The drag didn't ultimately end up with adding the content item to
-				 * any container. In order to ensure clean up happens, destroy the
-				 * content item.
-				 */
+                /**
+                 * The drag didn't ultimately end up with adding the content item to
+                 * any container. In order to ensure clean up happens, destroy the
+                 * content item.
+                 */
             } else {
                 this._contentItem._$destroy();
             }
 
             this.element.remove();
 
+            // if original stack is empty, delete 
+            if (this._originalParent.contentItems.length <= 0) {
+                this._originalParent.remove();
+            }
+
+            this._originalParent.isDragged = false;
             this._layoutManager.emit('itemDropped', this._contentItem);
         },
 
@@ -3954,10 +4003,16 @@
                 contentItem.isDragged = !contentItem.isDragged;
 
                 let deleteStack = confirm('delete stack?');
-                if (!deleteStack) {
+                if (!deleteStack && contentItem.dragType !== "not_tab") {
                     return;
                 }
             }
+
+            // if dragging element around, don't remove stack until finished
+            if (contentItem.isMoved) {
+                return;
+            }
+
             var removedItemSize = contentItem.config[this._dimension],
                 index = lm.utils.indexOf(contentItem, this.contentItems),
                 splitterIndex = Math.max(index - 1, 0),
@@ -4510,7 +4565,6 @@
         },
 
         addChild: function (contentItem, index) {
-            console.log("ADDING CHILD", contentItem);
             contentItem = this.layoutManager._$normalizeContentItem(contentItem, this);
             lm.items.AbstractContentItem.prototype.addChild.call(this, contentItem, index);
             this.childElementContainer.append(contentItem.element);

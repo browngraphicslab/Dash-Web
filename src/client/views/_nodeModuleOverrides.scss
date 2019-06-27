@@ -2,21 +2,58 @@
 
 // goldenlayout stuff
 div .lm_header {
-  background: $dark-color;
-  min-height: 2em;
+    background: $dark-color;
+    min-height: 2.5em;
+}
+
+.lm_active {
+    background-color: #3e3e3e !important;
 }
 
 .lm_tab {
-  margin-top: 0.6em !important;
-  padding-top: 0.5em !important;
-  min-height: 1.35em;
-  padding-bottom: 0px;
-  border-radius: 5px;
-  font-family: $sans-serif !important;
+    margin-top: .55em !important;
+    margin-left: 0.8em !important;
+    min-height: 1.35em;
+    border-radius: 5px 5px 1px 1px;
+    padding: .5em 1.5em .5em .9em !important;
+    font-family: $sans-serif !important;
+
+    .messageCounter {
+        position: absolute;
+        top: 0;
+        left: 0;
+        margin-left: -.7em !important;
+    }
+
+    .lm_close_tab {
+        height: 0;
+        top: 7px !important;
+        right: 8px !important;
+    }
 }
 
 .lm_header .lm_controls {
-  right: 1em !important;
+    top: .2em !important;
+    right: .3em !important;
+    width: 3.6em;
+    display: flex;
+    justify-content: space-between;
+}
+
+.dragManager-dragDiv {
+    .lm_active {
+        display: flex;
+        color: #8e8f91 !important;
+        padding-bottom: 1.6em !important;
+
+        li {
+            list-style: none;
+        }
+
+        span:not(.lm_title):not(.lm_close_tab) {
+            display: none;
+        }
+    }
 }
 
 // @TODO the ril__navgiation buttons in the img gallery are a lil messed up but I can't figure out

@@ -34,7 +34,6 @@ import { HistoryUtil } from '../util/History';
 import { CollectionBaseView } from './collections/CollectionBaseView';
 import { List } from '../../new_fields/List';
 
-
 @observer
 export class MainView extends React.Component {
     public static Instance: MainView;

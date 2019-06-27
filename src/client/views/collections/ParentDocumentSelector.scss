@@ -1,3 +1,10 @@
+.PDS {
+    position: relative;
+    display: inline-block;
+    top: -3px;
+    padding: 3px 12px 6px 3px !important
+}
+
 .PDS-flyout {
     position: absolute;
     z-index: 9999;
@@ -5,7 +12,7 @@
     box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
     min-width: 150px;
     color: black;
-    top: 12px;
+    top: 24px;
 
     padding: 10px;
     border-radius: 3px;

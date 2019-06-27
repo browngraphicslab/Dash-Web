@@ -417,8 +417,9 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     @observable private _document: Opt<Doc>;
     get _stack(): any {
         let parent = (this.props as any).glContainer.parent.parent;
-        if (this._document && this._document.excludeFromLibrary && parent.parent && parent.parent.contentItems.length > 1)
+        if (this._document && this._document.excludeFromLibrary && parent.parent && parent.parent.contentItems.length > 1) {
             return parent.parent.contentItems[1];
+        }
         return parent;
     }
     constructor(props: any) {

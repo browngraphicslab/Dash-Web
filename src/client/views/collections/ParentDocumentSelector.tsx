@@ -83,10 +83,10 @@ export class ParentDocSelector extends React.Component<SelectorProps> {
             );
         }
         return (
-            <span style={{ position: "relative", display: "inline-block", paddingLeft: "5px", paddingRight: "5px" }}
+            <span className="PDS"
                 onMouseEnter={this.onMouseEnter}
                 onMouseLeave={this.onMouseLeave}>
-                <p>^</p>
+                <p>▼</p>
                 {flyout}
             </span>
         );
