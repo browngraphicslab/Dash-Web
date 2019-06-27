@@ -285,7 +285,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             overlaps.push(thingies);
             if (overlap === false) {
                 buttons.push(
-                    <div onClick={display} style={{ top: "70%", position: "absolute", left: leftval, width: "100px", height: "100px" }}>
+                    <div onClick={display} style={{ top: "65%", position: "absolute", left: leftval, width: "100px", height: "100px" }}>
                         <div className="unselected" id={"button" + String(i)} style={{ position: "absolute", width: "100px", height: "100px", pointerEvents: "all" }}>
                             {this.documentpreview(docs[i])}
                         </div>
@@ -293,8 +293,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             }
             else {
                 buttons.push(
-                    <div onClick={display} style={{ top: "70%", position: "absolute", left: leftval, width: "100px", height: "100px" }}>
-                        <div className="unselected" id={"button" + String(i)} style={{ position: "absolute", background: "grey", width: "100px", height: "100px", zIndex: 0 }}>
+                    <div onClick={display} style={{ top: "65%", position: "absolute", left: leftval, width: "100px", height: "100px" }}>
+                        <div className="unselected" id={"button" + String(i)} style={{ position: "absolute", overflow: "scroll", background: "grey", width: "100px", height: "100px", zIndex: 0 }}>
                             {thingies}
                         </div>
                     </div>);
@@ -376,7 +376,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
                 </div>
             </div>
-            <div className="timeline" style={{ position: "absolute", height: "25px", width: "100%", top: String(document.body.clientHeight * 0.7 + 71) + "px", zIndex: -9999 }}>
+            <div className="timeline" style={{ position: "absolute", height: "25px", width: "100%", top: String(document.body.clientHeight * 0.65 + 72) + "px", zIndex: -9999 }}>
                 {this.ticks}
             </div>
             <div style={{ left: "20%", width: "50%", height: "60%", position: "absolute", border: "1px solid" }}>
@@ -385,33 +385,30 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             <div style={{ left: "70%", height: "60%", position: "absolute", border: "1px solid", width: "30%" }}>
                 {this.preview2 ? this.documentpreview3(this.preview2) : (null)}
             </div>
-            <div style={{ top: "60%", height: "8%", border: "1px solid", width: "100%", position: "absolute" }}>
-                {this.preview3}
+            <div style={{ top: "86%", height: "8%", width: "100%", position: "absolute" }}>
+                <div> Min:
                 <input value={this.searchString2} onChange={this.onChange2} onKeyPress={this.enter2} type="text" placeholder={String((this.xmovement * this._range / this.barwidth) + this._values[0])}
-                    className="searchBox-barChild searchBox-input" />
-                {String((this.xmovement * this._range / this.barwidth) + this._values[0])}
-                {this.preview4}
-                <input value={this.searchString} onChange={this.onChange} onKeyPress={this.enter} type="text" placeholder={String(((this.barwidth - this.xmovement2) * this._range / this.barwidth) + this._values[0])}
-                    className="searchBox-barChild searchBox-input" />
-                {String(((this.barwidth - this.xmovement2) * this._range / this.barwidth) + this._values[0])}
+                        className="searchBox-barChild searchBox-input" />
+                </div>
+                <div style={{ textAlign: "center" }}>{this.preview4}
+                </div>
 
+
+                <div style={{ right: "0%", position: "absolute" }}>Max:
+                <input value={this.searchString} onChange={this.onChange} onKeyPress={this.enter} type="text" placeholder={String(((this.barwidth - this.xmovement2) * this._range / this.barwidth) + this._values[0])}
+                        className="searchBox-barChild searchBox-input" />
+                </div>
 
             </div>
-            {/*<div style={{
-                borderRadius: "15px 5px 5px 15px", top: "65%", left: (this.preview6 !== -2 ? (((values[this.preview6] - values[0]) * this.barwidth * 0.97 / this._range) * (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)) - (this.xmovement * (this.barwidth) / (this.barwidth - this.xmovement2 - this.xmovement))) + "px" : "-9999px"),
-                position: "absolute", overflow: "auto", background: "$intermediate-color", height: "100px", width: "50px"
-            }}>
-                {overlaps}
-        </div>*/}
             <div className="selection" style={{
-                whiteSpace: "nowrap", borderRadius: "0px 0px 5px 5px", border: "1px",
-                overflow: "scroll", top: String(document.body.clientHeight * 0.7 + 70) + "px", zIndex: 99, position: "absolute", left: (this.leftselect !== -2 ? (((values[this.leftselect] - values[0]) * this.barwidth * 0.97 / this._range) * (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)) - (this.xmovement * (this.barwidth) / (this.barwidth - this.xmovement2 - this.xmovement))) + "px" : "-9999px"), width: "100px", height: "30px"
+                whiteSpace: "nowrap", borderRadius: "5px 5px 0px 0px", border: "1px",
+                textOverflow: "ellipsis", overflow: "hidden", paddingLeft: "3px", paddingRight: "3px", paddingTop: "3px", top: String(document.body.clientHeight * 0.65 - 56) + "px", zIndex: 99, position: "absolute", left: (this.leftselect !== -2 ? (((values[this.leftselect] - values[0]) * this.barwidth * 0.97 / this._range) * (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)) - (this.xmovement * (this.barwidth) / (this.barwidth - this.xmovement2 - this.xmovement))) + "px" : "-9999px"), width: "100px", height: "30px"
             }}>
-                {(this.preview6 !== -2 ? this.overlapingdudes : this.nameselect)}
+                {(this.nameselect)}
             </div>
             <div className="viewpanel" style={{ top: "5%", position: "absolute", right: "10%", bottom: "35%", background: "#GGGGGG", zIndex: -55, }}></div>
             <div>{buttons}</div>
-            <div id="bar" className="backdropscroll" onPointerDown={this.onPointerDown4} style={{ top: "85%", width: "100%", bottom: "10%", position: "absolute", }}>
+            <div id="bar" className="backdropscroll" onPointerDown={this.onPointerDown4} style={{ top: "80%", width: "100%", bottom: "15%", position: "absolute", }}>
                 {buttons2}
                 <div className="v1" onPointerDown={this.onPointerDown} style={{ cursor: "ew-resize", position: "absolute", zIndex: 2, left: this.xmovement, height: "100%" }}>
 
