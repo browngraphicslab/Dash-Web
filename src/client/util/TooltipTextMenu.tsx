@@ -64,6 +64,8 @@ export class TooltipTextMenu {
 
     private _activeMarks: Mark[] = [];
 
+    private _collapseBtn?: MenuItem;
+
     constructor(view: EditorView, editorProps: FieldViewProps & FormattedTextBoxProps) {
         this.view = view;
         this.state = view.state;
@@ -71,6 +73,10 @@ export class TooltipTextMenu {
         this.tooltip = document.createElement("div");
         this.tooltip.className = "tooltipMenu";
 
+        // this.createCollapse();
+        // if (this._collapseBtn) {
+        //     this.tooltip.appendChild(this._collapseBtn.render(this.view).dom);
+        // }
         //add the div which is the tooltip
         //view.dom.parentNode!.parentNode!.appendChild(this.tooltip);
 
@@ -143,6 +149,8 @@ export class TooltipTextMenu {
         this.tooltip.appendChild(this.createLink().render(this.view).dom);
 
         this.tooltip.appendChild(this.createStar().render(this.view).dom);
+
+
 
         this.updateListItemDropdown(":", this.listTypeBtnDom);
 
@@ -291,7 +299,7 @@ export class TooltipTextMenu {
         link = node && node.marks.find(m => m.type.name === "link");
     }
 
-    insertStar(state: EditorState<any>, dispatch: any) {
+    public static insertStar(state: EditorState<any>, dispatch: any) {
         let newNode = schema.nodes.star.create({ visibility: false, text: state.selection.content(), textslice: state.selection.content().toJSON(), textlen: state.selection.to - state.selection.from });
         if (dispatch) {
             //console.log(newNode.attrs.text.toString());
@@ -398,10 +406,51 @@ export class TooltipTextMenu {
             class: "summarize",
             execEvent: "",
             run: (state, dispatch, view) => {
-                this.insertStar(state, dispatch);
+                TooltipTextMenu.insertStar(state, dispatch);
             }
 
         });
+    }
+
+    createCollapse() {
+        this._collapseBtn = new MenuItem({
+            title: "Collapse",
+            //label: "Collapse",
+            icon: icons.join,
+            execEvent: "",
+            css: "color:white;",
+            class: "summarize",
+            run: (state, dispatch, view) => {
+                this.collapseToolTip();
+            }
+        });
+    }
+
+    collapseToolTip() {
+        if (this._collapseBtn) {
+            if (this._collapseBtn.spec.title === "Collapse") {
+                // const newcollapseBtn = new MenuItem({
+                //     title: "Expand",
+                //     icon: icons.join,
+                //     execEvent: "",
+                //     css: "color:white;",
+                //     class: "summarize",
+                //     run: (state, dispatch, view) => {
+                //         this.collapseToolTip();
+                //     }
+                // });
+                // this.tooltip.replaceChild(newcollapseBtn.render(this.view).dom, this._collapseBtn.render(this.view).dom);
+                // this._collapseBtn = newcollapseBtn;
+                this.tooltip.style.width = "30px";
+                this._collapseBtn.spec.title = "Expand";
+                this._collapseBtn.render(this.view);
+            }
+            else {
+                this._collapseBtn.spec.title = "Collapse";
+                this.tooltip.style.width = "550px";
+                this._collapseBtn.render(this.view);
+            }
+        }
     }
 
     createLink() {
