@@ -199,7 +199,7 @@ export namespace Docs {
         return audioProto;
     }
 
-    function CreateInstance(proto: Doc, data: Field, options: DocumentOptions, delegId?: string) {
+    export function CreateInstance(proto: Doc, data: Field, options: DocumentOptions, delegId?: string) {
         const { omit: protoProps, extract: delegateProps } = OmitKeys(options, delegateKeys);
         if (!("author" in protoProps)) {
             protoProps.author = CurrentUserUtils.email;

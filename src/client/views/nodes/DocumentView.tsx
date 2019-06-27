@@ -121,6 +121,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     private _mainCont = React.createRef<HTMLDivElement>();
     private _dropDisposer?: DragManager.DragDropDisposer;
 
+    @observable private _opacity: number = this.Document.opacity ? NumCast(this.Document.opacity) : 1;
+
     public get ContentDiv() { return this._mainCont.current; }
     @computed get active(): boolean { return SelectionManager.IsSelected(this) || this.props.parentActive(); }
     @computed get topMost(): boolean { return this.props.isTopMost; }
@@ -140,6 +142,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     _animateToIconDisposer?: IReactionDisposer;
     _reactionDisposer?: IReactionDisposer;
+    _opacityDisposer?: IReactionDisposer;
     @action
     componentDidMount() {
         if (this._mainCont.current) {
@@ -164,6 +167,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             (values instanceof List) && this.animateBetweenIcon(values, values[2], values[3] ? true : false)
             , { fireImmediately: true });
         DocumentManager.Instance.DocumentViews.push(this);
+        this._opacityDisposer = reaction(
+            () => NumCast(this.props.Document.opacity),
+            () => {
+                runInAction(() => this._opacity = NumCast(this.props.Document.opacity));
+            }
+        );
     }
 
     animateBetweenIcon = (iconPos: number[], startTime: number, maximizing: boolean) => {
@@ -205,6 +214,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (this._reactionDisposer) this._reactionDisposer();
         if (this._animateToIconDisposer) this._animateToIconDisposer();
         if (this._dropDisposer) this._dropDisposer();
+        if (this._opacityDisposer) this._opacityDisposer();
         DocumentManager.Instance.DocumentViews.splice(DocumentManager.Instance.DocumentViews.indexOf(this), 1);
     }
 

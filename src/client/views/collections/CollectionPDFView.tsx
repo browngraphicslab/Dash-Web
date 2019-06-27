@@ -43,6 +43,10 @@ export class CollectionPDFView extends React.Component<FieldViewProps> {
         );
     }
 
+    componentWillUnmount() {
+        this._reactionDisposer && this._reactionDisposer();
+    }
+
     public static LayoutString(fieldKey: string = "data") {
         return FieldView.LayoutString(CollectionPDFView, fieldKey);
     }
