@@ -1,10 +1,11 @@
-import { action } from "mobx";
+import { action, computed } from "mobx";
 import * as rp from 'request-promise';
 import CursorField from "../../../new_fields/CursorField";
 import { Doc, DocListCast, Opt } from "../../../new_fields/Doc";
+import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
-import { Cast, PromiseValue } from "../../../new_fields/Types";
+import { BoolCast, Cast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { RouteStore } from "../../../server/RouteStore";
 import { DocServer } from "../../DocServer";
@@ -13,12 +14,11 @@ import { DragManager } from "../../util/DragManager";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocComponent } from "../DocComponent";
 import { FieldViewProps } from "../nodes/FieldView";
+import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { CollectionPDFView } from "./CollectionPDFView";
 import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
 import React = require("react");
-import { FormattedTextBox } from "../nodes/FormattedTextBox";
-import { Id } from "../../../new_fields/FieldSymbols";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
@@ -45,10 +45,13 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             this.createDropTarget(ele);
         }
 
+        @computed get extensionDoc() { return Doc.resolvedFieldDataDoc(BoolCast(this.props.Document.isTemplate) && this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt); }
+
         get childDocs() {
+            let self = this;
             //TODO tfs: This might not be what we want?
             //This linter error can't be fixed because of how js arguments work, so don't switch this to filter(FieldValue)
-            return DocListCast(this.props.Document[this.props.fieldKey]);
+            return DocListCast((BoolCast(this.props.Document.isTemplate) ? this.extensionDoc : this.props.Document)[this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey]);
         }
 
         @action
@@ -176,8 +179,11 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 return;
             }
             if (html && !html.startsWith("<a")) {
-                if (html.indexOf("<img") === 0) {
-                    let split = html.split("\"")[1];
+                let tags = html.split("<");
+                if (tags[0] === "") tags.splice(0, 1);
+                let img = tags[0].startsWith("img") ? tags[0] : tags.length > 1 && tags[1].startsWith("img") ? tags[1] : "";
+                if (img) {
+                    let split = img.split("src=\"")[1].split("\"")[0];
                     let doc = Docs.ImageDocument(split, { ...options, width: 300 });
                     this.props.addDocument(doc, false);
                     return;

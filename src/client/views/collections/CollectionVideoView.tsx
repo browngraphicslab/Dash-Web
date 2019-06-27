@@ -12,7 +12,7 @@ import { Id } from "../../../new_fields/FieldSymbols";
 import { VideoBox } from "../nodes/VideoBox";
 import { NumCast, Cast, StrCast } from "../../../new_fields/Types";
 import { VideoField } from "../../../new_fields/URLField";
-import { SearchBox } from "../SearchBox";
+import { SearchBox } from "../search/SearchBox";
 import { DocServer } from "../../DocServer";
 import { Docs, DocUtils } from "../../documents/Documents";
 

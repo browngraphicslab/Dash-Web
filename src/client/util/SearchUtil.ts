@@ -23,4 +23,8 @@ export namespace SearchUtil {
         return Search(`proto_i:"${protoId}"`, true);
         // return Search(`{!join from=id to=proto_i}id:${protoId}`, true);
     }
+
+    export async function GetViewsOfDocument(doc: Doc): Promise<Doc[]> {
+        return Search(`proto_i:"${doc[Id]}"`, true);
+    }
 }
