@@ -99,8 +99,16 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
 
         let rows: JSX.Element[] = [];
         let i = 0;
+        const self = this;
         for (let key of Object.keys(ids).sort()) {
-            rows.push(<KeyValuePair doc={realDoc} ref={(el) => { if (el) this.rows.push(el); }} keyWidth={100 - this.splitPercentage} rowStyle={"keyValueBox-" + (i++ % 2 ? "oddRow" : "evenRow")} key={key} keyName={key} />);
+            rows.push(<KeyValuePair doc={realDoc} ref={(function () {
+                let oldEl: KeyValuePair | undefined;
+                return (el: KeyValuePair) => {
+                    if (oldEl) self.rows.splice(self.rows.indexOf(oldEl), 1);
+                    oldEl = el;
+                    if (el) self.rows.push(el);
+                };
+            })()} keyWidth={100 - this.splitPercentage} rowStyle={"keyValueBox-" + (i++ % 2 ? "oddRow" : "evenRow")} key={key} keyName={key} />);
         }
         return rows;
     }
@@ -189,9 +197,9 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     inferType = (field: FieldResult, metaKey: string) => {
         let options = { width: 300, height: 300, title: metaKey };
         if (field instanceof RichTextField || typeof field === "string" || typeof field === "number") {
-            return Docs.StackingDocument(options);
+            return Docs.TextDocument(options);
         } else if (field instanceof List) {
-            return Docs.FreeformDocument([], options);
+            return Docs.StackingDocument([], options);
         } else if (field instanceof ImageField) {
             return Docs.ImageDocument("https://www.freepik.com/free-icon/picture-frame-with-mountain-image_748687.htm", options);
         }
