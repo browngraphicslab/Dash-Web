@@ -3,6 +3,7 @@
 
 .keyValuePair-td-key {
     display:inline-block;
+
     .keyValuePair-td-key-container{
         width:100%;
         height:100%;
@@ -10,14 +11,23 @@
         flex-direction: row;           
         flex-wrap: nowrap;              
         justify-content: space-between; 
+        align-items: center;
         .keyValuePair-td-key-delete{
             position: relative;
             background-color: transparent;
             color:red;
         }
+        .keyValuePair-td-key-check {
+            position: relative;
+            margin: 0;
+        }
         .keyValuePair-keyField {
             width:100%;
-            text-align: center;
+            margin-left: 20px;
+            margin-top: -1px;
+            font-family: monospace;
+            // text-align: center;
+            align-self: center;
             position: relative;
             overflow: auto;
         }
@@ -26,12 +36,25 @@
 .keyValuePair-td-value {
     display:inline-block;
     overflow: scroll;
-    img { 
-        max-height: 36px;
-        width: auto;
-    }
-    .videoBox-cont{
-        width: auto; 
-        max-height: 36px; 
+    font-family: monospace;
+    height: 30px;
+        .keyValuePair-td-value-container {
+            display: flex;
+            align-items: center;
+            align-content: center;
+            flex-direction: row;
+            justify-content: space-between;
+            flex-wrap: nowrap;
+            width: 100%;
+            height: 100%;
+
+            img { 
+                max-height: 36px;
+                width: auto;
+            }
+            .videoBox-cont{
+                width: auto; 
+                max-height: 36px; 
+            }
     }
 }

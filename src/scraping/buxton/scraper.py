@@ -60,7 +60,7 @@ def protofy(fieldId):
     }
 
 
-def write_schema(parse_results, display_fields):
+def write_schema(parse_results, display_fields, storage_key):
     view_guids = parse_results["child_guids"]
 
     data_doc = parse_results["schema"]
@@ -87,7 +87,7 @@ def write_schema(parse_results, display_fields):
     }
 
     fields["proto"] = protofy("collectionProto")
-    fields["data"] = listify(proxify_guids(view_guids))
+    fields[storage_key] = listify(proxify_guids(view_guids))
     fields["schemaColumns"] = listify(display_fields)
     fields["backgroundColor"] = "white"
     fields["scale"] = 0.5
@@ -304,7 +304,7 @@ for file_name in os.listdir(source):
     if file_name.endswith('.docx'):
         candidates += 1
         schema_guids.append(write_schema(
-            parse_document(file_name), ["title", "data"]))
+            parse_document(file_name), ["title", "data"], "image_data"))
 
 print("writing parent schema...")
 parent_guid = write_schema({
@@ -314,7 +314,7 @@ parent_guid = write_schema({
         "__type": "Doc"
     },
     "child_guids": schema_guids
-}, ["title", "short_description", "original_price"])
+}, ["title", "short_description", "original_price"], "data")
 
 print("appending parent schema to main workspace...\n")
 db.newDocuments.update_one(
