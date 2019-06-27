@@ -19,6 +19,7 @@ import { FilterBox } from "./FilterBox";
 import { DocumentView } from "../nodes/DocumentView";
 import "./SelectorContextMenu.scss";
 import { SearchBox } from "./SearchBox";
+import { LinkManager } from "../../util/LinkManager";
 
 export interface SearchItemProps {
     doc: Doc;
@@ -87,7 +88,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
     @observable _selected: boolean = false;
 
     onClick = () => {
-        CollectionDockingView.Instance.AddRightSplit(this.props.doc, undefined);
+        DocumentManager.Instance.jumpToDocument(this.props.doc, false);
     }
 
     @computed
@@ -119,7 +120,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
     }
 
     @computed
-    get linkCount() { return Cast(this.props.doc.linkedToDocs, listSpec(Doc), []).length + Cast(this.props.doc.linkedFromDocs, listSpec(Doc), []).length; }
+    get linkCount() { return LinkManager.Instance.getAllRelatedLinks(this.props.doc).length; }
 
     @computed
     get linkString(): string {
@@ -133,17 +134,37 @@ export class SearchItem extends React.Component<SearchItemProps> {
     pointerDown = (e: React.PointerEvent) => { SearchBox.Instance.openSearch(e); };
 
     highlightDoc = (e: React.PointerEvent) => {
-        let docViews: DocumentView[] = DocumentManager.Instance.getAllDocumentViews(this.props.doc);
-        docViews.forEach(element => {
-            element.props.Document.libraryBrush = true;
-        });
+        if (this.props.doc.type === DocTypes.LINK) {
+            if (this.props.doc.anchor1 && this.props.doc.anchor2) {
+
+                let doc1 = Cast(this.props.doc.anchor1, Doc, new Doc());
+                let doc2 = Cast(this.props.doc.anchor2, Doc, new Doc());
+                doc1.libraryBrush = true;
+                doc2.libraryBrush = true;
+            }
+        } else {
+            let docViews: DocumentView[] = DocumentManager.Instance.getAllDocumentViews(this.props.doc);
+            docViews.forEach(element => {
+                element.props.Document.libraryBrush = true;
+            });
+        }
     }
 
     unHighlightDoc = (e: React.PointerEvent) => {
-        let docViews: DocumentView[] = DocumentManager.Instance.getAllDocumentViews(this.props.doc);
-        docViews.forEach(element => {
-            element.props.Document.libraryBrush = false;
-        });
+        if (this.props.doc.type === DocTypes.LINK) {
+            if (this.props.doc.anchor1 && this.props.doc.anchor2) {
+
+                let doc1 = Cast(this.props.doc.anchor1, Doc, new Doc());
+                let doc2 = Cast(this.props.doc.anchor2, Doc, new Doc());
+                doc1.libraryBrush = false;
+                doc2.libraryBrush = false;
+            }
+        } else {
+            let docViews: DocumentView[] = DocumentManager.Instance.getAllDocumentViews(this.props.doc);
+            docViews.forEach(element => {
+                element.props.Document.libraryBrush = false;
+            });
+        }
     }
 
     render() {

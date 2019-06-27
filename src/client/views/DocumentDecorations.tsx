@@ -24,6 +24,7 @@ import { LinkMenu } from "./nodes/LinkMenu";
 import { TemplateMenu } from "./TemplateMenu";
 import { Template, Templates } from "./Templates";
 import React = require("react");
+import { RichTextField } from '../../new_fields/RichTextField';
 import { LinkManager } from '../util/LinkManager';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
@@ -43,6 +44,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     private _linkButton = React.createRef<HTMLDivElement>();
     private _linkerButton = React.createRef<HTMLDivElement>();
     private _embedButton = React.createRef<HTMLDivElement>();
+    private _tooltipoff = React.createRef<HTMLDivElement>();
+    private _textDoc?: Doc;
     private _downX = 0;
     private _downY = 0;
     private _iconDoc?: Doc = undefined;
@@ -586,6 +589,37 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         );
     }
 
+    considerTooltip = () => {
+        let thisDoc = SelectionManager.SelectedDocuments()[0].props.Document;
+        let isTextDoc = thisDoc.data && thisDoc.data instanceof RichTextField;
+        if (!isTextDoc) return null;
+        this._textDoc = thisDoc;
+        return (
+            <div className="tooltipwrapper">
+                <div style={{ paddingTop: 3, marginLeft: 30 }} title="Hide Tooltip" className="linkButton-linker" ref={this._tooltipoff} onPointerDown={this.onTooltipOff}>
+                    {/* <FontAwesomeIcon className="fa-image" icon="image" size="sm" /> */}
+                    T
+                    </div>
+            </div>
+
+        );
+    }
+
+    onTooltipOff = (e: React.PointerEvent): void => {
+        e.stopPropagation();
+        if (this._textDoc) {
+            if (this._tooltipoff.current) {
+                if (this._tooltipoff.current.title === "Hide Tooltip") {
+                    this._tooltipoff.current.title = "Show Tooltip";
+                    this._textDoc.tooltip = "hi";
+                }
+                else {
+                    this._tooltipoff.current.title = "Hide Tooltip";
+                }
+            }
+        }
+    }
+
     render() {
         var bounds = this.Bounds;
         let seldoc = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
@@ -679,6 +713,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     </div>
                     <TemplateMenu docs={SelectionManager.ViewsSortedVertically()} templates={templates} />
                     {this.considerEmbed()}
+                    {/* {this.considerTooltip()} */}
                 </div>
             </div >
         </div>

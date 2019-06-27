@@ -6,8 +6,8 @@ import { keymap } from "prosemirror-keymap";
 import { EditorState, Transaction, NodeSelection, TextSelection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { schema } from "./RichTextSchema";
-import { Schema, NodeType, MarkType, Mark } from "prosemirror-model";
-import { Node as ProsNode } from "prosemirror-model";
+import { Schema, NodeType, MarkType, Mark, ResolvedPos } from "prosemirror-model";
+import { Node as ProsNode } from "prosemirror-model"
 import React = require("react");
 import "./TooltipTextMenu.scss";
 const { toggleMark, setBlockType, wrapIn } = require("prosemirror-commands");
@@ -32,6 +32,7 @@ import { Id } from "../../new_fields/FieldSymbols";
 import { Utils } from "../../Utils";
 import { FormattedTextBoxProps } from "../views/nodes/FormattedTextBox";
 import { text } from "body-parser";
+import { type } from "os";
 // import { wrap } from "module";
 
 const SVG = "http://www.w3.org/2000/svg";
@@ -61,6 +62,8 @@ export class TooltipTextMenu {
     private fontStyleDom?: Node;
     private listTypeBtnDom?: Node;
 
+    private _activeMarks: Mark[] = [];
+
     constructor(view: EditorView, editorProps: FieldViewProps & FormattedTextBoxProps) {
         this.view = view;
         this.state = view.state;
@@ -81,7 +84,7 @@ export class TooltipTextMenu {
             { command: toggleMark(schema.marks.strikethrough), dom: this.icon("S", "strikethrough", "Strikethrough") },
             { command: toggleMark(schema.marks.superscript), dom: this.icon("s", "superscript", "Superscript") },
             { command: toggleMark(schema.marks.subscript), dom: this.icon("s", "subscript", "Subscript") },
-            { command: deleteSelection, dom: this.icon("C", 'collapse', 'Collapse') }
+            { command: toggleMark(schema.marks.highlight), dom: this.icon("H", 'blue', 'Blue') }
             // { command: wrapInList(schema.nodes.bullet_list), dom: this.icon(":", "bullets") },
             // { command: wrapInList(schema.nodes.ordered_list), dom: this.icon("1)", "bullets") },
             // { command: lift, dom: this.icon("<", "lift") },
@@ -123,6 +126,7 @@ export class TooltipTextMenu {
         this.fontSizeToNum.set(schema.marks.p32, 32);
         this.fontSizeToNum.set(schema.marks.p48, 48);
         this.fontSizeToNum.set(schema.marks.p72, 72);
+        //this.fontSizeToNum.set(schema.marks.pFontSize,schema.marks.pFontSize.)
         this.fontSizes = Array.from(this.fontSizeToNum.keys());
 
         //list types
@@ -140,6 +144,8 @@ export class TooltipTextMenu {
 
         this.tooltip.appendChild(this.createStar().render(this.view).dom);
 
+        this.updateListItemDropdown(":", this.listTypeBtnDom);
+
         this.update(view, undefined);
 
         //view.dom.parentNode!.parentNode!.insertBefore(this.tooltip, view.dom.parentNode);
@@ -147,8 +153,6 @@ export class TooltipTextMenu {
         // quick and dirty null check
         const outer_div = this.editorProps.outer_div;
         outer_div && outer_div(this.tooltip);
-
-        console.log("hi");
     }
 
     //label of dropdown will change to given label
@@ -162,12 +166,15 @@ export class TooltipTextMenu {
             fontSizeBtns.push(this.dropdownMarkBtn(String(number), "color: black; width: 50px;", mark, this.view, this.changeToMarkInGroup, this.fontSizes));
         });
 
-        if (this.fontSizeDom) { this.tooltip.removeChild(this.fontSizeDom); }
-        this.fontSizeDom = (new Dropdown(cut(fontSizeBtns), {
+        let newfontSizeDom = (new Dropdown(cut(fontSizeBtns), {
             label: label,
             css: "color:black; min-width: 60px; padding-left: 5px; margin-right: 0;"
         }) as MenuItem).render(this.view).dom;
-        this.tooltip.appendChild(this.fontSizeDom);
+        if (this.fontSizeDom) { this.tooltip.replaceChild(newfontSizeDom, this.fontSizeDom); }
+        else {
+            this.tooltip.appendChild(newfontSizeDom);
+        }
+        this.fontSizeDom = newfontSizeDom;
     }
 
     //label of dropdown will change to given label
@@ -181,13 +188,16 @@ export class TooltipTextMenu {
             fontBtns.push(this.dropdownMarkBtn(name, "color: black; font-family: " + name + ", sans-serif; width: 125px;", mark, this.view, this.changeToMarkInGroup, this.fontStyles));
         });
 
-        if (this.fontStyleDom) { this.tooltip.removeChild(this.fontStyleDom); }
-        this.fontStyleDom = (new Dropdown(cut(fontBtns), {
+        let newfontStyleDom = (new Dropdown(cut(fontBtns), {
             label: label,
             css: "color:black; width: 125px; margin-left: -3px; padding-left: 2px;"
         }) as MenuItem).render(this.view).dom;
+        if (this.fontStyleDom) { this.tooltip.replaceChild(newfontStyleDom, this.fontStyleDom); }
+        else {
+            this.tooltip.appendChild(newfontStyleDom);
+        }
+        this.fontStyleDom = newfontStyleDom;
 
-        this.tooltip.appendChild(this.fontStyleDom);
     }
 
     updateLinkMenu() {
@@ -282,8 +292,7 @@ export class TooltipTextMenu {
     }
 
     insertStar(state: EditorState<any>, dispatch: any) {
-        console.log("creating star...");
-        let newNode = schema.nodes.star.create({ visibility: false, text: state.selection.content(), oldtextslice: state.selection.content().toJSON(), oldtextlen: state.selection.to - state.selection.from });
+        let newNode = schema.nodes.star.create({ visibility: false, text: state.selection.content(), textslice: state.selection.content().toJSON(), textlen: state.selection.to - state.selection.from });
         if (dispatch) {
             //console.log(newNode.attrs.text.toString());
             dispatch(state.tr.replaceSelectionWith(newNode));
@@ -315,7 +324,7 @@ export class TooltipTextMenu {
     }
 
     //for a specific grouping of marks (passed in), remove all and apply the passed-in one to the selected text
-    changeToMarkInGroup(markType: MarkType, view: EditorView, fontMarks: MarkType[]) {
+    changeToMarkInGroup = (markType: MarkType, view: EditorView, fontMarks: MarkType[]) => {
         let { empty, $cursor, ranges } = view.state.selection as TextSelection;
         let state = view.state;
         let dispatch = view.dispatch;
@@ -341,7 +350,17 @@ export class TooltipTextMenu {
                     }
                 }
             }
-        }); //actually apply font
+        });
+        // fontsize
+        if (markType.name[0] === 'p') {
+            let size = this.fontSizeToNum.get(markType);
+            if (size) { this.updateFontSizeDropdown(String(size) + " pt"); }
+        }
+        else {
+            let fontName = this.fontStylesToName.get(markType);
+            if (fontName) { this.updateFontStyleDropdown(fontName); }
+        }
+        //actually apply font
         return toggleMark(markType)(view.state, view.dispatch, view);
     }
 
@@ -529,53 +548,44 @@ export class TooltipTextMenu {
         // Otherwise, reposition it and update its content
         //this.tooltip.style.display = "";
         let { from, to } = state.selection;
-        let start = view.coordsAtPos(from), end = view.coordsAtPos(to);
-        // The box in which the tooltip is positioned, to use as base
-        //let box = this.tooltip.offsetParent!.getBoundingClientRect();
-        // Find a center-ish x position from the selection endpoints (when
-        // crossing lines, end may be more to the left)
-        let left = Math.max((start.left + end.left) / 2, start.left + 3);
-        //this.tooltip.style.left = (left - box.left) * this.editorProps.ScreenToLocalTransform().Scale + "px";
-        let width = Math.abs(start.left - end.left) / 2 * this.editorProps.ScreenToLocalTransform().Scale;
-        let mid = Math.min(start.left, end.left) + width;
-
-        //this.tooltip.style.width = 225 + "px";
-        // this.tooltip.style.bottom = (box.bottom - start.top) * this.editorProps.ScreenToLocalTransform().Scale + "px";
-        // this.tooltip.style.top = "-100px";
-        //this.tooltip.style.height = "100px";
-
-        // let transform = this.editorProps.ScreenToLocalTransform();
-        // this.tooltip.style.width = `${225 / transform.Scale}px`;
-        // Utils
 
         //UPDATE LIST ITEM DROPDOWN
-        this.listTypeBtnDom = this.updateListItemDropdown(":", this.listTypeBtnDom!);
 
         //UPDATE FONT STYLE DROPDOWN
         let activeStyles = this.activeMarksOnSelection(this.fontStyles);
-        if (activeStyles.length === 1) {
-            // if we want to update something somewhere with active font name
-            let fontName = this.fontStylesToName.get(activeStyles[0]);
-            if (fontName) { this.updateFontStyleDropdown(fontName); }
-        } else if (activeStyles.length === 0) {
-            //crimson on default
-            this.updateFontStyleDropdown("Crimson Text");
-        } else {
-            this.updateFontStyleDropdown("Various");
+        if (activeStyles !== undefined) {
+            // activeStyles.forEach((markType) => {
+            //     this._activeMarks.push(this.view.state.schema.mark(markType));
+            // });
+            if (activeStyles.length === 1) {
+                // if we want to update something somewhere with active font name
+                let fontName = this.fontStylesToName.get(activeStyles[0]);
+                if (fontName) { this.updateFontStyleDropdown(fontName); }
+            } else if (activeStyles.length === 0) {
+                //crimson on default
+                this.updateFontStyleDropdown("Crimson Text");
+            } else {
+                this.updateFontStyleDropdown("Various");
+            }
         }
 
         //UPDATE FONT SIZE DROPDOWN
         let activeSizes = this.activeMarksOnSelection(this.fontSizes);
-        if (activeSizes.length === 1) { //if there's only one active font size
-            let size = this.fontSizeToNum.get(activeSizes[0]);
-            if (size) { this.updateFontSizeDropdown(String(size) + " pt"); }
-        } else if (activeSizes.length === 0) {
-            //should be 14 on default  
-            this.updateFontSizeDropdown("14 pt");
-        } else { //multiple font sizes selected
-            this.updateFontSizeDropdown("Various");
+        if (activeSizes !== undefined) {
+            if (activeSizes.length === 1) { //if there's only one active font size
+                // activeSizes.forEach((markType) => {
+                //     this._activeMarks.push(this.view.state.schema.mark(markType));
+                // });
+                let size = this.fontSizeToNum.get(activeSizes[0]);
+                if (size) { this.updateFontSizeDropdown(String(size) + " pt"); }
+            } else if (activeSizes.length === 0) {
+                //should be 14 on default  
+                this.updateFontSizeDropdown("14 pt");
+            } else { //multiple font sizes selected
+                this.updateFontSizeDropdown("Various");
+            }
         }
-
+        this.view.dispatch(this.view.state.tr.setStoredMarks(this._activeMarks));
         this.updateLinkMenu();
     }
 
@@ -592,6 +602,7 @@ export class TooltipTextMenu {
                     let has = false, tr = state.tr;
                     for (let i = 0; !has && i < ranges.length; i++) {
                         let { $from, $to } = ranges[i];
+                        let hasmark: boolean = state.doc.rangeHasMark($from.pos, $to.pos, mark);
                         return state.doc.rangeHasMark($from.pos, $to.pos, mark);
                     }
                 }
@@ -599,35 +610,59 @@ export class TooltipTextMenu {
             });
         }
         else {
-            let pos = this.view.state.selection.$from;
-            let ref_node: ProsNode;
-            if (pos.nodeAfter !== null && pos.nodeAfter !== undefined) {
-                ref_node = pos.nodeAfter;
-            }
-            else if (pos.nodeBefore !== null && pos.nodeBefore !== undefined) {
-                ref_node = pos.nodeBefore;
-            }
-            else {
-                return [];
-            }
-            let text_node_type: NodeType;
-            if (ref_node.isText) {
-                text_node_type = ref_node.type;
+            const pos = this.view.state.selection.$from;
+            const ref_node: ProsNode = this.reference_node(pos);
+            if (ref_node !== null && ref_node !== this.view.state.doc) {
+                let text_node_type: NodeType;
+                if (ref_node.isText) {
+                    text_node_type = ref_node.type;
+                }
+                else {
+                    return [];
+                }
+
+                this._activeMarks = ref_node.marks;
+
+                activeMarks = markGroup.filter(mark_type => {
+                    if (dispatch) {
+                        let mark = state.schema.mark(mark_type);
+                        return ref_node.marks.includes(mark);
+                    }
+                    return false;
+                });
             }
             else {
                 return [];
             }
 
-            activeMarks = markGroup.filter(mark_type => {
-                if (dispatch) {
-                    let mark = state.schema.mark(mark_type);
-                    return ref_node.marks.includes(mark);
-                }
-                return false;
-            });
         }
         return activeMarks;
     }
 
-    destroy() { this.tooltip.remove(); }
+    reference_node(pos: ResolvedPos<any>): ProsNode {
+        let ref_node: ProsNode = this.view.state.doc;
+        if (pos.nodeAfter !== null && pos.nodeAfter !== undefined) {
+            ref_node = pos.nodeAfter;
+        }
+        else if (pos.nodeBefore !== null && pos.nodeBefore !== undefined) {
+            ref_node = pos.nodeBefore;
+        }
+        else if (pos.pos > 0) {
+            let skip = false;
+            for (let i: number = pos.pos - 1; i > 0; i--) {
+                this.view.state.doc.nodesBetween(i, pos.pos, (node: ProsNode, pos: number, parent: ProsNode, index: number) => {
+                    if (node.isLeaf && !skip) {
+                        ref_node = node;
+                        skip = true;
+                    }
+
+                });
+            }
+        }
+        return ref_node;
+    }
+
+    destroy() {
+        this.tooltip.remove();
+    }
 }
