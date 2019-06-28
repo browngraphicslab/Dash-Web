@@ -52,7 +52,8 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         const layout = Cast(layoutDoc[this.props.layoutKey], "string");
         if (layout === undefined) {
             return this.props.Document.data ?
-                "<FieldView {...props} fieldKey='data' />" :
+                "null" :
+                // "<FieldView {...props} fieldKey='data' />" :
                 KeyValueBox.LayoutString(layoutDoc.proto ? "proto" : "");
         } else if (typeof layout === "string") {
             return layout;
