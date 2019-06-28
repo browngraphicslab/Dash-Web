@@ -335,17 +335,36 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return 1;
     }
 
-    getDocumentViewProps(layoutDoc: Doc): DocumentViewProps {
-        let datadoc = BoolCast(this.props.Document.isTemplate) || this.props.DataDoc === this.props.Document ? undefined : this.props.DataDoc;
-        if (Cast(layoutDoc.layout, Doc) instanceof Doc) { // if this document is using a template to render, then set the dataDoc for the template to be this document
-            datadoc = layoutDoc;
-        } else if (datadoc && datadoc !== layoutDoc) {  // if this view has a dataDocument and it's not the same as the view document
-            // then map the view document to an instance of itself (ie, expand the template).  This allows the view override the template's properties and be referenceable as  document.
-            layoutDoc = Doc.expandTemplateLayout(layoutDoc, datadoc);
-        }
+
+    getChildDocumentViewProps(childDocLayout: Doc): DocumentViewProps {
+        let resolvedDataDoc = this.props.DataDoc !== this.props.Document ? this.props.DataDoc : undefined;
+        let layoutDoc = Doc.expandTemplateLayout(childDocLayout, resolvedDataDoc);
         return {
-            DataDoc: datadoc,
+            DataDoc: resolvedDataDoc !== layoutDoc && resolvedDataDoc ? resolvedDataDoc : layoutDoc,
             Document: layoutDoc,
+            addDocument: this.props.addDocument,
+            removeDocument: this.props.removeDocument,
+            moveDocument: this.props.moveDocument,
+            ScreenToLocalTransform: this.getTransform,
+            renderDepth: this.props.renderDepth + 1,
+            selectOnLoad: layoutDoc[Id] === this._selectOnLoaded,
+            PanelWidth: layoutDoc[WidthSym],
+            PanelHeight: layoutDoc[HeightSym],
+            ContentScaling: returnOne,
+            ContainingCollectionView: this.props.CollectionView,
+            focus: this.focusDocument,
+            parentActive: this.props.active,
+            whenActiveChanged: this.props.whenActiveChanged,
+            bringToFront: this.bringToFront,
+            addDocTab: this.props.addDocTab,
+            zoomToScale: this.zoomToScale,
+            getScale: this.getScale
+        };
+    }
+    getDocumentViewProps(layoutDoc: Doc): DocumentViewProps {
+        return {
+            DataDoc: this.props.DataDoc,
+            Document: this.props.Document,
             addDocument: this.props.addDocument,
             removeDocument: this.props.removeDocument,
             moveDocument: this.props.moveDocument,
@@ -375,7 +394,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             if (Math.round(page) === Math.round(curPage) || page === -1) {
                 let minim = BoolCast(doc.isMinimized, false);
                 if (minim === undefined || !minim) {
-                    prev.push(<CollectionFreeFormDocumentView key={doc[Id]} {...this.getDocumentViewProps(doc)} />);
+                    prev.push(<CollectionFreeFormDocumentView key={doc[Id]} {...this.getChildDocumentViewProps(doc)} />);
                 }
             }
             return prev;
@@ -419,7 +438,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     private childViews = () => [
-        <CollectionFreeFormBackgroundView key="backgroundView" {...this.props} {...this.getDocumentViewProps(this.props.Document)} DataDoc={this.props.DataDoc} />,
+        <CollectionFreeFormBackgroundView key="backgroundView" {...this.props} {...this.getDocumentViewProps(this.props.Document)} />,
         ...this.views
     ]
     render() {
