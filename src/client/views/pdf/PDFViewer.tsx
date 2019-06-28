@@ -1,4 +1,4 @@
-import { action, computed, IReactionDisposer, observable, reaction, runInAction, trace } from "mobx";
+import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
@@ -620,7 +620,6 @@ class Viewer extends React.Component<IViewerProps> {
     }
 
     render() {
-        trace();
         let compiled = this._script;
         return (
             <div ref={this._mainCont} style={{ pointerEvents: "all" }} onPointerDown={this.pointerDown}>

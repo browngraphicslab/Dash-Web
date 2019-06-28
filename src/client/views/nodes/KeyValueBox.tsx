@@ -207,7 +207,6 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     }
 
     render() {
-        return null;
         let dividerDragger = this.splitPercentage === 0 ? (null) :
             <div className="keyValueBox-dividerDragger" style={{ transform: `translate(calc(${100 - this.splitPercentage}% - 5px), 0px)` }}>
                 <div className="keyValueBox-dividerDraggerThumb" onPointerDown={this.onDividerDown} />

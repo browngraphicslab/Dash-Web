@@ -281,7 +281,6 @@ export namespace Doc {
     }
 
     export function expandTemplateLayout(templateLayoutDoc: Doc, dataDoc?: Doc) {
-        return templateLayoutDoc;
         let resolvedDataDoc = (templateLayoutDoc !== dataDoc) ? dataDoc : undefined;
         if (!dataDoc || !(templateLayoutDoc && !(Cast(templateLayoutDoc.layout, Doc) instanceof Doc) && resolvedDataDoc && resolvedDataDoc !== templateLayoutDoc)) {
             return templateLayoutDoc;
