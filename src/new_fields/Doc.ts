@@ -280,7 +280,15 @@ export namespace Doc {
         return new Doc;
     }
 
-    export function expandTemplateLayout(templateLayoutDoc: Doc, dataDoc: Doc) {
+    export function expandTemplateLayout(templateLayoutDoc: Doc, dataDoc?: Doc) {
+        let resolvedDataDoc = (templateLayoutDoc !== dataDoc) ? dataDoc : undefined;
+        if (!dataDoc || !(templateLayoutDoc && !(Cast(templateLayoutDoc.layout, Doc) instanceof Doc) && resolvedDataDoc && resolvedDataDoc !== templateLayoutDoc)) {
+            return templateLayoutDoc;
+        }
+        // if we have a data doc that doesn't match the layout, then we're rendering a template.
+        // ... which means we change the layout to be an expanded view of the template layout.  
+        // This allows the view override the template's properties and be referenceable as its own document.
+
         let expandedTemplateLayout = templateLayoutDoc["_expanded_" + dataDoc[Id]];
         if (expandedTemplateLayout instanceof Doc) {
             return expandedTemplateLayout;

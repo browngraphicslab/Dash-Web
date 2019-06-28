@@ -211,7 +211,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 const field = this.dataDoc ? Cast(this.dataDoc[this.props.fieldKey], RichTextField) : undefined;
                 return field ? field.Data : `{"doc":{"type":"doc","content":[]},"selection":{"type":"text","anchor":0,"head":0}}`;
             },
-            field => this._editorView && !this._applyingChange &&
+            field => this._editorView && !this._applyingChange && this.props.Document[this.props.fieldKey] instanceof RichTextField &&
                 this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field)))
         );
         this.setupEditor(config, this.dataDoc, this.props.fieldKey);
@@ -247,6 +247,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (this.props.selectOnLoad) {
             if (!this.props.isOverlay) this.props.select(false);
             else this._editorView!.focus();
+            this.tryUpdateHeight();
         }
     }
 
@@ -382,6 +383,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (!this._undoTyping) {
             this._undoTyping = UndoManager.StartBatch("undoTyping");
         }
+        this.tryUpdateHeight();
+    }
+
+    @action
+    tryUpdateHeight() {
         if (this.props.isOverlay && this.props.Document.autoHeight) {
             let xf = this._ref.current!.getBoundingClientRect();
             let scrBounds = this.props.ScreenToLocalTransform().transformBounds(0, 0, xf.width, xf.height);

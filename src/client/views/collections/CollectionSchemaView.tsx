@@ -349,12 +349,22 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             <div className="collectionSchemaView-dividerDragger" onPointerDown={this.onDividerDown} style={{ width: `${this.DIVIDER_WIDTH}px` }} />;
     }
 
+
     @computed
     get previewPanel() {
+        // let layoutDoc = this.previewDocument;
+        // let resolvedDataDoc = (layoutDoc !== this.props.DataDoc) ? this.props.DataDoc : undefined;
+        // if (layoutDoc && !(Cast(layoutDoc.layout, Doc) instanceof Doc) &&
+        //     resolvedDataDoc && resolvedDataDoc !== layoutDoc) {
+        //     // ... so change the layout to be an expanded view of the template layout.  This allows the view override the template's properties and be referenceable as its own document.
+        //     layoutDoc = Doc.expandTemplateLayout(layoutDoc, resolvedDataDoc);
+        // }
+
+        let layoutDoc = this.previewDocument ? Doc.expandTemplateLayout(this.previewDocument, this.props.DataDoc) : undefined;
         return <div ref={this.createTarget}>
             <CollectionSchemaPreview
-                Document={this.previewDocument}
-                DataDocument={BoolCast(this.props.Document.isTemplate) ? this.previewDocument : this.props.DataDoc}
+                Document={layoutDoc}
+                DataDocument={this.previewDocument !== this.props.DataDoc ? this.props.DataDoc : undefined}
                 childDocs={this.childDocs}
                 renderDepth={this.props.renderDepth}
                 width={this.previewWidth}

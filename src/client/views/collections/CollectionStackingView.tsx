@@ -4,12 +4,13 @@ import { action, computed, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, HeightSym, WidthSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
-import { BoolCast, NumCast } from "../../../new_fields/Types";
+import { BoolCast, NumCast, Cast } from "../../../new_fields/Types";
 import { emptyFunction, Utils } from "../../../Utils";
 import { ContextMenu } from "../ContextMenu";
 import { CollectionSchemaPreview } from "./CollectionSchemaView";
 import "./CollectionStackingView.scss";
 import { CollectionSubView } from "./CollectionSubView";
+import { resolve } from "bluebird";
 
 @observer
 export class CollectionStackingView extends CollectionSubView(doc => doc) {
@@ -66,17 +67,18 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     get singleColumnChildren() {
         let children = this.childDocs.filter(d => !d.isMinimized);
         return children.map((d, i) => {
+            let layoutDoc = Doc.expandTemplateLayout(d, this.props.DataDoc);
             let dref = React.createRef<HTMLDivElement>();
-            let dxf = () => this.getDocTransform(d, dref.current!).scale(this.columnWidth / d[WidthSym]());
+            let dxf = () => this.getDocTransform(layoutDoc, dref.current!).scale(this.columnWidth / d[WidthSym]());
             let width = () => d.nativeWidth ? Math.min(d[WidthSym](), this.columnWidth) : this.columnWidth;
-            let height = () => this.singleColDocHeight(d);
+            let height = () => this.singleColDocHeight(layoutDoc);
             return <div className="collectionStackingView-columnDoc"
                 key={d[Id]}
                 ref={dref}
                 style={{ width: width(), height: height() }} >
                 <CollectionSchemaPreview
-                    Document={d}
-                    DataDocument={this.props.Document.layout instanceof Doc ? this.props.Document : this.props.DataDoc}
+                    Document={layoutDoc}
+                    DataDocument={d != this.props.DataDoc ? this.props.DataDoc : undefined}
                     renderDepth={this.props.renderDepth}
                     width={width}
                     height={height}
