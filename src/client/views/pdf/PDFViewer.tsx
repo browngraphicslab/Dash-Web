@@ -192,9 +192,10 @@ class Viewer extends React.Component<IViewerProps> {
             let pageSizes = Array<{ width: number, height: number }>(this.props.pdf.numPages);
             this._isPage = Array<string>(this.props.pdf.numPages);
             // this._textContent = Array<Pdfjs.TextContent>(this.props.pdf.numPages);
+            const proms: Pdfjs.PDFPromise<any>[] = [];
             for (let i = 0; i < this.props.pdf.numPages; i++) {
-                await this.props.pdf.getPage(i + 1).then(page => runInAction(() => {
-                    pageSizes[i] = { width: page.view[2] * scale, height: page.view[3] * scale };
+                proms.push(this.props.pdf.getPage(i + 1).then(page => runInAction(() => {
+                    pageSizes[i] = { width: page.view[page.rotate === 0 ? 2 : 3] * scale, height: page.view[page.rotate === 0 ? 3 : 2] * scale };
                     // let x = page.getViewport(scale);
                     // page.getTextContent().then((text: Pdfjs.TextContent) => {
                     //     // let tc = new Pdfjs.TextContentItem()
@@ -205,8 +206,9 @@ class Viewer extends React.Component<IViewerProps> {
                     //     // })
                     // });
                     // pageSizes[i] = { width: x.width, height: x.height };
-                }));
+                })));
             }
+            await Promise.all(proms);
             runInAction(() =>
                 Array.from(Array((this._pageSizes = pageSizes).length).keys()).map(this.getPlaceholderPage));
             this.props.loaded(Math.max(...pageSizes.map(i => i.width)), pageSizes[0].height, this.props.pdf.numPages);
