@@ -1,9 +1,9 @@
-
 .textLayer {
     div {
         user-select: text;
     }
 }
+
 .viewer-button-cont {
     position: absolute;
     display: flex;
@@ -23,6 +23,7 @@
 .textLayer {
     user-select: auto;
 }
+
 .viewer {
     // position: absolute;
     // top: 0;
@@ -64,6 +65,23 @@
     padding: 20px;
     overflow: hidden;
     transition: left .5s;
+
+    .pdfViewer-optionLabel {
+        color: white;
+        margin-right: 30px;
+        font-size: 20px;
+        font-weight: normal;
+
+        input {
+            height: 20px;
+            width: 20px;
+        }
+    }
+
+    .pdfViewer-findResults {
+        color: white;
+        font-size: 20px;
+    }
 }
 
 .pdfViewer-overlaySearchBar {

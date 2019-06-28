@@ -108,6 +108,8 @@ class Viewer extends React.Component<IViewerProps> {
     private _entireWord: React.RefObject<HTMLInputElement>;
     private _caseSensitivity: React.RefObject<HTMLInputElement>;
     private _highlightAll: React.RefObject<HTMLInputElement>;
+    private _findResults: React.RefObject<HTMLInputElement>;
+    private _findMsg: React.RefObject<HTMLDivElement>;
 
     constructor(props: IViewerProps) {
         super(props);
@@ -124,6 +126,8 @@ class Viewer extends React.Component<IViewerProps> {
         this._entireWord = React.createRef();
         this._caseSensitivity = React.createRef();
         this._highlightAll = React.createRef();
+        this._findMsg = React.createRef();
+        this._findResults = React.createRef();
     }
 
     componentDidUpdate = (prevProps: IViewerProps) => {
@@ -573,8 +577,8 @@ class Viewer extends React.Component<IViewerProps> {
                         highlightAllCheckbox: this._highlightAll.current,
                         caseSensitiveCheckbox: this._caseSensitivity.current,
                         entireWordCheckbox: this._entireWord.current,
-                        findMsg: document.getElementById('findMsg'),
-                        findResultsCount: document.getElementById('findResultsCount'),
+                        findMsg: this._findMsg.current,
+                        findResultsCount: this._findResults.current,
                         findPreviousButton: this._previousButton.current,
                         findNextButton: this._nextButton.current,
                     }
@@ -592,15 +596,19 @@ class Viewer extends React.Component<IViewerProps> {
                             phraseSearch: evt.phraseSearch,
                             caseSensitive: evt.caseSensitive,
                             entireWord: evt.entireWord,
-                            highlightAll: true,
+                            highlightAll: evt.highlightAll,
                             findPrevious: evt.findPrevious
                         });
                     });
+                    this._eventBus.on("updatefindcontrolstate", (evt: any) => {
+                        console.log("hello");
+                        findBar.updateUIState(evt.state, evt.previous, evt.matchesCount);
+                    })
                     pdfViewer.setDocument(this.props.pdf);
                     this._pdfFindController = new PDFJSViewer.PDFFindController(pdfViewer);
                     this._pdfFindController._eventBus = this._eventBus;
                     pdfViewer.eventBus = this._eventBus;
-                    // findBar.open();
+                    findBar.open();
                     // this._pdfFindController._linkService = pdfLinkService;
                     pdfViewer.findController = this._pdfFindController;
                 }
@@ -698,13 +706,15 @@ class Viewer extends React.Component<IViewerProps> {
                         left: `${this._searching ? 0 : 100}%`
                     }} ref={this._searchCont}>
                     <button className="pdfViewer-overlayButton" title="Open Search Bar"></button>
-                    <input type="checkbox" ref={this._highlightAll} />
-                    <input type="checkbox" ref={this._caseSensitivity} />
-                    <input type="checkbox" ref={this._entireWord} />
+                    <label className="pdfViewer-optionLabel">Highlight All: <input type="checkbox" ref={this._highlightAll} /></label>
+                    <label className="pdfViewer-optionLabel">Case Sensitivity: <input type="checkbox" ref={this._caseSensitivity} /></label>
+                    <label className="pdfViewer-optionLabel">Entire Word: <input type="checkbox" ref={this._entireWord} /></label>
                     <button title="Previous Result" ref={this._previousButton}><FontAwesomeIcon icon="arrow-up" size="3x" color="white" /></button>
                     <button title="Next Result" ref={this._nextButton}><FontAwesomeIcon icon="arrow-down" size="3x" color="white" /></button>
                     <input placeholder="Search" ref={this._findField} className="pdfViewer-overlaySearchBar" onChange={this.searchStringChanged} />
                     <button title="Search" onClick={() => this.search(this._searchString)}><FontAwesomeIcon icon="search" size="3x" color="white" /></button>
+                    <div className="pdfViewer-findMsg" ref={this._findMsg} />
+                    <div className="pdfViewer-findResults" ref={this._findResults} />
                 </div>
                 <button className="pdfViewer-overlayButton" onClick={this.prevAnnotation} title="Previous Annotation"
                     style={{ bottom: -this.props.scrollY + 280, right: 10, display: this.props.parent.props.active() ? "flex" : "none" }}>
