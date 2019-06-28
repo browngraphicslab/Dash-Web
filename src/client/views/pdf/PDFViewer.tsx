@@ -194,8 +194,8 @@ class Viewer extends React.Component<IViewerProps> {
             // this._textContent = Array<Pdfjs.TextContent>(this.props.pdf.numPages);
             for (let i = 0; i < this.props.pdf.numPages; i++) {
                 await this.props.pdf.getPage(i + 1).then(page => runInAction(() => {
-                    // pageSizes[i] = { width: page.view[2] * scale, height: page.view[3] * scale };
-                    let x = page.getViewport(scale);
+                    pageSizes[i] = { width: page.view[2] * scale, height: page.view[3] * scale };
+                    // let x = page.getViewport(scale);
                     // page.getTextContent().then((text: Pdfjs.TextContent) => {
                     //     // let tc = new Pdfjs.TextContentItem()
                     //     // let tc = {str: }
@@ -204,7 +204,7 @@ class Viewer extends React.Component<IViewerProps> {
                     //     //     tcStr += t.str;
                     //     // })
                     // });
-                    pageSizes[i] = { width: x.width, height: x.height };
+                    // pageSizes[i] = { width: x.width, height: x.height };
                 }));
             }
             runInAction(() =>
