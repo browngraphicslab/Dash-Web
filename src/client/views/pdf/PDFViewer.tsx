@@ -195,7 +195,10 @@ class Viewer extends React.Component<IViewerProps> {
             const proms: Pdfjs.PDFPromise<any>[] = [];
             for (let i = 0; i < this.props.pdf.numPages; i++) {
                 proms.push(this.props.pdf.getPage(i + 1).then(page => runInAction(() => {
-                    pageSizes[i] = { width: page.view[page.rotate === 0 ? 2 : 3] * scale, height: page.view[page.rotate === 0 ? 3 : 2] * scale };
+                    pageSizes[i] = {
+                        width: (page.view[page.rotate === 0 || page.rotate === 180 ? 2 : 3] - page.view[page.rotate === 0 || page.rotate === 180 ? 0 : 1]) * scale,
+                        height: (page.view[page.rotate === 0 || page.rotate === 180 ? 3 : 2] - page.view[page.rotate === 0 || page.rotate === 180 ? 1 : 0]) * scale
+                    };
                     // let x = page.getViewport(scale);
                     // page.getTextContent().then((text: Pdfjs.TextContent) => {
                     //     // let tc = new Pdfjs.TextContentItem()
