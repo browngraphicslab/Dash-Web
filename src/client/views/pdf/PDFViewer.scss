@@ -1,3 +1,9 @@
+
+.textLayer {
+    div {
+        user-select: text;
+    }
+}
 .viewer-button-cont {
     position: absolute;
     display: flex;
@@ -14,6 +20,9 @@
     border-radius: 5px;
 }
 
+.textLayer {
+    user-select: auto;
+}
 .viewer {
     // position: absolute;
     // top: 0;

@@ -97,6 +97,7 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
         let connections = DocumentManager.Instance.LinkedDocumentViews.reduce((drawnPairs, connection) => {
             let srcViews = this.documentAnchors(connection.a);
             let targetViews = this.documentAnchors(connection.b);
+
             let possiblePairs: { a: Doc, b: Doc, }[] = [];
             srcViews.map(sv => targetViews.map(tv => possiblePairs.push({ a: sv.props.Document, b: tv.props.Document })));
             possiblePairs.map(possiblePair => {

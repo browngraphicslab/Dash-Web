@@ -175,6 +175,14 @@ export namespace Doc {
     export function IsPrototype(doc: Doc) {
         return GetT(doc, "isPrototype", "boolean", true);
     }
+    export async function SetInPlace(doc: Doc, key: string, value: Field | undefined, defaultProto: boolean) {
+        let hasProto = doc.proto instanceof Doc;
+        let onDeleg = Object.getOwnPropertyNames(doc).indexOf(key) !== -1;
+        let onProto = hasProto && Object.getOwnPropertyNames(doc.proto).indexOf(key) !== -1;
+        if (onDeleg || !hasProto || (!onProto && !defaultProto)) {
+            doc[key] = value;
+        } else doc.proto![key] = value;
+    }
     export async function SetOnPrototype(doc: Doc, key: string, value: Field) {
         const proto = Object.getOwnPropertyNames(doc).indexOf("isPrototype") === -1 ? doc.proto : doc;
 
@@ -241,11 +249,48 @@ export namespace Doc {
         return true;
     }
 
+    //
+    // Resolves a reference to a field by returning 'doc' if o field extension is specified,
+    // otherwise, it returns the extension document stored in doc.<fieldKey>_ext.
+    // This mechanism allows any fields to be extended with an extension document that can
+    // be used to capture field-specific metadata.  For example, an image field can be extended
+    // to store annotations, ink, and other data.
+    //
+    export function resolvedFieldDataDoc(doc: Doc, fieldKey: string, fieldExt: string) {
+        return fieldExt && doc[fieldKey + "_ext"] instanceof Doc ? doc[fieldKey + "_ext"] as Doc : doc;
+    }
+
+    export function UpdateDocumentExtensionForField(doc: Doc, fieldKey: string) {
+        if (doc[fieldKey + "_ext"] === undefined) {
+            setTimeout(() => {
+                let docExtensionForField = new Doc(doc[Id] + fieldKey, true);
+                docExtensionForField.title = "Extension of " + doc.title + "'s field:" + fieldKey;
+                let proto: Doc | undefined = doc;
+                while (proto && !Doc.IsPrototype(proto)) {
+                    proto = proto.proto;
+                }
+                (proto ? proto : doc)[fieldKey + "_ext"] = docExtensionForField;
+            }, 0);
+        }
+    }
     export function MakeAlias(doc: Doc) {
         if (!GetT(doc, "isPrototype", "boolean", true)) {
             return Doc.MakeCopy(doc);
         }
         return new Doc;
+    }
+
+    export function expandTemplateLayout(templateLayoutDoc: Doc, dataDoc: Doc) {
+        let expandedTemplateLayout = templateLayoutDoc["_expanded_" + dataDoc[Id]];
+        if (expandedTemplateLayout instanceof Doc) {
+            return expandedTemplateLayout;
+        }
+        if (expandedTemplateLayout === undefined)
+            setTimeout(() => {
+                templateLayoutDoc["_expanded_" + dataDoc[Id]] = Doc.MakeDelegate(templateLayoutDoc);
+                (templateLayoutDoc["_expanded_" + dataDoc[Id]] as Doc).title = templateLayoutDoc.title + " applied to " + dataDoc.title;
+            }, 0);
+        return templateLayoutDoc;
     }
 
     export function MakeCopy(doc: Doc, copyProto: boolean = false): Doc {
@@ -266,6 +311,7 @@ export namespace Doc {
                 }
             }
         });
+
         return copy;
     }
 

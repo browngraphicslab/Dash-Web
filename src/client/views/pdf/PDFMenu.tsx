@@ -38,7 +38,7 @@ export default class PDFMenu extends React.Component {
     private _snippetButton: React.RefObject<HTMLButtonElement>;
     @observable private _keyValue: string = "";
     @observable private _valueValue: string = "";
-    @observable private _added: boolean = false;;
+    @observable private _added: boolean = false;
 
     constructor(props: Readonly<{}>) {
         super(props);

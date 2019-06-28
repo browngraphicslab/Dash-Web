@@ -164,7 +164,7 @@ class Viewer extends React.Component<IViewerProps> {
                     }
                 });
             }
-        )
+        );
 
         if (this.props.parent.props.ContainingCollectionView) {
             this._filterReactionDisposer = reaction(
@@ -182,7 +182,7 @@ class Viewer extends React.Component<IViewerProps> {
                                         d.opacity = run.result ? 1 : 0;
                                     }
                                 }
-                            })
+                            });
                         }
                     });
                 }
@@ -245,7 +245,8 @@ class Viewer extends React.Component<IViewerProps> {
         let annoDocs: Doc[] = [];
         let mainAnnoDoc = Docs.CreateInstance(new Doc(), "", {});
 
-        mainAnnoDoc.page = Math.round(Math.random());
+        mainAnnoDoc.title = "Annotation on " + StrCast(this.props.parent.Document.title);
+        mainAnnoDoc.pdfDoc = this.props.parent.Document;
         this._savedAnnotations.forEach((key: number, value: HTMLDivElement[]) => {
             for (let anno of value) {
                 let annoDoc = new Doc();
@@ -263,6 +264,7 @@ class Viewer extends React.Component<IViewerProps> {
             }
         });
 
+        mainAnnoDoc.y = Math.max((NumCast(annoDocs[0].y) * scale) - 100, 0);
         mainAnnoDoc.annotations = new List<Doc>(annoDocs);
         if (sourceDoc) {
             DocUtils.MakeLink(sourceDoc, mainAnnoDoc, undefined, `Annotation from ${StrCast(this.props.parent.Document.title)}`, "", StrCast(this.props.parent.Document.title));
@@ -339,10 +341,14 @@ class Viewer extends React.Component<IViewerProps> {
         if (this._isPage[page] !== "image") {
             this._isPage[page] = "image";
             const address = this.props.url;
-            let res = JSON.parse(await rp.get(DocServer.prepend(`/thumbnail${address.substring("files/".length, address.length - ".pdf".length)}-${page + 1}.PNG`)));
-            runInAction(() => this._visibleElements[page] =
-                <img key={res.path} src={res.path} onError={handleError}
-                    style={{ width: `${parseInt(res.width) * scale}px`, height: `${parseInt(res.height) * scale}px` }} />);
+            try {
+                let res = JSON.parse(await rp.get(DocServer.prepend(`/thumbnail${address.substring("files/".length, address.length - ".pdf".length)}-${page + 1}.PNG`)));
+                runInAction(() => this._visibleElements[page] =
+                    <img key={res.path} src={res.path} onError={handleError}
+                        style={{ width: `${parseInt(res.width) * scale}px`, height: `${parseInt(res.height) * scale}px` }} />);
+            } catch (e) {
+
+            }
         }
     }
 
@@ -772,7 +778,7 @@ class RegionAnnotation extends React.Component<IAnnotationProps> {
                     this.props.parent.scrollTo(this.props.y - 50);
                 }
             }
-        )
+        );
     }
 
     componentWillUnmount() {

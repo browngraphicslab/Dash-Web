@@ -1,20 +1,20 @@
 import React = require("react");
-import { action, computed, IReactionDisposer, reaction, trace } from "mobx";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { action, computed, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, HeightSym, WidthSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { BoolCast, NumCast } from "../../../new_fields/Types";
-import { emptyFunction, returnOne, Utils } from "../../../Utils";
+import { emptyFunction, Utils } from "../../../Utils";
 import { ContextMenu } from "../ContextMenu";
-import { DocumentView } from "../nodes/DocumentView";
 import { CollectionSchemaPreview } from "./CollectionSchemaView";
 import "./CollectionStackingView.scss";
 import { CollectionSubView } from "./CollectionSubView";
-import { Transform } from "../../util/Transform";
 
 @observer
 export class CollectionStackingView extends CollectionSubView(doc => doc) {
     _masonryGridRef: HTMLDivElement | null = null;
+    _draggerRef = React.createRef<HTMLDivElement>();
     _heightDisposer?: IReactionDisposer;
     _gridSize = 1;
     @computed get xMargin() { return NumCast(this.props.Document.xMargin, 2 * this.gridGap); }
@@ -76,6 +76,8 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                 style={{ width: width(), height: height() }} >
                 <CollectionSchemaPreview
                     Document={d}
+                    DataDocument={this.props.Document.layout instanceof Doc ? this.props.Document : this.props.DataDoc}
+                    renderDepth={this.props.renderDepth}
                     width={width}
                     height={height}
                     getTransform={dxf}
@@ -107,6 +109,8 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                 style={{ gridRowEnd: `span ${rowSpan}` }} >
                 <CollectionSchemaPreview
                     Document={d}
+                    DataDocument={this.props.Document.layout instanceof Doc ? this.props.Document : this.props.DataDoc}
+                    renderDepth={this.props.renderDepth}
                     CollectionView={this.props.CollectionView}
                     addDocument={this.props.addDocument}
                     moveDocument={this.props.moveDocument}
@@ -122,6 +126,35 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                 </CollectionSchemaPreview>
             </div>);
         });
+    }
+
+    _columnStart: number = 0;
+    columnDividerDown = (e: React.PointerEvent) => {
+        e.stopPropagation();
+        e.preventDefault();
+        document.addEventListener("pointermove", this.onDividerMove);
+        document.addEventListener('pointerup', this.onDividerUp);
+        this._columnStart = this.props.ScreenToLocalTransform().transformPoint(e.clientX, e.clientY)[0];
+    }
+    @action
+    onDividerMove = (e: PointerEvent): void => {
+        let dragPos = this.props.ScreenToLocalTransform().transformPoint(e.clientX, e.clientY)[0];
+        let delta = dragPos - this._columnStart;
+        this._columnStart = dragPos;
+
+        this.props.Document.columnWidth = this.columnWidth + delta;
+    }
+
+    @action
+    onDividerUp = (e: PointerEvent): void => {
+        document.removeEventListener("pointermove", this.onDividerMove);
+        document.removeEventListener('pointerup', this.onDividerUp);
+    }
+
+    @computed get columnDragger() {
+        return <div className="collectionStackingView-columnDragger" onPointerDown={this.columnDividerDown} ref={this._draggerRef} style={{ left: `${this.columnWidth + this.xMargin}px` }} >
+            <FontAwesomeIcon icon={"caret-down"} />
+        </div>;
     }
     onContextMenu = (e: React.MouseEvent): void => {
         if (!e.isPropagationStopped() && this.props.Document[Id] !== "mainDoc") { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
@@ -139,7 +172,6 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         return (
             <div className="collectionStackingView" ref={this.createRef} onContextMenu={this.onContextMenu} onWheel={(e: React.WheelEvent) => e.stopPropagation()} >
                 <div className={`collectionStackingView-masonry${this.singleColumn ? "Single" : "Grid"}`}
-
                     style={{
                         padding: this.singleColumn ? `${this.yMargin}px ${this.xMargin}px ${this.yMargin}px ${this.xMargin}px` : `${this.yMargin}px ${this.xMargin}px`,
                         margin: "auto",
@@ -152,6 +184,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     }}
                 >
                     {this.singleColumn ? this.singleColumnChildren : this.children}
+                    {this.singleColumn ? (null) : this.columnDragger}
                 </div>
             </div>
         );

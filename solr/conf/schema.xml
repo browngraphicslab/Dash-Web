@@ -8,7 +8,7 @@
       <filter class="solr.StopFilterFactory" words="stopwords.txt"/>
       <filter class="solr.LowerCaseFilterFactory"/>
       <filter class="solr.PorterStemFilterFactory"/>
-      <filter class="solr.NGramFilterFactory" minGramSize="3" maxGramSize="12"/>
+      <filter class="solr.NGramFilterFactory" minGramSize="2" maxGramSize="12"/>
     </analyzer>
     <analyzer type="query">
       <tokenizer class="solr.StandardTokenizerFactory"/>
