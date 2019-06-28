@@ -293,7 +293,8 @@ class TreeView extends React.Component<TreeViewProps> {
         let addDoc = (doc: Doc, addBefore?: Doc, before?: boolean) => Doc.AddDocToList(this.props.document, this._chosenKey, doc, addBefore, before);
         let groups = LinkManager.Instance.getRelatedGroupedLinks(this.props.document);
         groups.forEach((groupLinkDocs, groupType) => {
-            let destLinks = groupLinkDocs.map(d => LinkManager.Instance.getOppositeAnchor(d, this.props.document));
+            let links = groupLinkDocs.map(d => LinkManager.Instance.getOppositeAnchor(d, this.props.document));
+            let destLinks: Doc[] = links.filter(d => d instanceof Doc) as Doc[];
             ele.push(
                 <div key={"treeviewlink-" + groupType + "subtitle"}>
                     <div className="collectionTreeView-subtitle">{groupType}:</div>

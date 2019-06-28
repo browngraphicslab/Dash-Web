@@ -86,7 +86,6 @@ const delegateKeys = ["x", "y", "width", "height", "panX", "panY"];
 
 export namespace DocUtils {
     export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", tags: string = "Default") {
-        if (LinkManager.Instance.doesLinkExist(source, target)) return;
         let sv = DocumentManager.Instance.getDocumentView(source);
         if (sv && sv.props.ContainingCollectionView && sv.props.ContainingCollectionView.props.Document === target) return;
         if (target === CurrentUserUtils.UserDocument) return;
@@ -97,17 +96,28 @@ export namespace DocUtils {
             let linkDocProto = Doc.GetProto(linkDoc);
 
             linkDocProto.context = targetContext;
-            linkDocProto.title = title === "" ? source.title + " to " + target.title : title;
+            linkDocProto.title = title === "" ? "Link: " + source.title + ", " + target.title : title;
             linkDocProto.linkDescription = description;
             linkDocProto.linkTags = tags;
             linkDocProto.type = DocTypes.LINK;
 
             linkDocProto.anchor1 = source;
             linkDocProto.anchor1Page = source.curPage;
-            linkDocProto.anchor1Groups = new List<Doc>([]);
             linkDocProto.anchor2 = target;
             linkDocProto.anchor2Page = target.curPage;
-            linkDocProto.anchor2Groups = new List<Doc>([]);
+
+            let anchor1Group = new Doc();
+            let anchor1Md = new Doc();
+            anchor1Md.anchor1 = source.title;
+            anchor1Md.anchor2 = target.title;
+            anchor1Group.metadata = anchor1Md;
+            let anchor2Group = new Doc();
+            let anchor2Md = new Doc();
+            anchor2Md.anchor1 = target.title;
+            anchor2Md.anchor2 = source.title;
+            anchor2Group.metadata = anchor2Md;
+            linkDocProto.anchor1Group = anchor1Group;
+            linkDocProto.anchor2Group = anchor2Group;
 
             LinkManager.Instance.addLink(linkDoc);
 

@@ -26,11 +26,11 @@
             p {
                 background-color: lightgray;
             }
-            p.expand-one {
-                width: calc(100% - 26px);
+            p.expand-two {
+                width: calc(100% - 52px);
             }
-            .linkEditor-tableButton {
-                display: block;
+            .linkMenu-group-buttons {
+                display: flex;
             }
         }
 
@@ -41,10 +41,10 @@
             border-radius: 5px;
             font-weight: bold;
         }
+    }
 
-        .linkEditor-tableButton {
-            display: none;
-        }
+    .linkMenu-group-buttons {
+        display: none;
     }
 }
 
@@ -88,7 +88,7 @@
                 background-color: lightgray;
             }
             &.expand-three p {
-                width: calc(100% - 84px);
+                width: calc(100% - 78px);
                 background-color: lightgray;
             }
         }
@@ -133,5 +133,9 @@
     }
 }
 
+.linkMenu-settings {
+    border-top: 0.5px solid lightgray; 
+    padding-top: 10px;
+}
 
 

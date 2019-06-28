@@ -44,15 +44,14 @@ export class DocumentManager {
             DocumentManager.Instance.DocumentViews.map(view => {
                 let doc = view.props.Document.proto;
                 if (doc && doc[Id]) {
-                    if(doc[Id] === id)
-                    {toReturn.push(view);}
+                    if (doc[Id] === id) { toReturn.push(view); }
                 }
             });
         }
         return toReturn;
     }
 
-    public getAllDocumentViews(doc: Doc){
+    public getAllDocumentViews(doc: Doc) {
         return this.getDocumentViewsById(doc[Id]);
     }
 
@@ -112,9 +111,11 @@ export class DocumentManager {
             pairs.push(...linksList.reduce((pairs, link) => {
                 if (link) {
                     let linkToDoc = LinkManager.Instance.getOppositeAnchor(link, dv.props.Document);
-                    DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 => {
-                        pairs.push({ a: dv, b: docView1, l: link });
-                    });
+                    if (linkToDoc) {
+                        DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 => {
+                            pairs.push({ a: dv, b: docView1, l: link });
+                        });
+                    }
                 }
                 return pairs;
             }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]));

@@ -8,7 +8,7 @@ import React = require("react");
 import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { LinkManager } from "../../util/LinkManager";
-import { DragLinksAsDocuments, DragManager, SetupDrag } from "../../util/DragManager";
+import { DragManager, SetupDrag } from "../../util/DragManager";
 import { emptyFunction } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -45,7 +45,10 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
             document.removeEventListener("pointermove", this.onLinkButtonMoved);
             document.removeEventListener("pointerup", this.onLinkButtonUp);
 
-            let draggedDocs = this.props.group.map(linkDoc => LinkManager.Instance.getOppositeAnchor(linkDoc, this.props.sourceDoc));
+            let draggedDocs = this.props.group.map(linkDoc => {
+                let opp = LinkManager.Instance.getOppositeAnchor(linkDoc, this.props.sourceDoc);
+                if (opp) return opp;
+            }) as Doc[];
             let dragData = new DragManager.DocumentDragData(draggedDocs, draggedDocs.map(d => undefined));
 
             DragManager.StartLinkedDocumentDrag([this._drag.current], dragData, e.x, e.y, {
@@ -58,13 +61,21 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
         e.stopPropagation();
     }
 
-    viewGroupAsTable = (groupType: string): JSX.Element => {
-        let keys = LinkManager.Instance.getMetadataKeysInGroup(groupType);
+    deleteGroupType = (): void => {
+        LinkManager.Instance.deleteGroupType(this.props.groupType);
+    }
+
+    removeGroupFromAnchor = (): void => {
+        LinkManager.Instance.removeGroupFromAnchor(this.props.sourceDoc, this.props.groupType);
+    }
+
+    viewGroupAsTable = (): JSX.Element => {
+        let keys = LinkManager.Instance.getMetadataKeysInGroup(this.props.groupType);
         let index = keys.indexOf("");
         if (index > -1) keys.splice(index, 1);
         let cols = ["anchor1", "anchor2", ...[...keys]];
-        let docs: Doc[] = LinkManager.Instance.getAllMetadataDocsInGroup(groupType);
-        let createTable = action(() => Docs.SchemaDocument(cols, docs, { width: 500, height: 300, title: groupType + " table" }));
+        let docs: Doc[] = LinkManager.Instance.getAllMetadataDocsInGroup(this.props.groupType);
+        let createTable = action(() => Docs.SchemaDocument(cols, docs, { width: 500, height: 300, title: this.props.groupType + " table" }));
         let ref = React.createRef<HTMLDivElement>();
         return <div ref={ref}><button className="linkEditor-button linkEditor-tableButton" onPointerDown={SetupDrag(ref, createTable)} title="Drag to view relationship table"><FontAwesomeIcon icon="table" size="sm" /></button></div>;
     }
@@ -72,17 +83,30 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
     render() {
         let groupItems = this.props.group.map(linkDoc => {
             let destination = LinkManager.Instance.getOppositeAnchor(linkDoc, this.props.sourceDoc);
-            return <LinkMenuItem key={destination[Id] + this.props.sourceDoc[Id]} groupType={this.props.groupType}
-                linkDoc={linkDoc} sourceDoc={this.props.sourceDoc} destinationDoc={destination} showEditor={this.props.showEditor} />;
+            if (destination) {
+                return <LinkMenuItem key={destination[Id] + this.props.sourceDoc[Id]} groupType={this.props.groupType}
+                    linkDoc={linkDoc} sourceDoc={this.props.sourceDoc} destinationDoc={destination} showEditor={this.props.showEditor} />;
+            }
         });
+
+        let groupButtons = (
+            <div className="linkMenu-group-buttons">
+                <button className="linkEditor-button" onClick={() => this.removeGroupFromAnchor()} title="Remove alll links in this relationship from this document"><FontAwesomeIcon icon="times" size="sm" /></button>
+                <button className="linkEditor-button" onClick={() => this.deleteGroupType()} title="Delete relationship type on all documents"><FontAwesomeIcon icon="trash" size="sm" /></button>
+                {this.viewGroupAsTable()}
+            </div>
+        );
+
+
+        let hasGroupType = !(this.props.groupType === "*" || this.props.groupType === "");
 
         return (
             <div className="linkMenu-group">
                 <div className="linkMenu-group-name">
                     <p ref={this._drag} onPointerDown={this.onLinkButtonDown}
-                        className={this.props.groupType === "*" || this.props.groupType === "" ? "" : "expand-one"} >
-                        {this.props.groupType === "*" || this.props.groupType === "" ? "All links" : this.props.groupType}:</p>
-                    {this.props.groupType === "*" || this.props.groupType === "" ? <></> : this.viewGroupAsTable(this.props.groupType)}
+                        className={hasGroupType ? "expand-two" : ""} >
+                        {hasGroupType ? this.props.groupType : "All links"}:</p>
+                    {hasGroupType ? groupButtons : <></>}
                 </div>
                 <div className="linkMenu-group-wrapper">
                     {groupItems}

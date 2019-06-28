@@ -46,13 +46,16 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
 
     onEdit = (e: React.PointerEvent): void => {
         e.stopPropagation();
+        this.props.destinationDoc.libraryBrush = false;
         this.props.showEditor(this.props.linkDoc);
     }
 
     renderMetadata = (): JSX.Element => {
-        let groups = LinkManager.Instance.getAnchorGroups(this.props.linkDoc, this.props.sourceDoc);
-        let index = groups.findIndex(groupDoc => StrCast(groupDoc.type).toUpperCase() === this.props.groupType.toUpperCase());
-        let groupDoc = index > -1 ? groups[index] : undefined;
+        // let groups = LinkManager.Instance.getAnchorGroups(this.props.linkDoc, this.props.sourceDoc);
+        // let index = groups.findIndex(groupDoc => StrCast(groupDoc.type).toUpperCase() === this.props.groupType.toUpperCase());
+        // let groupDoc = index > -1 ? groups[index] : undefined;
+
+        let groupDoc = LinkManager.Instance.getAnchorGroupDoc(this.props.linkDoc, this.props.sourceDoc);
 
         let mdRows: Array<JSX.Element> = [];
         if (groupDoc) {
@@ -85,7 +88,11 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
             document.removeEventListener("pointermove", this.onLinkButtonMoved);
             document.removeEventListener("pointerup", this.onLinkButtonUp);
 
+            // if (DocumentManager.Instance.getDocumentView(this.props.sourceDoc)) {
+            //     DragLinkAsDocument(this._drag.current, e.x, e.y, this.props.linkDoc, this.props.sourceDoc, DocumentManager.Instance.getDocumentView(this.props.sourceDoc)!.props.moveDocument);
+            // } else {
             DragLinkAsDocument(this._drag.current, e.x, e.y, this.props.linkDoc, this.props.sourceDoc);
+            // }
         }
         e.stopPropagation();
     }

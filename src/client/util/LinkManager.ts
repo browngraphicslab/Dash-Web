@@ -80,7 +80,7 @@ export class LinkManager {
         related.forEach(linkDoc => LinkManager.Instance.deleteLink(linkDoc));
     }
 
-    public addGroupType(groupType: string): boolean {
+    public createGroupType(groupType: string): boolean {
         if (LinkManager.Instance.LinkManagerDoc) {
             LinkManager.Instance.LinkManagerDoc[groupType] = new List<string>([]);
             let groupTypes = LinkManager.Instance.getAllGroupTypes();
@@ -101,8 +101,8 @@ export class LinkManager {
                 LinkManager.Instance.LinkManagerDoc.allGroupTypes = new List<string>(groupTypes);
                 LinkManager.Instance.LinkManagerDoc[groupType] = undefined;
                 LinkManager.Instance.getAllLinks().forEach(linkDoc => {
-                    LinkManager.Instance.removeGroupFromAnchor(linkDoc, Cast(linkDoc.anchor1, Doc, new Doc), groupType);
-                    LinkManager.Instance.removeGroupFromAnchor(linkDoc, Cast(linkDoc.anchor2, Doc, new Doc), groupType);
+                    if (StrCast(Cast(linkDoc.anchor1Group, Doc, new Doc).type).toUpperCase() === groupType.toUpperCase()) linkDoc.anchor1Group = new Doc();
+                    if (StrCast(Cast(linkDoc.anchor2Group, Doc, new Doc).type).toUpperCase() === groupType.toUpperCase()) linkDoc.anchor2Group = new Doc();
                 });
             }
             return true;
@@ -121,71 +121,101 @@ export class LinkManager {
         return [];
     }
 
-    // gets the groups associates with an anchor in a link
-    public getAnchorGroups(linkDoc: Doc, anchor: Doc): Array<Doc> {
-        if (Doc.AreProtosEqual(anchor, Cast(linkDoc.anchor1, Doc, new Doc))) {
-            return DocListCast(linkDoc.anchor1Groups);
-        } else {
-            return DocListCast(linkDoc.anchor2Groups);
-        }
-    }
+    // // gets the groups associates with an anchor in a link
+    // public getAnchorGroups(linkDoc: Doc, anchor: Doc): Array<Doc> {
+    //     if (Doc.AreProtosEqual(anchor, Cast(linkDoc.anchor1, Doc, new Doc))) {
+    //         return DocListCast(linkDoc.anchor1Groups);
+    //     } else {
+    //         return DocListCast(linkDoc.anchor2Groups);
+    //     }
+    // }
 
     // sets the groups of the given anchor in the given link
-    public setAnchorGroups(linkDoc: Doc, anchor: Doc, groups: Doc[]) {
+    public setAnchorGroupDoc(linkDoc: Doc, anchor: Doc, groupDoc: Doc) {
         if (Doc.AreProtosEqual(anchor, Cast(linkDoc.anchor1, Doc, new Doc))) {
-            linkDoc.anchor1Groups = new List<Doc>(groups);
-        } else {
-            linkDoc.anchor2Groups = new List<Doc>(groups);
+            linkDoc.anchor1Group = groupDoc;
+        }
+        if (Doc.AreProtosEqual(anchor, Cast(linkDoc.anchor2, Doc, new Doc))) {
+            linkDoc.anchor2Group = groupDoc;
         }
     }
 
-    public addGroupToAnchor(linkDoc: Doc, anchor: Doc, groupDoc: Doc, replace: boolean = false) {
-        let groups = LinkManager.Instance.getAnchorGroups(linkDoc, anchor);
-        let index = groups.findIndex(gDoc => {
-            return StrCast(groupDoc.type).toUpperCase() === StrCast(gDoc.type).toUpperCase();
-        });
-        if (index > -1 && replace) {
-            groups[index] = groupDoc;
+    public getAnchorGroupDoc(linkDoc: Doc, anchor: Doc) {
+        if (Doc.AreProtosEqual(anchor, Cast(linkDoc.anchor1, Doc, new Doc))) {
+            return Cast(linkDoc.anchor1Group, Doc, new Doc);
         }
-        if (index === -1) {
-            groups.push(groupDoc);
+        if (Doc.AreProtosEqual(anchor, Cast(linkDoc.anchor2, Doc, new Doc))) {
+            return Cast(linkDoc.anchor2Group, Doc, new Doc);
         }
-        LinkManager.Instance.setAnchorGroups(linkDoc, anchor, groups);
     }
 
-    // removes group doc of given group type only from given anchor on given link
-    public removeGroupFromAnchor(linkDoc: Doc, anchor: Doc, groupType: string) {
-        let groups = LinkManager.Instance.getAnchorGroups(linkDoc, anchor);
-        let newGroups = groups.filter(groupDoc => StrCast(groupDoc.type).toUpperCase() !== groupType.toUpperCase());
-        LinkManager.Instance.setAnchorGroups(linkDoc, anchor, newGroups);
-    }
+    // public addGroupToAnchor(linkDoc: Doc, anchor: Doc, groupDoc: Doc, replace: boolean = false) {
+    //     let groups = LinkManager.Instance.getAnchorGroups(linkDoc, anchor);
+    //     let index = groups.findIndex(gDoc => {
+    //         return StrCast(groupDoc.type).toUpperCase() === StrCast(gDoc.type).toUpperCase();
+    //     });
+    //     if (index > -1 && replace) {
+    //         groups[index] = groupDoc;
+    //     }
+    //     if (index === -1) {
+    //         groups.push(groupDoc);
+    //     }
+    //     LinkManager.Instance.setAnchorGroups(linkDoc, anchor, groups);
+    // }
+
+    // // removes group doc of given group type only from given anchor on given link
+    // public removeGroupFromAnchor(linkDoc: Doc, anchor: Doc, groupType: string) {
+    //     let groups = LinkManager.Instance.getAnchorGroups(linkDoc, anchor);
+    //     let newGroups = groups.filter(groupDoc => StrCast(groupDoc.type).toUpperCase() !== groupType.toUpperCase());
+    //     LinkManager.Instance.setAnchorGroups(linkDoc, anchor, newGroups);
+    // }
 
     // returns map of group type to anchor's links in that group type
     public getRelatedGroupedLinks(anchor: Doc): Map<string, Array<Doc>> {
         let related = this.getAllRelatedLinks(anchor);
         let anchorGroups = new Map<string, Array<Doc>>();
-        related.forEach(link => {
-            let groups = LinkManager.Instance.getAnchorGroups(link, anchor);
-
-            if (groups.length > 0) {
-                groups.forEach(groupDoc => {
-                    let groupType = StrCast(groupDoc.type);
-                    if (groupType === "") {
-                        let group = anchorGroups.get("*");
-                        anchorGroups.set("*", group ? [...group, link] : [link]);
-                    } else {
-                        let group = anchorGroups.get(groupType);
-                        anchorGroups.set(groupType, group ? [...group, link] : [link]);
-                    }
-                });
+        related.forEach(linkDoc => {
+            // let groups = LinkManager.Instance.getAnchorGroups(link, anchor);
+            let groupType;
+            if (Doc.AreProtosEqual(anchor, Cast(linkDoc.anchor1, Doc, new Doc))) {
+                groupType = StrCast(Cast(linkDoc.anchor1Group, Doc, new Doc).type);
             } else {
-                // if link is in no groups then put it in default group
-                let group = anchorGroups.get("*");
-                anchorGroups.set("*", group ? [...group, link] : [link]);
+                groupType = StrCast(Cast(linkDoc.anchor2Group, Doc, new Doc).type);
             }
 
+            if (!groupType || groupType === "") {
+                let group = anchorGroups.get("*");
+                anchorGroups.set("*", group ? [...group, linkDoc] : [linkDoc]);
+            } else {
+                let group = anchorGroups.get(groupType);
+                anchorGroups.set(groupType, group ? [...group, linkDoc] : [linkDoc]);
+            }
         });
         return anchorGroups;
+    }
+
+    removeGroupFromAnchor(anchor: Doc, groupType: string): boolean {
+        let groups = LinkManager.Instance.getRelatedGroupedLinks(anchor);
+        let links = groups.get(groupType);
+        if (links) {
+            links.forEach(linkDoc => {
+                let newGroup = new Doc();
+                let newMd = new Doc();
+                newGroup.metadata = newMd;
+                newGroup.type = "";
+                if (Doc.AreProtosEqual(anchor, Cast(linkDoc.anchor1, Doc, new Doc))) {
+                    newMd.anchor1 = Cast(linkDoc.anchor1, Doc, new Doc).title;
+                    newMd.anchor2 = Cast(linkDoc.anchor2, Doc, new Doc).title;
+                    linkDoc.anchor1Group = newGroup;
+                }
+                if (Doc.AreProtosEqual(anchor, Cast(linkDoc.anchor2c, Doc, new Doc))) {
+                    newMd.anchor1 = Cast(linkDoc.anchor2, Doc, new Doc).title;
+                    newMd.anchor2 = Cast(linkDoc.anchor1, Doc, new Doc).title;
+                    linkDoc.anchor2Group = newGroup;
+                }
+            });
+        }
+        return false;
     }
 
     // gets a list of strings representing the keys of the metadata associated with the given group type
@@ -209,29 +239,30 @@ export class LinkManager {
         let md: Doc[] = [];
         let allLinks = LinkManager.Instance.getAllLinks();
         allLinks.forEach(linkDoc => {
-            let anchor1Groups = LinkManager.Instance.getAnchorGroups(linkDoc, Cast(linkDoc.anchor1, Doc, new Doc));
-            let anchor2Groups = LinkManager.Instance.getAnchorGroups(linkDoc, Cast(linkDoc.anchor2, Doc, new Doc));
-            anchor1Groups.forEach(groupDoc => { if (StrCast(groupDoc.type).toUpperCase() === groupType.toUpperCase()) md.push(Cast(groupDoc.metadata, Doc, new Doc)); });
-            anchor2Groups.forEach(groupDoc => { if (StrCast(groupDoc.type).toUpperCase() === groupType.toUpperCase()) md.push(Cast(groupDoc.metadata, Doc, new Doc)); });
+            let anchor1Group = Cast(linkDoc.anchor1Group, Doc, new Doc);
+            let anchor2Group = Cast(linkDoc.anchor2Group, Doc, new Doc);
+            if (StrCast(anchor1Group.type).toUpperCase() === groupType.toUpperCase()) md.push(Cast(anchor1Group.metadata, Doc, new Doc));
+            if (StrCast(anchor2Group.type).toUpperCase() === groupType.toUpperCase()) md.push(Cast(anchor2Group.metadata, Doc, new Doc));
         });
         return md;
     }
 
     // checks if a link with the given anchors exists
-    public doesLinkExist(anchor1: Doc, anchor2: Doc): boolean {
+    public doesLinkExist(anchor1: Doc, anchor2: Doc): Doc | undefined {
         let allLinks = LinkManager.Instance.getAllLinks();
         let index = allLinks.findIndex(linkDoc => {
             return (Doc.AreProtosEqual(Cast(linkDoc.anchor1, Doc, new Doc), anchor1) && Doc.AreProtosEqual(Cast(linkDoc.anchor2, Doc, new Doc), anchor2)) ||
                 (Doc.AreProtosEqual(Cast(linkDoc.anchor1, Doc, new Doc), anchor2) && Doc.AreProtosEqual(Cast(linkDoc.anchor2, Doc, new Doc), anchor1));
         });
-        return index !== -1;
+        return index === -1 ? undefined : allLinks[index];
     }
 
     // finds the opposite anchor of a given anchor in a link
-    public getOppositeAnchor(linkDoc: Doc, anchor: Doc): Doc {
+    public getOppositeAnchor(linkDoc: Doc, anchor: Doc): Doc | undefined {
         if (Doc.AreProtosEqual(anchor, Cast(linkDoc.anchor1, Doc, new Doc))) {
             return Cast(linkDoc.anchor2, Doc, new Doc);
-        } else {
+        }
+        if (Doc.AreProtosEqual(anchor, Cast(linkDoc.anchor2, Doc, new Doc))) {
             return Cast(linkDoc.anchor1, Doc, new Doc);
         }
     }

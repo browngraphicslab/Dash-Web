@@ -42,26 +42,33 @@ export class LinkMenu extends React.Component<Props> {
                 <LinkMenuGroup key={groupType} sourceDoc={this.props.docView.props.Document} group={group} groupType={groupType} showEditor={action((linkDoc: Doc) => this._editingLink = linkDoc)} />
             );
         });
-
-        // if source doc has no links push message
-        if (linkItems.length === 0) linkItems.push(<p key="">No links have been created yet. Drag the linking button onto another document to create a link.</p>);
-
         return linkItems;
     }
 
     render() {
         let sourceDoc = this.props.docView.props.Document;
         let groups: Map<string, Doc[]> = LinkManager.Instance.getRelatedGroupedLinks(sourceDoc);
+
+        let content: JSX.Element;
+        if (Array.from(groups.keys()).length) {
+            content = (<>
+                <div className="linkMenu-list">
+                    {this.renderAllGroups(groups)}
+                </div>
+                <div className="linkMenu-settings">
+                    <button className="linkEditor-button linkEditor-clearButton" onClick={() => this.clearAllLinks()} title="Delete all links"><FontAwesomeIcon icon="trash" size="sm" /></button>
+                </div>
+            </>);
+        } else {
+            content = <p key="">No links have been created yet. Drag the linking button onto another document to create a link.</p>;
+        }
+
+
         if (this._editingLink === undefined) {
             return (
                 <div className="linkMenu">
-                    {Array.from(groups.keys()).length ?
-                        <button className="linkEditor-button linkEditor-clearButton" onClick={() => this.clearAllLinks()} title="Clear all links"><FontAwesomeIcon icon="trash" size="sm" /></button>
-                        : <></>}
                     {/* <input id="linkMenu-searchBar" type="text" placeholder="Search..."></input> */}
-                    <div className="linkMenu-list">
-                        {this.renderAllGroups(groups)}
-                    </div>
+                    {content}
                 </div>
             );
         } else {
