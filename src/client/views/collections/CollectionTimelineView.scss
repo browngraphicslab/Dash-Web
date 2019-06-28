@@ -67,6 +67,10 @@
     border-left: 4px solid $intermediate-color;
 }
 
+.contextmenu {
+    background: $intermediate-color;
+}
+
 .bar {
     background: $light-color-secondary;
     cursor: grab;

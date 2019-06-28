@@ -13,7 +13,7 @@ import "./CollectionTimelineView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import { anchorPoints, Flyout } from "../DocumentDecorations";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { DateTimeStep } from "../../northstar/model/idea/idea";
+import { DateTimeStep, Point } from "../../northstar/model/idea/idea";
 import { date } from "serializr";
 import { DateField } from "../../../new_fields/DateField";
 import { List } from "../../../new_fields/List";
@@ -33,9 +33,10 @@ import { IconProp } from "@fortawesome/fontawesome-svg-core";
 import { Docs } from "../../documents/Documents";
 import { HtmlField } from "../../../new_fields/HtmlField";
 import { ProxyField } from "../../../new_fields/Proxy";
-import { auto } from "async";
+import { auto, select } from "async";
 import Measure from "react-measure";
 import { COLLECTION_BORDER_WIDTH } from "../globalCssVariables.scss";
+import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";
 
 
 
@@ -121,41 +122,58 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     private preview5: String | number | Date;
     @observable
     private preview6: number = -2;
-    private prevselect: number = -1;
+    private prevselect = -1;
 
     private leftselect = -2;
     private nameselect = "";
 
 
 
-
     @action
-    show(d: Doc, i: number) {
+    select(e: React.PointerEvent<HTMLDivElement>, d: Doc, i: number) {
         let buttonid: string = "button" + String(i);
         var button = document.getElementById(buttonid);
+
+
+        // for (let i=0; i<this.prevselect.length; i++){
+        //     if 
+        // }
         if (this.prevselect === i) {
             button.classList.toggle("selected");
             button.classList.toggle("unselected");
             this.prevselect = -1;
 
         }
+
+
         else {
             button.classList.toggle("unselected");
             button.classList.toggle("selected");
-            if (this.prevselect !== -1) {
-
-                let previd: string = "button" + String(this.prevselect);
-                var prevbutton = document.getElementById(previd);
-                prevbutton.classList.toggle("selected");
-                prevbutton.classList.toggle("unselected");
-
+            if (e.ctrlKey) {
+                console.log("YEET");
             }
+            else {
+                if (this.prevselect !== -1) {
+
+                    let previd: string = "button" + String(this.prevselect);
+                    var prevbutton = document.getElementById(previd);
+                    prevbutton.classList.toggle("selected");
+                    prevbutton.classList.toggle("unselected");
+
+                }
+            }
+
             this.prevselect = i;
 
         }
+        this.show(d, i);
 
+    }
 
-
+    @action
+    show(d: Doc, i: number) {
+        let buttonid: string = "button" + String(i);
+        var button = document.getElementById(buttonid);
         this.preview = d;
         this.preview2 = Docs.KVPDocument(d, {});
         this.preview3 = document.title + "";
@@ -260,7 +278,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             let icon = this.checkData(backup[i]);
 
             leftval = (((values[i] - values[0]) * this.barwidth * 0.97 / this._range) * (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)) - (this.xmovement * (this.barwidth) / (this.barwidth - this.xmovement2 - this.xmovement))) + "px";
-            let display = () => { this.show(keyvalue[i].doc, i); this.resetLeft(); };
+            let display = (e: React.PointerEvent<HTMLDivElement>) => { this.select(e, keyvalue[i].doc, i); this.resetLeft(); };
             let leftval2 = (((values[i] - values[0]) * this.barwidth * 0.97 / this._range) * (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)) - (this.xmovement * (this.barwidth) / (this.barwidth - this.xmovement2 - this.xmovement)));
             let overlap = false;
             let thingies = [];
@@ -268,7 +286,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 if (j !== i) {
                     if (values[i] === values[j]) {
                         icon = faPlus;
-                        display = () => { this.show(keyvalue[i].doc, i); this.updateleft(i, values[i]); };
+                        display = () => { this.select(this, keyvalue[i].doc, i); this.updateleft(i, values[i]); };
                         overlap = true;
                         thingies.push(
                             <button className="toolbar-button round-button" title="Notifs"
@@ -285,7 +303,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             overlaps.push(thingies);
             if (overlap === false) {
                 buttons.push(
-                    <div onClick={display} style={{ top: "65%", position: "absolute", left: leftval, width: "100px", height: "100px" }}>
+                    <div onClick={display} style={{ position: "absolute", left: leftval, width: "100px", height: "100px" }}>
                         <div className="unselected" id={"button" + String(i)} style={{ position: "absolute", width: "100px", height: "100px", pointerEvents: "all" }}>
                             {this.documentpreview(docs[i])}
                         </div>
@@ -293,7 +311,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             }
             else {
                 buttons.push(
-                    <div onClick={display} style={{ top: "65%", position: "absolute", left: leftval, width: "100px", height: "100px" }}>
+                    <div onClick={display} style={{ position: "absolute", left: leftval, width: "100px", height: "100px" }}>
                         <div className="unselected" id={"button" + String(i)} style={{ position: "absolute", overflow: "scroll", background: "grey", width: "100px", height: "100px", zIndex: 0 }}>
                             {thingies}
                         </div>
@@ -386,15 +404,15 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 {this.preview2 ? this.documentpreview3(this.preview2) : (null)}
             </div>
             <div style={{ top: "86%", height: "8%", width: "100%", position: "absolute" }}>
-                <div> Min:
+                <div className="contextMenu" style={{ width: "20%" }}> Min:
                 <input value={this.searchString2} onChange={this.onChange2} onKeyPress={this.enter2} type="text" placeholder={String((this.xmovement * this._range / this.barwidth) + this._values[0])}
                         className="searchBox-barChild searchBox-input" />
                 </div>
-                <div style={{ textAlign: "center" }}>{this.preview4}
+                <div className="contextMenu" style={{ textAlign: "center" }}>{this.preview4}
                 </div>
 
 
-                <div style={{ right: "0%", position: "absolute" }}>Max:
+                <div className="contextMenu" style={{ right: "0%", position: "absolute" }}>Max:
                 <input value={this.searchString} onChange={this.onChange} onKeyPress={this.enter} type="text" placeholder={String(((this.barwidth - this.xmovement2) * this._range / this.barwidth) + this._values[0])}
                         className="searchBox-barChild searchBox-input" />
                 </div>
@@ -407,7 +425,12 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 {(this.nameselect)}
             </div>
             <div className="viewpanel" style={{ top: "5%", position: "absolute", right: "10%", bottom: "35%", background: "#GGGGGG", zIndex: -55, }}></div>
-            <div>{buttons}</div>
+            <div style={{ height: "100%", position: "absolute", width: "100%", }}>
+                <Selector activeDocuments={this.getActiveDocuments} isSelected={this.props.isSelected}
+
+                    getContainerTransform={this.getContainerTransform} getTransform={this.getTransform}>
+                </Selector></div>
+            <div style={{ top: "65%", position: "absolute", bottom: "25%" }}>{buttons}</div>
             <div id="bar" className="backdropscroll" onPointerDown={this.onPointerDown4} style={{ top: "80%", width: "100%", bottom: "15%", position: "absolute", }}>
                 {buttons2}
                 <div className="v1" onPointerDown={this.onPointerDown} style={{ cursor: "ew-resize", position: "absolute", zIndex: 2, left: this.xmovement, height: "100%" }}>
@@ -432,6 +455,29 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         );
 
     }
+
+
+
+    public getActiveDocuments = () => {
+        const curPage = FieldValue(this.Document.curPage, -1);
+        return this.childDocs.filter(doc => {
+            var page = NumCast(doc.page, -1);
+            return page === curPage || page === -1;
+        });
+    }
+    private getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth + 1, -this.borderWidth + 1).translate(-this.centeringShiftX(), -this.centeringShiftY()).transform(this.getLocalTransform());
+    private getContainerTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth, -this.borderWidth);
+    private getLocalTransform = (): Transform => Transform.Identity().scale(1 / this.zoomScaling()).translate(this.panX(), this.panY());
+
+    @computed get nativeWidth() { return this.Document.nativeWidth || 0; }
+    @computed get nativeHeight() { return this.Document.nativeHeight || 0; }
+    public get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldKey === "annotations"; }
+    private get borderWidth() { return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH; }
+    private panX = () => this.Document.panX || 0;
+    private panY = () => this.Document.panY || 0;
+    private zoomScaling = () => this.Document.scale || 1;
+    private centeringShiftX = () => 0;  // shift so pan position is at center of window for non-overlay collections
+    private centeringShiftY = () => 0;// shift so pan position is at center of window for non-overlay collections
 
     @action.bound
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -786,7 +832,7 @@ export class CollectionTimelinePreview extends React.Component<CollectionTimelin
             {!this.props.Document || !this.props.width ? (null) : (
                 <div className="collectionSchemaView-previewDoc" style={{ transform: `translate(${this.centeringOffset}px, 0px)`, height: "100%" }}>
                     <DocumentView Document={this.props.Document} isTopMost={false} selectOnLoad={false}
-                        addDocument={this.props.addDocument} removeDocument={this.props.removeDocument} moveDocument={this.props.moveDocument}
+                        addDocument={this.props.addDocument} moveDocument={this.props.moveDocument}
                         ScreenToLocalTransform={this.getTransform}
                         ContentScaling={this.contentScaling}
                         PanelWidth={this.PanelWidth} PanelHeight={this.PanelHeight}
@@ -799,5 +845,190 @@ export class CollectionTimelinePreview extends React.Component<CollectionTimelin
                     />
                 </div>)}
         </div>);
+    }
+}
+
+
+
+import * as htmlToImage from "html-to-image";
+import { InkField, StrokeData } from "../../../new_fields/InkField";
+import { DocServer } from "../../DocServer";
+import { InkingCanvas } from "../InkingCanvas";
+import { PreviewCursor } from "../PreviewCursor";
+import { SearchBox } from "../SearchBox";
+import { Templates } from "../Templates";
+import { CollectionViewType } from "./CollectionBaseView";
+import "./collectionFreeForm/MarqueeView.scss";
+import { DocumentManager } from "../../util/DocumentManager";
+
+interface SelectorProps {
+    getContainerTransform: () => Transform;
+    //container: CollectionFreeFormView;
+    getTransform: () => Transform;
+    activeDocuments: () => Doc[];
+    //selectDocuments: (docs: Doc[]) => void;
+    isSelected: () => boolean;
+}
+
+
+
+
+
+@observer
+export class Selector extends React.Component<SelectorProps>
+{
+    private _mainCont = React.createRef<HTMLDivElement>();
+    @observable _lastX: number = 0;
+    @observable _lastY: number = 0;
+    @observable _downX: number = 0;
+    @observable _downY: number = 0;
+    @observable _visible: boolean = false;
+    _commandExecuted = false;
+
+    @action
+    cleanupInteractions = (all: boolean = false) => {
+        if (all) {
+            document.removeEventListener("pointerup", this.onPointerUp, true);
+            document.removeEventListener("pointermove", this.onPointerMove, true);
+        }
+        this._visible = false;
+    }
+
+    @action
+    onPointerDown = (e: React.PointerEvent): void => {
+        if (e.pageY > (document.body.clientHeight * 0.6)) {
+            if (e.pageY < (document.body.clientHeight * 0.79)) {
+                this._downX = this._lastX = e.pageX;
+                this._downY = this._lastY = e.pageY;
+                console.log(this._downX);
+                console.log(this._downY);
+                this._commandExecuted = false;
+                PreviewCursor.Visible = false;
+
+                //if (!this.props.container.props.active()) this.props.selectDocuments([this.props.container.props.Document]);
+                document.addEventListener("pointermove", this.onPointerMove, true);
+                document.addEventListener("pointerup", this.onPointerUp, true);
+                if (e.altKey) {
+                    //e.stopPropagation(); // bcz: removed so that you can alt-click on button in a collection to switch link following behaviors.
+                    e.preventDefault();
+                }
+                // bcz: do we need this?   it kills the context menu on the main collection if !altKey
+                // e.stopPropagation();
+
+            }
+        }
+    }
+
+    @action
+    onPointerMove = (e: PointerEvent): void => {
+
+        if (e.pageY > document.body.clientHeight * 0.61) {
+            if (e.pageY < document.body.clientHeight * 0.79) {
+                this._lastY = e.pageY;
+            }
+            else {
+                this._lastY = document.body.clientHeight * 0.79;
+            }
+
+        }
+        else {
+            this._lastY = document.body.clientHeight * 0.61;
+        }
+
+
+        this._lastX = e.pageX;
+        if (!e.cancelBubble) {
+            if (Math.abs(this._lastX - this._downX) > Utils.DRAG_THRESHOLD ||
+                Math.abs(this._lastY - this._downY) > Utils.DRAG_THRESHOLD) {
+                if (!this._commandExecuted) {
+                    this._visible = true;
+                }
+                e.stopPropagation();
+                e.preventDefault();
+            }
+        }
+
+    }
+
+    @action
+    onPointerUp = (e: PointerEvent): void => {
+        document.removeEventListener("pointermove", this.onPointerMove, true);
+        if (this._visible) {
+            let mselect = this.marqueeSelect();
+            if (!e.shiftKey) {
+                SelectionManager.DeselectAll(undefined);
+            }
+            //this.props.selectDocuments(mselect);
+        }
+        this.cleanupInteractions(true);
+        if (e.altKey) {
+            e.preventDefault();
+        }
+    }
+
+    @action
+    onClick = (e: React.MouseEvent): void => {
+        if (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
+            Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD) {
+            e.stopPropagation();
+            // let the DocumentView stopPropagation of this event when it selects this document
+        } else {  // why do we get a click event when the cursor have moved a big distance?
+            // let's cut it off here so no one else has to deal with it.
+            e.stopPropagation();
+        }
+    }
+
+
+
+
+    intersectRect(r1: { left: number, top: number, width: number, height: number },
+        r2: { left: number, top: number, width: number, height: number }) {
+        return !(r2.left > r1.left + r1.width || r2.left + r2.width < r1.left || r2.top > r1.top + r1.height || r2.top + r2.height < r1.top);
+    }
+
+    @computed
+    get Bounds() {
+        let left = this._downX < this._lastX ? this._downX : this._lastX;
+        let top = this._downY < this._lastY ? this._downY : this._lastY;
+        let topLeft = this.props.getTransform().transformPoint(left, top);
+        let size = this.props.getTransform().transformDirection(this._lastX - this._downX, this._lastY - this._downY);
+        return { left: topLeft[0], top: topLeft[1], width: Math.abs(size[0]), height: Math.abs(size[1]) };
+    }
+
+
+    marqueeSelect() {
+        let selRect = this.Bounds;
+        let selection: Doc[] = [];
+        this.props.activeDocuments().map(doc => {
+            var z = NumCast(doc.zoomBasis, 1);
+            var x = NumCast(doc.x);
+            var y = NumCast(doc.y);
+            var w = NumCast(doc.width) / z;
+            var h = NumCast(doc.height) / z;
+            if (this.intersectRect({ left: x, top: y, width: w, height: h }, selRect)) {
+                selection.push(doc);
+            }
+        });
+        return selection;
+    }
+
+    @computed
+    get marqueeDiv() {
+        let v = this.props.getContainerTransform().transformDirection(this._lastX - this._downX, this._lastY - this._downY);
+        return <div className="marquee" style={{ width: `${Math.abs(v[0])}`, height: `${Math.abs(v[1])}`, zIndex: 2000 }} >
+            <span className="marquee-legend" />
+        </div>;
+    }
+
+    render() {
+        let p: [number, number] = this._visible ? this.props.getContainerTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
+        return <div className="marqueeView" style={{ borderRadius: "inherit" }} onClick={this.onClick} onPointerDown={this.onPointerDown}>
+            <div style={{ position: "relative", transform: `translate(${p[0]}px, ${p[1]}px)` }} >
+                {this._visible ? this.marqueeDiv : null}
+                <div ref={this._mainCont} style={{ transform: `translate(${-p[0]}px, ${-p[1]}px)` }} >
+                    {this.props.children}
+                </div>
+            </div>
+        </div>;
     }
 }
