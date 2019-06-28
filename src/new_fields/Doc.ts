@@ -280,6 +280,19 @@ export namespace Doc {
         return new Doc;
     }
 
+    export function expandTemplateLayout(templateLayoutDoc: Doc, dataDoc: Doc) {
+        let expandedTemplateLayout = templateLayoutDoc["_expanded_" + dataDoc[Id]];
+        if (expandedTemplateLayout instanceof Doc) {
+            return expandedTemplateLayout;
+        }
+        if (expandedTemplateLayout === undefined)
+            setTimeout(() => {
+                templateLayoutDoc["_expanded_" + dataDoc[Id]] = Doc.MakeDelegate(templateLayoutDoc);
+                (templateLayoutDoc["_expanded_" + dataDoc[Id]] as Doc).title = templateLayoutDoc.title + " applied to " + dataDoc.title;
+            }, 0);
+        return templateLayoutDoc;
+    }
+
     export function MakeCopy(doc: Doc, copyProto: boolean = false): Doc {
         const copy = new Doc;
         Object.keys(doc).forEach(key => {

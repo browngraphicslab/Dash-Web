@@ -18,6 +18,8 @@ import { ImageBox } from "./ImageBox";
 import { PDFBox } from "./PDFBox";
 import { VideoBox } from "./VideoBox";
 import { Id } from "../../../new_fields/FieldSymbols";
+import { BoolCast, Cast } from "../../../new_fields/Types";
+import { DarpaDatasetDoc } from "../../northstar/model/idea/idea";
 
 
 //
@@ -28,6 +30,7 @@ import { Id } from "../../../new_fields/FieldSymbols";
 export interface FieldViewProps {
     fieldKey: string;
     fieldExt: string;
+    leaveNativeSize?: boolean;
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
     Document: Doc;
     DataDoc?: Doc;
@@ -72,7 +75,7 @@ export class FieldView extends React.Component<FieldViewProps> {
             return <FormattedTextBox {...this.props} />;
         }
         else if (field instanceof ImageField) {
-            return <ImageBox {...this.props} />;
+            return <ImageBox {...this.props} leaveNativeSize={true} />;
         }
         else if (field instanceof IconField) {
             return <IconBox {...this.props} />;
@@ -86,7 +89,7 @@ export class FieldView extends React.Component<FieldViewProps> {
             return <p>{field.date.toLocaleString()}</p>;
         }
         else if (field instanceof Doc) {
-            return <p><b>{field.title + " + " + field[Id]}</b></p>;
+            return <p><b>{field.title + " : id= " + field[Id]}</b></p>;
             // let returnHundred = () => 100;
             // return (
             //     <DocumentContentsView Document={field}

@@ -233,7 +233,7 @@ class TreeView extends React.Component<TreeViewProps> {
     onWorkspaceContextMenu = (e: React.MouseEvent): void => {
         if (!e.isPropagationStopped()) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
             ContextMenu.Instance.addItem({ description: "Open as Workspace", event: undoBatch(() => MainView.Instance.openWorkspace(this.resolvedDataDoc)) });
-            ContextMenu.Instance.addItem({ description: "Open Fields", event: () => { let kvp = Docs.KVPDocument(this.props.document, { width: 300, height: 300 }); this.props.addDocTab(kvp, kvp, "onRight"); }, icon: "layer-group" });
+            ContextMenu.Instance.addItem({ description: "Open Fields", event: () => { let kvp = Docs.KVPDocument(this.props.document, { width: 300, height: 300 }); this.props.addDocTab(kvp, this.props.dataDoc ? this.props.dataDoc : kvp, "onRight"); }, icon: "layer-group" });
             if (NumCast(this.props.document.viewType) !== CollectionViewType.Docking) {
                 ContextMenu.Instance.addItem({ description: "Open Tab", event: () => this.props.addDocTab(this.props.document, this.resolvedDataDoc, "inTab"), icon: "folder" });
                 ContextMenu.Instance.addItem({ description: "Open Right", event: () => this.props.addDocTab(this.props.document, this.resolvedDataDoc, "onRight"), icon: "caret-square-right" });

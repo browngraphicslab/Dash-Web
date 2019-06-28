@@ -28,6 +28,7 @@ import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import v5 = require("uuid/v5");
 
+
 export const panZoomSchema = createSchema({
     panX: "number",
     panY: "number",
@@ -334,11 +335,13 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return 1;
     }
 
-
     getDocumentViewProps(layoutDoc: Doc): DocumentViewProps {
         let datadoc = BoolCast(this.props.Document.isTemplate) || this.props.DataDoc === this.props.Document ? undefined : this.props.DataDoc;
         if (Cast(layoutDoc.layout, Doc) instanceof Doc) { // if this document is using a template to render, then set the dataDoc for the template to be this document
             datadoc = layoutDoc;
+        } else if (datadoc && datadoc !== layoutDoc) {  // if this view has a dataDocument and it's not the same as the view document
+            // then map the view document to an instance of itself (ie, expand the template).  This allows the view override the template's properties and be referenceable as  document.
+            layoutDoc = Doc.expandTemplateLayout(layoutDoc, datadoc);
         }
         return {
             DataDoc: datadoc,

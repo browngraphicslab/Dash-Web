@@ -85,11 +85,18 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 let metaKey = text.slice(1, text.length);
                 let metaKeyProp = `fieldKey={"${metaKey}"}`;
 
+                let layoutProto = Doc.GetProto(field.props.Document);
                 let template = Doc.MakeAlias(field.props.Document);
                 template.proto = collection;
                 template.title = metaKey;
                 template.nativeWidth = Cast(field.nativeWidth, "number");
                 template.nativeHeight = Cast(field.nativeHeight, "number");
+                template.width = NumCast(field.props.Document.width);
+                template.height = NumCast(field.props.Document.height);
+                template.panX = NumCast(field.props.Document.panX);
+                template.panY = NumCast(field.props.Document.panY);
+                template.x = NumCast(field.props.Document.x);
+                template.y = NumCast(field.props.Document.y);
                 template.embed = true;
                 template.isTemplate = true;
                 template.templates = new List<string>([Templates.TitleBar(metaKey)]);
