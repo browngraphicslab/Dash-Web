@@ -2095,7 +2095,8 @@
         this.childElementContainer = this.element.find('.lm_content');
         this.childElementContainer.append(contentItem.element);
 
-        this._originalParent.isMoved = true;
+        // isDragged prevents a stack from closing until the dragged element has been placed (either by aborting drag or on mouse up)
+        this._originalParent.isDragged = true;
         this._updateTree();
         this._layoutManager._$calculateItemAreas();
         this._setDimensions();
@@ -2185,7 +2186,7 @@
 		 */
         _onDrop: function (keypressed) {
             this._layoutManager.dropTargetIndicator.hide();
-            this._originalParent.isMoved = false;
+            this._originalParent.isDragged = false;
 
             /*
              * Drag finished with the escape key
@@ -2199,6 +2200,7 @@
                     this._area.contentItem._$onDrop(this._contentItem, this._area);
 
                 }
+
                 /*
                  * Valid drop area found
                  */
@@ -2232,11 +2234,12 @@
             this.element.remove();
 
             // if original stack is empty, delete 
+            // additionally, skip this if we are dragging a component (no parent)
             if (this._originalParent.contentItems.length <= 0) {
                 this._originalParent.remove();
             }
 
-            this._originalParent.isDragged = false;
+            this._originalParent.isAutoClose = false;
             this._layoutManager.emit('itemDropped', this._contentItem);
         },
 
@@ -2976,7 +2979,7 @@
                 this.contentItem.parent.toggleMaximise();
             }
 
-            this.contentItem.parent.isDragged = true; // used to ignore confirmation box for stack close
+            this.contentItem.parent.isAutoClose = true; // used to ignore confirmation box for stack close
 
             new lm.controls.DragProxy(
                 x,
@@ -3998,18 +4001,16 @@
 		 * @returns {void}
 		 */
         removeChild: function (contentItem, keepChild) {
-            // if deleting stack manually, provide confirmation box
-            if (!contentItem.isDragged) {
-                contentItem.isDragged = !contentItem.isDragged;
-
+            // if manually closing stack / single tab stack, provide confirmation box
+            if (!contentItem.isAutoClose) {
                 let deleteStack = confirm('delete stack?');
-                if (!deleteStack && contentItem.dragType !== "not_tab") {
+                if (!deleteStack) {
                     return;
                 }
             }
 
-            // if dragging element around, don't remove stack until finished
-            if (contentItem.isMoved) {
+            // prevents deletion of stacks until after item drag is dropped / aborted
+            if (contentItem.isDragged) {
                 return;
             }
 
