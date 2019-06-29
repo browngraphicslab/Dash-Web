@@ -277,7 +277,7 @@ export namespace Doc {
         if (!GetT(doc, "isPrototype", "boolean", true)) {
             return Doc.MakeCopy(doc);
         }
-        return new Doc;
+        return Doc.MakeDelegate(doc); // bcz?
     }
 
     export function expandTemplateLayout(templateLayoutDoc: Doc, dataDoc?: Doc) {
