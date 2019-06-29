@@ -4,7 +4,6 @@ import { CollectionDockingView } from "./collections/CollectionDockingView";
 import { MainView } from "./MainView";
 import { DragManager } from "../util/DragManager";
 import { action } from "mobx";
-import { emptyFunction } from "../../Utils";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string) => KeyControlInfo;
@@ -22,6 +21,8 @@ export default class KeyManager {
         this.mainView = mainView;
 
         let isMac = navigator.platform.toLowerCase().indexOf("mac") >= 0;
+
+        // SHIFT CONTROL ALT META
 
         this.router.set("0000", this.unmodified);
         this.router.set(isMac ? "0001" : "0100", this.ctrl);
@@ -59,12 +60,15 @@ export default class KeyManager {
     private unmodified = action((keyname: string) => {
         switch (keyname) {
             case "escape":
-                if (CollectionDockingView.Instance.HasFullScreen()) {
-                    CollectionDockingView.Instance.CloseFullScreen();
+                if (this.mainView.isPointerDown) {
+                    DragManager.AbortDrag();
                 } else {
-                    SelectionManager.DeselectAll();
+                    if (CollectionDockingView.Instance.HasFullScreen()) {
+                        CollectionDockingView.Instance.CloseFullScreen();
+                    } else {
+                        SelectionManager.DeselectAll();
+                    }
                 }
-                DragManager.AbortDrag();
                 break;
         }
 

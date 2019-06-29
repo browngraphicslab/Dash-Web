@@ -53,9 +53,7 @@ export class MainView extends React.Component {
         let docs = DocListCast(this.mainContainer!.data);
         return (docs && docs.length > 1) ? docs[1] : undefined;
     }
-    private globalDisplayFlags = observable({
-        jumpToVisible: false
-    });
+    public isPointerDown = false;
     private set mainContainer(doc: Opt<Doc>) {
         if (doc) {
             if (!("presentationView" in doc)) {
@@ -69,10 +67,21 @@ export class MainView extends React.Component {
         KeyManager.Handler = new KeyManager(this);
         document.removeEventListener("keydown", KeyManager.Handler.handle);
         document.addEventListener("keydown", KeyManager.Handler.handle);
+
+        document.removeEventListener("pointerdown", this.pointerDown);
+        document.addEventListener("pointerdown", this.pointerDown);
+
+        document.removeEventListener("pointerup", this.pointerUp);
+        document.addEventListener("pointerup", this.pointerUp);
     }
+
+    pointerDown = (e: PointerEvent) => this.isPointerDown = true;
+    pointerUp = (e: PointerEvent) => this.isPointerDown = false;
 
     componentWillUnMount() {
         document.removeEventListener("keydown", KeyManager.Handler.handle);
+        document.removeEventListener("pointerdown", this.pointerDown);
+        document.removeEventListener("pointerup", this.pointerUp);
     }
 
     constructor(props: Readonly<{}>) {
