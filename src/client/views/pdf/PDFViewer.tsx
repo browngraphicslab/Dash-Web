@@ -49,7 +49,7 @@ export class PDFViewer extends React.Component<IPDFViewerProps> {
 
     render() {
         return (
-            <div ref={this._mainDiv}>
+            <div className="pdfViewer-viewerCont" ref={this._mainDiv}>
                 {!this._pdf ? (null) :
                     <Viewer pdf={this._pdf} loaded={this.props.loaded} scrollY={this.props.scrollY} parent={this.props.parent} mainCont={this._mainDiv} url={this.props.url} />}
             </div>

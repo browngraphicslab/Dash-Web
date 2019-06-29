@@ -2,10 +2,10 @@ import React = require("react");
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faCaretUp, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faMusic, faLink, faChartBar, faGlobeAsia } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Cast, NumCast } from "../../../new_fields/Types";
+import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { observable, runInAction, computed, action } from "mobx";
 import { listSpec } from "../../../new_fields/Schema";
-import { Doc } from "../../../new_fields/Doc";
+import { Doc, WidthSym } from "../../../new_fields/Doc";
 import { DocumentManager } from "../../util/DocumentManager";
 import { SetupDrag } from "../../util/DragManager";
 import { SearchUtil } from "../../util/SearchUtil";
@@ -20,6 +20,10 @@ import { DocumentView } from "../nodes/DocumentView";
 import "./SelectorContextMenu.scss";
 import { SearchBox } from "./SearchBox";
 import { LinkManager } from "../../util/LinkManager";
+import { DocumentContentsView } from "../nodes/DocumentContentsView";
+import { ImageBox } from "../nodes/ImageBox";
+import { emptyFunction, returnFalse, returnOne } from "../../../Utils";
+import { Transform } from "../../util/Transform";
 
 export interface SearchItemProps {
     doc: Doc;
@@ -90,10 +94,40 @@ export class SearchItem extends React.Component<SearchItemProps> {
     onClick = () => {
         DocumentManager.Instance.jumpToDocument(this.props.doc, false);
     }
+    @observable _useIcons = true;
+    @observable _displayDim = 50;
 
     @computed
     public get DocumentIcon() {
-        let layoutresult = Cast(this.props.doc.type, "string", "");
+        let layoutresult = StrCast(this.props.doc.type);
+        if (!this._useIcons) {
+            let returnXDimension = () => this._useIcons ? 50 : 250;
+            let returnYDimension = () => this._displayDim;
+            let scale = () => returnXDimension() / NumCast(this.props.doc.nativeWidth, returnXDimension());
+            return <div
+                onPointerEnter={action(() => this._displayDim = this._useIcons ? 50 : 250)}
+                onPointerLeave={action(() => this._displayDim = this._useIcons ? 50 : 250)} >
+                <DocumentView
+                    Document={this.props.doc}
+                    addDocument={returnFalse}
+                    removeDocument={returnFalse}
+                    ScreenToLocalTransform={Transform.Identity}
+                    addDocTab={returnFalse}
+                    renderDepth={1}
+                    PanelWidth={returnXDimension}
+                    PanelHeight={returnYDimension}
+                    focus={emptyFunction}
+                    selectOnLoad={false}
+                    parentActive={returnFalse}
+                    whenActiveChanged={returnFalse}
+                    bringToFront={emptyFunction}
+                    zoomToScale={emptyFunction}
+                    getScale={returnOne}
+                    ContainingCollectionView={undefined}
+                    ContentScaling={scale}
+                />
+            </div>
+        }
 
         let button = layoutresult.indexOf(DocTypes.PDF) !== -1 ? faFilePdf :
             layoutresult.indexOf(DocTypes.IMG) !== -1 ? faImage :
@@ -131,7 +165,8 @@ export class SearchItem extends React.Component<SearchItemProps> {
         return num.toString() + " links";
     }
 
-    pointerDown = (e: React.PointerEvent) => { SearchBox.Instance.openSearch(e); };
+    @action
+    pointerDown = (e: React.PointerEvent) => { this._useIcons = !this._useIcons; SearchBox.Instance.openSearch(e); };
 
     highlightDoc = (e: React.PointerEvent) => {
         if (this.props.doc.type === DocTypes.LINK) {
@@ -176,14 +211,14 @@ export class SearchItem extends React.Component<SearchItemProps> {
                 }} >
                     <div className="main-search-info">
                         <div className="search-title" id="result" >{this.props.doc.title}</div>
-                        <div className="search-info">
+                        <div className="search-info" style={{ width: this._useIcons ? "15%" : "400px" }}>
+                            <div className={`icon-${this._useIcons ? "icons" : "live"}`}>
+                                <div className="search-type" >{this.DocumentIcon}</div>
+                                <div className="search-label">{this.props.doc.type}</div>
+                            </div>
                             <div className="link-container item">
                                 <div className="link-count">{this.linkCount}</div>
                                 <div className="link-extended">{this.linkString}</div>
-                            </div>
-                            <div className="icon">
-                                <div className="search-type" >{this.DocumentIcon}</div>
-                                <div className="search-label">{this.props.doc.type}</div>
                             </div>
                         </div>
                     </div>

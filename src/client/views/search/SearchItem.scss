@@ -5,6 +5,7 @@
     flex-direction: row-reverse;
     justify-content: flex-end;
     height: 70px;
+    z-index: 0;
 
     .search-item {
         width: 500px;
@@ -13,6 +14,7 @@
         border-bottom-style: solid;
         padding: 10px;
         height: 70px;
+        z-index: 0;
         display: inline-block;
 
         .main-search-info {
@@ -23,16 +25,17 @@
             .search-title {
                 text-transform: uppercase;
                 text-align: left;
-                width: 80%;
+                width: 100%;
                 font-weight: bold;
             }
 
             .search-info {
                 display: flex;
                 justify-content: flex-end;
-                width: 40%;
 
                 .link-container.item {
+                    margin-left: auto;
+                    margin-right: auto;
                     height: 26px;
                     width: 26px;
                     border-radius: 13px;
@@ -41,7 +44,6 @@
                     display: flex;
                     justify-content: center;
                     align-items: center;
-                    right: 15px;
                     -webkit-transition: all 0.2s ease-in-out;
                     -moz-transition: all 0.2s ease-in-out;
                     -o-transition: all 0.2s ease-in-out;
@@ -84,19 +86,36 @@
                 .link-container.item:hover .link-extended {
                     opacity: 1;
                 }
+                
+                .icon-icons {
+                    width:50px
+                }
+                .icon-live {
+                    width:175px;
+                }
 
-                .icon {
-
+                .icon-icons, .icon-live {
+                    height:50px;
+                    margin:auto;
+                    overflow: hidden;
                     .search-type {
-                        width: 25PX;
-                        height: 25PX;
-                        display: flex;
+                        display: inline-block;
+                        width:100%;
+                        position: absolute;
                         justify-content: center;
                         align-items: center;
                         position: relative;
                         margin-right: 5px;
                     }
 
+                    .pdfBox-cont {
+                        overflow: hidden;
+
+                        img {
+                            width:100% !important;
+                            height:auto !important;
+                        }
+                    }
                     .search-type:hover+.search-label {
                         opacity: 1;
                     }
@@ -114,6 +133,18 @@
                         transition: opacity 0.2s ease-in-out;
                     }
                 }
+
+                .icon-live:hover {
+                    height:175px;
+                    .pdfBox-cont {
+                        img {
+                            width:100% !important;
+                        }
+                    }
+                }
+            }
+            .search-info:hover {
+                width:60%; 
             }
         }
     }
@@ -146,4 +177,7 @@
         // height: 100%
     }
 
+}
+.search-overview:hover {
+    z-index: 1;
 }
