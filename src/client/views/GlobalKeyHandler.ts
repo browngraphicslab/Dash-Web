@@ -13,17 +13,13 @@ type KeyControlInfo = {
 };
 
 export default class KeyManager {
-    public static Handler: KeyManager;
-    private mainView: MainView;
+    public static Handler: KeyManager = new KeyManager();
     private router = new Map<string, KeyHandler>();
 
-    constructor(mainView: MainView) {
-        this.mainView = mainView;
-
+    constructor() {
         let isMac = navigator.platform.toLowerCase().indexOf("mac") >= 0;
 
         // SHIFT CONTROL ALT META
-
         this.router.set("0000", this.unmodified);
         this.router.set(isMac ? "0001" : "0100", this.ctrl);
         this.router.set(isMac ? "0100" : "0010", this.alt);
@@ -60,7 +56,7 @@ export default class KeyManager {
     private unmodified = action((keyname: string) => {
         switch (keyname) {
             case "escape":
-                if (this.mainView.isPointerDown) {
+                if (MainView.Instance.isPointerDown) {
                     DragManager.AbortDrag();
                 } else {
                     if (CollectionDockingView.Instance.HasFullScreen()) {
@@ -84,7 +80,7 @@ export default class KeyManager {
 
         switch (keyname) {
             case "n":
-                let toggle = this.mainView.addMenuToggle.current!;
+                let toggle = MainView.Instance.addMenuToggle.current!;
                 toggle.checked = !toggle.checked;
                 break;
         }
@@ -101,13 +97,13 @@ export default class KeyManager {
 
         switch (keyname) {
             case "arrowright":
-                this.mainView.mainFreeform && CollectionDockingView.Instance.AddRightSplit(this.mainView.mainFreeform, undefined);
+                MainView.Instance.mainFreeform && CollectionDockingView.Instance.AddRightSplit(MainView.Instance.mainFreeform, undefined);
                 break;
             case "arrowleft":
-                this.mainView.mainFreeform && CollectionDockingView.Instance.CloseRightSplit(this.mainView.mainFreeform);
+                MainView.Instance.mainFreeform && CollectionDockingView.Instance.CloseRightSplit(MainView.Instance.mainFreeform);
                 break;
             case "f":
-                this.mainView.isSearchVisible = !this.mainView.isSearchVisible;
+                MainView.Instance.isSearchVisible = !MainView.Instance.isSearchVisible;
                 break;
             case "o":
                 let target = SelectionManager.SelectedDocuments()[0];
