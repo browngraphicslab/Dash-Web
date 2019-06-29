@@ -183,16 +183,20 @@ class TreeView extends React.Component<TreeViewProps> {
         let keys = Array.from(Object.keys(this.resolvedDataDoc));
         if (this.resolvedDataDoc.proto instanceof Doc) {
             keys.push(...Array.from(Object.keys(this.resolvedDataDoc.proto)));
-            while (keys.indexOf("proto") !== -1) keys.splice(keys.indexOf("proto"), 1);
         }
-        let keyList: string[] = keys.reduce((l, key) => Cast(this.resolvedDataDoc[key], listSpec(Doc)) ? [...l, key] : l, [] as string[]);
+        let keyList: string[] = keys.reduce((l, key) => {
+            let listspec = DocListCast(this.resolvedDataDoc[key]);
+            if (listspec && listspec.length)
+                return [...l, key];
+            return l;
+        }, [] as string[]);
         keys.map(key => Cast(this.resolvedDataDoc[key], Doc) instanceof Doc && keyList.push(key));
         if (LinkManager.Instance.getAllRelatedLinks(this.props.document).length > 0) keyList.push("links");
         if (keyList.indexOf(this.fieldKey) !== -1) {
             keyList.splice(keyList.indexOf(this.fieldKey), 1);
         }
         keyList.splice(0, 0, this.fieldKey);
-        return keyList;
+        return keyList.filter((item, index) => keyList.indexOf(item) >= index);
     }
     /**
      * Renders the EditableView title element for placement into the tree.
@@ -233,7 +237,7 @@ class TreeView extends React.Component<TreeViewProps> {
     onWorkspaceContextMenu = (e: React.MouseEvent): void => {
         if (!e.isPropagationStopped()) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
             ContextMenu.Instance.addItem({ description: "Open as Workspace", event: undoBatch(() => MainView.Instance.openWorkspace(this.resolvedDataDoc)) });
-            ContextMenu.Instance.addItem({ description: "Open Fields", event: () => { let kvp = Docs.KVPDocument(this.props.document, { width: 300, height: 300 }); this.props.addDocTab(kvp, kvp, "onRight"); }, icon: "layer-group" });
+            ContextMenu.Instance.addItem({ description: "Open Fields", event: () => { let kvp = Docs.KVPDocument(this.props.document, { width: 300, height: 300 }); this.props.addDocTab(kvp, this.props.dataDoc ? this.props.dataDoc : kvp, "onRight"); }, icon: "layer-group" });
             if (NumCast(this.props.document.viewType) !== CollectionViewType.Docking) {
                 ContextMenu.Instance.addItem({ description: "Open Tab", event: () => this.props.addDocTab(this.props.document, this.resolvedDataDoc, "inTab"), icon: "folder" });
                 ContextMenu.Instance.addItem({ description: "Open Right", event: () => this.props.addDocTab(this.props.document, this.resolvedDataDoc, "onRight"), icon: "caret-square-right" });
@@ -322,14 +326,14 @@ class TreeView extends React.Component<TreeViewProps> {
                             this.props.dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active, this.props.panelWidth, this.props.renderDepth)}
                 </ul >;
             } else {
-                console.log("PW = " + this.props.panelWidth());
-                contentElement = <div ref={this._dref} style={{ display: "inline-block", height: this.props.panelHeight() }} key={this.props.document[Id]}>
+                let layoutDoc = Doc.expandTemplateLayout(this.props.document, this.props.dataDoc);
+                contentElement = <div ref={this._dref} style={{ display: "inline-block", height: layoutDoc[HeightSym]() }} key={this.props.document[Id]}>
                     <CollectionSchemaPreview
-                        Document={this.props.document}
+                        Document={layoutDoc}
                         DataDocument={this.resolvedDataDoc}
                         renderDepth={this.props.renderDepth}
                         width={docWidth}
-                        height={this.props.panelHeight}
+                        height={layoutDoc[HeightSym]}
                         getTransform={this.docTransform}
                         CollectionView={undefined}
                         addDocument={emptyFunction as any}
