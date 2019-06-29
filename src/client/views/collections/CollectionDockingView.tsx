@@ -24,7 +24,6 @@ import { SubCollectionViewProps } from "./CollectionSubView";
 import { ParentDocSelector } from './ParentDocumentSelector';
 import React = require("react");
 import { MainView } from '../MainView';
-import { LinkManager } from '../../util/LinkManager';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faFile } from '@fortawesome/free-solid-svg-icons';
@@ -367,7 +366,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             }
             let doc = await DocServer.GetRefField(tab.contentItem.config.props.documentId) as Doc;
             let dataDoc = await DocServer.GetRefField(tab.contentItem.config.props.dataDocumentId) as Doc;
-            if (doc instanceof Doc && dataDoc instanceof Doc) {
+            if (doc instanceof Doc) {
                 let dragSpan = document.createElement("span");
                 dragSpan.style.position = "relative";
                 dragSpan.style.bottom = "6px";
