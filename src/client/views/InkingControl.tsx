@@ -1,5 +1,5 @@
 import { observable, action, computed } from "mobx";
-import { CirclePicker, ColorResult } from 'react-color';
+import { ColorResult } from 'react-color';
 import React = require("react");
 import { observer } from "mobx-react";
 import "./InkingControl.scss";
@@ -17,7 +17,7 @@ export class InkingControl extends React.Component {
     @observable private _selectedTool: InkTool = InkTool.None;
     @observable private _selectedColor: string = "rgb(244, 67, 54)";
     @observable private _selectedWidth: string = "25";
-    @observable private _open: boolean = false;
+    @observable public _open: boolean = false;
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -28,11 +28,18 @@ export class InkingControl extends React.Component {
     switchTool = (tool: InkTool): void => {
         this._selectedTool = tool;
     }
+    decimalToHexString(number: number) {
+        if (number < 0) {
+            number = 0xFFFFFFFF + number + 1;
+        }
+
+        return number.toString(16).toUpperCase();
+    }
 
     @action
     switchColor = (color: ColorResult): void => {
-        this._selectedColor = color.hex;
-        SelectionManager.SelectedDocuments().forEach(doc => Doc.GetProto(doc.props.Document).backgroundColor = color.hex);
+        this._selectedColor = color.hex + (color.rgb.a !== undefined ? this.decimalToHexString(Math.round(color.rgb.a * 255)) : "ff");
+        if (InkingControl.Instance.selectedTool === InkTool.None) SelectionManager.SelectedDocuments().forEach(doc => (doc.props.Document.isTemplate ? doc.props.Document : Doc.GetProto(doc.props.Document)).backgroundColor = this._selectedColor);
     }
 
     @action

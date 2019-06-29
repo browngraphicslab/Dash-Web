@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { Schema, NodeSpec, MarkSpec, DOMOutputSpecArray, NodeType, Slice, Mark } from "prosemirror-model";
+import { Schema, NodeSpec, MarkSpec, DOMOutputSpecArray, NodeType, Slice, Mark, Node } from "prosemirror-model";
 import { joinUp, lift, setBlockType, toggleMark, wrapIn, selectNodeForward, deleteSelection } from 'prosemirror-commands';
 import { redo, undo } from 'prosemirror-history';
 import { orderedList, bulletList, listItem, } from 'prosemirror-schema-list';
@@ -91,8 +91,8 @@ export const nodes: { [index: string]: NodeSpec } = {
         attrs: {
             visibility: { default: false },
             text: { default: undefined },
-            oldtextslice: { default: undefined },
-            oldtextlen: { default: 0 }
+            textslice: { default: undefined },
+            textlen: { default: 0 }
 
         },
         group: "inline",
@@ -157,12 +157,12 @@ export const nodes: { [index: string]: NodeSpec } = {
                     title: dom.getAttribute("title"),
                     alt: dom.getAttribute("alt"),
                     width: Math.min(100, Number(dom.getAttribute("width"))),
-                }
+                };
             }
         }],
         toDOM(node) {
-            const attrs = { style: `width: ${node.attrs.width}` }
-            return ["video", { ...node.attrs, ...attrs }]
+            const attrs = { style: `width: ${node.attrs.width}` };
+            return ["video", { ...node.attrs, ...attrs }];
         }
     },
 
@@ -285,7 +285,7 @@ export const marks: { [index: string]: MarkSpec } = {
         parseDOM: [{ style: 'background: #d9dbdd' }],
         toDOM() {
             return ['span', {
-                style: 'background: #d9dbdd'
+                style: 'color: blue'
             }];
         }
     },
@@ -350,6 +350,16 @@ export const marks: { [index: string]: MarkSpec } = {
 
 
     /** FONT SIZES */
+    pFontSize: {
+        attrs: {
+            fontSize: { default: 10 }
+        },
+        inclusive: false,
+        parseDOM: [{ style: 'font-size: 10px;' }],
+        toDOM: (node) => ['span', {
+            style: `font-size: ${node.attrs.fontSize}px;`
+        }]
+    },
 
     p10: {
         parseDOM: [{ style: 'font-size: 10px;' }],
@@ -483,39 +493,44 @@ export class SummarizedView {
     _view: any;
     constructor(node: any, view: any, getPos: any) {
         this._collapsed = document.createElement("span");
-        this._collapsed.textContent = "㊉";
+        this._collapsed.textContent = node.attrs.visibility ? "㊀" : "㊉";
         this._collapsed.style.opacity = "0.5";
-        // this._collapsed.style.background = "yellow";
         this._collapsed.style.position = "relative";
         this._collapsed.style.width = "40px";
         this._collapsed.style.height = "20px";
         let self = this;
         this._view = view;
+        const js = node.toJSON;
+        node.toJSON = function () {
+
+            return js.apply(this, arguments);
+        };
         this._collapsed.onpointerdown = function (e: any) {
-            console.log("star pressed!");
             if (node.attrs.visibility) {
-                node.attrs.visibility = !node.attrs.visibility;
-                console.log("content is visible");
+                // node.attrs.visibility = !node.attrs.visibility;
                 let y = getPos();
+                const attrs = { ...node.attrs };
+                attrs.visibility = !attrs.visibility;
                 let { from, to } = self.updateSummarizedText(y + 1, view.state.schema.marks.highlight);
                 let length = to - from;
                 let newSelection = TextSelection.create(view.state.doc, y + 1, y + 1 + length);
-                node.attrs.text = newSelection.content();
-                view.dispatch(view.state.tr.setSelection(newSelection));
-                view.dispatch(view.state.tr.deleteSelection(view.state, () => { }));
+                // update attrs of node
+                attrs.text = newSelection.content();
+                attrs.textslice = newSelection.content().toJSON();
+                view.dispatch(view.state.tr.setNodeMarkup(y, undefined, attrs));
+                view.dispatch(view.state.tr.setSelection(newSelection).deleteSelection(view.state, () => { }));
                 self._collapsed.textContent = "㊉";
             } else {
-                node.attrs.visibility = !node.attrs.visibility;
-                console.log("content is invisible");
+                // node.attrs.visibility = !node.attrs.visibility;
                 let y = getPos();
-                console.log(y);
+                const attrs = { ...node.attrs };
+                attrs.visibility = !attrs.visibility;
+                view.dispatch(view.state.tr.setNodeMarkup(y, undefined, attrs));
                 let mark = view.state.schema.mark(view.state.schema.marks.highlight);
-                console.log("PASTING " + node.attrs.text.toString());
                 view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, y + 1, y + 1)));
                 const from = view.state.selection.from;
-                view.dispatch(view.state.tr.replaceSelection(node.attrs.text).addMark(from, from + node.attrs.oldtextlen, mark));
-                //view.dispatch(view.state.tr.setSelection(view.state.doc, from + node.attrs.oldtextlen + 1, from + node.attrs.oldtextlen + 1));
-                view.dispatch(view.state.tr.removeStoredMark(mark));
+                let size = node.attrs.text.size;
+                view.dispatch(view.state.tr.replaceSelection(node.attrs.text).addMark(from, from + size, mark).removeStoredMark(mark));
                 self._collapsed.textContent = "㊀";
             }
             e.preventDefault();
@@ -529,21 +544,23 @@ export class SummarizedView {
 
     updateSummarizedText(start?: any, mark?: any) {
         let $start = this._view.state.doc.resolve(start);
-        let first_startPos = $start.start(), endPos = first_startPos;
-        while ($start.nodeAfter !== null) {
-            let startIndex = $start.index(), endIndex = $start.indexAfter();
-            while (startIndex > 0 && mark.isInSet($start.parent.child(startIndex - 1).marks)) startIndex--;
-            while (endIndex < $start.parent.childCount && mark.isInSet($start.parent.child(endIndex).marks)) endIndex++;
-            let startPos = $start.start(), endPos = startPos;
-            for (let i = 0; i < endIndex; i++) {
-                let size = $start.parent.child(i).nodeSize;
-                console.log($start.parent.child(i).childCount);
-                if (i < startIndex) startPos += size;
-                endPos += size;
-            }
-            $start = this._view.state.doc.resolve(start + (endPos - startPos) + 1);
+        let endPos = start;
+
+        let _mark = this._view.state.schema.mark(this._view.state.schema.marks.highlight);
+        let visited = new Set();
+        for (let i: number = start + 1; i < this._view.state.doc.nodeSize - 1; i++) {
+            let skip = false;
+            this._view.state.doc.nodesBetween(start, i, (node: Node, pos: number, parent: Node, index: number) => {
+                if (node.isLeaf && !visited.has(node) && !skip) {
+                    if (node.marks.includes(_mark)) {
+                        visited.add(node);
+                        endPos = i + node.nodeSize - 1;
+                    }
+                    else skip = true;
+                }
+            });
         }
-        return { from: first_startPos, to: endPos };
+        return { from: start, to: endPos };
     }
 
     deselectNode() {
@@ -564,7 +581,7 @@ const fromJson = schema.nodeFromJSON;
 schema.nodeFromJSON = (json: any) => {
     let node = fromJson(json);
     if (json.type === "star") {
-        node.attrs.oldtext = Slice.fromJSON(schema, node.attrs.oldtextslice);
+        node.attrs.text = Slice.fromJSON(schema, node.attrs.textslice);
     }
     return node;
 };

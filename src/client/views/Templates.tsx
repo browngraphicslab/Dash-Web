@@ -48,12 +48,12 @@ export namespace Templates {
         </div>` );
 
     export const Title = new Template("Title", TemplatePosition.InnerTop,
-        `<div style="height:100%">
-            <div style="height:25px; width:100%; background-color: rgba(0, 0, 0, .4); color: white; ">
-                <span style="text-align:center;width:100%;font-size:20px;position:absolute;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">{props.Document.title}</span>
+        `<div>
+            <div style="height:25px; width:100%; background-color: rgba(0, 0, 0, .4); color: white; z-index: 100">
+                <span style="text-align:center;width:100%;font-size:20px;position:absolute;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">{props.DataDoc.title}</span>
             </div>
-            <div style="display:flex; flex-direction:column; height:calc(100% - 25px);">
-                <div style="height:min-content; width:100%;overflow:auto">{layout}</div>
+            <div style="height:calc(100% - 25px);">
+                <div style="width:100%;overflow:auto">{layout}</div>
             </div>
         </div>` );
 
@@ -62,7 +62,7 @@ export namespace Templates {
             <div style="width:100%; background-color: rgba(0, 0, 0, .4); color: white; ">
                 <FormattedTextBox {...props} height={"min-content"} color={"white"} fieldKey={"header"} />
             </div>
-            <div style="width:100%;height:min-content;overflow:auto;">{layout}</div>
+            <div style="width:100%;height:100%;overflow:auto;">{layout}</div>
         </div > ` );
 
     export const Bullet = new Template("Bullet", TemplatePosition.InnerTop,
@@ -84,6 +84,16 @@ export namespace Templates {
             </div > `);
     }
 
+    export function TitleBar(datastring: string) {
+        return (`<div>
+            <div style="height:25px; width:100%; background-color: rgba(0, 0, 0, .4); color: white; z-index: 100">
+                <span style="text-align:center;width:100%;font-size:20px;position:absolute;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${datastring}</span>
+            </div>
+            <div style="height:calc(100% - 25px);">
+                <div style="width:100%;overflow:auto">{layout}</div>
+            </div>
+        </div>` );
+    }
     export const TemplateList: Template[] = [Title, Header, Caption, Bullet];
 
     export function sortTemplates(a: Template, b: Template) {

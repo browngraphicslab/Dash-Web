@@ -1,0 +1,15 @@
+@import "../globalCssVariables";
+
+.parents {
+    background: $lighter-alt-accent;
+    padding: 10px;
+
+    .contexts {
+        text-transform: uppercase;
+    }
+
+    .collection {
+        border-color: $darker-alt-accent;
+        border-bottom-style: solid;
+    }
+}

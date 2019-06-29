@@ -18,6 +18,6 @@ export class RichTextField extends ObjectField {
     }
 
     [ToScriptString]() {
-        return "invalid";
+        return `new RichTextField("${this.Data}")`;
     }
 }

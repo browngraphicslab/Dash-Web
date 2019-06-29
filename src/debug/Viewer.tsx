@@ -10,6 +10,7 @@ import { List } from '../new_fields/List';
 import { URLField } from '../new_fields/URLField';
 import { EditableView } from '../client/views/EditableView';
 import { CompileScript } from '../client/util/Scripting';
+import { RichTextField } from '../new_fields/RichTextField';
 
 function applyToDoc(doc: { [index: string]: FieldResult }, key: string, scriptString: string): boolean;
 function applyToDoc(doc: { [index: number]: FieldResult }, key: number, scriptString: string): boolean;
@@ -117,6 +118,8 @@ class DebugViewer extends React.Component<{ field: FieldResult, setValue(value: 
             content = <p>"{field}"</p>;
         } else if (typeof field === "number" || typeof field === "boolean") {
             content = <p>{field}</p>;
+        } else if (field instanceof RichTextField) {
+            content = <p>RTF: {field.Data}</p>;
         } else if (field instanceof URLField) {
             content = <p>{field.url.href}</p>;
         } else if (field instanceof Promise) {

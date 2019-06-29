@@ -1,13 +1,13 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faImage } from '@fortawesome/free-solid-svg-icons';
-import { action, observable } from 'mobx';
+import { action, observable, computed } from 'mobx';
 import { observer } from "mobx-react";
 import Lightbox from 'react-image-lightbox';
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
-import { Doc, HeightSym, WidthSym } from '../../../new_fields/Doc';
+import { Doc, HeightSym, WidthSym, DocListCast } from '../../../new_fields/Doc';
 import { List } from '../../../new_fields/List';
 import { createSchema, listSpec, makeInterface } from '../../../new_fields/Schema';
-import { Cast, FieldValue, NumCast, StrCast } from '../../../new_fields/Types';
+import { Cast, FieldValue, NumCast, StrCast, BoolCast } from '../../../new_fields/Types';
 import { ImageField } from '../../../new_fields/URLField';
 import { Utils } from '../../../Utils';
 import { DragManager } from '../../util/DragManager';
@@ -36,7 +36,7 @@ const ImageDocument = makeInterface(pageSchema, positionSchema);
 @observer
 export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageDocument) {
 
-    public static LayoutString() { return FieldView.LayoutString(ImageBox); }
+    public static LayoutString(fieldKey?: string) { return FieldView.LayoutString(ImageBox, fieldKey); }
     private _imgRef: React.RefObject<HTMLImageElement> = React.createRef();
     private _downX: number = 0;
     private _downY: number = 0;
@@ -45,6 +45,8 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     @observable private _isOpen: boolean = false;
     private dropDisposer?: DragManager.DragDropDisposer;
 
+
+    @computed get dataDoc() { return BoolCast(this.props.Document.isTemplate) && this.props.DataDoc ? this.props.DataDoc : this.props.Document; }
 
 
     protected createDropTarget = (ele: HTMLDivElement) => {
@@ -61,24 +63,28 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         console.log("IMPLEMENT ME PLEASE");
     }
 
+    @computed get extensionDoc() { return Doc.resolvedFieldDataDoc(this.dataDoc, this.props.fieldKey, "Alternates"); }
 
     @undoBatch
     drop = (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.DocumentDragData) {
             de.data.droppedDocuments.forEach(action((drop: Doc) => {
-                let layout = StrCast(drop.backgroundLayout);
-                if (layout.indexOf(ImageBox.name) !== -1) {
-                    let imgData = this.props.Document[this.props.fieldKey];
-                    if (imgData instanceof ImageField) {
-                        Doc.SetOnPrototype(this.props.Document, "data", new List([imgData]));
-                    }
-                    let imgList = Cast(this.props.Document[this.props.fieldKey], listSpec(ImageField), [] as any[]);
-                    if (imgList) {
-                        let field = drop.data;
-                        if (field instanceof ImageField) imgList.push(field);
-                        else if (field instanceof List) imgList.concat(field);
-                    }
+                if (de.mods === "AltKey" && /*this.dataDoc !== this.props.Document &&*/ drop.data instanceof ImageField) {
+                    Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new ImageField(drop.data.url);
                     e.stopPropagation();
+                } else {
+                    if (this.extensionDoc !== this.dataDoc) {
+                        let layout = StrCast(drop.backgroundLayout);
+                        if (layout.indexOf(ImageBox.name) !== -1) {
+                            let imgData = this.extensionDoc.Alternates;
+                            if (!imgData) {
+                                Doc.GetProto(this.extensionDoc).Alternates = new List([]);
+                            }
+                            let imgList = Cast(this.extensionDoc.Alternates, listSpec(Doc), [] as any[]);
+                            imgList && imgList.push(drop);
+                            e.stopPropagation();
+                        }
+                    }
                 }
             }));
             // de.data.removeDocument()  bcz: need to implement
@@ -86,9 +92,9 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
-        if (e.shiftKey && e.ctrlKey)
-
-            e.stopPropagation();
+        if (e.shiftKey && e.ctrlKey) {
+            e.stopPropagation(); // allows default system drag drop of images with shift+ctrl only
+        } else e.preventDefault();
         // if (Date.now() - this._lastTap < 300) {
         //     if (e.buttons === 1) {
         //         this._downX = e.clientX;
@@ -188,8 +194,9 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     }
     @action onError = () => {
         let timeout = this._curSuffix === "_s" ? this._smallRetryCount : this._curSuffix === "_m" ? this._mediumRetryCount : this._largeRetryCount;
-        if (timeout < 10)
+        if (timeout < 10) {
             setTimeout(this.retryPath, Math.min(10000, timeout * 5));
+        }
     }
     _curSuffix = "_m";
     render() {
@@ -205,24 +212,28 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         let paths: string[] = ["http://www.cs.brown.edu/~bcz/noImage.png"];
         // this._curSuffix = "";
         // if (w > 20) {
-        let field = this.Document[this.props.fieldKey];
+        let alts = DocListCast(this.extensionDoc.Alternates);
+        let altpaths: string[] = alts.filter(doc => doc.data instanceof ImageField).map(doc => this.choosePath((doc.data as ImageField).url));
+        let field = this.dataDoc[this.props.fieldKey];
         // if (w < 100 && this._smallRetryCount < 10) this._curSuffix = "_s";
         // else if (w < 600 && this._mediumRetryCount < 10) this._curSuffix = "_m";
         // else if (this._largeRetryCount < 10) this._curSuffix = "_l";
         if (field instanceof ImageField) paths = [this.choosePath(field.url)];
-        else if (field instanceof List) paths = field.filter(val => val instanceof ImageField).map(p => this.choosePath((p as ImageField).url));
+        paths.push(...altpaths);
         // }
         let interactive = InkingControl.Instance.selectedTool ? "" : "-interactive";
-        let rotation = NumCast(this.props.Document.rotation, 0);
-        let aspect = (rotation % 180) ? this.props.Document[HeightSym]() / this.props.Document[WidthSym]() : 1;
+        let rotation = NumCast(this.dataDoc.rotation, 0);
+        let aspect = (rotation % 180) ? this.dataDoc[HeightSym]() / this.dataDoc[WidthSym]() : 1;
         let shift = (rotation % 180) ? (nativeHeight - nativeWidth / aspect) / 2 : 0;
+        Doc.UpdateDocumentExtensionForField(this.extensionDoc, this.props.fieldKey);
+        let srcpath = paths[Math.min(paths.length, this._photoIndex)];
         return (
-            <div id={id} className={`imageBox-cont${interactive}`}
+            <div id={id} className={`imageBox-cont${interactive}`} style={{ background: "transparent" }}
                 onPointerDown={this.onPointerDown}
                 onDrop={this.onDrop} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
                 <img id={id}
                     key={this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
-                    src={paths[Math.min(paths.length, this._photoIndex)]}
+                    src={srcpath}
                     style={{ transform: `translate(0px, ${shift}px) rotate(${rotation}deg) scale(${aspect})` }}
                     // style={{ objectFit: (this._photoIndex === 0 ? undefined : "contain") }}
                     width={nativeWidth}

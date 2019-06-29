@@ -1,0 +1,108 @@
+@import "../globalCssVariables";
+@import "./NaviconButton.scss";
+
+.filter-form {
+    padding: 25px;
+    width: 600px;
+    background: $dark-color;
+    position: relative;
+    right: 1px;
+    color: $light-color;
+    flex-direction: column;
+    display: inline-block;
+    transform-origin: top;
+    overflow: auto;
+
+    .top-filter-header {
+
+        #header {
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 25;
+            width: 80%;
+        }
+
+        .close-icon {
+            width: 20%;
+            opacity: .6;
+            position: relative;
+            display: inline-block;
+
+            .line {
+                display: block;
+                background: $alt-accent;
+                width: $width-line;
+                height: $height-line;
+                position: absolute;
+                right: 0;
+                border-radius: ($height-line / 2);
+
+                &.line-1 {
+                    transform: rotate(45deg);
+                    top: 45%;
+                }
+
+                &.line-2 {
+                    transform: rotate(-45deg);
+                    top: 45%;
+                }
+            }
+        }
+
+        .close-icon:hover {
+            opacity: 1;
+        }
+
+    }
+
+    .filter-options {
+
+        .filter-div {
+            margin-top: 10px;
+            margin-bottom: 10px;
+            display: inline-block;
+            width: 100%;
+            border-color: rgba(178, 206, 248, .2); // $darker-alt-accent
+            border-top-style: solid;
+
+            .filter-header {
+                display: flex;
+                align-items: center;
+                margin-bottom: 10px;
+
+                .filter-title {
+                    font-size: 18;
+                    text-transform: uppercase;
+                    margin-top: 10px;
+                    margin-bottom: 10px;
+                    -webkit-transition: all 0.2s ease-in-out;
+                    -moz-transition: all 0.2s ease-in-out;
+                    -o-transition: all 0.2s ease-in-out;
+                    transition: all 0.2s ease-in-out;
+                }
+            }
+
+            .filter-header:hover .filter-title {
+                transform: scale(1.05);
+            }
+
+            .filter-panel {
+                max-height: 0px;
+                width: 100%;
+                overflow: hidden;
+                opacity: 0;
+                transform-origin: top;
+                -webkit-transition: all 0.2s ease-in-out;
+                -moz-transition: all 0.2s ease-in-out;
+                -o-transition: all 0.2s ease-in-out;
+                transition: all 0.2s ease-in-out;
+            }
+        }
+    }
+
+    .filter-buttons {
+        border-color: rgba(178, 206, 248, .2); // $darker-alt-accent
+        border-top-style: solid;
+        padding-top: 10px;
+    }
+}

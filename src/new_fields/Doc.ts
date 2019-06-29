@@ -2,7 +2,7 @@ import { observable, action } from "mobx";
 import { serializable, primitive, map, alias, list } from "serializr";
 import { autoObject, SerializationHelper, Deserializable } from "../client/util/SerializationHelper";
 import { DocServer } from "../client/DocServer";
-import { setter, getter, getField, updateFunction, deleteProperty } from "./util";
+import { setter, getter, getField, updateFunction, deleteProperty, makeEditable, makeReadOnly } from "./util";
 import { Cast, ToConstructor, PromiseValue, FieldValue, NumCast } from "./Types";
 import { listSpec } from "./Schema";
 import { ObjectField } from "./ObjectField";
@@ -132,6 +132,16 @@ export class Doc extends RefField {
                 this[fKey] = value;
             }
         }
+        const unset = diff.$unset;
+        if (unset) {
+            for (const key in unset) {
+                if (!key.startsWith("fields.")) {
+                    continue;
+                }
+                const fKey = key.substring(7);
+                delete this[fKey];
+            }
+        }
     }
 }
 
@@ -146,6 +156,15 @@ export namespace Doc {
     //         return Cast(field, ctor);
     //     });
     // }
+    export function MakeReadOnly(): { end(): void } {
+        makeReadOnly();
+        return {
+            end() {
+                makeEditable();
+            }
+        };
+    }
+
     export function Get(doc: Doc, key: string, ignoreProto: boolean = false): FieldResult {
         const self = doc[Self];
         return getField(self, key, ignoreProto);
@@ -155,6 +174,14 @@ export namespace Doc {
     }
     export function IsPrototype(doc: Doc) {
         return GetT(doc, "isPrototype", "boolean", true);
+    }
+    export async function SetInPlace(doc: Doc, key: string, value: Field | undefined, defaultProto: boolean) {
+        let hasProto = doc.proto instanceof Doc;
+        let onDeleg = Object.getOwnPropertyNames(doc).indexOf(key) !== -1;
+        let onProto = hasProto && Object.getOwnPropertyNames(doc.proto).indexOf(key) !== -1;
+        if (onDeleg || !hasProto || (!onProto && !defaultProto)) {
+            doc[key] = value;
+        } else doc.proto![key] = value;
     }
     export async function SetOnPrototype(doc: Doc, key: string, value: Field) {
         const proto = Object.getOwnPropertyNames(doc).indexOf("isPrototype") === -1 ? doc.proto : doc;
@@ -197,7 +224,7 @@ export namespace Doc {
 
     // gets the document's prototype or returns the document if it is a prototype
     export function GetProto(doc: Doc) {
-        return Doc.GetT(doc, "isPrototype", "boolean", true) ? doc : doc.proto!;
+        return Doc.GetT(doc, "isPrototype", "boolean", true) ? doc : (doc.proto || doc);
     }
 
     export function allKeys(doc: Doc): string[] {
@@ -212,6 +239,40 @@ export namespace Doc {
         return Array.from(results);
     }
 
+    export function AddDocToList(target: Doc, key: string, doc: Doc, relativeTo?: Doc, before?: boolean) {
+        let list = Cast(target[key], listSpec(Doc));
+        if (list) {
+            let ind = relativeTo ? list.indexOf(relativeTo) : -1;
+            if (ind === -1) list.push(doc);
+            else list.splice(before ? ind : ind + 1, 0, doc);
+        }
+        return true;
+    }
+
+    //
+    // Resolves a reference to a field by returning 'doc' if o field extension is specified,
+    // otherwise, it returns the extension document stored in doc.<fieldKey>_ext.
+    // This mechanism allows any fields to be extended with an extension document that can
+    // be used to capture field-specific metadata.  For example, an image field can be extended
+    // to store annotations, ink, and other data.
+    //
+    export function resolvedFieldDataDoc(doc: Doc, fieldKey: string, fieldExt: string) {
+        return fieldExt && doc[fieldKey + "_ext"] instanceof Doc ? doc[fieldKey + "_ext"] as Doc : doc;
+    }
+
+    export function UpdateDocumentExtensionForField(doc: Doc, fieldKey: string) {
+        if (doc[fieldKey + "_ext"] === undefined) {
+            setTimeout(() => {
+                let docExtensionForField = new Doc(doc[Id] + fieldKey, true);
+                docExtensionForField.title = "Extension of " + doc.title + "'s field:" + fieldKey;
+                let proto: Doc | undefined = doc;
+                while (proto && !Doc.IsPrototype(proto)) {
+                    proto = proto.proto;
+                }
+                (proto ? proto : doc)[fieldKey + "_ext"] = docExtensionForField;
+            }, 0);
+        }
+    }
     export function MakeAlias(doc: Doc) {
         if (!GetT(doc, "isPrototype", "boolean", true)) {
             return Doc.MakeCopy(doc);
@@ -237,6 +298,7 @@ export namespace Doc {
                 }
             }
         });
+
         return copy;
     }
 

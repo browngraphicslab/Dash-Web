@@ -1,9 +1,9 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
-import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faTree, faUndoAlt, faBell } from '@fortawesome/free-solid-svg-icons';
+import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faArrowDown, faArrowUp, faCheck, faPenNib, faThumbtack, faRedoAlt, faTable, faTree, faUndoAlt, faBell, faCommentAlt, faCut } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, runInAction, trace } from 'mobx';
 import { observer } from 'mobx-react';
-import { CirclePicker } from 'react-color';
+import { CirclePicker, SliderPicker, BlockPicker, TwitterPicker, SketchPicker } from 'react-color';
 import "normalize.css";
 import * as React from 'react';
 import Measure from 'react-measure';
@@ -11,11 +11,11 @@ import * as request from 'request';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { RouteStore } from '../../server/RouteStore';
 import { emptyFunction, returnTrue, Utils, returnOne, returnZero } from '../../Utils';
-import { Docs } from '../documents/Documents';
+import { Docs, DocTypes } from '../documents/Documents';
 import { SetupDrag, DragManager } from '../util/DragManager';
 import { Transform } from '../util/Transform';
 import { UndoManager } from '../util/UndoManager';
-import { PresentationView } from './PresentationView';
+import { PresentationView } from './presentationview/PresentationView';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { ContextMenu } from './ContextMenu';
 import { DocumentDecorations } from './DocumentDecorations';
@@ -24,17 +24,19 @@ import "./Main.scss";
 import { MainOverlayTextBox } from './MainOverlayTextBox';
 import { DocumentView } from './nodes/DocumentView';
 import { PreviewCursor } from './PreviewCursor';
-import { SearchBox } from './SearchBox';
+import { FilterBox } from './search/FilterBox';
 import { SelectionManager } from '../util/SelectionManager';
 import { FieldResult, Field, Doc, Opt, DocListCast } from '../../new_fields/Doc';
-import { Cast, FieldValue, StrCast } from '../../new_fields/Types';
+import { Cast, FieldValue, StrCast, PromiseValue } from '../../new_fields/Types';
 import { DocServer } from '../DocServer';
 import { listSpec } from '../../new_fields/Schema';
 import { Id } from '../../new_fields/FieldSymbols';
 import { HistoryUtil } from '../util/History';
 import { CollectionBaseView } from './collections/CollectionBaseView';
+import { List } from '../../new_fields/List';
+import PDFMenu from './pdf/PDFMenu';
 import { InkTool } from '../../new_fields/InkField';
-
+import * as _ from "lodash";
 
 @observer
 export class MainView extends React.Component {
@@ -45,13 +47,29 @@ export class MainView extends React.Component {
     @computed private get mainContainer(): Opt<Doc> {
         return FieldValue(Cast(CurrentUserUtils.UserDocument.activeWorkspace, Doc));
     }
+    @computed private get mainFreeform(): Opt<Doc> {
+        let docs = DocListCast(this.mainContainer!.data);
+        return (docs && docs.length > 1) ? docs[1] : undefined;
+    }
+    private globalDisplayFlags = observable({
+        jumpToVisible: false
+    });
     private set mainContainer(doc: Opt<Doc>) {
         if (doc) {
             if (!("presentationView" in doc)) {
-                doc.presentationView = Docs.TreeDocument([], { title: "Presentation" });
+                doc.presentationView = new List<Doc>([Docs.TreeDocument([], { title: "Presentation" })]);
             }
             CurrentUserUtils.UserDocument.activeWorkspace = doc;
         }
+    }
+
+    componentWillMount() {
+        document.removeEventListener("keydown", this.globalKeyHandler);
+        document.addEventListener("keydown", this.globalKeyHandler);
+    }
+
+    componentWillUnMount() {
+        document.removeEventListener("keydown", this.globalKeyHandler);
     }
 
     constructor(props: Readonly<{}>) {
@@ -90,6 +108,12 @@ export class MainView extends React.Component {
         library.add(faFilm);
         library.add(faMusic);
         library.add(faTree);
+        library.add(faCut);
+        library.add(faCommentAlt);
+        library.add(faThumbtack);
+        library.add(faCheck);
+        library.add(faArrowDown);
+        library.add(faArrowUp);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
@@ -102,6 +126,12 @@ export class MainView extends React.Component {
             if (e.key === "Escape") {
                 DragManager.AbortDrag();
                 SelectionManager.DeselectAll();
+            } else if (e.key === "z" && e.ctrlKey) {
+                e.preventDefault();
+                UndoManager.Undo();
+            } else if ((e.key === "y" && e.ctrlKey) || (e.key === "z" && e.ctrlKey && e.shiftKey)) {
+                e.preventDefault();
+                UndoManager.Redo();
             }
         }, false); // drag event handler
         // click interactions for the context menu
@@ -109,7 +139,7 @@ export class MainView extends React.Component {
 
             const targets = document.elementsFromPoint(e.x, e.y);
             if (targets && targets.length && targets[0].className.toString().indexOf("contextMenu") === -1) {
-                ContextMenu.Instance.clearItems();
+                ContextMenu.Instance.closeMenu();
             }
         }), true);
     }
@@ -135,8 +165,13 @@ export class MainView extends React.Component {
         const list = Cast(CurrentUserUtils.UserDocument.data, listSpec(Doc));
         if (list) {
             let freeformDoc = Docs.FreeformDocument([], { x: 0, y: 400, width: this.pwidth * .7, height: this.pheight, title: `WS collection ${list.length + 1}` });
-            var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(CurrentUserUtils.UserDocument, 150), CollectionDockingView.makeDocumentConfig(freeformDoc, 600)] }] };
+            var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(CurrentUserUtils.UserDocument, CurrentUserUtils.UserDocument, 150), CollectionDockingView.makeDocumentConfig(freeformDoc, freeformDoc, 600)] }] };
             let mainDoc = Docs.DockDocument([CurrentUserUtils.UserDocument, freeformDoc], JSON.stringify(dockingLayout), { title: `Workspace ${list.length + 1}` }, id);
+            if (!CurrentUserUtils.UserDocument.linkManagerDoc) {
+                let linkManagerDoc = new Doc();
+                linkManagerDoc.allLinks = new List<Doc>([]);
+                CurrentUserUtils.UserDocument.linkManagerDoc = linkManagerDoc;
+            }
             list.push(mainDoc);
             // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
             setTimeout(() => {
@@ -168,7 +203,7 @@ export class MainView extends React.Component {
 
     openNotifsCol = () => {
         if (this._notifsCol && CollectionDockingView.Instance) {
-            CollectionDockingView.Instance.AddRightSplit(this._notifsCol);
+            CollectionDockingView.Instance.AddRightSplit(this._notifsCol, this._notifsCol);
         }
     }
 
@@ -194,6 +229,7 @@ export class MainView extends React.Component {
         let mainCont = this.mainContainer;
         let content = !mainCont ? (null) :
             <DocumentView Document={mainCont}
+                DataDoc={undefined}
                 addDocument={undefined}
                 addDocTab={emptyFunction}
                 removeDocument={undefined}
@@ -201,19 +237,22 @@ export class MainView extends React.Component {
                 ContentScaling={returnOne}
                 PanelWidth={this.getPWidth}
                 PanelHeight={this.getPHeight}
-                isTopMost={true}
+                renderDepth={0}
                 selectOnLoad={false}
                 focus={emptyFunction}
                 parentActive={returnTrue}
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
-                ContainingCollectionView={undefined} />;
-        const pres = mainCont ? FieldValue(Cast(mainCont.presentationView, Doc)) : undefined;
+                ContainingCollectionView={undefined}
+                zoomToScale={emptyFunction}
+                getScale={returnOne}
+            />;
+        let castRes = mainCont ? FieldValue(Cast(mainCont.presentationView, listSpec(Doc))) : undefined;
         return <Measure offset onResize={this.onResize}>
             {({ measureRef }) =>
                 <div ref={measureRef} id="mainContent-div" onDrop={this.onDrop}>
                     {content}
-                    {pres ? <PresentationView Document={pres} key="presentation" /> : null}
+                    {castRes ? <PresentationView Documents={castRes} key="presentation" /> : null}
                 </div>
             }
         </Measure>;
@@ -226,6 +265,15 @@ export class MainView extends React.Component {
         }
         return { fontSize: "50%" };
     }
+
+    onColorClick = (e: React.MouseEvent) => {
+        let target = (e.nativeEvent as any).path[0];
+        let parent = (e.nativeEvent as any).path[1];
+        if (target.localName === "input" || parent.localName === "span") {
+            e.stopPropagation();
+        }
+    }
+
 
     @observable private _colorPickerDisplay = false;
     /* for the expandable add nodes menu. Not included with the miscbuttons because once it expands it expands the whole div with it, making canvas interactions limited. */
@@ -254,8 +302,8 @@ export class MainView extends React.Component {
                     <li key="redo"><button className="add-button round-button" title="Redo" onClick={() => UndoManager.Redo()}><FontAwesomeIcon icon="redo-alt" size="sm" /></button></li>
                     <li key="color"><button className="add-button round-button" title="Redo" onClick={() => this.toggleColorPicker()}><div className="toolbar-color-button" style={{ backgroundColor: InkingControl.Instance.selectedColor }} >
 
-                        <div className="toolbar-color-picker" style={this._colorPickerDisplay ? { display: "block" } : { display: "none" }}>
-                            <CirclePicker onChange={InkingControl.Instance.switchColor} circleSize={22} width={"220"} />
+                        <div className="toolbar-color-picker" onClick={this.onColorClick} style={this._colorPickerDisplay ? { color: "black", display: "block" } : { color: "black", display: "none" }}>
+                            <SketchPicker color={InkingControl.Instance.selectedColor} onChange={InkingControl.Instance.switchColor} />
                         </div>
                     </div></button></li>
                     {btns.map(btn =>
@@ -301,7 +349,7 @@ export class MainView extends React.Component {
                     </div>
                 </div>
             </div >,
-            this.isSearchVisible ? <div className="main-searchDiv" key="search" style={{ top: '34px', right: '1px', position: 'absolute' }} > <SearchBox /> </div> : null,
+            this.isSearchVisible ? <div className="main-searchDiv" key="search" style={{ top: '34px', right: '1px', position: 'absolute' }} > <FilterBox /> </div> : null,
             <div className="main-buttonDiv" key="logout" style={{ bottom: '0px', right: '1px', position: 'absolute' }} ref={logoutRef}>
                 <button onClick={() => request.get(DocServer.prepend(RouteStore.logout), emptyFunction)}>Log Out</button></div>
         ];
@@ -314,6 +362,39 @@ export class MainView extends React.Component {
         this.isSearchVisible = !this.isSearchVisible;
     }
 
+    @action
+    globalKeyHandler = (e: KeyboardEvent) => {
+        if (e.key === "Control" || !e.ctrlKey) return;
+
+        if (e.key === "v") return;
+        if (e.key === "c") return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        switch (e.key) {
+            case "ArrowRight":
+                if (this.mainFreeform) {
+                    CollectionDockingView.Instance.AddRightSplit(this.mainFreeform, undefined);
+                }
+                break;
+            case "ArrowLeft":
+                if (this.mainFreeform) {
+                    CollectionDockingView.Instance.CloseRightSplit(this.mainFreeform);
+                }
+                break;
+            case "o":
+                this.globalDisplayFlags.jumpToVisible = true;
+                break;
+            case "escape":
+                _.mapValues(this.globalDisplayFlags, () => false);
+                break;
+            case "f":
+                this.isSearchVisible = !this.isSearchVisible;
+        }
+    }
+
+
     render() {
         return (
             <div id="main-div">
@@ -323,6 +404,7 @@ export class MainView extends React.Component {
                 <ContextMenu />
                 {this.nodesMenu()}
                 {this.miscButtons}
+                <PDFMenu />
                 <MainOverlayTextBox />
             </div>
         );

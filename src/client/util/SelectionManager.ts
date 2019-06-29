@@ -66,7 +66,7 @@ export namespace SelectionManager {
     export function GetIsDragging() { return manager.IsDragging; }
 
     export function SelectedDocuments(): Array<DocumentView> {
-        return manager.SelectedDocuments;
+        return manager.SelectedDocuments.slice();
     }
     export function ViewsSortedHorizontally(): DocumentView[] {
         let sorted = SelectionManager.SelectedDocuments().slice().sort((doc1, doc2) => {
