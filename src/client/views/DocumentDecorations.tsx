@@ -500,7 +500,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 let nheight = doc.nativeHeight || 0;
                 let width = (doc.width || 0);
                 let height = (doc.height || (nheight / nwidth * width));
-                let scale = element.props.ScreenToLocalTransform().Scale;
+                let scale = element.props.ScreenToLocalTransform().Scale * element.props.ContentScaling();
                 let actualdW = Math.max(width + (dW * scale), 20);
                 let actualdH = Math.max(height + (dH * scale), 20);
                 doc.x = (doc.x || 0) + dX * (actualdW - width);
