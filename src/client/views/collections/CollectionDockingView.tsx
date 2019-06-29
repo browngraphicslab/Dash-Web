@@ -52,6 +52,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     private _flush: boolean = false;
     private _ignoreStateChange = "";
     private _isPointerDown = false;
+    private _maximizedSrc: Opt<DocumentView>;
 
     constructor(props: SubCollectionViewProps) {
         super(props);
@@ -71,7 +72,9 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     }
 
     @action
-    public OpenFullScreen(document: Doc, dataDoc: Doc) {
+    public OpenFullScreen(docView: DocumentView) {
+        let document = Doc.MakeAlias(docView.props.Document);
+        let dataDoc = docView.dataDoc;
         let newItemStackConfig = {
             type: 'stack',
             content: [CollectionDockingView.makeDocumentConfig(document, dataDoc)]
@@ -80,8 +83,23 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         this._goldenLayout.root.contentItems[0].addChild(docconfig);
         docconfig.callDownwards('_$init');
         this._goldenLayout._$maximiseItem(docconfig);
+        this._maximizedSrc = docView;
         this._ignoreStateChange = JSON.stringify(this._goldenLayout.toConfig());
         this.stateChanged();
+    }
+
+    public CloseFullScreen = () => {
+        let target = this._goldenLayout._maximisedItem;
+        if (target !== null && this._maximizedSrc) {
+            this._goldenLayout._maximisedItem.remove();
+            SelectionManager.SelectDoc(this._maximizedSrc, false);
+            this._maximizedSrc = undefined;
+            this.stateChanged();
+        }
+    }
+
+    public HasFullScreen = () => {
+        return this._goldenLayout._maximisedItem !== null;
     }
 
     @undoBatch
