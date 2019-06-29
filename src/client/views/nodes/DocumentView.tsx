@@ -84,7 +84,7 @@ export interface DocumentViewProps {
     parentActive: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     bringToFront: (doc: Doc) => void;
-    addDocTab: (doc: Doc, dataDoc: Doc, where: string) => void;
+    addDocTab: (doc: Doc, dataDoc: Doc | undefined, where: string) => void;
     collapseToPoint?: (scrpt: number[], expandedDocs: Doc[] | undefined) => void;
     zoomToScale: (scale: number) => void;
     getScale: () => number;
@@ -254,7 +254,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 DocumentView._undoBatch = UndoManager.StartBatch("iconAnimating");
             }
             let isMinimized: boolean | undefined;
-            expandedDocs.map(d => Doc.GetProto(d)).map(maximizedDoc => {
+            expandedDocs.map(maximizedDoc => {
                 let iconAnimating = Cast(maximizedDoc.isIconAnimating, List);
                 if (!iconAnimating || (Date.now() - iconAnimating[2] > 1000)) {
                     if (isMinimized === undefined) {
@@ -321,7 +321,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                         if (dataDocs) {
                             expandedDocs.forEach(maxDoc =>
                                 (!CollectionDockingView.Instance.CloseRightSplit(Doc.GetProto(maxDoc)) &&
-                                    this.props.addDocTab(getDispDoc(maxDoc), getDispDoc(maxDoc), maxLocation)));
+                                    this.props.addDocTab(getDispDoc(maxDoc), undefined, maxLocation)));
                         }
                     } else {
                         let scrpt = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(NumCast(this.Document.width) / 2, NumCast(this.Document.height) / 2);
@@ -351,7 +351,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     //     if (!linkedFwdDocs.some(l => l instanceof Promise)) {
                     //         let maxLocation = StrCast(linkedFwdDocs[altKey ? 1 : 0].maximizeLocation, "inTab");
                     //         let targetContext = !Doc.AreProtosEqual(linkedFwdContextDocs[altKey ? 1 : 0], this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document) ? linkedFwdContextDocs[altKey ? 1 : 0] : undefined;
-                    //         DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0], ctrlKey, false, document => this.props.addDocTab(document, document, maxLocation), linkedFwdPage[altKey ? 1 : 0], targetContext);
+                    //         DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0], ctrlKey, false, document => this.props.addDocTab(document, undefined, maxLocation), linkedFwdPage[altKey ? 1 : 0], targetContext);
                     //     }
                 }
             }

@@ -67,7 +67,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         this.hack = true;
         this.undohack = UndoManager.StartBatch("goldenDrag");
         dragDocs.map((dragDoc, i) =>
-            this.AddRightSplit(dragDoc, dragDataDocs ? dragDataDocs[i] : dragDoc, true).contentItems[0].tab._dragListener.
+            this.AddRightSplit(dragDoc, dragDataDocs ? dragDataDocs[i] : undefined, true).contentItems[0].tab._dragListener.
                 onMouseDown({ pageX: e.pageX, pageY: e.pageY, preventDefault: emptyFunction, button: 0 }));
     }
 
@@ -185,7 +185,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         return newContentItem;
     }
     @action
-    public AddTab = (stack: any, document: Doc, dataDocument: Doc) => {
+    public AddTab = (stack: any, document: Doc, dataDocument: Doc | undefined) => {
         let docs = Cast(this.props.Document.data, listSpec(Doc));
         if (docs) {
             docs.push(document);
@@ -486,7 +486,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     constructor(props: any) {
         super(props);
         DocServer.GetRefField(this.props.documentId).then(action((f: Opt<Field>) => {
-            this._dataDoc = this._document = f as Doc;
+            this._document = f as Doc;
             if (this.props.dataDocumentId && this.props.documentId !== this.props.dataDocumentId) {
                 DocServer.GetRefField(this.props.dataDocumentId).then(action((f: Opt<Field>) => this._dataDoc = f as Doc));
             }
@@ -527,7 +527,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
     get previewPanelCenteringOffset() { return (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2; }
 
-    addDocTab = (doc: Doc, dataDoc: Doc, location: string) => {
+    addDocTab = (doc: Doc, dataDoc: Doc | undefined, location: string) => {
         if (doc.dockingConfig) {
             MainView.Instance.openWorkspace(doc);
         } else if (location === "onRight") {
@@ -537,15 +537,16 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         }
     }
     get content() {
-        if (!this._document || !this._dataDoc) {
+        if (!this._document) {
             return (null);
         }
+        let resolvedDataDoc = this._document.layout instanceof Doc ? this._document : this._dataDoc;
         return (
             <div className="collectionDockingView-content" ref={this._mainCont}
                 style={{ transform: `translate(${this.previewPanelCenteringOffset}px, 0px) scale(${this.scaleToFitMultiplier})` }}>
                 <DocumentView key={this._document[Id]}
                     Document={this._document}
-                    DataDoc={this._dataDoc}
+                    DataDoc={resolvedDataDoc}
                     bringToFront={emptyFunction}
                     addDocument={undefined}
                     removeDocument={undefined}

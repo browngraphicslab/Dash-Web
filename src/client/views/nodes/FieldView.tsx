@@ -39,7 +39,7 @@ export interface FieldViewProps {
     renderDepth: number;
     selectOnLoad: boolean;
     addDocument?: (document: Doc, allowDuplicates?: boolean) => boolean;
-    addDocTab: (document: Doc, dataDoc: Doc, where: string) => void;
+    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
     removeDocument?: (document: Doc) => boolean;
     moveDocument?: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
