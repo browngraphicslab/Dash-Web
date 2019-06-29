@@ -4,8 +4,9 @@ import { CollectionDockingView } from "./collections/CollectionDockingView";
 import { MainView } from "./MainView";
 import { DragManager } from "../util/DragManager";
 import { action } from "mobx";
+import { emptyFunction } from "../../Utils";
 
-const modifiers = ["Control", "Meta", "Shift", "Alt"];
+const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string) => KeyControlInfo;
 type KeyControlInfo = {
     preventDefault: boolean,
@@ -19,10 +20,13 @@ export default class KeyManager {
 
     constructor(mainView: MainView) {
         this.mainView = mainView;
+
+        let isMac = navigator.platform.toLowerCase().indexOf("mac") >= 0;
+
         this.router.set("0000", this.unmodified);
-        this.router.set("0100", this.ctrl);
-        this.router.set("0010", this.alt);
-        this.router.set("1100", this.ctrl_shift);
+        this.router.set(isMac ? "0001" : "0100", this.ctrl);
+        this.router.set(isMac ? "0100" : "0010", this.alt);
+        this.router.set(isMac ? "1001" : "1100", this.ctrl_shift);
     }
 
     public handle = (e: KeyboardEvent) => {
