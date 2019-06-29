@@ -333,7 +333,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     let linkedPages = [linkedDocs.length ? NumCast(linkedDocs[0].anchor1Page, undefined) : NumCast(linkedDocs[0].anchor2Page, undefined),
                     linkedDocs.length ? NumCast(linkedDocs[0].anchor2Page, undefined) : NumCast(linkedDocs[0].anchor1Page, undefined)];
                     let maxLocation = StrCast(linkedDoc.maximizeLocation, "inTab");
-                    DocumentManager.Instance.jumpToDocument(linkedDoc, ctrlKey, false, document => this.props.addDocTab(document, document, maxLocation), linkedPages[altKey ? 1 : 0]);
+                    DocumentManager.Instance.jumpToDocument(linkedDoc, ctrlKey, false, document => this.props.addDocTab(document, undefined, maxLocation), linkedPages[altKey ? 1 : 0]);
 
                     // else if (linkedToDocs.length || linkedFromDocs.length) {
                     //     let linkedFwdDocs = [
@@ -503,7 +503,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         cm.addItem({
             description: "Find aliases", event: async () => {
                 const aliases = await SearchUtil.GetAliasesOfDocument(this.props.Document);
-                this.props.addDocTab && this.props.addDocTab(Docs.SchemaDocument(["title"], aliases, {}), Docs.SchemaDocument(["title"], aliases, {}), "onRight"); // bcz: dataDoc?
+                this.props.addDocTab && this.props.addDocTab(Docs.SchemaDocument(["title"], aliases, {}), undefined, "onRight"); // bcz: dataDoc?
             }, icon: "search"
         });
         cm.addItem({ description: "Center View", event: () => this.props.focus(this.props.Document, false), icon: "crosshairs" });

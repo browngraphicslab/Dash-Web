@@ -203,7 +203,7 @@ export class MainView extends React.Component {
 
     openNotifsCol = () => {
         if (this._notifsCol && CollectionDockingView.Instance) {
-            CollectionDockingView.Instance.AddRightSplit(this._notifsCol, this._notifsCol);
+            CollectionDockingView.Instance.AddRightSplit(this._notifsCol, undefined);
         }
     }
 
