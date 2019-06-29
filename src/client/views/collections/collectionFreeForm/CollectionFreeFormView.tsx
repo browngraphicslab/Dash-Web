@@ -340,7 +340,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         let resolvedDataDoc = this.props.DataDoc !== this.props.Document ? this.props.DataDoc : undefined;
         let layoutDoc = Doc.expandTemplateLayout(childDocLayout, resolvedDataDoc);
         return {
-            DataDoc: resolvedDataDoc !== layoutDoc && resolvedDataDoc ? resolvedDataDoc : layoutDoc,
+            DataDoc: resolvedDataDoc !== layoutDoc && resolvedDataDoc ? resolvedDataDoc : undefined,
             Document: layoutDoc,
             addDocument: this.props.addDocument,
             removeDocument: this.props.removeDocument,

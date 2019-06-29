@@ -108,7 +108,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
         document.removeEventListener('pointerup', this.textBoxUp);
     }
 
-    addDocTab = (doc: Doc, dataDoc: Doc, location: string) => {
+    addDocTab = (doc: Doc, dataDoc: Doc | undefined, location: string) => {
         if (true) { // location === "onRight") { need to figure out stack to add "inTab"
             CollectionDockingView.Instance.AddRightSplit(doc, dataDoc);
         }
