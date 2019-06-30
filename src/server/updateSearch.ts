@@ -94,8 +94,15 @@ async function update() {
     await cursor.forEach(updateDoc);
     for (let i = 0; i < updates.length; i++) {
         console.log(i);
-        const result = JSON.parse(await Search.Instance.updateDocument(updates[i]));
-        console.log(result.responseHeader.status);
+        const result = await Search.Instance.updateDocument(updates[i]);
+        try {
+            console.log(JSON.parse(result).responseHeader.status);
+        } catch {
+            console.log("Error:");
+            console.log(updates[i]);
+            console.log(result);
+            console.log("\n");
+        }
     }
     // await Promise.all(updates.map(update => {
     //     return limit(() => Search.Instance.updateDocument(update));
