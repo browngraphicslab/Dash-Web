@@ -92,9 +92,14 @@ async function update() {
         }
     }
     await cursor.forEach(updateDoc);
-    await Promise.all(updates.map(update => {
-        return limit(() => Search.Instance.updateDocument(update));
-    }));
+    for (let i = 0; i < updates.length; i++) {
+        console.log(i);
+        const result = JSON.parse(await Search.Instance.updateDocument(updates[i]));
+        console.log(result.responseHeader.status);
+    }
+    // await Promise.all(updates.map(update => {
+    //     return limit(() => Search.Instance.updateDocument(update));
+    // }));
     cursor.close();
 }
 
