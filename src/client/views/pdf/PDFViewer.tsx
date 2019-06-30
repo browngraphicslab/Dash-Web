@@ -426,7 +426,7 @@ export class Viewer extends React.Component<IViewerProps> {
     }
 
     renderAnnotation = (anno: Doc, index: number): JSX.Element => {
-        return <Annotation anno={anno} index={index} parent={this} />
+        return <Annotation anno={anno} index={index} parent={this} />;
     }
 
     @action

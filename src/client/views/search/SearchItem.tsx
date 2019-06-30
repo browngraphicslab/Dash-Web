@@ -83,9 +83,8 @@ export class SelectorContextMenu extends React.Component<SearchItemProps> {
                             <FontAwesomeIcon icon={faStickyNote} />
                         </div>
                         <a className="title" onClick={this.getOnClick(doc)}>{doc.col.title}</a>
-                    </div>
-                }
-                )}
+                    </div>;
+                })}
             </div>
         );
     }
@@ -111,7 +110,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
             if (layoutresult.indexOf(DocTypes.COL) !== -1) {
                 renderDoc = Doc.MakeDelegate(renderDoc);
                 let bounds = DocListCast(renderDoc.data).reduce((bounds, doc) => {
-                    var [sptX, sptY] = [NumCast(doc.x), NumCast(doc.y)]
+                    var [sptX, sptY] = [NumCast(doc.x), NumCast(doc.y)];
                     let [bptX, bptY] = [sptX + doc[WidthSym](), sptY + doc[HeightSym]()];
                     return {
                         x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
@@ -124,7 +123,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
             let returnYDimension = () => this._displayDim;
             let scale = () => returnXDimension() / NumCast(renderDoc.nativeWidth, returnXDimension());
             return <div
-                onPointerDown={action(() => { this._useIcons = !this._useIcons; this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE) })}
+                onPointerDown={action(() => { this._useIcons = !this._useIcons; this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE); })}
                 onPointerEnter={action(() => this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE))}
                 onPointerLeave={action(() => this._displayDim = 50)} >
                 <DocumentView
@@ -147,7 +146,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
                     ContainingCollectionView={undefined}
                     ContentScaling={scale}
                 />
-            </div>
+            </div>;
         }
 
         let button = layoutresult.indexOf(DocTypes.PDF) !== -1 ? faFilePdf :
@@ -160,7 +159,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
                                     layoutresult.indexOf(DocTypes.HIST) !== -1 ? faChartBar :
                                         layoutresult.indexOf(DocTypes.WEB) !== -1 ? faGlobeAsia :
                                             faCaretUp;
-        return <div onPointerDown={action(() => { this._useIcons = false; this._displayDim = Number(SEARCH_THUMBNAIL_SIZE) })} >
+        return <div onPointerDown={action(() => { this._useIcons = false; this._displayDim = Number(SEARCH_THUMBNAIL_SIZE); })} >
             <FontAwesomeIcon icon={button} size="2x" />
         </div>;
     }
@@ -189,7 +188,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
     }
 
     @action
-    pointerDown = (e: React.PointerEvent) => SearchBox.Instance.openSearch(e);
+    pointerDown = (e: React.PointerEvent) => SearchBox.Instance.openSearch(e)
 
     highlightDoc = (e: React.PointerEvent) => {
         if (this.props.doc.type === DocTypes.LINK) {
