@@ -241,8 +241,8 @@ export class FilterBox extends React.Component {
     filterDocsByType(docs: Doc[]) {
         let finalDocs: Doc[] = [];
         docs.forEach(doc => {
-            let layoutresult = Cast(doc.type, "string", "");
-            if (this._icons.includes(layoutresult)) {
+            let layoutresult = Cast(doc.type, "string");
+            if (!layoutresult || this._icons.includes(layoutresult)) {
                 finalDocs.push(doc);
             }
         });
