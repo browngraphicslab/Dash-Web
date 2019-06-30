@@ -64,24 +64,23 @@ export class MainView extends React.Component {
     }
 
     componentWillMount() {
-        KeyManager.Handler = new KeyManager(this);
-        document.removeEventListener("keydown", KeyManager.Handler.handle);
-        document.addEventListener("keydown", KeyManager.Handler.handle);
+        window.removeEventListener("keydown", KeyManager.Handler.handle);
+        window.addEventListener("keydown", KeyManager.Handler.handle);
 
-        document.removeEventListener("pointerdown", this.pointerDown);
-        document.addEventListener("pointerdown", this.pointerDown);
+        window.removeEventListener("pointerdown", this.pointerDown);
+        window.addEventListener("pointerdown", this.pointerDown);
 
-        document.removeEventListener("pointerup", this.pointerUp);
-        document.addEventListener("pointerup", this.pointerUp);
+        window.removeEventListener("pointerup", this.pointerUp);
+        window.addEventListener("pointerup", this.pointerUp);
     }
 
     pointerDown = (e: PointerEvent) => this.isPointerDown = true;
     pointerUp = (e: PointerEvent) => this.isPointerDown = false;
 
     componentWillUnMount() {
-        document.removeEventListener("keydown", KeyManager.Handler.handle);
-        document.removeEventListener("pointerdown", this.pointerDown);
-        document.removeEventListener("pointerup", this.pointerUp);
+        window.removeEventListener("keydown", KeyManager.Handler.handle);
+        window.removeEventListener("pointerdown", this.pointerDown);
+        window.removeEventListener("pointerup", this.pointerUp);
     }
 
     constructor(props: Readonly<{}>) {
