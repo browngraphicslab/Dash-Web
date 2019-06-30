@@ -1,29 +1,26 @@
 import React = require("react");
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faCaretUp, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faMusic, faLink, faChartBar, faGlobeAsia } from '@fortawesome/free-solid-svg-icons';
+import { faCaretUp, faChartBar, faFilePdf, faFilm, faGlobeAsia, faImage, faLink, faMusic, faObjectGroup, faStickyNote } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { action, computed, observable, runInAction } from "mobx";
+import { observer } from "mobx-react";
+import { Doc, DocListCast, HeightSym, WidthSym } from "../../../new_fields/Doc";
+import { Id } from "../../../new_fields/FieldSymbols";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { observable, runInAction, computed, action } from "mobx";
-import { listSpec } from "../../../new_fields/Schema";
-import { Doc, WidthSym } from "../../../new_fields/Doc";
+import { emptyFunction, returnFalse, returnOne } from "../../../Utils";
+import { DocTypes } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
 import { SetupDrag } from "../../util/DragManager";
-import { SearchUtil } from "../../util/SearchUtil";
-import { Id } from "../../../new_fields/FieldSymbols";
-import { CollectionDockingView } from "../collections/CollectionDockingView";
-import { observer } from "mobx-react";
-import "./SearchItem.scss";
-import { CollectionViewType } from "../collections/CollectionBaseView";
-import { DocTypes } from "../../documents/Documents";
-import { FilterBox } from "./FilterBox";
-import { DocumentView } from "../nodes/DocumentView";
-import "./SelectorContextMenu.scss";
-import { SearchBox } from "./SearchBox";
 import { LinkManager } from "../../util/LinkManager";
-import { DocumentContentsView } from "../nodes/DocumentContentsView";
-import { ImageBox } from "../nodes/ImageBox";
-import { emptyFunction, returnFalse, returnOne } from "../../../Utils";
+import { SearchUtil } from "../../util/SearchUtil";
 import { Transform } from "../../util/Transform";
+import { SEARCH_THUMBNAIL_SIZE } from "../../views/globalCssVariables.scss";
+import { CollectionViewType } from "../collections/CollectionBaseView";
+import { CollectionDockingView } from "../collections/CollectionDockingView";
+import { DocumentView } from "../nodes/DocumentView";
+import { SearchBox } from "./SearchBox";
+import "./SearchItem.scss";
+import "./SelectorContextMenu.scss";
 
 export interface SearchItemProps {
     doc: Doc;
@@ -74,13 +71,21 @@ export class SelectorContextMenu extends React.Component<SearchItemProps> {
             CollectionDockingView.Instance.AddRightSplit(col, undefined);
         };
     }
-
     render() {
         return (
-            < div className="parents">
+            <div className="parents">
                 <p className="contexts">Contexts:</p>
-                {this._docs.map(doc => <div className="collection"><a className="title" onClick={this.getOnClick(doc)}>{doc.col.title}</a></div>)}
-                {this._otherDocs.map(doc => <div className="collection"><a className="title" onClick={this.getOnClick(doc)}>{doc.col.title}</a></div>)}
+                {[...this._docs, ...this._otherDocs].map(doc => {
+                    let item = React.createRef<HTMLDivElement>();
+                    return <div className="collection" key={doc.col[Id] + doc.target[Id]} ref={item}>
+                        <div className="collection-item" onPointerDown={
+                            SetupDrag(item, () => doc.col, undefined, undefined, undefined, undefined, () => SearchBox.Instance.closeSearch())}>
+                            <FontAwesomeIcon icon={faStickyNote} />
+                        </div>
+                        <a className="title" onClick={this.getOnClick(doc)}>{doc.col.title}</a>
+                    </div>
+                }
+                )}
             </div>
         );
     }
@@ -101,14 +106,30 @@ export class SearchItem extends React.Component<SearchItemProps> {
     public get DocumentIcon() {
         let layoutresult = StrCast(this.props.doc.type);
         if (!this._useIcons) {
-            let returnXDimension = () => this._useIcons ? 50 : 250;
+            let renderDoc = this.props.doc;
+            let box: number[] = [];
+            if (layoutresult.indexOf(DocTypes.COL) !== -1) {
+                renderDoc = Doc.MakeDelegate(renderDoc);
+                let bounds = DocListCast(renderDoc.data).reduce((bounds, doc) => {
+                    var [sptX, sptY] = [NumCast(doc.x), NumCast(doc.y)]
+                    let [bptX, bptY] = [sptX + doc[WidthSym](), sptY + doc[HeightSym]()];
+                    return {
+                        x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
+                        r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)
+                    };
+                }, { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: Number.MIN_VALUE, b: Number.MIN_VALUE });
+                box = [(bounds.x + bounds.r) / 2, (bounds.y + bounds.b) / 2, Number(SEARCH_THUMBNAIL_SIZE) / (bounds.r - bounds.x), this._displayDim];
+            }
+            let returnXDimension = () => this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE);
             let returnYDimension = () => this._displayDim;
-            let scale = () => returnXDimension() / NumCast(this.props.doc.nativeWidth, returnXDimension());
+            let scale = () => returnXDimension() / NumCast(renderDoc.nativeWidth, returnXDimension());
             return <div
-                onPointerEnter={action(() => this._displayDim = this._useIcons ? 50 : 250)}
-                onPointerLeave={action(() => this._displayDim = this._useIcons ? 50 : 250)} >
+                onPointerDown={action(() => { this._useIcons = !this._useIcons; this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE) })}
+                onPointerEnter={action(() => this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE))}
+                onPointerLeave={action(() => this._displayDim = 50)} >
                 <DocumentView
-                    Document={this.props.doc}
+                    fitToBox={box}
+                    Document={renderDoc}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
                     ScreenToLocalTransform={Transform.Identity}
@@ -139,7 +160,9 @@ export class SearchItem extends React.Component<SearchItemProps> {
                                     layoutresult.indexOf(DocTypes.HIST) !== -1 ? faChartBar :
                                         layoutresult.indexOf(DocTypes.WEB) !== -1 ? faGlobeAsia :
                                             faCaretUp;
-        return <FontAwesomeIcon icon={button} size="2x" />;
+        return <div onPointerDown={action(() => { this._useIcons = false; this._displayDim = Number(SEARCH_THUMBNAIL_SIZE) })} >
+            <FontAwesomeIcon icon={button} size="2x" />
+        </div>;
     }
 
     collectionRef = React.createRef<HTMLDivElement>();
@@ -166,7 +189,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
     }
 
     @action
-    pointerDown = (e: React.PointerEvent) => { this._useIcons = !this._useIcons; SearchBox.Instance.openSearch(e); };
+    pointerDown = (e: React.PointerEvent) => SearchBox.Instance.openSearch(e);
 
     highlightDoc = (e: React.PointerEvent) => {
         if (this.props.doc.type === DocTypes.LINK) {
@@ -205,10 +228,8 @@ export class SearchItem extends React.Component<SearchItemProps> {
     render() {
         return (
             <div className="search-overview" onPointerDown={this.pointerDown}>
-                <div className="search-item" onPointerEnter={this.highlightDoc} onPointerLeave={this.unHighlightDoc} ref={this.collectionRef} id="result" onClick={this.onClick} onPointerDown={() => {
-                    this.pointerDown;
-                    SetupDrag(this.collectionRef, this.startDocDrag);
-                }} >
+                <div className="search-item" onPointerEnter={this.highlightDoc} onPointerLeave={this.unHighlightDoc} ref={this.collectionRef} id="result"
+                    onClick={this.onClick} onPointerDown={this.pointerDown} >
                     <div className="main-search-info">
                         <div className="search-title" id="result" >{this.props.doc.title}</div>
                         <div className="search-info" style={{ width: this._useIcons ? "15%" : "400px" }}>

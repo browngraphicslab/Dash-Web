@@ -15,7 +15,6 @@ import { Id } from '../../../new_fields/FieldSymbols';
 import { SearchUtil } from '../../util/SearchUtil';
 import { RouteStore } from '../../../server/RouteStore';
 import { FilterBox } from './FilterBox';
-import { Pager } from './Pager';
 
 @observer
 export class SearchBox extends React.Component {

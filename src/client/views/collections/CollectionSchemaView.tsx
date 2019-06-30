@@ -119,8 +119,8 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         let fieldContentView = <FieldView {...props} />;
         let reference = React.createRef<HTMLDivElement>();
         let onItemDown = (e: React.PointerEvent) => {
-            (this.props.CollectionView.props.isSelected() ?
-                SetupDrag(reference, () => props.Document, this.props.moveDocument, this.props.Document.schemaDoc ? "copy" : undefined)(e) : undefined);
+            (!this.props.CollectionView.props.isSelected() ? undefined :
+                SetupDrag(reference, () => props.Document, this.props.moveDocument, this.props.Document.schemaDoc ? "copy" : undefined)(e));
         };
         let applyToDoc = (doc: Doc, run: (args?: { [name: string]: any }) => any) => {
             const res = run({ this: doc });

@@ -3,7 +3,7 @@ import { observer } from 'mobx-react';
 import { observable, action } from 'mobx';
 import "./SearchBox.scss";
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
-import { library} from '@fortawesome/fontawesome-svg-core';
+import { library } from '@fortawesome/fontawesome-svg-core';
 import { Doc } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { DocTypes } from '../../documents/Documents';
@@ -57,7 +57,7 @@ export class FilterBox extends React.Component {
 
     componentDidMount = () => {
         document.addEventListener("pointerdown", (e) => {
-            if (e.timeStamp !== this._pointerTime) {
+            if (!e.defaultPrevented && e.timeStamp !== this._pointerTime) {
                 SearchBox.Instance.closeSearch();
             }
         });

@@ -31,6 +31,7 @@ export interface FieldViewProps {
     fieldKey: string;
     fieldExt: string;
     leaveNativeSize?: boolean;
+    fitToBox?: number[];
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
     Document: Doc;
     DataDoc?: Doc;
