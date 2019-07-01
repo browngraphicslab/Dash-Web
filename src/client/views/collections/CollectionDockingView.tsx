@@ -122,34 +122,52 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     @action
     public AddRightSplit = (document: Doc, minimize: boolean = false) => {
         let docs = Cast(this.props.Document.data, listSpec(Doc));
+        let collayout = this._goldenLayout.root.contentItems[0];
+        let lastItem = collayout.contentItems[collayout.contentItems.length - 1];
+        var newContentItem;
+
         if (docs) {
             docs.push(document);
         }
-        let newItemStackConfig = {
-            type: 'stack',
-            content: [CollectionDockingView.makeDocumentConfig(document)]
-        };
 
-        var newContentItem = this._goldenLayout.root.layoutManager.createContentItem(newItemStackConfig, this._goldenLayout);
+        // if last item is a stack, make tab within that stack
+        if (lastItem.isStack) {
+            console.log('its a stack!!');
+            newContentItem = CollectionDockingView.makeDocumentConfig(document);
+            // if empty, create new tab; if not, replace last tab
+            if (lastItem.contentItems.length <= 0) {
+                this.AddTab(lastItem, document);
+            } else {
+                lastItem.replaceChild(lastItem.contentItems[lastItem.contentItems.length - 1], newContentItem);
+            }
 
-        if (this._goldenLayout.root.contentItems[0].isRow) {
-            this._goldenLayout.root.contentItems[0].addChild(newContentItem);
-        }
-        else {
-            var collayout = this._goldenLayout.root.contentItems[0];
-            var newRow = collayout.layoutManager.createContentItem({ type: "row" }, this._goldenLayout);
-            collayout.parent.replaceChild(collayout, newRow);
+            // else, create new "right split" stack
+        } else {
+            let newItemStackConfig = {
+                type: 'stack',
+                content: [CollectionDockingView.makeDocumentConfig(document)]
+            };
 
-            newRow.addChild(newContentItem, undefined, true);
-            newRow.addChild(collayout, 0, true);
+            newContentItem = this._goldenLayout.root.layoutManager.createContentItem(newItemStackConfig, this._goldenLayout);
 
-            collayout.config.width = 50;
-            newContentItem.config.width = 50;
-        }
-        if (minimize) {
-            // bcz: this makes the drag image show up better, but it also messes with fixed layout sizes
-            // newContentItem.config.width = 10;
-            // newContentItem.config.height = 10;
+            if (this._goldenLayout.root.contentItems[0].isRow) {
+                this._goldenLayout.root.contentItems[0].addChild(newContentItem);
+            }
+            else {
+                var newRow = collayout.layoutManager.createContentItem({ type: "row" }, this._goldenLayout);
+                collayout.parent.replaceChild(collayout, newRow);
+
+                newRow.addChild(newContentItem, undefined, true);
+                newRow.addChild(collayout, 0, true);
+
+                collayout.config.width = 50;
+                newContentItem.config.width = 50;
+            }
+            if (minimize) {
+                // bcz: this makes the drag image show up better, but it also messes with fixed layout sizes
+                // newContentItem.config.width = 10;
+                // newContentItem.config.height = 10;
+            }
         }
         newContentItem.callDownwards('_$init');
         this.layoutChanged();
