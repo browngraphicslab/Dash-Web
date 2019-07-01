@@ -580,7 +580,7 @@ export class Viewer extends React.Component<IViewerProps> {
                 }
             }
             return true;
-        }).length) {
+        }).length - 1) {
             this.Index++;
         }
     }
