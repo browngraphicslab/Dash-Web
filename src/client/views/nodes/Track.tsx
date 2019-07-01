@@ -7,15 +7,17 @@ import { Document, listSpec, createSchema, makeInterface, defaultSpec } from "..
 import { FieldValue, Cast, NumCast, BoolCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { Keyframe, RegionData } from "./Keyframe";
+import { FlyoutProps } from "./Timeline";
 
-interface IProp {
+interface IProps {
     node: Doc;
     currentBarX: number;
-    // setPosition: (position: number) => any;
+    setFlyout: (props:FlyoutProps) => any; 
 }
 
+
 @observer
-export class Track extends React.Component<IProp> {
+export class Track extends React.Component<IProps> {
     @observable private _inner = React.createRef<HTMLDivElement>();
 
     private _reactionDisposers: IReactionDisposer[] = [];
@@ -196,7 +198,7 @@ export class Track extends React.Component<IProp> {
                 <div className="track">
                     <div className="inner" ref={this._inner} onDoubleClick={this.onInnerDoubleClick}>
                         {this.regions.map((region) => {
-                            return <Keyframe node={this.props.node} RegionData={region as Doc}/>;
+                            return <Keyframe node={this.props.node} RegionData={region as Doc} setFlyout={this.props.setFlyout}/>;
                         })}
                     </div>
                 </div>

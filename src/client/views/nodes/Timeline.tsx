@@ -12,10 +12,17 @@ import { List } from "../../../new_fields/List";
 import { Self } from "../../../new_fields/FieldSymbols";
 import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCircle, faPlayCircle, faBackward, faForward, faGripLines } from "@fortawesome/free-solid-svg-icons";
+import { faCircle, faPlayCircle, faBackward, faForward, faGripLines} from "@fortawesome/free-solid-svg-icons";
 import { DocumentContentsView } from "./DocumentContentsView";
-import { FlyoutInfoContext } from "./Keyframe";
 
+
+export interface FlyoutProps{
+    x?: number; 
+    y?: number; 
+    display?:string; 
+    time?:number; 
+    duration?:number; 
+}
 
 
 @observer
@@ -24,6 +31,7 @@ export class Timeline extends CollectionSubView(Document) {
     private readonly MIN_CONTAINER_HEIGHT: number = 205;
     private readonly MAX_CONTAINER_HEIGHT: number = 800;
 
+    @observable private _tickSpacing = 50; 
 
     @observable private _scrubberbox = React.createRef<HTMLDivElement>();
     @observable private _trackbox = React.createRef<HTMLDivElement>();
@@ -39,6 +47,7 @@ export class Timeline extends CollectionSubView(Document) {
     @observable private _infoContainer = React.createRef<HTMLDivElement>();
     @observable private _ticks: number[] = [];
 
+    @observable private flyoutInfo:FlyoutProps = {x:0, y:0,display:"none"}; 
 
 
     @action
@@ -207,25 +216,35 @@ export class Timeline extends CollectionSubView(Document) {
         this._containerHeight = 0;
     }
 
-    renderFlyout = ():JSX.Element => {        
-        // console.log("rendered"); 
 
-        // let data = React.useContext(FlyoutInfoContext);
-        return (
-            <div style ={{height:"100px", width:"100px", backgroundColor:"yellow", position:"absolute"}}>
-                <p>
-                    {/* {data.fadeIn} */}
-                </p>
-            </div>
-        );
+    @action
+    getFlyout = (props: FlyoutProps) => {    
+        for(const[k, v] of Object.entries(props)){
+            (this.flyoutInfo as any)[k] = v; 
+        }
+        
     }
 
-  
+
+    @action
+    onFlyoutDown = (e: React.PointerEvent) => {
+        console.log("clicked!"); 
+        this.flyoutInfo.display = "block"; 
+    }
 
 
     render() {
         return (
             <div className="timeline-container" style={{ height: `${this._containerHeight}px` }}>
+                <div className="flyout-container" style={{transform: `translate(${this.flyoutInfo.x}px, ${this.flyoutInfo.y}px)`, display:this.flyoutInfo.display}} onPointerDown={this.onFlyoutDown}>
+                    <FontAwesomeIcon className="flyout" icon="comment-alt" color="grey"/>
+                    <div>
+                        <p>Time:</p><input type="text" placeholder={`${Math.round(this.flyoutInfo.time! / this._tickSpacing * 1000)}ms`}/> 
+                        <p>Duration:</p><input type="text" placeholder={`${Math.round(this.flyoutInfo.duration! / this._tickSpacing * 1000)}ms`}/> 
+                        <p>Fade-in</p>
+                        <p>Fade-out</p>
+                    </div>
+                </div>
                 <div className="toolbox">
                     <div onClick={this.windBackward}> <FontAwesomeIcon icon={faBackward} size="2x" /> </div>
                     <div onClick={this.onPlay}> <FontAwesomeIcon icon={faPlayCircle} size="2x" /> </div>
@@ -239,7 +258,7 @@ export class Timeline extends CollectionSubView(Document) {
                   
                     <div className="scrubberbox" ref={this._scrubberbox} onClick={this.onScrubberClick}>
                         {this._ticks.map(element => {
-                            return <div className="tick" style={{ transform: `translate(${element / 20}px)`, position: "absolute", pointerEvents: "none" }}> <p>{this.toTime(element)}</p></div>;
+                            return <div className="tick" style={{ transform: `translate(${element/1000 * this._tickSpacing}px)`, position: "absolute", pointerEvents: "none" }}> <p>{this.toTime(element)}</p></div>;
                         })}
                     </div>
                     <div className="scrubber" onPointerDown={this.onScrubberDown} style={{ transform: `translate(${this._currentBarX}px)` }}>
@@ -247,7 +266,7 @@ export class Timeline extends CollectionSubView(Document) {
                     </div>
                     <div className="trackbox" ref={this._trackbox} onPointerDown={this.onPanDown}>
                         {this._nodes.map(doc => {
-                            return <Track node={(doc as any).value() as Doc} currentBarX={this._currentBarX} />;
+                            return <Track node={(doc as any).value() as Doc} currentBarX={this._currentBarX} setFlyout={this.getFlyout} />;
                         })}
                     </div>
                 </div>
@@ -261,14 +280,6 @@ export class Timeline extends CollectionSubView(Document) {
                 <div onPointerDown={this.onResizeDown}>
                     <FontAwesomeIcon className="resize" icon={faGripLines} />
                 </div>  
-                <FlyoutInfoContext.Consumer>
-                    {value => (
-                    <div style ={{height:"100px", width:"100px", backgroundColor:"yellow", position:"absolute"}}>
-                        <p>
-                            {value.fadeIn}
-                        </p>
-                    </div>)}
-                </FlyoutInfoContext.Consumer>
             </div>
         );
     }

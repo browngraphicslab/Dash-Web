@@ -1,16 +1,32 @@
 @import "./../globalCssVariables.scss"; 
 
-.flyout{
-    position: absolute;
-    z-index: 9999;
-    background-color: black;
-    box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
-    min-width: 150px;
-    color: black;
-    top: 100px;
+.flyout-container{
+    background-color: transparent; 
+    position:absolute;         
+    z-index:9999; 
+    height: 150px; 
+    width: 150px; 
 
-    padding: 10px;
-    border-radius: 3px;
+    .flyout{
+        background-color: transparent; 
+        transform: rotate(180deg); 
+        left:0px; 
+        top:0px; 
+        width: 100%; 
+        height: 100%; 
+    }
+    div{ 
+        color: white; 
+        position:absolute; 
+        top:30px; 
+        left:0px;  
+    }
+    input{
+        position:absolute; 
+        width: 40px; 
+        right:0px; 
+    }
+   
 }
 
 .timeline-container{

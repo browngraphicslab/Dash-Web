@@ -8,15 +8,19 @@ import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { Cast, FieldValue, StrCast, NumCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { createSchema, defaultSpec, makeInterface, listSpec } from "../../../new_fields/Schema";
+import { any } from "bluebird";
+import { FlyoutProps } from "./Timeline";
+import { exportDefaultSpecifier } from "babel-types";
 
 enum Direction {
     left = "left",
     right = "right"
 }
+
 interface IProp {
     node: Doc;
     RegionData: Doc;
-    // routine: (innerFunc: () => void, args: any) => void; 
+    setFlyout:(props:FlyoutProps) => any; 
 }
 
 
@@ -36,20 +40,6 @@ const RegionDataSchema = createSchema({
 type RegionData = makeInterface<[typeof RegionDataSchema]>;
 export const RegionData = makeInterface(RegionDataSchema);
 
-interface FlyoutInfo {
-    position: number;
-    fadeIn: number;
-    fadeOut: number;
-}
-
-
-const FlyoutObj = {
-    position: 0,
-    fadeIn: 0,
-    fadeOut: 1
-};
-
-export var FlyoutInfoContext = React.createContext<FlyoutInfo>(FlyoutObj);
 
 @observer
 export class Keyframe extends React.Component<IProp> {
@@ -65,31 +55,11 @@ export class Keyframe extends React.Component<IProp> {
     componentDidMount() {
 
         // need edge case here when keyframe data already exists when loading.....................;
-        this.fadein = 100; 
-
-        FlyoutInfoContext = React.createContext<FlyoutInfo>({position: this.position,
-            fadeIn: this.fadein,
-            fadeOut: this.fadeout}); 
     }
 
     componentWillUnmount() {
 
     }
-
-    // @action
-    // onPointerEnter = (e: React.PointerEvent) => {
-    //     e.preventDefault();
-    //     e.stopPropagation(); 
-    //     //this._display = "block"; 
-    // }
-
-    // @action 
-    // onPointerOut = (e: React.PointerEvent) => {
-    //     e.preventDefault();
-    //     e.stopPropagation();
-    //     //this._display = "none"; 
-    // }
-
 
     @computed
     private get regiondata() {
@@ -121,16 +91,31 @@ export class Keyframe extends React.Component<IProp> {
 
     }
 
-
-
     @action
     onBarPointerDown = (e: React.PointerEvent) => {
+        let mouse = e.nativeEvent; 
+        
         e.preventDefault();
         e.stopPropagation();
-        document.addEventListener("pointermove", this.onBarPointerMove);
-        document.addEventListener("pointerup", (e: PointerEvent) => {
-            document.removeEventListener("pointermove", this.onBarPointerMove);
-        });
+        if (mouse.which === 1){
+            document.addEventListener("pointermove", this.onBarPointerMove);
+            document.addEventListener("pointerup", (e: PointerEvent) => {
+                document.removeEventListener("pointermove", this.onBarPointerMove);
+            });
+        } else if(mouse.which === 3) {
+            e.preventDefault();
+            e.stopPropagation();        
+            let bar = this._bar.current!; 
+            this.props.setFlyout({x:this.regiondata.position + 130, y: bar.getBoundingClientRect().bottom,display:"block", time: this.regiondata.position, duration:this.regiondata.duration}); 
+            let removeFlyout = (e:PointerEvent) => {
+                 if (e.which === 1){
+                    console.log("wut"); 
+                    this.props.setFlyout({display:"none"});                 
+                    document.removeEventListener("pointerdown", removeFlyout); 
+                }
+            }; 
+            document.addEventListener("pointerdown", removeFlyout); 
+        }
     }
 
     @action
@@ -138,7 +123,10 @@ export class Keyframe extends React.Component<IProp> {
         e.preventDefault();
         e.stopPropagation();
         let left = this.findAdjacentRegion(Direction.left);
-        let right = this.findAdjacentRegion(Direction.right);
+        let right = this.findAdjacentRegion(Direction.right);        
+        let bar = this._bar.current!; 
+        let barX = bar.getBoundingClientRect().left;
+        let offset = e.clientX - barX;
         let futureX = this.regiondata.position + e.movementX;
         if (futureX <= 0) {
             this.regiondata.position = 0;
@@ -149,7 +137,6 @@ export class Keyframe extends React.Component<IProp> {
         } else {
             this.regiondata.position = futureX;
         }
-
     }
 
     @action
@@ -182,6 +169,7 @@ export class Keyframe extends React.Component<IProp> {
         document.addEventListener("pointermove", this.onDragResizeLeft);
         document.addEventListener("pointerup", () => {
             document.removeEventListener("pointermove", this.onDragResizeLeft);
+           
         });
     }
 
@@ -192,6 +180,7 @@ export class Keyframe extends React.Component<IProp> {
         document.addEventListener("pointermove", this.onDragResizeRight);
         document.addEventListener("pointerup", () => {
             document.removeEventListener("pointermove", this.onDragResizeRight);
+           
         });
     }
 
@@ -207,10 +196,7 @@ export class Keyframe extends React.Component<IProp> {
         this.regiondata.keyframes!.forEach(kf => {
             kf = kf as Doc;
             kf.time = NumCast(kf.time) + offset;
-        });
-        this._keyframes.forEach(num => {
-            num -= offset;
-        });
+        }); 
     }
 
 
@@ -244,28 +230,14 @@ export class Keyframe extends React.Component<IProp> {
         this.makeKeyData(position + mouse.offsetX);
     }
 
-    @action
-    onMenuHover = (e: React.PointerEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (this._display === "none") {
-            this._display = "grid";
-        } else {
-            this._display = "none";
-        }
-    }
-
 
 
     render() {
         return (
             <div>
-                <FlyoutInfoContext.Provider value={{
-                    position: this.position,
-                    fadeOut: this.fadeout,
-                    fadeIn: this.fadein
-                }}>
-                    <div className="bar" ref={this._bar} style={{ transform: `translate(${this.regiondata.position}px)`, width: `${this.regiondata.duration}px` }} onPointerDown={this.onBarPointerDown} onDoubleClick={this.createKeyframe}>
+                    <div className="bar" ref={this._bar} style={{ transform: `translate(${this.regiondata.position}px)`, width: `${this.regiondata.duration}px` }} 
+                    onPointerDown={this.onBarPointerDown} 
+                    onDoubleClick={this.createKeyframe}>
                         <div className="leftResize" onPointerDown={this.onResizeLeft} ></div>
                         <div className="rightResize" onPointerDown={this.onResizeRight}></div>
                         <div className="fadeLeft" style={{ width: `${20}px` }}>{this.createDivider("left")}</div>
@@ -279,7 +251,6 @@ export class Keyframe extends React.Component<IProp> {
                         {this.createDivider("left")}
                         {this.createDivider("right")}
                     </div>
-                </FlyoutInfoContext.Provider>
             </div>
         );
     }
