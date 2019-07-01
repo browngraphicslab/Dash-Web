@@ -53,6 +53,7 @@ export class TooltipTextMenu {
     private listTypeToIcon: Map<NodeType, string>;
     private fontSizeIndicator: HTMLSpanElement = document.createElement("span");
     private link: HTMLAnchorElement;
+    //private wrapper: HTMLDivElement;
 
     private linkEditor?: HTMLDivElement;
     private linkText?: HTMLDivElement;
@@ -70,6 +71,7 @@ export class TooltipTextMenu {
         this.view = view;
         this.state = view.state;
         this.editorProps = editorProps;
+        //this.wrapper = document.createElement("div");
         this.tooltip = document.createElement("div");
         this.tooltip.className = "tooltipMenu";
         this.dragElement(this.tooltip);
@@ -151,8 +153,6 @@ export class TooltipTextMenu {
 
         this.tooltip.appendChild(this.createStar().render(this.view).dom);
 
-
-
         this.updateListItemDropdown(":", this.listTypeBtnDom);
 
         this.update(view, undefined);
@@ -194,6 +194,7 @@ export class TooltipTextMenu {
             // if present, the header is where you move the DIV from:
             elmnt.onmousedown = dragMouseDown;
         }
+        const self = this;
 
         function dragMouseDown(e: any) {
             e = e || window.event;
@@ -217,12 +218,15 @@ export class TooltipTextMenu {
             // set the element's new position:
             elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
             elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+            self.highlightSearchTerms(["hello", "there"]);
         }
 
         function closeDragElement() {
             // stop moving when mouse button is released:
             document.onmouseup = null;
             document.onmousemove = null;
+            //self.highlightSearchTerms(self.state, ["hello"]);
+            self.unhighlightSearchTerms();
         }
     }
 
@@ -614,6 +618,38 @@ export class TooltipTextMenu {
         return found;
     }
 
+    highlightSearchTerms = (terms: String[]) => {
+        const doc = this.view.state.doc;
+        const mark = this.view.state.schema.mark(this.view.state.schema.marks.search_highlight);
+        doc.nodesBetween(0, doc.content.size, (node: ProsNode, pos: number, parent: ProsNode, index: number) => {
+            if (node.isLeaf && node.isText && node.text) {
+                let nodeText: String = node.text;
+                let tokens = nodeText.split(" ");
+                let start = pos;
+                tokens.forEach((word) => {
+                    if (terms.includes(word)) {
+                        this.view.dispatch(this.view.state.tr.addMark(start, start + word.length, mark).removeStoredMark(mark));
+                    }
+                    else {
+                        start += word.length + 1;
+                    }
+                });
+            }
+        });
+    }
+
+    unhighlightSearchTerms = () => {
+        const doc = this.view.state.doc;
+        const mark = this.view.state.schema.mark(this.view.state.schema.marks.search_highlight);
+        doc.nodesBetween(0, doc.content.size, (node: ProsNode, pos: number, parent: ProsNode, index: number) => {
+            if (node.isLeaf && node.isText && node.text) {
+                if (node.marks.includes(mark)) {
+                    this.view.dispatch(this.view.state.tr.removeMark(pos, pos + node.nodeSize, mark));
+                }
+            }
+        });
+    }
+
     //updates the tooltip menu when the selection changes
     update(view: EditorView, lastState: EditorState | undefined) {
         let state = view.state;
@@ -677,6 +713,8 @@ export class TooltipTextMenu {
         }
         this.view.dispatch(this.view.state.tr.setStoredMarks(this._activeMarks));
         this.updateLinkMenu();
+        //this.highlightSearchTerms(["hello", "there"]);
+        //this.unhighlightSearchTerms();
     }
 
     //finds all active marks on selection in given group

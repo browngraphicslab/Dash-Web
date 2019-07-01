@@ -282,10 +282,19 @@ export const marks: { [index: string]: MarkSpec } = {
     },
 
     highlight: {
-        parseDOM: [{ style: 'background: #d9dbdd' }],
+        parseDOM: [{ style: 'color: blue' }],
         toDOM() {
             return ['span', {
                 style: 'color: blue'
+            }];
+        }
+    },
+
+    search_highlight: {
+        parseDOM: [{ style: 'background: yellow' }],
+        toDOM() {
+            return ['span', {
+                style: 'background: yellow'
             }];
         }
     },
