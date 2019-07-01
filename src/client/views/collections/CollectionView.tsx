@@ -63,7 +63,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
                     otherdoc.height = 50;
                     Doc.GetProto(otherdoc).title = "applied(" + this.props.Document.title + ")";
                     Doc.GetProto(otherdoc).layout = Doc.MakeDelegate(this.props.Document);
-                    this.props.addDocTab && this.props.addDocTab(otherdoc, otherdoc, "onRight");
+                    this.props.addDocTab && this.props.addDocTab(otherdoc, undefined, "onRight");
                 }), icon: "project-diagram"
             });
         }

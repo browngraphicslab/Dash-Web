@@ -36,24 +36,24 @@ import { CollectionBaseView } from './collections/CollectionBaseView';
 import { List } from '../../new_fields/List';
 import PDFMenu from './pdf/PDFMenu';
 import { InkTool } from '../../new_fields/InkField';
-import * as _ from "lodash";
+import _ from "lodash";
+import KeyManager from './GlobalKeyHandler';
 
 @observer
 export class MainView extends React.Component {
     public static Instance: MainView;
+    @observable addMenuToggle = React.createRef<HTMLInputElement>();
     @observable private _workspacesShown: boolean = false;
     @observable public pwidth: number = 0;
     @observable public pheight: number = 0;
     @computed private get mainContainer(): Opt<Doc> {
         return FieldValue(Cast(CurrentUserUtils.UserDocument.activeWorkspace, Doc));
     }
-    @computed private get mainFreeform(): Opt<Doc> {
+    @computed get mainFreeform(): Opt<Doc> {
         let docs = DocListCast(this.mainContainer!.data);
         return (docs && docs.length > 1) ? docs[1] : undefined;
     }
-    private globalDisplayFlags = observable({
-        jumpToVisible: false
-    });
+    public isPointerDown = false;
     private set mainContainer(doc: Opt<Doc>) {
         if (doc) {
             if (!("presentationView" in doc)) {
@@ -64,12 +64,23 @@ export class MainView extends React.Component {
     }
 
     componentWillMount() {
-        document.removeEventListener("keydown", this.globalKeyHandler);
-        document.addEventListener("keydown", this.globalKeyHandler);
+        window.removeEventListener("keydown", KeyManager.Handler.handle);
+        window.addEventListener("keydown", KeyManager.Handler.handle);
+
+        window.removeEventListener("pointerdown", this.pointerDown);
+        window.addEventListener("pointerdown", this.pointerDown);
+
+        window.removeEventListener("pointerup", this.pointerUp);
+        window.addEventListener("pointerup", this.pointerUp);
     }
 
+    pointerDown = (e: PointerEvent) => this.isPointerDown = true;
+    pointerUp = (e: PointerEvent) => this.isPointerDown = false;
+
     componentWillUnMount() {
-        document.removeEventListener("keydown", this.globalKeyHandler);
+        window.removeEventListener("keydown", KeyManager.Handler.handle);
+        window.removeEventListener("pointerdown", this.pointerDown);
+        window.removeEventListener("pointerup", this.pointerUp);
     }
 
     constructor(props: Readonly<{}>) {
@@ -122,18 +133,6 @@ export class MainView extends React.Component {
         // window.addEventListener("pointermove", (e) => this.reportLocation(e))
         window.addEventListener("drop", (e) => e.preventDefault(), false); // drop event handler
         window.addEventListener("dragover", (e) => e.preventDefault(), false); // drag event handler
-        window.addEventListener("keydown", (e) => {
-            if (e.key === "Escape") {
-                DragManager.AbortDrag();
-                SelectionManager.DeselectAll();
-            } else if (e.key === "z" && e.ctrlKey) {
-                e.preventDefault();
-                UndoManager.Undo();
-            } else if ((e.key === "y" && e.ctrlKey) || (e.key === "z" && e.ctrlKey && e.shiftKey)) {
-                e.preventDefault();
-                UndoManager.Redo();
-            }
-        }, false); // drag event handler
         // click interactions for the context menu
         document.addEventListener("pointerdown", action(function (e: PointerEvent) {
 
@@ -203,7 +202,7 @@ export class MainView extends React.Component {
 
     openNotifsCol = () => {
         if (this._notifsCol && CollectionDockingView.Instance) {
-            CollectionDockingView.Instance.AddRightSplit(this._notifsCol, this._notifsCol);
+            CollectionDockingView.Instance.AddRightSplit(this._notifsCol, undefined);
         }
     }
 
@@ -292,7 +291,7 @@ export class MainView extends React.Component {
         ];
 
         return < div id="add-nodes-menu" >
-            <input type="checkbox" id="add-menu-toggle" />
+            <input type="checkbox" id="add-menu-toggle" ref={this.addMenuToggle} />
             <label htmlFor="add-menu-toggle" title="Add Node"><p>+</p></label>
 
             <div id="add-options-content">
@@ -300,8 +299,7 @@ export class MainView extends React.Component {
                     <li key="search"><button className="add-button round-button" title="Search" onClick={this.toggleSearch}><FontAwesomeIcon icon="search" size="sm" /></button></li>
                     <li key="undo"><button className="add-button round-button" title="Undo" onClick={() => UndoManager.Undo()}><FontAwesomeIcon icon="undo-alt" size="sm" /></button></li>
                     <li key="redo"><button className="add-button round-button" title="Redo" onClick={() => UndoManager.Redo()}><FontAwesomeIcon icon="redo-alt" size="sm" /></button></li>
-                    <li key="color"><button className="add-button round-button" title="Redo" onClick={() => this.toggleColorPicker()}><div className="toolbar-color-button" style={{ backgroundColor: InkingControl.Instance.selectedColor }} >
-
+                    <li key="color"><button className="add-button round-button" title="Select Color" onClick={() => this.toggleColorPicker()}><div className="toolbar-color-button" style={{ backgroundColor: InkingControl.Instance.selectedColor }} >
                         <div className="toolbar-color-picker" onClick={this.onColorClick} style={this._colorPickerDisplay ? { color: "black", display: "block" } : { color: "black", display: "none" }}>
                             <SketchPicker color={InkingControl.Instance.selectedColor} onChange={InkingControl.Instance.switchColor} />
                         </div>
@@ -360,38 +358,6 @@ export class MainView extends React.Component {
     @action
     toggleSearch = () => {
         this.isSearchVisible = !this.isSearchVisible;
-    }
-
-    @action
-    globalKeyHandler = (e: KeyboardEvent) => {
-        if (e.key === "Control" || !e.ctrlKey) return;
-
-        if (e.key === "v") return;
-        if (e.key === "c") return;
-
-        e.preventDefault();
-        e.stopPropagation();
-
-        switch (e.key) {
-            case "ArrowRight":
-                if (this.mainFreeform) {
-                    CollectionDockingView.Instance.AddRightSplit(this.mainFreeform, undefined);
-                }
-                break;
-            case "ArrowLeft":
-                if (this.mainFreeform) {
-                    CollectionDockingView.Instance.CloseRightSplit(this.mainFreeform);
-                }
-                break;
-            case "o":
-                this.globalDisplayFlags.jumpToVisible = true;
-                break;
-            case "escape":
-                _.mapValues(this.globalDisplayFlags, () => false);
-                break;
-            case "f":
-                this.isSearchVisible = !this.isSearchVisible;
-        }
     }
 
 

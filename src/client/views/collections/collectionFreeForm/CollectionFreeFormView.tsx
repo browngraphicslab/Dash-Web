@@ -28,6 +28,7 @@ import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import v5 = require("uuid/v5");
 
+
 export const panZoomSchema = createSchema({
     panX: "number",
     panY: "number",
@@ -49,9 +50,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @computed get nativeHeight() { return this.Document.nativeHeight || 0; }
     public get isAnnotationOverlay() { return this.props.fieldKey === "annotations" || this.props.fieldExt === "annotations"; }
     private get borderWidth() { return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH; }
-    private panX = () => this.Document.panX || 0;
-    private panY = () => this.Document.panY || 0;
-    private zoomScaling = () => this.Document.scale || 1;
+    private panX = () => this.props.fitToBox ? this.props.fitToBox[0] : this.Document.panX || 0;
+    private panY = () => this.props.fitToBox ? this.props.fitToBox[1] : this.Document.panY || 0;
+    private zoomScaling = () => this.props.fitToBox ? this.props.fitToBox[2] : this.Document.scale || 1;
     private centeringShiftX = () => !this.nativeWidth ? this._pwidth / 2 : 0;  // shift so pan position is at center of window for non-overlay collections
     private centeringShiftY = () => !this.nativeHeight ? this._pheight / 2 : 0;// shift so pan position is at center of window for non-overlay collections
     private getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth + 1, -this.borderWidth + 1).translate(-this.centeringShiftX(), -this.centeringShiftY()).transform(this.getLocalTransform());
@@ -335,14 +336,35 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
 
-    getDocumentViewProps(layoutDoc: Doc): DocumentViewProps {
-        let datadoc = BoolCast(this.props.Document.isTemplate) || this.props.DataDoc === this.props.Document ? undefined : this.props.DataDoc;
-        if (Cast(layoutDoc.layout, Doc) instanceof Doc) { // if this document is using a template to render, then set the dataDoc for the template to be this document
-            datadoc = layoutDoc;
-        }
+    getChildDocumentViewProps(childDocLayout: Doc): DocumentViewProps {
+        let resolvedDataDoc = this.props.DataDoc !== this.props.Document ? this.props.DataDoc : undefined;
+        let layoutDoc = Doc.expandTemplateLayout(childDocLayout, resolvedDataDoc);
         return {
-            DataDoc: datadoc,
+            DataDoc: resolvedDataDoc !== layoutDoc && resolvedDataDoc ? resolvedDataDoc : undefined,
             Document: layoutDoc,
+            addDocument: this.props.addDocument,
+            removeDocument: this.props.removeDocument,
+            moveDocument: this.props.moveDocument,
+            ScreenToLocalTransform: this.getTransform,
+            renderDepth: this.props.renderDepth + 1,
+            selectOnLoad: layoutDoc[Id] === this._selectOnLoaded,
+            PanelWidth: layoutDoc[WidthSym],
+            PanelHeight: layoutDoc[HeightSym],
+            ContentScaling: returnOne,
+            ContainingCollectionView: this.props.CollectionView,
+            focus: this.focusDocument,
+            parentActive: this.props.active,
+            whenActiveChanged: this.props.whenActiveChanged,
+            bringToFront: this.bringToFront,
+            addDocTab: this.props.addDocTab,
+            zoomToScale: this.zoomToScale,
+            getScale: this.getScale
+        };
+    }
+    getDocumentViewProps(layoutDoc: Doc): DocumentViewProps {
+        return {
+            DataDoc: this.props.DataDoc,
+            Document: this.props.Document,
             addDocument: this.props.addDocument,
             removeDocument: this.props.removeDocument,
             moveDocument: this.props.moveDocument,
@@ -372,7 +394,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             if (Math.round(page) === Math.round(curPage) || page === -1) {
                 let minim = BoolCast(doc.isMinimized, false);
                 if (minim === undefined || !minim) {
-                    prev.push(<CollectionFreeFormDocumentView key={doc[Id]} {...this.getDocumentViewProps(doc)} />);
+                    prev.push(<CollectionFreeFormDocumentView key={doc[Id]} {...this.getChildDocumentViewProps(doc)} />);
                 }
             }
             return prev;
@@ -416,12 +438,13 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     private childViews = () => [
-        <CollectionFreeFormBackgroundView key="backgroundView" {...this.props} {...this.getDocumentViewProps(this.props.Document)} DataDoc={this.props.DataDoc} />,
+        <CollectionFreeFormBackgroundView key="backgroundView" {...this.props} {...this.getDocumentViewProps(this.props.Document)} />,
         ...this.views
     ]
     render() {
         const containerName = `collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`;
         const easing = () => this.props.Document.panTransformType === "Ease";
+
         if (this.props.fieldExt) Doc.UpdateDocumentExtensionForField(this.extensionDoc, this.props.fieldKey);
         return (
             <div className={containerName} ref={this.createDropTarget} onWheel={this.onPointerWheel}

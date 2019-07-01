@@ -1,18 +1,24 @@
-import { action, runInAction, observable } from "mobx";
-import { Doc, DocListCastAsync } from "../../new_fields/Doc";
-import { Cast, StrCast } from "../../new_fields/Types";
+import { action, runInAction } from "mobx";
+import { Doc } from "../../new_fields/Doc";
+import { Cast } from "../../new_fields/Types";
+import { URLField } from "../../new_fields/URLField";
 import { emptyFunction } from "../../Utils";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import * as globalCssVariables from "../views/globalCssVariables.scss";
-import { LinkManager } from "./LinkManager";
-import { URLField } from "../../new_fields/URLField";
-import { SelectionManager } from "./SelectionManager";
-import { Docs, DocUtils } from "../documents/Documents";
 import { DocumentManager } from "./DocumentManager";
-import { Id } from "../../new_fields/FieldSymbols";
+import { LinkManager } from "./LinkManager";
+import { SelectionManager } from "./SelectionManager";
 
 export type dropActionType = "alias" | "copy" | undefined;
-export function SetupDrag(_reference: React.RefObject<HTMLElement>, docFunc: () => Doc | Promise<Doc>, moveFunc?: DragManager.MoveFunction, dropAction?: dropActionType, options?: any, dontHideOnDrop?: boolean) {
+export function SetupDrag(
+    _reference: React.RefObject<HTMLElement>,
+    docFunc: () => Doc | Promise<Doc>,
+    moveFunc?: DragManager.MoveFunction,
+    dropAction?: dropActionType,
+    options?: any,
+    dontHideOnDrop?: boolean,
+    dragStarted?: () => void
+) {
     let onRowMove = async (e: PointerEvent) => {
         e.stopPropagation();
         e.preventDefault();
@@ -20,12 +26,13 @@ export function SetupDrag(_reference: React.RefObject<HTMLElement>, docFunc: () 
         document.removeEventListener("pointermove", onRowMove);
         document.removeEventListener('pointerup', onRowUp);
         let doc = await docFunc();
-        var dragData = new DragManager.DocumentDragData([doc], [doc]);
+        var dragData = new DragManager.DocumentDragData([doc], [undefined]);
         dragData.dropAction = dropAction;
         dragData.moveDocument = moveFunc;
         dragData.options = options;
         dragData.dontHideOnDrop = dontHideOnDrop;
         DragManager.StartDocumentDrag([_reference.current!], dragData, e.x, e.y);
+        dragStarted && dragStarted();
     };
     let onRowUp = (): void => {
         document.removeEventListener("pointermove", onRowMove);
@@ -34,6 +41,7 @@ export function SetupDrag(_reference: React.RefObject<HTMLElement>, docFunc: () 
     let onItemDown = async (e: React.PointerEvent) => {
         if (e.button === 0) {
             e.stopPropagation();
+            e.preventDefault();
             if (e.shiftKey && CollectionDockingView.Instance) {
                 CollectionDockingView.Instance.StartOtherDrag(e, [await docFunc()]);
             } else {
@@ -113,6 +121,8 @@ export namespace DragManager {
         handlers: DragHandlers;
 
         hideSource: boolean | (() => boolean);
+
+        dragHasStarted?: () => void;
 
         withoutShiftDrag?: boolean;
     }
