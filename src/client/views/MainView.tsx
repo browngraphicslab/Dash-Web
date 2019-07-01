@@ -357,6 +357,7 @@ export class MainView extends React.Component {
     @observable isSearchVisible = false;
     @action
     toggleSearch = () => {
+        // console.log("search toggling")
         this.isSearchVisible = !this.isSearchVisible;
     }
 

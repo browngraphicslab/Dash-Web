@@ -108,36 +108,36 @@
 }
 
 .active-filters {
-    position: absolute;
-    width: 20;
-    z-index: 1000;
     display: flex;
-    flex-direction: column;
-    // overflow: visible;
-    // float: right;
-    // float: right;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    width: 100%;
+    margin-right: 30px;
+    position: relative;
 
     .active-icon {
+        max-width: 40px;
+        flex: initial;
+
+        &.icon{
+            width: 40px;
+            text-align: center;
+            margin-bottom: 5px;
+            position: absolute;
+        }
+
         &.container {
             display: flex;
-            flex-direction: row-reverse;
-            height: 50px;
-            margin-top: 10px;
-            margin-bottom: 5px;
-            // position: relative;
-            width: 100;
+            flex-direction: column;
+            width: 40px;
         }
 
         &.description {
-            display: flex;
-            font-size: 10;
             text-align: center;
-            align-items: center;
-            justify-content: center;
-            // position: relative;
-            height: 50px;
-            width: 50px;
-            margin-right: 5px;
+            top: 40px;
+            position: absolute;
+            width: 40px;
+            font-size: 9px;
             opacity: 0;
             -webkit-transition: all 0.2s ease-in-out;
             -moz-transition: all 0.2s ease-in-out;
@@ -151,8 +151,9 @@
     }
 
     .col-icon {
-        height: 50px;
-        width: 50px;
+        height: 35px;
+        margin-left: 5px;
+        width: 35px;
         background-color: black;
         color: white;
         border-radius: 50%;

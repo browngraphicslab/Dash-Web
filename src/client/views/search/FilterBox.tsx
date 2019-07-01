@@ -258,7 +258,7 @@ export class FilterBox extends React.Component {
 
     getABCicon() {
         return (
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 87.8 87.8" height="50">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 87.8 87.8" height="35">
                 <path d="M25.4 47.9c-1.3 1.3-1.9 2.8-1.9 4.8 0 3.8 2.3 6.1 6.1 6.1 5.1 0 8-3.3 9-6.2 0.2-0.7 0.4-1.4 0.4-2.1v-6.1c-0.1 0-0.1 0-0.2 0C32.2 44.5 27.7 45.6 25.4 47.9z" />
                 <path d="M64.5 28.6c-2.2 0-4.1 1.5-4.7 3.8l0 0.2c-0.1 0.3-0.1 0.7-0.1 1.1v3.3c0 0.4 0.1 0.8 0.2 1.1 0.6 2.2 2.4 3.6 4.6 3.6 3.2 0 5.2-2.6 5.2-6.7C69.5 31.8 68 28.6 64.5 28.6z" />
                 <path d="M43.9 0C19.7 0 0 19.7 0 43.9s19.7 43.9 43.9 43.9 43.9-19.6 43.9-43.9S68.1 0 43.9 0zM40.1 65.5l-0.5-4c-3 3.1-7.4 4.9-12.1 4.9 -6.8 0-13.6-4.4-13.6-12.8 0-4 1.3-7.4 4-10 4.1-4.1 11.1-6.2 20.8-6.3 0-5.5-2.9-8.4-8.3-8.4 -3.6 0-7.4 1.1-10.2 2.9l-1.1 0.7 -2.4-6.9 0.7-0.4c3.7-2.4 8.9-3.8 14.1-3.8 10.9 0 16.7 6.2 16.7 17.9V54.6c0 4.1 0.2 7.2 0.7 9.7L49 65.5H40.1zM65.5 67.5c1.8 0 3-0.5 4-0.9l0.5-0.2 0.8 3.4 -0.3 0.2c-1 0.5-3 1.1-5.5 1.1 -5.8 0-9.7-4-9.7-9.9 0-6.1 4.3-10.3 10.4-10.3 2.1 0 4 0.5 4.9 1l0.3 0.2 -1 3.5 -0.5-0.3c-0.7-0.4-1.8-0.8-3.7-0.8 -3.7 0-6.1 2.6-6.1 6.6C59.5 64.8 61.9 67.5 65.5 67.5zM65 45.3c-2.5 0-4.5-0.9-5.9-2.7l-0.1 2.3h-3.8l0-0.5c0.1-1.2 0.2-3.1 0.2-4.8V16.7h4.3v10.8c1.4-1.6 3.5-2.5 6-2.5 2.2 0 4.1 0.8 5.5 2.3 1.8 1.8 2.8 4.5 2.8 7.7C73.8 42.1 69.3 45.3 65 45.3z" />
@@ -268,7 +268,7 @@ export class FilterBox extends React.Component {
 
     getTypeIcon() {
         return (
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 87.8 87.8" height="50">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 87.8 87.8" height="35">
                 <path d="M43.9 0C19.7 0 0 19.7 0 43.9s19.7 43.9 43.9 43.9 43.9-19.6 43.9-43.9S68.1 0 43.9 0zM43.9 12.2c4.1 0 7.5 3.4 7.5 7.5 0 4.1-3.4 7.5-7.5 7.5 -4.1 0-7.5-3.4-7.5-7.5C36.4 15.5 39.7 12.2 43.9 12.2zM11.9 50.4l7.5-13 7.5 13H11.9zM47.6 75.7h-7.5l-3.7-6.5 3.8-6.5h7.5l3.8 6.5L47.6 75.7zM70.7 70.7c-0.2 0.2-0.4 0.3-0.7 0.3s-0.5-0.1-0.7-0.3l-25.4-25.4 -25.4 25.4c-0.2 0.2-0.4 0.3-0.7 0.3s-0.5-0.1-0.7-0.3c-0.4-0.4-0.4-1 0-1.4l25.4-25.4 -25.4-25.4c-0.4-0.4-0.4-1 0-1.4s1-0.4 1.4 0l25.4 25.4 25.4-25.4c0.4-0.4 1-0.4 1.4 0s0.4 1 0 1.4l-25.4 25.4 25.4 25.4C71.1 69.7 71.1 70.3 70.7 70.7zM61.4 51.4v-15h15v15H61.4z" />
             </svg>
         );
@@ -276,7 +276,7 @@ export class FilterBox extends React.Component {
 
     getKeyIcon() {
         return (
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 87.8 87.8" height="50">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 87.8 87.8" height="35">
                 <path d="M38.5 32.4c0 3.4-2.7 6.1-6.1 6.1 -3.4 0-6.1-2.7-6.1-6.1 0-3.4 2.8-6.1 6.1-6.1C35.8 26.3 38.5 29 38.5 32.4zM87.8 43.9c0 24.2-19.6 43.9-43.9 43.9S0 68.1 0 43.9C0 19.7 19.7 0 43.9 0S87.8 19.7 87.8 43.9zM66.8 60.3L50.2 43.7c-0.5-0.5-0.6-1.2-0.4-1.8 2.4-5.6 1.1-12.1-3.2-16.5 -5.9-5.8-15.4-5.8-21.2 0l0 0c-4.3 4.3-5.6 10.8-3.2 16.5 3.2 7.6 12 11.2 19.7 8 0.6-0.3 1.4-0.1 1.8 0.4l3.1 3.1h3.9c1.2 0 2.2 1 2.2 2.2v3.6h3.6c1.2 0 2.2 1 2.2 2.2v4l1.6 1.6h6.5V60.3z" />
             </svg>
         );
@@ -285,7 +285,7 @@ export class FilterBox extends React.Component {
     getColIcon() {
         return (
             <div className="col-icon">
-                <FontAwesomeIcon icon={faObjectGroup} size="2x" />
+                <FontAwesomeIcon icon={faObjectGroup} size="lg" />
             </div>
         );
     }
@@ -301,7 +301,7 @@ export class FilterBox extends React.Component {
     @action.bound
     handleWordQueryChange = () => { this._basicWordStatus = !this._basicWordStatus; }
 
-    @action
+    @action.bound
     getBasicWordStatus() { return this._basicWordStatus; }
 
     @action.bound
@@ -357,6 +357,31 @@ export class FilterBox extends React.Component {
     getAuthorStatus() { return this._authorFieldStatus; }
     getDataStatus() { return this._dataFieldStatus; }
 
+    getActiveFilters() {
+        console.log(this._authorFieldStatus, this._titleFieldStatus, this._dataFieldStatus);
+        return (
+            <div className="active-filters">
+                {!this._basicWordStatus ? <div className="active-icon container">
+                    <div className="active-icon icon">{this.getABCicon()}</div>
+                    <div className="active-icon description">Required Words Applied</div>
+                </div> : undefined}
+                {!(this._icons.length === 9) ? <div className="active-icon container">
+                    <div className="active-icon icon">{this.getTypeIcon()}</div>
+                    <div className="active-icon description">Type Filters Applied</div>
+                </div> : undefined}
+                {!(this._authorFieldStatus && this._dataFieldStatus && this._titleFieldStatus) ?
+                    <div className="active-icon container">
+                        <div className="active-icon icon">{this.getKeyIcon()}</div>
+                        <div className="active-icon description">Field Filters Applied</div>
+                    </div> : undefined}
+                {this._collectionStatus ? <div className="active-icon container">
+                    <div className="active-icon icon">{this.getColIcon()}</div>
+                    <div className="active-icon description">Collection Filters Active</div>
+                </div> : undefined}
+            </div>
+        )
+    }
+
     // Useful queries:
     // Delegates of a document: {!join from=id to=proto_i}id:{protoId}
     // Documents in a collection: {!join from=data_l to=id}id:{collectionProtoId} //id of collections prototype
@@ -365,6 +390,7 @@ export class FilterBox extends React.Component {
             <div>
                 <div style={{ display: "flex", flexDirection: "row-reverse" }}>
                     <SearchBox />
+                    {this.getActiveFilters()}
                 </div>
                 {this._filterOpen ? (
                     <div className="filter-form" onPointerDown={this.stopProp} id="filter-form" style={this._filterOpen ? { display: "flex" } : { display: "none" }}>
@@ -419,24 +445,7 @@ export class FilterBox extends React.Component {
                         </div>
                     </div>
                 ) :
-                    <div className="active-filters">
-                        <div className = "active-icon container">
-                            <div className="active-icon icon">{this.getABCicon()}</div>
-                            <div className="active-icon description">Required Words Applied</div>
-                        </div>
-                        <div className = "active-icon container">
-                            <div className="active-icon icon">{this.getTypeIcon()}</div>
-                            <div className="active-icon description">Type Filters Applied</div>
-                        </div>
-                        <div className = "active-icon container">
-                            <div className="active-icon icon">{this.getKeyIcon()}</div>
-                            <div className="active-icon description">Field Filters Applied</div>
-                        </div>
-                        <div className = "active-icon container">
-                            <div className="active-icon icon">{this.getColIcon()}</div>
-                            <div className="active-icon description">Collection Filters Active</div>
-                        </div>
-                    </div>}
+                    undefined}
             </div>
         );
     }

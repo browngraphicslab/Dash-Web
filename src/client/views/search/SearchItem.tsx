@@ -82,12 +82,50 @@ export class SelectorContextMenu extends React.Component<SearchItemProps> {
                             SetupDrag(item, () => doc.col, undefined, undefined, undefined, undefined, () => SearchBox.Instance.closeSearch())}>
                             <FontAwesomeIcon icon={faStickyNote} />
                         </div>
-                        <a className="title" onClick={this.getOnClick(doc)}>{doc.col.title}</a>
+                        <a onClick={this.getOnClick(doc)}>{doc.col.title}</a>
                     </div>;
                 })}
             </div>
         );
     }
+}
+
+export interface LinkMenuProps {
+    doc1: Doc;
+    doc2: Doc;
+}
+
+@observer
+export class LinkContextMenu extends React.Component<LinkMenuProps> {
+
+    highlightDoc = (doc: Doc) => {
+        return () => {
+            doc.libraryBrush = true;
+        };
+    }
+
+    unHighlightDoc = (doc: Doc) => {
+        return () => {
+            doc.libraryBrush = false;
+        };
+    }
+
+    getOnClick(col: Doc) {
+        return () => {
+            CollectionDockingView.Instance.AddRightSplit(col, undefined);
+        };
+    }
+
+    render() {
+        return (
+            <div className="parents">
+                <p className="contexts">Anchors:</p>
+                <div className = "collection"><a onMouseEnter = {this.highlightDoc(this.props.doc1)} onMouseLeave = {this.unHighlightDoc(this.props.doc1)} onClick = {this.getOnClick(this.props.doc1)}>Doc 1: {this.props.doc2.title}</a></div>
+                <div><a onMouseEnter = {this.highlightDoc(this.props.doc2)} onMouseLeave = {this.unHighlightDoc(this.props.doc2)} onClick = {this.getOnClick(this.props.doc2)}>Doc 2: {this.props.doc1.title}</a></div>
+            </div>
+        )
+    }
+
 }
 
 @observer
@@ -244,7 +282,8 @@ export class SearchItem extends React.Component<SearchItemProps> {
                     </div>
                 </div>
                 <div className="searchBox-instances">
-                    <SelectorContextMenu {...this.props} />
+                    {this.props.doc.type === DocTypes.LINK ? <LinkContextMenu doc1 = {Cast(this.props.doc.anchor1, Doc, new Doc())} doc2 = {Cast(this.props.doc.anchor2, Doc, new Doc())}/> : 
+                    <SelectorContextMenu {...this.props} /> }
                 </div>
             </div>
         );

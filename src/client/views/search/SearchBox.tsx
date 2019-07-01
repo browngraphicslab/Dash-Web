@@ -168,7 +168,6 @@ export class SearchBox extends React.Component {
 
     @action.bound
     closeSearch = () => {
-        console.log("closing search");
         FilterBox.Instance.closeFilter();
         this.closeResults();
     }
@@ -198,7 +197,7 @@ export class SearchBox extends React.Component {
                         this._openNoResults ? (<div className="no-result">No Search Results</div>) : null}
                 </div>
                 <div style={this._results.length !== 0 ? { display: "flex" } : { display: "none" }}>
-                    <Pager />
+                    {/* <Pager /> */}
                 </div>
             </div>
         );
