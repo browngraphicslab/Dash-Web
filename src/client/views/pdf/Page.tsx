@@ -52,7 +52,7 @@ export default class Page extends React.Component<IPageProps> {
     private _textLayer: React.RefObject<HTMLDivElement>;
     private _annotationLayer: React.RefObject<HTMLDivElement>;
     private _marquee: React.RefObject<HTMLDivElement>;
-    private _curly: React.RefObject<HTMLImageElement>;
+    // private _curly: React.RefObject<HTMLImageElement>;
     private _marqueeing: boolean = false;
     private _reactionDisposer?: IReactionDisposer;
 
@@ -62,7 +62,7 @@ export default class Page extends React.Component<IPageProps> {
         this._textLayer = React.createRef();
         this._annotationLayer = React.createRef();
         this._marquee = React.createRef();
-        this._curly = React.createRef();
+        // this._curly = React.createRef();
     }
 
     componentDidMount = (): void => {
@@ -244,9 +244,9 @@ export default class Page extends React.Component<IPageProps> {
                 this._marqueeWidth = (e.clientX - boundingRect.left) * (current.offsetWidth / boundingRect.width) - this._marqueeX;
                 this._marqueeHeight = (e.clientY - boundingRect.top) * (current.offsetHeight / boundingRect.height) - this._marqueeY;
                 let { background, opacity, transform: transform } = this.getCurlyTransform();
-                if (this._marquee.current && this._curly.current) {
+                if (this._marquee.current /*&& this._curly.current*/) {
                     this._marquee.current.style.background = background;
-                    this._curly.current.style.opacity = opacity;
+                    // this._curly.current.style.opacity = opacity;
                     this._rotate = transform;
                 }
             }
@@ -259,33 +259,33 @@ export default class Page extends React.Component<IPageProps> {
     }
 
     getCurlyTransform = (): { background: string, opacity: string, transform: string } => {
-        let background = "", opacity = "", transform = "";
-        if (this._marquee.current && this._curly.current) {
-            if (this._marqueeWidth > 100 && this._marqueeHeight > 100) {
-                background = "red";
-                opacity = "0";
-            }
-            else {
-                background = "transparent";
-                opacity = "1";
-            }
+        // let background = "", opacity = "", transform = "";
+        // if (this._marquee.current && this._curly.current) {
+        //     if (this._marqueeWidth > 100 && this._marqueeHeight > 100) {
+        //         background = "red";
+        //         opacity = "0";
+        //     }
+        //     else {
+        //         background = "transparent";
+        //         opacity = "1";
+        //     }
 
-            // split up for simplicity, could be done in a nested ternary. please do not. -syip2
-            let ratio = this._marqueeWidth / this._marqueeHeight;
-            if (ratio > 1.5) {
-                // vertical
-                transform = "rotate(90deg) scale(1, 5)";
-            }
-            else if (ratio < 0.5) {
-                // horizontal
-                transform = "scale(2, 1)";
-            }
-            else {
-                // diagonal
-                transform = "rotate(45deg) scale(1.5, 1.5)";
-            }
-        }
-        return { background: background, opacity: opacity, transform: transform };
+        //     // split up for simplicity, could be done in a nested ternary. please do not. -syip2
+        //     let ratio = this._marqueeWidth / this._marqueeHeight;
+        //     if (ratio > 1.5) {
+        //         // vertical
+        //         transform = "rotate(90deg) scale(1, 5)";
+        //     }
+        //     else if (ratio < 0.5) {
+        //         // horizontal
+        //         transform = "scale(2, 1)";
+        //     }
+        //     else {
+        //         // diagonal
+        //         transform = "rotate(45deg) scale(1.5, 1.5)";
+        //     }
+        // }
+        return { background: "red", opacity: "0.5", transform: "" };
     }
 
     @action
@@ -305,16 +305,17 @@ export default class Page extends React.Component<IPageProps> {
                 let { background, opacity, transform } = this.getCurlyTransform();
                 copy.style.background = background;
                 // if curly bracing, add a curly brace
-                if (opacity === "1" && this._curly.current) {
-                    copy.style.opacity = opacity;
-                    let img = this._curly.current.cloneNode();
-                    (img as any).style.opacity = opacity;
-                    (img as any).style.transform = transform;
-                    copy.appendChild(img);
-                }
-                else {
-                    copy.style.opacity = style.opacity;
-                }
+                // if (opacity === "1" && this._curly.current) {
+                //     copy.style.opacity = opacity;
+                //     let img = this._curly.current.cloneNode();
+                //     (img as any).style.opacity = opacity;
+                //     (img as any).style.transform = transform;
+                //     copy.appendChild(img);
+                // }
+                // else {
+                copy.style.border = style.border;
+                copy.style.opacity = style.opacity;
+                // }
                 copy.className = this._marquee.current.className;
                 this.props.createAnnotation(copy, this.props.page);
                 this._marquee.current.style.opacity = "0";
@@ -401,8 +402,8 @@ export default class Page extends React.Component<IPageProps> {
                 </div>
                 <div className="pdfInkingLayer-cont" ref={this._annotationLayer} style={{ width: "100%", height: "100%", position: "relative", top: "-100%" }}>
                     <div className="pdfViewer-annotationBox" ref={this._marquee}
-                        style={{ left: `${this._marqueeX}px`, top: `${this._marqueeY}px`, width: `${this._marqueeWidth}px`, height: `${this._marqueeHeight}px`, background: "transparent" }}>
-                        <img ref={this._curly} src="https://static.thenounproject.com/png/331760-200.png" style={{ width: "100%", height: "100%", transform: `${this._rotate}` }} />
+                        style={{ left: `${this._marqueeX}px`, top: `${this._marqueeY}px`, width: `${this._marqueeWidth}px`, height: `${this._marqueeHeight}px`, background: "red", border: "10px dashed white" }}>
+                        {/* <img ref={this._curly} src="https://static.thenounproject.com/png/331760-200.png" style={{ width: "100%", height: "100%", transform: `${this._rotate}` }} /> */}
                     </div>
                 </div>
                 <div className="textlayer" ref={this._textLayer} style={{ "position": "relative", "top": `-${2 * this._height}px`, "height": `${this._height}px` }} />

@@ -137,7 +137,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
                     width: this.props.width * scale,
                     height: this.props.height * scale,
                     pointerEvents: "all",
-                    backgroundColor: this.props.parent.Index === this.props.index ? "goldenrod" : StrCast(this.props.document.color)
+                    backgroundColor: this.props.parent.Index === this.props.index ? "green" : StrCast(this.props.document.color)
                 }}></div>
         );
     }
