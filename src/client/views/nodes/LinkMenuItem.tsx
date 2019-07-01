@@ -87,12 +87,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         if (this._drag.current !== null && (e.movementX > 1 || e.movementY > 1)) {
             document.removeEventListener("pointermove", this.onLinkButtonMoved);
             document.removeEventListener("pointerup", this.onLinkButtonUp);
-
-            // if (DocumentManager.Instance.getDocumentView(this.props.sourceDoc)) {
-            //     DragLinkAsDocument(this._drag.current, e.x, e.y, this.props.linkDoc, this.props.sourceDoc, DocumentManager.Instance.getDocumentView(this.props.sourceDoc)!.props.moveDocument);
-            // } else {
             DragLinkAsDocument(this._drag.current, e.x, e.y, this.props.linkDoc, this.props.sourceDoc);
-            // }
         }
         e.stopPropagation();
     }

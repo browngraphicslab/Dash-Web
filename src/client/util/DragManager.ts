@@ -53,13 +53,20 @@ export function SetupDrag(
     return onItemDown;
 }
 
-export async function DragLinkAsDocument(dragEle: HTMLElement, x: number, y: number, linkDoc: Doc, sourceDoc: Doc, moveDocument?: DragManager.MoveFunction) {
+function moveLinkedDocument(doc: Doc, targetCollection: Doc, addDocument: (doc: Doc) => boolean): boolean {
+    const document = SelectionManager.SelectedDocuments()[0];
+    document.props.removeDocument && document.props.removeDocument(doc);
+    addDocument(doc);
+    return true;
+}
+
+export async function DragLinkAsDocument(dragEle: HTMLElement, x: number, y: number, linkDoc: Doc, sourceDoc: Doc) {
     let draggeddoc = LinkManager.Instance.getOppositeAnchor(linkDoc, sourceDoc);
     if (draggeddoc) {
         let moddrag = await Cast(draggeddoc.annotationOn, Doc);
         let dragdocs = moddrag ? [moddrag] : [draggeddoc];
         let dragData = new DragManager.DocumentDragData(dragdocs, dragdocs);
-        dragData.moveDocument = moveDocument;
+        dragData.moveDocument = moveLinkedDocument;
         DragManager.StartLinkedDocumentDrag([dragEle], dragData, x, y, {
             handlers: {
                 dragComplete: action(emptyFunction),
@@ -69,7 +76,7 @@ export async function DragLinkAsDocument(dragEle: HTMLElement, x: number, y: num
     }
 }
 
-export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: number, sourceDoc: Doc, moveDocument?: DragManager.MoveFunction) {
+export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: number, sourceDoc: Doc) {
     let srcTarg = sourceDoc.proto;
     let draggedDocs: Doc[] = [];
 
@@ -90,12 +97,12 @@ export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: n
         }
         let dragdocs = moddrag.length ? moddrag : draggedDocs;
         let dragData = new DragManager.DocumentDragData(dragdocs, dragdocs);
-        dragData.moveDocument = moveDocument;
+        dragData.moveDocument = moveLinkedDocument;
         DragManager.StartLinkedDocumentDrag([dragEle], dragData, x, y, {
             handlers: {
                 dragComplete: action(emptyFunction),
             },
-            hideSource: true
+            hideSource: false
         });
     }
 }
@@ -226,23 +233,7 @@ export namespace DragManager {
     }
 
     export function StartLinkedDocumentDrag(eles: HTMLElement[], dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
-
-        // runInAction(() => StartDragFunctions.map(func => func()));
-        // StartDrag(eles, dragData, downX, downY, options,
-        //     (dropData: { [id: string]: any }) => {
-        //         (dropData.droppedDocuments = dragData.draggedDocuments);
-        //     });
-
-        // runInAction(() => StartDragFunctions.map(func => func()));
-        // StartDrag(eles, dragData, downX, downY, options,
-        //     (dropData: { [id: string]: any }) => {
-        //         (dropData.droppedDocuments = dragData.userDropAction === "alias" || (!dragData.userDropAction && dragData.dropAction === "alias") ?
-        //             dragData.draggedDocuments.map(d => Doc.MakeAlias(d)) :
-        //             dragData.userDropAction === "copy" || (!dragData.userDropAction && dragData.dropAction === "copy") ?
-        //                 dragData.draggedDocuments.map(d => Doc.MakeCopy(d, true)) :
-        //                 dragData.draggedDocuments
-        //         );
-        //     });
+        dragData.moveDocument = moveLinkedDocument;
 
         runInAction(() => StartDragFunctions.map(func => func()));
         StartDrag(eles, dragData, downX, downY, options,

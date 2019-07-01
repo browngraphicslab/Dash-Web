@@ -5,7 +5,7 @@ import { Doc } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
 import { listSpec } from '../../../new_fields/Schema';
-import { BoolCast, Cast, NumCast, PromiseValue } from '../../../new_fields/Types';
+import { BoolCast, Cast, NumCast, PromiseValue, StrCast } from '../../../new_fields/Types';
 import { DocumentManager } from '../../util/DocumentManager';
 import { SelectionManager } from '../../util/SelectionManager';
 import { ContextMenu } from '../ContextMenu';
@@ -116,12 +116,16 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
 
     @action.bound
     moveDocument(doc: Doc, targetCollection: Doc, addDocument: (doc: Doc) => boolean): boolean {
+        console.log(StrCast(doc.title), StrCast(targetCollection.title));
         if (Doc.AreProtosEqual(this.dataDoc, targetCollection)) {
+            console.log("protos equal", StrCast(this.dataDoc.title), StrCast(targetCollection.title));
             return true;
         }
         if (this.removeDocument(doc)) {
+            console.log("has remove");
             return addDocument(doc);
         }
+        console.log("return false");
         return false;
     }
 
