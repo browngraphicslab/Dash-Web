@@ -108,7 +108,27 @@ class LinkMetadataEditor extends React.Component<LinkMetadataEditorProps> {
             return StrCast(key).toUpperCase() === this._key.toUpperCase();
         });
         if (currIndex === -1) console.error("LinkMetadataEditor: key was not found");
-        groupMdKeys[currIndex] = value;
+
+        // if empty string, delete empty kvp
+        if (value === "") {
+            console.log(this._key, StrCast(this.props.mdDoc[this._key]));
+
+            // if (StrCast(this.props.mdDoc[this._key]) === "") {
+            //     console.log("deleting", this._key, StrCast(this.props.mdDoc[this._key]), ...groupMdKeys);
+            //     groupMdKeys.splice(currIndex, 1);
+            //     console.log(...groupMdKeys);
+            // } else {
+            this._keyError = true;
+            this._key = value;
+            return;
+            // }
+        } else {
+            this._keyError = false;
+            groupMdKeys[currIndex] = value;
+            let oldVal = this.props.mdDoc[this._key];
+            this.props.mdDoc[this._key] = undefined;
+            this.props.mdDoc[value] = oldVal;
+        }
 
         this.props.changeMdIdKey(this.props.id, value);
         this._key = value;
@@ -117,10 +137,11 @@ class LinkMetadataEditor extends React.Component<LinkMetadataEditorProps> {
 
     @action
     setMetadataValue = (value: string): void => {
-        if (!this._keyError) {
-            this._value = value;
-            this.props.mdDoc[this._key] = value;
-        }
+        // if (!this._keyError) {
+        this._value = value;
+        this.props.mdDoc[this._key] = value;
+        console.log("setting val", this._key, value, StrCast(this.props.mdDoc[this._key]));
+        // }
     }
 
     @action
@@ -224,12 +245,14 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
 
     @action
     addMetadata = (groupType: string): void => {
-        this._metadataIds.set("new key", Utils.GenerateGuid());
+        UndoManager.RunInBatch(() => {
+            this._metadataIds.set("new key", Utils.GenerateGuid());
 
-        // only add "new key" if there is no other key with value "new key"; prevents spamming
-        let mdKeys = LinkManager.Instance.getMetadataKeysInGroup(groupType);
-        if (mdKeys.indexOf("new key") === -1) mdKeys.push("new key");
-        LinkManager.Instance.setMetadataKeysForGroup(groupType, mdKeys);
+            // only add "new key" if there is no other key with value "new key"; prevents spamming
+            let mdKeys = LinkManager.Instance.getMetadataKeysInGroup(groupType);
+            if (mdKeys.indexOf("new key") === -1) mdKeys.push("new key");
+            LinkManager.Instance.setMetadataKeysForGroup(groupType, mdKeys);
+        }, "add metadata key to link relationship");
     }
 
     // for key rendering purposes
@@ -246,6 +269,12 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         let groupType = StrCast(groupDoc.type);
         let groupMdKeys = LinkManager.Instance.getMetadataKeysInGroup(groupType);
 
+        if (groupType !== "" && groupMdKeys.indexOf("new key") === -1) {
+            this._metadataIds.set("new key", Utils.GenerateGuid());
+            groupMdKeys.push("new key");
+            LinkManager.Instance.setMetadataKeysForGroup(groupType, groupMdKeys);
+        }
+
         groupMdKeys.forEach((key) => {
             let val = StrCast(mdDoc[key]);
             metadata.push(
@@ -256,22 +285,10 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         return metadata;
     }
 
-    viewGroupAsTable = (groupType: string): JSX.Element => {
-        let keys = LinkManager.Instance.getMetadataKeysInGroup(groupType);
-        let index = keys.indexOf("");
-        if (index > -1) keys.splice(index, 1);
-        let cols = ["anchor1", "anchor2", "direction", ...[...keys]];
-        let docs: Doc[] = LinkManager.Instance.getAllMetadataDocsInGroup(groupType);
-
-        let createTable = action(() => Docs.SchemaDocument(cols, docs, { width: 500, height: 300, title: groupType + " table" }));
-        let ref = React.createRef<HTMLDivElement>();
-        return <div ref={ref}><button className="linkEditor-button" onPointerDown={SetupDrag(ref, createTable)} title="Drag to view relationship table"><FontAwesomeIcon icon="table" size="sm" /></button></div>;
-    }
-
     @action
-    setDirection = (direction: LinkDirection): void => {
-        switch (direction) {
-            case LinkDirection.Uni: {
+    toggleDirection = (): void => {
+        switch (this._direction) {
+            case LinkDirection.Bi: {
                 let destDoc = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
                 let sourceGroupDoc = LinkManager.Instance.getAnchorGroupDoc(this.props.linkDoc, this.props.sourceDoc);
                 if (destDoc && sourceGroupDoc) {
@@ -285,7 +302,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                 this._direction = LinkDirection.Uni;
                 break;
             }
-            case LinkDirection.Bi: {
+            case LinkDirection.Uni: {
                 let destDoc = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
                 let sourceGroupDoc = LinkManager.Instance.getAnchorGroupDoc(this.props.linkDoc, this.props.sourceDoc);
                 if (destDoc && sourceGroupDoc) {
@@ -310,17 +327,15 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         if (groupType === "") {
             buttons = (
                 <>
-                    <button className="linkEditor-button" disabled={true} title="Add KVP"><FontAwesomeIcon icon="plus" size="sm" /></button>
+                    {/* <button className="linkEditor-button" disabled={true} title="Add KVP"><FontAwesomeIcon icon="plus" size="sm" /></button> */}
                     <button className="linkEditor-button" disabled title="Clear relationship from link"><FontAwesomeIcon icon="times" size="sm" /></button>
-                    <button className="linkEditor-button" disabled title="Drag to view relationship table"><FontAwesomeIcon icon="table" size="sm" /></button>
                 </>
             );
         } else {
             buttons = (
                 <>
-                    <button className="linkEditor-button" onClick={() => this.addMetadata(groupType)} title="Add KVP"><FontAwesomeIcon icon="plus" size="sm" /></button>
+                    {/* <button className="linkEditor-button" onClick={() => this.addMetadata(groupType)} title="Add KVP"><FontAwesomeIcon icon="plus" size="sm" /></button> */}
                     <button className="linkEditor-button" onClick={() => this.removeGroupFromLink()} title="Clear relationship from link"><FontAwesomeIcon icon="times" size="sm" /></button>
-                    {this.viewGroupAsTable(groupType)}
                 </>
             );
         }
@@ -335,11 +350,12 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                 <div className="linkEditor-group">
                     <div className="linkEditor-group-row linkEditor-direction">
                         <p className="linkEditor-group-row-label">Direction: </p>
-                        <p>{this._direction === LinkDirection.Uni ? "one-way" : "shared"}</p>
+                        <button className="linkEditor-directionButton" onClick={() => this.toggleDirection()}>{this._direction === LinkDirection.Uni ? "one-way" : "shared"}</button>
+                        {/* <p>{this._direction === LinkDirection.Uni ? "one-way" : "shared"}</p>
                         <button className={this._direction === LinkDirection.Uni ? "linkEditor-button linkEditor-button-active" : "linkEditor-button linkEditor-button-inactive"}
                             onClick={() => this.setDirection(LinkDirection.Bi)} title="Click to make this link bidirectional"><FontAwesomeIcon icon="long-arrow-alt-right" size="sm" /></button>
                         <button className={this._direction === LinkDirection.Bi ? "linkEditor-button linkEditor-button-active" : "linkEditor-button linkEditor-button-inactive"}
-                            onClick={() => this.setDirection(LinkDirection.Uni)} title="Click to make this link unidirectional"><FontAwesomeIcon icon="exchange-alt" size="sm" /></button>
+                            onClick={() => this.setDirection(LinkDirection.Uni)} title="Click to make this link unidirectional"><FontAwesomeIcon icon="exchange-alt" size="sm" /></button> */}
                     </div>
                     <div className="linkEditor-group-row">
                         <p className="linkEditor-group-row-label">Relationship:</p>
