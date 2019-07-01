@@ -31,6 +31,11 @@
         background: $intermediate-color;
     }
 
+    .unselection {
+        visibility: hidden;
+
+    }
+
     .window {
         pointer-events: none;
     }
