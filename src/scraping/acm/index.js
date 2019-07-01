@@ -17,15 +17,32 @@ function log_read(content) {
     process.stdout.write("reading " + content + "...");
 }
 
-function log_snippet(result) {
-    let ellipse = result.length > sample_line_char_max;
-    let i = sample_line_char_max;
-    if (ellipse) {
-        while (result[i] != " " && i < -1) {
-            i--;
-        }
+function log_snippet(result, quotes = true) {
+    let snippet = "failed to create snippet";
+    switch (typeof result) {
+        case "string":
+            let ellipse = result.length > sample_line_char_max;
+            let i = sample_line_char_max;
+            if (ellipse) {
+                while (result[i] != " " && i < -1) {
+                    i--;
+                }
+            }
+            snippet = `${result.substring(0, i + 1).trim()}${ellipse ? "..." : ""}`;
+            snippet = quotes ? `"${snippet}"` : snippet;
+            break;
+        case "object":
+            snippet = result.map(res => {
+                switch (typeof res) {
+                    case "string":
+                        return res.substring(0, sample_line_char_max / result.length);
+                    case "object":
+                        return res[Object.keys(res)[0]];
+                }
+            }).join(', ');
     }
-    console.log(` "${result.substring(0, i + 1).trim()}${ellipse ? "..." : ""}"`);
+    console.log(snippet);
+    return result;
 }
 
 // DRIVER UTILITY FUNCTIONS
@@ -35,40 +52,41 @@ async function navigate_to(url) {
     await driver.sleep(driver_pause);
 }
 
-async function click_on(xpath) {
-    await driver.findElement(By.xpath(xpath)).click();
+async function click_on(ref) {
+    await (await locate(ref)).click();
     await driver.sleep(driver_pause);
+}
+
+async function locate(ref, multiple = false) {
+    let locator = ref.startsWith("//") ? By.xpath(ref) : By.id(ref);
+    return await multiple ? driver.findElements(locator) : driver.findElement(locator);
+}
+
+async function text_of(ref) {
+    let element = await locate(ref);
+    return await element.getText();
+}
+
+async function text_of_all(ref) {
+    let elements = await locate(ref, true);
+    let results = [];
+    for (let element of elements) {
+        results.push(await element.getText());
+    }
+    return results;
+}
+
+async function logged_assign(key, value) {
+    log_read(key);
+    result[key] = log_snippet(value);
 }
 
 // TEXT SCRAPING
 
-async function read_title() {
-    log_read("title");
-    let title_el = await driver.findElement(By.xpath('//*[@id="divmain"]/div/h1'));
-    let title = await title_el.getText();
-    log_snippet(title);
-    return title;
-}
-
-async function read_abstract() {
-    log_read("abstract");
-    let lines = [];
-    let webElements = await driver.findElements(By.id("abstract-body"));
-    for (let el of webElements) {
-        let text = await el.getText();
-        lines.push(text);
-    }
-    let abstract = lines.join(" ");
-    log_snippet(abstract);
-    return abstract;
-}
-
 async function read_authors() {
-    log_read("authors");
     await click_on('//*[@id="tab-1014-btnInnerEl"]/span');
 
-    let authors_el = await driver.findElement(By.xpath('//*[@id="tabpanel-1009-body"]'));
-    let authors = await authors_el.getText();
+    let authors = await text_of('//*[@id="tabpanel-1009-body"]');
     let sanitize = line => line.length > 0 && !(line.startsWith("No contact information") || line.startsWith("View colleagues of") || line.startsWith("Bibliometrics:"));
     let author_lines = authors.split("\n").map(line => line.trim()).filter(sanitize);
 
@@ -85,8 +103,6 @@ async function read_authors() {
         i++;
     }
 
-    let multiple = all_authors.length == 1 ? "" : " et al.";
-    log_snippet(all_authors[0][0] + multiple);
     return all_authors;
 }
 
@@ -113,6 +129,7 @@ function parse_authors(metadata) {
 }
 
 function write_results() {
+    console.log();
     let output = "";
     results.forEach(res => output += (JSON.stringify(res, null, 4) + "\n"));
 
@@ -129,29 +146,29 @@ async function scrape_targets(error, data) {
 
     let references = data.split("\n").map(entry => entry.replace("\r", "")).filter(line => line.match(/\d+/g));
     let quota = references.length;
-    console.log(`${references.join(", ")}\n`);
+    log_snippet(`found ${quota} references to scrape`, false);
 
     driver = await new Builder().forBrowser(target_browser).build();
 
     for (let i = 0; i < quota; i++) {
-        let result = {};
-
         try {
-            let url = `https://dl.acm.org/citation.cfm?id=${references[i]}`;
-            await navigate_to(url);
-            console.log(`scraping ${i + 1}/${quota} (${url})`);
+            result = {};
 
-            result.url = url;
-            result.title = await read_title();
-            result.abstract = await read_abstract();
-            result.authors = (await read_authors()).map(parse_authors);
+            let id = references[i];
+            let url = `https://dl.acm.org/citation.cfm?id=${id}`;
+            console.log(`\nscraping ${i + 1}/${quota} (${id})`);
+            await navigate_to(url);
+
+            logged_assign("url", url);
+            logged_assign("title", await text_of('//*[@id="divmain"]/div/h1'));
+            logged_assign("abstract", (await text_of_all("abstract-body")).join(" "));
+            logged_assign("authors", (await read_authors()).map(parse_authors));
         } catch (e) {
             console.log(e);
             await driver.quit();
         }
 
         results.push(result);
-        console.log();
     }
 
     write_results();
@@ -161,7 +178,10 @@ async function scrape_targets(error, data) {
 
 let driver;
 let results = [];
-console.log("reading references...");
+let result = {};
+
+log_read("target references");
+
 readFile("./citations.txt", {
     encoding: "utf8"
 }, scrape_targets);
