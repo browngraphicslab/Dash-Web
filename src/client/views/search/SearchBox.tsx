@@ -15,7 +15,6 @@ import { Id } from '../../../new_fields/FieldSymbols';
 import { SearchUtil } from '../../util/SearchUtil';
 import { RouteStore } from '../../../server/RouteStore';
 import { FilterBox } from './FilterBox';
-import { Pager } from './Pager';
 
 @observer
 export class SearchBox extends React.Component {
@@ -169,7 +168,6 @@ export class SearchBox extends React.Component {
 
     @action.bound
     closeSearch = () => {
-        console.log("closing search");
         FilterBox.Instance.closeFilter();
         this.closeResults();
     }
@@ -198,9 +196,9 @@ export class SearchBox extends React.Component {
                     ) :
                         this._openNoResults ? (<div className="no-result">No Search Results</div>) : null}
                 </div>
-                {/* <div style={this._results.length !== 0 ? { display: "flex" } : { display: "none" }}>
-                    <Pager />
-                </div> */}
+                <div style={this._results.length !== 0 ? { display: "flex" } : { display: "none" }}>
+                    {/* <Pager /> */}
+                </div>
             </div>
         );
     }

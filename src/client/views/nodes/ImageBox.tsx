@@ -20,6 +20,8 @@ import { positionSchema } from './DocumentView';
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
 import React = require("react");
+import { RouteStore } from '../../../server/RouteStore';
+var requestImageSize = require('../../util/request-image-size');
 var path = require('path');
 
 
@@ -27,7 +29,7 @@ library.add(faImage);
 
 
 export const pageSchema = createSchema({
-    curPage: "number"
+    curPage: "number",
 });
 
 type ImageDocument = makeInterface<[typeof pageSchema, typeof positionSchema]>;
@@ -41,7 +43,6 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     private _downX: number = 0;
     private _downY: number = 0;
     private _lastTap: number = 0;
-    @observable private _photoIndex: number = 0;
     @observable private _isOpen: boolean = false;
     private dropDisposer?: DragManager.DragDropDisposer;
 
@@ -115,20 +116,21 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         e.stopPropagation();
     }
 
+    @action
     lightbox = (images: string[]) => {
         if (this._isOpen) {
             return (<Lightbox
-                mainSrc={images[this._photoIndex]}
-                nextSrc={images[(this._photoIndex + 1) % images.length]}
-                prevSrc={images[(this._photoIndex + images.length - 1) % images.length]}
+                mainSrc={images[this.Document.curPage || 0]}
+                nextSrc={images[((this.Document.curPage || 0) + 1) % images.length]}
+                prevSrc={images[((this.Document.curPage || 0) + images.length - 1) % images.length]}
                 onCloseRequest={action(() =>
                     this._isOpen = false
                 )}
                 onMovePrevRequest={action(() =>
-                    this._photoIndex = (this._photoIndex + images.length - 1) % images.length
+                    this.Document.curPage = ((this.Document.curPage || 0) + images.length - 1) % images.length
                 )}
                 onMoveNextRequest={action(() =>
-                    this._photoIndex = (this._photoIndex + 1) % images.length
+                    this.Document.curPage = ((this.Document.curPage || 0) + 1) % images.length
                 )}
             />);
         }
@@ -160,7 +162,6 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
 
     @action
     onDotDown(index: number) {
-        this._photoIndex = index;
         this.Document.curPage = index;
     }
 
@@ -170,7 +171,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         let left = (nativeWidth - paths.length * dist) / 2;
         return paths.map((p, i) =>
             <div className="imageBox-placer" key={i} >
-                <div className="imageBox-dot" style={{ background: (i === this._photoIndex ? "black" : "gray"), transform: `translate(${i * dist + left}px, 0px)` }} onPointerDown={(e: React.PointerEvent) => { e.stopPropagation(); this.onDotDown(i); }} />
+                <div className="imageBox-dot" style={{ background: (i === this.Document.curPage ? "black" : "gray"), transform: `translate(${i * dist + left}px, 0px)` }} onPointerDown={(e: React.PointerEvent) => { e.stopPropagation(); this.onDotDown(i); }} />
             </div>
         );
     }
@@ -199,6 +200,22 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         }
     }
     _curSuffix = "_m";
+
+    resize(srcpath: string, layoutdoc: Doc) {
+        requestImageSize(window.origin + RouteStore.corsProxy + "/" + srcpath)
+            .then((size: any) => {
+                let aspect = size.height / size.width;
+                if (Math.abs(layoutdoc[HeightSym]() / layoutdoc[WidthSym]() - aspect) > 0.01) {
+                    setTimeout(action(() => {
+                        layoutdoc.height = layoutdoc[WidthSym]() * aspect;
+                        layoutdoc.nativeHeight = size.height;
+                        layoutdoc.nativeWidth = size.width;
+                    }), 0);
+                }
+            })
+            .catch((err: any) => console.log(err));
+    }
+
     render() {
         // let transform = this.props.ScreenToLocalTransform().inverse();
         let pw = typeof this.props.PanelWidth === "function" ? this.props.PanelWidth() : typeof this.props.PanelWidth === "number" ? (this.props.PanelWidth as any) as number : 50;
@@ -212,6 +229,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         let paths: string[] = ["http://www.cs.brown.edu/~bcz/noImage.png"];
         // this._curSuffix = "";
         // if (w > 20) {
+        Doc.UpdateDocumentExtensionForField(this.extensionDoc, this.props.fieldKey);
         let alts = DocListCast(this.extensionDoc.Alternates);
         let altpaths: string[] = alts.filter(doc => doc.data instanceof ImageField).map(doc => this.choosePath((doc.data as ImageField).url));
         let field = this.dataDoc[this.props.fieldKey];
@@ -225,8 +243,10 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         let rotation = NumCast(this.dataDoc.rotation, 0);
         let aspect = (rotation % 180) ? this.dataDoc[HeightSym]() / this.dataDoc[WidthSym]() : 1;
         let shift = (rotation % 180) ? (nativeHeight - nativeWidth / aspect) / 2 : 0;
-        Doc.UpdateDocumentExtensionForField(this.extensionDoc, this.props.fieldKey);
-        let srcpath = paths[Math.min(paths.length, this._photoIndex)];
+        let srcpath = paths[Math.min(paths.length, this.Document.curPage || 0)];
+
+        if (!this.props.Document.ignoreAspect && !this.props.leaveNativeSize) this.resize(srcpath, this.props.Document);
+
         return (
             <div id={id} className={`imageBox-cont${interactive}`} style={{ background: "transparent" }}
                 onPointerDown={this.onPointerDown}
@@ -235,7 +255,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                     key={this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
                     src={srcpath}
                     style={{ transform: `translate(0px, ${shift}px) rotate(${rotation}deg) scale(${aspect})` }}
-                    // style={{ objectFit: (this._photoIndex === 0 ? undefined : "contain") }}
+                    // style={{ objectFit: (this.Document.curPage === 0 ? undefined : "contain") }}
                     width={nativeWidth}
                     ref={this._imgRef}
                     onError={this.onError} />

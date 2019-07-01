@@ -7,7 +7,7 @@ import { undoBatch } from "../../util/UndoManager";
 import './LinkMenu.scss';
 import React = require("react");
 import { Doc } from '../../../new_fields/Doc';
-import { StrCast, Cast } from '../../../new_fields/Types';
+import { StrCast, Cast, BoolCast, FieldValue } from '../../../new_fields/Types';
 import { observable, action } from 'mobx';
 import { LinkManager } from '../../util/LinkManager';
 import { DragLinkAsDocument } from '../../util/DragManager';
@@ -32,10 +32,15 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     @undoBatch
     onFollowLink = async (e: React.PointerEvent): Promise<void> => {
         e.stopPropagation();
-        if (DocumentManager.Instance.getDocumentView(this.props.destinationDoc)) {
-            DocumentManager.Instance.jumpToDocument(this.props.destinationDoc, e.altKey);
+        let jumpToDoc = this.props.destinationDoc;
+        let pdfDoc = FieldValue(Cast(this.props.destinationDoc, Doc));
+        if (pdfDoc) {
+            jumpToDoc = pdfDoc;
+        }
+        if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
+            DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey);
         } else {
-            CollectionDockingView.Instance.AddRightSplit(this.props.destinationDoc, undefined);
+            CollectionDockingView.Instance.AddRightSplit(jumpToDoc, undefined);
         }
     }
 

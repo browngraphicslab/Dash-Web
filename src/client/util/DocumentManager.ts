@@ -44,15 +44,14 @@ export class DocumentManager {
             DocumentManager.Instance.DocumentViews.map(view => {
                 let doc = view.props.Document.proto;
                 if (doc && doc[Id]) {
-                    if(doc[Id] === id)
-                    {toReturn.push(view);}
+                    if (doc[Id] === id) { toReturn.push(view); }
                 }
             });
         }
         return toReturn;
     }
 
-    public getAllDocumentViews(doc: Doc){
+    public getAllDocumentViews(doc: Doc) {
         return this.getDocumentViewsById(doc[Id]);
     }
 
@@ -150,7 +149,7 @@ export class DocumentManager {
                         docContext.panTransformType = "Ease";
                         targetContextView.props.focus(docDelegate, willZoom);
                     } else {
-                        (dockFunc || CollectionDockingView.Instance.AddRightSplit)(docContext, docContext);
+                        (dockFunc || CollectionDockingView.Instance.AddRightSplit)(docContext, undefined);
                         setTimeout(() => {
                             this.jumpToDocument(docDelegate, willZoom, forceDockFunc, dockFunc, linkPage);
                         }, 10);
@@ -159,7 +158,7 @@ export class DocumentManager {
                     const actualDoc = Doc.MakeAlias(docDelegate);
                     actualDoc.libraryBrush = true;
                     if (linkPage !== undefined) actualDoc.curPage = linkPage;
-                    (dockFunc || CollectionDockingView.Instance.AddRightSplit)(actualDoc, actualDoc);
+                    (dockFunc || CollectionDockingView.Instance.AddRightSplit)(actualDoc, undefined);
                 }
             } else {
                 let contextView: DocumentView | null;
@@ -168,7 +167,7 @@ export class DocumentManager {
                     contextDoc.panTransformType = "Ease";
                     contextView.props.focus(docDelegate, willZoom);
                 } else {
-                    (dockFunc || CollectionDockingView.Instance.AddRightSplit)(contextDoc, contextDoc);
+                    (dockFunc || CollectionDockingView.Instance.AddRightSplit)(contextDoc, undefined);
                     setTimeout(() => {
                         this.jumpToDocument(docDelegate, willZoom, forceDockFunc, dockFunc, linkPage);
                     }, 10);

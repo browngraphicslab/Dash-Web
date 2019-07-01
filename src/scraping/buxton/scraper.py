@@ -116,21 +116,21 @@ def write_image(folder, name):
     data_doc_guid = guid()
     view_doc_guid = guid()
 
+    image = Image.open(f"{dist}/{folder}/{name}")
+    native_width, native_height = image.size
+
     view_doc = {
         "_id": view_doc_guid,
         "fields": {
             "proto": protofy(data_doc_guid),
             "x": 10,
             "y": 10,
-            "width": 300,
+            "width": min(800, native_width),
             "zIndex": 2,
             "libraryBrush": False
         },
         "__type": "Doc"
     }
-
-    image = Image.open(f"{dist}/{folder}/{name}")
-    native_width, native_height = image.size
 
     data_doc = {
         "_id": data_doc_guid,

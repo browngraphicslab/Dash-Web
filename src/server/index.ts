@@ -43,6 +43,8 @@ import { Response } from 'express-serve-static-core';
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const probe = require("probe-image-size");
+var SolrNode = require('solr-node');
+var shell = require('shelljs');
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
 
@@ -139,6 +141,7 @@ app.get("/pull", (req, res) =>
     }));
 
 // SEARCH
+const solrURL = "http://localhost:8983/solr/#/dash";
 
 // GETTERS
 
@@ -516,8 +519,8 @@ function GetRefFields([ids, callback]: [string[], (result?: Transferable[]) => v
 const suffixMap: { [type: string]: (string | [string, string | ((json: any) => any)]) } = {
     "number": "_n",
     "string": "_t",
-    // "boolean": "_b",
-    // "image": ["_t", "url"],
+    "boolean": "_b",
+    "image": ["_t", "url"],
     "video": ["_t", "url"],
     "pdf": ["_t", "url"],
     "audio": ["_t", "url"],
