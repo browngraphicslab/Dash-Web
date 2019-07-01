@@ -31,8 +31,7 @@ interface PresentationElementProps {
     presStatus: boolean;
     presButtonBackUp: Doc;
     presGroupBackUp: Doc;
-
-
+    setHeader: (header: React.RefObject<HTMLDivElement>) => void;
 }
 
 //enum for the all kinds of buttons a doc in presentation can have
@@ -54,6 +53,8 @@ export enum buttonIndex {
 export default class PresentationElement extends React.Component<PresentationElementProps> {
 
     @observable private selectedButtons: boolean[];
+    private headerTest?: React.RefObject<HTMLDivElement> = React.createRef();
+
 
 
     constructor(props: PresentationElementProps) {
@@ -374,6 +375,7 @@ export default class PresentationElement extends React.Component<PresentationEle
         let onLeave = (e: React.PointerEvent) => { p.document.libraryBrush = false; };
         return (
             <div className={className} key={p.document[Id] + p.index}
+                ref={(e) => this.props.setHeader(e)}
                 onPointerEnter={onEnter} onPointerLeave={onLeave}
                 style={{
                     outlineColor: "maroon",
