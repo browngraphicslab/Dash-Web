@@ -134,7 +134,14 @@ export class SearchItem extends React.Component<SearchItemProps> {
     @observable _selected: boolean = false;
 
     onClick = () => {
-        DocumentManager.Instance.jumpToDocument(this.props.doc, false);
+        let doc: Doc;
+        if(this.props.doc.type === DocTypes.LINK){
+            doc = Cast(this.props.doc.anchor1, Doc, new Doc());
+        }
+        else{
+            doc = this.props.doc;
+        }
+        DocumentManager.Instance.jumpToDocument(doc, false);
     }
     @observable _useIcons = true;
     @observable _displayDim = 50;

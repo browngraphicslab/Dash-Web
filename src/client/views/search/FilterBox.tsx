@@ -404,7 +404,10 @@ export class FilterBox extends React.Component {
                             <div className="filter-div">
                                 <div className="filter-header">
                                     <div className='filter-title words'>Required words</div>
-                                    <div style={{ marginLeft: "auto" }}><NaviconButton onClick={this.toggleWordStatusOpen} /></div>
+                                    <div style={{ marginLeft: "auto", display: "flex" }}>
+                                    {!this._basicWordStatus ? <div style = {{marginRight: "10px"}}><FontAwesomeIcon className="fontawesome-icon" icon={faCheckCircle} size="lg"/></div> : undefined}
+                                        <NaviconButton onClick={this.toggleWordStatusOpen} />
+                                    </div>
                                 </div>
                                 <div className="filter-panel" >
                                     <ToggleBar handleChange={this.handleWordQueryChange} getStatus={this.getBasicWordStatus}
@@ -414,14 +417,20 @@ export class FilterBox extends React.Component {
                             <div className="filter-div">
                                 <div className="filter-header">
                                     <div className="filter-title icon">Filter by type of node</div>
-                                    <div style={{ marginLeft: "auto" }}><NaviconButton onClick={this.toggleTypeOpen} /></div>
+                                    <div style={{ marginLeft: "auto", display: "flex" }}>
+                                    {!(this._icons.length === 9) ?  <div style = {{marginRight: "10px"}}><FontAwesomeIcon className="fontawesome-icon" icon={faCheckCircle} size="lg"/></div> : undefined }
+                                        <NaviconButton onClick={this.toggleTypeOpen} />
+                                    </div>
                                 </div>
                                 <div className="filter-panel"><IconBar /></div>
                             </div>
                             <div className="filter-div">
                                 <div className="filter-header">
                                     <div className='filter-title collection'>Search in current collections</div>
-                                    <div style={{ marginLeft: "auto" }}><NaviconButton onClick={this.toggleColOpen} /></div>
+                                    <div style={{ marginLeft: "auto", display: "flex"}}>
+                                    {this._collectionStatus ? <div style = {{marginRight: "10px"}}><FontAwesomeIcon className="fontawesome-icon" icon={faCheckCircle} size="lg"/></div> : undefined}
+                                        <NaviconButton onClick={this.toggleColOpen} />
+                                    </div>
                                 </div>
                                 <div className="filter-panel"><CollectionFilters
                                     updateCollectionStatus={this.updateCollectionStatus} updateParentCollectionStatus={this.updateParentCollectionStatus} updateSelfCollectionStatus={this.updateSelfCollectionStatus}
@@ -430,7 +439,11 @@ export class FilterBox extends React.Component {
                             <div className="filter-div">
                                 <div className="filter-header">
                                     <div className="filter-title field">Filter by Basic Keys</div>
-                                    <div style={{ marginLeft: "auto" }}><NaviconButton onClick={this.toggleFieldOpen} /></div>
+                                    <div style={{ marginLeft: "auto", display: "flex" }}>
+                                         {!(this._authorFieldStatus && this._dataFieldStatus && this._titleFieldStatus) ? 
+                                         <div style = {{marginRight: "10px"}}><FontAwesomeIcon className="fontawesome-icon" icon={faCheckCircle} size="lg"/></div> : undefined}
+                                        <NaviconButton onClick={this.toggleFieldOpen} />
+                                    </div>
                                 </div>
                                 <div className="filter-panel"><FieldFilters
                                     titleFieldStatus={this._titleFieldStatus} dataFieldStatus={this._dataFieldStatus} authorFieldStatus={this._authorFieldStatus}

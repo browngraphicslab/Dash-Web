@@ -8,13 +8,16 @@
     align-items: center;
     padding-left: 2px;
     padding-right: 2px;
+    max-width: 600px;
+    margin-left:auto;
+    margin-right:0;
 
     .searchBox-barChild {
 
         &.searchBox-collection {
             flex: 0 1 auto;
             margin-left: 2px;
-            margin-right: 2px
+            margin-right: 2px;
         }
 
         &.searchBox-input {
@@ -24,7 +27,7 @@
             transition: width 0.4s;
             align-self: stretch;
             margin-left: 2px;
-            margin-right: 2px
+            margin-right: 2px;
         }
 
         .searchBox-input:focus {
@@ -48,6 +51,7 @@
     margin-right: 72px;
     // height: 560px;
     height: 100%;
+    // position: relative;
     // overflow: hidden;
     // overflow-y: auto;
 
