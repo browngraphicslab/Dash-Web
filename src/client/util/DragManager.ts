@@ -87,7 +87,7 @@ export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: n
             handlers: {
                 dragComplete: action(emptyFunction),
             },
-            hideSource: false
+            hideSource: true
         });
     }
 }
@@ -239,7 +239,6 @@ export namespace DragManager {
             (dropData: { [id: string]: any }) => {
                 let droppedDocuments: Doc[] = dragData.draggedDocuments.reduce((droppedDocs: Doc[], d) => {
                     let dvs = DocumentManager.Instance.getDocumentViews(d);
-
                     if (dvs.length) {
                         let inContext = dvs.filter(dv => dv.props.ContainingCollectionView === SelectionManager.SelectedDocuments()[0].props.ContainingCollectionView);
                         if (inContext.length) {
