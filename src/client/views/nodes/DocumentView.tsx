@@ -280,7 +280,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (this._doubleTap && this.props.renderDepth) {
             let fullScreenAlias = Doc.MakeAlias(this.props.Document);
             fullScreenAlias.templates = new List<string>();
-            this.props.addDocTab(fullScreenAlias, this.dataDoc, "inTab");
+            this.props.addDocTab(fullScreenAlias, this.props.Document === this.dataDoc ? undefined : this.dataDoc, "inTab");
             SelectionManager.DeselectAll();
             this.props.Document.libraryBrush = false;
         }
