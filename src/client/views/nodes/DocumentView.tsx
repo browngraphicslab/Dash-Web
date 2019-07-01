@@ -393,8 +393,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this._lastTap = Date.now();
     }
 
-    deleteClicked = (): void => { this.props.removeDocument && this.props.removeDocument(this.props.Document); };
-    fieldsClicked = (): void => { let kvp = Docs.KVPDocument(this.props.Document, { width: 300, height: 300 }); this.props.addDocTab(kvp, this.dataDoc, "onRight"); };
+    @undoBatch
+    deleteClicked = (): void => { SelectionManager.DeselectAll(); this.props.removeDocument && this.props.removeDocument(this.props.Document); }
+
+    @undoBatch
+    fieldsClicked = (): void => { let kvp = Docs.KVPDocument(this.props.Document, { width: 300, height: 300 }); this.props.addDocTab(kvp, this.dataDoc, "onRight"); }
+
+    @undoBatch
     makeBtnClicked = (): void => {
         let doc = Doc.GetProto(this.props.Document);
         doc.isButton = !BoolCast(doc.isButton, false);
@@ -407,6 +412,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             doc.nativeWidth = doc.nativeHeight = undefined;
         }
     }
+
+    @undoBatch
     public fullScreenClicked = (): void => {
         CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(this);
         SelectionManager.DeselectAll();
@@ -467,6 +474,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this.templates = this.templates;
     }
 
+    @undoBatch
+    @action
     freezeNativeDimensions = (): void => {
         let proto = Doc.GetProto(this.props.Document);
         if (proto.ignoreAspect === undefined && !proto.nativeWidth) {
@@ -475,6 +484,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             proto.ignoreAspect = true;
         }
         proto.ignoreAspect = !BoolCast(proto.ignoreAspect, false);
+    }
+
+    @undoBatch
+    @action
+    toggleLockPosition = (): void => {
+        this.props.Document.lockedPosition = BoolCast(this.props.Document.lockedPosition) ? undefined : true;
     }
 
     @action
@@ -499,7 +514,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         cm.addItem({ description: "Open...", subitems: subitems, icon: "external-link-alt" });
         cm.addItem({ description: BoolCast(this.props.Document.ignoreAspect, false) || !this.props.Document.nativeWidth || !this.props.Document.nativeHeight ? "Freeze" : "Unfreeze", event: this.freezeNativeDimensions, icon: "edit" });
         cm.addItem({ description: "Pin to Pres", event: () => PresentationView.Instance.PinDoc(this.props.Document), icon: "map-pin" });
-        cm.addItem({ description: BoolCast(this.props.Document.lockedPosition) ? "Unlock Pos" : "Lock Pos", event: () => this.props.Document.lockedPosition = BoolCast(this.props.Document.lockedPosition) ? undefined : true, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
+        cm.addItem({ description: BoolCast(this.props.Document.lockedPosition) ? "Unlock Pos" : "Lock Pos", event: this.toggleLockPosition, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
         cm.addItem({ description: this.props.Document.isButton ? "Remove Button" : "Make Button", event: this.makeBtnClicked, icon: "concierge-bell" });
         cm.addItem({
             description: "Find aliases", event: async () => {
