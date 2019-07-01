@@ -20,6 +20,7 @@ import * as $ from 'jquery';
 import "./FilterBox.scss";
 import { SearchBox } from './SearchBox';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { CheckBox } from './CheckBox';
 
 library.add(faTimes);
 library.add(faCheckCircle);
@@ -37,6 +38,8 @@ export class FilterBox extends React.Component {
     static Instance: FilterBox;
     public _allIcons: string[] = [DocTypes.AUDIO, DocTypes.COL, DocTypes.HIST, DocTypes.IMG, DocTypes.LINK, DocTypes.PDF, DocTypes.TEXT, DocTypes.VID, DocTypes.WEB];
 
+    @observable private _searchTextContents: boolean = false;
+    @observable private _searchPdfContents: boolean = false;
     //if true, any keywords can be used. if false, all keywords are required.
     //this also serves as an indicator if the word status filter is applied
     @observable private _basicWordStatus: boolean = true;
@@ -56,6 +59,8 @@ export class FilterBox extends React.Component {
     @observable private _colOpen: boolean = false;
     @observable private _fieldOpen: boolean = false;
     public _pointerTime: number = -1;
+    @observable public _resetCounter = 0;
+    @observable public _resetBoolean = false;
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -350,6 +355,12 @@ export class FilterBox extends React.Component {
     @action.bound
     updateParentCollectionStatus(newStat: boolean) { this._collectionParentStatus = newStat; }
 
+    @action.bound
+    updateSearchPdfContents(newStat: boolean) { this._searchPdfContents = newStat; }
+
+    @action.bound
+    updateSearchTextContents(newStat: boolean) { this._searchTextContents = newStat; }
+
     getCollectionStatus() { return this._collectionStatus; }
     getSelfCollectionStatus() { return this._collectionSelfStatus; }
     getParentCollectionStatus() { return this._collectionParentStatus; }
@@ -379,6 +390,37 @@ export class FilterBox extends React.Component {
                     <div className="active-icon description">Collection Filters Active</div>
                 </div> : undefined}
             </div>
+        );
+    }
+
+    getHeader() {
+        return (
+            <div className="top-filter-header" style={{ display: "flex", width: "100%" }}>
+                <div id="header">Filter Search Results</div>
+                <div className="close-icon" onClick={this.closeFilter}>
+                    <span className="line line-1"></span>
+                    <span className="line line-2"></span></div>
+            </div>
+        );
+    }
+
+    getBottomButtons() {
+        return (
+            <div className="filter-buttons" style={{ display: "flex", justifyContent: "space-around" }}>
+                <button className="minimize-filter" onClick={this.minimizeAll}>Minimize All</button>
+                <button className="advanced-filter" >Advanced Filters</button>
+                <button className="save-filter" >Save Filters</button>
+                <button className="reset-filter" onClick={this.resetFilters}>Reset Filters</button>
+            </div>
+        );
+    }
+
+    getTextSpecs() {
+        return (
+            <div className="text-search-specs">
+                <CheckBox updateStatus = {this.updateSearchTextContents} originalStatus={this._searchTextContents} numCount = {2} title={"Search in text contents"} parent = {this} default={false}/>
+                <CheckBox updateStatus = {this.updateSearchPdfContents} originalStatus={this._searchPdfContents} numCount = {2} title={"Search in pdf contents"} parent = {this} default={false}/>
+            </div>
         )
     }
 
@@ -394,18 +436,13 @@ export class FilterBox extends React.Component {
                 </div>
                 {this._filterOpen ? (
                     <div className="filter-form" onPointerDown={this.stopProp} id="filter-form" style={this._filterOpen ? { display: "flex" } : { display: "none" }}>
-                        <div className="top-filter-header" style={{ display: "flex", width: "100%" }}>
-                            <div id="header">Filter Search Results</div>
-                            <div className="close-icon" onClick={this.closeFilter}>
-                                <span className="line line-1"></span>
-                                <span className="line line-2"></span></div>
-                        </div>
+                        {this.getHeader()}
                         <div className="filter-options">
                             <div className="filter-div">
                                 <div className="filter-header">
                                     <div className='filter-title words'>Required words</div>
                                     <div style={{ marginLeft: "auto", display: "flex" }}>
-                                    {!this._basicWordStatus ? <div style = {{marginRight: "10px"}}><FontAwesomeIcon className="fontawesome-icon" icon={faCheckCircle} size="lg"/></div> : undefined}
+                                        {!this._basicWordStatus ? <div style={{ marginRight: "10px" }}><FontAwesomeIcon className="fontawesome-icon" icon={faCheckCircle} size="lg" /></div> : undefined}
                                         <NaviconButton onClick={this.toggleWordStatusOpen} />
                                     </div>
                                 </div>
@@ -418,17 +455,20 @@ export class FilterBox extends React.Component {
                                 <div className="filter-header">
                                     <div className="filter-title icon">Filter by type of node</div>
                                     <div style={{ marginLeft: "auto", display: "flex" }}>
-                                    {!(this._icons.length === 9) ?  <div style = {{marginRight: "10px"}}><FontAwesomeIcon className="fontawesome-icon" icon={faCheckCircle} size="lg"/></div> : undefined }
+                                        {!(this._icons.length === 9) ? <div style={{ marginRight: "10px" }}><FontAwesomeIcon className="fontawesome-icon" icon={faCheckCircle} size="lg" /></div> : undefined}
                                         <NaviconButton onClick={this.toggleTypeOpen} />
                                     </div>
                                 </div>
-                                <div className="filter-panel"><IconBar /></div>
+                                <div className="filter-panel">
+                                    <IconBar />
+                                    {this.getTextSpecs()}
+                                    </div>
                             </div>
                             <div className="filter-div">
                                 <div className="filter-header">
                                     <div className='filter-title collection'>Search in current collections</div>
-                                    <div style={{ marginLeft: "auto", display: "flex"}}>
-                                    {this._collectionStatus ? <div style = {{marginRight: "10px"}}><FontAwesomeIcon className="fontawesome-icon" icon={faCheckCircle} size="lg"/></div> : undefined}
+                                    <div style={{ marginLeft: "auto", display: "flex" }}>
+                                        {this._collectionStatus ? <div style={{ marginRight: "10px" }}><FontAwesomeIcon className="fontawesome-icon" icon={faCheckCircle} size="lg" /></div> : undefined}
                                         <NaviconButton onClick={this.toggleColOpen} />
                                     </div>
                                 </div>
@@ -440,8 +480,8 @@ export class FilterBox extends React.Component {
                                 <div className="filter-header">
                                     <div className="filter-title field">Filter by Basic Keys</div>
                                     <div style={{ marginLeft: "auto", display: "flex" }}>
-                                         {!(this._authorFieldStatus && this._dataFieldStatus && this._titleFieldStatus) ? 
-                                         <div style = {{marginRight: "10px"}}><FontAwesomeIcon className="fontawesome-icon" icon={faCheckCircle} size="lg"/></div> : undefined}
+                                        {!(this._authorFieldStatus && this._dataFieldStatus && this._titleFieldStatus) ?
+                                            <div style={{ marginRight: "10px" }}><FontAwesomeIcon className="fontawesome-icon" icon={faCheckCircle} size="lg" /></div> : undefined}
                                         <NaviconButton onClick={this.toggleFieldOpen} />
                                     </div>
                                 </div>
@@ -450,12 +490,7 @@ export class FilterBox extends React.Component {
                                     updateAuthorStatus={this.updateAuthorStatus} updateDataStatus={this.updateDataStatus} updateTitleStatus={this.updateTitleStatus} /> </div>
                             </div>
                         </div>
-                        <div className="filter-buttons" style={{ display: "flex", justifyContent: "space-around" }}>
-                            <button className="minimize-filter" onClick={this.minimizeAll}>Minimize All</button>
-                            <button className="advanced-filter" >Advanced Filters</button>
-                            <button className="save-filter" >Save Filters</button>
-                            <button className="reset-filter" onClick={this.resetFilters}>Reset Filters</button>
-                        </div>
+                        {this.getBottomButtons()}
                     </div>
                 ) :
                     undefined}

@@ -96,6 +96,12 @@
                 -moz-transition: all 0.2s ease-in-out;
                 -o-transition: all 0.2s ease-in-out;
                 transition: all 0.2s ease-in-out;
+
+                .text-search-specs {
+                    display: flex;
+                    white-space: space-around;
+                    margin-top: 10px;
+                }
             }
         }
     }
