@@ -11,6 +11,7 @@ import { faArrowLeft, faEllipsisV, faTable, faTrash, faCog, faExchangeAlt, faTim
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { SetupDrag } from "../../util/DragManager";
+import { UndoManager } from "../../util/UndoManager";
 
 library.add(faArrowLeft, faEllipsisV, faTable, faTrash, faCog, faExchangeAlt, faTimes, faPlus, faLongArrowAltRight);
 
@@ -124,14 +125,16 @@ class LinkMetadataEditor extends React.Component<LinkMetadataEditorProps> {
 
     @action
     removeMetadata = (): void => {
-        let groupMdKeys = LinkManager.Instance.getMetadataKeysInGroup(this.props.groupType);
+        UndoManager.RunInBatch(() => {
+            let groupMdKeys = LinkManager.Instance.getMetadataKeysInGroup(this.props.groupType);
 
-        let index = groupMdKeys.findIndex(key => key.toUpperCase() === this._key.toUpperCase());
-        if (index === -1) console.error("LinkMetadataEditor: key was not found");
-        groupMdKeys.splice(index, 1);
+            let index = groupMdKeys.findIndex(key => key.toUpperCase() === this._key.toUpperCase());
+            if (index === -1) console.error("LinkMetadataEditor: key was not found");
+            groupMdKeys.splice(index, 1);
 
-        LinkManager.Instance.setMetadataKeysForGroup(this.props.groupType, groupMdKeys);
-        this._key = "";
+            LinkManager.Instance.setMetadataKeysForGroup(this.props.groupType, groupMdKeys);
+            this._key = "";
+        }, "delete metadata key on link relationship");
     }
 
     render() {
@@ -171,7 +174,9 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
 
     @action
     deleteLink = (): void => {
-        LinkManager.Instance.deleteLink(this.props.linkDoc);
+        UndoManager.RunInBatch(() => {
+            LinkManager.Instance.deleteLink(this.props.linkDoc);
+        }, "delete link");
         this.props.showLinks();
     }
 
@@ -193,26 +198,28 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
     }
 
     removeGroupFromLink = (): void => {
-        let destDoc = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
+        UndoManager.RunInBatch(() => {
+            let destDoc = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
 
-        let newGroup = new Doc();
-        let newMd = new Doc();
-        newMd.anchor1 = this.props.sourceDoc.title;
-        newMd.anchor2 = destDoc!.title;
-        newMd.direction = "one-way";
-        newGroup.metadata = newMd;
-        newGroup.type = "";
+            let newGroup = new Doc();
+            let newMd = new Doc();
+            newMd.anchor1 = this.props.sourceDoc.title;
+            newMd.anchor2 = destDoc!.title;
+            newMd.direction = "one-way";
+            newGroup.metadata = newMd;
+            newGroup.type = "";
 
-        LinkManager.Instance.setAnchorGroupDoc(this.props.linkDoc, this.props.sourceDoc, newGroup);
-        if (NumCast(this.props.linkDoc.direction) === LinkDirection.Bi && destDoc) {
-            let newDestGroup = new Doc();
-            newDestGroup.type = "";
-            newDestGroup.metadata = Doc.MakeCopy(newMd);
-            LinkManager.Instance.setAnchorGroupDoc(this.props.linkDoc, destDoc, newDestGroup);
+            LinkManager.Instance.setAnchorGroupDoc(this.props.linkDoc, this.props.sourceDoc, newGroup);
+            if (NumCast(this.props.linkDoc.direction) === LinkDirection.Bi && destDoc) {
+                let newDestGroup = new Doc();
+                newDestGroup.type = "";
+                newDestGroup.metadata = Doc.MakeCopy(newMd);
+                LinkManager.Instance.setAnchorGroupDoc(this.props.linkDoc, destDoc, newDestGroup);
 
-            this.props.linkDoc.direction = LinkDirection.Uni;
-            this._direction = LinkDirection.Uni;
-        }
+                this.props.linkDoc.direction = LinkDirection.Uni;
+                this._direction = LinkDirection.Uni;
+            }
+        }, "remove relationship from link");
     }
 
     @action
@@ -344,7 +351,6 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                         {buttons}
                     </div>
                 </div>
-                {/* {groups.length > 0 ? groups : <div className="linkEditor-group">There are currently no relationships associated with this link.</div>} */}
             </div>
 
         );

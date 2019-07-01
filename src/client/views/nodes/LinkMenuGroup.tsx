@@ -12,6 +12,7 @@ import { DragManager, SetupDrag } from "../../util/DragManager";
 import { emptyFunction } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { UndoManager } from "../../util/UndoManager";
 
 interface LinkMenuGroupProps {
     sourceDoc: Doc;
@@ -24,7 +25,6 @@ interface LinkMenuGroupProps {
 export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
 
     private _drag = React.createRef<HTMLDivElement>();
-    private _table = React.createRef<HTMLDivElement>();
 
     onLinkButtonDown = (e: React.PointerEvent): void => {
         e.stopPropagation();
@@ -41,32 +41,38 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
     }
 
     onLinkButtonMoved = async (e: PointerEvent) => {
-        if (this._drag.current !== null && (e.movementX > 1 || e.movementY > 1)) {
-            document.removeEventListener("pointermove", this.onLinkButtonMoved);
-            document.removeEventListener("pointerup", this.onLinkButtonUp);
+        UndoManager.RunInBatch(() => {
+            if (this._drag.current !== null && (e.movementX > 1 || e.movementY > 1)) {
+                document.removeEventListener("pointermove", this.onLinkButtonMoved);
+                document.removeEventListener("pointerup", this.onLinkButtonUp);
 
-            let draggedDocs = this.props.group.map(linkDoc => {
-                let opp = LinkManager.Instance.getOppositeAnchor(linkDoc, this.props.sourceDoc);
-                if (opp) return opp;
-            }) as Doc[];
-            let dragData = new DragManager.DocumentDragData(draggedDocs, draggedDocs.map(d => undefined));
+                let draggedDocs = this.props.group.map(linkDoc => {
+                    let opp = LinkManager.Instance.getOppositeAnchor(linkDoc, this.props.sourceDoc);
+                    if (opp) return opp;
+                }) as Doc[];
+                let dragData = new DragManager.DocumentDragData(draggedDocs, draggedDocs.map(d => undefined));
 
-            DragManager.StartLinkedDocumentDrag([this._drag.current], dragData, e.x, e.y, {
-                handlers: {
-                    dragComplete: action(emptyFunction),
-                },
-                hideSource: false
-            });
-        }
+                DragManager.StartLinkedDocumentDrag([this._drag.current], dragData, e.x, e.y, {
+                    handlers: {
+                        dragComplete: action(emptyFunction),
+                    },
+                    hideSource: false
+                });
+            }
+        }, "drag links");
         e.stopPropagation();
     }
 
     deleteGroupType = (): void => {
-        LinkManager.Instance.deleteGroupType(this.props.groupType);
+        UndoManager.RunInBatch(() => {
+            LinkManager.Instance.deleteGroupType(this.props.groupType);
+        }, "delete link relationship type");
     }
 
     removeGroupFromAnchor = (): void => {
-        LinkManager.Instance.removeGroupFromAnchor(this.props.sourceDoc, this.props.groupType);
+        UndoManager.RunInBatch(() => {
+            LinkManager.Instance.removeGroupFromAnchor(this.props.sourceDoc, this.props.groupType);
+        }, "remove relationship type from document");
     }
 
     viewGroupAsTable = (): JSX.Element => {

@@ -11,14 +11,17 @@ export enum LinkDirection {
     Bi = 2,
 }
 
-/* 
+/* A link can be used by a user to expose and define the relationship between two documents. The relationship is defined by
+ * the direction (i.e. A -> B,  A <- B,  A <-> B) of the relationship, the type/name of the relationship, and user defined 
+ * metadata about that type of relationship.
+ *
  * link doc: 
  * - anchor1: doc
- * - anchor1page: number
- * - anchor1group: group doc representing the group anchor1 categorizes this link/anchor2 in 
+ * - anchor1Page: number
+ * - anchor1Group: group doc representing the group anchor1 categorizes this link/anchor2 in 
  * - anchor2: doc
- * - anchor2page: number
- * - anchor2group: group doc representing the groups anchor2 categorizes this link/anchor1 in 
+ * - anchor2Page: number
+ * - anchor2Group: group doc representing the groups anchor2 categorizes this link/anchor1 in 
  * 
  * group doc:
  * - type: string representing the group type/name/category
@@ -36,8 +39,8 @@ export class LinkManager {
     private constructor() {
     }
 
-    // the linkmanagerdoc stores a list of docs representing all linkdocs in 'allLinks' and a list of strings representing all group types in 'allGroupTypes'
-    // lists of strings representing the metadata keys for each group type is stored under a key that is the same as the group type 
+    // the linkmanagerdoc stores a list of docs representing all linkdocs under the key 'allLinks' and a list of strings representing all group types under the key 'allGroupTypes'
+    // lists of strings representing the metadata keys for each group type are stored under a key that is the same as the group type 
     public get LinkManagerDoc(): Doc | undefined {
         return FieldValue(Cast(CurrentUserUtils.UserDocument.linkManagerDoc, Doc));
     }
@@ -125,15 +128,6 @@ export class LinkManager {
         return [];
     }
 
-    // // gets the groups associates with an anchor in a link
-    // public getAnchorGroups(linkDoc: Doc, anchor: Doc): Array<Doc> {
-    //     if (Doc.AreProtosEqual(anchor, Cast(linkDoc.anchor1, Doc, new Doc))) {
-    //         return DocListCast(linkDoc.anchor1Groups);
-    //     } else {
-    //         return DocListCast(linkDoc.anchor2Groups);
-    //     }
-    // }
-
     // sets the groups of the given anchor in the given link
     public setAnchorGroupDoc(linkDoc: Doc, anchor: Doc, groupDoc: Doc) {
         if (Doc.AreProtosEqual(anchor, Cast(linkDoc.anchor1, Doc, new Doc))) {
@@ -152,27 +146,6 @@ export class LinkManager {
             return Cast(linkDoc.anchor2Group, Doc, new Doc);
         }
     }
-
-    // public addGroupToAnchor(linkDoc: Doc, anchor: Doc, groupDoc: Doc, replace: boolean = false) {
-    //     let groups = LinkManager.Instance.getAnchorGroups(linkDoc, anchor);
-    //     let index = groups.findIndex(gDoc => {
-    //         return StrCast(groupDoc.type).toUpperCase() === StrCast(gDoc.type).toUpperCase();
-    //     });
-    //     if (index > -1 && replace) {
-    //         groups[index] = groupDoc;
-    //     }
-    //     if (index === -1) {
-    //         groups.push(groupDoc);
-    //     }
-    //     LinkManager.Instance.setAnchorGroups(linkDoc, anchor, groups);
-    // }
-
-    // // removes group doc of given group type only from given anchor on given link
-    // public removeGroupFromAnchor(linkDoc: Doc, anchor: Doc, groupType: string) {
-    //     let groups = LinkManager.Instance.getAnchorGroups(linkDoc, anchor);
-    //     let newGroups = groups.filter(groupDoc => StrCast(groupDoc.type).toUpperCase() !== groupType.toUpperCase());
-    //     LinkManager.Instance.setAnchorGroups(linkDoc, anchor, newGroups);
-    // }
 
     // returns map of group type to anchor's links in that group type
     public getRelatedGroupedLinks(anchor: Doc): Map<string, Array<Doc>> {

@@ -12,7 +12,7 @@ import { Docs } from "../documents/Documents";
 import { DocumentManager } from "../util/DocumentManager";
 import { DragLinksAsDocuments, DragManager } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
-import { undoBatch } from "../util/UndoManager";
+import { undoBatch, UndoManager } from "../util/UndoManager";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { CollectionView } from "./collections/CollectionView";
 import './DocumentDecorations.scss';
@@ -435,13 +435,15 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
 
     onLinkButtonMoved = async (e: PointerEvent) => {
-        if (this._linkButton.current !== null && (e.movementX > 1 || e.movementY > 1)) {
-            document.removeEventListener("pointermove", this.onLinkButtonMoved);
-            document.removeEventListener("pointerup", this.onLinkButtonUp);
+        UndoManager.RunInBatch(() => {
+            if (this._linkButton.current !== null && (e.movementX > 1 || e.movementY > 1)) {
+                document.removeEventListener("pointermove", this.onLinkButtonMoved);
+                document.removeEventListener("pointerup", this.onLinkButtonUp);
 
-            const doc = SelectionManager.SelectedDocuments()[0];
-            DragLinksAsDocuments(this._linkButton.current, e.x, e.y, doc.props.Document);
-        }
+                const doc = SelectionManager.SelectedDocuments()[0];
+                DragLinksAsDocuments(this._linkButton.current, e.x, e.y, doc.props.Document);
+            }
+        }, "drag links");
         e.stopPropagation();
     }
 

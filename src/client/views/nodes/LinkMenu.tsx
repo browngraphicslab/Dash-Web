@@ -10,11 +10,9 @@ import { LinkMenuGroup } from "./LinkMenuGroup";
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { UndoManager } from "../../util/UndoManager";
 
 library.add(faTrash);
-import { Cast, FieldValue, StrCast } from "../../../new_fields/Types";
-import { Id } from "../../../new_fields/FieldSymbols";
-import { DocTypes } from "../../documents/Documents";
 
 interface Props {
     docView: DocumentView;
@@ -32,7 +30,9 @@ export class LinkMenu extends React.Component<Props> {
     }
 
     clearAllLinks = () => {
-        LinkManager.Instance.deleteAllLinksOnAnchor(this.props.docView.props.Document);
+        UndoManager.RunInBatch(() => {
+            LinkManager.Instance.deleteAllLinksOnAnchor(this.props.docView.props.Document);
+        }, "delete all links on anchor");
     }
 
     renderAllGroups = (groups: Map<string, Array<Doc>>): Array<JSX.Element> => {

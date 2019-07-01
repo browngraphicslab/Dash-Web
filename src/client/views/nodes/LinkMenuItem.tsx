@@ -3,7 +3,7 @@ import { faEdit, faEye, faTimes, faArrowRight, faChevronDown, faChevronUp } from
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { observer } from "mobx-react";
 import { DocumentManager } from "../../util/DocumentManager";
-import { undoBatch } from "../../util/UndoManager";
+import { undoBatch, UndoManager } from "../../util/UndoManager";
 import './LinkMenu.scss';
 import React = require("react");
 import { Doc } from '../../../new_fields/Doc';
@@ -51,10 +51,6 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     }
 
     renderMetadata = (): JSX.Element => {
-        // let groups = LinkManager.Instance.getAnchorGroups(this.props.linkDoc, this.props.sourceDoc);
-        // let index = groups.findIndex(groupDoc => StrCast(groupDoc.type).toUpperCase() === this.props.groupType.toUpperCase());
-        // let groupDoc = index > -1 ? groups[index] : undefined;
-
         let groupDoc = LinkManager.Instance.getAnchorGroupDoc(this.props.linkDoc, this.props.sourceDoc);
 
         let mdRows: Array<JSX.Element> = [];
@@ -84,11 +80,13 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     }
 
     onLinkButtonMoved = async (e: PointerEvent) => {
-        if (this._drag.current !== null && (e.movementX > 1 || e.movementY > 1)) {
-            document.removeEventListener("pointermove", this.onLinkButtonMoved);
-            document.removeEventListener("pointerup", this.onLinkButtonUp);
-            DragLinkAsDocument(this._drag.current, e.x, e.y, this.props.linkDoc, this.props.sourceDoc);
-        }
+        UndoManager.RunInBatch(() => {
+            if (this._drag.current !== null && (e.movementX > 1 || e.movementY > 1)) {
+                document.removeEventListener("pointermove", this.onLinkButtonMoved);
+                document.removeEventListener("pointerup", this.onLinkButtonUp);
+                DragLinkAsDocument(this._drag.current, e.x, e.y, this.props.linkDoc, this.props.sourceDoc);
+            }
+        }, "drag link");
         e.stopPropagation();
     }
 
