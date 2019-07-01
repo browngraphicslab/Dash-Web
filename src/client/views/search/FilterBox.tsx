@@ -127,6 +127,7 @@ export class FilterBox extends React.Component {
         IconBar.Instance.selectAll();
         FieldFilters.Instance.resetFieldFilters();
         CollectionFilters.Instance.resetCollectionFilters();
+        this._resetBoolean = true;
     }
 
     basicRequireWords(query: string): string {
@@ -376,7 +377,8 @@ export class FilterBox extends React.Component {
                     <div className="active-icon icon">{this.getABCicon()}</div>
                     <div className="active-icon description">Required Words Applied</div>
                 </div> : undefined}
-                {!(this._icons.length === 9) ? <div className="active-icon container">
+                {(!(this._icons.length === 9) || this._searchPdfContents || this._searchTextContents) ? 
+                <div className="active-icon container">
                     <div className="active-icon icon">{this.getTypeIcon()}</div>
                     <div className="active-icon description">Type Filters Applied</div>
                 </div> : undefined}
@@ -418,8 +420,14 @@ export class FilterBox extends React.Component {
     getTextSpecs() {
         return (
             <div className="text-search-specs">
-                <CheckBox updateStatus = {this.updateSearchTextContents} originalStatus={this._searchTextContents} numCount = {2} title={"Search in text contents"} parent = {this} default={false}/>
-                <CheckBox updateStatus = {this.updateSearchPdfContents} originalStatus={this._searchPdfContents} numCount = {2} title={"Search in pdf contents"} parent = {this} default={false}/>
+                {this._icons.includes(DocTypes.TEXT) ?
+                    <CheckBox updateStatus={this.updateSearchTextContents} originalStatus={this._searchTextContents}
+                        numCount={2} title={"Search in text contents"} parent={this} default={false} />
+                    : undefined}
+                {this._icons.includes(DocTypes.PDF) ?
+                    <CheckBox updateStatus={this.updateSearchPdfContents} originalStatus={this._searchPdfContents}
+                        numCount={2} title={"Search in pdf contents"} parent={this} default={false} />
+                    : undefined}
             </div>
         )
     }
@@ -462,7 +470,7 @@ export class FilterBox extends React.Component {
                                 <div className="filter-panel">
                                     <IconBar />
                                     {this.getTextSpecs()}
-                                    </div>
+                                </div>
                             </div>
                             <div className="filter-div">
                                 <div className="filter-header">

@@ -99,8 +99,9 @@
 
                 .text-search-specs {
                     display: flex;
-                    white-space: space-around;
-                    margin-top: 10px;
+                    justify-content: space-around;
+                    margin-top: 30px;
+                    width: 100%;
                 }
             }
         }

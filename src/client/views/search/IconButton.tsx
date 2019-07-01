@@ -13,6 +13,7 @@ import { IconBar } from './IconBar';
 import { props } from 'bluebird';
 import { FilterBox } from './FilterBox';
 import { Search } from '../../../server/Search';
+import { ifStatement } from 'babel-types';
 
 library.add(faSearch);
 library.add(faObjectGroup);
@@ -119,6 +120,13 @@ export class IconButton extends React.Component<IconButtonProps>{
         }
 
         FilterBox.Instance.updateIcon(newList);
+
+        if(this.props.type === DocTypes.TEXT){
+            FilterBox.Instance.updateSearchTextContents(false);
+        }
+        if(this.props.type === DocTypes.PDF){
+            FilterBox.Instance.updateSearchPdfContents(false);
+        }
     }
 
     selected = {
