@@ -8,6 +8,7 @@ import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import PDFMenu from "./PDFMenu";
 import { DocumentManager } from "../../util/DocumentManager";
+import { PresentationView } from "../presentationview/PresentationView";
 
 interface IAnnotationProps {
     anno: Doc;
@@ -101,6 +102,13 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
         PDFMenu.Instance.fadeOut(true);
     }
 
+    pinToPres = () => {
+        let group = FieldValue(Cast(this.props.document.group, Doc));
+        if (group) {
+            PresentationView.Instance.PinDoc(group);
+        }
+    }
+
     @action
     onPointerDown = (e: React.PointerEvent) => {
         if (e.button === 0) {
@@ -114,6 +122,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
             PDFMenu.Instance.Delete = this.deleteAnnotation.bind(this);
             PDFMenu.Instance.Pinned = false;
             PDFMenu.Instance.AddTag = this.addTag.bind(this);
+            PDFMenu.Instance.PinToPres = this.pinToPres;
             PDFMenu.Instance.jumpTo(e.clientX, e.clientY, true);
         }
     }

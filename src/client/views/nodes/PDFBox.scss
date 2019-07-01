@@ -32,15 +32,18 @@
     height: 100px;
 }
 
-.pdfBox-cont, .pdfBox-cont-interactive {
+.pdfBox-cont,
+.pdfBox-cont-interactive {
     display: flex;
     flex-direction: row;
     height: 100%;
     overflow-y: scroll;
     overflow-x: hidden;
 }
+
 .pdfBox-cont {
     pointer-events: none;
+
     .textlayer {
         pointer-events: none;
 
