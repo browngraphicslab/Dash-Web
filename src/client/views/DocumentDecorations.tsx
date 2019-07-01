@@ -12,7 +12,7 @@ import { Docs } from "../documents/Documents";
 import { DocumentManager } from "../util/DocumentManager";
 import { DragLinksAsDocuments, DragManager } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
-import { undoBatch } from "../util/UndoManager";
+import { undoBatch, UndoManager } from "../util/UndoManager";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { CollectionView } from "./collections/CollectionView";
 import './DocumentDecorations.scss';
@@ -50,6 +50,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     private _downX = 0;
     private _downY = 0;
     private _iconDoc?: Doc = undefined;
+    private _resizeUndo?: UndoManager.Batch;
     @observable private _minimizedX = 0;
     @observable private _minimizedY = 0;
     @observable private _title: string = "";
@@ -347,6 +348,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             this._isPointerDown = true;
             this._resizing = e.currentTarget.id;
             this.Interacting = true;
+            this._resizeUndo = UndoManager.StartBatch("DocDecs resize");
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
@@ -548,6 +550,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (e.button === 0) {
             e.preventDefault();
             this._isPointerDown = false;
+            this._resizeUndo && this._resizeUndo.end();
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
         }

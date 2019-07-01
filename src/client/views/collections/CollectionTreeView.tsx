@@ -251,6 +251,8 @@ class TreeView extends React.Component<TreeViewProps> {
             e.stopPropagation();
         }
     }
+
+    @undoBatch
     treeDrop = (e: Event, de: DragManager.DropEvent) => {
         let x = this.props.ScreenToLocalTransform().transformPoint(de.x, de.y);
         let rect = this._header!.current!.getBoundingClientRect();

@@ -163,10 +163,6 @@ export class ContextMenu extends React.Component {
         let style = this._yRelativeToTop ? { left: this.pageX, top: this.pageY } :
             { left: this.pageX, bottom: this.pageY };
 
-        console.log(this._pageX);
-        console.log(this.pageX);
-        console.log();
-
         const contents = (
             <>
                 <span>
