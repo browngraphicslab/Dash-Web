@@ -2,17 +2,17 @@ import { observable, computed, action, trace } from "mobx";
 import React = require("react");
 import { observer } from "mobx-react";
 import './LinkEditor.scss';
-import { StrCast, Cast, FieldValue } from "../../../new_fields/Types";
+import { StrCast, Cast, FieldValue, NumCast } from "../../../new_fields/Types";
 import { Doc } from "../../../new_fields/Doc";
-import { LinkManager } from "../../util/LinkManager";
+import { LinkManager, LinkDirection } from "../../util/LinkManager";
 import { Docs } from "../../documents/Documents";
 import { Utils } from "../../../Utils";
-import { faArrowLeft, faEllipsisV, faTable, faTrash, faCog, faExchangeAlt, faTimes, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { faArrowLeft, faEllipsisV, faTable, faTrash, faCog, faExchangeAlt, faTimes, faPlus, faLongArrowAltRight } from '@fortawesome/free-solid-svg-icons';
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { SetupDrag } from "../../util/DragManager";
 
-library.add(faArrowLeft, faEllipsisV, faTable, faTrash, faCog, faExchangeAlt, faTimes, faPlus);
+library.add(faArrowLeft, faEllipsisV, faTable, faTrash, faCog, faExchangeAlt, faTimes, faPlus, faLongArrowAltRight);
 
 
 interface GroupTypesDropdownProps {
@@ -145,8 +145,6 @@ class LinkMetadataEditor extends React.Component<LinkMetadataEditorProps> {
     }
 }
 
-
-
 interface LinkEditorProps {
     sourceDoc: Doc;
     linkDoc: Doc;
@@ -156,6 +154,7 @@ interface LinkEditorProps {
 export class LinkEditor extends React.Component<LinkEditorProps> {
 
     private _metadataIds: Map<string, string> = new Map();
+    @observable private _direction: LinkDirection = this.props.linkDoc.direction ? NumCast(this.props.linkDoc.direction) : LinkDirection.Uni;
 
     constructor(props: LinkEditorProps) {
         super(props);
@@ -200,30 +199,19 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         let newMd = new Doc();
         newMd.anchor1 = this.props.sourceDoc.title;
         newMd.anchor2 = destDoc!.title;
+        newMd.direction = "one-way";
         newGroup.metadata = newMd;
         newGroup.type = "";
 
         LinkManager.Instance.setAnchorGroupDoc(this.props.linkDoc, this.props.sourceDoc, newGroup);
-    }
+        if (NumCast(this.props.linkDoc.direction) === LinkDirection.Bi && destDoc) {
+            let newDestGroup = new Doc();
+            newDestGroup.type = "";
+            newDestGroup.metadata = Doc.MakeCopy(newMd);
+            LinkManager.Instance.setAnchorGroupDoc(this.props.linkDoc, destDoc, newDestGroup);
 
-    // deleteGroupType = (groupType: string): void => {
-    //     LinkManager.Instance.deleteGroupType(groupType);
-    // }
-
-    copyGroup = (groupType: string): void => {
-        let sourceGroupDoc = LinkManager.Instance.getAnchorGroupDoc(this.props.linkDoc, this.props.sourceDoc);
-        if (sourceGroupDoc) {
-            let sourceMdDoc = Cast(sourceGroupDoc.metadata, Doc, new Doc);
-            let destDoc = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
-            if (destDoc) {
-                // create new group doc with new metadata doc
-                let destMdDoc = Doc.MakeCopy(sourceMdDoc);
-                let destGroupDoc = new Doc();
-                destGroupDoc.type = groupType;
-                destGroupDoc.metadata = destMdDoc;
-
-                LinkManager.Instance.setAnchorGroupDoc(this.props.linkDoc, destDoc, destGroupDoc);
-            }
+            this.props.linkDoc.direction = LinkDirection.Uni;
+            this._direction = LinkDirection.Uni;
         }
     }
 
@@ -265,12 +253,43 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         let keys = LinkManager.Instance.getMetadataKeysInGroup(groupType);
         let index = keys.indexOf("");
         if (index > -1) keys.splice(index, 1);
-        let cols = ["anchor1", "anchor2", ...[...keys]];
+        let cols = ["anchor1", "anchor2", "direction", ...[...keys]];
         let docs: Doc[] = LinkManager.Instance.getAllMetadataDocsInGroup(groupType);
 
         let createTable = action(() => Docs.SchemaDocument(cols, docs, { width: 500, height: 300, title: groupType + " table" }));
         let ref = React.createRef<HTMLDivElement>();
         return <div ref={ref}><button className="linkEditor-button" onPointerDown={SetupDrag(ref, createTable)} title="Drag to view relationship table"><FontAwesomeIcon icon="table" size="sm" /></button></div>;
+    }
+
+    @action
+    setDirection = (direction: LinkDirection): void => {
+        switch (direction) {
+            case LinkDirection.Uni: {
+                let destDoc = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
+                let sourceGroupDoc = LinkManager.Instance.getAnchorGroupDoc(this.props.linkDoc, this.props.sourceDoc);
+                if (destDoc && sourceGroupDoc) {
+                    this.props.linkDoc.direction = LinkDirection.Uni;
+                    Cast(sourceGroupDoc.metadata, Doc, new Doc).direction = "one-way";
+                    let newGroup = new Doc();
+                    newGroup.type = sourceGroupDoc.type;
+                    newGroup.metadata = Doc.MakeCopy(Cast(sourceGroupDoc.metadata, Doc, new Doc));
+                    LinkManager.Instance.setAnchorGroupDoc(this.props.linkDoc, destDoc, newGroup);
+                }
+                this._direction = LinkDirection.Uni;
+                break;
+            }
+            case LinkDirection.Bi: {
+                let destDoc = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
+                let sourceGroupDoc = LinkManager.Instance.getAnchorGroupDoc(this.props.linkDoc, this.props.sourceDoc);
+                if (destDoc && sourceGroupDoc) {
+                    this.props.linkDoc.direction = LinkDirection.Bi;
+                    Cast(sourceGroupDoc.metadata, Doc, new Doc).direction = "shared";
+                    LinkManager.Instance.setAnchorGroupDoc(this.props.linkDoc, destDoc, sourceGroupDoc);
+                }
+                this._direction = LinkDirection.Bi;
+                break;
+            }
+        }
     }
 
     render() {
@@ -303,13 +322,16 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
             <div className="linkEditor">
                 <button className="linkEditor-back" onPointerDown={() => this.props.showLinks()}><FontAwesomeIcon icon="arrow-left" size="sm" /></button>
                 <div className="linkEditor-info">
-                    <p className="linkEditor-linkedTo">editing link to: <b>{destination.proto!.title}</b></p>
+                    <p className="linkEditor-linkedTo">Editing link to: <b>{destination.proto!.title}</b></p>
                     <button className="linkEditor-button" onPointerDown={() => this.deleteLink()} title="Delete link"><FontAwesomeIcon icon="trash" size="sm" /></button>
                 </div>
                 <div className="linkEditor-group">
-                    <div className="linkEditor-group-row">
-                        <p className="linkEditor-group-row-label">Direction:</p>
-                        <button className="linkEditor-button" onClick={() => this.copyGroup(groupType)} title="Copy group to opposite anchor"><FontAwesomeIcon icon="exchange-alt" size="sm" /></button>
+                    <div className="linkEditor-group-row linkEditor-direction">
+                        <p>Direction:</p>
+                        <button className={this._direction === LinkDirection.Uni ? "linkEditor-button linkEditor-button-active" : "linkEditor-button linkEditor-button-inactive"}
+                            onClick={() => this.setDirection(LinkDirection.Bi)} title="Click to make this link bidirectional"><FontAwesomeIcon icon="long-arrow-alt-right" size="sm" /></button>
+                        <button className={this._direction === LinkDirection.Bi ? "linkEditor-button linkEditor-button-active" : "linkEditor-button linkEditor-button-inactive"}
+                            onClick={() => this.setDirection(LinkDirection.Uni)} title="Click to make this link unidirectional"><FontAwesomeIcon icon="exchange-alt" size="sm" /></button>
                     </div>
                     <div className="linkEditor-group-row">
                         <p className="linkEditor-group-row-label">Relationship:</p>

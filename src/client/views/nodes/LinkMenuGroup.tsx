@@ -73,7 +73,7 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
         let keys = LinkManager.Instance.getMetadataKeysInGroup(this.props.groupType);
         let index = keys.indexOf("");
         if (index > -1) keys.splice(index, 1);
-        let cols = ["anchor1", "anchor2", ...[...keys]];
+        let cols = ["anchor1", "anchor2", "direction", ...[...keys]];
         let docs: Doc[] = LinkManager.Instance.getAllMetadataDocsInGroup(this.props.groupType);
         let createTable = action(() => Docs.SchemaDocument(cols, docs, { width: 500, height: 300, title: this.props.groupType + " table" }));
         let ref = React.createRef<HTMLDivElement>();

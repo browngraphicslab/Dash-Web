@@ -34,7 +34,7 @@ import { dropActionType } from "../util/DragManager";
 import { DateField } from "../../new_fields/DateField";
 import { UndoManager } from "../util/UndoManager";
 import { RouteStore } from "../../server/RouteStore";
-import { LinkManager } from "../util/LinkManager";
+import { LinkManager, LinkDirection } from "../util/LinkManager";
 import { DocumentManager } from "../util/DocumentManager";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
@@ -93,6 +93,7 @@ export namespace DocUtils {
         UndoManager.RunInBatch(() => {
             let linkDoc = Docs.TextDocument({ width: 100, height: 30, borderRounding: -1 });
             linkDoc.type = DocTypes.LINK;
+            linkDoc.direction = LinkDirection.Uni;
             let linkDocProto = Doc.GetProto(linkDoc);
 
             linkDocProto.context = targetContext;
@@ -100,6 +101,7 @@ export namespace DocUtils {
             linkDocProto.linkDescription = description;
             linkDocProto.linkTags = tags;
             linkDocProto.type = DocTypes.LINK;
+            linkDocProto.direction = LinkDirection.Uni;
 
             linkDocProto.anchor1 = source;
             linkDocProto.anchor1Page = source.curPage;
@@ -110,11 +112,13 @@ export namespace DocUtils {
             let anchor1Md = new Doc();
             anchor1Md.anchor1 = source.title;
             anchor1Md.anchor2 = target.title;
+            anchor1Md.direction = "one-way";
             anchor1Group.metadata = anchor1Md;
             let anchor2Group = new Doc();
             let anchor2Md = new Doc();
             anchor2Md.anchor1 = target.title;
             anchor2Md.anchor2 = source.title;
+            anchor2Md.direction = "one-way";
             anchor2Group.metadata = anchor2Md;
             linkDocProto.anchor1Group = anchor1Group;
             linkDocProto.anchor2Group = anchor2Group;

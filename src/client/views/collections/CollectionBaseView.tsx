@@ -116,16 +116,12 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
 
     @action.bound
     moveDocument(doc: Doc, targetCollection: Doc, addDocument: (doc: Doc) => boolean): boolean {
-        console.log(StrCast(doc.title), StrCast(targetCollection.title));
         if (Doc.AreProtosEqual(this.dataDoc, targetCollection)) {
-            console.log("protos equal", StrCast(this.dataDoc.title), StrCast(targetCollection.title));
             return true;
         }
         if (this.removeDocument(doc)) {
-            console.log("has remove");
             return addDocument(doc);
         }
-        console.log("return false");
         return false;
     }
 

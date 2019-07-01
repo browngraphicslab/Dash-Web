@@ -6,15 +6,19 @@ import { List } from "../../new_fields/List";
 import { Id } from "../../new_fields/FieldSymbols";
 import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
 
+export enum LinkDirection {
+    Uni = 1,
+    Bi = 2,
+}
 
 /* 
  * link doc: 
  * - anchor1: doc
  * - anchor1page: number
- * - anchor1groups: list of group docs representing the groups anchor1 categorizes this link/anchor2 in 
+ * - anchor1group: group doc representing the group anchor1 categorizes this link/anchor2 in 
  * - anchor2: doc
  * - anchor2page: number
- * - anchor2groups: list of group docs representing the groups anchor2 categorizes this link/anchor1 in 
+ * - anchor2group: group doc representing the groups anchor2 categorizes this link/anchor1 in 
  * 
  * group doc:
  * - type: string representing the group type/name/category

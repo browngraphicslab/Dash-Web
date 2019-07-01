@@ -22,6 +22,10 @@
     }
 }
 
+.linkEditor-direction {
+    display: flex;
+}
+
 .linkEditor-button {
     width: 20px;
     height: 20px;
@@ -29,6 +33,14 @@
     padding: 0;
     // font-size: 12px;
     border-radius: 10px;
+
+    // &.linkEditor-button-active {
+    //     // background-color: rgb(22, 115, 255); // needs better selected color
+    // }
+
+    &.linkEditor-button-inactive {
+        display: none;
+    }
 
     &:disabled {
         background-color: gray;
