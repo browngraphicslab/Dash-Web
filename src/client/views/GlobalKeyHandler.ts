@@ -13,7 +13,7 @@ type KeyControlInfo = {
 };
 
 export default class KeyManager {
-    public static Handler: KeyManager = new KeyManager();
+    public static Instance: KeyManager = new KeyManager();
     private router = new Map<string, KeyHandler>();
 
     constructor() {

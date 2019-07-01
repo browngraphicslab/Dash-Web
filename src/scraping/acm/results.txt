@@ -10,10 +10,10 @@
             "publication_count": 1,
             "citation_count": 179,
             "available_for_download": 1,
-            "downloads_6_weeks": 130,
-            "downloads_12_months": 1004,
-            "downloads_cumulative": 9792,
-            "average_downloads_per_article": 9792,
+            "downloads_6_weeks": 123,
+            "downloads_12_months": 922,
+            "downloads_cumulative": 9793,
+            "average_downloads_per_article": 9793,
             "average_citations_per_article": 179
         },
         {
@@ -23,10 +23,10 @@
             "publication_count": 5,
             "citation_count": 196,
             "available_for_download": 1,
-            "downloads_6_weeks": 130,
-            "downloads_12_months": 1004,
-            "downloads_cumulative": 9792,
-            "average_downloads_per_article": 9792,
+            "downloads_6_weeks": 123,
+            "downloads_12_months": 922,
+            "downloads_cumulative": 9793,
+            "average_downloads_per_article": 9793,
             "average_citations_per_article": 39.2
         },
         {
@@ -36,13 +36,16 @@
             "publication_count": 2,
             "citation_count": 188,
             "available_for_download": 2,
-            "downloads_6_weeks": 130,
-            "downloads_12_months": 1009,
-            "downloads_cumulative": 10023,
-            "average_downloads_per_article": 5011.5,
+            "downloads_6_weeks": 123,
+            "downloads_12_months": 927,
+            "downloads_cumulative": 10024,
+            "average_downloads_per_article": 5012,
             "average_citations_per_article": 94
         }
-    ]
+    ],
+    "publication": {
+        "title": "Journal of the ACM (JACM) JACM Homepage table of contents archive"
+    }
 }
 {
     "url": "https://dl.acm.org/citation.cfm?id=2412979",
@@ -62,5 +65,8 @@
             "average_downloads_per_article": 0,
             "average_citations_per_article": 0
         }
-    ]
+    ],
+    "publication": {
+        "title": "IEEE Transactions on Software Engineering table of contents archive"
+    }
 }
