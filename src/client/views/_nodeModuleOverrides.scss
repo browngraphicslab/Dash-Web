@@ -4,6 +4,8 @@
 div .lm_header {
     background: $dark-color;
     min-height: 2.5em;
+    display: flex !important;
+    justify-content: space-between;
 }
 
 .lm_active {
@@ -32,12 +34,16 @@ div .lm_header {
     }
 }
 
+.lm_tabs {
+    position: static !important;
+}
+
 .lm_header .lm_controls {
-    top: .2em !important;
-    right: .3em !important;
-    width: 3.6em;
+    padding-top: 4px;
+    padding-right: 4px;
     display: flex;
     justify-content: space-between;
+    position: static !important;
 }
 
 .dragManager-dragDiv {
