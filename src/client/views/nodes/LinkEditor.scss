@@ -3,7 +3,8 @@
 .linkEditor {
     width: 100%;
     height: auto;
-    font-size: 12px; // TODO
+    font-size: 12px;
+    max-width: 176px;
 }
 
 .linkEditor-back {
@@ -31,12 +32,7 @@
     height: 20px;
     margin-left: 6px;
     padding: 0;
-    // font-size: 12px;
     border-radius: 10px;
-
-    // &.linkEditor-button-active {
-    //     // background-color: rgb(22, 115, 255); // needs better selected color
-    // }
 
     &.linkEditor-button-inactive {
         display: none;

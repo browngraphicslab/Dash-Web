@@ -327,7 +327,8 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                 </div>
                 <div className="linkEditor-group">
                     <div className="linkEditor-group-row linkEditor-direction">
-                        <p>Direction:</p>
+                        <p className="linkEditor-group-row-label">Direction: </p>
+                        <p>{this._direction === LinkDirection.Uni ? "one-way" : "shared"}</p>
                         <button className={this._direction === LinkDirection.Uni ? "linkEditor-button linkEditor-button-active" : "linkEditor-button linkEditor-button-inactive"}
                             onClick={() => this.setDirection(LinkDirection.Bi)} title="Click to make this link bidirectional"><FontAwesomeIcon icon="long-arrow-alt-right" size="sm" /></button>
                         <button className={this._direction === LinkDirection.Bi ? "linkEditor-button linkEditor-button-active" : "linkEditor-button linkEditor-button-inactive"}
