@@ -72,6 +72,7 @@ export class TooltipTextMenu {
         this.editorProps = editorProps;
         this.tooltip = document.createElement("div");
         this.tooltip.className = "tooltipMenu";
+        this.dragElement(this.tooltip);
 
         // this.createCollapse();
         // if (this._collapseBtn) {
@@ -183,6 +184,46 @@ export class TooltipTextMenu {
             this.tooltip.appendChild(newfontSizeDom);
         }
         this.fontSizeDom = newfontSizeDom;
+    }
+
+    // Make the DIV element draggable:
+
+    dragElement(elmnt: HTMLElement) {
+        var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        if (elmnt) {
+            // if present, the header is where you move the DIV from:
+            elmnt.onmousedown = dragMouseDown;
+        }
+
+        function dragMouseDown(e: any) {
+            e = e || window.event;
+            e.preventDefault();
+            // get the mouse cursor position at startup:
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            document.onmouseup = closeDragElement;
+            // call a function whenever the cursor moves:
+            document.onmousemove = elementDrag;
+        }
+
+        function elementDrag(e: any) {
+            e = e || window.event;
+            e.preventDefault();
+            // calculate the new cursor position:
+            pos1 = pos3 - e.clientX;
+            pos2 = pos4 - e.clientY;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            // set the element's new position:
+            elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+            elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+        }
+
+        function closeDragElement() {
+            // stop moving when mouse button is released:
+            document.onmouseup = null;
+            document.onmousemove = null;
+        }
     }
 
     //label of dropdown will change to given label
