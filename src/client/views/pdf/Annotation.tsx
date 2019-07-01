@@ -10,9 +10,9 @@ import PDFMenu from "./PDFMenu";
 import { DocumentManager } from "../../util/DocumentManager";
 
 interface IAnnotationProps {
-    anno: Doc,
-    index: number,
-    parent: Viewer
+    anno: Doc;
+    index: number;
+    parent: Viewer;
 }
 
 export default class Annotation extends React.Component<IAnnotationProps> {

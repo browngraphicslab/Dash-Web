@@ -78,7 +78,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                 style={{ width: width(), height: height() }} >
                 <CollectionSchemaPreview
                     Document={layoutDoc}
-                    DataDocument={d != this.props.DataDoc ? this.props.DataDoc : undefined}
+                    DataDocument={d !== this.props.DataDoc ? this.props.DataDoc : undefined}
                     renderDepth={this.props.renderDepth}
                     width={width}
                     height={height}

@@ -186,8 +186,7 @@ class TreeView extends React.Component<TreeViewProps> {
         }
         let keyList: string[] = keys.reduce((l, key) => {
             let listspec = DocListCast(this.resolvedDataDoc[key]);
-            if (listspec && listspec.length)
-                return [...l, key];
+            if (listspec && listspec.length) return [...l, key];
             return l;
         }, [] as string[]);
         keys.map(key => Cast(this.resolvedDataDoc[key], Doc) instanceof Doc && keyList.push(key));
