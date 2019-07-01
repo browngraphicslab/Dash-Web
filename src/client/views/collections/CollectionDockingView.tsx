@@ -383,7 +383,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     }
                     tab.setActive(true);
                 };
-                ReactDOM.render(<span onPointerDown={
+                ReactDOM.render(<span title="Drag as document" onPointerDown={
                     e => {
                         e.preventDefault();
                         e.stopPropagation();

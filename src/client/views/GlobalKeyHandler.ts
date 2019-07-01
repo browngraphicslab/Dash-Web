@@ -1,4 +1,4 @@
-import { UndoManager } from "../util/UndoManager";
+import { UndoManager, undoBatch } from "../util/UndoManager";
 import { SelectionManager } from "../util/SelectionManager";
 import { CollectionDockingView } from "./collections/CollectionDockingView";
 import { MainView } from "./MainView";
@@ -100,7 +100,7 @@ export default class KeyManager {
                 MainView.Instance.mainFreeform && CollectionDockingView.Instance.AddRightSplit(MainView.Instance.mainFreeform, undefined);
                 break;
             case "arrowleft":
-                MainView.Instance.mainFreeform && CollectionDockingView.Instance.CloseRightSplit(MainView.Instance.mainFreeform);
+                MainView.Instance.mainFreeform && CollectionDockingView.Instance.CloseRightSplit(MainView.Instance.mainFreeform)
                 break;
             case "f":
                 MainView.Instance.isSearchVisible = !MainView.Instance.isSearchVisible;
@@ -117,6 +117,13 @@ export default class KeyManager {
                 break;
             case "z":
                 UndoManager.Undo();
+                break;
+            case "a":
+            case "c":
+            case "v":
+            case "x":
+                stopPropagation = false;
+                preventDefault = false;
                 break;
         }
 

@@ -1,5 +1,5 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
-import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faArrowDown, faArrowUp, faCheck, faPenNib, faThumbtack, faRedoAlt, faTable, faTree, faUndoAlt, faBell, faCommentAlt, faCut } from '@fortawesome/free-solid-svg-icons';
+import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faArrowDown, faArrowUp, faCheck, faPenNib, faThumbtack, faRedoAlt, faTable, faTree, faUndoAlt, faBell, faCommentAlt, faCut, faExclamation } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, runInAction, trace } from 'mobx';
 import { observer } from 'mobx-react';
@@ -108,6 +108,7 @@ export class MainView extends React.Component {
         }
 
         library.add(faFont);
+        library.add(faExclamation);
         library.add(faImage);
         library.add(faFilePdf);
         library.add(faObjectGroup);
@@ -310,6 +311,7 @@ export class MainView extends React.Component {
                                 <FontAwesomeIcon icon={btn[1]} size="sm" />
                             </button>
                         </div></li>)}
+                    <li key="undoTest"><button className="add-button round-button" onClick={() => UndoManager.PrintBatches()}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>
                     <li key="ink" style={{ paddingRight: "6px" }}><button className="toolbar-button round-button" title="Ink" onClick={() => InkingControl.Instance.toggleDisplay()}><FontAwesomeIcon icon="pen-nib" size="sm" /> </button></li>
                     <li key="pen"><button onClick={() => InkingControl.Instance.switchTool(InkTool.Pen)} style={this.selected(InkTool.Pen)}><FontAwesomeIcon icon="pen" size="lg" title="Pen" /></button></li>
                     <li key="marker"><button onClick={() => InkingControl.Instance.switchTool(InkTool.Highlighter)} style={this.selected(InkTool.Highlighter)}><FontAwesomeIcon icon="highlighter" size="lg" title="Pen" /></button></li>
