@@ -4,9 +4,9 @@
     "description": "",
     "main": "index.js",
     "scripts": {
-        "start": "cd solr-8.1.1/bin && solr.cmd start && cd ../../ && ts-node-dev -- src/server/index.ts",
-        "debug": "ts-node-dev --inspect -- src/server/index.ts",
-        "build": "webpack --env production",
+        "start": "cross-env NODE_OPTIONS=--max_old_space_size=4096 ts-node-dev -- src/server/index.ts",
+        "debug": "cross-env NODE_OPTIONS=--max_old_space_size=4096 ts-node-dev --inspect -- src/server/index.ts",
+        "build": "cross-env NODE_OPTIONS=--max_old_space_size=4096 webpack --env production",
         "test": "mocha -r ts-node/register test/**/*.ts",
         "tsc": "tsc"
     },
@@ -19,6 +19,7 @@
         "awesome-typescript-loader": "^5.2.1",
         "chai": "^4.2.0",
         "copy-webpack-plugin": "^4.6.0",
+        "cross-env": "^5.2.0",
         "css-loader": "^2.1.1",
         "file-loader": "^3.0.1",
         "fork-ts-checker-webpack-plugin": "^1.0.2",

@@ -3,7 +3,7 @@ import { observer } from 'mobx-react';
 import { faArrowCircleRight, faArrowCircleLeft } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { library } from '@fortawesome/fontawesome-svg-core';
-import "./Pager.scss"
+import "./Pager.scss";
 import { SearchBox } from './SearchBox';
 import { observable, action } from 'mobx';
 import { FilterBox } from './FilterBox';
@@ -20,7 +20,7 @@ export class Pager extends React.Component {
     @action
     onLeftClick(e: React.PointerEvent) {
         FilterBox.Instance._pointerTime = e.timeStamp;
-        if(SearchBox.Instance._pageNum > 0){
+        if (SearchBox.Instance._pageNum > 0) {
             SearchBox.Instance._pageNum -= 1;
         }
     }
@@ -28,7 +28,7 @@ export class Pager extends React.Component {
     @action
     onRightClick(e: React.PointerEvent) {
         FilterBox.Instance._pointerTime = e.timeStamp;
-        if(SearchBox.Instance._pageNum+1 < SearchBox.Instance._maxNum){
+        if (SearchBox.Instance._pageNum + 1 < SearchBox.Instance._maxNum) {
             SearchBox.Instance._pageNum += 1;
         }
     }
@@ -72,7 +72,7 @@ export class Pager extends React.Component {
                     </div>
                 </div>
             </div>
-        )
+        );
     }
 
 }

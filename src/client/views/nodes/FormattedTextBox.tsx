@@ -1,6 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faEdit, faSmile } from '@fortawesome/free-solid-svg-icons';
-import { action, IReactionDisposer, observable, reaction, runInAction } from "mobx";
+import { action, IReactionDisposer, observable, reaction, runInAction, computed } from "mobx";
 import { observer } from "mobx-react";
 import { baseKeymap } from "prosemirror-commands";
 import { history } from "prosemirror-history";
@@ -45,6 +45,7 @@ export interface FormattedTextBoxProps {
     hideOnLeave?: boolean;
     height?: string;
     color?: string;
+    outer_div?: (domminus: HTMLElement) => void;
 }
 
 const richTextSchema = createSchema({
@@ -60,6 +61,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         return FieldView.LayoutString(FormattedTextBox, fieldStr);
     }
     private _ref: React.RefObject<HTMLDivElement>;
+    private _outerdiv?: (dominus: HTMLElement) => void;
     private _proseRef?: HTMLDivElement;
     private _editorView: Opt<EditorView>;
     private _toolTipTextMenu: TooltipTextMenu | undefined = undefined;
@@ -97,6 +99,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     constructor(props: FieldViewProps) {
         super(props);
+        if (this.props.outer_div) {
+            this._outerdiv = this.props.outer_div;
+        }
 
         this._ref = React.createRef();
         if (this.props.isOverlay) {
@@ -104,19 +109,21 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
+    @computed get dataDoc() { return BoolCast(this.props.Document.isTemplate) && this.props.DataDoc ? this.props.DataDoc : this.props.Document; }
+
     dispatchTransaction = (tx: Transaction) => {
         if (this._editorView) {
             const state = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
             this._applyingChange = true;
-            Doc.SetOnPrototype(this.props.Document, this.props.fieldKey, new RichTextField(JSON.stringify(state.toJSON())));
-            Doc.SetOnPrototype(this.props.Document, "documentText", state.doc.textBetween(0, state.doc.content.size, "\n\n"));
+            Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()));
+            Doc.GetProto(this.dataDoc)[this.props.fieldKey + "_text"] = state.doc.textBetween(0, state.doc.content.size, "\n\n");
             this._applyingChange = false;
-            let title = StrCast(this.props.Document.title);
+            let title = StrCast(this.dataDoc.title);
             if (title && title.startsWith("-") && this._editorView) {
                 let str = this._editorView.state.doc.textContent;
                 let titlestr = str.substr(0, Math.min(40, str.length));
-                let target = this.props.Document.proto ? this.props.Document.proto : this.props.Document;
+                let target = this.dataDoc.proto ? this.dataDoc.proto : this.dataDoc;
                 target.title = "-" + titlestr + (str.length > 40 ? "..." : "");
             }
         }
@@ -144,14 +151,14 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             e.stopPropagation();
         } else {
             if (de.data instanceof DragManager.DocumentDragData) {
-                let ldocs = Cast(this.props.Document.subBulletDocs, listSpec(Doc));
+                let ldocs = Cast(this.dataDoc.subBulletDocs, listSpec(Doc));
                 if (!ldocs) {
-                    this.props.Document.subBulletDocs = new List<Doc>([]);
+                    this.dataDoc.subBulletDocs = new List<Doc>([]);
                 }
-                ldocs = Cast(this.props.Document.subBulletDocs, listSpec(Doc));
+                ldocs = Cast(this.dataDoc.subBulletDocs, listSpec(Doc));
                 if (!ldocs) return;
                 if (!ldocs || !ldocs[0] || ldocs[0] instanceof Promise || StrCast((ldocs[0] as Doc).layout).indexOf("CollectionView") === -1) {
-                    ldocs.splice(0, 0, Docs.StackingDocument([], { title: StrCast(this.props.Document.title) + "-subBullets", x: NumCast(this.props.Document.x), y: NumCast(this.props.Document.y) + NumCast(this.props.Document.height), width: 300, height: 300 }));
+                    ldocs.splice(0, 0, Docs.StackingDocument([], { title: StrCast(this.dataDoc.title) + "-subBullets", x: NumCast(this.props.Document.x), y: NumCast(this.props.Document.y) + NumCast(this.props.Document.height), width: 300, height: 300 }));
                     this.props.addDocument && this.props.addDocument(ldocs[0] as Doc);
                     this.props.Document.templates = new List<string>([Templates.Bullet.Layout]);
                     this.props.Document.isBullet = true;
@@ -201,21 +208,26 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
         this._reactionDisposer = reaction(
             () => {
-                const field = this.props.Document ? Cast(this.props.Document[this.props.fieldKey], RichTextField) : undefined;
+                const field = this.dataDoc ? Cast(this.dataDoc[this.props.fieldKey], RichTextField) : undefined;
                 return field ? field.Data : `{"doc":{"type":"doc","content":[]},"selection":{"type":"text","anchor":0,"head":0}}`;
             },
-            field => this._editorView && !this._applyingChange &&
+            field => this._editorView && !this._applyingChange && this.props.Document[this.props.fieldKey] instanceof RichTextField &&
                 this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field)))
         );
-        this.setupEditor(config, this.props.Document, this.props.fieldKey);
+        this.setupEditor(config, this.dataDoc, this.props.fieldKey);
     }
 
     private setupEditor(config: any, doc: Doc, fieldKey: string) {
         let field = doc ? Cast(doc[fieldKey], RichTextField) : undefined;
         let startup = StrCast(doc.documentText);
         startup = startup.startsWith("@@@") ? startup.replace("@@@", "") : "";
-        if (!startup && !field && doc) {
-            startup = StrCast(doc[fieldKey]);
+        if (!field && doc) {
+            let text = StrCast(doc[fieldKey]);
+            if (text) {
+                startup = text;
+            } else if (Cast(doc[fieldKey], "number")) {
+                startup = NumCast(doc[fieldKey], 99).toString();
+            }
         }
         if (this._proseRef) {
             this._editorView = new EditorView(this._proseRef, {
@@ -235,6 +247,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (this.props.selectOnLoad) {
             if (!this.props.isOverlay) this.props.select(false);
             else this._editorView!.focus();
+            this.tryUpdateHeight();
         }
     }
 
@@ -254,7 +267,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (e.button === 0 && this.props.isSelected() && !e.altKey && !e.ctrlKey && !e.metaKey) {
             e.stopPropagation();
             if (this._toolTipTextMenu && this._toolTipTextMenu.tooltip) {
-                this._toolTipTextMenu.tooltip.style.opacity = "0";
+                //this._toolTipTextMenu.tooltip.style.opacity = "0";
             }
         }
         let ctrlKey = e.ctrlKey;
@@ -268,7 +281,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     this._linkClicked = href.replace(DocServer.prepend("/doc/"), "").split("?")[0];
                     if (this._linkClicked) {
                         DocServer.GetRefField(this._linkClicked).then(f => {
-                            (f instanceof Doc) && DocumentManager.Instance.jumpToDocument(f, ctrlKey, document => this.props.addDocTab(document, "inTab"));
+                            (f instanceof Doc) && DocumentManager.Instance.jumpToDocument(f, ctrlKey, false, document => this.props.addDocTab(document, undefined, "inTab"));
                         });
                         e.stopPropagation();
                         e.preventDefault();
@@ -289,7 +302,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
     onPointerUp = (e: React.PointerEvent): void => {
         if (this._toolTipTextMenu && this._toolTipTextMenu.tooltip) {
-            this._toolTipTextMenu.tooltip.style.opacity = "1";
+            //this._toolTipTextMenu.tooltip.style.opacity = "1";
         }
         if (e.buttons === 1 && this.props.isSelected() && !e.altKey) {
             e.stopPropagation();
@@ -334,6 +347,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 return self._toolTipTextMenu = new TooltipTextMenu(_editorView, myprops);
             }
         });
+        //this.props.Document.tooltip = self._toolTipTextMenu;
     }
 
     tooltipLinkingMenuPlugin() {
@@ -360,23 +374,28 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         // stop propagation doesn't seem to stop propagation of native keyboard events.
         // so we set a flag on the native event that marks that the event's been handled.
         (e.nativeEvent as any).DASHFormattedTextBoxHandled = true;
-        if (StrCast(this.props.Document.title).startsWith("-") && this._editorView) {
+        if (StrCast(this.dataDoc.title).startsWith("-") && this._editorView) {
             let str = this._editorView.state.doc.textContent;
             let titlestr = str.substr(0, Math.min(40, str.length));
-            let target = this.props.Document.proto ? this.props.Document.proto : this.props.Document;
+            let target = this.dataDoc.proto ? this.dataDoc.proto : this.dataDoc;
             target.title = "-" + titlestr + (str.length > 40 ? "..." : "");
         }
         if (!this._undoTyping) {
             this._undoTyping = UndoManager.StartBatch("undoTyping");
         }
+        this.tryUpdateHeight();
+    }
+
+    @action
+    tryUpdateHeight() {
         if (this.props.isOverlay && this.props.Document.autoHeight) {
             let xf = this._ref.current!.getBoundingClientRect();
             let scrBounds = this.props.ScreenToLocalTransform().transformBounds(0, 0, xf.width, xf.height);
-            let nh = NumCast(this.props.Document.nativeHeight, 0);
+            let nh = NumCast(this.dataDoc.nativeHeight, 0);
             let dh = NumCast(this.props.Document.height, 0);
             let sh = scrBounds.height;
             this.props.Document.height = nh ? dh / nh * sh : sh;
-            this.props.Document.proto!.nativeHeight = nh ? sh : undefined;
+            this.dataDoc.proto!.nativeHeight = nh ? sh : undefined;
         }
     }
 

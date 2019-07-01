@@ -14,7 +14,6 @@ import { Transform } from "../../../util/Transform";
 import { undoBatch } from "../../../util/UndoManager";
 import { InkingCanvas } from "../../InkingCanvas";
 import { PreviewCursor } from "../../PreviewCursor";
-import { FilterBox } from "../../search/FilterBox";
 import { Templates } from "../../Templates";
 import { CollectionViewType } from "../CollectionBaseView";
 import { CollectionFreeFormView } from "./CollectionFreeFormView";
@@ -50,7 +49,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             document.removeEventListener("pointerup", this.onPointerUp, true);
             document.removeEventListener("pointermove", this.onPointerMove, true);
         }
-        if (all) {
+        if (rem_keydown) {
             document.removeEventListener("keydown", this.marqueeCommand, true);
         }
         this._visible = false;
@@ -95,7 +94,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 }
             });
         } else if (!e.ctrlKey) {
-            let newBox = Docs.TextDocument({ width: 200, height: 30, x: x, y: y, title: "-typed text-" });
+            let newBox = Docs.TextDocument({ width: 200, height: 100, x: x, y: y, title: "-typed text-" });
             newBox.proto!.autoHeight = true;
             this.props.addLiveTextDocument(newBox);
         }
@@ -184,9 +183,9 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
 
     @action
     onPointerUp = (e: PointerEvent): void => {
-        console.log("pointer up!");
+        // console.log("pointer up!");
         if (this._visible) {
-            console.log("visible");
+            // console.log("visible");
             let mselect = this.marqueeSelect();
             if (!e.shiftKey) {
                 SelectionManager.DeselectAll(mselect.length ? undefined : this.props.container.props.Document);
@@ -195,7 +194,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             mselect.length ? this.cleanupInteractions(true, false) : this.cleanupInteractions(true);
         }
         else {
-            console.log("invisible");
+            //console.log("invisible");
             this.cleanupInteractions(true);
         }
 

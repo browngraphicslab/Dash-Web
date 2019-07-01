@@ -1,11 +1,13 @@
-import { observable, action, runInAction } from "mobx";
+import { observable, action, runInAction, IReactionDisposer, reaction, autorun } from "mobx";
 import { Doc } from "../../new_fields/Doc";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 import { NumCast } from "../../new_fields/Types";
 
 export namespace SelectionManager {
+
     class Manager {
+
         @observable IsDragging: boolean = false;
         @observable SelectedDocuments: Array<DocumentView> = [];
 
@@ -18,6 +20,7 @@ export namespace SelectionManager {
                 }
 
                 manager.SelectedDocuments.push(docView);
+                // console.log(manager.SelectedDocuments);
                 docView.props.whenActiveChanged(true);
             }
         }

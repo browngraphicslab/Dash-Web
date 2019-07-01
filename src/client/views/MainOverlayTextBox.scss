@@ -1,7 +1,7 @@
 @import "globalCssVariables";
 .mainOverlayTextBox-textInput {
     background-color: rgba(248, 6, 6, 0.001);
-    width: 200px;
+    width: 400px;
     height: 200px;
     position:absolute;
     overflow: visible;
@@ -17,4 +17,9 @@
         top: 0;
         left: 0;
     }
+}
+.mainOverlayTextBox-.unscaled_div{
+    z-index: 10000;
+    position: absolute;
+    pointer-events: none;
 }

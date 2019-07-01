@@ -78,7 +78,7 @@ export class ToggleBar extends React.Component<ToggleBarProps>{
                     <div className="toggle-option" style={{ opacity: (this.props.getStatus() ? .4 : 1) }}>{this.props.optionTwo}</div>
                 </div>
                 <div className="toggle-bar" id="toggle-bar" onClick={this.onclick} style={{ flexDirection: (this._originalStatus ? "row" : "row-reverse") }}>
-                    <div className="toggle-button" id="toggle-button" ref={this._toggleButton}  />
+                    <div className="toggle-button" id="toggle-button" ref={this._toggleButton} />
                 </div>
             </div>
         );
