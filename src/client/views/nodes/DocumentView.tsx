@@ -217,7 +217,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         e.stopPropagation();
     }
 
-    get dataDoc() { return this.props.DataDoc ? this.props.DataDoc : this.props.Document; }
+    get dataDoc() { return this.props.DataDoc !== this.props.Document ? this.props.DataDoc : undefined; }
     startDragging(x: number, y: number, dropAction: dropActionType, dragSubBullets: boolean) {
         if (this._mainCont.current) {
             let allConnected = [this.props.Document, ...(dragSubBullets ? DocListCast(this.props.Document.subBulletDocs) : [])];
@@ -280,7 +280,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (this._doubleTap && this.props.renderDepth) {
             let fullScreenAlias = Doc.MakeAlias(this.props.Document);
             fullScreenAlias.templates = new List<string>();
-            this.props.addDocTab(fullScreenAlias, this.props.Document === this.dataDoc ? undefined : this.dataDoc, "inTab");
+            this.props.addDocTab(fullScreenAlias, this.dataDoc, "inTab");
             SelectionManager.DeselectAll();
             this.props.Document.libraryBrush = false;
         }
