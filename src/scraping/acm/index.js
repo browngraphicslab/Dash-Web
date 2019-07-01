@@ -28,6 +28,10 @@ function log_read(content) {
     process.stdout.write("reading " + content + "...");
 }
 
+function first_value(object) {
+    return object[Object.keys(object)[0]];
+}
+
 function log_snippet(result, quotes = true) {
     let snippet = "failed to create snippet";
     switch (typeof result) {
@@ -49,11 +53,11 @@ function log_snippet(result, quotes = true) {
                         case "string":
                             return res.substring(0, sample_line_char_max / result.length);
                         case "object":
-                            return res[Object.keys(res)[0]];
+                            return first_value(res);
                     }
                 }).join(', ');
             } else {
-                snippet = result[Object.keys(result)[0]];
+                snippet = first_value(result);
             }
     }
     console.log(snippet);
