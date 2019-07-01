@@ -405,7 +405,7 @@ export default class Page extends React.Component<IPageProps> {
                 </div>
                 <div className="pdfInkingLayer-cont" ref={this._annotationLayer} style={{ width: "100%", height: "100%", position: "relative", top: "-100%" }}>
                     <div className="pdfViewer-annotationBox" ref={this._marquee}
-                        style={{ left: `${this._marqueeX}px`, top: `${this._marqueeY}px`, width: `${this._marqueeWidth}px`, height: `${this._marqueeHeight}px`, background: "red", border: "10px dashed black" }}>
+                        style={{ left: `${this._marqueeX}px`, top: `${this._marqueeY}px`, width: `${this._marqueeWidth}px`, height: `${this._marqueeHeight}px`, background: "red", border: `${this._marqueeWidth === 0 ? "" : "10px dashed black"}` }}>
                         {/* <img ref={this._curly} src="https://static.thenounproject.com/png/331760-200.png" style={{ width: "100%", height: "100%", transform: `${this._rotate}` }} /> */}
                     </div>
                 </div>
