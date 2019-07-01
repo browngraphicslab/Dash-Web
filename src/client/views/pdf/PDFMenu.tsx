@@ -7,6 +7,7 @@ import { emptyFunction, returnZero, returnTrue, returnFalse } from "../../../Uti
 import { Doc } from "../../../new_fields/Doc";
 import { DragManager } from "../../util/DragManager";
 import { DocUtils } from "../../documents/Documents";
+import { PresentationView } from "../presentationview/PresentationView";
 
 @observer
 export default class PDFMenu extends React.Component {
@@ -24,6 +25,7 @@ export default class PDFMenu extends React.Component {
     Delete: () => void = emptyFunction;
     Snippet: (marquee: { left: number, top: number, width: number, height: number }) => void = emptyFunction;
     AddTag: (key: string, value: string) => boolean = returnFalse;
+    PinToPres: () => void = emptyFunction;
 
     @observable public Highlighting: boolean = false;
     @observable public Status: "pdf" | "annotation" | "snippet" | "" = "";
@@ -252,11 +254,12 @@ export default class PDFMenu extends React.Component {
             </button>
         ] : [
                 <button className="pdfMenu-button" title="Delete Anchor" onPointerDown={this.deleteClicked}><FontAwesomeIcon icon="trash-alt" size="lg" key="1" /></button>,
-                <div className="pdfMenu-addTag" key="2">
+                <button className="pdfMenu-button" title="Pin to Presentation" onPointerDown={this.PinToPres}><FontAwesomeIcon icon="map-pin" size="lg" key="2" /></button>,
+                <div className="pdfMenu-addTag" key="3">
                     <input onChange={this.keyChanged} placeholder="Key" style={{ gridColumn: 1 }} />
                     <input onChange={this.valueChanged} placeholder="Value" style={{ gridColumn: 3 }} />
                 </div>,
-                <button className="pdfMenu-button" title={`Add tag: ${this._keyValue} with value: ${this._valueValue}`} onPointerDown={this.addTag}><FontAwesomeIcon style={{ transition: "all .2s" }} color={this._added ? "#42f560" : "white"} icon="check" size="lg" key="3" /></button>,
+                <button className="pdfMenu-button" title={`Add tag: ${this._keyValue} with value: ${this._valueValue}`} onPointerDown={this.addTag}><FontAwesomeIcon style={{ transition: "all .2s" }} color={this._added ? "#42f560" : "white"} icon="check" size="lg" key="4" /></button>,
             ];
 
         return (

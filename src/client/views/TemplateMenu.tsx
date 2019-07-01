@@ -6,6 +6,7 @@ import './DocumentDecorations.scss';
 import { DocumentView } from "./nodes/DocumentView";
 import { Template } from "./Templates";
 import React = require("react");
+import { undoBatch } from "../util/UndoManager";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -39,6 +40,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         super(props);
     }
 
+    @undoBatch
     @action
     toggleTemplate = (event: React.ChangeEvent<HTMLInputElement>, template: Template): void => {
         if (event.target.checked) {
