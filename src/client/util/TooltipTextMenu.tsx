@@ -1,57 +1,37 @@
-import { action, IReactionDisposer, reaction } from "mobx";
-import { Dropdown, DropdownSubmenu, MenuItem, MenuItemSpec, renderGrouped, icons, } from "prosemirror-menu"; //no import css
-import { baseKeymap, lift, deleteSelection } from "prosemirror-commands";
-import { history, redo, undo } from "prosemirror-history";
-import { keymap } from "prosemirror-keymap";
-import { EditorState, Transaction, NodeSelection, TextSelection } from "prosemirror-state";
+import { action } from "mobx";
+import { Dropdown, MenuItem, icons, } from "prosemirror-menu"; //no import css
+import { EditorState, NodeSelection, TextSelection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { schema } from "./RichTextSchema";
 import { Schema, NodeType, MarkType, Mark, ResolvedPos } from "prosemirror-model";
-import { Node as ProsNode } from "prosemirror-model"
-import React = require("react");
+import { Node as ProsNode } from "prosemirror-model";
 import "./TooltipTextMenu.scss";
-const { toggleMark, setBlockType, wrapIn } = require("prosemirror-commands");
+const { toggleMark, setBlockType } = require("prosemirror-commands");
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { wrapInList, bulletList, liftListItem, listItem, } from 'prosemirror-schema-list';
-import { liftTarget, RemoveMarkStep, AddMarkStep } from 'prosemirror-transform';
-import {
-    faListUl, faGrinTongueSquint,
-} from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { wrapInList, liftListItem, } from 'prosemirror-schema-list';
+import { faListUl } from '@fortawesome/free-solid-svg-icons';
 import { FieldViewProps } from "../views/nodes/FieldView";
-import { throwStatement } from "babel-types";
 const { openPrompt, TextField } = require("./ProsemirrorCopy/prompt.js");
-import { View } from "@react-pdf/renderer";
 import { DragManager } from "./DragManager";
 import { Doc, Opt, Field } from "../../new_fields/Doc";
 import { DocServer } from "../DocServer";
-import { CollectionFreeFormDocumentView } from "../views/nodes/CollectionFreeFormDocumentView";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { DocumentManager } from "./DocumentManager";
 import { Id } from "../../new_fields/FieldSymbols";
-import { Utils } from "../../Utils";
 import { FormattedTextBoxProps } from "../views/nodes/FormattedTextBox";
-import { text } from "body-parser";
-import { type } from "os";
-// import { wrap } from "module";
-
-const SVG = "http://www.w3.org/2000/svg";
 
 //appears above a selection of text in a RichTextBox to give user options such as Bold, Italics, etc.
 export class TooltipTextMenu {
 
     public tooltip: HTMLElement;
-    private num_icons = 0;
     private view: EditorView;
     private fontStyles: MarkType[];
     private fontSizes: MarkType[];
     private listTypes: NodeType[];
     private editorProps: FieldViewProps & FormattedTextBoxProps;
-    private state: EditorState;
     private fontSizeToNum: Map<MarkType, number>;
     private fontStylesToName: Map<MarkType, string>;
     private listTypeToIcon: Map<NodeType, string>;
-    private fontSizeIndicator: HTMLSpanElement = document.createElement("span");
     private link: HTMLAnchorElement;
 
     private linkEditor?: HTMLDivElement;
@@ -68,7 +48,6 @@ export class TooltipTextMenu {
 
     constructor(view: EditorView, editorProps: FieldViewProps & FormattedTextBoxProps) {
         this.view = view;
-        this.state = view.state;
         this.editorProps = editorProps;
         this.tooltip = document.createElement("div");
         this.tooltip.className = "tooltipMenu";
@@ -240,7 +219,7 @@ export class TooltipTextMenu {
                                 if (DocumentManager.Instance.getDocumentView(f)) {
                                     DocumentManager.Instance.getDocumentView(f)!.props.focus(f, false);
                                 }
-                                else if (CollectionDockingView.Instance) CollectionDockingView.Instance.AddRightSplit(f, f);
+                                else if (CollectionDockingView.Instance) CollectionDockingView.Instance.AddRightSplit(f, undefined);
                             }
                         }));
                     }
@@ -333,7 +312,7 @@ export class TooltipTextMenu {
 
     //for a specific grouping of marks (passed in), remove all and apply the passed-in one to the selected text
     changeToMarkInGroup = (markType: MarkType, view: EditorView, fontMarks: MarkType[]) => {
-        let { empty, $cursor, ranges } = view.state.selection as TextSelection;
+        let { $cursor, ranges } = view.state.selection as TextSelection;
         let state = view.state;
         let dispatch = view.dispatch;
 
@@ -345,13 +324,12 @@ export class TooltipTextMenu {
                         dispatch(state.tr.removeStoredMark(type));
                     }
                 } else {
-                    let has = false, tr = state.tr;
+                    let has = false;
                     for (let i = 0; !has && i < ranges.length; i++) {
                         let { $from, $to } = ranges[i];
                         has = state.doc.rangeHasMark($from.pos, $to.pos, type);
                     }
                     for (let i of ranges) {
-                        let { $from, $to } = i;
                         if (has) {
                             toggleMark(type)(view.state, view.dispatch, view);
                         }
@@ -373,7 +351,7 @@ export class TooltipTextMenu {
     }
 
     //remove all node typeand apply the passed-in one to the selected text
-    changeToNodeType(nodeType: NodeType | undefined, view: EditorView, allNodes: NodeType[]) {
+    changeToNodeType(nodeType: NodeType | undefined, view: EditorView) {
         //remove old
         liftListItem(schema.nodes.list_item)(view.state, view.dispatch);
         if (nodeType) { //add new
@@ -390,7 +368,7 @@ export class TooltipTextMenu {
             execEvent: "",
             class: "menuicon",
             css: css,
-            enable(state) { return true; },
+            enable() { return true; },
             run() {
                 changeToMarkInGroup(markType, view, groupMarks);
             }
@@ -405,7 +383,7 @@ export class TooltipTextMenu {
             css: "color:white;",
             class: "summarize",
             execEvent: "",
-            run: (state, dispatch, view) => {
+            run: (state, dispatch) => {
                 TooltipTextMenu.insertStar(state, dispatch);
             }
 
@@ -420,7 +398,7 @@ export class TooltipTextMenu {
             execEvent: "",
             css: "color:white;",
             class: "summarize",
-            run: (state, dispatch, view) => {
+            run: () => {
                 this.collapseToolTip();
             }
         });
@@ -499,7 +477,7 @@ export class TooltipTextMenu {
             execEvent: "",
             class: "menuicon",
             css: css,
-            enable(state) { return true; },
+            enable() { return true; },
             run() {
                 changeToNodeInGroup(nodeType, view, groupNodes);
             }
@@ -586,17 +564,6 @@ export class TooltipTextMenu {
             //return;
         }
 
-        //let linksInSelection = this.activeMarksOnSelection([schema.marks.link]);
-        // if (linksInSelection.length > 0) {
-        //     let attributes = this.getMarksInSelection(this.view.state, [schema.marks.link])[0].attrs;
-        //     this.link.href = attributes.href;
-        //     this.link.textContent = attributes.title;
-        //     this.link.style.visibility = "visible";
-        // } else this.link.style.visibility = "hidden";
-
-        // Otherwise, reposition it and update its content
-        //this.tooltip.style.display = "";
-        let { from, to } = state.selection;
 
         //UPDATE LIST ITEM DROPDOWN
 
@@ -641,17 +608,16 @@ export class TooltipTextMenu {
     //finds all active marks on selection in given group
     activeMarksOnSelection(markGroup: MarkType[]) {
         //current selection
-        let { empty, $cursor, ranges } = this.view.state.selection as TextSelection;
+        let { empty, ranges } = this.view.state.selection as TextSelection;
         let state = this.view.state;
         let dispatch = this.view.dispatch;
         let activeMarks: MarkType[];
         if (!empty) {
             activeMarks = markGroup.filter(mark => {
                 if (dispatch) {
-                    let has = false, tr = state.tr;
+                    let has = false;
                     for (let i = 0; !has && i < ranges.length; i++) {
                         let { $from, $to } = ranges[i];
-                        let hasmark: boolean = state.doc.rangeHasMark($from.pos, $to.pos, mark);
                         return state.doc.rangeHasMark($from.pos, $to.pos, mark);
                     }
                 }
@@ -662,9 +628,7 @@ export class TooltipTextMenu {
             const pos = this.view.state.selection.$from;
             const ref_node: ProsNode = this.reference_node(pos);
             if (ref_node !== null && ref_node !== this.view.state.doc) {
-                let text_node_type: NodeType;
                 if (ref_node.isText) {
-                    text_node_type = ref_node.type;
                 }
                 else {
                     return [];
@@ -699,7 +663,7 @@ export class TooltipTextMenu {
         else if (pos.pos > 0) {
             let skip = false;
             for (let i: number = pos.pos - 1; i > 0; i--) {
-                this.view.state.doc.nodesBetween(i, pos.pos, (node: ProsNode, pos: number, parent: ProsNode, index: number) => {
+                this.view.state.doc.nodesBetween(i, pos.pos, (node: ProsNode) => {
                     if (node.isLeaf && !skip) {
                         ref_node = node;
                         skip = true;

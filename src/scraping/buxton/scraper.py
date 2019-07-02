@@ -118,7 +118,7 @@ def write_image(folder, name):
 
     image = Image.open(f"{dist}/{folder}/{name}")
     native_width, native_height = image.size
-    
+
     view_doc = {
         "_id": view_doc_guid,
         "fields": {

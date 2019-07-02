@@ -13,12 +13,11 @@ import { faFile as fileRegular } from '@fortawesome/free-regular-svg-icons';
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 
-
 library.add(faArrowUp);
 library.add(fileSolid);
 library.add(faLocationArrow);
+library.add(fileRegular as any);
 library.add(faSearch);
-library.add(fileRegular);
 
 interface PresentationElementProps {
     mainDocument: Doc;

@@ -24,7 +24,6 @@ import { SubCollectionViewProps } from "./CollectionSubView";
 import { ParentDocSelector } from './ParentDocumentSelector';
 import React = require("react");
 import { MainView } from '../MainView';
-import { LinkManager } from '../../util/LinkManager';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faFile } from '@fortawesome/free-solid-svg-icons';
@@ -52,6 +51,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     private _flush: boolean = false;
     private _ignoreStateChange = "";
     private _isPointerDown = false;
+    private _maximizedSrc: Opt<DocumentView>;
 
     constructor(props: SubCollectionViewProps) {
         super(props);
@@ -66,12 +66,14 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         this.hack = true;
         this.undohack = UndoManager.StartBatch("goldenDrag");
         dragDocs.map((dragDoc, i) =>
-            this.AddRightSplit(dragDoc, dragDataDocs ? dragDataDocs[i] : dragDoc, true).contentItems[0].tab._dragListener.
+            this.AddRightSplit(dragDoc, dragDataDocs ? dragDataDocs[i] : undefined, true).contentItems[0].tab._dragListener.
                 onMouseDown({ pageX: e.pageX, pageY: e.pageY, preventDefault: emptyFunction, button: 0 }));
     }
 
     @action
-    public OpenFullScreen(document: Doc, dataDoc: Doc) {
+    public OpenFullScreen(docView: DocumentView) {
+        let document = Doc.MakeAlias(docView.props.Document);
+        let dataDoc = docView.dataDoc;
         let newItemStackConfig = {
             type: 'stack',
             content: [CollectionDockingView.makeDocumentConfig(document, dataDoc)]
@@ -80,8 +82,23 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         this._goldenLayout.root.contentItems[0].addChild(docconfig);
         docconfig.callDownwards('_$init');
         this._goldenLayout._$maximiseItem(docconfig);
+        this._maximizedSrc = docView;
         this._ignoreStateChange = JSON.stringify(this._goldenLayout.toConfig());
         this.stateChanged();
+    }
+
+    public CloseFullScreen = () => {
+        let target = this._goldenLayout._maximisedItem;
+        if (target !== null && this._maximizedSrc) {
+            this._goldenLayout._maximisedItem.remove();
+            SelectionManager.SelectDoc(this._maximizedSrc, false);
+            this._maximizedSrc = undefined;
+            this.stateChanged();
+        }
+    }
+
+    public HasFullScreen = () => {
+        return this._goldenLayout._maximisedItem !== null;
     }
 
     @undoBatch
@@ -167,7 +184,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         return newContentItem;
     }
     @action
-    public AddTab = (stack: any, document: Doc, dataDocument: Doc) => {
+    public AddTab = (stack: any, document: Doc, dataDocument: Doc | undefined) => {
         let docs = Cast(this.props.Document.data, listSpec(Doc));
         if (docs) {
             docs.push(document);
@@ -252,12 +269,11 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         var cur = this._containerRef.current;
 
         // bcz: since GoldenLayout isn't a React component itself, we need to notify it to resize when its document container's size has changed
-        this._goldenLayout.updateSize(cur!.getBoundingClientRect().width, cur!.getBoundingClientRect().height);
+        this._goldenLayout && this._goldenLayout.updateSize(cur!.getBoundingClientRect().width, cur!.getBoundingClientRect().height);
     }
 
     @action
     onPointerUp = (e: React.PointerEvent): void => {
-        this._isPointerDown = false;
         if (this._flush) {
             this._flush = false;
             setTimeout(() => this.stateChanged(), 10);
@@ -350,7 +366,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             }
             let doc = await DocServer.GetRefField(tab.contentItem.config.props.documentId) as Doc;
             let dataDoc = await DocServer.GetRefField(tab.contentItem.config.props.dataDocumentId) as Doc;
-            if (doc instanceof Doc && dataDoc instanceof Doc) {
+            if (doc instanceof Doc) {
                 let dragSpan = document.createElement("span");
                 dragSpan.style.position = "relative";
                 dragSpan.style.bottom = "6px";
@@ -367,7 +383,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     }
                     tab.setActive(true);
                 };
-                ReactDOM.render(<span onPointerDown={
+                ReactDOM.render(<span title="Drag as document" onPointerDown={
                     e => {
                         e.preventDefault();
                         e.stopPropagation();
@@ -440,8 +456,14 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
     render() {
         return (
-            <div className="collectiondockingview-container" id="menuContainer"
-                onPointerDown={this.onPointerDown} onPointerUp={this.onPointerUp} ref={this._containerRef} />
+            <Measure offset onResize={this.onResize}>
+                {({ measureRef }) =>
+                    <div ref={measureRef}>
+                        <div className="collectiondockingview-container" id="menuContainer"
+                            onPointerDown={this.onPointerDown} onPointerUp={this.onPointerUp} ref={this._containerRef} />
+                    </div>
+                }
+            </Measure>
         );
     }
 
@@ -469,7 +491,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     constructor(props: any) {
         super(props);
         DocServer.GetRefField(this.props.documentId).then(action((f: Opt<Field>) => {
-            this._dataDoc = this._document = f as Doc;
+            this._document = f as Doc;
             if (this.props.dataDocumentId && this.props.documentId !== this.props.dataDocumentId) {
                 DocServer.GetRefField(this.props.dataDocumentId).then(action((f: Opt<Field>) => this._dataDoc = f as Doc));
             }
@@ -510,7 +532,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
     get previewPanelCenteringOffset() { return (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2; }
 
-    addDocTab = (doc: Doc, dataDoc: Doc, location: string) => {
+    addDocTab = (doc: Doc, dataDoc: Doc | undefined, location: string) => {
         if (doc.dockingConfig) {
             MainView.Instance.openWorkspace(doc);
         } else if (location === "onRight") {
@@ -520,15 +542,16 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         }
     }
     get content() {
-        if (!this._document || !this._dataDoc) {
+        if (!this._document) {
             return (null);
         }
+        let resolvedDataDoc = this._document.layout instanceof Doc ? this._document : this._dataDoc;
         return (
             <div className="collectionDockingView-content" ref={this._mainCont}
                 style={{ transform: `translate(${this.previewPanelCenteringOffset}px, 0px) scale(${this.scaleToFitMultiplier})` }}>
                 <DocumentView key={this._document[Id]}
                     Document={this._document}
-                    DataDoc={this._dataDoc}
+                    DataDoc={resolvedDataDoc}
                     bringToFront={emptyFunction}
                     addDocument={undefined}
                     removeDocument={undefined}

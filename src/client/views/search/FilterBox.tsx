@@ -3,7 +3,7 @@ import { observer } from 'mobx-react';
 import { observable, action } from 'mobx';
 import "./SearchBox.scss";
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
-import { library} from '@fortawesome/fontawesome-svg-core';
+import { library } from '@fortawesome/fontawesome-svg-core';
 import { Doc } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { DocTypes } from '../../documents/Documents';
@@ -57,7 +57,7 @@ export class FilterBox extends React.Component {
 
     componentDidMount = () => {
         document.addEventListener("pointerdown", (e) => {
-            if (e.timeStamp !== this._pointerTime) {
+            if (!e.defaultPrevented && e.timeStamp !== this._pointerTime) {
                 SearchBox.Instance.closeSearch();
             }
         });
@@ -65,9 +65,9 @@ export class FilterBox extends React.Component {
 
     setupAccordion() {
         $('document').ready(function () {
-            var acc = document.getElementsByClassName('filter-header');
-
-            for (var i = 0; i < acc.length; i++) {
+            const acc = document.getElementsByClassName('filter-header');
+            // tslint:disable-next-line: prefer-for-of
+            for (let i = 0; i < acc.length; i++) {
                 acc[i].addEventListener("click", function (this: HTMLElement) {
                     this.classList.toggle("active");
 
@@ -96,6 +96,7 @@ export class FilterBox extends React.Component {
         $('document').ready(function () {
             var acc = document.getElementsByClassName('filter-header');
 
+            // tslint:disable-next-line: prefer-for-of
             for (var i = 0; i < acc.length; i++) {
                 let classList = acc[i].classList;
                 if (classList.contains("active")) {
@@ -240,8 +241,8 @@ export class FilterBox extends React.Component {
     filterDocsByType(docs: Doc[]) {
         let finalDocs: Doc[] = [];
         docs.forEach(doc => {
-            let layoutresult = Cast(doc.type, "string", "");
-            if (this._icons.includes(layoutresult)) {
+            let layoutresult = Cast(doc.type, "string");
+            if (!layoutresult || this._icons.includes(layoutresult)) {
                 finalDocs.push(doc);
             }
         });

@@ -23,6 +23,7 @@ import { UndoManager } from "../../util/UndoManager";
 import { CompileScript, CompiledScript, CompileResult } from "../../util/Scripting";
 import { ScriptField } from "../../../new_fields/ScriptField";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import Annotation from "./Annotation";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const PDFFindBar = require("pdfjs-dist/lib/web/pdf_find_bar");
 const getGlobalEventBus = require("pdfjs-dist/lib/web/dom_events");
@@ -50,7 +51,7 @@ export class PDFViewer extends React.Component<IPDFViewerProps> {
 
     render() {
         return (
-            <div ref={this._mainDiv}>
+            <div className="pdfViewer-viewerCont" ref={this._mainDiv}>
                 {!this._pdf ? (null) :
                     <Viewer pdf={this._pdf} loaded={this.props.loaded} scrollY={this.props.scrollY} parent={this.props.parent} mainCont={this._mainDiv} url={this.props.url} />}
             </div>
@@ -71,7 +72,7 @@ interface IViewerProps {
  * Handles rendering and virtualization of the pdf
  */
 @observer
-class Viewer extends React.Component<IViewerProps> {
+export class Viewer extends React.Component<IViewerProps> {
     // _visibleElements is the array of JSX elements that gets rendered
     @observable.shallow private _visibleElements: JSX.Element[] = [];
     // _isPage is an array that tells us whether or not an index is rendered as a page or as a placeholder
@@ -215,10 +216,14 @@ class Viewer extends React.Component<IViewerProps> {
             let pageSizes = Array<{ width: number, height: number }>(this.props.pdf.numPages);
             this._isPage = Array<string>(this.props.pdf.numPages);
             // this._textContent = Array<Pdfjs.TextContent>(this.props.pdf.numPages);
+            const proms: Pdfjs.PDFPromise<any>[] = [];
             for (let i = 0; i < this.props.pdf.numPages; i++) {
-                await this.props.pdf.getPage(i + 1).then(page => runInAction(() => {
-                    // pageSizes[i] = { width: page.view[2] * scale, height: page.view[3] * scale };
-                    let x = page.getViewport(scale);
+                proms.push(this.props.pdf.getPage(i + 1).then(page => runInAction(() => {
+                    pageSizes[i] = {
+                        width: (page.view[page.rotate === 0 || page.rotate === 180 ? 2 : 3] - page.view[page.rotate === 0 || page.rotate === 180 ? 0 : 1]) * scale,
+                        height: (page.view[page.rotate === 0 || page.rotate === 180 ? 3 : 2] - page.view[page.rotate === 0 || page.rotate === 180 ? 1 : 0]) * scale
+                    };
+                    // let x = page.getViewport(scale);
                     // page.getTextContent().then((text: Pdfjs.TextContent) => {
                     //     // let tc = new Pdfjs.TextContentItem()
                     //     // let tc = {str: }
@@ -227,9 +232,10 @@ class Viewer extends React.Component<IViewerProps> {
                     //     //     tcStr += t.str;
                     //     // })
                     // });
-                    pageSizes[i] = { width: x.width, height: x.height };
-                }));
+                    // pageSizes[i] = { width: x.width, height: x.height };
+                })));
             }
+            await Promise.all(proms);
             runInAction(() =>
                 Array.from(Array((this._pageSizes = pageSizes).length).keys()).map(this.getPlaceholderPage));
             this.props.loaded(Math.max(...pageSizes.map(i => i.width)), pageSizes[0].height, this.props.pdf.numPages);
@@ -442,20 +448,8 @@ class Viewer extends React.Component<IViewerProps> {
         }
     }
 
-    renderAnnotation = (anno: Doc, index: number): JSX.Element[] => {
-        let annotationDocs = DocListCast(anno.annotations);
-        let res = annotationDocs.map(a => {
-            let type = NumCast(a.type);
-            switch (type) {
-                // case AnnotationTypes.Pin:
-                //     return <PinAnnotation parent={this} document={a} x={NumCast(a.x)} y={NumCast(a.y)} width={a[WidthSym]()} height={a[HeightSym]()} key={a[Id]} />;
-                case AnnotationTypes.Region:
-                    return <RegionAnnotation parent={this} document={a} index={index} x={NumCast(a.x)} y={NumCast(a.y)} width={a[WidthSym]()} height={a[HeightSym]()} key={a[Id]} />;
-                default:
-                    return <div></div>;
-            }
-        });
-        return res;
+    renderAnnotation = (anno: Doc, index: number): JSX.Element => {
+        return <Annotation anno={anno} index={index} parent={this} />;
     }
 
     @action
@@ -647,7 +641,7 @@ class Viewer extends React.Component<IViewerProps> {
                 }
             }
             return true;
-        }).length) {
+        }).length - 1) {
             this.Index++;
         }
     }
@@ -744,6 +738,7 @@ export enum AnnotationTypes {
     Region
 }
 
+<<<<<<< HEAD
 interface IAnnotationProps {
     x: number;
     y: number;
@@ -854,6 +849,8 @@ class RegionAnnotation extends React.Component<IAnnotationProps> {
     }
 }
 
+=======
+>>>>>>> 49cf949250fb9b01a8457c2c3dee60b19f60c036
 class SimpleLinkService {
     externalLinkTarget: any = null;
     externalLinkRel: any = null;

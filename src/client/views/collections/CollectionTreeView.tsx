@@ -36,7 +36,7 @@ export interface TreeViewProps {
     deleteDoc: (doc: Doc) => boolean;
     moveDocument: DragManager.MoveFunction;
     dropAction: "alias" | "copy" | undefined;
-    addDocTab: (doc: Doc, dataDoc: Doc, where: string) => void;
+    addDocTab: (doc: Doc, dataDoc: Doc | undefined, where: string) => void;
     panelWidth: () => number;
     panelHeight: () => number;
     addDocument: (doc: Doc, relativeTo?: Doc, before?: boolean) => boolean;
@@ -97,7 +97,7 @@ class TreeView extends React.Component<TreeViewProps> {
     }
 
     @undoBatch delete = () => this.props.deleteDoc(this.resolvedDataDoc);
-    @undoBatch openRight = async () => this.props.addDocTab(this.props.document, this.props.document, "onRight");
+    @undoBatch openRight = async () => this.props.addDocTab(this.props.document, undefined, "onRight");
 
     onPointerDown = (e: React.PointerEvent) => e.stopPropagation();
     onPointerEnter = (e: React.PointerEvent): void => {
@@ -183,16 +183,19 @@ class TreeView extends React.Component<TreeViewProps> {
         let keys = Array.from(Object.keys(this.resolvedDataDoc));
         if (this.resolvedDataDoc.proto instanceof Doc) {
             keys.push(...Array.from(Object.keys(this.resolvedDataDoc.proto)));
-            while (keys.indexOf("proto") !== -1) keys.splice(keys.indexOf("proto"), 1);
         }
-        let keyList: string[] = keys.reduce((l, key) => Cast(this.resolvedDataDoc[key], listSpec(Doc)) ? [...l, key] : l, [] as string[]);
+        let keyList: string[] = keys.reduce((l, key) => {
+            let listspec = DocListCast(this.resolvedDataDoc[key]);
+            if (listspec && listspec.length) return [...l, key];
+            return l;
+        }, [] as string[]);
         keys.map(key => Cast(this.resolvedDataDoc[key], Doc) instanceof Doc && keyList.push(key));
         if (LinkManager.Instance.getAllRelatedLinks(this.props.document).length > 0) keyList.push("links");
         if (keyList.indexOf(this.fieldKey) !== -1) {
             keyList.splice(keyList.indexOf(this.fieldKey), 1);
         }
         keyList.splice(0, 0, this.fieldKey);
-        return keyList;
+        return keyList.filter((item, index) => keyList.indexOf(item) >= index);
     }
     /**
      * Renders the EditableView title element for placement into the tree.
@@ -248,6 +251,8 @@ class TreeView extends React.Component<TreeViewProps> {
             e.stopPropagation();
         }
     }
+
+    @undoBatch
     treeDrop = (e: Event, de: DragManager.DropEvent) => {
         let x = this.props.ScreenToLocalTransform().transformPoint(de.x, de.y);
         let rect = this._header!.current!.getBoundingClientRect();
@@ -322,14 +327,14 @@ class TreeView extends React.Component<TreeViewProps> {
                             this.props.dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active, this.props.panelWidth, this.props.renderDepth)}
                 </ul >;
             } else {
-                console.log("PW = " + this.props.panelWidth());
-                contentElement = <div ref={this._dref} style={{ display: "inline-block", height: this.props.panelHeight() }} key={this.props.document[Id]}>
+                let layoutDoc = Doc.expandTemplateLayout(this.props.document, this.props.dataDoc);
+                contentElement = <div ref={this._dref} style={{ display: "inline-block", height: layoutDoc[HeightSym]() }} key={this.props.document[Id]}>
                     <CollectionSchemaPreview
-                        Document={this.props.document}
+                        Document={layoutDoc}
                         DataDocument={this.resolvedDataDoc}
                         renderDepth={this.props.renderDepth}
                         width={docWidth}
-                        height={this.props.panelHeight}
+                        height={layoutDoc[HeightSym]}
                         getTransform={this.docTransform}
                         CollectionView={undefined}
                         addDocument={emptyFunction as any}
@@ -365,7 +370,7 @@ class TreeView extends React.Component<TreeViewProps> {
         remove: ((doc: Doc) => boolean),
         move: DragManager.MoveFunction,
         dropAction: dropActionType,
-        addDocTab: (doc: Doc, dataDoc: Doc, where: string) => void,
+        addDocTab: (doc: Doc, dataDoc: Doc | undefined, where: string) => void,
         screenToLocalXf: () => Transform,
         outerXf: () => { translateX: number, translateY: number },
         active: () => boolean,

@@ -205,7 +205,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         requestImageSize(window.origin + RouteStore.corsProxy + "/" + srcpath)
             .then((size: any) => {
                 let aspect = size.height / size.width;
-                if (layoutdoc[HeightSym]() / layoutdoc[WidthSym]() != aspect) {
+                if (Math.abs(layoutdoc[HeightSym]() / layoutdoc[WidthSym]() - aspect) > 0.01) {
                     setTimeout(action(() => {
                         layoutdoc.height = layoutdoc[WidthSym]() * aspect;
                         layoutdoc.nativeHeight = size.height;

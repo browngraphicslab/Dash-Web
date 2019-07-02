@@ -12,7 +12,7 @@ import { Docs } from "../documents/Documents";
 import { DocumentManager } from "../util/DocumentManager";
 import { DragLinksAsDocuments, DragManager } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
-import { undoBatch } from "../util/UndoManager";
+import { undoBatch, UndoManager } from "../util/UndoManager";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { CollectionView } from "./collections/CollectionView";
 import './DocumentDecorations.scss';
@@ -26,6 +26,7 @@ import { Template, Templates } from "./Templates";
 import React = require("react");
 import { RichTextField } from '../../new_fields/RichTextField';
 import { LinkManager } from '../util/LinkManager';
+import { ObjectField } from '../../new_fields/ObjectField';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -49,6 +50,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     private _downX = 0;
     private _downY = 0;
     private _iconDoc?: Doc = undefined;
+    private _resizeUndo?: UndoManager.Batch;
     @observable private _minimizedX = 0;
     @observable private _minimizedY = 0;
     @observable private _title: string = "";
@@ -77,39 +79,31 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 this._fieldKey = text.slice(1, text.length);
                 this._title = this.selectionTitle;
             } else if (text.startsWith(">")) {
-                let field = SelectionManager.SelectedDocuments()[0];
-                let collection = field.props.ContainingCollectionView!.props.Document;
-
-                let collectionKey = field.props.ContainingCollectionView!.props.fieldKey;
-                let collectionKeyProp = `fieldKey={"${collectionKey}"}`;
+                let fieldTemplateView = SelectionManager.SelectedDocuments()[0];
+                SelectionManager.DeselectAll();
+                let fieldTemplate = fieldTemplateView.props.Document;
+                let docTemplate = fieldTemplateView.props.ContainingCollectionView!.props.Document;
                 let metaKey = text.slice(1, text.length);
-                let metaKeyProp = `fieldKey={"${metaKey}"}`;
 
-                let layoutProto = Doc.GetProto(field.props.Document);
-                let template = Doc.MakeAlias(field.props.Document);
-                template.proto = collection;
-                template.title = metaKey;
-                template.nativeWidth = Cast(field.nativeWidth, "number");
-                template.nativeHeight = Cast(field.nativeHeight, "number");
-                template.width = NumCast(field.props.Document.width);
-                template.height = NumCast(field.props.Document.height);
-                template.panX = NumCast(field.props.Document.panX);
-                template.panY = NumCast(field.props.Document.panY);
-                template.x = NumCast(field.props.Document.x);
-                template.y = NumCast(field.props.Document.y);
-                template.embed = true;
-                template.isTemplate = true;
-                template.templates = new List<string>([Templates.TitleBar(metaKey)]);
-                if (field.props.Document.backgroundLayout) {
-                    let metaAnoKeyProp = `fieldKey={"${metaKey}"} fieldExt={"annotations"}`;
-                    let collectionAnoKeyProp = `fieldKey={"annotations"}`;
-                    template.layout = StrCast(field.props.Document.layout).replace(collectionAnoKeyProp, metaAnoKeyProp);
-                    template.backgroundLayout = StrCast(field.props.Document.backgroundLayout).replace(collectionKeyProp, metaKeyProp);
-                } else {
-                    template.layout = StrCast(field.props.Document.layout).replace(collectionKeyProp, metaKeyProp);
+                // move data doc fields to layout doc as needed (nativeWidth/nativeHeight, data, ??)
+                let backgroundLayout = StrCast(fieldTemplate.backgroundLayout);
+                let layout = StrCast(fieldTemplate.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
+                if (backgroundLayout) {
+                    layout = StrCast(fieldTemplate.layout).replace(/fieldKey={"annotations"}/, `fieldKey={"${metaKey}"} fieldExt={"annotations"}`);
+                    backgroundLayout = backgroundLayout.replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
                 }
-                Doc.AddDocToList(collection, collectionKey, template);
-                SelectionManager.SelectedDocuments().map(dv => dv.props.removeDocument && dv.props.removeDocument(dv.props.Document));
+                let nw = Cast(fieldTemplate.nativeWidth, "number");
+                let nh = Cast(fieldTemplate.nativeHeight, "number");
+
+                fieldTemplate.title = metaKey;
+                fieldTemplate.layout = layout;
+                fieldTemplate.backgroundLayout = backgroundLayout;
+                fieldTemplate.nativeWidth = nw;
+                fieldTemplate.nativeHeight = nh;
+                fieldTemplate.embed = true;
+                fieldTemplate.isTemplate = true;
+                fieldTemplate.templates = new List<string>([Templates.TitleBar(metaKey)]);
+                fieldTemplate.proto = Doc.GetProto(docTemplate);
             }
             else {
                 if (SelectionManager.SelectedDocuments().length > 0) {
@@ -354,6 +348,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             this._isPointerDown = true;
             this._resizing = e.currentTarget.id;
             this.Interacting = true;
+            this._resizeUndo = UndoManager.StartBatch("DocDecs resize");
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
@@ -507,7 +502,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 let nheight = doc.nativeHeight || 0;
                 let width = (doc.width || 0);
                 let height = (doc.height || (nheight / nwidth * width));
-                let scale = element.props.ScreenToLocalTransform().Scale;
+                let scale = element.props.ScreenToLocalTransform().Scale * element.props.ContentScaling();
                 let actualdW = Math.max(width + (dW * scale), 20);
                 let actualdH = Math.max(height + (dH * scale), 20);
                 doc.x = (doc.x || 0) + dX * (actualdW - width);
@@ -555,6 +550,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (e.button === 0) {
             e.preventDefault();
             this._isPointerDown = false;
+            this._resizeUndo && this._resizeUndo.end();
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
         }
@@ -699,7 +695,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 {this._edtingTitle ?
                     <input ref={this.keyinput} className="title" type="text" name="dynbox" value={this._title} onBlur={this.titleBlur} onChange={this.titleChanged} onKeyPress={this.titleEntered} /> :
                     <div className="title" onPointerDown={this.onTitleDown} ><span>{`${this.selectionTitle}`}</span></div>}
-                <div className="documentDecorations-closeButton" onPointerDown={this.onCloseDown}>X</div>
+                <div className="documentDecorations-closeButton" title="Close Document" onPointerDown={this.onCloseDown}>X</div>
                 <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-topResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-topRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
