@@ -38,6 +38,7 @@ import PDFMenu from './pdf/PDFMenu';
 import { InkTool } from '../../new_fields/InkField';
 import _ from "lodash";
 import KeyManager from './GlobalKeyHandler';
+import { OverlayView } from './OverlayView';
 
 @observer
 export class MainView extends React.Component {
@@ -291,7 +292,7 @@ export class MainView extends React.Component {
             } else {
                 CollectionDockingView.Instance.AddRightSplit(doc, dataDoc);
             }
-        }
+        };
         let flyout = <DocumentView
             Document={CurrentUserUtils.UserDocument}
             DataDoc={undefined}
@@ -441,6 +442,7 @@ export class MainView extends React.Component {
                 {this.miscButtons}
                 <PDFMenu />
                 <MainOverlayTextBox />
+                <OverlayView />
             </div>
         );
     }

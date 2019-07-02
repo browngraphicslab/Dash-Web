@@ -9,6 +9,10 @@ import "./DocumentView.scss";
 import React = require("react");
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
 }
 
 const schema = createSchema({
@@ -23,13 +27,13 @@ const FreeformDocument = makeInterface(schema, positionSchema);
 @observer
 export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeFormDocumentViewProps, FreeformDocument>(FreeformDocument) {
     @computed get transform() { return `scale(${this.props.ContentScaling()}) translate(${this.X}px, ${this.Y}px) scale(${this.zoom}) `; }
-    @computed get X() { return FieldValue(this.Document.x, 0); }
-    @computed get Y() { return FieldValue(this.Document.y, 0); }
+    @computed get X() { return this.props.x !== undefined ? this.props.x : this.Document.x || 0; }
+    @computed get Y() { return this.props.y !== undefined ? this.props.y : this.Document.y || 0; }
+    @computed get width(): number { return BoolCast(this.props.Document.willMaximize) ? 0 : this.props.width !== undefined ? this.props.width : this.Document.width || 0; }
+    @computed get height(): number { return BoolCast(this.props.Document.willMaximize) ? 0 : this.props.height !== undefined ? this.props.height : this.Document.height || 0; }
     @computed get zoom(): number { return 1 / FieldValue(this.Document.zoomBasis, 1); }
     @computed get nativeWidth(): number { return FieldValue(this.Document.nativeWidth, 0); }
     @computed get nativeHeight(): number { return FieldValue(this.Document.nativeHeight, 0); }
-    @computed get width(): number { return BoolCast(this.props.Document.willMaximize) ? 0 : FieldValue(this.Document.width, 0); }
-    @computed get height(): number { return BoolCast(this.props.Document.willMaximize) ? 0 : FieldValue(this.Document.height, 0); }
 
     set width(w: number) {
         this.Document.width = w;

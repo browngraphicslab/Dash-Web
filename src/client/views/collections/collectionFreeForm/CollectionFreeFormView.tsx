@@ -27,6 +27,10 @@ import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import v5 = require("uuid/v5");
+import { ScriptField } from "../../../../new_fields/ScriptField";
+import { OverlayView } from "../../OverlayView";
+import { ScriptBox } from "../../ScriptBox";
+import { CompileScript } from "../../../util/Scripting";
 
 
 export const panZoomSchema = createSchema({
@@ -388,6 +392,18 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         };
     }
 
+    getCalculatedPositions(doc: Doc, index: number, collection: Doc): { x?: number, y?: number, width?: number, height?: number } | undefined {
+        const script = Cast(this.props.Document.arrangeScript, ScriptField);
+        if (!script) {
+            return undefined;
+        }
+        const result = script.script.run({ doc, index, collection });
+        if (!result.success) {
+            return undefined;
+        }
+        return result.result;
+    }
+
     @computed.struct
     get views() {
         let curPage = FieldValue(this.Document.curPage, -1);
@@ -397,7 +413,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             if (Math.round(page) === Math.round(curPage) || page === -1) {
                 let minim = BoolCast(doc.isMinimized, false);
                 if (minim === undefined || !minim) {
-                    prev.push(<CollectionFreeFormDocumentView key={doc[Id]} {...this.getChildDocumentViewProps(doc)} />);
+                    const pos = this.getCalculatedPositions(doc, prev.length, this.Document) || {};
+                    prev.push(<CollectionFreeFormDocumentView key={doc[Id]} x={pos.x} y={pos.y} width={pos.width} height={pos.height} {...this.getChildDocumentViewProps(doc)} />);
                 }
             }
             return prev;
@@ -436,6 +453,28 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         }
                     }
                 }
+            }
+        });
+        ContextMenu.Instance.addItem({
+            description: "Add freeform arrangement",
+            event: () => {
+                let overlayDisposer: () => void;
+                let scriptingBox = <ScriptBox onCancel={() => overlayDisposer()} onSave={(text, onError) => {
+                    const script = CompileScript(text, {
+                        params: {
+                            doc: "Doc", index: "number", collection: "Doc"
+                        },
+                        requiredType: "{x: number, y: number, width?: number, height?: number}",
+                        typecheck: false
+                    });
+                    if (!script.compiled) {
+                        onError(script.errors.map(error => error.messageText).join("\n"));
+                        return;
+                    }
+                    this.props.Document.arrangeScript = new ScriptField(script);
+                    overlayDisposer();
+                }} />;
+                overlayDisposer = OverlayView.Instance.addElement(scriptingBox, { x: 100, y: 100, width: 200, height: 200 });
             }
         });
     }
