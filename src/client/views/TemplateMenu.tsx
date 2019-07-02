@@ -64,6 +64,13 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         }
     }
 
+    @undoBatch
+    @action
+    clearTemplates = (event: React.MouseEvent) => {
+        this.props.docs.map(d => d.clearTemplates());
+        Array.from(this.props.templates.keys()).map(t => this.props.templates.set(t, false));
+    }
+
     @action
     componentWillReceiveProps(nextProps: TemplateMenuProps) {
         // this._templates = nextProps.templates;
@@ -84,6 +91,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
                 <div title="Template Options" className="templating-button" onClick={() => this.toggleTemplateActivity()}>+</div>
                 <ul id="template-list" style={{ display: this._hidden ? "none" : "block" }}>
                     {templateMenu}
+                    <button style={{ display: this._hidden ? "none" : "block" }} onClick={this.clearTemplates}>Clear</button>
                 </ul>
             </div>
         );

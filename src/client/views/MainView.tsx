@@ -289,7 +289,7 @@ export class MainView extends React.Component {
             if (doc.dockingConfig) {
                 this.openWorkspace(doc);
             } else {
-                // CollectionDockingView.Instance.AddRightSplit(doc, dataDoc);
+                CollectionDockingView.Instance.AddRightSplit(doc, dataDoc);
             }
         }
         let flyout = <DocumentView
