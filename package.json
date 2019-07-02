@@ -4,7 +4,7 @@
     "description": "",
     "main": "index.js",
     "scripts": {
-        "start": "cd solr-8.1.1/bin && solr.cmd start && cd ../../ && ts-node-dev -- src/server/index.ts",
+        "start": "ts-node-dev -- src/server/index.ts",
         "debug": "cross-env NODE_OPTIONS=--max_old_space_size=4096 ts-node-dev --inspect -- src/server/index.ts",
         "build": "cross-env NODE_OPTIONS=--max_old_space_size=4096 webpack --env production",
         "test": "mocha -r ts-node/register test/**/*.ts",
