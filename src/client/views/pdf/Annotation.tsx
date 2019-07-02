@@ -114,7 +114,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
         if (e.button === 0) {
             let targetDoc = Cast(this.props.document.target, Doc, null);
             if (targetDoc) {
-                DocumentManager.Instance.jumpToDocument(targetDoc, true);
+                DocumentManager.Instance.jumpToDocument(targetDoc, false);
             }
         }
         if (e.button === 2) {

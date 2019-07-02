@@ -195,6 +195,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         // if (!this.props.active()) {
         //     return;
         // }
+        if (this.props.Document.type === "pdf") {
+            return;
+        }
         let childSelected = this.childDocs.some(doc => {
             var dv = DocumentManager.Instance.getDocumentView(doc);
             return dv && SelectionManager.IsSelected(dv) ? true : false;
