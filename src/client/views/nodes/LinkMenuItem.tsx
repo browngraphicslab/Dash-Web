@@ -12,6 +12,7 @@ import { observable, action } from 'mobx';
 import { LinkManager } from '../../util/LinkManager';
 import { DragLinkAsDocument } from '../../util/DragManager';
 import { CollectionDockingView } from '../collections/CollectionDockingView';
+import { SelectionManager } from '../../util/SelectionManager';
 library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp);
 
 
@@ -37,8 +38,14 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         if (pdfDoc) {
             jumpToDoc = pdfDoc;
         }
-        if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
-            DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey);
+        let dvs = DocumentManager.Instance.getDocumentViews(jumpToDoc);
+        if (dvs.length) {
+            let inContext = dvs.filter(dv => dv.props.ContainingCollectionView === SelectionManager.SelectedDocuments()[0].props.ContainingCollectionView);
+            if (inContext) {
+                DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey);
+            } else {
+                CollectionDockingView.Instance.AddRightSplit(jumpToDoc, undefined);
+            }
         } else {
             CollectionDockingView.Instance.AddRightSplit(jumpToDoc, undefined);
         }
@@ -100,14 +107,14 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
 
         return (
             <div className="linkMenu-item" onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
-                <div className={canExpand ? "linkMenu-item-content expand-three" : "linkMenu-item-content expand-two"}>
+                <div className={canExpand ? "linkMenu-item-content expand-two" : "linkMenu-item-content expand-one"}>
                     <div className="link-name">
-                        <p ref={this._drag} onPointerDown={this.onLinkButtonDown}>{StrCast(this.props.destinationDoc.title)}</p>
+                        <p ref={this._drag} onPointerDown={this.onLinkButtonDown} onPointerUp={this.onFollowLink}>{StrCast(this.props.destinationDoc.title)}</p>
                         <div className="linkMenu-item-buttons">
                             {canExpand ? <div title="Show more" className="button" onPointerDown={() => this.toggleShowMore()}>
                                 <FontAwesomeIcon className="fa-icon" icon={this._showMore ? "chevron-up" : "chevron-down"} size="sm" /></div> : <></>}
                             <div title="Edit link" className="button" onPointerDown={this.onEdit}><FontAwesomeIcon className="fa-icon" icon="edit" size="sm" /></div>
-                            <div title="Follow link" className="button" onPointerDown={this.onFollowLink}><FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" /></div>
+                            {/* <div title="Follow link" className="button" onPointerDown={this.onFollowLink}><FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" /></div> */}
                         </div>
                     </div>
                     {this._showMore ? this.renderMetadata() : <></>}

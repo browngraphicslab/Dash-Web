@@ -59,7 +59,8 @@
         margin-bottom: 3px;
 
         .linkEditor-group-row-label {
-            margin-right: 6px;
+            display: flex;
+            justify-content: space-between;
         }
     }
 
@@ -76,14 +77,6 @@
             width: calc(50% - 16px);
             height: 20px;
         }
-
-        button {
-            width: 20px;
-            height: 20px;
-            margin-left: 3px;
-            padding: 0;
-            font-size: 10px;
-        }
     }
 }
 
@@ -93,17 +86,26 @@
     position: relative;
     z-index: 999;
 
-    input {
-        width: 100%;
+    .linkEditor-dropdown-input {
+        display: flex;
+
+        input {
+            width: calc(100% - 26px);
+        }
+
+        .linkEditor-button {
+            margin-left: 6px;
+        }
     }
 
     .linkEditor-options-wrapper {
-        width: 100%;
+        width: calc(100% - 26px);
         position: absolute;
         top: 19px;
         left: 0;
         display: flex;
         flex-direction: column;
+        box-shadow: 3px 3px 3px rgba(0, 0, 0, 0.25);
     }
 
     .linkEditor-option {
@@ -115,6 +117,10 @@
 
         &:hover {
             background-color: lightgray;
+        }
+
+        &:first-child {
+            border-top: 1px solid $intermediate-color;
         }
     }
 }
@@ -128,4 +134,28 @@
     .linkEditor-button {
         margin-left: 6px;
     }
+}
+
+.linkEditor-navButtons {
+    display: flex;
+    justify-content: center;
+    clear: both;
+
+    button:not(:first-child) {
+        margin-left: 6px;
+    }
+}
+
+.linkEditor-directionButton {
+    height: 20px;
+    text-transform: none;
+    letter-spacing: 0;
+    padding: 3px 6px;
+    font-size: 11px;
+    border-radius: 10px;
+    margin-left: 6px;
+}
+
+.linkEditor-addKvp {
+    float: right;
 }

@@ -84,6 +84,10 @@
             display: flex;
         }
         .linkMenu-item-content {
+            &.expand-one p {
+                width: calc(100% - 26px);
+                background-color: lightgray;
+            }
             &.expand-two p {
                 width: calc(100% - 52px);
                 background-color: lightgray;
