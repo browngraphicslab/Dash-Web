@@ -133,12 +133,13 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         // if last item is a stack, make tab within that stack
         if (lastItem.isStack) {
             console.log('its a stack!!');
-            newContentItem = CollectionDockingView.makeDocumentConfig(document);
-            // if empty, create new tab; if not, replace last tab
-            if (lastItem.contentItems.length <= 0) {
-                this.AddTab(lastItem, document);
-            } else {
-                lastItem.replaceChild(lastItem.contentItems[lastItem.contentItems.length - 1], newContentItem);
+
+            // add new tab
+            this.AddTab(lastItem, document);
+
+            // if preexisting tab, remove last one
+            if (lastItem.contentItems.length > 1) {
+                lastItem.contentItems[lastItem.contentItems.length - 2].remove();
             }
 
             // else, create new "right split" stack
@@ -168,11 +169,9 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 // newContentItem.config.width = 10;
                 // newContentItem.config.height = 10;
             }
+            newContentItem.callDownwards('_$init');
         }
-        newContentItem.callDownwards('_$init');
         this.layoutChanged();
-
-        return newContentItem;
     }
     @action
     public AddTab = (stack: any, document: Doc) => {

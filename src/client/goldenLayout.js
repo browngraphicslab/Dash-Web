@@ -4462,15 +4462,6 @@
             });
 
             lm.utils.animFrame(lm.utils.fnBind(this.callDownwards, this, ['setSize']));
-        },
-
-        /**
-         * custom function
-         * 
-         * @returns last item in array
-         */
-        _last: function () {
-            return this[this.length - 1];
         }
     });
 
