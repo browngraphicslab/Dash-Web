@@ -540,6 +540,43 @@ export class Viewer extends React.Component<IViewerProps> {
                         console.log("rendered");
                         this._rendered = true;
                     });
+<<<<<<< Updated upstream
+=======
+                    let options = {
+                        bar: this._searchCont.current,
+                        toggleButton: this._searchToggle.current,
+                        findField: this._findField.current,
+                        highlightAllCheckbox: this._highlightAll.current,
+                        caseSensitiveCheckbox: this._caseSensitivity.current,
+                        entireWordCheckbox: this._entireWord.current,
+                        findMsg: this._findMsg.current,
+                        findResultsCount: this._findResults.current,
+                        findPreviousButton: this._previousButton.current,
+                        findNextButton: this._nextButton.current,
+                    }
+                    let findBar = new PDFFindBar.PDFFindBar(options, this._eventBus);
+                    this._eventBus.on("find", (evt: any) => {
+                        // this._pdfFindController.executeCommand('find', {
+                        //     query: "the",
+                        //     phraseSearch: true,
+                        //     caseSensitive: false,
+                        //     highlightAll: true,
+                        //     findPrevious: undefined
+                        // });
+                        this._pdfFindController.executeCommand('find' + evt.type, {
+                            query: evt.query,
+                            phraseSearch: evt.phraseSearch,
+                            caseSensitive: evt.caseSensitive,
+                            entireWord: evt.entireWord,
+                            highlightAll: evt.highlightAll,
+                            findPrevious: evt.findPrevious
+                        });
+                    });
+                    this._eventBus.on("updatefindcontrolstate", (evt: any) => {
+                        // console.log("hello");
+                        findBar.updateUIState(evt.state, evt.previous, evt.matchesCount);
+                    })
+>>>>>>> Stashed changes
                     pdfViewer.setDocument(this.props.pdf);
                     this._pdfFindController = new PDFJSViewer.PDFFindController(pdfViewer);
                     // this._pdfFindController._linkService = pdfLinkService;
