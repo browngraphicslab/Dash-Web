@@ -447,6 +447,15 @@ export class PresentationView extends React.Component<PresViewProps>  {
         }
     }
 
+    public removeDocByRef = (doc: Doc) => {
+        let indexOfDoc = this.childrenDocs.indexOf(doc);
+        this.RemoveDoc(indexOfDoc);
+        if (indexOfDoc !== - 1) {
+            return true;
+        }
+        return false;
+    }
+
     //The function that is called when a document is clicked or reached through next or back.
     //it'll also execute the necessary actions if presentation is playing.
     @action
@@ -786,6 +795,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
                     presStatus={this.presStatus}
                     presButtonBackUp={this.presButtonBackUp}
                     presGroupBackUp={this.presGroupBackUp}
+                    removeDocByRef={this.removeDocByRef}
                 />
             </div>
         );

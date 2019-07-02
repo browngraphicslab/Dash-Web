@@ -12,6 +12,8 @@ import { faFile as fileSolid, faFileDownload, faLocationArrow, faArrowUp, faSear
 import { faFile as fileRegular } from '@fortawesome/free-regular-svg-icons';
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
+import { DragManager, SetupDrag, dropActionType } from "../../util/DragManager";
+import { SelectionManager } from "../../util/SelectionManager";
 
 
 library.add(faArrowUp);
@@ -31,7 +33,8 @@ interface PresentationElementProps {
     presStatus: boolean;
     presButtonBackUp: Doc;
     presGroupBackUp: Doc;
-    setHeader: (header: React.RefObject<HTMLDivElement>) => void;
+    removeDocByRef(doc: Doc): boolean;
+
 }
 
 //enum for the all kinds of buttons a doc in presentation can have
@@ -53,14 +56,26 @@ export enum buttonIndex {
 export default class PresentationElement extends React.Component<PresentationElementProps> {
 
     @observable private selectedButtons: boolean[];
-    private headerTest?: React.RefObject<HTMLDivElement> = React.createRef();
+    private header?: HTMLDivElement | undefined;
+    private listdropDisposer?: DragManager.DragDropDisposer;
+    private presElRef: React.RefObject<HTMLDivElement>;
+
+
 
 
 
     constructor(props: PresentationElementProps) {
         super(props);
         this.selectedButtons = new Array(6);
+
+        this.presElRef = React.createRef();
     }
+
+
+    componentWillUnmount() {
+        this.listdropDisposer && this.listdropDisposer();
+    }
+
 
     /**
      * Getter to get the status of the buttons.
@@ -74,6 +89,10 @@ export default class PresentationElement extends React.Component<PresentationEle
     async componentDidMount() {
         this.receiveButtonBackUp();
 
+        if (this.presElRef.current) {
+            this.header = this.presElRef.current;
+            this.createListDropTarget(this.presElRef.current);
+        }
     }
 
     //Lifecycle function that makes sure button BackUp is received when not re-mounted bu re-rendered.
@@ -358,6 +377,70 @@ export default class PresentationElement extends React.Component<PresentationEle
 
     }
 
+    protected createListDropTarget = (ele: HTMLDivElement) => {
+        this.listdropDisposer && this.listdropDisposer();
+        if (ele) {
+            this.listdropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.listDrop.bind(this) } });
+        }
+    }
+
+    ScreenToLocalListTransform = (xCord: number, yCord: number) => {
+        let scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        return [yCord + scrollTop, xCord + scrollLeft];
+    }
+
+
+    listDrop = (e: Event, de: DragManager.DropEvent) => {
+        let x = this.ScreenToLocalListTransform(de.x, de.y);
+        let rect = this.header!.getBoundingClientRect();
+        let bounds = this.ScreenToLocalListTransform(rect.left, rect.top + rect.height / 2);
+        let before = x[1] < bounds[1];
+        if (de.data instanceof DragManager.DocumentDragData) {
+            let addDoc = (doc: Doc) => Doc.AddDocToList(this.props.mainDocument, "data", doc, this.props.document, before);
+            e.stopPropagation();
+            //where does treeViewId come from
+            let movedDocs = (de.data.options === this.props.mainDocument[Id] ? de.data.draggedDocuments : de.data.droppedDocuments);
+            return (de.data.dropAction || de.data.userDropAction) ?
+                de.data.droppedDocuments.reduce((added: boolean, d: Doc) => Doc.AddDocToList(this.props.mainDocument, "data", d, this.props.document, before) || added, false)
+                : (de.data.moveDocument) ?
+                    movedDocs.reduce((added: boolean, d: Doc) => de.data.moveDocument(d, this.props.document, addDoc) || added, false)
+                    : de.data.droppedDocuments.reduce((added: boolean, d: Doc) => Doc.AddDocToList(this.props.mainDocument, "data", d, this.props.document, before), false);
+        }
+        return false;
+    }
+
+    onPointerEnter = (e: React.PointerEvent): void => {
+        //this.props.document.libraryBrush = true;
+        if (e.buttons === 1 && SelectionManager.GetIsDragging()) {
+            //this.header!.className = "treeViewItem-header";
+            document.addEventListener("pointermove", this.onDragMove, true);
+        }
+    }
+    onPointerLeave = (e: React.PointerEvent): void => {
+        this.props.document.libraryBrush = false;
+        //this.header!.className = "treeViewItem-header";
+        document.removeEventListener("pointermove", this.onDragMove, true);
+    }
+
+    onDragMove = (e: PointerEvent): void => {
+        this.props.document.libraryBrush = false;
+        let x = this.ScreenToLocalListTransform(e.clientX, e.clientY);
+        let rect = this.header!.getBoundingClientRect();
+        let bounds = this.ScreenToLocalListTransform(rect.left, rect.top + rect.height / 2);
+        let before = x[1] < bounds[1];
+        this.header!.className = "treeViewItem-header";
+        // if (before) this.header!.className += " treeViewItem-header-above";
+        // else if (!before) this.header!.className += " treeViewItem-header-below";
+        e.stopPropagation();
+    }
+
+    @action
+    move: DragManager.MoveFunction = (doc: Doc, target: Doc, addDoc) => {
+        return this.props.document !== target && this.props.removeDocByRef(doc) && addDoc(doc);
+    }
+
+
 
     render() {
         let p = this.props;
@@ -373,10 +456,13 @@ export default class PresentationElement extends React.Component<PresentationEle
         }
         let onEnter = (e: React.PointerEvent) => { p.document.libraryBrush = true; };
         let onLeave = (e: React.PointerEvent) => { p.document.libraryBrush = false; };
+        let dropAction = StrCast(this.props.document.dropAction) as dropActionType;
+        let onItemDown = SetupDrag(this.presElRef, () => p.document, this.move, dropAction, this.props.mainDocument[Id], true);
         return (
             <div className={className} key={p.document[Id] + p.index}
-                ref={(e) => this.props.setHeader(e)}
+                ref={this.presElRef}
                 onPointerEnter={onEnter} onPointerLeave={onLeave}
+                onPointerDown={onItemDown}
                 style={{
                     outlineColor: "maroon",
                     outlineStyle: "dashed",

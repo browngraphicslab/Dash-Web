@@ -24,6 +24,8 @@ interface PresListProps {
     presStatus: boolean;
     presButtonBackUp: Doc;
     presGroupBackUp: Doc;
+    removeDocByRef(doc: Doc): boolean;
+
 }
 
 
@@ -32,17 +34,6 @@ interface PresListProps {
  * Component that takes in a document prop and a boolean whether it's collapsed or not.
  */
 export default class PresentationViewList extends React.Component<PresListProps> {
-
-    private listdropDisposer?: DragManager.DragDropDisposer;
-    private header?: React.RefObject<HTMLDivElement> = React.createRef();
-    private listContainer: HTMLDivElement | undefined;
-
-
-    componentWillUnmount() {
-        this.listdropDisposer && this.listdropDisposer();
-    }
-
-
 
     /**
      * Method that initializes presentation ids for the
@@ -88,50 +79,13 @@ export default class PresentationViewList extends React.Component<PresListProps>
         });
     }
 
-    protected createListDropTarget = (ele: HTMLDivElement) => {
-        this.listdropDisposer && this.listdropDisposer();
-        if (ele) {
-            this.listdropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.listDrop.bind(this) } });
-        }
-    }
-
-    listDrop = (e: Event, de: DragManager.DropEvent) => {
-        let x = this.ScreenToLocalListTransform(de.x, de.y);
-        let rect = this.header!.current!.getBoundingClientRect();
-        let bounds = this.ScreenToLocalListTransform(rect.left, rect.top + rect.height / 2);
-        let before = x[1] < bounds[1];
-        if (de.data instanceof DragManager.DocumentDragData) {
-            let addDoc = (doc: Doc) => doc.AddDocToList(doc, "data", this.resolvedDataDoc, before);
-            e.stopPropagation();
-            //where does treeViewId come from
-            let movedDocs = (de.data.options === this.props.mainDocument[Id] ? de.data.draggedDocuments : de.data.droppedDocuments);
-            return (de.data.dropAction || de.data.userDropAction) ?
-                de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d, this.resolvedDataDoc, before) || added, false)
-                : (de.data.moveDocument) ?
-                    movedDocs.reduce((added: boolean, d) => de.data.moveDocument(d, this.resolvedDataDoc, addDoc) || added, false)
-                    : de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d, this.resolvedDataDoc, before), false);
-        }
-        return false;
-    }
-
-    ScreenToLocalListTransform = (xCord: number, yCord: number) => {
-        let rect = this.listContainer!.getBoundingClientRect(),
-            scrollLeft = window.pageXOffset || document.documentElement.scrollLeft,
-            scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        return [rect.top + scrollTop, rect.left + scrollLeft];
-    }
-
-
     render() {
         const children = DocListCast(this.props.mainDocument.data);
         this.initializeGroupIds(children);
         this.initializeScaleViews(children);
         this.props.setChildrenDocs(children);
         return (
-            <div className="presentationView-listCont" ref={(e) => {
-                this.createListDropTarget(e!);
-                this.listContainer = e!;
-            }}>
+            <div className="presentationView-listCont" >
                 {children.map((doc: Doc, index: number) =>
                     <PresentationElement
                         ref={(e) => { if (e) { this.props.presElementsMappings.set(doc, e); } }}
@@ -146,7 +100,7 @@ export default class PresentationViewList extends React.Component<PresListProps>
                         presStatus={this.props.presStatus}
                         presButtonBackUp={this.props.presButtonBackUp}
                         presGroupBackUp={this.props.presGroupBackUp}
-                        setHeader={(header: React.RefObject<HTMLDivElement>) => this.header = header}
+                        removeDocByRef={this.props.removeDocByRef}
                     />
                 )}
             </div>
