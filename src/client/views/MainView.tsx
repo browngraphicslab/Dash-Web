@@ -160,12 +160,13 @@ export class MainView extends React.Component {
         }
     }
 
+
     @action
     createNewWorkspace = async (id?: string) => {
         const list = Cast(CurrentUserUtils.UserDocument.data, listSpec(Doc));
         if (list) {
             let freeformDoc = Docs.FreeformDocument([], { x: 0, y: 400, width: this.pwidth * .7, height: this.pheight, title: `WS collection ${list.length + 1}` });
-            var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(CurrentUserUtils.UserDocument, CurrentUserUtils.UserDocument, 150), CollectionDockingView.makeDocumentConfig(freeformDoc, freeformDoc, 600)] }] };
+            var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc, freeformDoc, 600)] }] };
             let mainDoc = Docs.DockDocument([CurrentUserUtils.UserDocument, freeformDoc], JSON.stringify(dockingLayout), { title: `Workspace ${list.length + 1}` }, id);
             if (!CurrentUserUtils.UserDocument.linkManagerDoc) {
                 let linkManagerDoc = new Doc();
@@ -224,38 +225,104 @@ export class MainView extends React.Component {
     getPHeight = () => {
         return this.pheight;
     }
-    @computed
-    get mainContent() {
+
+    @observable flyoutWidth: number = 250;
+    @computed get dockingContent() {
+        let flyoutWidth = this.flyoutWidth;
         let mainCont = this.mainContainer;
-        let content = !mainCont ? (null) :
-            <DocumentView Document={mainCont}
-                DataDoc={undefined}
-                addDocument={undefined}
-                addDocTab={emptyFunction}
-                removeDocument={undefined}
-                ScreenToLocalTransform={Transform.Identity}
-                ContentScaling={returnOne}
-                PanelWidth={this.getPWidth}
-                PanelHeight={this.getPHeight}
-                renderDepth={0}
-                selectOnLoad={false}
-                focus={emptyFunction}
-                parentActive={returnTrue}
-                whenActiveChanged={emptyFunction}
-                bringToFront={emptyFunction}
-                ContainingCollectionView={undefined}
-                zoomToScale={emptyFunction}
-                getScale={returnOne}
-            />;
         let castRes = mainCont ? FieldValue(Cast(mainCont.presentationView, listSpec(Doc))) : undefined;
         return <Measure offset onResize={this.onResize}>
             {({ measureRef }) =>
-                <div ref={measureRef} id="mainContent-div" onDrop={this.onDrop}>
-                    {content}
+                <div ref={measureRef} id="mainContent-div" style={{ width: `calc(100% - ${flyoutWidth}px`, transform: `translate(${flyoutWidth}px, 0px)` }} onDrop={this.onDrop}>
+                    {!mainCont ? (null) :
+                        <DocumentView Document={mainCont}
+                            DataDoc={undefined}
+                            addDocument={undefined}
+                            addDocTab={emptyFunction}
+                            removeDocument={undefined}
+                            ScreenToLocalTransform={Transform.Identity}
+                            ContentScaling={returnOne}
+                            PanelWidth={this.getPWidth}
+                            PanelHeight={this.getPHeight}
+                            renderDepth={0}
+                            selectOnLoad={false}
+                            focus={emptyFunction}
+                            parentActive={returnTrue}
+                            whenActiveChanged={emptyFunction}
+                            bringToFront={emptyFunction}
+                            ContainingCollectionView={undefined}
+                            zoomToScale={emptyFunction}
+                            getScale={returnOne}
+                        />}
                     {castRes ? <PresentationView Documents={castRes} key="presentation" /> : null}
                 </div>
             }
         </Measure>;
+    }
+
+    _downsize = 0;
+    onPointerDown = (e: React.PointerEvent) => {
+        this._downsize = e.clientX;
+        document.removeEventListener("pointermove", this.onPointerMove);
+        document.removeEventListener("pointerup", this.onPointerUp);
+        document.addEventListener("pointermove", this.onPointerMove);
+        document.addEventListener("pointerup", this.onPointerUp);
+        e.stopPropagation();
+        e.preventDefault();
+    }
+    @action
+    onPointerMove = (e: PointerEvent) => {
+        this.flyoutWidth = e.clientX;
+    }
+    @action
+    onPointerUp = (e: PointerEvent) => {
+        if (Math.abs(e.clientX - this._downsize) < 4) {
+            if (this.flyoutWidth < 5) this.flyoutWidth = 250;
+            else this.flyoutWidth = 0;
+        }
+        document.removeEventListener("pointermove", this.onPointerMove);
+        document.removeEventListener("pointerup", this.onPointerUp);
+    }
+    @computed
+    get mainContent() {
+        let addDocTab = (doc: Doc, dataDoc: Doc | undefined, location: string) => {
+            if (doc.dockingConfig) {
+                this.openWorkspace(doc);
+            } else {
+                // CollectionDockingView.Instance.AddRightSplit(doc, dataDoc);
+            }
+        }
+        let flyout = <DocumentView
+            Document={CurrentUserUtils.UserDocument}
+            DataDoc={undefined}
+            addDocument={undefined}
+            addDocTab={(doc: Doc) => addDocTab(doc, undefined, "onRight")}
+            removeDocument={undefined}
+            ScreenToLocalTransform={Transform.Identity}
+            ContentScaling={returnOne}
+            PanelWidth={this.getPWidth}
+            PanelHeight={this.getPHeight}
+            renderDepth={0}
+            selectOnLoad={false}
+            focus={emptyFunction}
+            parentActive={returnTrue}
+            whenActiveChanged={emptyFunction}
+            bringToFront={emptyFunction}
+            ContainingCollectionView={undefined}
+            zoomToScale={emptyFunction}
+            getScale={returnOne}>
+        </DocumentView>;
+        return <div>
+            <div className="mainView-libraryHandle"
+                style={{ left: `${this.flyoutWidth - 10}px` }}
+                onPointerDown={this.onPointerDown}>
+                <span title="library View Dragger" style={{ width: "100%", height: "100%", position: "absolute" }} />
+            </div>
+            <div className="mainView-libraryFlyout" style={{ width: `${this.flyoutWidth}px` }}>
+                {flyout}
+            </div>
+            {this.dockingContent}
+        </div>;
     }
 
     selected = (tool: InkTool) => {

@@ -456,8 +456,14 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
     render() {
         return (
-            <div className="collectiondockingview-container" id="menuContainer"
-                onPointerDown={this.onPointerDown} onPointerUp={this.onPointerUp} ref={this._containerRef} />
+            <Measure offset onResize={this.onResize}>
+                {({ measureRef }) =>
+                    <div ref={measureRef}>
+                        <div className="collectiondockingview-container" id="menuContainer"
+                            onPointerDown={this.onPointerDown} onPointerUp={this.onPointerUp} ref={this._containerRef} />
+                    </div>
+                }
+            </Measure>
         );
     }
 

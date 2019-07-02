@@ -225,3 +225,19 @@ ul#add-options-list {
         padding: 0;
     }
 }
+
+.mainView-libraryFlyout {
+    height: 100%;
+    position: absolute;
+}
+
+.mainView-libraryHandle {
+    opacity: 0.6;
+    width: 20px;
+    height: 40px;
+    top: 50%;
+    border-radius: 20px;
+    position: absolute;
+    z-index: 1;
+    background: gray;
+}
