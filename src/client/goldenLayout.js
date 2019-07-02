@@ -425,6 +425,8 @@
                 if (this._bDragging === true) {
                     this._bDragging = false;
                     this.emit('dragStop', oEvent, this._nOriginalX + this._nX);
+                } else { // if user shift + clicked
+                    this.emit('cleanRightSplit', this);
                 }
             }
         },
@@ -3132,6 +3134,7 @@
 	 * @event rowCreated
 	 * @event columnCreated
 	 * @event stackCreated
+     * @event cleanRightSplit
 	 *
 	 * @constructor
 	 */

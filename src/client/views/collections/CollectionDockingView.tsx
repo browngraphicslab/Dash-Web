@@ -52,6 +52,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     private _ignoreStateChange = "";
     private _isPointerDown = false;
     private _maximizedSrc: Opt<DocumentView>;
+    private _lastItem: any = undefined;
 
     constructor(props: SubCollectionViewProps) {
         super(props);
@@ -65,9 +66,11 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     public StartOtherDrag(e: any, dragDocs: Doc[], dragDataDocs?: (Doc | undefined)[]) {
         this.hack = true;
         this.undohack = UndoManager.StartBatch("goldenDrag");
-        dragDocs.map((dragDoc, i) =>
-            this.AddRightSplit(dragDoc, dragDataDocs ? dragDataDocs[i] : undefined, true).contentItems[0].tab._dragListener.
-                onMouseDown({ pageX: e.pageX, pageY: e.pageY, preventDefault: emptyFunction, button: 0 }));
+        dragDocs.map((dragDoc, i) => {
+            let listener = this.AddRightSplit(dragDoc, dragDataDocs ? dragDataDocs[i] : undefined, true).contentItems[0].tab._dragListener;
+            listener.on('cleanRightSplit', this.cleanRightSplit);
+            listener.onMouseDown({ pageX: e.pageX, pageY: e.pageY, preventDefault: emptyFunction, button: 0 });
+        });
     }
 
     @action
@@ -148,23 +151,21 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     @action
     public AddRightSplit = (document: Doc, dataDoc: Doc | undefined, minimize: boolean = false) => {
         let collayout = this._goldenLayout.root.contentItems[0];
-        let lastItem = collayout.contentItems[collayout.contentItems.length - 1];
+        this._lastItem = collayout.contentItems[collayout.contentItems.length - 1];
         var newContentItem;
 
         // if last item is a stack, make tab within that stack
-        if (lastItem.isStack && collayout.contentItems.length > 1) {
+        if (this._lastItem.isStack && collayout.contentItems.length > 1) {
             console.log('its a stack!!');
 
             // add new tab
             newContentItem =
-                CollectionDockingView.Instance.AddTab(lastItem, document, dataDoc);
-            // if preexisting tab, remove last one
-            if (lastItem.contentItems.length > 1) {
-                this.deleteTab(lastItem.contentItems[lastItem.contentItems.length - 2].tab);
-            }
+                CollectionDockingView.Instance.AddTab(this._lastItem, document, dataDoc);
 
             // else, create new "right split" stack
         } else {
+            this._lastItem = undefined;
+
             let docs = Cast(this.props.Document.data, listSpec(Doc));
             if (docs) {
                 docs.push(document);
@@ -200,6 +201,17 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         this.layoutChanged();
         return newContentItem;
     }
+
+    @action
+    public cleanRightSplit = (listener: any) => {
+        // if preexisting tab, remove last one
+        if (this._lastItem && this._lastItem.contentItems.length > 1) {
+            this.deleteTab(this._lastItem.contentItems[this._lastItem.contentItems.length - 2].tab);
+            this._lastItem = undefined;
+            listener.unbind('cleanRightSplit', this.cleanRightSplit);
+        }
+    }
+
     @action
     public AddTab = (stack: any, document: Doc, dataDocument: Doc | undefined) => {
         let docs = Cast(this.props.Document.data, listSpec(Doc));
