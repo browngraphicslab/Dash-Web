@@ -83,25 +83,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     private sortstate: string = "x";
     private _range = 0;
 
-    constructor(props: SubCollectionViewProps) {
-        super(props);
-        this.helper.bind(this);
-    }
-
-    componentDidMount() {
-        window.addEventListener("pointerdown", this.handlePointerFromWindow);
-        this.helper();
-        runInAction(() => this.height = 3);
-    }
-
-    @action
-    helper = () => {
-        // do something
-    }
-
-    handlePointerFromWindow = (e: PointerEvent) => {
-        console.log(e);
-    }
 
     sortdate(a: Doc, b: Doc) {
         var adate: DateField = a.creationDate;
@@ -144,8 +125,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     private preview6: number = -2;
     private selections: (HTMLElement | null)[] = [];
 
-    private leftselect = -2;
-    private nameselect = "";
+
 
 
     private _mainCont = React.createRef<HTMLDivElement>();
@@ -164,49 +144,83 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             document.removeEventListener("pointermove", this.onPointerMove, true);
         }
         this._visible = false;
+        this._markers = true;
+    }
+
+
+    private markers: JSX.Element[] = [];
+    private markernums: number[] = [];
+
+    @observable
+    private countingfriend = 0;
+
+    private temp = 0;
+
+    @computed
+    get markerrender() {
+        console.log(this.countingfriend);
+
+        for (let i = 0; i < this.markers.length; i++) {
+            if (document.getElementById("marker" + String(i)) !== null) {
+                let oldstyle = (document.getElementById("marker" + String(i)));
+                let oldleft = String(oldstyle.style.left);
+                console.log("yeet" + oldleft);
+                oldstyle.style.left = String(((this.markernums[i] * (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)) - (this.xmovement * (this.barwidth) / (this.barwidth - this.xmovement2 - this.xmovement)))));
+                console.log(oldstyle.style.left);
+
+            }
+        }
+        return (<div>{this.markers}</div>);
     }
 
 
     @action
     sonPointerDown = (e: React.PointerEvent): void => {
-
-        if (!e.ctrlKey) {
-            for (let i = 0; i < this.buttons.length; i++) {
-                console.log(i);
-                let button = document.getElementById("button" + String(i));
-                button.classList.toggle("selected", false);
-                button.classList.toggle("unselected", true);
-                document.getElementById("header" + String(i)).classList.toggle("selection", false);
-                document.getElementById("header" + String(i)).classList.toggle("unselection", true);
-
-            }
-            this.selections = [];
-            this.newselect = [];
-            console.log("itworked?", this.selections, this.selections.length);
+        if (e.altKey) {
+            let leftval = (e.pageX - document.body.clientWidth + document.getElementById('screen').clientWidth);
+            this.temp = leftval;
+            this.markers.push(<div id={"marker" + String(this.markers.length)} style={{ top: "65%", border: "2px solid red", width: "10px", height: "10px", position: "absolute", left: leftval }}><input type="text"></input></div>);
+            this.markernums.push(leftval / (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)));
+            document.addEventListener("pointerup", this.sonPointerUp, true);
+            this.countingfriend += 1;
         }
-        console.log(this.selections);
-        if (e.pageY > (document.body.clientHeight * 0.6)) {
-            if (e.pageY < (document.body.clientHeight * 0.79)) {
-                this._downX = this._lastX = e.pageX;
-                this._downY = this._lastY = e.pageY;
-                console.log(this._downX);
-                console.log(this._downY);
-                this._commandExecuted = false;
-                PreviewCursor.Visible = false;
 
-                //if (!this.props.container.props.active()) this.props.selectDocuments([this.props.container.props.Document]);
-                document.addEventListener("pointermove", this.sonPointerMove, true);
-                document.addEventListener("pointerup", this.sonPointerUp, true);
-                if (e.altKey) {
-                    //e.stopPropagation(); // bcz: removed so that you can alt-click on button in a collection to switch link following behaviors.
-                    e.preventDefault();
+        else {
+            if (!e.ctrlKey) {
+                for (let i = 0; i < this.buttons.length; i++) {
+                    let button = document.getElementById("button" + String(i));
+                    button.classList.toggle("selected", false);
+                    button.classList.toggle("unselected", true);
+                    document.getElementById("header" + String(i)).classList.toggle("selection", false);
+                    document.getElementById("header" + String(i)).classList.toggle("unselection", true);
+
                 }
-                // bcz: do we need this?   it kills the context menu on the main collection if !altKey
-                // e.stopPropagation();
+                this.selections = [];
+                this.newselect = [];
+            }
+            if (e.pageY > (document.body.clientHeight * 0.6)) {
+                if (e.pageY < (document.body.clientHeight * 0.79)) {
+                    this._downX = this._lastX = e.pageX;
+                    this._downY = this._lastY = e.pageY;
 
+                    this._commandExecuted = false;
+                    PreviewCursor.Visible = false;
+
+                    //if (!this.props.container.props.active()) this.props.selectDocuments([this.props.container.props.Document]);
+                    document.addEventListener("pointermove", this.sonPointerMove, true);
+                    document.addEventListener("pointerup", this.sonPointerUp, true);
+                    if (e.altKey) {
+                        //e.stopPropagation(); // bcz: removed so that you can alt-click on button in a collection to switch link following behaviors.
+                        e.preventDefault();
+                    }
+                    // bcz: do we need this?   it kills the context menu on the main collection if !altKey
+                    // e.stopPropagation();
+
+                }
             }
         }
     }
+
 
     @action
     sonPointerMove = (e: PointerEvent): void => {
@@ -282,8 +296,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         let posInfo = document.getElementById("marquee").getBoundingClientRect();
         let left = posInfo.left;
         let right = posInfo.right;
-        let top = posInfo.top;
-        let bottom = posInfo.bottom;
 
 
 
@@ -295,7 +307,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             let buttonRight = buttoninfo.right;
 
             if (buttonLeft > left && buttonLeft < right) {
-                console.log("yeet");
                 button.classList.toggle("selected", true);
                 button.classList.toggle("unselected", false);
                 document.getElementById("header" + String(i)).classList.toggle("selection", true);
@@ -304,7 +315,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 newselect.push(button);
             }
             else if (buttonRight > left && buttonRight < right) {
-                console.log("yeet");
                 button.classList.toggle("selected", true);
                 button.classList.toggle("unselected", false);
                 document.getElementById("header" + String(i)).classList.toggle("selection", true);
@@ -339,13 +349,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     get marqueeDiv() {
         let v = this.getContainerTransform().transformDirection(this._lastX - this._downX, this._lastY - this._downY);
         return <div className="marquee" id="marquee" style={{ width: `${Math.abs(v[0])}`, height: `${Math.abs(v[1])}`, zIndex: 2000 }} >
-            <span className="marquee-legend" />
         </div>;
     }
-
-
-
-
 
 
 
@@ -413,7 +418,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             }
         }
 
-        console.log(this.selections);
         this.show(d, i);
 
     }
@@ -466,6 +470,9 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     private ticks: JSX.Element[] = [];
     public buttons: JSX.Element[] = [];
     private buttonheaders: JSX.Element[] = [];
+
+
+
     buttonloop() {
         this.buttons = [];
         let buttons2 = [];
@@ -552,6 +559,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             }
             overlaps.push(thingies);
             if (overlap === false) {
+
                 this.buttons.push(
                     <div onClick={display} style={{ position: "absolute", left: leftval, width: "100px", height: "100px" }}>
                         <div className="unselected" id={"button" + String(i)} style={{ position: "absolute", width: "100px", height: "100px", pointerEvents: "all" }}>
@@ -637,10 +645,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
 
         const docs2 = DocListCast(this.props.Document[this.props.fieldKey]);
-
         let keys: { [key: string]: boolean } = {};
         untracked(() => docs2.map(doc => Doc.GetAllPrototypes(doc).map(proto => Object.keys(proto).forEach(key => keys[key] = false))));
         let p: [number, number] = this._visible ? this.getContainerTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
+
 
 
         return (<div id="screen" >
@@ -661,7 +669,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             <div style={{ left: "70%", height: "60%", position: "absolute", border: "1px solid", width: "30%" }}>
                 {this.preview2 ? this.documentpreview3(this.preview2) : (null)}
             </div>
-            <div style={{ top: "86%", height: "8%", width: "100%", position: "absolute" }}>
+            <div style={{ top: "86%", height: "8%", width: "100%", position: "absolute", zIndex: 1000 }}>
                 <div className="contextMenu" style={{ width: "20%" }}> Min:
                 <input value={this.searchString2} onChange={this.onChange2} onKeyPress={this.enter2} type="text" placeholder={String((this.xmovement * this._range / this.barwidth) + this._values[0])}
                         className="searchBox-barChild searchBox-input" />
@@ -676,24 +684,17 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 </div>
 
             </div>
-            {/*<div className="selection" style={{
-                whiteSpace: "nowrap", borderRadius: "5px 5px 0px 0px", border: "1px",
-                textOverflow: "ellipsis", overflow: "hidden", paddingLeft: "3px", paddingRight: "3px", paddingTop: "3px", top: String(document.body.clientHeight * 0.65 - 56) + "px", zIndex: 99, position: "absolute", left: (this.leftselect !== -2 ? (((values[this.leftselect] - values[0]) * this.barwidth * 0.97 / this._range) * (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)) - (this.xmovement * (this.barwidth) / (this.barwidth - this.xmovement2 - this.xmovement))) + "px" : "-9999px"), width: "100px", height: "30px"
-            }}>
-                {(this.nameselect)}
-        </div>*/}
+
             <div className="viewpanel" style={{ top: "5%", position: "absolute", right: "10%", bottom: "35%", background: "#GGGGGG", zIndex: -55, }}></div>
             <div style={{ height: "100%", position: "absolute", width: "100%", }}>
                 <div className="marqueeView" style={{ borderRadius: "inherit" }} onClick={this.sonClick} onPointerDown={this.sonPointerDown}>
                     <div style={{ position: "relative", transform: `translate(${p[0]}px, ${p[1]}px)` }} >
                         {this._visible ? this.marqueeDiv : null}
-                        <div ref={this._mainCont} style={{ transform: `translate(${-p[0]}px, ${-p[1]}px)` }} >
-                            {this.props.children}
-                        </div>
                     </div>
                 </div>
             </div>
             <div style={{ top: "65%", position: "absolute", bottom: "25%" }}>{this.buttons}{this.buttonheaders}</div>
+            {this.markerrender}
             <div id="bar" className="backdropscroll" onPointerDown={this.onPointerDown4} style={{ top: "80%", width: "100%", bottom: "15%", position: "absolute", }}>
                 {buttons2}
                 <div className="v1" onPointerDown={this.onPointerDown} style={{ cursor: "ew-resize", position: "absolute", zIndex: 2, left: this.xmovement, height: "100%" }}>
@@ -723,15 +724,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     private getContainerTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth, -this.borderWidth);
 
-    @computed get nativeWidth() { return this.Document.nativeWidth || 0; }
-    @computed get nativeHeight() { return this.Document.nativeHeight || 0; }
+
     public get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldKey === "annotations"; }
     private get borderWidth() { return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH; }
-    private panX = () => this.Document.panX || 0;
-    private panY = () => this.Document.panY || 0;
-    private zoomScaling = () => this.Document.scale || 1;
-    private centeringShiftX = () => 0;  // shift so pan position is at center of window for non-overlay collections
-    private centeringShiftY = () => 0;// shift so pan position is at center of window for non-overlay collections
+
 
     @action.bound
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -919,7 +915,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        console.log(this.barwidth);
         document.addEventListener("pointermove", this.onPointerMove);
         e.stopPropagation();
         e.preventDefault();
