@@ -10,27 +10,17 @@ import { List } from "../../../new_fields/List";
 import { createSchema, defaultSpec, makeInterface, listSpec } from "../../../new_fields/Schema";
 import { any } from "bluebird";
 import { FlyoutProps } from "./Timeline";
-import { exportDefaultSpecifier } from "babel-types";
 
 enum Direction {
     left = "left",
     right = "right"
 }
 
-interface IProp {
+interface IProps {
     node: Doc;
     RegionData: Doc;
     setFlyout:(props:FlyoutProps) => any; 
 }
-
-
-const KeyframeDataSchema = createSchema({
-    time: defaultSpec("number", 0),
-    key: Doc
-});
-type KeyframeData = makeInterface<[typeof KeyframeDataSchema]>;
-const KeyframeData = makeInterface(KeyframeDataSchema);
-
 
 const RegionDataSchema = createSchema({
     position: defaultSpec("number", 0),
@@ -42,18 +32,14 @@ export const RegionData = makeInterface(RegionDataSchema);
 
 
 @observer
-export class Keyframe extends React.Component<IProp> {
+export class Keyframe extends React.Component<IProps> {
 
-    @observable private _display: string = "none";
-    @observable private _bar = React.createRef<HTMLDivElement>();
-    @observable private _keyframes: number[] = [];
-    @observable private position: number = 0;
+    @observable private _bar = React.createRef<HTMLDivElement>();    
     @observable private fadein: number = 0;
     @observable private fadeout: number = 0;
 
     @action
     componentDidMount() {
-
         // need edge case here when keyframe data already exists when loading.....................;
     }
 
@@ -88,7 +74,6 @@ export class Keyframe extends React.Component<IProp> {
             TK.key = Doc.MakeCopy(this.props.node);
             this.regiondata.keyframes!.push(TK);
         }
-
     }
 
     @action
@@ -102,20 +87,12 @@ export class Keyframe extends React.Component<IProp> {
             document.addEventListener("pointerup", (e: PointerEvent) => {
                 document.removeEventListener("pointermove", this.onBarPointerMove);
             });
-        } else if(mouse.which === 3) {
-            e.preventDefault();
-            e.stopPropagation();        
-            let bar = this._bar.current!; 
-            this.props.setFlyout({x:this.regiondata.position + 130, y: bar.getBoundingClientRect().bottom,display:"block", time: this.regiondata.position, duration:this.regiondata.duration}); 
-            let removeFlyout = (e:PointerEvent) => {
-                 if (e.which === 1){
-                    console.log("wut"); 
-                    this.props.setFlyout({display:"none"});                 
-                    document.removeEventListener("pointerdown", removeFlyout); 
-                }
-            }; 
-            document.addEventListener("pointerdown", removeFlyout); 
-        }
+        }// else if(mouse.which === 3) {
+        //     e.preventDefault();
+        //     e.stopPropagation();        
+        //     let bar = this._bar.current!; 
+        //     this.props.setFlyout({x:e.clientX, y: e.clientY,display:"block", time: this.regiondata.position, duration:this.regiondata.duration}); 
+        // }
     }
 
     @action
@@ -169,7 +146,6 @@ export class Keyframe extends React.Component<IProp> {
         document.addEventListener("pointermove", this.onDragResizeLeft);
         document.addEventListener("pointerup", () => {
             document.removeEventListener("pointermove", this.onDragResizeLeft);
-           
         });
     }
 
@@ -180,7 +156,6 @@ export class Keyframe extends React.Component<IProp> {
         document.addEventListener("pointermove", this.onDragResizeRight);
         document.addEventListener("pointerup", () => {
             document.removeEventListener("pointermove", this.onDragResizeRight);
-           
         });
     }
 
@@ -193,10 +168,6 @@ export class Keyframe extends React.Component<IProp> {
         let offset = e.clientX - barX;
         this.regiondata.duration -= offset;
         this.regiondata.position += offset;
-        this.regiondata.keyframes!.forEach(kf => {
-            kf = kf as Doc;
-            kf.time = NumCast(kf.time) + offset;
-        }); 
     }
 
 
@@ -207,11 +178,10 @@ export class Keyframe extends React.Component<IProp> {
         let bar = this._bar.current!;
         let barX = bar.getBoundingClientRect().right;
         let offset = e.clientX - barX;
-        console.log(offset);
         this.regiondata.duration += offset;
     }
 
-    createDivider = (type?: string): JSX.Element => {
+    createDivider = (type?: Direction): JSX.Element => {
         if (type === "left") {
             return <div className="divider" style={{ right: "0px" }}></div>;
         } else if (type === "right") {
@@ -224,33 +194,48 @@ export class Keyframe extends React.Component<IProp> {
     createKeyframe = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        let mouse = e.nativeEvent;
+        let bar = this._bar.current!; 
+        let offset = e.clientX - bar.getBoundingClientRect().left; 
         let position = NumCast(this.regiondata.position);
-        this._keyframes.push(mouse.offsetX);
-        this.makeKeyData(position + mouse.offsetX);
+        this.makeKeyData(position + offset);
     }
 
+    @action 
+    moveKeyframe = (e: React.MouseEvent) => {
+        e.preventDefault(); 
+        e.stopPropagation(); 
+        
+    }
 
 
     render() {
         return (
             <div>
-                    <div className="bar" ref={this._bar} style={{ transform: `translate(${this.regiondata.position}px)`, width: `${this.regiondata.duration}px` }} 
-                    onPointerDown={this.onBarPointerDown} 
-                    onDoubleClick={this.createKeyframe}>
-                        <div className="leftResize" onPointerDown={this.onResizeLeft} ></div>
-                        <div className="rightResize" onPointerDown={this.onResizeRight}></div>
-                        <div className="fadeLeft" style={{ width: `${20}px` }}>{this.createDivider("left")}</div>
-                        <div className="fadeRight" style={{ width: `${20}px` }}>{this.createDivider("right")}</div>
-                        {this._keyframes.map(kf => {
-                            return <div className="keyframe" style={{ left: `${kf}px` }}>
-                                {this.createDivider()}
-                                <div className="keyframeCircle"></div>
-                            </div>;
-                        })}
-                        {this.createDivider("left")}
-                        {this.createDivider("right")}
-                    </div>
+                <div className="bar" ref={this._bar} style={{ transform: `translate(${this.regiondata.position}px)`, width: `${this.regiondata.duration}px` }} 
+                onPointerDown={this.onBarPointerDown} 
+                onDoubleClick={this.createKeyframe}
+                onContextMenu={action((e:React.MouseEvent)=>{
+                    let mouse = e.nativeEvent; 
+                    if (mouse.which === 3){
+                        this.props.setFlyout({x:e.clientX, y: e.clientY, display:"block"}); 
+                    } else {
+                        this.props.setFlyout({display:"block"}); 
+                    }
+                })}>
+                    <div className="leftResize" onPointerDown={this.onResizeLeft} ></div>
+                    <div className="rightResize" onPointerDown={this.onResizeRight}></div>
+                    <div className="fadeLeft" style={{ width: `${20}px` }}>{this.createDivider(Direction.left)}</div>
+                    <div className="fadeRight" style={{ width: `${20}px` }}>{this.createDivider(Direction.right)}</div>
+                    {this.regiondata.keyframes!.map(kf => {
+                        kf = kf as Doc; 
+                        return <div className="keyframe" style={{ left: `${NumCast(kf.time) - this.regiondata.position}px` }}>
+                            {this.createDivider()}
+                            <div className="keyframeCircle" onPointerDown={this.moveKeyframe}></div>
+                        </div>;
+                    })}
+                    {this.createDivider(Direction.left)}
+                    {this.createDivider(Direction.right)}
+                </div>
             </div>
         );
     }

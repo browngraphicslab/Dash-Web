@@ -73,16 +73,20 @@ export class Track extends React.Component<IProps> {
         let leftkf: (Doc | undefined) = this.calcMinLeft(region!);
         let rightkf: (Doc | undefined) = this.calcMinRight(region!);
 
+
         if (leftkf && rightkf) {
             this.interpolate(leftkf, rightkf);
         } else if (leftkf) {
             console.log("left exists");
+            console.log(leftkf.time); 
             this._keys.forEach(k => {
                 let data = leftkf!.key as Doc;
                 this.props.node[k] = data[k];
             });
         } else if (rightkf) {
+
             console.log("right exists");
+            console.log(rightkf.time); 
             this._keys.forEach(k => {
                 let data = rightkf!.key as Doc;
                 this.props.node[k] = data[k];
@@ -98,17 +102,15 @@ export class Track extends React.Component<IProps> {
      */
     @action
     calcMinLeft = (region: Doc): (Doc | undefined) => { //returns the time of the closet keyframe to the left
-        let leftKf: Doc = new Doc();
-        leftKf.time = Infinity;
+        let leftKf:(Doc| undefined) = undefined;
+        let time:number = 0; 
         (region.keyframes! as List<Doc>).forEach((kf) => {
             kf = kf as Doc;
-            if (NumCast(kf.time) < this.props.currentBarX && NumCast(leftKf.time) > NumCast(kf.time)) {
+            if (NumCast(kf.time) < this.props.currentBarX && NumCast(kf.time) >= NumCast(time)) {
                 leftKf = kf;
+                time = NumCast(kf.time); 
             }
         });
-        if (NumCast(leftKf.time) === Infinity) {
-            return undefined;
-        }
         return leftKf;
     }
 
@@ -119,17 +121,15 @@ export class Track extends React.Component<IProps> {
      */
     @action
     calcMinRight = (region: Doc): (Doc | undefined) => { //returns the time of the closest keyframe to the right 
-        let rightKf: Doc = new Doc();
-        rightKf.time = Infinity;
+        let rightKf: (Doc|undefined) = undefined;
+        let time:number = Infinity; 
         (region.keyframes! as List<Doc>).forEach((kf) => {
             kf = kf as Doc;
-            if (NumCast(kf.time) > this.props.currentBarX && NumCast(rightKf.time) > NumCast(kf.time)) {
+            if (NumCast(kf.time) > this.props.currentBarX && NumCast(kf.time) <= NumCast(time)) {
                 rightKf = kf;
+                time = NumCast(kf.time); 
             }
         });
-        if (NumCast(rightKf.time) === Infinity) {
-            return undefined;
-        }
         return rightKf;
     }
 

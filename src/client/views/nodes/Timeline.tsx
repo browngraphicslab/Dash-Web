@@ -12,16 +12,18 @@ import { List } from "../../../new_fields/List";
 import { Self } from "../../../new_fields/FieldSymbols";
 import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCircle, faPlayCircle, faBackward, faForward, faGripLines} from "@fortawesome/free-solid-svg-icons";
+import { faCircle, faPlayCircle, faBackward, faForward, faGripLines } from "@fortawesome/free-solid-svg-icons";
 import { DocumentContentsView } from "./DocumentContentsView";
+import { ContextMenuProps } from "../ContextMenuItem";
+import { ContextMenu } from "../ContextMenu";
 
 
-export interface FlyoutProps{
-    x?: number; 
-    y?: number; 
-    display?:string; 
-    time?:number; 
-    duration?:number; 
+export interface FlyoutProps {
+    x?: number;
+    y?: number;
+    display?: string;
+    time?: number;
+    duration?: number;
 }
 
 
@@ -31,11 +33,12 @@ export class Timeline extends CollectionSubView(Document) {
     private readonly MIN_CONTAINER_HEIGHT: number = 205;
     private readonly MAX_CONTAINER_HEIGHT: number = 800;
 
-    @observable private _tickSpacing = 50; 
+    @observable private _tickSpacing = 50;
 
     @observable private _scrubberbox = React.createRef<HTMLDivElement>();
     @observable private _trackbox = React.createRef<HTMLDivElement>();
     @observable private _titleContainer = React.createRef<HTMLDivElement>();
+    @observable private _timelineContainer = React.createRef<HTMLDivElement>();
     @observable private _currentBarX: number = 0;
     @observable private _windSpeed: number = 1;
     @observable private _isPlaying: boolean = false;
@@ -47,8 +50,9 @@ export class Timeline extends CollectionSubView(Document) {
     @observable private _infoContainer = React.createRef<HTMLDivElement>();
     @observable private _ticks: number[] = [];
 
-    @observable private flyoutInfo:FlyoutProps = {x:0, y:0,display:"none"}; 
+    @observable private flyoutInfo: FlyoutProps = { x: 0, y: 0, display: "none" };
 
+    private block = false;
 
     @action
     componentDidMount() {
@@ -73,6 +77,22 @@ export class Timeline extends CollectionSubView(Document) {
             this._ticks.push(i);
             i += 1000;
         }
+        document.addEventListener("pointerdown", this.closeFlyout);
+    }
+
+    @action
+    onFlyoutDown = (e: React.PointerEvent) => {
+        this.flyoutInfo.display = "block";
+        this.block = true;
+    }
+
+    @action
+    closeFlyout = (e: PointerEvent) => {
+        if (this.block) {
+            this.block = false;
+            return;
+        }
+        this.flyoutInfo.display = "none";
     }
 
     @action
@@ -80,7 +100,7 @@ export class Timeline extends CollectionSubView(Document) {
         this._time = 100001;
     }
     componentWillUnmount() {
-
+        document.removeEventListener("pointerdown", this.closeFlyout);
     }
 
     //for playing
@@ -211,75 +231,100 @@ export class Timeline extends CollectionSubView(Document) {
         }
     }
 
+    @observable private _isMinimized = false;
     @action
     minimize = (e: React.MouseEvent) => {
-        this._containerHeight = 0;
-    }
-
-
-    @action
-    getFlyout = (props: FlyoutProps) => {    
-        for(const[k, v] of Object.entries(props)){
-            (this.flyoutInfo as any)[k] = v; 
+        e.preventDefault();
+        e.stopPropagation();
+        let timelineContainer = this._timelineContainer.current!;
+        if (this._isMinimized) {
+            this._isMinimized = false;
+            timelineContainer.style.transform = `translate(0px, 0px)`;
+        } else {
+            this._isMinimized = true;
+            timelineContainer.style.transform = `translate(0px, ${- this._containerHeight - 30}px)`;
         }
-        
     }
 
 
     @action
-    onFlyoutDown = (e: React.PointerEvent) => {
-        console.log("clicked!"); 
-        this.flyoutInfo.display = "block"; 
+    getFlyout = (props: FlyoutProps) => {
+        for (const [k, v] of Object.entries(props)) {
+            (this.flyoutInfo as any)[k] = v;
+        }
+
+    }
+
+    timelineContextMenu = (e: React.MouseEvent): void => {
+        let subitems: ContextMenuProps[] = [];
+        let timelineContainer = this._timelineContainer.current!;
+        subitems.push({ description: "Pin to Top", event: action(() => { timelineContainer.style.transform = "translate(0px, 0px)"; }), icon: "pinterest" });
+        subitems.push({
+            description: "Pin to Bottom", event: action(() => {
+                timelineContainer.style.transform = `translate(0px, ${e.pageY - this._containerHeight}px)`;
+            }), icon: "pinterest"
+        });
+        ContextMenu.Instance.addItem({ description: "Timeline Funcs...", subitems: subitems });
     }
 
 
     render() {
         return (
-            <div className="timeline-container" style={{ height: `${this._containerHeight}px` }}>
-                <div className="flyout-container" style={{transform: `translate(${this.flyoutInfo.x}px, ${this.flyoutInfo.y}px)`, display:this.flyoutInfo.display}} onPointerDown={this.onFlyoutDown}>
-                    <FontAwesomeIcon className="flyout" icon="comment-alt" color="grey"/>
-                    <div>
-                        <p>Time:</p><input type="text" placeholder={`${Math.round(this.flyoutInfo.time! / this._tickSpacing * 1000)}ms`}/> 
-                        <p>Duration:</p><input type="text" placeholder={`${Math.round(this.flyoutInfo.duration! / this._tickSpacing * 1000)}ms`}/> 
-                        <p>Fade-in</p>
-                        <p>Fade-out</p>
+            <div>
+                <button className="minimize" onClick={this.minimize}>Minimize</button>
+                <div className="timeline-container" style={{ height: `${this._containerHeight}px` }} ref={this._timelineContainer} onContextMenu={this.timelineContextMenu}>
+                    <div className="flyout-container" style={{ transform: `translate(${this.flyoutInfo.x}px, ${this.flyoutInfo.y}px)`, display: this.flyoutInfo.display }} onPointerDown={this.onFlyoutDown}>
+                        <FontAwesomeIcon className="flyout" icon="comment-alt" color="grey" />
+                        <div className="text-container">
+                            <p>Time:</p>
+                            <p>Duration:</p>
+                            <p>Fade-in</p>
+                            <p>Fade-out</p>
+                        </div>
+                        <div className="input-container">
+                            <input type="text" placeholder={`${Math.round(this.flyoutInfo.time! / this._tickSpacing * 1000)}ms`} />
+                            <input type="text" placeholder={`${Math.round(this.flyoutInfo.duration! / this._tickSpacing * 1000)}ms`} />
+                            <input type="text" placeholder={`${Math.round(this.flyoutInfo.time! / this._tickSpacing * 1000)}ms`} />
+                            <input type="text" placeholder={`${Math.round(this.flyoutInfo.duration! / this._tickSpacing * 1000)}ms`} />
+                        </div>
                     </div>
-                </div>
-                <div className="toolbox">
-                    <div onClick={this.windBackward}> <FontAwesomeIcon icon={faBackward} size="2x" /> </div>
-                    <div onClick={this.onPlay}> <FontAwesomeIcon icon={faPlayCircle} size="2x" /> </div>
-                    <div onClick={this.windForward}> <FontAwesomeIcon icon={faForward} size="2x" /> </div>
-                    {/* <div>
-                        <p>Timeline Overview</p>
-                        <div className="overview"></div>
-                    </div> */}
-                </div>
-                <div className="info-container" ref={this._infoContainer}>                
-                  
-                    <div className="scrubberbox" ref={this._scrubberbox} onClick={this.onScrubberClick}>
-                        {this._ticks.map(element => {
-                            return <div className="tick" style={{ transform: `translate(${element/1000 * this._tickSpacing}px)`, position: "absolute", pointerEvents: "none" }}> <p>{this.toTime(element)}</p></div>;
-                        })}
+                    <div className="toolbox">
+                        <div onClick={this.windBackward}> <FontAwesomeIcon icon={faBackward} size="2x" /> </div>
+                        <div onClick={this.onPlay}> <FontAwesomeIcon icon={faPlayCircle} size="2x" /> </div>
+                        <div onClick={this.windForward}> <FontAwesomeIcon icon={faForward} size="2x" /> </div>
+                        {/* <div>
+                            <p>Timeline Overview</p>
+                            <div className="overview"></div>
+                        </div> */}
                     </div>
-                    <div className="scrubber" onPointerDown={this.onScrubberDown} style={{ transform: `translate(${this._currentBarX}px)` }}>
-                        <div className="scrubberhead"></div>
+                    <div className="info-container" ref={this._infoContainer}>
+
+                        <div className="scrubberbox" ref={this._scrubberbox} onClick={this.onScrubberClick}>
+                            {this._ticks.map(element => {
+                                return <div className="tick" style={{ transform: `translate(${element / 1000 * this._tickSpacing}px)`, position: "absolute", pointerEvents: "none" }}> <p>{this.toTime(element)}</p></div>;
+                            })}
+                        </div>
+                        <div className="scrubber" onPointerDown={this.onScrubberDown} style={{ transform: `translate(${this._currentBarX}px)` }}>
+                            <div className="scrubberhead"></div>
+                        </div>
+                        <div className="trackbox" ref={this._trackbox} onPointerDown={this.onPanDown}>
+                            {this._nodes.map(doc => {
+                                return <Track node={(doc as any).value() as Doc} currentBarX={this._currentBarX} setFlyout={this.getFlyout} />;
+                            })}
+                        </div>
                     </div>
-                    <div className="trackbox" ref={this._trackbox} onPointerDown={this.onPanDown}>
+                    <div className="title-container" ref={this._titleContainer}>
                         {this._nodes.map(doc => {
-                            return <Track node={(doc as any).value() as Doc} currentBarX={this._currentBarX} setFlyout={this.getFlyout} />;
+                            return <div className="datapane">
+                                <p>{((doc as any).value() as Doc).title}</p>
+                            </div>;
                         })}
                     </div>
+                    <div onPointerDown={this.onResizeDown}>
+                        <FontAwesomeIcon className="resize" icon={faGripLines} />
+                    </div>
                 </div>
-                <div className="title-container" ref={this._titleContainer}>
-                    {this._nodes.map(doc => {
-                        return <div className="datapane">
-                            <p>{((doc as any).value() as Doc).title}</p>
-                        </div>;
-                    })}
-                </div>
-                <div onPointerDown={this.onResizeDown}>
-                    <FontAwesomeIcon className="resize" icon={faGripLines} />
-                </div>  
+
             </div>
         );
     }
