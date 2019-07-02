@@ -21,9 +21,14 @@ import { DocumentView } from "../nodes/DocumentView";
 import { SearchBox } from "./SearchBox";
 import "./SearchItem.scss";
 import "./SelectorContextMenu.scss";
+import { RichTextField } from "../../../new_fields/RichTextField";
+import { FormattedTextBox } from "../nodes/FormattedTextBox";
+import { MarqueeView } from "../collections/collectionFreeForm/MarqueeView";
+import { SelectionManager } from "../../util/SelectionManager";
 
 export interface SearchItemProps {
     doc: Doc;
+    query?: string;
 }
 
 library.add(faCaretUp);
@@ -120,8 +125,8 @@ export class LinkContextMenu extends React.Component<LinkMenuProps> {
         return (
             <div className="parents">
                 <p className="contexts">Anchors:</p>
-                <div className = "collection"><a onMouseEnter = {this.highlightDoc(this.props.doc1)} onMouseLeave = {this.unHighlightDoc(this.props.doc1)} onClick = {this.getOnClick(this.props.doc1)}>Doc 1: {this.props.doc2.title}</a></div>
-                <div><a onMouseEnter = {this.highlightDoc(this.props.doc2)} onMouseLeave = {this.unHighlightDoc(this.props.doc2)} onClick = {this.getOnClick(this.props.doc2)}>Doc 2: {this.props.doc1.title}</a></div>
+                <div className="collection"><a onMouseEnter={this.highlightDoc(this.props.doc1)} onMouseLeave={this.unHighlightDoc(this.props.doc1)} onClick={this.getOnClick(this.props.doc1)}>Doc 1: {this.props.doc2.title}</a></div>
+                <div><a onMouseEnter={this.highlightDoc(this.props.doc2)} onMouseLeave={this.unHighlightDoc(this.props.doc2)} onClick={this.getOnClick(this.props.doc2)}>Doc 2: {this.props.doc1.title}</a></div>
             </div>
         )
     }
@@ -135,9 +140,24 @@ export class SearchItem extends React.Component<SearchItemProps> {
 
     onClick = () => {
         DocumentManager.Instance.jumpToDocument(this.props.doc, false);
+        if (this.props.doc.data instanceof RichTextField) {
+            this.highlightTextBox(this.props.doc);
+        }
     }
     @observable _useIcons = true;
     @observable _displayDim = 50;
+
+    highlightTextBox = (doc: Doc) => {
+        if (this.props.query) {
+            doc.search_string = this.props.query;
+            // FormattedTextBox.Instance.highlightSearchTerms([this.props.query]);
+        }
+        else {
+            // FormattedTextBox.Instance.highlightSearchTerms(["hello"]);
+            doc.search_string = "hello";
+        }
+    }
+
 
     @computed
     public get DocumentIcon() {
@@ -282,8 +302,8 @@ export class SearchItem extends React.Component<SearchItemProps> {
                     </div>
                 </div>
                 <div className="searchBox-instances">
-                    {this.props.doc.type === DocTypes.LINK ? <LinkContextMenu doc1 = {Cast(this.props.doc.anchor1, Doc, new Doc())} doc2 = {Cast(this.props.doc.anchor2, Doc, new Doc())}/> : 
-                    <SelectorContextMenu {...this.props} /> }
+                    {this.props.doc.type === DocTypes.LINK ? <LinkContextMenu doc1={Cast(this.props.doc.anchor1, Doc, new Doc())} doc2={Cast(this.props.doc.anchor2, Doc, new Doc())} /> :
+                        <SelectorContextMenu {...this.props} />}
                 </div>
             </div>
         );

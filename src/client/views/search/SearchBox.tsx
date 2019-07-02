@@ -192,7 +192,7 @@ export class SearchBox extends React.Component {
                 </div>
                 <div className="searchBox-results" style={this._resultsOpen ? { display: "flex" } : { display: "none" }}>
                     {(this._results.length !== 0) ? (
-                        this._results.map(result => <SearchItem doc={result} key={result[Id]} />)
+                        this._results.map(result => <SearchItem doc={result} query={this._searchString} key={result[Id]} />)
                     ) :
                         this._openNoResults ? (<div className="no-result">No Search Results</div>) : null}
                 </div>

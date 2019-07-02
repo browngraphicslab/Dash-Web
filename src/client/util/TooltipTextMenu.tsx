@@ -596,7 +596,7 @@ export class TooltipTextMenu {
         return found;
     }
 
-    highlightSearchTerms = (terms: String[]) => {
+    public highlightSearchTerms = (terms: String[]) => {
         const doc = this.view.state.doc;
         const mark = this.view.state.schema.mark(this.view.state.schema.marks.search_highlight);
         doc.nodesBetween(0, doc.content.size, (node: ProsNode, pos: number, parent: ProsNode, index: number) => {
@@ -616,7 +616,7 @@ export class TooltipTextMenu {
         });
     }
 
-    unhighlightSearchTerms = () => {
+    public unhighlightSearchTerms = () => {
         const doc = this.view.state.doc;
         const mark = this.view.state.schema.mark(this.view.state.schema.marks.search_highlight);
         doc.nodesBetween(0, doc.content.size, (node: ProsNode, pos: number, parent: ProsNode, index: number) => {
