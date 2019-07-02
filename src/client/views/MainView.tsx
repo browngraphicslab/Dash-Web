@@ -272,7 +272,7 @@ export class MainView extends React.Component {
     }
     @action
     onPointerMove = (e: PointerEvent) => {
-        this.flyoutWidth = e.clientX;
+        this.flyoutWidth = Math.max(e.clientX, 0);
     }
     @action
     onPointerUp = (e: PointerEvent) => {

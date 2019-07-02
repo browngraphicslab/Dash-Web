@@ -27,11 +27,11 @@ export class Search {
                     start: start
                 }
             }));
-            const fields = searchResults.response.docs;
-            const ids = fields.map((field: any) => field.id);
-            return ids;
+            const { docs, numFound } = searchResults.response;
+            const ids = docs.map((field: any) => field.id);
+            return { ids, numFound };
         } catch {
-            return [];
+            return { ids: [], numFound: -1 };
         }
     }
 
