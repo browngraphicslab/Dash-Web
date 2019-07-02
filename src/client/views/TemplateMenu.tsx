@@ -81,7 +81,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
 
         return (
             <div className="templating-menu" >
-                <div className="templating-button" onClick={() => this.toggleTemplateActivity()}>+</div>
+                <div title="Template Options" className="templating-button" onClick={() => this.toggleTemplateActivity()}>+</div>
                 <ul id="template-list" style={{ display: this._hidden ? "none" : "block" }}>
                     {templateMenu}
                 </ul>

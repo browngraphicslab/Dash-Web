@@ -64,8 +64,8 @@ export class MainView extends React.Component {
     }
 
     componentWillMount() {
-        window.removeEventListener("keydown", KeyManager.Handler.handle);
-        window.addEventListener("keydown", KeyManager.Handler.handle);
+        window.removeEventListener("keydown", KeyManager.Instance.handle);
+        window.addEventListener("keydown", KeyManager.Instance.handle);
 
         window.removeEventListener("pointerdown", this.pointerDown);
         window.addEventListener("pointerdown", this.pointerDown);
@@ -78,7 +78,7 @@ export class MainView extends React.Component {
     pointerUp = (e: PointerEvent) => this.isPointerDown = false;
 
     componentWillUnMount() {
-        window.removeEventListener("keydown", KeyManager.Handler.handle);
+        window.removeEventListener("keydown", KeyManager.Instance.handle);
         window.removeEventListener("pointerdown", this.pointerDown);
         window.removeEventListener("pointerup", this.pointerUp);
     }
