@@ -466,10 +466,11 @@ export class Viewer extends React.Component<IViewerProps> {
         if (this._rendered) {
             this._pdfFindController.executeCommand('find',
                 {
-                    caseSensitive: false,
+                    caseSensitive: this._caseSensitivity.current ? this._caseSensitivity.current.checked : false,
                     findPrevious: undefined,
-                    highlightAll: true,
+                    highlightAll: this._highlightAll.current ? this._highlightAll.current.checked : true,
                     phraseSearch: true,
+                    entireWord: this._entireWord.current ? this._entireWord.current.checked : false,
                     query: searchString
                 });
         }
@@ -480,58 +481,17 @@ export class Viewer extends React.Component<IViewerProps> {
                     console.log("rendered");
                     this._pdfFindController.executeCommand('find',
                         {
-                            caseSensitive: false,
+                            caseSensitive: this._caseSensitivity.current ? this._caseSensitivity.current.checked : false,
                             findPrevious: undefined,
-                            highlightAll: true,
+                            highlightAll: this._highlightAll.current ? this._highlightAll.current.checked : true,
                             phraseSearch: true,
+                            entireWord: this._entireWord.current ? this._entireWord.current.checked : false,
                             query: searchString
                         });
                     this._rendered = true;
                 });
             }
         }
-
-        // let viewer = this._viewer.current;
-
-        // if (!this._pdfFindController) {
-        //     if (container && viewer) {
-        //         let simpleLinkService = new SimpleLinkService();
-        //         let pdfViewer = new PDFJSViewer.PDFViewer({
-        //             container: container,
-        //             viewer: viewer,
-        //             linkService: simpleLinkService
-        //         });
-        //         simpleLinkService.setPdf(this.props.pdf);
-        //         container.addEventListener("pagesinit", () => {
-        //             pdfViewer.currentScaleValue = 1;
-        //         });
-        //         container.addEventListener("pagerendered", () => {
-        //             console.log("rendered");
-        //             this._pdfFindController.executeCommand('find',
-        //                 {
-        //                     caseSensitive: false,
-        //                     findPrevious: undefined,
-        //                     highlightAll: true,
-        //                     phraseSearch: true,
-        //                     query: searchString
-        //                 });
-        //         });
-        //         pdfViewer.setDocument(this.props.pdf);
-        //         this._pdfFindController = new PDFJSViewer.PDFFindController(pdfViewer);
-        //         // this._pdfFindController._linkService = pdfLinkService;
-        //         pdfViewer.findController = this._pdfFindController;
-        //     }
-        // }
-        // else {
-        //     this._pdfFindController.executeCommand('find',
-        //         {
-        //             caseSensitive: false,
-        //             findPrevious: undefined,
-        //             highlightAll: true,
-        //             phraseSearch: true,
-        //             query: searchString
-        //         });
-        // }
     }
 
     searchStringChanged = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -700,11 +660,11 @@ export class Viewer extends React.Component<IViewerProps> {
                         left: `${this._searching ? 0 : 100}%`
                     }} ref={this._searchCont}>
                     <button className="pdfViewer-overlayButton" title="Open Search Bar"></button>
-                    <label className="pdfViewer-optionLabel">Highlight All: <input type="checkbox" ref={this._highlightAll} /></label>
+                    <label className="pdfViewer-optionLabel" style={{ display: "none" }}>Highlight All: <input checked={true} type="checkbox" ref={this._highlightAll} /></label>
                     <label className="pdfViewer-optionLabel">Case Sensitivity: <input type="checkbox" ref={this._caseSensitivity} /></label>
                     <label className="pdfViewer-optionLabel">Entire Word: <input type="checkbox" ref={this._entireWord} /></label>
-                    <button title="Previous Result" ref={this._previousButton}><FontAwesomeIcon icon="arrow-up" size="3x" color="white" /></button>
-                    <button title="Next Result" ref={this._nextButton}><FontAwesomeIcon icon="arrow-down" size="3x" color="white" /></button>
+                    <button title="Previous Result" ref={this._previousButton} style={{ display: "none" }}><FontAwesomeIcon icon="arrow-up" size="3x" color="white" /></button>
+                    <button title="Next Result" ref={this._nextButton} style={{ display: "none" }}><FontAwesomeIcon icon="arrow-down" size="3x" color="white" /></button>
                     <input placeholder="Search" ref={this._findField} className="pdfViewer-overlaySearchBar" onChange={this.searchStringChanged} />
                     <button title="Search" onClick={() => this.search(this._searchString)}><FontAwesomeIcon icon="search" size="3x" color="white" /></button>
                     <div className="pdfViewer-findMsg" ref={this._findMsg} />
