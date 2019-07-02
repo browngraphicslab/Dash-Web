@@ -65,6 +65,7 @@ export default class KeyManager {
                         SelectionManager.DeselectAll();
                     }
                 }
+                MainView.Instance.toggleColorPicker(true);
                 break;
         }
 

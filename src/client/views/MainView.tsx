@@ -285,7 +285,7 @@ export class MainView extends React.Component {
         document.removeEventListener("pointerup", this.onPointerUp);
     }
     @computed
-    get mainContent() {
+    get flyout() {
         let addDocTab = (doc: Doc, dataDoc: Doc | undefined, location: string) => {
             if (doc.dockingConfig) {
                 this.openWorkspace(doc);
@@ -293,7 +293,7 @@ export class MainView extends React.Component {
                 CollectionDockingView.Instance.AddRightSplit(doc, dataDoc);
             }
         };
-        let flyout = <DocumentView
+        return <DocumentView
             Document={CurrentUserUtils.UserDocument}
             DataDoc={undefined}
             addDocument={undefined}
@@ -313,6 +313,9 @@ export class MainView extends React.Component {
             zoomToScale={emptyFunction}
             getScale={returnOne}>
         </DocumentView>;
+    }
+    @computed
+    get mainContent() {
         return <div>
             <div className="mainView-libraryHandle"
                 style={{ left: `${this.flyoutWidth - 10}px` }}
@@ -320,7 +323,7 @@ export class MainView extends React.Component {
                 <span title="library View Dragger" style={{ width: "100%", height: "100%", position: "absolute" }} />
             </div>
             <div className="mainView-libraryFlyout" style={{ width: `${this.flyoutWidth}px` }}>
-                {flyout}
+                {this.flyout}
             </div>
             {this.dockingContent}
         </div>;
@@ -393,8 +396,8 @@ export class MainView extends React.Component {
 
 
     @action
-    toggleColorPicker = () => {
-        this._colorPickerDisplay = !this._colorPickerDisplay;
+    toggleColorPicker = (close = false) => {
+        this._colorPickerDisplay = close ? false : !this._colorPickerDisplay;
     }
 
     /* @TODO this should really be moved into a moveable toolbar component, but for now let's put it here to meet the deadline */
