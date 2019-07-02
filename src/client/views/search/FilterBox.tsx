@@ -27,9 +27,9 @@ library.add(faCheckCircle);
 library.add(faObjectGroup);
 
 export enum Keys {
-    TITLE = "title",
-    AUTHOR = "author",
-    DATA = "data"
+    TITLE = "title_t:",
+    AUTHOR = "author_t:",
+    TEXT = "data_text_t:"
 }
 
 @observer
@@ -49,6 +49,7 @@ export class FilterBox extends React.Component {
     //if all of these are true, no key filter is applied
     @observable private _titleFieldStatus: boolean = true;
     @observable private _authorFieldStatus: boolean = true;
+    @observable private _bothFieldStatus: boolean = false;
     //this also serves as an indicator if the collection status filter is applied
     @observable private _collectionStatus = false;
     @observable private _collectionSelfStatus = true;
@@ -120,28 +121,6 @@ export class FilterBox extends React.Component {
         });
     }
 
-    splitQuery2(query: string) {
-        //pull out quoted phrases
-        //does not work if there are no spaces between
-        query = query.replace(' "', '`"');
-        query = query.replace('" ', '"`');
-        // let quoteQuery: string[] = query.split(/((?<=")|(?="))/);
-        let quoteQuery: string[] = query.split('`');
-        // console.log(quoteQue
-        let finalArray: string[] = [];
-        quoteQuery.forEach(str => {
-            if (str.charAt(0) !== '"') {
-                let strArr: string[] = str.split(" ");
-                finalArray.push(...strArr);
-            }
-            else {
-                finalArray.push(str)
-            }
-        });
-        // console.log(finalArray)
-        return finalArray;
-    }
-
     splitQuery(query: string): string[] {
         //pull out quoted phrases
         //does not work if there are no spaces between
@@ -171,56 +150,58 @@ export class FilterBox extends React.Component {
         this._resetBoolean = true;
     }
 
-    basicRequireWords(query: string): string {
+    basicRequireWords(query: string[]): string[] {
         // let oldWords = query.split(" ");
-        let oldWords = this.splitQuery(query);
-        let newWords: string[] = [];
-        oldWords.forEach(word => {
+        // let oldWords = this.splitQuery(query);
+        // let newWords: string[] = [];
+        let finalArr: string[] = [];
+        query.forEach(word => {
             let newWrd = "+" + word;
-            newWords.push(newWrd);
+            finalArr.push(newWrd);
         });
-        query = newWords.join(" ");
+        // query = newWords.join(" ");
 
-        return query;
+        return finalArr;
     }
 
-    basicFieldFilters(query: string, type: string): string {
-        // let oldWords = query.split(" ");
-        let oldWords = this.splitQuery(query);
-        let mod = "";
+    basicFieldFilters(query: string[], type: string): string[] {
+        let finalArr: string[] = [];
 
-        if (type === Keys.AUTHOR) {
-            mod = " author_t:";
-        } if (type === Keys.DATA) {
-            //TODO
-        } if (type === Keys.TITLE) {
-            mod = " title_t:";
-        }
+        query.forEach(word => {
+            let newWord = type + word;
+            finalArr.push(newWord);
+        })
 
-        let newWords: string[] = [];
-        oldWords.forEach(word => {
-            let newWrd = mod + word;
-            newWords.push(newWrd);
-        });
-
-        query = newWords.join(" ");
-
-        return query;
+        return finalArr;
     }
 
-    applyBasicFieldFilters(query: string) {
-        let finalQuery = "";
-
+    applyBasicFieldFilters(query: string[]): string[] {
+        let finalArr: string[] = [];
         if (this._titleFieldStatus) {
-            finalQuery = finalQuery + this.basicFieldFilters(query, Keys.TITLE);
+            finalArr.push(...this.basicFieldFilters(query, Keys.TITLE));
         }
         if (this._authorFieldStatus) {
-            finalQuery = finalQuery + this.basicFieldFilters(query, Keys.AUTHOR);
+            finalArr.push(...this.basicFieldFilters(query, Keys.AUTHOR));
         }
-        return finalQuery;
+        // if (this._searchTextContents) {
+        //     finalArr.push(...this.basicFieldFilters(query, Keys.TEXT));
+        // }
+        return finalArr;
     }
 
-    get fieldFiltersApplied() { return !(this._authorFieldStatus && this._titleFieldStatus); }
+    applyTextFilters(query: string[]): string[] {
+        let finalArr: string[] = [];
+        if (this._searchTextContents) {
+            finalArr.push(...this.basicFieldFilters(query, Keys.TEXT));
+        }
+        if(this._searchPdfContents) {
+            // do something here with pdf's @ stanley
+        }
+        
+        return finalArr;
+    }
+
+    get fieldFiltersApplied() { return !(this._authorFieldStatus && this._titleFieldStatus) || this._bothFieldStatus }
 
     //TODO: basically all of this
     //gets all of the collections of all the docviews that are selected
@@ -250,30 +231,32 @@ export class FilterBox extends React.Component {
     }
 
     getFinalQuery(query: string): string {
-        //alters the query so it looks in the correct fields
-        //if this is true, then not all of the field boxes are checked
-        this.splitQuery(query);
+        // splits query into an array of search terms. Phrases and individual words are
+        // separated differently.
+        let searchTermArray = this.splitQuery(query);
+
         if (this.fieldFiltersApplied) {
-            query = this.applyBasicFieldFilters(query);
-            query = query.replace(/\s+/g, ' ').trim();
+            searchTermArray = this.applyBasicFieldFilters(searchTermArray);
         }
 
         //alters the query based on if all words or any words are required
         //if this._wordstatus is false, all words are required and a + is added before each
         if (!this._basicWordStatus) {
-            query = this.basicRequireWords(query);
-            query = query.replace(/\s+/g, ' ').trim();
+            searchTermArray = this.basicRequireWords(searchTermArray);
         }
+
+        searchTermArray = this.applyTextFilters(searchTermArray);
 
         //if should be searched in a specific collection
         if (this._collectionStatus) {
-            query = this.addCollectionFilter(query);
-            query = query.replace(/\s+/g, ' ').trim();
+            // searchTermArray = this.addCollectionFilter(searchTermArray);
         }
-        console.log(query);
-        return query;
+        let finalStr = searchTermArray.join(" ");
+        console.log(finalStr);
+        return finalStr;
     }
 
+    //this should be done with filterquery
     addCollectionFilter(query: string): string {
         let collections: Doc[] = this.getCurCollections();
         // let oldWords = query.split(" ");
@@ -401,11 +384,17 @@ export class FilterBox extends React.Component {
     @action.bound
     updateSearchTextContents(newStat: boolean) { this._searchTextContents = newStat; }
 
-    getCollectionStatus() { return this._collectionStatus; }
-    getSelfCollectionStatus() { return this._collectionSelfStatus; }
-    getParentCollectionStatus() { return this._collectionParentStatus; }
-    getTitleStatus() { return this._titleFieldStatus; }
-    getAuthorStatus() { return this._authorFieldStatus; }
+    @action.bound
+    updateBothFieldStatus(newStat: boolean){
+        this._bothFieldStatus = newStat;
+    }
+
+    // getCollectionStatus() { return this._collectionStatus; }
+    // getSelfCollectionStatus() { return this._collectionSelfStatus; }
+    // getParentCollectionStatus() { return this._collectionParentStatus; }
+    // getTitleStatus() { return this._titleFieldStatus; }
+    // getAuthorStatus() { return this._authorFieldStatus; }
+    // getBothFieldStatus() { return this._bothFieldStatus; }
 
     getActiveFilters() {
         return (
@@ -531,8 +520,8 @@ export class FilterBox extends React.Component {
                                     </div>
                                 </div>
                                 <div className="filter-panel"><FieldFilters
-                                    titleFieldStatus={this._titleFieldStatus} authorFieldStatus={this._authorFieldStatus}
-                                    updateAuthorStatus={this.updateAuthorStatus} updateTitleStatus={this.updateTitleStatus} /> </div>
+                                    titleFieldStatus={this._titleFieldStatus} authorFieldStatus={this._authorFieldStatus} bothFieldStatus = {this._bothFieldStatus}
+                                    updateAuthorStatus={this.updateAuthorStatus} updateTitleStatus={this.updateTitleStatus} updateBothStatus = {this.updateBothFieldStatus}/> </div>
                             </div>
                         </div>
                         {this.getBottomButtons()}
