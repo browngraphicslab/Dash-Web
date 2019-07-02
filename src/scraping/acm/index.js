@@ -107,13 +107,13 @@ async function text_of(ref) {
     return await element.getText();
 }
 
-async function text_of_all(ref) {
+async function text_of_all(ref, delimiter = undefined) {
     let elements = await locate(ref, true);
     let results = [];
     for (let element of elements) {
         results.push(await element.getText());
     }
-    return results;
+    return delimiter ? results.join(delimiter) : results;
 }
 
 async function logged_assign(key, value) {
@@ -141,7 +141,7 @@ async function read_authors() {
         i++;
     }
 
-    return all_authors;
+    return all_authors.map(parse_author);
 }
 
 async function read_publication() {
@@ -162,12 +162,12 @@ async function read_publication() {
 
         if (element.startsWith("Title")) {
             publication_module.name = element.substring(6).removeAll(["table of contents", "archive", /\w+ Homepage/]);
-        } else if (element.startsWith("Volume")) {
+        } else if (element.startsWith("Volume ")) {
             let match = location.exec(element);
             publication_module.volume = parseInt(match[1]);
             publication_module.issue = parseInt(match[2]);
             publication_module.month = match[3];
-        } else if (element.startsWith("Pages")) {
+        } else if (element.startsWith("Pages ")) {
             let match = pages.exec(element);
             publication_module.page_start = parseInt(match[1]);
             publication_module.page_end = parseInt(match[2]);
@@ -188,7 +188,7 @@ async function read_publication() {
 
 // JSON / DASH CONVERSION AND EXPORT
 
-function parse_authors(metadata) {
+function parse_author(metadata) {
     let publicationYears = metadata[1].substring(18).split("-");
     author = {
         name: metadata[0],
@@ -246,11 +246,11 @@ async function scrape_targets(error, data) {
 
             target = "abstract";
             await click_on_acm_tab(target);
-            logged_assign(target, (await text_of_all("abstract-body")).join(" "));
+            logged_assign(target, await text_of_all("abstract-body", " "));
 
             target = "authors";
             await click_on_acm_tab(target);
-            logged_assign(target, (await read_authors()).map(parse_authors));
+            logged_assign(target, await read_authors());
 
             target = "publication";
             await click_on_acm_tab(target);
