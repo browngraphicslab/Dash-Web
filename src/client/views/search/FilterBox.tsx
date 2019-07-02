@@ -49,7 +49,6 @@ export class FilterBox extends React.Component {
     //if all of these are true, no key filter is applied
     @observable private _titleFieldStatus: boolean = true;
     @observable private _authorFieldStatus: boolean = true;
-    @observable private _dataFieldStatus: boolean = true;
     //this also serves as an indicator if the collection status filter is applied
     @observable private _collectionStatus = false;
     @observable private _collectionSelfStatus = true;
@@ -121,6 +120,48 @@ export class FilterBox extends React.Component {
         });
     }
 
+    splitQuery2(query: string) {
+        //pull out quoted phrases
+        //does not work if there are no spaces between
+        query = query.replace(' "', '`"');
+        query = query.replace('" ', '"`');
+        // let quoteQuery: string[] = query.split(/((?<=")|(?="))/);
+        let quoteQuery: string[] = query.split('`');
+        // console.log(quoteQue
+        let finalArray: string[] = [];
+        quoteQuery.forEach(str => {
+            if (str.charAt(0) !== '"') {
+                let strArr: string[] = str.split(" ");
+                finalArray.push(...strArr);
+            }
+            else {
+                finalArray.push(str)
+            }
+        });
+        // console.log(finalArray)
+        return finalArray;
+    }
+
+    splitQuery(query: string): string[] {
+        //pull out quoted phrases
+        //does not work if there are no spaces between
+        query = query.replace(' "', '`"');
+        query = query.replace('" ', '"`');
+        let quoteQuery: string[] = query.split('`');
+        let finalArray: string[] = [];
+        quoteQuery.forEach(str => {
+            if (str.includes('"')) {
+                finalArray.push(str)
+            }
+            else {
+                let strArr: string[] = str.split(" ");
+                finalArray.push(...strArr);
+            }
+        });
+        console.log(finalArray)
+        return finalArray;
+    }
+
     @action.bound
     resetFilters = () => {
         ToggleBar.Instance.resetToggle();
@@ -131,7 +172,8 @@ export class FilterBox extends React.Component {
     }
 
     basicRequireWords(query: string): string {
-        let oldWords = query.split(" ");
+        // let oldWords = query.split(" ");
+        let oldWords = this.splitQuery(query);
         let newWords: string[] = [];
         oldWords.forEach(word => {
             let newWrd = "+" + word;
@@ -143,7 +185,8 @@ export class FilterBox extends React.Component {
     }
 
     basicFieldFilters(query: string, type: string): string {
-        let oldWords = query.split(" ");
+        // let oldWords = query.split(" ");
+        let oldWords = this.splitQuery(query);
         let mod = "";
 
         if (type === Keys.AUTHOR) {
@@ -174,13 +217,10 @@ export class FilterBox extends React.Component {
         if (this._authorFieldStatus) {
             finalQuery = finalQuery + this.basicFieldFilters(query, Keys.AUTHOR);
         }
-        if (this._dataFieldStatus) {
-            finalQuery = finalQuery + this.basicFieldFilters(query, Keys.DATA);
-        }
         return finalQuery;
     }
 
-    get fieldFiltersApplied() { return !(this._dataFieldStatus && this._authorFieldStatus && this._titleFieldStatus); }
+    get fieldFiltersApplied() { return !(this._authorFieldStatus && this._titleFieldStatus); }
 
     //TODO: basically all of this
     //gets all of the collections of all the docviews that are selected
@@ -212,7 +252,7 @@ export class FilterBox extends React.Component {
     getFinalQuery(query: string): string {
         //alters the query so it looks in the correct fields
         //if this is true, then not all of the field boxes are checked
-        //TODO: data
+        this.splitQuery(query);
         if (this.fieldFiltersApplied) {
             query = this.applyBasicFieldFilters(query);
             query = query.replace(/\s+/g, ' ').trim();
@@ -230,19 +270,21 @@ export class FilterBox extends React.Component {
             query = this.addCollectionFilter(query);
             query = query.replace(/\s+/g, ' ').trim();
         }
+        console.log(query);
         return query;
     }
 
     addCollectionFilter(query: string): string {
         let collections: Doc[] = this.getCurCollections();
-        let oldWords = query.split(" ");
+        // let oldWords = query.split(" ");
+        let oldWords = this.splitQuery(query);
 
         let collectionString: string[] = [];
         collections.forEach(doc => {
             let proto = doc.proto;
             let protoId = (proto || doc)[Id];
             let colString: string = "{!join from=data_l to=id}id:" + protoId + " ";
-            collectionString.push(colString);
+            collectionString.push(colString); ''
         });
 
         let finalColString = collectionString.join(" ");
@@ -345,9 +387,6 @@ export class FilterBox extends React.Component {
     updateAuthorStatus(newStat: boolean) { this._authorFieldStatus = newStat; }
 
     @action.bound
-    updateDataStatus(newStat: boolean) { this._dataFieldStatus = newStat; }
-
-    @action.bound
     updateCollectionStatus(newStat: boolean) { this._collectionStatus = newStat; }
 
     @action.bound
@@ -367,22 +406,20 @@ export class FilterBox extends React.Component {
     getParentCollectionStatus() { return this._collectionParentStatus; }
     getTitleStatus() { return this._titleFieldStatus; }
     getAuthorStatus() { return this._authorFieldStatus; }
-    getDataStatus() { return this._dataFieldStatus; }
 
     getActiveFilters() {
-        console.log(this._authorFieldStatus, this._titleFieldStatus, this._dataFieldStatus);
         return (
             <div className="active-filters">
                 {!this._basicWordStatus ? <div className="active-icon container">
                     <div className="active-icon icon">{this.getABCicon()}</div>
                     <div className="active-icon description">Required Words Applied</div>
                 </div> : undefined}
-                {(!(this._icons.length === 9) || this._searchPdfContents || this._searchTextContents) ? 
-                <div className="active-icon container">
-                    <div className="active-icon icon">{this.getTypeIcon()}</div>
-                    <div className="active-icon description">Type Filters Applied</div>
-                </div> : undefined}
-                {!(this._authorFieldStatus && this._dataFieldStatus && this._titleFieldStatus) ?
+                {(!(this._icons.length === 9) || this._searchPdfContents || this._searchTextContents) ?
+                    <div className="active-icon container">
+                        <div className="active-icon icon">{this.getTypeIcon()}</div>
+                        <div className="active-icon description">Type Filters Applied</div>
+                    </div> : undefined}
+                {this.fieldFiltersApplied ?
                     <div className="active-icon container">
                         <div className="active-icon icon">{this.getKeyIcon()}</div>
                         <div className="active-icon description">Field Filters Applied</div>
@@ -488,14 +525,14 @@ export class FilterBox extends React.Component {
                                 <div className="filter-header">
                                     <div className="filter-title field">Filter by Basic Keys</div>
                                     <div style={{ marginLeft: "auto", display: "flex" }}>
-                                        {!(this._authorFieldStatus && this._dataFieldStatus && this._titleFieldStatus) ?
+                                        {this.fieldFiltersApplied ?
                                             <div style={{ marginRight: "10px" }}><FontAwesomeIcon className="fontawesome-icon" icon={faCheckCircle} size="lg" /></div> : undefined}
                                         <NaviconButton onClick={this.toggleFieldOpen} />
                                     </div>
                                 </div>
                                 <div className="filter-panel"><FieldFilters
-                                    titleFieldStatus={this._titleFieldStatus} dataFieldStatus={this._dataFieldStatus} authorFieldStatus={this._authorFieldStatus}
-                                    updateAuthorStatus={this.updateAuthorStatus} updateDataStatus={this.updateDataStatus} updateTitleStatus={this.updateTitleStatus} /> </div>
+                                    titleFieldStatus={this._titleFieldStatus} authorFieldStatus={this._authorFieldStatus}
+                                    updateAuthorStatus={this.updateAuthorStatus} updateTitleStatus={this.updateTitleStatus} /> </div>
                             </div>
                         </div>
                         {this.getBottomButtons()}
