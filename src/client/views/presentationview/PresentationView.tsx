@@ -9,12 +9,13 @@ import { listSpec } from "../../../new_fields/Schema";
 import { Cast, NumCast, FieldValue, PromiseValue, StrCast, BoolCast } from "../../../new_fields/Types";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
-import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import PresentationElement, { buttonIndex } from "./PresentationElement";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowRight, faArrowLeft, faPlay, faStop, faPlus, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faArrowRight, faArrowLeft, faPlay, faStop, faPlus, faTimes, faMinus, faEdit } from '@fortawesome/free-solid-svg-icons';
 import { Docs } from "../../documents/Documents";
+import { undoBatch, UndoManager } from "../../util/UndoManager";
+import PresentationViewList from "./PresentationList";
 
 library.add(faArrowLeft);
 library.add(faArrowRight);
@@ -22,90 +23,13 @@ library.add(faPlay);
 library.add(faStop);
 library.add(faPlus);
 library.add(faTimes);
+library.add(faMinus);
+library.add(faEdit);
+
 
 export interface PresViewProps {
     Documents: List<Doc>;
 }
-
-interface PresListProps {
-    mainDocument: Doc;
-    deleteDocument(index: number): void;
-    gotoDocument(index: number, fromDoc: number): Promise<void>;
-    groupMappings: Map<String, Doc[]>;
-    presElementsMappings: Map<Doc, PresentationElement>;
-    setChildrenDocs: (docList: Doc[]) => void;
-    presStatus: boolean;
-    presButtonBackUp: Doc;
-    presGroupBackUp: Doc;
-}
-
-
-@observer
-/**
- * Component that takes in a document prop and a boolean whether it's collapsed or not.
- */
-class PresentationViewList extends React.Component<PresListProps> {
-
-    /**
-     * Method that initializes presentation ids for the
-     * docs that is in the presentation, when presentation list
-     * gets re-rendered. It makes sure to not assign ids to the
-     * docs that are in the group, so that mapping won't be disrupted.
-     */
-    @action
-    initializeGroupIds = async (docList: Doc[]) => {
-        docList.forEach(async (doc: Doc, index: number) => {
-            let docGuid = StrCast(doc.presentId, null);
-            //checking if part of group
-            let storedGuids: string[] = [];
-            let castedGroupDocs = await DocListCastAsync(this.props.presGroupBackUp.groupDocs);
-            //making sure the docs that were in groups, which were stored, to not get new guids.
-            if (castedGroupDocs !== undefined) {
-                castedGroupDocs.forEach((doc: Doc) => {
-                    let storedGuid = StrCast(doc.presentIdStore, null);
-                    if (storedGuid) {
-                        storedGuids.push(storedGuid);
-                    }
-
-                });
-            }
-            if (!this.props.groupMappings.has(docGuid) && !storedGuids.includes(docGuid)) {
-                doc.presentId = Utils.GenerateGuid();
-            }
-        });
-    }
-
-    /**
-     * Initially every document starts with a viewScale 1, which means
-     * that they will be displayed in a canvas with scale 1.
-     */
-    @action
-    initializeScaleViews = (docList: Doc[]) => {
-        docList.forEach((doc: Doc) => {
-            let curScale = NumCast(doc.viewScale, null);
-            if (curScale === undefined) {
-                doc.viewScale = 1;
-            }
-        });
-    }
-
-
-
-    render() {
-        const children = DocListCast(this.props.mainDocument.data);
-        this.initializeGroupIds(children);
-        this.initializeScaleViews(children);
-        this.props.setChildrenDocs(children);
-        console.log(this.props.mainDocument, " re-rendering");
-        return (
-
-            <div className="presentationView-listCont">
-                {children.map((doc: Doc, index: number) => <PresentationElement ref={(e) => { if (e) { this.props.presElementsMappings.set(doc, e); } }} key={index} mainDocument={this.props.mainDocument} document={doc} index={index} deleteDocument={this.props.deleteDocument} gotoDocument={this.props.gotoDocument} groupMappings={this.props.groupMappings} allListElements={children} presStatus={this.props.presStatus} presButtonBackUp={this.props.presButtonBackUp} presGroupBackUp={this.props.presGroupBackUp} />)}
-            </div>
-        );
-    }
-}
-
 
 @observer
 export class PresentationView extends React.Component<PresViewProps>  {
@@ -122,12 +46,20 @@ export class PresentationView extends React.Component<PresViewProps>  {
     //back-up so that presentation stays the way it's when refreshed
     @observable presGroupBackUp: Doc = new Doc();
     @observable presButtonBackUp: Doc = new Doc();
-    @observable curPresentation: Doc = new Doc();
-    @observable presentationsMapping: Map<String, Doc> = new Map();
-    @observable presentationsKeyMapping: Map<Doc, String> = new Map();
-    @observable selectedPresentation: HTMLSelectElement | undefined;
-    @observable currentSelectedPresValue: string | undefined;
 
+    //Keeping track of the doc for the current presentation
+    @observable curPresentation: Doc = new Doc();
+    //Mapping of guids to presentations.
+    @observable presentationsMapping: Map<String, Doc> = new Map();
+    //Mapping of presentations to guid, so that select option values can be given.
+    @observable presentationsKeyMapping: Map<Doc, String> = new Map();
+    //Variable to keep track of guid of the current presentation
+    @observable currentSelectedPresValue: string | undefined;
+    //A flag to keep track if title input is open, which is used in rendering.
+    @observable PresTitleInputOpen: boolean = false;
+    //Variable that holds reference to title input, so that new presentations get titles assigned.
+    @observable titleInputElement: HTMLInputElement | undefined;
+    @observable PresTitleChangeOpen: boolean = false;
 
     //initilize class variables
     constructor(props: PresViewProps) {
@@ -135,13 +67,17 @@ export class PresentationView extends React.Component<PresViewProps>  {
         PresentationView.Instance = this;
     }
 
-
+    //The first lifecycle function that gets called to set up the current presentation.
     async componentWillMount() {
         this.props.Documents.forEach(async (doc, index: number) => {
+
+            //For each presentation received from mainContainer, a mapping is created.
             let curDoc: Doc = await doc;
             let newGuid = Utils.GenerateGuid();
             this.presentationsKeyMapping.set(curDoc, newGuid);
             this.presentationsMapping.set(newGuid, curDoc);
+
+            //The Presentation at first index gets set as default start presentation
             if (index === 0) {
                 runInAction(() => this.currentSelectedPresValue = newGuid);
                 runInAction(() => this.curPresentation = curDoc);
@@ -149,17 +85,21 @@ export class PresentationView extends React.Component<PresViewProps>  {
         });
     }
 
+    //Second lifecycle function that gets called when component mounts. It makes sure to
+    //get the back-up information from previous session for the current presentation.
     async componentDidMount() {
-
         let docAtZero = await this.props.Documents[0];
         runInAction(() => this.curPresentation = docAtZero);
 
         this.setPresentationBackUps();
 
-
     }
 
 
+    /**
+     * The function that retrieves the backUps for the current Presentation if present,
+     * otherwise initializes.
+     */
     setPresentationBackUps = async () => {
         //getting both backUp documents
 
@@ -193,12 +133,10 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
         }
         //if instantiated before 
-
         if (castedButtonBackUp instanceof Promise) {
             castedButtonBackUp.then(doc => {
                 let toAssign = doc ? doc : new Doc();
                 this.curPresentation.presButtonBackUp = toAssign;
-                console.log("Called the promise one!!");
                 runInAction(() => this.presButtonBackUp = toAssign);
             });
 
@@ -206,7 +144,6 @@ export class PresentationView extends React.Component<PresViewProps>  {
         } else if (castedButtonBackUp instanceof Doc) {
             let castedDoc: Doc = await castedButtonBackUp;
             runInAction(() => this.presButtonBackUp = castedDoc);
-            console.log("Called the important action");
 
         } else {
             runInAction(() => {
@@ -233,6 +170,11 @@ export class PresentationView extends React.Component<PresViewProps>  {
             castedGroupDocs.forEach(async (groupDoc: Doc, index: number) => {
                 let castedGrouping = await DocListCastAsync(groupDoc.grouping);
                 let castedKey = StrCast(groupDoc.presentIdStore, null);
+                if (castedGrouping) {
+                    castedGrouping.forEach((doc: Doc) => {
+                        doc.presentId = castedKey;
+                    });
+                }
                 if (castedGrouping !== undefined && castedKey !== undefined) {
                     this.groupMappings.set(castedKey, castedGrouping);
                 }
@@ -299,12 +241,14 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
         // if a group set that flag to zero or a single element
         //If so making sure to zoom out, which goes back to state before zooming action
-        if (zoomOut || this.presElementsMappings.get(docAtCurrent)!.selected[buttonIndex.Show]) {
-            let prevScale = NumCast(this.childrenDocs[prevSelected].viewScale, null);
-            let curScale = DocumentManager.Instance.getScaleOfDocView(this.childrenDocs[current]);
-            if (prevScale !== undefined) {
-                if (prevScale !== curScale) {
-                    DocumentManager.Instance.zoomIntoScale(docAtCurrent, prevScale);
+        if (current > 0) {
+            if (zoomOut || this.presElementsMappings.get(docAtCurrent)!.selected[buttonIndex.Show]) {
+                let prevScale = NumCast(this.childrenDocs[prevSelected].viewScale, null);
+                let curScale = DocumentManager.Instance.getScaleOfDocView(this.childrenDocs[current]);
+                if (prevScale !== undefined) {
+                    if (prevScale !== curScale) {
+                        DocumentManager.Instance.zoomIntoScale(docAtCurrent, prevScale);
+                    }
                 }
             }
         }
@@ -448,13 +392,63 @@ export class PresentationView extends React.Component<PresViewProps>  {
         return doc;
     }
 
+    /**
+     * The function that removes a doc from a presentation. It also makes sure to
+     * do necessary updates to backUps and mappings stored locally.
+     */
     @action
-    public RemoveDoc = (index: number) => {
+    public RemoveDoc = async (index: number) => {
         const value = FieldValue(Cast(this.curPresentation.data, listSpec(Doc)));
         if (value) {
-            value.splice(index, 1);
+            let removedDoc = await value.splice(index, 1)[0];
+
+            //removing the Presentation Element stored for it
+            this.presElementsMappings.delete(removedDoc);
+
+            let removedDocPresentId = StrCast(removedDoc.presentId);
+
+            //Removing it from local mapping of the groups
+            if (this.groupMappings.has(removedDocPresentId)) {
+                let removedDocsGroup = this.groupMappings.get(removedDocPresentId);
+                if (removedDocsGroup) {
+                    removedDocsGroup.splice(removedDocsGroup.indexOf(removedDoc), 1);
+                    if (removedDocsGroup.length === 0) {
+                        this.groupMappings.delete(removedDocPresentId);
+                    }
+                }
+            }
+
+            //removing it from the backUp of selected Buttons
+            let castedList = Cast(this.presButtonBackUp.selectedButtonDocs, listSpec(Doc));
+            if (castedList) {
+                castedList.splice(index, 1);
+            }
+
+            //removing it from the backup of groups
+            let castedGroupDocs = await DocListCastAsync(this.presGroupBackUp.groupDocs);
+            if (castedGroupDocs) {
+                castedGroupDocs.forEach(async (groupDoc: Doc, index: number) => {
+                    let castedKey = StrCast(groupDoc.presentIdStore, null);
+                    if (castedKey === removedDocPresentId) {
+                        let castedGrouping = await DocListCastAsync(groupDoc.grouping);
+                        if (castedGrouping) {
+                            castedGrouping.splice(castedGrouping.indexOf(removedDoc), 1);
+                            if (castedGrouping.length === 0) {
+                                castedGroupDocs!.splice(castedGroupDocs!.indexOf(groupDoc), 1);
+                            }
+                        }
+                    }
+
+                });
+
+            }
+
+
         }
     }
+
+    //The function that is called when a document is clicked or reached through next or back.
+    //it'll also execute the necessary actions if presentation is playing.
     @action
     public gotoDocument = async (index: number, fromDoc: number) => {
         const list = FieldValue(Cast(this.curPresentation.data, listSpec(Doc)));
@@ -480,11 +474,27 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
     }
 
-
+    //Function that is called to resetGroupIds, so that documents get new groupIds at
+    //first load, when presentation is changed.
+    resetGroupIds = async () => {
+        let castedGroupDocs = await DocListCastAsync(this.presGroupBackUp.groupDocs);
+        if (castedGroupDocs !== undefined) {
+            castedGroupDocs.forEach(async (groupDoc: Doc, index: number) => {
+                let castedGrouping = await DocListCastAsync(groupDoc.grouping);
+                if (castedGrouping) {
+                    castedGrouping.forEach((doc: Doc) => {
+                        doc.presentId = Utils.GenerateGuid();
+                    });
+                }
+            });
+        }
+        runInAction(() => this.groupMappings = new Map());
+    }
 
     /**
      * Adds a document to the presentation view
      **/
+    @undoBatch
     @action
     public PinDoc(doc: Doc) {
         //add this new doc to props.Document
@@ -495,14 +505,17 @@ export class PresentationView extends React.Component<PresViewProps>  {
             this.curPresentation.data = new List([doc]);
         }
 
-        this.curPresentation.width = 300;
+        this.curPresentation.width = 400;
     }
 
+    //Function that sets the store of the children docs.
     @action
     setChildrenDocs = (docList: Doc[]) => {
         this.childrenDocs = docList;
     }
 
+    //The function that is called to render the play or pause button depending on
+    //if presentation is running or not.
     renderPlayPauseButton = () => {
         if (this.presStatus) {
             return <button title="Reset Presentation" className="presentation-button" onClick={this.startOrResetPres}><FontAwesomeIcon icon="stop" /></button>;
@@ -511,10 +524,10 @@ export class PresentationView extends React.Component<PresViewProps>  {
         }
     }
 
+    //The function that starts or resets presentaton functionally, depending on status flag.
     @action
     startOrResetPres = () => {
         if (this.presStatus) {
-            this.presStatus = false;
             this.resetPresentation();
         } else {
             this.presStatus = true;
@@ -525,25 +538,26 @@ export class PresentationView extends React.Component<PresViewProps>  {
         this.curPresentation.presStatus = this.presStatus;
     }
 
+    //The function that resets the presentation by removing every action done by it. It also
+    //stops the presentaton.
     @action
     resetPresentation = () => {
-        //this.groupMappings = new Map();
-        //let selectedButtons: boolean[];
-        this.presElementsMappings.forEach((component: PresentationElement, doc: Doc) => {
-            //selectedButtons = component.selected;
-            //selectedButtons.forEach((val: boolean, index: number) => selectedButtons[index] = false);
-            //doc.presentId = Utils.GenerateGuid();
+        this.childrenDocs.forEach((doc: Doc) => {
             doc.opacity = 1;
+            doc.viewScale = 1;
         });
         this.curPresentation.selectedDoc = 0;
+        this.presStatus = false;
+        this.curPresentation.presStatus = this.presStatus;
         if (this.childrenDocs.length === 0) {
             return;
         }
         DocumentManager.Instance.zoomIntoScale(this.childrenDocs[0], 1);
-        this.childrenDocs[0].viewScale = 1;
-
     }
 
+
+    //The function that starts the presentation, also checking if actions should be applied
+    //directly at start.
     startPresentation = (startIndex: number) => {
         let selectedButtons: boolean[];
         this.presElementsMappings.forEach((component: PresentationElement, doc: Doc) => {
@@ -569,68 +583,211 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
     }
 
+    /**
+     * The function that is called to add a new presentation to the presentationView.
+     * It sets up te mappings and local copies of it. Resets the groupings and presentation.
+     * Makes the new presentation current selected, and retrieve the back-Ups if present.
+     */
     @action
-    addNewPresentation = () => {
-        let title = "Presentation " + (this.props.Documents.length + 1);
-        let newPresentationDoc = Docs.TreeDocument([], { title: title });
+    addNewPresentation = (presTitle: string) => {
+        //creating a new presentation doc
+        let newPresentationDoc = Docs.TreeDocument([], { title: presTitle });
         this.props.Documents.push(newPresentationDoc);
+
+        //setting that new doc as current
         this.curPresentation = newPresentationDoc;
+
+        //storing the doc in local copies for easier access
         let newGuid = Utils.GenerateGuid();
         this.presentationsMapping.set(newGuid, newPresentationDoc);
         this.presentationsKeyMapping.set(newPresentationDoc, newGuid);
+
+        //resetting the previous presentation's actions so that new presentation can be loaded.
+        this.resetGroupIds();
+        this.resetPresentation();
+        this.presElementsMappings = new Map();
         this.currentSelectedPresValue = newGuid;
         this.setPresentationBackUps();
 
-        // if (this.selectedPresentation) {
-        //     this.selectedPresentation.selectedIndex = 1;
-        //     console.log("Selected Pres: ", this.selectedPresentation);
-        //     console.log("New value: ", this.selectedPresentation.value);
-        //     console.log("New Index: ", this.selectedPresentation.selectedIndex);
-
-
-        // }
-
     }
 
+    /**
+     * The function that is called to change the current selected presentation.
+     * Changes the presentation, also resetting groupings and presentation in process.
+     * Plus retrieving the backUps for the newly selected presentation.
+     */
     @action
     getSelectedPresentation = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        //get the guid of the selected presentation
         let selectedGuid = e.target.value;
+        //set that as current presentation
         this.curPresentation = this.presentationsMapping.get(selectedGuid)!;
+
+        //reset current Presentations local things so that new one can be loaded
+        this.resetGroupIds();
+        this.resetPresentation();
+        this.presElementsMappings = new Map();
         this.currentSelectedPresValue = selectedGuid;
         this.setPresentationBackUps();
 
+
+    }
+
+    /**
+     * The function that is called to render either select for presentations, or title inputting.
+     */
+    renderSelectOrPresSelection = () => {
+        let presentationList = DocListCast(this.props.Documents);
+        if (this.PresTitleInputOpen || this.PresTitleChangeOpen) {
+            return <input ref={(e) => this.titleInputElement = e!} type="text" className="presentationView-title" placeholder="Enter Name!" onKeyDown={this.submitPresentationTitle} />;
+        } else {
+            return <select value={this.currentSelectedPresValue} id="pres_selector" className="presentationView-title" onChange={this.getSelectedPresentation}>
+                {presentationList.map((doc: Doc, index: number) => {
+                    let mappedGuid = this.presentationsKeyMapping.get(doc);
+                    let docGuid: string = mappedGuid ? mappedGuid.toString() : "";
+                    return <option key={docGuid} value={docGuid}>{StrCast(doc.title)}</option>;
+                })}
+            </select>;
+        }
+    }
+
+    /**
+     * The function that is called on enter press of title input. It gives the
+     * new presentation the title user entered. If nothing is entered, gives a default title.
+     */
+    @action
+    submitPresentationTitle = (e: React.KeyboardEvent) => {
+        if (e.keyCode === 13) {
+            let presTitle = this.titleInputElement!.value;
+            this.titleInputElement!.value = "";
+            if (this.PresTitleInputOpen) {
+                if (presTitle === "") {
+                    presTitle = "Presentation";
+                }
+                this.PresTitleInputOpen = false;
+                this.addNewPresentation(presTitle);
+            } else if (this.PresTitleChangeOpen) {
+                this.PresTitleChangeOpen = false;
+                this.changePresentationTitle(presTitle);
+            }
+        }
+    }
+
+    /**
+     * The function that is called to remove a presentation from all its copies, and the main Container's
+     * list. Sets up the next presentation as current.
+     */
+    @action
+    removePresentation = async () => {
+        if (this.presentationsMapping.size !== 1) {
+            let presentationList = Cast(this.props.Documents, listSpec(Doc));
+            let batch = UndoManager.StartBatch("presRemoval");
+
+            //getting the presentation that will be removed
+            let removedDoc = this.presentationsMapping.get(this.currentSelectedPresValue!);
+            //that presentation is removed
+            presentationList!.splice(presentationList!.indexOf(removedDoc!), 1);
+
+            //its mappings are removed from local copies
+            this.presentationsKeyMapping.delete(removedDoc!);
+            this.presentationsMapping.delete(this.currentSelectedPresValue!);
+
+            //the next presentation is set as current
+            let remainingPresentations = this.presentationsMapping.values();
+            let nextDoc = remainingPresentations.next().value;
+            this.curPresentation = nextDoc;
+
+
+            //Storing these for being able to undo changes
+            let curGuid = this.currentSelectedPresValue!;
+            let curPresStatus = this.presStatus;
+
+            //resetting the groups and presentation actions so that next presentation gets loaded
+            this.resetGroupIds();
+            this.resetPresentation();
+            this.currentSelectedPresValue = this.presentationsKeyMapping.get(nextDoc)!.toString();
+            this.setPresentationBackUps();
+
+            //Storing for undo
+            let currentGroups = this.groupMappings;
+            let curPresElemMapping = this.presElementsMappings;
+
+            //Event to undo actions that are not related to doc directly, aka. local things
+            UndoManager.AddEvent({
+                undo: action(() => {
+                    this.curPresentation = removedDoc!;
+                    this.presentationsMapping.set(curGuid, removedDoc!);
+                    this.presentationsKeyMapping.set(removedDoc!, curGuid);
+                    this.currentSelectedPresValue = curGuid;
+
+                    this.presStatus = curPresStatus;
+                    this.groupMappings = currentGroups;
+                    this.presElementsMappings = curPresElemMapping;
+                    this.setPresentationBackUps();
+
+                }),
+                redo: action(() => {
+                    this.curPresentation = nextDoc;
+                    this.presStatus = false;
+                    this.presentationsKeyMapping.delete(removedDoc!);
+                    this.presentationsMapping.delete(curGuid);
+                    this.currentSelectedPresValue = this.presentationsKeyMapping.get(nextDoc)!.toString();
+                    this.setPresentationBackUps();
+
+                }),
+            });
+
+            batch.end();
+        }
+    }
+
+    /**
+     * The function that is called to change title of presentation to what user entered.
+     */
+    @undoBatch
+    changePresentationTitle = (newTitle: string) => {
+        if (newTitle === "") {
+            return;
+        }
+        this.curPresentation.title = newTitle;
     }
 
 
     render() {
-        let titleStr = StrCast(this.curPresentation.title);
+
         let width = NumCast(this.curPresentation.width);
-        let presentationList = DocListCast(this.props.Documents);
 
-
-
-        //TODO: next and back should be icons
         return (
             <div className="presentationView-cont" style={{ width: width, overflow: "hidden" }}>
                 <div className="presentationView-heading">
-                    {/* <div className="presentationView-title">{titleStr}</div> */}
-                    <select value={this.currentSelectedPresValue} id="pres_selector" className="presentationView-title" onChange={this.getSelectedPresentation} ref={(e: HTMLSelectElement) => this.selectedPresentation = e}>
-                        {presentationList.map((doc: Doc, index: number) => {
-                            let mappedGuid = this.presentationsKeyMapping.get(doc);
-                            let docGuid: string = mappedGuid ? mappedGuid.toString() : "";
-                            return <option key={index} value={docGuid}>{StrCast(doc.title)}</option>;
-                        })}
-                    </select>
+                    {this.renderSelectOrPresSelection()}
                     <button title="Close Presentation" className='presentation-icon' onClick={this.closePresentation}><FontAwesomeIcon icon={"times"} /></button>
-                    <button title="Add Presentation" className="presentation-icon" style={{ marginRight: 10 }} onClick={this.addNewPresentation}><FontAwesomeIcon icon={"plus"} /></button>
-
+                    <button title="Add Presentation" className="presentation-icon" style={{ marginRight: 10 }} onClick={() => {
+                        runInAction(() => { if (this.PresTitleChangeOpen) { this.PresTitleChangeOpen = false; } });
+                        runInAction(() => this.PresTitleInputOpen ? this.PresTitleInputOpen = false : this.PresTitleInputOpen = true);
+                    }}><FontAwesomeIcon icon={"plus"} /></button>
+                    <button title="Remove Presentation" className='presentation-icon' style={{ marginRight: 10 }} onClick={this.removePresentation}><FontAwesomeIcon icon={"minus"} /></button>
+                    <button title="Change Presentation Title" className="presentation-icon" style={{ marginRight: 10 }} onClick={() => {
+                        runInAction(() => { if (this.PresTitleInputOpen) { this.PresTitleInputOpen = false; } });
+                        runInAction(() => this.PresTitleChangeOpen ? this.PresTitleChangeOpen = false : this.PresTitleChangeOpen = true);
+                    }}><FontAwesomeIcon icon={"edit"} /></button>
                 </div>
                 <div className="presentation-buttons">
                     <button title="Back" className="presentation-button" onClick={this.back}><FontAwesomeIcon icon={"arrow-left"} /></button>
                     {this.renderPlayPauseButton()}
                     <button title="Next" className="presentation-button" onClick={this.next}><FontAwesomeIcon icon={"arrow-right"} /></button>
                 </div>
-                <PresentationViewList mainDocument={this.curPresentation} deleteDocument={this.RemoveDoc} gotoDocument={this.gotoDocument} groupMappings={this.groupMappings} presElementsMappings={this.presElementsMappings} setChildrenDocs={this.setChildrenDocs} presStatus={this.presStatus} presButtonBackUp={this.presButtonBackUp} presGroupBackUp={this.presGroupBackUp} />
+                <PresentationViewList
+                    mainDocument={this.curPresentation}
+                    deleteDocument={this.RemoveDoc}
+                    gotoDocument={this.gotoDocument}
+                    groupMappings={this.groupMappings}
+                    presElementsMappings={this.presElementsMappings}
+                    setChildrenDocs={this.setChildrenDocs}
+                    presStatus={this.presStatus}
+                    presButtonBackUp={this.presButtonBackUp}
+                    presGroupBackUp={this.presGroupBackUp}
+                />
             </div>
         );
     }

@@ -9,7 +9,7 @@ import { CollectionDockingView } from "./CollectionDockingView";
 import { NumCast } from "../../../new_fields/Types";
 import { CollectionViewType } from "./CollectionBaseView";
 
-type SelectorProps = { Document: Doc, addDocTab(doc: Doc, location: string): void };
+type SelectorProps = { Document: Doc, addDocTab(doc: Doc, dataDoc: Doc | undefined, location: string): void };
 @observer
 export class SelectorContextMenu extends React.Component<SelectorProps> {
     @observable private _docs: { col: Doc, target: Doc }[] = [];
@@ -43,7 +43,7 @@ export class SelectorContextMenu extends React.Component<SelectorProps> {
                 col.panX = newPanX;
                 col.panY = newPanY;
             }
-            this.props.addDocTab(col, "inTab");
+            this.props.addDocTab(col, undefined, "inTab"); // bcz: dataDoc?
         };
     }
 

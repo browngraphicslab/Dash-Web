@@ -2,17 +2,28 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
-import { CompileScript } from "../../util/Scripting";
+import { CompileScript, ScriptOptions } from "../../util/Scripting";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./KeyValueBox.scss";
 import { KeyValuePair } from "./KeyValuePair";
 import React = require("react");
-import { NumCast, Cast, FieldValue } from "../../../new_fields/Types";
-import { Doc, Field } from "../../../new_fields/Doc";
+import { NumCast, Cast, FieldValue, StrCast } from "../../../new_fields/Types";
+import { Doc, Field, FieldResult } from "../../../new_fields/Doc";
+import { ComputedField } from "../../../new_fields/ScriptField";
+import { SetupDrag } from "../../util/DragManager";
+import { Docs } from "../../documents/Documents";
+import { RawDataOperationParameters } from "../../northstar/model/idea/idea";
+import { Templates } from "../Templates";
+import { List } from "../../../new_fields/List";
+import { TextField } from "../../util/ProsemirrorCopy/prompt";
+import { RichTextField } from "../../../new_fields/RichTextField";
+import { ImageField } from "../../../new_fields/URLField";
 
 @observer
 export class KeyValueBox extends React.Component<FieldViewProps> {
     private _mainCont = React.createRef<HTMLDivElement>();
+    private _keyHeader = React.createRef<HTMLTableHeaderCellElement>();
+    @observable private rows: KeyValuePair[] = [];
 
     public static LayoutString(fieldStr: string = "data") { return FieldView.LayoutString(KeyValueBox, fieldStr); }
     @observable private _keyInput: string = "";
@@ -27,27 +38,37 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     @action
     onEnterKey = (e: React.KeyboardEvent): void => {
         if (e.key === 'Enter') {
-            if (this._keyInput && this._valueInput) {
-                let doc = this.fieldDocToLayout;
-                if (!doc) {
-                    return;
+            if (this._keyInput && this._valueInput && this.fieldDocToLayout) {
+                if (KeyValueBox.SetField(this.fieldDocToLayout, this._keyInput, this._valueInput)) {
+                    this._keyInput = "";
+                    this._valueInput = "";
                 }
-                let realDoc = doc;
-
-                let script = CompileScript(this._valueInput, { addReturn: true });
-                if (!script.compiled) {
-                    return;
-                }
-                let res = script.run();
-                if (!res.success) return;
-                const field = res.result;
-                if (Field.IsField(field)) {
-                    realDoc[this._keyInput] = field;
-                }
-                this._keyInput = "";
-                this._valueInput = "";
             }
         }
+    }
+    public static SetField(doc: Doc, key: string, value: string) {
+        let eq = value.startsWith("=");
+        let target = eq ? doc : Doc.GetProto(doc);
+        value = eq ? value.substr(1) : value;
+        let dubEq = value.startsWith(":=");
+        value = dubEq ? value.substr(2) : value;
+        let options: ScriptOptions = { addReturn: true, params: { this: "Doc" } };
+        if (dubEq) options.typecheck = false;
+        let script = CompileScript(value, options);
+        if (!script.compiled) {
+            return false;
+        }
+        let field = new ComputedField(script);
+        if (!dubEq) {
+            let res = script.run({ this: target });
+            if (!res.success) return false;
+            field = res.result;
+        }
+        if (Field.IsField(field, true)) {
+            target[key] = field;
+            return true;
+        }
+        return false;
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
@@ -78,8 +99,16 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
 
         let rows: JSX.Element[] = [];
         let i = 0;
+        const self = this;
         for (let key of Object.keys(ids).sort()) {
-            rows.push(<KeyValuePair doc={realDoc} keyWidth={100 - this.splitPercentage} rowStyle={"keyValueBox-" + (i++ % 2 ? "oddRow" : "evenRow")} key={key} keyName={key} />);
+            rows.push(<KeyValuePair doc={realDoc} ref={(function () {
+                let oldEl: KeyValuePair | undefined;
+                return (el: KeyValuePair) => {
+                    if (oldEl) self.rows.splice(self.rows.indexOf(oldEl), 1);
+                    oldEl = el;
+                    if (el) self.rows.push(el);
+                };
+            })()} keyWidth={100 - this.splitPercentage} rowStyle={"keyValueBox-" + (i++ % 2 ? "oddRow" : "evenRow")} key={key} keyName={key} />);
         }
         return rows;
     }
@@ -123,6 +152,60 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         document.addEventListener('pointerup', this.onDividerUp);
     }
 
+    getTemplate = async () => {
+        let parent = Docs.StackingDocument([], { width: 800, height: 800, title: "Template" });
+        parent.singleColumn = false;
+        parent.columnWidth = 50;
+        for (let row of this.rows.filter(row => row.isChecked)) {
+            await this.createTemplateField(parent, row);
+            row.uncheck();
+        }
+        return parent;
+    }
+
+    createTemplateField = async (parent: Doc, row: KeyValuePair) => {
+        let collectionKeyProp = `fieldKey={"data"}`;
+        let metaKey = row.props.keyName;
+        let metaKeyProp = `fieldKey={"${metaKey}"}`;
+
+        let sourceDoc = await Cast(this.props.Document.data, Doc);
+        if (!sourceDoc) {
+            return;
+        }
+        let target = this.inferType(sourceDoc[metaKey], metaKey);
+
+        let template = Doc.MakeAlias(target);
+        template.proto = parent;
+        template.title = metaKey;
+        template.nativeWidth = 0;
+        template.nativeHeight = 0;
+        template.embed = true;
+        template.isTemplate = true;
+        template.templates = new List<string>([Templates.TitleBar(metaKey)]);
+        if (target.backgroundLayout) {
+            let metaAnoKeyProp = `fieldKey={"${metaKey}"} fieldExt={"annotations"}`;
+            let collectionAnoKeyProp = `fieldKey={"annotations"}`;
+            template.layout = StrCast(target.layout).replace(collectionAnoKeyProp, metaAnoKeyProp);
+            template.backgroundLayout = StrCast(target.backgroundLayout).replace(collectionKeyProp, metaKeyProp);
+        } else {
+            template.layout = StrCast(target.layout).replace(collectionKeyProp, metaKeyProp);
+        }
+        Doc.AddDocToList(parent, "data", template);
+        row.uncheck();
+    }
+
+    inferType = (field: FieldResult, metaKey: string) => {
+        let options = { width: 300, height: 300, title: metaKey };
+        if (field instanceof RichTextField || typeof field === "string" || typeof field === "number") {
+            return Docs.TextDocument(options);
+        } else if (field instanceof List) {
+            return Docs.StackingDocument([], options);
+        } else if (field instanceof ImageField) {
+            return Docs.ImageDocument("https://www.freepik.com/free-icon/picture-frame-with-mountain-image_748687.htm", options);
+        }
+        return new Doc;
+    }
+
     render() {
         let dividerDragger = this.splitPercentage === 0 ? (null) :
             <div className="keyValueBox-dividerDragger" style={{ transform: `translate(calc(${100 - this.splitPercentage}% - 5px), 0px)` }}>
@@ -133,7 +216,9 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
             <table className="keyValueBox-table">
                 <tbody className="keyValueBox-tbody">
                     <tr className="keyValueBox-header">
-                        <th className="keyValueBox-key" style={{ width: `${100 - this.splitPercentage}%` }}>Key</th>
+                        <th className="keyValueBox-key" style={{ width: `${100 - this.splitPercentage}%` }} ref={this._keyHeader}
+                            onPointerDown={SetupDrag(this._keyHeader, this.getTemplate)}
+                        >Key</th>
                         <th className="keyValueBox-fields" style={{ width: `${this.splitPercentage}%` }}>Fields</th>
                     </tr>
                     {this.createTable()}

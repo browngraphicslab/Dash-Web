@@ -1,22 +1,24 @@
-import { action, runInAction } from "mobx";
-import React = require("react");
-import { undoBatch, UndoManager } from "../../util/UndoManager";
-import { DragManager } from "../../util/DragManager";
-import { Docs, DocumentOptions } from "../../documents/Documents";
-import { RouteStore } from "../../../server/RouteStore";
-import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
-import { FieldViewProps } from "../nodes/FieldView";
+import { action, computed } from "mobx";
 import * as rp from 'request-promise';
-import { CollectionView } from "./CollectionView";
+import CursorField from "../../../new_fields/CursorField";
+import { Doc, DocListCast, Opt } from "../../../new_fields/Doc";
+import { Id } from "../../../new_fields/FieldSymbols";
+import { List } from "../../../new_fields/List";
+import { listSpec } from "../../../new_fields/Schema";
+import { BoolCast, Cast } from "../../../new_fields/Types";
+import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
+import { RouteStore } from "../../../server/RouteStore";
+import { DocServer } from "../../DocServer";
+import { Docs, DocumentOptions } from "../../documents/Documents";
+import { DragManager } from "../../util/DragManager";
+import { undoBatch, UndoManager } from "../../util/UndoManager";
+import { DocComponent } from "../DocComponent";
+import { FieldViewProps } from "../nodes/FieldView";
+import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { CollectionPDFView } from "./CollectionPDFView";
 import { CollectionVideoView } from "./CollectionVideoView";
-import { Doc, Opt, FieldResult, DocListCast } from "../../../new_fields/Doc";
-import { DocComponent } from "../DocComponent";
-import { listSpec } from "../../../new_fields/Schema";
-import { Cast, PromiseValue, FieldValue, ListSpec } from "../../../new_fields/Types";
-import { List } from "../../../new_fields/List";
-import { DocServer } from "../../DocServer";
-import CursorField from "../../../new_fields/CursorField";
+import { CollectionView } from "./CollectionView";
+import React = require("react");
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
@@ -34,9 +36,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
     class CollectionSubView extends DocComponent<SubCollectionViewProps, T>(schemaCtor) {
         private dropDisposer?: DragManager.DragDropDisposer;
         protected createDropTarget = (ele: HTMLDivElement) => {
-            if (this.dropDisposer) {
-                this.dropDisposer();
-            }
+            this.dropDisposer && this.dropDisposer();
             if (ele) {
                 this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
             }
@@ -45,10 +45,13 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             this.createDropTarget(ele);
         }
 
+        @computed get extensionDoc() { return Doc.resolvedFieldDataDoc(BoolCast(this.props.Document.isTemplate) && this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt); }
+
         get childDocs() {
+            let self = this;
             //TODO tfs: This might not be what we want?
             //This linter error can't be fixed because of how js arguments work, so don't switch this to filter(FieldValue)
-            return DocListCast(this.props.Document[this.props.fieldKey]);
+            return DocListCast((BoolCast(this.props.Document.isTemplate) ? this.extensionDoc : this.props.Document)[this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey]);
         }
 
         @action
@@ -80,31 +83,21 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         @action
         protected drop(e: Event, de: DragManager.DropEvent): boolean {
             if (de.data instanceof DragManager.DocumentDragData) {
-                if (de.data.dropAction || de.data.userDropAction) {
-                    ["width", "height", "curPage"].map(key =>
-                        de.data.draggedDocuments.map((draggedDocument: Doc, i: number) =>
-                            PromiseValue(Cast(draggedDocument[key], "number")).then(f => f && (de.data.droppedDocuments[i][key] = f))));
-                }
                 let added = false;
                 if (de.data.dropAction || de.data.userDropAction) {
-                    added = de.data.droppedDocuments.reduce((added: boolean, d) => {
-                        let moved = this.props.addDocument(d);
-                        return moved || added;
-                    }, false);
+                    added = de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
                 } else if (de.data.moveDocument) {
-                    const move = de.data.moveDocument;
-                    added = de.data.droppedDocuments.reduce((added: boolean, d) => {
-                        let moved = move(d, this.props.Document, this.props.addDocument);
-                        return moved || added;
-                    }, false);
+                    let movedDocs = de.data.options === this.props.Document[Id] ? de.data.draggedDocuments : de.data.droppedDocuments;
+                    added = movedDocs.reduce((added: boolean, d) =>
+                        de.data.moveDocument(d, this.props.Document, this.props.addDocument) || added, false);
                 } else {
-                    added = de.data.droppedDocuments.reduce((added: boolean, d) => {
-                        let moved = this.props.addDocument(d);
-                        return moved || added;
-                    }, false);
+                    added = de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
                 }
                 e.stopPropagation();
                 return added;
+            }
+            else if (de.data instanceof DragManager.AnnotationDragData) {
+                return this.props.addDocument(de.data.dropDocument);
             }
             return false;
         }
@@ -166,10 +159,50 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             e.stopPropagation();
             e.preventDefault();
 
-            if (html && html.indexOf("<img") !== 0 && !html.startsWith("<a")) {
-                let htmlDoc = Docs.HtmlDocument(html, { ...options, width: 300, height: 300, documentText: text });
-                this.props.addDocument(htmlDoc, false);
+            if (html && FormattedTextBox.IsFragment(html)) {
+                let href = FormattedTextBox.GetHref(html);
+                if (href) {
+                    let docid = FormattedTextBox.GetDocFromUrl(href);
+                    if (docid) { // prosemirror text containing link to dash document
+                        DocServer.GetRefField(docid).then(f => {
+                            if (f instanceof Doc) {
+                                if (options.x || options.y) { f.x = options.x; f.y = options.y; } // should be in CollectionFreeFormView
+                                (f instanceof Doc) && this.props.addDocument(f, false);
+                            }
+                        });
+                    } else {
+                        this.props.addDocument && this.props.addDocument(Docs.WebDocument(href, options));
+                    }
+                } else if (text) {
+                    this.props.addDocument && this.props.addDocument(Docs.TextDocument({ ...options, width: 100, height: 25, documentText: "@@@" + text }), false);
+                }
                 return;
+            }
+            if (html && !html.startsWith("<a")) {
+                let tags = html.split("<");
+                if (tags[0] === "") tags.splice(0, 1);
+                let img = tags[0].startsWith("img") ? tags[0] : tags.length > 1 && tags[1].startsWith("img") ? tags[1] : "";
+                if (img) {
+                    let split = img.split("src=\"")[1].split("\"")[0];
+                    let doc = Docs.ImageDocument(split, { ...options, width: 300 });
+                    this.props.addDocument(doc, false);
+                    return;
+                } else {
+                    let path = window.location.origin + "/doc/";
+                    if (text.startsWith(path)) {
+                        let docid = text.replace(DocServer.prepend("/doc/"), "").split("?")[0];
+                        DocServer.GetRefField(docid).then(f => {
+                            if (f instanceof Doc) {
+                                if (options.x || options.y) { f.x = options.x; f.y = options.y; } // should be in CollectionFreeFormView
+                                (f instanceof Doc) && this.props.addDocument(f, false);
+                            }
+                        });
+                    } else {
+                        let htmlDoc = Docs.HtmlDocument(html, { ...options, width: 300, height: 300, documentText: text });
+                        this.props.addDocument(htmlDoc, false);
+                    }
+                    return;
+                }
             }
             if (text && text.indexOf("www.youtube.com/watch") !== -1) {
                 const url = text.replace("youtube.com/watch?v=", "youtube.com/embed/");

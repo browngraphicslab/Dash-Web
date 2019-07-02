@@ -12,6 +12,7 @@ import { Doc, Field } from '../../new_fields/Doc';
 import { ImageField, PdfField, VideoField, AudioField } from '../../new_fields/URLField';
 import { List } from '../../new_fields/List';
 import { RichTextField } from '../../new_fields/RichTextField';
+import { ScriptField, ComputedField } from '../../new_fields/ScriptField';
 
 export interface ScriptSucccess {
     success: true;
@@ -38,14 +39,13 @@ export interface CompileError {
 }
 
 export type CompileResult = CompiledScript | CompileError;
-
 function Run(script: string | undefined, customParams: string[], diagnostics: any[], originalScript: string, options: ScriptOptions): CompileResult {
     const errors = diagnostics.some(diag => diag.category === ts.DiagnosticCategory.Error);
     if ((options.typecheck !== false && errors) || !script) {
         return { compiled: false, errors: diagnostics };
     }
 
-    let fieldTypes = [Doc, ImageField, PdfField, VideoField, AudioField, List, RichTextField];
+    let fieldTypes = [Doc, ImageField, PdfField, VideoField, AudioField, List, RichTextField, ScriptField, ComputedField, CompileScript];
     let paramNames = ["Docs", ...fieldTypes.map(fn => fn.name)];
     let params: any[] = [Docs, ...fieldTypes];
     let compiledFunction = new Function(...paramNames, `return ${script}`);
@@ -63,10 +63,20 @@ function Run(script: string | undefined, customParams: string[], diagnostics: an
             }
         }
         let thisParam = args.this || capturedVariables.this;
+        let batch: { end(): void } | undefined = undefined;
         try {
+            if (!options.editable) {
+                batch = Doc.MakeReadOnly();
+            }
             const result = compiledFunction.apply(thisParam, params).apply(thisParam, argsArray);
+            if (batch) {
+                batch.end();
+            }
             return { success: true, result };
         } catch (error) {
+            if (batch) {
+                batch.end();
+            }
             return { success: false, error };
         }
     };
@@ -132,6 +142,7 @@ export interface ScriptOptions {
     params?: { [name: string]: string };
     capturedVariables?: { [name: string]: Field };
     typecheck?: boolean;
+    editable?: boolean;
 }
 
 export function CompileScript(script: string, options: ScriptOptions = {}): CompileResult {

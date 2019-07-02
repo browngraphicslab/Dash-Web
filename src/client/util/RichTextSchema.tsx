@@ -1,10 +1,11 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { Schema, NodeSpec, MarkSpec, DOMOutputSpecArray, NodeType } from "prosemirror-model";
-import { joinUp, lift, setBlockType, toggleMark, wrapIn } from 'prosemirror-commands';
+import { Schema, NodeSpec, MarkSpec, DOMOutputSpecArray, NodeType, Slice, Mark, Node } from "prosemirror-model";
+import { joinUp, lift, setBlockType, toggleMark, wrapIn, selectNodeForward, deleteSelection } from 'prosemirror-commands';
 import { redo, undo } from 'prosemirror-history';
 import { orderedList, bulletList, listItem, } from 'prosemirror-schema-list';
-import { EditorState, Transaction, NodeSelection, } from "prosemirror-state";
+import { EditorState, Transaction, NodeSelection, TextSelection, Selection, } from "prosemirror-state";
 import { EditorView, } from "prosemirror-view";
+import { View } from '@react-pdf/renderer';
 
 const pDOM: DOMOutputSpecArray = ["p", 0], blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
@@ -25,6 +26,14 @@ export const nodes: { [index: string]: NodeSpec } = {
         parseDOM: [{ tag: "p" }],
         toDOM() { return pDOM; }
     },
+
+    // starmine: {
+    //     inline: true,
+    //     attrs: { oldtext: { default: "" } },
+    //     group: "inline",
+    //     toDOM() { return ["star", "㊉"]; },
+    //     parseDOM: [{ tag: "star" }]
+    // },
 
     // :: NodeSpec A blockquote (`<blockquote>`) wrapping one or more blocks.
     blockquote: {
@@ -77,6 +86,30 @@ export const nodes: { [index: string]: NodeSpec } = {
         group: "inline"
     },
 
+    star: {
+        inline: true,
+        attrs: {
+            visibility: { default: false },
+            text: { default: undefined },
+            textslice: { default: undefined },
+            textlen: { default: 0 }
+
+        },
+        group: "inline",
+        toDOM(node) {
+            const attrs = { style: `width: 40px` };
+            return ["span", { ...node.attrs, ...attrs }];
+        },
+        // parseDOM: [{
+        //     tag: "star", getAttrs(dom: any) {
+        //         return {
+        //             visibility: dom.getAttribute("visibility"),
+        //             oldtext: dom.getAttribute("oldtext"),
+        //             oldtextlen: dom.getAttribute("oldtextlen"),
+        //         }
+        //     }
+        // }]
+    },
     // :: NodeSpec An inline image (`<img>`) node. Supports `src`,
     // `alt`, and `href` attributes. The latter two default to the empty
     // string.
@@ -104,6 +137,32 @@ export const nodes: { [index: string]: NodeSpec } = {
         toDOM(node) {
             const attrs = { style: `width: ${node.attrs.width}` };
             return ["img", { ...node.attrs, ...attrs }];
+        }
+    },
+
+    video: {
+        inline: true,
+        attrs: {
+            src: {},
+            width: { default: "100px" },
+            alt: { default: null },
+            title: { default: null }
+        },
+        group: "inline",
+        draggable: true,
+        parseDOM: [{
+            tag: "video[src]", getAttrs(dom: any) {
+                return {
+                    src: dom.getAttribute("src"),
+                    title: dom.getAttribute("title"),
+                    alt: dom.getAttribute("alt"),
+                    width: Math.min(100, Number(dom.getAttribute("width"))),
+                };
+            }
+        }],
+        toDOM(node) {
+            const attrs = { style: `width: ${node.attrs.width}` };
+            return ["video", { ...node.attrs, ...attrs }];
         }
     },
 
@@ -222,6 +281,15 @@ export const marks: { [index: string]: MarkSpec } = {
         toDOM: () => ['sup']
     },
 
+    highlight: {
+        parseDOM: [{ style: 'background: #d9dbdd' }],
+        toDOM() {
+            return ['span', {
+                style: 'color: blue'
+            }];
+        }
+    },
+
 
     // :: MarkSpec Code font mark. Represented as a `<code>` element.
     code: {
@@ -280,7 +348,18 @@ export const marks: { [index: string]: MarkSpec } = {
         }]
     },
 
+
     /** FONT SIZES */
+    pFontSize: {
+        attrs: {
+            fontSize: { default: 10 }
+        },
+        inclusive: false,
+        parseDOM: [{ style: 'font-size: 10px;' }],
+        toDOM: (node) => ['span', {
+            style: `font-size: ${node.attrs.fontSize}px;`
+        }]
+    },
 
     p10: {
         parseDOM: [{ style: 'font-size: 10px;' }],
@@ -407,6 +486,75 @@ export class ImageResizeView {
         this._handle.style.display = "none";
     }
 }
+
+export class SummarizedView {
+    // TODO: highlight text that is summarized. to find end of region, walk along mark
+    _collapsed: HTMLElement;
+    _view: any;
+    constructor(node: any, view: any, getPos: any) {
+        this._collapsed = document.createElement("span");
+        this._collapsed.textContent = "㊉";
+        this._collapsed.style.opacity = "0.5";
+        this._collapsed.style.position = "relative";
+        this._collapsed.style.width = "40px";
+        this._collapsed.style.height = "20px";
+        let self = this;
+        this._view = view;
+        this._collapsed.onpointerdown = function (e: any) {
+            if (node.attrs.visibility) {
+                node.attrs.visibility = !node.attrs.visibility;
+                let y = getPos();
+                let { from, to } = self.updateSummarizedText(y + 1, view.state.schema.marks.highlight);
+                let length = to - from;
+                let newSelection = TextSelection.create(view.state.doc, y + 1, y + 1 + length);
+                // update attrs of node
+                node.attrs.text = newSelection.content();
+                node.attrs.textslice = newSelection.content().toJSON();
+                view.dispatch(view.state.tr.setSelection(newSelection).deleteSelection(view.state, () => { }));
+                self._collapsed.textContent = "㊉";
+            } else {
+                node.attrs.visibility = !node.attrs.visibility;
+                let y = getPos();
+                let mark = view.state.schema.mark(view.state.schema.marks.highlight);
+                view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, y + 1, y + 1)));
+                const from = view.state.selection.from;
+                let size = node.attrs.text.size;
+                view.dispatch(view.state.tr.replaceSelection(node.attrs.text).addMark(from, from + size, mark).removeStoredMark(mark));
+                self._collapsed.textContent = "㊀";
+            }
+            e.preventDefault();
+            e.stopPropagation();
+        };
+        (this as any).dom = this._collapsed;
+
+    }
+    selectNode() {
+    }
+
+    updateSummarizedText(start?: any, mark?: any) {
+        let $start = this._view.state.doc.resolve(start);
+        let endPos = start;
+
+        let _mark = this._view.state.schema.mark(this._view.state.schema.marks.highlight);
+        let visited = new Set();
+        for (let i: number = start + 1; i < this._view.state.doc.nodeSize - 1; i++) {
+            let skip = false;
+            this._view.state.doc.nodesBetween(start, i, (node: Node, pos: number, parent: Node, index: number) => {
+                if (node.isLeaf && !visited.has(node) && !skip) {
+                    if (node.marks.includes(_mark)) {
+                        visited.add(node);
+                        endPos = i + node.nodeSize - 1;
+                    }
+                    else skip = true;
+                }
+            });
+        }
+        return { from: start, to: endPos };
+    }
+
+    deselectNode() {
+    }
+}
 // :: Schema
 // This schema rougly corresponds to the document schema used by
 // [CommonMark](http://commonmark.org/), minus the list elements,
@@ -416,3 +564,13 @@ export class ImageResizeView {
 // To reuse elements from this schema, extend or read from its
 // `spec.nodes` and `spec.marks` [properties](#model.Schema.spec).
 export const schema = new Schema({ nodes, marks });
+
+const fromJson = schema.nodeFromJSON;
+
+schema.nodeFromJSON = (json: any) => {
+    let node = fromJson(json);
+    if (json.type === "star") {
+        node.attrs.text = Slice.fromJSON(schema, node.attrs.textslice);
+    }
+    return node;
+};

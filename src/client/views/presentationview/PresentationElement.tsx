@@ -8,19 +8,15 @@ import "./PresentationView.scss";
 import { Utils } from "../../../Utils";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFile as fileSolid, faLocationArrow, faArrowUp, faSearch } from '@fortawesome/free-solid-svg-icons';
+import { faFile as fileSolid, faFileDownload, faLocationArrow, faArrowUp, faSearch } from '@fortawesome/free-solid-svg-icons';
 import { faFile as fileRegular } from '@fortawesome/free-regular-svg-icons';
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
-import { DocumentManager } from "../../util/DocumentManager";
-
-
-
 
 library.add(faArrowUp);
 library.add(fileSolid);
-library.add(fileRegular);
 library.add(faLocationArrow);
+library.add(fileRegular as any);
 library.add(faSearch);
 
 interface PresentationElementProps {
@@ -56,7 +52,7 @@ export enum buttonIndex {
 @observer
 export default class PresentationElement extends React.Component<PresentationElementProps> {
 
-    @observable selectedButtons: boolean[];
+    @observable private selectedButtons: boolean[];
 
 
     constructor(props: PresentationElementProps) {
@@ -72,11 +68,13 @@ export default class PresentationElement extends React.Component<PresentationEle
         return this.selectedButtons;
     }
 
+    //Lifecycle function that makes sure that button BackUp is received when mounted.
     async componentDidMount() {
         this.receiveButtonBackUp();
 
     }
 
+    //Lifecycle function that makes sure button BackUp is received when not re-mounted bu re-rendered.
     async componentDidUpdate() {
         this.receiveButtonBackUp();
     }
@@ -98,10 +96,8 @@ export default class PresentationElement extends React.Component<PresentationEle
         } else {
             let curDoc: Doc = await castedList[this.props.index];
             let selectedButtonOfDoc = Cast(curDoc.selectedButtons, listSpec("boolean"), null);
-            console.log("Debug Selected Buttons: ", this.selectedButtons, " and the selectedButtonOfDoc: ", selectedButtonOfDoc);
             if (selectedButtonOfDoc !== undefined) {
                 runInAction(() => this.selectedButtons = selectedButtonOfDoc);
-                console.log("New Selected Buttons: ", this.selectedButtons);
             }
         }
 
@@ -325,6 +321,10 @@ export default class PresentationElement extends React.Component<PresentationEle
                 this.selectedButtons[buttonIndex.Show] = false;
             }
             this.selectedButtons[buttonIndex.Navigate] = true;
+            const current = NumCast(this.props.mainDocument.selectedDoc);
+            if (current === this.props.index) {
+                this.props.gotoDocument(this.props.index, this.props.index);
+            }
         }
 
         this.autoSaveButtonChange(buttonIndex.Navigate);
@@ -346,6 +346,10 @@ export default class PresentationElement extends React.Component<PresentationEle
                 this.selectedButtons[buttonIndex.Navigate] = false;
             }
             this.selectedButtons[buttonIndex.Show] = true;
+            const current = NumCast(this.props.mainDocument.selectedDoc);
+            if (current === this.props.index) {
+                this.props.gotoDocument(this.props.index, this.props.index);
+            }
         }
 
         this.autoSaveButtonChange(buttonIndex.Show);
@@ -356,8 +360,6 @@ export default class PresentationElement extends React.Component<PresentationEle
     render() {
         let p = this.props;
         let title = p.document.title;
-
-        console.log("Re-rendered");
 
         //to get currently selected presentation doc
         let selected = NumCast(p.mainDocument.selectedDoc, 0);
@@ -386,8 +388,8 @@ export default class PresentationElement extends React.Component<PresentationEle
                 <button title="Zoom" className={this.selectedButtons[buttonIndex.Show] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onZoomDocumentClick}><FontAwesomeIcon icon={"search"} /></button>
                 <button title="Navigate" className={this.selectedButtons[buttonIndex.Navigate] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onNavigateDocumentClick}><FontAwesomeIcon icon={"location-arrow"} /></button>
                 <button title="Hide Document Till Presented" className={this.selectedButtons[buttonIndex.HideTillPressed] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onHideDocumentUntilPressClick}><FontAwesomeIcon icon={fileSolid} /></button>
-                <button title="Fade Document After Presented" className={this.selectedButtons[buttonIndex.FadeAfter] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onFadeDocumentAfterPresentedClick}><FontAwesomeIcon icon={fileRegular} color={"gray"} /></button>
-                <button title="Hide Document After Presented" className={this.selectedButtons[buttonIndex.HideAfter] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onHideDocumentAfterPresentedClick}><FontAwesomeIcon icon={fileRegular} /></button>
+                <button title="Fade Document After Presented" className={this.selectedButtons[buttonIndex.FadeAfter] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onFadeDocumentAfterPresentedClick}><FontAwesomeIcon icon={faFileDownload} color={"gray"} /></button>
+                <button title="Hide Document After Presented" className={this.selectedButtons[buttonIndex.HideAfter] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onHideDocumentAfterPresentedClick}><FontAwesomeIcon icon={faFileDownload} /></button>
                 <button title="Group With Up" className={this.selectedButtons[buttonIndex.Group] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={(e) => {
                     e.stopPropagation();
                     this.changeGroupStatus();

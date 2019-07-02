@@ -1,17 +1,16 @@
-import { computed, IReactionDisposer, reaction, trace } from "mobx";
+import { computed, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
-import { Utils } from "../../../../Utils";
+import { Doc, DocListCast } from "../../../../new_fields/Doc";
+import { Id } from "../../../../new_fields/FieldSymbols";
+import { List } from "../../../../new_fields/List";
+import { listSpec } from "../../../../new_fields/Schema";
+import { Cast, FieldValue, NumCast, StrCast } from "../../../../new_fields/Types";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { DocumentView } from "../../nodes/DocumentView";
 import { CollectionViewProps } from "../CollectionSubView";
 import "./CollectionFreeFormLinksView.scss";
 import { CollectionFreeFormLinkView } from "./CollectionFreeFormLinkView";
 import React = require("react");
-import { Doc, DocListCastAsync, DocListCast } from "../../../../new_fields/Doc";
-import { Cast, FieldValue, NumCast, StrCast } from "../../../../new_fields/Types";
-import { listSpec } from "../../../../new_fields/Schema";
-import { List } from "../../../../new_fields/List";
-import { Id } from "../../../../new_fields/FieldSymbols";
 
 @observer
 export class CollectionFreeFormLinksView extends React.Component<CollectionViewProps> {
@@ -98,6 +97,7 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
         let connections = DocumentManager.Instance.LinkedDocumentViews.reduce((drawnPairs, connection) => {
             let srcViews = this.documentAnchors(connection.a);
             let targetViews = this.documentAnchors(connection.b);
+
             let possiblePairs: { a: Doc, b: Doc, }[] = [];
             srcViews.map(sv => targetViews.map(tv => possiblePairs.push({ a: sv.props.Document, b: tv.props.Document })));
             possiblePairs.map(possiblePair => {
@@ -110,8 +110,7 @@ export class CollectionFreeFormLinksView extends React.Component<CollectionViewP
                     }
                     return match || found;
                 }, false)) {
-                    console.log("A" + possiblePair.a[Id] + " B" + possiblePair.b[Id] + " L" + connection.l[Id]);
-                    drawnPairs.push({ a: possiblePair.a, b: possiblePair.b, l: [connection.l] })
+                    drawnPairs.push({ a: possiblePair.a, b: possiblePair.b, l: [connection.l] });
                 }
             });
             return drawnPairs;
