@@ -7,9 +7,13 @@ const {
     writeFile
 } = require('fs');
 
+const target_source = './citations.txt';
+const target_browser = 'chrome';
+const target_dist = './results.txt';
+
 const driver_pause = 500; // milliseconds
 const sample_line_char_max = 100; // characters
-const target_browser = 'chrome';
+
 const tab_map = {
     abstract: "11",
     authors: "14",
@@ -22,14 +26,27 @@ const tab_map = {
     table_of_contents: "21"
 };
 
+String.prototype.removeAll = function (replacements, trim = true) {
+    let result = this;
+    for (let expression of replacements) {
+        result = result.replace(expression, "");
+    }
+    return trim ? result.trim() : result;
+};
+
+String.prototype.remove = function (replacement, trim = true) {
+    let result = this.replace(replacement, "");
+    return trim ? result.trim() : result;
+};
+
+Object.prototype.first = function () {
+    return this[Object.keys(this)[0]];
+};
+
 // GENERAL UTILITY FUNCTIONS
 
 function log_read(content) {
     process.stdout.write("reading " + content + "...");
-}
-
-function first_value(object) {
-    return object[Object.keys(object)[0]];
 }
 
 function log_snippet(result, quotes = true) {
@@ -53,11 +70,11 @@ function log_snippet(result, quotes = true) {
                         case "string":
                             return res.substring(0, sample_line_char_max / result.length);
                         case "object":
-                            return first_value(res);
+                            return res.first();
                     }
                 }).join(', ');
             } else {
-                snippet = first_value(result);
+                snippet = result.first();
             }
     }
     console.log(snippet);
@@ -130,9 +147,40 @@ async function read_authors() {
 async function read_publication() {
     let publciation_elements = (await text_of("source-body")).split("\n");
     let publication_module = {};
+
+    let extract = (regex, target, index = 1) => regex.exec(target)[index];
+
     for (let element of publciation_elements) {
+
+        let location = /Volume (\d+) Issue (\d+), ([\w.\d]+)/g;
+        let pages = /(\d+)-(\d+)/g;
+        let publication_date = /(\d{4}-\d{2}-\d{2})/g;
+        let publisher = /Publisher (.*)/g;
+        let issn = /ISSN: (\d{4}-\d{4})/g;
+        let eissn = /EISSN: ([\dA-Z]{4}-[\dA-Z]{4})/g;
+        let doi = /doi>([\.\d\/A-Z]+)/g;
+
         if (element.startsWith("Title")) {
-            publication_module.title = element.substring(6);
+            publication_module.name = element.substring(6).removeAll(["table of contents", "archive", /\w+ Homepage/]);
+        } else if (element.startsWith("Volume")) {
+            let match = location.exec(element);
+            publication_module.volume = parseInt(match[1]);
+            publication_module.issue = parseInt(match[2]);
+            publication_module.month = match[3];
+        } else if (element.startsWith("Pages")) {
+            let match = pages.exec(element);
+            publication_module.page_start = parseInt(match[1]);
+            publication_module.page_end = parseInt(match[2]);
+        } else if (element.startsWith("Publication Date ")) {
+            publication_module.publication_date = extract(publication_date, element);
+        } else if (element.startsWith("Publisher ")) {
+            publication_module.publisher = extract(publisher, element);
+        } else if (element.startsWith("ISSN: ")) {
+            publication_module.issn = extract(issn, element);
+            if (element.includes("EISSN: ")) {
+                publication_module.eissn = extract(eissn, element);
+            }
+            publication_module.doi = extract(doi, element);
         }
     }
     return publication_module;
@@ -153,8 +201,8 @@ function parse_authors(metadata) {
         while (attr[char] != " ") {
             char--;
         }
-        let key = attr.substring(0, char).toLowerCase().replace(/ /g, "_").replace(/[\(\)]/g, "");
-        let value = parseFloat(attr.substring(char + 1).replace(/,/g, ""));
+        let key = attr.substring(0, char).toLowerCase().replace(/ /g, "_").remove(/[\(\)]/g);
+        let value = parseFloat(attr.substring(char + 1).remove(/,/g));
         author[key] = value;
     }
     return author;
@@ -165,7 +213,7 @@ function write_results() {
     let output = "";
     results.forEach(res => output += (JSON.stringify(res, null, 4) + "\n"));
 
-    writeFile("./results.txt", output, function errorHandler(exception) {
+    writeFile(target_dist, output, function errorHandler(exception) {
         console.log(exception || "scraped references successfully written as JSON to ./results.txt");
     });
 }
@@ -176,7 +224,7 @@ async function scrape_targets(error, data) {
         return;
     }
 
-    let references = data.split("\n").map(entry => entry.replace("\r", "")).filter(line => line.match(/\d+/g));
+    let references = data.split("\n").map(entry => entry.removeAll(["\r"])).filter(line => line.match(/\d+/g));
     let quota = references.length;
     log_snippet(`found ${quota} references to scrape`, false);
 
@@ -185,6 +233,7 @@ async function scrape_targets(error, data) {
     for (let i = 0; i < quota; i++) {
         try {
             result = {};
+            let target;
 
             let id = references[i];
             let url = `https://dl.acm.org/citation.cfm?id=${id}`;
@@ -194,13 +243,18 @@ async function scrape_targets(error, data) {
 
             logged_assign("url", url);
             logged_assign("title", await text_of('//*[@id="divmain"]/div/h1'));
-            logged_assign("abstract", (await text_of_all("abstract-body")).join(" "));
 
-            await click_on_acm_tab("authors");
-            logged_assign("authors", (await read_authors()).map(parse_authors));
+            target = "abstract";
+            await click_on_acm_tab(target);
+            logged_assign(target, (await text_of_all("abstract-body")).join(" "));
 
-            await click_on_acm_tab("publication");
-            logged_assign("publication", await read_publication());
+            target = "authors";
+            await click_on_acm_tab(target);
+            logged_assign(target, (await read_authors()).map(parse_authors));
+
+            target = "publication";
+            await click_on_acm_tab(target);
+            logged_assign(target, await read_publication());
         } catch (e) {
             console.log(e);
             await driver.quit();
@@ -220,6 +274,6 @@ let result = {};
 
 log_read("target references");
 
-readFile("./citations.txt", {
+readFile(target_source, {
     encoding: "utf8"
 }, scrape_targets);

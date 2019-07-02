@@ -100,7 +100,7 @@ export default class KeyManager {
                 MainView.Instance.mainFreeform && CollectionDockingView.Instance.AddRightSplit(MainView.Instance.mainFreeform, undefined);
                 break;
             case "arrowleft":
-                MainView.Instance.mainFreeform && CollectionDockingView.Instance.CloseRightSplit(MainView.Instance.mainFreeform)
+                MainView.Instance.mainFreeform && CollectionDockingView.Instance.CloseRightSplit(MainView.Instance.mainFreeform);
                 break;
             case "f":
                 MainView.Instance.isSearchVisible = !MainView.Instance.isSearchVisible;
