@@ -291,7 +291,7 @@ export class MainView extends React.Component {
             } else {
                 CollectionDockingView.Instance.AddRightSplit(doc, dataDoc);
             }
-        }
+        };
         let flyout = <DocumentView
             Document={CurrentUserUtils.UserDocument}
             DataDoc={undefined}
@@ -392,8 +392,8 @@ export class MainView extends React.Component {
 
 
     @action
-    toggleColorPicker = () => {
-        this._colorPickerDisplay = !this._colorPickerDisplay;
+    toggleColorPicker = (close = false) => {
+        this._colorPickerDisplay = close ? false : !this._colorPickerDisplay;
     }
 
     /* @TODO this should really be moved into a moveable toolbar component, but for now let's put it here to meet the deadline */
