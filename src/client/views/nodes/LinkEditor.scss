@@ -105,13 +105,13 @@
         &:nth-child(odd) {
             background-color: $light-color-secondary;
         }
-    
-        .linkEditor-error {
-            border-color: red;
-        }
         
         .placeholder span {
             color: gray;
+        }
+
+        .key-error input {
+            border-color: red;
         }
 
         &.linkEditor-metadata-header {

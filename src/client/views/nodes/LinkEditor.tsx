@@ -114,6 +114,7 @@ class LinkMetadataEditor extends React.Component<LinkMetadataEditorProps> {
         let newIndex = this.props.allMdKeys.findIndex(key => key.toUpperCase() === newKey.toUpperCase());
         if (newIndex > -1 || newKey === "") {
             this._keyError = true;
+            console.log("set key error", this._keyError);
             return false;
         } else {
             this._keyError = false;
@@ -160,7 +161,7 @@ class LinkMetadataEditor extends React.Component<LinkMetadataEditorProps> {
     render() {
         return (
             <div className="linkEditor-metadataRow">
-                <div className={this._key === "new key" ? "linkEditor-metadata-key placeholder" : "linkEditor-metadata-key"} >
+                <div className={this._keyError ? "linkEditor-metadata-key key-error" : this._key === "new key" ? "linkEditor-metadata-key placeholder" : "linkEditor-metadata-key"} >
                     <button className="linkEditor-metadataButton" onClick={() => this.deleteMetadataRow()} title="Delete metadata row"><FontAwesomeIcon icon="times" size="sm" /></button>
                     <EditableView
                         contents={this._key === "new key" ? "key" : this._key}
@@ -179,7 +180,7 @@ class LinkMetadataEditor extends React.Component<LinkMetadataEditorProps> {
                         SetValue={this.setMetadataValue}
                     />
                 </div>
-            </div>
+            </div >
         );
     }
 }
@@ -193,7 +194,6 @@ interface LinkEditorProps {
 export class LinkEditor extends React.Component<LinkEditorProps> {
 
     @observable private _direction: LinkDirection = Doc.GetProto(this.props.linkDoc).direction ? NumCast(Doc.GetProto(this.props.linkDoc).direction) : LinkDirection.Uni;
-    // @observable private _type: string = StrCast(LinkManager.Instance.getAnchorGroupDoc(this.props.linkDoc, this.props.sourceDoc)!.type);
     @observable private _metadata: Map<string, string> = new Map();
 
     constructor(props: LinkEditorProps) {
@@ -251,12 +251,6 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                 break;
             }
         }
-        console.log("switched direction", linkDocProto.direction);
-        // if (this._direction === LinkDirection.Bi) {
-        //     this._direction = LinkDirection.Uni;
-        // } else if (this._direction === LinkDirection.Uni) {
-        //     this._direction = LinkDirection.Bi;
-        // }
     }
 
     @action
