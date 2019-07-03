@@ -11,10 +11,14 @@
     overflow-y: scroll;
 }
 
+.linkMenu-settings {
+    border-top: 0.5px solid lightgray; 
+    padding-top: 10px;
+}
+
 .linkMenu-group {
     border-bottom: 0.5px solid lightgray; 
     padding: 5px 0;
-
 
     &:last-child {
         border-bottom: none;
@@ -50,11 +54,9 @@
 }
 
 .linkMenu-item {
-    // border-top: 0.5px solid $main-accent; 
     position: relative;
     display: flex;
     font-size: 12px;
-    
 
     .link-name {
         position: relative;
@@ -136,11 +138,6 @@
             background: $main-accent;
         }
     }
-}
-
-.linkMenu-settings {
-    border-top: 0.5px solid lightgray; 
-    padding-top: 10px;
 }
 
 

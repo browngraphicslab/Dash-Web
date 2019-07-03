@@ -300,7 +300,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
             }
 
             this._metadata = new Map();
-            linkDocProto.title = "link: " + StrCast(this.props.sourceDoc.title) + ", " + (destDoc ? StrCast(destDoc.title) : "");
+            linkDocProto.title = "Link: " + StrCast(this.props.sourceDoc.title) + ", " + (destDoc ? StrCast(destDoc.title) : "");
         }, "remove relationship from link");
     }
 

@@ -39,8 +39,9 @@ export class LinkManager {
     private constructor() {
     }
 
-    // the linkmanagerdoc stores a list of docs representing all linkdocs under the key 'allLinks' and a list of strings representing all group types under the key 'allGroupTypes'
-    // lists of strings representing the metadata keys for each group type are stored under a key that is the same as the group type 
+    /* the linkmanagerdoc stores a list of docs representing all linkdocs under the key 'allLinks' and a list of strings representing all group types under the key 'allGroupTypes'
+     * lists of strings representing the metadata keys for each group type are stored under a key that is the same as the group type 
+     */
     public get LinkManagerDoc(): Doc | undefined {
         return FieldValue(Cast(CurrentUserUtils.UserDocument.linkManagerDoc, Doc));
     }
@@ -72,7 +73,7 @@ export class LinkManager {
         return false;
     }
 
-    // finds all links that contain the given anchor
+    /* finds all links that contain the given anchor */
     public getAllRelatedLinks(anchor: Doc): Doc[] {//List<Doc> {
         let related = LinkManager.Instance.getAllLinks().filter(link => {
             let protomatch1 = Doc.AreProtosEqual(anchor, Cast(link.anchor1, Doc, new Doc));
@@ -98,7 +99,7 @@ export class LinkManager {
         return false;
     }
 
-    // removes all group docs from all links with the given group type
+    /* removes all group docs from all links with the given group type */
     public deleteGroupType(groupType: string): boolean {
         if (LinkManager.Instance.LinkManagerDoc) {
             if (LinkManager.Instance.LinkManagerDoc[groupType]) {
@@ -128,7 +129,7 @@ export class LinkManager {
         return [];
     }
 
-    // sets the groups of the given anchor in the given link
+    /* sets the groups of the given anchor in the given link */
     public setAnchorGroupDoc(linkDoc: Doc, anchor: Doc, groupDoc: Doc) {
         if (Doc.AreProtosEqual(anchor, Cast(linkDoc.anchor1, Doc, new Doc))) {
             linkDoc.anchor1Group = groupDoc;
@@ -147,7 +148,7 @@ export class LinkManager {
         }
     }
 
-    // returns map of group type to anchor's links in that group type
+    /* returns map of group type to anchor's links in that group type */
     public getRelatedGroupedLinks(anchor: Doc): Map<string, Array<Doc>> {
         let related = this.getAllRelatedLinks(anchor);
         let anchorGroups = new Map<string, Array<Doc>>();
@@ -195,7 +196,7 @@ export class LinkManager {
         return false;
     }
 
-    // gets a list of strings representing the keys of the metadata associated with the given group type
+    /* gets a list of strings representing the keys of the metadata associated with the given group type */
     public getMetadataKeysInGroup(groupType: string): string[] {
         if (LinkManager.Instance.LinkManagerDoc) {
             return LinkManager.Instance.LinkManagerDoc[groupType] ? Cast(LinkManager.Instance.LinkManagerDoc[groupType], listSpec("string"), []) : [];
@@ -211,7 +212,7 @@ export class LinkManager {
         return false;
     }
 
-    // returns a list of all metadata docs associated with the given group type
+    /* returns a list of all metadata docs associated with the given group type */
     public getAllMetadataDocsInGroup(groupType: string): Array<Doc> {
         let md: Doc[] = [];
         let allLinks = LinkManager.Instance.getAllLinks();
@@ -230,7 +231,7 @@ export class LinkManager {
         return md;
     }
 
-    // checks if a link with the given anchors exists
+    /* checks if a link with the given anchors exists */
     public doesLinkExist(anchor1: Doc, anchor2: Doc): Doc | undefined {
         let allLinks = LinkManager.Instance.getAllLinks();
         let index = allLinks.findIndex(linkDoc => {
@@ -240,7 +241,7 @@ export class LinkManager {
         return index === -1 ? undefined : allLinks[index];
     }
 
-    // finds the opposite anchor of a given anchor in a link
+    /* finds the opposite anchor of a given anchor in a link */
     public getOppositeAnchor(linkDoc: Doc, anchor: Doc): Doc | undefined {
         if (Doc.AreProtosEqual(anchor, Cast(linkDoc.anchor1, Doc, new Doc))) {
             return Cast(linkDoc.anchor2, Doc, new Doc);
