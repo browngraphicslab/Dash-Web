@@ -1,7 +1,7 @@
 import { computed } from "mobx";
 import { observer } from "mobx-react";
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
-import { BoolCast, FieldValue, NumCast } from "../../../new_fields/Types";
+import { BoolCast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
 import { Transform } from "../../util/Transform";
 import { DocComponent } from "../DocComponent";
 import { DocumentView, DocumentViewProps, positionSchema } from "./DocumentView";
@@ -86,6 +86,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     backgroundColor: "transparent",
                     borderRadius: `${this.borderRounding()}px`,
                     transform: this.transform,
+                    transition: StrCast(this.props.Document.transition),
                     width: this.width,
                     height: this.height,
                     zIndex: this.Document.zIndex || 0,

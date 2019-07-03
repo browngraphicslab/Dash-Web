@@ -1,6 +1,6 @@
 import { action, computed } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCastAsync, HeightSym, WidthSym } from "../../../../new_fields/Doc";
+import { Doc, DocListCastAsync, HeightSym, WidthSym, DocListCast } from "../../../../new_fields/Doc";
 import { Id } from "../../../../new_fields/FieldSymbols";
 import { InkField, StrokeData } from "../../../../new_fields/InkField";
 import { createSchema, makeInterface } from "../../../../new_fields/Schema";
@@ -458,6 +458,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         ContextMenu.Instance.addItem({
             description: "Add freeform arrangement",
             event: () => {
+                const docs = DocListCast(this.Document[this.props.fieldKey]);
+                docs.map(d => d.transition = "transform 1s");
                 let overlayDisposer: () => void;
                 let scriptingBox = <ScriptBox onCancel={() => overlayDisposer()} onSave={(text, onError) => {
                     const script = CompileScript(text, {
@@ -473,6 +475,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     }
                     this.props.Document.arrangeScript = new ScriptField(script);
                     overlayDisposer();
+                    setTimeout(() => docs.map(d => d.transition = undefined), 1200);
                 }} />;
                 overlayDisposer = OverlayView.Instance.addElement(scriptingBox, { x: 100, y: 100, width: 200, height: 200 });
             }
