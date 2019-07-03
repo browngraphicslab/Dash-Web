@@ -1,6 +1,6 @@
 import { action, computed } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCastAsync, HeightSym, WidthSym } from "../../../../new_fields/Doc";
+import { Doc, DocListCastAsync, HeightSym, WidthSym, DocListCast } from "../../../../new_fields/Doc";
 import { Id } from "../../../../new_fields/FieldSymbols";
 import { InkField, StrokeData } from "../../../../new_fields/InkField";
 import { createSchema, makeInterface } from "../../../../new_fields/Schema";
@@ -467,6 +467,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             description: "Add freeform arrangement",
             event: () => {
                 let addOverlay = (key: "arrangeScript" | "arrangeInit", options: OverlayElementOptions, params?: Record<string, string>, requiredType?: string) => {
+                    const docs = DocListCast(this.Document[this.props.fieldKey]);
+                    docs.map(d => d.transition = "transform 1s");
                     let overlayDisposer: () => void;
                     const script = this.Document[key];
                     let originalText: string | undefined = undefined;
@@ -483,11 +485,12 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         }
                         this.Document[key] = new ScriptField(script);
                         overlayDisposer();
+                        setTimeout(() => docs.map(d => d.transition = undefined), 1200);
                     }} />;
                     overlayDisposer = OverlayView.Instance.addElement(scriptingBox, options);
                 };
                 addOverlay("arrangeInit", { x: 400, y: 100, width: 400, height: 300 }, undefined, undefined);
-                addOverlay("arrangeScript", { x: 400, y: 500, width: 400, height: 300 }, { doc: "Doc", index: "number", collection: "Doc", state:"any" }, "{x: number, y: number, width?: number, height?: number}");
+                addOverlay("arrangeScript", { x: 400, y: 500, width: 400, height: 300 }, { doc: "Doc", index: "number", collection: "Doc", state: "any" }, "{x: number, y: number, width?: number, height?: number}");
             }
         });
     }
