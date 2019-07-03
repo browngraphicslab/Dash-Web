@@ -9,7 +9,7 @@ import { KeyValuePair } from "./KeyValuePair";
 import React = require("react");
 import { NumCast, Cast, FieldValue, StrCast } from "../../../new_fields/Types";
 import { Doc, Field, FieldResult } from "../../../new_fields/Doc";
-import { ComputedField } from "../../../new_fields/ScriptField";
+import { ComputedField, ScriptField } from "../../../new_fields/ScriptField";
 import { SetupDrag } from "../../util/DragManager";
 import { Docs } from "../../documents/Documents";
 import { RawDataOperationParameters } from "../../northstar/model/idea/idea";
@@ -50,7 +50,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         let eq = value.startsWith("=");
         let target = eq ? doc : Doc.GetProto(doc);
         value = eq ? value.substr(1) : value;
-        let dubEq = value.startsWith(":=");
+        let dubEq = value.startsWith(":=") ? 1 : value.startsWith(";=") ? 2 : 0;
         value = dubEq ? value.substr(2) : value;
         let options: ScriptOptions = { addReturn: true, params: { this: "Doc" } };
         if (dubEq) options.typecheck = false;
@@ -58,8 +58,12 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         if (!script.compiled) {
             return false;
         }
-        let field = new ComputedField(script);
-        if (!dubEq) {
+        let field: Field;
+        if (dubEq === 1) {
+            field = new ComputedField(script);
+        } else if (dubEq === 2) {
+            field = new ScriptField(script);
+        } else {
             let res = script.run({ this: target });
             if (!res.success) return false;
             field = res.result;

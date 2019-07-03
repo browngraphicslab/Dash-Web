@@ -166,6 +166,7 @@ export class Viewer extends React.Component<IViewerProps> {
                                 }
                             });
                         }
+                        this.Index = -1;
                     });
                 }
             );
@@ -234,11 +235,15 @@ export class Viewer extends React.Component<IViewerProps> {
 
         mainAnnoDoc.title = "Annotation on " + StrCast(this.props.parent.Document.title);
         mainAnnoDoc.pdfDoc = this.props.parent.Document;
+        let minY = Number.MAX_VALUE;
         this._savedAnnotations.forEach((key: number, value: HTMLDivElement[]) => {
             for (let anno of value) {
                 let annoDoc = new Doc();
                 if (anno.style.left) annoDoc.x = parseInt(anno.style.left) / scale;
-                if (anno.style.top) annoDoc.y = parseInt(anno.style.top) / scale;
+                if (anno.style.top) {
+                    annoDoc.y = parseInt(anno.style.top) / scale;
+                    minY = Math.min(parseInt(anno.style.top), minY);
+                }
                 if (anno.style.height) annoDoc.height = parseInt(anno.style.height) / scale;
                 if (anno.style.width) annoDoc.width = parseInt(anno.style.width) / scale;
                 annoDoc.page = key;
@@ -251,12 +256,13 @@ export class Viewer extends React.Component<IViewerProps> {
             }
         });
 
-        mainAnnoDoc.y = Math.max((NumCast(annoDocs[0].y) * scale) - 100, 0);
+        mainAnnoDoc.y = Math.max(minY, 0);
         mainAnnoDoc.annotations = new List<Doc>(annoDocs);
         if (sourceDoc) {
             DocUtils.MakeLink(sourceDoc, mainAnnoDoc, undefined, `Annotation from ${StrCast(this.props.parent.Document.title)}`, "", StrCast(this.props.parent.Document.title));
         }
         this._savedAnnotations.clear();
+        this.Index = -1;
         return mainAnnoDoc;
     }
 
@@ -426,7 +432,7 @@ export class Viewer extends React.Component<IViewerProps> {
     }
 
     renderAnnotation = (anno: Doc, index: number): JSX.Element => {
-        return <Annotation anno={anno} index={index} parent={this} />;
+        return <Annotation anno={anno} index={index} parent={this} key={`${anno[Id]}-annotation`} />;
     }
 
     @action
@@ -562,9 +568,10 @@ export class Viewer extends React.Component<IViewerProps> {
     prevAnnotation = (e: React.MouseEvent) => {
         e.stopPropagation();
 
-        if (this.Index > 0) {
-            this.Index--;
-        }
+        // if (this.Index > 0) {
+        //     this.Index--;
+        // }
+        this.Index = Math.max(this.Index - 1, 0);
     }
 
     @action
@@ -572,7 +579,7 @@ export class Viewer extends React.Component<IViewerProps> {
         e.stopPropagation();
 
         let compiled = this._script;
-        if (this.Index < this._annotations.filter(anno => {
+        let filtered = this._annotations.filter(anno => {
             if (compiled && compiled.compiled) {
                 let run = compiled.run({ this: anno });
                 if (run.success) {
@@ -580,9 +587,8 @@ export class Viewer extends React.Component<IViewerProps> {
                 }
             }
             return true;
-        }).length) {
-            this.Index++;
-        }
+        });
+        this.Index = Math.min(this.Index + 1, filtered.length - 1)
     }
 
     nextResult = () => {
@@ -630,7 +636,8 @@ export class Viewer extends React.Component<IViewerProps> {
                                 }
                             }
                             return true;
-                        }).map((anno: Doc, index: number) => this.renderAnnotation(anno, index))}
+                        }).sort((a: Doc, b: Doc) => NumCast(a.y) - NumCast(b.y))
+                            .map((anno: Doc, index: number) => this.renderAnnotation(anno, index))}
                     </div>
                 </div>
                 <div className="pdfViewer-overlayCont" onPointerDown={(e) => e.stopPropagation()}

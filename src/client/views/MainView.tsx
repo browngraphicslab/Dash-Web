@@ -1,43 +1,43 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
-import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faArrowDown, faArrowUp, faCheck, faPenNib, faThumbtack, faRedoAlt, faTable, faTree, faUndoAlt, faBell, faCommentAlt, faCut } from '@fortawesome/free-solid-svg-icons';
+import { faArrowDown, faArrowUp, faBell, faCheck, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faThumbtack, faTree, faUndoAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, configure, observable, runInAction, trace } from 'mobx';
+import { action, computed, configure, observable, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
-import { CirclePicker, SliderPicker, BlockPicker, TwitterPicker, SketchPicker } from 'react-color';
 import "normalize.css";
 import * as React from 'react';
+import { SketchPicker } from 'react-color';
 import Measure from 'react-measure';
 import * as request from 'request';
+import { Doc, DocListCast, Opt } from '../../new_fields/Doc';
+import { Id } from '../../new_fields/FieldSymbols';
+import { InkTool } from '../../new_fields/InkField';
+import { List } from '../../new_fields/List';
+import { listSpec } from '../../new_fields/Schema';
+import { Cast, FieldValue } from '../../new_fields/Types';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { RouteStore } from '../../server/RouteStore';
-import { emptyFunction, returnTrue, Utils, returnOne, returnZero } from '../../Utils';
-import { Docs, DocTypes } from '../documents/Documents';
-import { SetupDrag, DragManager } from '../util/DragManager';
+import { emptyFunction, returnOne, returnTrue } from '../../Utils';
+import { DocServer } from '../DocServer';
+import { Docs } from '../documents/Documents';
+import { SetupDrag } from '../util/DragManager';
+import { HistoryUtil } from '../util/History';
 import { Transform } from '../util/Transform';
 import { UndoManager } from '../util/UndoManager';
-import { PresentationView } from './presentationview/PresentationView';
+import { CollectionBaseView } from './collections/CollectionBaseView';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { ContextMenu } from './ContextMenu';
 import { DocumentDecorations } from './DocumentDecorations';
+import KeyManager from './GlobalKeyHandler';
 import { InkingControl } from './InkingControl';
 import "./Main.scss";
 import { MainOverlayTextBox } from './MainOverlayTextBox';
 import { DocumentView } from './nodes/DocumentView';
+import { OverlayView } from './OverlayView';
+import PDFMenu from './pdf/PDFMenu';
+import { PresentationView } from './presentationview/PresentationView';
 import { PreviewCursor } from './PreviewCursor';
 import { FilterBox } from './search/FilterBox';
-import { SelectionManager } from '../util/SelectionManager';
-import { FieldResult, Field, Doc, Opt, DocListCast } from '../../new_fields/Doc';
-import { Cast, FieldValue, StrCast, PromiseValue } from '../../new_fields/Types';
-import { DocServer } from '../DocServer';
-import { listSpec } from '../../new_fields/Schema';
-import { Id } from '../../new_fields/FieldSymbols';
-import { HistoryUtil } from '../util/History';
-import { CollectionBaseView } from './collections/CollectionBaseView';
-import { List } from '../../new_fields/List';
-import PDFMenu from './pdf/PDFMenu';
-import { InkTool } from '../../new_fields/InkField';
-import _ from "lodash";
-import KeyManager from './GlobalKeyHandler';
+import { CollectionTreeView } from './collections/CollectionTreeView';
 
 @observer
 export class MainView extends React.Component {
@@ -64,8 +64,8 @@ export class MainView extends React.Component {
     }
 
     componentWillMount() {
-        window.removeEventListener("keydown", KeyManager.Handler.handle);
-        window.addEventListener("keydown", KeyManager.Handler.handle);
+        window.removeEventListener("keydown", KeyManager.Instance.handle);
+        window.addEventListener("keydown", KeyManager.Instance.handle);
 
         window.removeEventListener("pointerdown", this.pointerDown);
         window.addEventListener("pointerdown", this.pointerDown);
@@ -78,7 +78,7 @@ export class MainView extends React.Component {
     pointerUp = (e: PointerEvent) => this.isPointerDown = false;
 
     componentWillUnMount() {
-        window.removeEventListener("keydown", KeyManager.Handler.handle);
+        window.removeEventListener("keydown", KeyManager.Instance.handle);
         window.removeEventListener("pointerdown", this.pointerDown);
         window.removeEventListener("pointerup", this.pointerUp);
     }
@@ -108,6 +108,7 @@ export class MainView extends React.Component {
         }
 
         library.add(faFont);
+        library.add(faExclamation);
         library.add(faImage);
         library.add(faFilePdf);
         library.add(faObjectGroup);
@@ -159,12 +160,13 @@ export class MainView extends React.Component {
         }
     }
 
+
     @action
     createNewWorkspace = async (id?: string) => {
         const list = Cast(CurrentUserUtils.UserDocument.data, listSpec(Doc));
         if (list) {
             let freeformDoc = Docs.FreeformDocument([], { x: 0, y: 400, width: this.pwidth * .7, height: this.pheight, title: `WS collection ${list.length + 1}` });
-            var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(CurrentUserUtils.UserDocument, CurrentUserUtils.UserDocument, 150), CollectionDockingView.makeDocumentConfig(freeformDoc, freeformDoc, 600)] }] };
+            var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc, freeformDoc, 600)] }] };
             let mainDoc = Docs.DockDocument([CurrentUserUtils.UserDocument, freeformDoc], JSON.stringify(dockingLayout), { title: `Workspace ${list.length + 1}` }, id);
             if (!CurrentUserUtils.UserDocument.linkManagerDoc) {
                 let linkManagerDoc = new Doc();
@@ -181,8 +183,6 @@ export class MainView extends React.Component {
         }
     }
 
-    @observable _notifsCol: Opt<Doc>;
-
     @action
     openWorkspace = async (doc: Doc, fromHistory = false) => {
         CurrentUserUtils.MainDocId = doc[Id];
@@ -194,16 +194,10 @@ export class MainView extends React.Component {
             if (col) {
                 const l = Cast(col.data, listSpec(Doc));
                 if (l) {
-                    runInAction(() => this._notifsCol = col);
+                    runInAction(() => CollectionTreeView.NotifsCol = col);
                 }
             }
         }, 100);
-    }
-
-    openNotifsCol = () => {
-        if (this._notifsCol && CollectionDockingView.Instance) {
-            CollectionDockingView.Instance.AddRightSplit(this._notifsCol, undefined);
-        }
     }
 
     onDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -223,38 +217,108 @@ export class MainView extends React.Component {
     getPHeight = () => {
         return this.pheight;
     }
-    @computed
-    get mainContent() {
+
+    @observable flyoutWidth: number = 250;
+    @computed get dockingContent() {
+        let flyoutWidth = this.flyoutWidth;
         let mainCont = this.mainContainer;
-        let content = !mainCont ? (null) :
-            <DocumentView Document={mainCont}
-                DataDoc={undefined}
-                addDocument={undefined}
-                addDocTab={emptyFunction}
-                removeDocument={undefined}
-                ScreenToLocalTransform={Transform.Identity}
-                ContentScaling={returnOne}
-                PanelWidth={this.getPWidth}
-                PanelHeight={this.getPHeight}
-                renderDepth={0}
-                selectOnLoad={false}
-                focus={emptyFunction}
-                parentActive={returnTrue}
-                whenActiveChanged={emptyFunction}
-                bringToFront={emptyFunction}
-                ContainingCollectionView={undefined}
-                zoomToScale={emptyFunction}
-                getScale={returnOne}
-            />;
         let castRes = mainCont ? FieldValue(Cast(mainCont.presentationView, listSpec(Doc))) : undefined;
         return <Measure offset onResize={this.onResize}>
             {({ measureRef }) =>
-                <div ref={measureRef} id="mainContent-div" onDrop={this.onDrop}>
-                    {content}
+                <div ref={measureRef} id="mainContent-div" style={{ width: `calc(100% - ${flyoutWidth}px`, transform: `translate(${flyoutWidth}px, 0px)` }} onDrop={this.onDrop}>
+                    {!mainCont ? (null) :
+                        <DocumentView Document={mainCont}
+                            DataDoc={undefined}
+                            addDocument={undefined}
+                            addDocTab={emptyFunction}
+                            removeDocument={undefined}
+                            ScreenToLocalTransform={Transform.Identity}
+                            ContentScaling={returnOne}
+                            PanelWidth={this.getPWidth}
+                            PanelHeight={this.getPHeight}
+                            renderDepth={0}
+                            selectOnLoad={false}
+                            focus={emptyFunction}
+                            parentActive={returnTrue}
+                            whenActiveChanged={emptyFunction}
+                            bringToFront={emptyFunction}
+                            ContainingCollectionView={undefined}
+                            zoomToScale={emptyFunction}
+                            getScale={returnOne}
+                        />}
                     {castRes ? <PresentationView Documents={castRes} key="presentation" /> : null}
                 </div>
             }
         </Measure>;
+    }
+
+    _downsize = 0;
+    onPointerDown = (e: React.PointerEvent) => {
+        this._downsize = e.clientX;
+        document.removeEventListener("pointermove", this.onPointerMove);
+        document.removeEventListener("pointerup", this.onPointerUp);
+        document.addEventListener("pointermove", this.onPointerMove);
+        document.addEventListener("pointerup", this.onPointerUp);
+        e.stopPropagation();
+        e.preventDefault();
+    }
+    @action
+    onPointerMove = (e: PointerEvent) => {
+        this.flyoutWidth = Math.max(e.clientX, 0);
+    }
+    @action
+    onPointerUp = (e: PointerEvent) => {
+        if (Math.abs(e.clientX - this._downsize) < 4) {
+            if (this.flyoutWidth < 5) this.flyoutWidth = 250;
+            else this.flyoutWidth = 0;
+        }
+        document.removeEventListener("pointermove", this.onPointerMove);
+        document.removeEventListener("pointerup", this.onPointerUp);
+    }
+    flyoutWidthFunc = () => this.flyoutWidth;
+    addDocTabFunc = (doc: Doc) => {
+        if (doc.dockingConfig) {
+            this.openWorkspace(doc);
+        } else {
+            CollectionDockingView.Instance.AddRightSplit(doc, undefined);
+        }
+    };
+    @computed
+    get flyout() {
+        return <DocumentView
+            Document={CurrentUserUtils.UserDocument}
+            DataDoc={undefined}
+            addDocument={undefined}
+            addDocTab={this.addDocTabFunc}
+            removeDocument={undefined}
+            ScreenToLocalTransform={Transform.Identity}
+            ContentScaling={returnOne}
+            PanelWidth={this.flyoutWidthFunc}
+            PanelHeight={this.getPHeight}
+            renderDepth={0}
+            selectOnLoad={false}
+            focus={emptyFunction}
+            parentActive={returnTrue}
+            whenActiveChanged={emptyFunction}
+            bringToFront={emptyFunction}
+            ContainingCollectionView={undefined}
+            zoomToScale={emptyFunction}
+            getScale={returnOne}>
+        </DocumentView>;
+    }
+    @computed
+    get mainContent() {
+        return <div>
+            <div className="mainView-libraryHandle"
+                style={{ left: `${this.flyoutWidth - 10}px` }}
+                onPointerDown={this.onPointerDown}>
+                <span title="library View Dragger" style={{ width: "100%", height: "100%", position: "absolute" }} />
+            </div>
+            <div className="mainView-libraryFlyout" style={{ width: `${this.flyoutWidth}px` }}>
+                {this.flyout}
+            </div>
+            {this.dockingContent}
+        </div>;
     }
 
     selected = (tool: InkTool) => {
@@ -310,6 +374,7 @@ export class MainView extends React.Component {
                                 <FontAwesomeIcon icon={btn[1]} size="sm" />
                             </button>
                         </div></li>)}
+                    <li key="undoTest"><button className="add-button round-button" onClick={() => UndoManager.PrintBatches()}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>
                     <li key="ink" style={{ paddingRight: "6px" }}><button className="toolbar-button round-button" title="Ink" onClick={() => InkingControl.Instance.toggleDisplay()}><FontAwesomeIcon icon="pen-nib" size="sm" /> </button></li>
                     <li key="pen"><button onClick={() => InkingControl.Instance.switchTool(InkTool.Pen)} style={this.selected(InkTool.Pen)}><FontAwesomeIcon icon="pen" size="lg" title="Pen" /></button></li>
                     <li key="marker"><button onClick={() => InkingControl.Instance.switchTool(InkTool.Highlighter)} style={this.selected(InkTool.Highlighter)}><FontAwesomeIcon icon="highlighter" size="lg" title="Pen" /></button></li>
@@ -323,30 +388,16 @@ export class MainView extends React.Component {
 
 
     @action
-    toggleColorPicker = () => {
-        this._colorPickerDisplay = !this._colorPickerDisplay;
+    toggleColorPicker = (close = false) => {
+        this._colorPickerDisplay = close ? false : !this._colorPickerDisplay;
     }
 
     /* @TODO this should really be moved into a moveable toolbar component, but for now let's put it here to meet the deadline */
     @computed
     get miscButtons() {
-        const length = this._notifsCol ? DocListCast(this._notifsCol.data).length : 0;
-        const notifsRef = React.createRef<HTMLDivElement>();
-        const dragNotifs = action(() => this._notifsCol!);
         let logoutRef = React.createRef<HTMLDivElement>();
 
         return [
-            <div id="toolbar" key="toolbar">
-                <div ref={notifsRef}>
-                    <button className="toolbar-button round-button" title="Notifs"
-                        onClick={this.openNotifsCol} onPointerDown={this._notifsCol ? SetupDrag(notifsRef, dragNotifs) : emptyFunction}>
-                        <FontAwesomeIcon icon={faBell} size="sm" />
-                    </button>
-                    <div className="main-notifs-badge" style={length > 0 ? { "display": "initial" } : { "display": "none" }}>
-                        {length}
-                    </div>
-                </div>
-            </div >,
             this.isSearchVisible ? <div className="main-searchDiv" key="search" style={{ top: '34px', right: '1px', position: 'absolute' }} > <FilterBox /> </div> : null,
             <div className="main-buttonDiv" key="logout" style={{ bottom: '0px', right: '1px', position: 'absolute' }} ref={logoutRef}>
                 <button onClick={() => request.get(DocServer.prepend(RouteStore.logout), emptyFunction)}>Log Out</button></div>
@@ -372,6 +423,7 @@ export class MainView extends React.Component {
                 {this.miscButtons}
                 <PDFMenu />
                 <MainOverlayTextBox />
+                <OverlayView />
             </div>
         );
     }

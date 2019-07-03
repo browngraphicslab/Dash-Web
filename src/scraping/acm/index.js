@@ -7,9 +7,41 @@ const {
     writeFile
 } = require('fs');
 
+const target_source = './citations.txt';
+const target_browser = 'chrome';
+const target_dist = './results.txt';
+
 const driver_pause = 500; // milliseconds
 const sample_line_char_max = 100; // characters
-const target_browser = 'chrome';
+
+const tab_map = {
+    abstract: "11",
+    authors: "14",
+    references: "15",
+    cited_by: "16",
+    index_terms: "17",
+    publication: "18",
+    reviews: "19",
+    comments: "20",
+    table_of_contents: "21"
+};
+
+String.prototype.removeAll = function (replacements, trim = true) {
+    let result = this;
+    for (let expression of replacements) {
+        result = result.replace(expression, "");
+    }
+    return trim ? result.trim() : result;
+};
+
+String.prototype.remove = function (replacement, trim = true) {
+    let result = this.replace(replacement, "");
+    return trim ? result.trim() : result;
+};
+
+Object.prototype.first = function () {
+    return this[Object.keys(this)[0]];
+};
 
 // GENERAL UTILITY FUNCTIONS
 
@@ -32,14 +64,18 @@ function log_snippet(result, quotes = true) {
             snippet = quotes ? `"${snippet}"` : snippet;
             break;
         case "object":
-            snippet = result.map(res => {
-                switch (typeof res) {
-                    case "string":
-                        return res.substring(0, sample_line_char_max / result.length);
-                    case "object":
-                        return res[Object.keys(res)[0]];
-                }
-            }).join(', ');
+            if (Array.isArray(result)) {
+                snippet = result.map(res => {
+                    switch (typeof res) {
+                        case "string":
+                            return res.substring(0, sample_line_char_max / result.length);
+                        case "object":
+                            return res.first();
+                    }
+                }).join(', ');
+            } else {
+                snippet = result.first();
+            }
     }
     console.log(snippet);
     return result;
@@ -57,6 +93,10 @@ async function click_on(ref) {
     await driver.sleep(driver_pause);
 }
 
+async function click_on_acm_tab(target) {
+    await click_on(`//*[@id="tab-10${tab_map[target]}-btnInnerEl"]/span`);
+}
+
 async function locate(ref, multiple = false) {
     let locator = ref.startsWith("//") ? By.xpath(ref) : By.id(ref);
     return await multiple ? driver.findElements(locator) : driver.findElement(locator);
@@ -67,13 +107,13 @@ async function text_of(ref) {
     return await element.getText();
 }
 
-async function text_of_all(ref) {
+async function text_of_all(ref, delimiter = undefined) {
     let elements = await locate(ref, true);
     let results = [];
     for (let element of elements) {
         results.push(await element.getText());
     }
-    return results;
+    return delimiter ? results.join(delimiter) : results;
 }
 
 async function logged_assign(key, value) {
@@ -84,8 +124,6 @@ async function logged_assign(key, value) {
 // TEXT SCRAPING
 
 async function read_authors() {
-    await click_on('//*[@id="tab-1014-btnInnerEl"]/span');
-
     let authors = await text_of('//*[@id="tabpanel-1009-body"]');
     let sanitize = line => line.length > 0 && !(line.startsWith("No contact information") || line.startsWith("View colleagues of") || line.startsWith("Bibliometrics:"));
     let author_lines = authors.split("\n").map(line => line.trim()).filter(sanitize);
@@ -103,12 +141,54 @@ async function read_authors() {
         i++;
     }
 
-    return all_authors;
+    return all_authors.map(parse_author);
+}
+
+async function read_publication() {
+    let publciation_elements = (await text_of("source-body")).split("\n");
+    let publication_module = {};
+
+    let extract = (regex, target, index = 1) => regex.exec(target)[index];
+
+    for (let element of publciation_elements) {
+
+        let location = /Volume (\d+) Issue (\d+), ([\w.\d]+)/g;
+        let pages = /(\d+)-(\d+)/g;
+        let publication_date = /(\d{4}-\d{2}-\d{2})/g;
+        let publisher = /Publisher (.*)/g;
+        let issn = /ISSN: (\d{4}-\d{4})/g;
+        let eissn = /EISSN: ([\dA-Z]{4}-[\dA-Z]{4})/g;
+        let doi = /doi>([\.\d\/A-Z]+)/g;
+
+        if (element.startsWith("Title")) {
+            publication_module.name = element.substring(6).removeAll(["table of contents", "archive", /\w+ Homepage/]);
+        } else if (element.startsWith("Volume ")) {
+            let match = location.exec(element);
+            publication_module.volume = parseInt(match[1]);
+            publication_module.issue = parseInt(match[2]);
+            publication_module.month = match[3];
+        } else if (element.startsWith("Pages ")) {
+            let match = pages.exec(element);
+            publication_module.page_start = parseInt(match[1]);
+            publication_module.page_end = parseInt(match[2]);
+        } else if (element.startsWith("Publication Date ")) {
+            publication_module.publication_date = extract(publication_date, element);
+        } else if (element.startsWith("Publisher ")) {
+            publication_module.publisher = extract(publisher, element);
+        } else if (element.startsWith("ISSN: ")) {
+            publication_module.issn = extract(issn, element);
+            if (element.includes("EISSN: ")) {
+                publication_module.eissn = extract(eissn, element);
+            }
+            publication_module.doi = extract(doi, element);
+        }
+    }
+    return publication_module;
 }
 
 // JSON / DASH CONVERSION AND EXPORT
 
-function parse_authors(metadata) {
+function parse_author(metadata) {
     let publicationYears = metadata[1].substring(18).split("-");
     author = {
         name: metadata[0],
@@ -121,8 +201,8 @@ function parse_authors(metadata) {
         while (attr[char] != " ") {
             char--;
         }
-        let key = attr.substring(0, char).toLowerCase().replace(/ /g, "_").replace(/[\(\)]/g, "");
-        let value = parseFloat(attr.substring(char + 1).replace(/,/g, ""));
+        let key = attr.substring(0, char).toLowerCase().replace(/ /g, "_").remove(/[\(\)]/g);
+        let value = parseFloat(attr.substring(char + 1).remove(/,/g));
         author[key] = value;
     }
     return author;
@@ -133,8 +213,8 @@ function write_results() {
     let output = "";
     results.forEach(res => output += (JSON.stringify(res, null, 4) + "\n"));
 
-    writeFile("./results.txt", output, function errorHandler(exception) {
-        console.log(exception || "scraped references successfully written as JSON to ./results.txt\n");
+    writeFile(target_dist, output, function errorHandler(exception) {
+        console.log(exception || "scraped references successfully written as JSON to ./results.txt");
     });
 }
 
@@ -144,7 +224,7 @@ async function scrape_targets(error, data) {
         return;
     }
 
-    let references = data.split("\n").map(entry => entry.replace("\r", "")).filter(line => line.match(/\d+/g));
+    let references = data.split("\n").map(entry => entry.removeAll(["\r"])).filter(line => line.match(/\d+/g));
     let quota = references.length;
     log_snippet(`found ${quota} references to scrape`, false);
 
@@ -153,16 +233,28 @@ async function scrape_targets(error, data) {
     for (let i = 0; i < quota; i++) {
         try {
             result = {};
+            let target;
 
             let id = references[i];
             let url = `https://dl.acm.org/citation.cfm?id=${id}`;
             console.log(`\nscraping ${i + 1}/${quota} (${id})`);
+
             await navigate_to(url);
 
             logged_assign("url", url);
             logged_assign("title", await text_of('//*[@id="divmain"]/div/h1'));
-            logged_assign("abstract", (await text_of_all("abstract-body")).join(" "));
-            logged_assign("authors", (await read_authors()).map(parse_authors));
+
+            target = "abstract";
+            await click_on_acm_tab(target);
+            logged_assign(target, await text_of_all("abstract-body", " "));
+
+            target = "authors";
+            await click_on_acm_tab(target);
+            logged_assign(target, await read_authors());
+
+            target = "publication";
+            await click_on_acm_tab(target);
+            logged_assign(target, await read_publication());
         } catch (e) {
             console.log(e);
             await driver.quit();
@@ -182,6 +274,6 @@ let result = {};
 
 log_read("target references");
 
-readFile("./citations.txt", {
+readFile(target_source, {
     encoding: "utf8"
 }, scrape_targets);

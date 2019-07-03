@@ -334,7 +334,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @computed
     get reactTable() {
-        trace();
         let previewWidth = this.previewWidth() + 2 * this.borderWidth + this.DIVIDER_WIDTH + 1;
         return <ReactTable style={{ position: "relative", float: "left", width: `calc(100% - ${previewWidth}px` }} data={this.childDocs} page={0} pageSize={this.childDocs.length} showPagination={false}
             columns={this.tableColumns}
@@ -388,7 +387,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     render() {
-        trace();
         return (
             <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} onWheel={this.onWheel}
                 onDrop={(e: React.DragEvent) => this.onDrop(e, {})} onContextMenu={this.onContextMenu} ref={this.createTarget}>
@@ -404,6 +402,7 @@ interface CollectionSchemaPreviewProps {
     Document?: Doc;
     DataDocument?: Doc;
     childDocs?: Doc[];
+    fitToBox?: () => number[];
     renderDepth: number;
     width: () => number;
     height: () => number;
@@ -472,6 +471,7 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
                     <DocumentView
                         DataDoc={this.props.Document.layout instanceof Doc ? this.props.Document : this.props.DataDocument}
                         Document={this.props.Document}
+                        fitToBox={this.props.fitToBox}
                         renderDepth={this.props.renderDepth + 1}
                         selectOnLoad={false}
                         addDocument={this.props.addDocument}

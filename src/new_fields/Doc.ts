@@ -8,6 +8,7 @@ import { listSpec } from "./Schema";
 import { ObjectField } from "./ObjectField";
 import { RefField, FieldId } from "./RefField";
 import { ToScriptString, SelfProxy, Parent, OnUpdate, Self, HandleUpdate, Update, Id } from "./FieldSymbols";
+import { scriptingGlobal } from "../client/util/Scripting";
 
 export namespace Field {
     export function toScriptString(field: Field): string {
@@ -55,6 +56,7 @@ export function DocListCast(field: FieldResult): Doc[] {
 export const WidthSym = Symbol("Width");
 export const HeightSym = Symbol("Height");
 
+@scriptingGlobal
 @Deserializable("doc").withFields(["id"])
 export class Doc extends RefField {
     constructor(id?: FieldId, forceSave?: boolean) {
@@ -247,6 +249,18 @@ export namespace Doc {
             else list.splice(before ? ind : ind + 1, 0, doc);
         }
         return true;
+    }
+
+    export function ComputeContentBounds(doc: Doc) {
+        let bounds = DocListCast(doc.data).reduce((bounds, doc) => {
+            var [sptX, sptY] = [NumCast(doc.x), NumCast(doc.y)];
+            let [bptX, bptY] = [sptX + doc[WidthSym](), sptY + doc[HeightSym]()];
+            return {
+                x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
+                r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)
+            };
+        }, { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: Number.MIN_VALUE, b: Number.MIN_VALUE });
+        return bounds;
     }
 
     //

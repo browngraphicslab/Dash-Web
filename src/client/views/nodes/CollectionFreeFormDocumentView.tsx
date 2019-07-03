@@ -1,7 +1,7 @@
 import { computed } from "mobx";
 import { observer } from "mobx-react";
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
-import { BoolCast, FieldValue, NumCast } from "../../../new_fields/Types";
+import { BoolCast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
 import { Transform } from "../../util/Transform";
 import { DocComponent } from "../DocComponent";
 import { DocumentView, DocumentViewProps, positionSchema } from "./DocumentView";
@@ -9,6 +9,10 @@ import "./DocumentView.scss";
 import React = require("react");
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
 }
 
 const schema = createSchema({
@@ -23,13 +27,13 @@ const FreeformDocument = makeInterface(schema, positionSchema);
 @observer
 export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeFormDocumentViewProps, FreeformDocument>(FreeformDocument) {
     @computed get transform() { return `scale(${this.props.ContentScaling()}) translate(${this.X}px, ${this.Y}px) scale(${this.zoom}) `; }
-    @computed get X() { return FieldValue(this.Document.x, 0); }
-    @computed get Y() { return FieldValue(this.Document.y, 0); }
+    @computed get X() { return this.props.x !== undefined ? this.props.x : this.Document.x || 0; }
+    @computed get Y() { return this.props.y !== undefined ? this.props.y : this.Document.y || 0; }
+    @computed get width(): number { return BoolCast(this.props.Document.willMaximize) ? 0 : this.props.width !== undefined ? this.props.width : this.Document.width || 0; }
+    @computed get height(): number { return BoolCast(this.props.Document.willMaximize) ? 0 : this.props.height !== undefined ? this.props.height : this.Document.height || 0; }
     @computed get zoom(): number { return 1 / FieldValue(this.Document.zoomBasis, 1); }
     @computed get nativeWidth(): number { return FieldValue(this.Document.nativeWidth, 0); }
     @computed get nativeHeight(): number { return FieldValue(this.Document.nativeHeight, 0); }
-    @computed get width(): number { return BoolCast(this.props.Document.willMaximize) ? 0 : FieldValue(this.Document.width, 0); }
-    @computed get height(): number { return BoolCast(this.props.Document.willMaximize) ? 0 : FieldValue(this.Document.height, 0); }
 
     set width(w: number) {
         this.Document.width = w;
@@ -43,12 +47,13 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             this.Document.width = this.nativeWidth / this.nativeHeight * h;
         }
     }
+    @computed get scaleToOverridingWidth() { return this.width / NumCast(this.props.Document.width, this.width); }
     contentScaling = () => this.nativeWidth > 0 ? this.width / this.nativeWidth : 1;
     panelWidth = () => this.props.PanelWidth();
     panelHeight = () => this.props.PanelHeight();
     getTransform = (): Transform => this.props.ScreenToLocalTransform()
         .translate(-this.X, -this.Y)
-        .scale(1 / this.contentScaling()).scale(1 / this.zoom)
+        .scale(1 / this.contentScaling()).scale(1 / this.zoom / this.scaleToOverridingWidth)
 
     animateBetweenIcon = (icon: number[], stime: number, maximizing: boolean) => {
         this.props.bringToFront(this.props.Document);
@@ -81,6 +86,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     backgroundColor: "transparent",
                     borderRadius: `${this.borderRounding()}px`,
                     transform: this.transform,
+                    transition: StrCast(this.props.Document.transition),
                     width: this.width,
                     height: this.height,
                     zIndex: this.Document.zIndex || 0,

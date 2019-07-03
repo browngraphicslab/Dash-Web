@@ -1,6 +1,6 @@
 import { action, computed } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCastAsync, HeightSym, WidthSym } from "../../../../new_fields/Doc";
+import { Doc, DocListCastAsync, HeightSym, WidthSym, DocListCast } from "../../../../new_fields/Doc";
 import { Id } from "../../../../new_fields/FieldSymbols";
 import { InkField, StrokeData } from "../../../../new_fields/InkField";
 import { createSchema, makeInterface } from "../../../../new_fields/Schema";
@@ -27,12 +27,18 @@ import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import v5 = require("uuid/v5");
+import { ScriptField } from "../../../../new_fields/ScriptField";
+import { OverlayView, OverlayElementOptions } from "../../OverlayView";
+import { ScriptBox } from "../../ScriptBox";
+import { CompileScript } from "../../../util/Scripting";
 
 
 export const panZoomSchema = createSchema({
     panX: "number",
     panY: "number",
-    scale: "number"
+    scale: "number",
+    arrangeScript: ScriptField,
+    arrangeInit: ScriptField,
 });
 
 type PanZoomDocument = makeInterface<[typeof panZoomSchema, typeof positionSchema, typeof pageSchema]>;
@@ -50,9 +56,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @computed get nativeHeight() { return this.Document.nativeHeight || 0; }
     public get isAnnotationOverlay() { return this.props.fieldKey === "annotations" || this.props.fieldExt === "annotations"; }
     private get borderWidth() { return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH; }
-    private panX = () => this.props.fitToBox ? this.props.fitToBox[0] : this.Document.panX || 0;
-    private panY = () => this.props.fitToBox ? this.props.fitToBox[1] : this.Document.panY || 0;
-    private zoomScaling = () => this.props.fitToBox ? this.props.fitToBox[2] : this.Document.scale || 1;
+    private panX = () => this.props.fitToBox ? this.props.fitToBox()[0] : this.Document.panX || 0;
+    private panY = () => this.props.fitToBox ? this.props.fitToBox()[1] : this.Document.panY || 0;
+    private zoomScaling = () => this.props.fitToBox ? this.props.fitToBox()[2] : this.Document.scale || 1;
     private centeringShiftX = () => !this.nativeWidth ? this._pwidth / 2 : 0;  // shift so pan position is at center of window for non-overlay collections
     private centeringShiftY = () => !this.nativeHeight ? this._pheight / 2 : 0;// shift so pan position is at center of window for non-overlay collections
     private getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth + 1, -this.borderWidth + 1).translate(-this.centeringShiftX(), -this.centeringShiftY()).transform(this.getLocalTransform());
@@ -195,6 +201,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         // if (!this.props.active()) {
         //     return;
         // }
+        if (this.props.Document.type === "pdf") {
+            return;
+        }
         let childSelected = this.childDocs.some(doc => {
             var dv = DocumentManager.Instance.getDocumentView(doc);
             return dv && SelectionManager.IsSelected(dv) ? true : false;
@@ -385,16 +394,35 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         };
     }
 
+    getCalculatedPositions(doc: Doc, index: number, collection: Doc, script: ScriptField, state: any): { x?: number, y?: number, width?: number, height?: number, state?: any } {
+        const result = script.script.run({ doc, index, collection, state });
+        if (!result.success) {
+            return {};
+        }
+        return result.result === undefined ? {} : result.result;
+    }
+
     @computed.struct
     get views() {
         let curPage = FieldValue(this.Document.curPage, -1);
+        const initScript = this.Document.arrangeInit;
+        const script = this.Document.arrangeScript;
+        let state: any = undefined;
+        if (initScript) {
+            const initResult = initScript.script.run();
+            if (initResult.success) {
+                state = initResult.result;
+            }
+        }
         let docviews = this.childDocs.reduce((prev, doc) => {
             if (!(doc instanceof Doc)) return prev;
             var page = NumCast(doc.page, -1);
             if (Math.round(page) === Math.round(curPage) || page === -1) {
                 let minim = BoolCast(doc.isMinimized, false);
                 if (minim === undefined || !minim) {
-                    prev.push(<CollectionFreeFormDocumentView key={doc[Id]} {...this.getChildDocumentViewProps(doc)} />);
+                    const pos = script ? this.getCalculatedPositions(doc, prev.length, this.Document, script, state) : {};
+                    state = pos.state === undefined ? state : pos.state;
+                    prev.push(<CollectionFreeFormDocumentView key={doc[Id]} x={pos.x} y={pos.y} width={pos.width} height={pos.height} {...this.getChildDocumentViewProps(doc)} />);
                 }
             }
             return prev;
@@ -433,6 +461,36 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         }
                     }
                 }
+            }
+        });
+        ContextMenu.Instance.addItem({
+            description: "Add freeform arrangement",
+            event: () => {
+                let addOverlay = (key: "arrangeScript" | "arrangeInit", options: OverlayElementOptions, params?: Record<string, string>, requiredType?: string) => {
+                    const docs = DocListCast(this.Document[this.props.fieldKey]);
+                    docs.map(d => d.transition = "transform 1s");
+                    let overlayDisposer: () => void;
+                    const script = this.Document[key];
+                    let originalText: string | undefined = undefined;
+                    if (script) originalText = script.script.originalScript;
+                    let scriptingBox = <ScriptBox initialText={originalText} onCancel={() => overlayDisposer()} onSave={(text, onError) => {
+                        const script = CompileScript(text, {
+                            params,
+                            requiredType,
+                            typecheck: false
+                        });
+                        if (!script.compiled) {
+                            onError(script.errors.map(error => error.messageText).join("\n"));
+                            return;
+                        }
+                        this.Document[key] = new ScriptField(script);
+                        overlayDisposer();
+                        setTimeout(() => docs.map(d => d.transition = undefined), 1200);
+                    }} />;
+                    overlayDisposer = OverlayView.Instance.addElement(scriptingBox, options);
+                };
+                addOverlay("arrangeInit", { x: 400, y: 100, width: 400, height: 300 }, undefined, undefined);
+                addOverlay("arrangeScript", { x: 400, y: 500, width: 400, height: 300 }, { doc: "Doc", index: "number", collection: "Doc", state: "any" }, "{x: number, y: number, width?: number, height?: number}");
             }
         });
     }

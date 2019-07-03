@@ -1,9 +1,9 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faAngleRight, faCaretDown, faCaretRight, faCaretSquareDown, faCaretSquareRight, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
+import { faAngleRight, faBell, faCaretDown, faCaretRight, faCaretSquareDown, faCaretSquareRight, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, HeightSym, WidthSym } from '../../../new_fields/Doc';
+import { Doc, DocListCast, HeightSym, WidthSym, Opt } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
 import { Document, listSpec } from '../../../new_fields/Schema';
@@ -50,6 +50,7 @@ export interface TreeViewProps {
 
 library.add(faTrashAlt);
 library.add(faAngleRight);
+library.add(faBell);
 library.add(faCaretDown);
 library.add(faCaretRight);
 library.add(faCaretSquareDown);
@@ -249,8 +250,11 @@ class TreeView extends React.Component<TreeViewProps> {
             }
             ContextMenu.Instance.displayMenu(e.pageX > 156 ? e.pageX - 156 : 0, e.pageY - 15);
             e.stopPropagation();
+            e.preventDefault();
         }
     }
+
+    @undoBatch
     treeDrop = (e: Event, de: DragManager.DropEvent) => {
         let x = this.props.ScreenToLocalTransform().transformPoint(de.x, de.y);
         let rect = this._header!.current!.getBoundingClientRect();
@@ -311,6 +315,11 @@ class TreeView extends React.Component<TreeViewProps> {
         return ele;
     }
 
+    fitToBox = () => {
+        let layoutDoc = Doc.expandTemplateLayout(this.props.document, this.props.dataDoc);
+        let bounds = Doc.ComputeContentBounds(layoutDoc);
+        return [(bounds.x + bounds.r) / 2, (bounds.y + bounds.b) / 2, Math.min(this.props.panelHeight() / (bounds.b - bounds.y), this.props.panelWidth() / (bounds.r - bounds.x))];
+    }
     render() {
         let contentElement: (JSX.Element | null) = null;
         let docList = Cast(this.resolvedDataDoc[this._chosenKey], listSpec(Doc));
@@ -332,6 +341,7 @@ class TreeView extends React.Component<TreeViewProps> {
                         Document={layoutDoc}
                         DataDocument={this.resolvedDataDoc}
                         renderDepth={this.props.renderDepth}
+                        fitToBox={this.fitToBox}
                         width={docWidth}
                         height={layoutDoc[HeightSym]}
                         getTransform={this.docTransform}
@@ -455,6 +465,31 @@ export class CollectionTreeView extends CollectionSubView(Document) {
     outerXf = () => Utils.GetScreenTransform(this._mainEle!);
     onTreeDrop = (e: React.DragEvent) => this.onDrop(e, {});
 
+
+    @observable static NotifsCol: Opt<Doc>;
+
+    openNotifsCol = () => {
+        if (CollectionTreeView.NotifsCol && CollectionDockingView.Instance) {
+            CollectionDockingView.Instance.AddRightSplit(CollectionTreeView.NotifsCol, undefined);
+        }
+    }
+    @computed get notifsButton() {
+        const length = CollectionTreeView.NotifsCol ? DocListCast(CollectionTreeView.NotifsCol.data).length : 0;
+        const notifsRef = React.createRef<HTMLDivElement>();
+        const dragNotifs = action(() => CollectionTreeView.NotifsCol!);
+        return <div id="toolbar" key="toolbar">
+            <div ref={notifsRef}>
+                <button className="toolbar-button round-button" title="Notifs"
+                    onClick={this.openNotifsCol} onPointerDown={CollectionTreeView.NotifsCol ? SetupDrag(notifsRef, dragNotifs) : emptyFunction}>
+                    <FontAwesomeIcon icon={faBell} size="sm" />
+                </button>
+                <div className="main-notifs-badge" style={length > 0 ? { "display": "initial" } : { "display": "none" }}>
+                    {length}
+                </div>
+            </div>
+        </div >;
+    }
+
     render() {
         let dropAction = StrCast(this.props.Document.dropAction) as dropActionType;
         let addDoc = (doc: Doc, relativeTo?: Doc, before?: boolean) => Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, relativeTo, before);
@@ -479,6 +514,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                         TreeView.loadId = doc[Id];
                         Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, this.childDocs.length ? this.childDocs[0] : undefined, true);
                     }} />
+                {this.props.Document.excludeFromLibrary ? this.notifsButton : (null)}
                 <ul className="no-indent" style={{ width: "max-content" }} >
                     {
                         TreeView.GetChildElements(this.childDocs, this.props.Document[Id], this.props.Document, this.props.DataDoc, this.props.fieldKey, addDoc, this.remove,

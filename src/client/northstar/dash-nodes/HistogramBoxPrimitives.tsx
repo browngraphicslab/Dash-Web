@@ -62,7 +62,6 @@ export class HistogramBoxPrimitives extends React.Component<HistogramPrimitivesP
     }
 
     private renderGridLinesAndLabels(axis: number) {
-        trace();
         if (!this.props.HistoBox.SizeConverter.Initialized) {
             return (null);
         }
@@ -111,7 +110,6 @@ export class HistogramBoxPrimitives extends React.Component<HistogramPrimitivesP
             x={transXpercent} width={`${widthXpercent}`} y={transYpercent} height={`${heightYpercent}`} fill={color ? `${LABColor.RGBtoHexString(color)}` : "transparent"} />);
     }
     render() {
-        trace();
         return <div className="histogramboxprimitives-container">
             {this.xaxislines}
             {this.yaxislines}

@@ -269,7 +269,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         var cur = this._containerRef.current;
 
         // bcz: since GoldenLayout isn't a React component itself, we need to notify it to resize when its document container's size has changed
-        this._goldenLayout.updateSize(cur!.getBoundingClientRect().width, cur!.getBoundingClientRect().height);
+        this._goldenLayout && this._goldenLayout.updateSize(cur!.getBoundingClientRect().width, cur!.getBoundingClientRect().height);
     }
 
     @action
@@ -383,7 +383,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     }
                     tab.setActive(true);
                 };
-                ReactDOM.render(<span onPointerDown={
+                ReactDOM.render(<span title="Drag as document" onPointerDown={
                     e => {
                         e.preventDefault();
                         e.stopPropagation();
@@ -456,8 +456,14 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
     render() {
         return (
-            <div className="collectiondockingview-container" id="menuContainer"
-                onPointerDown={this.onPointerDown} onPointerUp={this.onPointerUp} ref={this._containerRef} />
+            <Measure offset onResize={this.onResize}>
+                {({ measureRef }) =>
+                    <div ref={measureRef}>
+                        <div className="collectiondockingview-container" id="menuContainer"
+                            onPointerDown={this.onPointerDown} onPointerUp={this.onPointerUp} ref={this._containerRef} />
+                    </div>
+                }
+            </Measure>
         );
     }
 

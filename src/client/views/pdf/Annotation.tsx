@@ -8,6 +8,7 @@ import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import PDFMenu from "./PDFMenu";
 import { DocumentManager } from "../../util/DocumentManager";
+import { PresentationView } from "../presentationview/PresentationView";
 
 interface IAnnotationProps {
     anno: Doc;
@@ -74,7 +75,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
             () => this.props.parent.Index,
             () => {
                 if (this.props.parent.Index === this.props.index) {
-                    this.props.parent.scrollTo(this.props.y - 50);
+                    this.props.parent.scrollTo(this.props.y * scale - (NumCast(this.props.parent.props.parent.Document.pdfHeight) / 2));
                 }
             }
         );
@@ -101,12 +102,19 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
         PDFMenu.Instance.fadeOut(true);
     }
 
+    pinToPres = () => {
+        let group = FieldValue(Cast(this.props.document.group, Doc));
+        if (group) {
+            PresentationView.Instance.PinDoc(group);
+        }
+    }
+
     @action
     onPointerDown = (e: React.PointerEvent) => {
         if (e.button === 0) {
             let targetDoc = Cast(this.props.document.target, Doc, null);
             if (targetDoc) {
-                DocumentManager.Instance.jumpToDocument(targetDoc, true);
+                DocumentManager.Instance.jumpToDocument(targetDoc, false);
             }
         }
         if (e.button === 2) {
@@ -114,6 +122,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
             PDFMenu.Instance.Delete = this.deleteAnnotation.bind(this);
             PDFMenu.Instance.Pinned = false;
             PDFMenu.Instance.AddTag = this.addTag.bind(this);
+            PDFMenu.Instance.PinToPres = this.pinToPres;
             PDFMenu.Instance.jumpTo(e.clientX, e.clientY, true);
         }
     }
@@ -137,7 +146,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
                     width: this.props.width * scale,
                     height: this.props.height * scale,
                     pointerEvents: "all",
-                    backgroundColor: this.props.parent.Index === this.props.index ? "goldenrod" : StrCast(this.props.document.color)
+                    backgroundColor: this.props.parent.Index === this.props.index ? "green" : StrCast(this.props.document.color)
                 }}></div>
         );
     }
