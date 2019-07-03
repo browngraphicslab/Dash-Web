@@ -8,6 +8,7 @@ import { listSpec } from "./Schema";
 import { ObjectField } from "./ObjectField";
 import { RefField, FieldId } from "./RefField";
 import { ToScriptString, SelfProxy, Parent, OnUpdate, Self, HandleUpdate, Update, Id } from "./FieldSymbols";
+import { scriptingGlobal } from "../client/util/Scripting";
 
 export namespace Field {
     export function toScriptString(field: Field): string {
@@ -55,6 +56,7 @@ export function DocListCast(field: FieldResult): Doc[] {
 export const WidthSym = Symbol("Width");
 export const HeightSym = Symbol("Height");
 
+@scriptingGlobal
 @Deserializable("doc").withFields(["id"])
 export class Doc extends RefField {
     constructor(id?: FieldId, forceSave?: boolean) {
