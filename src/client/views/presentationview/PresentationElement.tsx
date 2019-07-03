@@ -98,6 +98,10 @@ export default class PresentationElement extends React.Component<PresentationEle
     //Lifecycle function that makes sure button BackUp is received when not re-mounted bu re-rendered.
     async componentDidUpdate() {
         this.receiveButtonBackUp();
+        if (this.presElRef.current) {
+            this.header = this.presElRef.current;
+            this.createListDropTarget(this.presElRef.current);
+        }
     }
 
     receiveButtonBackUp = async () => {
@@ -385,9 +389,9 @@ export default class PresentationElement extends React.Component<PresentationEle
     }
 
     ScreenToLocalListTransform = (xCord: number, yCord: number) => {
-        let scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-        let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        return [yCord + scrollTop, xCord + scrollLeft];
+        // let scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+        // let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        return [xCord, yCord];
     }
 
 
@@ -401,25 +405,46 @@ export default class PresentationElement extends React.Component<PresentationEle
             e.stopPropagation();
             //where does treeViewId come from
             let movedDocs = (de.data.options === this.props.mainDocument[Id] ? de.data.draggedDocuments : de.data.droppedDocuments);
+            document.removeEventListener("pointermove", this.onDragMove, true);
             return (de.data.dropAction || de.data.userDropAction) ?
                 de.data.droppedDocuments.reduce((added: boolean, d: Doc) => Doc.AddDocToList(this.props.mainDocument, "data", d, this.props.document, before) || added, false)
                 : (de.data.moveDocument) ?
                     movedDocs.reduce((added: boolean, d: Doc) => de.data.moveDocument(d, this.props.document, addDoc) || added, false)
                     : de.data.droppedDocuments.reduce((added: boolean, d: Doc) => Doc.AddDocToList(this.props.mainDocument, "data", d, this.props.document, before), false);
         }
+        document.removeEventListener("pointermove", this.onDragMove, true);
+
         return false;
     }
 
     onPointerEnter = (e: React.PointerEvent): void => {
-        //this.props.document.libraryBrush = true;
+        this.props.document.libraryBrush = true;
         if (e.buttons === 1 && SelectionManager.GetIsDragging()) {
-            //this.header!.className = "treeViewItem-header";
+            let selected = NumCast(this.props.mainDocument.selectedDoc, 0);
+
+            this.header!.className = "presentationView-item";
+
+
+            if (selected === this.props.index) {
+                //this doc is selected
+                this.header!.className = "presentationView-item presentationView-selected";
+            }
             document.addEventListener("pointermove", this.onDragMove, true);
         }
     }
     onPointerLeave = (e: React.PointerEvent): void => {
         this.props.document.libraryBrush = false;
-        //this.header!.className = "treeViewItem-header";
+        //to get currently selected presentation doc
+        let selected = NumCast(this.props.mainDocument.selectedDoc, 0);
+
+        this.header!.className = "presentationView-item";
+
+
+        if (selected === this.props.index) {
+            //this doc is selected
+            this.header!.className = "presentationView-item presentationView-selected";
+
+        }
         document.removeEventListener("pointermove", this.onDragMove, true);
     }
 
@@ -429,9 +454,13 @@ export default class PresentationElement extends React.Component<PresentationEle
         let rect = this.header!.getBoundingClientRect();
         let bounds = this.ScreenToLocalListTransform(rect.left, rect.top + rect.height / 2);
         let before = x[1] < bounds[1];
-        this.header!.className = "treeViewItem-header";
-        // if (before) this.header!.className += " treeViewItem-header-above";
-        // else if (!before) this.header!.className += " treeViewItem-header-below";
+        this.header!.className = "presentationView-item";
+        if (before) {
+            this.header!.className += " presentationView-item-above";
+        }
+        else if (!before) {
+            this.header!.className += " presentationView-item-below";
+        }
         e.stopPropagation();
     }
 
@@ -449,7 +478,7 @@ export default class PresentationElement extends React.Component<PresentationEle
         //to get currently selected presentation doc
         let selected = NumCast(p.mainDocument.selectedDoc, 0);
 
-        let className = "presentationView-item";
+        let className = " presentationView-item";
         if (selected === p.index) {
             //this doc is selected
             className += " presentationView-selected";
@@ -461,7 +490,7 @@ export default class PresentationElement extends React.Component<PresentationEle
         return (
             <div className={className} key={p.document[Id] + p.index}
                 ref={this.presElRef}
-                onPointerEnter={onEnter} onPointerLeave={onLeave}
+                onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}
                 onPointerDown={onItemDown}
                 style={{
                     outlineColor: "maroon",
