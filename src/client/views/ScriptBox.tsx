@@ -2,15 +2,23 @@ import * as React from "react";
 import { observer } from "mobx-react";
 import { observable, action } from "mobx";
 
+import "./ScriptBox.scss";
+
 export interface ScriptBoxProps {
     onSave: (text: string, onError: (error: string) => void) => void;
     onCancel?: () => void;
+    initialText?: string;
 }
 
 @observer
 export class ScriptBox extends React.Component<ScriptBoxProps> {
     @observable
-    private _scriptText: string = "";
+    private _scriptText: string;
+
+    constructor(props: ScriptBoxProps) {
+        super(props);
+        this._scriptText = props.initialText || "";
+    }
 
     @action
     onChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
