@@ -211,7 +211,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 const field = this.dataDoc ? Cast(this.dataDoc[this.props.fieldKey], RichTextField) : undefined;
                 return field ? field.Data : `{"doc":{"type":"doc","content":[]},"selection":{"type":"text","anchor":0,"head":0}}`;
             },
-            field => this._editorView && !this._applyingChange && this.props.Document[this.props.fieldKey] instanceof RichTextField &&
+            field => this._editorView && !this._applyingChange &&
                 this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field)))
         );
         this.setupEditor(config, this.dataDoc, this.props.fieldKey);

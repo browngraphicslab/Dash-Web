@@ -101,34 +101,23 @@ export class SearchItem extends React.Component<SearchItemProps> {
     @observable _useIcons = true;
     @observable _displayDim = 50;
 
+    fitToBox = () => {
+        let bounds = Doc.ComputeContentBounds(this.props.doc);
+        return [(bounds.x + bounds.r) / 2, (bounds.y + bounds.b) / 2, Number(SEARCH_THUMBNAIL_SIZE) / Math.max((bounds.b - bounds.y), (bounds.r - bounds.x)), this._displayDim];
+    }
     @computed
     public get DocumentIcon() {
-        let layoutresult = StrCast(this.props.doc.type);
         if (!this._useIcons) {
-            let renderDoc = this.props.doc;
-            let box: number[] = [];
-            if (layoutresult.indexOf(DocTypes.COL) !== -1) {
-                renderDoc = Doc.MakeDelegate(renderDoc);
-                let bounds = DocListCast(renderDoc.data).reduce((bounds, doc) => {
-                    var [sptX, sptY] = [NumCast(doc.x), NumCast(doc.y)];
-                    let [bptX, bptY] = [sptX + doc[WidthSym](), sptY + doc[HeightSym]()];
-                    return {
-                        x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
-                        r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)
-                    };
-                }, { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: Number.MIN_VALUE, b: Number.MIN_VALUE });
-                box = [(bounds.x + bounds.r) / 2, (bounds.y + bounds.b) / 2, Number(SEARCH_THUMBNAIL_SIZE) / (bounds.r - bounds.x), this._displayDim];
-            }
             let returnXDimension = () => this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE);
             let returnYDimension = () => this._displayDim;
-            let scale = () => returnXDimension() / NumCast(renderDoc.nativeWidth, returnXDimension());
+            let scale = () => returnXDimension() / NumCast(this.props.doc.nativeWidth, returnXDimension());
             return <div
                 onPointerDown={action(() => { this._useIcons = !this._useIcons; this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE); })}
                 onPointerEnter={action(() => this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE))}
                 onPointerLeave={action(() => this._displayDim = 50)} >
                 <DocumentView
-                    fitToBox={box}
-                    Document={renderDoc}
+                    fitToBox={StrCast(this.props.doc.type).indexOf(DocTypes.COL) !== -1 ? this.fitToBox : undefined}
+                    Document={this.props.doc}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
                     ScreenToLocalTransform={Transform.Identity}
@@ -149,6 +138,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
             </div>;
         }
 
+        let layoutresult = StrCast(this.props.doc.type);
         let button = layoutresult.indexOf(DocTypes.PDF) !== -1 ? faFilePdf :
             layoutresult.indexOf(DocTypes.IMG) !== -1 ? faImage :
                 layoutresult.indexOf(DocTypes.TEXT) !== -1 ? faStickyNote :

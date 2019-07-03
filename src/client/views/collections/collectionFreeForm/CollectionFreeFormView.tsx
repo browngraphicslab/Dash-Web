@@ -56,9 +56,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @computed get nativeHeight() { return this.Document.nativeHeight || 0; }
     public get isAnnotationOverlay() { return this.props.fieldKey === "annotations" || this.props.fieldExt === "annotations"; }
     private get borderWidth() { return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH; }
-    private panX = () => this.props.fitToBox ? this.props.fitToBox[0] : this.Document.panX || 0;
-    private panY = () => this.props.fitToBox ? this.props.fitToBox[1] : this.Document.panY || 0;
-    private zoomScaling = () => this.props.fitToBox ? this.props.fitToBox[2] : this.Document.scale || 1;
+    private panX = () => this.props.fitToBox ? this.props.fitToBox()[0] : this.Document.panX || 0;
+    private panY = () => this.props.fitToBox ? this.props.fitToBox()[1] : this.Document.panY || 0;
+    private zoomScaling = () => this.props.fitToBox ? this.props.fitToBox()[2] : this.Document.scale || 1;
     private centeringShiftX = () => !this.nativeWidth ? this._pwidth / 2 : 0;  // shift so pan position is at center of window for non-overlay collections
     private centeringShiftY = () => !this.nativeHeight ? this._pheight / 2 : 0;// shift so pan position is at center of window for non-overlay collections
     private getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth + 1, -this.borderWidth + 1).translate(-this.centeringShiftX(), -this.centeringShiftY()).transform(this.getLocalTransform());

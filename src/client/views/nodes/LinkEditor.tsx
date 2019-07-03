@@ -271,7 +271,6 @@ export class LinkGroupEditor extends React.Component<LinkGroupEditorProps> {
                 </>
             );
         }
-        trace();
         return (
             <div className="linkEditor-group">
                 <div className="linkEditor-group-row">
