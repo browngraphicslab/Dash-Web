@@ -394,8 +394,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         };
     }
 
-    getCalculatedPositions(doc: Doc, index: number, collection: Doc, script: ScriptField, state: any): { x?: number, y?: number, width?: number, height?: number, state?: any } {
-        const result = script.script.run({ doc, index, collection, state });
+    getCalculatedPositions(script: ScriptField, params: { doc: Doc, index: number, collection: Doc, docs: Doc[], state: any }): { x?: number, y?: number, width?: number, height?: number, state?: any } {
+        const result = script.script.run(params);
         if (!result.success) {
             return {};
         }
@@ -408,19 +408,20 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         const initScript = this.Document.arrangeInit;
         const script = this.Document.arrangeScript;
         let state: any = undefined;
+        const docs = this.childDocs;
         if (initScript) {
-            const initResult = initScript.script.run();
+            const initResult = initScript.script.run({ docs, collection: this.Document });
             if (initResult.success) {
                 state = initResult.result;
             }
         }
-        let docviews = this.childDocs.reduce((prev, doc) => {
+        let docviews = docs.reduce((prev, doc) => {
             if (!(doc instanceof Doc)) return prev;
             var page = NumCast(doc.page, -1);
             if (Math.round(page) === Math.round(curPage) || page === -1) {
                 let minim = BoolCast(doc.isMinimized, false);
                 if (minim === undefined || !minim) {
-                    const pos = script ? this.getCalculatedPositions(doc, prev.length, this.Document, script, state) : {};
+                    const pos = script ? this.getCalculatedPositions(script, { doc, index: prev.length, collection: this.Document, docs, state }) : {};
                     state = pos.state === undefined ? state : pos.state;
                     prev.push(<CollectionFreeFormDocumentView key={doc[Id]} x={pos.x} y={pos.y} width={pos.width} height={pos.height} {...this.getChildDocumentViewProps(doc)} />);
                 }
@@ -489,8 +490,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     }} />;
                     overlayDisposer = OverlayView.Instance.addElement(scriptingBox, options);
                 };
-                addOverlay("arrangeInit", { x: 400, y: 100, width: 400, height: 300 }, undefined, undefined);
-                addOverlay("arrangeScript", { x: 400, y: 500, width: 400, height: 300 }, { doc: "Doc", index: "number", collection: "Doc", state: "any" }, "{x: number, y: number, width?: number, height?: number}");
+                addOverlay("arrangeInit", { x: 400, y: 100, width: 400, height: 300 }, { collection: "Doc", docs: "Doc[]" }, undefined);
+                addOverlay("arrangeScript", { x: 400, y: 500, width: 400, height: 300 }, { doc: "Doc", index: "number", collection: "Doc", state: "any", docs: "Doc[]" }, "{x: number, y: number, width?: number, height?: number}");
             }
         });
     }
