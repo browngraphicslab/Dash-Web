@@ -93,7 +93,6 @@ export namespace DocUtils {
         UndoManager.RunInBatch(() => {
             let linkDoc = Docs.TextDocument({ width: 100, height: 30, borderRounding: -1 });
             linkDoc.type = DocTypes.LINK;
-            linkDoc.direction = LinkDirection.Uni;
             let linkDocProto = Doc.GetProto(linkDoc);
 
             linkDocProto.context = targetContext;

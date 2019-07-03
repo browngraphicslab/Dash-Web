@@ -23,63 +23,25 @@
     }
 }
 
-.linkEditor-direction {
-    display: flex;
-}
-
-.linkEditor-button {
-    width: 20px;
-    height: 20px;
-    margin-left: 6px;
-    padding: 0;
-    border-radius: 10px;
-
-    &.linkEditor-button-inactive {
-        display: none;
-    }
-
-    &:disabled {
-        background-color: gray;
-    }
-}
-
-.linkEditor-groupsLabel {
-    display: flex;
-    justify-content: space-between;
-}
-
 .linkEditor-group {
-    background-color: $light-color-secondary; 
-    padding: 6px;
+    // background-color: $light-color-secondary; 
+    // padding: 6px;
     margin: 3px 0;
     border-radius: 3px;
 
     .linkEditor-group-row {
-        // display: flex;
-        margin-bottom: 3px;
+        margin-bottom: 6px;
 
         .linkEditor-group-row-label {
             display: flex;
             justify-content: space-between;
         }
     }
-
-    .linkEditor-metadata-row {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 6px;
-
-        .linkEditor-error {
-            border-color: red;
-        }
-
-        input {
-            width: calc(50% - 16px);
-            height: 20px;
-        }
-    }
 }
 
+.linkEditor-direction {
+    display: flex;
+}
 
 .linkEditor-dropdown {
     width: 100%;
@@ -122,6 +84,92 @@
         &:first-child {
             border-top: 1px solid $intermediate-color;
         }
+    }
+}
+
+.linkEditor-metadataTable {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid $main-accent;
+
+    .linkEditor-metadataRow {
+        width: 100%;
+        height: 20px;
+        display: flex;
+        justify-content: space-between;
+
+        &:nth-child(even) {
+            background-color: $light-color;
+        }
+
+        &:nth-child(odd) {
+            background-color: $light-color-secondary;
+        }
+    
+        .linkEditor-error {
+            border-color: red;
+        }
+        
+        .placeholder span {
+            color: gray;
+        }
+
+        &.linkEditor-metadata-header {
+            background-color: $intermediate-color;
+    
+            p {
+                color: $light-color-secondary;
+                text-align: center;
+                display: block;
+                letter-spacing: 2px;
+            }
+        }
+
+        .editableView-container-editing {
+            width: 100%;
+        }
+
+        .linkEditor-metadataButton {
+            background-color: transparent;
+            color: red;
+            padding: 0;
+            margin-right: 3px;
+            transition: opacity 0.3s ease 0s;
+            opacity: 0;
+        }
+
+        &:hover .linkEditor-metadataButton {
+            opacity: 1;
+        }
+    }
+
+    .linkEditor-metadata-key {
+        width: 50%;
+        border-right: 1px dotted $main-accent;
+        padding: 0 3px;
+        display: flex;
+    }
+
+    .linkEditor-metadata-value {
+        width: 50%;
+        padding: 0 3px;
+        padding-left: 9px;
+    }
+}
+
+.linkEditor-button {
+    width: 20px;
+    height: 20px;
+    margin-left: 6px;
+    padding: 0;
+    border-radius: 10px;
+
+    &.linkEditor-button-inactive {
+        display: none;
+    }
+
+    &:disabled {
+        background-color: gray;
     }
 }
 

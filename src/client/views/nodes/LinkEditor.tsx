@@ -12,6 +12,7 @@ import { library } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { SetupDrag } from "../../util/DragManager";
 import { UndoManager } from "../../util/UndoManager";
+import { EditableView } from "../EditableView";
 
 library.add(faArrowLeft, faEllipsisV, faTable, faTrash, faCog, faExchangeAlt, faTimes, faPlus, faLongArrowAltRight);
 
@@ -34,6 +35,13 @@ class GroupTypesDropdown extends React.Component<GroupTypesDropdownProps> {
     createGroup = (groupType: string): void => {
         this.props.setGroupType(groupType);
         LinkManager.Instance.createGroupType(groupType);
+    }
+
+    @action
+    clearGroup = (): void => {
+        this._searchTerm = "";
+        this._groupType = "";
+        this.props.removeGroupFromLink();
     }
 
     onChange = (val: string): void => {
@@ -70,7 +78,7 @@ class GroupTypesDropdown extends React.Component<GroupTypesDropdownProps> {
                         onChange={e => this.onChange(e.target.value)}></input>
                     {this.props.groupType === "" ?
                         <button className="linkEditor-button" disabled title="Clear relationship from link"><FontAwesomeIcon icon="times" size="sm" /></button> :
-                        <button className="linkEditor-button" onClick={() => this.props.removeGroupFromLink()} title="Clear relationship from link"><FontAwesomeIcon icon="times" size="sm" /></button>
+                        <button className="linkEditor-button" onClick={() => this.clearGroup()} title="Clear relationship from link"><FontAwesomeIcon icon="times" size="sm" /></button>
                     }
                 </div>
                 <div className="linkEditor-options-wrapper">
@@ -85,13 +93,13 @@ class GroupTypesDropdown extends React.Component<GroupTypesDropdownProps> {
 interface LinkMetadataEditorProps {
     id: string;
     groupType: string;
+    mdDoc: Doc;
     mdKey: string;
     mdValue: string;
     allMdKeys: string[];
     changeMdKey: (id: string, newKey: string) => void;
-    changeMdValue: (id: string, newValue: string) => void;
+    // changeMdValue: (id: string, newValue: string) => void;
     deleteMd: (id: string) => void;
-    setError: (hasError: boolean) => void;
 }
 
 @observer
@@ -102,33 +110,75 @@ class LinkMetadataEditor extends React.Component<LinkMetadataEditorProps> {
     @observable private _keyError: boolean = false;
 
     @action
-    setMetadataKey = (newKey: string): void => {
+    setMetadataKey = (newKey: string): boolean => {
         let newIndex = this.props.allMdKeys.findIndex(key => key.toUpperCase() === newKey.toUpperCase());
         if (newIndex > -1 || newKey === "") {
-            this.props.setError(true);
             this._keyError = true;
-            this._key = newKey;
-            return;
+            return false;
         } else {
-            this.props.setError(false);
             this._keyError = false;
         }
+
+        let currIndex = this.props.allMdKeys.findIndex(key => key.toUpperCase() === this._key.toUpperCase());
+        if (currIndex === -1) console.error("LinkMetadataEditor: key was not found -", this._key);
+
+        let val = this.props.mdDoc[this._key];
+        this.props.mdDoc[this._key] = undefined;
+        this.props.mdDoc[newKey] = val;
+
         this.props.changeMdKey(this.props.id, newKey);
         this._key = newKey;
+
+        let newKeys = this.props.allMdKeys;
+        newKeys[currIndex] = newKey;
+        LinkManager.Instance.setMetadataKeysForGroup(this.props.groupType, newKeys);
+
+        return true;
     }
 
     @action
-    setMetadataValue = (newValue: string): void => {
-        this.props.changeMdValue(this.props.id, newValue);
+    setMetadataValue = (newValue: string): boolean => {
+        console.log("new value", newValue);
+        if (this._keyError) return false;
         this._value = newValue;
+        this.props.mdDoc[this._key] = newValue;
+        return true;
+    }
+
+    deleteMetadataRow = (): void => {
+        let currIndex = this.props.allMdKeys.findIndex(key => key.toUpperCase() === this._key.toUpperCase());
+        if (currIndex === -1) console.error("LinkMetadataEditor: key was not found -", this._key);
+
+        this.props.mdDoc[this._key] = undefined;
+        this.props.deleteMd(this.props.id);
+
+        let newKeys = this.props.allMdKeys;
+        newKeys.splice(currIndex, 1);
+        LinkManager.Instance.setMetadataKeysForGroup(this.props.groupType, newKeys);
     }
 
     render() {
         return (
-            <div className="linkEditor-metadata-row">
-                <input className={this._keyError ? "linkEditor-error" : ""} type="text" value={this._key === "new key" ? "" : this._key} placeholder="key" onChange={e => this.setMetadataKey(e.target.value)}></input>:
-                <input type="text" value={this._value} placeholder="value" onChange={e => this.setMetadataValue(e.target.value)}></input>
-                <button className="linkEditor-button" onClick={() => this.props.deleteMd(this.props.id)}><FontAwesomeIcon icon="times" size="sm" /></button>
+            <div className="linkEditor-metadataRow">
+                <div className={this._key === "new key" ? "linkEditor-metadata-key placeholder" : "linkEditor-metadata-key"} >
+                    <button className="linkEditor-metadataButton" onClick={() => this.deleteMetadataRow()} title="Delete metadata row"><FontAwesomeIcon icon="times" size="sm" /></button>
+                    <EditableView
+                        contents={this._key === "new key" ? "key" : this._key}
+                        display={"block"}
+                        height={20}
+                        GetValue={() => this._key === "new key" ? "" : this._key}
+                        SetValue={this.setMetadataKey}
+                    />
+                </div>
+                <div className={this._value === "" ? "linkEditor-metadata-value placeholder" : "linkEditor-metadata-value"} >
+                    <EditableView
+                        contents={this._value === "" ? "value" : this._value}
+                        display={"block"}
+                        height={20}
+                        GetValue={() => this._value === "" ? "" : this._value}
+                        SetValue={this.setMetadataValue}
+                    />
+                </div>
             </div>
         );
     }
@@ -143,9 +193,8 @@ interface LinkEditorProps {
 export class LinkEditor extends React.Component<LinkEditorProps> {
 
     @observable private _direction: LinkDirection = Doc.GetProto(this.props.linkDoc).direction ? NumCast(Doc.GetProto(this.props.linkDoc).direction) : LinkDirection.Uni;
-    @observable private _type: string = StrCast(LinkManager.Instance.getAnchorGroupDoc(this.props.linkDoc, this.props.sourceDoc)!.type);
-    @observable private _metadata: Map<string, { key: string, value: string }> = new Map();
-    @observable private _hasError: boolean = false;
+    // @observable private _type: string = StrCast(LinkManager.Instance.getAnchorGroupDoc(this.props.linkDoc, this.props.sourceDoc)!.type);
+    @observable private _metadata: Map<string, string> = new Map();
 
     constructor(props: LinkEditorProps) {
         super(props);
@@ -156,14 +205,9 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
             let groupMdKeys = LinkManager.Instance.getMetadataKeysInGroup(groupType);
             let mdDoc = Cast(groupDoc.metadata, Doc, new Doc);
             groupMdKeys.forEach(key => {
-                this._metadata.set(Utils.GenerateGuid(), { key: key, value: StrCast(mdDoc[key]) });
+                this._metadata.set(Utils.GenerateGuid(), key);
             });
         }
-    }
-
-    @action
-    setError = (hasError: boolean): void => {
-        this._hasError = hasError;
     }
 
     @action
@@ -176,41 +220,103 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
 
     @action
     toggleDirection = (): void => {
-        console.log("toggling direction", this._direction === LinkDirection.Bi, this._direction === LinkDirection.Uni);
-        if (this._direction === LinkDirection.Bi) {
-            this._direction = LinkDirection.Uni;
-        } else if (this._direction === LinkDirection.Uni) {
-            this._direction = LinkDirection.Bi;
+        let linkDocProto = Doc.GetProto(this.props.linkDoc);
+        switch (this._direction) {
+            case LinkDirection.Bi: {
+                let destDoc = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
+                let sourceGroupDoc = LinkManager.Instance.getAnchorGroupDoc(this.props.linkDoc, this.props.sourceDoc);
+                if (destDoc && sourceGroupDoc) {
+                    linkDocProto.direction = LinkDirection.Uni;
+                    Cast(sourceGroupDoc.metadata, Doc, new Doc).direction = "one-way";
+                    let newGroup = new Doc();
+                    newGroup.type = sourceGroupDoc.type;
+                    let newMd = Doc.MakeCopy(Cast(sourceGroupDoc.metadata, Doc, new Doc));
+                    newMd.anchor1 = destDoc.title;
+                    newMd.anchor2 = this.props.sourceDoc.title;
+                    newGroup.metadata = newMd;
+                    LinkManager.Instance.setAnchorGroupDoc(this.props.linkDoc, destDoc, newGroup);
+                }
+                this._direction = LinkDirection.Uni;
+                break;
+            }
+            case LinkDirection.Uni: {
+                let destDoc = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
+                let sourceGroupDoc = LinkManager.Instance.getAnchorGroupDoc(this.props.linkDoc, this.props.sourceDoc);
+                if (destDoc && sourceGroupDoc) {
+                    linkDocProto.direction = LinkDirection.Bi;
+                    Cast(sourceGroupDoc.metadata, Doc, new Doc).direction = "shared";
+                    LinkManager.Instance.setAnchorGroupDoc(this.props.linkDoc, destDoc, sourceGroupDoc);
+                }
+                this._direction = LinkDirection.Bi;
+                break;
+            }
         }
-        console.log("toggled", this._direction);
+        console.log("switched direction", linkDocProto.direction);
+        // if (this._direction === LinkDirection.Bi) {
+        //     this._direction = LinkDirection.Uni;
+        // } else if (this._direction === LinkDirection.Uni) {
+        //     this._direction = LinkDirection.Bi;
+        // }
     }
 
     @action
     setGroupType = (groupType: string): void => {
-        this._type = groupType;
+        let groupDoc = LinkManager.Instance.getAnchorGroupDoc(this.props.linkDoc, this.props.sourceDoc);
+        if (groupDoc) {
+            groupDoc.type = groupType;
 
-        let newMetadata: Map<string, { key: string, value: string }> = new Map();
-        let groupMdKeys = LinkManager.Instance.getMetadataKeysInGroup(this._type);
-        groupMdKeys.forEach(key => {
-            newMetadata.set(Utils.GenerateGuid(), { key: key, value: "" });
-        });
-        this._metadata = newMetadata;
+            let groupMdKeys = LinkManager.Instance.getMetadataKeysInGroup(groupType);
+            groupMdKeys.forEach(key => {
+                this._metadata.set(Utils.GenerateGuid(), key);
+            });
 
+            let destDoc = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
+            let linKDocProto = Doc.GetProto(this.props.linkDoc);
+            linKDocProto.title = groupType + " link: " + StrCast(this.props.sourceDoc.title) + ", " + (destDoc ? StrCast(destDoc.title) : "");
+        }
     }
 
     @action
     removeGroupFromLink = (): void => {
-        this._type = "";
-        this._metadata = new Map();
-        console.log("removed group from link");
+        UndoManager.RunInBatch(() => {
+            let linkDocProto = Doc.GetProto(this.props.linkDoc);
+            let destDoc = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
+
+            let newGroup = new Doc();
+            let newMd = new Doc();
+            newMd.anchor1 = this.props.sourceDoc.title;
+            newMd.anchor2 = destDoc!.title;
+            newMd.direction = "one-way";
+            newGroup.metadata = newMd;
+            newGroup.type = "";
+
+            LinkManager.Instance.setAnchorGroupDoc(this.props.linkDoc, this.props.sourceDoc, newGroup);
+            if (NumCast(linkDocProto.direction) === LinkDirection.Bi && destDoc) {
+                let newDestGroup = new Doc();
+                newDestGroup.type = "";
+                newDestGroup.metadata = Doc.MakeCopy(newMd);
+                LinkManager.Instance.setAnchorGroupDoc(this.props.linkDoc, destDoc, newDestGroup);
+
+                linkDocProto.direction = LinkDirection.Uni;
+                this._direction = LinkDirection.Uni;
+            }
+
+            this._metadata = new Map();
+        }, "remove relationship from link");
     }
 
     @action
     addMetadata = (): void => {
-        let metadata = Array.from(this._metadata.values());
-        if (metadata.findIndex(md => md.key === "new key") === -1) {
-            this._metadata.set(Utils.GenerateGuid(), { key: "new key", value: "" });
-        }
+        UndoManager.RunInBatch(() => {
+            let groupDoc = LinkManager.Instance.getAnchorGroupDoc(this.props.linkDoc, this.props.sourceDoc);
+            let groupType = StrCast(groupDoc!.type);
+            this._metadata.set(Utils.GenerateGuid(), "new key");
+
+            // only add "new key" if there is no other key with value "new key"; prevents spamming
+            let mdKeys = LinkManager.Instance.getMetadataKeysInGroup(groupType);
+            if (mdKeys.indexOf("new key") === -1) mdKeys.push("new key");
+            LinkManager.Instance.setMetadataKeysForGroup(groupType, mdKeys);
+        }, "add metadata key to link relationship");
     }
 
 
@@ -218,17 +324,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
     changeMdKey = (id: string, newKey: string): void => {
         let kvp = this._metadata.get(id);
         if (kvp) {
-            let val = kvp.value;
-            this._metadata.set(id, { key: newKey, value: val });
-        }
-    }
-
-    @action
-    changeMdValue = (id: string, newValue: string): void => {
-        let kvp = this._metadata.get(id);
-        if (kvp) {
-            let key = kvp.key;
-            this._metadata.set(id, { key: key, value: newValue });
+            this._metadata.set(id, newKey);
         }
     }
 
@@ -237,85 +333,61 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         this._metadata.delete(id);
     }
 
-    renderMetadata = (): JSX.Element[] => {
-        let allMdKeys = Array.from(this._metadata.values()).map(md => md.key);
+    renderMetadataRows = (): JSX.Element[] => {
+        let groupDoc = LinkManager.Instance.getAnchorGroupDoc(this.props.linkDoc, this.props.sourceDoc);
+        let groupType = StrCast(groupDoc!.type);
+        let mdDoc = Cast(groupDoc!.metadata, Doc, new Doc);
+        let allMdKeys = Array.from(this._metadata.values());
         let metadataRows: Array<JSX.Element> = [];
-        this._metadata.forEach((md, id) => {
+        this._metadata.forEach((key, id) => {
             metadataRows.push(
-                <LinkMetadataEditor key={id} id={id} groupType={this._type} mdKey={md.key} mdValue={md.value} allMdKeys={allMdKeys}
-                    changeMdKey={this.changeMdKey} changeMdValue={this.changeMdValue} deleteMd={this.deleteMd} setError={this.setError} />
+                <LinkMetadataEditor key={id} id={id} groupType={groupType} mdDoc={mdDoc} mdKey={key} mdValue={StrCast(mdDoc[key])} allMdKeys={allMdKeys}
+                    changeMdKey={this.changeMdKey} deleteMd={this.deleteMd} />
             );
         });
 
         return metadataRows;
     }
 
-    saveLink = (): void => {
-        let destDoc = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc) || new Doc();
-
-        let mdDoc = new Doc();
-        mdDoc.anchor1 = this.props.sourceDoc.title;
-        mdDoc.anchor2 = destDoc.title;
-        mdDoc.direction = this._direction === LinkDirection.Uni ? "one-way" : "shared";
-
-        let metadata = Array.from(this._metadata.values());
-        metadata.forEach(md => {
-            mdDoc[md.key] = md.value;
-        });
-
-        let mdKeys = metadata.map(md => md.key);
-        LinkManager.Instance.setMetadataKeysForGroup(this._type, mdKeys);
-
-        let groupDoc = new Doc();
-        groupDoc.type = this._type;
-        groupDoc.metadata = mdDoc;
-
-        LinkManager.Instance.setAnchorGroupDoc(this.props.linkDoc, this.props.sourceDoc, groupDoc);
-
-        if (this._direction === LinkDirection.Bi) {
-            LinkManager.Instance.setAnchorGroupDoc(this.props.linkDoc, destDoc, groupDoc);
-        }
-
-        let linkDocProto = Doc.GetProto(this.props.linkDoc);
-        linkDocProto.title = this._type + " link: " + StrCast(this.props.sourceDoc.title) + ", " + (destDoc ? StrCast(destDoc.title) : "");
-        linkDocProto.direction = this._direction;
-
-        this.props.showLinks();
-    }
-
     render() {
         let destination = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
         if (!destination) return <></>;
 
+        let groupType = StrCast(LinkManager.Instance.getAnchorGroupDoc(this.props.linkDoc, this.props.sourceDoc)!.type);
+
         return (
             <div className="linkEditor">
+                <button className="linkEditor-back" onPointerDown={() => this.props.showLinks()}><FontAwesomeIcon icon="arrow-left" size="sm" /></button>
                 <div className="linkEditor-info">
                     <p className="linkEditor-linkedTo">Editing link to: <b>{destination.proto!.title}</b></p>
                     <button className="linkEditor-button" onPointerDown={() => this.deleteLink()} title="Delete link"><FontAwesomeIcon icon="trash" size="sm" /></button>
                 </div>
                 <div className="linkEditor-group">
                     <div className="linkEditor-group-row linkEditor-direction">
-                        <p className="linkEditor-group-row-label">Direction: </p>
-                        <button className="linkEditor-directionButton" onClick={() => this.toggleDirection()}>{this._direction === LinkDirection.Uni ? "one-way" : "shared"}</button>
+                        <p>Direction: </p>
+                        <button className="linkEditor-directionButton" onClick={() => this.toggleDirection()} title="Toggle direction of link">{this._direction === LinkDirection.Uni ? "one-way" : "shared"}</button>
                     </div>
                     <div className="linkEditor-group-row">
-                        <div className="linkEditor-group-row-label">
-                            <p>Relationship:</p>
-                        </div>
-                        <GroupTypesDropdown groupType={this._type} setGroupType={this.setGroupType} removeGroupFromLink={this.removeGroupFromLink} />
+                        <p>Relationship:</p>
+                        <GroupTypesDropdown groupType={groupType} setGroupType={this.setGroupType} removeGroupFromLink={this.removeGroupFromLink} />
                     </div>
-                    {this.renderMetadata().length > 0 ? <div className="linkEditor-group-row-label"><p>Metadata:</p></div> : <></>}
-                    {this.renderMetadata()}
-                    {this._type === "" ?
+                    {this.renderMetadataRows().length > 0 ?
+                        <div className="linkEditor-group-row">
+                            <div className="linkEditor-group-row-label"><p>Metadata:</p></div>
+                            <div className="linkEditor-metadataTable">
+                                <div className="linkEditor-metadataRow linkEditor-metadata-header">
+                                    <p className="linkEditor-metadata-key">KEY</p><p className="linkEditor-metadata-value">VALUE</p>
+                                </div>
+                                {this.renderMetadataRows()}
+                            </div>
+                        </div>
+                        : <></>}
+                    {groupType === "" ?
                         <button className="linkEditor-button linkEditor-addKvp" disabled={true} title="Add KVP"><FontAwesomeIcon icon="plus" size="sm" /></button> :
                         <button className="linkEditor-button linkEditor-addKvp" onClick={() => this.addMetadata()} title="Add KVP"><FontAwesomeIcon icon="plus" size="sm" /></button>
                     }
-                    <div className="linkEditor-navButtons">
-                        {this._hasError ? <button disabled>Save</button> : <button onPointerDown={() => this.saveLink()}>Save</button>}
-                        <button onPointerDown={() => this.props.showLinks()}>Cancel</button>
-                    </div>
                 </div>
-            </div>
+            </div >
 
         );
     }

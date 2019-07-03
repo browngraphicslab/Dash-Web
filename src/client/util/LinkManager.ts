@@ -218,8 +218,14 @@ export class LinkManager {
         allLinks.forEach(linkDoc => {
             let anchor1Group = Cast(linkDoc.anchor1Group, Doc, new Doc);
             let anchor2Group = Cast(linkDoc.anchor2Group, Doc, new Doc);
-            if (StrCast(anchor1Group.type).toUpperCase() === groupType.toUpperCase()) md.push(Cast(anchor1Group.metadata, Doc, new Doc));
-            if (StrCast(anchor2Group.type).toUpperCase() === groupType.toUpperCase()) md.push(Cast(anchor2Group.metadata, Doc, new Doc));
+
+            let linkDocProto = Doc.GetProto(linkDoc);
+            if (linkDocProto.direction === LinkDirection.Bi && StrCast(anchor1Group.type).toUpperCase() === groupType.toUpperCase()) {
+                md.push(Cast(anchor1Group.metadata, Doc, new Doc));
+            } else {
+                if (StrCast(anchor1Group.type).toUpperCase() === groupType.toUpperCase()) md.push(Cast(anchor1Group.metadata, Doc, new Doc));
+                if (StrCast(anchor2Group.type).toUpperCase() === groupType.toUpperCase()) md.push(Cast(anchor2Group.metadata, Doc, new Doc));
+            }
         });
         return md;
     }
