@@ -52,7 +52,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     panelHeight = () => this.props.PanelHeight();
     getTransform = (): Transform => this.props.ScreenToLocalTransform()
         .translate(-this.X, -this.Y)
-        .scale(1 / this.contentScaling()).scale(1 / this.zoom)
+        .scale(1 / this.contentScaling()).scale(1 / this.zoom * NumCast(this.props.Document.width, this.width) / this.width)
 
     animateBetweenIcon = (icon: number[], stime: number, maximizing: boolean) => {
         this.props.bringToFront(this.props.Document);
