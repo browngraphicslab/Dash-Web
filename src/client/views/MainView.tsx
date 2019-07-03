@@ -1,44 +1,43 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
-import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faArrowDown, faArrowUp, faCheck, faPenNib, faThumbtack, faRedoAlt, faTable, faTree, faUndoAlt, faBell, faCommentAlt, faCut, faExclamation } from '@fortawesome/free-solid-svg-icons';
+import { faArrowDown, faArrowUp, faBell, faCheck, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faThumbtack, faTree, faUndoAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, configure, observable, runInAction, trace } from 'mobx';
+import { action, computed, configure, observable, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
-import { CirclePicker, SliderPicker, BlockPicker, TwitterPicker, SketchPicker } from 'react-color';
 import "normalize.css";
 import * as React from 'react';
+import { SketchPicker } from 'react-color';
 import Measure from 'react-measure';
 import * as request from 'request';
+import { Doc, DocListCast, Opt } from '../../new_fields/Doc';
+import { Id } from '../../new_fields/FieldSymbols';
+import { InkTool } from '../../new_fields/InkField';
+import { List } from '../../new_fields/List';
+import { listSpec } from '../../new_fields/Schema';
+import { Cast, FieldValue } from '../../new_fields/Types';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { RouteStore } from '../../server/RouteStore';
-import { emptyFunction, returnTrue, Utils, returnOne, returnZero } from '../../Utils';
-import { Docs, DocTypes } from '../documents/Documents';
-import { SetupDrag, DragManager } from '../util/DragManager';
+import { emptyFunction, returnOne, returnTrue } from '../../Utils';
+import { DocServer } from '../DocServer';
+import { Docs } from '../documents/Documents';
+import { SetupDrag } from '../util/DragManager';
+import { HistoryUtil } from '../util/History';
 import { Transform } from '../util/Transform';
 import { UndoManager } from '../util/UndoManager';
-import { PresentationView } from './presentationview/PresentationView';
+import { CollectionBaseView } from './collections/CollectionBaseView';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { ContextMenu } from './ContextMenu';
 import { DocumentDecorations } from './DocumentDecorations';
+import KeyManager from './GlobalKeyHandler';
 import { InkingControl } from './InkingControl';
 import "./Main.scss";
 import { MainOverlayTextBox } from './MainOverlayTextBox';
 import { DocumentView } from './nodes/DocumentView';
+import { OverlayView } from './OverlayView';
+import PDFMenu from './pdf/PDFMenu';
+import { PresentationView } from './presentationview/PresentationView';
 import { PreviewCursor } from './PreviewCursor';
 import { FilterBox } from './search/FilterBox';
-import { SelectionManager } from '../util/SelectionManager';
-import { FieldResult, Field, Doc, Opt, DocListCast } from '../../new_fields/Doc';
-import { Cast, FieldValue, StrCast, PromiseValue } from '../../new_fields/Types';
-import { DocServer } from '../DocServer';
-import { listSpec } from '../../new_fields/Schema';
-import { Id } from '../../new_fields/FieldSymbols';
-import { HistoryUtil } from '../util/History';
-import { CollectionBaseView } from './collections/CollectionBaseView';
-import { List } from '../../new_fields/List';
-import PDFMenu from './pdf/PDFMenu';
-import { InkTool } from '../../new_fields/InkField';
-import _ from "lodash";
-import KeyManager from './GlobalKeyHandler';
-import { OverlayView } from './OverlayView';
+import { CollectionTreeView } from './collections/CollectionTreeView';
 
 @observer
 export class MainView extends React.Component {
@@ -184,8 +183,6 @@ export class MainView extends React.Component {
         }
     }
 
-    @observable _notifsCol: Opt<Doc>;
-
     @action
     openWorkspace = async (doc: Doc, fromHistory = false) => {
         CurrentUserUtils.MainDocId = doc[Id];
@@ -197,16 +194,10 @@ export class MainView extends React.Component {
             if (col) {
                 const l = Cast(col.data, listSpec(Doc));
                 if (l) {
-                    runInAction(() => this._notifsCol = col);
+                    runInAction(() => CollectionTreeView.NotifsCol = col);
                 }
             }
         }, 100);
-    }
-
-    openNotifsCol = () => {
-        if (this._notifsCol && CollectionDockingView.Instance) {
-            CollectionDockingView.Instance.AddRightSplit(this._notifsCol, undefined);
-        }
     }
 
     onDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -284,24 +275,25 @@ export class MainView extends React.Component {
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
     }
+    flyoutWidthFunc = () => this.flyoutWidth;
+    addDocTabFunc = (doc: Doc) => {
+        if (doc.dockingConfig) {
+            this.openWorkspace(doc);
+        } else {
+            CollectionDockingView.Instance.AddRightSplit(doc, undefined);
+        }
+    };
     @computed
     get flyout() {
-        let addDocTab = (doc: Doc, dataDoc: Doc | undefined, location: string) => {
-            if (doc.dockingConfig) {
-                this.openWorkspace(doc);
-            } else {
-                CollectionDockingView.Instance.AddRightSplit(doc, dataDoc);
-            }
-        };
         return <DocumentView
             Document={CurrentUserUtils.UserDocument}
             DataDoc={undefined}
             addDocument={undefined}
-            addDocTab={(doc: Doc) => addDocTab(doc, undefined, "onRight")}
+            addDocTab={this.addDocTabFunc}
             removeDocument={undefined}
             ScreenToLocalTransform={Transform.Identity}
             ContentScaling={returnOne}
-            PanelWidth={this.getPWidth}
+            PanelWidth={this.flyoutWidthFunc}
             PanelHeight={this.getPHeight}
             renderDepth={0}
             selectOnLoad={false}
@@ -403,23 +395,9 @@ export class MainView extends React.Component {
     /* @TODO this should really be moved into a moveable toolbar component, but for now let's put it here to meet the deadline */
     @computed
     get miscButtons() {
-        const length = this._notifsCol ? DocListCast(this._notifsCol.data).length : 0;
-        const notifsRef = React.createRef<HTMLDivElement>();
-        const dragNotifs = action(() => this._notifsCol!);
         let logoutRef = React.createRef<HTMLDivElement>();
 
         return [
-            <div id="toolbar" key="toolbar">
-                <div ref={notifsRef}>
-                    <button className="toolbar-button round-button" title="Notifs"
-                        onClick={this.openNotifsCol} onPointerDown={this._notifsCol ? SetupDrag(notifsRef, dragNotifs) : emptyFunction}>
-                        <FontAwesomeIcon icon={faBell} size="sm" />
-                    </button>
-                    <div className="main-notifs-badge" style={length > 0 ? { "display": "initial" } : { "display": "none" }}>
-                        {length}
-                    </div>
-                </div>
-            </div >,
             this.isSearchVisible ? <div className="main-searchDiv" key="search" style={{ top: '34px', right: '1px', position: 'absolute' }} > <FilterBox /> </div> : null,
             <div className="main-buttonDiv" key="logout" style={{ bottom: '0px', right: '1px', position: 'absolute' }} ref={logoutRef}>
                 <button onClick={() => request.get(DocServer.prepend(RouteStore.logout), emptyFunction)}>Log Out</button></div>

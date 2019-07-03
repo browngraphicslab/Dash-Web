@@ -249,6 +249,18 @@ export namespace Doc {
         return true;
     }
 
+    export function ComputeContentBounds(doc: Doc) {
+        let bounds = DocListCast(doc.data).reduce((bounds, doc) => {
+            var [sptX, sptY] = [NumCast(doc.x), NumCast(doc.y)];
+            let [bptX, bptY] = [sptX + doc[WidthSym](), sptY + doc[HeightSym]()];
+            return {
+                x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
+                r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)
+            };
+        }, { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: Number.MIN_VALUE, b: Number.MIN_VALUE });
+        return bounds;
+    }
+
     //
     // Resolves a reference to a field by returning 'doc' if o field extension is specified,
     // otherwise, it returns the extension document stored in doc.<fieldKey>_ext.
