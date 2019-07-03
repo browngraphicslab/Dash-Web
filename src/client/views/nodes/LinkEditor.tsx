@@ -97,9 +97,8 @@ interface LinkMetadataEditorProps {
     mdKey: string;
     mdValue: string;
     allMdKeys: string[];
-    changeMdKey: (id: string, newKey: string) => void;
-    // changeMdValue: (id: string, newValue: string) => void;
-    deleteMd: (id: string) => void;
+    changeMdKeyId: (id: string, newKey: string) => void;
+    deleteMdId: (id: string) => void;
 }
 
 @observer
@@ -127,7 +126,7 @@ class LinkMetadataEditor extends React.Component<LinkMetadataEditorProps> {
         this.props.mdDoc[this._key] = undefined;
         this.props.mdDoc[newKey] = val;
 
-        this.props.changeMdKey(this.props.id, newKey);
+        this.props.changeMdKeyId(this.props.id, newKey);
         this._key = newKey;
 
         let newKeys = this.props.allMdKeys;
@@ -139,7 +138,6 @@ class LinkMetadataEditor extends React.Component<LinkMetadataEditorProps> {
 
     @action
     setMetadataValue = (newValue: string): boolean => {
-        console.log("new value", newValue);
         if (this._keyError) return false;
         this._value = newValue;
         this.props.mdDoc[this._key] = newValue;
@@ -147,15 +145,17 @@ class LinkMetadataEditor extends React.Component<LinkMetadataEditorProps> {
     }
 
     deleteMetadataRow = (): void => {
-        let currIndex = this.props.allMdKeys.findIndex(key => key.toUpperCase() === this._key.toUpperCase());
-        if (currIndex === -1) console.error("LinkMetadataEditor: key was not found -", this._key);
+        UndoManager.RunInBatch(() => {
+            let currIndex = this.props.allMdKeys.findIndex(key => key.toUpperCase() === this._key.toUpperCase());
+            if (currIndex === -1) console.error("LinkMetadataEditor: key was not found -", this._key);
 
-        this.props.mdDoc[this._key] = undefined;
-        this.props.deleteMd(this.props.id);
+            this.props.mdDoc[this._key] = undefined;
+            this.props.deleteMdId(this.props.id);
 
-        let newKeys = this.props.allMdKeys;
-        newKeys.splice(currIndex, 1);
-        LinkManager.Instance.setMetadataKeysForGroup(this.props.groupType, newKeys);
+            let newKeys = this.props.allMdKeys;
+            newKeys.splice(currIndex, 1);
+            LinkManager.Instance.setMetadataKeysForGroup(this.props.groupType, newKeys);
+        }, "delete metadata row on link relationship");
     }
 
     render() {
@@ -203,7 +203,6 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         if (groupDoc) {
             let groupType = StrCast(groupDoc.type);
             let groupMdKeys = LinkManager.Instance.getMetadataKeysInGroup(groupType);
-            let mdDoc = Cast(groupDoc.metadata, Doc, new Doc);
             groupMdKeys.forEach(key => {
                 this._metadata.set(Utils.GenerateGuid(), key);
             });
@@ -255,19 +254,21 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
 
     @action
     setGroupType = (groupType: string): void => {
-        let groupDoc = LinkManager.Instance.getAnchorGroupDoc(this.props.linkDoc, this.props.sourceDoc);
-        if (groupDoc) {
-            groupDoc.type = groupType;
+        UndoManager.RunInBatch(() => {
+            let groupDoc = LinkManager.Instance.getAnchorGroupDoc(this.props.linkDoc, this.props.sourceDoc);
+            if (groupDoc) {
+                groupDoc.type = groupType;
 
-            let groupMdKeys = LinkManager.Instance.getMetadataKeysInGroup(groupType);
-            groupMdKeys.forEach(key => {
-                this._metadata.set(Utils.GenerateGuid(), key);
-            });
+                let groupMdKeys = LinkManager.Instance.getMetadataKeysInGroup(groupType);
+                groupMdKeys.forEach(key => {
+                    this._metadata.set(Utils.GenerateGuid(), key);
+                });
 
-            let destDoc = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
-            let linKDocProto = Doc.GetProto(this.props.linkDoc);
-            linKDocProto.title = groupType + " link: " + StrCast(this.props.sourceDoc.title) + ", " + (destDoc ? StrCast(destDoc.title) : "");
-        }
+                let destDoc = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
+                let linkDocProto = Doc.GetProto(this.props.linkDoc);
+                linkDocProto.title = groupType + " link: " + StrCast(this.props.sourceDoc.title) + ", " + (destDoc ? StrCast(destDoc.title) : "");
+            }
+        }, "set relationship type of link");
     }
 
     @action
@@ -296,6 +297,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
             }
 
             this._metadata = new Map();
+            linkDocProto.title = "link: " + StrCast(this.props.sourceDoc.title) + ", " + (destDoc ? StrCast(destDoc.title) : "");
         }, "remove relationship from link");
     }
 
@@ -315,7 +317,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
 
 
     @action
-    changeMdKey = (id: string, newKey: string): void => {
+    changeMdKeyId = (id: string, newKey: string): void => {
         let kvp = this._metadata.get(id);
         if (kvp) {
             this._metadata.set(id, newKey);
@@ -323,7 +325,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
     }
 
     @action
-    deleteMd = (id: string): void => {
+    deleteMdId = (id: string): void => {
         this._metadata.delete(id);
     }
 
@@ -336,7 +338,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         this._metadata.forEach((key, id) => {
             metadataRows.push(
                 <LinkMetadataEditor key={id} id={id} groupType={groupType} mdDoc={mdDoc} mdKey={key} mdValue={StrCast(mdDoc[key])} allMdKeys={allMdKeys}
-                    changeMdKey={this.changeMdKey} deleteMd={this.deleteMd} />
+                    changeMdKeyId={this.changeMdKeyId} deleteMdId={this.deleteMdId} />
             );
         });
 
