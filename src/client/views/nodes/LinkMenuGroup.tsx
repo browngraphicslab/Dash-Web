@@ -98,11 +98,9 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
         let groupButtons = (
             <div className="linkMenu-group-buttons">
                 <button className="linkEditor-button" onClick={() => this.removeGroupFromAnchor()} title="Remove all links in this relationship from this document"><FontAwesomeIcon icon="times" size="sm" /></button>
-                {/* <button className="linkEditor-button" onClick={() => this.deleteGroupType()} title="Delete relationship type on all documents"><FontAwesomeIcon icon="trash" size="sm" /></button> */}
                 {this.viewGroupAsTable()}
             </div>
         );
-
 
         let hasGroupType = !(this.props.groupType === "*" || this.props.groupType === "");
 

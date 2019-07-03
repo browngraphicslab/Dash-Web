@@ -103,7 +103,6 @@ interface LinkMetadataEditorProps {
 
 @observer
 class LinkMetadataEditor extends React.Component<LinkMetadataEditorProps> {
-    // @observable private _renderedKey: string = this.props.mdKey;
     @observable private _key: string = this.props.mdKey;
     @observable private _value: string = this.props.mdValue;
     @observable private _keyError: boolean = false;
@@ -113,7 +112,6 @@ class LinkMetadataEditor extends React.Component<LinkMetadataEditorProps> {
         let newIndex = this.props.allMdKeys.findIndex(key => key.toUpperCase() === newKey.toUpperCase());
         if (newIndex > -1 || newKey === "") {
             this._keyError = true;
-            console.log("set key error", this._keyError);
             return false;
         } else {
             this._keyError = false;
