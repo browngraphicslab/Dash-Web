@@ -10,6 +10,13 @@ import { List } from '../new_fields/List';
 import { URLField } from '../new_fields/URLField';
 import { EditableView } from '../client/views/EditableView';
 import { CompileScript } from '../client/util/Scripting';
+import { DateField } from '../new_fields/DateField';
+import { ScriptField } from '../new_fields/ScriptField';
+
+DateField;
+URLField;
+ScriptField;
+
 
 function applyToDoc(doc: { [index: string]: FieldResult }, key: string, scriptString: string): boolean;
 function applyToDoc(doc: { [index: number]: FieldResult }, key: number, scriptString: string): boolean;

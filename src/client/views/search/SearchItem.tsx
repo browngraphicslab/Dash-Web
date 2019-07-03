@@ -7,7 +7,7 @@ import { observer } from "mobx-react";
 import { Doc, DocListCast, HeightSym, WidthSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { emptyFunction, returnFalse, returnOne } from "../../../Utils";
+import { emptyFunction, returnFalse, returnOne, Utils } from "../../../Utils";
 import { DocTypes } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
 import { SetupDrag } from "../../util/DragManager";
@@ -21,6 +21,7 @@ import { DocumentView } from "../nodes/DocumentView";
 import { SearchBox } from "./SearchBox";
 import "./SearchItem.scss";
 import "./SelectorContextMenu.scss";
+import { ContextMenu } from "../ContextMenu";
 
 export interface SearchItemProps {
     doc: Doc;
@@ -178,7 +179,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
     }
 
     @action
-    pointerDown = (e: React.PointerEvent) => SearchBox.Instance.openSearch(e)
+    pointerDown = (e: React.PointerEvent) => { e.preventDefault; e.button === 0 && SearchBox.Instance.openSearch(e); }
 
     highlightDoc = (e: React.PointerEvent) => {
         if (this.props.doc.type === DocTypes.LINK) {
@@ -214,9 +215,21 @@ export class SearchItem extends React.Component<SearchItemProps> {
         }
     }
 
+    onContextMenu = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        ContextMenu.Instance.clearItems();
+        ContextMenu.Instance.addItem({
+            description: "Copy ID", event: () => {
+                Utils.CopyText(this.props.doc[Id]);
+            }
+        });
+        ContextMenu.Instance.displayMenu(e.clientX, e.clientY);
+    }
+
     render() {
         return (
-            <div className="search-overview" onPointerDown={this.pointerDown}>
+            <div className="search-overview" onPointerDown={this.pointerDown} onContextMenu={this.onContextMenu}>
                 <div className="search-item" onPointerEnter={this.highlightDoc} onPointerLeave={this.unHighlightDoc} ref={this.collectionRef} id="result"
                     onClick={this.onClick} onPointerDown={this.pointerDown} >
                     <div className="main-search-info">

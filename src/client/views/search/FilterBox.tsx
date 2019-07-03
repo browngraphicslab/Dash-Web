@@ -58,7 +58,7 @@ export class FilterBox extends React.Component {
     componentDidMount = () => {
         document.addEventListener("pointerdown", (e) => {
             if (!e.defaultPrevented && e.timeStamp !== this._pointerTime) {
-                SearchBox.Instance.closeSearch();
+                // SearchBox.Instance.closeSearch();
             }
         });
     }
