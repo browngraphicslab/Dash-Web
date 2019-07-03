@@ -455,6 +455,9 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     }
 
     render() {
+        if (this.props.renderDepth > 0) {
+            return <div style={{ width: "100%", height: "100%" }}>Nested workspaces can't be rendered</div>;
+        }
         return (
             <Measure offset onResize={this.onResize}>
                 {({ measureRef }) =>

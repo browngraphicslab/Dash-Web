@@ -179,7 +179,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
     }
 
     @action
-    pointerDown = (e: React.PointerEvent) => { e.preventDefault; e.button === 0 && SearchBox.Instance.openSearch(e); }
+    pointerDown = (e: React.PointerEvent) => { e.preventDefault(); e.button === 0 && SearchBox.Instance.openSearch(e); }
 
     highlightDoc = (e: React.PointerEvent) => {
         if (this.props.doc.type === DocTypes.LINK) {
