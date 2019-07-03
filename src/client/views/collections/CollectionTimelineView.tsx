@@ -38,8 +38,17 @@ import Measure from "react-measure";
 import { COLLECTION_BORDER_WIDTH } from "../globalCssVariables.scss";
 import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";
 
-
-
+type CompoundValue = String | number | Date;
+type DocTuple = {
+    doc: Doc,
+    value: CompoundValue
+};
+type MarkerUnit = {
+    element: JSX.Element,
+    initialLeft: number,
+    initialWidth: number,
+    initialScaleRef: number
+};
 
 export interface FieldViewProps {
     Document?: Doc;
@@ -114,13 +123,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @observable
     private preview2: Doc | undefined;
-
-    @observable
-    private preview3: string;
     @observable
     private preview4: string;
     @observable
-    private preview5: String | number | Date;
+    private preview5: CompoundValue;
     @observable
     private preview6: number = -2;
     private selections: (HTMLElement | null)[] = [];
@@ -144,43 +150,60 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             document.removeEventListener("pointermove", this.onPointerMove, true);
         }
         this._visible = false;
-        this._markers = true;
     }
 
+    private markers: MarkerUnit[] = [];
 
     private markers: JSX.Element[] = [];
     private markernums: number[] = [];
+    private markerwidths: number[] = [];
+    private markerwidths2: number[] = [];
 
     @observable
     private countingfriend = 0;
 
-    private temp = 0;
-
     @computed
     get markerrender() {
         console.log(this.countingfriend);
-
         for (let i = 0; i < this.markers.length; i++) {
             if (document.getElementById("marker" + String(i)) !== null) {
                 let oldstyle = (document.getElementById("marker" + String(i)));
-                let oldleft = String(oldstyle.style.left);
-                console.log("yeet" + oldleft);
                 oldstyle.style.left = String(((this.markernums[i] * (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)) - (this.xmovement * (this.barwidth) / (this.barwidth - this.xmovement2 - this.xmovement)))));
-                console.log(oldstyle.style.left);
-
+                oldstyle.style.width = String(this.markerwidths[i] * ((this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement))) / this.markerwidths2[i]);
             }
         }
         return (<div>{this.markers}</div>);
     }
 
+    @action
+    tonPointerDown = (e: React.PointerEvent, place: number): void => {
+        console.log(this.markers);
+        console.log(place);
+        this.markers.splice(place, 1);
+        this.markernums.splice(place, 1);
+        this.markerwidths.splice(place, 1);
+        this.markerwidths2.splice(place, 1);
+        for (let i = place; i < this.markers.length + 1; i++) {
+            console.log("yuh");
+            let oldmark = document.getElementById("marker" + String(i));
+            oldmark.id = "marker" + String(i - 1);
+        }
+
+    }
 
     @action
     sonPointerDown = (e: React.PointerEvent): void => {
         if (e.altKey) {
+            e.preventDefault;
             let leftval = (e.pageX - document.body.clientWidth + document.getElementById('screen').clientWidth);
-            this.temp = leftval;
-            this.markers.push(<div id={"marker" + String(this.markers.length)} style={{ top: "65%", border: "2px solid red", width: "10px", height: "10px", position: "absolute", left: leftval }}><input type="text"></input></div>);
-            this.markernums.push(leftval / (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)));
+            let place = this.markers.length;
+            let ting: MarkerUnit = {
+                element: <div id={"marker" + String(this.markers.length)} onPointerDown={(e) => this.tonPointerDown(e, place)} style={{ top: "75%", border: "2px solid red", width: "10px", height: "1px", position: "absolute", left: leftval }}></div>,
+                initialLeft: (leftval / (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement))) + (this.xmovement),
+                initialWidth: 10,
+                initialScaleRef: (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement))
+            };
+            this.markers.push(ting);
             document.addEventListener("pointerup", this.sonPointerUp, true);
             this.countingfriend += 1;
         }
@@ -263,10 +286,36 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 SelectionManager.DeselectAll(undefined);
             }
         }
-        this.cleanupInteractions(true);
-        if (e.altKey) {
+        if (e.ctrlKey) {
             e.preventDefault();
+            let num = this.markers.length;
+            if (this._lastX < this._downX) {
+
+                let ting: MarkerUnit = {
+                    element: <div onPointerDown={(e) => this.tonPointerDown(e, num)} id={"marker" + String(this.markers.length)} style={{ top: "75%", border: "2px solid red", width: String(Math.abs(this._lastX - this._downX)), height: "1px", position: "absolute", left: this._downX - Math.abs(this._lastX - this._downX) }}></div>,
+                    initialLeft: ((this._downX - Math.abs(this._lastX - this._downX)) / (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement))) + (this.xmovement),
+                    initialScaleRef: Math.abs(this._lastX - this._downX),
+                    initialWidth: (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)),
+                };
+                this.markers.push(ting);
+            }
+            else {
+                let ting: MarkerUnit = {
+                    element: <div onPointerDown={(e) => this.tonPointerDown(e, num)} id={"marker" + String(this.markers.length)} style={{ top: "75%", border: "2px solid red", width: String(this._lastX - this._downX), height: "1px", position: "absolute", left: this._downX }}></div>,
+                    initialLeft: (this._downX / (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement))) + (this.xmovement),
+                    initialScaleRef: (this._lastX - this._downX),
+                    initialWidth: (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)),
+                };
+                this.markers.push(ting);
+            }
+
+
         }
+
+        this.cleanupInteractions(true);
+
+
+        this.countingfriend++;
         for (let i = 0; i < this.newselect.length; i++) {
             if (!this.selections.includes(this.newselect[i])) {
                 this.selections.push(this.newselect[i]);
@@ -450,7 +499,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     private overlapingdudes: JSX.Element[] = [];
     private overlapingdudes2: JSX.Element[][] = [];
     @action
-    updateleft(num: number, value: String | number | Date) {
+    updateleft(num: number, value: CompoundValue) {
         if (this.preview6 === num) {
             this.preview6 = -2;
         }
@@ -466,16 +515,16 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.preview6 = -2;
     }
 
-    private _values: (String | number | Date)[] = [];
+    private _values: CompoundValue[] = [];
     private ticks: JSX.Element[] = [];
     public buttons: JSX.Element[] = [];
     private buttonheaders: JSX.Element[] = [];
-
+    public buttons2: JSX.Element[] = [];
 
 
     buttonloop() {
         this.buttons = [];
-        let buttons2 = [];
+        this.buttons2 = [];
         this._range = 1;
         let arr: Doc[] = [];
 
@@ -484,7 +533,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         });
 
         let backup = arr.filter(doc => doc[this.sortstate]);
-        let keyvalue: { doc: Doc, value: String | number | Date }[] = [];
+        let keyvalue: DocTuple[] = [];
 
         if (backup.length > 0) {
             if (this.sortstate === "creationDate") {
@@ -585,7 +634,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 </div>
             );
 
-            buttons2.push(
+            this.buttons2.push(
                 <div
                     style={{
                         position: "absolute",
@@ -696,7 +745,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             <div style={{ top: "65%", position: "absolute", bottom: "25%" }}>{this.buttons}{this.buttonheaders}</div>
             {this.markerrender}
             <div id="bar" className="backdropscroll" onPointerDown={this.onPointerDown4} style={{ top: "80%", width: "100%", bottom: "15%", position: "absolute", }}>
-                {buttons2}
+                {this.buttons2}
                 <div className="v1" onPointerDown={this.onPointerDown} style={{ cursor: "ew-resize", position: "absolute", zIndex: 2, left: this.xmovement, height: "100%" }}>
 
                 </div>
@@ -916,6 +965,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         document.addEventListener("pointermove", this.onPointerMove);
+        this.countingfriend++;
+
         e.stopPropagation();
         e.preventDefault();
     }
@@ -923,6 +974,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @action
     onPointerDown2 = (e: React.PointerEvent): void => {
         document.addEventListener("pointermove", this.onPointerMove2);
+        this.countingfriend++;
+
         e.stopPropagation();
         e.preventDefault();
     }
@@ -930,6 +983,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @action
     onPointerDown3 = (e: React.PointerEvent): void => {
         document.body.style.cursor = "grabbing";
+        this.countingfriend++;
 
         document.addEventListener("pointermove", this.onPointerMove3);
         e.stopPropagation();
@@ -939,6 +993,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     onPointerDown4 = (e: React.PointerEvent): void => {
+        this.countingfriend++;
 
         let temp = this.barwidth - this.xmovement2 - this.xmovement;
         this.xmovement = e.pageX - document.body.clientWidth + document.getElementById('screen').clientWidth;
