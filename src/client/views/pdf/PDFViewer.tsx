@@ -432,7 +432,7 @@ export class Viewer extends React.Component<IViewerProps> {
     }
 
     renderAnnotation = (anno: Doc, index: number): JSX.Element => {
-        return <Annotation anno={anno} index={index} parent={this} />;
+        return <Annotation anno={anno} index={index} parent={this} key={`${anno[Id]}-annotation`} />;
     }
 
     @action
@@ -636,7 +636,8 @@ export class Viewer extends React.Component<IViewerProps> {
                                 }
                             }
                             return true;
-                        }).sort((a: Doc, b: Doc) => NumCast(a.y) - NumCast(b.y)).map((anno: Doc, index: number) => this.renderAnnotation(anno, index))}
+                        }).sort((a: Doc, b: Doc) => NumCast(a.y) - NumCast(b.y))
+                            .map((anno: Doc, index: number) => this.renderAnnotation(anno, index))}
                     </div>
                 </div>
                 <div className="pdfViewer-overlayCont" onPointerDown={(e) => e.stopPropagation()}
