@@ -224,28 +224,33 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
             case LinkDirection.Bi: {
                 let destDoc = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
                 let sourceGroupDoc = LinkManager.Instance.getAnchorGroupDoc(this.props.linkDoc, this.props.sourceDoc);
-                if (destDoc && sourceGroupDoc) {
-                    linkDocProto.direction = LinkDirection.Uni;
-                    Cast(sourceGroupDoc.metadata, Doc, new Doc).direction = "one-way";
-                    let newGroup = new Doc();
-                    newGroup.type = sourceGroupDoc.type;
-                    let newMd = Doc.MakeCopy(Cast(sourceGroupDoc.metadata, Doc, new Doc));
-                    newMd.anchor1 = destDoc.title;
-                    newMd.anchor2 = this.props.sourceDoc.title;
-                    newGroup.metadata = newMd;
-                    LinkManager.Instance.setAnchorGroupDoc(this.props.linkDoc, destDoc, newGroup);
-                }
+                let sourceMdDoc = Cast(sourceGroupDoc!.metadata, Doc, new Doc);
+                if (!destDoc || !sourceGroupDoc) break;
+
+                linkDocProto.direction = LinkDirection.Uni;
+                sourceMdDoc.direction = "one-way";
+                sourceMdDoc.anchor1 = this.props.sourceDoc.title;
+                sourceMdDoc.anchor2 = destDoc.title;
+
+                let newGroup = new Doc();
+                newGroup.type = sourceGroupDoc.type;
+                let newMd = Doc.MakeCopy(sourceMdDoc);
+                newMd.anchor1 = destDoc.title;
+                newMd.anchor2 = this.props.sourceDoc.title;
+                newGroup.metadata = newMd;
+
+                LinkManager.Instance.setAnchorGroupDoc(this.props.linkDoc, destDoc, newGroup);
                 this._direction = LinkDirection.Uni;
                 break;
             }
             case LinkDirection.Uni: {
                 let destDoc = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
                 let sourceGroupDoc = LinkManager.Instance.getAnchorGroupDoc(this.props.linkDoc, this.props.sourceDoc);
-                if (destDoc && sourceGroupDoc) {
-                    linkDocProto.direction = LinkDirection.Bi;
-                    Cast(sourceGroupDoc.metadata, Doc, new Doc).direction = "shared";
-                    LinkManager.Instance.setAnchorGroupDoc(this.props.linkDoc, destDoc, sourceGroupDoc);
-                }
+                if (!destDoc || !sourceGroupDoc) break;
+
+                linkDocProto.direction = LinkDirection.Bi;
+                Cast(sourceGroupDoc.metadata, Doc, new Doc).direction = "shared";
+                LinkManager.Instance.setAnchorGroupDoc(this.props.linkDoc, destDoc, sourceGroupDoc);
                 this._direction = LinkDirection.Bi;
                 break;
             }
@@ -372,7 +377,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                             <div className="linkEditor-group-row-label"><p>Metadata:</p></div>
                             <div className="linkEditor-metadataTable">
                                 <div className="linkEditor-metadataRow linkEditor-metadata-header">
-                                    <p className="linkEditor-metadata-key">KEY</p><p className="linkEditor-metadata-value">VALUE</p>
+                                    <p className="linkEditor-metadata-key">Key</p><p className="linkEditor-metadata-value">Value</p>
                                 </div>
                                 {this.renderMetadataRows()}
                             </div>
