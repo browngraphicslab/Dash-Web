@@ -47,12 +47,13 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             this.Document.width = this.nativeWidth / this.nativeHeight * h;
         }
     }
+    @computed get scaleToOverridingWidth() { return this.width / NumCast(this.props.Document.width, this.width); }
     contentScaling = () => this.nativeWidth > 0 ? this.width / this.nativeWidth : 1;
     panelWidth = () => this.props.PanelWidth();
     panelHeight = () => this.props.PanelHeight();
     getTransform = (): Transform => this.props.ScreenToLocalTransform()
         .translate(-this.X, -this.Y)
-        .scale(1 / this.contentScaling()).scale(1 / this.zoom * NumCast(this.props.Document.width, this.width) / this.width)
+        .scale(1 / this.contentScaling()).scale(1 / this.zoom / this.scaleToOverridingWidth)
 
     animateBetweenIcon = (icon: number[], stime: number, maximizing: boolean) => {
         this.props.bringToFront(this.props.Document);
