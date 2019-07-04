@@ -11,6 +11,8 @@ import { CollectionSchemaPreview } from "./CollectionSchemaView";
 import "./CollectionStackingView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import { resolve } from "bluebird";
+import { undoBatch } from "../../util/UndoManager";
+import { DragManager } from "../../util/DragManager";
 
 @observer
 export class CollectionStackingView extends CollectionSubView(doc => doc) {
@@ -96,8 +98,10 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             </div>;
         });
     }
+    docXfs: any[] = []
     @computed
     get children() {
+        this.docXfs.length = 0;
         return this.childDocs.filter(d => !d.isMinimized).map((d, i) => {
             let aspect = d.nativeHeight ? NumCast(d.nativeWidth) / NumCast(d.nativeHeight) : undefined;
             let dref = React.createRef<HTMLDivElement>();
@@ -105,6 +109,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             let width = () => d.nativeWidth ? Math.min(d[WidthSym](), this.columnWidth) : this.columnWidth;
             let height = () => aspect ? width() / aspect : d[HeightSym]();
             let rowSpan = Math.ceil((height() + this.gridGap) / (this._gridSize + this.gridGap));
+            this.docXfs.push({ dxf: dxf, width: width, height: height });
             return (<div className="collectionStackingView-masonryDoc"
                 key={d[Id]}
                 ref={dref}
@@ -166,13 +171,64 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             });
         }
     }
+
+    @undoBatch
+    @action
+    drop = (e: Event, de: DragManager.DropEvent) => {
+        let targInd = -1;
+        let where = [de.x, de.y];
+        if (de.data instanceof DragManager.DocumentDragData) {
+            this.docXfs.map((cd, i) => {
+                let pos = cd.dxf().inverse().transformPoint(-2 * this.gridGap, -2 * this.gridGap);
+                let pos1 = cd.dxf().inverse().transformPoint(cd.width(), cd.height());
+                if (where[0] > pos[0] && where[0] < pos1[0] && where[1] > pos[1] && where[1] < pos1[1]) {
+                    targInd = i;
+                }
+            })
+        }
+        if (super.drop(e, de)) {
+            if (targInd !== -1) {
+                let newDoc = de.data.droppedDocuments[0];
+                let docs = this.childDocList;
+                if (docs) {
+                    let srcInd = docs.indexOf(newDoc);
+                    docs.splice(srcInd, 1);
+                    docs.splice(targInd > srcInd ? targInd - 1 : targInd, 0, newDoc);
+                }
+            }
+        }
+        return false;
+    }
+    @undoBatch
+    @action
+    onDrop = (e: React.DragEvent): void => {
+        let where = [e.clientX, e.clientY];
+        let targInd = -1;
+        this.docXfs.map((cd, i) => {
+            let pos = cd.dxf().inverse().transformPoint(-2 * this.gridGap, -2 * this.gridGap);
+            let pos1 = cd.dxf().inverse().transformPoint(cd.width(), cd.height());
+            if (where[0] > pos[0] && where[0] < pos1[0] && where[1] > pos[1] && where[1] < pos1[1]) {
+                targInd = i;
+            }
+        })
+        super.onDrop(e, {}, () => {
+            if (targInd !== -1) {
+                let newDoc = this.childDocs[this.childDocs.length - 1];
+                let docs = this.childDocList;
+                if (docs) {
+                    docs.splice(docs.length - 1, 1);
+                    docs.splice(targInd, 0, newDoc);
+                }
+            }
+        });
+    }
     render() {
         let cols = this.singleColumn ? 1 : Math.max(1, Math.min(this.childDocs.filter(d => !d.isMinimized).length,
             Math.floor((this.props.PanelWidth() - 2 * this.xMargin) / (this.columnWidth + this.gridGap))));
         let templatecols = "";
         for (let i = 0; i < cols; i++) templatecols += `${this.columnWidth}px `;
         return (
-            <div className="collectionStackingView" ref={this.createRef} onContextMenu={this.onContextMenu} onWheel={(e: React.WheelEvent) => e.stopPropagation()} >
+            <div className="collectionStackingView" ref={this.createRef} onDrop={this.onDrop.bind(this)} onContextMenu={this.onContextMenu} onWheel={(e: React.WheelEvent) => e.stopPropagation()} >
                 <div className={`collectionStackingView-masonry${this.singleColumn ? "Single" : "Grid"}`}
                     style={{
                         padding: this.singleColumn ? `${this.yMargin}px ${this.xMargin}px ${this.yMargin}px ${this.xMargin}px` : `${this.yMargin}px ${this.xMargin}px`,
