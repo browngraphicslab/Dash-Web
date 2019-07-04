@@ -230,12 +230,13 @@ export class SearchItem extends React.Component<SearchItemProps> {
     render() {
         return (
             <div className="search-overview" onPointerDown={this.pointerDown} onContextMenu={this.onContextMenu}>
-                <div className="search-item" onPointerEnter={this.highlightDoc} onPointerLeave={this.unHighlightDoc} ref={this.collectionRef} id="result"
+                <div className="search-item" onPointerEnter={this.highlightDoc} onPointerLeave={this.unHighlightDoc} id="result"
                     onClick={this.onClick} onPointerDown={this.pointerDown} >
                     <div className="main-search-info">
                         <div className="search-title" id="result" >{this.props.doc.title}</div>
                         <div className="search-info" style={{ width: this._useIcons ? "15%" : "400px" }}>
-                            <div className={`icon-${this._useIcons ? "icons" : "live"}`}>
+                            <div className={`icon-${this._useIcons ? "icons" : "live"}`} ref={this.collectionRef} onPointerDown={
+                                SetupDrag(this.collectionRef, () => this.props.doc, undefined, undefined, undefined, undefined, () => SearchBox.Instance.closeSearch())}>
                                 <div className="search-type" >{this.DocumentIcon}</div>
                                 <div className="search-label">{this.props.doc.type}</div>
                             </div>
