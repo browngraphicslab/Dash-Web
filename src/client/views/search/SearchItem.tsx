@@ -248,8 +248,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
                         <div title="Drag as document" onPointerDown={this.onPointerDown}> <FontAwesomeIcon icon="file" size="lg" /> </div>
                         <div className="search-title" id="result" >{this.props.doc.title}</div>
                         <div className="search-info" style={{ width: this._useIcons ? "15%" : "400px" }}>
-                            <div className={`icon-${this._useIcons ? "icons" : "live"}`} ref={this.collectionRef} onPointerDown={
-                                SetupDrag(this.collectionRef, () => this.props.doc, undefined, undefined, undefined, undefined, () => SearchBox.Instance.closeSearch())}>
+                            <div className={`icon-${this._useIcons ? "icons" : "live"}`}>
                                 <div className="search-type" >{this.DocumentIcon}</div>
                                 <div className="search-label">{this.props.doc.type}</div>
                             </div>
