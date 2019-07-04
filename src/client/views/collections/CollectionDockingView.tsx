@@ -62,12 +62,30 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     }
     hack: boolean = false;
     undohack: any = null;
-    public StartOtherDrag(e: any, dragDocs: Doc[], dragDataDocs?: (Doc | undefined)[]) {
-        this.hack = true;
-        this.undohack = UndoManager.StartBatch("goldenDrag");
-        dragDocs.map((dragDoc, i) =>
-            this.AddRightSplit(dragDoc, dragDataDocs ? dragDataDocs[i] : undefined, true).contentItems[0].tab._dragListener.
-                onMouseDown({ pageX: e.pageX, pageY: e.pageY, preventDefault: emptyFunction, button: 0 }));
+    public StartOtherDrag(e: any, dragDocs: Doc[], dragDataDocs: (Doc | undefined)[] = []) {
+        let config: any;
+        if (dragDocs.length === 1) {
+            config = CollectionDockingView.makeDocumentConfig(dragDocs[0], dragDataDocs[0]);
+        } else {
+            config = {
+                type: 'row',
+                content: dragDocs.map((doc, i) => {
+                    CollectionDockingView.makeDocumentConfig(doc, dragDataDocs[i]);
+                })
+            };
+        }
+        const div = document.createElement("div");
+        const dragSource = this._goldenLayout.createDragSource(div, config);
+        dragSource._dragListener.on("dragStop", () => {
+            dragSource.destroy();
+        });
+        dragSource._dragListener.onMouseDown(e);
+        // dragSource.destroy();
+        // this.hack = true;
+        // this.undohack = UndoManager.StartBatch("goldenDrag");
+        // dragDocs.map((dragDoc, i) =>
+        //     this.AddRightSplit(dragDoc, dragDataDocs[i], true).contentItems[0].tab._dragListener.
+        //         onMouseDown({ pageX: e.pageX, pageY: e.pageY, preventDefault: emptyFunction, button: 0 }));
     }
 
     @action
@@ -299,33 +317,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             let tab = (e.target as any).parentElement as HTMLElement;
             DocServer.GetRefField(docid).then(action(async (sourceDoc: Opt<Field>) =>
                 (sourceDoc instanceof Doc) && DragLinksAsDocuments(tab, x, y, sourceDoc)));
-        } else
-            if ((className === "lm_title" || className === "lm_tab lm_active") && e.shiftKey) {
-                e.stopPropagation();
-                e.preventDefault();
-                let x = e.clientX;
-                let y = e.clientY;
-                let docid = (e.target as any).DashDocId;
-                let datadocid = (e.target as any).DashDataDocId;
-                let tab = (e.target as any).parentElement as HTMLElement;
-                let glTab = (e.target as any).Tab;
-                if (glTab && glTab.contentItem && glTab.contentItem.parent) {
-                    glTab.contentItem.parent.setActiveContentItem(glTab.contentItem);
-                }
-                DocServer.GetRefField(docid).then(action(async (f: Opt<Field>) => {
-                    if (f instanceof Doc) {
-                        let dataDoc = (datadocid !== docid) ? await DocServer.GetRefField(datadocid) : f;
-                        DragManager.StartDocumentDrag([tab], new DragManager.DocumentDragData([f], [dataDoc instanceof Doc ? dataDoc : f]), x, y,
-                            {
-                                handlers: {
-                                    dragComplete: emptyFunction,
-                                },
-                                hideSource: false,
-                                withoutShiftDrag: true
-                            });
-                    }
-                }));
-            }
+        }
         if (className === "lm_drag_handle" || className === "lm_close" || className === "lm_maximise" || className === "lm_minimise" || className === "lm_close_tab") {
             this._flush = true;
         }

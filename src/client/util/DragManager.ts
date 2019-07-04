@@ -43,6 +43,7 @@ export function SetupDrag(
             e.stopPropagation();
             e.preventDefault();
             if (e.shiftKey && CollectionDockingView.Instance) {
+                e.persist();
                 CollectionDockingView.Instance.StartOtherDrag(e, [await docFunc()]);
             } else {
                 document.addEventListener("pointermove", onRowMove);
