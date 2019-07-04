@@ -248,7 +248,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             this.cleanupInteractions(false);
             e.stopPropagation();
         }
-        if (e.key === "c" || e.key === "s" || e.key === "S" || e.key === "e" || e.key === "p") {
+        if (e.key === "c" || e.key === "s" || e.key === "S" || e.key === "e") {
             this._commandExecuted = true;
             e.stopPropagation();
             e.preventDefault();
@@ -277,7 +277,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 width: bounds.width,
                 height: bounds.height,
                 ink: inkData ? new InkField(this.marqueeInkSelect(inkData)) : undefined,
-                title: e.key === "s" || e.key === "S" ? "-summary-" : e.key === "p" ? "-summary-" : "a nested collection",
+                title: e.key === "s" || e.key === "S" ? "-summary-" : "a nested collection",
             });
             this.marqueeInkDelete(inkData);
 

@@ -1,7 +1,7 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faAngleRight, faBell, faCaretDown, faCaretRight, faCaretSquareDown, faCaretSquareRight, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
+import { faAngleRight, faCamera, faExpand, faBell, faCaretDown, faCaretRight, faCaretSquareDown, faCaretSquareRight, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, observable } from "mobx";
+import { action, computed, observable, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, HeightSym, WidthSym, Opt } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
@@ -9,7 +9,7 @@ import { List } from '../../../new_fields/List';
 import { Document, listSpec } from '../../../new_fields/Schema';
 import { BoolCast, Cast, NumCast, StrCast } from '../../../new_fields/Types';
 import { emptyFunction, Utils } from '../../../Utils';
-import { Docs, DocUtils } from '../../documents/Documents';
+import { Docs, DocUtils, DocTypes } from '../../documents/Documents';
 import { DocumentManager } from '../../util/DocumentManager';
 import { DragManager, dropActionType, SetupDrag } from "../../util/DragManager";
 import { SelectionManager } from '../../util/SelectionManager';
@@ -51,6 +51,8 @@ export interface TreeViewProps {
 library.add(faTrashAlt);
 library.add(faAngleRight);
 library.add(faBell);
+library.add(faCamera);
+library.add(faExpand);
 library.add(faCaretDown);
 library.add(faCaretRight);
 library.add(faCaretSquareDown);
@@ -66,6 +68,7 @@ class TreeView extends React.Component<TreeViewProps> {
     private _dref = React.createRef<HTMLDivElement>();
     @observable __chosenKey: string = "";
     @computed get _chosenKey() { return this.__chosenKey ? this.__chosenKey : this.fieldKey; }
+    @computed get MAX_EMBED_HEIGHT() { return NumCast(this.props.document.maxEmbedHeight, 300); }
     @observable _collapsed: boolean = true;
 
     @computed get fieldKey() {
@@ -153,20 +156,12 @@ class TreeView extends React.Component<TreeViewProps> {
         </div>;
     }
 
-    titleClicked = (e: React.MouseEvent) => {
-        if (this._collapsed) return false;
-        else {
-            this.props.document.embed = !BoolCast(this.props.document.embed);
-            return true;
-        }
-    }
     static loadId = "";
     editableView = (key: string, style?: string) => (<EditableView
         oneLine={true}
         display={"inline"}
         editing={this.resolvedDataDoc[Id] === TreeView.loadId}
         contents={StrCast(this.props.document[key])}
-        onClick={this.titleClicked}
         height={36}
         fontStyle={style}
         GetValue={() => StrCast(this.props.document[key])}
@@ -236,18 +231,19 @@ class TreeView extends React.Component<TreeViewProps> {
 
     onWorkspaceContextMenu = (e: React.MouseEvent): void => {
         if (!e.isPropagationStopped()) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
-            ContextMenu.Instance.addItem({ description: "Open Fields", event: () => { let kvp = Docs.KVPDocument(this.props.document, { width: 300, height: 300 }); this.props.addDocTab(kvp, this.props.dataDoc ? this.props.dataDoc : kvp, "onRight"); }, icon: "layer-group" });
+            ContextMenu.Instance.addItem({ description: (BoolCast(this.props.document.embed) ? "Collapse" : "Expand") + " inline", event: () => this.props.document.embed = !BoolCast(this.props.document.embed), icon: "expand" });
             if (NumCast(this.props.document.viewType) !== CollectionViewType.Docking) {
                 ContextMenu.Instance.addItem({ description: "Open Tab", event: () => this.props.addDocTab(this.props.document, this.resolvedDataDoc, "inTab"), icon: "folder" });
                 ContextMenu.Instance.addItem({ description: "Open Right", event: () => this.props.addDocTab(this.props.document, this.resolvedDataDoc, "onRight"), icon: "caret-square-right" });
                 if (DocumentManager.Instance.getDocumentViews(this.resolvedDataDoc).length) {
-                    ContextMenu.Instance.addItem({ description: "Focus", event: () => DocumentManager.Instance.getDocumentViews(this.resolvedDataDoc).map(view => view.props.focus(this.props.document, true)) });
+                    ContextMenu.Instance.addItem({ description: "Focus", event: () => DocumentManager.Instance.getDocumentViews(this.resolvedDataDoc).map(view => view.props.focus(this.props.document, true)), icon: "camera" });
                 }
-                ContextMenu.Instance.addItem({ description: "Delete Item", event: undoBatch(() => this.props.deleteDoc(this.props.document)) });
+                ContextMenu.Instance.addItem({ description: "Delete Item", event: undoBatch(() => this.props.deleteDoc(this.props.document)), icon: "trash-alt" });
             } else {
-                ContextMenu.Instance.addItem({ description: "Open as Workspace", event: undoBatch(() => MainView.Instance.openWorkspace(this.resolvedDataDoc)) });
-                ContextMenu.Instance.addItem({ description: "Delete Workspace", event: undoBatch(() => this.props.deleteDoc(this.props.document)) });
+                ContextMenu.Instance.addItem({ description: "Open as Workspace", event: undoBatch(() => MainView.Instance.openWorkspace(this.resolvedDataDoc)), icon: "caret-square-right" });
+                ContextMenu.Instance.addItem({ description: "Delete Workspace", event: undoBatch(() => this.props.deleteDoc(this.props.document)), icon: "trash-alt" });
             }
+            ContextMenu.Instance.addItem({ description: "Open Fields", event: () => { let kvp = Docs.KVPDocument(this.props.document, { width: 300, height: 300 }); this.props.addDocTab(kvp, this.props.dataDoc ? this.props.dataDoc : kvp, "onRight"); }, icon: "layer-group" });
             ContextMenu.Instance.displayMenu(e.pageX > 156 ? e.pageX - 156 : 0, e.pageY - 15);
             e.stopPropagation();
             e.preventDefault();
@@ -268,6 +264,8 @@ class TreeView extends React.Component<TreeViewProps> {
             e.stopPropagation();
         }
         if (de.data instanceof DragManager.DocumentDragData) {
+            e.stopPropagation();
+            if (de.data.draggedDocuments[0] === this.props.document) return true;
             let addDoc = (doc: Doc) => this.props.addDocument(doc, this.resolvedDataDoc, before);
             if (inside) {
                 let docList = Cast(this.resolvedDataDoc.data, listSpec(Doc));
@@ -275,7 +273,6 @@ class TreeView extends React.Component<TreeViewProps> {
                     addDoc = (doc: Doc) => { docList && docList.push(doc); return true; };
                 }
             }
-            e.stopPropagation();
             let movedDocs = (de.data.options === this.props.treeViewId ? de.data.draggedDocuments : de.data.droppedDocuments);
             return (de.data.dropAction || de.data.userDropAction) ?
                 de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d, this.resolvedDataDoc, before) || added, false)
@@ -314,18 +311,37 @@ class TreeView extends React.Component<TreeViewProps> {
         return ele;
     }
 
-    fitToBox = () => {
+    @computed get docBounds() {
+        if (StrCast(this.props.document.type).indexOf(DocTypes.COL) === -1) return undefined;
         let layoutDoc = Doc.expandTemplateLayout(this.props.document, this.props.dataDoc);
-        let bounds = Doc.ComputeContentBounds(layoutDoc);
-        return [(bounds.x + bounds.r) / 2, (bounds.y + bounds.b) / 2, Math.min(this.props.panelHeight() / (bounds.b - bounds.y), this.props.panelWidth() / (bounds.r - bounds.x))];
+        return Doc.ComputeContentBounds(layoutDoc);
     }
+    docWidth = () => {
+        let aspect = NumCast(this.props.document.nativeHeight) / NumCast(this.props.document.nativeWidth);
+        if (aspect) return Math.min(this.props.document[WidthSym](), Math.min(this.MAX_EMBED_HEIGHT / aspect, this.props.panelWidth() - 5));
+        return NumCast(this.props.document.nativeWidth) ? Math.min(this.props.document[WidthSym](), this.props.panelWidth() - 5) : this.props.panelWidth() - 5;
+    }
+    docHeight = () => {
+        let bounds = this.docBounds;
+        return Math.min(this.MAX_EMBED_HEIGHT, (() => {
+            let aspect = NumCast(this.props.document.nativeHeight) / NumCast(this.props.document.nativeWidth);
+            if (aspect) return this.docWidth() * aspect;
+            if (bounds) return this.docWidth() * (bounds.b - bounds.y) / (bounds.r - bounds.x);
+            return NumCast(this.props.document.height) ? NumCast(this.props.document.height) : 50;
+        })());
+    }
+    fitToBox = () => {
+        let bounds = this.docBounds!;
+        return [(bounds.x + bounds.r) / 2, (bounds.y + bounds.b) / 2, Math.min(this.docHeight() / (bounds.b - bounds.y), this.docWidth() / (bounds.r - bounds.x))];
+    }
+
     render() {
         let contentElement: (JSX.Element | null) = null;
         let docList = Cast(this.resolvedDataDoc[this._chosenKey], listSpec(Doc));
         let remDoc = (doc: Doc) => this.remove(doc, this._chosenKey);
         let addDoc = (doc: Doc, addBefore?: Doc, before?: boolean) => Doc.AddDocToList(this.resolvedDataDoc, this._chosenKey, doc, addBefore, before);
         let doc = Cast(this.resolvedDataDoc[this._chosenKey], Doc);
-        let docWidth = () => NumCast(this.props.document.nativeWidth) ? Math.min(this.props.document[WidthSym](), this.props.panelWidth() - 5) : this.props.panelWidth() - 5;
+
         if (!this._collapsed) {
             if (!this.props.document.embed) {
                 contentElement = <ul key={this._chosenKey + "more"}>
@@ -335,14 +351,14 @@ class TreeView extends React.Component<TreeViewProps> {
                 </ul >;
             } else {
                 let layoutDoc = Doc.expandTemplateLayout(this.props.document, this.props.dataDoc);
-                contentElement = <div ref={this._dref} style={{ display: "inline-block", height: layoutDoc[HeightSym]() }} key={this.props.document[Id]}>
+                contentElement = <div ref={this._dref} style={{ display: "inline-block", height: this.docHeight() }} key={this.props.document[Id]}>
                     <CollectionSchemaPreview
                         Document={layoutDoc}
                         DataDocument={this.resolvedDataDoc}
                         renderDepth={this.props.renderDepth}
-                        fitToBox={this.fitToBox}
-                        width={docWidth}
-                        height={layoutDoc[HeightSym]}
+                        fitToBox={this.docBounds && !NumCast(this.props.document.nativeWidth) ? this.fitToBox : undefined}
+                        width={this.docWidth}
+                        height={this.docHeight}
                         getTransform={this.docTransform}
                         CollectionView={undefined}
                         addDocument={emptyFunction as any}

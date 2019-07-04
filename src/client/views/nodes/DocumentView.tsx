@@ -589,8 +589,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 style={{
                     outlineColor: "maroon",
                     outlineStyle: "dashed",
-                    outlineWidth: BoolCast(this.props.Document.libraryBrush) || BoolCast(this.props.Document.protoBrush) ?
+                    outlineWidth: (BoolCast(this.props.Document.libraryBrush) || BoolCast(this.props.Document.protoBrush)) && !NumCast(this.props.Document.borderRounding) ?
                         `${this.props.ScreenToLocalTransform().Scale}px` : "0px",
+                    border: (BoolCast(this.props.Document.libraryBrush) || BoolCast(this.props.Document.protoBrush)) && NumCast(this.props.Document.borderRounding) ?
+                        `dashed maroon ${this.props.ScreenToLocalTransform().Scale}px` : undefined,
                     borderRadius: "inherit",
                     background: backgroundColor,
                     width: nativeWidth,
