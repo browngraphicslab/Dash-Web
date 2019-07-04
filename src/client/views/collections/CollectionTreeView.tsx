@@ -164,6 +164,7 @@ class TreeView extends React.Component<TreeViewProps> {
         contents={StrCast(this.props.document[key])}
         height={36}
         fontStyle={style}
+        fontSize={12}
         GetValue={() => StrCast(this.props.document[key])}
         SetValue={(value: string) => (Doc.GetProto(this.resolvedDataDoc)[key] = value) ? true : true}
         OnFillDown={(value: string) => {
