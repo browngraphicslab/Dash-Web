@@ -10,7 +10,7 @@ import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { emptyFunction, returnFalse, returnOne, Utils } from "../../../Utils";
 import { DocTypes } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
-import { SetupDrag } from "../../util/DragManager";
+import { SetupDrag, DragManager } from "../../util/DragManager";
 import { LinkManager } from "../../util/LinkManager";
 import { SearchUtil } from "../../util/SearchUtil";
 import { Transform } from "../../util/Transform";
@@ -22,6 +22,7 @@ import { SearchBox } from "./SearchBox";
 import "./SearchItem.scss";
 import "./SelectorContextMenu.scss";
 import { ContextMenu } from "../ContextMenu";
+import { faFile } from '@fortawesome/free-solid-svg-icons';
 
 export interface SearchItemProps {
     doc: Doc;
@@ -30,6 +31,7 @@ export interface SearchItemProps {
 library.add(faCaretUp);
 library.add(faObjectGroup);
 library.add(faStickyNote);
+library.add(faFile);
 library.add(faFilePdf);
 library.add(faFilm);
 library.add(faMusic);
@@ -227,12 +229,23 @@ export class SearchItem extends React.Component<SearchItemProps> {
         ContextMenu.Instance.displayMenu(e.clientX, e.clientY);
     }
 
+    onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const doc = Doc.IsPrototype(this.props.doc) ? Doc.MakeDelegate(this.props.doc) : this.props.doc;
+        DragManager.StartDocumentDrag([e.currentTarget], new DragManager.DocumentDragData([doc], []), e.clientX, e.clientY, {
+            handlers: { dragComplete: emptyFunction },
+            hideSource: false,
+        });
+    }
+
     render() {
         return (
             <div className="search-overview" onPointerDown={this.pointerDown} onContextMenu={this.onContextMenu}>
                 <div className="search-item" onPointerEnter={this.highlightDoc} onPointerLeave={this.unHighlightDoc} id="result"
                     onClick={this.onClick} onPointerDown={this.pointerDown} >
                     <div className="main-search-info">
+                        <div title="Drag as document" onPointerDown={this.onPointerDown}> <FontAwesomeIcon icon="file" size="lg" /> </div>
                         <div className="search-title" id="result" >{this.props.doc.title}</div>
                         <div className="search-info" style={{ width: this._useIcons ? "15%" : "400px" }}>
                             <div className={`icon-${this._useIcons ? "icons" : "live"}`} ref={this.collectionRef} onPointerDown={
