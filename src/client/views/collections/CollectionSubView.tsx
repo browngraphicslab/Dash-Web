@@ -102,47 +102,6 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             return false;
         }
 
-        protected async getDocumentFromType(type: string, path: string, options: DocumentOptions): Promise<Opt<Doc>> {
-            let ctor: ((path: string, options: DocumentOptions) => (Doc | Promise<Doc | undefined>)) | undefined = undefined;
-            if (type.indexOf("image") !== -1) {
-                ctor = Docs.ImageDocument;
-            }
-            if (type.indexOf("video") !== -1) {
-                ctor = Docs.VideoDocument;
-            }
-            if (type.indexOf("audio") !== -1) {
-                ctor = Docs.AudioDocument;
-            }
-            if (type.indexOf("pdf") !== -1) {
-                ctor = Docs.PdfDocument;
-                options.nativeWidth = 1200;
-            }
-            if (type.indexOf("excel") !== -1) {
-                ctor = Docs.DBDocument;
-                options.dropAction = "copy";
-            }
-            if (type.indexOf("html") !== -1) {
-                if (path.includes(window.location.hostname)) {
-                    let s = path.split('/');
-                    let id = s[s.length - 1];
-                    DocServer.GetRefField(id).then(field => {
-                        if (field instanceof Doc) {
-                            let alias = Doc.MakeAlias(field);
-                            alias.x = options.x || 0;
-                            alias.y = options.y || 0;
-                            alias.width = options.width || 300;
-                            alias.height = options.height || options.width || 300;
-                            this.props.addDocument(alias, false);
-                        }
-                    });
-                    return undefined;
-                }
-                ctor = Docs.WebDocument;
-                options = { height: options.width, ...options, title: path, nativeWidth: undefined };
-            }
-            return ctor ? ctor(path, options) : undefined;
-        }
-
         @undoBatch
         @action
         protected onDrop(e: React.DragEvent, options: DocumentOptions): void {
@@ -223,7 +182,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                         .then(result => {
                             let type = result["content-type"];
                             if (type) {
-                                this.getDocumentFromType(type, str, { ...options, width: 300, nativeWidth: 300 })
+                                Docs.getDocumentFromType(type, str, { ...options, width: 300, nativeWidth: 300 }, this.props.addDocument)
                                     .then(doc => doc && this.props.addDocument(doc, false));
                             }
                         });
@@ -245,8 +204,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     }).then(async (res: Response) => {
                         (await res.json()).map(action((file: any) => {
                             let path = window.location.origin + file;
-                            let docPromise = this.getDocumentFromType(type, path, { ...options, nativeWidth: 300, width: 300, title: dropFileName });
-
+                            let docPromise = Docs.getDocumentFromType(type, path, { ...options, nativeWidth: 300, width: 300, title: dropFileName }, this.props.addDocument);
                             docPromise.then(doc => doc && this.props.addDocument(doc));
                         }));
                     });

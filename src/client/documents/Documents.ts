@@ -36,6 +36,7 @@ import { UndoManager } from "../util/UndoManager";
 import { RouteStore } from "../../server/RouteStore";
 import { LinkManager } from "../util/LinkManager";
 import { DocumentManager } from "../util/DocumentManager";
+import ImportBox from "../util/Import & Export/ImportBox";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 
@@ -51,7 +52,8 @@ export enum DocTypes {
     KVP = "kvp",
     VID = "video",
     AUDIO = "audio",
-    LINK = "link"
+    LINK = "link",
+    IMPORT = "import"
 }
 
 export interface DocumentOptions {
@@ -127,6 +129,7 @@ export namespace Docs {
     let audioProto: Doc;
     let pdfProto: Doc;
     let iconProto: Doc;
+    let importProto: Doc;
     // let linkProto: Doc;
     const textProtoId = "textProto";
     const histoProtoId = "histoProto";
@@ -138,6 +141,7 @@ export namespace Docs {
     const videoProtoId = "videoProto";
     const audioProtoId = "audioProto";
     const iconProtoId = "iconProto";
+    const importProtoId = "importProto";
     // const linkProtoId = "linkProto";
 
     export function initProtos(): Promise<void> {
@@ -152,6 +156,7 @@ export namespace Docs {
             audioProto = fields[audioProtoId] as Doc || CreateAudioPrototype();
             pdfProto = fields[pdfProtoId] as Doc || CreatePdfPrototype();
             iconProto = fields[iconProtoId] as Doc || CreateIconPrototype();
+            importProto = fields[importProtoId] as Doc || CreateImportPrototype();
         });
     }
 
@@ -172,6 +177,11 @@ export namespace Docs {
         let imageProto = setupPrototypeOptions(imageProtoId, "IMAGE_PROTO", CollectionView.LayoutString("annotations"),
             { x: 0, y: 0, nativeWidth: 600, width: 300, backgroundLayout: ImageBox.LayoutString(), curPage: 0, type: DocTypes.IMG });
         return imageProto;
+    }
+
+    function CreateImportPrototype(): Doc {
+        let importProto = setupPrototypeOptions(importProtoId, "IMPORT_PROTO", ImportBox.LayoutString(), { x: 0, y: 0, width: 600, height: 600, type: DocTypes.IMPORT });
+        return importProto;
     }
 
     function CreateHistogramPrototype(): Doc {
@@ -261,6 +271,10 @@ export namespace Docs {
         return CreateInstance(audioProto, new AudioField(new URL(url)), options);
     }
 
+    export function DirectoryImportDocument(options: DocumentOptions = {}) {
+        return CreateInstance(importProto, "", options);
+    }
+
     export function HistogramDocument(histoOp: HistogramOperation, options: DocumentOptions = {}) {
         return CreateInstance(histoProto, new HistogramField(histoOp), options);
     }
@@ -331,6 +345,47 @@ export namespace Docs {
     }
     export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
         return CreateInstance(collProto, new List(documents), { ...options, viewType: CollectionViewType.Docking, dockingConfig: config }, id);
+    }
+
+    export async function getDocumentFromType(type: string, path: string, options: DocumentOptions, addDocument?: (document: Doc, allowDuplicates?: boolean) => boolean): Promise<Opt<Doc>> {
+        let ctor: ((path: string, options: DocumentOptions) => (Doc | Promise<Doc | undefined>)) | undefined = undefined;
+        if (type.indexOf("image") !== -1) {
+            ctor = Docs.ImageDocument;
+        }
+        if (type.indexOf("video") !== -1) {
+            ctor = Docs.VideoDocument;
+        }
+        if (type.indexOf("audio") !== -1) {
+            ctor = Docs.AudioDocument;
+        }
+        if (type.indexOf("pdf") !== -1) {
+            ctor = Docs.PdfDocument;
+            options.nativeWidth = 1200;
+        }
+        if (type.indexOf("excel") !== -1) {
+            ctor = Docs.DBDocument;
+            options.dropAction = "copy";
+        }
+        if (type.indexOf("html") !== -1) {
+            if (path.includes(window.location.hostname)) {
+                let s = path.split('/');
+                let id = s[s.length - 1];
+                DocServer.GetRefField(id).then(field => {
+                    if (field instanceof Doc) {
+                        let alias = Doc.MakeAlias(field);
+                        alias.x = options.x || 0;
+                        alias.y = options.y || 0;
+                        alias.width = options.width || 300;
+                        alias.height = options.height || options.width || 300;
+                        addDocument && addDocument(alias, false);
+                    }
+                });
+                return undefined;
+            }
+            ctor = Docs.WebDocument;
+            options = { height: options.width, ...options, title: path, nativeWidth: undefined };
+        }
+        return ctor ? ctor(path, options) : undefined;
     }
 
     export function CaptionDocument(doc: Doc) {

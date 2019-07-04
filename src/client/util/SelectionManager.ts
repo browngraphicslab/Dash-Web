@@ -53,7 +53,7 @@ export namespace SelectionManager {
             stored.length > 0 && (targetColor = stored);
         }
         InkingControl.Instance.updateSelectedColor(targetColor);
-    });
+    }, { fireImmediately: true });
 
     export function DeselectDoc(docView: DocumentView): void {
         manager.DeselectDoc(docView);

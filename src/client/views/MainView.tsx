@@ -38,6 +38,7 @@ import PDFMenu from './pdf/PDFMenu';
 import { InkTool } from '../../new_fields/InkField';
 import _ from "lodash";
 import KeyManager from './GlobalKeyHandler';
+import BulkImporter from '../util/Import & Export/ImageImporter';
 
 @observer
 export class MainView extends React.Component {
@@ -351,11 +352,13 @@ export class MainView extends React.Component {
         let addColNode = action(() => Docs.FreeformDocument([], { width: this.pwidth * .7, height: this.pheight, title: "a freeform collection" }));
         let addTreeNode = action(() => CurrentUserUtils.UserDocument);
         let addImageNode = action(() => Docs.ImageDocument(imgurl, { width: 200, title: "an image of a cat" }));
+        let addImportCollectionNode = action(() => Docs.DirectoryImportDocument({ title: "Directory Import", width: 150, height: 150 }));
 
         let btns: [React.RefObject<HTMLDivElement>, IconName, string, () => Doc][] = [
             [React.createRef<HTMLDivElement>(), "image", "Add Image", addImageNode],
             [React.createRef<HTMLDivElement>(), "object-group", "Add Collection", addColNode],
             [React.createRef<HTMLDivElement>(), "tree", "Add Tree", addTreeNode],
+            [React.createRef<HTMLDivElement>(), "arrow-up", "Import Directory", addImportCollectionNode],
         ];
 
         return < div id="add-nodes-menu" >
