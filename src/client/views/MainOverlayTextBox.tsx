@@ -36,6 +36,11 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
         this._outerdiv && this._tooltip && !this._outerdiv.contains(this._tooltip) && this._outerdiv.appendChild(this._tooltip);
     }
 
+    public SetColor(color: string) {
+        return this._textBox && this._textBox.setFontColor(color);
+    }
+
+
     constructor(props: MainOverlayTextBoxProps) {
         super(props);
         this._textProxyDiv = React.createRef();

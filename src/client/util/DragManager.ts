@@ -315,6 +315,7 @@ export namespace DragManager {
             scaleYs.push(scaleY);
             let dragElement = ele.cloneNode(true) as HTMLElement;
             dragElement.style.opacity = "0.7";
+            dragElement.style.borderRadius = getComputedStyle(ele).borderRadius;
             dragElement.style.position = "absolute";
             dragElement.style.margin = "0";
             dragElement.style.top = "0";

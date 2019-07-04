@@ -111,7 +111,8 @@ export class TooltipTextMenu {
         this.fontSizeToNum.set(schema.marks.p32, 32);
         this.fontSizeToNum.set(schema.marks.p48, 48);
         this.fontSizeToNum.set(schema.marks.p72, 72);
-        //this.fontSizeToNum.set(schema.marks.pFontSize,schema.marks.pFontSize.)
+        this.fontSizeToNum.set(schema.marks.pFontSize, 10);
+        this.fontSizeToNum.set(schema.marks.pFontSize, 10);
         this.fontSizes = Array.from(this.fontSizeToNum.keys());
 
         //list types

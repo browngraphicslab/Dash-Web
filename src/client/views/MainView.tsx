@@ -354,7 +354,7 @@ export class MainView extends React.Component {
             [React.createRef<HTMLDivElement>(), "tree", "Add Tree", addTreeNode],
         ];
 
-        return < div id="add-nodes-menu" >
+        return < div id="add-nodes-menu" style={{ left: this.flyoutWidth + 5 }} >
             <input type="checkbox" id="add-menu-toggle" ref={this.addMenuToggle} />
             <label htmlFor="add-menu-toggle" title="Add Node"><p>+</p></label>
 

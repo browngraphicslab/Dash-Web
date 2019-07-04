@@ -70,11 +70,14 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     }
 
     borderRounding = () => {
-        let br = NumCast(this.props.Document.borderRounding);
-        return br >= 0 ? br :
-            NumCast(this.props.Document.nativeWidth) === 0 ?
-                Math.min(this.props.PanelWidth(), this.props.PanelHeight())
-                : Math.min(this.Document.nativeWidth || 0, this.Document.nativeHeight || 0);
+        let br = StrCast(this.props.Document.borderRounding);
+        if (br.endsWith("%")) {
+            let percent = Number(br.substr(0, br.length - 1)) / 100;
+            let nativeDim = Math.min(NumCast(this.props.Document.nativeWidth), NumCast(this.props.Document.nativeHeight));
+            let minDim = percent * (nativeDim ? nativeDim : Math.min(this.props.PanelWidth(), this.props.PanelHeight()));
+            return minDim;
+        }
+        return undefined;
     }
 
     render() {
@@ -84,7 +87,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     transformOrigin: "left top",
                     position: "absolute",
                     backgroundColor: "transparent",
-                    borderRadius: `${this.borderRounding()}px`,
+                    borderRadius: this.borderRounding(),
                     transform: this.transform,
                     transition: StrCast(this.props.Document.transition),
                     width: this.width,

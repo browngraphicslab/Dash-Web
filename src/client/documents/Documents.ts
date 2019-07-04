@@ -77,7 +77,7 @@ export interface DocumentOptions {
     backgroundLayout?: string;
     curPage?: number;
     documentText?: string;
-    borderRounding?: number;
+    borderRounding?: string;
     schemaColumns?: List<string>;
     dockingConfig?: string;
     dbDoc?: Doc;
@@ -93,7 +93,7 @@ export namespace DocUtils {
         if (target === CurrentUserUtils.UserDocument) return;
 
         UndoManager.RunInBatch(() => {
-            let linkDoc = Docs.TextDocument({ width: 100, height: 30, borderRounding: -1 });
+            let linkDoc = Docs.TextDocument({ width: 100, height: 30, borderRounding: "100%" });
             linkDoc.type = DocTypes.LINK;
             let linkDocProto = Doc.GetProto(linkDoc);
 
