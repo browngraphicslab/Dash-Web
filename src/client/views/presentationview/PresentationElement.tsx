@@ -35,6 +35,8 @@ interface PresentationElementProps {
     presButtonBackUp: Doc;
     presGroupBackUp: Doc;
     removeDocByRef(doc: Doc): boolean;
+    setPresElementsMappings: (keyDoc: Doc, elem: PresentationElement) => void;
+
 
 }
 
@@ -90,7 +92,7 @@ export default class PresentationElement extends React.Component<PresentationEle
     //Lifecycle function that makes sure that button BackUp is received when mounted.
     async componentDidMount() {
         this.receiveButtonBackUp();
-
+        //this.props.setPresElementsMappings(this.props.document, this);
         if (this.presElRef.current) {
             this.header = this.presElRef.current;
             this.createListDropTarget(this.presElRef.current);
@@ -100,6 +102,8 @@ export default class PresentationElement extends React.Component<PresentationEle
     //Lifecycle function that makes sure button BackUp is received when not re-mounted bu re-rendered.
     async componentDidUpdate() {
         //this.receiveButtonBackUp();
+        //this.props.setPresElementsMappings(this.props.document, this);
+
         if (this.presElRef.current) {
             this.header = this.presElRef.current;
             this.createListDropTarget(this.presElRef.current);

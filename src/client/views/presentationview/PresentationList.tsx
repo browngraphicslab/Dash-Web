@@ -88,7 +88,11 @@ export default class PresentationViewList extends React.Component<PresListProps>
             <div className="presentationView-listCont" >
                 {children.map((doc: Doc, index: number) =>
                     <PresentationElement
-                        ref={(e) => { if (e) { this.props.setPresElementsMappings(doc, e); } }}
+                        ref={(e) => {
+                            if (e) {
+                                this.props.setPresElementsMappings(doc, e);
+                            }
+                        }}
                         key={doc[Id]}
                         mainDocument={this.props.mainDocument}
                         document={doc}
@@ -101,6 +105,7 @@ export default class PresentationViewList extends React.Component<PresListProps>
                         presButtonBackUp={this.props.presButtonBackUp}
                         presGroupBackUp={this.props.presGroupBackUp}
                         removeDocByRef={this.props.removeDocByRef}
+                        setPresElementsMappings={this.props.setPresElementsMappings}
                     />
                 )}
             </div>
