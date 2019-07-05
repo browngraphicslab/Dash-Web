@@ -14,6 +14,7 @@ import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { DragManager, SetupDrag, dropActionType } from "../../util/DragManager";
 import { SelectionManager } from "../../util/SelectionManager";
+import { indexOf } from "typescript-collections/dist/lib/arrays";
 
 
 library.add(faArrowUp);
@@ -59,6 +60,7 @@ export default class PresentationElement extends React.Component<PresentationEle
     private header?: HTMLDivElement | undefined;
     private listdropDisposer?: DragManager.DragDropDisposer;
     private presElRef: React.RefObject<HTMLDivElement>;
+    private backUpDoc: Doc | undefined;
 
 
 
@@ -97,7 +99,7 @@ export default class PresentationElement extends React.Component<PresentationEle
 
     //Lifecycle function that makes sure button BackUp is received when not re-mounted bu re-rendered.
     async componentDidUpdate() {
-        this.receiveButtonBackUp();
+        //this.receiveButtonBackUp();
         if (this.presElRef.current) {
             this.header = this.presElRef.current;
             this.createListDropTarget(this.presElRef.current);
@@ -111,20 +113,46 @@ export default class PresentationElement extends React.Component<PresentationEle
         if (!castedList) {
             this.props.presButtonBackUp.selectedButtonDocs = castedList = new List<Doc>();
         }
+
+        let foundDoc: boolean = false;
+
         //if this is the first time this doc mounts, push a doc for it to store
-        if (castedList.length <= this.props.index) {
+        await castedList.forEach(async (doc) => {
+            let curDoc = await doc;
+            let curDocId = StrCast(curDoc.docId);
+            if (curDocId === this.props.document[Id]) {
+                let selectedButtonOfDoc = Cast(curDoc.selectedButtons, listSpec("boolean"), null);
+                if (selectedButtonOfDoc !== undefined) {
+                    runInAction(() => this.selectedButtons = selectedButtonOfDoc);
+                    foundDoc = true;
+                    this.backUpDoc = curDoc;
+                    return;
+                }
+            }
+        });
+
+        if (!foundDoc) {
             let newDoc = new Doc();
             let defaultBooleanArray: boolean[] = new Array(6);
             newDoc.selectedButtons = new List(defaultBooleanArray);
+            newDoc.docId = this.props.document[Id];
             castedList.push(newDoc);
-            //otherwise update the selected buttons depending on storage.
-        } else {
-            let curDoc: Doc = await castedList[this.props.index];
-            let selectedButtonOfDoc = Cast(curDoc.selectedButtons, listSpec("boolean"), null);
-            if (selectedButtonOfDoc !== undefined) {
-                runInAction(() => this.selectedButtons = selectedButtonOfDoc);
-            }
+            this.backUpDoc = newDoc;
         }
+
+        // if (castedList.length <= this.props.index) {
+        //     let newDoc = new Doc();
+        //     let defaultBooleanArray: boolean[] = new Array(6);
+        //     newDoc.selectedButtons = new List(defaultBooleanArray);
+        //     castedList.push(newDoc);
+        //     //otherwise update the selected buttons depending on storage.
+        // } else {
+        //     let curDoc: Doc = await castedList[this.props.index];
+        //     let selectedButtonOfDoc = Cast(curDoc.selectedButtons, listSpec("boolean"), null);
+        //     if (selectedButtonOfDoc !== undefined) {
+        //         runInAction(() => this.selectedButtons = selectedButtonOfDoc);
+        //     }
+        // }
 
     }
 
@@ -269,9 +297,18 @@ export default class PresentationElement extends React.Component<PresentationEle
      */
     @action
     autoSaveButtonChange = async (index: buttonIndex) => {
-        let castedList = (await DocListCastAsync(this.props.presButtonBackUp.selectedButtonDocs))!;
-        castedList[this.props.index].selectedButtons = new List(this.selectedButtons);
-
+        // let castedList = (await DocListCastAsync(this.props.presButtonBackUp.selectedButtonDocs))!;
+        // // let hasBackupDoc: boolean = false;
+        // castedList.forEach((doc: Doc) => {
+        //     let docId = StrCast(doc.docId);
+        //     if (docId === this.props.document[Id]) {
+        //         doc.selectedButtons = new List(this.selectedButtons);
+        //     }
+        // });
+        // castedList[this.props.index].selectedButtons = new List(this.selectedButtons);
+        if (this.backUpDoc) {
+            this.backUpDoc.selectedButtons = new List(this.selectedButtons);
+        }
     }
 
     /**
@@ -415,6 +452,19 @@ export default class PresentationElement extends React.Component<PresentationEle
         document.removeEventListener("pointermove", this.onDragMove, true);
 
         return false;
+    }
+
+    updateGroupsOnDrop = () => {
+        let p = this.props;
+        let curDocGuid = StrCast(p.document.presentId, null);
+        if (curDocGuid) {
+            if (p.groupMappings.has(curDocGuid)) {
+                let groupArray = this.props.groupMappings.get(curDocGuid)!;
+                groupArray.splice(groupArray.indexOf(p.document), 1);
+            }
+        }
+
+        this.onGroupClick(p.document, p.index, true);
     }
 
     onPointerEnter = (e: React.PointerEvent): void => {

@@ -421,7 +421,17 @@ export class PresentationView extends React.Component<PresViewProps>  {
             //removing it from the backUp of selected Buttons
             let castedList = Cast(this.presButtonBackUp.selectedButtonDocs, listSpec(Doc));
             if (castedList) {
-                castedList.splice(index, 1);
+                castedList.forEach(async (doc, indexOfDoc) => {
+                    let curDoc = await doc;
+                    let curDocId = StrCast(curDoc.docId);
+                    if (curDocId === removedDoc[Id]) {
+                        if (castedList) {
+                            castedList.splice(indexOfDoc, 1);
+                            return;
+                        }
+                    }
+                });
+
             }
 
             //removing it from the backup of groups
