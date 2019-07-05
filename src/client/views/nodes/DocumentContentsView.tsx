@@ -105,7 +105,6 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     }
 
     render() {
-        console.log(this.props.Document.title);
         if (this.props.renderDepth > 7) return (null);
         if (!this.layout && (this.props.layoutKey !== "overlayLayout" || !this.templates.length)) return (null);
         return <ObserverJsxParser
