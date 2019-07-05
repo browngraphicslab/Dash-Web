@@ -24,7 +24,7 @@ import { Without, OmitKeys } from "../../../Utils";
 import { Cast, StrCast, NumCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { Doc } from "../../../new_fields/Doc";
-import ImportBox from "../../util/Import & Export/ImportBox";
+import DirectoryImportBox from "../../util/Import & Export/DirectoryImportBox";
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 type BindingProps = Without<FieldViewProps, 'fieldKey'>;
@@ -107,7 +107,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         if (this.props.renderDepth > 7) return (null);
         if (!this.layout && (this.props.layoutKey !== "overlayLayout" || !this.templates.length)) return (null);
         return <ObserverJsxParser
-            components={{ FormattedTextBox, ImageBox, IconBox, ImportBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox }}
+            components={{ FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox }}
             bindings={this.CreateBindings(this.props.Document.layout instanceof Doc ? this.props.Document.layout : this.props.Document)}
             jsx={this.finalLayout}
             showWarnings={true}

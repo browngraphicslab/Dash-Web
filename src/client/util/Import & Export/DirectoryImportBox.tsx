@@ -3,31 +3,42 @@ import React = require("react");
 import { Doc } from "../../../new_fields/Doc";
 import { DocServer } from "../../DocServer";
 import { RouteStore } from "../../../server/RouteStore";
-import { action, observable } from "mobx";
+import { action, observable, runInAction } from "mobx";
 import { FieldViewProps, FieldView } from "../../views/nodes/FieldView";
 import Measure, { ContentRect } from "react-measure";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faArrowUp } from '@fortawesome/free-solid-svg-icons';
+import { faArrowUp, faTag, faFileExcel } from '@fortawesome/free-solid-svg-icons';
 import { Docs, DocumentOptions } from "../../documents/Documents";
+import { EditableView } from "../../views/EditableView";
 
-interface ImageImporterProps {
-    addSchema: (imageDocs: Doc[]) => void;
-}
-
-export default class ImportBox extends React.Component<FieldViewProps> {
+export default class DirectoryImportBox extends React.Component<FieldViewProps> {
+    private selector = React.createRef<HTMLInputElement>();
     @observable private top = 0;
     @observable private left = 0;
     private dimensions = 50;
 
+    @observable private key = "Key";
+    @observable private value = "Value";
+
+    public static LayoutString() { return FieldView.LayoutString(DirectoryImportBox); }
+
     constructor(props: FieldViewProps) {
         super(props);
-        library.add(faArrowUp);
+        library.add(faArrowUp, faTag);
     }
 
-    public static LayoutString() { return FieldView.LayoutString(ImportBox); }
+    updateKey = (newKey: string) => {
+        runInAction(() => this.key = newKey);
+        console.log("KEY ", this.key);
+        return true;
+    }
 
-    private selector = React.createRef<HTMLInputElement>();
+    updateValue = (newValue: string) => {
+        runInAction(() => this.value = newValue);
+        console.log("VALUE ", this.value);
+        return true;
+    }
 
     handleSelection = async (e: React.ChangeEvent<HTMLInputElement>) => {
         let promises: Promise<void>[] = [];
@@ -56,6 +67,7 @@ export default class ImportBox extends React.Component<FieldViewProps> {
             }).then(async (res: Response) => {
                 (await res.json()).map(action((file: any) => {
                     let path = DocServer.prepend(file);
+                    console.log(path);
                     let docPromise = Docs.getDocumentFromType(type, path, { nativeWidth: 300, width: 300, title: dropFileName });
                     docPromise.then(doc => doc && docs.push(doc));
                 }));
@@ -76,8 +88,8 @@ export default class ImportBox extends React.Component<FieldViewProps> {
     }
 
     componentDidMount() {
-        this.selector.current!.setAttribute("directory", "true");
-        this.selector.current!.setAttribute("webkitdirectory", "true");
+        this.selector.current!.setAttribute("directory", "");
+        this.selector.current!.setAttribute("webkitdirectory", "");
     }
 
     @action
@@ -93,6 +105,7 @@ export default class ImportBox extends React.Component<FieldViewProps> {
 
     render() {
         let dimensions = 50;
+        let keyValueStyle = { paddingLeft: 5, width: "50%" };
         return (
             <Measure offset onResize={this.preserveCentering}>
                 {({ measureRef }) =>
@@ -125,6 +138,40 @@ export default class ImportBox extends React.Component<FieldViewProps> {
                                 <FontAwesomeIcon icon={faArrowUp} color="#FFFFFF" size={"2x"} />
                             </div>
                         </label>
+                        <div style={{
+                            position: "absolute",
+                            top: 5,
+                            right: 5,
+                            borderRadius: "50%",
+                            width: 25,
+                            height: 25,
+                            background: "black"
+                        }} />
+                        <div style={{
+                            position: "absolute",
+                            right: 9.5,
+                            top: 11
+                        }}>
+                            <FontAwesomeIcon icon={faTag} color="#FFFFFF" size={"1x"} />
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "row", borderBottom: "1px solid black", paddingBottom: 5 }} >
+                            <div className={"key_container"} style={keyValueStyle}>
+                                <EditableView
+                                    contents={this.key}
+                                    SetValue={this.updateKey}
+                                    GetValue={() => this.key}
+                                    oneLine={true}
+                                />
+                            </div>
+                            <div className={"value_container"} style={keyValueStyle}>
+                                <EditableView
+                                    contents={this.value}
+                                    SetValue={this.updateValue}
+                                    GetValue={() => this.value}
+                                    oneLine={true}
+                                />
+                            </div>
+                        </div>
                     </div>
                 }
             </Measure>

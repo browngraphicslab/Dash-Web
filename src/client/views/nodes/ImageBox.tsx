@@ -213,7 +213,9 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                     }), 0);
                 }
             })
-            .catch((err: any) => console.log(err));
+            .catch((err: any) => {
+                console.log(err);
+            });
     }
 
     render() {

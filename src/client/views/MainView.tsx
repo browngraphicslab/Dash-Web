@@ -38,7 +38,6 @@ import PDFMenu from './pdf/PDFMenu';
 import { InkTool } from '../../new_fields/InkField';
 import _ from "lodash";
 import KeyManager from './GlobalKeyHandler';
-import BulkImporter from '../util/Import & Export/ImageImporter';
 
 @observer
 export class MainView extends React.Component {

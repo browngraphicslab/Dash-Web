@@ -36,7 +36,7 @@ import { UndoManager } from "../util/UndoManager";
 import { RouteStore } from "../../server/RouteStore";
 import { LinkManager } from "../util/LinkManager";
 import { DocumentManager } from "../util/DocumentManager";
-import ImportBox from "../util/Import & Export/ImportBox";
+import DirectoryImportBox from "../util/Import & Export/DirectoryImportBox";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 
@@ -180,7 +180,7 @@ export namespace Docs {
     }
 
     function CreateImportPrototype(): Doc {
-        let importProto = setupPrototypeOptions(importProtoId, "IMPORT_PROTO", ImportBox.LayoutString(), { x: 0, y: 0, width: 600, height: 600, type: DocTypes.IMPORT });
+        let importProto = setupPrototypeOptions(importProtoId, "IMPORT_PROTO", DirectoryImportBox.LayoutString(), { x: 0, y: 0, width: 600, height: 600, type: DocTypes.IMPORT });
         return importProto;
     }
 
@@ -347,7 +347,7 @@ export namespace Docs {
         return CreateInstance(collProto, new List(documents), { ...options, viewType: CollectionViewType.Docking, dockingConfig: config }, id);
     }
 
-    export async function getDocumentFromType(type: string, path: string, options: DocumentOptions, addDocument?: (document: Doc, allowDuplicates?: boolean) => boolean): Promise<Opt<Doc>> {
+    export async function getDocumentFromType(type: string, path: string, options: DocumentOptions): Promise<Opt<Doc>> {
         let ctor: ((path: string, options: DocumentOptions) => (Doc | Promise<Doc | undefined>)) | undefined = undefined;
         if (type.indexOf("image") !== -1) {
             ctor = Docs.ImageDocument;
@@ -370,17 +370,17 @@ export namespace Docs {
             if (path.includes(window.location.hostname)) {
                 let s = path.split('/');
                 let id = s[s.length - 1];
-                DocServer.GetRefField(id).then(field => {
+                return DocServer.GetRefField(id).then(field => {
                     if (field instanceof Doc) {
                         let alias = Doc.MakeAlias(field);
                         alias.x = options.x || 0;
                         alias.y = options.y || 0;
                         alias.width = options.width || 300;
                         alias.height = options.height || options.width || 300;
-                        addDocument && addDocument(alias, false);
+                        return alias;
                     }
+                    return undefined;
                 });
-                return undefined;
             }
             ctor = Docs.WebDocument;
             options = { height: options.width, ...options, title: path, nativeWidth: undefined };

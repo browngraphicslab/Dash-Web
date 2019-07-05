@@ -182,7 +182,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                         .then(result => {
                             let type = result["content-type"];
                             if (type) {
-                                Docs.getDocumentFromType(type, str, { ...options, width: 300, nativeWidth: 300 }, this.props.addDocument)
+                                Docs.getDocumentFromType(type, str, { ...options, width: 300, nativeWidth: 300 })
                                     .then(doc => doc && this.props.addDocument(doc, false));
                             }
                         });
@@ -204,7 +204,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     }).then(async (res: Response) => {
                         (await res.json()).map(action((file: any) => {
                             let path = window.location.origin + file;
-                            let docPromise = Docs.getDocumentFromType(type, path, { ...options, nativeWidth: 300, width: 300, title: dropFileName }, this.props.addDocument);
+                            let docPromise = Docs.getDocumentFromType(type, path, { ...options, nativeWidth: 300, width: 300, title: dropFileName });
                             docPromise.then(doc => doc && this.props.addDocument(doc));
                         }));
                     });
