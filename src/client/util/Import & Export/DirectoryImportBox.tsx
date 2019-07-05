@@ -13,8 +13,7 @@ import { Docs, DocumentOptions } from "../../documents/Documents";
 import { observer } from "mobx-react";
 import KeyValue from "./KeyValue";
 import { Utils } from "../../../Utils";
-import { doesNotReject } from "assert";
-import { remove } from "typescript-collections/dist/lib/arrays";
+import { DocumentManager } from "../DocumentManager";
 
 @observer
 export default class DirectoryImportBox extends React.Component<FieldViewProps> {
@@ -91,13 +90,20 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
         docs.forEach(doc => this.entries.forEach(entry => doc[entry.key] = entry.value));
 
         let doc = this.props.Document;
-        let options: DocumentOptions = { title: `Import of ${directory}`, width: 500, height: 500, x: Doc.GetT(doc, "x", "number"), y: Doc.GetT(doc, "y", "number") };
+        let options: DocumentOptions = {
+            title: `Import of ${directory}`,
+            width: 1105,
+            height: 500,
+            x: Doc.GetT(doc, "x", "number"),
+            y: Doc.GetT(doc, "y", "number")
+        };
         let parent = this.props.ContainingCollectionView;
         if (parent) {
             let importContainer = Docs.StackingDocument(docs, options);
             importContainer.singleColumn = false;
             Doc.AddDocToList(Doc.GetProto(parent.props.Document), "data", importContainer);
             this.props.removeDocument && this.props.removeDocument(doc);
+            DocumentManager.Instance.jumpToDocument(importContainer, true);
         }
     }
 
@@ -179,6 +185,17 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                             }}>
                                 <FontAwesomeIcon icon={faArrowUp} color="#FFFFFF" size={"2x"} />
                             </div>
+                            <img
+                                style={{
+                                    width: 80,
+                                    height: 80,
+                                    transition: "0.4s opacity ease",
+                                    opacity: uploadBegun ? 0.7 : 0,
+                                    position: "absolute",
+                                    top: this.top - 15,
+                                    left: this.left - 15
+                                }}
+                                src={"/assets/loading.gif"}></img>
                         </label>
                         <div
                             style={{
@@ -251,7 +268,6 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                             <hr style={{ margin: "6px 10px 12px 10px" }} />
                             {guids.map(guid => <KeyValue remove={this.remove} key={guid} ref={(el) => { if (el) this.entries.push(el); }} />)}
                         </div>
-                        {/* <img style={{ width: 30, height: 30 }} src={"./loading.gif"}></img> */}
                     </div>
                 }
             </Measure>
