@@ -231,7 +231,6 @@ export class SearchItem extends React.Component<SearchItemProps> {
 
     onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
         e.stopPropagation();
-        // e.preventDefault();
         const doc = Doc.IsPrototype(this.props.doc) ? Doc.MakeDelegate(this.props.doc) : this.props.doc;
         DragManager.StartDocumentDrag([e.currentTarget], new DragManager.DocumentDragData([doc], []), e.clientX, e.clientY, {
             handlers: { dragComplete: emptyFunction },

@@ -95,7 +95,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     onPointerDown = (e: React.PointerEvent): void => {
         if (e.shiftKey && e.ctrlKey) {
             e.stopPropagation(); // allows default system drag drop of images with shift+ctrl only
-        } else e.preventDefault();
+        }
         // if (Date.now() - this._lastTap < 300) {
         //     if (e.buttons === 1) {
         //         this._downX = e.clientX;

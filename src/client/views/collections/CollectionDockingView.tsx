@@ -321,9 +321,6 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         if (className === "lm_drag_handle" || className === "lm_close" || className === "lm_maximise" || className === "lm_minimise" || className === "lm_close_tab") {
             this._flush = true;
         }
-        if (this.props.active()) {
-            e.stopPropagation();
-        }
     }
 
     @undoBatch
