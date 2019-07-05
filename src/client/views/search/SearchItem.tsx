@@ -149,12 +149,14 @@ export class SearchItem extends React.Component<SearchItemProps> {
 
     highlightTextBox = (doc: Doc) => {
         if (this.props.query) {
-            doc.search_string = this.props.query;
-            // FormattedTextBox.Instance.highlightSearchTerms([this.props.query]);
-        }
-        else {
-            // FormattedTextBox.Instance.highlightSearchTerms(["hello"]);
-            doc.search_string = "hello";
+            const fieldkey = 'search_string';
+            if (Object.keys(doc).indexOf(fieldkey) === -1) {
+                doc.search_string = this.props.query;
+            }
+            else {
+                doc.search_string = undefined;
+            }
+
         }
     }
 

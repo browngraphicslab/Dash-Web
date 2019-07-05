@@ -18,7 +18,7 @@ import { DocServer } from "../DocServer";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { DocumentManager } from "./DocumentManager";
 import { Id } from "../../new_fields/FieldSymbols";
-import { FormattedTextBoxProps } from "../views/nodes/FormattedTextBox";
+import { FormattedTextBoxProps, FormattedTextBox } from "../views/nodes/FormattedTextBox";
 
 //appears above a selection of text in a RichTextBox to give user options such as Bold, Italics, etc.
 export class TooltipTextMenu {
@@ -197,7 +197,6 @@ export class TooltipTextMenu {
             // set the element's new position:
             elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
             elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
-            self.highlightSearchTerms(["hello", "there"]);
         }
 
         function closeDragElement() {
@@ -205,7 +204,7 @@ export class TooltipTextMenu {
             document.onmouseup = null;
             document.onmousemove = null;
             //self.highlightSearchTerms(self.state, ["hello"]);
-            self.unhighlightSearchTerms();
+            FormattedTextBox.Instance.unhighlightSearchTerms();
         }
     }
 
@@ -594,38 +593,6 @@ export class TooltipTextMenu {
             }
         });
         return found;
-    }
-
-    public highlightSearchTerms = (terms: String[]) => {
-        const doc = this.view.state.doc;
-        const mark = this.view.state.schema.mark(this.view.state.schema.marks.search_highlight);
-        doc.nodesBetween(0, doc.content.size, (node: ProsNode, pos: number, parent: ProsNode, index: number) => {
-            if (node.isLeaf && node.isText && node.text) {
-                let nodeText: String = node.text;
-                let tokens = nodeText.split(" ");
-                let start = pos;
-                tokens.forEach((word) => {
-                    if (terms.includes(word)) {
-                        this.view.dispatch(this.view.state.tr.addMark(start, start + word.length, mark).removeStoredMark(mark));
-                    }
-                    else {
-                        start += word.length + 1;
-                    }
-                });
-            }
-        });
-    }
-
-    public unhighlightSearchTerms = () => {
-        const doc = this.view.state.doc;
-        const mark = this.view.state.schema.mark(this.view.state.schema.marks.search_highlight);
-        doc.nodesBetween(0, doc.content.size, (node: ProsNode, pos: number, parent: ProsNode, index: number) => {
-            if (node.isLeaf && node.isText && node.text) {
-                if (node.marks.includes(mark)) {
-                    this.view.dispatch(this.view.state.tr.removeMark(pos, pos + node.nodeSize, mark));
-                }
-            }
-        });
     }
 
     //updates the tooltip menu when the selection changes

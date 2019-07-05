@@ -18,7 +18,8 @@
   .ProseMirror-menuitem {
     margin-right: 3px;
     display: inline-block;
-    z-index: 100000;
+    z-index: 50000;
+    position: relative;
   }
   
   .ProseMirror-menuseparator {
@@ -67,7 +68,7 @@
   }
   
   .ProseMirror-menu-dropdown-menu {
-    z-index: 100000;
+    z-index: 50000;
     min-width: 6em;
     background: white;
     position: absolute;
@@ -236,7 +237,7 @@
 
 .tooltipMenu {
     position: absolute;
-    z-index: 2000;
+    z-index: 20000;
     background: #121721;
     border: 1px solid silver;
     border-radius: 15px;
@@ -298,6 +299,7 @@
     cursor: pointer;
     text-align: center;
     min-width: 10px;
+    
   }
   .strong, .heading { font-weight: bold; }
   .em { font-style: italic; }

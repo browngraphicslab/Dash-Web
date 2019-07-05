@@ -152,9 +152,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                         if (terms.includes(word) && this._editorView) {
                             this._editorView.dispatch(this._editorView.state.tr.addMark(start, start + word.length, mark).removeStoredMark(mark));
                         }
-                        else {
-                            start += word.length + 1;
-                        }
+                        start += word.length + 1;
                     });
                 }
             });
@@ -172,6 +170,12 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     }
                 }
             });
+            //     const fieldkey = 'search_string';
+            //     if (Object.keys(this.props.Document).indexOf(fieldkey) !== -1) {
+            //         this.props.Document[fieldkey] = undefined;
+            //     }
+            //     else this.props.Document.proto![fieldkey] = undefined;
+            // }
         }
     }
 
@@ -255,7 +259,12 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         this._searchReactionDisposer = reaction(() => {
             return StrCast(this.props.Document.search_string);
         }, searchString => {
-            this.highlightSearchTerms([searchString]);
+            if (searchString) {
+                this.highlightSearchTerms([searchString]);
+            }
+            else {
+                this.unhighlightSearchTerms();
+            }
         });
 
         this._reactionDisposer = reaction(
