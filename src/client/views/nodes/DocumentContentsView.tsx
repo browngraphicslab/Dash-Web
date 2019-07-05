@@ -24,6 +24,7 @@ import { Without, OmitKeys } from "../../../Utils";
 import { Cast, StrCast, NumCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { Doc } from "../../../new_fields/Doc";
+import { CollectionViewType } from "../collections/CollectionBaseView";
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 type BindingProps = Without<FieldViewProps, 'fieldKey'>;
@@ -82,7 +83,8 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         // by checking the layoutKey.  This should probably be moved into
         // a prop so that the overlay can explicitly turn off templates.
         if ((this.props.layoutKey === "overlayLayout" && StrCast(this.props.Document.layout).indexOf("CollectionView") !== -1) ||
-            (this.props.layoutKey === "layout" && StrCast(this.props.Document.layout).indexOf("CollectionView") === -1)) {
+            (this.props.layoutKey === "layout" && StrCast(this.props.Document.layout).indexOf("CollectionView") === -1) ||
+            (this.props.layoutKey === "layout" && NumCast(this.props.Document.viewType)) !== CollectionViewType.Freeform) {
             this.templates.forEach(template => {
                 let self = this;
                 // this scales constants in the markup by the scaling applied to the document, but caps the constants to be smaller
@@ -103,6 +105,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     }
 
     render() {
+        console.log(this.props.Document.title);
         if (this.props.renderDepth > 7) return (null);
         if (!this.layout && (this.props.layoutKey !== "overlayLayout" || !this.templates.length)) return (null);
         return <ObserverJsxParser
