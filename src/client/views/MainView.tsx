@@ -300,7 +300,7 @@ export class MainView extends React.Component {
         let gridGap = NumCast(sidebar.gridGap, 10);
         let yMargin = NumCast(sidebar.yMargin, 2 * gridGap);
         let libraryHeight = this.getPHeight() - workspacesDoc[HeightSym]() - recentDoc[HeightSym]() - 2 * gridGap - 2 * yMargin;
-        if (library[HeightSym]() != libraryHeight) {
+        if (Math.abs(library[HeightSym]() - libraryHeight) > 5) {
             setTimeout(() => CurrentUserUtils.UserDocument.height = libraryHeight, 0);
         }
         return <DocumentView
