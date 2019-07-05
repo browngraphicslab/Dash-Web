@@ -182,7 +182,8 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
             return url.href;
         }
         let ext = path.extname(url.href);
-        return url.href.replace(ext, this._curSuffix + ext);
+        const suffix = this.props.renderDepth <= 1 ? "_o" : this._curSuffix;
+        return url.href.replace(ext, suffix + ext);
     }
 
     @observable _smallRetryCount = 1;
