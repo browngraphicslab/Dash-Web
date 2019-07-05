@@ -468,8 +468,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             description: "Add freeform arrangement",
             event: () => {
                 let addOverlay = (key: "arrangeScript" | "arrangeInit", options: OverlayElementOptions, params?: Record<string, string>, requiredType?: string) => {
-                    const docs = DocListCast(this.Document[this.props.fieldKey]);
-                    docs.map(d => d.transition = "transform 1s");
                     let overlayDisposer: () => void;
                     const script = this.Document[key];
                     let originalText: string | undefined = undefined;
@@ -484,6 +482,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                             onError(script.errors.map(error => error.messageText).join("\n"));
                             return;
                         }
+                        const docs = DocListCast(this.Document[this.props.fieldKey]);
+                        docs.map(d => d.transition = "transform 1s");
                         this.Document[key] = new ScriptField(script);
                         overlayDisposer();
                         setTimeout(() => docs.map(d => d.transition = undefined), 1200);
