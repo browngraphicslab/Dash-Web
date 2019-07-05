@@ -295,9 +295,9 @@ app.post(
                 const file = path.basename(files[name].path);
                 const ext = path.extname(file);
                 let resizers = [
-                    { resizer: sharp().resize(100, undefined, { withoutEnlargement: true }), suffix: "_s" },
-                    { resizer: sharp().resize(400, undefined, { withoutEnlargement: true }), suffix: "_m" },
-                    { resizer: sharp().resize(900, undefined, { withoutEnlargement: true }), suffix: "_l" },
+                    { resizer: sharp().resize(100, undefined, { withoutEnlargement: true }).rotate().withMetadata(), suffix: "_s" },
+                    { resizer: sharp().resize(400, undefined, { withoutEnlargement: true }).rotate().withMetadata(), suffix: "_m" },
+                    { resizer: sharp().resize(900, undefined, { withoutEnlargement: true }).rotate().withMetadata(), suffix: "_l" },
                 ];
                 let isImage = false;
                 if (pngTypes.includes(ext)) {
