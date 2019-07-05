@@ -351,7 +351,7 @@ export class MainView extends React.Component {
         let addColNode = action(() => Docs.FreeformDocument([], { width: this.pwidth * .7, height: this.pheight, title: "a freeform collection" }));
         let addTreeNode = action(() => CurrentUserUtils.UserDocument);
         let addImageNode = action(() => Docs.ImageDocument(imgurl, { width: 200, title: "an image of a cat" }));
-        let addImportCollectionNode = action(() => Docs.DirectoryImportDocument({ title: "Directory Import", width: 150, height: 150 }));
+        let addImportCollectionNode = action(() => Docs.DirectoryImportDocument({ title: "Directory Import", width: 400, height: 400 }));
 
         let btns: [React.RefObject<HTMLDivElement>, IconName, string, () => Doc][] = [
             [React.createRef<HTMLDivElement>(), "image", "Add Image", addImageNode],
