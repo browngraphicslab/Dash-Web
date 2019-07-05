@@ -35,7 +35,7 @@ export class CurrentUserUtils {
         (doc.workspaces as Doc).excludeFromLibrary = true;
         (doc.workspaces as Doc).workspaceLibrary = true;
         doc.recentlyClosed = Docs.TreeDocument([], { title: "Recently Closed", height: 75 });
-        (doc.workspaces as Doc).excludeFromLibrary = true;
+        (doc.recentlyClosed as Doc).excludeFromLibrary = true;
         doc.sidebar = Docs.StackingDocument([doc.workspaces as Doc, doc, doc.recentlyClosed as Doc], { title: "Sidebar" });
         (doc.sidebar as Doc).excludeFromLibrary = true;
         (doc.sidebar as Doc).gridGap = 5;
