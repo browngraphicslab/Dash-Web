@@ -241,12 +241,15 @@ export namespace Doc {
         return Array.from(results);
     }
 
-    export function AddDocToList(target: Doc, key: string, doc: Doc, relativeTo?: Doc, before?: boolean) {
+    export function AddDocToList(target: Doc, key: string, doc: Doc, relativeTo?: Doc, before?: boolean, first?: boolean) {
         let list = Cast(target[key], listSpec(Doc));
         if (list) {
-            let ind = relativeTo ? list.indexOf(relativeTo) : -1;
-            if (ind === -1) list.push(doc);
-            else list.splice(before ? ind : ind + 1, 0, doc);
+            if (first) list.splice(0, 0, doc);
+            else {
+                let ind = relativeTo ? list.indexOf(relativeTo) : -1;
+                if (ind === -1) list.push(doc);
+                else list.splice(before ? ind : ind + 1, 0, doc);
+            }
         }
         return true;
     }

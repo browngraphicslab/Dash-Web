@@ -8,12 +8,12 @@ import * as React from 'react';
 import { SketchPicker } from 'react-color';
 import Measure from 'react-measure';
 import * as request from 'request';
-import { Doc, DocListCast, Opt } from '../../new_fields/Doc';
+import { Doc, DocListCast, Opt, HeightSym } from '../../new_fields/Doc';
 import { Id } from '../../new_fields/FieldSymbols';
 import { InkTool } from '../../new_fields/InkField';
 import { List } from '../../new_fields/List';
 import { listSpec } from '../../new_fields/Schema';
-import { Cast, FieldValue } from '../../new_fields/Types';
+import { Cast, FieldValue, NumCast } from '../../new_fields/Types';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { RouteStore } from '../../server/RouteStore';
 import { emptyFunction, returnOne, returnTrue } from '../../Utils';
@@ -163,7 +163,9 @@ export class MainView extends React.Component {
 
     @action
     createNewWorkspace = async (id?: string) => {
-        const list = Cast(CurrentUserUtils.UserDocument.data, listSpec(Doc));
+        let workspaces = Cast(CurrentUserUtils.UserDocument.workspaces, Doc);
+        if (!(workspaces instanceof Doc)) return;
+        const list = Cast((CurrentUserUtils.UserDocument.workspaces as Doc).data, listSpec(Doc));
         if (list) {
             let freeformDoc = Docs.FreeformDocument([], { x: 0, y: 400, width: this.pwidth * .7, height: this.pheight, title: `WS collection ${list.length + 1}` });
             var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc, freeformDoc, 600)] }] };
@@ -285,8 +287,24 @@ export class MainView extends React.Component {
     };
     @computed
     get flyout() {
+        let sidebar = CurrentUserUtils.UserDocument.sidebar;
+        let workspaces = CurrentUserUtils.UserDocument.workspaces;
+        let recent = CurrentUserUtils.UserDocument.recentlyClosed;
+        if (!(sidebar instanceof Doc)) return (null);
+        if (!(recent instanceof Doc)) return (null);
+        if (!(workspaces instanceof Doc)) return (null);
+        let workspacesDoc = workspaces as Doc;
+        let sidebarDoc = sidebar as Doc;
+        let recentDoc = recent as Doc;
+        let library = CurrentUserUtils.UserDocument;
+        let gridGap = NumCast(sidebar.gridGap, 10);
+        let yMargin = NumCast(sidebar.yMargin, 2 * gridGap);
+        let libraryHeight = this.getPHeight() - workspacesDoc[HeightSym]() - recentDoc[HeightSym]() - 2 * gridGap - 2 * yMargin;
+        if (library[HeightSym]() != libraryHeight) {
+            setTimeout(() => CurrentUserUtils.UserDocument.height = libraryHeight, 0);
+        }
         return <DocumentView
-            Document={CurrentUserUtils.UserDocument}
+            Document={sidebarDoc}
             DataDoc={undefined}
             addDocument={undefined}
             addDocTab={this.addDocTabFunc}
@@ -304,7 +322,7 @@ export class MainView extends React.Component {
             ContainingCollectionView={undefined}
             zoomToScale={emptyFunction}
             getScale={returnOne}>
-        </DocumentView>;
+        </DocumentView>
     }
     @computed
     get mainContent() {
