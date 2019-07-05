@@ -27,6 +27,7 @@ import { MainView } from '../MainView';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faFile } from '@fortawesome/free-solid-svg-icons';
+import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
 library.add(faFile);
 
 @observer
@@ -416,6 +417,9 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 if (doc instanceof Doc) {
                     let theDoc = doc;
                     CollectionDockingView.Instance._removedDocs.push(theDoc);
+                    if (CurrentUserUtils.UserDocument.recentlyClosed instanceof Doc) {
+                        Doc.AddDocToList(CurrentUserUtils.UserDocument.recentlyClosed, "data", doc, undefined, true, true);
+                    }
                     SelectionManager.DeselectAll();
                 }
                 tab.contentItem.remove();

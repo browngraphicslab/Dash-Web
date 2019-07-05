@@ -31,6 +31,16 @@ export class CurrentUserUtils {
         doc.viewType = CollectionViewType.Tree;
         doc.dropAction = "alias";
         doc.layout = CollectionView.LayoutString();
+        doc.workspaces = Docs.TreeDocument([], { title: "Workspaces", height: 100 });
+        (doc.workspaces as Doc).excludeFromLibrary = true;
+        (doc.workspaces as Doc).workspaceLibrary = true;
+        doc.recentlyClosed = Docs.TreeDocument([], { title: "Recently Closed", height: 75 });
+        (doc.workspaces as Doc).excludeFromLibrary = true;
+        doc.sidebar = Docs.StackingDocument([doc.workspaces as Doc, doc, doc.recentlyClosed as Doc], { title: "Sidebar" });
+        (doc.sidebar as Doc).excludeFromLibrary = true;
+        (doc.sidebar as Doc).gridGap = 5;
+        (doc.sidebar as Doc).xMargin = 5;
+        (doc.sidebar as Doc).yMargin = 5;
         doc.title = this.email;
         doc.data = new List<Doc>();
         doc.excludeFromLibrary = true;
