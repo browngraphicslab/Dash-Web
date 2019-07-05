@@ -41,11 +41,17 @@ export class Database {
         }
     }
 
-    public delete(id: string, collectionName = Database.DocumentsCollection) {
+    public delete(query: any, collectionName?: string): Promise<mongodb.DeleteWriteOpResultObject>;
+    public delete(id: string, collectionName?: string): Promise<mongodb.DeleteWriteOpResultObject>;
+    public delete(id: any, collectionName = Database.DocumentsCollection) {
+        if (typeof id === "string") {
+            id = { _id: id };
+        }
         if (this.db) {
-            this.db.collection(collectionName).remove({ id: id });
+            const db = this.db;
+            return new Promise(res => db.collection(collectionName).deleteMany(id, (err, result) => res(result)));
         } else {
-            this.onConnect.push(() => this.delete(id, collectionName));
+            return new Promise(res => this.onConnect.push(() => res(this.delete(id, collectionName))));
         }
     }
 
@@ -125,7 +131,7 @@ export class Database {
             return Promise.resolve<mongodb.Cursor>(this.db.collection(collectionName).find(query));
         } else {
             return new Promise<mongodb.Cursor>(res => {
-                this.onConnect.push(() => res(this.query(query)));
+                this.onConnect.push(() => res(this.query(query, collectionName)));
             });
         }
     }

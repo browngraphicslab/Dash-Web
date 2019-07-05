@@ -293,9 +293,9 @@ export class MainView extends React.Component {
         if (!(sidebar instanceof Doc)) return (null);
         if (!(recent instanceof Doc)) return (null);
         if (!(workspaces instanceof Doc)) return (null);
-        let workspacesDoc = workspaces as Doc;
-        let sidebarDoc = sidebar as Doc;
-        let recentDoc = recent as Doc;
+        let workspacesDoc = workspaces;
+        let sidebarDoc = sidebar;
+        let recentDoc = recent;
         let library = CurrentUserUtils.UserDocument;
         let gridGap = NumCast(sidebar.gridGap, 10);
         let yMargin = NumCast(sidebar.yMargin, 2 * gridGap);
