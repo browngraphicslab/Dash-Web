@@ -442,6 +442,8 @@ export default class PresentationElement extends React.Component<PresentationEle
             e.stopPropagation();
             //where does treeViewId come from
             let movedDocs = (de.data.options === this.props.mainDocument[Id] ? de.data.draggedDocuments : de.data.droppedDocuments);
+            //console.log("How is this causing an issue");
+            this.updateGroupsOnDrop(de.data.droppedDocuments[0]);
             document.removeEventListener("pointermove", this.onDragMove, true);
             return (de.data.dropAction || de.data.userDropAction) ?
                 de.data.droppedDocuments.reduce((added: boolean, d: Doc) => Doc.AddDocToList(this.props.mainDocument, "data", d, this.props.document, before) || added, false)
@@ -454,17 +456,48 @@ export default class PresentationElement extends React.Component<PresentationEle
         return false;
     }
 
-    updateGroupsOnDrop = () => {
+    updateGroupsOnDrop = async (droppedDoc: Doc) => {
         let p = this.props;
-        let curDocGuid = StrCast(p.document.presentId, null);
-        if (curDocGuid) {
-            if (p.groupMappings.has(curDocGuid)) {
-                let groupArray = this.props.groupMappings.get(curDocGuid)!;
-                groupArray.splice(groupArray.indexOf(p.document), 1);
+        let droppedDocSelectedButtons: boolean[] = await this.getSelectedButtonsOfDoc(droppedDoc);
+        if (droppedDocSelectedButtons[buttonIndex.Group]) {
+            let curDocGuid = StrCast(droppedDoc.presentId, null);
+            if (curDocGuid) {
+                if (p.groupMappings.has(curDocGuid)) {
+                    let groupArray = this.props.groupMappings.get(curDocGuid)!;
+                    groupArray.splice(groupArray.indexOf(droppedDoc), 1);
+                }
             }
-        }
 
-        this.onGroupClick(p.document, p.index, true);
+            let aboveDocGuid = StrCast(p.document.presentId, null);
+            if (p.groupMappings.has(aboveDocGuid)) {
+                p.groupMappings.get(aboveDocGuid)!.push(droppedDoc);
+            } else {
+                let newGroup: Doc[] = [];
+                newGroup.push(p.document);
+                newGroup.push(droppedDoc);
+                droppedDoc.presentId = aboveDocGuid;
+                p.groupMappings.set(aboveDocGuid, newGroup);
+            }
+
+        }
+    }
+
+    getSelectedButtonsOfDoc = async (paramDoc: Doc) => {
+        let p = this.props;
+
+        let castedList = Cast(this.props.presButtonBackUp.selectedButtonDocs, listSpec(Doc));
+        let foundSelectedButtons: boolean[] = new Array(6);
+        //if this is the first time this doc mounts, push a doc for it to store
+        await castedList!.forEach(async (doc) => {
+            let curDoc = await doc;
+            let curDocId = StrCast(curDoc.docId);
+            if (curDocId === paramDoc[Id]) {
+                foundSelectedButtons = Cast(curDoc.selectedButtons, listSpec("boolean"), null);
+                return;
+            }
+        });
+        return foundSelectedButtons;
+
     }
 
     onPointerEnter = (e: React.PointerEvent): void => {
@@ -551,14 +584,14 @@ export default class PresentationElement extends React.Component<PresentationEle
                 <strong className="presentationView-name">
                     {`${p.index + 1}. ${title}`}
                 </strong>
-                <button className="presentation-icon" onClick={e => { this.props.deleteDocument(p.index); e.stopPropagation(); }}>X</button>
+                <button className="presentation-icon" onPointerDown={(e) => e.stopPropagation()} onClick={e => { this.props.deleteDocument(p.index); e.stopPropagation(); }}>X</button>
                 <br></br>
-                <button title="Zoom" className={this.selectedButtons[buttonIndex.Show] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onZoomDocumentClick}><FontAwesomeIcon icon={"search"} /></button>
-                <button title="Navigate" className={this.selectedButtons[buttonIndex.Navigate] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onNavigateDocumentClick}><FontAwesomeIcon icon={"location-arrow"} /></button>
-                <button title="Hide Document Till Presented" className={this.selectedButtons[buttonIndex.HideTillPressed] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onHideDocumentUntilPressClick}><FontAwesomeIcon icon={fileSolid} /></button>
-                <button title="Fade Document After Presented" className={this.selectedButtons[buttonIndex.FadeAfter] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onFadeDocumentAfterPresentedClick}><FontAwesomeIcon icon={faFileDownload} color={"gray"} /></button>
-                <button title="Hide Document After Presented" className={this.selectedButtons[buttonIndex.HideAfter] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onHideDocumentAfterPresentedClick}><FontAwesomeIcon icon={faFileDownload} /></button>
-                <button title="Group With Up" className={this.selectedButtons[buttonIndex.Group] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={(e) => {
+                <button title="Zoom" className={this.selectedButtons[buttonIndex.Show] ? "presentation-interaction-selected" : "presentation-interaction"} onPointerDown={(e) => e.stopPropagation()} onClick={this.onZoomDocumentClick}><FontAwesomeIcon icon={"search"} /></button>
+                <button title="Navigate" className={this.selectedButtons[buttonIndex.Navigate] ? "presentation-interaction-selected" : "presentation-interaction"} onPointerDown={(e) => e.stopPropagation()} onClick={this.onNavigateDocumentClick}><FontAwesomeIcon icon={"location-arrow"} /></button>
+                <button title="Hide Document Till Presented" className={this.selectedButtons[buttonIndex.HideTillPressed] ? "presentation-interaction-selected" : "presentation-interaction"} onPointerDown={(e) => e.stopPropagation()} onClick={this.onHideDocumentUntilPressClick}><FontAwesomeIcon icon={fileSolid} /></button>
+                <button title="Fade Document After Presented" className={this.selectedButtons[buttonIndex.FadeAfter] ? "presentation-interaction-selected" : "presentation-interaction"} onPointerDown={(e) => e.stopPropagation()} onClick={this.onFadeDocumentAfterPresentedClick}><FontAwesomeIcon icon={faFileDownload} color={"gray"} /></button>
+                <button title="Hide Document After Presented" className={this.selectedButtons[buttonIndex.HideAfter] ? "presentation-interaction-selected" : "presentation-interaction"} onPointerDown={(e) => e.stopPropagation()} onClick={this.onHideDocumentAfterPresentedClick}><FontAwesomeIcon icon={faFileDownload} /></button>
+                <button title="Group With Up" className={this.selectedButtons[buttonIndex.Group] ? "presentation-interaction-selected" : "presentation-interaction"} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => {
                     e.stopPropagation();
                     this.changeGroupStatus();
                     this.onGroupClick(p.document, p.index, this.selectedButtons[buttonIndex.Group]);

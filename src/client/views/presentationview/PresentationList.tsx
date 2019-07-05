@@ -19,7 +19,7 @@ interface PresListProps {
     deleteDocument(index: number): void;
     gotoDocument(index: number, fromDoc: number): Promise<void>;
     groupMappings: Map<String, Doc[]>;
-    presElementsMappings: Map<Doc, PresentationElement>;
+    setPresElementsMappings: (keyDoc: Doc, elem: PresentationElement) => void;
     setChildrenDocs: (docList: Doc[]) => void;
     presStatus: boolean;
     presButtonBackUp: Doc;
@@ -88,7 +88,7 @@ export default class PresentationViewList extends React.Component<PresListProps>
             <div className="presentationView-listCont" >
                 {children.map((doc: Doc, index: number) =>
                     <PresentationElement
-                        ref={(e) => { if (e) { this.props.presElementsMappings.set(doc, e); } }}
+                        ref={(e) => { if (e) { this.props.setPresElementsMappings(doc, e); } }}
                         key={doc[Id]}
                         mainDocument={this.props.mainDocument}
                         document={doc}

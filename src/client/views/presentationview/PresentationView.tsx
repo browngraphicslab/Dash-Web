@@ -231,6 +231,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
             //checking if any of the group members had used zooming in
             currentsArray.forEach((doc: Doc) => {
+                //let presElem: PresentationElement | undefined = this.presElementsMappings.get(doc);
                 if (this.presElementsMappings.get(doc)!.selected[buttonIndex.Show]) {
                     zoomOut = true;
                     return;
@@ -770,6 +771,10 @@ export class PresentationView extends React.Component<PresViewProps>  {
         this.curPresentation.title = newTitle;
     }
 
+    addPressElem = (keyDoc: Doc, elem: PresentationElement) => {
+        this.presElementsMappings.set(keyDoc, elem);
+    }
+
 
     render() {
 
@@ -800,7 +805,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
                     deleteDocument={this.RemoveDoc}
                     gotoDocument={this.gotoDocument}
                     groupMappings={this.groupMappings}
-                    presElementsMappings={this.presElementsMappings}
+                    setPresElementsMappings={this.addPressElem}
                     setChildrenDocs={this.setChildrenDocs}
                     presStatus={this.presStatus}
                     presButtonBackUp={this.presButtonBackUp}
