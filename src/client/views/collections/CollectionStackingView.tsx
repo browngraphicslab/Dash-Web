@@ -53,7 +53,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         addDocument(doc);
         return true;
     }
-    getDocTransform(doc: Doc, ind: number, width: number) {
+    getSingleDocTransform(doc: Doc, ind: number, width: number) {
         let localY = this.childDocs.filter(d => !d.isMinimized).reduce((height, d, i) =>
             height + (i < ind ? this.singleColDocHeight(d) + this.gridGap : 0), this.yMargin);
         let translate = this.props.ScreenToLocalTransform().inverse().transformPoint((this.props.PanelWidth() - width) / 2, localY);
@@ -73,10 +73,11 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             let layoutDoc = Doc.expandTemplateLayout(d, this.props.DataDoc);
             let width = () => d.nativeWidth ? Math.min(d[WidthSym](), this.columnWidth) : this.columnWidth;
             let height = () => this.singleColDocHeight(layoutDoc);
-            let dxf = () => this.getDocTransform(layoutDoc, i, width()).scale(this.columnWidth / d[WidthSym]());
+            let dxf = () => this.getSingleDocTransform(layoutDoc, i, width()).scale(this.columnWidth / d[WidthSym]());
+            let gap = i === 0 ? 0 : this.gridGap;
             return <div className="collectionStackingView-columnDoc"
                 key={d[Id]}
-                style={{ width: width(), height: height() }} >
+                style={{ width: width(), display: "inline-block", marginTop: gap, height: `${height() / (this.props.Document[HeightSym]() - 2 * this.yMargin) * 100}%` }} >
                 <CollectionSchemaPreview
                     Document={layoutDoc}
                     DataDocument={d !== this.props.DataDoc ? this.props.DataDoc : undefined}
@@ -97,11 +98,17 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             </div>;
         });
     }
+    getDocTransform(doc: Doc, dref: HTMLDivElement) {
+        let { scale, translateX, translateY } = Utils.GetScreenTransform(dref);
+        let outerXf = Utils.GetScreenTransform(this._masonryGridRef!);
+        let offset = this.props.ScreenToLocalTransform().transformDirection(outerXf.translateX - translateX, outerXf.translateY - translateY);
+        return this.props.ScreenToLocalTransform().translate(offset[0], offset[1]).scale(NumCast(doc.width, 1) / this.columnWidth);
+    }
     docXfs: any[] = []
     @computed
     get children() {
         this.docXfs.length = 0;
-        return this.childDocs.filter(d => !d.isMinimized).map((d, i) => {
+        return this.childDocs.filter((d, i) => !d.isMinimized).map((d, i) => {
             let aspect = d.nativeHeight ? NumCast(d.nativeWidth) / NumCast(d.nativeHeight) : undefined;
             let dref = React.createRef<HTMLDivElement>();
             let dxf = () => this.getDocTransform(d, dref.current!).scale(this.columnWidth / d[WidthSym]());
