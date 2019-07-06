@@ -24,6 +24,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     @computed get gridGap() { return NumCast(this.props.Document.gridGap, 10); }
     @computed get singleColumn() { return BoolCast(this.props.Document.singleColumn, true); }
     @computed get columnWidth() { return this.singleColumn ? (this.props.PanelWidth() / (this.props as any).ContentScaling() - 2 * this.xMargin) : Math.min(this.props.PanelWidth() - 2 * this.xMargin, NumCast(this.props.Document.columnWidth, 250)); }
+    @computed get filteredChildren() { return this.childDocs.filter(d => !d.isMinimized); }
 
     singleColDocHeight(d: Doc) {
         let nw = NumCast(d.nativeWidth);
@@ -34,14 +35,10 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
     componentDidMount() {
         this._heightDisposer = reaction(() => [this.yMargin, this.gridGap, this.columnWidth, this.childDocs.map(d => [d.height, d.width, d.zoomBasis, d.nativeHeight, d.nativeWidth, d.isMinimized])],
-            () => {
-                if (this.singleColumn) {
-                    let children = this.childDocs.filter(d => !d.isMinimized);
-                    this.props.Document.height = children.reduce((height, d, i) =>
-                        height + this.singleColDocHeight(d) + (i === children.length - 1 ? this.yMargin : this.gridGap)
-                        , this.yMargin);
-                }
-            }, { fireImmediately: true });
+            () => this.singleColumn &&
+                (this.props.Document.height = this.filteredChildren.reduce((height, d, i) =>
+                    height + this.singleColDocHeight(d) + (i === this.filteredChildren.length - 1 ? this.yMargin : this.gridGap), this.yMargin))
+            , { fireImmediately: true });
     }
     componentWillUnmount() {
         if (this._heightDisposer) this._heightDisposer();
@@ -49,12 +46,10 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
 
     @action
     moveDocument = (doc: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean): boolean => {
-        this.props.removeDocument(doc);
-        addDocument(doc);
-        return true;
+        return this.props.removeDocument(doc) && addDocument(doc);
     }
     getSingleDocTransform(doc: Doc, ind: number, width: number) {
-        let localY = this.childDocs.filter(d => !d.isMinimized).reduce((height, d, i) =>
+        let localY = this.filteredChildren.reduce((height, d, i) =>
             height + (i < ind ? this.singleColDocHeight(d) + this.gridGap : 0), this.yMargin);
         let translate = this.props.ScreenToLocalTransform().inverse().transformPoint((this.props.PanelWidth() - width) / 2, localY);
         let outerXf = Utils.GetScreenTransform(this._masonryGridRef!);
@@ -68,8 +63,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
 
     @computed
     get singleColumnChildren() {
-        let children = this.childDocs.filter(d => !d.isMinimized);
-        return children.map((d, i) => {
+        return this.filteredChildren.map((d, i) => {
             let layoutDoc = Doc.expandTemplateLayout(d, this.props.DataDoc);
             let width = () => d.nativeWidth ? Math.min(d[WidthSym](), this.columnWidth) : this.columnWidth;
             let height = () => this.singleColDocHeight(layoutDoc);
@@ -108,7 +102,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     @computed
     get children() {
         this.docXfs.length = 0;
-        return this.childDocs.filter((d, i) => !d.isMinimized).map((d, i) => {
+        return this.filteredChildren.map((d, i) => {
             let aspect = d.nativeHeight ? NumCast(d.nativeWidth) / NumCast(d.nativeHeight) : undefined;
             let dref = React.createRef<HTMLDivElement>();
             let dxf = () => this.getDocTransform(d, dref.current!).scale(this.columnWidth / d[WidthSym]());
@@ -229,7 +223,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         });
     }
     render() {
-        let cols = this.singleColumn ? 1 : Math.max(1, Math.min(this.childDocs.filter(d => !d.isMinimized).length,
+        let cols = this.singleColumn ? 1 : Math.max(1, Math.min(this.filteredChildren.length,
             Math.floor((this.props.PanelWidth() - 2 * this.xMargin) / (this.columnWidth + this.gridGap))));
         let templatecols = "";
         for (let i = 0; i < cols; i++) templatecols += `${this.columnWidth}px `;
