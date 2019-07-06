@@ -5,20 +5,20 @@ import { observable, action, computed } from "mobx";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { Opt } from "../../../new_fields/Doc";
+import { Opt, Doc } from "../../../new_fields/Doc";
+import { StrCast, BoolCast } from "../../../new_fields/Types";
 
 interface KeyValueProps {
+    Document: Doc;
     remove: (self: ImportMetadataEntry) => void;
     next: () => void;
 }
 
-const keyPlaceholder = "Key";
-const valuePlaceholder = "Value";
+export const keyPlaceholder = "Key";
+export const valuePlaceholder = "Value";
 
 @observer
 export default class ImportMetadataEntry extends React.Component<KeyValueProps> {
-    @observable public key = keyPlaceholder;
-    @observable public value = valuePlaceholder;
 
     private keyRef = React.createRef<EditableView>();
     private valueRef = React.createRef<EditableView>();
@@ -34,8 +34,36 @@ export default class ImportMetadataEntry extends React.Component<KeyValueProps> 
         return (this.key.length > 0 && this.key !== keyPlaceholder) && (this.value.length > 0 && this.value !== valuePlaceholder);
     }
 
+    @computed
+    private get backing() {
+        return this.props.Document;
+    }
+
+    @computed
     public get onDataDoc() {
-        return this.checkRef.current && this.checkRef.current.checked;
+        return BoolCast(this.backing.checked);
+    }
+
+    public set onDataDoc(value: boolean) {
+        this.backing.checked = value;
+    }
+
+    @computed
+    public get key() {
+        return StrCast(this.backing.key);
+    }
+
+    public set key(value: string) {
+        this.backing.key = value;
+    }
+
+    @computed
+    public get value() {
+        return StrCast(this.backing.value);
+    }
+
+    public set value(value: string) {
+        this.backing.value = value;
     }
 
     @action
@@ -75,10 +103,12 @@ export default class ImportMetadataEntry extends React.Component<KeyValueProps> 
                 }}
             >
                 <input
+                    onChange={e => this.onDataDoc = e.target.checked}
                     ref={this.checkRef}
                     style={{ margin: "0 10px 0 15px" }}
                     type="checkbox"
                     title={"Add to Data Document?"}
+                    checked={this.onDataDoc}
                 />
                 <div className={"key_container"} style={keyValueStyle}>
                     <EditableView

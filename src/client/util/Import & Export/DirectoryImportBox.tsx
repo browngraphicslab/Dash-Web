@@ -1,9 +1,9 @@
 import "fs";
 import React = require("react");
-import { Doc, Opt } from "../../../new_fields/Doc";
+import { Doc, Opt, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
 import { DocServer } from "../../DocServer";
 import { RouteStore } from "../../../server/RouteStore";
-import { action, observable, autorun, runInAction } from "mobx";
+import { action, observable, autorun, runInAction, computed } from "mobx";
 import { FieldViewProps, FieldView } from "../../views/nodes/FieldView";
 import Measure, { ContentRect } from "react-measure";
 import { library } from '@fortawesome/fontawesome-svg-core';
@@ -11,9 +11,13 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowUp, faTag, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { Docs, DocumentOptions } from "../../documents/Documents";
 import { observer } from "mobx-react";
-import ImportMetadataEntry from "./ImportMetadataEntry";
+import ImportMetadataEntry, { keyPlaceholder, valuePlaceholder } from "./ImportMetadataEntry";
 import { Utils } from "../../../Utils";
 import { DocumentManager } from "../DocumentManager";
+import { Id } from "../../../new_fields/FieldSymbols";
+import { List } from "../../../new_fields/List";
+import { Cast, BoolCast, NumCast } from "../../../new_fields/Types";
+import { listSpec } from "../../../new_fields/Schema";
 
 @observer
 export default class DirectoryImportBox extends React.Component<FieldViewProps> {
@@ -22,27 +26,45 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
     @observable private left = 0;
     private dimensions = 50;
 
-    @observable private editingMetadata = false;
-    @observable private metadata_guids: string[] = [];
     @observable private entries: ImportMetadataEntry[] = [];
 
     @observable private quota = 1;
     @observable private remaining = 1;
 
-    @observable private uploadBegun = false;
+    @observable private uploading = false;
     @observable private removeHover = false;
-    @observable private shouldKeep = false;
 
     public static LayoutString() { return FieldView.LayoutString(DirectoryImportBox); }
 
     constructor(props: FieldViewProps) {
         super(props);
         library.add(faArrowUp, faTag, faPlus);
+        let doc = this.props.Document;
+        this.editingMetadata = this.editingMetadata || false;
+        this.persistent = this.persistent || false;
+        !Cast(doc.data, listSpec(Doc)) && (doc.data = new List<Doc>());
     }
 
-    @action
+    @computed
+    private get editingMetadata() {
+        return BoolCast(this.props.Document.editingMetadata);
+    }
+
+    private set editingMetadata(value: boolean) {
+        this.props.Document.editingMetadata = value;
+    }
+
+    @computed
+    private get persistent() {
+        return BoolCast(this.props.Document.persistent);
+    }
+
+    private set persistent(value: boolean) {
+        this.props.Document.persistent = value;
+    }
+
     handleSelection = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        this.uploadBegun = true;
+        runInAction(() => this.uploading = true);
 
         let promises: Promise<void>[] = [];
         let docs: Doc[] = [];
@@ -58,7 +80,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
             file && validated.push(file);
         }
 
-        this.quota = validated.length;
+        runInAction(() => this.quota = validated.length);
 
         for (let uploaded_file of validated) {
             if (!uploaded_file) {
@@ -70,15 +92,14 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
             let dropFileName = uploaded_file ? uploaded_file.name : "-empty-";
             let type = uploaded_file.type;
 
-            this.remaining++;
+            runInAction(() => this.remaining++);
 
             let prom = fetch(DocServer.prepend(RouteStore.upload), {
                 method: 'POST',
                 body: formData
             }).then(async (res: Response) => {
                 (await res.json()).map(action((file: any) => {
-                    let path = DocServer.prepend(file);
-                    let docPromise = Docs.getDocumentFromType(type, path, { nativeWidth: 300, width: 300, title: dropFileName });
+                    let docPromise = Docs.getDocumentFromType(type, DocServer.prepend(file), { nativeWidth: 300, width: 300, title: dropFileName });
                     docPromise.then(doc => {
                         doc && docs.push(doc) && runInAction(() => this.remaining--);
                     });
@@ -97,24 +118,30 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
         });
 
         let doc = this.props.Document;
+        let height: number = NumCast(doc.height) || 0;
+        let offset: number = this.persistent ? (height === 0 ? 0 : height + 30) : 0;
         let options: DocumentOptions = {
             title: `Import of ${directory}`,
             width: 1105,
             height: 500,
-            x: Doc.GetT(doc, "x", "number"),
-            y: Doc.GetT(doc, "y", "number")
+            x: NumCast(doc.x),
+            y: NumCast(doc.y) + offset
         };
         let parent = this.props.ContainingCollectionView;
         if (parent) {
             let importContainer = Docs.StackingDocument(docs, options);
             importContainer.singleColumn = false;
             Doc.AddDocToList(Doc.GetProto(parent.props.Document), "data", importContainer);
-            !this.shouldKeep && this.props.removeDocument && this.props.removeDocument(doc);
+            !this.persistent && this.props.removeDocument && this.props.removeDocument(doc);
             DocumentManager.Instance.jumpToDocument(importContainer, true);
-            this.uploadBegun = false;
+
+        }
+
+        runInAction(() => {
+            this.uploading = false;
             this.quota = 1;
             this.remaining = 1;
-        }
+        });
     }
 
     componentDidMount() {
@@ -134,30 +161,43 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
     }
 
     @action
-    addMetadataEntry = () => {
-        this.metadata_guids.push(Utils.GenerateGuid());
+    addMetadataEntry = async () => {
+        let entryDoc = new Doc();
+        entryDoc.checked = false;
+        entryDoc.key = keyPlaceholder;
+        entryDoc.value = valuePlaceholder;
+        Doc.AddDocToList(this.props.Document, "data", entryDoc);
     }
 
     @action
-    remove = (entry: ImportMetadataEntry) => {
-        let index = this.entries.indexOf(entry);
-        let key = entry.key;
-        this.entries.splice(index, 1);
-        this.metadata_guids.splice(this.metadata_guids.indexOf(key), 1);
+    remove = async (entry: ImportMetadataEntry) => {
+        let metadata = await DocListCastAsync(this.props.Document.data);
+        if (metadata) {
+            let index = this.entries.indexOf(entry);
+            if (index !== -1) {
+                runInAction(() => this.entries.splice(index, 1));
+                index = metadata.indexOf(entry.props.Document);
+                if (index !== -1) {
+                    metadata.splice(index, 1);
+                }
+            }
+
+        }
     }
 
     render() {
         let dimensions = 50;
-        let guids = this.metadata_guids.map(el => el);
+        let entries = DocListCast(this.props.Document.data);
         let isEditing = this.editingMetadata;
         let remaining = this.remaining;
         let quota = this.quota;
-        let percent = `${100 - (remaining / quota * 100)}`;
-        let uploadBegun = this.uploadBegun;
+        let uploading = this.uploading;
         let showRemoveLabel = this.removeHover;
-        let keep = this.shouldKeep;
+        let persistent = this.persistent;
+        let percent = `${100 - (remaining / quota * 100)}`;
         percent = percent.split(".")[0];
         percent = percent.startsWith("100") ? "99" : percent;
+        let marginOffset = (percent.length === 1 ? 5 : 0) - 1.6;
         return (
             <Measure offset onResize={this.preserveCentering}>
                 {({ measureRef }) =>
@@ -192,7 +232,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                                 position: "absolute",
                                 left: this.left + 12.6,
                                 top: this.top + 11,
-                                opacity: uploadBegun ? 0 : 1,
+                                opacity: uploading ? 0 : 1,
                                 transition: "0.4s opacity ease"
                             }}>
                                 <FontAwesomeIcon icon={faArrowUp} color="#FFFFFF" size={"2x"} />
@@ -202,7 +242,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                                     width: 80,
                                     height: 80,
                                     transition: "0.4s opacity ease",
-                                    opacity: uploadBegun ? 0.7 : 0,
+                                    opacity: uploading ? 0.7 : 0,
                                     position: "absolute",
                                     top: this.top - 15,
                                     left: this.left - 15
@@ -211,16 +251,17 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                         </label>
                         <input
                             type={"checkbox"}
-                            onChange={e => runInAction(() => this.shouldKeep = e.target.checked)}
+                            onChange={e => runInAction(() => this.persistent = e.target.checked)}
                             style={{
                                 margin: 0,
                                 position: "absolute",
                                 left: 10,
                                 bottom: 10,
-                                opacity: isEditing ? 0 : 1,
+                                opacity: isEditing || uploading ? 0 : 1,
                                 transition: "0.4s opacity ease",
-                                pointerEvents: isEditing ? "none" : "all"
+                                pointerEvents: isEditing || uploading ? "none" : "all"
                             }}
+                            checked={this.persistent}
                             onPointerEnter={action(() => this.removeHover = true)}
                             onPointerLeave={action(() => this.removeHover = false)}
                         />
@@ -232,18 +273,18 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                                 fontSize: 12,
                                 opacity: showRemoveLabel ? 1 : 0,
                                 transition: "0.4s opacity ease"
-                            }}>Template will be {keep ? "kept" : "removed"} after upload</p>
+                            }}>Template will be <span style={{ textDecoration: "underline", textDecorationColor: persistent ? "green" : "red", color: persistent ? "green" : "red" }}>{persistent ? "kept" : "removed"}</span> after upload</p>
                         <div
                             style={{
                                 transition: "0.4s opacity ease",
-                                opacity: uploadBegun ? 1 : 0,
+                                opacity: uploading ? 1 : 0,
                                 pointerEvents: "none",
                                 position: "absolute",
                                 left: 10,
                                 top: this.top + 12.3,
                                 fontSize: 18,
                                 color: "white",
-                                marginLeft: this.left - 1.6
+                                marginLeft: this.left + marginOffset
                             }}>{percent}%</div>
                         <div
                             style={{
@@ -253,7 +294,10 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                                 borderRadius: "50%",
                                 width: 25,
                                 height: 25,
-                                background: "black"
+                                background: "black",
+                                pointerEvents: uploading ? "none" : "all",
+                                opacity: uploading ? 0 : 1,
+                                transition: "0.4s opacity ease"
                             }}
                             title={isEditing ? "Back to Upload" : "Add Metadata"}
                             onClick={action(() => this.editingMetadata = !this.editingMetadata)}
@@ -263,7 +307,9 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                                 pointerEvents: "none",
                                 position: "absolute",
                                 right: isEditing ? 16.3 : 14.5,
-                                top: isEditing ? 15.4 : 16
+                                top: isEditing ? 15.4 : 16,
+                                opacity: uploading ? 0 : 1,
+                                transition: "0.4s opacity ease"
                             }}
                             icon={isEditing ? faArrowUp : faTag}
                             color="#FFFFFF"
@@ -304,9 +350,10 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                             </div>
                             <p style={{ paddingLeft: 10, paddingTop: 8, paddingBottom: 7 }} >Add metadata to your import...</p>
                             <hr style={{ margin: "6px 10px 12px 10px" }} />
-                            {guids.map(guid =>
+                            {entries.map(doc =>
                                 <ImportMetadataEntry
-                                    key={guid}
+                                    Document={doc}
+                                    key={doc[Id]}
                                     remove={this.remove}
                                     ref={(el) => { if (el) this.entries.push(el); }}
                                     next={this.addMetadataEntry}
