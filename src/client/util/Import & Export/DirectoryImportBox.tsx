@@ -1,6 +1,6 @@
 import "fs";
 import React = require("react");
-import { Doc } from "../../../new_fields/Doc";
+import { Doc, Opt } from "../../../new_fields/Doc";
 import { DocServer } from "../../DocServer";
 import { RouteStore } from "../../../server/RouteStore";
 import { action, observable, autorun, runInAction } from "mobx";
@@ -11,7 +11,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowUp, faTag, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { Docs, DocumentOptions } from "../../documents/Documents";
 import { observer } from "mobx-react";
-import KeyValue from "./KeyValue";
+import ImportMetadataEntry from "./ImportMetadataEntry";
 import { Utils } from "../../../Utils";
 import { DocumentManager } from "../DocumentManager";
 
@@ -24,12 +24,14 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
 
     @observable private editingMetadata = false;
     @observable private metadata_guids: string[] = [];
-    @observable private entries: KeyValue[] = [];
+    @observable private entries: ImportMetadataEntry[] = [];
 
     @observable private quota = 1;
     @observable private remaining = 1;
 
     @observable private uploadBegun = false;
+    @observable private removeHover = false;
+    @observable private shouldKeep = false;
 
     public static LayoutString() { return FieldView.LayoutString(DirectoryImportBox); }
 
@@ -87,7 +89,12 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
 
         await Promise.all(promises);
 
-        docs.forEach(doc => this.entries.forEach(entry => doc[entry.key] = entry.value));
+        docs.forEach(doc => {
+            this.entries.forEach(entry => {
+                let target = entry.onDataDoc ? Doc.GetProto(doc) : doc;
+                target[entry.key] = entry.value;
+            });
+        });
 
         let doc = this.props.Document;
         let options: DocumentOptions = {
@@ -102,8 +109,11 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
             let importContainer = Docs.StackingDocument(docs, options);
             importContainer.singleColumn = false;
             Doc.AddDocToList(Doc.GetProto(parent.props.Document), "data", importContainer);
-            this.props.removeDocument && this.props.removeDocument(doc);
+            !this.shouldKeep && this.props.removeDocument && this.props.removeDocument(doc);
             DocumentManager.Instance.jumpToDocument(importContainer, true);
+            this.uploadBegun = false;
+            this.quota = 1;
+            this.remaining = 1;
         }
     }
 
@@ -129,7 +139,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
     }
 
     @action
-    remove = (entry: KeyValue) => {
+    remove = (entry: ImportMetadataEntry) => {
         let index = this.entries.indexOf(entry);
         let key = entry.key;
         this.entries.splice(index, 1);
@@ -144,6 +154,8 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
         let quota = this.quota;
         let percent = `${100 - (remaining / quota * 100)}`;
         let uploadBegun = this.uploadBegun;
+        let showRemoveLabel = this.removeHover;
+        let keep = this.shouldKeep;
         percent = percent.split(".")[0];
         percent = percent.startsWith("100") ? "99" : percent;
         return (
@@ -197,6 +209,30 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                                 }}
                                 src={"/assets/loading.gif"}></img>
                         </label>
+                        <input
+                            type={"checkbox"}
+                            onChange={e => runInAction(() => this.shouldKeep = e.target.checked)}
+                            style={{
+                                margin: 0,
+                                position: "absolute",
+                                left: 10,
+                                bottom: 10,
+                                opacity: isEditing ? 0 : 1,
+                                transition: "0.4s opacity ease",
+                                pointerEvents: isEditing ? "none" : "all"
+                            }}
+                            onPointerEnter={action(() => this.removeHover = true)}
+                            onPointerLeave={action(() => this.removeHover = false)}
+                        />
+                        <p
+                            style={{
+                                position: "absolute",
+                                left: 27,
+                                bottom: 8.4,
+                                fontSize: 12,
+                                opacity: showRemoveLabel ? 1 : 0,
+                                transition: "0.4s opacity ease"
+                            }}>Template will be {keep ? "kept" : "removed"} after upload</p>
                         <div
                             style={{
                                 transition: "0.4s opacity ease",
@@ -219,6 +255,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                                 height: 25,
                                 background: "black"
                             }}
+                            title={isEditing ? "Back to Upload" : "Add Metadata"}
                             onClick={action(() => this.editingMetadata = !this.editingMetadata)}
                         />
                         <FontAwesomeIcon
@@ -252,6 +289,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                                     right: 41,
                                     top: 10
                                 }}
+                                title={"Add Metadata Entry"}
                                 onClick={this.addMetadataEntry}
                             >
                                 <FontAwesomeIcon
@@ -266,7 +304,14 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                             </div>
                             <p style={{ paddingLeft: 10, paddingTop: 8, paddingBottom: 7 }} >Add metadata to your import...</p>
                             <hr style={{ margin: "6px 10px 12px 10px" }} />
-                            {guids.map(guid => <KeyValue remove={this.remove} key={guid} ref={(el) => { if (el) this.entries.push(el); }} />)}
+                            {guids.map(guid =>
+                                <ImportMetadataEntry
+                                    key={guid}
+                                    remove={this.remove}
+                                    ref={(el) => { if (el) this.entries.push(el); }}
+                                    next={this.addMetadataEntry}
+                                />
+                            )}
                         </div>
                     </div>
                 }
