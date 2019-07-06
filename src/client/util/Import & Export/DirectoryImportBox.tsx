@@ -19,6 +19,8 @@ import { List } from "../../../new_fields/List";
 import { Cast, BoolCast, NumCast } from "../../../new_fields/Types";
 import { listSpec } from "../../../new_fields/Schema";
 
+const unsupported = ["text/html", "text/plain"];
+
 @observer
 export default class DirectoryImportBox extends React.Component<FieldViewProps> {
     private selector = React.createRef<HTMLInputElement>();
@@ -77,20 +79,23 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
         let validated: File[] = [];
         for (let i = 0; i < files.length; i++) {
             let file = files.item(i);
-            file && validated.push(file);
+            console.log(file);
+            file && !unsupported.includes(file.type) && validated.push(file);
         }
 
         runInAction(() => this.quota = validated.length);
 
-        for (let uploaded_file of validated) {
-            if (!uploaded_file) {
-                continue;
-            }
+        let sizes = [];
+        let modifiedDates = [];
 
+        for (let uploaded_file of validated) {
             let formData = new FormData();
             formData.append('file', uploaded_file);
             let dropFileName = uploaded_file ? uploaded_file.name : "-empty-";
             let type = uploaded_file.type;
+
+            sizes.push(uploaded_file.size);
+            modifiedDates.push(uploaded_file.lastModified);
 
             runInAction(() => this.remaining++);
 
@@ -99,6 +104,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                 body: formData
             }).then(async (res: Response) => {
                 (await res.json()).map(action((file: any) => {
+                    console.log(file);
                     let docPromise = Docs.getDocumentFromType(type, DocServer.prepend(file), { nativeWidth: 300, width: 300, title: dropFileName });
                     docPromise.then(doc => {
                         doc && docs.push(doc) && runInAction(() => this.remaining--);
@@ -110,12 +116,15 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
 
         await Promise.all(promises);
 
-        docs.forEach(doc => {
+        for (let i = 0; i < docs.length; i++) {
+            let doc = docs[i];
+            doc.size = sizes[i];
+            doc.modified = modifiedDates[i];
             this.entries.forEach(entry => {
                 let target = entry.onDataDoc ? Doc.GetProto(doc) : doc;
                 target[entry.key] = entry.value;
             });
-        });
+        }
 
         let doc = this.props.Document;
         let height: number = NumCast(doc.height) || 0;
