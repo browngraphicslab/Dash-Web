@@ -56,13 +56,8 @@ export class CurrentUserUtils {
             recentlyClosed.excludeFromLibrary = true;
             doc.recentlyClosed = recentlyClosed;
         }
-        if (doc.fakeLibrary === undefined) {
-            const recentlyClosed = Docs.TreeDocument([], { title: "Fake Library", height: 200 });
-            recentlyClosed.excludeFromLibrary = true;
-            doc.fakeLibrary = recentlyClosed;
-        }
         if (doc.sidebar === undefined) {
-            const sidebar = Docs.StackingDocument([doc.workspaces as Doc, doc.fakeLibrary as Doc, doc.recentlyClosed as Doc], { title: "Sidebar" });
+            const sidebar = Docs.StackingDocument([doc.workspaces as Doc, doc, doc.recentlyClosed as Doc], { title: "Sidebar" });
             sidebar.excludeFromLibrary = true;
             sidebar.gridGap = 5;
             sidebar.xMargin = 5;

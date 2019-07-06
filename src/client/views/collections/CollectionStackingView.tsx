@@ -1,6 +1,6 @@
 import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, IReactionDisposer, reaction } from "mobx";
+import { action, computed, IReactionDisposer, reaction, untracked } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, HeightSym, WidthSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
@@ -37,10 +37,9 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             () => {
                 if (this.singleColumn) {
                     let children = this.childDocs.filter(d => !d.isMinimized);
-                    let hgtbefore = this.props.Document.height;
-                    // this.props.Document.height = children.reduce((height, d, i) =>
-                    //     height + this.singleColDocHeight(d) + (i === children.length - 1 ? this.yMargin : this.gridGap)
-                    //     , this.yMargin);
+                    this.props.Document.height = children.reduce((height, d, i) =>
+                        height + this.singleColDocHeight(d) + (i === children.length - 1 ? this.yMargin : this.gridGap)
+                        , this.yMargin);
                 }
             }, { fireImmediately: true });
     }
@@ -54,10 +53,12 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         addDocument(doc);
         return true;
     }
-    getDocTransform(doc: Doc, dref: HTMLDivElement) {
-        let { scale, translateX, translateY } = Utils.GetScreenTransform(dref);
+    getDocTransform(doc: Doc, ind: number, width: number) {
+        let localY = this.childDocs.filter(d => !d.isMinimized).reduce((height, d, i) =>
+            height + (i < ind ? this.singleColDocHeight(d) + this.gridGap : 0), this.yMargin);
+        let translate = this.props.ScreenToLocalTransform().inverse().transformPoint((this.props.PanelWidth() - width) / 2, localY);
         let outerXf = Utils.GetScreenTransform(this._masonryGridRef!);
-        let offset = this.props.ScreenToLocalTransform().transformDirection(outerXf.translateX - translateX, outerXf.translateY - translateY);
+        let offset = this.props.ScreenToLocalTransform().transformDirection(outerXf.translateX - translate[0], outerXf.translateY - translate[1]);
         return this.props.ScreenToLocalTransform().translate(offset[0], offset[1]).scale(NumCast(doc.width, 1) / this.columnWidth);
     }
     createRef = (ele: HTMLDivElement | null) => {
@@ -70,13 +71,11 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         let children = this.childDocs.filter(d => !d.isMinimized);
         return children.map((d, i) => {
             let layoutDoc = Doc.expandTemplateLayout(d, this.props.DataDoc);
-            let dref = React.createRef<HTMLDivElement>();
-            let dxf = () => this.getDocTransform(layoutDoc, dref.current!).scale(this.columnWidth / d[WidthSym]());
             let width = () => d.nativeWidth ? Math.min(d[WidthSym](), this.columnWidth) : this.columnWidth;
             let height = () => this.singleColDocHeight(layoutDoc);
+            let dxf = () => this.getDocTransform(layoutDoc, i, width()).scale(this.columnWidth / d[WidthSym]());
             return <div className="collectionStackingView-columnDoc"
                 key={d[Id]}
-                ref={dref}
                 style={{ width: width(), height: height() }} >
                 <CollectionSchemaPreview
                     Document={layoutDoc}

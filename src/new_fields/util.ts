@@ -12,7 +12,7 @@ function _readOnlySetter(): never {
     throw new Error("Documents can't be modified in read-only mode");
 }
 const _setterImpl = action(function (target: any, prop: string | symbol | number, value: any, receiver: any): boolean {
-    console.log("-set " + target[SelfProxy].title + "(" + target[SelfProxy][prop] + ")." + prop.toString() + " = " + value);
+    //console.log("-set " + target[SelfProxy].title + "(" + target[SelfProxy][prop] + ")." + prop.toString() + " = " + value);
     if (SerializationHelper.IsSerializing()) {
         target[prop] = value;
         return true;
