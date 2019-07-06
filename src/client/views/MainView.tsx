@@ -80,7 +80,7 @@ export class MainView extends React.Component {
             if (!(workspaces instanceof Doc)) return 0;
             let workspacesDoc = workspaces;
             let recentDoc = recent;
-            let libraryHeight = this.getPHeight() - workspacesDoc[HeightSym]() - recentDoc[HeightSym]() + CurrentUserUtils.UserDocument[HeightSym]() * 0.00001;
+            let libraryHeight = this.getPHeight() - workspacesDoc[HeightSym]() - recentDoc[HeightSym]() - 20 + CurrentUserUtils.UserDocument[HeightSym]() * 0.00001;
             return libraryHeight;
         }, (libraryHeight: number) => {
             if (libraryHeight && Math.abs(CurrentUserUtils.UserDocument[HeightSym]() - libraryHeight) > 5) {
