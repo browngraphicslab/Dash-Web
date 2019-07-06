@@ -1,7 +1,7 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
 import { faArrowDown, faArrowUp, faBell, faCheck, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faThumbtack, faTree, faUndoAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, configure, observable, runInAction } from 'mobx';
+import { action, computed, configure, observable, runInAction, reaction } from 'mobx';
 import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
@@ -72,6 +72,31 @@ export class MainView extends React.Component {
 
         window.removeEventListener("pointerup", this.pointerUp);
         window.addEventListener("pointerup", this.pointerUp);
+
+        reaction(() => {
+            let workspaces = CurrentUserUtils.UserDocument.workspaces;
+            let recent = CurrentUserUtils.UserDocument.recentlyClosed;
+            let fakeLibrary = CurrentUserUtils.UserDocument.fakeLibrary;
+            if (!(recent instanceof Doc)) return 0;
+            if (!(workspaces instanceof Doc)) return 0;
+            if (!(fakeLibrary instanceof Doc)) return 0;
+            let workspacesDoc = workspaces;
+            let recentDoc = recent;
+            let fakeLibraryDoc = fakeLibrary;
+            // console.log("pheight = " + this.getPHeight() + " " + workspacesDoc[HeightSym]() + " " + recentDoc[HeightSym]());
+            let libraryHeight = this.getPHeight() - workspacesDoc[HeightSym]() - recentDoc[HeightSym]();
+            return libraryHeight;
+        }, (libraryHeight: number) => {
+            let fakeLibrary = CurrentUserUtils.UserDocument.fakeLibrary;
+            let cuser: Doc = fakeLibrary as Doc;//CurrentUserUtils.UserDocument;
+            console.log("BEFORE:" + cuser.title + ".height =" + cuser[HeightSym]() + "& .plight = " + cuser.plight);
+            if (libraryHeight && Math.abs(cuser[HeightSym]() - libraryHeight) > 5) {
+                console.log("ASSIGN to height & plight:" + libraryHeight);
+                cuser.height = libraryHeight;
+                cuser.plight = libraryHeight;
+            }
+            console.log("AFTER:" + cuser.title + ".height =" + cuser[HeightSym]() + "& .plight= " + cuser.plight);
+        }, { fireImmediately: true });
     }
 
     pointerDown = (e: PointerEvent) => this.isPointerDown = true;
@@ -285,24 +310,18 @@ export class MainView extends React.Component {
             CollectionDockingView.Instance.AddRightSplit(doc, undefined);
         }
     };
+    computing = false;
     @computed
     get flyout() {
         let sidebar = CurrentUserUtils.UserDocument.sidebar;
         let workspaces = CurrentUserUtils.UserDocument.workspaces;
         let recent = CurrentUserUtils.UserDocument.recentlyClosed;
+        let fakeLibrary = CurrentUserUtils.UserDocument.fakeLibrary;
         if (!(sidebar instanceof Doc)) return (null);
         if (!(recent instanceof Doc)) return (null);
         if (!(workspaces instanceof Doc)) return (null);
-        let workspacesDoc = workspaces;
+        if (!(fakeLibrary instanceof Doc)) return (null);
         let sidebarDoc = sidebar;
-        let recentDoc = recent;
-        let library = CurrentUserUtils.UserDocument;
-        let gridGap = NumCast(sidebar.gridGap, 10);
-        let yMargin = NumCast(sidebar.yMargin, 2 * gridGap);
-        let libraryHeight = this.getPHeight() - workspacesDoc[HeightSym]() - recentDoc[HeightSym]() - 2 * gridGap - 2 * yMargin;
-        if (Math.abs(library[HeightSym]() - libraryHeight) > 25) {
-            setTimeout(() => CurrentUserUtils.UserDocument.height = libraryHeight, 0);
-        }
         return <DocumentView
             Document={sidebarDoc}
             DataDoc={undefined}

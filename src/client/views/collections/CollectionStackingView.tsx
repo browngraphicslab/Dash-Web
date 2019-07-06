@@ -10,7 +10,6 @@ import { ContextMenu } from "../ContextMenu";
 import { CollectionSchemaPreview } from "./CollectionSchemaView";
 import "./CollectionStackingView.scss";
 import { CollectionSubView } from "./CollectionSubView";
-import { resolve } from "bluebird";
 import { undoBatch } from "../../util/UndoManager";
 import { DragManager } from "../../util/DragManager";
 
@@ -38,9 +37,10 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             () => {
                 if (this.singleColumn) {
                     let children = this.childDocs.filter(d => !d.isMinimized);
-                    this.props.Document.height = children.reduce((height, d, i) =>
-                        height + this.singleColDocHeight(d) + (i === children.length - 1 ? this.yMargin : this.gridGap)
-                        , this.yMargin);
+                    let hgtbefore = this.props.Document.height;
+                    // this.props.Document.height = children.reduce((height, d, i) =>
+                    //     height + this.singleColDocHeight(d) + (i === children.length - 1 ? this.yMargin : this.gridGap)
+                    //     , this.yMargin);
                 }
             }, { fireImmediately: true });
     }

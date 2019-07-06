@@ -2,7 +2,6 @@ import { UndoManager } from "../client/util/UndoManager";
 import { Doc, Field } from "./Doc";
 import { SerializationHelper } from "../client/util/SerializationHelper";
 import { ProxyField } from "./Proxy";
-import { FieldValue } from "./Types";
 import { RefField } from "./RefField";
 import { ObjectField } from "./ObjectField";
 import { action } from "mobx";
@@ -13,6 +12,7 @@ function _readOnlySetter(): never {
     throw new Error("Documents can't be modified in read-only mode");
 }
 const _setterImpl = action(function (target: any, prop: string | symbol | number, value: any, receiver: any): boolean {
+    console.log("-set " + target[SelfProxy].title + "(" + target[SelfProxy][prop] + ")." + prop.toString() + " = " + value);
     if (SerializationHelper.IsSerializing()) {
         target[prop] = value;
         return true;

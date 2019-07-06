@@ -564,8 +564,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         });
     }
 
-    onPointerEnter = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = true; };
-    onPointerLeave = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = false; };
+    onPointerEnter = (e: React.PointerEvent): void => { }//this.props.Document.libraryBrush = true; };
+    onPointerLeave = (e: React.PointerEvent): void => { }//this.props.Document.libraryBrush = false; };
 
     isSelected = () => SelectionManager.IsSelected(this);
     @action select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); };
