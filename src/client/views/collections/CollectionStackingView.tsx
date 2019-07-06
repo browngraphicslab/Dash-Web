@@ -187,14 +187,14 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             })
         }
         if (super.drop(e, de)) {
-            if (targInd !== -1) {
-                let newDoc = de.data.droppedDocuments[0];
-                let docs = this.childDocList;
-                if (docs) {
-                    let srcInd = docs.indexOf(newDoc);
-                    docs.splice(srcInd, 1);
-                    docs.splice(targInd > srcInd ? targInd - 1 : targInd, 0, newDoc);
-                }
+            let newDoc = de.data.droppedDocuments[0];
+            let docs = this.childDocList;
+            if (docs) {
+                if (targInd === -1) targInd = docs.length;
+                else targInd = docs.indexOf(this.filteredChildren[targInd]);
+                let srcInd = docs.indexOf(newDoc);
+                docs.splice(srcInd, 1);
+                docs.splice(targInd > srcInd ? targInd - 1 : targInd, 0, newDoc);
             }
         }
         return false;
