@@ -18,13 +18,14 @@ export class Search {
         }
     }
 
-    public async search(query: string, start: number = 0) {
+    public async search(query: string, start: number = 0, rows: number = 10) {
         try {
             const searchResults = JSON.parse(await rp.get(this.url + "dash/select", {
                 qs: {
                     q: query,
                     fl: "id",
-                    start: start
+                    start,
+                    rows,
                 }
             }));
             const { docs, numFound } = searchResults.response;
