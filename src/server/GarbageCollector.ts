@@ -32,6 +32,18 @@ function addDoc(doc: any, ids: string[], files: { [name: string]: string[] }) {
                     ids.push(split[split.length - 1]);
                 }
             }
+            const re2 = /"src"\s*:\s*"(.*?)"/g;
+            while ((match = re2.exec(field.Data)) !== null) {
+                const urlString = match[1];
+                const pathname = new URL(urlString).pathname;
+                const ext = path.extname(pathname);
+                const fileName = path.basename(pathname, ext);
+                let exts = files[fileName];
+                if (!exts) {
+                    files[fileName] = exts = [];
+                }
+                exts.push(ext);
+            }
         } else if (["audio", "image", "video", "pdf", "web"].includes(field.__type)) {
             const url = new URL(field.url);
             const pathname = url.pathname;
