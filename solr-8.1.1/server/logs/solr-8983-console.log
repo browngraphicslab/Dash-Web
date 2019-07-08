@@ -1,13 +1,13 @@
-2019-07-05 17:17:37.100 INFO  (main) [   ] o.e.j.u.log Logging initialized @1218ms to org.eclipse.jetty.util.log.Slf4jLog
-2019-07-05 17:17:37.271 WARN  (main) [   ] o.e.j.s.AbstractConnector Ignoring deprecated socket close linger time
-2019-07-05 17:17:37.276 INFO  (main) [   ] o.e.j.s.Server jetty-9.4.14.v20181114; built: 2018-11-14T21:20:31.478Z; git: c4550056e785fb5665914545889f21dc136ad9e6; jvm 1.8.0_161-b12
-2019-07-05 17:17:37.302 INFO  (main) [   ] o.e.j.d.p.ScanningAppProvider Deployment monitor [file:///C:/Users/GFX%20lab/Desktop/AB_Documents/Dash%20Web/Dash-Web/solr-8.1.1/server/contexts/] at interval 0
-2019-07-05 17:17:37.877 INFO  (main) [   ] o.e.j.w.StandardDescriptorProcessor NO JSP Support for /solr, did not find org.apache.jasper.servlet.JspServlet
-2019-07-05 17:17:37.886 INFO  (main) [   ] o.e.j.s.session DefaultSessionIdManager workerName=node0
-2019-07-05 17:17:37.886 INFO  (main) [   ] o.e.j.s.session No SessionScavenger set, using defaults
-2019-07-05 17:17:37.889 INFO  (main) [   ] o.e.j.s.session node0 Scavenging every 600000ms
-2019-07-05 17:17:37.963 INFO  (main) [   ] o.a.s.s.SolrDispatchFilter Using logger factory org.apache.logging.slf4j.Log4jLoggerFactory
-2019-07-05 17:17:37.970 INFO  (main) [   ] o.a.s.s.SolrDispatchFilter  ___      _       Welcome to Apache Solr™ version 8.1.1
-2019-07-05 17:17:37.970 INFO  (main) [   ] o.a.s.s.SolrDispatchFilter / __| ___| |_ _   Starting in standalone mode on port 8983
-2019-07-05 17:17:37.970 INFO  (main) [   ] o.a.s.s.SolrDispatchFilter \__ \/ _ \ | '_|  Install dir: C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1
-2019-07-05 17:17:37.972 INFO  (main) [   ] o.a.s.s.SolrDispatchFilter |___/\___/_|_|    Start time: 2019-07-05T17:17:37.972Z
+2019-07-08 14:20:39.219 INFO  (main) [   ] o.e.j.u.log Logging initialized @4580ms to org.eclipse.jetty.util.log.Slf4jLog
+2019-07-08 14:20:39.417 WARN  (main) [   ] o.e.j.s.AbstractConnector Ignoring deprecated socket close linger time
+2019-07-08 14:20:39.424 INFO  (main) [   ] o.e.j.s.Server jetty-9.4.14.v20181114; built: 2018-11-14T21:20:31.478Z; git: c4550056e785fb5665914545889f21dc136ad9e6; jvm 1.8.0_161-b12
+2019-07-08 14:20:39.447 INFO  (main) [   ] o.e.j.d.p.ScanningAppProvider Deployment monitor [file:///C:/Users/GFX%20lab/Desktop/AB_Documents/Dash%20Web/Dash-Web/solr-8.1.1/server/contexts/] at interval 0
+2019-07-08 14:20:44.363 INFO  (main) [   ] o.e.j.w.StandardDescriptorProcessor NO JSP Support for /solr, did not find org.apache.jasper.servlet.JspServlet
+2019-07-08 14:20:44.371 INFO  (main) [   ] o.e.j.s.session DefaultSessionIdManager workerName=node0
+2019-07-08 14:20:44.371 INFO  (main) [   ] o.e.j.s.session No SessionScavenger set, using defaults
+2019-07-08 14:20:44.373 INFO  (main) [   ] o.e.j.s.session node0 Scavenging every 660000ms
+2019-07-08 14:20:44.462 INFO  (main) [   ] o.a.s.s.SolrDispatchFilter Using logger factory org.apache.logging.slf4j.Log4jLoggerFactory
+2019-07-08 14:20:44.469 INFO  (main) [   ] o.a.s.s.SolrDispatchFilter  ___      _       Welcome to Apache Solr™ version 8.1.1
+2019-07-08 14:20:44.469 INFO  (main) [   ] o.a.s.s.SolrDispatchFilter / __| ___| |_ _   Starting in standalone mode on port 8983
+2019-07-08 14:20:44.469 INFO  (main) [   ] o.a.s.s.SolrDispatchFilter \__ \/ _ \ | '_|  Install dir: C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1
+2019-07-08 14:20:44.470 INFO  (main) [   ] o.a.s.s.SolrDispatchFilter |___/\___/_|_|    Start time: 2019-07-08T14:20:44.470Z

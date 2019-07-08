@@ -160,7 +160,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     public unhighlightSearchTerms = () => {
-        if (this._editorView) {
+        if (this._editorView && (this._editorView as any).docView) {
             const doc = this._editorView.state.doc;
             const mark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight);
             doc.nodesBetween(0, doc.content.size, (node: ProsNode, pos: number, parent: ProsNode, index: number) => {
