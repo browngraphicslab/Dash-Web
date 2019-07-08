@@ -53,6 +53,11 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             //This linter error can't be fixed because of how js arguments work, so don't switch this to filter(FieldValue)
             return DocListCast((BoolCast(this.props.Document.isTemplate) ? this.extensionDoc : this.props.Document)[this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey]);
         }
+        get childDocList() {
+            //TODO tfs: This might not be what we want?
+            //This linter error can't be fixed because of how js arguments work, so don't switch this to filter(FieldValue)
+            return Cast((BoolCast(this.props.Document.isTemplate) ? this.extensionDoc : this.props.Document)[this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey], listSpec(Doc));
+        }
 
         @action
         protected async setCursorPosition(position: [number, number]) {
@@ -97,6 +102,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 return added;
             }
             else if (de.data instanceof DragManager.AnnotationDragData) {
+                e.stopPropagation();
                 return this.props.addDocument(de.data.dropDocument);
             }
             return false;
@@ -104,7 +110,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
 
         @undoBatch
         @action
-        protected onDrop(e: React.DragEvent, options: DocumentOptions): void {
+        protected onDrop(e: React.DragEvent, options: DocumentOptions, completed?: () => void) {
             if (e.ctrlKey) {
                 e.stopPropagation(); // bcz: this is a hack to stop propagation when dropping an image on a text document with shift+ctrl
                 return;
@@ -213,7 +219,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             }
 
             if (promises.length) {
-                Promise.all(promises).finally(() => batch.end());
+                Promise.all(promises).finally(() => { completed && completed(); batch.end(); });
             } else {
                 batch.end();
             }

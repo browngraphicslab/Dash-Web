@@ -73,7 +73,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                 if (de.mods === "AltKey" && /*this.dataDoc !== this.props.Document &&*/ drop.data instanceof ImageField) {
                     Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new ImageField(drop.data.url);
                     e.stopPropagation();
-                } else {
+                } else if (de.mods === "CtrlKey") {
                     if (this.extensionDoc !== this.dataDoc) {
                         let layout = StrCast(drop.backgroundLayout);
                         if (layout.indexOf(ImageBox.name) !== -1) {
@@ -182,7 +182,8 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
             return url.href;
         }
         let ext = path.extname(url.href);
-        return url.href.replace(ext, this._curSuffix + ext);
+        const suffix = this.props.renderDepth <= 1 ? "_o" : this._curSuffix;
+        return url.href.replace(ext, suffix + ext);
     }
 
     @observable _smallRetryCount = 1;
@@ -205,6 +206,8 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         requestImageSize(window.origin + RouteStore.corsProxy + "/" + srcpath)
             .then((size: any) => {
                 let aspect = size.height / size.width;
+                let rotation = NumCast(this.dataDoc.rotation) % 180;
+                if (rotation === 90 || rotation === 270) aspect = 1 / aspect;
                 if (Math.abs(layoutdoc[HeightSym]() / layoutdoc[WidthSym]() - aspect) > 0.01) {
                     setTimeout(action(() => {
                         layoutdoc.height = layoutdoc[WidthSym]() * aspect;

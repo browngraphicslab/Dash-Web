@@ -1,5 +1,5 @@
 import { ObjectField } from "./ObjectField";
-import { CompiledScript, CompileScript } from "../client/util/Scripting";
+import { CompiledScript, CompileScript, scriptingGlobal } from "../client/util/Scripting";
 import { Copy, ToScriptString, Parent, SelfProxy } from "./FieldSymbols";
 import { serializable, createSimpleSchema, map, primitive, object, deserialize, PropSchema, custom, SKIP } from "serializr";
 import { Deserializable } from "../client/util/SerializationHelper";
@@ -40,6 +40,7 @@ function deserializeScript(script: ScriptField) {
     (script as any).script = comp;
 }
 
+@scriptingGlobal
 @Deserializable("script", deserializeScript)
 export class ScriptField extends ObjectField {
     @serializable(object(scriptSchema))
@@ -81,6 +82,7 @@ export class ScriptField extends ObjectField {
     }
 }
 
+@scriptingGlobal
 @Deserializable("computed", deserializeScript)
 export class ComputedField extends ScriptField {
     //TODO maybe add an observable cache based on what is passed in for doc, considering there shouldn't really be that many possible values for doc

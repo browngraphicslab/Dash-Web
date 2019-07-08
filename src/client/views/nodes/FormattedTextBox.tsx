@@ -97,6 +97,15 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         return "";
     }
 
+    @undoBatch
+    public setFontColor(color: string) {
+        if (this._editorView!.state.selection.from === this._editorView!.state.selection.to) return false;
+        let colorMark = this._editorView!.state.schema.mark(this._editorView!.state.schema.marks.pFontColor, { color: color });
+        this._editorView!.dispatch(this._editorView!.state.tr.addMark(this._editorView!.state.selection.from,
+            this._editorView!.state.selection.to, colorMark));
+        return true;
+    }
+
     constructor(props: FieldViewProps) {
         super(props);
         if (this.props.outer_div) {
@@ -211,7 +220,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 const field = this.dataDoc ? Cast(this.dataDoc[this.props.fieldKey], RichTextField) : undefined;
                 return field ? field.Data : `{"doc":{"type":"doc","content":[]},"selection":{"type":"text","anchor":0,"head":0}}`;
             },
-            field => this._editorView && !this._applyingChange && this.props.Document[this.props.fieldKey] instanceof RichTextField &&
+            field => this._editorView && !this._applyingChange &&
                 this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field)))
         );
         this.setupEditor(config, this.dataDoc, this.props.fieldKey);
@@ -418,7 +427,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
     render() {
         let style = this.props.isOverlay ? "scroll" : "hidden";
-        let rounded = NumCast(this.props.Document.borderRounding) < 0 ? "-rounded" : "";
+        let rounded = StrCast(this.props.Document.borderRounding) === "100%" ? "-rounded" : "";
         let interactive = InkingControl.Instance.selectedTool ? "" : "interactive";
         return (
             <div className={`formattedTextBox-cont-${style}`} ref={this._ref}

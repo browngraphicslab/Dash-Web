@@ -152,7 +152,7 @@ export default class Page extends React.Component<IPageProps> {
      * start a drag event and create or put the necessary info into the drag event.
      */
     @action
-    startDrag = (e: PointerEvent): void => {
+    startDrag = (e: PointerEvent, ele: HTMLDivElement): void => {
         e.preventDefault();
         e.stopPropagation();
         let thisDoc = this.props.parent.Document;
@@ -163,7 +163,7 @@ export default class Page extends React.Component<IPageProps> {
         // create dragData and star tdrag
         let dragData = new DragManager.AnnotationDragData(thisDoc, annotationDoc, targetDoc);
         if (this._textLayer.current) {
-            DragManager.StartAnnotationDrag([this._textLayer.current], dragData, e.pageX, e.pageY, {
+            DragManager.StartAnnotationDrag([ele], dragData, e.pageX, e.pageY, {
                 handlers: {
                     dragComplete: emptyFunction,
                 },

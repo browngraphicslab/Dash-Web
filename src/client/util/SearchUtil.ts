@@ -29,16 +29,39 @@ export namespace SearchUtil {
         return { docs, numFound };
     }
 
-    export async function GetAliasesOfDocument(doc: Doc): Promise<Doc[]> {
-        const proto = await Doc.GetT(doc, "proto", Doc, true);
-        const protoId = (proto || doc)[Id];
-        const result = await Search(`proto_i:"${protoId}"`, true);
-        return result.docs;
+    export async function GetAliasesOfDocument(doc: Doc): Promise<Doc[]>;
+    export async function GetAliasesOfDocument(doc: Doc, returnDocs: false): Promise<string[]>;
+    export async function GetAliasesOfDocument(doc: Doc, returnDocs = true): Promise<Doc[] | string[]> {
+        const proto = Doc.GetProto(doc);
+        const protoId = proto[Id];
+        if (returnDocs) {
+            return (await Search(`proto_i:"${protoId}"`, returnDocs)).docs;
+        } else {
+            return (await Search(`proto_i:"${protoId}"`, returnDocs)).ids;
+        }
         // return Search(`{!join from=id to=proto_i}id:${protoId}`, true);
     }
 
     export async function GetViewsOfDocument(doc: Doc): Promise<Doc[]> {
         const results = await Search(`proto_i:"${doc[Id]}"`, true);
         return results.docs;
+    }
+
+    export async function GetContextsOfDocument(doc: Doc): Promise<{ contexts: Doc[], aliasContexts: Doc[] }> {
+        const docContexts = (await Search(`data_l:"${doc[Id]}"`, true)).docs;
+        const aliases = await GetAliasesOfDocument(doc, false);
+        const aliasContexts = (await Promise.all(aliases.map(doc => Search(`data_l:"${doc}"`, true))));
+        const contexts = { contexts: docContexts, aliasContexts: [] as Doc[] };
+        aliasContexts.forEach(result => contexts.aliasContexts.push(...result.docs));
+        return contexts;
+    }
+
+    export async function GetContextIdsOfDocument(doc: Doc): Promise<{ contexts: string[], aliasContexts: string[] }> {
+        const docContexts = (await Search(`data_l:"${doc[Id]}"`, false)).ids;
+        const aliases = await GetAliasesOfDocument(doc, false);
+        const aliasContexts = (await Promise.all(aliases.map(doc => Search(`data_l:"${doc}"`, false))));
+        const contexts = { contexts: docContexts, aliasContexts: [] as string[] };
+        aliasContexts.forEach(result => contexts.aliasContexts.push(...result.ids));
+        return contexts;
     }
 }

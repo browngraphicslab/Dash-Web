@@ -44,14 +44,12 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     _commandExecuted = false;
 
     @action
-    cleanupInteractions = (all: boolean = false, rem_keydown: boolean = true) => {
+    cleanupInteractions = (all: boolean = false) => {
         if (all) {
             document.removeEventListener("pointerup", this.onPointerUp, true);
             document.removeEventListener("pointermove", this.onPointerMove, true);
         }
-        if (rem_keydown) {
-            document.removeEventListener("keydown", this.marqueeCommand, true);
-        }
+        document.removeEventListener("keydown", this.marqueeCommand, true);
         this._visible = false;
     }
 
@@ -191,12 +189,9 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 SelectionManager.DeselectAll(mselect.length ? undefined : this.props.container.props.Document);
             }
             this.props.selectDocuments(mselect.length ? mselect : [this.props.container.props.Document]);
-            mselect.length ? this.cleanupInteractions(true, false) : this.cleanupInteractions(true);
         }
-        else {
-            //console.log("invisible");
-            this.cleanupInteractions(true);
-        }
+        //console.log("invisible");
+        this.cleanupInteractions(true);
 
         if (e.altKey) {
             e.preventDefault();
@@ -248,7 +243,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             this.cleanupInteractions(false);
             e.stopPropagation();
         }
-        if (e.key === "c" || e.key === "s" || e.key === "S" || e.key === "e" || e.key === "p") {
+        if (e.key === "c" || e.key === "s" || e.key === "S" || e.key === "e") {
             this._commandExecuted = true;
             e.stopPropagation();
             e.preventDefault();
@@ -266,18 +261,17 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             }
             let ink = Cast(this.props.container.props.Document.ink, InkField);
             let inkData = ink ? ink.inkData : undefined;
-            let zoomBasis = NumCast(this.props.container.props.Document.scale, 1);
             let newCollection = Docs.FreeformDocument(selected, {
                 x: bounds.left,
                 y: bounds.top,
                 panX: 0,
                 panY: 0,
-                borderRounding: e.key === "e" ? -1 : undefined,
+                borderRounding: e.key === "e" ? "100%" : undefined,
                 backgroundColor: this.props.container.isAnnotationOverlay ? undefined : "white",
                 width: bounds.width,
                 height: bounds.height,
                 ink: inkData ? new InkField(this.marqueeInkSelect(inkData)) : undefined,
-                title: e.key === "s" || e.key === "S" ? "-summary-" : e.key === "p" ? "-summary-" : "a nested collection",
+                title: e.key === "s" || e.key === "S" ? "-summary-" : "a nested collection",
             });
             this.marqueeInkDelete(inkData);
 

@@ -27,6 +27,7 @@ import { MainView } from '../MainView';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faFile } from '@fortawesome/free-solid-svg-icons';
+import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
 library.add(faFile);
 
 @observer
@@ -240,6 +241,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                         // Because this is in a set timeout, if this component unmounts right after mounting,
                         // we will leak a GoldenLayout, because we try to destroy it before we ever create it
                         setTimeout(() => this.setupGoldenLayout(), 1);
+                        this.props.Document.workspaceBrush = true;
                     }
                     this._ignoreStateChange = "";
                 }, { fireImmediately: true });
@@ -249,6 +251,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     }
     componentWillUnmount: () => void = () => {
         try {
+            this.props.Document.workspaceBrush = false;
             this._goldenLayout.unbind('itemDropped', this.itemDropped);
             this._goldenLayout.unbind('tabCreated', this.tabCreated);
             this._goldenLayout.unbind('stackCreated', this.stackCreated);
@@ -414,6 +417,9 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 if (doc instanceof Doc) {
                     let theDoc = doc;
                     CollectionDockingView.Instance._removedDocs.push(theDoc);
+                    if (CurrentUserUtils.UserDocument.recentlyClosed instanceof Doc) {
+                        Doc.AddDocToList(CurrentUserUtils.UserDocument.recentlyClosed, "data", doc, undefined, true, true);
+                    }
                     SelectionManager.DeselectAll();
                 }
                 tab.contentItem.remove();
@@ -455,6 +461,9 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     }
 
     render() {
+        if (this.props.renderDepth > 0) {
+            return <div style={{ width: "100%", height: "100%" }}>Nested workspaces can't be rendered</div>;
+        }
         return (
             <Measure offset onResize={this.onResize}>
                 {({ measureRef }) =>

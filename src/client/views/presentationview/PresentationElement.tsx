@@ -377,7 +377,7 @@ export default class PresentationElement extends React.Component<PresentationEle
                 style={{
                     outlineColor: "maroon",
                     outlineStyle: "dashed",
-                    outlineWidth: BoolCast(p.document.libraryBrush, false) || BoolCast(p.document.protoBrush, false) ? `1px` : "0px",
+                    outlineWidth: BoolCast(p.document.libraryBrush, false) ? `1px` : "0px",
                 }}
                 onClick={e => { p.gotoDocument(p.index, NumCast(this.props.mainDocument.selectedDoc)); e.stopPropagation(); }}>
                 <strong className="presentationView-name">

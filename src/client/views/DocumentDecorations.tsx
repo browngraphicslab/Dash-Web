@@ -341,6 +341,37 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         iconDoc.y = where[1] + NumCast(selView.props.Document.y);
     }
 
+    _radiusDown = [0, 0];
+    @action
+    onRadiusDown = (e: React.PointerEvent): void => {
+        e.stopPropagation();
+        if (e.button === 0) {
+            this._radiusDown = [e.clientX, e.clientY];
+            this._isPointerDown = true;
+            this._resizeUndo = UndoManager.StartBatch("DocDecs set radius");
+            document.removeEventListener("pointermove", this.onRadiusMove);
+            document.removeEventListener("pointerup", this.onRadiusUp);
+            document.addEventListener("pointermove", this.onRadiusMove);
+            document.addEventListener("pointerup", this.onRadiusUp);
+        }
+    }
+
+    onRadiusMove = (e: PointerEvent): void => {
+        let dist = Math.sqrt((e.clientX - this._radiusDown[0]) * (e.clientX - this._radiusDown[0]) + (e.clientY - this._radiusDown[1]) * (e.clientY - this._radiusDown[1]));
+        SelectionManager.SelectedDocuments().map(dv => Doc.GetProto(dv.props.Document).borderRounding = `${Math.min(100, dist)}%`);
+        e.stopPropagation();
+        e.preventDefault();
+    }
+
+    onRadiusUp = (e: PointerEvent): void => {
+        e.stopPropagation();
+        e.preventDefault();
+        this._isPointerDown = false;
+        this._resizeUndo && this._resizeUndo.end();
+        document.removeEventListener("pointermove", this.onRadiusMove);
+        document.removeEventListener("pointerup", this.onRadiusUp);
+    }
+
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         e.stopPropagation();
@@ -705,6 +736,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 <div id="documentDecorations-bottomLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-bottomResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                <div id="documentDecorations-borderRadius" className="documentDecorations-radius" onPointerDown={this.onRadiusDown} onContextMenu={(e) => e.preventDefault()}><span className="borderRadiusTooltip" title="Drag Corner Radius"></span></div>
                 <div className="link-button-container">
                     <div className="linkButtonWrapper">
                         <div title="View Links" className="linkFlyout" ref={this._linkButton}> {linkButton}  </div>

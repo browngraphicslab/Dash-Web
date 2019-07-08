@@ -37,6 +37,7 @@ import { RouteStore } from "../../server/RouteStore";
 import { LinkManager } from "../util/LinkManager";
 import { DocumentManager } from "../util/DocumentManager";
 import DirectoryImportBox from "../util/Import & Export/DirectoryImportBox";
+import { Scripting } from "../util/Scripting";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 
@@ -78,7 +79,7 @@ export interface DocumentOptions {
     backgroundLayout?: string;
     curPage?: number;
     documentText?: string;
-    borderRounding?: number;
+    borderRounding?: string;
     schemaColumns?: List<string>;
     dockingConfig?: string;
     dbDoc?: Doc;
@@ -94,7 +95,7 @@ export namespace DocUtils {
         if (target === CurrentUserUtils.UserDocument) return;
 
         UndoManager.RunInBatch(() => {
-            let linkDoc = Docs.TextDocument({ width: 100, height: 30, borderRounding: -1 });
+            let linkDoc = Docs.TextDocument({ width: 100, height: 30, borderRounding: "100%" });
             linkDoc.type = DocTypes.LINK;
             let linkDocProto = Doc.GetProto(linkDoc);
 
@@ -440,26 +441,6 @@ export namespace Docs {
             `);
     }
 
-    /*
- 
-    this template requires an additional style setting on the collectionView-cont to make the layout relative
-    
-.collectionView-cont {
-    position: relative;
-    width: 100%;
-    height: 100%;
 }
-    */
-    function Percentaption() {
-        return (`
-    <div>
-        <div style="margin:auto; height:85%; width:85%;">
-            {layout}
-        </div>
-        <div style="height:15%; width:100%; position:absolute">
-            <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={"caption"} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} renderDepth={renderDepth}/>
-        </div>
-    </div>       
-            `);
-    }
-}
+
+Scripting.addGlobal("Docs", Docs);

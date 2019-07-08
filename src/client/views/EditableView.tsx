@@ -25,6 +25,7 @@ export interface EditableProps {
      */
     contents: any;
     fontStyle?: string;
+    fontSize?: number;
     height?: number;
     display?: string;
     oneLine?: boolean;
@@ -85,7 +86,7 @@ export class EditableView extends React.Component<EditableProps> {
         if (this._editing) {
             return <input className="editableView-input" defaultValue={this.props.GetValue()} onKeyDown={this.onKeyDown} autoFocus
                 onBlur={action(() => this._editing = false)} onPointerDown={this.stopPropagation} onClick={this.stopPropagation} onPointerUp={this.stopPropagation}
-                style={{ display: this.props.display }} />;
+                style={{ display: this.props.display, fontSize: this.props.fontSize }} />;
         } else {
             return (
                 <div className={`editableView-container-editing${this.props.oneLine ? "-oneLine" : ""}`}

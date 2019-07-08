@@ -71,7 +71,7 @@ export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
     Document: Doc;
     DataDoc?: Doc;
-    fitToBox?: number[];
+    fitToBox?: () => number[];
     addDocument?: (doc: Doc, allowDuplicates?: boolean) => boolean;
     removeDocument?: (doc: Doc) => boolean;
     moveDocument?: (doc: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
@@ -375,7 +375,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     onPointerMove = (e: PointerEvent): void => {
         if (!e.cancelBubble && this.active) {
-            if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
+            if (!this.props.Document.excludeFromLibrary && (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3)) {
                 document.removeEventListener("pointermove", this.onPointerMove);
                 document.removeEventListener("pointerup", this.onPointerUp);
                 if (!e.altKey && !this.topMost && e.buttons === 1 && !BoolCast(this.props.Document.lockedPosition)) {
@@ -573,8 +573,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get nativeWidth() { return this.Document.nativeWidth || 0; }
     @computed get nativeHeight() { return this.Document.nativeHeight || 0; }
     @computed get contents() {
-        return (
-            <DocumentContentsView {...this.props} isSelected={this.isSelected} select={this.select} selectOnLoad={this.props.selectOnLoad} layoutKey={"layout"} />);
+        return (<DocumentContentsView {...this.props} isSelected={this.isSelected} select={this.select} selectOnLoad={this.props.selectOnLoad} layoutKey={"layout"} />);
     }
 
     render() {
@@ -590,8 +589,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 style={{
                     outlineColor: "maroon",
                     outlineStyle: "dashed",
-                    outlineWidth: BoolCast(this.props.Document.libraryBrush) || BoolCast(this.props.Document.protoBrush) ?
+                    outlineWidth: BoolCast(this.props.Document.libraryBrush) && !StrCast(this.props.Document.borderRounding) ?
                         `${this.props.ScreenToLocalTransform().Scale}px` : "0px",
+                    border: BoolCast(this.props.Document.libraryBrush) && StrCast(this.props.Document.borderRounding) ?
+                        `dashed maroon ${this.props.ScreenToLocalTransform().Scale}px` : undefined,
                     borderRadius: "inherit",
                     background: backgroundColor,
                     width: nativeWidth,
