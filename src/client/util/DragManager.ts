@@ -321,6 +321,7 @@ export namespace DragManager {
             dragElement.style.top = "0";
             dragElement.style.bottom = "";
             dragElement.style.left = "0";
+            dragElement.style.transition = "none";
             dragElement.style.color = "black";
             dragElement.style.transformOrigin = "0 0";
             dragElement.style.zIndex = globalCssVariables.contextMenuZindex;// "1000";

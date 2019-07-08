@@ -249,16 +249,12 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         var scale = this.getLocalTransform().inverse().Scale;
         const newPanX = Math.min((1 - 1 / scale) * this.nativeWidth, Math.max(0, panX));
         const newPanY = Math.min((1 - 1 / scale) * this.nativeHeight, Math.max(0, panY));
-        // this.props.Document.panX = this.isAnnotationOverlay ? newPanX : panX;
-        // this.props.Document.panY = this.isAnnotationOverlay ? newPanY : panY;
-        this.props.Document.panX = panX;
+        this.props.Document.panX = this.isAnnotationOverlay ? newPanX : panX;
+        this.props.Document.panY = this.isAnnotationOverlay ? newPanY : panY;
+        // this.props.Document.panX = panX;
+        // this.props.Document.panY = panY;
         if (this.props.Document.scrollY) {
             this.props.Document.scrollY = panY;
-            this.props.Document.panY = panY;
-        }
-        else {
-
-            this.props.Document.panY = panY;
         }
     }
 
