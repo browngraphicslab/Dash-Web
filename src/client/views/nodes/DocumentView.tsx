@@ -24,7 +24,7 @@ import { CollectionView } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";
 import { DocComponent } from "../DocComponent";
 import { PresentationView } from "../presentationview/PresentationView";
-import { Template } from "./../Templates";
+import { Template, Templates } from "./../Templates";
 import { DocumentContentsView } from "./DocumentContentsView";
 import * as rp from "request-promise";
 import "./DocumentView.scss";
@@ -46,6 +46,7 @@ library.add(fa.faAlignCenter);
 library.add(fa.faCaretSquareRight);
 library.add(fa.faSquare);
 library.add(fa.faConciergeBell);
+library.add(fa.faWindowRestore);
 library.add(fa.faFolder);
 library.add(fa.faMapPin);
 library.add(fa.faLink);
@@ -521,6 +522,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         cm.addItem({ description: "Pin to Pres", event: () => PresentationView.Instance.PinDoc(this.props.Document), icon: "map-pin" });
         cm.addItem({ description: BoolCast(this.props.Document.lockedPosition) ? "Unlock Pos" : "Lock Pos", event: this.toggleLockPosition, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
         cm.addItem({ description: this.props.Document.isButton ? "Remove Button" : "Make Button", event: this.makeBtnClicked, icon: "concierge-bell" });
+        cm.addItem({
+            description: "Make Portal", event: () => {
+                let portal = Docs.FreeformDocument([], { width: this.props.Document[WidthSym]() + 10, height: this.props.Document[HeightSym](), title: this.props.Document.title + ".portal" });
+                Doc.GetProto(this.props.Document).subBulletDocs = new List<Doc>([portal]);
+                //summary.proto!.maximizeLocation = "inTab";  // or "inPlace", or "onRight"
+                Doc.GetProto(this.props.Document).templates = new List<string>([Templates.Bullet.Layout]);
+                let coll = Docs.StackingDocument([this.props.Document, portal], { x: NumCast(this.props.Document.x), y: NumCast(this.props.Document.y), width: this.props.Document[WidthSym]() + 10, height: this.props.Document[HeightSym](), title: this.props.Document.title + ".cont" });
+                this.props.addDocument && this.props.addDocument(coll);
+                this.props.removeDocument && this.props.removeDocument(this.props.Document);
+            }, icon: "window-restore"
+        })
         cm.addItem({
             description: "Find aliases", event: async () => {
                 const aliases = await SearchUtil.GetAliasesOfDocument(this.props.Document);

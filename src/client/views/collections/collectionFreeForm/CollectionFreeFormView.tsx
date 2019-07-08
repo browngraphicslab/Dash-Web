@@ -198,6 +198,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @action
     onPointerWheel = (e: React.WheelEvent): void => {
+        if (BoolCast(this.props.Document.lockedPosition)) return;
         // if (!this.props.active()) {
         //     return;
         // }
@@ -244,7 +245,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @action
     setPan(panX: number, panY: number) {
-
+        if (BoolCast(this.props.Document.lockedPosition)) return;
         this.props.Document.panTransformType = "None";
         var scale = this.getLocalTransform().inverse().Scale;
         const newPanX = Math.min((1 - 1 / scale) * this.nativeWidth, Math.max(0, panX));

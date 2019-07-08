@@ -243,7 +243,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             this.cleanupInteractions(false);
             e.stopPropagation();
         }
-        if (e.key === "c" || e.key === "s" || e.key === "S" || e.key === "e") {
+        if (e.key === "c" || e.key === "s" || e.key === "S") {
             this._commandExecuted = true;
             e.stopPropagation();
             e.preventDefault();
@@ -266,7 +266,6 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 y: bounds.top,
                 panX: 0,
                 panY: 0,
-                borderRounding: e.key === "e" ? "100%" : undefined,
                 backgroundColor: this.props.container.isAnnotationOverlay ? undefined : "white",
                 width: bounds.width,
                 height: bounds.height,
