@@ -89,9 +89,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
     public static GetDocFromUrl(url: string) {
         if (url.startsWith(document.location.origin)) {
-            let start = url.indexOf(window.location.origin);
-            let path = url.substr(start, url.length - start);
-            let docid = path.replace(DocServer.prepend("/doc/"), "").split("?")[0];
+            const split = new URL(url).pathname.split("doc/");
+            const docid = split[split.length - 1];
             return docid;
         }
         return "";
