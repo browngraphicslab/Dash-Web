@@ -56,11 +56,13 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
 
         let mdRows: Array<JSX.Element> = [];
         if (groupDoc) {
-            let mdDoc = Cast(groupDoc.metadata, Doc, new Doc);
-            let keys = LinkManager.Instance.getMetadataKeysInGroup(this.props.groupType);//groupMetadataKeys.get(this.props.groupType);
-            mdRows = keys.map(key => {
-                return (<div key={key} className="link-metadata-row"><b>{key}</b>: {StrCast(mdDoc[key])}</div>);
-            });
+            let mdDoc = Cast(groupDoc.metadata, Doc, null);
+            if (mdDoc) {
+                let keys = LinkManager.Instance.getMetadataKeysInGroup(this.props.groupType);//groupMetadataKeys.get(this.props.groupType);
+                mdRows = keys.map(key => {
+                    return (<div key={key} className="link-metadata-row"><b>{key}</b>: {StrCast(mdDoc[key])}</div>);
+                });
+            }
         }
 
         return (<div className="link-metadata">{mdRows}</div>);
