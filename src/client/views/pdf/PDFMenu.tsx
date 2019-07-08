@@ -242,24 +242,24 @@ export default class PDFMenu extends React.Component {
 
     render() {
         let buttons = this.Status === "pdf" || this.Status === "snippet" ? [
-            <button className="pdfMenu-button" title="Click to Highlight" onClick={this.highlightClicked} key="1"
+            <button key="1" className="pdfMenu-button" title="Click to Highlight" onClick={this.highlightClicked} key="1"
                 style={this.Highlighting ? { backgroundColor: "#121212" } : {}}>
                 <FontAwesomeIcon icon="highlighter" size="lg" style={{ transition: "transform 0.1s", transform: this.Highlighting ? "" : "rotate(-45deg)" }} />
             </button>,
-            <button className="pdfMenu-button" title="Drag to Annotate" onPointerDown={this.pointerDown}><FontAwesomeIcon icon="comment-alt" size="lg" key="2" /></button>,
+            <button key="2" className="pdfMenu-button" title="Drag to Annotate" onPointerDown={this.pointerDown}><FontAwesomeIcon icon="comment-alt" size="lg" key="2" /></button>,
             this.Status === "snippet" ? <button className="pdfMenu-button" title="Drag to Snippetize Selection" onPointerDown={this.snippetStart} ref={this._snippetButton}><FontAwesomeIcon icon="cut" size="lg" /></button> : undefined,
-            <button className="pdfMenu-button" title="Pin Menu" onClick={this.togglePin} key="3"
+            <button key="3" className="pdfMenu-button" title="Pin Menu" onClick={this.togglePin} key="3"
                 style={this.Pinned ? { backgroundColor: "#121212" } : {}}>
                 <FontAwesomeIcon icon="thumbtack" size="lg" style={{ transition: "transform 0.1s", transform: this.Pinned ? "rotate(45deg)" : "" }} />
             </button>
         ] : [
-                <button className="pdfMenu-button" title="Delete Anchor" onPointerDown={this.deleteClicked}><FontAwesomeIcon icon="trash-alt" size="lg" key="1" /></button>,
-                <button className="pdfMenu-button" title="Pin to Presentation" onPointerDown={this.PinToPres}><FontAwesomeIcon icon="map-pin" size="lg" key="2" /></button>,
+                <button key="4" className="pdfMenu-button" title="Delete Anchor" onPointerDown={this.deleteClicked}><FontAwesomeIcon icon="trash-alt" size="lg" key="1" /></button>,
+                <button key="5" className="pdfMenu-button" title="Pin to Presentation" onPointerDown={this.PinToPres}><FontAwesomeIcon icon="map-pin" size="lg" key="2" /></button>,
                 <div className="pdfMenu-addTag" key="3">
                     <input onChange={this.keyChanged} placeholder="Key" style={{ gridColumn: 1 }} />
                     <input onChange={this.valueChanged} placeholder="Value" style={{ gridColumn: 3 }} />
                 </div>,
-                <button className="pdfMenu-button" title={`Add tag: ${this._keyValue} with value: ${this._valueValue}`} onPointerDown={this.addTag}><FontAwesomeIcon style={{ transition: "all .2s" }} color={this._added ? "#42f560" : "white"} icon="check" size="lg" key="4" /></button>,
+                <button key="6" className="pdfMenu-button" title={`Add tag: ${this._keyValue} with value: ${this._valueValue}`} onPointerDown={this.addTag}><FontAwesomeIcon style={{ transition: "all .2s" }} color={this._added ? "#42f560" : "white"} icon="check" size="lg" key="4" /></button>,
             ];
 
         return (

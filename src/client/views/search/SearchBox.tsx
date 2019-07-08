@@ -15,6 +15,7 @@ import { Id } from '../../../new_fields/FieldSymbols';
 import { SearchUtil } from '../../util/SearchUtil';
 import { RouteStore } from '../../../server/RouteStore';
 import { FilterBox } from './FilterBox';
+import { start } from 'repl';
 
 @observer
 export class SearchBox extends React.Component {
@@ -31,7 +32,10 @@ export class SearchBox extends React.Component {
 
     private _isSearch: ("search" | "placeholder" | undefined)[] = [];
     private _currentIndex = 0;
-    private _numResults = 0;
+    private _numTotalResults = 0;
+    private _numFilteredResults = 0;
+    private _startIndex = -1;
+    private _endIndex = -1;
 
     static Instance: SearchBox;
 
@@ -55,15 +59,16 @@ export class SearchBox extends React.Component {
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
         this._searchString = e.target.value;
 
-        if (this._searchString === "") {
-            this._results = [];
-            this._openNoResults = false;
-        }
+        this._openNoResults = false;
+        this._results = [];
+        this._visibleElements = [];
+        this._currentIndex = 0;
+        this._numTotalResults = 0;
+        this._startIndex = -1;
+        this._endIndex = -1;
     }
 
-    enter = (e: React.KeyboardEvent) => {
-        if (e.key === "Enter") { this.submitSearch(); }
-    }
+    enter = (e: React.KeyboardEvent) => { if (e.key === "Enter") { this.submitSearch(); } }
 
     public static async convertDataUri(imageUri: string, returnedFilename: string) {
         try {
@@ -111,13 +116,30 @@ export class SearchBox extends React.Component {
     @action
     getResults = async (query: string, count: number) => {
         let resDocs = [];
+        // count is total number of documents to be shown (i believe)
+        console.log(`Count: ${count}`);
         while (resDocs.length < count) {
-            const { docs, numFound } = await SearchUtil.Search(query, true, count === -1 ? undefined : this._currentIndex, count === -1 ? undefined : this._maxNum);
-            if (numFound !== this._numResults) {
-                this._numResults = numFound;
+            let index = count === -1 ? undefined : this._currentIndex;
+            let num = count === -1 ? undefined : Math.min(this._numTotalResults - this._currentIndex + 1, this._maxNum);
+            // num found has to be the number of docs before filtering happens - this is the total num
+            const { docs, numFound } = await SearchUtil.Search(query, true, index, num);
+            // accounts for the fact that there may be fewer documents than the max that are returned
+            let filteredDocs = FilterBox.Instance.filterDocsByType(docs);
+            count = Math.min(numFound, count);
+            // uh what is going on here with the first part?
+            if (numFound !== this._numTotalResults && this._numTotalResults === 0) {
+                console.log(`Total: ${numFound}`);
+                this._numTotalResults = numFound;
             }
-            resDocs.push(...FilterBox.Instance.filterDocsByType(docs));
-            this._currentIndex += this._maxNum;
+
+            // if (filteredDocs.length < docs.length) {
+            //     this._numResults -= docs.length - filteredDocs.length;
+            //     console.log(`New Total: ${this._numResults}`);
+            // }
+            resDocs.push(...filteredDocs);
+            this._currentIndex += docs.length;
+            console.log(`ResDocs: ${resDocs.length}`);
+            console.log(`CurrIndex: ${this._currentIndex}`);
         }
         return resDocs;
     }
@@ -171,7 +193,7 @@ export class SearchBox extends React.Component {
 
     @action.bound
     closeSearch = () => {
-        console.log("closing search");
+        console.log("closing search")
         FilterBox.Instance.closeFilter();
         this.closeResults();
     }
@@ -180,46 +202,67 @@ export class SearchBox extends React.Component {
     closeResults() {
         this._resultsOpen = false;
         this._results = [];
+        this._visibleElements = [];
+        this._currentIndex = 0;
+        this._numTotalResults = 0;
+        this._startIndex = -1;
+        this._endIndex = -1;
     }
 
+    @action
     resultsScrolled = async (e?: React.UIEvent<HTMLDivElement>) => {
         let scrollY = e ? e.currentTarget.scrollTop : 0;
         let buffer = 4;
         let startIndex = Math.floor(Math.max(0, scrollY / 70 - buffer));
-        let endIndex = Math.ceil(Math.min(this._numResults - 1, startIndex + (560 / 70) + buffer));
+        let endIndex = Math.ceil(Math.min(this._numTotalResults - 1, startIndex + (560 / 70) + buffer));
 
-        runInAction(() => {
-            if (this._numResults === 0 && this._openNoResults) {
-                this._visibleElements = [<div className="no-result">No Search Results</div>];
-                return;
-            }
-            else if (this._visibleElements.length !== this._numResults) {
-                this._visibleElements = Array<JSX.Element>(this._numResults);
-                this._isSearch = Array<undefined>(this._numResults);
-            }
-        });
+        if (startIndex === this._startIndex && endIndex === this._endIndex) {
+            return;
+        }
 
-        for (let i = 0; i < this._numResults; i++) {
+        console.log(`START: ${startIndex}`);
+        console.log(`END: ${endIndex}`);
+
+        this._startIndex = startIndex;
+        this._endIndex = endIndex;
+
+        if (this._numTotalResults === 0 && this._openNoResults) {
+            this._visibleElements = [<div className="no-result">No Search Results</div>];
+            return;
+        }
+
+        else if (this._visibleElements.length !== this._numTotalResults) {
+            this._visibleElements = Array<JSX.Element>(this._numTotalResults);
+            this._isSearch = Array<undefined>(this._numTotalResults);
+        }
+
+        for (let i = 0; i < this._numTotalResults; i++) {
             if (i < startIndex || i > endIndex) {
                 if (this._isSearch[i] !== "placeholder") {
                     this._isSearch[i] = "placeholder";
-                    runInAction(() => {
-                        this._visibleElements[i] = <div className="searchBox-placeholder" key={`searchBox-placeholder-${i}`}></div>;
-                    });
+                    this._visibleElements[i] = <div className="searchBox-placeholder" key={`searchBox-placeholder-${i}`}></div>;
                 }
             }
             else {
                 if (this._isSearch[i] !== "search") {
                     let result: Doc | undefined = undefined;
                     if (i >= this._results.length) {
-                        this._results.push(...(await this.getResults(this._searchString, 1)));
-                    }
-                    result = this._results[i];
-                    if (result) {
+                        let results = await this.getResults(this._searchString, i - this._results.length)
                         runInAction(() => {
-                            this._visibleElements[i] = <SearchItem doc={result!} key={result![Id]} />;
-                        });
-                        this._isSearch[i] = "search";
+                            this._results.push(...results);
+                            result = this._results[i];
+                            if (result) {
+                                this._visibleElements[i] = <SearchItem doc={result} key={result[Id]} />;
+                                this._isSearch[i] = "search";
+                            }
+                        })
+                    }
+                    else {
+                        result = this._results[i];
+                        if (result) {
+                            this._visibleElements[i] = <SearchItem doc={result} key={result[Id]} />;
+                            this._isSearch[i] = "search";
+                        }
                     }
                 }
             }
