@@ -161,8 +161,9 @@ export class SearchItem extends React.Component<SearchItemProps> {
     }
 
 
-    @computed
-    public get DocumentIcon() {
+    //@computed
+    @action
+    public DocumentIcon() {
         let layoutresult = StrCast(this.props.doc.type);
         if (!this._useIcons) {
             let renderDoc = this.props.doc;
@@ -182,7 +183,8 @@ export class SearchItem extends React.Component<SearchItemProps> {
             let returnXDimension = () => this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE);
             let returnYDimension = () => this._displayDim;
             let scale = () => returnXDimension() / NumCast(renderDoc.nativeWidth, returnXDimension());
-            return <div
+            renderDoc = Doc.MakeDelegate(renderDoc);
+            const docview = <div
                 onPointerDown={action(() => { this._useIcons = !this._useIcons; this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE); })}
                 onPointerEnter={action(() => this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE))}
                 onPointerLeave={action(() => this._displayDim = 50)} >
@@ -207,8 +209,10 @@ export class SearchItem extends React.Component<SearchItemProps> {
                     ContentScaling={scale}
                 />
             </div>;
+            renderDoc.preview = true;
+            renderDoc.search_string = "hundo";
+            return docview;
         }
-
         let button = layoutresult.indexOf(DocTypes.PDF) !== -1 ? faFilePdf :
             layoutresult.indexOf(DocTypes.IMG) !== -1 ? faImage :
                 layoutresult.indexOf(DocTypes.TEXT) !== -1 ? faStickyNote :
@@ -293,7 +297,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
                         <div className="search-title" id="result" >{this.props.doc.title}</div>
                         <div className="search-info" style={{ width: this._useIcons ? "15%" : "400px" }}>
                             <div className={`icon-${this._useIcons ? "icons" : "live"}`}>
-                                <div className="search-type" >{this.DocumentIcon}</div>
+                                <div className="search-type" >{this.DocumentIcon()}</div>
                                 <div className="search-label">{this.props.doc.type}</div>
                             </div>
                             <div className="link-container item">

@@ -256,17 +256,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 }, { fireImmediately: true });
         }
 
-        this._searchReactionDisposer = reaction(() => {
-            return StrCast(this.props.Document.search_string);
-        }, searchString => {
-            if (searchString) {
-                this.highlightSearchTerms([searchString]);
-            }
-            else {
-                this.unhighlightSearchTerms();
-            }
-        });
-
         this._reactionDisposer = reaction(
             () => {
                 const field = this.dataDoc ? Cast(this.dataDoc[this.props.fieldKey], RichTextField) : undefined;
@@ -275,7 +264,24 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             field => this._editorView && !this._applyingChange && this.props.Document[this.props.fieldKey] instanceof RichTextField &&
                 this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field)))
         );
+
         this.setupEditor(config, this.dataDoc, this.props.fieldKey);
+
+        this._searchReactionDisposer = reaction(() => {
+            return StrCast(this.props.Document.search_string);
+        }, searchString => {
+            const fieldkey = 'preview';
+            let preview = false;
+            // if (!this._editorView && Object.keys(this.props.Document).indexOf(fieldkey) !== -1) {
+            //     preview = true;
+            // }
+            if (searchString) {
+                this.highlightSearchTerms([searchString]);
+            }
+            else {
+                this.unhighlightSearchTerms();
+            }
+        }, { fireImmediately: true });
     }
 
     private setupEditor(config: any, doc: Doc, fieldKey: string) {
