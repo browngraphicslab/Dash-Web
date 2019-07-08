@@ -18,6 +18,7 @@ import { List } from "../../../new_fields/List";
 import { TextField } from "../../util/ProsemirrorCopy/prompt";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { ImageField } from "../../../new_fields/URLField";
+import { SelectionManager } from "../../util/SelectionManager";
 
 @observer
 export class KeyValueBox extends React.Component<FieldViewProps> {
@@ -167,44 +168,72 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         return parent;
     }
 
-    createTemplateField = async (parent: Doc, row: KeyValuePair) => {
-        let collectionKeyProp = `fieldKey={"data"}`;
-        let metaKey = row.props.keyName;
-        let metaKeyProp = `fieldKey={"${metaKey}"}`;
+    createTemplateField = async (parentStackingDoc: Doc, row: KeyValuePair) => {
+        // let collectionKeyProp = `fieldKey={"data"}`;
+        // let metaKey = row.props.keyName;
+        // let metaKeyProp = `fieldKey={"${metaKey}"}`;
 
+        // let sourceDoc = await Cast(this.props.Document.data, Doc);
+        // if (!sourceDoc) {
+        //     return;
+        // }
+        // let target = this.inferType(sourceDoc[metaKey], metaKey);
+
+        // let template = Doc.MakeAlias(target);
+        // template.proto = parent;
+        // template.title = metaKey;
+        // template.nativeWidth = 0;
+        // template.nativeHeight = 0;
+        // template.embed = true;
+        // template.isTemplate = true;
+        // template.templates = new List<string>([Templates.TitleBar(metaKey)]);
+        // if (target.backgroundLayout) {
+        //     let metaAnoKeyProp = `fieldKey={"${metaKey}"} fieldExt={"annotations"}`;
+        //     let collectionAnoKeyProp = `fieldKey={"annotations"}`;
+        //     template.layout = StrCast(target.layout).replace(collectionAnoKeyProp, metaAnoKeyProp);
+        //     template.backgroundLayout = StrCast(target.backgroundLayout).replace(collectionKeyProp, metaKeyProp);
+        // } else {
+        //     template.layout = StrCast(target.layout).replace(collectionKeyProp, metaKeyProp);
+        // }
+
+        let metaKey = row.props.keyName;
         let sourceDoc = await Cast(this.props.Document.data, Doc);
         if (!sourceDoc) {
             return;
         }
-        let target = this.inferType(sourceDoc[metaKey], metaKey);
+        let fieldTemplate = this.inferType(sourceDoc[metaKey], metaKey);
 
-        let template = Doc.MakeAlias(target);
-        template.proto = parent;
-        template.title = metaKey;
-        template.nativeWidth = 0;
-        template.nativeHeight = 0;
-        template.embed = true;
-        template.isTemplate = true;
-        template.templates = new List<string>([Templates.TitleBar(metaKey)]);
-        if (target.backgroundLayout) {
-            let metaAnoKeyProp = `fieldKey={"${metaKey}"} fieldExt={"annotations"}`;
-            let collectionAnoKeyProp = `fieldKey={"annotations"}`;
-            template.layout = StrCast(target.layout).replace(collectionAnoKeyProp, metaAnoKeyProp);
-            template.backgroundLayout = StrCast(target.backgroundLayout).replace(collectionKeyProp, metaKeyProp);
-        } else {
-            template.layout = StrCast(target.layout).replace(collectionKeyProp, metaKeyProp);
+        // move data doc fields to layout doc as needed (nativeWidth/nativeHeight, data, ??)
+        let backgroundLayout = StrCast(fieldTemplate.backgroundLayout);
+        let layout = StrCast(fieldTemplate.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
+        if (backgroundLayout) {
+            layout = StrCast(fieldTemplate.layout).replace(/fieldKey={"annotations"}/, `fieldKey={"${metaKey}"} fieldExt={"annotations"}`);
+            backgroundLayout = backgroundLayout.replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
         }
-        Doc.AddDocToList(parent, "data", template);
+        let nw = NumCast(fieldTemplate.nativeWidth);
+        let nh = NumCast(fieldTemplate.nativeHeight);
+
+        fieldTemplate.title = metaKey;
+        fieldTemplate.layout = layout;
+        fieldTemplate.backgroundLayout = backgroundLayout;
+        fieldTemplate.nativeWidth = nw;
+        fieldTemplate.nativeHeight = nh;
+        fieldTemplate.embed = true;
+        fieldTemplate.isTemplate = true;
+        fieldTemplate.templates = new List<string>([Templates.TitleBar(metaKey)]);
+        fieldTemplate.proto = Doc.GetProto(parentStackingDoc);
+
+        Doc.AddDocToList(parentStackingDoc, "data", fieldTemplate);
         row.uncheck();
     }
 
-    inferType = (field: FieldResult, metaKey: string) => {
+    inferType = (data: FieldResult, metaKey: string) => {
         let options = { width: 300, height: 300, title: metaKey };
-        if (field instanceof RichTextField || typeof field === "string" || typeof field === "number") {
+        if (data instanceof RichTextField || typeof data === "string" || typeof data === "number") {
             return Docs.TextDocument(options);
-        } else if (field instanceof List) {
+        } else if (data instanceof List) {
             return Docs.StackingDocument([], options);
-        } else if (field instanceof ImageField) {
+        } else if (data instanceof ImageField) {
             return Docs.ImageDocument("https://www.freepik.com/free-icon/picture-frame-with-mountain-image_748687.htm", options);
         }
         return new Doc;

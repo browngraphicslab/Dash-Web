@@ -79,7 +79,6 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
         let validated: File[] = [];
         for (let i = 0; i < files.length; i++) {
             let file = files.item(i);
-            console.log(file);
             file && !unsupported.includes(file.type) && validated.push(file);
         }
 

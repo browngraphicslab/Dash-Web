@@ -19,6 +19,7 @@ import { CollectionPDFView } from "./CollectionPDFView";
 import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
 import React = require("react");
+import { MainView } from "../MainView";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
@@ -67,9 +68,15 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             let email = CurrentUserUtils.email;
             let pos = { x: position[0], y: position[1] };
             if (id && email) {
-                const proto = await doc.proto;
+                const proto = Doc.GetProto(doc);
                 if (!proto) {
                     return;
+                }
+                if (proto[Id] === "collectionProto") {
+                    alert("COLLECTION PROTO CURSOR ISSUE DETECTED! Check console for more info...");
+                    console.log(doc);
+                    console.log(proto);
+                    throw new Error(`AHA! You were trying to set a cursor on a collection's proto, which is the original collection proto! Look at the two previously printed lines for document values!`);
                 }
                 let cursors = Cast(proto.cursors, listSpec(CursorField));
                 if (!cursors) {

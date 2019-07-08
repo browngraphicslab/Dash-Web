@@ -12,7 +12,9 @@ export namespace DocServer {
     const GUID: string = Utils.GenerateGuid();
 
     export function makeReadOnly() {
-        _CreateField = emptyFunction;
+        _CreateField = field => {
+            _cache[field[Id]] = field;
+        };
         _UpdateField = emptyFunction;
         _respondToUpdate = emptyFunction;
     }
