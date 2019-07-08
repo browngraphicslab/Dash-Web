@@ -41,8 +41,8 @@ export function SetupDrag(
     let onItemDown = async (e: React.PointerEvent) => {
         if (e.button === 0) {
             e.stopPropagation();
-            e.preventDefault();
             if (e.shiftKey && CollectionDockingView.Instance) {
+                e.persist();
                 CollectionDockingView.Instance.StartOtherDrag(e, [await docFunc()]);
             } else {
                 document.addEventListener("pointermove", onRowMove);
