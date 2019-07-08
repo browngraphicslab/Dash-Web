@@ -273,7 +273,7 @@ export namespace Docs {
     }
 
     export function DirectoryImportDocument(options: DocumentOptions = {}) {
-        return CreateInstance(importProto, "", options);
+        return CreateInstance(importProto, new List<Doc>(), options);
     }
 
     export function HistogramDocument(histoOp: HistogramOperation, options: DocumentOptions = {}) {
