@@ -43,7 +43,12 @@ export function SetupDrag(
             e.stopPropagation();
             if (e.shiftKey && CollectionDockingView.Instance) {
                 e.persist();
-                CollectionDockingView.Instance.StartOtherDrag(e, [await docFunc()]);
+                CollectionDockingView.Instance.StartOtherDrag({
+                    pageX: e.pageX,
+                    pageY: e.pageY,
+                    preventDefault: emptyFunction,
+                    button: 0
+                }, [await docFunc()]);
             } else {
                 document.addEventListener("pointermove", onRowMove);
                 document.addEventListener("pointerup", onRowUp);
