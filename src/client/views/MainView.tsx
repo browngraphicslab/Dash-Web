@@ -1,5 +1,5 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowDown, faArrowUp, faBell, faCheck, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faThumbtack, faTree, faUndoAlt } from '@fortawesome/free-solid-svg-icons';
+import { faArrowDown, faArrowUp, faCheck, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faThumbtack, faTree, faUndoAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, runInAction, reaction, trace } from 'mobx';
 import { observer } from 'mobx-react';
@@ -86,6 +86,7 @@ export class MainView extends React.Component {
             if (libraryHeight && Math.abs(CurrentUserUtils.UserDocument[HeightSym]() - libraryHeight) > 5) {
                 CurrentUserUtils.UserDocument.height = libraryHeight;
             }
+            (Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc) as Doc)!.allowClear = true;
         }, { fireImmediately: true });
     }
 

@@ -1,5 +1,5 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faAngleRight, faCamera, faExpand, faBell, faCaretDown, faCaretRight, faCaretSquareDown, faCaretSquareRight, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
+import { faAngleRight, faCamera, faExpand, faTrash, faBell, faCaretDown, faCaretRight, faCaretSquareDown, faCaretSquareRight, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, trace } from "mobx";
 import { observer } from "mobx-react";
@@ -51,6 +51,7 @@ export interface TreeViewProps {
 library.add(faTrashAlt);
 library.add(faAngleRight);
 library.add(faBell);
+library.add(faTrash);
 library.add(faCamera);
 library.add(faExpand);
 library.add(faCaretDown);
@@ -509,6 +510,17 @@ export class CollectionTreeView extends CollectionSubView(Document) {
             </div>
         </div >;
     }
+    @computed get clearButton() {
+        return <div id="toolbar" key="toolbar">
+            <div >
+                <button className="toolbar-button round-button" title="Notifs"
+                    onClick={undoBatch(action(() => Doc.GetProto(this.props.Document)[this.props.fieldKey] = undefined))}>
+                    <FontAwesomeIcon icon={faTrash} size="sm" />
+                </button>
+            </div>
+        </div >;
+    }
+
 
     render() {
         let dropAction = StrCast(this.props.Document.dropAction) as dropActionType;
@@ -535,6 +547,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                         Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, this.childDocs.length ? this.childDocs[0] : undefined, true);
                     }} />
                 {this.props.Document.workspaceLibrary ? this.notifsButton : (null)}
+                {this.props.Document.allowClear ? this.clearButton : (null)}
                 <ul className="no-indent" style={{ width: "max-content" }} >
                     {
                         TreeView.GetChildElements(this.childDocs, this.props.Document[Id], this.props.Document, this.props.DataDoc, this.props.fieldKey, addDoc, this.remove,
