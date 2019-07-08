@@ -172,7 +172,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         document.addEventListener("pointermove", this.onBackgroundMove);
         document.addEventListener("pointerup", this.onBackgroundUp);
         e.stopPropagation();
-        e.preventDefault();
     }
 
     @action

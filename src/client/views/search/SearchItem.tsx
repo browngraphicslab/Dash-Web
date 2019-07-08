@@ -187,10 +187,10 @@ export class SearchItem extends React.Component<SearchItemProps> {
         if (this.props.doc.type === DocTypes.LINK) {
             if (this.props.doc.anchor1 && this.props.doc.anchor2) {
 
-                let doc1 = Cast(this.props.doc.anchor1, Doc, new Doc());
-                let doc2 = Cast(this.props.doc.anchor2, Doc, new Doc());
-                doc1.libraryBrush = true;
-                doc2.libraryBrush = true;
+                let doc1 = Cast(this.props.doc.anchor1, Doc, null);
+                let doc2 = Cast(this.props.doc.anchor2, Doc, null);
+                doc1 && (doc1.libraryBrush = true);
+                doc2 && (doc2.libraryBrush = true);
             }
         } else {
             let docViews: DocumentView[] = DocumentManager.Instance.getAllDocumentViews(this.props.doc);
@@ -204,10 +204,10 @@ export class SearchItem extends React.Component<SearchItemProps> {
         if (this.props.doc.type === DocTypes.LINK) {
             if (this.props.doc.anchor1 && this.props.doc.anchor2) {
 
-                let doc1 = Cast(this.props.doc.anchor1, Doc, new Doc());
-                let doc2 = Cast(this.props.doc.anchor2, Doc, new Doc());
-                doc1.libraryBrush = false;
-                doc2.libraryBrush = false;
+                let doc1 = Cast(this.props.doc.anchor1, Doc, null);
+                let doc2 = Cast(this.props.doc.anchor2, Doc, null);
+                doc1 && (doc1.libraryBrush = false);
+                doc2 && (doc2.libraryBrush = false);
             }
         } else {
             let docViews: DocumentView[] = DocumentManager.Instance.getAllDocumentViews(this.props.doc);
@@ -231,7 +231,6 @@ export class SearchItem extends React.Component<SearchItemProps> {
 
     onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
         e.stopPropagation();
-        e.preventDefault();
         const doc = Doc.IsPrototype(this.props.doc) ? Doc.MakeDelegate(this.props.doc) : this.props.doc;
         DragManager.StartDocumentDrag([e.currentTarget], new DragManager.DocumentDragData([doc], []), e.clientX, e.clientY, {
             handlers: { dragComplete: emptyFunction },
