@@ -6,29 +6,32 @@ import { Doc, DocListCastAsync, DocListCast } from "../../../new_fields/Doc";
 import { Document, listSpec, createSchema, makeInterface, defaultSpec } from "../../../new_fields/Schema";
 import { FieldValue, Cast, NumCast, BoolCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
-import { Keyframe, RegionData } from "./Keyframe";
+import { Keyframe, KeyframeFunc } from "./Keyframe";
 import { FlyoutProps } from "./Timeline";
 
 interface IProps {
     node: Doc;
     currentBarX: number;
+    changeCurrentBarX: (x:number) => void;
     setFlyout: (props:FlyoutProps) => any; 
 }
 
 
 @observer
 export class Track extends React.Component<IProps> {
-    @observable private _inner = React.createRef<HTMLDivElement>();
+    @observable private _inner = React.createRef<HTMLDivElement>();   
+    @observable private _keys = ["x", "y", "width", "height", "panX", "panY", "scale"];
 
     private _reactionDisposers: IReactionDisposer[] = [];
     private _selectionManagerChanged?: IReactionDisposer;
 
-    @observable private _keys = ["x", "y", "width", "height", "panX", "panY", "scale"];
-
+    @computed
+    private get regions() {
+        return Cast(this.props.node.regions, listSpec(Doc)) as List<Doc>;
+    }
 
     componentWillMount() {
         this.props.node.regions = new List<Doc>();
-        console.log((Cast(this.props.node.regions, listSpec(Doc)) as List<Doc>).length);
     }
 
     @action
@@ -45,18 +48,21 @@ export class Track extends React.Component<IProps> {
             }
         });
 
-        // reaction(() => {
-        //     let keys = Doc.allKeys(this.props.node); 
-        //     let x = keys.indexOf("keyframes"); 
-        //     let afterX = keys.slice(x + 1); 
-        //     let beforeX = keys.slice(0, x); 
-        //     keys = beforeX.concat(afterX); 
-        //     return keys.map(key => FieldValue(this.props.node[key]));
-        // }, data => {
-        //     if (this.keyframes.length !== 0){
-        //         let kf:(Doc | undefined) = this.findKeyframe(this.props.currentBarX); 
-        //     }
-        // }); 
+        reaction(() => {
+            let keys = Doc.allKeys(this.props.node); 
+            return keys.map(key => FieldValue(this.props.node[key]));
+        }, data => {
+            let regiondata = this.findRegion(this.props.currentBarX); 
+            if (regiondata){
+                (Cast(regiondata.keyframes!, listSpec(Doc)) as List<Doc>).forEach((kf) => {
+                    kf = kf as Doc; 
+                    if(NumCast(kf.time!) === this.props.currentBarX){
+                        console.log("hoorayy!!!"); 
+                    }
+                }); 
+            }
+           
+        }); 
     }
     /**
      * removes reaction when the component is removed from the timeline
@@ -72,21 +78,16 @@ export class Track extends React.Component<IProps> {
         let region = this.findRegion(time);
         let leftkf: (Doc | undefined) = this.calcMinLeft(region!);
         let rightkf: (Doc | undefined) = this.calcMinRight(region!);
-
-
         if (leftkf && rightkf) {
             this.interpolate(leftkf, rightkf);
         } else if (leftkf) {
-            console.log("left exists");
+            console.log("left exists"); 
             console.log(leftkf.time); 
             this._keys.forEach(k => {
                 let data = leftkf!.key as Doc;
                 this.props.node[k] = data[k];
             });
         } else if (rightkf) {
-
-            console.log("right exists");
-            console.log(rightkf.time); 
             this._keys.forEach(k => {
                 let data = rightkf!.key as Doc;
                 this.props.node[k] = data[k];
@@ -95,11 +96,6 @@ export class Track extends React.Component<IProps> {
     }
 
 
-    /**
-     * calculates the closest left keyframe, if there is one
-     * @param kfList: keyframe list 
-     * @param time 
-     */
     @action
     calcMinLeft = (region: Doc): (Doc | undefined) => { //returns the time of the closet keyframe to the left
         let leftKf:(Doc| undefined) = undefined;
@@ -114,11 +110,7 @@ export class Track extends React.Component<IProps> {
         return leftKf;
     }
 
-    /**
-     * calculates the closest right keyframe, if there is one
-     * @param kfList: keyframe lsit
-     * @param time: time
-     */
+
     @action
     calcMinRight = (region: Doc): (Doc | undefined) => { //returns the time of the closest keyframe to the right 
         let rightKf: (Doc|undefined) = undefined;
@@ -133,15 +125,6 @@ export class Track extends React.Component<IProps> {
         return rightKf;
     }
 
-
-
-    /**
-   * Linearly interpolates a document from time1 to time2 
-   * @param Doc that needs to be modified
-   * @param  kf1 timeandposition of the first yellow bar
-   * @param kf2 timeandposition of the second yellow bar
-   * @param time time that you want to interpolate
-   */
     @action
     interpolate = async (kf1: Doc, kf2: Doc) => {
         let node1 = kf1.key as Doc;
@@ -158,13 +141,11 @@ export class Track extends React.Component<IProps> {
         });
     }
 
-
-
     @action
     findRegion(time: number): (Doc | undefined) {
         let foundRegion = undefined;
         this.regions.map(region => {
-            region = RegionData(region as Doc);
+            region = region as Doc; 
             if (time >= NumCast(region.position) && time <= (NumCast(region.position) + NumCast(region.duration))) {
                 foundRegion = region;
             }
@@ -172,25 +153,29 @@ export class Track extends React.Component<IProps> {
         return foundRegion;
     }
 
-
     @action
     onInnerDoubleClick = (e: React.MouseEvent) => {
         let inner = this._inner.current!;
         let left = inner.getBoundingClientRect().left;
         let offsetX = Math.round(e.clientX - left);
-        let regiondata: Doc = new Doc(); //creating regiond ata
+        let regiondata: Doc = new Doc(); //creating regiondata
         regiondata.duration = 200;
         regiondata.position = offsetX;
+        regiondata.fadeIn = 20; 
+        regiondata.fadeOut = 20; 
         regiondata.keyframes = new List<Doc>();
+        let leftRegion = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.left, regiondata, this.regions); 
+        let rightRegion = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.right, regiondata, this.regions); 
+        if ((rightRegion && leftRegion && rightRegion.position - (leftRegion.position + leftRegion.duration) < regiondata.fadeIn + regiondata.fadeOut) || (rightRegion && rightRegion.position - regiondata.position < regiondata.fadeIn + regiondata.fadeOut)){
+            return; 
+        } else if (rightRegion && rightRegion.position - regiondata.position >= regiondata.fadeIn + regiondata.fadeOut){
+            regiondata.duration = rightRegion.position - regiondata.position; 
+        }
         this.regions.push(regiondata);
     }
 
 
-    @computed
-    private get regions() {
-        console.log((Cast(this.props.node.regions, listSpec(Doc)) as List<Doc>).length + "from get");
-        return Cast(this.props.node.regions, listSpec(Doc)) as List<Doc>;
-    }
+   
 
     render() {
         return (
@@ -198,7 +183,7 @@ export class Track extends React.Component<IProps> {
                 <div className="track">
                     <div className="inner" ref={this._inner} onDoubleClick={this.onInnerDoubleClick}>
                         {this.regions.map((region) => {
-                            return <Keyframe node={this.props.node} RegionData={region as Doc} setFlyout={this.props.setFlyout}/>;
+                            return <Keyframe node={this.props.node} RegionData={region as Doc} changeCurrentBarX={this.props.changeCurrentBarX} setFlyout={this.props.setFlyout}/>;
                         })}
                     </div>
                 </div>

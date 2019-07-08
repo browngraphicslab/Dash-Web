@@ -10,42 +10,67 @@ import { List } from "../../../new_fields/List";
 import { createSchema, defaultSpec, makeInterface, listSpec } from "../../../new_fields/Schema";
 import { any } from "bluebird";
 import { FlyoutProps } from "./Timeline";
+import { number } from "prop-types";
 
-enum Direction {
-    left = "left",
-    right = "right"
+export namespace KeyframeFunc{
+    export enum Direction{
+        left = "left", 
+        right = "right"
+    } 
+    export const findAdjacentRegion = (dir: KeyframeFunc.Direction, currentRegion:Doc, regions:List<Doc>): (RegionData | undefined) => {
+        let leftMost: (RegionData | undefined) = undefined;
+        let rightMost: (RegionData | undefined) = undefined;
+        regions.forEach(region => {
+            let neighbor = RegionData(region as Doc);
+            if (currentRegion.position! > neighbor.position) {
+                if (!leftMost || neighbor.position > leftMost.position) {
+                    leftMost = neighbor;
+                }
+            } else if (currentRegion.position! < neighbor.position) {
+                if (!rightMost || neighbor.position < rightMost.position) {
+                    rightMost = neighbor;
+                }
+            }
+        });
+        if (dir === Direction.left) {
+            return leftMost;
+        } else if (dir === Direction.right) {
+            return rightMost;
+        }
+    }; 
 }
 
-interface IProps {
-    node: Doc;
-    RegionData: Doc;
-    setFlyout:(props:FlyoutProps) => any; 
-}
 
 const RegionDataSchema = createSchema({
     position: defaultSpec("number", 0),
     duration: defaultSpec("number", 0),
-    keyframes: listSpec(Doc)
+    keyframes: listSpec(Doc), 
+    fadeIn: defaultSpec("number", 0), 
+    fadeOut: defaultSpec("number", 0)
 });
 type RegionData = makeInterface<[typeof RegionDataSchema]>;
-export const RegionData = makeInterface(RegionDataSchema);
+const RegionData = makeInterface(RegionDataSchema);
 
+interface IProps {
+    node: Doc;
+    RegionData: Doc;
+    changeCurrentBarX: (x: number) => void; 
+    setFlyout:(props:FlyoutProps) => any; 
+}
 
 @observer
 export class Keyframe extends React.Component<IProps> {
 
     @observable private _bar = React.createRef<HTMLDivElement>();    
-    @observable private fadein: number = 0;
-    @observable private fadeout: number = 0;
 
     @action
-    componentDidMount() {
-        // need edge case here when keyframe data already exists when loading.....................;
+    componentWillMount() {
     }
 
     componentWillUnmount() {
 
     }
+
 
     @computed
     private get regiondata() {
@@ -78,29 +103,21 @@ export class Keyframe extends React.Component<IProps> {
 
     @action
     onBarPointerDown = (e: React.PointerEvent) => {
-        let mouse = e.nativeEvent; 
-        
         e.preventDefault();
         e.stopPropagation();
-        if (mouse.which === 1){
-            document.addEventListener("pointermove", this.onBarPointerMove);
-            document.addEventListener("pointerup", (e: PointerEvent) => {
-                document.removeEventListener("pointermove", this.onBarPointerMove);
-            });
-        }// else if(mouse.which === 3) {
-        //     e.preventDefault();
-        //     e.stopPropagation();        
-        //     let bar = this._bar.current!; 
-        //     this.props.setFlyout({x:e.clientX, y: e.clientY,display:"block", time: this.regiondata.position, duration:this.regiondata.duration}); 
-        // }
+        document.addEventListener("pointermove", this.onBarPointerMove);
+        document.addEventListener("pointerup", (e: PointerEvent) => {
+            document.removeEventListener("pointermove", this.onBarPointerMove);
+        });
     }
+   
 
     @action
     onBarPointerMove = (e: PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        let left = this.findAdjacentRegion(Direction.left);
-        let right = this.findAdjacentRegion(Direction.right);        
+        let left = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.left, this.regiondata, this.regions)!;
+        let right = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.right, this.regiondata, this.regions!);      
         let bar = this._bar.current!; 
         let barX = bar.getBoundingClientRect().left;
         let offset = e.clientX - barX;
@@ -116,29 +133,7 @@ export class Keyframe extends React.Component<IProps> {
         }
     }
 
-    @action
-    findAdjacentRegion = (dir: Direction): (RegionData | undefined) => {
-        let leftMost: (RegionData | undefined) = undefined;
-        let rightMost: (RegionData | undefined) = undefined;
-        this.regions.forEach(region => {
-            let neighbor = RegionData(region as Doc);
-            if (this.regiondata.position > neighbor.position) {
-                if (!leftMost || neighbor.position > leftMost.position) {
-                    leftMost = neighbor;
-                }
-            } else if (this.regiondata.position < neighbor.position) {
-                if (!rightMost || neighbor.position < rightMost.position) {
-                    rightMost = neighbor;
-                }
-            }
-        });
-        if (dir === Direction.left) {
-            return leftMost;
-        } else if (dir === Direction.right) {
-            return rightMost;
-        }
-    }
-
+   
     @action
     onResizeLeft = (e: React.PointerEvent) => {
         e.preventDefault();
@@ -166,8 +161,13 @@ export class Keyframe extends React.Component<IProps> {
         let bar = this._bar.current!;
         let barX = bar.getBoundingClientRect().left;
         let offset = e.clientX - barX;
-        this.regiondata.duration -= offset;
-        this.regiondata.position += offset;
+        if (this.regiondata.duration - offset < this.regiondata.fadeIn + this.regiondata.fadeOut){
+            this.regiondata.position -= (this.regiondata.fadeIn + this.regiondata.fadeOut - this.regiondata.duration); 
+            this.regiondata.duration = this.regiondata.fadeIn + this.regiondata.fadeOut; 
+        } else {
+            this.regiondata.duration -= offset;                
+            this.regiondata.position += offset;
+        }            
     }
 
 
@@ -178,10 +178,14 @@ export class Keyframe extends React.Component<IProps> {
         let bar = this._bar.current!;
         let barX = bar.getBoundingClientRect().right;
         let offset = e.clientX - barX;
-        this.regiondata.duration += offset;
+        if (this.regiondata.duration + offset < this.regiondata.fadeIn + this.regiondata.fadeOut){
+            this.regiondata.duration = this.regiondata.fadeIn + this.regiondata.fadeOut; 
+        } else {        
+            this.regiondata.duration += offset;
+        }
     }
 
-    createDivider = (type?: Direction): JSX.Element => {
+    createDivider = (type?: KeyframeFunc.Direction): JSX.Element => {
         if (type === "left") {
             return <div className="divider" style={{ right: "0px" }}></div>;
         } else if (type === "right") {
@@ -197,14 +201,14 @@ export class Keyframe extends React.Component<IProps> {
         let bar = this._bar.current!; 
         let offset = e.clientX - bar.getBoundingClientRect().left; 
         let position = NumCast(this.regiondata.position);
-        this.makeKeyData(position + offset);
+        this.makeKeyData(Math.round(position + offset));
     }
 
     @action 
-    moveKeyframe = (e: React.MouseEvent) => {
+    moveKeyframe = (e: React.MouseEvent, kf:Doc) => {
         e.preventDefault(); 
         e.stopPropagation(); 
-        
+        this.props.changeCurrentBarX(NumCast(kf.time!)); 
     }
 
 
@@ -215,26 +219,25 @@ export class Keyframe extends React.Component<IProps> {
                 onPointerDown={this.onBarPointerDown} 
                 onDoubleClick={this.createKeyframe}
                 onContextMenu={action((e:React.MouseEvent)=>{
-                    let mouse = e.nativeEvent; 
-                    if (mouse.which === 3){
-                        this.props.setFlyout({x:e.clientX, y: e.clientY, display:"block"}); 
-                    } else {
-                        this.props.setFlyout({display:"block"}); 
-                    }
+                    let offsetLeft = this._bar.current!.getBoundingClientRect().left - this._bar.current!.parentElement!.getBoundingClientRect().left; 
+                    let offsetTop = this._bar.current!.getBoundingClientRect().top; //+ this._bar.current!.parentElement!.getBoundingClientRect().top; 
+                    console.log(offsetLeft); 
+                    console.log(offsetTop); 
+                    this.props.setFlyout({x:offsetLeft, y: offsetTop, display:"block", regiondata:this.regiondata, regions:this.regions}); 
                 })}>
                     <div className="leftResize" onPointerDown={this.onResizeLeft} ></div>
                     <div className="rightResize" onPointerDown={this.onResizeRight}></div>
-                    <div className="fadeLeft" style={{ width: `${20}px` }}>{this.createDivider(Direction.left)}</div>
-                    <div className="fadeRight" style={{ width: `${20}px` }}>{this.createDivider(Direction.right)}</div>
+                    <div className="fadeLeft" style={{ width: `${this.regiondata.fadeIn}px` }}>{this.createDivider(KeyframeFunc.Direction.left)}</div>
+                    <div className="fadeRight" style={{ width: `${this.regiondata.fadeOut}px` }}>{this.createDivider(KeyframeFunc.Direction.right)}</div>
                     {this.regiondata.keyframes!.map(kf => {
                         kf = kf as Doc; 
-                        return <div className="keyframe" style={{ left: `${NumCast(kf.time) - this.regiondata.position}px` }}>
+                        return <div className="keyframe" style={{ left: `${NumCast(kf.time) - this.regiondata.position}px`  }}>
                             {this.createDivider()}
-                            <div className="keyframeCircle" onPointerDown={this.moveKeyframe}></div>
+                            <div className="keyframeCircle" onPointerDown={(e) => {this.moveKeyframe(e, kf as Doc);}}></div>
                         </div>;
                     })}
-                    {this.createDivider(Direction.left)}
-                    {this.createDivider(Direction.right)}
+                    {this.createDivider(KeyframeFunc.Direction.left)}
+                    {this.createDivider(KeyframeFunc.Direction.right)}
                 </div>
             </div>
         );
