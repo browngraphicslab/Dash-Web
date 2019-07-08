@@ -363,16 +363,16 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this._downX = e.clientX;
         this._downY = e.clientY;
         this._hitExpander = DocListCast(this.props.Document.subBulletDocs).length > 0;
-        if (e.shiftKey && e.buttons === 1 && CollectionDockingView.Instance) {
-            CollectionDockingView.Instance.StartOtherDrag(e, [Doc.MakeAlias(this.props.Document)], [this.dataDoc]);
-            e.stopPropagation();
-        } else {
-            if (this.active) e.stopPropagation(); // events stop at the lowest document that is active.  
-            document.removeEventListener("pointermove", this.onPointerMove);
-            document.addEventListener("pointermove", this.onPointerMove);
-            document.removeEventListener("pointerup", this.onPointerUp);
-            document.addEventListener("pointerup", this.onPointerUp);
-        }
+        // if (e.shiftKey && e.buttons === 1 && CollectionDockingView.Instance) {
+        // CollectionDockingView.Instance.StartOtherDrag(e, [Doc.MakeAlias(this.props.Document)], [this.dataDoc]);
+        // e.stopPropagation();
+        // } else {
+        if (this.active) e.stopPropagation(); // events stop at the lowest document that is active.  
+        document.removeEventListener("pointermove", this.onPointerMove);
+        document.addEventListener("pointermove", this.onPointerMove);
+        document.removeEventListener("pointerup", this.onPointerUp);
+        document.addEventListener("pointerup", this.onPointerUp);
+        // }
     }
     onPointerMove = (e: PointerEvent): void => {
         if (!e.cancelBubble && this.active) {
