@@ -42,10 +42,6 @@ export let postSignup = (req: Request, res: Response, next: NextFunction) => {
     const errors = req.validationErrors();
 
     if (errors) {
-        res.render("signup.pug", {
-            title: "Sign Up",
-            user: req.user,
-        });
         return res.redirect(RouteStore.signup);
     }
 
@@ -66,14 +62,21 @@ export let postSignup = (req: Request, res: Response, next: NextFunction) => {
         user.save((err) => {
             if (err) { return next(err); }
             req.logIn(user, (err) => {
-                if (err) {
-                    return next(err);
-                }
-                res.redirect(RouteStore.home);
+                if (err) { return next(err); }
+                tryRedirectToTarget(req, res);
             });
         });
     });
 
+};
+
+let tryRedirectToTarget = (req: Request, res: Response) => {
+    if (req.session && req.session.target) {
+        res.redirect(req.session.target);
+        req.session.target = undefined;
+    } else {
+        res.redirect(RouteStore.home);
+    }
 };
 
 
@@ -83,6 +86,7 @@ export let postSignup = (req: Request, res: Response, next: NextFunction) => {
  */
 export let getLogin = (req: Request, res: Response) => {
     if (req.user) {
+        req.session!.target = undefined;
         return res.redirect(RouteStore.home);
     }
     res.render("login.pug", {
@@ -115,7 +119,7 @@ export let postLogin = (req: Request, res: Response, next: NextFunction) => {
         }
         req.logIn(user, (err) => {
             if (err) { next(err); return; }
-            res.redirect(RouteStore.home);
+            tryRedirectToTarget(req, res);
         });
     })(req, res, next);
 };

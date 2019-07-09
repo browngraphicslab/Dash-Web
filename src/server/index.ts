@@ -40,6 +40,7 @@ import { Search } from './Search';
 import { debug } from 'util';
 import _ = require('lodash');
 import { Response } from 'express-serve-static-core';
+import { DocServer } from '../client/DocServer';
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const probe = require("probe-image-size");
@@ -69,7 +70,7 @@ app.use(session({
     secret: "64d6866242d3b5a5503c675b32c9605e4e90478e9b77bcf2bc",
     resave: true,
     cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 },
-    saveUninitialized: true,
+    saveUninitialized: false,
     store: new MongoStore({ url: 'mongodb://localhost:27017/Dash' })
 }));
 
@@ -82,6 +83,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 app.use((req, res, next) => {
     res.locals.user = req.user;
+    // res.locals.target = req.session!.target;
     next();
 });
 
@@ -103,14 +105,16 @@ enum Method {
  */
 function addSecureRoute(method: Method,
     handler: (user: DashUserModel, res: express.Response, req: express.Request) => void,
-    onRejection: (res: express.Response) => any = (res) => res.redirect(RouteStore.logout),
+    onRejection: (res: express.Response, req: express.Request) => any = res => res.redirect(RouteStore.login),
     ...subscribers: string[]
 ) {
     let abstracted = (req: express.Request, res: express.Response) => {
         if (req.user) {
             handler(req.user, res, req);
         } else {
-            onRejection(res);
+            let target = `http://localhost:${port}${req.originalUrl}`;
+            req.session!.target = target;
+            onRejection(res, req);
         }
     };
     subscribers.forEach(route => {
