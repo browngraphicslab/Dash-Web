@@ -161,7 +161,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     getTemplate = async () => {
         let parent = Docs.StackingDocument([], { width: 800, height: 800, title: "Template" });
         parent.singleColumn = false;
-        parent.columnWidth = 50;
+        parent.columnWidth = 100;
         for (let row of this.rows.filter(row => row.isChecked)) {
             await this.createTemplateField(parent, row);
             row.uncheck();
@@ -175,7 +175,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         if (!sourceDoc) {
             return;
         }
-        let fieldTemplate = this.inferType(sourceDoc[metaKey], metaKey);
+        let fieldTemplate = await this.inferType(sourceDoc[metaKey], metaKey);
 
         // move data doc fields to layout doc as needed (nativeWidth/nativeHeight, data, ??)
         let backgroundLayout = StrCast(fieldTemplate.backgroundLayout);
@@ -200,12 +200,24 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         Cast(parentStackingDoc.data, listSpec(Doc))!.push(fieldTemplate);
     }
 
-    inferType = (data: FieldResult, metaKey: string) => {
+    inferType = async (data: FieldResult, metaKey: string) => {
         let options = { width: 300, height: 300, title: metaKey };
         if (data instanceof RichTextField || typeof data === "string" || typeof data === "number") {
             return Docs.TextDocument(options);
         } else if (data instanceof List) {
-            return Docs.StackingDocument([], options);
+            if (data.length === 0) {
+                return Docs.StackingDocument([], options);
+            }
+            let first = await Cast(data[0], Doc);
+            if (!first) {
+                return Docs.StackingDocument([], options);
+            }
+            switch (first.type) {
+                case "image":
+                    return Docs.StackingDocument([], options);
+                case "text":
+                    return Docs.TreeDocument([], options);
+            }
         } else if (data instanceof ImageField) {
             return Docs.ImageDocument("https://www.freepik.com/free-icon/picture-frame-with-mountain-image_748687.htm", options);
         }

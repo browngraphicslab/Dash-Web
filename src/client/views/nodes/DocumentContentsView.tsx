@@ -69,7 +69,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
             // this document as the data document for the layout.
             return this.props.Document;
         }
-        return this.props.DataDoc
+        return this.props.DataDoc;
     }
     get layoutDoc() {
         // if this document's layout field contains a document (ie, a rendering template), then we will use that
@@ -124,13 +124,8 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         if (this.props.renderDepth > 7) return (null);
         if (!this.layout && (this.props.layoutKey !== "overlayLayout" || !this.templates.length)) return (null);
         return <ObserverJsxParser
-<<<<<<< HEAD
             components={{ FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox }}
-            bindings={this.CreateBindings(this.props.Document.layout instanceof Doc ? this.props.Document.layout : this.props.Document)}
-=======
-            components={{ FormattedTextBox, ImageBox, IconBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox }}
             bindings={this.CreateBindings()}
->>>>>>> b49fdb1c42b9758e006521e0f404634ba396a2ac
             jsx={this.finalLayout}
             showWarnings={true}
             onError={(test: any) => { console.log(test); }}
