@@ -226,7 +226,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     this._downY = this._lastY = e.pageY;
 
                     this._commandExecuted = false;
-                    PreviewCursor.Visible = false;
 
                     //if (!this.props.container.props.active()) this.props.selectDocuments([this.props.container.props.Document]);
                     document.addEventListener("pointermove", this.onPointerMove_Selector, true);
@@ -481,14 +480,14 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.preview = d;
         this.preview2 = Docs.KVPDocument(d, {});
         if (this.sortstate === "creationDate") {
-            this.preview4 = this.sortstate + ":" + d.creationDate.date;
+            this.preview4 = d.creationDate.date;
         }
         else {
-            this.preview4 = this.sortstate + ":" + d[this.sortstate];
+            this.preview4 = d[this.sortstate];
         }
     }
 
-  
+
 
     private _values: CompoundValue[] = [];
     private ticks: JSX.Element[] = [];
@@ -530,7 +529,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 });
             }
         }
-        
+
         keyvalue.sort(function (a, b) { return (a.value - b.value); });
 
         let docs = keyvalue.map(kv => kv.doc);
@@ -555,7 +554,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         for (let i = 0; i < backup.length; i++) {
             let icon = this.checkData(backup[i]);
             leftval = (((values[i] - values[0]) * this.barwidth * 0.97 / this._range) * (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)) - (this.xmovement * (this.barwidth) / (this.barwidth - this.xmovement2 - this.xmovement))) + "px";
-            let display = (e: React.MouseEvent<HTMLDivElement>, b: HTMLDivElement | undefined, h: HTMLDivElement | undefined) => { this.select(e, keyvalue[i].doc, b, h, i)};
+            let display = (e: React.MouseEvent<HTMLDivElement>, b: HTMLDivElement | undefined, h: HTMLDivElement | undefined) => { this.select(e, keyvalue[i].doc, b, h, i) };
             let leftval2 = (((values[i] - values[0]) * this.barwidth * 0.97 / this._range) * (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)) - (this.xmovement * (this.barwidth) / (this.barwidth - this.xmovement2 - this.xmovement)));
             let overlap = false;
             let thingies = [];
@@ -668,7 +667,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
 
         return (<div ref={this.screenref} id="screen" >
-            <div style={{ position: "absolute", height: "60%", width: "20%", overflow: "scroll", border: "1px solid" }}>
+            <div style={{ position: "absolute", height: "60%", width: "20%", overflow: "scroll", border: "1px solid", zIndex: 900 }}>
                 <div id="schema-options-header"><h5><b>Options</b></h5></div>
                 <div id="options-flyout-div">
                     {Array.from(Object.keys(keys)).map(item =>
@@ -685,25 +684,26 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             <div style={{ left: "70%", height: "60%", position: "absolute", border: "1px solid", width: "30%" }}>
                 {this.preview2 ? this.documentpreview3(this.preview2) : (null)}
             </div>
-            <div style={{ top: "86%", height: "8%", width: "100%", position: "absolute", zIndex: 1000 }}>
-                <div className="contextMenu" style={{ width: "20%" }}> Min:
+            <div className="bottomgrid" style={{ top: "85%", height: "auto", width: "100%", position: "absolute", zIndex: 1000 }}>
+                <div className="left"> Min:
                 <input value={this.searchString2} onChange={this.onChange2} onKeyPress={this.enter2} type="text" placeholder={String((this.xmovement * this._range / this.barwidth) + this._values[0])}
                         className="searchBox-barChild searchBox-input" />
                 </div>
-                <div className="contextMenu" style={{ textAlign: "center" }}>{this.preview4}
-                </div>
-
-
-                <div className="contextMenu" style={{ right: "0%", position: "absolute" }}>Max:
-                <input value={this.searchString} onChange={this.onChange} onKeyPress={this.enter} type="text" placeholder={String(((this.barwidth - this.xmovement2) * this._range / this.barwidth) + this._values[0])}
+                <div className="mid">
+                    {this.sortstate + ":" + this.preview4}
+                    </div>
+                                    <div className="right">
+                    Max:
+                    <input value={this.searchString} onChange={this.onChange} onKeyPress={this.enter} type="text" placeholder={String(((this.barwidth - this.xmovement2) * this._range / this.barwidth) + this._values[0])}
                         className="searchBox-barChild searchBox-input" />
-                </div>
+                        </div>
+                
 
             </div>
 
             <div className="viewpanel" style={{ top: "5%", position: "absolute", right: "10%", bottom: "35%", background: "#GGGGGG", zIndex: -55, }}></div>
             <div style={{ height: "100%", position: "absolute", width: "100%", }}>
-                <div className="marqueeView" style={{ borderRadius: "inherit" }} onClick={this.onClick_Selector} onPointerDown={this.onPointerDown_Selector}>
+                <div className="marqueeView" style={{ borderRadius: "inherit" }} onKeyPress={this.onKeyPress_Selector} onClick={this.onClick_Selector} onPointerDown={this.onPointerDown_Selector}>
                     <div style={{ position: "relative", transform: `translate(${p[0]}px, ${p[1]}px)` }} >
                         {this._visible ? this.marqueeDiv : null}
                     </div>
@@ -737,8 +737,19 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     }
 
 
+    @action
+    onKeyPress_Selector = (e: KeyboardEvent) => {
+        //make textbox and add it to this collection
+        if (e.key === e.altKey) {
+            for(let i=0;i<this.selections.length;i++){
+                
+            }
+        }
+        e.stopPropagation();
+    }
 
-    private getContainerTransform = (): Transform => this.props.ScreenToLocalTransform().translate(0,0);
+
+    private getContainerTransform = (): Transform => this.props.ScreenToLocalTransform().translate(0, 0);
 
 
     @action.bound
