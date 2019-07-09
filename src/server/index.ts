@@ -40,7 +40,6 @@ import { Search } from './Search';
 import { debug } from 'util';
 import _ = require('lodash');
 import { Response } from 'express-serve-static-core';
-import { DocServer } from '../client/DocServer';
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const probe = require("probe-image-size");
@@ -83,7 +82,6 @@ app.use(passport.initialize());
 app.use(passport.session());
 app.use((req, res, next) => {
     res.locals.user = req.user;
-    // res.locals.target = req.session!.target;
     next();
 });
 
