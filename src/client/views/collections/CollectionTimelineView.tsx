@@ -37,6 +37,7 @@ import { auto, select } from "async";
 import Measure from "react-measure";
 import { COLLECTION_BORDER_WIDTH } from "../globalCssVariables.scss";
 import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";
+import { forEach } from "typescript-collections/dist/lib/arrays";
 
 type CompoundValue = String | number | Date;
 type DocTuple = {
@@ -48,7 +49,10 @@ type MarkerUnit = {
     initialLeft: number,
     initialWidth: number,
     initialScaleRef: number
-    ref: HTMLDivElement | undefined;
+    ref: HTMLDivElement | undefined,
+    annotation: string,
+    menu: JSXElement,
+    menuref: HTMLDivElement | undefined;
 };
 type Thing = {
     button: JSX.Element,
@@ -56,6 +60,9 @@ type Thing = {
 
     header: JSX.Element,
     headerref: HTMLDivElement | undefined,
+
+    map: JSX.Element,
+    mapref: HTMLDivElement | undefined,
 };
 
 export interface FieldViewProps {
@@ -103,6 +110,16 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     private screenref = React.createRef<HTMLDivElement>();
     private barref = React.createRef<HTMLDivElement>();
     private marqueeref = React.createRef<HTMLDivElement>();
+
+    componentWillMount() {
+        document.addEventListener("keydown", (e) => this.onKeyPress_Selector(e));
+    }
+
+    componentWillUnmount() {
+        document.removeEventListener("keydown", (e) => this.onKeyPress_Selector(e));
+    }
+
+
 
     sortdate(a: Doc, b: Doc) {
         var adate: DateField = a.creationDate;
@@ -162,14 +179,15 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @computed
     get markerrender() {
         console.log(this.countingfriend);
-        for (let i = 0; i < this.markers.length; i++) {
-            if (this.markers[i].ref !== undefined) {
-                let oldstyle = this.markers[i].ref!;
-                console.log(oldstyle);
-                oldstyle.style.left = String(((this.markers[i].initialLeft * (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)) - (this.xmovement * (this.barwidth) / (this.barwidth - this.xmovement2 - this.xmovement)))));
-                oldstyle.style.width = String(this.markers[i].initialScaleRef * ((this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement))) / this.markers[i].initialWidth);
+        this.markers.forEach(element => {
+            if (element.ref !== undefined) {
+                let oldstyle = element.ref!;
+                oldstyle.style.left = String(((element.initialLeft * (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)) - (this.xmovement * (this.barwidth) / (this.barwidth - this.xmovement2 - this.xmovement)))));
+                oldstyle.style.width = String(element.initialScaleRef * ((this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement))) / element.initialWidth);
             }
-        }
+        });
+
+
         let dudes = this.markers.map(kv => kv.element);
 
         return (<div>{dudes}</div>);
@@ -189,19 +207,17 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
         if (e.altKey) {
             e.preventDefault;
-            let leftval = (e.pageX - document.body.clientWidth + this.screenref.current.clientWidth);
-            let place = this.markers.length;
+            let leftval = (e.pageX - document.body.clientWidth + this.screenref.current!.clientWidth);
             let ting: MarkerUnit = {
                 ref: undefined,
-                element: <div ref={(el) => el ? ting.ref = el : null} id={"marker" + String(this.markers.length)} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, ting.ref)} style={{ top: "75%", border: "2px solid red", width: "10px", height: "1px", position: "absolute", left: leftval }}></div>,
+                element: <div ref={(el) => el ? ting.ref = el : null} id={"marker" + String(this.markers.length)} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, ting.ref)} style={{ top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid" + this.selectedColor, width: "10px", height: "30px", backgroundColor: this.selectedColor, opacity: "0.5", position: "absolute", left: leftval }}></div>,
                 initialLeft: (leftval / (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement))) + (this.xmovement),
                 initialScaleRef: 10,
                 initialWidth: (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)),
-
-
             };
 
             this.markers.push(ting);
+            document.addEventListener("pointermove", this.onPointerMove_Selector, true);
             document.addEventListener("pointerup", this.onPointerUp_Selector, true);
             this.countingfriend += 1;
         }
@@ -211,10 +227,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 for (let i = 0; i < this.buttons.length; i++) {
                     if (this.buttons[i].buttonref !== undefined) {
                         let button = this.buttons[i].buttonref;
-                        button.classList.toggle("selected", false);
-                        button.classList.toggle("unselected", true);
-                        this.buttons[i].headerref.classList.toggle("selection", false);
-                        this.buttons[i].headerref.classList.toggle("unselection", true);
+                        button!.classList.toggle("selected", false);
+                        button!.classList.toggle("unselected", true);
+                        this.buttons[i].headerref!.classList.toggle("selection", false);
+                        this.buttons[i].headerref!.classList.toggle("unselection", true);
                     }
                 }
                 this.selections = [];
@@ -246,6 +262,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @action
     onPointerMove_Selector = (e: PointerEvent): void => {
 
+
+
         if (e.pageY > document.body.clientHeight * 0.61) {
             if (e.pageY < document.body.clientHeight * 0.79) {
                 this._lastY = e.pageY;
@@ -261,6 +279,27 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
 
         this._lastX = e.pageX;
+        console.log(this._lastX);
+
+
+        if (e.altKey) {
+            console.log(String(this._lastX - parseInt(this.markers[this.markers.length - 1].ref.style.left)));
+            this.markers[this.markers.length - 1].ref.style.width = String(this._lastX - parseInt(this.markers[this.markers.length - 1].ref.style.left));
+            this.markers[this.markers.length - 1].initialScaleRef = this._lastX - parseInt(this.markers[this.markers.length - 1].ref.style.left);
+            console.log(this.markers[this.markers.length - 1].ref.style.width);
+            console.log(this.markers[this.markers.length - 1].initialScaleRef);
+            this.countingfriend++;
+            e.stopPropagation();
+
+
+        }
+
+
+        else {
+            this.marqueeSelect();
+
+        }
+
         if (!e.cancelBubble) {
             if (Math.abs(this._lastX - this._downX) > Utils.DRAG_THRESHOLD ||
                 Math.abs(this._lastY - this._downY) > Utils.DRAG_THRESHOLD) {
@@ -271,7 +310,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 e.preventDefault();
             }
         }
-        this.marqueeSelect();
+
 
 
     }
@@ -284,32 +323,34 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 SelectionManager.DeselectAll(undefined);
             }
         }
-        if (e.ctrlKey) {
-            e.preventDefault();
-            if (this._lastX < this._downX) {
-
-                let ting: MarkerUnit = {
-                    element: <div ref={(el) => el ? ting.ref = el : null} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, ting.ref)} id={"marker" + String(this.markers.length)} style={{ top: "75%", border: "2px solid red", width: String(Math.abs(this._lastX - this._downX)), height: "1px", position: "absolute", left: this._downX - Math.abs(this._lastX - this._downX) }}></div>,
-                    initialLeft: ((this._downX - Math.abs(this._lastX - this._downX)) / (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement))) + (this.xmovement),
-                    initialScaleRef: Math.abs(this._lastX - this._downX),
-                    initialWidth: (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)),
-                    ref: undefined,
-                };
-                this.markers.push(ting);
-            }
-            else {
-                let ting: MarkerUnit = {
-                    element: <div ref={(el) => el ? ting.ref = el : null} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, ting.ref)} id={"marker" + String(this.markers.length)} style={{ top: "75%", border: "2px solid red", width: String(this._lastX - this._downX), height: "1px", position: "absolute", left: this._downX }}></div>,
-                    initialLeft: (this._downX / (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement))) + (this.xmovement),
-                    initialScaleRef: (this._lastX - this._downX),
-                    initialWidth: (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)),
-                    ref: undefined,
-                };
-                this.markers.push(ting);
-            }
 
 
-        }
+        // if (e.ctrlKey) {
+        //     e.preventDefault();
+        //     if (this._lastX < this._downX) {
+
+        //         let ting: MarkerUnit = {
+        //             element: <div ref={(el) => el ? ting.ref = el : null} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, ting.ref)} id={"marker" + String(this.markers.length)} style={{ top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid" + this.selectedColor, height: "30px", backgroundColor: this.selectedColor, opacity: "0.5", width: String(Math.abs(this._lastX - this._downX)), position: "absolute", left: this._downX - Math.abs(this._lastX - this._downX) }}></div>,
+        //             initialLeft: ((this._downX - Math.abs(this._lastX - this._downX)) / (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement))) + (this.xmovement),
+        //             initialScaleRef: Math.abs(this._lastX - this._downX),
+        //             initialWidth: (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)),
+        //             ref: undefined,
+        //         };
+        //         this.markers.push(ting);
+        //     }
+        //     else {
+        //         let ting: MarkerUnit = {
+        //             element: <div ref={(el) => el ? ting.ref = el : null} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, ting.ref)} id={"marker" + String(this.markers.length)} style={{ top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid" + this.selectedColor, height: "30px", backgroundColor: this.selectedColor, opacity: "0.5", width: String(this._lastX - this._downX), position: "absolute", left: this._downX }}></div>,
+        //             initialLeft: (this._downX / (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement))) + (this.xmovement),
+        //             initialScaleRef: (this._lastX - this._downX),
+        //             initialWidth: (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)),
+        //             ref: undefined,
+        //         };
+        //         this.markers.push(ting);
+        //     }
+
+
+        // }
 
         this.cleanupInteractions(true);
 
@@ -348,41 +389,41 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             for (let i = 0; i < this.buttons.length; i++) {
                 if (this.buttons[i].buttonref !== undefined) {
                     let button = this.buttons[i].buttonref;
-                    let buttoninfo = button.getBoundingClientRect();
+                    let buttoninfo = button!.getBoundingClientRect();
                     let buttonLeft = buttoninfo.left;
                     let buttonRight = buttoninfo.right;
                     let header = this.buttons[i].headerref;
 
                     if (buttonLeft > left && buttonLeft < right) {
-                        button.classList.toggle("selected", true);
-                        button.classList.toggle("unselected", false);
-                        header.classList.toggle("selection", true);
-                        header.classList.toggle("unselection", false);
+                        button!.classList.toggle("selected", true);
+                        button!.classList.toggle("unselected", false);
+                        header!.classList.toggle("selection", true);
+                        header!.classList.toggle("unselection", false);
 
                         newselect.push(button);
                     }
                     else if (buttonRight > left && buttonRight < right) {
-                        button.classList.toggle("selected", true);
-                        button.classList.toggle("unselected", false);
-                        header.classList.toggle("selection", true);
-                        header.classList.toggle("unselection", false);
+                        button!.classList.toggle("selected", true);
+                        button!.classList.toggle("unselected", false);
+                        header!.classList.toggle("selection", true);
+                        header!.classList.toggle("unselection", false);
                         newselect.push(button);
 
                     }
                     else {
-                        button.classList.toggle("selected", false);
-                        button.classList.toggle("unselected", true);
-                        header.classList.toggle("selection", false);
-                        header.classList.toggle("unselection", true);
+                        button!.classList.toggle("selected", false);
+                        button!.classList.toggle("unselected", true);
+                        header!.classList.toggle("selection", false);
+                        header!.classList.toggle("unselection", true);
 
                     }
 
                     for (let j = 0; j < this.selections.length; j++) {
                         if (this.selections[j] === button) {
-                            button.classList.toggle("selected", true);
-                            button.classList.toggle("unselected", false);
-                            header.classList.toggle("selection", true);
-                            header.classList.toggle("unselection", false);
+                            button!.classList.toggle("selected", true);
+                            button!.classList.toggle("unselected", false);
+                            header!.classList.toggle("selection", true);
+                            header!.classList.toggle("unselection", false);
 
                         }
                     }
@@ -415,11 +456,11 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
 
         if (e.ctrlKey) {
-            if (button.classList.contains("selected")) {
-                button.classList.toggle("selected", false);
-                button.classList.toggle("unselected", true);
-                header.classList.toggle("selection", false);
-                header.classList.toggle("unselection", true);
+            if (button!.classList.contains("selected")) {
+                button!.classList.toggle("selected", false);
+                button!.classList.toggle("unselected", true);
+                header!.classList.toggle("selection", false);
+                header!.classList.toggle("unselection", true);
 
                 for (let i = 0; i < this.selections.length; i++) {
                     if (this.selections[i] === button) {
@@ -428,10 +469,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 }
             }
             else {
-                button.classList.toggle("selected", true);
-                button.classList.toggle("unselected", false);
-                header.classList.toggle("selection", true);
-                header.classList.toggle("unselection", false);
+                button!.classList.toggle("selected", true);
+                button!.classList.toggle("unselected", false);
+                header!.classList.toggle("selection", true);
+                header!.classList.toggle("unselection", false);
 
                 this.selections.push(button);
             }
@@ -439,32 +480,32 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
         else {
 
-            if (button.classList.contains("selected")) {
+            if (button!.classList.contains("selected")) {
                 for (let j = 0; j < this.selections.length; j++) {
-                    this.selections[j].classList.toggle("selected", false);
-                    this.selections[j].classList.toggle("unselected", true);
+                    this.selections[j]!.classList.toggle("selected", false);
+                    this.selections[j]!.classList.toggle("unselected", true);
 
                 }
                 for (let j = 0; j < this.buttons.length; j++) {
-                    this.buttons[j].headerref.classList.toggle("selection", false);
-                    this.buttons[j].headerref.classList.toggle("unselection", true);
+                    this.buttons[j].headerref!.classList.toggle("selection", false);
+                    this.buttons[j].headerref!.classList.toggle("unselection", true);
                 }
                 this.selections = [];
             }
             else {
                 for (let j = 0; j < this.selections.length; j++) {
-                    this.selections[j].classList.toggle("selected", false);
-                    this.selections[j].classList.toggle("unselected", true);
+                    this.selections[j]!.classList.toggle("selected", false);
+                    this.selections[j]!.classList.toggle("unselected", true);
                 }
                 for (let j = 0; j < this.buttons.length; j++) {
-                    this.buttons[j].headerref.classList.toggle("selection", false);
-                    this.buttons[j].headerref.classList.toggle("unselection", true);
+                    this.buttons[j].headerref!.classList.toggle("selection", false);
+                    this.buttons[j].headerref!.classList.toggle("unselection", true);
                 }
 
-                button.classList.toggle("selected", true);
-                button.classList.toggle("unselected", false);
-                header.classList.toggle("selection", true);
-                header.classList.toggle("unselection", false);
+                button!.classList.toggle("selected", true);
+                button!.classList.toggle("unselected", false);
+                header!.classList.toggle("selection", true);
+                header!.classList.toggle("unselection", false);
 
                 this.selections = [];
                 this.selections.push(button);
@@ -492,11 +533,9 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     private _values: CompoundValue[] = [];
     private ticks: JSX.Element[] = [];
     private buttons: Thing[] = [];
-    public buttons2: JSX.Element[] = [];
 
 
     buttonloop() {
-        this.buttons2 = [];
         this._range = 1;
         let arr: Doc[] = [];
 
@@ -610,18 +649,18 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     </div>
                 ),
                 headerref: undefined,
+                map: (
+                    <div ref={(el) => el ? item.mapref = el : null}
+                        style={{
+                            position: "absolute",
+                            background: "black",
+                            zIndex: "1",
+                            top: "50%", left: ((values[i] - values[0]) * this.barwidth / this._range) * 0.97 + "px", width: "5px", border: "3px solid"
+                        }}>
+                    </div>),
+                mapref: undefined,
             };
             this.buttons.push(item);
-
-            this.buttons2.push(
-                <div
-                    style={{
-                        position: "absolute",
-                        background: "black",
-                        zIndex: "1",
-                        top: "50%", left: ((values[i] - values[0]) * this.barwidth / this._range) * 0.97 + "px", width: "5px", border: "3px solid"
-                    }}>
-                </div>);
         }
 
 
@@ -684,26 +723,30 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             <div style={{ left: "70%", height: "60%", position: "absolute", border: "1px solid", width: "30%" }}>
                 {this.preview2 ? this.documentpreview3(this.preview2) : (null)}
             </div>
-            <div className="bottomgrid" style={{ top: "85%", height: "auto", width: "100%", position: "absolute", zIndex: 1000 }}>
+            <div className="bottomgrid" style={{ top: "85%", height: "3%", width: "100%", position: "absolute", zIndex: 1000 }}>
                 <div className="left"> Min:
                 <input value={this.searchString2} onChange={this.onChange2} onKeyPress={this.enter2} type="text" placeholder={String((this.xmovement * this._range / this.barwidth) + this._values[0])}
                         className="searchBox-barChild searchBox-input" />
                 </div>
                 <div className="mid">
+                    <div onClick={(e) => this.toggleColor(e, "ffff80")} style={{ position: "absolute", left: "33%", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#ffff80" }}></div>
+                    <div onClick={(e) => this.toggleColor(e, "bfff80")} style={{ position: "absolute", left: "35%", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#bfff80" }}></div>
+                    <div onClick={(e) => this.toggleColor(e, "#ff8080")} style={{ position: "absolute", left: "37%", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#ff8080" }}></div>
+                    <div onClick={(e) => this.toggleColor(e, "#80dfff")} style={{ position: "absolute", left: "39%", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#80dfff" }}></div>
                     {this.sortstate + ":" + this.preview4}
-                    </div>
-                                    <div className="right">
+                </div>
+                <div className="right">
                     Max:
                     <input value={this.searchString} onChange={this.onChange} onKeyPress={this.enter} type="text" placeholder={String(((this.barwidth - this.xmovement2) * this._range / this.barwidth) + this._values[0])}
                         className="searchBox-barChild searchBox-input" />
-                        </div>
-                
+                </div>
+
 
             </div>
 
             <div className="viewpanel" style={{ top: "5%", position: "absolute", right: "10%", bottom: "35%", background: "#GGGGGG", zIndex: -55, }}></div>
-            <div style={{ height: "100%", position: "absolute", width: "100%", }}>
-                <div className="marqueeView" style={{ borderRadius: "inherit" }} onKeyPress={this.onKeyPress_Selector} onClick={this.onClick_Selector} onPointerDown={this.onPointerDown_Selector}>
+            <div style={{ height: "100%", position: "absolute", width: "100%", }} onKeyDown={this.onKeyPress_Selector}>
+                <div className="marqueeView" style={{ borderRadius: "inherit" }} onClick={this.onClick_Selector} onPointerDown={this.onPointerDown_Selector}>
                     <div style={{ position: "relative", transform: `translate(${p[0]}px, ${p[1]}px)` }} >
                         {this._visible ? this.marqueeDiv : null}
                     </div>
@@ -712,7 +755,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             <div style={{ top: "65%", position: "absolute", bottom: "25%" }}>{this.buttons.map(item => item.button)}{this.buttons.map(item => item.header)}</div>
             {this.markerrender}
             <div id="bar" ref={this.barref} className="backdropscroll" onPointerDown={this.onPointerDown_OffBar} style={{ top: "80%", width: "100%", bottom: "15%", position: "absolute", }}>
-                {this.buttons2}
+                {this.buttons.map(item => item.map)}
                 <div className="v1" onPointerDown={this.onPointerDown_LeftBound} style={{ cursor: "ew-resize", position: "absolute", zIndex: 2, left: this.xmovement, height: "100%" }}>
 
                 </div>
@@ -737,15 +780,37 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     }
 
 
+    @observable
+    private selectedColor: string;
+
     @action
-    onKeyPress_Selector = (e: KeyboardEvent) => {
+    toggleColor = (e: React.MouseEvent<HTMLDivElement>, color: string) => {
+        this.selectedColor = color;
+    }
+
+    @action
+    onKeyPress_Selector = (e: React.KeyboardEvent) => {
         //make textbox and add it to this collection
-        if (e.key === e.altKey) {
-            for(let i=0;i<this.selections.length;i++){
-                
+        //e.preventDefault();
+        if (e.altKey) {
+            let min = 9999999;
+            let max = -999999;
+
+            for (let i = 0; i < this.selections.length; i++) {
+                min = this.selections[i].getBoundingClientRect().left < min ? this.selections[i].getBoundingClientRect().left : min;
+                max = this.selections[i].getBoundingClientRect().right > max ? this.selections[i].getBoundingClientRect().right : max;
+
             }
+            let ting: MarkerUnit = {
+                element: <div ref={(el) => el ? ting.ref = el : null} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, ting.ref)} id={"marker" + String(this.markers.length)} style={{ top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid" + this.selectedColor, height: "30px", backgroundColor: this.selectedColor, opacity: "0.5", width: (max - document.body.clientWidth + this.screenref.current!.clientWidth) - min, position: "absolute", left: min - document.body.clientWidth + this.screenref.current!.clientWidth }}></div>,
+                initialLeft: ((min - document.body.clientWidth + this.screenref.current!.clientWidth) / (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement))) + (this.xmovement),
+                initialScaleRef: Math.abs(max - min),
+                initialWidth: (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)),
+                ref: undefined,
+            };
+            this.markers.push(ting);
+            this.countingfriend++;
         }
-        e.stopPropagation();
     }
 
 
