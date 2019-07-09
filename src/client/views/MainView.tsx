@@ -67,12 +67,6 @@ export class MainView extends React.Component {
         window.removeEventListener("keydown", KeyManager.Instance.handle);
         window.addEventListener("keydown", KeyManager.Instance.handle);
 
-        window.removeEventListener("pointerdown", this.pointerDown);
-        window.addEventListener("pointerdown", this.pointerDown);
-
-        window.removeEventListener("pointerup", this.pointerUp);
-        window.addEventListener("pointerup", this.pointerUp);
-
         reaction(() => {
             let workspaces = CurrentUserUtils.UserDocument.workspaces;
             let recent = CurrentUserUtils.UserDocument.recentlyClosed;
@@ -86,17 +80,12 @@ export class MainView extends React.Component {
             if (libraryHeight && Math.abs(CurrentUserUtils.UserDocument[HeightSym]() - libraryHeight) > 5) {
                 CurrentUserUtils.UserDocument.height = libraryHeight;
             }
-            (Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc) as Doc)!.allowClear = true;
+            (Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc) as Doc).allowClear = true;
         }, { fireImmediately: true });
     }
 
-    pointerDown = (e: PointerEvent) => this.isPointerDown = true;
-    pointerUp = (e: PointerEvent) => this.isPointerDown = false;
-
     componentWillUnMount() {
         window.removeEventListener("keydown", KeyManager.Instance.handle);
-        window.removeEventListener("pointerdown", this.pointerDown);
-        window.removeEventListener("pointerup", this.pointerUp);
     }
 
     constructor(props: Readonly<{}>) {
@@ -151,8 +140,8 @@ export class MainView extends React.Component {
         window.addEventListener("drop", (e) => e.preventDefault(), false); // drop event handler
         window.addEventListener("dragover", (e) => e.preventDefault(), false); // drag event handler
         // click interactions for the context menu
-        document.addEventListener("pointerdown", action(function (e: PointerEvent) {
-
+        document.addEventListener("pointerdown", action((e: PointerEvent) => {
+            this.isPointerDown = true;
             const targets = document.elementsFromPoint(e.x, e.y);
             if (targets && targets.length && targets[0].className.toString().indexOf("contextMenu") === -1) {
                 ContextMenu.Instance.closeMenu();
@@ -286,6 +275,7 @@ export class MainView extends React.Component {
     }
     @action
     onPointerUp = (e: PointerEvent) => {
+        this.isPointerDown = false;
         if (Math.abs(e.clientX - this._downsize) < 4) {
             if (this.flyoutWidth < 5) this.flyoutWidth = 250;
             else this.flyoutWidth = 0;
@@ -300,7 +290,7 @@ export class MainView extends React.Component {
         } else {
             CollectionDockingView.Instance.AddRightSplit(doc, undefined);
         }
-    };
+    }
     @computed
     get flyout() {
         let sidebar = CurrentUserUtils.UserDocument.sidebar;
@@ -325,7 +315,7 @@ export class MainView extends React.Component {
             ContainingCollectionView={undefined}
             zoomToScale={emptyFunction}
             getScale={returnOne}>
-        </DocumentView>
+        </DocumentView>;
     }
     @computed
     get mainContent() {
