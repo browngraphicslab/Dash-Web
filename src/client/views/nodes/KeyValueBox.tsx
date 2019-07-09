@@ -8,7 +8,7 @@ import "./KeyValueBox.scss";
 import { KeyValuePair } from "./KeyValuePair";
 import React = require("react");
 import { NumCast, Cast, FieldValue, StrCast } from "../../../new_fields/Types";
-import { Doc, Field, FieldResult } from "../../../new_fields/Doc";
+import { Doc, Field, FieldResult, DocListCastAsync } from "../../../new_fields/Doc";
 import { ComputedField, ScriptField } from "../../../new_fields/ScriptField";
 import { SetupDrag } from "../../util/DragManager";
 import { Docs } from "../../documents/Documents";
@@ -19,6 +19,7 @@ import { TextField } from "../../util/ProsemirrorCopy/prompt";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { ImageField } from "../../../new_fields/URLField";
 import { SelectionManager } from "../../util/SelectionManager";
+import { listSpec } from "../../../new_fields/Schema";
 
 @observer
 export class KeyValueBox extends React.Component<FieldViewProps> {
@@ -169,33 +170,6 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     }
 
     createTemplateField = async (parentStackingDoc: Doc, row: KeyValuePair) => {
-        // let collectionKeyProp = `fieldKey={"data"}`;
-        // let metaKey = row.props.keyName;
-        // let metaKeyProp = `fieldKey={"${metaKey}"}`;
-
-        // let sourceDoc = await Cast(this.props.Document.data, Doc);
-        // if (!sourceDoc) {
-        //     return;
-        // }
-        // let target = this.inferType(sourceDoc[metaKey], metaKey);
-
-        // let template = Doc.MakeAlias(target);
-        // template.proto = parent;
-        // template.title = metaKey;
-        // template.nativeWidth = 0;
-        // template.nativeHeight = 0;
-        // template.embed = true;
-        // template.isTemplate = true;
-        // template.templates = new List<string>([Templates.TitleBar(metaKey)]);
-        // if (target.backgroundLayout) {
-        //     let metaAnoKeyProp = `fieldKey={"${metaKey}"} fieldExt={"annotations"}`;
-        //     let collectionAnoKeyProp = `fieldKey={"annotations"}`;
-        //     template.layout = StrCast(target.layout).replace(collectionAnoKeyProp, metaAnoKeyProp);
-        //     template.backgroundLayout = StrCast(target.backgroundLayout).replace(collectionKeyProp, metaKeyProp);
-        // } else {
-        //     template.layout = StrCast(target.layout).replace(collectionKeyProp, metaKeyProp);
-        // }
-
         let metaKey = row.props.keyName;
         let sourceDoc = await Cast(this.props.Document.data, Doc);
         if (!sourceDoc) {
@@ -223,8 +197,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         fieldTemplate.templates = new List<string>([Templates.TitleBar(metaKey)]);
         fieldTemplate.proto = Doc.GetProto(parentStackingDoc);
 
-        Doc.AddDocToList(parentStackingDoc, "data", fieldTemplate);
-        row.uncheck();
+        Cast(parentStackingDoc.data, listSpec(Doc))!.push(fieldTemplate);
     }
 
     inferType = (data: FieldResult, metaKey: string) => {

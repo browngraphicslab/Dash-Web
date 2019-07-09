@@ -251,6 +251,7 @@ export namespace Doc {
             if (allowDuplicates !== true) {
                 let pind = list.reduce((l, d, i) => d instanceof Doc && Doc.AreProtosEqual(d, doc) ? i : l, -1);
                 if (pind !== -1) {
+                    console.log("SPLICING DUPLICATE");
                     list.splice(pind, 1);
                 }
             }
