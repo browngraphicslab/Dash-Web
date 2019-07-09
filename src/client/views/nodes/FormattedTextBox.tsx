@@ -289,7 +289,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (e.button === 0 && ((!this.props.isSelected() && !e.ctrlKey) || (this.props.isSelected() && e.ctrlKey)) && !e.metaKey && e.target) {
             let href = (e.target as any).href;
             for (let parent = (e.target as any).parentNode; !href && parent; parent = parent.parentNode) {
-                href = parent.childNodes[0].href;
+                href = parent.childNodes[0].href ? parent.childNodes[0].href : parent.href;
             }
             if (href) {
                 if (href.indexOf(DocServer.prepend("/doc/")) === 0) {
