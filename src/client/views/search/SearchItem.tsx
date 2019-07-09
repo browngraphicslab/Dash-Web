@@ -25,6 +25,7 @@ import { RichTextField } from "../../../new_fields/RichTextField";
 import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { MarqueeView } from "../collections/collectionFreeForm/MarqueeView";
 import { SelectionManager } from "../../util/SelectionManager";
+import { ObjectField } from "../../../new_fields/ObjectField";
 
 export interface SearchItemProps {
     doc: Doc;
@@ -183,14 +184,14 @@ export class SearchItem extends React.Component<SearchItemProps> {
             let returnXDimension = () => this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE);
             let returnYDimension = () => this._displayDim;
             let scale = () => returnXDimension() / NumCast(renderDoc.nativeWidth, returnXDimension());
-            renderDoc = Doc.MakeDelegate(renderDoc);
+            let newRenderDoc = Doc.MakeDelegate(renderDoc); ///   newRenderDoc -> renderDoc -> render"data"Doc -> TextProt
             const docview = <div
                 onPointerDown={action(() => { this._useIcons = !this._useIcons; this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE); })}
                 onPointerEnter={action(() => this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE))}
                 onPointerLeave={action(() => this._displayDim = 50)} >
                 <DocumentView
                     fitToBox={box}
-                    Document={renderDoc}
+                    Document={newRenderDoc}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
                     ScreenToLocalTransform={Transform.Identity}
@@ -209,8 +210,9 @@ export class SearchItem extends React.Component<SearchItemProps> {
                     ContentScaling={scale}
                 />
             </div>;
-            renderDoc.preview = true;
-            renderDoc.search_string = "hundo";
+            const data = renderDoc.data;
+            if (data instanceof ObjectField) newRenderDoc.data = ObjectField.MakeCopy(data);
+            newRenderDoc.search_string = "hundo";
             return docview;
         }
         let button = layoutresult.indexOf(DocTypes.PDF) !== -1 ? faFilePdf :

@@ -12,6 +12,7 @@ import "./MainOverlayTextBox.scss";
 import { FormattedTextBox } from './nodes/FormattedTextBox';
 
 interface MainOverlayTextBoxProps {
+    firstinstance?: boolean;
 }
 
 @observer
@@ -130,7 +131,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
                                 DataDoc={FormattedTextBox.InputBoxOverlay.props.DataDoc}
                                 isSelected={returnTrue} select={emptyFunction} renderDepth={0} selectOnLoad={true}
                                 ContainingCollectionView={undefined} whenActiveChanged={emptyFunction} active={returnTrue}
-                                ScreenToLocalTransform={this._textXf} PanelWidth={returnZero} PanelHeight={returnZero} focus={emptyFunction} addDocTab={this.addDocTab} outer_div={(tooltip: HTMLElement) => { this._tooltip = tooltip; this.updateTooltip(); }} />
+                                ScreenToLocalTransform={this._textXf} PanelWidth={returnZero} PanelHeight={returnZero} focus={emptyFunction} addDocTab={this.addDocTab} firstinstance={this.props.firstinstance} outer_div={(tooltip: HTMLElement) => { this._tooltip = tooltip; this.updateTooltip(); }} />
                         </div>
                     </div>
                 </div>

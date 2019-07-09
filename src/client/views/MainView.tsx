@@ -372,7 +372,7 @@ export class MainView extends React.Component {
                 {this.nodesMenu()}
                 {this.miscButtons}
                 <PDFMenu />
-                <MainOverlayTextBox />
+                <MainOverlayTextBox firstinstance={true} />
             </div>
         );
     }

@@ -48,6 +48,7 @@ export interface FormattedTextBoxProps {
     height?: string;
     color?: string;
     outer_div?: (domminus: HTMLElement) => void;
+    firstinstance?: boolean;
 }
 
 const richTextSchema = createSchema({
@@ -108,7 +109,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     constructor(props: FieldViewProps) {
         super(props);
+        //if (this.props.firstinstance) {
         FormattedTextBox.Instance = this;
+        //}
         if (this.props.outer_div) {
             this._outerdiv = this.props.outer_div;
         }
@@ -126,8 +129,14 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             const state = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
             this._applyingChange = true;
-            Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()));
-            Doc.GetProto(this.dataDoc)[this.props.fieldKey + "_text"] = state.doc.textBetween(0, state.doc.content.size, "\n\n");
+            if (this.dataDoc[this.props.fieldKey]) {
+                this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()));
+                this.dataDoc[this.props.fieldKey + "_text"] = state.doc.textBetween(0, state.doc.content.size, "\n\n");
+            }
+            else {
+                Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()));
+                Doc.GetProto(this.dataDoc)[this.props.fieldKey + "_text"] = state.doc.textBetween(0, state.doc.content.size, "\n\n");
+            }
             this._applyingChange = false;
             let title = StrCast(this.dataDoc.title);
             if (title && title.startsWith("-") && this._editorView) {
@@ -141,6 +150,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     public highlightSearchTerms = (terms: String[]) => {
         if (this._editorView && (this._editorView as any).docView) {
+            const fieldkey = "preview";
             const doc = this._editorView.state.doc;
             const mark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight);
             doc.nodesBetween(0, doc.content.size, (node: ProsNode, pos: number, parent: ProsNode, index: number) => {
@@ -150,7 +160,12 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     let start = pos;
                     tokens.forEach((word) => {
                         if (terms.includes(word) && this._editorView) {
-                            this._editorView.dispatch(this._editorView.state.tr.addMark(start, start + word.length, mark).removeStoredMark(mark));
+                            if (Object.keys(this.props.Document).indexOf(fieldkey) === -1) {
+                                this._editorView.dispatch(this._editorView.state.tr.addMark(start, start + word.length, mark).removeStoredMark(mark));
+                            }
+                            // else {
+                            //     this._editorView.state.tr.addMark(start, start + word.length, mark).removeStoredMark(mark);
+                            // }
                         }
                         start += word.length + 1;
                     });
