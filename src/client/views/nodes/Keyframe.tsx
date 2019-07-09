@@ -11,6 +11,7 @@ import { createSchema, defaultSpec, makeInterface, listSpec } from "../../../new
 import { any } from "bluebird";
 import { FlyoutProps } from "./Timeline";
 import { number } from "prop-types";
+import { CollectionSchemaView, CollectionSchemaPreview } from "../collections/CollectionSchemaView";
 
 export namespace KeyframeFunc{
     export enum Direction{
@@ -38,18 +39,32 @@ export namespace KeyframeFunc{
             return rightMost;
         }
     }; 
+
+    export const defaultKeyframe = () => {
+        let regiondata =  new Doc(); //creating regiondata
+        regiondata.duration = 200;
+        regiondata.position = 0;
+        regiondata.fadeIn = 20; 
+        regiondata.fadeOut = 20; 
+        regiondata.keyframes = new List<Doc>();
+        return regiondata; 
+    }; 
+
+    export const compareKeyframe = (propsNode: Doc, kf: Doc) => {
+        
+    };
 }
 
 
-const RegionDataSchema = createSchema({
+export const RegionDataSchema = createSchema({
     position: defaultSpec("number", 0),
     duration: defaultSpec("number", 0),
     keyframes: listSpec(Doc), 
     fadeIn: defaultSpec("number", 0), 
     fadeOut: defaultSpec("number", 0)
 });
-type RegionData = makeInterface<[typeof RegionDataSchema]>;
-const RegionData = makeInterface(RegionDataSchema);
+export type RegionData = makeInterface<[typeof RegionDataSchema]>;
+export const RegionData = makeInterface(RegionDataSchema);
 
 interface IProps {
     node: Doc;
@@ -64,7 +79,33 @@ export class Keyframe extends React.Component<IProps> {
     @observable private _bar = React.createRef<HTMLDivElement>();    
 
     @action
-    componentWillMount() {
+    componentDidMount() {
+        let fadeIn = this.makeKeyData(this.regiondata.position + this.regiondata.fadeIn)!; 
+        let fadeOut = this.makeKeyData(this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut)!;
+        let fadeInIndex = this.regiondata.keyframes!.indexOf(fadeIn); 
+        let fadeOutIndex = this.regiondata.keyframes!.indexOf(fadeOut); 
+       
+        (fadeIn.key! as Doc).opacity = 1; 
+        (fadeOut.key! as Doc).opacity = 1;  
+
+        this.regiondata.keyframes![fadeInIndex] =fadeIn; 
+        this.regiondata.keyframes![fadeOutIndex] =fadeOut; 
+
+
+        let start = this.makeKeyData(this.regiondata.position)!;
+        let finish = this.makeKeyData(this.regiondata.position + this.regiondata.duration)!;
+
+
+        let startIndex = this.regiondata.keyframes!.indexOf(start); 
+        let finishIndex = this.regiondata.keyframes!.indexOf(finish); 
+
+        (start.key! as Doc).opacity = 0.1; 
+        (finish.key! as Doc).opacity = 0.1; 
+        
+        this.regiondata.keyframes![startIndex] = start; 
+        this.regiondata.keyframes![finishIndex] = finish; 
+
+        
     }
 
     componentWillUnmount() {
@@ -98,6 +139,7 @@ export class Keyframe extends React.Component<IProps> {
             TK.time = kfpos;
             TK.key = Doc.MakeCopy(this.props.node);
             this.regiondata.keyframes!.push(TK);
+            return TK; 
         }
     }
 
@@ -202,6 +244,7 @@ export class Keyframe extends React.Component<IProps> {
         let offset = e.clientX - bar.getBoundingClientRect().left; 
         let position = NumCast(this.regiondata.position);
         this.makeKeyData(Math.round(position + offset));
+        this.props.changeCurrentBarX(NumCast(Math.round(position + offset))); 
     }
 
     @action 
@@ -212,6 +255,8 @@ export class Keyframe extends React.Component<IProps> {
     }
 
 
+
+
     render() {
         return (
             <div>
@@ -219,6 +264,8 @@ export class Keyframe extends React.Component<IProps> {
                 onPointerDown={this.onBarPointerDown} 
                 onDoubleClick={this.createKeyframe}
                 onContextMenu={action((e:React.MouseEvent)=>{
+                    e.preventDefault(); 
+                    e.stopPropagation(); 
                     let offsetLeft = this._bar.current!.getBoundingClientRect().left - this._bar.current!.parentElement!.getBoundingClientRect().left; 
                     let offsetTop = this._bar.current!.getBoundingClientRect().top; //+ this._bar.current!.parentElement!.getBoundingClientRect().top; 
                     console.log(offsetLeft); 
@@ -227,13 +274,18 @@ export class Keyframe extends React.Component<IProps> {
                 })}>
                     <div className="leftResize" onPointerDown={this.onResizeLeft} ></div>
                     <div className="rightResize" onPointerDown={this.onResizeRight}></div>
-                    <div className="fadeLeft" style={{ width: `${this.regiondata.fadeIn}px` }}>{this.createDivider(KeyframeFunc.Direction.left)}</div>
-                    <div className="fadeRight" style={{ width: `${this.regiondata.fadeOut}px` }}>{this.createDivider(KeyframeFunc.Direction.right)}</div>
+                    {/* <div className="fadeLeft" style={{ width: `${this.regiondata.fadeIn}px` }}>{this.createDivider(KeyframeFunc.Direction.left)}</div>
+                    <div className="fadeRight" style={{ width: `${this.regiondata.fadeOut}px` }}>{this.createDivider(KeyframeFunc.Direction.right)}</div> */}
+                    
                     {this.regiondata.keyframes!.map(kf => {
                         kf = kf as Doc; 
                         return <div className="keyframe" style={{ left: `${NumCast(kf.time) - this.regiondata.position}px`  }}>
                             {this.createDivider()}
-                            <div className="keyframeCircle" onPointerDown={(e) => {this.moveKeyframe(e, kf as Doc);}}></div>
+                            <div className="keyframeCircle" onPointerDown={(e) => {this.moveKeyframe(e, kf as Doc);} } onContextMenu={(e:React.MouseEvent)=>{
+                                e.preventDefault(); 
+                                e.stopPropagation(); 
+                                
+                                 }}></div>
                         </div>;
                     })}
                     {this.createDivider(KeyframeFunc.Direction.left)}
