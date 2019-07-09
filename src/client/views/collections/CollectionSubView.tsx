@@ -72,6 +72,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 if (!proto) {
                     return;
                 }
+                // The following conditional detects a recurring bug we've seen on the server
                 if (proto[Id] === "collectionProto") {
                     alert("COLLECTION PROTO CURSOR ISSUE DETECTED! Check console for more info...");
                     console.log(doc);
@@ -216,9 +217,9 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                         body: formData
                     }).then(async (res: Response) => {
                         (await res.json()).map(action((file: any) => {
-                            let path = window.location.origin + file;
-                            let docPromise = Docs.getDocumentFromType(type, path, { ...options, nativeWidth: 300, width: 300, title: dropFileName });
-                            docPromise.then(doc => doc && this.props.addDocument(doc));
+                            let full = { ...options, nativeWidth: 300, width: 300, title: dropFileName };
+                            let path = DocServer.prepend(file);
+                            Docs.getDocumentFromType(type, path, full).then(doc => doc && this.props.addDocument(doc));
                         }));
                     });
                     promises.push(prom);
