@@ -122,7 +122,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     }
 
 
-
     @action
     toggleKey = (key: string) => {
         this.sortstate = key;
@@ -135,14 +134,9 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     private preview2: Doc | undefined;
     @observable
     private preview4: string;
-    @observable
-    @observable
-    private preview6: number = -2;
+
+
     private selections: (HTMLDivElement | undefined)[] = [];
-
-
-
-
 
     @observable _lastX: number = 0;
     @observable _lastY: number = 0;
@@ -214,13 +208,13 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
         else {
             if (!e.ctrlKey) {
-                for (let i = 0; i < this.buttonheaders.length; i++) {
-                    if (this.buttonheaders[i].buttonref !== undefined) {
-                        let button = this.buttonheaders[i].buttonref;
+                for (let i = 0; i < this.buttons.length; i++) {
+                    if (this.buttons[i].buttonref !== undefined) {
+                        let button = this.buttons[i].buttonref;
                         button.classList.toggle("selected", false);
                         button.classList.toggle("unselected", true);
-                        this.buttonheaders[i].headerref.classList.toggle("selection", false);
-                        this.buttonheaders[i].headerref.classList.toggle("unselection", true);
+                        this.buttons[i].headerref.classList.toggle("selection", false);
+                        this.buttons[i].headerref.classList.toggle("unselection", true);
                     }
                 }
                 this.selections = [];
@@ -350,20 +344,15 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         let newselect = [];
         if (this.marqueeref.current !== null) {
             let posInfo = this.marqueeref.current.getBoundingClientRect();
-
             let left = posInfo.left;
             let right = posInfo.right;
-
-
-
-
-            for (let i = 0; i < this.buttonheaders.length; i++) {
-                if (this.buttonheaders[i].buttonref !== undefined) {
-                    let button = this.buttonheaders[i].buttonref;
+            for (let i = 0; i < this.buttons.length; i++) {
+                if (this.buttons[i].buttonref !== undefined) {
+                    let button = this.buttons[i].buttonref;
                     let buttoninfo = button.getBoundingClientRect();
                     let buttonLeft = buttoninfo.left;
                     let buttonRight = buttoninfo.right;
-                    let header = this.buttonheaders[i].headerref;
+                    let header = this.buttons[i].headerref;
 
                     if (buttonLeft > left && buttonLeft < right) {
                         button.classList.toggle("selected", true);
@@ -417,13 +406,12 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     select(e: React.MouseEvent<HTMLDivElement>, d: Doc, b: HTMLDivElement | undefined, h: HTMLDivElement | undefined, i: number) {
-        console.log(b);
         var button = undefined;
         var header = undefined;
-        for (let i = 0; i < this.buttonheaders.length; i++) {
-            if (this.buttonheaders[i].buttonref === b) {
-                button = (this.buttonheaders[i].buttonref);
-                header = this.buttonheaders[i].headerref;
+        for (let i = 0; i < this.buttons.length; i++) {
+            if (this.buttons[i].buttonref === b) {
+                button = (this.buttons[i].buttonref);
+                header = this.buttons[i].headerref;
             }
         }
 
@@ -458,9 +446,9 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     this.selections[j].classList.toggle("unselected", true);
 
                 }
-                for (let j = 0; j < this.buttonheaders.length; j++) {
-                    this.buttonheaders[j].headerref.classList.toggle("selection", false);
-                    this.buttonheaders[j].headerref.classList.toggle("unselection", true);
+                for (let j = 0; j < this.buttons.length; j++) {
+                    this.buttons[j].headerref.classList.toggle("selection", false);
+                    this.buttons[j].headerref.classList.toggle("unselection", true);
                 }
                 this.selections = [];
             }
@@ -469,9 +457,9 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     this.selections[j].classList.toggle("selected", false);
                     this.selections[j].classList.toggle("unselected", true);
                 }
-                for (let j = 0; j < this.buttonheaders.length; j++) {
-                    this.buttonheaders[j].headerref.classList.toggle("selection", false);
-                    this.buttonheaders[j].headerref.classList.toggle("unselection", true);
+                for (let j = 0; j < this.buttons.length; j++) {
+                    this.buttons[j].headerref.classList.toggle("selection", false);
+                    this.buttons[j].headerref.classList.toggle("unselection", true);
                 }
 
                 button.classList.toggle("selected", true);
@@ -500,25 +488,11 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
     }
 
-    @action
-    updateleft(num: number, value: CompoundValue) {
-        if (this.preview6 === num) {
-            this.preview6 = -2;
-        }
-        else {
-            this.preview6 = num;
-
-        }
-    }
-
-    @action
-    resetLeft() {
-        this.preview6 = -2;
-    }
+  
 
     private _values: CompoundValue[] = [];
     private ticks: JSX.Element[] = [];
-    private buttonheaders: Thing[] = [];
+    private buttons: Thing[] = [];
     public buttons2: JSX.Element[] = [];
 
 
@@ -556,6 +530,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 });
             }
         }
+        
         keyvalue.sort(function (a, b) { return (a.value - b.value); });
 
         let docs = keyvalue.map(kv => kv.doc);
@@ -576,11 +551,11 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
         let leftval = "0";
         let overlaps = [];
-        this.buttonheaders = [];
+        this.buttons = [];
         for (let i = 0; i < backup.length; i++) {
             let icon = this.checkData(backup[i]);
             leftval = (((values[i] - values[0]) * this.barwidth * 0.97 / this._range) * (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)) - (this.xmovement * (this.barwidth) / (this.barwidth - this.xmovement2 - this.xmovement))) + "px";
-            let display = (e: React.MouseEvent<HTMLDivElement>, b: HTMLDivElement | undefined, h: HTMLDivElement | undefined) => { this.select(e, keyvalue[i].doc, b, h, i); this.resetLeft(); };
+            let display = (e: React.MouseEvent<HTMLDivElement>, b: HTMLDivElement | undefined, h: HTMLDivElement | undefined) => { this.select(e, keyvalue[i].doc, b, h, i)};
             let leftval2 = (((values[i] - values[0]) * this.barwidth * 0.97 / this._range) * (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)) - (this.xmovement * (this.barwidth) / (this.barwidth - this.xmovement2 - this.xmovement)));
             let overlap = false;
             let thingies = [];
@@ -588,7 +563,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 if (j !== i) {
                     if (values[i] === values[j]) {
                         icon = faPlus;
-                        display = (e: React.MouseEvent<HTMLDivElement>, b: HTMLDivElement | undefined, h: HTMLDivElement | undefined) => { this.select(e, keyvalue[i].doc, b, h, i); this.updateleft(i, values[i]); };
+                        display = (e: React.MouseEvent<HTMLDivElement>, b: HTMLDivElement | undefined, h: HTMLDivElement | undefined) => { this.select(e, keyvalue[i].doc, b, h, i); };
                         overlap = true;
                         thingies.push(
                             <button className="toolbar-button round-button" title="Notifs"
@@ -637,7 +612,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 ),
                 headerref: undefined,
             };
-            this.buttonheaders.push(item);
+            this.buttons.push(item);
 
             this.buttons2.push(
                 <div
@@ -652,14 +627,11 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
 
 
-
+        //Creates the array of tick marks.
         let counter = 0;
         this.ticks = [];
         for (let i = 0; i < this.barwidth; i += this.barwidth / 1000) {
             let leftval = ((i * (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)) - (this.xmovement * (this.barwidth) / (this.barwidth - this.xmovement2 - this.xmovement))) + "px");
-
-
-
 
             if (counter % 100 === 0) {
                 this.ticks.push(
@@ -679,14 +651,12 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     <div className="active" id={"tick" + String(i)} style={{ position: "absolute", top: "0%", left: leftval, zIndex: -100 }}></div>
                 );
             }
-
             else {
                 this.ticks.push(
                     <div className="inactive" id={"tick" + String(i)} style={{ position: "absolute", top: "0%", left: leftval, zIndex: -100 }}></div>
                 );
             }
             counter++;
-
         }
 
 
@@ -739,7 +709,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     </div>
                 </div>
             </div>
-            <div style={{ top: "65%", position: "absolute", bottom: "25%" }}>{this.buttonheaders.map(item => item.button)}{this.buttonheaders.map(item => item.header)}</div>
+            <div style={{ top: "65%", position: "absolute", bottom: "25%" }}>{this.buttons.map(item => item.button)}{this.buttons.map(item => item.header)}</div>
             {this.markerrender}
             <div id="bar" ref={this.barref} className="backdropscroll" onPointerDown={this.onPointerDown_OffBar} style={{ top: "80%", width: "100%", bottom: "15%", position: "absolute", }}>
                 {this.buttons2}
@@ -768,9 +738,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
 
 
-    private getContainerTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth, -this.borderWidth);
-    public get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldKey === "annotations"; }
-    private get borderWidth() { return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH; }
+    private getContainerTransform = (): Transform => this.props.ScreenToLocalTransform().translate(0,0);
 
 
     @action.bound
@@ -1146,6 +1114,3 @@ export class CollectionTimelinePreview extends React.Component<CollectionTimelin
     }
 }
 
-
-import { PreviewCursor } from "../PreviewCursor";
-import "./collectionFreeForm/MarqueeView.scss";
