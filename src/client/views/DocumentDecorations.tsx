@@ -357,7 +357,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
     onRadiusMove = (e: PointerEvent): void => {
         let dist = Math.sqrt((e.clientX - this._radiusDown[0]) * (e.clientX - this._radiusDown[0]) + (e.clientY - this._radiusDown[1]) * (e.clientY - this._radiusDown[1]));
-        SelectionManager.SelectedDocuments().map(dv => Doc.GetProto(dv.props.Document).borderRounding = `${Math.min(100, dist)}%`);
+        SelectionManager.SelectedDocuments().map(dv => dv.props.Document.borderRounding = Doc.GetProto(dv.props.Document).borderRounding = `${Math.min(100, dist)}%`);
         e.stopPropagation();
         e.preventDefault();
     }
