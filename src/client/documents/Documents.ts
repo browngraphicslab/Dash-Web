@@ -61,7 +61,6 @@ export interface DocumentOptions {
     x?: number;
     y?: number;
     type?: string;
-    ink?: InkField;
     width?: number;
     height?: number;
     nativeWidth?: number;

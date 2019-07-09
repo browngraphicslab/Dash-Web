@@ -1,7 +1,7 @@
 import * as htmlToImage from "html-to-image";
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../../../new_fields/Doc";
+import { Doc, FieldResult } from "../../../../new_fields/Doc";
 import { Id } from "../../../../new_fields/FieldSymbols";
 import { InkField, StrokeData } from "../../../../new_fields/InkField";
 import { List } from "../../../../new_fields/List";
@@ -224,6 +224,18 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         return { left: topLeft[0], top: topLeft[1], width: Math.abs(size[0]), height: Math.abs(size[1]) };
     }
 
+    get ink() {
+        let container = this.props.container.Document;
+        let containerKey = this.props.container.props.fieldKey;
+        return Cast(container[containerKey + "_ink"], InkField);
+    }
+
+    set ink(value: InkField | undefined) {
+        let container = Doc.GetProto(this.props.container.Document);
+        let containerKey = this.props.container.props.fieldKey;
+        container[containerKey + "_ink"] = value;
+    }
+
     @undoBatch
     @action
     marqueeCommand = async (e: KeyboardEvent) => {
@@ -235,9 +247,8 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             e.stopPropagation();
             (e as any).propagationIsStopped = true;
             this.marqueeSelect().map(d => this.props.removeDocument(d));
-            let ink = Cast(this.props.container.props.Document.ink, InkField);
-            if (ink) {
-                this.marqueeInkDelete(ink.inkData);
+            if (this.ink) {
+                this.marqueeInkDelete(this.ink.inkData);
             }
             SelectionManager.DeselectAll();
             this.cleanupInteractions(false);
@@ -259,8 +270,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     return d;
                 });
             }
-            let ink = Cast(this.props.container.props.Document.ink, InkField);
-            let inkData = ink ? ink.inkData : undefined;
+            let inkData = this.ink ? this.ink.inkData : undefined;
             let newCollection = Docs.FreeformDocument(selected, {
                 x: bounds.left,
                 y: bounds.top,
@@ -269,9 +279,9 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 backgroundColor: this.props.container.isAnnotationOverlay ? undefined : "white",
                 width: bounds.width,
                 height: bounds.height,
-                ink: inkData ? new InkField(this.marqueeInkSelect(inkData)) : undefined,
                 title: e.key === "s" || e.key === "S" ? "-summary-" : "a nested collection",
             });
+            newCollection.data_ink = inkData ? new InkField(this.marqueeInkSelect(inkData)) : undefined;
             this.marqueeInkDelete(inkData);
 
             if (e.key === "s") {
@@ -348,7 +358,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             let idata = new Map();
             ink.forEach((value: StrokeData, key: string, map: any) =>
                 !InkingCanvas.IntersectStrokeRect(value, this.Bounds) && idata.set(key, value));
-            Doc.SetOnPrototype(this.props.container.props.Document, "ink", new InkField(idata));
+            this.ink = new InkField(idata);
         }
     }
 
