@@ -102,20 +102,7 @@ export class SearchBox extends React.Component {
 
     @action
     getResults = async (query: string) => {
-        let response = await rp.get(DocServer.prepend('/search'), {
-            qs: {
-                query
-            }
-        });
-        let res: string[] = JSON.parse(response);
-        const fields = await DocServer.GetRefFields(res);
-        const docs: Doc[] = [];
-        for (const id of res) {
-            const field = fields[id];
-            if (field instanceof Doc) {
-                docs.push(field);
-            }
-        }
+        const { docs } = await SearchUtil.Search(query, true);
         return FilterBox.Instance.filterDocsByType(docs);
     }
 

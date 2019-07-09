@@ -10,7 +10,7 @@ import { CollectionView } from "../../../client/views/collections/CollectionView
 import { Doc } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
-import { Cast } from "../../../new_fields/Types";
+import { Cast, FieldValue } from "../../../new_fields/Types";
 import { RouteStore } from "../../RouteStore";
 
 export class CurrentUserUtils {
@@ -32,12 +32,39 @@ export class CurrentUserUtils {
         doc.dropAction = "alias";
         doc.layout = CollectionView.LayoutString();
         doc.title = this.email;
+        this.updateUserDocument(doc);
         doc.data = new List<Doc>();
+        doc.gridGap = 5;
+        doc.xMargin = 5;
+        doc.yMargin = 5;
         doc.excludeFromLibrary = true;
         doc.optionalRightCollection = Docs.StackingDocument([], { title: "New mobile uploads" });
         // doc.library = Docs.TreeDocument([doc], { title: `Library: ${CurrentUserUtils.email}` });
         // (doc.library as Doc).excludeFromLibrary = true;
         return doc;
+    }
+
+    static updateUserDocument(doc: Doc) {
+        if (doc.workspaces === undefined) {
+            const workspaces = Docs.TreeDocument([], { title: "Workspaces", height: 100 });
+            workspaces.excludeFromLibrary = true;
+            workspaces.workspaceLibrary = true;
+            doc.workspaces = workspaces;
+        }
+        if (doc.recentlyClosed === undefined) {
+            const recentlyClosed = Docs.TreeDocument([], { title: "Recently Closed", height: 75 });
+            recentlyClosed.excludeFromLibrary = true;
+            doc.recentlyClosed = recentlyClosed;
+        }
+        if (doc.sidebar === undefined) {
+            const sidebar = Docs.StackingDocument([doc.workspaces as Doc, doc, doc.recentlyClosed as Doc], { title: "Sidebar" });
+            sidebar.excludeFromLibrary = true;
+            sidebar.gridGap = 5;
+            sidebar.xMargin = 5;
+            sidebar.yMargin = 5;
+            doc.sidebar = sidebar;
+        }
+
     }
 
     public static async loadCurrentUser(): Promise<any> {
@@ -52,8 +79,14 @@ export class CurrentUserUtils {
         });
         let userDocPromise = await rp.get(DocServer.prepend(RouteStore.getUserDocumentId)).then(id => {
             if (id) {
-                return DocServer.GetRefField(id).then(field =>
-                    runInAction(() => this.user_document = field instanceof Doc ? field : this.createUserDocument(id)));
+                return DocServer.GetRefField(id).then(async field => {
+                    if (field instanceof Doc) {
+                        await this.updateUserDocument(field);
+                        runInAction(() => this.user_document = field);
+                    } else {
+                        runInAction(() => this.user_document = this.createUserDocument(id));
+                    }
+                });
             } else {
                 throw new Error("There should be a user id! Why does Dash think there isn't one?");
             }

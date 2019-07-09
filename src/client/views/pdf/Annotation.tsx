@@ -75,7 +75,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
             () => this.props.parent.Index,
             () => {
                 if (this.props.parent.Index === this.props.index) {
-                    this.props.parent.scrollTo(this.props.y - 50);
+                    this.props.parent.scrollTo(this.props.y * scale - (NumCast(this.props.parent.props.parent.Document.pdfHeight) / 2));
                 }
             }
         );
@@ -114,7 +114,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
         if (e.button === 0) {
             let targetDoc = Cast(this.props.document.target, Doc, null);
             if (targetDoc) {
-                DocumentManager.Instance.jumpToDocument(targetDoc, true);
+                DocumentManager.Instance.jumpToDocument(targetDoc, false);
             }
         }
         if (e.button === 2) {

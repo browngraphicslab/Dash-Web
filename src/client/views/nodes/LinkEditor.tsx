@@ -177,9 +177,10 @@ export class LinkGroupEditor extends React.Component<LinkGroupEditorProps> {
         LinkManager.Instance.deleteGroupType(groupType);
     }
 
-    copyGroup = (groupType: string): void => {
+    copyGroup = async (groupType: string): Promise<void> => {
         let sourceGroupDoc = this.props.groupDoc;
-        let sourceMdDoc = Cast(sourceGroupDoc.metadata, Doc, new Doc);
+        const sourceMdDoc = await Cast(sourceGroupDoc.metadata, Doc);
+        if (!sourceMdDoc) return;
 
         let destDoc = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
         // let destGroupList = LinkManager.Instance.getAnchorGroups(this.props.linkDoc, destDoc);
@@ -271,7 +272,6 @@ export class LinkGroupEditor extends React.Component<LinkGroupEditorProps> {
                 </>
             );
         }
-        trace();
         return (
             <div className="linkEditor-group">
                 <div className="linkEditor-group-row">

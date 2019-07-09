@@ -235,7 +235,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     onPointerDown = (e: React.PointerEvent): void => {
         if (e.button === 0 && !e.altKey && !e.ctrlKey && !e.metaKey) {
             if (this.props.isSelected()) e.stopPropagation();
-            else e.preventDefault();
         }
     }
 
@@ -334,7 +333,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @computed
     get reactTable() {
-        trace();
         let previewWidth = this.previewWidth() + 2 * this.borderWidth + this.DIVIDER_WIDTH + 1;
         return <ReactTable style={{ position: "relative", float: "left", width: `calc(100% - ${previewWidth}px` }} data={this.childDocs} page={0} pageSize={this.childDocs.length} showPagination={false}
             columns={this.tableColumns}
@@ -388,7 +386,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     render() {
-        trace();
         return (
             <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} onWheel={this.onWheel}
                 onDrop={(e: React.DragEvent) => this.onDrop(e, {})} onContextMenu={this.onContextMenu} ref={this.createTarget}>
@@ -404,6 +401,7 @@ interface CollectionSchemaPreviewProps {
     Document?: Doc;
     DataDocument?: Doc;
     childDocs?: Doc[];
+    fitToBox?: () => number[];
     renderDepth: number;
     width: () => number;
     height: () => number;
@@ -462,16 +460,32 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
     onPreviewScriptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         this.props.setPreviewScript(e.currentTarget.value);
     }
+    @computed get borderRounding() {
+        let br = StrCast(this.props.Document!.borderRounding);
+        if (br.endsWith("%")) {
+            let percent = Number(br.substr(0, br.length - 1)) / 100;
+            let nativeDim = Math.min(NumCast(this.props.Document!.nativeWidth), NumCast(this.props.Document!.nativeHeight));
+            let minDim = percent * (nativeDim ? nativeDim : Math.min(this.PanelWidth(), this.PanelHeight()));
+            return minDim;
+        }
+        return undefined;
+    }
     render() {
         let input = this.props.previewScript === undefined ? (null) :
             <div ref={this.createTarget}><input className="collectionSchemaView-input" value={this.props.previewScript} onChange={this.onPreviewScriptChange}
                 style={{ left: `calc(50% - ${Math.min(75, (this.props.Document ? this.PanelWidth() / 2 : 75))}px)` }} /></div>;
         return (<div className="collectionSchemaView-previewRegion" style={{ width: this.props.width(), height: "100%" }}>
             {!this.props.Document || !this.props.width ? (null) : (
-                <div className="collectionSchemaView-previewDoc" style={{ transform: `translate(${this.centeringOffset}px, 0px)`, height: "100%" }}>
+                <div className="collectionSchemaView-previewDoc"
+                    style={{
+                        transform: `translate(${this.centeringOffset}px, 0px)`,
+                        borderRadius: this.borderRounding,
+                        height: "100%"
+                    }}>
                     <DocumentView
                         DataDoc={this.props.Document.layout instanceof Doc ? this.props.Document : this.props.DataDocument}
                         Document={this.props.Document}
+                        fitToBox={this.props.fitToBox}
                         renderDepth={this.props.renderDepth + 1}
                         selectOnLoad={false}
                         addDocument={this.props.addDocument}

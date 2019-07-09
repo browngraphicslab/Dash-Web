@@ -119,7 +119,6 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         });
     }
     onPointerDown = (e: React.PointerEvent) => {
-        e.preventDefault();
         e.stopPropagation();
     }
 

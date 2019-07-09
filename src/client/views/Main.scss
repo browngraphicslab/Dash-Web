@@ -111,8 +111,8 @@ button:hover {
 //toolbar stuff
 #toolbar {
     position: absolute;
-    bottom: 62px;
-    left: 24px;
+    right: 8px;
+    top: 5px;
 
     .toolbar-button {
         display: block;
@@ -144,7 +144,7 @@ button:hover {
 #add-nodes-menu {
     position: absolute;
     bottom: 22px;
-    left: 24px;
+    left: 250px;
 
     > label {
         background: $dark-color;
@@ -230,6 +230,8 @@ ul#add-options-list {
 .mainView-libraryFlyout {
     height: 100%;
     position: absolute;
+    display: flex;
+    flex-direction:column;
 }
 
 .mainView-libraryHandle {
@@ -241,4 +243,20 @@ ul#add-options-list {
     position: absolute;
     z-index: 1;
     background: gray;
+}
+
+.mainView-workspace {
+    height:200px;
+    position:relative;
+    display:flex;
+}
+.mainView-library {
+    height:75%;
+    position:relative;
+    display:flex;
+}
+.mainView-recentlyClosed {
+    height:25%;
+    position:relative;
+    display:flex;
 }

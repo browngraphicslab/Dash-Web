@@ -1,0 +1,17 @@
+.scriptBox-outerDiv {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.scriptBox-toolbar {
+    width: 100%;
+}
+
+.scriptBox-textArea {
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    resize: none;
+}

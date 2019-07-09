@@ -26,6 +26,14 @@ $linkGap : 3px;
         opacity: 0.8;
     }
 
+    .documentDecorations-radius {
+        pointer-events: auto;
+        background: black;
+        opacity: 0.8;
+        transform: translate(10px, 10px);
+        grid-row: 4;
+    }
+
     #documentDecorations-topLeftResizer,
     #documentDecorations-leftResizer,
     #documentDecorations-bottomLeftResizer {
@@ -44,10 +52,24 @@ $linkGap : 3px;
         grid-column-start: 5;
         grid-column-end: 7;
     }
+    
+    #documentDecorations-borderRadius{
+        grid-column-start: 5;
+        grid-column-end: 7;
+        border-radius: 100%;
+        .borderRadiusTooltip{
+            width:10px;
+            height:10px;
+            position:absolute;
+        }
+    }
 
     #documentDecorations-topLeftResizer,
     #documentDecorations-bottomRightResizer {
         cursor: nwse-resize;
+    }
+    #documentDecorations-bottomRightResizer {
+        grid-row:4;
     }
 
     #documentDecorations-topRightResizer,

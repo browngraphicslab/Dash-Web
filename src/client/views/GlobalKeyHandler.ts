@@ -65,6 +65,15 @@ export default class KeyManager {
                         SelectionManager.DeselectAll();
                     }
                 }
+                MainView.Instance.toggleColorPicker(true);
+                break;
+            case "delete":
+            case "backspace":
+                SelectionManager.SelectedDocuments().map(docView => {
+                    let doc = docView.props.Document;
+                    let remove = docView.props.removeDocument;
+                    remove && remove(doc);
+                });
                 break;
         }
 
