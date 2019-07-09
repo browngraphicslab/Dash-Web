@@ -24,6 +24,7 @@ import { Without, OmitKeys } from "../../../Utils";
 import { Cast, StrCast, NumCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { Doc } from "../../../new_fields/Doc";
+import DirectoryImportBox from "../../util/Import & Export/DirectoryImportBox";
 import { CollectionViewType } from "../collections/CollectionBaseView";
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
@@ -68,7 +69,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
             // this document as the data document for the layout.
             return this.props.Document;
         }
-        return this.props.DataDoc
+        return this.props.DataDoc;
     }
     get layoutDoc() {
         // if this document's layout field contains a document (ie, a rendering template), then we will use that
@@ -123,7 +124,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         if (this.props.renderDepth > 7) return (null);
         if (!this.layout && (this.props.layoutKey !== "overlayLayout" || !this.templates.length)) return (null);
         return <ObserverJsxParser
-            components={{ FormattedTextBox, ImageBox, IconBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox }}
+            components={{ FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox }}
             bindings={this.CreateBindings()}
             jsx={this.finalLayout}
             showWarnings={true}
