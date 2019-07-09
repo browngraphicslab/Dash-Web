@@ -7,6 +7,7 @@ import { DocComponent } from "../DocComponent";
 import { DocumentView, DocumentViewProps, positionSchema } from "./DocumentView";
 import "./DocumentView.scss";
 import React = require("react");
+import { Doc } from "../../../new_fields/Doc";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     x?: number;
@@ -70,7 +71,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     }
 
     borderRounding = () => {
-        let br = StrCast(this.props.Document.borderRounding);
+        let br = StrCast(this.props.Document.layout instanceof Doc ? this.props.Document.layout.borderRounding : this.props.Document.borderRounding);
         if (br.endsWith("%")) {
             let percent = Number(br.substr(0, br.length - 1)) / 100;
             let nativeDim = Math.min(NumCast(this.props.Document.nativeWidth), NumCast(this.props.Document.nativeHeight));
