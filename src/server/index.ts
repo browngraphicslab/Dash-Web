@@ -218,7 +218,7 @@ addSecureRoute(
 addSecureRoute(
     Method.GET,
     async (_, res) => {
-        const cursor = await Database.Instance.query({}, "users");
+        const cursor = await Database.Instance.query({}, { email: 1, userDocumentId: 1 }, "users");
         const results = await cursor.toArray();
         res.send(results.map(user => ({ email: user.email, userDocumentId: user.userDocumentId })));
     },

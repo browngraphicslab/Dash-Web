@@ -2,6 +2,7 @@ import { Database } from './database';
 
 import * as path from 'path';
 import * as fs from 'fs';
+import { Search } from './Search';
 
 function addDoc(doc: any, ids: string[], files: { [name: string]: string[] }) {
     for (const key in doc) {
@@ -60,7 +61,7 @@ function addDoc(doc: any, ids: string[], files: { [name: string]: string[] }) {
 
 async function GarbageCollect() {
     // await new Promise(res => setTimeout(res, 3000));
-    const cursor = await Database.Instance.query({}, 'users');
+    const cursor = await Database.Instance.query({}, { userDocumentId: 1 }, 'users');
     const users = await cursor.toArray();
     const ids: string[] = users.map(user => user.userDocumentId);
     const visited = new Set<string>();
@@ -90,11 +91,14 @@ async function GarbageCollect() {
 
     cursor.close();
 
-    const toDeleteCursor = await Database.Instance.query({ _id: { $nin: Array.from(visited) } });
-    const toDelete = (await toDeleteCursor.toArray()).map(doc => doc._id);
+    const toDeleteCursor = await Database.Instance.query({ _id: { $nin: Array.from(visited) } }, { _id: 1 });
+    const toDelete: string[] = (await toDeleteCursor.toArray()).map(doc => doc._id);
     toDeleteCursor.close();
     const result = await Database.Instance.delete({ _id: { $in: toDelete } }, "newDocuments");
     console.log(`${result.deletedCount} documents deleted`);
+
+    await Search.Instance.deleteDocuments(toDelete);
+    console.log("Cleared search documents");
 
     const folder = "./src/server/public/files/";
     fs.readdir(folder, (_, fileList) => {
