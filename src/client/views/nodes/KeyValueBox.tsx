@@ -175,7 +175,9 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         if (!sourceDoc) {
             return;
         }
+
         let fieldTemplate = await this.inferType(sourceDoc[metaKey], metaKey);
+        let previousViewType = fieldTemplate.viewType;
 
         // move data doc fields to layout doc as needed (nativeWidth/nativeHeight, data, ??)
         let backgroundLayout = StrCast(fieldTemplate.backgroundLayout);
@@ -196,6 +198,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         fieldTemplate.isTemplate = true;
         fieldTemplate.templates = new List<string>([Templates.TitleBar(metaKey)]);
         fieldTemplate.proto = Doc.GetProto(parentStackingDoc);
+        previousViewType && (fieldTemplate.viewType = previousViewType);
 
         Cast(parentStackingDoc.data, listSpec(Doc))!.push(fieldTemplate);
     }
@@ -214,8 +217,10 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
             }
             switch (first.type) {
                 case "image":
+                    console.log("STACKING VIEW CREATED for ", data);
                     return Docs.StackingDocument([], options);
                 case "text":
+                    console.log("TREE VIEW CREATED for ", data);
                     return Docs.TreeDocument([], options);
             }
         } else if (data instanceof ImageField) {
