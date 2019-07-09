@@ -217,14 +217,12 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
             }
             switch (first.type) {
                 case "image":
-                    console.log("STACKING VIEW CREATED for ", data);
                     return Docs.StackingDocument([], options);
                 case "text":
-                    console.log("TREE VIEW CREATED for ", data);
                     return Docs.TreeDocument([], options);
             }
         } else if (data instanceof ImageField) {
-            return Docs.ImageDocument("https://www.freepik.com/free-icon/picture-frame-with-mountain-image_748687.htm", options);
+            return Docs.ImageDocument("https://image.flaticon.com/icons/png/512/23/23765.png", options);
         }
         return new Doc;
     }
