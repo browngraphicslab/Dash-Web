@@ -65,8 +65,8 @@ export class SearchBox extends React.Component {
         this._visibleElements = [];
         this._currentIndex = 0;
         this._numTotalResults = 0;
-        this._startIndex = -1;
-        this._endIndex = -1;
+        this._startIndex = 0;
+        this._endIndex = 12;
     }
 
     enter = (e: React.KeyboardEvent) => { if (e.key === "Enter") { this.submitSearch(); } }
@@ -144,28 +144,21 @@ export class SearchBox extends React.Component {
 
             this._currentIndex += docs.length;
 
-            console.log(`ResDocs: ${resDocs.length}`);
+            // console.log(`ResDocs: ${resDocs.length}`);
             console.log(`CurrIndex: ${this._currentIndex}`);
         }
-        console.log(this.getResults2(query, count, []));
+        // console.log(this.getResults2(query, count, []));
         return resDocs;
     }
 
     @action
-    getResults2 = async (query: string, count: number, docs?: Doc[]) => {
-        console.log("results 2")
-        let buffer = 4;
+    getResults2 = async (query: string, count: number, docs: Doc[]) => {
+        // let buffer = 4;
         // let goalIndex = this._endIndex + count;
         // let bottomBound = Math.floor(goalIndex / 10) * 10;
-        let tempIndex = this._currentIndex;
-        let goalNum = this._endIndex + buffer;
-        let resDocs: Doc[];
-
-        if (docs) {
-            resDocs = docs;
-        } else {
-            resDocs = [];
-        }
+        // let tempIndex = this._currentIndex;
+        // let goalNum = this._endIndex + buffer;
+        let resDocs: Doc[] = docs;
 
         // let topBound = bottomBound - 10;
         // let unfilteredDocs: Doc[];
@@ -176,10 +169,12 @@ export class SearchBox extends React.Component {
         // }
 
         let index = count <= 0 ? undefined : this._currentIndex;
+        // let index = this._currentIndex;
         if (index) {
             let topBound = Math.ceil(index / 10) * 10;
             if (this._fetchedIndices.includes(topBound)) {
-                return;
+                // console.log("returning NOTHING")
+                return resDocs;
             }
             let startIndex = this._fetchedIndices[this._fetchedIndices.length - 1];
             let endIndex = startIndex + 10;
@@ -198,21 +193,17 @@ export class SearchBox extends React.Component {
 
                 resDocs.push(...filteredDocs);
 
-                tempIndex += res.docs.length;
+                this._currentIndex += res.docs.length;
 
-                if (filteredDocs.length <= count) {
-                    runInAction(() => {
-                        return this.getResults2(query, count - filteredDocs.length, resDocs);
-                    });
+                if (resDocs.length < count) {
+                    return this.getResults2(query, count - resDocs.length, resDocs);
+                    // resDocs = await this.getResults2(query, count - filteredDocs.length, resDocs);
                 }
-                else {
-                    return resDocs;
-                }
-                console.log(tempIndex);
-                console.log(resDocs.length);
+
+                return resDocs;
             })
-
         }
+        return resDocs;
         //this is the upper bound of the last 
         // let index = this._fetchedIndices[this._fetchedIndices.length - 1];
         // let prom: Promise<SearchUtil.DocSearchResult> = SearchUtil.Search(query, true, index, 10);
@@ -300,8 +291,8 @@ export class SearchBox extends React.Component {
         this._visibleElements = [];
         this._currentIndex = 0;
         this._numTotalResults = 0;
-        this._startIndex = -1;
-        this._endIndex = -1;
+        this._startIndex = 0;
+        this._endIndex = 12;
     }
 
     resultsScrolled = flow(function* (this: SearchBox, e?: React.UIEvent<HTMLDivElement>) {
@@ -316,8 +307,6 @@ export class SearchBox extends React.Component {
 
         console.log(`START: ${startIndex}`);
         console.log(`END: ${endIndex}`);
-        console.log("_________________________________________________________________________________________________________")
-
         this._startIndex = startIndex;
         this._endIndex = endIndex;
 
@@ -350,6 +339,7 @@ export class SearchBox extends React.Component {
                     if (i >= this._results.length) {
                         // _________________________________________________________________________________________________
                         let results: Doc[] = yield this.getResults(this._searchString, i + 1 - this._results.length);
+                        console.log(results)
                         if (results.length !== 0) {
                             runInAction(() => {
                                 this._results.push(...results);
@@ -372,6 +362,7 @@ export class SearchBox extends React.Component {
                 }
             }
         }
+        console.log("_________________________________________________________________________________________________________")
     });
 
     render() {
