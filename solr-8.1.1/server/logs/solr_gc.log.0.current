@@ -938,3 +938,30 @@ Heap after GC invocations=11 (full 0):
   class space    used 5566K, capacity 5933K, committed 6016K, reserved 1048576K
 }
  [Times: user=0.13 sys=0.00, real=0.02 secs] 
+2019-07-09T14:58:40.907-0400: 200.894: Total time for which application threads were stopped: 0.0229327 seconds, Stopping threads took: 0.0000433 seconds
+2019-07-09T14:59:22.929-0400: 242.916: Total time for which application threads were stopped: 0.0002392 seconds, Stopping threads took: 0.0001545 seconds
+2019-07-09T14:59:23.929-0400: 243.917: Total time for which application threads were stopped: 0.0001737 seconds, Stopping threads took: 0.0001067 seconds
+2019-07-09T15:00:22.959-0400: 302.947: Total time for which application threads were stopped: 0.0003628 seconds, Stopping threads took: 0.0002557 seconds
+2019-07-09T15:00:23.959-0400: 303.946: Total time for which application threads were stopped: 0.0001105 seconds, Stopping threads took: 0.0000228 seconds
+2019-07-09T15:01:22.985-0400: 362.972: Total time for which application threads were stopped: 0.0001779 seconds, Stopping threads took: 0.0000704 seconds
+2019-07-09T15:01:23.985-0400: 363.972: Total time for which application threads were stopped: 0.0001576 seconds, Stopping threads took: 0.0000448 seconds
+2019-07-09T15:02:23.019-0400: 423.006: Total time for which application threads were stopped: 0.0001700 seconds, Stopping threads took: 0.0000728 seconds
+2019-07-09T15:03:23.048-0400: 483.035: Total time for which application threads were stopped: 0.0001154 seconds, Stopping threads took: 0.0000213 seconds
+2019-07-09T15:05:23.111-0400: 603.098: Total time for which application threads were stopped: 0.0001218 seconds, Stopping threads took: 0.0000588 seconds
+2019-07-09T15:06:23.140-0400: 663.127: Total time for which application threads were stopped: 0.0001181 seconds, Stopping threads took: 0.0000657 seconds
+2019-07-09T15:06:35.144-0400: 675.132: Total time for which application threads were stopped: 0.0001310 seconds, Stopping threads took: 0.0000474 seconds
+2019-07-09T15:08:23.196-0400: 783.183: Total time for which application threads were stopped: 0.0001060 seconds, Stopping threads took: 0.0000418 seconds
+2019-07-09T15:12:23.325-0400: 1023.313: Total time for which application threads were stopped: 0.0002545 seconds, Stopping threads took: 0.0000783 seconds
+2019-07-09T15:15:23.407-0400: 1203.394: Total time for which application threads were stopped: 0.0001433 seconds, Stopping threads took: 0.0000387 seconds
+2019-07-09T15:19:23.516-0400: 1443.504: Total time for which application threads were stopped: 0.0001000 seconds, Stopping threads took: 0.0000292 seconds
+2019-07-09T15:27:23.758-0400: 1923.745: Total time for which application threads were stopped: 0.0001002 seconds, Stopping threads took: 0.0000319 seconds
+2019-07-09T15:30:23.857-0400: 2103.845: Total time for which application threads were stopped: 0.0001026 seconds, Stopping threads took: 0.0000369 seconds
+2019-07-09T15:36:24.052-0400: 2464.039: Total time for which application threads were stopped: 0.0000836 seconds, Stopping threads took: 0.0000341 seconds
+2019-07-09T15:38:24.117-0400: 2584.104: Total time for which application threads were stopped: 0.0001896 seconds, Stopping threads took: 0.0000479 seconds
+2019-07-09T16:27:37.844-0400: 5537.863: Total time for which application threads were stopped: 0.0001242 seconds, Stopping threads took: 0.0000360 seconds
+2019-07-09T16:37:38.135-0400: 6138.154: Total time for which application threads were stopped: 0.0003370 seconds, Stopping threads took: 0.0002139 seconds
+2019-07-09T16:41:38.252-0400: 6378.270: Total time for which application threads were stopped: 0.0002456 seconds, Stopping threads took: 0.0000954 seconds
+2019-07-09T16:46:39.396-0400: 6679.415: Total time for which application threads were stopped: 0.0001937 seconds, Stopping threads took: 0.0000609 seconds
+2019-07-09T16:55:39.666-0400: 7219.684: Total time for which application threads were stopped: 0.0002397 seconds, Stopping threads took: 0.0000743 seconds
+2019-07-09T16:56:39.696-0400: 7279.715: Total time for which application threads were stopped: 0.0002805 seconds, Stopping threads took: 0.0001074 seconds
+2019-07-09T16:59:39.785-0400: 7459.804: Total time for which application thread
