@@ -8,7 +8,7 @@ import { ObjectField } from "../../../new_fields/ObjectField";
 import { createSchema, makeInterface, listSpec } from "../../../new_fields/Schema";
 import { BoolCast, Cast, FieldValue, StrCast, NumCast, PromiseValue } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
-import { emptyFunction, Utils } from "../../../Utils";
+import { emptyFunction, Utils, returnFalse, returnTrue } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
@@ -34,6 +34,7 @@ import { ContextMenuProps } from '../ContextMenuItem';
 import { list, object, createSimpleSchema } from 'serializr';
 import { LinkManager } from '../../util/LinkManager';
 import { RouteStore } from '../../../server/RouteStore';
+import { FormattedTextBox } from './FormattedTextBox';
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(fa.faTrash);
@@ -78,6 +79,7 @@ export interface DocumentViewProps {
     moveDocument?: (doc: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
     renderDepth: number;
+    showOverlays?: (doc: Doc) => { title?: boolean, caption?: boolean };
     ContentScaling: () => number;
     PanelWidth: () => number;
     PanelHeight: () => number;
@@ -593,6 +595,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let foregroundColor = StrCast(this.props.Document.layout instanceof Doc ? this.props.Document.layout.color : this.props.Document.color);
         var nativeWidth = this.nativeWidth > 0 ? `${this.nativeWidth}px` : "100%";
         var nativeHeight = BoolCast(this.props.Document.ignoreAspect) ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
+        let showTitle = this.props.showOverlays && this.props.showOverlays(this.props.Document).title;
+        let showCaption = this.props.showOverlays && this.props.showOverlays(this.props.Document).caption;
+        let templates = Cast(this.props.Document.templates, listSpec("string"));
+        if (templates instanceof List) {
+            templates.map(str => {
+                if (str.indexOf("{props.Document.title}") !== -1) showTitle = true;
+                if (str.indexOf("fieldKey={\"caption\"}") !== -1) showCaption = true;
+            });
+        }
         return (
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
@@ -614,7 +625,25 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
                 onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}
             >
-                {this.contents}
+                {!showTitle && !showCaption ? this.contents :
+                    <div style={{ position: "absolute", display: "inline-block", width: "100%", height: "100%", pointerEvents: "none" }}>
+                        {!showTitle ? (null) :
+                            <div style={{
+                                position: "absolute", top: 0, textAlign: "center", textOverflow: "ellipsis", whiteSpace: "pre",
+                                overflow: "hidden", width: `${100 * this.props.ContentScaling()}%`, height: 25, background: "rgba(0, 0, 0, .4)", color: "white",
+                                transformOrigin: "top left", transform: `scale(${1 / this.props.ContentScaling()})`
+                            }}>
+                                <span>{this.props.Document.title}</span>
+                            </div>
+                        }
+                        {!showCaption ? (null) :
+                            <div style={{ position: "absolute", bottom: 0, transformOrigin: "bottom left", width: `${100 * this.props.ContentScaling()}%`, transform: `scale(${1 / this.props.ContentScaling()})` }}>
+                                <FormattedTextBox {...this.props} DataDoc={this.dataDoc} active={returnTrue} isSelected={this.isSelected} focus={emptyFunction} select={this.select} selectOnLoad={this.props.selectOnLoad} fieldExt={""} hideOnLeave={true} fieldKey={"caption"} />
+                            </div>
+                        }
+                        {this.contents}
+                    </div>
+                }
             </div>
         );
     }

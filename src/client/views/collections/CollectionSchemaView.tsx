@@ -405,6 +405,7 @@ interface CollectionSchemaPreviewProps {
     renderDepth: number;
     width: () => number;
     height: () => number;
+    showOverlays?: (doc: Doc) => { title?: boolean, caption?: boolean };
     CollectionView?: CollectionView | CollectionPDFView | CollectionVideoView;
     getTransform: () => Transform;
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
@@ -488,6 +489,7 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
                         fitToBox={this.props.fitToBox}
                         renderDepth={this.props.renderDepth + 1}
                         selectOnLoad={false}
+                        showOverlays={this.props.showOverlays}
                         addDocument={this.props.addDocument}
                         removeDocument={this.props.removeDocument}
                         moveDocument={this.props.moveDocument}
