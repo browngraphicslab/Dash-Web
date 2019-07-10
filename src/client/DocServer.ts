@@ -38,6 +38,14 @@ export namespace DocServer {
         Utils.Emit(_socket, MessageStore.DeleteAll, {});
     }
 
+    export function DeleteDocument(id: string) {
+        Utils.Emit(_socket, MessageStore.DeleteField, id);
+    }
+
+    export function DeleteDocuments(ids: string[]) {
+        Utils.Emit(_socket, MessageStore.DeleteFields, ids);
+    }
+
     export async function GetRefField(id: string): Promise<Opt<RefField>> {
         let cached = _cache[id];
         if (cached === undefined) {
