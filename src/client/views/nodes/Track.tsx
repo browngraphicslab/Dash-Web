@@ -25,6 +25,7 @@ interface IProps {
 export class Track extends React.Component<IProps> {
     @observable private _inner = React.createRef<HTMLDivElement>();   
     @observable private _keys = ["x", "y", "width", "height", "panX", "panY", "scale", "opacity"];
+    @observable private _onInterpolate:boolean = false; 
 
     private _reactionDisposers: IReactionDisposer[] = [];
     private _selectionManagerChanged?: IReactionDisposer;
@@ -43,35 +44,43 @@ export class Track extends React.Component<IProps> {
     componentDidMount() {
         this.props.node.hidden = true;
         this.props.node.opacity = 1;
-        reaction(() => this.props.currentBarX, () => {
-            let region: (Doc | undefined) = this.findRegion(this.props.currentBarX);
-            if (region !== undefined) {
-                this.props.node.hidden = false;
-                this.timeChange(this.props.currentBarX);
+
+        this._reactionDisposers.push(reaction(() => this.props.currentBarX, () => {
+            let regiondata: (Doc | undefined) = this.findRegion(this.props.currentBarX);
+            if (regiondata) {              
+                this.timeChange(this.props.currentBarX);    //first interpolates over to that position;  
+                (Cast(regiondata.keyframes!, listSpec(Doc)) as List<Doc>).forEach((kf) => {
+                    kf = kf as Doc; 
+                    if(NumCast(kf.time!) === this.props.currentBarX && kf.type !== KeyframeFunc.KeyframeType.fade){
+                        kf.key = Doc.MakeCopy(this.props.node, true);
+                        if (kf.type === KeyframeFunc.KeyframeType.new){
+                            kf.type = KeyframeFunc.KeyframeType.default; 
+                        } 
+                    }
+                }); 
+                this.props.node.hidden = false;                        
             } else {
                 this.props.node.hidden = true;
             }
-        });
-
-        reaction(() => {
+        }));
+        this._reactionDisposers.push(reaction(() => {
             if (!this._onInterpolate){
                 let keys = Doc.allKeys(this.props.node); 
                 return keys.map(key => FieldValue(this.props.node[key]));
             }
         }, data => {
-            let regiondata = this.findRegion(this.props.currentBarX); 
+            let regiondata = this.findRegion(this.props.currentBarX);
             if (regiondata){
                 (Cast(regiondata.keyframes!, listSpec(Doc)) as List<Doc>).forEach((kf) => {
                     kf = kf as Doc; 
-                    if(NumCast(kf.time!) === this.props.currentBarX){
-                        kf.key = Doc.MakeCopy(this.props.node); 
-                        console.log("key updated"); 
-                    }
+                    if(NumCast(kf.time!) === this.props.currentBarX && kf.type !== KeyframeFunc.KeyframeType.fade){
+                        kf.key = Doc.MakeCopy(this.props.node, true); 
+                    } 
                 }); 
             }
-           
-        }); 
+        })); 
     }
+
     /**
      * removes reaction when the component is removed from the timeline
      */
@@ -81,24 +90,22 @@ export class Track extends React.Component<IProps> {
     }
 
 
-    @observable private _onInterpolate:boolean = false; 
     @action
     timeChange = async (time: number) => {
         let region = this.findRegion(time);
         let leftkf: (Doc | undefined) = this.calcMinLeft(region!);
         let rightkf: (Doc | undefined) = this.calcMinRight(region!);
         let currentkf: (Doc | undefined) = this.calcCurrent(region!); 
-        if (currentkf){
+        if (currentkf && (currentkf.type !== KeyframeFunc.KeyframeType.new)){
             this._onInterpolate = true;   
-            console.log(this.filterKeys(Doc.allKeys(currentkf.key as Doc))); 
             this.filterKeys(Doc.allKeys(currentkf.key as Doc)).forEach(k => {
-                console.log(k); 
                 this.props.node[k] = (currentkf!.key as Doc)[k];  
             }); 
             this._onInterpolate = false;
         } else if (leftkf && rightkf) {
             this.interpolate(leftkf, rightkf);
-        } else if (leftkf) {
+        } else if (leftkf) {                
+            console.log(Doc.GetProto(leftkf!.key as Doc)); 
             this.filterKeys(Doc.allKeys(leftkf.key as Doc)).forEach(k => {
                 this.props.node[k] = (leftkf!.key as Doc)[k];
             });
@@ -164,17 +171,32 @@ export class Track extends React.Component<IProps> {
 
     @action
     interpolate = async (kf1: Doc, kf2: Doc) => {
-        console.log("interpolation");
         let node1 = kf1.key as Doc;
         let node2 = kf2.key as Doc;
-
+        let mainNode = new Doc(); 
         const dif_time = NumCast(kf2.time) - NumCast(kf1.time);
         const ratio = (this.props.currentBarX - NumCast(kf1.time)) / dif_time; //linear 
 
-        this._keys.forEach(key => {
-            const diff = NumCast(node2[key]) - NumCast(node1[key]);
-            const adjusted = diff * ratio;
-            this.props.node[key] = NumCast(node1[key]) + adjusted;
+        let keys = []; 
+        if (this.filterKeys(Doc.allKeys(node1)).length === Math.max(this.filterKeys(Doc.allKeys(node1)).length, this.filterKeys(Doc.allKeys(node2)).length )){
+            keys = this.filterKeys(Doc.allKeys(node1)); 
+            mainNode = node1; 
+        } else {
+            keys = this.filterKeys(Doc.allKeys(node2)); 
+            mainNode = node2; 
+        }
+    
+         
+        keys.forEach(key => {
+            if (node1[key] && node2[key] && typeof(node1[key]) === "number" && typeof(node2[key]) === "number"){
+                const diff = NumCast(node2[key]) - NumCast(node1[key]);
+                const adjusted = diff * ratio;
+                this.props.node[key] = NumCast(node1[key]) + adjusted;
+            } else if (key === "title") {
+                Doc.SetOnPrototype(this.props.node, "title", mainNode[key] as string);
+            } else if (key === "documentText"){
+                Doc.SetOnPrototype(this.props.node, "documentText", mainNode[key] as string); 
+            }
         });
     }
 

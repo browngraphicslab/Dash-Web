@@ -14,6 +14,11 @@ import { number } from "prop-types";
 import { CollectionSchemaView, CollectionSchemaPreview } from "../collections/CollectionSchemaView";
 
 export namespace KeyframeFunc{
+    export enum KeyframeType{
+        fade = "fade", 
+        default = "default",
+        new = "new"
+    }
     export enum Direction{
         left = "left", 
         right = "right"
@@ -80,32 +85,22 @@ export class Keyframe extends React.Component<IProps> {
 
     @action
     componentDidMount() {
-        let fadeIn = this.makeKeyData(this.regiondata.position + this.regiondata.fadeIn)!; 
-        let fadeOut = this.makeKeyData(this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut)!;
-        let fadeInIndex = this.regiondata.keyframes!.indexOf(fadeIn); 
-        let fadeOutIndex = this.regiondata.keyframes!.indexOf(fadeOut); 
-       
+        let fadeIn = this.makeKeyData(this.regiondata.position + this.regiondata.fadeIn, KeyframeFunc.KeyframeType.fade)!; 
+        let fadeOut = this.makeKeyData(this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut, KeyframeFunc.KeyframeType.fade)!;   
+        let start = this.makeKeyData(this.regiondata.position, KeyframeFunc.KeyframeType.fade)!;
+        let finish = this.makeKeyData(this.regiondata.position + this.regiondata.duration, KeyframeFunc.KeyframeType.fade)!; 
         (fadeIn.key! as Doc).opacity = 1; 
         (fadeOut.key! as Doc).opacity = 1;  
-
-        this.regiondata.keyframes![fadeInIndex] =fadeIn; 
-        this.regiondata.keyframes![fadeOutIndex] =fadeOut; 
-
-
-        let start = this.makeKeyData(this.regiondata.position)!;
-        let finish = this.makeKeyData(this.regiondata.position + this.regiondata.duration)!;
-
-
-        let startIndex = this.regiondata.keyframes!.indexOf(start); 
-        let finishIndex = this.regiondata.keyframes!.indexOf(finish); 
-
         (start.key! as Doc).opacity = 0.1; 
         (finish.key! as Doc).opacity = 0.1; 
-        
+        let fadeInIndex = this.regiondata.keyframes!.indexOf(fadeIn); 
+        let fadeOutIndex = this.regiondata.keyframes!.indexOf(fadeOut); 
+        let startIndex = this.regiondata.keyframes!.indexOf(start); 
+        let finishIndex = this.regiondata.keyframes!.indexOf(finish); 
+        this.regiondata.keyframes![fadeInIndex] =fadeIn; 
+        this.regiondata.keyframes![fadeOutIndex] =fadeOut; 
         this.regiondata.keyframes![startIndex] = start; 
         this.regiondata.keyframes![finishIndex] = finish; 
-
-        
     }
 
     componentWillUnmount() {
@@ -126,7 +121,7 @@ export class Keyframe extends React.Component<IProps> {
 
 
     @action
-    makeKeyData = (kfpos: number) => { //Kfpos is mouse offsetX, representing time 
+    makeKeyData = (kfpos: number, type:KeyframeFunc.KeyframeType = KeyframeFunc.KeyframeType.new) => { //Kfpos is mouse offsetX, representing time 
         let hasData = false;
         this.regiondata.keyframes!.forEach(TK => { //TK is TimeAndKey
             TK = TK as Doc;
@@ -136,8 +131,14 @@ export class Keyframe extends React.Component<IProps> {
         });
         if (!hasData) {
             let TK: Doc = new Doc();
-            TK.time = kfpos;
-            TK.key = Doc.MakeCopy(this.props.node);
+            TK.time = kfpos; 
+            if (type === KeyframeFunc.KeyframeType.fade){
+                TK.key = new Doc(); 
+            } else {
+                TK.key = Doc.MakeCopy(this.props.node, true); 
+                console.log(toJS(TK.key)); 
+            }
+            TK.type = type;            
             this.regiondata.keyframes!.push(TK);
             return TK; 
         }
@@ -175,7 +176,6 @@ export class Keyframe extends React.Component<IProps> {
         }
     }
 
-   
     @action
     onResizeLeft = (e: React.PointerEvent) => {
         e.preventDefault();
@@ -242,9 +242,9 @@ export class Keyframe extends React.Component<IProps> {
         e.stopPropagation();
         let bar = this._bar.current!; 
         let offset = e.clientX - bar.getBoundingClientRect().left; 
-        let position = NumCast(this.regiondata.position);
-        this.makeKeyData(Math.round(position + offset));
-        this.props.changeCurrentBarX(NumCast(Math.round(position + offset))); 
+        let position = NumCast(this.regiondata.position);            
+        this.makeKeyData(Math.round(position + offset));           
+        this.props.changeCurrentBarX(NumCast(Math.round(position + offset))); //first move the keyframe to the correct location and make a copy so the correct file gets coppied
     }
 
     @action 
@@ -255,7 +255,25 @@ export class Keyframe extends React.Component<IProps> {
     }
 
 
-
+    @action 
+    private createKeyframeJSX = (kf:Doc, type = KeyframeFunc.KeyframeType.default) => {
+        if (type === KeyframeFunc.KeyframeType.default){
+            return (
+            <div className="keyframe" style={{ left: `${NumCast(kf.time) - this.regiondata.position}px`  }}>
+                {this.createDivider()}
+                <div className="keyframeCircle" onPointerDown={(e) => {this.moveKeyframe(e, kf as Doc);} } onContextMenu={(e:React.MouseEvent)=>{
+                    e.preventDefault(); 
+                    e.stopPropagation(); 
+                    console.log(toJS(kf.key)); 
+                }}></div>
+            </div>);
+        }
+        return (    
+            <div className="keyframe" style={{ left: `${NumCast(kf.time) - this.regiondata.position}px`  }}>
+                {this.createDivider()}
+            </div>
+        ); 
+    }
 
     render() {
         return (
@@ -274,19 +292,8 @@ export class Keyframe extends React.Component<IProps> {
                 })}>
                     <div className="leftResize" onPointerDown={this.onResizeLeft} ></div>
                     <div className="rightResize" onPointerDown={this.onResizeRight}></div>
-                    {/* <div className="fadeLeft" style={{ width: `${this.regiondata.fadeIn}px` }}>{this.createDivider(KeyframeFunc.Direction.left)}</div>
-                    <div className="fadeRight" style={{ width: `${this.regiondata.fadeOut}px` }}>{this.createDivider(KeyframeFunc.Direction.right)}</div> */}
-                    
                     {this.regiondata.keyframes!.map(kf => {
-                        kf = kf as Doc; 
-                        return <div className="keyframe" style={{ left: `${NumCast(kf.time) - this.regiondata.position}px`  }}>
-                            {this.createDivider()}
-                            <div className="keyframeCircle" onPointerDown={(e) => {this.moveKeyframe(e, kf as Doc);} } onContextMenu={(e:React.MouseEvent)=>{
-                                e.preventDefault(); 
-                                e.stopPropagation(); 
-                                
-                                 }}></div>
-                        </div>;
+                        return this.createKeyframeJSX(kf as Doc, (kf! as Doc).type as KeyframeFunc.KeyframeType); 
                     })}
                     {this.createDivider(KeyframeFunc.Direction.left)}
                     {this.createDivider(KeyframeFunc.Direction.right)}
