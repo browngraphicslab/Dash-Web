@@ -212,6 +212,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
             </div>;
             const data = renderDoc.data;
             if (data instanceof ObjectField) newRenderDoc.data = ObjectField.MakeCopy(data);
+            newRenderDoc.preview = true;
             newRenderDoc.search_string = "hundo";
             return docview;
         }

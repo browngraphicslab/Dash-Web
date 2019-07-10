@@ -129,7 +129,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             const state = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
             this._applyingChange = true;
-            if (this.dataDoc[this.props.fieldKey]) {
+            const fieldkey = "preview";
+            if (Object.keys(this.dataDoc).indexOf(fieldkey) !== -1) {
                 this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()));
                 this.dataDoc[this.props.fieldKey + "_text"] = state.doc.textBetween(0, state.doc.content.size, "\n\n");
             }
@@ -160,9 +161,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     let start = pos;
                     tokens.forEach((word) => {
                         if (terms.includes(word) && this._editorView) {
-                            if (Object.keys(this.props.Document).indexOf(fieldkey) === -1) {
-                                this._editorView.dispatch(this._editorView.state.tr.addMark(start, start + word.length, mark).removeStoredMark(mark));
-                            }
+                            this._editorView.dispatch(this._editorView.state.tr.addMark(start, start + word.length, mark).removeStoredMark(mark));
                             // else {
                             //     this._editorView.state.tr.addMark(start, start + word.length, mark).removeStoredMark(mark);
                             // }
