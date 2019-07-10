@@ -50,6 +50,7 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
         target.__fields[prop] = value;
     }
     if (value === undefined) target[Update]({ '$unset': { ["fields." + prop]: "" } });
+    if (typeof value === "object" && !(value instanceof ObjectField)) debugger;
     else target[Update]({ '$set': { ["fields." + prop]: value instanceof ObjectField ? SerializationHelper.Serialize(value) : (value === undefined ? null : value) } });
     UndoManager.AddEvent({
         redo: () => receiver[prop] = value,
