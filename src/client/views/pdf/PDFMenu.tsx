@@ -3,10 +3,8 @@ import "./PDFMenu.scss";
 import { observable, action, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { emptyFunction, returnZero, returnTrue, returnFalse } from "../../../Utils";
+import { emptyFunction, returnFalse } from "../../../Utils";
 import { Doc } from "../../../new_fields/Doc";
-import { DragManager } from "../../util/DragManager";
-import { DocUtils } from "../../documents/Documents";
 
 @observer
 export default class PDFMenu extends React.Component {
@@ -19,11 +17,12 @@ export default class PDFMenu extends React.Component {
     @observable private _transitionDelay: string = "";
 
 
-    StartDrag: (e: PointerEvent) => void = emptyFunction;
+    StartDrag: (e: PointerEvent, ele: HTMLDivElement) => void = emptyFunction;
     Highlight: (d: Doc | undefined, color: string | undefined) => void = emptyFunction;
     Delete: () => void = emptyFunction;
     Snippet: (marquee: { left: number, top: number, width: number, height: number }) => void = emptyFunction;
     AddTag: (key: string, value: string) => boolean = returnFalse;
+    PinToPres: () => void = emptyFunction;
 
     @observable public Highlighting: boolean = false;
     @observable public Status: "pdf" | "annotation" | "snippet" | "" = "";
@@ -33,9 +32,10 @@ export default class PDFMenu extends React.Component {
 
     private _offsetY: number = 0;
     private _offsetX: number = 0;
-    private _mainCont: React.RefObject<HTMLDivElement>;
+    private _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
+    private _commentCont: React.RefObject<HTMLDivElement> = React.createRef();
+    private _snippetButton: React.RefObject<HTMLButtonElement> = React.createRef();
     private _dragging: boolean = false;
-    private _snippetButton: React.RefObject<HTMLButtonElement>;
     @observable private _keyValue: string = "";
     @observable private _valueValue: string = "";
     @observable private _added: boolean = false;
@@ -44,9 +44,6 @@ export default class PDFMenu extends React.Component {
         super(props);
 
         PDFMenu.Instance = this;
-
-        this._mainCont = React.createRef();
-        this._snippetButton = React.createRef();
     }
 
     pointerDown = (e: React.PointerEvent) => {
@@ -67,7 +64,7 @@ export default class PDFMenu extends React.Component {
             return;
         }
 
-        this.StartDrag(e);
+        this.StartDrag(e, this._commentCont.current!);
         this._dragging = true;
     }
 
@@ -244,7 +241,7 @@ export default class PDFMenu extends React.Component {
                 style={this.Highlighting ? { backgroundColor: "#121212" } : {}}>
                 <FontAwesomeIcon icon="highlighter" size="lg" style={{ transition: "transform 0.1s", transform: this.Highlighting ? "" : "rotate(-45deg)" }} />
             </button>,
-            <button className="pdfMenu-button" title="Drag to Annotate" onPointerDown={this.pointerDown}><FontAwesomeIcon icon="comment-alt" size="lg" key="2" /></button>,
+            <button className="pdfMenu-button" title="Drag to Annotate" ref={this._commentCont} onPointerDown={this.pointerDown}><FontAwesomeIcon icon="comment-alt" size="lg" key="2" /></button>,
             this.Status === "snippet" ? <button className="pdfMenu-button" title="Drag to Snippetize Selection" onPointerDown={this.snippetStart} ref={this._snippetButton}><FontAwesomeIcon icon="cut" size="lg" /></button> : undefined,
             <button className="pdfMenu-button" title="Pin Menu" onClick={this.togglePin} key="3"
                 style={this.Pinned ? { backgroundColor: "#121212" } : {}}>
@@ -252,11 +249,12 @@ export default class PDFMenu extends React.Component {
             </button>
         ] : [
                 <button className="pdfMenu-button" title="Delete Anchor" onPointerDown={this.deleteClicked}><FontAwesomeIcon icon="trash-alt" size="lg" key="1" /></button>,
-                <div className="pdfMenu-addTag" key="2">
+                <button className="pdfMenu-button" title="Pin to Presentation" onPointerDown={this.PinToPres}><FontAwesomeIcon icon="map-pin" size="lg" key="2" /></button>,
+                <div className="pdfMenu-addTag" key="3">
                     <input onChange={this.keyChanged} placeholder="Key" style={{ gridColumn: 1 }} />
                     <input onChange={this.valueChanged} placeholder="Value" style={{ gridColumn: 3 }} />
                 </div>,
-                <button className="pdfMenu-button" title={`Add tag: ${this._keyValue} with value: ${this._valueValue}`} onPointerDown={this.addTag}><FontAwesomeIcon style={{ transition: "all .2s" }} color={this._added ? "#42f560" : "white"} icon="check" size="lg" key="3" /></button>,
+                <button className="pdfMenu-button" title={`Add tag: ${this._keyValue} with value: ${this._valueValue}`} onPointerDown={this.addTag}><FontAwesomeIcon style={{ transition: "all .2s" }} color={this._added ? "#42f560" : "white"} icon="check" size="lg" key="4" /></button>,
             ];
 
         return (

@@ -122,7 +122,6 @@ export class CollectionVideoView extends React.Component<FieldViewProps> {
     }
 
     render() {
-        trace();
         return (
             <CollectionBaseView {...this.props} className="collectionVideoView-cont" onContextMenu={this.onContextMenu}>
                 {this.subView}

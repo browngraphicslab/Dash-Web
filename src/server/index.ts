@@ -25,7 +25,7 @@ import { getForgot, getLogin, getLogout, getReset, getSignup, postForgot, postLo
 import { DashUserModel } from './authentication/models/user_model';
 import { Client } from './Client';
 import { Database } from './database';
-import { MessageStore, Transferable, Types, Diff } from "./Message";
+import { MessageStore, Transferable, Types, Diff, Message } from "./Message";
 import { RouteStore } from './RouteStore';
 const app = express();
 const config = require('../../webpack.config');
@@ -105,14 +105,15 @@ enum Method {
  */
 function addSecureRoute(method: Method,
     handler: (user: DashUserModel, res: express.Response, req: express.Request) => void,
-    onRejection: (res: express.Response) => any = (res) => res.redirect(RouteStore.logout),
+    onRejection: (res: express.Response, req: express.Request) => any = res => res.redirect(RouteStore.login),
     ...subscribers: string[]
 ) {
     let abstracted = (req: express.Request, res: express.Response) => {
         if (req.user) {
             handler(req.user, res, req);
         } else {
-            onRejection(res);
+            req.session!.target = `http://localhost:${port}${req.originalUrl}`;
+            onRejection(res, req);
         }
     };
     subscribers.forEach(route => {
@@ -221,7 +222,7 @@ addSecureRoute(
 addSecureRoute(
     Method.GET,
     async (_, res) => {
-        const cursor = await Database.Instance.query({}, "users");
+        const cursor = await Database.Instance.query({}, { email: 1, userDocumentId: 1 }, "users");
         const results = await cursor.toArray();
         res.send(results.map(user => ({ email: user.email, userDocumentId: user.userDocumentId })));
     },
@@ -298,9 +299,10 @@ app.post(
                 const file = path.basename(files[name].path);
                 const ext = path.extname(file);
                 let resizers = [
-                    { resizer: sharp().resize(100, undefined, { withoutEnlargement: true }), suffix: "_s" },
-                    { resizer: sharp().resize(400, undefined, { withoutEnlargement: true }), suffix: "_m" },
-                    { resizer: sharp().resize(900, undefined, { withoutEnlargement: true }), suffix: "_l" },
+                    { resizer: sharp().rotate(), suffix: "_o" },
+                    { resizer: sharp().resize(100, undefined, { withoutEnlargement: true }).rotate(), suffix: "_s" },
+                    { resizer: sharp().resize(400, undefined, { withoutEnlargement: true }).rotate(), suffix: "_m" },
+                    { resizer: sharp().resize(900, undefined, { withoutEnlargement: true }).rotate(), suffix: "_l" },
                 ];
                 let isImage = false;
                 if (pngTypes.includes(ext)) {
@@ -466,6 +468,8 @@ server.on("connection", function (socket: Socket) {
 
     Utils.AddServerHandler(socket, MessageStore.CreateField, CreateField);
     Utils.AddServerHandler(socket, MessageStore.UpdateField, diff => UpdateField(socket, diff));
+    Utils.AddServerHandler(socket, MessageStore.DeleteField, id => DeleteField(socket, id));
+    Utils.AddServerHandler(socket, MessageStore.DeleteFields, ids => DeleteFields(socket, ids));
     Utils.AddServerHandlerCallback(socket, MessageStore.GetRefField, GetRefField);
     Utils.AddServerHandlerCallback(socket, MessageStore.GetRefFields, GetRefFields);
 });
@@ -590,6 +594,23 @@ function UpdateField(socket: Socket, diff: Diff) {
     if (dynfield) {
         Search.Instance.updateDocument(update);
     }
+}
+
+function DeleteField(socket: Socket, id: string) {
+    Database.Instance.delete({ _id: id }, "newDocuments").then(() => {
+        socket.broadcast.emit(MessageStore.DeleteField.Message, id);
+    });
+
+    Search.Instance.deleteDocuments([id]);
+}
+
+function DeleteFields(socket: Socket, ids: string[]) {
+    Database.Instance.delete({ _id: { $in: ids } }, "newDocuments").then(() => {
+        socket.broadcast.emit(MessageStore.DeleteFields.Message, ids);
+    });
+
+    Search.Instance.deleteDocuments(ids);
+
 }
 
 function CreateField(newValue: any) {

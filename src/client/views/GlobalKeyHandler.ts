@@ -1,4 +1,4 @@
-import { UndoManager } from "../util/UndoManager";
+import { UndoManager, undoBatch } from "../util/UndoManager";
 import { SelectionManager } from "../util/SelectionManager";
 import { CollectionDockingView } from "./collections/CollectionDockingView";
 import { MainView } from "./MainView";
@@ -13,7 +13,7 @@ type KeyControlInfo = {
 };
 
 export default class KeyManager {
-    public static Handler: KeyManager = new KeyManager();
+    public static Instance: KeyManager = new KeyManager();
     private router = new Map<string, KeyHandler>();
 
     constructor() {
@@ -65,6 +65,15 @@ export default class KeyManager {
                         SelectionManager.DeselectAll();
                     }
                 }
+                MainView.Instance.toggleColorPicker(true);
+                break;
+            case "delete":
+            case "backspace":
+                SelectionManager.SelectedDocuments().map(docView => {
+                    let doc = docView.props.Document;
+                    let remove = docView.props.removeDocument;
+                    remove && remove(doc);
+                });
                 break;
         }
 
@@ -117,6 +126,13 @@ export default class KeyManager {
                 break;
             case "z":
                 UndoManager.Undo();
+                break;
+            case "a":
+            case "c":
+            case "v":
+            case "x":
+                stopPropagation = false;
+                preventDefault = false;
                 break;
         }
 

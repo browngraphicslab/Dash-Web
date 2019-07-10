@@ -12,7 +12,7 @@ import { Docs } from "../documents/Documents";
 import { DocumentManager } from "../util/DocumentManager";
 import { DragLinksAsDocuments, DragManager } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
-import { undoBatch } from "../util/UndoManager";
+import { undoBatch, UndoManager } from "../util/UndoManager";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { CollectionView } from "./collections/CollectionView";
 import './DocumentDecorations.scss';
@@ -50,6 +50,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     private _downX = 0;
     private _downY = 0;
     private _iconDoc?: Doc = undefined;
+    private _resizeUndo?: UndoManager.Batch;
     @observable private _minimizedX = 0;
     @observable private _minimizedY = 0;
     @observable private _title: string = "";
@@ -171,7 +172,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         document.addEventListener("pointermove", this.onBackgroundMove);
         document.addEventListener("pointerup", this.onBackgroundUp);
         e.stopPropagation();
-        e.preventDefault();
     }
 
     @action
@@ -340,6 +340,37 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         iconDoc.y = where[1] + NumCast(selView.props.Document.y);
     }
 
+    _radiusDown = [0, 0];
+    @action
+    onRadiusDown = (e: React.PointerEvent): void => {
+        e.stopPropagation();
+        if (e.button === 0) {
+            this._radiusDown = [e.clientX, e.clientY];
+            this._isPointerDown = true;
+            this._resizeUndo = UndoManager.StartBatch("DocDecs set radius");
+            document.removeEventListener("pointermove", this.onRadiusMove);
+            document.removeEventListener("pointerup", this.onRadiusUp);
+            document.addEventListener("pointermove", this.onRadiusMove);
+            document.addEventListener("pointerup", this.onRadiusUp);
+        }
+    }
+
+    onRadiusMove = (e: PointerEvent): void => {
+        let dist = Math.sqrt((e.clientX - this._radiusDown[0]) * (e.clientX - this._radiusDown[0]) + (e.clientY - this._radiusDown[1]) * (e.clientY - this._radiusDown[1]));
+        SelectionManager.SelectedDocuments().map(dv => dv.props.Document.borderRounding = Doc.GetProto(dv.props.Document).borderRounding = `${Math.min(100, dist)}%`);
+        e.stopPropagation();
+        e.preventDefault();
+    }
+
+    onRadiusUp = (e: PointerEvent): void => {
+        e.stopPropagation();
+        e.preventDefault();
+        this._isPointerDown = false;
+        this._resizeUndo && this._resizeUndo.end();
+        document.removeEventListener("pointermove", this.onRadiusMove);
+        document.removeEventListener("pointerup", this.onRadiusUp);
+    }
+
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         e.stopPropagation();
@@ -347,6 +378,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             this._isPointerDown = true;
             this._resizing = e.currentTarget.id;
             this.Interacting = true;
+            this._resizeUndo = UndoManager.StartBatch("DocDecs resize");
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
@@ -548,6 +580,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (e.button === 0) {
             e.preventDefault();
             this._isPointerDown = false;
+            this._resizeUndo && this._resizeUndo.end();
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
         }
@@ -692,7 +725,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 {this._edtingTitle ?
                     <input ref={this.keyinput} className="title" type="text" name="dynbox" value={this._title} onBlur={this.titleBlur} onChange={this.titleChanged} onKeyPress={this.titleEntered} /> :
                     <div className="title" onPointerDown={this.onTitleDown} ><span>{`${this.selectionTitle}`}</span></div>}
-                <div className="documentDecorations-closeButton" onPointerDown={this.onCloseDown}>X</div>
+                <div className="documentDecorations-closeButton" title="Close Document" onPointerDown={this.onCloseDown}>X</div>
                 <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-topResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-topRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
@@ -702,6 +735,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 <div id="documentDecorations-bottomLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-bottomResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                <div id="documentDecorations-borderRadius" className="documentDecorations-radius" onPointerDown={this.onRadiusDown} onContextMenu={(e) => e.preventDefault()}><span className="borderRadiusTooltip" title="Drag Corner Radius"></span></div>
                 <div className="link-button-container">
                     <div className="linkButtonWrapper">
                         <div title="View Links" className="linkFlyout" ref={this._linkButton}> {linkButton}  </div>

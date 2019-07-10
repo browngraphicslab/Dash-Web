@@ -32,7 +32,7 @@ export class TooltipTextMenu {
     private fontSizeToNum: Map<MarkType, number>;
     private fontStylesToName: Map<MarkType, string>;
     private listTypeToIcon: Map<NodeType, string>;
-    private link: HTMLAnchorElement;
+    //private link: HTMLAnchorElement;
     //private wrapper: HTMLDivElement;
 
     private linkEditor?: HTMLDivElement;
@@ -92,6 +92,7 @@ export class TooltipTextMenu {
             });
 
         });
+        this.updateLinkMenu();
 
         //list of font styles
         this.fontStylesToName = new Map();
@@ -114,7 +115,8 @@ export class TooltipTextMenu {
         this.fontSizeToNum.set(schema.marks.p32, 32);
         this.fontSizeToNum.set(schema.marks.p48, 48);
         this.fontSizeToNum.set(schema.marks.p72, 72);
-        //this.fontSizeToNum.set(schema.marks.pFontSize,schema.marks.pFontSize.)
+        this.fontSizeToNum.set(schema.marks.pFontSize, 10);
+        this.fontSizeToNum.set(schema.marks.pFontSize, 10);
         this.fontSizes = Array.from(this.fontSizeToNum.keys());
 
         //list types
@@ -122,11 +124,6 @@ export class TooltipTextMenu {
         this.listTypeToIcon.set(schema.nodes.bullet_list, ":");
         this.listTypeToIcon.set(schema.nodes.ordered_list, "1)");
         this.listTypes = Array.from(this.listTypeToIcon.keys());
-
-        this.link = document.createElement("a");
-        this.link.target = "_blank";
-        this.link.style.color = "white";
-        //this.tooltip.appendChild(this.link);
 
         this.tooltip.appendChild(this.createLink().render(this.view).dom);
 
@@ -234,6 +231,7 @@ export class TooltipTextMenu {
     updateLinkMenu() {
         if (!this.linkEditor || !this.linkText) {
             this.linkEditor = document.createElement("div");
+            this.linkEditor.className = "ProseMirror-icon menuicon";
             this.linkEditor.style.color = "black";
             this.linkText = document.createElement("div");
             this.linkText.style.cssFloat = "left";
@@ -274,8 +272,9 @@ export class TooltipTextMenu {
             };
             this.linkDrag = document.createElement("img");
             this.linkDrag.src = "https://seogurusnyc.com/wp-content/uploads/2016/12/link-1.png";
-            this.linkDrag.style.width = "20px";
-            this.linkDrag.style.height = "20px";
+            this.linkDrag.style.width = "15px";
+            this.linkDrag.style.height = "15px";
+            this.linkDrag.title = "Drag to create link";
             this.linkDrag.style.color = "black";
             this.linkDrag.style.background = "black";
             this.linkDrag.style.cssFloat = "left";
@@ -293,10 +292,10 @@ export class TooltipTextMenu {
                         hideSource: false
                     });
             };
-            // this.linkEditor.appendChild(this.linkDrag);
+            this.linkEditor.appendChild(this.linkDrag);
             // this.linkEditor.appendChild(this.linkText);
             // this.linkEditor.appendChild(linkBtn);
-            //this.tooltip.appendChild(this.linkEditor);
+            this.tooltip.appendChild(this.linkEditor);
         }
 
         let node = this.view.state.selection.$from.nodeAfter;
@@ -487,16 +486,24 @@ export class TooltipTextMenu {
             enable(state) { return !state.selection.empty; },
             run: (state, dispatch, view) => {
                 // to remove link
+                let curLink = "";
                 if (this.markActive(state, markType)) {
-                    toggleMark(markType)(state, dispatch);
-                    return true;
+
+                    let { from, $from, to, empty } = state.selection;
+                    let node = state.doc.nodeAt(from);
+                    node && node.marks.map(m => {
+                        m.type === markType && (curLink = m.attrs.href);
+                    })
+                    //toggleMark(markType)(state, dispatch);
+                    //return true;
                 }
                 // to create link
                 openPrompt({
                     title: "Create a link",
                     fields: {
                         href: new TextField({
-                            label: "Link target",
+                            value: curLink,
+                            label: "Link Target",
                             required: true
                         }),
                         title: new TextField({ label: "Title" })
@@ -646,9 +653,6 @@ export class TooltipTextMenu {
             }
         }
         this.view.dispatch(this.view.state.tr.setStoredMarks(this._activeMarks));
-        this.updateLinkMenu();
-        //this.highlightSearchTerms(["hello", "there"]);
-        //this.unhighlightSearchTerms();
     }
 
     //finds all active marks on selection in given group

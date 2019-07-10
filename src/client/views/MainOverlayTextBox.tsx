@@ -31,10 +31,16 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
     private _textBox: FormattedTextBox | undefined;
     private _tooltip?: HTMLElement;
     @observable public TextDoc?: Doc;
+    @observable public TextDataDoc?: Doc;
 
     updateTooltip = () => {
         this._outerdiv && this._tooltip && !this._outerdiv.contains(this._tooltip) && this._outerdiv.appendChild(this._tooltip);
     }
+
+    public SetColor(color: string) {
+        return this._textBox && this._textBox.setFontColor(color);
+    }
+
 
     constructor(props: MainOverlayTextBoxProps) {
         super(props);
@@ -44,13 +50,15 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
             (box?: FormattedTextBox) => {
                 this._textBox = box;
                 if (box) {
-                    this.TextDoc = box.props.DataDoc;
+                    this.TextDoc = box.props.Document;
+                    this.TextDataDoc = box.props.DataDoc;
                     let sxf = Utils.GetScreenTransform(box ? box.CurrentDiv : undefined);
                     let xf = () => { box.props.ScreenToLocalTransform(); return new Transform(-sxf.translateX, -sxf.translateY, 1 / sxf.scale); };
                     this.setTextDoc(box.props.fieldKey, box.CurrentDiv, xf, BoolCast(box.props.Document.autoHeight, false) || box.props.height === "min-content");
                 }
                 else {
                     this.TextDoc = undefined;
+                    this.TextDataDoc = undefined;
                     this.setTextDoc();
                 }
             });
@@ -115,7 +123,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
         }
     }
     render() {
-        this.TextDoc;
+        this.TextDoc; this.TextDataDoc;
         if (FormattedTextBox.InputBoxOverlay && this._textTargetDiv) {
             let textRect = this._textTargetDiv.getBoundingClientRect();
             let s = this._textXf().Scale;

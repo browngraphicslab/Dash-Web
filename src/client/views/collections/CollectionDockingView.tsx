@@ -27,6 +27,7 @@ import { MainView } from '../MainView';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faFile } from '@fortawesome/free-solid-svg-icons';
+import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
 library.add(faFile);
 
 @observer
@@ -62,12 +63,30 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     }
     hack: boolean = false;
     undohack: any = null;
-    public StartOtherDrag(e: any, dragDocs: Doc[], dragDataDocs?: (Doc | undefined)[]) {
-        this.hack = true;
-        this.undohack = UndoManager.StartBatch("goldenDrag");
-        dragDocs.map((dragDoc, i) =>
-            this.AddRightSplit(dragDoc, dragDataDocs ? dragDataDocs[i] : undefined, true).contentItems[0].tab._dragListener.
-                onMouseDown({ pageX: e.pageX, pageY: e.pageY, preventDefault: emptyFunction, button: 0 }));
+    public StartOtherDrag(e: any, dragDocs: Doc[], dragDataDocs: (Doc | undefined)[] = []) {
+        let config: any;
+        if (dragDocs.length === 1) {
+            config = CollectionDockingView.makeDocumentConfig(dragDocs[0], dragDataDocs[0]);
+        } else {
+            config = {
+                type: 'row',
+                content: dragDocs.map((doc, i) => {
+                    CollectionDockingView.makeDocumentConfig(doc, dragDataDocs[i]);
+                })
+            };
+        }
+        const div = document.createElement("div");
+        const dragSource = this._goldenLayout.createDragSource(div, config);
+        dragSource._dragListener.on("dragStop", () => {
+            dragSource.destroy();
+        });
+        dragSource._dragListener.onMouseDown(e);
+        // dragSource.destroy();
+        // this.hack = true;
+        // this.undohack = UndoManager.StartBatch("goldenDrag");
+        // dragDocs.map((dragDoc, i) =>
+        //     this.AddRightSplit(dragDoc, dragDataDocs[i], true).contentItems[0].tab._dragListener.
+        //         onMouseDown({ pageX: e.pageX, pageY: e.pageY, preventDefault: emptyFunction, button: 0 }));
     }
 
     @action
@@ -240,6 +259,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                         // Because this is in a set timeout, if this component unmounts right after mounting,
                         // we will leak a GoldenLayout, because we try to destroy it before we ever create it
                         setTimeout(() => this.setupGoldenLayout(), 1);
+                        this.props.Document.workspaceBrush = true;
                     }
                     this._ignoreStateChange = "";
                 }, { fireImmediately: true });
@@ -249,6 +269,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     }
     componentWillUnmount: () => void = () => {
         try {
+            this.props.Document.workspaceBrush = false;
             this._goldenLayout.unbind('itemDropped', this.itemDropped);
             this._goldenLayout.unbind('tabCreated', this.tabCreated);
             this._goldenLayout.unbind('stackCreated', this.stackCreated);
@@ -269,7 +290,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         var cur = this._containerRef.current;
 
         // bcz: since GoldenLayout isn't a React component itself, we need to notify it to resize when its document container's size has changed
-        this._goldenLayout.updateSize(cur!.getBoundingClientRect().width, cur!.getBoundingClientRect().height);
+        this._goldenLayout && this._goldenLayout.updateSize(cur!.getBoundingClientRect().width, cur!.getBoundingClientRect().height);
     }
 
     @action
@@ -297,38 +318,9 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             let tab = (e.target as any).parentElement as HTMLElement;
             DocServer.GetRefField(docid).then(action(async (sourceDoc: Opt<Field>) =>
                 (sourceDoc instanceof Doc) && DragLinksAsDocuments(tab, x, y, sourceDoc)));
-        } else
-            if ((className === "lm_title" || className === "lm_tab lm_active") && e.shiftKey) {
-                e.stopPropagation();
-                e.preventDefault();
-                let x = e.clientX;
-                let y = e.clientY;
-                let docid = (e.target as any).DashDocId;
-                let datadocid = (e.target as any).DashDataDocId;
-                let tab = (e.target as any).parentElement as HTMLElement;
-                let glTab = (e.target as any).Tab;
-                if (glTab && glTab.contentItem && glTab.contentItem.parent) {
-                    glTab.contentItem.parent.setActiveContentItem(glTab.contentItem);
-                }
-                DocServer.GetRefField(docid).then(action(async (f: Opt<Field>) => {
-                    if (f instanceof Doc) {
-                        let dataDoc = (datadocid !== docid) ? await DocServer.GetRefField(datadocid) : f;
-                        DragManager.StartDocumentDrag([tab], new DragManager.DocumentDragData([f], [dataDoc instanceof Doc ? dataDoc : f]), x, y,
-                            {
-                                handlers: {
-                                    dragComplete: emptyFunction,
-                                },
-                                hideSource: false,
-                                withoutShiftDrag: true
-                            });
-                    }
-                }));
-            }
+        }
         if (className === "lm_drag_handle" || className === "lm_close" || className === "lm_maximise" || className === "lm_minimise" || className === "lm_close_tab") {
             this._flush = true;
-        }
-        if (this.props.active()) {
-            e.stopPropagation();
         }
     }
 
@@ -383,7 +375,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     }
                     tab.setActive(true);
                 };
-                ReactDOM.render(<span onPointerDown={
+                ReactDOM.render(<span title="Drag as document" onPointerDown={
                     e => {
                         e.preventDefault();
                         e.stopPropagation();
@@ -414,6 +406,9 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 if (doc instanceof Doc) {
                     let theDoc = doc;
                     CollectionDockingView.Instance._removedDocs.push(theDoc);
+                    if (CurrentUserUtils.UserDocument.recentlyClosed instanceof Doc) {
+                        Doc.AddDocToList(CurrentUserUtils.UserDocument.recentlyClosed, "data", doc, undefined, true, true);
+                    }
                     SelectionManager.DeselectAll();
                 }
                 tab.contentItem.remove();
@@ -455,9 +450,18 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     }
 
     render() {
+        if (this.props.renderDepth > 0) {
+            return <div style={{ width: "100%", height: "100%" }}>Nested workspaces can't be rendered</div>;
+        }
         return (
-            <div className="collectiondockingview-container" id="menuContainer"
-                onPointerDown={this.onPointerDown} onPointerUp={this.onPointerUp} ref={this._containerRef} />
+            <Measure offset onResize={this.onResize}>
+                {({ measureRef }) =>
+                    <div ref={measureRef}>
+                        <div className="collectiondockingview-container" id="menuContainer"
+                            onPointerDown={this.onPointerDown} onPointerUp={this.onPointerUp} ref={this._containerRef} />
+                    </div>
+                }
+            </Measure>
         );
     }
 

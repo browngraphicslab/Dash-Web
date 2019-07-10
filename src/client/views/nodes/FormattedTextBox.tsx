@@ -94,9 +94,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
     public static GetDocFromUrl(url: string) {
         if (url.startsWith(document.location.origin)) {
-            let start = url.indexOf(window.location.origin);
-            let path = url.substr(start, url.length - start);
-            let docid = path.replace(DocServer.prepend("/doc/"), "").split("?")[0];
+            const split = new URL(url).pathname.split("doc/");
+            const docid = split[split.length - 1];
             return docid;
         }
         return "";
@@ -104,7 +103,19 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     public static getToolTip() {
         return this._toolTipTextMenu;
+    }
 
+    @undoBatch
+    public setFontColor(color: string) {
+        let self = this;
+        if (this._editorView!.state.selection.from === this._editorView!.state.selection.to) return false;
+        if (this._editorView!.state.selection.to - this._editorView!.state.selection.from > this._editorView!.state.doc.nodeSize - 3) {
+            this.props.Document.color = color;
+        }
+        let colorMark = this._editorView!.state.schema.mark(this._editorView!.state.schema.marks.pFontColor, { color: color });
+        this._editorView!.dispatch(this._editorView!.state.tr.addMark(this._editorView!.state.selection.from,
+            this._editorView!.state.selection.to, colorMark));
+        return true;
     }
 
     constructor(props: FieldViewProps) {
@@ -215,25 +226,28 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             e.stopPropagation();
         } else {
             if (de.data instanceof DragManager.DocumentDragData) {
-                let ldocs = Cast(this.dataDoc.subBulletDocs, listSpec(Doc));
-                if (!ldocs) {
-                    this.dataDoc.subBulletDocs = new List<Doc>([]);
-                }
-                ldocs = Cast(this.dataDoc.subBulletDocs, listSpec(Doc));
-                if (!ldocs) return;
-                if (!ldocs || !ldocs[0] || ldocs[0] instanceof Promise || StrCast((ldocs[0] as Doc).layout).indexOf("CollectionView") === -1) {
-                    ldocs.splice(0, 0, Docs.StackingDocument([], { title: StrCast(this.dataDoc.title) + "-subBullets", x: NumCast(this.props.Document.x), y: NumCast(this.props.Document.y) + NumCast(this.props.Document.height), width: 300, height: 300 }));
-                    this.props.addDocument && this.props.addDocument(ldocs[0] as Doc);
-                    this.props.Document.templates = new List<string>([Templates.Bullet.Layout]);
-                    this.props.Document.isBullet = true;
-                }
-                let stackDoc = (ldocs[0] as Doc);
-                if (de.data.moveDocument) {
-                    de.data.moveDocument(de.data.draggedDocuments[0], stackDoc, (doc) => {
-                        Cast(stackDoc.data, listSpec(Doc))!.push(doc);
-                        return true;
-                    });
-                }
+                this.props.Document.layout = de.data.draggedDocuments[0];
+                de.data.draggedDocuments[0].isTemplate = true;
+                e.stopPropagation();
+                // let ldocs = Cast(this.dataDoc.subBulletDocs, listSpec(Doc));
+                // if (!ldocs) {
+                //     this.dataDoc.subBulletDocs = new List<Doc>([]);
+                // }
+                // ldocs = Cast(this.dataDoc.subBulletDocs, listSpec(Doc));
+                // if (!ldocs) return;
+                // if (!ldocs || !ldocs[0] || ldocs[0] instanceof Promise || StrCast((ldocs[0] as Doc).layout).indexOf("CollectionView") === -1) {
+                //     ldocs.splice(0, 0, Docs.StackingDocument([], { title: StrCast(this.dataDoc.title) + "-subBullets", x: NumCast(this.props.Document.x), y: NumCast(this.props.Document.y) + NumCast(this.props.Document.height), width: 300, height: 300 }));
+                //     this.props.addDocument && this.props.addDocument(ldocs[0] as Doc);
+                //     this.props.Document.templates = new List<string>([Templates.Bullet.Layout]);
+                //     this.props.Document.isBullet = true;
+                // }
+                // let stackDoc = (ldocs[0] as Doc);
+                // if (de.data.moveDocument) {
+                //     de.data.moveDocument(de.data.draggedDocuments[0], stackDoc, (doc) => {
+                //         Cast(stackDoc.data, listSpec(Doc))!.push(doc);
+                //         return true;
+                //     });
+                // }
             }
         }
     }
@@ -275,7 +289,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 const field = this.dataDoc ? Cast(this.dataDoc[this.props.fieldKey], RichTextField) : undefined;
                 return field ? field.Data : `{"doc":{"type":"doc","content":[]},"selection":{"type":"text","anchor":0,"head":0}}`;
             },
-            field => this._editorView && !this._applyingChange && this.props.Document[this.props.fieldKey] instanceof RichTextField &&
+            field => this._editorView && !this._applyingChange &&
                 this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field)))
         );
 
@@ -355,7 +369,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (e.button === 0 && ((!this.props.isSelected() && !e.ctrlKey) || (this.props.isSelected() && e.ctrlKey)) && !e.metaKey && e.target) {
             let href = (e.target as any).href;
             for (let parent = (e.target as any).parentNode; !href && parent; parent = parent.parentNode) {
-                href = parent.childNodes[0].href;
+                href = parent.childNodes[0].href ? parent.childNodes[0].href : parent.href;
             }
             if (href) {
                 if (href.indexOf(DocServer.prepend("/doc/")) === 0) {
@@ -498,8 +512,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         ContextMenu.Instance.addItem({ description: "Text Funcs...", subitems: subitems });
     }
     render() {
+        let self = this;
         let style = this.props.isOverlay ? "scroll" : "hidden";
-        let rounded = NumCast(this.props.Document.borderRounding) < 0 ? "-rounded" : "";
+        let rounded = StrCast(this.props.Document.borderRounding) === "100%" ? "-rounded" : "";
         let interactive = InkingControl.Instance.selectedTool ? "" : "interactive";
         return (
             <div className={`formattedTextBox-cont-${style}`} ref={this._ref}
@@ -507,7 +522,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     height: this.props.height ? this.props.height : undefined,
                     background: this.props.hideOnLeave ? "rgba(0,0,0,0.4)" : undefined,
                     opacity: this.props.hideOnLeave ? (this._entered || this.props.isSelected() || this.props.Document.libraryBrush ? 1 : 0.1) : 1,
-                    color: this.props.color ? this.props.color : this.props.hideOnLeave ? "white" : "initial",
+                    color: this.props.color ? this.props.color : this.props.hideOnLeave ? "white" : "inherit",
                     pointerEvents: interactive ? "all" : "none",
                     fontSize: "13px"
                 }}

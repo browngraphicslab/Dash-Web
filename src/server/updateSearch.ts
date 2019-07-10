@@ -7,7 +7,7 @@ const suffixMap: { [type: string]: (string | [string, string | ((json: any) => a
     "number": "_n",
     "string": "_t",
     "boolean": "_b",
-    "image": ["_t", "url"],
+    // "image": ["_t", "url"],
     "video": ["_t", "url"],
     "pdf": ["_t", "url"],
     "audio": ["_t", "url"],
@@ -67,7 +67,7 @@ async function update() {
         if ((numDocs % 50) === 0) {
             console.log("updateDoc " + numDocs);
         }
-        console.log("doc " + numDocs);
+        // console.log("doc " + numDocs);
         if (doc.__type !== "Doc") {
             return;
         }
@@ -88,22 +88,32 @@ async function update() {
         }
         if (dynfield) {
             updates.push(update);
-            console.log(updates.length);
+            // console.log(updates.length);
         }
     }
     await cursor.forEach(updateDoc);
-    for (let i = 0; i < updates.length; i++) {
-        console.log(i);
-        const result = await Search.Instance.updateDocument(updates[i]);
-        try {
-            console.log(JSON.parse(result).responseHeader.status);
-        } catch {
-            console.log("Error:");
-            console.log(updates[i]);
-            console.log(result);
-            console.log("\n");
-        }
+    console.log(`Updating ${updates.length} documents`);
+    const result = await Search.Instance.updateDocuments(updates);
+    try {
+        console.log(JSON.parse(result).responseHeader.status);
+    } catch {
+        console.log("Error:");
+        // console.log(updates[i]);
+        console.log(result);
+        console.log("\n");
     }
+    // for (let i = 0; i < updates.length; i++) {
+    //     console.log(i);
+    //     const result = await Search.Instance.updateDocument(updates[i]);
+    // try {
+    //     console.log(JSON.parse(result).responseHeader.status);
+    // } catch {
+    //     console.log("Error:");
+    //     console.log(updates[i]);
+    //     console.log(result);
+    //     console.log("\n");
+    // }
+    // }
     // await Promise.all(updates.map(update => {
     //     return limit(() => Search.Instance.updateDocument(update));
     // }));

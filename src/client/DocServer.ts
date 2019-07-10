@@ -7,14 +7,29 @@ import { RefField } from '../new_fields/RefField';
 import { Id, HandleUpdate } from '../new_fields/FieldSymbols';
 
 export namespace DocServer {
-    const _cache: { [id: string]: RefField | Promise<Opt<RefField>> } = {};
+    let _cache: { [id: string]: RefField | Promise<Opt<RefField>> } = {};
     const _socket = OpenSocket(`${window.location.protocol}//${window.location.hostname}:4321`);
     const GUID: string = Utils.GenerateGuid();
 
+    let _isReadOnly = false;
     export function makeReadOnly() {
-        _CreateField = emptyFunction;
+        if (_isReadOnly) return;
+        _isReadOnly = true;
+        _CreateField = field => {
+            _cache[field[Id]] = field;
+        };
         _UpdateField = emptyFunction;
         _respondToUpdate = emptyFunction;
+    }
+
+    export function makeEditable() {
+        if (!_isReadOnly) return;
+        location.reload();
+        // _isReadOnly = false;
+        // _CreateField = _CreateFieldImpl;
+        // _UpdateField = _UpdateFieldImpl;
+        // _respondToUpdate = _respondToUpdateImpl;
+        // _cache = {};
     }
 
     export function prepend(extension: string): string {
@@ -23,6 +38,14 @@ export namespace DocServer {
 
     export function DeleteDatabase() {
         Utils.Emit(_socket, MessageStore.DeleteAll, {});
+    }
+
+    export function DeleteDocument(id: string) {
+        Utils.Emit(_socket, MessageStore.DeleteField, id);
+    }
+
+    export function DeleteDocuments(ids: string[]) {
+        Utils.Emit(_socket, MessageStore.DeleteFields, ids);
     }
 
     export async function GetRefField(id: string): Promise<Opt<RefField>> {
@@ -95,29 +118,33 @@ export namespace DocServer {
         return map;
     }
 
-    let _UpdateField = (id: string, diff: any) => {
+    function _UpdateFieldImpl(id: string, diff: any) {
         if (id === updatingId) {
             return;
         }
         Utils.Emit(_socket, MessageStore.UpdateField, { id, diff });
-    };
+    }
+
+    let _UpdateField = _UpdateFieldImpl;
 
     export function UpdateField(id: string, diff: any) {
         _UpdateField(id, diff);
     }
 
-    let _CreateField = (field: RefField) => {
+    function _CreateFieldImpl(field: RefField) {
         _cache[field[Id]] = field;
         const initialState = SerializationHelper.Serialize(field);
         Utils.Emit(_socket, MessageStore.CreateField, initialState);
-    };
+    }
+
+    let _CreateField = _CreateFieldImpl;
 
     export function CreateField(field: RefField) {
         _CreateField(field);
     }
 
     let updatingId: string | undefined;
-    let _respondToUpdate = (diff: any) => {
+    function _respondToUpdateImpl(diff: any) {
         const id = diff.id;
         if (id === undefined) {
             return;
@@ -139,9 +166,28 @@ export namespace DocServer {
         } else {
             update(field);
         }
-    };
+    }
+
+    function _respondToDeleteImpl(ids: string | string[]) {
+        function deleteId(id: string) {
+            delete _cache[id];
+        }
+        if (typeof ids === "string") {
+            deleteId(ids);
+        } else if (Array.isArray(ids)) {
+            ids.map(deleteId);
+        }
+    }
+
+    let _respondToUpdate = _respondToUpdateImpl;
+    let _respondToDelete = _respondToDeleteImpl;
+
     function respondToUpdate(diff: any) {
         _respondToUpdate(diff);
+    }
+
+    function respondToDelete(ids: string | string[]) {
+        _respondToDelete(ids);
     }
 
     function connected() {
@@ -150,4 +196,6 @@ export namespace DocServer {
 
     Utils.AddServerHandler(_socket, MessageStore.Foo, connected);
     Utils.AddServerHandler(_socket, MessageStore.UpdateField, respondToUpdate);
+    Utils.AddServerHandler(_socket, MessageStore.DeleteField, respondToDelete);
+    Utils.AddServerHandler(_socket, MessageStore.DeleteFields, respondToDelete);
 }

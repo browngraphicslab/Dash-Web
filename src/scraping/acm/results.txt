@@ -10,10 +10,10 @@
             "publication_count": 1,
             "citation_count": 179,
             "available_for_download": 1,
-            "downloads_6_weeks": 130,
-            "downloads_12_months": 1004,
-            "downloads_cumulative": 9792,
-            "average_downloads_per_article": 9792,
+            "downloads_6_weeks": 124,
+            "downloads_12_months": 923,
+            "downloads_cumulative": 9794,
+            "average_downloads_per_article": 9794,
             "average_citations_per_article": 179
         },
         {
@@ -23,10 +23,10 @@
             "publication_count": 5,
             "citation_count": 196,
             "available_for_download": 1,
-            "downloads_6_weeks": 130,
-            "downloads_12_months": 1004,
-            "downloads_cumulative": 9792,
-            "average_downloads_per_article": 9792,
+            "downloads_6_weeks": 124,
+            "downloads_12_months": 923,
+            "downloads_cumulative": 9794,
+            "average_downloads_per_article": 9794,
             "average_citations_per_article": 39.2
         },
         {
@@ -36,13 +36,26 @@
             "publication_count": 2,
             "citation_count": 188,
             "available_for_download": 2,
-            "downloads_6_weeks": 130,
-            "downloads_12_months": 1009,
-            "downloads_cumulative": 10023,
-            "average_downloads_per_article": 5011.5,
+            "downloads_6_weeks": 124,
+            "downloads_12_months": 928,
+            "downloads_cumulative": 10025,
+            "average_downloads_per_article": 5012.5,
             "average_citations_per_article": 94
         }
-    ]
+    ],
+    "publication": {
+        "name": "Journal of the ACM (JACM)",
+        "volume": 7,
+        "issue": 4,
+        "month": "Oct.",
+        "page_start": 326,
+        "page_end": 329,
+        "publication_date": "1960-10-01",
+        "publisher": "ACM New York, NY, USA",
+        "issn": "0004-5411",
+        "eissn": "1557-735X",
+        "doi": "10.1145/321043.321046"
+    }
 }
 {
     "url": "https://dl.acm.org/citation.cfm?id=2412979",
@@ -62,5 +75,17 @@
             "average_downloads_per_article": 0,
             "average_citations_per_article": 0
         }
-    ]
+    ],
+    "publication": {
+        "name": "IEEE Transactions on Software Engineering",
+        "volume": 1,
+        "issue": 1,
+        "month": "March",
+        "page_start": 384,
+        "page_end": 389,
+        "publication_date": "1975-03-01",
+        "publisher": "IEEE Press Piscataway, NJ, USA",
+        "issn": "0098-5589",
+        "doi": "10.1109/TSE.1975.6312869"
+    }
 }
