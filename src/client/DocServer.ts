@@ -168,10 +168,26 @@ export namespace DocServer {
         }
     }
 
+    function _respondToDeleteImpl(ids: string | string[]) {
+        function deleteId(id: string) {
+            delete _cache[id];
+        }
+        if (typeof ids === "string") {
+            deleteId(ids);
+        } else if (Array.isArray(ids)) {
+            ids.map(deleteId);
+        }
+    }
+
     let _respondToUpdate = _respondToUpdateImpl;
+    let _respondToDelete = _respondToDeleteImpl;
 
     function respondToUpdate(diff: any) {
         _respondToUpdate(diff);
+    }
+
+    function respondToDelete(ids: string | string[]) {
+        _respondToDelete(ids);
     }
 
     function connected() {
@@ -180,4 +196,6 @@ export namespace DocServer {
 
     Utils.AddServerHandler(_socket, MessageStore.Foo, connected);
     Utils.AddServerHandler(_socket, MessageStore.UpdateField, respondToUpdate);
+    Utils.AddServerHandler(_socket, MessageStore.DeleteField, respondToDelete);
+    Utils.AddServerHandler(_socket, MessageStore.DeleteFields, respondToDelete);
 }

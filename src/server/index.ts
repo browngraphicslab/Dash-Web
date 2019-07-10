@@ -25,7 +25,7 @@ import { getForgot, getLogin, getLogout, getReset, getSignup, postForgot, postLo
 import { DashUserModel } from './authentication/models/user_model';
 import { Client } from './Client';
 import { Database } from './database';
-import { MessageStore, Transferable, Types, Diff } from "./Message";
+import { MessageStore, Transferable, Types, Diff, Message } from "./Message";
 import { RouteStore } from './RouteStore';
 const app = express();
 const config = require('../../webpack.config');
@@ -465,6 +465,8 @@ server.on("connection", function (socket: Socket) {
 
     Utils.AddServerHandler(socket, MessageStore.CreateField, CreateField);
     Utils.AddServerHandler(socket, MessageStore.UpdateField, diff => UpdateField(socket, diff));
+    Utils.AddServerHandler(socket, MessageStore.DeleteField, id => DeleteField(socket, id));
+    Utils.AddServerHandler(socket, MessageStore.DeleteFields, ids => DeleteFields(socket, ids));
     Utils.AddServerHandlerCallback(socket, MessageStore.GetRefField, GetRefField);
     Utils.AddServerHandlerCallback(socket, MessageStore.GetRefFields, GetRefFields);
 });
@@ -589,6 +591,23 @@ function UpdateField(socket: Socket, diff: Diff) {
     if (dynfield) {
         Search.Instance.updateDocument(update);
     }
+}
+
+function DeleteField(socket: Socket, id: string) {
+    Database.Instance.delete({ _id: id }, "newDocuments").then(() => {
+        socket.broadcast.emit(MessageStore.DeleteField.Message, id);
+    });
+
+    Search.Instance.deleteDocuments([id]);
+}
+
+function DeleteFields(socket: Socket, ids: string[]) {
+    Database.Instance.delete({ _id: { $in: ids } }, "newDocuments").then(() => {
+        socket.broadcast.emit(MessageStore.DeleteFields.Message, ids);
+    });
+
+    Search.Instance.deleteDocuments(ids);
+
 }
 
 function CreateField(newValue: any) {
