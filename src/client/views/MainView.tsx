@@ -413,7 +413,7 @@ export class MainView extends React.Component {
         return [
             this.isSearchVisible ? <div className="main-searchDiv" key="search" style={{ top: '34px', right: '1px', position: 'absolute' }} > <FilterBox /> </div> : null,
             <div className="main-buttonDiv" key="logout" style={{ bottom: '0px', right: '1px', position: 'absolute' }} ref={logoutRef}>
-                <button onClick={() => request.get(DocServer.prepend(RouteStore.logout), emptyFunction)}>Log Out</button></div>
+                <button onClick={() => window.location.assign(DocServer.prepend(RouteStore.logout))}>Log Out</button></div>
         ];
 
     }
