@@ -12,6 +12,7 @@ import "./CollectionStackingView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import { undoBatch } from "../../util/UndoManager";
 import { DragManager } from "../../util/DragManager";
+import { DocTypes } from "../../documents/Documents";
 
 @observer
 export class CollectionStackingView extends CollectionSubView(doc => doc) {
@@ -61,6 +62,10 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         this.createDropTarget(ele!);
     }
 
+    overlays = (doc: Doc) => {
+        return doc.type === DocTypes.IMG ? { title: true, caption: true } : {}
+    }
+
     @computed
     get singleColumnChildren() {
         return this.filteredChildren.map((d, i) => {
@@ -75,6 +80,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                 <CollectionSchemaPreview
                     Document={layoutDoc}
                     DataDocument={d !== this.props.DataDoc ? this.props.DataDoc : undefined}
+                    showOverlays={this.overlays}
                     renderDepth={this.props.renderDepth}
                     width={width}
                     height={height}
@@ -122,6 +128,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     addDocument={this.props.addDocument}
                     moveDocument={this.props.moveDocument}
                     removeDocument={this.props.removeDocument}
+                    showOverlays={this.overlays}
                     getTransform={dxf}
                     width={width}
                     height={height}

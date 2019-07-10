@@ -89,34 +89,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         return new List<string>();
     }
     @computed get finalLayout() {
-        const baseLayout = this.props.layoutKey === "overlayLayout" ? "<div/>" : this.layout;
-        let base = baseLayout;
-        let layout = baseLayout;
-
-        // bcz: templates are intended only for a document's primary layout or overlay (not background).  However, 
-        // a DocumentContentsView is used to render  annotation overlays, so we detect that here 
-        // by checking the layoutKey.  This should probably be moved into
-        // a prop so that the overlay can explicitly turn off templates.
-        if ((this.props.layoutKey === "overlayLayout" && StrCast(this.props.Document.layout).indexOf("CollectionView") !== -1) ||
-            (this.props.layoutKey === "layout" && StrCast(this.props.Document.layout).indexOf("CollectionView") === -1) ||
-            (this.props.layoutKey === "layout" && NumCast(this.props.Document.viewType)) !== CollectionViewType.Freeform) {
-            this.templates.forEach(template => {
-                let self = this;
-                // this scales constants in the markup by the scaling applied to the document, but caps the constants to be smaller
-                // than the width/height of the containing document
-                function convertConstantsToNative(match: string, offset: number, x: string) {
-                    let px = Number(match.replace("px", ""));
-                    return `${Math.min(NumCast(self.props.Document.height, 0),
-                        Math.min(NumCast(self.props.Document.width, 0),
-                            px * self.props.ScreenToLocalTransform().Scale))}px`;
-                }
-                // let nativizedTemplate = template.replace(/([0-9]+)px/g, convertConstantsToNative);
-                // layout = nativizedTemplate.replace("{layout}", base);
-                layout = template.replace("{layout}", base);
-                base = layout;
-            });
-        }
-        return layout;
+        return this.props.layoutKey === "overlayLayout" ? "<div/>" : this.layout;
     }
 
     render() {
