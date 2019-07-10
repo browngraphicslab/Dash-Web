@@ -141,6 +141,7 @@ export class LinkContextMenu extends React.Component<LinkMenuProps> {
 export class SearchItem extends React.Component<SearchItemProps> {
 
     @observable _selected: boolean = false;
+    private _previewDoc?: Doc;
 
     onClick = () => {
         DocumentManager.Instance.jumpToDocument(this.props.doc, false);
@@ -193,8 +194,12 @@ export class SearchItem extends React.Component<SearchItemProps> {
             let returnYDimension = () => this._displayDim;
             let scale = () => returnXDimension() / NumCast(renderDoc.nativeWidth, returnXDimension());
             let newRenderDoc = Doc.MakeDelegate(renderDoc); ///   newRenderDoc -> renderDoc -> render"data"Doc -> TextProt
+            this._previewDoc = newRenderDoc;
             const docview = <div
-                onPointerDown={action(() => { this._useIcons = !this._useIcons; this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE); })}
+                onPointerDown={action(() => {
+                    this._useIcons = !this._useIcons;
+                    this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE);
+                })}
                 onPointerEnter={action(() => this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE))}
                 onPointerLeave={action(() => this._displayDim = 50)} >
                 <DocumentView
@@ -221,8 +226,11 @@ export class SearchItem extends React.Component<SearchItemProps> {
             const data = renderDoc.data;
             if (data instanceof ObjectField) newRenderDoc.data = ObjectField.MakeCopy(data);
             newRenderDoc.preview = true;
-            newRenderDoc.search_string = "hundo";
+            newRenderDoc.search_string = this.props.query;
             return docview;
+        }
+        if (this._previewDoc) {
+            //delete doc
         }
         let button = layoutresult.indexOf(DocTypes.PDF) !== -1 ? faFilePdf :
             layoutresult.indexOf(DocTypes.IMG) !== -1 ? faImage :
