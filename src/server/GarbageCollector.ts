@@ -94,8 +94,17 @@ async function GarbageCollect() {
     const toDeleteCursor = await Database.Instance.query({ _id: { $nin: Array.from(visited) } }, { _id: 1 });
     const toDelete: string[] = (await toDeleteCursor.toArray()).map(doc => doc._id);
     toDeleteCursor.close();
-    const result = await Database.Instance.delete({ _id: { $in: toDelete } }, "newDocuments");
-    console.log(`${result.deletedCount} documents deleted`);
+    let i = 0;
+    let deleted = 0;
+    while (i < toDelete.length) {
+        const count = Math.min(toDelete.length, 5000);
+        const toDeleteDocs = toDelete.slice(i, i + count);
+        i += count;
+        const result = await Database.Instance.delete({ _id: { $in: toDeleteDocs } }, "newDocuments");
+        deleted += result.deletedCount || 0;
+    }
+    // const result = await Database.Instance.delete({ _id: { $in: toDelete } }, "newDocuments");
+    console.log(`${deleted} documents deleted`);
 
     await Search.Instance.deleteDocuments(toDelete);
     console.log("Cleared search documents");
