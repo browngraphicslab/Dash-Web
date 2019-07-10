@@ -141,11 +141,11 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     }
 
     injectParentProp = (contentArray: any[], reverse: boolean = false) => {
-        if (!contentArray || contentArray.length == 0) return;
+        if (!contentArray || contentArray.length === 0) return;
         contentArray.forEach(member => {
             let baseCase = Object.keys(member).includes("props");
             if (!baseCase) {
-                this.injectParentProp(member.content, reverse)
+                this.injectParentProp(member.content, reverse);
             } else {
                 reverse ? delete member.props.parent : member.props.parent = this;
             }
@@ -386,10 +386,10 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                             tab.header.parent.setActiveContentItem(tab.contentItem);
                         }
                         tab.setActive(true);
-                    }
+                    };
                     tab.header.element[0].ondrop = (e: any) => {
                         console.log("DROPPPP THE BASS!", e);
-                    }
+                    };
                     ReactDOM.render(<ParentDocSelector Document={doc} addDocTab={(doc, location) => CollectionDockingView.AddTab(stack, doc)} />, upDiv);
                     tab.reactComponents = [upDiv];
                     tab.element.append(upDiv);

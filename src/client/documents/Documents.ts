@@ -96,7 +96,7 @@ export namespace Docs {
          */
         export async function initialize(): Promise<void> {
             // non-guid string ids for each document prototype
-            let protoIds = [textProtoId, histoProtoId, collProtoId, imageProtoId, webProtoId, kvpProtoId, videoProtoId, audioProtoId, pdfProtoId, iconProtoId]
+            let protoIds = [textProtoId, histoProtoId, collProtoId, imageProtoId, webProtoId, kvpProtoId, videoProtoId, audioProtoId, pdfProtoId, iconProtoId];
             // fetch the actual prototype documents from the server
             let actualProtos = await DocServer.getRefFields(protoIds);
 
@@ -238,7 +238,7 @@ export namespace Docs {
                 y: 0,
                 width: 300,
                 height: 150
-            }
+            };
             return buildPrototype(audioProtoId, "AUDIO_PROTO", AudioBox.LayoutString(), defaultAttrs);
         }
     }
@@ -419,7 +419,7 @@ export namespace Docs {
         export type DocConfig = {
             doc: Doc,
             initialWidth?: number
-        }
+        };
 
         export function StandardCollectionDockingDocument(configs: Array<DocConfig>, options: DocumentOptions, id?: string, type: string = "row") {
             let layoutConfig = {

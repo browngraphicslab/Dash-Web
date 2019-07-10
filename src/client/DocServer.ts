@@ -146,9 +146,10 @@ export namespace DocServer {
         const promises: Promise<Opt<RefField>>[] = [];
         const map: { [id: string]: Opt<RefField> } = {};
 
-        // 1) an initial pass through the cache to determine which documents need to be fetched,
-        // which are already in the process of being fetched and which already exist in the
-        // cache
+        // 1) an initial pass through the cache to determine
+        // i) which documents need to be fetched
+        // ii) which are already in the process of being fetched
+        // iii) which already exist in the cache
         for (const id of ids) {
             const cached = _cache[id];
             if (cached === undefined) {
@@ -204,7 +205,7 @@ export namespace DocServer {
 
         // 6) with this confidence, we can now go through and update the cache at the ids of the fields that
         // we explicitly had to fetch. To finish it off, we add whatever value we've come up with for a given
-        // id to the soon to be returned field mapping.
+        // id to the soon-to-be-returned field mapping.
         requestedIds.forEach(id => {
             const field = fields[id];
             // either way, overwrite or delete any promises (that we inserted as flags
@@ -232,8 +233,8 @@ export namespace DocServer {
 
         // now, we return our completed mapping from all of the ids that were passed into the method
         // to their actual RefField | undefined values. This return value either becomes the input
-        // argument to the caller's promise (i.e. GetRefFields.then(map => //do something with map...))
-        // or it is the direct return result if the promise is awaited.
+        // argument to the caller's promise (i.e. GetRefFields(["_id1_", "_id2_", "_id3_"]).then(map => //do something with map...))
+        // or it is the direct return result if the promise is awaited (i.e. let fields = await GetRefFields(["_id1_", "_id2_", "_id3_"])).
         return map;
     }
 
