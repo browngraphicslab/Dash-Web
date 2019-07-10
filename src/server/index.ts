@@ -103,14 +103,15 @@ enum Method {
  */
 function addSecureRoute(method: Method,
     handler: (user: DashUserModel, res: express.Response, req: express.Request) => void,
-    onRejection: (res: express.Response) => any = (res) => res.redirect(RouteStore.logout),
+    onRejection: (res: express.Response, req: express.Request) => any = res => res.redirect(RouteStore.login),
     ...subscribers: string[]
 ) {
     let abstracted = (req: express.Request, res: express.Response) => {
         if (req.user) {
             handler(req.user, res, req);
         } else {
-            onRejection(res);
+            req.session!.target = `http://localhost:${port}${req.originalUrl}`;
+            onRejection(res, req);
         }
     };
     subscribers.forEach(route => {

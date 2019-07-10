@@ -19,6 +19,7 @@ import { CollectionPDFView } from "./CollectionPDFView";
 import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
 import React = require("react");
+import { MainView } from "../MainView";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
@@ -67,9 +68,16 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             let email = CurrentUserUtils.email;
             let pos = { x: position[0], y: position[1] };
             if (id && email) {
-                const proto = await doc.proto;
+                const proto = Doc.GetProto(doc);
                 if (!proto) {
                     return;
+                }
+                // The following conditional detects a recurring bug we've seen on the server
+                if (proto[Id] === "collectionProto") {
+                    alert("COLLECTION PROTO CURSOR ISSUE DETECTED! Check console for more info...");
+                    console.log(doc);
+                    console.log(proto);
+                    throw new Error(`AHA! You were trying to set a cursor on a collection's proto, which is the original collection proto! Look at the two previously printed lines for document values!`);
                 }
                 let cursors = Cast(proto.cursors, listSpec(CursorField));
                 if (!cursors) {
@@ -106,47 +114,6 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 return this.props.addDocument(de.data.dropDocument);
             }
             return false;
-        }
-
-        protected async getDocumentFromType(type: string, path: string, options: DocumentOptions): Promise<Opt<Doc>> {
-            let ctor: ((path: string, options: DocumentOptions) => (Doc | Promise<Doc | undefined>)) | undefined = undefined;
-            if (type.indexOf("image") !== -1) {
-                ctor = Docs.ImageDocument;
-            }
-            if (type.indexOf("video") !== -1) {
-                ctor = Docs.VideoDocument;
-            }
-            if (type.indexOf("audio") !== -1) {
-                ctor = Docs.AudioDocument;
-            }
-            if (type.indexOf("pdf") !== -1) {
-                ctor = Docs.PdfDocument;
-                options.nativeWidth = 1200;
-            }
-            if (type.indexOf("excel") !== -1) {
-                ctor = Docs.DBDocument;
-                options.dropAction = "copy";
-            }
-            if (type.indexOf("html") !== -1) {
-                if (path.includes(window.location.hostname)) {
-                    let s = path.split('/');
-                    let id = s[s.length - 1];
-                    DocServer.GetRefField(id).then(field => {
-                        if (field instanceof Doc) {
-                            let alias = Doc.MakeAlias(field);
-                            alias.x = options.x || 0;
-                            alias.y = options.y || 0;
-                            alias.width = options.width || 300;
-                            alias.height = options.height || options.width || 300;
-                            this.props.addDocument(alias, false);
-                        }
-                    });
-                    return undefined;
-                }
-                ctor = Docs.WebDocument;
-                options = { height: options.width, ...options, title: path, nativeWidth: undefined };
-            }
-            return ctor ? ctor(path, options) : undefined;
         }
 
         @undoBatch
@@ -229,7 +196,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                         .then(result => {
                             let type = result["content-type"];
                             if (type) {
-                                this.getDocumentFromType(type, str, { ...options, width: 300, nativeWidth: 300 })
+                                Docs.getDocumentFromType(type, str, { ...options, width: 300, nativeWidth: 300 })
                                     .then(doc => doc && this.props.addDocument(doc, false));
                             }
                         });
@@ -250,10 +217,9 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                         body: formData
                     }).then(async (res: Response) => {
                         (await res.json()).map(action((file: any) => {
-                            let path = window.location.origin + file;
-                            let docPromise = this.getDocumentFromType(type, path, { ...options, nativeWidth: 300, width: 300, title: dropFileName });
-
-                            docPromise.then(doc => doc && this.props.addDocument(doc));
+                            let full = { ...options, nativeWidth: 300, width: 300, title: dropFileName };
+                            let path = DocServer.prepend(file);
+                            Docs.getDocumentFromType(type, path, full).then(doc => doc && this.props.addDocument(doc));
                         }));
                     });
                     promises.push(prom);

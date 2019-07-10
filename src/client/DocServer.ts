@@ -15,7 +15,9 @@ export namespace DocServer {
     export function makeReadOnly() {
         if (_isReadOnly) return;
         _isReadOnly = true;
-        _CreateField = emptyFunction;
+        _CreateField = field => {
+            _cache[field[Id]] = field;
+        };
         _UpdateField = emptyFunction;
         _respondToUpdate = emptyFunction;
     }

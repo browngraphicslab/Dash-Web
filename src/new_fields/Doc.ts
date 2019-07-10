@@ -277,7 +277,7 @@ export namespace Doc {
     }
 
     //
-    // Resolves a reference to a field by returning 'doc' if o field extension is specified,
+    // Resolves a reference to a field by returning 'doc' if field extension is specified,
     // otherwise, it returns the extension document stored in doc.<fieldKey>_ext.
     // This mechanism allows any fields to be extended with an extension document that can
     // be used to capture field-specific metadata.  For example, an image field can be extended

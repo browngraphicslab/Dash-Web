@@ -14,7 +14,7 @@ export interface EditableProps {
      * @param value - The string entered by the user to set the value to
      * @returns `true` if setting the value was successful, `false` otherwise
      *  */
-    SetValue(value: string): boolean;
+    SetValue(value: string, shiftDown?: boolean): boolean;
 
     OnFillDown?(value: string): void;
 
@@ -53,7 +53,7 @@ export class EditableView extends React.Component<EditableProps> {
             this.props.OnTab && this.props.OnTab();
         } else if (e.key === "Enter") {
             if (!e.ctrlKey) {
-                if (this.props.SetValue(e.currentTarget.value)) {
+                if (this.props.SetValue(e.currentTarget.value, e.shiftKey)) {
                     this._editing = false;
                 }
             } else if (this.props.OnFillDown) {
@@ -75,6 +75,11 @@ export class EditableView extends React.Component<EditableProps> {
 
     stopPropagation(e: React.SyntheticEvent) {
         e.stopPropagation();
+    }
+
+    @action
+    setIsFocused = (value: boolean) => {
+        this._editing = value;
     }
 
     render() {
