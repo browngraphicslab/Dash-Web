@@ -13,7 +13,7 @@ import { Id } from '../../new_fields/FieldSymbols';
 import { InkTool } from '../../new_fields/InkField';
 import { List } from '../../new_fields/List';
 import { listSpec } from '../../new_fields/Schema';
-import { Cast, FieldValue, NumCast } from '../../new_fields/Types';
+import { Cast, FieldValue, NumCast, BoolCast } from '../../new_fields/Types';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { RouteStore } from '../../server/RouteStore';
 import { emptyFunction, returnOne, returnTrue } from '../../Utils';
@@ -194,6 +194,11 @@ export class MainView extends React.Component {
     openWorkspace = async (doc: Doc, fromHistory = false) => {
         CurrentUserUtils.MainDocId = doc[Id];
         this.mainContainer = doc;
+        if (BoolCast(doc.readOnly)) {
+            DocServer.makeReadOnly();
+        } else {
+            DocServer.makeEditable();
+        }
         fromHistory || HistoryUtil.pushState({ type: "doc", docId: doc[Id], initializers: {} });
         const col = await Cast(CurrentUserUtils.UserDocument.optionalRightCollection, Doc);
         // if there is a pending doc, and it has new data, show it (syip: we use a timeout to prevent collection docking view from being uninitialized)
