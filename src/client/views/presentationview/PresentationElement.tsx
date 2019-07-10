@@ -104,9 +104,9 @@ export default class PresentationElement extends React.Component<PresentationEle
     async componentDidUpdate() {
         //this.receiveButtonBackUp();
         //this.props.setPresElementsMappings(this.props.document, this);
-        if (!this.props.PresElementsMappings.has(this.props.document)) {
-            this.props.PresElementsMappings.set(this.props.document, this);
-        }
+        // if (!this.props.PresElementsMappings.has(this.props.document)) {
+        //     this.props.PresElementsMappings.set(this.props.document, this);
+        // }
 
         if (this.presElRef.current) {
             this.header = this.presElRef.current;
@@ -479,6 +479,9 @@ export default class PresentationElement extends React.Component<PresentationEle
                     console.log("Splicing from a group");
                     let groupArray = this.props.groupMappings.get(curDocGuid)!;
                     groupArray.splice(groupArray.indexOf(droppedDoc), 1);
+                    if (groupArray.length === 0) {
+                        this.props.groupMappings.delete(curDocGuid);
+                    }
                     droppedDoc.presentId = Utils.GenerateGuid();
                 }
             }
@@ -563,6 +566,18 @@ export default class PresentationElement extends React.Component<PresentationEle
     }
 
     updateGroupsOnDrop2 = async (droppedDoc: Doc, de: DragManager.DropEvent) => {
+
+        let droppedDocIndex = this.props.allListElements.indexOf(droppedDoc);
+
+        let dropIndexDiff = Math.abs(this.props.index - droppedDocIndex);
+
+        if (dropIndexDiff <= 1) {
+            return;
+        }
+
+
+
+
         let p = this.props;
         let droppedDocSelectedButtons: boolean[] = await this.getSelectedButtonsOfDoc(droppedDoc);
         let curDocGuid = StrCast(droppedDoc.presentId, null);
@@ -572,12 +587,46 @@ export default class PresentationElement extends React.Component<PresentationEle
         let bounds = this.ScreenToLocalListTransform(rect.left, rect.top + rect.height / 2);
         let before = x[1] < bounds[1];
 
+
+
+        //Splicing the doc from its current group, since it's moved
         if (p.groupMappings.has(curDocGuid)) {
             console.log("Splicing from a group");
             let groupArray = this.props.groupMappings.get(curDocGuid)!;
             groupArray.splice(groupArray.indexOf(droppedDoc), 1);
+            if (groupArray.length === 0) {
+                this.props.groupMappings.delete(curDocGuid);
+            }
             droppedDoc.presentId = Utils.GenerateGuid();
+            //let droppedDocIndex = this.props.allListElements.indexOf(droppedDoc);
+            let indexOfBelow = droppedDocIndex + 1;
+            if (indexOfBelow < this.props.allListElements.length && indexOfBelow > 1) {
+                let selectedButtonsOrigBelow: boolean[] = await this.getSelectedButtonsOfDoc(this.props.allListElements[indexOfBelow]);
+                let aboveBelowDoc: Doc = this.props.allListElements[droppedDocIndex - 1];
+                let aboveBelowDocSelectedButtons: boolean[] = await this.getSelectedButtonsOfDoc(aboveBelowDoc);
+                let belowDoc: Doc = this.props.allListElements[indexOfBelow];
+                let belowDocPresId = StrCast(belowDoc.presentId);
+                if (selectedButtonsOrigBelow[buttonIndex.Group]) {
+                    let belowDocGroup: Doc[] = this.props.groupMappings.get(belowDocPresId)!;
+                    if (aboveBelowDocSelectedButtons[buttonIndex.Group]) {
+                        let aboveBelowDocPresId = StrCast(aboveBelowDoc.presentId);
+                        if (this.props.groupMappings.has(aboveBelowDocPresId)) {
+                            let aboveBelowDocGroup: Doc[] = this.props.groupMappings.get(aboveBelowDocPresId)!;
+                            aboveBelowDocGroup.unshift(...belowDocGroup);
+                            this.props.groupMappings.delete(belowDocPresId);
+                            belowDocGroup.forEach((doc: Doc) => doc.presentId = aboveBelowDocPresId);
+                        }
+                    } else {
+                        belowDocGroup.unshift(aboveBelowDoc);
+                        aboveBelowDoc.presentId = belowDocPresId;
+                    }
+
+
+                }
+            }
+
         }
+
 
         if (droppedDocSelectedButtons[buttonIndex.Group]) {
 
@@ -592,6 +641,7 @@ export default class PresentationElement extends React.Component<PresentationEle
                             tempStack.push(groupArray.pop()!);
                         }
                         groupArray.push(droppedDoc);
+                        droppedDoc.presentId = aboveDocGuid;
                         while (tempStack.length !== 0) {
                             groupArray.push(tempStack.pop()!);
                         }
@@ -613,6 +663,7 @@ export default class PresentationElement extends React.Component<PresentationEle
                         tempStack.push(groupArray.pop()!);
                     }
                     groupArray.push(droppedDoc);
+                    droppedDoc.presentId = propsDocGuid;
                     while (tempStack.length !== 0) {
                         groupArray.push(tempStack.pop()!);
                     }
@@ -647,6 +698,8 @@ export default class PresentationElement extends React.Component<PresentationEle
                             let firstPartNewGuid = Utils.GenerateGuid();
                             firstPart.forEach((doc: Doc) => doc.presentId = firstPartNewGuid);
                             let secondPart = aboveGroupArray.slice(targetIndex + 1);
+                            secondPart.unshift(droppedDoc);
+                            droppedDoc.presentId = StrCast(this.props.document.presentId);
                             p.groupMappings.set(StrCast(aboveDoc.presentId, Utils.GenerateGuid()), firstPart);
                             p.groupMappings.set(StrCast(this.props.document.presentId, Utils.GenerateGuid()), secondPart);
 
@@ -655,22 +708,26 @@ export default class PresentationElement extends React.Component<PresentationEle
                             let belowPresentId = StrCast(this.props.document.presentId);
                             let belowGroup = this.props.groupMappings.get(belowPresentId)!;
                             belowGroup.splice(belowGroup.indexOf(aboveDoc), 1);
+                            belowGroup.unshift(droppedDoc);
+                            droppedDoc.presentId = belowPresentId;
                             aboveDoc.presentId = Utils.GenerateGuid();
                         }
+
+                        //
 
 
                     }
                 } else {
                     let propsPresId = StrCast(this.props.document.presentId);
-                    if (this.props.groupMappings.has(propsPresId)) {
+                    if (this.selectedButtons[buttonIndex.Group]) {
                         let propsArray = this.props.groupMappings.get(propsPresId)!;
-                        propsArray.push(droppedDoc);
+                        propsArray.unshift(droppedDoc);
                         droppedDoc.presentId = propsPresId;
                     }
                 }
             } else {
                 if (this.props.index < this.props.allListElements.length - 1) {
-                    let belowDoc = this.props.allListElements[this.props.index - 1];
+                    let belowDoc = this.props.allListElements[this.props.index + 1];
                     let belowDocGuid = StrCast(belowDoc.presentId);
                     let belowDocSelectedButtons: boolean[] = await this.getSelectedButtonsOfDoc(belowDoc);
 
@@ -681,26 +738,29 @@ export default class PresentationElement extends React.Component<PresentationEle
                         if (this.selectedButtons[buttonIndex.Group]) {
 
                             let propsGroupArray = this.props.groupMappings.get(propsDocGuid)!;
-
                             let targetIndex = propsGroupArray.indexOf(this.props.document);
                             let firstPart = propsGroupArray.slice(0, targetIndex + 1);
                             let firstPartNewGuid = Utils.GenerateGuid();
                             firstPart.forEach((doc: Doc) => doc.presentId = firstPartNewGuid);
                             let secondPart = propsGroupArray.slice(targetIndex + 1);
+                            secondPart.unshift(droppedDoc);
+                            droppedDoc.presentId = StrCast(this.props.document.presentId);
                             p.groupMappings.set(firstPartNewGuid, firstPart);
                             p.groupMappings.set(StrCast(belowDocGuid, Utils.GenerateGuid()), secondPart);
 
                         } else {
-                            belowGroupArray.push(droppedDoc);
+                            belowGroupArray.splice(belowGroupArray.indexOf(this.props.document), 1);
+                            this.props.document.presentId = Utils.GenerateGuid();
+                            belowGroupArray.unshift(droppedDoc);
                             droppedDoc.presentId = belowDocGuid;
                         }
                     }
 
-
-
                 }
             }
         }
+        this.autoSaveGroupChanges();
+
     }
 
     getSelectedButtonsOfDoc = async (paramDoc: Doc) => {

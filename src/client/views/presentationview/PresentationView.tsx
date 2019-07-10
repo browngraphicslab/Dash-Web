@@ -423,19 +423,33 @@ export class PresentationView extends React.Component<PresViewProps>  {
             }
 
             //removing it from the backUp of selected Buttons
+            // let castedList = Cast(this.presButtonBackUp.selectedButtonDocs, listSpec(Doc));
+            // if (castedList) {
+            //     castedList.forEach(async (doc, indexOfDoc) => {
+            //         let curDoc = await doc;
+            //         let curDocId = StrCast(curDoc.docId);
+            //         if (curDocId === removedDoc[Id]) {
+            //             if (castedList) {
+            //                 castedList.splice(indexOfDoc, 1);
+            //                 return;
+            //             }
+            //         }
+            //     });
+
+            // }
+            //removing it from the backUp of selected Buttons
+
             let castedList = Cast(this.presButtonBackUp.selectedButtonDocs, listSpec(Doc));
             if (castedList) {
-                castedList.forEach(async (doc, indexOfDoc) => {
+                for (let doc of castedList) {
                     let curDoc = await doc;
                     let curDocId = StrCast(curDoc.docId);
                     if (curDocId === removedDoc[Id]) {
-                        if (castedList) {
-                            castedList.splice(indexOfDoc, 1);
-                            return;
-                        }
-                    }
-                });
+                        castedList.splice(castedList.indexOf(curDoc), 1);
+                        break;
 
+                    }
+                }
             }
 
             //removing it from the backup of groups
@@ -463,7 +477,11 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
     public removeDocByRef = (doc: Doc) => {
         let indexOfDoc = this.childrenDocs.indexOf(doc);
-        this.RemoveDoc(indexOfDoc);
+        const value = FieldValue(Cast(this.curPresentation.data, listSpec(Doc)));
+        if (value) {
+            value.splice(indexOfDoc, 1)[0];
+        }
+        //this.RemoveDoc(indexOfDoc, true);
         if (indexOfDoc !== - 1) {
             return true;
         }
