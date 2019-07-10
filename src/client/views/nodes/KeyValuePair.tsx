@@ -2,7 +2,7 @@ import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
 import { emptyFunction, returnFalse, returnZero, returnTrue } from '../../../Utils';
-import { CompileScript } from "../../util/Scripting";
+import { CompileScript, CompiledScript, ScriptOptions } from "../../util/Scripting";
 import { Transform } from '../../util/Transform';
 import { EditableView } from "../EditableView";
 import { FieldView, FieldViewProps } from './FieldView';
@@ -11,6 +11,8 @@ import "./KeyValuePair.scss";
 import React = require("react");
 import { Doc, Opt, Field } from '../../../new_fields/Doc';
 import { FieldValue } from '../../../new_fields/Types';
+import { KeyValueBox } from './KeyValueBox';
+import { DragManager, SetupDrag } from '../../util/DragManager';
 
 // Represents one row in a key value plane
 
@@ -22,15 +24,31 @@ export interface KeyValuePairProps {
 }
 @observer
 export class KeyValuePair extends React.Component<KeyValuePairProps> {
+    @observable private isPointerOver = false;
+    @observable public isChecked = false;
+    private checkbox = React.createRef<HTMLInputElement>();
+
+    @action
+    handleCheck = (e: React.ChangeEvent<HTMLInputElement>) => {
+        this.isChecked = e.currentTarget.checked;
+    }
+
+    @action
+    uncheck = () => {
+        this.checkbox.current!.checked = false;
+        this.isChecked = false;
+    }
 
     render() {
         let props: FieldViewProps = {
             Document: this.props.doc,
+            DataDoc: this.props.doc,
             ContainingCollectionView: undefined,
             fieldKey: this.props.keyName,
+            fieldExt: "",
             isSelected: returnFalse,
             select: emptyFunction,
-            isTopMost: false,
+            renderDepth: 1,
             selectOnLoad: false,
             active: returnFalse,
             whenActiveChanged: emptyFunction,
@@ -38,15 +56,19 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             focus: emptyFunction,
             PanelWidth: returnZero,
             PanelHeight: returnZero,
-            addDocTab: emptyFunction
+            addDocTab: returnZero,
         };
         let contents = <FieldView {...props} />;
-        let fieldKey = Object.keys(props.Document).indexOf(props.fieldKey) !== -1 ? props.fieldKey : "(" + props.fieldKey + ")";
+        // let fieldKey = Object.keys(props.Document).indexOf(props.fieldKey) !== -1 ? props.fieldKey : "(" + props.fieldKey + ")";
+        let keyStyle = Object.keys(props.Document).indexOf(props.fieldKey) !== -1 ? "black" : "blue";
+
+        let hover = { transition: "0.3s ease opacity", opacity: this.isPointerOver || this.isChecked ? 1 : 0 };
+
         return (
-            <tr className={this.props.rowStyle}>
+            <tr className={this.props.rowStyle} onPointerEnter={action(() => this.isPointerOver = true)} onPointerLeave={action(() => this.isPointerOver = false)}>
                 <td className="keyValuePair-td-key" style={{ width: `${this.props.keyWidth}%` }}>
                     <div className="keyValuePair-td-key-container">
-                        <button className="keyValuePair-td-key-delete" onClick={() => {
+                        <button style={hover} className="keyValuePair-td-key-delete" onClick={() => {
                             if (Object.keys(props.Document).indexOf(props.fieldKey) !== -1) {
                                 props.Document[props.fieldKey] = undefined;
                             }
@@ -54,33 +76,35 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
                         }}>
                             X
                         </button>
-                        <div className="keyValuePair-keyField">{fieldKey}</div>
+                        <input
+                            className={"keyValuePair-td-key-check"}
+                            type="checkbox"
+                            style={hover}
+                            onChange={this.handleCheck}
+                            ref={this.checkbox}
+                        />
+                        <div className="keyValuePair-keyField" style={{ color: keyStyle }}>{props.fieldKey}</div>
                     </div>
                 </td>
                 <td className="keyValuePair-td-value" style={{ width: `${100 - this.props.keyWidth}%` }}>
-                    <EditableView contents={contents} height={36} GetValue={() => {
+                    <div className="keyValuePair-td-value-container">
+                        <EditableView
+                            contents={contents}
+                            height={36}
+                            GetValue={() => {
+                                const onDelegate = Object.keys(props.Document).includes(props.fieldKey);
 
-                        let field = FieldValue(props.Document[props.fieldKey]);
-                        if (Field.IsField(field)) {
-                            return Field.toScriptString(field);
-                        }
-                        return "";
-                    }}
-                        SetValue={(value: string) => {
-                            let script = CompileScript(value, { addReturn: true });
-                            if (!script.compiled) {
-                                return false;
-                            }
-                            let res = script.run();
-                            if (!res.success) return false;
-                            const field = res.result;
-                            if (Field.IsField(field, true)) {
-                                props.Document[props.fieldKey] = field;
-                                return true;
-                            }
-                            return false;
-                        }}>
-                    </EditableView></td>
+                                let field = FieldValue(props.Document[props.fieldKey]);
+                                if (Field.IsField(field)) {
+                                    return (onDelegate ? "=" : "") + Field.toScriptString(field);
+                                }
+                                return "";
+                            }}
+                            SetValue={(value: string) =>
+                                KeyValueBox.SetField(props.Document, props.fieldKey, value)}>
+                        </EditableView>
+                    </div>
+                </td>
             </tr>
         );
     }

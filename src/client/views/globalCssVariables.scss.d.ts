@@ -4,6 +4,7 @@ interface IGlobalScss {
     COLLECTION_BORDER_WIDTH: string;
     MINIMIZED_ICON_SIZE: string;
     MAX_ROW_HEIGHT: string;
+    SEARCH_THUMBNAIL_SIZE: string;
 }
 declare const globalCssVariables: IGlobalScss;
 

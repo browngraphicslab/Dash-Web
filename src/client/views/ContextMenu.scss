@@ -8,19 +8,19 @@
     flex-direction: column;
 }
 
-.contextMenu-item:first-child {
-    background: $intermediate-color;
-    color: $light-color;
-}
+// .contextMenu-item:first-child {
+//     background: $intermediate-color;
+//     color: $light-color;
+// }
 
-.contextMenu-item:first-child::placeholder {
-    color: $light-color;
-}
+// .contextMenu-item:first-child::placeholder {
+//     color: $light-color;
+// }
 
-.contextMenu-item:first-child:hover {
-    background: $intermediate-color;
-    color: $light-color;
-}
+// .contextMenu-item:first-child:hover {
+//     background: $intermediate-color;
+//     color: $light-color;
+// }
 
 .contextMenu-subMenu-cont {
     position: absolute;
@@ -34,6 +34,33 @@
     // width: 11vw; //10vw
     height: 30px; //2vh
     background: #DDDDDD;
+    display: flex; //comment out to allow search icon to be inline with search text
+    justify-content: left;
+    align-items: center;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    transition: all .1s;
+    border-width: .11px;
+    border-style: none;
+    border-color: $intermediate-color; //  rgb(187, 186, 186);
+    border-bottom-style: solid;
+    // padding: 10px 0px 10px 0px;
+    white-space: nowrap;
+    font-size: 20px;
+}
+
+.contextMenu-itemSelected {
+    background: rgb(136, 136, 136)
+}
+
+.contextMenu-group {
+    // width: 11vw; //10vw
+    height: 30px; //2vh
+    background: rgb(200, 200, 200);
     display: flex; //comment out to allow search icon to be inline with search text
     justify-content: left;
     align-items: center;

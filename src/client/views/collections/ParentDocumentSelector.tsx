@@ -9,7 +9,7 @@ import { CollectionDockingView } from "./CollectionDockingView";
 import { NumCast } from "../../../new_fields/Types";
 import { CollectionViewType } from "./CollectionBaseView";
 
-type SelectorProps = { Document: Doc, addDocTab(doc: Doc, location: string): void };
+type SelectorProps = { Document: Doc, addDocTab(doc: Doc, dataDoc: Doc | undefined, location: string): void };
 @observer
 export class SelectorContextMenu extends React.Component<SelectorProps> {
     @observable private _docs: { col: Doc, target: Doc }[] = [];
@@ -23,14 +23,14 @@ export class SelectorContextMenu extends React.Component<SelectorProps> {
 
     async fetchDocuments() {
         let aliases = (await SearchUtil.GetAliasesOfDocument(this.props.Document)).filter(doc => doc !== this.props.Document);
-        const docs = await SearchUtil.Search(`data_l:"${this.props.Document[Id]}"`, true);
+        const { docs } = await SearchUtil.Search(`data_l:"${this.props.Document[Id]}"`, true);
         const map: Map<Doc, Doc> = new Map;
-        const allDocs = await Promise.all(aliases.map(doc => SearchUtil.Search(`data_l:"${doc[Id]}"`, true)));
+        const allDocs = await Promise.all(aliases.map(doc => SearchUtil.Search(`data_l:"${doc[Id]}"`, true).then(result => result.docs)));
         allDocs.forEach((docs, index) => docs.forEach(doc => map.set(doc, aliases[index])));
         docs.forEach(doc => map.delete(doc));
         runInAction(() => {
-            this._docs = docs.filter(doc => !Doc.AreProtosEqual(doc, CollectionDockingView.TopLevel.props.Document)).map(doc => ({ col: doc, target: this.props.Document }));
-            this._otherDocs = Array.from(map.entries()).filter(entry => !Doc.AreProtosEqual(entry[0], CollectionDockingView.TopLevel.props.Document)).map(([col, target]) => ({ col, target }));
+            this._docs = docs.filter(doc => !Doc.AreProtosEqual(doc, CollectionDockingView.Instance.props.Document)).map(doc => ({ col: doc, target: this.props.Document }));
+            this._otherDocs = Array.from(map.entries()).filter(entry => !Doc.AreProtosEqual(entry[0], CollectionDockingView.Instance.props.Document)).map(([col, target]) => ({ col, target }));
         });
     }
 
@@ -43,7 +43,7 @@ export class SelectorContextMenu extends React.Component<SelectorProps> {
                 col.panX = newPanX;
                 col.panY = newPanY;
             }
-            this.props.addDocTab(col, "inTab");
+            this.props.addDocTab(col, undefined, "inTab"); // bcz: dataDoc?
         };
     }
 

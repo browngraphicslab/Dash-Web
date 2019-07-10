@@ -23,7 +23,9 @@ import { FieldViewProps } from "./FieldView";
 import { Without, OmitKeys } from "../../../Utils";
 import { Cast, StrCast, NumCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
-import DetailedCaptionToggle from "../document_templates/caption_toggle/DetailedCaptionToggle";
+import { Doc } from "../../../new_fields/Doc";
+import DirectoryImportBox from "../../util/Import & Export/DirectoryImportBox";
+import { CollectionViewType } from "../collections/CollectionBaseView";
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 type BindingProps = Without<FieldViewProps, 'fieldKey'>;
@@ -48,11 +50,11 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     hideOnLeave?: boolean
 }> {
     @computed get layout(): string {
-        const layout = Cast(this.props.Document[this.props.layoutKey], "string");
+        const layout = Cast(this.layoutDoc[this.props.layoutKey], "string");
         if (layout === undefined) {
             return this.props.Document.data ?
                 "<FieldView {...props} fieldKey='data' />" :
-                KeyValueBox.LayoutString(this.props.Document.proto ? "proto" : "");
+                KeyValueBox.LayoutString(this.layoutDoc.proto ? "proto" : "");
         } else if (typeof layout === "string") {
             return layout;
         } else {
@@ -60,8 +62,23 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         }
     }
 
+    get dataDoc() {
+        if (this.props.DataDoc === undefined && this.props.Document.layout instanceof Doc) {
+            // if there is no dataDoc (ie, we're not rendering a temlplate layout), but this document
+            // has a template layout document, then we will render the template layout but use 
+            // this document as the data document for the layout.
+            return this.props.Document;
+        }
+        return this.props.DataDoc;
+    }
+    get layoutDoc() {
+        // if this document's layout field contains a document (ie, a rendering template), then we will use that
+        // to determine the render JSX string, otherwise the layout field should directly contain a JSX layout string.
+        return this.props.Document.layout instanceof Doc ? this.props.Document.layout : this.props.Document;
+    }
+
     CreateBindings(): JsxBindings {
-        return { props: OmitKeys(this.props, ['parentActive'], (obj: any) => obj.active = this.props.parentActive).omit };
+        return { props: { ...OmitKeys(this.props, ['parentActive'], (obj: any) => obj.active = this.props.parentActive).omit, Document: this.layoutDoc, DataDoc: this.dataDoc } };
     }
 
     @computed get templates(): List<string> {
@@ -81,7 +98,8 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         // by checking the layoutKey.  This should probably be moved into
         // a prop so that the overlay can explicitly turn off templates.
         if ((this.props.layoutKey === "overlayLayout" && StrCast(this.props.Document.layout).indexOf("CollectionView") !== -1) ||
-            (this.props.layoutKey === "layout" && StrCast(this.props.Document.layout).indexOf("CollectionView") === -1)) {
+            (this.props.layoutKey === "layout" && StrCast(this.props.Document.layout).indexOf("CollectionView") === -1) ||
+            (this.props.layoutKey === "layout" && NumCast(this.props.Document.viewType)) !== CollectionViewType.Freeform) {
             this.templates.forEach(template => {
                 let self = this;
                 // this scales constants in the markup by the scaling applied to the document, but caps the constants to be smaller
@@ -102,9 +120,11 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     }
 
     render() {
+        let self = this;
+        if (this.props.renderDepth > 7) return (null);
         if (!this.layout && (this.props.layoutKey !== "overlayLayout" || !this.templates.length)) return (null);
         return <ObserverJsxParser
-            components={{ FormattedTextBox, ImageBox, IconBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox }}
+            components={{ FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox }}
             bindings={this.CreateBindings()}
             jsx={this.finalLayout}
             showWarnings={true}

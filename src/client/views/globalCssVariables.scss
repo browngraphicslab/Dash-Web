@@ -9,6 +9,7 @@ $main-accent: #aaaaa3;
 //$alt-accent: #59dff7;
 $alt-accent: #c2c2c5;
 $lighter-alt-accent: rgb(207, 220, 240);
+$darker-alt-accent: rgb(178, 206, 248);
 $intermediate-color: #9c9396;
 $dark-color: #121721;
 // fonts
@@ -18,6 +19,7 @@ $serif: "Crimson Text", serif;
 // misc values
 $border-radius: 0.3em;
 //
+$search-thumnail-size: 175;
 
                             // dragged items
 $contextMenu-zindex: 1000;  // context menu shows up over everything
@@ -32,4 +34,5 @@ $MAX_ROW_HEIGHT: 44px;
     COLLECTION_BORDER_WIDTH: $COLLECTION_BORDER_WIDTH;
     MINIMIZED_ICON_SIZE: $MINIMIZED_ICON_SIZE;
     MAX_ROW_HEIGHT: $MAX_ROW_HEIGHT;
+    SEARCH_THUMBNAIL_SIZE: $search-thumnail-size;
 }

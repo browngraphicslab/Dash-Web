@@ -25,7 +25,7 @@ import { OmitKeys } from "../../Utils";
 import { ImageField, VideoField, AudioField, PdfField, WebField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
 import { List } from "../../new_fields/List";
-import { Cast, NumCast } from "../../new_fields/Types";
+import { Cast, NumCast, StrCast, ToConstructor, InterfaceValue } from "../../new_fields/Types";
 import { IconField } from "../../new_fields/IconField";
 import { listSpec } from "../../new_fields/Schema";
 import { DocServer } from "../DocServer";
@@ -35,13 +35,57 @@ import { DateField } from "../../new_fields/DateField";
 import { UndoManager } from "../util/UndoManager";
 import { RouteStore } from "../../server/RouteStore";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
-var requestImageSize = require('request-image-size');
+import { LinkManager } from "../util/LinkManager";
+import { DocumentManager } from "../util/DocumentManager";
+import DirectoryImportBox from "../util/Import & Export/DirectoryImportBox";
+import { Scripting } from "../util/Scripting";
+var requestImageSize = require('../util/request-image-size');
 var path = require('path');
+
+export enum DocTypes {
+    NONE = "none",
+    TEXT = "text",
+    HIST = "histogram",
+    IMG = "image",
+    WEB = "web",
+    COL = "collection",
+    KVP = "kvp",
+    VID = "video",
+    AUDIO = "audio",
+    PDF = "pdf",
+    ICON = "icon",
+    IMPORT = "import",
+    LINK = "link"
+}
+
+export namespace DocTypeUtils {
+
+    export function values(includeNone: boolean = true): string[] {
+        let types = Object.values(DocTypes);
+        return includeNone ? types : types.filter(key => key !== DocTypes.NONE);
+    }
+
+    export function keys(includeNone: boolean = true): string[] {
+        let types = Object.keys(DocTypes);
+        return includeNone ? types : types.filter(key => key !== DocTypes.NONE);
+    }
+
+    export function toObject<T extends string>(o: Array<T>): { [K in T]: K } {
+        return o.reduce((res, key) => {
+            res[key] = key;
+            return res;
+        }, Object.create(null));
+    }
+
+    const Types = toObject(values());
+
+    export type All = keyof typeof Types;
+}
 
 export interface DocumentOptions {
     x?: number;
     y?: number;
-    ink?: InkField;
+    type?: string;
     width?: number;
     height?: number;
     nativeWidth?: number;
@@ -51,7 +95,6 @@ export interface DocumentOptions {
     panY?: number;
     page?: number;
     scale?: number;
-    baseLayout?: string;
     layout?: string;
     templates?: List<string>;
     viewType?: number;
@@ -60,7 +103,7 @@ export interface DocumentOptions {
     backgroundLayout?: string;
     curPage?: number;
     documentText?: string;
-    borderRounding?: number;
+    borderRounding?: string;
     schemaColumns?: List<string>;
     dockingConfig?: string;
     dbDoc?: Doc;
@@ -71,17 +114,62 @@ export namespace Docs {
 
     export namespace Prototypes {
 
-        // the complete list of document prototypes and their ids
-        export let textProto: Doc; const textProtoId = "textProto";
-        export let histoProto: Doc; const histoProtoId = "histoProto";
-        export let imageProto: Doc; const imageProtoId = "imageProto";
-        export let webProto: Doc; const webProtoId = "webProto";
-        export let collProto: Doc; const collProtoId = "collectionProto";
-        export let kvpProto: Doc; const kvpProtoId = "kvpProto";
-        export let videoProto: Doc; const videoProtoId = "videoProto";
-        export let audioProto: Doc; const audioProtoId = "audioProto";
-        export let pdfProto: Doc; const pdfProtoId = "pdfProto";
-        export let iconProto: Doc; const iconProtoId = "iconProto";
+        type PrototypeTemplate = { options?: Partial<DocumentOptions>, primary: string, background?: string };
+        type TemplateMap = Map<DocTypeUtils.All, PrototypeTemplate>;
+        type PrototypeMap = Map<DocTypeUtils.All, Doc>;
+
+        const LayoutMap: TemplateMap = new Map([
+            [DocTypes.TEXT, {
+                options: { height: 150, backgroundColor: "#f1efeb" },
+                primary: FormattedTextBox.LayoutString()
+            }],
+            [DocTypes.HIST, {
+                options: { nativeWidth: 600, curPage: 0 },
+                primary: CollectionView.LayoutString("annotations"),
+                background: HistogramBox.LayoutString()
+            }],
+            [DocTypes.IMG, {
+                options: { height: 300, backgroundColor: "black" },
+                primary: CollectionView.LayoutString("annotations"),
+                background: ImageBox.LayoutString()
+            }],
+            [DocTypes.WEB, {
+                options: { height: 300 },
+                primary: WebBox.LayoutString()
+            }],
+            [DocTypes.COL, {
+                options: { panX: 0, panY: 0, scale: 1, width: 500, height: 500 },
+                primary: CollectionView.LayoutString()
+            }],
+            [DocTypes.KVP, {
+                options: { height: 150 },
+                primary: KeyValueBox.LayoutString()
+            }],
+            [DocTypes.VID, {
+                options: { nativeWidth: 600, curPage: 0 },
+                primary: CollectionVideoView.LayoutString("annotations"),
+                background: VideoBox.LayoutString()
+            }],
+            [DocTypes.AUDIO, {
+                options: { height: 150 },
+                primary: AudioBox.LayoutString()
+            }],
+            [DocTypes.PDF, {
+                options: { nativeWidth: 1200, curPage: 1 },
+                primary: CollectionPDFView.LayoutString("annotations"),
+                background: PDFBox.LayoutString()
+            }],
+            [DocTypes.ICON, {
+                options: { width: Number(MINIMIZED_ICON_SIZE), height: Number(MINIMIZED_ICON_SIZE) },
+                primary: IconBox.LayoutString()
+            }],
+            [DocTypes.IMPORT, {
+                options: { height: 150 },
+                primary: DirectoryImportBox.LayoutString()
+            }]
+        ]);
+
+        const PrototypeMap: PrototypeMap = new Map();
 
         /**
          * This function loads or initializes the prototype for each docment type.
@@ -96,21 +184,32 @@ export namespace Docs {
          */
         export async function initialize(): Promise<void> {
             // non-guid string ids for each document prototype
-            let protoIds = [textProtoId, histoProtoId, collProtoId, imageProtoId, webProtoId, kvpProtoId, videoProtoId, audioProtoId, pdfProtoId, iconProtoId];
-            // fetch the actual prototype documents from the server
-            let actualProtos = await DocServer.getRefFields(protoIds);
+            let prototypeIds: string[] = DocTypeUtils.values(false).map(type => type + "Proto");
 
+            let defaultOptions: DocumentOptions = {
+                x: 0,
+                y: 0,
+                width: 300
+            };
+
+            // fetch the actual prototype documents from the server
+            let actualProtos = await DocServer.GetRefFields(prototypeIds);
             // initialize prototype documents
-            textProto = actualProtos[textProtoId] as Doc || CreateTextProto();
-            histoProto = actualProtos[histoProtoId] as Doc || CreateHistogramProto();
-            collProto = actualProtos[collProtoId] as Doc || CreateCollectionProto();
-            imageProto = actualProtos[imageProtoId] as Doc || CreateImageProto();
-            webProto = actualProtos[webProtoId] as Doc || CreateWebProto();
-            kvpProto = actualProtos[kvpProtoId] as Doc || CreateKVPProto();
-            videoProto = actualProtos[videoProtoId] as Doc || CreateVideoProto();
-            audioProto = actualProtos[audioProtoId] as Doc || CreateAudioProto();
-            pdfProto = actualProtos[pdfProtoId] as Doc || CreatePdfProto();
-            iconProto = actualProtos[iconProtoId] as Doc || CreateIconProto();
+            prototypeIds.map(id => {
+                let existing = actualProtos[id] as Doc;
+                if (existing) {
+                    PrototypeMap.set(id, existing);
+                } else {
+                    let template = LayoutMap.get(id.replace("Proto", ""));
+                    if (template) {
+                        PrototypeMap.set(id, buildPrototype(template, id, defaultOptions));
+                    }
+                }
+            });
+        }
+
+        export function get(type: string) {
+            return PrototypeMap.get(type)!;
         }
 
         /**
@@ -125,122 +224,14 @@ export namespace Docs {
          * @param options any value specified in the DocumentOptions object likewise
          * becomes the default value for that key for all delegates
          */
-        function buildPrototype(protoId: string, title: string, layout: string, options: DocumentOptions): Doc {
-            return Doc.assign(new Doc(protoId, true), { ...options, title: title, layout: layout, baseLayout: layout });
+        function buildPrototype(template: PrototypeTemplate, prototypeId: string, defaultOptions: DocumentOptions): Doc {
+            let primary = template.primary;
+            let background = template.background;
+            let options = { ...defaultOptions, ...(template.options || {}), title: prototypeId.toUpperCase().replace("PROTO", "_PROTO") };
+            background && (options = { ...options, backgroundLayout: background, });
+            return Doc.assign(new Doc(prototypeId, true), { ...options, layout: primary, baseLayout: primary });
         }
 
-        // INDIVIDUAL INITIALIZERS
-
-        function CreateImageProto(): Doc {
-            let defaultAttrs = {
-                x: 0,
-                y: 0,
-                nativeWidth: 600,
-                width: 300,
-                backgroundLayout: ImageBox.LayoutString(),
-                curPage: 0
-            };
-            return buildPrototype(imageProtoId, "IMAGE_PROTO", CollectionView.LayoutString("annotations"), defaultAttrs);
-        }
-
-        function CreateHistogramProto(): Doc {
-            let defaultAttrs = {
-                x: 0,
-                y: 0,
-                width: 300,
-                height: 300,
-                backgroundColor: "black",
-                backgroundLayout:
-                    HistogramBox.LayoutString()
-            };
-            return buildPrototype(histoProtoId, "HISTO PROTO", CollectionView.LayoutString("annotations"), defaultAttrs);
-        }
-
-        function CreateIconProto(): Doc {
-            let defaultAttrs = {
-                x: 0,
-                y: 0,
-                width: Number(MINIMIZED_ICON_SIZE),
-                height: Number(MINIMIZED_ICON_SIZE)
-            };
-            return buildPrototype(iconProtoId, "ICON_PROTO", IconBox.LayoutString(), defaultAttrs);
-        }
-
-        function CreateTextProto(): Doc {
-            let defaultAttrs = {
-                x: 0,
-                y: 0,
-                width: 300,
-                height: 150,
-                backgroundColor: "#f1efeb"
-            };
-            return buildPrototype(textProtoId, "TEXT_PROTO", FormattedTextBox.LayoutString(), defaultAttrs);
-        }
-
-        function CreatePdfProto(): Doc {
-            let defaultAttrs = {
-                x: 0,
-                y: 0,
-                nativeWidth: 1200,
-                width: 300,
-                backgroundLayout: PDFBox.LayoutString(),
-                curPage: 1
-            };
-            return buildPrototype(pdfProtoId, "PDF_PROTO", CollectionPDFView.LayoutString("annotations"), defaultAttrs);
-        }
-
-        function CreateWebProto(): Doc {
-            let defaultAttrs = {
-                x: 0,
-                y: 0,
-                width: 300,
-                height: 300
-            };
-            return buildPrototype(webProtoId, "WEB_PROTO", WebBox.LayoutString(), defaultAttrs);
-        }
-
-        function CreateCollectionProto(): Doc {
-            let defaultAttrs = {
-                panX: 0,
-                panY: 0,
-                scale: 1,
-                width: 500,
-                height: 500
-            };
-            return buildPrototype(collProtoId, "COLLECTION_PROTO", CollectionView.LayoutString("data"), defaultAttrs);
-        }
-
-        function CreateKVPProto(): Doc {
-            let defaultAttrs = {
-                x: 0,
-                y: 0,
-                width: 300,
-                height: 150
-            };
-            return buildPrototype(kvpProtoId, "KVP_PROTO", KeyValueBox.LayoutString(), defaultAttrs);
-        }
-
-        function CreateVideoProto(): Doc {
-            let defaultAttrs = {
-                x: 0,
-                y: 0,
-                nativeWidth: 600,
-                width: 300,
-                backgroundLayout: VideoBox.LayoutString(),
-                curPage: 0
-            };
-            return buildPrototype(videoProtoId, "VIDEO_PROTO", CollectionVideoView.LayoutString("annotations"), defaultAttrs);
-        }
-
-        function CreateAudioProto(): Doc {
-            let defaultAttrs = {
-                x: 0,
-                y: 0,
-                width: 300,
-                height: 150
-            };
-            return buildPrototype(audioProtoId, "AUDIO_PROTO", AudioBox.LayoutString(), defaultAttrs);
-        }
     }
 
     /**
@@ -269,7 +260,7 @@ export namespace Docs {
          * only when creating a DockDocument from the current user's already existing
          * main document.
          */
-        function CreateInstanceFromProto(proto: Doc, data: Field, options: DocumentOptions, delegId?: string) {
+        export function InstanceFromProto(proto: Doc, data: Field, options: DocumentOptions, delegId?: string) {
             const { omit: protoProps, extract: delegateProps } = OmitKeys(options, delegateKeys);
 
             if (!("author" in protoProps)) {
@@ -305,7 +296,7 @@ export namespace Docs {
         }
 
         export function ImageDocument(url: string, options: DocumentOptions = {}) {
-            let inst = CreateInstanceFromProto(Prototypes.imageProto, new ImageField(new URL(url)), { title: path.basename(url), ...options });
+            let inst = InstanceFromProto(Prototypes.get(DocTypes.IMG), new ImageField(new URL(url)), { title: path.basename(url), ...options });
             requestImageSize(window.origin + RouteStore.corsProxy + "/" + url)
                 .then((size: any) => {
                     let aspect = size.height / size.width;
@@ -317,37 +308,30 @@ export namespace Docs {
                 })
                 .catch((err: any) => console.log(err));
             return inst;
-
-            // let doc = SetInstanceOptions(GetImagePrototype(), { ...options, layoutKeys: [KeyStore.Data, KeyStore.Annotations, KeyStore.Caption] },
-            //     [new URL(url), ImageField]);
-            // doc.SetText(KeyStore.Caption, "my caption...");
-            // doc.SetText(KeyStore.BackgroundLayout, EmbeddedCaption());
-            // doc.SetText(KeyStore.OverlayLayout, FixedCaption());
-            // return doc;
         }
 
         export function VideoDocument(url: string, options: DocumentOptions = {}) {
-            return CreateInstanceFromProto(Prototypes.videoProto, new VideoField(new URL(url)), options);
+            return InstanceFromProto(Prototypes.get(DocTypes.VID), new VideoField(new URL(url)), options);
         }
 
         export function AudioDocument(url: string, options: DocumentOptions = {}) {
-            return CreateInstanceFromProto(Prototypes.audioProto, new AudioField(new URL(url)), options);
+            return InstanceFromProto(Prototypes.get(DocTypes.AUDIO), new AudioField(new URL(url)), options);
         }
 
         export function HistogramDocument(histoOp: HistogramOperation, options: DocumentOptions = {}) {
-            return CreateInstanceFromProto(Prototypes.histoProto, new HistogramField(histoOp), options);
+            return InstanceFromProto(Prototypes.get(DocTypes.HIST), new HistogramField(histoOp), options);
         }
 
         export function TextDocument(options: DocumentOptions = {}) {
-            return CreateInstanceFromProto(Prototypes.textProto, "", options);
+            return InstanceFromProto(Prototypes.get(DocTypes.TEXT), "", options);
         }
 
         export function IconDocument(icon: string, options: DocumentOptions = {}) {
-            return CreateInstanceFromProto(Prototypes.iconProto, new IconField(icon), options);
+            return InstanceFromProto(Prototypes.get(DocTypes.ICON), new IconField(icon), options);
         }
 
         export function PdfDocument(url: string, options: DocumentOptions = {}) {
-            return CreateInstanceFromProto(Prototypes.pdfProto, new PdfField(new URL(url)), options);
+            return InstanceFromProto(Prototypes.get(DocTypes.PDF), new PdfField(new URL(url)), options);
         }
 
         export async function DBDocument(url: string, options: DocumentOptions = {}, columnOptions: DocumentOptions = {}) {
@@ -363,7 +347,7 @@ export namespace Docs {
                 CurrentUserUtils.AddNorthstarSchema(schema, schemaDoc);
                 const docs = schemaDocuments;
                 CurrentUserUtils.GetAllNorthstarColumnAttributes(schema).map(attr => {
-                    DocServer.getRefField(attr.displayName! + ".alias").then(action((field: Opt<Field>) => {
+                    DocServer.GetRefField(attr.displayName! + ".alias").then(action((field: Opt<Field>) => {
                         if (field instanceof Doc) {
                             docs.push(field);
                         } else {
@@ -382,38 +366,42 @@ export namespace Docs {
         }
 
         export function WebDocument(url: string, options: DocumentOptions = {}) {
-            return CreateInstanceFromProto(Prototypes.webProto, new WebField(new URL(url)), options);
+            return InstanceFromProto(Prototypes.get(DocTypes.WEB), new WebField(new URL(url)), options);
         }
 
         export function HtmlDocument(html: string, options: DocumentOptions = {}) {
-            return CreateInstanceFromProto(Prototypes.webProto, new HtmlField(html), options);
+            return InstanceFromProto(Prototypes.get(DocTypes.WEB), new HtmlField(html), options);
         }
 
         export function KVPDocument(document: Doc, options: DocumentOptions = {}) {
-            return CreateInstanceFromProto(Prototypes.kvpProto, document, { title: document.title + ".kvp", ...options });
+            return InstanceFromProto(Prototypes.get(DocTypes.KVP), document, { title: document.title + ".kvp", ...options });
         }
 
         export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions, makePrototype: boolean = true) {
             if (!makePrototype) {
-                return MakeDataDelegate(Prototypes.collProto, { ...options, viewType: CollectionViewType.Freeform }, new List(documents));
+                return MakeDataDelegate(Prototypes.get(DocTypes.COL), { ...options, viewType: CollectionViewType.Freeform }, new List(documents));
             }
-            return CreateInstanceFromProto(Prototypes.collProto, new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Freeform });
+            return InstanceFromProto(Prototypes.get(DocTypes.COL), new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Freeform });
         }
 
         export function SchemaDocument(schemaColumns: string[], documents: Array<Doc>, options: DocumentOptions) {
-            return CreateInstanceFromProto(Prototypes.collProto, new List(documents), { schemaColumns: new List(schemaColumns), ...options, viewType: CollectionViewType.Schema });
+            return InstanceFromProto(Prototypes.get(DocTypes.COL), new List(documents), { schemaColumns: new List(schemaColumns), ...options, viewType: CollectionViewType.Schema });
         }
 
         export function TreeDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return CreateInstanceFromProto(Prototypes.collProto, new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Tree });
+            return InstanceFromProto(Prototypes.get(DocTypes.COL), new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Tree });
         }
 
         export function StackingDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return CreateInstanceFromProto(Prototypes.collProto, new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Stacking });
+            return InstanceFromProto(Prototypes.get(DocTypes.COL), new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Stacking });
         }
 
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
-            return CreateInstanceFromProto(Prototypes.collProto, new List(documents), { ...options, viewType: CollectionViewType.Docking, dockingConfig: config }, id);
+            return InstanceFromProto(Prototypes.get(DocTypes.COL), new List(documents), { ...options, viewType: CollectionViewType.Docking, dockingConfig: config }, id);
+        }
+
+        export function DirectoryImportDocument(options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocTypes.COL), new List<Doc>(), options);
         }
 
         export type DocConfig = {
@@ -427,43 +415,88 @@ export namespace Docs {
                     {
                         type: type,
                         content: [
-                            ...configs.map(config => CollectionDockingView.makeDocumentConfig(config.doc, config.initialWidth))
+                            ...configs.map(config => CollectionDockingView.makeDocumentConfig(config.doc, undefined, config.initialWidth))
                         ]
                     }
                 ]
             };
             return DockDocument(configs.map(c => c.doc), JSON.stringify(layoutConfig), options, id);
         }
+    }
 
-        export function CaptionDocument(doc: Doc) {
-            const captionDoc = Doc.MakeAlias(doc);
-            captionDoc.overlayLayout = Templating.FixedCaption();
-            captionDoc.width = Cast(doc.width, "number", 0);
-            captionDoc.height = Cast(doc.height, "number", 0);
-            return captionDoc;
+    export namespace Get {
+
+        export async function DocumentFromType(type: string, path: string, options: DocumentOptions): Promise<Opt<Doc>> {
+            let ctor: ((path: string, options: DocumentOptions) => (Doc | Promise<Doc | undefined>)) | undefined = undefined;
+            if (type.indexOf("image") !== -1) {
+                ctor = Docs.Create.ImageDocument;
+            }
+            if (type.indexOf("video") !== -1) {
+                ctor = Docs.Create.VideoDocument;
+            }
+            if (type.indexOf("audio") !== -1) {
+                ctor = Docs.Create.AudioDocument;
+            }
+            if (type.indexOf("pdf") !== -1) {
+                ctor = Docs.Create.PdfDocument;
+                options.nativeWidth = 1200;
+            }
+            if (type.indexOf("excel") !== -1) {
+                ctor = Docs.Create.DBDocument;
+                options.dropAction = "copy";
+            }
+            if (type.indexOf("html") !== -1) {
+                if (path.includes(window.location.hostname)) {
+                    let s = path.split('/');
+                    let id = s[s.length - 1];
+                    return DocServer.GetRefField(id).then(field => {
+                        if (field instanceof Doc) {
+                            let alias = Doc.MakeAlias(field);
+                            alias.x = options.x || 0;
+                            alias.y = options.y || 0;
+                            alias.width = options.width || 300;
+                            alias.height = options.height || options.width || 300;
+                            return alias;
+                        }
+                        return undefined;
+                    });
+                }
+                ctor = Docs.Create.WebDocument;
+                options = { height: options.width, ...options, title: path, nativeWidth: undefined };
+            }
+            return ctor ? ctor(path, options) : undefined;
         }
+
     }
 
     export namespace Templating {
 
-        // example of custom display string for an image that shows a caption.
+        export function CaptionDocument(doc: Doc) {
+            const captionDoc = Doc.MakeAlias(doc);
+            captionDoc.overlayLayout = FixedCaption();
+            captionDoc.width = Cast(doc.width, "number", 0);
+            captionDoc.height = Cast(doc.height, "number", 0);
+            return captionDoc;
+        }
+
+        /**
+         * An example of custom display string for an image that shows a caption.
+         */
         export function EmbeddedCaption() {
-            return `<div style="height:100%">
-                <div style="position:relative; margin:auto; height:85%; width:85%;" >`
-                + ImageBox.LayoutString() +
-                `</div>
-                <div style="position:relative; height:15%; text-align:center; ">`
-                + FormattedTextBox.LayoutString("caption") +
-                `</div> 
-            </div>`;
+            return (
+                `<div style="height:100%">
+                    <div style="position:relative; margin:auto; height:85%; width:85%;" >${ImageBox.LayoutString()}</div>
+                    <div style="position:relative; height:15%; text-align:center; ">${FormattedTextBox.LayoutString("caption")}</div> 
+                </div>`
+            );
         }
 
         export function FixedCaption(fieldName: string = "caption") {
-            return `<div style="position:absolute; height:30px; bottom:0; width:100%">
-                <div style="position:absolute; width:100%; height:100%; text-align:center;bottom:0;">`
-                + FormattedTextBox.LayoutString(fieldName) +
-                `</div> 
-            </div>`;
+            return (
+                `<div style="position:absolute; height:30px; bottom:0; width:100%">
+                    <div style="position:absolute; width:100%; height:100%; text-align:center;bottom:0;">${FormattedTextBox.LayoutString(fieldName)}</div> 
+                </div>`
+            );
         }
 
         export function OuterCaption() {
@@ -473,7 +506,16 @@ export namespace Docs {
                         {layout}
                     </div>
                     <div style="height:(100% + 25px); width:100%; position:absolute">
-                        <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={"caption"} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
+                        <FormattedTextBox
+                            doc={Document}
+                            DocumentViewForField={DocumentView}
+                            bindings={bindings}
+                            fieldKey={"caption"}
+                            isSelected={isSelected}
+                            select={select}
+                            selectOnLoad={SelectOnLoad}
+                            renderDepth={renderDepth
+                        />
                     </div>
                 </div>       
             `);
@@ -486,66 +528,55 @@ export namespace Docs {
                         {layout}
                     </div>
                     <div style="height:25px; width:100%; position:absolute">
-                        <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={"caption"} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
+                        <FormattedTextBox
+                            doc={Document}
+                            DocumentViewForField={DocumentView}
+                            bindings={bindings}
+                            fieldKey={"caption"}
+                            isSelected={isSelected}
+                            select={select}
+                            selectOnLoad={SelectOnLoad}
+                            renderDepth={renderDepth
+                        />
                     </div>
                 </div>       
             `);
         }
-
-        /*
-        this template requires an additional style setting on the collectionView-cont to make the layout relative
-            .collectionView-cont {
-                position: relative;
-                width: 100%;
-                height: 100%;
-            }
-        */
-        export function PercentCaption() {
-            return (`
-                <div>
-                    <div style="margin:auto; height:85%; width:85%;">
-                        {layout}
-                    </div>
-                    <div style="height:15%; width:100%; position:absolute">
-                        <FormattedTextBox doc={Document} DocumentViewForField={DocumentView} bindings={bindings} fieldKey={"caption"} isSelected={isSelected} select={select} selectOnLoad={SelectOnLoad} isTopMost={isTopMost}/>
-                    </div>
-                </div>       
-            `);
-        }
-
     }
 }
 
 export namespace DocUtils {
 
-    export function MakeLink(source: Doc, target: Doc) {
-        let protoSrc = source.proto ? source.proto : source;
-        let protoTarg = target.proto ? target.proto : target;
+    export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", tags: string = "Default") {
+        if (LinkManager.Instance.doesLinkExist(source, target)) return;
+        let sv = DocumentManager.Instance.getDocumentView(source);
+        if (sv && sv.props.ContainingCollectionView && sv.props.ContainingCollectionView.props.Document === target) return;
+        if (target === CurrentUserUtils.UserDocument) return;
+
         UndoManager.RunInBatch(() => {
-            let linkDoc = Docs.Create.TextDocument({ width: 100, height: 30, borderRounding: -1 });
-            //let linkDoc = new Doc;
-            linkDoc.proto!.title = "-link name-";
-            linkDoc.proto!.linkDescription = "";
-            linkDoc.proto!.linkTags = "Default";
+            let linkDoc = Docs.Create.TextDocument({ width: 100, height: 30, borderRounding: "100%" });
+            linkDoc.type = DocTypes.LINK;
+            let linkDocProto = Doc.GetProto(linkDoc);
 
-            linkDoc.proto!.linkedTo = target;
-            linkDoc.proto!.linkedToPage = target.curPage;
-            linkDoc.proto!.linkedFrom = source;
-            linkDoc.proto!.linkedFromPage = source.curPage;
+            linkDocProto.context = targetContext;
+            linkDocProto.title = title === "" ? source.title + " to " + target.title : title;
+            linkDocProto.linkDescription = description;
+            linkDocProto.linkTags = tags;
+            linkDocProto.type = DocTypes.LINK;
 
-            let linkedFrom = Cast(protoTarg.linkedFromDocs, listSpec(Doc));
-            if (!linkedFrom) {
-                protoTarg.linkedFromDocs = linkedFrom = new List<Doc>();
-            }
-            linkedFrom.push(linkDoc);
+            linkDocProto.anchor1 = source;
+            linkDocProto.anchor1Page = source.curPage;
+            linkDocProto.anchor1Groups = new List<Doc>([]);
+            linkDocProto.anchor2 = target;
+            linkDocProto.anchor2Page = target.curPage;
+            linkDocProto.anchor2Groups = new List<Doc>([]);
 
-            let linkedTo = Cast(protoSrc.linkedToDocs, listSpec(Doc));
-            if (!linkedTo) {
-                protoSrc.linkedToDocs = linkedTo = new List<Doc>();
-            }
-            linkedTo.push(linkDoc);
+            LinkManager.Instance.addLink(linkDoc);
+
             return linkDoc;
         }, "make link");
     }
 
 }
+
+Scripting.addGlobal("Docs", Docs);

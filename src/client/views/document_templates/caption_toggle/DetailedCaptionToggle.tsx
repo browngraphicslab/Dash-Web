@@ -6,15 +6,15 @@ import { FormattedTextBox, FormattedTextBoxProps } from '../../nodes/FormattedTe
 import { FieldViewProps } from '../../nodes/FieldView';
 
 interface DetailedCaptionDataProps {
-    captionFieldKey?: string,
-    detailsFieldKey?: string,
+    captionFieldKey?: string;
+    detailsFieldKey?: string;
 }
 
 interface DetailedCaptionStylingProps {
     sharedFontColor?: ColorProperty;
-    captionFontStyle?: FontStyleProperty
-    detailsFontStyle?: FontStyleProperty
-    toggleSize?: number
+    captionFontStyle?: FontStyleProperty;
+    detailsFontStyle?: FontStyleProperty;
+    toggleSize?: number;
 }
 
 @observer

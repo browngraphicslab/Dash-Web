@@ -26,7 +26,7 @@ def extract_links(fileName):
         item = rels[rel]
         if item.reltype == RT.HYPERLINK and ".aspx" not in item._target:
             links.append(item._target)
-    return listify(links)
+    return text_doc_map(links)
 
 
 def extract_value(kv_string):
@@ -60,7 +60,13 @@ def protofy(fieldId):
     }
 
 
-def write_schema(parse_results, display_fields):
+def text_doc_map(string_list):
+    def guid_map(caption):
+        return write_text_doc(caption)
+    return listify(proxify_guids(list(map(guid_map, string_list))))
+
+
+def write_schema(parse_results, display_fields, storage_key):
     view_guids = parse_results["child_guids"]
 
     data_doc = parse_results["schema"]
@@ -87,7 +93,7 @@ def write_schema(parse_results, display_fields):
     }
 
     fields["proto"] = protofy("collectionProto")
-    fields["data"] = listify(proxify_guids(view_guids))
+    fields[storage_key] = listify(proxify_guids(view_guids))
     fields["schemaColumns"] = listify(display_fields)
     fields["backgroundColor"] = "white"
     fields["scale"] = 0.5
@@ -110,9 +116,7 @@ def write_schema(parse_results, display_fields):
     return view_doc_guid
 
 
-def write_image(folder, name):
-    path = f"http://localhost:1050/files/{folder}/{name}"
-
+def write_text_doc(content):
     data_doc_guid = guid()
     view_doc_guid = guid()
 
@@ -122,15 +126,65 @@ def write_image(folder, name):
             "proto": protofy(data_doc_guid),
             "x": 10,
             "y": 10,
-            "width": 300,
+            "width": 400,
             "zIndex": 2,
             "libraryBrush": False
         },
         "__type": "Doc"
     }
 
+    data_doc = {
+        "_id": data_doc_guid,
+        "fields": {
+            "proto": protofy("textProto"),
+            "data": {
+                "Data": '{"doc":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"' + content + '"}]}]},"selection":{"type":"text","anchor":1,"head":1}' + '}',
+                "__type": "RichTextField"
+            },
+            "title": content,
+            "nativeWidth": 200,
+            "author": "Bill Buxton",
+            "creationDate": {
+                "date": datetime.datetime.utcnow().microsecond,
+                "__type": "date"
+            },
+            "isPrototype": True,
+            "autoHeight": True,
+            "page": -1,
+            "nativeHeight": 200,
+            "height": 200,
+            "data_text": content
+        },
+        "__type": "Doc"
+    }
+
+    db.newDocuments.insert_one(view_doc)
+    db.newDocuments.insert_one(data_doc)
+
+    return view_doc_guid
+
+
+def write_image(folder, name):
+    path = f"http://localhost:1050/files/{folder}/{name}"
+
+    data_doc_guid = guid()
+    view_doc_guid = guid()
+
     image = Image.open(f"{dist}/{folder}/{name}")
     native_width, native_height = image.size
+
+    view_doc = {
+        "_id": view_doc_guid,
+        "fields": {
+            "proto": protofy(data_doc_guid),
+            "x": 10,
+            "y": 10,
+            "width": min(800, native_width),
+            "zIndex": 2,
+            "libraryBrush": False
+        },
+        "__type": "Doc"
+    }
 
     data_doc = {
         "_id": data_doc_guid,
@@ -253,7 +307,7 @@ def parse_document(file_name: str):
     while lines[cur] != "Image":
         link_descriptions.append(lines[cur].strip())
         cur += 1
-    result["link_descriptions"] = listify(link_descriptions)
+    result["link_descriptions"] = text_doc_map(link_descriptions)
 
     result["hyperlinks"] = extract_links(source + "/" + file_name)
 
@@ -265,7 +319,8 @@ def parse_document(file_name: str):
         captions.append(lines[cur + 1])
         cur += 2
     result["images"] = listify(images)
-    result["captions"] = listify(captions)
+
+    result["captions"] = text_doc_map(captions)
 
     notes = []
     if (cur < len(lines) and lines[cur] == "NOTES:"):
@@ -304,7 +359,7 @@ for file_name in os.listdir(source):
     if file_name.endswith('.docx'):
         candidates += 1
         schema_guids.append(write_schema(
-            parse_document(file_name), ["title", "data"]))
+            parse_document(file_name), ["title", "data"], "image_data"))
 
 print("writing parent schema...")
 parent_guid = write_schema({
@@ -314,7 +369,7 @@ parent_guid = write_schema({
         "__type": "Doc"
     },
     "child_guids": schema_guids
-}, ["title", "short_description", "original_price"])
+}, ["title", "short_description", "original_price"], "data")
 
 print("appending parent schema to main workspace...\n")
 db.newDocuments.update_one(

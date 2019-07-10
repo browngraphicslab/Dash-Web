@@ -12,7 +12,7 @@ import { Id } from "../../../new_fields/FieldSymbols";
 import { VideoBox } from "../nodes/VideoBox";
 import { NumCast, Cast, StrCast } from "../../../new_fields/Types";
 import { VideoField } from "../../../new_fields/URLField";
-import { SearchBox } from "../SearchBox";
+import { SearchBox } from "../search/SearchBox";
 import { DocServer } from "../../DocServer";
 import { Docs, DocUtils } from "../../documents/Documents";
 
@@ -97,7 +97,7 @@ export class CollectionVideoView extends React.Component<FieldViewProps> {
                 let filename = encodeURIComponent("snapshot" + this.props.Document.title + "_" + this.props.Document.curPage).replace(/\./g, "");
                 SearchBox.convertDataUri(dataUrl, filename).then((returnedFilename) => {
                     if (returnedFilename) {
-                        let url = DocServer.Util.prepend(returnedFilename);
+                        let url = DocServer.prepend(returnedFilename);
                         let imageSummary = Docs.Create.ImageDocument(url, {
                             x: NumCast(this.props.Document.x) + width, y: NumCast(this.props.Document.y),
                             width: 150, height: height / width * 150, title: "--snapshot" + NumCast(this.props.Document.curPage) + " image-"
@@ -122,7 +122,6 @@ export class CollectionVideoView extends React.Component<FieldViewProps> {
     }
 
     render() {
-        trace();
         return (
             <CollectionBaseView {...this.props} className="collectionVideoView-cont" onContextMenu={this.onContextMenu}>
                 {this.subView}

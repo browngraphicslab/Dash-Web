@@ -1,19 +1,17 @@
 import React = require("react");
+import { action, IReactionDisposer, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
-import { FieldView, FieldViewProps } from './FieldView';
 import * as rp from "request-promise";
-import "./VideoBox.scss";
-import { action, IReactionDisposer, reaction, observable } from "mobx";
-import { DocComponent } from "../DocComponent";
-import { positionSchema } from "./DocumentView";
 import { makeInterface } from "../../../new_fields/Schema";
-import { pageSchema } from "./ImageBox";
-import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
+import { Cast, FieldValue } from "../../../new_fields/Types";
 import { VideoField } from "../../../new_fields/URLField";
-import "./VideoBox.scss";
 import { RouteStore } from "../../../server/RouteStore";
 import { DocServer } from "../../DocServer";
-import { actionFieldDecorator } from "mobx/lib/internal";
+import { DocComponent } from "../DocComponent";
+import { positionSchema } from "./DocumentView";
+import { FieldView, FieldViewProps } from './FieldView';
+import { pageSchema } from "./ImageBox";
+import "./VideoBox.scss";
 
 type VideoDocument = makeInterface<[typeof positionSchema, typeof pageSchema]>;
 const VideoDocument = makeInterface(positionSchema, pageSchema);
@@ -97,7 +95,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
             };
             try {
                 let responseSchema: any = {};
-                const videoInfoResponse = await rp.get(DocServer.Util.prepend(RouteStore.corsProxy + "/" + `https://www.youtube.com/watch?v=${videoId}`), videoInfoRequestConfig);
+                const videoInfoResponse = await rp.get(DocServer.prepend(RouteStore.corsProxy + "/" + `https://www.youtube.com/watch?v=${videoId}`), videoInfoRequestConfig);
                 const dataHtml = videoInfoResponse;
                 const start = dataHtml.indexOf('ytplayer.config = ') + 18;
                 const end = dataHtml.indexOf(';ytplayer.load');
@@ -121,7 +119,6 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         });
     }
     onPointerDown = (e: React.PointerEvent) => {
-        e.preventDefault();
         e.stopPropagation();
     }
 

@@ -29,13 +29,44 @@ export namespace DocServer {
     // indicates whether or not a document is currently being udpated, and, if so, its id
     let updatingId: string | undefined;
 
+    /**
+     * A convenience method. Prepends the full path (i.e. http://localhost:1050) to the
+     * requested extension
+     * @param extension the specified sub-path to append to the window origin
+     */
+    export function prepend(extension: string): string {
+        return window.location.origin + extension;
+    }
+
+    export namespace Control {
+
+        let _isReadOnly = false;
+        export function makeReadOnly() {
+            if (_isReadOnly) return;
+            _isReadOnly = true;
+            _CreateField = field => {
+                _cache[field[Id]] = field;
+            };
+            _UpdateField = emptyFunction;
+            _RespondToUpdate = emptyFunction;
+        }
+
+        export function makeEditable() {
+            if (!_isReadOnly) return;
+            location.reload();
+        }
+
+        export function isReadOnly() { return _isReadOnly; }
+
+    }
+
     export namespace Util {
 
         /**
          * Whenever the server sends us its handshake message on our
          * websocket, we use the above function to return the handshake.
          */
-        Utils.addServerHandler(_socket, MessageStore.Foo, onConnection);
+        Utils.AddServerHandler(_socket, MessageStore.Foo, onConnection);
 
         /**
          * This function emits a message (with this client's
@@ -44,15 +75,6 @@ export namespace DocServer {
          */
         function onConnection() {
             _socket.emit(MessageStore.Bar.Message, GUID);
-        }
-
-        /**
-         * A convenience method. Prepends the full path (i.e. http://localhost:1050) to the
-         * requested extension
-         * @param extension the specified sub-path to append to the window origin
-         */
-        export function prepend(extension: string): string {
-            return window.location.origin + extension;
         }
 
         /**
@@ -73,10 +95,11 @@ export namespace DocServer {
          * the document's url.
          */
         export function makeReadOnly() {
-            // replaces default functionality with no-ops
-            _createField = emptyFunction;
-            _emitFieldUpdate = emptyFunction;
-            _respondToUpdate = emptyFunction;
+            _CreateField = field => {
+                _cache[field[Id]] = field;
+            };
+            _UpdateField = emptyFunction;
+            _RespondToUpdate = emptyFunction;
         }
 
     }
@@ -89,7 +112,7 @@ export namespace DocServer {
      * the server if the document has not been cached.
      * @param id the id of the requested document
      */
-    export async function getRefField(id: string): Promise<Opt<RefField>> {
+    export async function GetRefField(id: string): Promise<Opt<RefField>> {
         // an initial pass through the cache to determine whether the document needs to be fetched,
         // is already in the process of being fetched or already exists in the
         // cache
@@ -140,7 +163,7 @@ export namespace DocServer {
      * the server if the document has not been cached.
      * @param ids the ids that map to the reqested documents
      */
-    export async function getRefFields(ids: string[]): Promise<{ [id: string]: Opt<RefField> }> {
+    export async function GetRefFields(ids: string[]): Promise<{ [id: string]: Opt<RefField> }> {
         const requestedIds: string[] = [];
         const waitingIds: string[] = [];
         const promises: Promise<Opt<RefField>>[] = [];
@@ -246,8 +269,8 @@ export namespace DocServer {
      * calling the same function throughout the code base (such as in Util.makeReadonly())
      * @param field the [RefField] to be serialized and sent to the server to be stored in the database
      */
-    export function createField(field: RefField) {
-        _createField(field);
+    export function CreateField(field: RefField) {
+        _CreateField(field);
     }
 
     /**
@@ -256,7 +279,7 @@ export namespace DocServer {
      * and finally sends that seruialized data to the server.
      * @param field the [RefField] to be serialized and sent to the server to be stored in the database
      */
-    let _createField = (field: RefField) => {
+    let _CreateField = (field: RefField) => {
         _cache[field[Id]] = field;
         const initialState = SerializationHelper.Serialize(field);
         Utils.emit(_socket, MessageStore.CreateField, initialState);
@@ -272,8 +295,8 @@ export namespace DocServer {
      * @param updatedState the new value of the document. At some point, this
      * should actually be a proper diff, to improve efficiency
      */
-    export function emitFieldUpdate(id: string, updatedState: any) {
-        _emitFieldUpdate(id, updatedState);
+    export function UpdateField(id: string, updatedState: any) {
+        _UpdateField(id, updatedState);
     }
 
     /**
@@ -283,7 +306,7 @@ export namespace DocServer {
      * @param updatedState the new value of the document. At some point, this
      * should actually be a proper diff, to improve efficiency
      */
-    let _emitFieldUpdate = (id: string, updatedState: any) => {
+    let _UpdateField = (id: string, updatedState: any) => {
         // don't emit a duplicate message if the server is already
         // (asynchronously) still updating this document's state.
         if (id === updatingId) {
@@ -301,7 +324,7 @@ export namespace DocServer {
      * Whenever the client receives an update, execute the
      * current behavior.
      */
-    Utils.addServerHandler(_socket, MessageStore.UpdateField, respondToUpdate);
+    Utils.AddServerHandler(_socket, MessageStore.UpdateField, RespondToUpdate);
 
     /**
      * A wrapper around the function local variable _respondToUpdate.
@@ -310,8 +333,8 @@ export namespace DocServer {
      * @param diff kept as [any], but actually the [Diff] object sent from the server containing
      * the [Doc]'s id and its new state
      */
-    function respondToUpdate(diff: any) {
-        _respondToUpdate(diff);
+    function RespondToUpdate(diff: any) {
+        _RespondToUpdate(diff);
     }
 
     /**
@@ -321,7 +344,7 @@ export namespace DocServer {
      * @param diff kept as [any], but actually the [Diff] object sent from the server containing
      * the [Doc]'s id and its new state
      */
-    let _respondToUpdate = (diff: any) => {
+    let _RespondToUpdate = (diff: any) => {
         const id = diff.id;
         // to be valid, the Diff object must reference
         // a document's id

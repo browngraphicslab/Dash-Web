@@ -15,7 +15,7 @@ export class Utils {
         return v5(seed, v5.URL);
     }
 
-    public static GetScreenTransform(ele: HTMLElement): { scale: number, translateX: number, translateY: number } {
+    public static GetScreenTransform(ele?: HTMLElement): { scale: number, translateX: number, translateY: number } {
         if (!ele) {
             return { scale: 1, translateX: 1, translateY: 1 };
         }
@@ -89,7 +89,7 @@ export class Utils {
         }
     }
 
-    public static addServerHandler<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, handler: (args: T) => any) {
+    public static AddServerHandler<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, handler: (args: T) => any) {
         socket.on(message.Message, this.loggingCallback('Incoming', handler, message.Name));
     }
 

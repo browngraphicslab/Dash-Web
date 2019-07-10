@@ -14,23 +14,36 @@ export class Search {
             });
             return res;
         } catch (e) {
-            console.warn("Search error: " + e + document);
+            // console.warn("Search error: " + e + document);
         }
     }
 
-    public async search(query: string) {
+    public async updateDocuments(documents: any[]) {
+        try {
+            const res = await rp.post(this.url + "dash/update", {
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify(documents)
+            });
+            return res;
+        } catch (e) {
+            // console.warn("Search error: " + e + document);
+        }
+    }
+
+    public async search(query: string, start: number = 0) {
         try {
             const searchResults = JSON.parse(await rp.get(this.url + "dash/select", {
                 qs: {
                     q: query,
-                    fl: "id"
+                    fl: "id",
+                    start: start
                 }
             }));
-            const fields = searchResults.response.docs;
-            const ids = fields.map((field: any) => field.id);
-            return ids;
+            const { docs, numFound } = searchResults.response;
+            const ids = docs.map((field: any) => field.id);
+            return { ids, numFound };
         } catch {
-            return [];
+            return { ids: [], numFound: -1 };
         }
     }
 
@@ -45,5 +58,26 @@ export class Search {
                 json: true
             });
         } catch { }
+    }
+
+    public deleteDocuments(docs: string[]) {
+        const promises: rp.RequestPromise[] = [];
+        const nToDelete = 1000;
+        let index = 0;
+        while (index < docs.length) {
+            const count = Math.min(docs.length - index, nToDelete);
+            const deleteIds = docs.slice(index, index + count);
+            index += count;
+            promises.push(rp.post(this.url + "dash/update", {
+                body: {
+                    delete: {
+                        query: deleteIds.map(id => `id:"${id}"`).join(" ")
+                    }
+                },
+                json: true
+            }));
+        }
+
+        return Promise.all(promises);
     }
 }

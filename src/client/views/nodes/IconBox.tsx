@@ -37,14 +37,14 @@ export class IconBox extends React.Component<FieldViewProps> {
         return <FontAwesomeIcon icon={button} className="documentView-minimizedIcon" />;
     }
 
-    setLabelField = (e: React.MouseEvent): void => {
+    setLabelField = (): void => {
         this.props.Document.hideLabel = !BoolCast(this.props.Document.hideLabel);
     }
-    setUseOwnTitleField = (e: React.MouseEvent): void => {
+    setUseOwnTitleField = (): void => {
         this.props.Document.useOwnTitle = !BoolCast(this.props.Document.useTargetTitle);
     }
 
-    specificContextMenu = (e: React.MouseEvent): void => {
+    specificContextMenu = (): void => {
         ContextMenu.Instance.addItem({
             description: BoolCast(this.props.Document.hideLabel) ? "Show label with icon" : "Remove label from icon",
             event: this.setLabelField

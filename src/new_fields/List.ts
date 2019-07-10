@@ -7,6 +7,7 @@ import { ObjectField } from "./ObjectField";
 import { RefField } from "./RefField";
 import { ProxyField } from "./Proxy";
 import { Self, Update, Parent, OnUpdate, SelfProxy, ToScriptString, Copy } from "./FieldSymbols";
+import { Scripting } from "../client/util/Scripting";
 
 const listHandlers: any = {
     /// Mutator methods
@@ -295,3 +296,5 @@ class ListImpl<T extends Field> extends ObjectField {
 }
 export type List<T extends Field> = ListImpl<T> & (T | (T extends RefField ? Promise<T> : never))[];
 export const List: { new <T extends Field>(fields?: T[]): List<T> } = ListImpl as any;
+
+Scripting.addGlobal("List", List);

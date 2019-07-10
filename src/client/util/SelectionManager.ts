@@ -1,49 +1,65 @@
-import { observable, action } from "mobx";
-import { Doc } from "../../new_fields/Doc";
+import { observable, action, runInAction, IReactionDisposer, reaction, autorun } from "mobx";
+import { Doc, Opt } from "../../new_fields/Doc";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
-import { NumCast } from "../../new_fields/Types";
+import { NumCast, StrCast } from "../../new_fields/Types";
+import { InkingControl } from "../views/InkingControl";
 
 export namespace SelectionManager {
+
     class Manager {
-        @observable
-        SelectedDocuments: Array<DocumentView> = [];
+
+        @observable IsDragging: boolean = false;
+        @observable SelectedDocuments: Array<DocumentView> = [];
+
 
         @action
-        SelectDoc(doc: DocumentView, ctrlPressed: boolean): void {
+        SelectDoc(docView: DocumentView, ctrlPressed: boolean): void {
             // if doc is not in SelectedDocuments, add it
-            if (!ctrlPressed) {
-                this.DeselectAll();
-            }
+            if (manager.SelectedDocuments.indexOf(docView) === -1) {
+                if (!ctrlPressed) {
+                    this.DeselectAll();
+                }
 
-            if (manager.SelectedDocuments.indexOf(doc) === -1) {
-                manager.SelectedDocuments.push(doc);
-                doc.props.whenActiveChanged(true);
+                manager.SelectedDocuments.push(docView);
+                // console.log(manager.SelectedDocuments);
+                docView.props.whenActiveChanged(true);
             }
         }
-
+        @action
+        DeselectDoc(docView: DocumentView): void {
+            let ind = manager.SelectedDocuments.indexOf(docView);
+            if (ind !== -1) {
+                manager.SelectedDocuments.splice(ind, 1);
+                docView.props.whenActiveChanged(false);
+            }
+        }
         @action
         DeselectAll(): void {
             manager.SelectedDocuments.map(dv => dv.props.whenActiveChanged(false));
             manager.SelectedDocuments = [];
             FormattedTextBox.InputBoxOverlay = undefined;
         }
-        @action
-        ReselectAll() {
-            let sdocs = manager.SelectedDocuments.map(d => d);
-            manager.SelectedDocuments = [];
-            return sdocs;
-        }
-        @action
-        ReselectAll2(sdocs: DocumentView[]) {
-            sdocs.map(s => SelectionManager.SelectDoc(s, true));
-        }
     }
 
     const manager = new Manager();
+    reaction(() => manager.SelectedDocuments, sel => {
+        let targetColor = "#FFFFFF";
+        if (sel.length > 0) {
+            let firstView = sel[0];
+            let doc = firstView.props.Document;
+            let targetDoc = doc.isTemplate ? doc : Doc.GetProto(doc);
+            let stored = StrCast(targetDoc.backgroundColor);
+            stored.length > 0 && (targetColor = stored);
+        }
+        InkingControl.Instance.updateSelectedColor(targetColor);
+    }, { fireImmediately: true });
 
-    export function SelectDoc(doc: DocumentView, ctrlPressed: boolean): void {
-        manager.SelectDoc(doc, ctrlPressed);
+    export function DeselectDoc(docView: DocumentView): void {
+        manager.DeselectDoc(docView);
+    }
+    export function SelectDoc(docView: DocumentView, ctrlPressed: boolean): void {
+        manager.SelectDoc(docView, ctrlPressed);
     }
 
     export function IsSelected(doc: DocumentView): boolean {
@@ -62,14 +78,13 @@ export namespace SelectionManager {
         if (found) manager.SelectDoc(found, false);
     }
 
-    export function ReselectAll() {
-        let sdocs = manager.ReselectAll();
-        setTimeout(() => manager.ReselectAll2(sdocs), 0);
-    }
+    export function SetIsDragging(dragging: boolean) { runInAction(() => manager.IsDragging = dragging); }
+    export function GetIsDragging() { return manager.IsDragging; }
+
     export function SelectedDocuments(): Array<DocumentView> {
-        return manager.SelectedDocuments;
+        return manager.SelectedDocuments.slice();
     }
-    export function ViewsSortedVertically(): DocumentView[] {
+    export function ViewsSortedHorizontally(): DocumentView[] {
         let sorted = SelectionManager.SelectedDocuments().slice().sort((doc1, doc2) => {
             if (NumCast(doc1.props.Document.x) > NumCast(doc2.props.Document.x)) return 1;
             if (NumCast(doc1.props.Document.x) < NumCast(doc2.props.Document.x)) return -1;
@@ -77,7 +92,7 @@ export namespace SelectionManager {
         });
         return sorted;
     }
-    export function ViewsSortedHorizontally(): DocumentView[] {
+    export function ViewsSortedVertically(): DocumentView[] {
         let sorted = SelectionManager.SelectedDocuments().slice().sort((doc1, doc2) => {
             if (NumCast(doc1.props.Document.y) > NumCast(doc2.props.Document.y)) return 1;
             if (NumCast(doc1.props.Document.y) < NumCast(doc2.props.Document.y)) return -1;

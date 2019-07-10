@@ -1,73 +1,91 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
-import { faClone, faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faTree, faUndoAlt, faBell } from '@fortawesome/free-solid-svg-icons';
+import { faArrowDown, faArrowUp, faClone, faCheck, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faThumbtack, faTree, faUndoAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, configure, observable, runInAction, trace } from 'mobx';
+import { action, computed, configure, observable, runInAction, reaction, trace } from 'mobx';
 import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
+import { SketchPicker } from 'react-color';
 import Measure from 'react-measure';
 import * as request from 'request';
+import { Doc, DocListCast, Opt, HeightSym } from '../../new_fields/Doc';
+import { Id } from '../../new_fields/FieldSymbols';
+import { InkTool } from '../../new_fields/InkField';
+import { List } from '../../new_fields/List';
+import { listSpec } from '../../new_fields/Schema';
+import { Cast, FieldValue, NumCast } from '../../new_fields/Types';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { RouteStore } from '../../server/RouteStore';
-import { emptyFunction, returnTrue, Utils, returnOne, returnZero } from '../../Utils';
+import { emptyFunction, returnOne, returnTrue } from '../../Utils';
+import { DocServer } from '../DocServer';
 import { Docs } from '../documents/Documents';
-import { SetupDrag, DragManager } from '../util/DragManager';
+import { SetupDrag } from '../util/DragManager';
+import { HistoryUtil } from '../util/History';
 import { Transform } from '../util/Transform';
 import { UndoManager } from '../util/UndoManager';
-import { PresentationView } from './PresentationView';
+import { CollectionBaseView } from './collections/CollectionBaseView';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { ContextMenu } from './ContextMenu';
 import { DocumentDecorations } from './DocumentDecorations';
+import KeyManager from './GlobalKeyHandler';
 import { InkingControl } from './InkingControl';
 import "./Main.scss";
 import { MainOverlayTextBox } from './MainOverlayTextBox';
 import { DocumentView } from './nodes/DocumentView';
+import { OverlayView } from './OverlayView';
+import PDFMenu from './pdf/PDFMenu';
+import { PresentationView } from './presentationview/PresentationView';
 import { PreviewCursor } from './PreviewCursor';
-import { SearchBox } from './SearchBox';
-import { SelectionManager } from '../util/SelectionManager';
-import { FieldResult, Field, Doc, Opt, DocListCast } from '../../new_fields/Doc';
-import { Cast, FieldValue, StrCast, PromiseValue } from '../../new_fields/Types';
-import { DocServer } from '../DocServer';
-import { listSpec } from '../../new_fields/Schema';
-import { Id } from '../../new_fields/FieldSymbols';
-import { HistoryUtil } from '../util/History';
-import { CollectionBaseView } from './collections/CollectionBaseView';
-import { timingSafeEqual } from 'crypto';
-import * as _ from "lodash";
+import { FilterBox } from './search/FilterBox';
+import { CollectionTreeView } from './collections/CollectionTreeView';
 
 @observer
 export class MainView extends React.Component {
     public static Instance: MainView;
+    @observable addMenuToggle = React.createRef<HTMLInputElement>();
     @observable private _workspacesShown: boolean = false;
     @observable public pwidth: number = 0;
     @observable public pheight: number = 0;
     @computed private get mainContainer(): Opt<Doc> {
         return FieldValue(Cast(CurrentUserUtils.UserDocument.activeWorkspace, Doc));
     }
-    @computed private get mainFreeform(): Opt<Doc> {
+    @computed get mainFreeform(): Opt<Doc> {
         let docs = DocListCast(this.mainContainer!.data);
         return (docs && docs.length > 1) ? docs[1] : undefined;
     }
-    private globalDisplayFlags = observable({
-        jumpToVisible: false
-    });
-
+    public isPointerDown = false;
     private set mainContainer(doc: Opt<Doc>) {
         if (doc) {
             if (!("presentationView" in doc)) {
-                doc.presentationView = Docs.Create.TreeDocument([], { title: "Presentation" });
+                doc.presentationView = new List<Doc>([Docs.Create.TreeDocument([], { title: "Presentation" })]);
             }
             CurrentUserUtils.UserDocument.activeWorkspace = doc;
         }
     }
 
     componentWillMount() {
-        document.removeEventListener("keydown", this.globalKeyHandler);
-        document.addEventListener("keydown", this.globalKeyHandler);
+        window.removeEventListener("keydown", KeyManager.Instance.handle);
+        window.addEventListener("keydown", KeyManager.Instance.handle);
+
+        reaction(() => {
+            let workspaces = CurrentUserUtils.UserDocument.workspaces;
+            let recent = CurrentUserUtils.UserDocument.recentlyClosed;
+            if (!(recent instanceof Doc)) return 0;
+            if (!(workspaces instanceof Doc)) return 0;
+            let workspacesDoc = workspaces;
+            let recentDoc = recent;
+            let libraryHeight = this.getPHeight() - workspacesDoc[HeightSym]() - recentDoc[HeightSym]() - 20 + CurrentUserUtils.UserDocument[HeightSym]() * 0.00001;
+            return libraryHeight;
+        }, (libraryHeight: number) => {
+            if (libraryHeight && Math.abs(CurrentUserUtils.UserDocument[HeightSym]() - libraryHeight) > 5) {
+                CurrentUserUtils.UserDocument.height = libraryHeight;
+            }
+            (Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc) as Doc).allowClear = true;
+        }, { fireImmediately: true });
     }
 
     componentWillUnMount() {
-        document.removeEventListener("keydown", this.globalKeyHandler);
+        window.removeEventListener("keydown", KeyManager.Instance.handle);
     }
 
     constructor(props: Readonly<{}>) {
@@ -95,6 +113,7 @@ export class MainView extends React.Component {
         }
 
         library.add(faFont);
+        library.add(faExclamation);
         library.add(faImage);
         library.add(faFilePdf);
         library.add(faObjectGroup);
@@ -106,7 +125,13 @@ export class MainView extends React.Component {
         library.add(faFilm);
         library.add(faMusic);
         library.add(faTree);
-        library.add(faClone)
+        library.add(faClone);
+        library.add(faCut);
+        library.add(faCommentAlt);
+        library.add(faThumbtack);
+        library.add(faCheck);
+        library.add(faArrowDown);
+        library.add(faArrowUp);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
@@ -115,18 +140,12 @@ export class MainView extends React.Component {
         // window.addEventListener("pointermove", (e) => this.reportLocation(e))
         window.addEventListener("drop", (e) => e.preventDefault(), false); // drop event handler
         window.addEventListener("dragover", (e) => e.preventDefault(), false); // drag event handler
-        window.addEventListener("keydown", (e) => {
-            if (e.key === "Escape") {
-                DragManager.AbortDrag();
-                SelectionManager.DeselectAll();
-            }
-        }, false); // drag event handler
         // click interactions for the context menu
-        document.addEventListener("pointerdown", action(function (e: PointerEvent) {
-
+        document.addEventListener("pointerdown", action((e: PointerEvent) => {
+            this.isPointerDown = true;
             const targets = document.elementsFromPoint(e.x, e.y);
             if (targets && targets.length && targets[0].className.toString().indexOf("contextMenu") === -1) {
-                ContextMenu.Instance.clearItems();
+                ContextMenu.Instance.closeMenu();
             }
         }), true);
     }
@@ -141,22 +160,27 @@ export class MainView extends React.Component {
                 this.createNewWorkspace();
             }
         } else {
-            DocServer.getRefField(CurrentUserUtils.MainDocId).then(field =>
+            DocServer.GetRefField(CurrentUserUtils.MainDocId).then(field =>
                 field instanceof Doc ? this.openWorkspace(field) :
                     this.createNewWorkspace(CurrentUserUtils.MainDocId));
         }
     }
 
+
     @action
     createNewWorkspace = async (id?: string) => {
-        const list = Cast(CurrentUserUtils.UserDocument.data, listSpec(Doc));
+        let workspaces = Cast(CurrentUserUtils.UserDocument.workspaces, Doc);
+        if (!(workspaces instanceof Doc)) return;
+        const list = Cast((CurrentUserUtils.UserDocument.workspaces as Doc).data, listSpec(Doc));
         if (list) {
             let freeformDoc = Docs.Create.FreeformDocument([], { x: 0, y: 400, width: this.pwidth * .7, height: this.pheight, title: `WS collection ${list.length + 1}` });
-            let configs = [
-                { doc: CurrentUserUtils.UserDocument, initialWidth: 150 },
-                { doc: freeformDoc, initialWidth: 600 }
-            ]
-            let mainDoc = Docs.Create.StandardCollectionDockingDocument(configs, { title: `Workspace ${list.length + 1}` }, id);
+            var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc, freeformDoc, 600)] }] };
+            let mainDoc = Docs.Create.DockDocument([CurrentUserUtils.UserDocument, freeformDoc], JSON.stringify(dockingLayout), { title: `Workspace ${list.length + 1}` }, id);
+            if (!CurrentUserUtils.UserDocument.linkManagerDoc) {
+                let linkManagerDoc = new Doc();
+                linkManagerDoc.allLinks = new List<Doc>([]);
+                CurrentUserUtils.UserDocument.linkManagerDoc = linkManagerDoc;
+            }
             list.push(mainDoc);
             // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
             setTimeout(() => {
@@ -166,8 +190,6 @@ export class MainView extends React.Component {
             }, 0);
         }
     }
-
-    @observable _notifsCol: Opt<Doc>;
 
     @action
     openWorkspace = async (doc: Doc, fromHistory = false) => {
@@ -180,16 +202,16 @@ export class MainView extends React.Component {
             if (col) {
                 const l = Cast(col.data, listSpec(Doc));
                 if (l) {
-                    runInAction(() => this._notifsCol = col);
+                    runInAction(() => CollectionTreeView.NotifsCol = col);
                 }
             }
         }, 100);
     }
 
-    openNotifsCol = () => {
-        if (this._notifsCol && CollectionDockingView.TopLevel) {
-            CollectionDockingView.AddRightSplit(this._notifsCol);
-        }
+    onDrop = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log("Drop");
     }
 
     @action
@@ -203,116 +225,202 @@ export class MainView extends React.Component {
     getPHeight = () => {
         return this.pheight;
     }
-    @computed
-    get mainContent() {
+
+    @observable flyoutWidth: number = 250;
+    @computed get dockingContent() {
+        let flyoutWidth = this.flyoutWidth;
         let mainCont = this.mainContainer;
-        let content = !mainCont ? (null) :
-            <DocumentView Document={mainCont}
-                addDocument={undefined}
-                addDocTab={emptyFunction}
-                removeDocument={undefined}
-                ScreenToLocalTransform={Transform.Identity}
-                ContentScaling={returnOne}
-                PanelWidth={this.getPWidth}
-                PanelHeight={this.getPHeight}
-                isTopMost={true}
-                selectOnLoad={false}
-                focus={emptyFunction}
-                parentActive={returnTrue}
-                whenActiveChanged={emptyFunction}
-                bringToFront={emptyFunction}
-                ContainingCollectionView={undefined} />;
-        const pres = mainCont ? FieldValue(Cast(mainCont.presentationView, Doc)) : undefined;
+        let castRes = mainCont ? FieldValue(Cast(mainCont.presentationView, listSpec(Doc))) : undefined;
         return <Measure offset onResize={this.onResize}>
             {({ measureRef }) =>
-                <div ref={measureRef} id="mainContent-div">
-                    {content}
-                    {pres ? <PresentationView Document={pres} key="presentation" /> : null}
+                <div ref={measureRef} id="mainContent-div" style={{ width: `calc(100% - ${flyoutWidth}px`, transform: `translate(${flyoutWidth}px, 0px)` }} onDrop={this.onDrop}>
+                    {!mainCont ? (null) :
+                        <DocumentView Document={mainCont}
+                            DataDoc={undefined}
+                            addDocument={undefined}
+                            addDocTab={emptyFunction}
+                            removeDocument={undefined}
+                            ScreenToLocalTransform={Transform.Identity}
+                            ContentScaling={returnOne}
+                            PanelWidth={this.getPWidth}
+                            PanelHeight={this.getPHeight}
+                            renderDepth={0}
+                            selectOnLoad={false}
+                            focus={emptyFunction}
+                            parentActive={returnTrue}
+                            whenActiveChanged={emptyFunction}
+                            bringToFront={emptyFunction}
+                            ContainingCollectionView={undefined}
+                            zoomToScale={emptyFunction}
+                            getScale={returnOne}
+                        />}
+                    {castRes ? <PresentationView Documents={castRes} key="presentation" /> : null}
                 </div>
             }
         </Measure>;
     }
 
+    _downsize = 0;
+    onPointerDown = (e: React.PointerEvent) => {
+        this._downsize = e.clientX;
+        document.removeEventListener("pointermove", this.onPointerMove);
+        document.removeEventListener("pointerup", this.onPointerUp);
+        document.addEventListener("pointermove", this.onPointerMove);
+        document.addEventListener("pointerup", this.onPointerUp);
+        e.stopPropagation();
+        e.preventDefault();
+    }
+    @action
+    onPointerMove = (e: PointerEvent) => {
+        this.flyoutWidth = Math.max(e.clientX, 0);
+    }
+    @action
+    onPointerUp = (e: PointerEvent) => {
+        this.isPointerDown = false;
+        if (Math.abs(e.clientX - this._downsize) < 4) {
+            if (this.flyoutWidth < 5) this.flyoutWidth = 250;
+            else this.flyoutWidth = 0;
+        }
+        document.removeEventListener("pointermove", this.onPointerMove);
+        document.removeEventListener("pointerup", this.onPointerUp);
+    }
+    flyoutWidthFunc = () => this.flyoutWidth;
+    addDocTabFunc = (doc: Doc) => {
+        if (doc.dockingConfig) {
+            this.openWorkspace(doc);
+        } else {
+            CollectionDockingView.Instance.AddRightSplit(doc, undefined);
+        }
+    }
+    @computed
+    get flyout() {
+        let sidebar = CurrentUserUtils.UserDocument.sidebar;
+        if (!(sidebar instanceof Doc)) return (null);
+        let sidebarDoc = sidebar;
+        return <DocumentView
+            Document={sidebarDoc}
+            DataDoc={undefined}
+            addDocument={undefined}
+            addDocTab={this.addDocTabFunc}
+            removeDocument={undefined}
+            ScreenToLocalTransform={Transform.Identity}
+            ContentScaling={returnOne}
+            PanelWidth={this.flyoutWidthFunc}
+            PanelHeight={this.getPHeight}
+            renderDepth={0}
+            selectOnLoad={false}
+            focus={emptyFunction}
+            parentActive={returnTrue}
+            whenActiveChanged={emptyFunction}
+            bringToFront={emptyFunction}
+            ContainingCollectionView={undefined}
+            zoomToScale={emptyFunction}
+            getScale={returnOne}>
+        </DocumentView>;
+    }
+    @computed
+    get mainContent() {
+        return <div>
+            <div className="mainView-libraryHandle"
+                style={{ left: `${this.flyoutWidth - 10}px` }}
+                onPointerDown={this.onPointerDown}>
+                <span title="library View Dragger" style={{ width: "100%", height: "100%", position: "absolute" }} />
+            </div>
+            <div className="mainView-libraryFlyout" style={{ width: `${this.flyoutWidth}px` }}>
+                {this.flyout}
+            </div>
+            {this.dockingContent}
+        </div>;
+    }
+
+    selected = (tool: InkTool) => {
+        if (!InkingControl.Instance || InkingControl.Instance.selectedTool === InkTool.None) return { display: "none" };
+        if (InkingControl.Instance.selectedTool === tool) {
+            return { color: "#61aaa3", fontSize: "50%" };
+        }
+        return { fontSize: "50%" };
+    }
+
+    onColorClick = (e: React.MouseEvent) => {
+        let target = (e.nativeEvent as any).path[0];
+        let parent = (e.nativeEvent as any).path[1];
+        if (target.localName === "input" || parent.localName === "span") {
+            e.stopPropagation();
+        }
+    }
+
+
+    @observable private _colorPickerDisplay = false;
     /* for the expandable add nodes menu. Not included with the miscbuttons because once it expands it expands the whole div with it, making canvas interactions limited. */
     nodesMenu() {
 
         let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
-        let pdfurl = "http://www.adobe.com/support/products/enterprise/knowledgecenter/media/c27211_sample_explain.pdf";
-        let weburl = "https://cs.brown.edu/courses/cs166/";
-        let audiourl = "http://techslides.com/demos/samples/sample.mp3";
-        let videourl = "http://techslides.com/demos/sample-videos/small.mp4";
 
-        let addTextNode = action(() => Docs.Create.TextDocument({ borderRounding: -1, width: 200, height: 200, title: "a text note" }));
-        let addColNode = action(() => Docs.Create.FreeformDocument([], { width: this.pwidth * .7, height: this.pheight, title: "a freeform collection" }));
         let addDockingNode = action(() => Docs.Create.StandardCollectionDockingDocument([{ doc: addColNode(), initialWidth: 200 }], { width: 200, height: 200, title: "a nested docking freeform collection" }));
         let addSchemaNode = action(() => Docs.Create.SchemaDocument(["title"], [], { width: 200, height: 200, title: "a schema collection" }));
-        let addTreeNode = action(() => CurrentUserUtils.UserDocument);
         //let addTreeNode = action(() => Docs.TreeDocument([CurrentUserUtils.UserDocument], { width: 250, height: 400, title: "Library:" + CurrentUserUtils.email, dropAction: "alias" }));
         // let addTreeNode = action(() => Docs.TreeDocument(this._northstarSchemas, { width: 250, height: 400, title: "northstar schemas", dropAction: "copy"  }));
-        let addVideoNode = action(() => Docs.Create.VideoDocument(videourl, { width: 200, title: "video node" }));
-        let addPDFNode = action(() => Docs.Create.PdfDocument(pdfurl, { width: 200, height: 200, title: "a pdf doc" }));
+        let addColNode = action(() => Docs.Create.FreeformDocument([], { width: this.pwidth * .7, height: this.pheight, title: "a freeform collection" }));
+        let addTreeNode = action(() => CurrentUserUtils.UserDocument);
         let addImageNode = action(() => Docs.Create.ImageDocument(imgurl, { width: 200, title: "an image of a cat" }));
-        let addWebNode = action(() => Docs.Create.WebDocument(weburl, { width: 200, height: 200, title: "a sample web page" }));
-        let addAudioNode = action(() => Docs.Create.AudioDocument(audiourl, { width: 200, height: 200, title: "audio node" }));
+        let addImportCollectionNode = action(() => Docs.Create.DirectoryImportDocument({ title: "Directory Import", width: 400, height: 400 }));
 
         let btns: [React.RefObject<HTMLDivElement>, IconName, string, () => Doc][] = [
-            [React.createRef<HTMLDivElement>(), "font", "Add Textbox", addTextNode],
             [React.createRef<HTMLDivElement>(), "image", "Add Image", addImageNode],
-            [React.createRef<HTMLDivElement>(), "file-pdf", "Add PDF", addPDFNode],
-            [React.createRef<HTMLDivElement>(), "film", "Add Video", addVideoNode],
-            [React.createRef<HTMLDivElement>(), "music", "Add Audio", addAudioNode],
-            [React.createRef<HTMLDivElement>(), "globe-asia", "Add Web Clipping", addWebNode],
             [React.createRef<HTMLDivElement>(), "object-group", "Add Collection", addColNode],
             [React.createRef<HTMLDivElement>(), "tree", "Add Tree", addTreeNode],
             [React.createRef<HTMLDivElement>(), "table", "Add Schema", addSchemaNode],
-            [React.createRef<HTMLDivElement>(), "clone", "Add Docking Frame", addDockingNode]
+            [React.createRef<HTMLDivElement>(), "clone", "Add Docking Frame", addDockingNode],
+            [React.createRef<HTMLDivElement>(), "arrow-up", "Import Directory", addImportCollectionNode],
         ];
 
-        return < div id="add-nodes-menu" >
-            <input type="checkbox" id="add-menu-toggle" />
+        return < div id="add-nodes-menu" style={{ left: this.flyoutWidth + 5 }} >
+            <input type="checkbox" id="add-menu-toggle" ref={this.addMenuToggle} />
             <label htmlFor="add-menu-toggle" title="Add Node"><p>+</p></label>
 
             <div id="add-options-content">
                 <ul id="add-options-list">
+                    <li key="search"><button className="add-button round-button" title="Search" onClick={this.toggleSearch}><FontAwesomeIcon icon="search" size="sm" /></button></li>
+                    <li key="undo"><button className="add-button round-button" title="Undo" onClick={() => UndoManager.Undo()}><FontAwesomeIcon icon="undo-alt" size="sm" /></button></li>
+                    <li key="redo"><button className="add-button round-button" title="Redo" onClick={() => UndoManager.Redo()}><FontAwesomeIcon icon="redo-alt" size="sm" /></button></li>
+                    <li key="color"><button className="add-button round-button" title="Select Color" onClick={() => this.toggleColorPicker()}><div className="toolbar-color-button" style={{ backgroundColor: InkingControl.Instance.selectedColor }} >
+                        <div className="toolbar-color-picker" onClick={this.onColorClick} style={this._colorPickerDisplay ? { color: "black", display: "block" } : { color: "black", display: "none" }}>
+                            <SketchPicker color={InkingControl.Instance.selectedColor} onChange={InkingControl.Instance.switchColor} />
+                        </div>
+                    </div></button></li>
                     {btns.map(btn =>
                         <li key={btn[1]} ><div ref={btn[0]}>
                             <button className="round-button add-button" title={btn[2]} onPointerDown={SetupDrag(btn[0], btn[3])}>
                                 <FontAwesomeIcon icon={btn[1]} size="sm" />
                             </button>
                         </div></li>)}
+                    <li key="undoTest"><button className="add-button round-button" onClick={() => UndoManager.PrintBatches()}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>
+                    <li key="ink" style={{ paddingRight: "6px" }}><button className="toolbar-button round-button" title="Ink" onClick={() => InkingControl.Instance.toggleDisplay()}><FontAwesomeIcon icon="pen-nib" size="sm" /> </button></li>
+                    <li key="pen"><button onClick={() => InkingControl.Instance.switchTool(InkTool.Pen)} style={this.selected(InkTool.Pen)}><FontAwesomeIcon icon="pen" size="lg" title="Pen" /></button></li>
+                    <li key="marker"><button onClick={() => InkingControl.Instance.switchTool(InkTool.Highlighter)} style={this.selected(InkTool.Highlighter)}><FontAwesomeIcon icon="highlighter" size="lg" title="Pen" /></button></li>
+                    <li key="eraser"><button onClick={() => InkingControl.Instance.switchTool(InkTool.Eraser)} style={this.selected(InkTool.Eraser)}><FontAwesomeIcon icon="eraser" size="lg" title="Pen" /></button></li>
+                    <li key="inkControls"><InkingControl /></li>
                 </ul>
             </div>
         </div >;
     }
 
+
+
+    @action
+    toggleColorPicker = (close = false) => {
+        this._colorPickerDisplay = close ? false : !this._colorPickerDisplay;
+    }
+
     /* @TODO this should really be moved into a moveable toolbar component, but for now let's put it here to meet the deadline */
     @computed
     get miscButtons() {
-        const length = this._notifsCol ? DocListCast(this._notifsCol.data).length : 0;
-        const notifsRef = React.createRef<HTMLDivElement>();
-        const dragNotifs = action(() => this._notifsCol!);
         let logoutRef = React.createRef<HTMLDivElement>();
 
         return [
-            <button className="clear-db-button" key="clear-db" onClick={e => e.shiftKey && e.altKey && DocServer.Util.deleteDatabase()}>Clear Database</button>,
-            <div id="toolbar" key="toolbar">
-                <div ref={notifsRef}>
-                    <button className="toolbar-button round-button" title="Notifs"
-                        onClick={this.openNotifsCol} onPointerDown={this._notifsCol ? SetupDrag(notifsRef, dragNotifs) : emptyFunction}>
-                        <FontAwesomeIcon icon={faBell} size="sm" />
-                    </button>
-                    <div className="main-notifs-badge" style={length > 0 ? { "display": "initial" } : { "display": "none" }}>
-                        {length}
-                    </div>
-                </div>
-                <button className="toolbar-button round-button" title="Search" onClick={this.toggleSearch}><FontAwesomeIcon icon="search" size="sm" /></button>
-                <button className="toolbar-button round-button" title="Undo" onClick={() => UndoManager.Undo()}><FontAwesomeIcon icon="undo-alt" size="sm" /></button>
-                <button className="toolbar-button round-button" title="Redo" onClick={() => UndoManager.Redo()}><FontAwesomeIcon icon="redo-alt" size="sm" /></button>
-                <button className="toolbar-button round-button" title="Ink" onClick={() => InkingControl.Instance.toggleDisplay()}><FontAwesomeIcon icon="pen-nib" size="sm" /></button>
-            </div >,
-            this.isSearchVisible ? <div className="main-searchDiv" key="search" style={{ top: '34px', right: '1px', position: 'absolute' }} > <SearchBox /> </div> : null,
+            this.isSearchVisible ? <div className="main-searchDiv" key="search" style={{ top: '34px', right: '1px', position: 'absolute' }} > <FilterBox /> </div> : null,
             <div className="main-buttonDiv" key="logout" style={{ bottom: '0px', right: '1px', position: 'absolute' }} ref={logoutRef}>
-                <button onClick={() => request.get(DocServer.Util.prepend(RouteStore.logout), emptyFunction)}>Log Out</button></div>
+                <button onClick={() => window.location.assign(DocServer.prepend(RouteStore.logout))}>Log Out</button></div>
         ];
 
     }
@@ -323,36 +431,6 @@ export class MainView extends React.Component {
         this.isSearchVisible = !this.isSearchVisible;
     }
 
-    @action
-    globalKeyHandler = (e: KeyboardEvent) => {
-        if (e.key === "Control" || !e.ctrlKey) return;
-
-        e.preventDefault();
-        e.stopPropagation();
-
-        switch (e.key) {
-            case "ArrowRight":
-                if (this.mainFreeform) {
-                    CollectionDockingView.AddRightSplit(this.mainFreeform!);
-                }
-                break;
-            case "ArrowLeft":
-                if (this.mainFreeform) {
-                    CollectionDockingView.CloseRightSplit(this.mainFreeform!);
-                }
-                break;
-            case "o":
-                this.globalDisplayFlags.jumpToVisible = true;
-                break;
-            case "escape":
-                _.mapValues(this.globalDisplayFlags, () => false)
-                break;
-        }
-    }
-
-    renderJumpTo = () => {
-        return <div>JUMP TO</div>;
-    }
 
     render() {
         return (
@@ -363,10 +441,10 @@ export class MainView extends React.Component {
                 <ContextMenu />
                 {this.nodesMenu()}
                 {this.miscButtons}
-                <InkingControl />
+                <PDFMenu />
                 <MainOverlayTextBox />
-                {this.globalDisplayFlags.jumpToVisible ? this.renderJumpTo() : (null)}
-            </div>
+                <OverlayView />
+            </div >
         );
     }
 }

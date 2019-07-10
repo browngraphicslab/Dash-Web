@@ -1,0 +1,187 @@
+@import "../globalCssVariables";
+
+.search-overview {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    height: 70px;
+    z-index: 0;
+
+    .search-item {
+        width: 500px;
+        background: $light-color-secondary;
+        border-color: $intermediate-color;
+        border-bottom-style: solid;
+        padding: 10px;
+        height: 70px;
+        z-index: 0;
+        display: inline-block;
+
+        .main-search-info {
+            display: flex;
+            flex-direction: row;
+            width: 100%;
+
+            .search-title {
+                text-transform: uppercase;
+                text-align: left;
+                width: 100%;
+                font-weight: bold;
+            }
+
+            .search-info {
+                display: flex;
+                justify-content: flex-end;
+
+                .link-container.item {
+                    margin-left: auto;
+                    margin-right: auto;
+                    height: 26px;
+                    width: 26px;
+                    border-radius: 13px;
+                    background: $dark-color;
+                    color: $light-color-secondary;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    -webkit-transition: all 0.2s ease-in-out;
+                    -moz-transition: all 0.2s ease-in-out;
+                    -o-transition: all 0.2s ease-in-out;
+                    transition: all 0.2s ease-in-out;
+                    transform-origin: top right;
+                    overflow: hidden;
+                    position: relative;
+
+                    .link-count {
+                        opacity: 1;
+                        position: absolute;
+                        z-index: 1000;
+                        text-align: center;
+                        -webkit-transition: opacity 0.2s ease-in-out;
+                        -moz-transition: opacity 0.2s ease-in-out;
+                        -o-transition: opacity 0.2s ease-in-out;
+                        transition: opacity 0.2s ease-in-out;
+                    }
+
+                    .link-extended {
+                        opacity: 0;
+                        position: relative;
+                        z-index: 500;
+                        overflow: hidden;
+                        -webkit-transition: opacity 0.2s ease-in-out;
+                        -moz-transition: opacity 0.2s ease-in-out;
+                        -o-transition: opacity 0.2s ease-in-out;
+                        transition: opacity 0.2s ease-in-out;
+                    }
+                }
+
+                .link-container.item:hover {
+                    width: 70px;
+                }
+
+                .link-container.item:hover .link-count {
+                    opacity: 0;
+                }
+
+                .link-container.item:hover .link-extended {
+                    opacity: 1;
+                }
+                
+                .icon-icons {
+                    width:50px
+                }
+                .icon-live {
+                    width:175px;
+                }
+
+                .icon-icons, .icon-live {
+                    height:50px;
+                    margin:auto;
+                    overflow: hidden;
+                    .search-type {
+                        display: inline-block;
+                        width:100%;
+                        position: absolute;
+                        justify-content: center;
+                        align-items: center;
+                        position: relative;
+                        margin-right: 5px;
+                    }
+
+                    .pdfBox-cont {
+                        overflow: hidden;
+
+                        img {
+                            width:100% !important;
+                            height:auto !important;
+                        }
+                    }
+                    .search-type:hover+.search-label {
+                        opacity: 1;
+                    }
+
+                    .search-label {
+                        font-size: 10;
+                        position: relative;
+                        right: 0px;
+                        text-transform: capitalize;
+                        opacity: 0;
+                        -webkit-transition: opacity 0.2s ease-in-out;
+                        -moz-transition: opacity 0.2s ease-in-out;
+                        -o-transition: opacity 0.2s ease-in-out;
+                        transition: opacity 0.2s ease-in-out;
+                    }
+                }
+
+                .icon-live:hover {
+                    height:175px;
+                    .pdfBox-cont {
+                        img {
+                            width:100% !important;
+                        }
+                    }
+                }
+            }
+            .search-info:hover {
+                width:60%; 
+            }
+        }
+    }
+
+    .search-item:hover~.searchBox-instances,
+    .searchBox-instances:hover,
+    .searchBox-instances:active {
+        opacity: 1;
+        background: $lighter-alt-accent;
+        -webkit-transform: scale(1);
+        -ms-transform: scale(1);
+        transform: scale(1);
+    }
+
+    .search-item:hover {
+        transition: all 0.2s;
+        background: $lighter-alt-accent;
+    }
+
+    .searchBox-instances {
+        float: left;
+        opacity: 1;
+        width: 150px;
+        transition: all 0.2s ease;
+        color: black;
+        transform-origin: top right;
+        -webkit-transform: scale(0);
+        -ms-transform: scale(0);
+        transform: scale(0);
+    }
+
+}
+.search-overview:hover {
+    z-index: 1;
+}
+.collection {
+    display:flex;
+}
+.collection-item {
+    width:35px;
+}
