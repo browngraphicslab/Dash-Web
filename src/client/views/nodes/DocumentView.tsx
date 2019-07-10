@@ -10,7 +10,7 @@ import { BoolCast, Cast, FieldValue, StrCast, NumCast, PromiseValue } from "../.
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { emptyFunction, Utils, returnFalse, returnTrue } from "../../../Utils";
 import { DocServer } from "../../DocServer";
-import { Docs, DocUtils } from "../../documents/Documents";
+import { Docs, DocUtils, DocTypes } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager, dropActionType } from "../../util/DragManager";
 import { SearchUtil } from "../../util/SearchUtil";
@@ -79,7 +79,7 @@ export interface DocumentViewProps {
     moveDocument?: (doc: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
     renderDepth: number;
-    showOverlays?: (doc: Doc) => { title?: boolean, caption?: boolean };
+    showOverlays?: (doc: Doc) => { title?: string, caption?: string };
     ContentScaling: () => number;
     PanelWidth: () => number;
     PanelHeight: () => number;
@@ -595,15 +595,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let foregroundColor = StrCast(this.props.Document.layout instanceof Doc ? this.props.Document.layout.color : this.props.Document.color);
         var nativeWidth = this.nativeWidth > 0 ? `${this.nativeWidth}px` : "100%";
         var nativeHeight = BoolCast(this.props.Document.ignoreAspect) ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
-        let showTitle = this.props.showOverlays && this.props.showOverlays(this.props.Document).title;
-        let showCaption = this.props.showOverlays && this.props.showOverlays(this.props.Document).caption;
+        let showOverlays = this.props.showOverlays ? this.props.showOverlays(this.props.Document) : undefined;
+        let showTitle = showOverlays && showOverlays.title ? showOverlays.title : StrCast(this.props.Document.showTitle);
+        let showCaption = showOverlays && showOverlays.caption ? showOverlays.caption : StrCast(this.props.Document.showCaption);
         let templates = Cast(this.props.Document.templates, listSpec("string"));
         if (templates instanceof List) {
             templates.map(str => {
-                if (str.indexOf("{props.Document.title}") !== -1) showTitle = true;
-                if (str.indexOf("fieldKey={\"caption\"}") !== -1) showCaption = true;
+                if (str.indexOf("{props.Document.title}") !== -1) showTitle = "title";
+                if (str.indexOf("fieldKey={\"caption\"}") !== -1) showCaption = "caption";
             });
         }
+        let showTextTitle = showTitle && StrCast(this.props.Document.layout).startsWith("<FormattedTextBox") ? showTitle : undefined;
         return (
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
@@ -629,19 +631,21 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     <div style={{ position: "absolute", display: "inline-block", width: "100%", height: "100%", pointerEvents: "none" }}>
                         {!showTitle ? (null) :
                             <div style={{
-                                position: "absolute", top: 0, textAlign: "center", textOverflow: "ellipsis", whiteSpace: "pre",
+                                position: showTextTitle ? "relative" : "absolute", top: 0, textAlign: "center", textOverflow: "ellipsis", whiteSpace: "pre",
                                 overflow: "hidden", width: `${100 * this.props.ContentScaling()}%`, height: 25, background: "rgba(0, 0, 0, .4)", color: "white",
                                 transformOrigin: "top left", transform: `scale(${1 / this.props.ContentScaling()})`
                             }}>
-                                <span>{this.props.Document.title}</span>
+                                <span>{this.props.Document[showTitle]}</span>
                             </div>
                         }
                         {!showCaption ? (null) :
                             <div style={{ position: "absolute", bottom: 0, transformOrigin: "bottom left", width: `${100 * this.props.ContentScaling()}%`, transform: `scale(${1 / this.props.ContentScaling()})` }}>
-                                <FormattedTextBox {...this.props} DataDoc={this.dataDoc} active={returnTrue} isSelected={this.isSelected} focus={emptyFunction} select={this.select} selectOnLoad={this.props.selectOnLoad} fieldExt={""} hideOnLeave={true} fieldKey={"caption"} />
+                                <FormattedTextBox {...this.props} DataDoc={this.dataDoc} active={returnTrue} isSelected={this.isSelected} focus={emptyFunction} select={this.select} selectOnLoad={this.props.selectOnLoad} fieldExt={""} hideOnLeave={true} fieldKey={showCaption} />
                             </div>
                         }
-                        {this.contents}
+                        <div style={{ width: "100%", height: showTextTitle ? "calc(100% - 25px)" : "100%", display: "inline-block", position: showTextTitle ? "relative" : "absolute" }}>
+                            {this.contents}
+                        </div>
                     </div>
                 }
             </div>

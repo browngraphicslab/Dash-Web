@@ -1,6 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faEdit, faSmile } from '@fortawesome/free-solid-svg-icons';
-import { action, IReactionDisposer, observable, reaction, runInAction, computed } from "mobx";
+import { action, IReactionDisposer, observable, reaction, runInAction, computed, trace } from "mobx";
 import { observer } from "mobx-react";
 import { baseKeymap } from "prosemirror-commands";
 import { history } from "prosemirror-history";
@@ -128,8 +128,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             const state = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
             this._applyingChange = true;
-            Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()));
             Doc.GetProto(this.dataDoc)[this.props.fieldKey + "_text"] = state.doc.textBetween(0, state.doc.content.size, "\n\n");
+
+            Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()));
             this._applyingChange = false;
             let title = StrCast(this.dataDoc.title);
             if (title && title.startsWith("-") && this._editorView) {
@@ -226,8 +227,13 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 const field = this.dataDoc ? Cast(this.dataDoc[this.props.fieldKey], RichTextField) : undefined;
                 return field ? field.Data : `{"doc":{"type":"doc","content":[]},"selection":{"type":"text","anchor":0,"head":0}}`;
             },
-            field => this._editorView && !this._applyingChange &&
-                this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field)))
+            () => {
+                const field = this.dataDoc ? Cast(this.dataDoc[this.props.fieldKey], RichTextField) : undefined;
+                const field2 = field ? field.Data : `{"doc":{"type":"doc","content":[]},"selection":{"type":"text","anchor":0,"head":0}}`;
+                if (StrCast(this.props.Document.layout).indexOf("\"" + this.props.fieldKey + "\"") !== -1)
+                    this._editorView && !this._applyingChange &&
+                        this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field2)));
+            }
         );
         this.setupEditor(config, this.dataDoc, this.props.fieldKey);
     }
@@ -404,13 +410,14 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     @action
     tryUpdateHeight() {
         if (this.props.isOverlay && this.props.Document.autoHeight) {
+            let self = this;
             let xf = this._ref.current!.getBoundingClientRect();
             let scrBounds = this.props.ScreenToLocalTransform().transformBounds(0, 0, xf.width, xf.height);
             let nh = NumCast(this.dataDoc.nativeHeight, 0);
             let dh = NumCast(this.props.Document.height, 0);
             let sh = scrBounds.height;
             this.props.Document.height = nh ? dh / nh * sh : sh;
-            this.dataDoc.proto!.nativeHeight = nh ? sh : undefined;
+            Doc.GetProto(this.dataDoc).nativeHeight = nh ? sh : undefined;
         }
     }
 

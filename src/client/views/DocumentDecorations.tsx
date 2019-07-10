@@ -102,7 +102,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 fieldTemplate.nativeHeight = nh;
                 fieldTemplate.embed = true;
                 fieldTemplate.isTemplate = true;
-                fieldTemplate.templates = new List<string>([Templates.TitleBar(metaKey)]);
+                fieldTemplate.showTitle = "title";
                 fieldTemplate.proto = Doc.GetProto(docTemplate);
             }
             else {

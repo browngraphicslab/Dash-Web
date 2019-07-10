@@ -3,7 +3,7 @@ import { serializable, primitive, map, alias, list } from "serializr";
 import { autoObject, SerializationHelper, Deserializable } from "../client/util/SerializationHelper";
 import { DocServer } from "../client/DocServer";
 import { setter, getter, getField, updateFunction, deleteProperty, makeEditable, makeReadOnly } from "./util";
-import { Cast, ToConstructor, PromiseValue, FieldValue, NumCast } from "./Types";
+import { Cast, ToConstructor, PromiseValue, FieldValue, NumCast, BoolCast } from "./Types";
 import { listSpec } from "./Schema";
 import { ObjectField } from "./ObjectField";
 import { RefField, FieldId } from "./RefField";
@@ -320,10 +320,11 @@ export namespace Doc {
         if (expandedTemplateLayout instanceof Doc) {
             return expandedTemplateLayout;
         }
-        if (expandedTemplateLayout === undefined) {
+        if (expandedTemplateLayout === undefined && BoolCast(templateLayoutDoc.isTemplate)) {
             setTimeout(() => {
                 templateLayoutDoc["_expanded_" + dataDoc[Id]] = Doc.MakeDelegate(templateLayoutDoc);
                 (templateLayoutDoc["_expanded_" + dataDoc[Id]] as Doc).title = templateLayoutDoc.title + " applied to " + dataDoc.title;
+                (templateLayoutDoc["_expanded_" + dataDoc[Id]] as Doc).isExpandedTemplate = templateLayoutDoc;
             }, 0);
         }
         return templateLayoutDoc;
