@@ -32,6 +32,8 @@ export namespace DocServer {
         // _cache = {};
     }
 
+    export function isReadOnly() { return _isReadOnly; }
+
     export function prepend(extension: string): string {
         return window.location.origin + extension;
     }
