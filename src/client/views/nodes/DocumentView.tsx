@@ -605,7 +605,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 if (str.indexOf("fieldKey={\"caption\"}") !== -1) showCaption = "caption";
             });
         }
-        let showTextTitle = showTitle && StrCast(this.props.Document.layout).startsWith("<FormattedTextBox") ? showTitle : undefined;
+        let showTextTitle = showTitle && StrCast(this.props.Document.layout).startsWith("<FormattedTextBox") || (this.props.Document.layout instanceof Doc && StrCast(this.props.Document.layout.layout).startsWith("<FormattedTextBox")) ? showTitle : undefined;
         return (
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 ref={this._mainCont}

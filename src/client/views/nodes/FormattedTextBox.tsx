@@ -121,23 +121,23 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
-    @computed get dataDoc() { return BoolCast(this.props.Document.isTemplate) && this.props.DataDoc ? this.props.DataDoc : this.props.Document; }
+    @computed get extensionDoc() { return Doc.resolvedFieldDataDoc(this.dataDoc, this.props.fieldKey, "dummy"); }
+
+    @computed get dataDoc() { return BoolCast(this.props.Document.isTemplate) && this.props.DataDoc ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
 
     dispatchTransaction = (tx: Transaction) => {
         if (this._editorView) {
             const state = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
             this._applyingChange = true;
-            Doc.GetProto(this.dataDoc)[this.props.fieldKey + "_text"] = state.doc.textBetween(0, state.doc.content.size, "\n\n");
-
-            Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()));
+            if (this.extensionDoc) this.extensionDoc.text = state.doc.textBetween(0, state.doc.content.size, "\n\n");
+            this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()));
             this._applyingChange = false;
             let title = StrCast(this.dataDoc.title);
             if (title && title.startsWith("-") && this._editorView) {
                 let str = this._editorView.state.doc.textContent;
                 let titlestr = str.substr(0, Math.min(40, str.length));
-                let target = this.dataDoc.proto ? this.dataDoc.proto : this.dataDoc;
-                target.title = "-" + titlestr + (str.length > 40 ? "..." : "");
+                this.dataDoc.title = "-" + titlestr + (str.length > 40 ? "..." : "");
             }
         }
     }
@@ -227,10 +227,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 const field = this.dataDoc ? Cast(this.dataDoc[this.props.fieldKey], RichTextField) : undefined;
                 return field ? field.Data : `{"doc":{"type":"doc","content":[]},"selection":{"type":"text","anchor":0,"head":0}}`;
             },
-            () => {
-                const field = this.dataDoc ? Cast(this.dataDoc[this.props.fieldKey], RichTextField) : undefined;
-                const field2 = field ? field.Data : `{"doc":{"type":"doc","content":[]},"selection":{"type":"text","anchor":0,"head":0}}`;
-                if (StrCast(this.props.Document.layout).indexOf("\"" + this.props.fieldKey + "\"") !== -1)
+            field2 => {
+                if (StrCast(this.props.Document.layout).indexOf("\"" + this.props.fieldKey + "\"") !== -1) // bcz: UGH!  why is this needed... something is happening out of order.  test with making a collection, then adding a text note and converting that to a template field.
                     this._editorView && !this._applyingChange &&
                         this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field2)));
             }
@@ -398,8 +396,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (StrCast(this.dataDoc.title).startsWith("-") && this._editorView) {
             let str = this._editorView.state.doc.textContent;
             let titlestr = str.substr(0, Math.min(40, str.length));
-            let target = this.dataDoc.proto ? this.dataDoc.proto : this.dataDoc;
-            target.title = "-" + titlestr + (str.length > 40 ? "..." : "");
+            this.dataDoc.title = "-" + titlestr + (str.length > 40 ? "..." : "");
         }
         if (!this._undoTyping) {
             this._undoTyping = UndoManager.StartBatch("undoTyping");
@@ -417,7 +414,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             let dh = NumCast(this.props.Document.height, 0);
             let sh = scrBounds.height;
             this.props.Document.height = nh ? dh / nh * sh : sh;
-            Doc.GetProto(this.dataDoc).nativeHeight = nh ? sh : undefined;
+            this.dataDoc.nativeHeight = nh ? sh : undefined;
         }
     }
 
@@ -443,6 +440,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         let style = this.props.isOverlay ? "scroll" : "hidden";
         let rounded = StrCast(this.props.Document.borderRounding) === "100%" ? "-rounded" : "";
         let interactive = InkingControl.Instance.selectedTool ? "" : "interactive";
+        Doc.UpdateDocumentExtensionForField(this.dataDoc, this.props.fieldKey);
         return (
             <div className={`formattedTextBox-cont-${style}`} ref={this._ref}
                 style={{

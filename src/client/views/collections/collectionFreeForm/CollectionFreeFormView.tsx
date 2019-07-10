@@ -501,7 +501,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         const containerName = `collectionfreeformview${this.isAnnotationOverlay ? "-overlay" : "-container"}`;
         const easing = () => this.props.Document.panTransformType === "Ease";
 
-        if (this.props.fieldExt) Doc.UpdateDocumentExtensionForField(this.extensionDoc, this.props.fieldKey);
+        if (this.props.fieldExt) Doc.UpdateDocumentExtensionForField(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey);
         return (
             <div className={containerName} ref={this.createDropTarget} onWheel={this.onPointerWheel}
                 style={{ borderRadius: "inherit" }}
