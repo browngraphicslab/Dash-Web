@@ -25,7 +25,7 @@ import { OmitKeys } from "../../Utils";
 import { ImageField, VideoField, AudioField, PdfField, WebField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
 import { List } from "../../new_fields/List";
-import { Cast, NumCast, StrCast, ToConstructor, InterfaceValue } from "../../new_fields/Types";
+import { Cast, NumCast, StrCast, ToConstructor, InterfaceValue, FieldValue } from "../../new_fields/Types";
 import { IconField } from "../../new_fields/IconField";
 import { listSpec } from "../../new_fields/Schema";
 import { DocServer } from "../DocServer";
@@ -39,6 +39,8 @@ import { LinkManager } from "../util/LinkManager";
 import { DocumentManager } from "../util/DocumentManager";
 import DirectoryImportBox from "../util/Import & Export/DirectoryImportBox";
 import { Scripting } from "../util/Scripting";
+import { FieldView } from "../views/nodes/FieldView";
+import { Id } from "../../new_fields/FieldSymbols";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 
@@ -70,16 +72,6 @@ export namespace DocTypeUtils {
         return includeNone ? types : types.filter(key => key !== DocTypes.NONE);
     }
 
-    export function toObject<T extends string>(o: Array<T>): { [K in T]: K } {
-        return o.reduce((res, key) => {
-            res[key] = key;
-            return res;
-        }, Object.create(null));
-    }
-
-    const Types = toObject(values());
-
-    export type All = keyof typeof Types;
 }
 
 export interface DocumentOptions {
@@ -115,10 +107,10 @@ export namespace Docs {
     export namespace Prototypes {
 
         type PrototypeTemplate = { options?: Partial<DocumentOptions>, primary: string, background?: string };
-        type TemplateMap = Map<DocTypeUtils.All, PrototypeTemplate>;
-        type PrototypeMap = Map<DocTypeUtils.All, Doc>;
+        type TemplateMap = Map<DocTypes, PrototypeTemplate>;
+        type PrototypeMap = Map<DocTypes, Doc>;
 
-        const LayoutMap: TemplateMap = new Map([
+        const TemplateMap: TemplateMap = new Map([
             [DocTypes.TEXT, {
                 options: { height: 150, backgroundColor: "#f1efeb" },
                 primary: FormattedTextBox.LayoutString()
@@ -184,31 +176,21 @@ export namespace Docs {
          */
         export async function initialize(): Promise<void> {
             // non-guid string ids for each document prototype
-            let prototypeIds: string[] = DocTypeUtils.values(false).map(type => type + "Proto");
-
-            let defaultOptions: DocumentOptions = {
-                x: 0,
-                y: 0,
-                width: 300
-            };
-
+            let suffix = "Proto";
+            let prototypeIds: string[] = DocTypeUtils.values(false).map(type => type + suffix);
             // fetch the actual prototype documents from the server
             let actualProtos = await DocServer.GetRefFields(prototypeIds);
-            // initialize prototype documents
+
+            let defaultOptions: DocumentOptions = { x: 0, y: 0, width: 300 };
             prototypeIds.map(id => {
                 let existing = actualProtos[id] as Doc;
-                if (existing) {
-                    PrototypeMap.set(id, existing);
-                } else {
-                    let template = LayoutMap.get(id.replace("Proto", ""));
-                    if (template) {
-                        PrototypeMap.set(id, buildPrototype(template, id, defaultOptions));
-                    }
-                }
+                let type = id.replace(suffix, "") as DocTypes;
+                let target = existing || buildPrototype(type, id, defaultOptions);
+                target && PrototypeMap.set(type, target);
             });
         }
 
-        export function get(type: string) {
+        export function get(type: DocTypes) {
             return PrototypeMap.get(type)!;
         }
 
@@ -224,7 +206,11 @@ export namespace Docs {
          * @param options any value specified in the DocumentOptions object likewise
          * becomes the default value for that key for all delegates
          */
-        function buildPrototype(template: PrototypeTemplate, prototypeId: string, defaultOptions: DocumentOptions): Doc {
+        function buildPrototype(type: DocTypes, prototypeId: string, defaultOptions: DocumentOptions): Opt<Doc> {
+            let template = TemplateMap.get(type);
+            if (!template) {
+                return undefined;
+            }
             let primary = template.primary;
             let background = template.background;
             let options = { ...defaultOptions, ...(template.options || {}), title: prototypeId.toUpperCase().replace("PROTO", "_PROTO") };
@@ -401,7 +387,7 @@ export namespace Docs {
         }
 
         export function DirectoryImportDocument(options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocTypes.COL), new List<Doc>(), options);
+            return InstanceFromProto(Prototypes.get(DocTypes.IMPORT), new List<Doc>(), options);
         }
 
         export type DocConfig = {
