@@ -207,7 +207,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
         if (e.altKey) {
             e.preventDefault;
-            let leftval = (e.pageX - document.body.clientWidth + this.screenref.current!.clientWidth);
+            let leftval = (e.pageX - document.body.clientWidth + this.screenref.current!.clientWidth/0.98);
             let ting: MarkerUnit = {
                 ref: undefined,
                 element: <div ref={(el) => el ? ting.ref = el : null} id={"marker" + String(this.markers.length)} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, ting.ref)} style={{ top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid" + this.selectedColor, width: "10px", height: "30px", backgroundColor: this.selectedColor, opacity: "0.5", position: "absolute", left: leftval }}></div>,
@@ -279,15 +279,19 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
 
         this._lastX = e.pageX;
-        console.log(this._lastX);
 
 
         if (e.altKey) {
-            console.log(String(this._lastX - parseInt(this.markers[this.markers.length - 1].ref.style.left)));
-            this.markers[this.markers.length - 1].ref.style.width = String(this._lastX - parseInt(this.markers[this.markers.length - 1].ref.style.left));
-            this.markers[this.markers.length - 1].initialScaleRef = this._lastX - parseInt(this.markers[this.markers.length - 1].ref.style.left);
-            console.log(this.markers[this.markers.length - 1].ref.style.width);
-            console.log(this.markers[this.markers.length - 1].initialScaleRef);
+            //let newX= this._lastX- document.body.clientWidth  + this.screenref.current!.clientWidth/0.98;
+            if (e.movementX>=0){
+            console.log(e.movementX);
+            let newX =parseInt(this.markers[this.markers.length - 1].ref.style.width);
+            newX += e.movementX;
+            console.log(newX);
+            console.log(this.markers[this.markers.length - 1]);
+            this.markers[this.markers.length - 1].ref.style.width = String(newX);
+            this.markers[this.markers.length - 1].initialScaleRef = newX;
+        }
             this.countingfriend++;
             e.stopPropagation();
 
@@ -299,7 +303,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             this.marqueeSelect();
 
         }
-
+        if (!e.altKey){
         if (!e.cancelBubble) {
             if (Math.abs(this._lastX - this._downX) > Utils.DRAG_THRESHOLD ||
                 Math.abs(this._lastY - this._downY) > Utils.DRAG_THRESHOLD) {
@@ -309,6 +313,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 e.stopPropagation();
                 e.preventDefault();
             }
+        }
         }
 
 
@@ -802,8 +807,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
             }
             let ting: MarkerUnit = {
-                element: <div ref={(el) => el ? ting.ref = el : null} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, ting.ref)} id={"marker" + String(this.markers.length)} style={{ top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid" + this.selectedColor, height: "30px", backgroundColor: this.selectedColor, opacity: "0.5", width: (max - document.body.clientWidth + this.screenref.current!.clientWidth) - min, position: "absolute", left: min - document.body.clientWidth + this.screenref.current!.clientWidth }}></div>,
-                initialLeft: ((min - document.body.clientWidth + this.screenref.current!.clientWidth) / (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement))) + (this.xmovement),
+                element: <div ref={(el) => el ? ting.ref = el : null} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, ting.ref)} id={"marker" + String(this.markers.length)} style={{ top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid" + this.selectedColor, height: "30px", backgroundColor: this.selectedColor, opacity: "0.5", width: Math.abs(max - min), position: "absolute", left: min - document.body.clientWidth -3 + this.screenref.current!  .clientWidth/0.98 }}></div>,
+                initialLeft: ((min -3 - document.body.clientWidth + this.screenref.current!.clientWidth/0.98) / (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement))) + (this.xmovement),
                 initialScaleRef: Math.abs(max - min),
                 initialWidth: (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)),
                 ref: undefined,
@@ -811,6 +816,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             this.markers.push(ting);
             this.countingfriend++;
         }
+        this.countingfriend++;
     }
 
 
@@ -1035,7 +1041,11 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.countingfriend++;
 
         let temp = this.barwidth - this.xmovement2 - this.xmovement;
-        this.xmovement = e.pageX - document.body.clientWidth + this.screenref.current!.clientWidth;
+        this.xmovement = e.pageX - document.body.clientWidth + this.screenref.current!.clientWidth/0.98;
+        console.log(e.pageX);
+        console.log(document.body.clientWidth)
+        console.log(this.screenref.current!.clientWidth);
+        console.log(this.xmovement);
         if (this.xmovement < 0) {
             this.xmovement = 0;
         }
