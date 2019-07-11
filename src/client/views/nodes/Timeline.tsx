@@ -217,6 +217,7 @@ export class Timeline extends CollectionSubView(Document) {
         titleContainer.scrollTop = titleContainer.scrollTop - e.movementY;
     }
 
+    
     @action
     onResizeDown = (e: React.PointerEvent) => {
         e.preventDefault();

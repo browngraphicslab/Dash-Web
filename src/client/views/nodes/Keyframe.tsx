@@ -92,14 +92,7 @@ export class Keyframe extends React.Component<IProps> {
     @computed
     private get regions() {
         return Cast(this.props.node.regions, listSpec(Doc)) as List<Doc>;
-    }
- 
-
-    @observable fadeIn = new Doc(); 
-    @observable fadeOut = new Doc(); 
-    @observable start = new Doc(); 
-    @observable finish = new Doc(); 
-    
+    }    
 
     @action
     componentDidMount() {
@@ -111,40 +104,24 @@ export class Keyframe extends React.Component<IProps> {
         (fadeOut.key! as Doc).opacity = 1;  
         (start.key! as Doc).opacity = 0.1; 
         (finish.key! as Doc).opacity = 0.1; 
-        let fadeInIndex = this.regiondata.keyframes!.indexOf(fadeIn); 
-        let fadeOutIndex = this.regiondata.keyframes!.indexOf(fadeOut); 
-        let startIndex = this.regiondata.keyframes!.indexOf(start); 
-        let finishIndex = this.regiondata.keyframes!.indexOf(finish); 
-        this.regiondata.keyframes![fadeInIndex] =fadeIn; 
-        this.regiondata.keyframes![fadeOutIndex] =fadeOut;  
-        this.regiondata.keyframes![startIndex] = start; 
-        this.regiondata.keyframes![finishIndex] =finish;
-
-        this.fadeIn = fadeIn; 
-        this.fadeOut = fadeOut; 
-        this.start = start; 
-        this.finish = finish; 
-
 
         observe(this.regiondata, change => {
             if (change.type === "update"){
-                console.log("updated");
-                this.fadeIn.time = this.regiondata.position + this.regiondata.fadeIn; 
-                this.fadeOut.time = this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut; 
-                this.start.time = this.regiondata.position; 
-                this.finish.time = this.regiondata.position + this.regiondata.duration;
+                fadeIn.time = this.regiondata.position + this.regiondata.fadeIn; 
+                fadeOut.time = this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut; 
+                start.time = this.regiondata.position; 
+                finish.time = this.regiondata.position + this.regiondata.duration;
 
-                let fadeInIndex = this.regiondata.keyframes!.indexOf(this.fadeIn); 
-                let fadeOutIndex = this.regiondata.keyframes!.indexOf(this.fadeOut); 
-                let startIndex = this.regiondata.keyframes!.indexOf(this.start); 
-                let finishIndex = this.regiondata.keyframes!.indexOf(this.finish); 
+                let fadeInIndex = this.regiondata.keyframes!.indexOf(fadeIn); 
+                let fadeOutIndex = this.regiondata.keyframes!.indexOf(fadeOut); 
+                let startIndex = this.regiondata.keyframes!.indexOf(start); 
+                let finishIndex = this.regiondata.keyframes!.indexOf(finish); 
         
-                this.regiondata.keyframes![fadeInIndex] = this.fadeIn; 
-                this.regiondata.keyframes![fadeOutIndex] = this.fadeOut;  
-                this.regiondata.keyframes![startIndex] = this.start; 
-                this.regiondata.keyframes![finishIndex] = this.finish;
+                this.regiondata.keyframes![fadeInIndex] = fadeIn; 
+                this.regiondata.keyframes![fadeOutIndex] =  fadeOut;  
+                this.regiondata.keyframes![startIndex] = start; 
+                this.regiondata.keyframes![finishIndex] = finish;
                
-
                 this.forceUpdate(); 
             }
         }); 
@@ -158,10 +135,6 @@ export class Keyframe extends React.Component<IProps> {
        
     }
 
-
-
-
-
     @action
     makeKeyData = (kfpos: number, type:KeyframeFunc.KeyframeType = KeyframeFunc.KeyframeType.new) => { //Kfpos is mouse offsetX, representing time 
         let hasData = false;
@@ -174,8 +147,9 @@ export class Keyframe extends React.Component<IProps> {
         if (!hasData) {
             let TK: Doc = new Doc();
             TK.time = kfpos; 
+            console.log(kfpos + " from makeKeyDat"); 
             if (type === KeyframeFunc.KeyframeType.fade){
-                TK.key = new Doc(); 
+                TK.key = Doc.MakeAlias(this.props.node); 
             } else {
                 TK.key = Doc.MakeCopy(this.props.node, true); 
                 console.log(toJS(TK.key)); 

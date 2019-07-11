@@ -24,7 +24,6 @@ interface IProps {
 @observer
 export class Track extends React.Component<IProps> {
     @observable private _inner = React.createRef<HTMLDivElement>();   
-    @observable private _keys = ["x", "y", "width", "height", "panX", "panY", "scale", "opacity"];
     @observable private _onInterpolate:boolean = false; 
 
     private _reactionDisposers: IReactionDisposer[] = [];
@@ -64,18 +63,19 @@ export class Track extends React.Component<IProps> {
             }
         }));
         this._reactionDisposers.push(reaction(() => {
-            if (!this._onInterpolate){
-                let keys = Doc.allKeys(this.props.node); 
-                return keys.map(key => FieldValue(this.props.node[key]));
-            }
+            let keys = Doc.allKeys(this.props.node); 
+            return keys.map(key => FieldValue(this.props.node[key]));
+            
         }, data => {
             let regiondata = this.findRegion(this.props.currentBarX);
             if (regiondata){
                 (Cast(regiondata.keyframes!, listSpec(Doc)) as List<Doc>).forEach((kf) => {
                     kf = kf as Doc; 
-                    if(NumCast(kf.time!) === this.props.currentBarX && kf.type !== KeyframeFunc.KeyframeType.fade){
+                    if(NumCast(kf.time!) === this.props.currentBarX && kf.type !== KeyframeFunc.KeyframeType.fade && !this._onInterpolate){
                         kf.key = Doc.MakeCopy(this.props.node, true); 
-                    } 
+                    } else {
+                        this._onInterpolate = false; 
+                    }
                 }); 
             }
         })); 
@@ -92,16 +92,17 @@ export class Track extends React.Component<IProps> {
 
     @action
     timeChange = async (time: number) => {
-        let region = this.findRegion(time);
+        let region = this.findRegion(Math.round(time));
         let leftkf: (Doc | undefined) = this.calcMinLeft(region!);
         let rightkf: (Doc | undefined) = this.calcMinRight(region!);
         let currentkf: (Doc | undefined) = this.calcCurrent(region!); 
+        console.log(currentkf); 
         if (currentkf && (currentkf.type !== KeyframeFunc.KeyframeType.new)){
             this._onInterpolate = true;   
             this.filterKeys(Doc.allKeys(currentkf.key as Doc)).forEach(k => {
                 this.props.node[k] = (currentkf!.key as Doc)[k];  
             }); 
-            this._onInterpolate = false;
+            console.log("current"); 
         } else if (leftkf && rightkf) {
             this.interpolate(leftkf, rightkf);
         } else if (leftkf) {                
@@ -132,7 +133,7 @@ export class Track extends React.Component<IProps> {
         let currentkf:(Doc|undefined) = undefined; 
         (region.keyframes! as List<Doc>).forEach((kf) => {
             kf = kf as Doc; 
-            if (NumCast(kf.time) === this.props.currentBarX){
+            if (NumCast(kf.time) === Math.round(this.props.currentBarX)){
                 currentkf = kf; 
             }
         }); 
