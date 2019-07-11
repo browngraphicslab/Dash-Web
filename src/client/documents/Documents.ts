@@ -89,62 +89,67 @@ export namespace Docs {
 
     export namespace Prototypes {
 
-        type PrototypeTemplate = { options?: Partial<DocumentOptions>, primary: string, background?: string };
+        type LayoutSource = {
+            LayoutString: (fieldKey?: string) => string
+        };
+        type PrototypeTemplate = {
+            layout: {
+                component: LayoutSource,
+                collection?: LayoutSource
+            },
+            options?: Partial<DocumentOptions>
+        };
         type TemplateMap = Map<DocumentType, PrototypeTemplate>;
         type PrototypeMap = Map<DocumentType, Doc>;
 
         const TemplateMap: TemplateMap = new Map([
             [DocumentType.TEXT, {
-                options: { height: 150, backgroundColor: "#f1efeb" },
-                primary: FormattedTextBox.LayoutString()
+                layout: { component: FormattedTextBox },
+                options: { height: 150, backgroundColor: "#f1efeb" }
             }],
             [DocumentType.HIST, {
-                options: { height: 300, backgroundColor: "black" },
-                primary: CollectionView.LayoutString("annotations"),
-                background: HistogramBox.LayoutString()
+                layout: { component: HistogramBox, collection: CollectionView },
+                options: { height: 300, backgroundColor: "black" }
             }],
             [DocumentType.IMG, {
-                options: { nativeWidth: 600, curPage: 0 },
-                primary: CollectionView.LayoutString("annotations"),
-                background: ImageBox.LayoutString()
+                layout: { component: ImageBox, collection: CollectionView },
+                options: { nativeWidth: 600, curPage: 0 }
             }],
             [DocumentType.WEB, {
-                options: { height: 300 },
-                primary: WebBox.LayoutString()
+                layout: { component: WebBox },
+                options: { height: 300 }
             }],
             [DocumentType.COL, {
-                options: { panX: 0, panY: 0, scale: 1, width: 500, height: 500 },
-                primary: CollectionView.LayoutString()
+                layout: { component: CollectionView },
+                options: { panX: 0, panY: 0, scale: 1, width: 500, height: 500 }
             }],
             [DocumentType.KVP, {
-                options: { height: 150 },
-                primary: KeyValueBox.LayoutString()
+                layout: { component: KeyValueBox },
+                options: { height: 150 }
             }],
             [DocumentType.VID, {
+                layout: { component: VideoBox, collection: CollectionVideoView },
                 options: { nativeWidth: 600, curPage: 0 },
-                primary: CollectionVideoView.LayoutString("annotations"),
-                background: VideoBox.LayoutString()
             }],
             [DocumentType.AUDIO, {
-                options: { height: 150 },
-                primary: AudioBox.LayoutString()
+                layout: { component: AudioBox },
+                options: { height: 150 }
             }],
             [DocumentType.PDF, {
-                options: { nativeWidth: 1200, curPage: 1 },
-                primary: CollectionPDFView.LayoutString("annotations"),
-                background: PDFBox.LayoutString()
+                layout: { component: PDFBox, collection: CollectionPDFView },
+                options: { nativeWidth: 1200, curPage: 1 }
             }],
             [DocumentType.ICON, {
+                layout: { component: IconBox },
                 options: { width: Number(MINIMIZED_ICON_SIZE), height: Number(MINIMIZED_ICON_SIZE) },
-                primary: IconBox.LayoutString()
             }],
             [DocumentType.IMPORT, {
-                options: { height: 150 },
-                primary: DirectoryImportBox.LayoutString()
+                layout: { component: DirectoryImportBox },
+                options: { height: 150 }
             }]
         ]);
 
-        const PrototypeMap: PrototypeMap = new Map();
+        // All document prototypes are initialized with at least these values
         const defaultOptions: DocumentOptions = { x: 0, y: 0, width: 300 };
         const Suffix = "Proto";
 
@@ -178,7 +183,14 @@ export namespace Docs {
             });
         }
 
-        export function get(type: DocumentType) {
+        /**
+         * Retrieves the prototype for the given document type, or
+         * undefined if that type's proto doesn't have a configuration
+         * in the template map.
+         * @param type 
+         */
+        const PrototypeMap: PrototypeMap = new Map();
+        export function get(type: DocumentType): Doc {
             return PrototypeMap.get(type)!;
         }
 
@@ -195,17 +207,29 @@ export namespace Docs {
          * becomes the default value for that key for all delegates
          */
         function buildPrototype(type: DocumentType, prototypeId: string): Opt<Doc> {
+            // load template from type
             let template = TemplateMap.get(type);
             if (!template) {
                 return undefined;
             }
-            let primary = template.primary;
-            let background = template.background;
+            let layout = template.layout;
+
+            // create title
             let upper = Suffix.toUpperCase();
             let title = prototypeId.toUpperCase().replace(upper, `_${upper}`);
+
+            // synthesize the default options, the type and title from computed values and
+            // whatever options pertain to this specific prototype
             let options = { title: title, type: type, ...defaultOptions, ...(template.options || {}) };
-            background && (options = { ...options, backgroundLayout: background, });
-            return Doc.assign(new Doc(prototypeId, true), { ...options, layout: primary, baseLayout: primary });
+            let primary = layout.component.LayoutString();
+            let collection = layout.collection;
+            if (collection) {
+                options.layout = collection.LayoutString("annotations");
+                options.backgroundLayout = primary;
+            } else {
+                options.layout = primary;
+            }
+            return Doc.assign(new Doc(prototypeId, true), { ...options, baseLayout: primary });
         }
 
     }
