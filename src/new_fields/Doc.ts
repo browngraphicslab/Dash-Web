@@ -264,8 +264,11 @@ export namespace Doc {
         return true;
     }
 
-    export function ComputeContentBounds(doc: Doc) {
-        let bounds = DocListCast(doc.data).reduce((bounds, doc) => {
+    //
+    // Computes the bounds of the contents of a set of documents.
+    //
+    export function ComputeContentBounds(docList: Doc[]) {
+        let bounds = docList.reduce((bounds, doc) => {
             var [sptX, sptY] = [NumCast(doc.x), NumCast(doc.y)];
             let [bptX, bptY] = [sptX + doc[WidthSym](), sptY + doc[HeightSym]()];
             return {
