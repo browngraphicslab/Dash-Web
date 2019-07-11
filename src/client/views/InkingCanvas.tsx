@@ -61,7 +61,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
     }
 
     set inkData(value: Map<string, StrokeData>) {
-        Doc.GetProto(this.props.Document)[this.props.inkFieldKey] = new InkField(value);
+        this.props.Document[this.props.inkFieldKey] = new InkField(value);
     }
 
     @action

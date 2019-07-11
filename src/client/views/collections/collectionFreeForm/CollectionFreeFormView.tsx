@@ -54,7 +54,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @computed get nativeWidth() { return this.Document.nativeWidth || 0; }
     @computed get nativeHeight() { return this.Document.nativeHeight || 0; }
-    public get isAnnotationOverlay() { return this.props.fieldExt === "annotations"; }
+    public get isAnnotationOverlay() { return this.props.fieldExt ? true : false; } // fieldExt will be "" or "annotation". should maybe generalize this, or make it more specific (ie, 'annotation' instead of 'fieldExt')
     private get borderWidth() { return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH; }
     private panX = () => this.props.fitToBox ? this.props.fitToBox()[0] : this.Document.panX || 0;
     private panY = () => this.props.fitToBox ? this.props.fitToBox()[1] : this.Document.panY || 0;
@@ -86,7 +86,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         });
     }
 
-    @computed get extensionDoc() { return Doc.resolvedFieldDataDoc(BoolCast(this.props.Document.isTemplate) && this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.isAnnotationOverlay ? "dummy" : ""); }
+    @computed get annoExtensionDoc() { return Doc.resolvedFieldDataDoc(this.props.DataDoc && (!this.props.Document.isTemplate || this.isAnnotationOverlay) ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.isAnnotationOverlay ? "dummy" : ""); }
 
 
     @undoBatch
@@ -171,7 +171,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     return [[range[0][0] > x ? x : range[0][0], range[0][1] < xe ? xe : range[0][1]],
                     [range[1][0] > y ? y : range[1][0], range[1][1] < ye ? ye : range[1][1]]];
                 }, [[minx, maxx], [miny, maxy]]);
-                let ink = Cast(this.extensionDoc.ink, InkField);
+                let ink = Cast(this.annoExtensionDoc.ink, InkField);
                 if (ink && ink.inkData) {
                     ink.inkData.forEach((value: StrokeData, key: string) => {
                         let bounds = InkingCanvas.StrokeRect(value);
@@ -344,7 +344,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
 
     getChildDocumentViewProps(childDocLayout: Doc): DocumentViewProps {
-        let resolvedDataDoc = this.props.DataDoc !== this.props.Document ? this.props.DataDoc : undefined;
+        let self = this;
+        let resolvedDataDoc = !this.props.Document.isTemplate && this.props.DataDoc !== this.props.Document ? this.props.DataDoc : undefined;
         let layoutDoc = Doc.expandTemplateLayout(childDocLayout, resolvedDataDoc);
         return {
             DataDoc: resolvedDataDoc !== layoutDoc && resolvedDataDoc ? resolvedDataDoc : undefined,
@@ -512,7 +513,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     <CollectionFreeFormViewPannableContents centeringShiftX={this.centeringShiftX} centeringShiftY={this.centeringShiftY}
                         easing={easing} zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
                         <CollectionFreeFormLinksView {...this.props} key="freeformLinks">
-                            <InkingCanvas getScreenTransform={this.getTransform} Document={this.extensionDoc} inkFieldKey={"ink"} >
+                            <InkingCanvas getScreenTransform={this.getTransform} Document={this.annoExtensionDoc} inkFieldKey={"ink"} >
                                 {this.childViews}
                             </InkingCanvas>
                         </CollectionFreeFormLinksView>
