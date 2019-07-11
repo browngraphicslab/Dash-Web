@@ -29,7 +29,6 @@ import { Cast, NumCast, StrCast, ToConstructor, InterfaceValue, FieldValue } fro
 import { IconField } from "../../new_fields/IconField";
 import { listSpec } from "../../new_fields/Schema";
 import { DocServer } from "../DocServer";
-import { InkField } from "../../new_fields/InkField";
 import { dropActionType } from "../util/DragManager";
 import { DateField } from "../../new_fields/DateField";
 import { UndoManager } from "../util/UndoManager";
@@ -39,8 +38,6 @@ import { LinkManager } from "../util/LinkManager";
 import { DocumentManager } from "../util/DocumentManager";
 import DirectoryImportBox from "../util/Import & Export/DirectoryImportBox";
 import { Scripting } from "../util/Scripting";
-import { FieldView } from "../views/nodes/FieldView";
-import { Id } from "../../new_fields/FieldSymbols";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 
