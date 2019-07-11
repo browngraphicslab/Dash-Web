@@ -401,8 +401,8 @@ interface CollectionSchemaPreviewProps {
     Document?: Doc;
     DataDocument?: Doc;
     childDocs?: Doc[];
-    fitToBox?: () => number[];
     renderDepth: number;
+    fitToBox?: boolean;
     width: () => number;
     height: () => number;
     showOverlays?: (doc: Doc) => { title?: string, caption?: string };

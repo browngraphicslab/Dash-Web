@@ -450,7 +450,7 @@ export class TooltipTextMenu {
                     let node = state.doc.nodeAt(from);
                     node && node.marks.map(m => {
                         m.type === markType && (curLink = m.attrs.href);
-                    })
+                    });
                     //toggleMark(markType)(state, dispatch);
                     //return true;
                 }
