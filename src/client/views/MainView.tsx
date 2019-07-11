@@ -93,15 +93,6 @@ export class MainView extends React.Component {
         MainView.Instance = this;
         // causes errors to be generated when modifying an observable outside of an action
         configure({ enforceActions: "observed" });
-        if (window.location.search.includes("readonly")) {
-            DocServer.makeReadOnly();
-        }
-        if (window.location.search.includes("safe")) {
-            if (!window.location.search.includes("nro")) {
-                DocServer.makeReadOnly();
-            }
-            CollectionBaseView.SetSafeMode(true);
-        }
         if (window.location.pathname !== RouteStore.home) {
             let pathname = window.location.pathname.substr(1).split("/");
             if (pathname.length > 1) {
@@ -194,12 +185,21 @@ export class MainView extends React.Component {
     openWorkspace = async (doc: Doc, fromHistory = false) => {
         CurrentUserUtils.MainDocId = doc[Id];
         this.mainContainer = doc;
-        if (BoolCast(doc.readOnly)) {
+        const state = HistoryUtil.parseUrl(window.location) || {} as any;
+        fromHistory || HistoryUtil.pushState({ type: "doc", docId: doc[Id], readonly: state.readonly, nro: state.nro });
+        if (state.readonly === true || state.readonly === null) {
+            DocServer.makeReadOnly();
+        } else if (state.safe) {
+            if (!state.nro) {
+                DocServer.makeReadOnly();
+            }
+            CollectionBaseView.SetSafeMode(true);
+        } else if (state.nro || state.nro === null || state.readonly === false) {
+        } else if (BoolCast(doc.readOnly)) {
             DocServer.makeReadOnly();
         } else {
             DocServer.makeEditable();
         }
-        fromHistory || HistoryUtil.pushState({ type: "doc", docId: doc[Id], initializers: {} });
         const col = await Cast(CurrentUserUtils.UserDocument.optionalRightCollection, Doc);
         // if there is a pending doc, and it has new data, show it (syip: we use a timeout to prevent collection docking view from being uninitialized)
         setTimeout(async () => {
