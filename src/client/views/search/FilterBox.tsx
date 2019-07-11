@@ -6,7 +6,7 @@ import { faTimes } from '@fortawesome/free-solid-svg-icons';
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { Doc } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
-import { DocTypes } from '../../documents/Documents';
+import { DocumentType } from '../../documents/Documents';
 import { Cast, StrCast } from '../../../new_fields/Types';
 import * as _ from "lodash";
 import { ToggleBar } from './ToggleBar';
@@ -32,7 +32,7 @@ export enum Keys {
 export class FilterBox extends React.Component {
 
     static Instance: FilterBox;
-    public _allIcons: string[] = [DocTypes.AUDIO, DocTypes.COL, DocTypes.HIST, DocTypes.IMG, DocTypes.LINK, DocTypes.PDF, DocTypes.TEXT, DocTypes.VID, DocTypes.WEB];
+    public _allIcons: string[] = [DocumentType.AUDIO, DocumentType.COL, DocumentType.HIST, DocumentType.IMG, DocumentType.LINK, DocumentType.PDF, DocumentType.TEXT, DocumentType.VID, DocumentType.WEB];
 
     //if true, any keywords can be used. if false, all keywords are required.
     @observable private _basicWordStatus: boolean = true;

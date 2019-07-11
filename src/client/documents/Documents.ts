@@ -41,7 +41,7 @@ import { Scripting } from "../util/Scripting";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 
-export enum DocTypes {
+export enum DocumentType {
     NONE = "none",
     TEXT = "text",
     HIST = "histogram",
@@ -60,13 +60,13 @@ export enum DocTypes {
 export namespace DocTypeUtils {
 
     export function values(includeNone: boolean = true): string[] {
-        let types = Object.values(DocTypes);
-        return includeNone ? types : types.filter(key => key !== DocTypes.NONE);
+        let types = Object.values(DocumentType);
+        return includeNone ? types : types.filter(key => key !== DocumentType.NONE);
     }
 
     export function keys(includeNone: boolean = true): string[] {
-        let types = Object.keys(DocTypes);
-        return includeNone ? types : types.filter(key => key !== DocTypes.NONE);
+        let types = Object.keys(DocumentType);
+        return includeNone ? types : types.filter(key => key !== DocumentType.NONE);
     }
 
 }
@@ -104,55 +104,55 @@ export namespace Docs {
     export namespace Prototypes {
 
         type PrototypeTemplate = { options?: Partial<DocumentOptions>, primary: string, background?: string };
-        type TemplateMap = Map<DocTypes, PrototypeTemplate>;
-        type PrototypeMap = Map<DocTypes, Doc>;
+        type TemplateMap = Map<DocumentType, PrototypeTemplate>;
+        type PrototypeMap = Map<DocumentType, Doc>;
 
         const TemplateMap: TemplateMap = new Map([
-            [DocTypes.TEXT, {
+            [DocumentType.TEXT, {
                 options: { height: 150, backgroundColor: "#f1efeb" },
                 primary: FormattedTextBox.LayoutString()
             }],
-            [DocTypes.HIST, {
+            [DocumentType.HIST, {
                 options: { nativeWidth: 600, curPage: 0 },
                 primary: CollectionView.LayoutString("annotations"),
                 background: HistogramBox.LayoutString()
             }],
-            [DocTypes.IMG, {
+            [DocumentType.IMG, {
                 options: { height: 300, backgroundColor: "black" },
                 primary: CollectionView.LayoutString("annotations"),
                 background: ImageBox.LayoutString()
             }],
-            [DocTypes.WEB, {
+            [DocumentType.WEB, {
                 options: { height: 300 },
                 primary: WebBox.LayoutString()
             }],
-            [DocTypes.COL, {
+            [DocumentType.COL, {
                 options: { panX: 0, panY: 0, scale: 1, width: 500, height: 500 },
                 primary: CollectionView.LayoutString()
             }],
-            [DocTypes.KVP, {
+            [DocumentType.KVP, {
                 options: { height: 150 },
                 primary: KeyValueBox.LayoutString()
             }],
-            [DocTypes.VID, {
+            [DocumentType.VID, {
                 options: { nativeWidth: 600, curPage: 0 },
                 primary: CollectionVideoView.LayoutString("annotations"),
                 background: VideoBox.LayoutString()
             }],
-            [DocTypes.AUDIO, {
+            [DocumentType.AUDIO, {
                 options: { height: 150 },
                 primary: AudioBox.LayoutString()
             }],
-            [DocTypes.PDF, {
+            [DocumentType.PDF, {
                 options: { nativeWidth: 1200, curPage: 1 },
                 primary: CollectionPDFView.LayoutString("annotations"),
                 background: PDFBox.LayoutString()
             }],
-            [DocTypes.ICON, {
+            [DocumentType.ICON, {
                 options: { width: Number(MINIMIZED_ICON_SIZE), height: Number(MINIMIZED_ICON_SIZE) },
                 primary: IconBox.LayoutString()
             }],
-            [DocTypes.IMPORT, {
+            [DocumentType.IMPORT, {
                 options: { height: 150 },
                 primary: DirectoryImportBox.LayoutString()
             }]
@@ -178,16 +178,20 @@ export namespace Docs {
             // fetch the actual prototype documents from the server
             let actualProtos = await DocServer.GetRefFields(prototypeIds);
 
+            // update this object to include any default values: DocumentOptions for all prototypes
             let defaultOptions: DocumentOptions = { x: 0, y: 0, width: 300 };
             prototypeIds.map(id => {
                 let existing = actualProtos[id] as Doc;
-                let type = id.replace(suffix, "") as DocTypes;
+                let type = id.replace(suffix, "") as DocumentType;
+                // get or create prototype of the specified type...
                 let target = existing || buildPrototype(type, id, defaultOptions);
+                // ...and set it if not undefined (can be undefined only if TemplateMap does not contain
+                // an entry dedicated to the given DocumentType)
                 target && PrototypeMap.set(type, target);
             });
         }
 
-        export function get(type: DocTypes) {
+        export function get(type: DocumentType) {
             return PrototypeMap.get(type)!;
         }
 
@@ -203,7 +207,7 @@ export namespace Docs {
          * @param options any value specified in the DocumentOptions object likewise
          * becomes the default value for that key for all delegates
          */
-        function buildPrototype(type: DocTypes, prototypeId: string, defaultOptions: DocumentOptions): Opt<Doc> {
+        function buildPrototype(type: DocumentType, prototypeId: string, defaultOptions: DocumentOptions): Opt<Doc> {
             let template = TemplateMap.get(type);
             if (!template) {
                 return undefined;
@@ -279,7 +283,7 @@ export namespace Docs {
         }
 
         export function ImageDocument(url: string, options: DocumentOptions = {}) {
-            let inst = InstanceFromProto(Prototypes.get(DocTypes.IMG), new ImageField(new URL(url)), { title: path.basename(url), ...options });
+            let inst = InstanceFromProto(Prototypes.get(DocumentType.IMG), new ImageField(new URL(url)), { title: path.basename(url), ...options });
             requestImageSize(window.origin + RouteStore.corsProxy + "/" + url)
                 .then((size: any) => {
                     let aspect = size.height / size.width;
@@ -294,27 +298,27 @@ export namespace Docs {
         }
 
         export function VideoDocument(url: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocTypes.VID), new VideoField(new URL(url)), options);
+            return InstanceFromProto(Prototypes.get(DocumentType.VID), new VideoField(new URL(url)), options);
         }
 
         export function AudioDocument(url: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocTypes.AUDIO), new AudioField(new URL(url)), options);
+            return InstanceFromProto(Prototypes.get(DocumentType.AUDIO), new AudioField(new URL(url)), options);
         }
 
         export function HistogramDocument(histoOp: HistogramOperation, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocTypes.HIST), new HistogramField(histoOp), options);
+            return InstanceFromProto(Prototypes.get(DocumentType.HIST), new HistogramField(histoOp), options);
         }
 
         export function TextDocument(options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocTypes.TEXT), "", options);
+            return InstanceFromProto(Prototypes.get(DocumentType.TEXT), "", options);
         }
 
         export function IconDocument(icon: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocTypes.ICON), new IconField(icon), options);
+            return InstanceFromProto(Prototypes.get(DocumentType.ICON), new IconField(icon), options);
         }
 
         export function PdfDocument(url: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocTypes.PDF), new PdfField(new URL(url)), options);
+            return InstanceFromProto(Prototypes.get(DocumentType.PDF), new PdfField(new URL(url)), options);
         }
 
         export async function DBDocument(url: string, options: DocumentOptions = {}, columnOptions: DocumentOptions = {}) {
@@ -349,42 +353,42 @@ export namespace Docs {
         }
 
         export function WebDocument(url: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocTypes.WEB), new WebField(new URL(url)), options);
+            return InstanceFromProto(Prototypes.get(DocumentType.WEB), new WebField(new URL(url)), options);
         }
 
         export function HtmlDocument(html: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocTypes.WEB), new HtmlField(html), options);
+            return InstanceFromProto(Prototypes.get(DocumentType.WEB), new HtmlField(html), options);
         }
 
         export function KVPDocument(document: Doc, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocTypes.KVP), document, { title: document.title + ".kvp", ...options });
+            return InstanceFromProto(Prototypes.get(DocumentType.KVP), document, { title: document.title + ".kvp", ...options });
         }
 
         export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions, makePrototype: boolean = true) {
             if (!makePrototype) {
-                return MakeDataDelegate(Prototypes.get(DocTypes.COL), { ...options, viewType: CollectionViewType.Freeform }, new List(documents));
+                return MakeDataDelegate(Prototypes.get(DocumentType.COL), { ...options, viewType: CollectionViewType.Freeform }, new List(documents));
             }
-            return InstanceFromProto(Prototypes.get(DocTypes.COL), new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Freeform });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Freeform });
         }
 
         export function SchemaDocument(schemaColumns: string[], documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocTypes.COL), new List(documents), { schemaColumns: new List(schemaColumns), ...options, viewType: CollectionViewType.Schema });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaColumns: new List(schemaColumns), ...options, viewType: CollectionViewType.Schema });
         }
 
         export function TreeDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocTypes.COL), new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Tree });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Tree });
         }
 
         export function StackingDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocTypes.COL), new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Stacking });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Stacking });
         }
 
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
-            return InstanceFromProto(Prototypes.get(DocTypes.COL), new List(documents), { ...options, viewType: CollectionViewType.Docking, dockingConfig: config }, id);
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { ...options, viewType: CollectionViewType.Docking, dockingConfig: config }, id);
         }
 
         export function DirectoryImportDocument(options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocTypes.IMPORT), new List<Doc>(), options);
+            return InstanceFromProto(Prototypes.get(DocumentType.IMPORT), new List<Doc>(), options);
         }
 
         export type DocConfig = {
@@ -538,14 +542,14 @@ export namespace DocUtils {
 
         UndoManager.RunInBatch(() => {
             let linkDoc = Docs.Create.TextDocument({ width: 100, height: 30, borderRounding: "100%" });
-            linkDoc.type = DocTypes.LINK;
+            linkDoc.type = DocumentType.LINK;
             let linkDocProto = Doc.GetProto(linkDoc);
 
             linkDocProto.context = targetContext;
             linkDocProto.title = title === "" ? source.title + " to " + target.title : title;
             linkDocProto.linkDescription = description;
             linkDocProto.linkTags = tags;
-            linkDocProto.type = DocTypes.LINK;
+            linkDocProto.type = DocumentType.LINK;
 
             linkDocProto.anchor1 = source;
             linkDocProto.anchor1Page = source.curPage;

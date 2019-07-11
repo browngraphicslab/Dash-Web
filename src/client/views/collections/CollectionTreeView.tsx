@@ -9,7 +9,7 @@ import { List } from '../../../new_fields/List';
 import { Document, listSpec } from '../../../new_fields/Schema';
 import { BoolCast, Cast, NumCast, StrCast } from '../../../new_fields/Types';
 import { emptyFunction, Utils } from '../../../Utils';
-import { Docs, DocUtils, DocTypes } from '../../documents/Documents';
+import { Docs, DocUtils, DocumentType } from '../../documents/Documents';
 import { DocumentManager } from '../../util/DocumentManager';
 import { DragManager, dropActionType, SetupDrag } from "../../util/DragManager";
 import { SelectionManager } from '../../util/SelectionManager';
@@ -316,7 +316,7 @@ class TreeView extends React.Component<TreeViewProps> {
     }
 
     @computed get docBounds() {
-        if (StrCast(this.props.document.type).indexOf(DocTypes.COL) === -1) return undefined;
+        if (StrCast(this.props.document.type).indexOf(DocumentType.COL) === -1) return undefined;
         let layoutDoc = Doc.expandTemplateLayout(this.props.document, this.props.dataDoc);
         return Doc.ComputeContentBounds(layoutDoc);
     }

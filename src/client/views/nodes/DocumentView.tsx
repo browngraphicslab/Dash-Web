@@ -10,7 +10,7 @@ import { BoolCast, Cast, FieldValue, StrCast, NumCast, PromiseValue } from "../.
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { emptyFunction, Utils, returnFalse, returnTrue } from "../../../Utils";
 import { DocServer } from "../../DocServer";
-import { Docs, DocUtils, DocTypes } from "../../documents/Documents";
+import { Docs, DocUtils, DocumentType } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager, dropActionType } from "../../util/DragManager";
 import { SearchUtil } from "../../util/SearchUtil";

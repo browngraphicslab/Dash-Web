@@ -109,7 +109,7 @@ export namespace DocServer {
             // synchronously, we emit a single callback to the server requesting the serialized (i.e. represented by a string)
             // field for the given ids. This returns a promise, which, when resolved, indicates the the JSON serialized version of
             // the field has been returned from the server
-            const getSerializedField = Utils.emitCallback(_socket, MessageStore.GetRefField, id);
+            const getSerializedField = Utils.EmitCallback(_socket, MessageStore.GetRefField, id);
 
             // when the serialized RefField has been received, go head and begin deserializing it into an object.
             // Here, once deserialized, we also invoke .proto to 'load' the document's prototype, which ensures that all
@@ -179,7 +179,7 @@ export namespace DocServer {
         // 2) synchronously, we emit a single callback to the server requesting the serialized (i.e. represented by a string)
         // fields for the given ids. This returns a promise, which, when resolved, indicates that all the JSON serialized versions of
         // the fields have been returned from the server
-        const getSerializedFields: Promise<any> = Utils.emitCallback(_socket, MessageStore.GetRefFields, requestedIds);
+        const getSerializedFields: Promise<any> = Utils.EmitCallback(_socket, MessageStore.GetRefFields, requestedIds);
 
         // 3) when the serialized RefFields have been received, go head and begin deserializing them into objects.
         // Here, once deserialized, we also invoke .proto to 'load' the documents' prototypes, which ensures that all
