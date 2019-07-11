@@ -73,7 +73,7 @@ export class Utils {
         };
     }
 
-    public static emit<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T) {
+    public static Emit<T>(socket: Socket | SocketIOClient.Socket, message: Message<T>, args: T) {
         this.log("Emit", message.Name, args, false);
         socket.emit(message.Message, args);
     }

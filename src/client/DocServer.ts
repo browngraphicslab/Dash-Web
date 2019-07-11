@@ -20,9 +20,7 @@ import { Id, HandleUpdate } from '../new_fields/FieldSymbols';
  * or update ourselves based on the server's update message, that occurs here
  */
 export namespace DocServer {
-    // a document cache for efficient document retrieval
-    const _cache: { [id: string]: RefField | Promise<Opt<RefField>> } = {};
-    // the handle / client side endpoint of the web socket (https://bit.ly/2TeALea for more info) connection established with the server 
+    let _cache: { [id: string]: RefField | Promise<Opt<RefField>> } = {};
     const _socket = OpenSocket(`${window.location.protocol}//${window.location.hostname}:4321`);
     // this client's distinct GUID created at initialization
     const GUID: string = Utils.GenerateGuid();
@@ -54,6 +52,11 @@ export namespace DocServer {
         export function makeEditable() {
             if (!_isReadOnly) return;
             location.reload();
+            // _isReadOnly = false;
+            // _CreateField = _CreateFieldImpl;
+            // _UpdateField = _UpdateFieldImpl;
+            // _respondToUpdate = _respondToUpdateImpl;
+            // _cache = {};
         }
 
         export function isReadOnly() { return _isReadOnly; }
@@ -82,24 +85,7 @@ export namespace DocServer {
          * all documents in the database.
          */
         export function deleteDatabase() {
-            Utils.emit(_socket, MessageStore.DeleteAll, {});
-        }
-
-        /**
-         * This disables this client's ability to write new fields,
-         * update existing fields, and update and reflect the changes if
-         * other clients update shared fields. Thus, the client can only read
-         * a static snapshot of their workspaces
-         * 
-         * Currently this is conditionally called in MainView.tsx when analyzing
-         * the document's url.
-         */
-        export function makeReadOnly() {
-            _CreateField = field => {
-                _cache[field[Id]] = field;
-            };
-            _UpdateField = emptyFunction;
-            _RespondToUpdate = emptyFunction;
+            Utils.Emit(_socket, MessageStore.DeleteAll, {});
         }
 
     }
@@ -261,6 +247,15 @@ export namespace DocServer {
         return map;
     }
 
+    function _UpdateFieldImpl(id: string, diff: any) {
+        if (id === updatingId) {
+            return;
+        }
+        Utils.Emit(_socket, MessageStore.UpdateField, { id, diff });
+    }
+
+    let _UpdateField = _UpdateFieldImpl;
+
     // WRITE A NEW DOCUMENT TO THE SERVER
 
     /**
@@ -273,17 +268,13 @@ export namespace DocServer {
         _CreateField(field);
     }
 
-    /**
-     * The default behavior for field creation. This inserts the [Doc] instance
-     * in the cache at its id, serializes the [Doc]'s initial state
-     * and finally sends that seruialized data to the server.
-     * @param field the [RefField] to be serialized and sent to the server to be stored in the database
-     */
-    let _CreateField = (field: RefField) => {
+    function _CreateFieldImpl(field: RefField) {
         _cache[field[Id]] = field;
         const initialState = SerializationHelper.Serialize(field);
-        Utils.emit(_socket, MessageStore.CreateField, initialState);
-    };
+        Utils.Emit(_socket, MessageStore.CreateField, initialState);
+    }
+
+    let _CreateField = _CreateFieldImpl;
 
     // NOTIFY THE SERVER OF AN UPDATE TO A DOC'S STATE
 
@@ -299,52 +290,7 @@ export namespace DocServer {
         _UpdateField(id, updatedState);
     }
 
-    /**
-     * The default behavior for indicating to the server that we've locally updated
-     * a document.
-     * @param id the id of the [Doc] whose state has been updated in our client
-     * @param updatedState the new value of the document. At some point, this
-     * should actually be a proper diff, to improve efficiency
-     */
-    let _UpdateField = (id: string, updatedState: any) => {
-        // don't emit a duplicate message if the server is already
-        // (asynchronously) still updating this document's state.
-        if (id === updatingId) {
-            return;
-        }
-        // creates the diff object to send to the server
-        let diff: Diff = { id, diff: updatedState };
-        // emit this diff to notify server
-        Utils.emit(_socket, MessageStore.UpdateField, diff);
-    };
-
-    // RESPOND TO THE SERVER'S INDICATION THAT A DOC'S STATE HAS BEEN UPDATED
-
-    /**
-     * Whenever the client receives an update, execute the
-     * current behavior.
-     */
-    Utils.AddServerHandler(_socket, MessageStore.UpdateField, RespondToUpdate);
-
-    /**
-     * A wrapper around the function local variable _respondToUpdate.
-     * This allows us to swap in different executions while comfortably
-     * calling the same function throughout the code base (such as in Util.makeReadonly())
-     * @param diff kept as [any], but actually the [Diff] object sent from the server containing
-     * the [Doc]'s id and its new state
-     */
-    function RespondToUpdate(diff: any) {
-        _RespondToUpdate(diff);
-    }
-
-    /**
-     * The default behavior for responding to another client's indication
-     * that it has updated the state of a [Doc] that is also in use by
-     * this client
-     * @param diff kept as [any], but actually the [Diff] object sent from the server containing
-     * the [Doc]'s id and its new state
-     */
-    let _RespondToUpdate = (diff: any) => {
+    function _respondToUpdateImpl(diff: any) {
         const id = diff.id;
         // to be valid, the Diff object must reference
         // a document's id
@@ -377,6 +323,45 @@ export namespace DocServer {
             // otherwise, just execute the update
             update(field);
         }
-    };
+    }
 
+    export function DeleteDocument(id: string) {
+        Utils.Emit(_socket, MessageStore.DeleteField, id);
+    }
+
+    export function DeleteDocuments(ids: string[]) {
+        Utils.Emit(_socket, MessageStore.DeleteFields, ids);
+    }
+
+
+    function _respondToDeleteImpl(ids: string | string[]) {
+        function deleteId(id: string) {
+            delete _cache[id];
+        }
+        if (typeof ids === "string") {
+            deleteId(ids);
+        } else if (Array.isArray(ids)) {
+            ids.map(deleteId);
+        }
+    }
+
+    let _RespondToUpdate = _respondToUpdateImpl;
+    let _respondToDelete = _respondToDeleteImpl;
+
+    function respondToUpdate(diff: any) {
+        _RespondToUpdate(diff);
+    }
+
+    function respondToDelete(ids: string | string[]) {
+        _respondToDelete(ids);
+    }
+
+    function connected() {
+        _socket.emit(MessageStore.Bar.Message, GUID);
+    }
+
+    Utils.AddServerHandler(_socket, MessageStore.Foo, connected);
+    Utils.AddServerHandler(_socket, MessageStore.UpdateField, respondToUpdate);
+    Utils.AddServerHandler(_socket, MessageStore.DeleteField, respondToDelete);
+    Utils.AddServerHandler(_socket, MessageStore.DeleteFields, respondToDelete);
 }

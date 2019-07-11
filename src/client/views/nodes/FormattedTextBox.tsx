@@ -1,6 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faEdit, faSmile } from '@fortawesome/free-solid-svg-icons';
-import { action, IReactionDisposer, observable, reaction, runInAction, computed } from "mobx";
+import { action, IReactionDisposer, observable, reaction, runInAction, computed, trace } from "mobx";
 import { observer } from "mobx-react";
 import { baseKeymap } from "prosemirror-commands";
 import { history } from "prosemirror-history";
@@ -9,11 +9,11 @@ import { NodeType } from 'prosemirror-model';
 import { EditorState, Plugin, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { Doc, Opt } from "../../../new_fields/Doc";
-import { Id } from '../../../new_fields/FieldSymbols';
+import { Id, Copy } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { createSchema, listSpec, makeInterface } from "../../../new_fields/Schema";
-import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { BoolCast, Cast, NumCast, StrCast, DateCast } from "../../../new_fields/Types";
 import { DocServer } from "../../DocServer";
 import { Docs } from '../../documents/Documents';
 import { DocumentManager } from '../../util/DocumentManager';
@@ -33,6 +33,8 @@ import { Templates } from '../Templates';
 import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import React = require("react");
+import { DateField } from '../../../new_fields/DateField';
+import { thisExpression } from 'babel-types';
 
 library.add(faEdit);
 library.add(faSmile);
@@ -68,6 +70,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     private _applyingChange: boolean = false;
     private _linkClicked = "";
     private _reactionDisposer: Opt<IReactionDisposer>;
+    private _textReactionDisposer: Opt<IReactionDisposer>;
     private _proxyReactionDisposer: Opt<IReactionDisposer>;
     private dropDisposer?: DragManager.DragDropDisposer;
     public get CurrentDiv(): HTMLDivElement { return this._ref.current!; }
@@ -121,22 +124,24 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
-    @computed get dataDoc() { return BoolCast(this.props.Document.isTemplate) && this.props.DataDoc ? this.props.DataDoc : this.props.Document; }
+    @computed get extensionDoc() { return Doc.resolvedFieldDataDoc(this.dataDoc, this.props.fieldKey, "dummy"); }
+
+    @computed get dataDoc() { return BoolCast(this.props.Document.isTemplate) && this.props.DataDoc ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
 
     dispatchTransaction = (tx: Transaction) => {
         if (this._editorView) {
             const state = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
             this._applyingChange = true;
-            Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()));
-            Doc.GetProto(this.dataDoc)[this.props.fieldKey + "_text"] = state.doc.textBetween(0, state.doc.content.size, "\n\n");
+            if (this.extensionDoc) this.extensionDoc.text = state.doc.textBetween(0, state.doc.content.size, "\n\n");
+            if (this.extensionDoc) this.extensionDoc.lastModified = new DateField(new Date(Date.now()));
+            this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()));
             this._applyingChange = false;
             let title = StrCast(this.dataDoc.title);
             if (title && title.startsWith("-") && this._editorView) {
                 let str = this._editorView.state.doc.textContent;
                 let titlestr = str.substr(0, Math.min(40, str.length));
-                let target = this.dataDoc.proto ? this.dataDoc.proto : this.dataDoc;
-                target.title = "-" + titlestr + (str.length > 40 ? "..." : "");
+                this.dataDoc.title = "-" + titlestr + (str.length > 40 ? "..." : "");
             }
         }
     }
@@ -226,9 +231,24 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 const field = this.dataDoc ? Cast(this.dataDoc[this.props.fieldKey], RichTextField) : undefined;
                 return field ? field.Data : `{"doc":{"type":"doc","content":[]},"selection":{"type":"text","anchor":0,"head":0}}`;
             },
-            field => this._editorView && !this._applyingChange &&
-                this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field)))
+            field2 => {
+                if (StrCast(this.props.Document.layout).indexOf("\"" + this.props.fieldKey + "\"") !== -1) {// bcz: UGH!  why is this needed... something is happening out of order.  test with making a collection, then adding a text note and converting that to a template field.
+                    this._editorView && !this._applyingChange &&
+                        this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field2)));
+                }
+            }
         );
+
+        this._textReactionDisposer = reaction(
+            () => this.extensionDoc,
+            () => {
+                if (this.dataDoc.text || this.dataDoc.lastModified) {
+                    this.extensionDoc.text = this.dataDoc.text;
+                    this.extensionDoc.lastModified = DateCast(this.dataDoc.lastModified)[Copy]();
+                    this.dataDoc.text = undefined;
+                    this.dataDoc.lastModified = undefined;
+                }
+            }, { fireImmediately: true });
         this.setupEditor(config, this.dataDoc, this.props.fieldKey);
     }
 
@@ -267,15 +287,10 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     componentWillUnmount() {
-        if (this._editorView) {
-            this._editorView.destroy();
-        }
-        if (this._reactionDisposer) {
-            this._reactionDisposer();
-        }
-        if (this._proxyReactionDisposer) {
-            this._proxyReactionDisposer();
-        }
+        this._editorView && this._editorView.destroy();
+        this._reactionDisposer && this._reactionDisposer();
+        this._proxyReactionDisposer && this._proxyReactionDisposer();
+        this._textReactionDisposer && this._textReactionDisposer();
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
@@ -392,8 +407,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (StrCast(this.dataDoc.title).startsWith("-") && this._editorView) {
             let str = this._editorView.state.doc.textContent;
             let titlestr = str.substr(0, Math.min(40, str.length));
-            let target = this.dataDoc.proto ? this.dataDoc.proto : this.dataDoc;
-            target.title = "-" + titlestr + (str.length > 40 ? "..." : "");
+            this.dataDoc.title = "-" + titlestr + (str.length > 40 ? "..." : "");
         }
         if (!this._undoTyping) {
             this._undoTyping = UndoManager.StartBatch("undoTyping");
@@ -404,13 +418,14 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     @action
     tryUpdateHeight() {
         if (this.props.isOverlay && this.props.Document.autoHeight) {
+            let self = this;
             let xf = this._ref.current!.getBoundingClientRect();
             let scrBounds = this.props.ScreenToLocalTransform().transformBounds(0, 0, xf.width, xf.height);
             let nh = NumCast(this.dataDoc.nativeHeight, 0);
             let dh = NumCast(this.props.Document.height, 0);
             let sh = scrBounds.height;
             this.props.Document.height = nh ? dh / nh * sh : sh;
-            this.dataDoc.proto!.nativeHeight = nh ? sh : undefined;
+            this.dataDoc.nativeHeight = nh ? sh : undefined;
         }
     }
 
@@ -436,6 +451,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         let style = this.props.isOverlay ? "scroll" : "hidden";
         let rounded = StrCast(this.props.Document.borderRounding) === "100%" ? "-rounded" : "";
         let interactive = InkingControl.Instance.selectedTool ? "" : "interactive";
+        Doc.UpdateDocumentExtensionForField(this.dataDoc, this.props.fieldKey);
         return (
             <div className={`formattedTextBox-cont-${style}`} ref={this._ref}
                 style={{

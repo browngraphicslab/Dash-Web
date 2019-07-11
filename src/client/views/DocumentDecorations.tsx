@@ -84,26 +84,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 let fieldTemplate = fieldTemplateView.props.Document;
                 let docTemplate = fieldTemplateView.props.ContainingCollectionView!.props.Document;
                 let metaKey = text.slice(1, text.length);
-
-                // move data doc fields to layout doc as needed (nativeWidth/nativeHeight, data, ??)
-                let backgroundLayout = StrCast(fieldTemplate.backgroundLayout);
-                let layout = StrCast(fieldTemplate.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
-                if (backgroundLayout) {
-                    layout = StrCast(fieldTemplate.layout).replace(/fieldKey={"annotations"}/, `fieldKey={"${metaKey}"} fieldExt={"annotations"}`);
-                    backgroundLayout = backgroundLayout.replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
-                }
-                let nw = Cast(fieldTemplate.nativeWidth, "number");
-                let nh = Cast(fieldTemplate.nativeHeight, "number");
-
-                fieldTemplate.title = metaKey;
-                fieldTemplate.layout = layout;
-                fieldTemplate.backgroundLayout = backgroundLayout;
-                fieldTemplate.nativeWidth = nw;
-                fieldTemplate.nativeHeight = nh;
-                fieldTemplate.embed = true;
-                fieldTemplate.isTemplate = true;
-                fieldTemplate.templates = new List<string>([Templates.TitleBar(metaKey)]);
-                fieldTemplate.proto = Doc.GetProto(docTemplate);
+                Doc.MakeTemplate(fieldTemplate, metaKey, Doc.GetProto(docTemplate));
             }
             else {
                 if (SelectionManager.SelectedDocuments().length > 0) {

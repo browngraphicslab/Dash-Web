@@ -3,7 +3,7 @@ import { serializable, primitive, map, alias, list } from "serializr";
 import { autoObject, SerializationHelper, Deserializable } from "../client/util/SerializationHelper";
 import { DocServer } from "../client/DocServer";
 import { setter, getter, getField, updateFunction, deleteProperty, makeEditable, makeReadOnly } from "./util";
-import { Cast, ToConstructor, PromiseValue, FieldValue, NumCast } from "./Types";
+import { Cast, ToConstructor, PromiseValue, FieldValue, NumCast, BoolCast, StrCast } from "./Types";
 import { listSpec } from "./Schema";
 import { ObjectField } from "./ObjectField";
 import { RefField, FieldId } from "./RefField";
@@ -332,10 +332,11 @@ export namespace Doc {
         if (expandedTemplateLayout instanceof Doc) {
             return expandedTemplateLayout;
         }
-        if (expandedTemplateLayout === undefined) {
+        if (expandedTemplateLayout === undefined && BoolCast(templateLayoutDoc.isTemplate)) {
             setTimeout(() => {
                 templateLayoutDoc["_expanded_" + dataDoc[Id]] = Doc.MakeDelegate(templateLayoutDoc);
                 (templateLayoutDoc["_expanded_" + dataDoc[Id]] as Doc).title = templateLayoutDoc.title + " applied to " + dataDoc.title;
+                (templateLayoutDoc["_expanded_" + dataDoc[Id]] as Doc).isExpandedTemplate = templateLayoutDoc;
             }, 0);
         }
         return templateLayoutDoc;
@@ -372,5 +373,33 @@ export namespace Doc {
         const delegate = new Doc(id, true);
         delegate.proto = doc;
         return delegate;
+    }
+
+    export function MakeTemplate(fieldTemplate: Doc, metaKey: string, proto: Doc) {
+        // move data doc fields to layout doc as needed (nativeWidth/nativeHeight, data, ??)
+        let backgroundLayout = StrCast(fieldTemplate.backgroundLayout);
+        let fieldLayoutDoc = fieldTemplate;
+        if (fieldTemplate.layout instanceof Doc) {
+            fieldLayoutDoc = Doc.MakeDelegate(fieldTemplate.layout);
+        }
+        let layout = StrCast(fieldLayoutDoc.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
+        if (backgroundLayout) {
+            layout = StrCast(fieldLayoutDoc.layout).replace(/fieldKey={"annotations"}/, `fieldKey={"${metaKey}"} fieldExt={"annotations"}`);
+            backgroundLayout = backgroundLayout.replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
+        }
+        let nw = Cast(fieldTemplate.nativeWidth, "number");
+        let nh = Cast(fieldTemplate.nativeHeight, "number");
+
+        let layoutDelegate = fieldTemplate.layout instanceof Doc ? fieldLayoutDoc : fieldTemplate;
+        layoutDelegate.layout = layout;
+
+        fieldTemplate.title = metaKey;
+        fieldTemplate.layout = layoutDelegate !== fieldTemplate ? layoutDelegate : layout;
+        fieldTemplate.backgroundLayout = backgroundLayout;
+        fieldTemplate.nativeWidth = nw;
+        fieldTemplate.nativeHeight = nh;
+        fieldTemplate.isTemplate = true;
+        fieldTemplate.showTitle = "title";
+        fieldTemplate.proto = proto;
     }
 }
