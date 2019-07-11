@@ -5,6 +5,7 @@ import { observer } from "mobx-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { emptyFunction, returnFalse } from "../../../Utils";
 import { Doc } from "../../../new_fields/Doc";
+import { handleBackspace } from "../nodes/PDFBox";
 
 @observer
 export default class PDFMenu extends React.Component {
@@ -251,8 +252,8 @@ export default class PDFMenu extends React.Component {
                 <button className="pdfMenu-button" title="Delete Anchor" onPointerDown={this.deleteClicked}><FontAwesomeIcon icon="trash-alt" size="lg" key="1" /></button>,
                 <button className="pdfMenu-button" title="Pin to Presentation" onPointerDown={this.PinToPres}><FontAwesomeIcon icon="map-pin" size="lg" key="2" /></button>,
                 <div className="pdfMenu-addTag" key="3">
-                    <input onChange={this.keyChanged} placeholder="Key" style={{ gridColumn: 1 }} />
-                    <input onChange={this.valueChanged} placeholder="Value" style={{ gridColumn: 3 }} />
+                    <input onKeyDown={handleBackspace} onChange={this.keyChanged} placeholder="Key" style={{ gridColumn: 1 }} />
+                    <input onKeyDown={handleBackspace} onChange={this.valueChanged} placeholder="Value" style={{ gridColumn: 3 }} />
                 </div>,
                 <button className="pdfMenu-button" title={`Add tag: ${this._keyValue} with value: ${this._valueValue}`} onPointerDown={this.addTag}><FontAwesomeIcon style={{ transition: "all .2s" }} color={this._added ? "#42f560" : "white"} icon="check" size="lg" key="4" /></button>,
             ];

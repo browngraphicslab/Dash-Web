@@ -104,10 +104,6 @@ export class SearchItem extends React.Component<SearchItemProps> {
     @observable _useIcons = true;
     @observable _displayDim = 50;
 
-    fitToBox = () => {
-        let bounds = Doc.ComputeContentBounds(this.props.doc);
-        return [(bounds.x + bounds.r) / 2, (bounds.y + bounds.b) / 2, Number(SEARCH_THUMBNAIL_SIZE) / Math.max((bounds.b - bounds.y), (bounds.r - bounds.x)), this._displayDim];
-    }
     @computed
     public get DocumentIcon() {
         if (!this._useIcons) {
@@ -119,7 +115,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
                 onPointerEnter={action(() => this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE))}
                 onPointerLeave={action(() => this._displayDim = 50)} >
                 <DocumentView
-                    fitToBox={StrCast(this.props.doc.type).indexOf(DocumentType.COL) !== -1 ? this.fitToBox : undefined}
+                    fitToBox={StrCast(this.props.doc.type).indexOf(DocumentType.COL) !== -1}
                     Document={this.props.doc}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}

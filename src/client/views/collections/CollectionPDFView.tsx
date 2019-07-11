@@ -47,8 +47,8 @@ export class CollectionPDFView extends React.Component<FieldViewProps> {
         this._reactionDisposer && this._reactionDisposer();
     }
 
-    public static LayoutString(fieldKey: string = "data") {
-        return FieldView.LayoutString(CollectionPDFView, fieldKey);
+    public static LayoutString(fieldKey: string = "data", fieldExt: string = "annotations") {
+        return FieldView.LayoutString(CollectionPDFView, fieldKey, fieldExt);
     }
     @observable _inThumb = false;
 

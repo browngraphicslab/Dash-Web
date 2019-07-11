@@ -61,16 +61,18 @@ export function SetupDrag(
 export async function DragLinkAsDocument(dragEle: HTMLElement, x: number, y: number, linkDoc: Doc, sourceDoc: Doc) {
     let draggeddoc = LinkManager.Instance.getOppositeAnchor(linkDoc, sourceDoc);
 
-    let moddrag = await Cast(draggeddoc.annotationOn, Doc);
-    let dragdocs = moddrag ? [moddrag] : [draggeddoc];
-    let dragData = new DragManager.DocumentDragData(dragdocs, dragdocs);
-    dragData.dropAction = "alias" as dropActionType;
-    DragManager.StartLinkedDocumentDrag([dragEle], sourceDoc, dragData, x, y, {
-        handlers: {
-            dragComplete: action(emptyFunction),
-        },
-        hideSource: false
-    });
+    if (draggeddoc) {
+        let moddrag = await Cast(draggeddoc.annotationOn, Doc);
+        let dragdocs = moddrag ? [moddrag] : [draggeddoc];
+        let dragData = new DragManager.DocumentDragData(dragdocs, dragdocs);
+        dragData.dropAction = "alias" as dropActionType;
+        DragManager.StartLinkedDocumentDrag([dragEle], sourceDoc, dragData, x, y, {
+            handlers: {
+                dragComplete: action(emptyFunction),
+            },
+            hideSource: false
+        });
+    }
 }
 
 export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: number, sourceDoc: Doc) {
@@ -80,9 +82,16 @@ export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: n
     if (srcTarg) {
         let linkDocs = LinkManager.Instance.getAllRelatedLinks(srcTarg);
         if (linkDocs) {
-            draggedDocs = linkDocs.map(link => {
-                return LinkManager.Instance.getOppositeAnchor(link, sourceDoc);
-            });
+            linkDocs.forEach((doc) => {
+                let opp = LinkManager.Instance.getOppositeAnchor(doc, sourceDoc);
+                if (opp) {
+                    draggedDocs.push(opp);
+                }
+            }
+            );
+            // draggedDocs = linkDocs.map(link => {
+            //     return LinkManager.Instance.getOppositeAnchor(link, sourceDoc);
+            // });
         }
     }
     if (draggedDocs.length) {

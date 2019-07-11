@@ -87,11 +87,11 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
     }
 
     deleteAnnotation = () => {
-        let annotation = DocListCast(this.props.parent.props.parent.Document.annotations);
+        let annotation = DocListCast(this.props.parent.props.parent.fieldExtensionDoc.annotations);
         let group = FieldValue(Cast(this.props.document.group, Doc));
         if (group && annotation.indexOf(group) !== -1) {
             let newAnnotations = annotation.filter(a => a !== FieldValue(Cast(this.props.document.group, Doc)));
-            this.props.parent.props.parent.Document.annotations = new List<Doc>(newAnnotations);
+            this.props.parent.props.parent.fieldExtensionDoc.annotations = new List<Doc>(newAnnotations);
         }
 
         if (group) {

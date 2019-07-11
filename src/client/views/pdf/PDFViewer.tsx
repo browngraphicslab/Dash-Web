@@ -14,7 +14,7 @@ import { Docs, DocUtils, DocumentOptions } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager } from "../../util/DragManager";
 import { DocumentView } from "../nodes/DocumentView";
-import { PDFBox } from "../nodes/PDFBox";
+import { PDFBox, handleBackspace } from "../nodes/PDFBox";
 import Page from "./Page";
 import "./PDFViewer.scss";
 import React = require("react");
@@ -125,9 +125,12 @@ export class Viewer extends React.Component<IViewerProps> {
             }, { fireImmediately: true });
 
         this._annotationReactionDisposer = reaction(
-            () => this.props.parent.Document && DocListCast(this.props.parent.Document.annotations),
-            (annotations: Doc[]) =>
-                annotations && annotations.length && this.renderAnnotations(annotations, true),
+            () => {
+                return this.props.parent && this.props.parent.fieldExtensionDoc && DocListCast(this.props.parent.fieldExtensionDoc.annotations);
+            },
+            (annotations: Doc[]) => {
+                annotations && annotations.length && this.renderAnnotations(annotations, true);
+            },
             { fireImmediately: true });
 
         this._activeReactionDisposer = reaction(
@@ -156,7 +159,9 @@ export class Viewer extends React.Component<IViewerProps> {
                         let scriptfield = Cast(this.props.parent.Document.filterScript, ScriptField);
                         this._script = scriptfield ? scriptfield.script : CompileScript("return true");
                         if (this.props.parent.props.ContainingCollectionView) {
-                            let ccvAnnos = DocListCast(this.props.parent.props.ContainingCollectionView.props.Document.annotations);
+                            let fieldDoc = Doc.resolvedFieldDataDoc(this.props.parent.props.ContainingCollectionView.props.DataDoc ?
+                                this.props.parent.props.ContainingCollectionView.props.DataDoc : this.props.parent.props.ContainingCollectionView.props.Document, this.props.parent.props.ContainingCollectionView.props.fieldKey, "true");
+                            let ccvAnnos = DocListCast(fieldDoc.annotations);
                             ccvAnnos.forEach(d => {
                                 if (this._script && this._script.compiled) {
                                     let run = this._script.run(d);
@@ -270,13 +275,13 @@ export class Viewer extends React.Component<IViewerProps> {
         if (de.data instanceof DragManager.LinkDragData) {
             let sourceDoc = de.data.linkSourceDocument;
             let destDoc = this.makeAnnotationDocument(sourceDoc, 1, "red");
-            let targetAnnotations = DocListCast(this.props.parent.Document.annotations);
+            let targetAnnotations = DocListCast(this.props.parent.fieldExtensionDoc.annotations);
             if (targetAnnotations) {
                 targetAnnotations.push(destDoc);
-                this.props.parent.Document.annotations = new List<Doc>(targetAnnotations);
+                this.props.parent.fieldExtensionDoc.annotations = new List<Doc>(targetAnnotations);
             }
             else {
-                this.props.parent.Document.annotations = new List<Doc>([destDoc]);
+                this.props.parent.fieldExtensionDoc.annotations = new List<Doc>([destDoc]);
             }
             e.stopPropagation();
         }
@@ -648,7 +653,7 @@ export class Viewer extends React.Component<IViewerProps> {
                     <button className="pdfViewer-overlayButton" title="Open Search Bar"></button>
                     {/* <button title="Previous Result" onClick={() => this.search(this._searchString)}><FontAwesomeIcon icon="arrow-up" size="3x" color="white" /></button>
                     <button title="Next Result" onClick={this.nextResult}><FontAwesomeIcon icon="arrow-down" size="3x" color="white" /></button> */}
-                    <input placeholder="Search" className="pdfViewer-overlaySearchBar" onChange={this.searchStringChanged} />
+                    <input onKeyDown={handleBackspace} placeholder="Search" className="pdfViewer-overlaySearchBar" onChange={this.searchStringChanged} />
                     <button title="Search" onClick={() => this.search(this._searchString)}><FontAwesomeIcon icon="search" size="3x" color="white" /></button>
                 </div>
                 <button className="pdfViewer-overlayButton" onClick={this.prevAnnotation} title="Previous Annotation"

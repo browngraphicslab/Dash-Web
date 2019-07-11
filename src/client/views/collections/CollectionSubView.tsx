@@ -48,16 +48,17 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
 
         @computed get extensionDoc() { return Doc.resolvedFieldDataDoc(BoolCast(this.props.Document.isTemplate) && this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt); }
 
+
         get childDocs() {
             let self = this;
             //TODO tfs: This might not be what we want?
             //This linter error can't be fixed because of how js arguments work, so don't switch this to filter(FieldValue)
-            return DocListCast((BoolCast(this.props.Document.isTemplate) ? this.extensionDoc : this.props.Document)[this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey]);
+            return DocListCast(this.extensionDoc[this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey]);
         }
         get childDocList() {
             //TODO tfs: This might not be what we want?
             //This linter error can't be fixed because of how js arguments work, so don't switch this to filter(FieldValue)
-            return Cast((BoolCast(this.props.Document.isTemplate) ? this.extensionDoc : this.props.Document)[this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey], listSpec(Doc));
+            return Cast(this.extensionDoc[this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey], listSpec(Doc));
         }
 
         @action
@@ -102,7 +103,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 } else if (de.data.moveDocument) {
                     let movedDocs = de.data.options === this.props.Document[Id] ? de.data.draggedDocuments : de.data.droppedDocuments;
                     added = movedDocs.reduce((added: boolean, d) =>
-                        de.data.moveDocument(d, this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.addDocument) || added, false);
+                        de.data.moveDocument(d, /*this.props.DataDoc ? this.props.DataDoc :*/ this.props.Document, this.props.addDocument) || added, false);
                 } else {
                     added = de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
                 }

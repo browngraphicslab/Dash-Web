@@ -69,11 +69,13 @@ export default class KeyManager {
                 break;
             case "delete":
             case "backspace":
-                SelectionManager.SelectedDocuments().map(docView => {
-                    let doc = docView.props.Document;
-                    let remove = docView.props.removeDocument;
-                    remove && remove(doc);
-                });
+                UndoManager.RunInBatch(() => {
+                    SelectionManager.SelectedDocuments().map(docView => {
+                        let doc = docView.props.Document;
+                        let remove = docView.props.removeDocument;
+                        remove && remove(doc);
+                    });
+                }, "delete");
                 break;
         }
 

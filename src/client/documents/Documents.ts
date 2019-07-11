@@ -89,18 +89,19 @@ export namespace Docs {
 
     export namespace Prototypes {
 
-        type LayoutSource = {
-            LayoutString: (fieldKey?: string) => string
-        };
+        type LayoutSource = { LayoutString: () => string };
+        type CollectionLayoutSource = { LayoutString: (fieldStr: string, fieldExt?: string) => string };
         type PrototypeTemplate = {
             layout: {
                 view: LayoutSource,
-                collectionView?: LayoutSource
+                collectionView?: [CollectionLayoutSource, string, string?]
             },
             options?: Partial<DocumentOptions>
         };
         type TemplateMap = Map<DocumentType, PrototypeTemplate>;
         type PrototypeMap = Map<DocumentType, Doc>;
+        const data = "data";
+        const anno = "annotations";
 
         const TemplateMap: TemplateMap = new Map([
             [DocumentType.TEXT, {
@@ -108,11 +109,11 @@ export namespace Docs {
                 options: { height: 150, backgroundColor: "#f1efeb" }
             }],
             [DocumentType.HIST, {
-                layout: { view: HistogramBox, collectionView: CollectionView },
+                layout: { view: HistogramBox, collectionView: [CollectionView, data] },
                 options: { height: 300, backgroundColor: "black" }
             }],
             [DocumentType.IMG, {
-                layout: { view: ImageBox, collectionView: CollectionView },
+                layout: { view: ImageBox, collectionView: [CollectionView, data, anno] },
                 options: { nativeWidth: 600, curPage: 0 }
             }],
             [DocumentType.WEB, {
@@ -128,7 +129,7 @@ export namespace Docs {
                 options: { height: 150 }
             }],
             [DocumentType.VID, {
-                layout: { view: VideoBox, collectionView: CollectionVideoView },
+                layout: { view: VideoBox, collectionView: [CollectionVideoView, data, anno] },
                 options: { nativeWidth: 600, curPage: 0 },
             }],
             [DocumentType.AUDIO, {
@@ -136,7 +137,7 @@ export namespace Docs {
                 options: { height: 150 }
             }],
             [DocumentType.PDF, {
-                layout: { view: PDFBox, collectionView: CollectionPDFView },
+                layout: { view: PDFBox, collectionView: [CollectionPDFView, data, anno] },
                 options: { nativeWidth: 1200, curPage: 1 }
             }],
             [DocumentType.ICON, {
@@ -151,7 +152,7 @@ export namespace Docs {
 
         // All document prototypes are initialized with at least these values
         const defaultOptions: DocumentOptions = { x: 0, y: 0, width: 300 };
-        const Suffix = "Proto";
+        const suffix = "Proto";
 
         /**
          * This function loads or initializes the prototype for each docment type.
@@ -166,7 +167,6 @@ export namespace Docs {
          */
         export async function initialize(): Promise<void> {
             // non-guid string ids for each document prototype
-            let suffix = "Proto";
             let prototypeIds = Object.values(DocumentType).filter(type => type !== DocumentType.NONE).map(type => type + suffix);
             // fetch the actual prototype documents from the server
             let actualProtos = await DocServer.GetRefFields(prototypeIds);
@@ -214,7 +214,7 @@ export namespace Docs {
             }
             let layout = template.layout;
             // create title
-            let upper = Suffix.toUpperCase();
+            let upper = suffix.toUpperCase();
             let title = prototypeId.toUpperCase().replace(upper, `_${upper}`);
             // synthesize the default options, the type and title from computed values and
             // whatever options pertain to this specific prototype
@@ -222,7 +222,7 @@ export namespace Docs {
             let primary = layout.view.LayoutString();
             let collectionView = layout.collectionView;
             if (collectionView) {
-                options.layout = collectionView.LayoutString("annotations");
+                options.layout = collectionView[0].LayoutString(collectionView[1], collectionView[2]);
                 options.backgroundLayout = primary;
             } else {
                 options.layout = primary;

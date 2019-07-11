@@ -400,6 +400,20 @@ export const marks: { [index: string]: MarkSpec } = {
         }]
     },
 
+    p18: {
+        parseDOM: [{ style: 'font-size: 18px;' }],
+        toDOM: () => ['span', {
+            style: 'font-size: 18px;'
+        }]
+    },
+
+    p20: {
+        parseDOM: [{ style: 'font-size: 20px;' }],
+        toDOM: () => ['span', {
+            style: 'font-size: 20px;'
+        }]
+    },
+
     p24: {
         parseDOM: [{ style: 'font-size: 24px;' }],
         toDOM: () => ['span', {

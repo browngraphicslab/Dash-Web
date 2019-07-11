@@ -21,8 +21,8 @@ import { Docs, DocUtils } from "../../documents/Documents";
 export class CollectionVideoView extends React.Component<FieldViewProps> {
     private _videoBox?: VideoBox;
 
-    public static LayoutString(fieldKey: string = "data") {
-        return FieldView.LayoutString(CollectionVideoView, fieldKey);
+    public static LayoutString(fieldKey: string = "data", fieldExt: string = "annotations") {
+        return FieldView.LayoutString(CollectionVideoView, fieldKey, fieldExt);
     }
     private get uIButtons() {
         let scaling = Math.min(1.8, this.props.ScreenToLocalTransform().Scale);

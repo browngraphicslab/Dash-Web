@@ -73,7 +73,7 @@ export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
     Document: Doc;
     DataDoc?: Doc;
-    fitToBox?: () => number[];
+    fitToBox?: boolean;
     addDocument?: (doc: Doc, allowDuplicates?: boolean) => boolean;
     removeDocument?: (doc: Doc) => boolean;
     moveDocument?: (doc: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
@@ -542,25 +542,31 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         cm.addItem({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "fingerprint" });
         cm.addItem({ description: "Delete", event: this.deleteClicked, icon: "trash" });
         type User = { email: string, userDocumentId: string };
-        const users: User[] = JSON.parse(await rp.get(DocServer.prepend(RouteStore.getUsers)));
-        let usersMenu: ContextMenuProps[] = users.filter(({ email }) => email !== CurrentUserUtils.email).map(({ email, userDocumentId }) => ({
-            description: email, event: async () => {
-                const userDocument = await Cast(DocServer.GetRefField(userDocumentId), Doc);
-                if (!userDocument) {
-                    throw new Error(`Couldn't get user document of user ${email}`);
-                }
-                const notifDoc = await Cast(userDocument.optionalRightCollection, Doc);
-                if (notifDoc instanceof Doc) {
-                    const data = await Cast(notifDoc.data, listSpec(Doc));
-                    const sharedDoc = Doc.MakeAlias(this.props.Document);
-                    if (data) {
-                        data.push(sharedDoc);
-                    } else {
-                        notifDoc.data = new List([sharedDoc]);
+        let usersMenu: ContextMenuProps[] = [];
+        try {
+            let stuff = await rp.get(DocServer.prepend(RouteStore.getUsers));
+            const users: User[] = JSON.parse(stuff);
+            usersMenu = users.filter(({ email }) => email !== CurrentUserUtils.email).map(({ email, userDocumentId }) => ({
+                description: email, event: async () => {
+                    const userDocument = await Cast(DocServer.GetRefField(userDocumentId), Doc);
+                    if (!userDocument) {
+                        throw new Error(`Couldn't get user document of user ${email}`);
+                    }
+                    const notifDoc = await Cast(userDocument.optionalRightCollection, Doc);
+                    if (notifDoc instanceof Doc) {
+                        const data = await Cast(notifDoc.data, listSpec(Doc));
+                        const sharedDoc = Doc.MakeAlias(this.props.Document);
+                        if (data) {
+                            data.push(sharedDoc);
+                        } else {
+                            notifDoc.data = new List([sharedDoc]);
+                        }
                     }
                 }
-            }
-        }));
+            }));
+        } catch {
+
+        }
         runInAction(() => {
             cm.addItem({ description: "Share...", subitems: usersMenu, icon: "share" });
             if (!this.topMost) {

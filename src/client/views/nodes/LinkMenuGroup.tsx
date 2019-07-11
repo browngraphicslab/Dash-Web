@@ -45,7 +45,15 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
             document.removeEventListener("pointermove", this.onLinkButtonMoved);
             document.removeEventListener("pointerup", this.onLinkButtonUp);
 
-            let draggedDocs = this.props.group.map(linkDoc => LinkManager.Instance.getOppositeAnchor(linkDoc, this.props.sourceDoc));
+            let draggedDocs: Doc[] = [];
+            this.props.group.forEach(
+                (doc: Doc) => {
+                    let opp = LinkManager.Instance.getOppositeAnchor(doc, this.props.sourceDoc);
+                    if (opp) {
+                        draggedDocs.push(opp);
+                    }
+                }
+            );
             let dragData = new DragManager.DocumentDragData(draggedDocs, draggedDocs.map(d => undefined));
 
             DragManager.StartLinkedDocumentDrag([this._drag.current], this.props.sourceDoc, dragData, e.x, e.y, {
@@ -72,8 +80,10 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
     render() {
         let groupItems = this.props.group.map(linkDoc => {
             let destination = LinkManager.Instance.getOppositeAnchor(linkDoc, this.props.sourceDoc);
-            return <LinkMenuItem key={destination[Id] + this.props.sourceDoc[Id]} groupType={this.props.groupType}
-                linkDoc={linkDoc} sourceDoc={this.props.sourceDoc} destinationDoc={destination} showEditor={this.props.showEditor} />;
+            if (destination) {
+                return <LinkMenuItem key={destination[Id] + this.props.sourceDoc[Id]} groupType={this.props.groupType}
+                    linkDoc={linkDoc} sourceDoc={this.props.sourceDoc} destinationDoc={destination} showEditor={this.props.showEditor} />;
+            }
         });
 
         return (
