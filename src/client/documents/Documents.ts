@@ -94,8 +94,8 @@ export namespace Docs {
         };
         type PrototypeTemplate = {
             layout: {
-                component: LayoutSource,
-                collection?: LayoutSource
+                view: LayoutSource,
+                collectionView?: LayoutSource
             },
             options?: Partial<DocumentOptions>
         };
@@ -104,47 +104,47 @@ export namespace Docs {
 
         const TemplateMap: TemplateMap = new Map([
             [DocumentType.TEXT, {
-                layout: { component: FormattedTextBox },
+                layout: { view: FormattedTextBox },
                 options: { height: 150, backgroundColor: "#f1efeb" }
             }],
             [DocumentType.HIST, {
-                layout: { component: HistogramBox, collection: CollectionView },
+                layout: { view: HistogramBox, collectionView: CollectionView },
                 options: { height: 300, backgroundColor: "black" }
             }],
             [DocumentType.IMG, {
-                layout: { component: ImageBox, collection: CollectionView },
+                layout: { view: ImageBox, collectionView: CollectionView },
                 options: { nativeWidth: 600, curPage: 0 }
             }],
             [DocumentType.WEB, {
-                layout: { component: WebBox },
+                layout: { view: WebBox },
                 options: { height: 300 }
             }],
             [DocumentType.COL, {
-                layout: { component: CollectionView },
+                layout: { view: CollectionView },
                 options: { panX: 0, panY: 0, scale: 1, width: 500, height: 500 }
             }],
             [DocumentType.KVP, {
-                layout: { component: KeyValueBox },
+                layout: { view: KeyValueBox },
                 options: { height: 150 }
             }],
             [DocumentType.VID, {
-                layout: { component: VideoBox, collection: CollectionVideoView },
+                layout: { view: VideoBox, collectionView: CollectionVideoView },
                 options: { nativeWidth: 600, curPage: 0 },
             }],
             [DocumentType.AUDIO, {
-                layout: { component: AudioBox },
+                layout: { view: AudioBox },
                 options: { height: 150 }
             }],
             [DocumentType.PDF, {
-                layout: { component: PDFBox, collection: CollectionPDFView },
+                layout: { view: PDFBox, collectionView: CollectionPDFView },
                 options: { nativeWidth: 1200, curPage: 1 }
             }],
             [DocumentType.ICON, {
-                layout: { component: IconBox },
+                layout: { view: IconBox },
                 options: { width: Number(MINIMIZED_ICON_SIZE), height: Number(MINIMIZED_ICON_SIZE) },
             }],
             [DocumentType.IMPORT, {
-                layout: { component: DirectoryImportBox },
+                layout: { view: DirectoryImportBox },
                 options: { height: 150 }
             }]
         ]);
@@ -213,18 +213,16 @@ export namespace Docs {
                 return undefined;
             }
             let layout = template.layout;
-
             // create title
             let upper = Suffix.toUpperCase();
             let title = prototypeId.toUpperCase().replace(upper, `_${upper}`);
-
             // synthesize the default options, the type and title from computed values and
             // whatever options pertain to this specific prototype
             let options = { title: title, type: type, ...defaultOptions, ...(template.options || {}) };
-            let primary = layout.component.LayoutString();
-            let collection = layout.collection;
-            if (collection) {
-                options.layout = collection.LayoutString("annotations");
+            let primary = layout.view.LayoutString();
+            let collectionView = layout.collectionView;
+            if (collectionView) {
+                options.layout = collectionView.LayoutString("annotations");
                 options.backgroundLayout = primary;
             } else {
                 options.layout = primary;
