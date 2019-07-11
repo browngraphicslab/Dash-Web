@@ -145,6 +145,8 @@ export namespace Docs {
         ]);
 
         const PrototypeMap: PrototypeMap = new Map();
+        const defaultOptions: DocumentOptions = { x: 0, y: 0, width: 300 };
+        const Suffix = "Proto";
 
         /**
          * This function loads or initializes the prototype for each docment type.
@@ -165,12 +167,11 @@ export namespace Docs {
             let actualProtos = await DocServer.GetRefFields(prototypeIds);
 
             // update this object to include any default values: DocumentOptions for all prototypes
-            let defaultOptions: DocumentOptions = { x: 0, y: 0, width: 300 };
             prototypeIds.map(id => {
                 let existing = actualProtos[id] as Doc;
                 let type = id.replace(suffix, "") as DocumentType;
                 // get or create prototype of the specified type...
-                let target = existing || buildPrototype(type, id, defaultOptions);
+                let target = existing || buildPrototype(type, id);
                 // ...and set it if not undefined (can be undefined only if TemplateMap does not contain
                 // an entry dedicated to the given DocumentType)
                 target && PrototypeMap.set(type, target);
@@ -193,14 +194,15 @@ export namespace Docs {
          * @param options any value specified in the DocumentOptions object likewise
          * becomes the default value for that key for all delegates
          */
-        function buildPrototype(type: DocumentType, prototypeId: string, defaultOptions: DocumentOptions): Opt<Doc> {
+        function buildPrototype(type: DocumentType, prototypeId: string): Opt<Doc> {
             let template = TemplateMap.get(type);
             if (!template) {
                 return undefined;
             }
             let primary = template.primary;
             let background = template.background;
-            let options = { ...defaultOptions, ...(template.options || {}), title: prototypeId.toUpperCase().replace("PROTO", "_PROTO") };
+            let upper = Suffix.toUpperCase();
+            let options = { ...defaultOptions, ...(template.options || {}), title: prototypeId.toUpperCase().replace(upper, `_${upper}`) };
             background && (options = { ...options, backgroundLayout: background, });
             return Doc.assign(new Doc(prototypeId, true), { ...options, layout: primary, baseLayout: primary });
         }
