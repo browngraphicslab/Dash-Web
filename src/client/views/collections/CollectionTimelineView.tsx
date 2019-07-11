@@ -110,6 +110,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     private screenref = React.createRef<HTMLDivElement>();
     private barref = React.createRef<HTMLDivElement>();
     private marqueeref = React.createRef<HTMLDivElement>();
+    private colorref= React.createRef<HTMLDivElement>();
 
     componentWillMount() {
         document.addEventListener("keydown", (e) => this.onKeyPress_Selector(e));
@@ -195,10 +196,12 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     onPointerDown_DeleteMarker = (e: React.PointerEvent, ref: HTMLDivElement | undefined): void => {
+        if (e.ctrlKey){
         for (let i = 0; i < this.markers.length; i++) {
             if (this.markers[i].ref === ref) {
                 this.markers.splice(i, 1);
             }
+        }
         }
     }
 
@@ -210,10 +213,15 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             let leftval = (e.pageX - document.body.clientWidth + this.screenref.current!.clientWidth/0.98);
             let ting: MarkerUnit = {
                 ref: undefined,
-                element: <div ref={(el) => el ? ting.ref = el : null} id={"marker" + String(this.markers.length)} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, ting.ref)} style={{ top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid" + this.selectedColor, width: "10px", height: "30px", backgroundColor: this.selectedColor, opacity: "0.5", position: "absolute", left: leftval }}></div>,
+                element: <div ref={(el) => el ? ting.ref = el : null} id={"marker" + String(this.markers.length)} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, ting.ref)} 
+                style={{ top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid" + this.selectedColor, 
+                width: "10px", height: "30px", backgroundColor: this.selectedColor, opacity: "0.25", position: "absolute", left: leftval }}>
+                <input ref={(el) => el ? ting.menuref = el : null} 
+                style={{backgroundColor:this.selectedColor, border: "0px solid", width:8 }} type="text"></input></div>,
                 initialLeft: (leftval / (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement))) + (this.xmovement),
                 initialScaleRef: 10,
                 initialWidth: (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)),
+                menuref:undefined,
             };
 
             this.markers.push(ting);
@@ -290,7 +298,9 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             console.log(newX);
             console.log(this.markers[this.markers.length - 1]);
             this.markers[this.markers.length - 1].ref.style.width = String(newX);
+            this.markers[this.markers.length - 1].menuref.style.width = String(newX)-2;
             this.markers[this.markers.length - 1].initialScaleRef = newX;
+
         }
             this.countingfriend++;
             e.stopPropagation();
@@ -328,38 +338,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 SelectionManager.DeselectAll(undefined);
             }
         }
-
-
-        // if (e.ctrlKey) {
-        //     e.preventDefault();
-        //     if (this._lastX < this._downX) {
-
-        //         let ting: MarkerUnit = {
-        //             element: <div ref={(el) => el ? ting.ref = el : null} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, ting.ref)} id={"marker" + String(this.markers.length)} style={{ top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid" + this.selectedColor, height: "30px", backgroundColor: this.selectedColor, opacity: "0.5", width: String(Math.abs(this._lastX - this._downX)), position: "absolute", left: this._downX - Math.abs(this._lastX - this._downX) }}></div>,
-        //             initialLeft: ((this._downX - Math.abs(this._lastX - this._downX)) / (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement))) + (this.xmovement),
-        //             initialScaleRef: Math.abs(this._lastX - this._downX),
-        //             initialWidth: (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)),
-        //             ref: undefined,
-        //         };
-        //         this.markers.push(ting);
-        //     }
-        //     else {
-        //         let ting: MarkerUnit = {
-        //             element: <div ref={(el) => el ? ting.ref = el : null} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, ting.ref)} id={"marker" + String(this.markers.length)} style={{ top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid" + this.selectedColor, height: "30px", backgroundColor: this.selectedColor, opacity: "0.5", width: String(this._lastX - this._downX), position: "absolute", left: this._downX }}></div>,
-        //             initialLeft: (this._downX / (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement))) + (this.xmovement),
-        //             initialScaleRef: (this._lastX - this._downX),
-        //             initialWidth: (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)),
-        //             ref: undefined,
-        //         };
-        //         this.markers.push(ting);
-        //     }
-
-
-        // }
-
         this.cleanupInteractions(true);
-
-
         this.countingfriend++;
         for (let i = 0; i < this.newselect.length; i++) {
             if (!this.selections.includes(this.newselect[i])) {
@@ -734,10 +713,11 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         className="searchBox-barChild searchBox-input" />
                 </div>
                 <div className="mid">
-                    <div onClick={(e) => this.toggleColor(e, "ffff80")} style={{ position: "absolute", left: "33%", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#ffff80" }}></div>
-                    <div onClick={(e) => this.toggleColor(e, "bfff80")} style={{ position: "absolute", left: "35%", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#bfff80" }}></div>
-                    <div onClick={(e) => this.toggleColor(e, "#ff8080")} style={{ position: "absolute", left: "37%", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#ff8080" }}></div>
-                    <div onClick={(e) => this.toggleColor(e, "#80dfff")} style={{ position: "absolute", left: "39%", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#80dfff" }}></div>
+                    <div onClick={(e) => this.toggleColor(e, "ffff80")} className="toggleYellow" style={{ position: "absolute", left: "33%", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#ffff80" }}></div>
+                    <div onClick={(e) => this.toggleColor(e, "bfff80")} className="toggleGreen" style={{ position: "absolute", left: "35%", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#bfff80" }}></div>
+                    <div onClick={(e) => this.toggleColor(e, "#ff8080")} className="toggleRed" style={{ position: "absolute", left: "37%", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#ff8080" }}></div>
+                    
+                    <div ref={this.colorref} onClick={(e) => this.toggleColor(e, "#80dfff")} className="toggleBlue" style={{ position: "absolute", left: "39%", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#80dfff" }}></div>
                     {this.sortstate + ":" + this.preview4}
                 </div>
                 <div className="right">
@@ -791,6 +771,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @action
     toggleColor = (e: React.MouseEvent<HTMLDivElement>, color: string) => {
         this.selectedColor = color;
+        this.colorref.current.style.border="2px solid" + color;
     }
 
     @action
@@ -807,7 +788,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
             }
             let ting: MarkerUnit = {
-                element: <div ref={(el) => el ? ting.ref = el : null} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, ting.ref)} id={"marker" + String(this.markers.length)} style={{ top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid" + this.selectedColor, height: "30px", backgroundColor: this.selectedColor, opacity: "0.5", width: Math.abs(max - min), position: "absolute", left: min - document.body.clientWidth -3 + this.screenref.current!  .clientWidth/0.98 }}></div>,
+                element: <div ref={(el) => el ? ting.ref = el : null} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, ting.ref)} id={"marker" + String(this.markers.length)} style={{ top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid" + this.selectedColor, height: "30px", backgroundColor: this.selectedColor, opacity: "0.25", width: Math.abs(max - min), position: "absolute", left: min - document.body.clientWidth -3 + this.screenref.current!  .clientWidth/0.98 }}></div>,
                 initialLeft: ((min -3 - document.body.clientWidth + this.screenref.current!.clientWidth/0.98) / (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement))) + (this.xmovement),
                 initialScaleRef: Math.abs(max - min),
                 initialWidth: (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)),
