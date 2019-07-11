@@ -111,9 +111,11 @@ export class DocumentManager {
             pairs.push(...linksList.reduce((pairs, link) => {
                 if (link) {
                     let linkToDoc = LinkManager.Instance.getOppositeAnchor(link, dv.props.Document);
-                    DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 => {
-                        pairs.push({ a: dv, b: docView1, l: link });
-                    });
+                    if (linkToDoc) {
+                        DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 => {
+                            pairs.push({ a: dv, b: docView1, l: link });
+                        });
+                    }
                 }
                 return pairs;
             }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]));
