@@ -423,12 +423,48 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         this._entered = false;
     }
 
+    @action
+    addTemplate = () => {
+        console.log('added template', this);
+    }
+
+    @action
+    removeTemplate = () => {
+        console.log('removed template', this);
+    }
+
+    @action
+    clearTemplates = () => {
+        console.log('cleared templates');
+        console.log('cleared templates');
+    }
+
+    @action
+    chooseTemplates = (templateList: ContextMenuProps[]): ContextMenuProps[] => {
+        console.log('templated', DocumentManager.Instance.DocumentViews);
+        console.log('hehe');
+        DocumentManager.Instance.DocumentViews.map((value, index) => {
+            templateList.push({
+                description: `Template ${index + 1}`, event: () => {
+                    console.log(value);
+                }, icon: "file-alt"
+            });
+        });
+        return templateList;
+    }
+
     specificContextMenu = (e: React.MouseEvent): void => {
         let subitems: ContextMenuProps[] = [];
         subitems.push({
             description: BoolCast(this.props.Document.autoHeight, false) ? "Manual Height" : "Auto Height",
             event: action(() => Doc.GetProto(this.props.Document).autoHeight = !BoolCast(this.props.Document.autoHeight, false)), icon: "expand-arrows-alt"
         });
+        let subtemplates: ContextMenuProps[] = [];
+        let templateList: ContextMenuProps[] = [];
+        subtemplates.push({ description: "Add to Templates", event: this.addTemplate, icon: "file-alt" });
+        subtemplates.push({ description: "Remove from Templates", event: this.removeTemplate, icon: "file-alt" });
+        subtemplates.push({ description: "Select Template", subitems: this.chooseTemplates(templateList), icon: "file-alt" });
+        ContextMenu.Instance.addItem({ description: "Templates...", subitems: subtemplates, icon: "file-alt" });
         ContextMenu.Instance.addItem({ description: "Text Funcs...", subitems: subitems });
     }
     render() {
