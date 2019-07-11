@@ -171,6 +171,12 @@ export class SearchItem extends React.Component<SearchItemProps> {
         return [(bounds.x + bounds.r) / 2, (bounds.y + bounds.b) / 2, Number(SEARCH_THUMBNAIL_SIZE) / Math.max((bounds.b - bounds.y), (bounds.r - bounds.x)), this._displayDim];
     }
 
+    componentWillUnmount() {
+        if (this._previewDoc) {
+            DocServer.DeleteDocument(this._previewDoc[Id]);
+        }
+    }
+
 
     //@computed
     @action

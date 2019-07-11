@@ -19,6 +19,7 @@ import { CollectionDockingView } from "../views/collections/CollectionDockingVie
 import { DocumentManager } from "./DocumentManager";
 import { Id } from "../../new_fields/FieldSymbols";
 import { FormattedTextBoxProps, FormattedTextBox } from "../views/nodes/FormattedTextBox";
+import { typeAlias } from "babel-types";
 
 //appears above a selection of text in a RichTextBox to give user options such as Bold, Italics, etc.
 export class TooltipTextMenu {
@@ -46,6 +47,10 @@ export class TooltipTextMenu {
     private _activeMarks: Mark[] = [];
 
     private _collapseBtn?: MenuItem;
+
+    private _brushMarks?: Set<Mark>;
+
+    private _brushIsEmpty: boolean = true;
 
     constructor(view: EditorView, editorProps: FieldViewProps & FormattedTextBoxProps) {
         this.view = view;
@@ -125,6 +130,8 @@ export class TooltipTextMenu {
         this.listTypeToIcon.set(schema.nodes.ordered_list, "1)");
         this.listTypes = Array.from(this.listTypeToIcon.keys());
 
+        this.tooltip.appendChild(this.createBrush().render(this.view).dom);
+
         this.tooltip.appendChild(this.createLink().render(this.view).dom);
 
         this.tooltip.appendChild(this.createStar().render(this.view).dom);
@@ -168,24 +175,24 @@ export class TooltipTextMenu {
         var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
         if (elmnt) {
             // if present, the header is where you move the DIV from:
-            elmnt.onmousedown = dragMouseDown;
+            elmnt.onpointerdown = dragMouseDown;
         }
         const self = this;
 
-        function dragMouseDown(e: any) {
+        function dragMouseDown(e: PointerEvent) {
             e = e || window.event;
-            e.preventDefault();
+            //e.preventDefault();
             // get the mouse cursor position at startup:
             pos3 = e.clientX;
             pos4 = e.clientY;
-            document.onmouseup = closeDragElement;
+            document.onpointerup = closeDragElement;
             // call a function whenever the cursor moves:
-            document.onmousemove = elementDrag;
+            document.onpointermove = elementDrag;
         }
 
-        function elementDrag(e: any) {
+        function elementDrag(e: PointerEvent) {
             e = e || window.event;
-            e.preventDefault();
+            //e.preventDefault();
             // calculate the new cursor position:
             pos1 = pos3 - e.clientX;
             pos2 = pos4 - e.clientY;
@@ -198,10 +205,10 @@ export class TooltipTextMenu {
 
         function closeDragElement() {
             // stop moving when mouse button is released:
-            document.onmouseup = null;
-            document.onmousemove = null;
+            document.onpointerup = null;
+            document.onpointermove = null;
             //self.highlightSearchTerms(self.state, ["hello"]);
-            FormattedTextBox.Instance.unhighlightSearchTerms();
+            //FormattedTextBox.Instance.unhighlightSearchTerms();
         }
     }
 
@@ -291,6 +298,8 @@ export class TooltipTextMenu {
                         },
                         hideSource: false
                     });
+                e.stopPropagation();
+                e.preventDefault();
             };
             this.linkEditor.appendChild(this.linkDrag);
             // this.linkEditor.appendChild(this.linkText);
@@ -431,6 +440,41 @@ export class TooltipTextMenu {
             }
 
         });
+    }
+
+    createBrush() {
+        return new MenuItem({
+            title: "Brush tool",
+            label: "Brush tool",
+            icon: icons.join,
+            css: "color:white;",
+            class: "summarize",
+            execEvent: "",
+            run: (state, dispatch) => {
+                this.brush_function(state, dispatch);
+            }
+
+        });
+    }
+
+    // selectionchanged event handler
+
+    brush_function(state: EditorState<any>, dispatch: any) {
+        if (this._brushIsEmpty) {
+            this._brushMarks = this.getMarksInSelection(state);
+        }
+        else {
+            let { from, to } = state.selection;
+            if (this._brushMarks && to - from > 0) {
+                this.view.state.tr.removeMark(from, to);
+                this._brushMarks.forEach((mark: Mark) => {
+                    this.view.dispatch(this.view.state.tr.addMark(from, from + to, mark));
+                });
+            }
+        }
+        this._brushIsEmpty = !this._brushIsEmpty;
+
+
     }
 
     createCollapse() {
@@ -588,14 +632,14 @@ export class TooltipTextMenu {
         };
     }
 
-    getMarksInSelection(state: EditorState<any>, targets: MarkType<any>[]) {
-        let found: Mark<any>[] = [];
+    getMarksInSelection(state: EditorState<any>) {
+        let found = new Set<Mark>();
         let { from, to } = state.selection as TextSelection;
         state.doc.nodesBetween(from, to, (node) => {
             let marks = node.marks;
             if (marks) {
                 marks.forEach(m => {
-                    if (targets.includes(m.type)) found.push(m);
+                    found.add(m);
                 });
             }
         });
