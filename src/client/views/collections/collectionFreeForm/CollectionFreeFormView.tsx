@@ -283,12 +283,13 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         const panY = this.Document.panY;
         const id = this.Document[Id];
         const state = HistoryUtil.getState();
+        state.initializers = state.initializers || {};
         // TODO This technically isn't correct if type !== "doc", as 
         // currently nothing is done, but we should probably push a new state
         if (state.type === "doc" && panX !== undefined && panY !== undefined) {
-            const init = state.initializers![id];
+            const init = state.initializers[id];
             if (!init) {
-                state.initializers![id] = {
+                state.initializers[id] = {
                     panX, panY
                 };
                 HistoryUtil.pushState(state);
@@ -302,7 +303,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         const newPanX = NumCast(doc.x) + NumCast(doc.width) / NumCast(doc.zoomBasis, 1) / 2;
         const newPanY = NumCast(doc.y) + NumCast(doc.height) / NumCast(doc.zoomBasis, 1) / 2;
         const newState = HistoryUtil.getState();
-        newState.initializers![id] = { panX: newPanX, panY: newPanY };
+        (newState.initializers || (newState.initializers = {}))[id] = { panX: newPanX, panY: newPanY };
         HistoryUtil.pushState(newState);
         this.setPan(newPanX, newPanY);
 

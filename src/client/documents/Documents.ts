@@ -104,7 +104,7 @@ export namespace Docs {
                 background: HistogramBox.LayoutString()
             }],
             [DocumentType.IMG, {
-                options: { height: 300, backgroundColor: "black" },
+                options: { nativeWidth: 600, curPage: 0 },
                 primary: CollectionView.LayoutString("annotations"),
                 background: ImageBox.LayoutString()
             }],
@@ -202,7 +202,8 @@ export namespace Docs {
             let primary = template.primary;
             let background = template.background;
             let upper = Suffix.toUpperCase();
-            let options = { ...defaultOptions, ...(template.options || {}), title: prototypeId.toUpperCase().replace(upper, `_${upper}`) };
+            let title = prototypeId.toUpperCase().replace(upper, `_${upper}`);
+            let options = { title: title, type: type, ...defaultOptions, ...(template.options || {}) };
             background && (options = { ...options, backgroundLayout: background, });
             return Doc.assign(new Doc(prototypeId, true), { ...options, layout: primary, baseLayout: primary });
         }
