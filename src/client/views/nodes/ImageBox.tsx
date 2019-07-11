@@ -86,6 +86,8 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                             e.stopPropagation();
                         }
                     }
+                } else if (!this.props.isSelected()) {
+                    e.stopPropagation();
                 }
             }));
             // de.data.removeDocument()  bcz: need to implement
@@ -234,7 +236,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         let paths: string[] = ["http://www.cs.brown.edu/~bcz/noImage.png"];
         // this._curSuffix = "";
         // if (w > 20) {
-        Doc.UpdateDocumentExtensionForField(this.extensionDoc, this.props.fieldKey);
+        Doc.UpdateDocumentExtensionForField(this.dataDoc, this.props.fieldKey);
         let alts = DocListCast(this.extensionDoc.Alternates);
         let altpaths: string[] = alts.filter(doc => doc.data instanceof ImageField).map(doc => this.choosePath((doc.data as ImageField).url));
         let field = this.dataDoc[this.props.fieldKey];

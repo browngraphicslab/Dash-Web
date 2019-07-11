@@ -405,7 +405,7 @@ interface CollectionSchemaPreviewProps {
     renderDepth: number;
     width: () => number;
     height: () => number;
-    showOverlays?: (doc: Doc) => { title?: boolean, caption?: boolean };
+    showOverlays?: (doc: Doc) => { title?: string, caption?: string };
     CollectionView?: CollectionView | CollectionPDFView | CollectionVideoView;
     getTransform: () => Transform;
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;

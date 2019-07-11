@@ -87,22 +87,29 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
                 // move data doc fields to layout doc as needed (nativeWidth/nativeHeight, data, ??)
                 let backgroundLayout = StrCast(fieldTemplate.backgroundLayout);
-                let layout = StrCast(fieldTemplate.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
+                let fieldLayoutDoc = fieldTemplate;
+                if (fieldTemplate.layout instanceof Doc) {
+                    fieldLayoutDoc = Doc.MakeDelegate(fieldTemplate.layout);
+                }
+                let layout = StrCast(fieldLayoutDoc.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
                 if (backgroundLayout) {
-                    layout = StrCast(fieldTemplate.layout).replace(/fieldKey={"annotations"}/, `fieldKey={"${metaKey}"} fieldExt={"annotations"}`);
+                    layout = StrCast(fieldLayoutDoc.layout).replace(/fieldKey={"annotations"}/, `fieldKey={"${metaKey}"} fieldExt={"annotations"}`);
                     backgroundLayout = backgroundLayout.replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
                 }
                 let nw = Cast(fieldTemplate.nativeWidth, "number");
                 let nh = Cast(fieldTemplate.nativeHeight, "number");
 
+                let layoutDelegate = fieldTemplate.layout instanceof Doc ? fieldLayoutDoc : fieldTemplate;
+                layoutDelegate.layout = layout;
+
                 fieldTemplate.title = metaKey;
-                fieldTemplate.layout = layout;
+                fieldTemplate.layout = layoutDelegate !== fieldTemplate ? layoutDelegate : layout;
                 fieldTemplate.backgroundLayout = backgroundLayout;
                 fieldTemplate.nativeWidth = nw;
                 fieldTemplate.nativeHeight = nh;
                 fieldTemplate.embed = true;
                 fieldTemplate.isTemplate = true;
-                fieldTemplate.templates = new List<string>([Templates.TitleBar(metaKey)]);
+                fieldTemplate.showTitle = "title";
                 fieldTemplate.proto = Doc.GetProto(docTemplate);
             }
             else {
