@@ -40,6 +40,7 @@ export class SearchBox extends React.Component {
     static Instance: SearchBox;
 
     private _maxSearchIndex: number = 0;
+    private _curRequest: Promise<SearchUtil.DocSearchResult> | undefined = undefined;
 
     constructor(props: any) {
         super(props);
@@ -69,6 +70,8 @@ export class SearchBox extends React.Component {
         this._numTotalResults = 0;
         this._startIndex = -1;
         this._endIndex = -1;
+        this._curRequest = undefined;
+        this._maxSearchIndex = 0;
     }
 
     enter = (e: React.KeyboardEvent) => { if (e.key === "Enter") { this.submitSearch(); } }
@@ -97,20 +100,43 @@ export class SearchBox extends React.Component {
 
         query = FilterBox.Instance.getFinalQuery(query);
 
+        // if (this._curRequest !== undefined) {
+        //     this._curRequest.then(() => {
+        //         this._curRequest = undefined;
+        //         this._results = [];
+        //     });
+        // }
+
+        // this._results = [];
+
         //if there is no query there should be no result
         if (query === "") {
-            results = [];
+            // results = [];
+            return;
         }
         else {
             //gets json result into a list of documents that can be used
             //these are filtered by type
+            // this._results = [];
             this._currentIndex = 0;
-            results = await this.getResults(query, 12);
+            this._startIndex = 0;
+            this._endIndex = 12;
+            // this._curRequest = undefined;
+            // if (this._curRequest !== undefined) {
+            //     this._curRequest.then(() => {
+            //         this._curRequest = undefined;
+            //     });
+            // }
+
+            this._maxSearchIndex = 0;
+
+            // results = await this.getResultsHelp(query);
+            await this.getResultsHelp(query);
         }
 
         runInAction(() => {
             this._resultsOpen = true;
-            this._results = results;
+            // this._results = results;
             this._openNoResults = true;
             this.resultsScrolled();
         });
@@ -123,54 +149,85 @@ export class SearchBox extends React.Component {
         // max display index = number of documents that SHOULD be shown (should include buffer), this._endIndex + buffer (= 4)
         // currentRequest = promise | undefined, if undefined, can run and look for more. If not undefined, then there is a request in progress and it cannot look for more yet
 
-        let buffer = 4;
-        let maxDisplayIndex: number = this._endIndex + buffer;
-        let curRequest = undefined;
+        // let buffer = 4;
+        // let maxDisplayIndex: number = this._endIndex + buffer;
+        console.log(`end index: ${this._endIndex}`)
+        console.log(this._results.length)
 
+        while (this._results.length < this._endIndex) {
+            console.log("looping")
+            if (this._curRequest === undefined) {
+                //start at max search index, get 10, add 10 to max search index
+                // const { docs, numFound } = await SearchUtil.Search(query, true, this._maxSearchIndex, 10);
 
-        while (this._results.length < maxDisplayIndex) {
-            if (curRequest === undefined) {
+                // happens at the beginning
+                // am i gonna need this?
+                // if (numFound !== this._numTotalResults && this._numTotalResults === 0) {
+                //     this._numTotalResults = numFound;
+                // }
 
+                this._curRequest = SearchUtil.Search(query, true, this._maxSearchIndex, 10);
+                this._maxSearchIndex += 10;
+
+                this._curRequest.then((res: SearchUtil.DocSearchResult) => {
+
+                    // happens at the beginning
+                    if (res.numFound !== this._numTotalResults && this._numTotalResults === 0) {
+                        this._numTotalResults = res.numFound;
+                    }
+
+                    let filteredDocs = FilterBox.Instance.filterDocsByType(res.docs);
+                    this._results.push(...filteredDocs);
+
+                    console.log(this._results)
+                    this._curRequest = undefined;
+                    console.log("setting to undefined")
+                });
+
+                //deals with if there are fewer results than can be scrolled through
+                // if (this._numTotalResults < this._endIndex) {
+                //     break;
+                // }
             }
         }
     }
 
-    @action
-    getResults = async (query: string, count: number) => {
-        let resDocs = [];
-        // count is total number of documents to be shown (i believe)
-        console.log(`Count: ${count}`);
-        while (resDocs.length < count) {
-            let index = count === -1 ? undefined : this._currentIndex;
-            let num = count === -1 ? undefined : Math.min(this._numTotalResults - this._currentIndex + 1, this._maxNum);
-            // num found has to be the number of docs before filtering happens - this is the total num
-            const { docs, numFound } = await SearchUtil.Search(query, true, index, num);
+    // @action
+    // getResults = async (query: string, count: number) => {
+    //     let resDocs = [];
+    //     // count is total number of documents to be shown (i believe)
+    //     console.log(`Count: ${count}`);
+    //     while (resDocs.length < count) {
+    //         let index = count === -1 ? undefined : this._currentIndex;
+    //         let num = count === -1 ? undefined : Math.min(this._numTotalResults - this._currentIndex + 1, this._maxNum);
+    //         // num found has to be the number of docs before filtering happens - this is the total num
+    //         const { docs, numFound } = await SearchUtil.Search(query, true, index, num);
 
-            let filteredDocs = FilterBox.Instance.filterDocsByType(docs);
+    //         let filteredDocs = FilterBox.Instance.filterDocsByType(docs);
 
-            // accounts for the fact that there may be fewer documents than the max that are returned
-            count = Math.min(numFound, count);
+    //         // accounts for the fact that there may be fewer documents than the max that are returned
+    //         count = Math.min(numFound, count);
 
-            // happens at the beginning
-            if (numFound !== this._numTotalResults && this._numTotalResults === 0) {
-                console.log(`Total: ${numFound}`);
-                this._numTotalResults = numFound;
-            }
+    //         // happens at the beginning
+    //         if (numFound !== this._numTotalResults && this._numTotalResults === 0) {
+    //             console.log(`Total: ${numFound}`);
+    //             this._numTotalResults = numFound;
+    //         }
 
-            // if (filteredDocs.length < docs.length) {
-            //     this._numResults -= docs.length - filteredDocs.length;
-            //     console.log(`New Total: ${this._numResults}`);
-            // }
-            resDocs.push(...filteredDocs);
+    //         // if (filteredDocs.length < docs.length) {
+    //         //     this._numResults -= docs.length - filteredDocs.length;
+    //         //     console.log(`New Total: ${this._numResults}`);
+    //         // }
+    //         resDocs.push(...filteredDocs);
 
-            this._currentIndex += docs.length;
+    //         this._currentIndex += docs.length;
 
-            console.log(`ResDocs: ${resDocs.length}`);
-            console.log(`CurrIndex: ${this._currentIndex}`);
-        }
-        // console.log(this.getResults2(query, count, []));
-        return resDocs;
-    }
+    //         console.log(`ResDocs: ${resDocs.length}`);
+    //         console.log(`CurrIndex: ${this._currentIndex}`);
+    //     }
+    //     // console.log(this.getResults2(query, count, []));
+    //     return resDocs;
+    // }
 
     // @action
     // getResults2 = async (query: string, count: number, docs: Doc[]) => {
@@ -234,8 +291,9 @@ export class SearchBox extends React.Component {
 
     collectionRef = React.createRef<HTMLSpanElement>();
     startDragCollection = async () => {
-        const results = await this.getResults(FilterBox.Instance.getFinalQuery(this._searchString), -1);
-        const docs = results.map(doc => {
+        // const results = await this.getResults(FilterBox.Instance.getFinalQuery(this._searchString), -1);
+        await this.getResultsHelp(FilterBox.Instance.getFinalQuery(this._searchString));
+        const docs = this._results.map(doc => {
             const isProto = Doc.GetT(doc, "isPrototype", "boolean", true);
             if (isProto) {
                 return Doc.MakeDelegate(doc);
@@ -295,23 +353,27 @@ export class SearchBox extends React.Component {
         this._numTotalResults = 0;
         this._startIndex = -1;
         this._endIndex = -1;
+        this._curRequest = undefined;
     }
 
     resultsScrolled = flow(function* (this: SearchBox, e?: React.UIEvent<HTMLDivElement>) {
+        console.log("_________________________________________________________________________________________________________")
         let scrollY = e ? e.currentTarget.scrollTop : 0;
         let buffer = 4;
+        console.log(`start before: ${this._startIndex}`);
         let startIndex = Math.floor(Math.max(0, scrollY / 70 - buffer));
+        console.log(`end before: ${this._endIndex}`);
         let endIndex = Math.ceil(Math.min(this._numTotalResults - 1, startIndex + (560 / 70) + buffer));
 
         if (startIndex === this._startIndex && endIndex === this._endIndex) {
+            console.log("returning")
             return;
         }
-        console.log("_________________________________________________________________________________________________________")
         console.log(`START: ${startIndex}`);
         console.log(`END: ${endIndex}`);
 
-        this._startIndex = startIndex;
-        this._endIndex = endIndex;
+        this._startIndex = startIndex === -1 ? 0 : startIndex;
+        this._endIndex = endIndex === -1 ? 12 : endIndex;
 
         if (this._numTotalResults === 0 && this._openNoResults) {
             this._visibleElements = [<div className="no-result">No Search Results</div>];
@@ -341,17 +403,25 @@ export class SearchBox extends React.Component {
                     let result: Doc | undefined = undefined;
                     if (i >= this._results.length) {
                         // _________________________________________________________________________________________________
-                        let results: Doc[] = yield this.getResults(this._searchString, i + 1 - this._results.length);
-                        if (results.length !== 0) {
-                            runInAction(() => {
-                                this._results.push(...results);
-                                result = this._results[i];
-                                if (result) {
-                                    this._visibleElements[i] = <SearchItem doc={result} key={result[Id]} />;
-                                    this._isSearch[i] = "search";
-                                }
-                            });
+                        // let results: Doc[] = yield this.getResults(this._searchString, i + 1 - this._results.length);
+
+                        // this updates this._results
+                        yield this.getResultsHelp(this._searchString);
+                        result = this._results[i];
+                        if (result) {
+                            this._visibleElements[i] = <SearchItem doc={result} key={result[Id]} />;
+                            this._isSearch[i] = "search";
                         }
+                        // if (results.length !== 0) {
+                        //     runInAction(() => {
+                        //         // this._results.push(...results);
+                        //         result = this._results[i];
+                        //         if (result) {
+                        //             this._visibleElements[i] = <SearchItem doc={result} key={result[Id]} />;
+                        //             this._isSearch[i] = "search";
+                        //         }
+                        //     });
+                        // }
                         // _________________________________________________________________________________________________
                     }
                     else {
