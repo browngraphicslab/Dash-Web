@@ -228,6 +228,10 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         }
     }
 
+
+    @computed get fieldExtensionDoc() {
+        return Doc.resolvedFieldDataDoc(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, "true");
+    }
     render() {
         // uses mozilla pdf as default
         const pdfUrl = Cast(this.props.Document.data, PdfField);

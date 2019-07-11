@@ -157,6 +157,9 @@ export namespace Docs {
             pdfProto = fields[pdfProtoId] as Doc || CreatePdfPrototype();
             iconProto = fields[iconProtoId] as Doc || CreateIconPrototype();
             importProto = fields[importProtoId] as Doc || CreateImportPrototype();
+            pdfProto.layout = CollectionPDFView.LayoutString("data", "annotations");
+            imageProto.layout = CollectionView.LayoutString("data", "annotations");
+            videoProto.layout = CollectionVideoView.LayoutString("data", "annotations");
         });
     }
 
