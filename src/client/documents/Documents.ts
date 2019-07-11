@@ -57,20 +57,6 @@ export enum DocumentType {
     LINK = "link"
 }
 
-export namespace DocTypeUtils {
-
-    export function values(includeNone: boolean = true): string[] {
-        let types = Object.values(DocumentType);
-        return includeNone ? types : types.filter(key => key !== DocumentType.NONE);
-    }
-
-    export function keys(includeNone: boolean = true): string[] {
-        let types = Object.keys(DocumentType);
-        return includeNone ? types : types.filter(key => key !== DocumentType.NONE);
-    }
-
-}
-
 export interface DocumentOptions {
     x?: number;
     y?: number;
@@ -174,7 +160,7 @@ export namespace Docs {
         export async function initialize(): Promise<void> {
             // non-guid string ids for each document prototype
             let suffix = "Proto";
-            let prototypeIds: string[] = DocTypeUtils.values(false).map(type => type + suffix);
+            let prototypeIds = Object.values(DocumentType).filter(type => type !== DocumentType.NONE).map(type => type + suffix);
             // fetch the actual prototype documents from the server
             let actualProtos = await DocServer.GetRefFields(prototypeIds);
 
