@@ -361,7 +361,7 @@ export class MainView extends React.Component {
 
         let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
 
-        let addDockingNode = action(() => Docs.Create.StandardCollectionDockingDocument([{ doc: addColNode(), initialWidth: 200 }], { width: 200, height: 200, title: "a nested docking freeform collection" }));
+        // let addDockingNode = action(() => Docs.Create.StandardCollectionDockingDocument([{ doc: addColNode(), initialWidth: 200 }], { width: 200, height: 200, title: "a nested docking freeform collection" }));
         let addSchemaNode = action(() => Docs.Create.SchemaDocument(["title"], [], { width: 200, height: 200, title: "a schema collection" }));
         //let addTreeNode = action(() => Docs.TreeDocument([CurrentUserUtils.UserDocument], { width: 250, height: 400, title: "Library:" + CurrentUserUtils.email, dropAction: "alias" }));
         // let addTreeNode = action(() => Docs.TreeDocument(this._northstarSchemas, { width: 250, height: 400, title: "northstar schemas", dropAction: "copy"  }));
@@ -375,7 +375,7 @@ export class MainView extends React.Component {
             [React.createRef<HTMLDivElement>(), "object-group", "Add Collection", addColNode],
             [React.createRef<HTMLDivElement>(), "tree", "Add Tree", addTreeNode],
             [React.createRef<HTMLDivElement>(), "table", "Add Schema", addSchemaNode],
-            [React.createRef<HTMLDivElement>(), "clone", "Add Docking Frame", addDockingNode],
+            // [React.createRef<HTMLDivElement>(), "clone", "Add Docking Frame", addDockingNode],
             [React.createRef<HTMLDivElement>(), "arrow-up", "Import Directory", addImportCollectionNode],
         ];
 
