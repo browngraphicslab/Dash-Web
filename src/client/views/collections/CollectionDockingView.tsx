@@ -26,7 +26,7 @@ import React = require("react");
 import { MainView } from '../MainView';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faFile } from '@fortawesome/free-solid-svg-icons';
+import { faFile, faUnlockAlt } from '@fortawesome/free-solid-svg-icons';
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
 library.add(faFile);
 
@@ -471,6 +471,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 interface DockedFrameProps {
     documentId: FieldId;
     dataDocumentId: FieldId;
+    glContainer: any;
     //collectionDockingView: CollectionDockingView
 }
 @observer
@@ -480,6 +481,9 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     @observable private _panelHeight = 0;
     @observable private _document: Opt<Doc>;
     @observable private _dataDoc: Opt<Doc>;
+
+    @observable private _isActive: boolean = false;
+
     get _stack(): any {
         let parent = (this.props as any).glContainer.parent.parent;
         if (this._document && this._document.excludeFromLibrary && parent.parent && parent.parent.contentItems.length > 1) {
@@ -496,6 +500,25 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             }
         }));
     }
+
+    componentDidMount() {
+        this.props.glContainer.layoutManager.on("activeContentItemChanged", this.onActiveContentItemChanged);
+        this.props.glContainer.on("tab", this.onActiveContentItemChanged);
+        this.onActiveContentItemChanged();
+    }
+
+    componentWillUnmount() {
+        this.props.glContainer.layoutManager.off("activeContentItemChanged", this.onActiveContentItemChanged);
+        this.props.glContainer.off("tab", this.onActiveContentItemChanged);
+    }
+
+    @action.bound
+    private onActiveContentItemChanged() {
+        if (this.props.glContainer.tab) {
+            this._isActive = this.props.glContainer.tab.isActive;
+        }
+    }
+
 
     nativeWidth = () => NumCast(this._document!.nativeWidth, this._panelWidth);
     nativeHeight = () => {
@@ -571,6 +594,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
 
     render() {
+        if (!this._isActive) return null;
         let theContent = this.content;
         return !this._document ? (null) :
             <Measure offset onResize={action((r: any) => { this._panelWidth = r.offset.width; this._panelHeight = r.offset.height; })}>
