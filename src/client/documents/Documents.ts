@@ -99,7 +99,7 @@ export namespace Docs {
                 primary: FormattedTextBox.LayoutString()
             }],
             [DocumentType.HIST, {
-                options: { nativeWidth: 600, curPage: 0 },
+                options: { height: 300, backgroundColor: "black" },
                 primary: CollectionView.LayoutString("annotations"),
                 background: HistogramBox.LayoutString()
             }],
