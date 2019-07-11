@@ -125,9 +125,12 @@ export class Viewer extends React.Component<IViewerProps> {
             }, { fireImmediately: true });
 
         this._annotationReactionDisposer = reaction(
-            () => this.props.parent.Document && DocListCast(this.props.parent.Document.annotations),
-            (annotations: Doc[]) =>
-                annotations && annotations.length && this.renderAnnotations(annotations, true),
+            () => {
+                return this.props.parent && this.props.parent.fieldExtensionDoc && DocListCast(this.props.parent.fieldExtensionDoc.annotations)
+            },
+            (annotations: Doc[]) => {
+                annotations && annotations.length && this.renderAnnotations(annotations, true);
+            },
             { fireImmediately: true });
 
         this._activeReactionDisposer = reaction(
@@ -156,7 +159,9 @@ export class Viewer extends React.Component<IViewerProps> {
                         let scriptfield = Cast(this.props.parent.Document.filterScript, ScriptField);
                         this._script = scriptfield ? scriptfield.script : CompileScript("return true");
                         if (this.props.parent.props.ContainingCollectionView) {
-                            let ccvAnnos = DocListCast(this.props.parent.props.ContainingCollectionView.props.Document.annotations);
+                            let fieldDoc = Doc.resolvedFieldDataDoc(this.props.parent.props.ContainingCollectionView.props.DataDoc ?
+                                this.props.parent.props.ContainingCollectionView.props.DataDoc : this.props.parent.props.ContainingCollectionView.props.Document, this.props.parent.props.ContainingCollectionView.props.fieldKey, "true");
+                            let ccvAnnos = DocListCast(fieldDoc.annotations);
                             ccvAnnos.forEach(d => {
                                 if (this._script && this._script.compiled) {
                                     let run = this._script.run(d);
@@ -270,13 +275,13 @@ export class Viewer extends React.Component<IViewerProps> {
         if (de.data instanceof DragManager.LinkDragData) {
             let sourceDoc = de.data.linkSourceDocument;
             let destDoc = this.makeAnnotationDocument(sourceDoc, 1, "red");
-            let targetAnnotations = DocListCast(this.props.parent.Document.annotations);
+            let targetAnnotations = DocListCast(this.props.parent.fieldExtensionDoc.annotations);
             if (targetAnnotations) {
                 targetAnnotations.push(destDoc);
-                this.props.parent.Document.annotations = new List<Doc>(targetAnnotations);
+                this.props.parent.fieldExtensionDoc.annotations = new List<Doc>(targetAnnotations);
             }
             else {
-                this.props.parent.Document.annotations = new List<Doc>([destDoc]);
+                this.props.parent.fieldExtensionDoc.annotations = new List<Doc>([destDoc]);
             }
             e.stopPropagation();
         }
@@ -588,7 +593,7 @@ export class Viewer extends React.Component<IViewerProps> {
             }
             return true;
         });
-        this.Index = Math.min(this.Index + 1, filtered.length - 1)
+        this.Index = Math.min(this.Index + 1, filtered.length - 1);
     }
 
     nextResult = () => {

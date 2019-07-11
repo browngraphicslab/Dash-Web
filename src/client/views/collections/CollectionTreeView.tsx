@@ -75,7 +75,7 @@ class TreeView extends React.Component<TreeViewProps> {
     @computed get fieldKey() {
         let keys = Array.from(Object.keys(this.resolvedDataDoc));  // bcz: Argh -- make untracked to avoid this rerunning whenever 'libraryBrush' is set
         if (this.resolvedDataDoc.proto instanceof Doc) {
-            let arr = Array.from(Object.keys(this.resolvedDataDoc.proto!));// bcz: Argh -- make untracked to avoid this rerunning whenever 'libraryBrush' is set
+            let arr = Array.from(Object.keys(this.resolvedDataDoc.proto));// bcz: Argh -- make untracked to avoid this rerunning whenever 'libraryBrush' is set
             keys.push(...arr);
             while (keys.indexOf("proto") !== -1) keys.splice(keys.indexOf("proto"), 1);
         }
@@ -322,10 +322,10 @@ class TreeView extends React.Component<TreeViewProps> {
         return ele;
     }
 
-    @computed get docBounds() {
+    @computed get boundsOfCollectionDocument() {
         if (StrCast(this.props.document.type).indexOf(DocTypes.COL) === -1) return undefined;
         let layoutDoc = Doc.expandTemplateLayout(this.props.document, this.props.dataDoc);
-        return Doc.ComputeContentBounds(layoutDoc);
+        return Doc.ComputeContentBounds(DocListCast(layoutDoc.data));
     }
     docWidth = () => {
         let aspect = NumCast(this.props.document.nativeHeight) / NumCast(this.props.document.nativeWidth);
@@ -333,17 +333,13 @@ class TreeView extends React.Component<TreeViewProps> {
         return NumCast(this.props.document.nativeWidth) ? Math.min(this.props.document[WidthSym](), this.props.panelWidth() - 5) : this.props.panelWidth() - 5;
     }
     docHeight = () => {
-        let bounds = this.docBounds;
+        let bounds = this.boundsOfCollectionDocument;
         return Math.min(this.MAX_EMBED_HEIGHT, (() => {
             let aspect = NumCast(this.props.document.nativeHeight) / NumCast(this.props.document.nativeWidth);
             if (aspect) return this.docWidth() * aspect;
             if (bounds) return this.docWidth() * (bounds.b - bounds.y) / (bounds.r - bounds.x);
             return NumCast(this.props.document.height) ? NumCast(this.props.document.height) : 50;
         })());
-    }
-    fitToBox = () => {
-        let bounds = this.docBounds!;
-        return [(bounds.x + bounds.r) / 2, (bounds.y + bounds.b) / 2, Math.min(this.docHeight() / (bounds.b - bounds.y), this.docWidth() / (bounds.r - bounds.x))];
     }
 
     render() {
@@ -367,7 +363,7 @@ class TreeView extends React.Component<TreeViewProps> {
                         Document={layoutDoc}
                         DataDocument={this.resolvedDataDoc}
                         renderDepth={this.props.renderDepth}
-                        fitToBox={this.docBounds && !NumCast(this.props.document.nativeWidth) ? this.fitToBox : undefined}
+                        fitToBox={this.boundsOfCollectionDocument !== undefined}
                         width={this.docWidth}
                         height={this.docHeight}
                         getTransform={this.docTransform}

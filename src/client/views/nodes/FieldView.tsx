@@ -31,7 +31,7 @@ export interface FieldViewProps {
     fieldKey: string;
     fieldExt: string;
     leaveNativeSize?: boolean;
-    fitToBox?: () => number[];
+    fitToBox?: boolean;
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
     Document: Doc;
     DataDoc?: Doc;
@@ -55,8 +55,8 @@ export interface FieldViewProps {
 
 @observer
 export class FieldView extends React.Component<FieldViewProps> {
-    public static LayoutString(fieldType: { name: string }, fieldStr: string = "data") {
-        return `<${fieldType.name} {...props} fieldKey={"${fieldStr}"} />`;
+    public static LayoutString(fieldType: { name: string }, fieldStr: string = "data", fieldExt: string = "") {
+        return `<${fieldType.name} {...props} fieldKey={"${fieldStr}"} fieldExt={"${fieldExt}"} />`;
     }
 
     @computed
