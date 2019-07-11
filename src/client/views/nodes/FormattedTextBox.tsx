@@ -9,11 +9,11 @@ import { NodeType } from 'prosemirror-model';
 import { EditorState, Plugin, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { Doc, Opt } from "../../../new_fields/Doc";
-import { Id } from '../../../new_fields/FieldSymbols';
+import { Id, Copy } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { createSchema, listSpec, makeInterface } from "../../../new_fields/Schema";
-import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { BoolCast, Cast, NumCast, StrCast, DateCast } from "../../../new_fields/Types";
 import { DocServer } from "../../DocServer";
 import { Docs } from '../../documents/Documents';
 import { DocumentManager } from '../../util/DocumentManager';
@@ -33,6 +33,8 @@ import { Templates } from '../Templates';
 import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import React = require("react");
+import { DateField } from '../../../new_fields/DateField';
+import { thisExpression } from 'babel-types';
 
 library.add(faEdit);
 library.add(faSmile);
@@ -68,6 +70,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     private _applyingChange: boolean = false;
     private _linkClicked = "";
     private _reactionDisposer: Opt<IReactionDisposer>;
+    private _textReactionDisposer: Opt<IReactionDisposer>;
     private _proxyReactionDisposer: Opt<IReactionDisposer>;
     private dropDisposer?: DragManager.DragDropDisposer;
     public get CurrentDiv(): HTMLDivElement { return this._ref.current!; }
@@ -131,6 +134,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             this._editorView.updateState(state);
             this._applyingChange = true;
             if (this.extensionDoc) this.extensionDoc.text = state.doc.textBetween(0, state.doc.content.size, "\n\n");
+            if (this.extensionDoc) this.extensionDoc.lastModified = new DateField(new Date(Date.now()));
             this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()));
             this._applyingChange = false;
             let title = StrCast(this.dataDoc.title);
@@ -233,6 +237,17 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                         this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field2)));
             }
         );
+
+        this._textReactionDisposer = reaction(
+            () => this.extensionDoc,
+            () => {
+                if (this.dataDoc.text || this.dataDoc.lastModified) {
+                    this.extensionDoc.text = this.dataDoc.text;
+                    this.extensionDoc.lastModified = DateCast(this.dataDoc.lastModified)[Copy]();
+                    this.dataDoc.text = undefined;
+                    this.dataDoc.lastModified = undefined;
+                }
+            }, { fireImmediately: true });
         this.setupEditor(config, this.dataDoc, this.props.fieldKey);
     }
 
@@ -271,15 +286,10 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     componentWillUnmount() {
-        if (this._editorView) {
-            this._editorView.destroy();
-        }
-        if (this._reactionDisposer) {
-            this._reactionDisposer();
-        }
-        if (this._proxyReactionDisposer) {
-            this._proxyReactionDisposer();
-        }
+        this._editorView && this._editorView.destroy();
+        this._reactionDisposer && this._reactionDisposer();
+        this._proxyReactionDisposer && this._proxyReactionDisposer();
+        this._textReactionDisposer && this._textReactionDisposer();
     }
 
     onPointerDown = (e: React.PointerEvent): void => {

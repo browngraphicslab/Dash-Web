@@ -293,7 +293,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             fullScreenAlias.templates = new List<string>();
             this.props.addDocTab(fullScreenAlias, this.dataDoc, "inTab");
             SelectionManager.DeselectAll();
-            this.props.Document.libraryBrush = false;
+            this.props.Document.libraryBrush = undefined;
         }
         else if (CurrentUserUtils.MainDocId !== this.props.Document[Id] &&
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
@@ -575,7 +575,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     onPointerEnter = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = true; };
-    onPointerLeave = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = false; };
+    onPointerLeave = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = undefined; };
 
     isSelected = () => SelectionManager.IsSelected(this);
     @action select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); };
