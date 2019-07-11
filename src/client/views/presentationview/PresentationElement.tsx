@@ -574,12 +574,16 @@ export default class PresentationElement extends React.Component<PresentationEle
 
         let droppedDocIndex = this.props.allListElements.indexOf(droppedDoc);
 
-        let dropIndexDiff = Math.abs(this.props.index - droppedDocIndex);
+        let dropIndexDiff = droppedDocIndex - this.props.index;
 
-        if (dropIndexDiff <= 1 && before) {
+        if (droppedDocIndex === this.props.index) {
             return;
         }
-        if (dropIndexDiff === 0 && !before) {
+
+        if (dropIndexDiff === 1 && !before) {
+            return;
+        }
+        if (dropIndexDiff === -1 && before) {
             return;
         }
 
@@ -599,12 +603,25 @@ export default class PresentationElement extends React.Component<PresentationEle
             console.log("Splicing from a group");
             let groupArray = this.props.groupMappings.get(curDocGuid)!;
 
+            if (droppedDocSelectedButtons[buttonIndex.Group]) {
+                let groupIndexOfDrop = groupArray.indexOf(droppedDoc);
+                let firstPart = groupArray.splice(0, groupIndexOfDrop);
+                //let secondPart = groupArray.slice(groupIndexOfDrop + 1);
+
+                if (firstPart.length > 1) {
+                    let newGroupGuid = Utils.GenerateGuid();
+                    firstPart.forEach((doc: Doc) => doc.presentId = newGroupGuid);
+                    this.props.groupMappings.set(newGroupGuid, firstPart);
+                }
+            }
+
             //Error here: You Should splice the beforehand things as well, if present!!
             groupArray.splice(groupArray.indexOf(droppedDoc), 1);
             if (groupArray.length === 0) {
                 this.props.groupMappings.delete(curDocGuid);
             }
             droppedDoc.presentId = Utils.GenerateGuid();
+
             //let droppedDocIndex = this.props.allListElements.indexOf(droppedDoc);
             let indexOfBelow = droppedDocIndex + 1;
             if (indexOfBelow < this.props.allListElements.length && indexOfBelow > 1) {
@@ -613,15 +630,17 @@ export default class PresentationElement extends React.Component<PresentationEle
                 let aboveBelowDocSelectedButtons: boolean[] = await this.getSelectedButtonsOfDoc(aboveBelowDoc);
                 let belowDoc: Doc = this.props.allListElements[indexOfBelow];
                 let belowDocPresId = StrCast(belowDoc.presentId);
+
                 if (selectedButtonsOrigBelow[buttonIndex.Group]) {
                     let belowDocGroup: Doc[] = this.props.groupMappings.get(belowDocPresId)!;
                     if (aboveBelowDocSelectedButtons[buttonIndex.Group]) {
                         let aboveBelowDocPresId = StrCast(aboveBelowDoc.presentId);
                         if (this.props.groupMappings.has(aboveBelowDocPresId)) {
                             let aboveBelowDocGroup: Doc[] = this.props.groupMappings.get(aboveBelowDocPresId)!;
-                            aboveBelowDocGroup.unshift(...belowDocGroup);
+                            aboveBelowDocGroup.push(...belowDocGroup);
                             this.props.groupMappings.delete(belowDocPresId);
                             belowDocGroup.forEach((doc: Doc) => doc.presentId = aboveBelowDocPresId);
+
                         }
                     } else {
                         belowDocGroup.unshift(aboveBelowDoc);
