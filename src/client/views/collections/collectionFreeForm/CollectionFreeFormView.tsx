@@ -86,7 +86,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         });
     }
 
-    @computed get annoExtensionDoc() { return Doc.resolvedFieldDataDoc(this.props.DataDoc && (!this.props.Document.isTemplate || this.isAnnotationOverlay) ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.isAnnotationOverlay ? "dummy" : ""); }
+    @computed get fieldExtensionDoc() {
+        return Doc.resolvedFieldDataDoc(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, "true");
+    }
 
 
     @undoBatch
@@ -171,7 +173,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     return [[range[0][0] > x ? x : range[0][0], range[0][1] < xe ? xe : range[0][1]],
                     [range[1][0] > y ? y : range[1][0], range[1][1] < ye ? ye : range[1][1]]];
                 }, [[minx, maxx], [miny, maxy]]);
-                let ink = Cast(this.annoExtensionDoc.ink, InkField);
+                let ink = Cast(this.fieldExtensionDoc.ink, InkField);
                 if (ink && ink.inkData) {
                     ink.inkData.forEach((value: StrokeData, key: string) => {
                         let bounds = InkingCanvas.StrokeRect(value);
@@ -513,7 +515,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     <CollectionFreeFormViewPannableContents centeringShiftX={this.centeringShiftX} centeringShiftY={this.centeringShiftY}
                         easing={easing} zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
                         <CollectionFreeFormLinksView {...this.props} key="freeformLinks">
-                            <InkingCanvas getScreenTransform={this.getTransform} Document={this.annoExtensionDoc} inkFieldKey={"ink"} >
+                            <InkingCanvas getScreenTransform={this.getTransform} Document={this.fieldExtensionDoc} inkFieldKey={"ink"} >
                                 {this.childViews}
                             </InkingCanvas>
                         </CollectionFreeFormLinksView>
