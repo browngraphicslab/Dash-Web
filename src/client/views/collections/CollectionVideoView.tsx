@@ -98,7 +98,7 @@ export class CollectionVideoView extends React.Component<FieldViewProps> {
                 SearchBox.convertDataUri(dataUrl, filename).then((returnedFilename) => {
                     if (returnedFilename) {
                         let url = DocServer.prepend(returnedFilename);
-                        let imageSummary = Docs.ImageDocument(url, {
+                        let imageSummary = Docs.Create.ImageDocument(url, {
                             x: NumCast(this.props.Document.x) + width, y: NumCast(this.props.Document.y),
                             width: 150, height: height / width * 150, title: "--snapshot" + NumCast(this.props.Document.curPage) + " image-"
                         });

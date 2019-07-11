@@ -159,7 +159,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     }
 
     getTemplate = async () => {
-        let parent = Docs.StackingDocument([], { width: 800, height: 800, title: "Template" });
+        let parent = Docs.Create.StackingDocument([], { width: 800, height: 800, title: "Template" });
         parent.singleColumn = false;
         parent.columnWidth = 100;
         for (let row of this.rows.filter(row => row.isChecked)) {
@@ -187,23 +187,23 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     inferType = async (data: FieldResult, metaKey: string) => {
         let options = { width: 300, height: 300, title: metaKey };
         if (data instanceof RichTextField || typeof data === "string" || typeof data === "number") {
-            return Docs.TextDocument(options);
+            return Docs.Create.TextDocument(options);
         } else if (data instanceof List) {
             if (data.length === 0) {
-                return Docs.StackingDocument([], options);
+                return Docs.Create.StackingDocument([], options);
             }
             let first = await Cast(data[0], Doc);
             if (!first) {
-                return Docs.StackingDocument([], options);
+                return Docs.Create.StackingDocument([], options);
             }
             switch (first.type) {
                 case "image":
-                    return Docs.StackingDocument([], options);
+                    return Docs.Create.StackingDocument([], options);
                 case "text":
-                    return Docs.TreeDocument([], options);
+                    return Docs.Create.TreeDocument([], options);
             }
         } else if (data instanceof ImageField) {
-            return Docs.ImageDocument("https://image.flaticon.com/icons/png/512/23/23765.png", options);
+            return Docs.Create.ImageDocument("https://image.flaticon.com/icons/png/512/23/23765.png", options);
         }
         return new Doc;
     }

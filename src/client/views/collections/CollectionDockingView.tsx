@@ -426,7 +426,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
     stackCreated = (stack: any) => {
         //stack.header.controlsContainer.find('.lm_popout').hide();
-        stack.header.element[0].style.backgroundColor = DocServer.isReadOnly() ? "#228540" : undefined;
+        stack.header.element[0].style.backgroundColor = DocServer.Control.isReadOnly() ? "#228540" : undefined;
         stack.header.controlsContainer.find('.lm_close') //get the close icon
             .off('click') //unbind the current click handler
             .click(action(function () {

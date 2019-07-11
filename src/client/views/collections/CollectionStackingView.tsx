@@ -12,7 +12,7 @@ import "./CollectionStackingView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import { undoBatch } from "../../util/UndoManager";
 import { DragManager } from "../../util/DragManager";
-import { DocTypes } from "../../documents/Documents";
+import { DocumentType } from "../../documents/Documents";
 import { Transform } from "../../util/Transform";
 import { resolve } from "bluebird";
 
@@ -51,7 +51,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
 
     overlays = (doc: Doc) => {
-        return doc.type === DocTypes.IMG ? { title: "title", caption: "caption" } : {};
+        return doc.type === DocumentType.IMG ? { title: "title", caption: "caption" } : {};
     }
 
     getDisplayDoc(layoutDoc: Doc, d: Doc, dxf: () => Transform) {

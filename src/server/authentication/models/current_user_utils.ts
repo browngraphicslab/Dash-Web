@@ -38,26 +38,26 @@ export class CurrentUserUtils {
         doc.xMargin = 5;
         doc.yMargin = 5;
         doc.excludeFromLibrary = true;
-        doc.optionalRightCollection = Docs.StackingDocument([], { title: "New mobile uploads" });
-        // doc.library = Docs.TreeDocument([doc], { title: `Library: ${CurrentUserUtils.email}` });
+        doc.optionalRightCollection = Docs.Create.StackingDocument([], { title: "New mobile uploads" });
+        // doc.library = Docs.Create.TreeDocument([doc], { title: `Library: ${CurrentUserUtils.email}` });
         // (doc.library as Doc).excludeFromLibrary = true;
         return doc;
     }
 
     static updateUserDocument(doc: Doc) {
         if (doc.workspaces === undefined) {
-            const workspaces = Docs.TreeDocument([], { title: "Workspaces", height: 100 });
+            const workspaces = Docs.Create.TreeDocument([], { title: "Workspaces", height: 100 });
             workspaces.excludeFromLibrary = true;
             workspaces.workspaceLibrary = true;
             doc.workspaces = workspaces;
         }
         if (doc.recentlyClosed === undefined) {
-            const recentlyClosed = Docs.TreeDocument([], { title: "Recently Closed", height: 75 });
+            const recentlyClosed = Docs.Create.TreeDocument([], { title: "Recently Closed", height: 75 });
             recentlyClosed.excludeFromLibrary = true;
             doc.recentlyClosed = recentlyClosed;
         }
         if (doc.sidebar === undefined) {
-            const sidebar = Docs.StackingDocument([doc.workspaces as Doc, doc, doc.recentlyClosed as Doc], { title: "Sidebar" });
+            const sidebar = Docs.Create.StackingDocument([doc.workspaces as Doc, doc, doc.recentlyClosed as Doc], { title: "Sidebar" });
             sidebar.excludeFromLibrary = true;
             sidebar.gridGap = 5;
             sidebar.xMargin = 5;
@@ -128,12 +128,12 @@ export class CurrentUserUtils {
         //                         new AttributeTransformationModel(atmod, AggregateFunction.None),
         //                         new AttributeTransformationModel(atmod, AggregateFunction.Count),
         //                         new AttributeTransformationModel(atmod, AggregateFunction.Count));
-        //                     schemaDocuments.push(Docs.HistogramDocument(histoOp, { width: 200, height: 200, title: attr.displayName! }));
+        //                     schemaDocuments.push(Docs.Create.HistogramDocument(histoOp, { width: 200, height: 200, title: attr.displayName! }));
         //                 }
         //             })));
         //             return promises;
         //         }, [] as Promise<void>[]));
-        //         return CurrentUserUtils._northstarSchemas.push(Docs.TreeDocument(schemaDocuments, { width: 50, height: 100, title: schema.displayName! }));
+        //         return CurrentUserUtils._northstarSchemas.push(Docs.Create.TreeDocument(schemaDocuments, { width: 50, height: 100, title: schema.displayName! }));
         //     });
         // }
     }

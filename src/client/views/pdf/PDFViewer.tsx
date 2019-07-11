@@ -126,7 +126,7 @@ export class Viewer extends React.Component<IViewerProps> {
 
         this._annotationReactionDisposer = reaction(
             () => {
-                return this.props.parent && this.props.parent.fieldExtensionDoc && DocListCast(this.props.parent.fieldExtensionDoc.annotations)
+                return this.props.parent && this.props.parent.fieldExtensionDoc && DocListCast(this.props.parent.fieldExtensionDoc.annotations);
             },
             (annotations: Doc[]) => {
                 annotations && annotations.length && this.renderAnnotations(annotations, true);
@@ -236,7 +236,7 @@ export class Viewer extends React.Component<IViewerProps> {
 
     makeAnnotationDocument = (sourceDoc: Doc | undefined, s: number, color: string): Doc => {
         let annoDocs: Doc[] = [];
-        let mainAnnoDoc = Docs.CreateInstance(new Doc(), "", {});
+        let mainAnnoDoc = Docs.Create.InstanceFromProto(new Doc(), "", {});
 
         mainAnnoDoc.title = "Annotation on " + StrCast(this.props.parent.Document.title);
         mainAnnoDoc.pdfDoc = this.props.parent.Document;
