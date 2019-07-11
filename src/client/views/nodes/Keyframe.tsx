@@ -12,6 +12,7 @@ import { any } from "bluebird";
 import { FlyoutProps } from "./Timeline";
 import { number } from "prop-types";
 import { CollectionSchemaView, CollectionSchemaPreview } from "../collections/CollectionSchemaView";
+import { faDiceOne } from "@fortawesome/free-solid-svg-icons";
 
 export namespace KeyframeFunc{
     export enum KeyframeType{
@@ -82,6 +83,23 @@ interface IProps {
 export class Keyframe extends React.Component<IProps> {
 
     @observable private _bar = React.createRef<HTMLDivElement>();    
+    @computed
+    private get regiondata() {
+        let index = this.regions.indexOf(this.props.RegionData);
+        return RegionData(this.regions[index] as Doc);
+    }
+
+    @computed
+    private get regions() {
+        return Cast(this.props.node.regions, listSpec(Doc)) as List<Doc>;
+    }
+ 
+
+    @observable fadeIn = new Doc(); 
+    @observable fadeOut = new Doc(); 
+    @observable start = new Doc(); 
+    @observable finish = new Doc(); 
+    
 
     @action
     componentDidMount() {
@@ -98,26 +116,50 @@ export class Keyframe extends React.Component<IProps> {
         let startIndex = this.regiondata.keyframes!.indexOf(start); 
         let finishIndex = this.regiondata.keyframes!.indexOf(finish); 
         this.regiondata.keyframes![fadeInIndex] =fadeIn; 
-        this.regiondata.keyframes![fadeOutIndex] =fadeOut; 
+        this.regiondata.keyframes![fadeOutIndex] =fadeOut;  
         this.regiondata.keyframes![startIndex] = start; 
-        this.regiondata.keyframes![finishIndex] = finish; 
+        this.regiondata.keyframes![finishIndex] =finish;
+
+        this.fadeIn = fadeIn; 
+        this.fadeOut = fadeOut; 
+        this.start = start; 
+        this.finish = finish; 
+
+
+        observe(this.regiondata, change => {
+            if (change.type === "update"){
+                console.log("updated");
+                this.fadeIn.time = this.regiondata.position + this.regiondata.fadeIn; 
+                this.fadeOut.time = this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut; 
+                this.start.time = this.regiondata.position; 
+                this.finish.time = this.regiondata.position + this.regiondata.duration;
+
+                let fadeInIndex = this.regiondata.keyframes!.indexOf(this.fadeIn); 
+                let fadeOutIndex = this.regiondata.keyframes!.indexOf(this.fadeOut); 
+                let startIndex = this.regiondata.keyframes!.indexOf(this.start); 
+                let finishIndex = this.regiondata.keyframes!.indexOf(this.finish); 
+        
+                this.regiondata.keyframes![fadeInIndex] = this.fadeIn; 
+                this.regiondata.keyframes![fadeOutIndex] = this.fadeOut;  
+                this.regiondata.keyframes![startIndex] = this.start; 
+                this.regiondata.keyframes![finishIndex] = this.finish;
+               
+
+                this.forceUpdate(); 
+            }
+        }); 
     }
 
     componentWillUnmount() {
 
     }
 
-
-    @computed
-    private get regiondata() {
-        let index = this.regions.indexOf(this.props.RegionData);
-        return RegionData(this.regions[index] as Doc);
+    componentWillUpdate(){
+       
     }
 
-    @computed
-    private get regions() {
-        return Cast(this.props.node.regions, listSpec(Doc)) as List<Doc>;
-    }
+
+
 
 
     @action
@@ -174,6 +216,7 @@ export class Keyframe extends React.Component<IProps> {
         } else {
             this.regiondata.position = futureX;
         }
+       
     }
 
     @action
@@ -209,7 +252,12 @@ export class Keyframe extends React.Component<IProps> {
         } else {
             this.regiondata.duration -= offset;                
             this.regiondata.position += offset;
-        }            
+        }
+        // for (let i = 0; i < this.regiondata.keyframes!.length; i++){
+        //     console.log((this.regiondata.keyframes![i] as Doc).time); 
+        //     (this.regiondata.keyframes![i] as Doc).time = NumCast((this.regiondata.keyframes![i] as Doc).time) - offset; 
+        //     console.log((this.regiondata.keyframes![i] as Doc).time); 
+        // }
     }
 
 
@@ -286,8 +334,6 @@ export class Keyframe extends React.Component<IProps> {
                     e.stopPropagation(); 
                     let offsetLeft = this._bar.current!.getBoundingClientRect().left - this._bar.current!.parentElement!.getBoundingClientRect().left; 
                     let offsetTop = this._bar.current!.getBoundingClientRect().top; //+ this._bar.current!.parentElement!.getBoundingClientRect().top; 
-                    console.log(offsetLeft); 
-                    console.log(offsetTop); 
                     this.props.setFlyout({x:offsetLeft, y: offsetTop, display:"block", regiondata:this.regiondata, regions:this.regions}); 
                 })}>
                     <div className="leftResize" onPointerDown={this.onResizeLeft} ></div>

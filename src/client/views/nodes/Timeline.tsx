@@ -62,12 +62,8 @@ export class Timeline extends CollectionSubView(Document) {
     @observable private flyoutInfo: FlyoutProps = { x: 0, y: 0, display: "none", regiondata: new Doc(), regions: new List<Doc>() };
 
     private block = false;
-
-    componentDidMount() {
-        this.initialize();
-    }
-
-    componentWillMount() {
+    componentWillMount() { 
+        console.log(this._ticks.length );
         runInAction(() => {
             //check if this is a video frame 
             for (let i = 0; i < this._time;) {
@@ -76,16 +72,30 @@ export class Timeline extends CollectionSubView(Document) {
             }
         });
     }
+    componentDidMount() {  
+        runInAction(() => {let children = Cast(this.props.Document[this.props.fieldKey], listSpec(Doc));
+            if (!children) {
+                return;
+            }
+            let childrenList = ((children[Self] as any).__fields) as List<Doc>;
+            this._nodes = (childrenList) as List<Doc>;
+        }); 
+        this.initialize();
+    }
 
+
+
+    componentDidUpdate() {
+        runInAction(() => this._time = 100001);
+    }
+
+    componentWillUnmount() {
+        document.removeEventListener("pointerdown", this.closeFlyout);
+    }
     initialize = action(() => {
         let scrubber = this._scrubberbox.current!;
         this._boxLength = scrubber.getBoundingClientRect().width;
-        let children = Cast(this.props.Document[this.props.fieldKey], listSpec(Doc));
-        if (!children) {
-            return;
-        }
-        let childrenList = ((children[Self] as any).__fields) as List<Doc>;
-        this._nodes = (childrenList) as List<Doc>;
+       
 
         reaction(() => this._time, time => {
             let infoContainer = this._infoContainer.current!;
@@ -116,13 +126,6 @@ export class Timeline extends CollectionSubView(Document) {
         this.flyoutInfo.display = "none";
     }
 
-    componentDidUpdate() {
-        runInAction(() => this._time = 100001);
-    }
-
-    componentWillUnmount() {
-        document.removeEventListener("pointerdown", this.closeFlyout);
-    }
 
     //for playing
     @action
