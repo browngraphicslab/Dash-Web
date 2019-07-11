@@ -174,7 +174,7 @@ export namespace Docs {
     }
 
     function CreateImagePrototype(): Doc {
-        let imageProto = setupPrototypeOptions(imageProtoId, "IMAGE_PROTO", CollectionView.LayoutString("annotations"),
+        let imageProto = setupPrototypeOptions(imageProtoId, "IMAGE_PROTO", CollectionView.LayoutString("data", "annotations"),
             { x: 0, y: 0, nativeWidth: 600, width: 300, backgroundLayout: ImageBox.LayoutString(), curPage: 0, type: DocTypes.IMG });
         return imageProto;
     }
@@ -185,7 +185,7 @@ export namespace Docs {
     }
 
     function CreateHistogramPrototype(): Doc {
-        let histoProto = setupPrototypeOptions(histoProtoId, "HISTO PROTO", CollectionView.LayoutString("annotations"),
+        let histoProto = setupPrototypeOptions(histoProtoId, "HISTO PROTO", CollectionView.LayoutString("data"),
             { x: 0, y: 0, width: 300, height: 300, backgroundColor: "black", backgroundLayout: HistogramBox.LayoutString(), type: DocTypes.HIST });
         return histoProto;
     }
@@ -200,7 +200,7 @@ export namespace Docs {
         return textProto;
     }
     function CreatePdfPrototype(): Doc {
-        let pdfProto = setupPrototypeOptions(pdfProtoId, "PDF_PROTO", CollectionPDFView.LayoutString("annotations"),
+        let pdfProto = setupPrototypeOptions(pdfProtoId, "PDF_PROTO", CollectionPDFView.LayoutString("data", "annotations"),
             { x: 0, y: 0, width: 300, height: 300, backgroundLayout: PDFBox.LayoutString(), curPage: 1, type: DocTypes.PDF });
         return pdfProto;
     }
@@ -221,7 +221,7 @@ export namespace Docs {
         return kvpProto;
     }
     function CreateVideoPrototype(): Doc {
-        let videoProto = setupPrototypeOptions(videoProtoId, "VIDEO_PROTO", CollectionVideoView.LayoutString("annotations"),
+        let videoProto = setupPrototypeOptions(videoProtoId, "VIDEO_PROTO", CollectionVideoView.LayoutString("data", "annotations"),
             { x: 0, y: 0, nativeWidth: 600, width: 300, backgroundLayout: VideoBox.LayoutString(), curPage: 0, type: DocTypes.VID });
         return videoProto;
     }

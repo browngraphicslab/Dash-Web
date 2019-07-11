@@ -74,21 +74,27 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         this.props.whenActiveChanged(isActive);
     }
 
+    public get isAnnotationOverlay() { return this.props.fieldKey === "annotations" || this.props.fieldExt === "annotations"; }
+    @computed get extensionDoc() { return Doc.resolvedFieldDataDoc(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.isAnnotationOverlay ? "dummy" : ""); }
+
     @action.bound
     addDocument(doc: Doc, allowDuplicates: boolean = false): boolean {
+        let self = this;
         var curPage = NumCast(this.props.Document.curPage, -1);
         Doc.GetProto(doc).page = curPage;
         if (curPage >= 0) {
             Doc.GetProto(doc).annotationOn = this.props.Document;
         }
         allowDuplicates = true;
-        const value = Cast(this.dataDoc[this.dataField], listSpec(Doc));
+        let targetDataDoc = this.props.fieldExt || this.props.Document.isTemplate ? this.extensionDoc : this.props.Document;
+        let targetField = (this.props.fieldExt || this.props.Document.isTemplate) && this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey;
+        const value = Cast(targetDataDoc[targetField], listSpec(Doc));
         if (value !== undefined) {
             if (allowDuplicates || !value.some(v => v instanceof Doc && v[Id] === doc[Id])) {
                 value.push(doc);
             }
         } else {
-            Doc.GetProto(this.dataDoc)[this.dataField] = new List([doc]);
+            Doc.GetProto(targetDataDoc)[targetField] = new List([doc]);
         }
         return true;
     }
@@ -98,7 +104,9 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         let docView = DocumentManager.Instance.getDocumentView(doc, this.props.ContainingCollectionView);
         docView && SelectionManager.DeselectDoc(docView);
         //TODO This won't create the field if it doesn't already exist
-        const value = Cast(this.dataDoc[this.dataField], listSpec(Doc), []);
+        let targetDataDoc = this.props.fieldExt || this.props.Document.isTemplate ? this.extensionDoc : this.props.Document;
+        let targetField = (this.props.fieldExt || this.props.Document.isTemplate) && this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey;
+        let value = Cast(targetDataDoc[targetField], listSpec(Doc), []);
         let index = value.reduce((p, v, i) => (v instanceof Doc && v[Id] === doc[Id]) ? i : p, -1);
         PromiseValue(Cast(doc.annotationOn, Doc)).then(annotationOn =>
             annotationOn === this.dataDoc.Document && (doc.annotationOn = undefined)
@@ -116,7 +124,10 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
 
     @action.bound
     moveDocument(doc: Doc, targetCollection: Doc, addDocument: (doc: Doc) => boolean): boolean {
-        if (Doc.AreProtosEqual(this.dataDoc, targetCollection)) {
+        let self = this;
+        let targetDataDoc = this.props.fieldExt || this.props.Document.isTemplate ? this.extensionDoc : this.props.Document;
+        if (Doc.AreProtosEqual(targetDataDoc, targetCollection)) {
+            //if (Doc.AreProtosEqual(this.extensionDoc, targetCollection)) {
             return true;
         }
         if (this.removeDocument(doc)) {

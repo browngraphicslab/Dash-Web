@@ -588,7 +588,7 @@ export class Viewer extends React.Component<IViewerProps> {
             }
             return true;
         });
-        this.Index = Math.min(this.Index + 1, filtered.length - 1)
+        this.Index = Math.min(this.Index + 1, filtered.length - 1);
     }
 
     nextResult = () => {

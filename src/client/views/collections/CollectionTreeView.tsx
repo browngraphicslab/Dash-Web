@@ -75,7 +75,7 @@ class TreeView extends React.Component<TreeViewProps> {
     @computed get fieldKey() {
         let keys = Array.from(Object.keys(this.resolvedDataDoc));  // bcz: Argh -- make untracked to avoid this rerunning whenever 'libraryBrush' is set
         if (this.resolvedDataDoc.proto instanceof Doc) {
-            let arr = Array.from(Object.keys(this.resolvedDataDoc.proto!));// bcz: Argh -- make untracked to avoid this rerunning whenever 'libraryBrush' is set
+            let arr = Array.from(Object.keys(this.resolvedDataDoc.proto));// bcz: Argh -- make untracked to avoid this rerunning whenever 'libraryBrush' is set
             keys.push(...arr);
             while (keys.indexOf("proto") !== -1) keys.splice(keys.indexOf("proto"), 1);
         }

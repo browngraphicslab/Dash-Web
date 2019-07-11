@@ -530,7 +530,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 this.props.addDocument && this.props.addDocument(coll);
                 this.props.removeDocument && this.props.removeDocument(this.props.Document);
             }, icon: "window-restore"
-        })
+        });
         cm.addItem({
             description: "Find aliases", event: async () => {
                 const aliases = await SearchUtil.GetAliasesOfDocument(this.props.Document);

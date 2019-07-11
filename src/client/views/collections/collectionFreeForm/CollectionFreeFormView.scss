@@ -38,7 +38,7 @@
     // }
     box-shadow: $intermediate-color 0.2vw 0.2vw 0.8vw;
     border: 0px solid $light-color-secondary;
-    border-radius: $border-radius;
+    border-radius: inherit;
     box-sizing: border-box;
     position: absolute;
 
@@ -71,7 +71,7 @@
 
     opacity: 0.99;
     border: 0px solid transparent;
-    border-radius: $border-radius;
+    border-radius: inherit;
     box-sizing: border-box;
     position:absolute;
     z-index: -1;

@@ -234,9 +234,9 @@ export class LinkManager {
     //TODO This should also await the return value of the anchor so we don't filter out promises
     public getOppositeAnchor(linkDoc: Doc, anchor: Doc): Doc {
         if (Doc.AreProtosEqual(anchor, Cast(linkDoc.anchor1, Doc, null))) {
-            return Cast(linkDoc.anchor2, Doc, null)!;
+            return Cast(linkDoc.anchor2, Doc, null);
         } else {
-            return Cast(linkDoc.anchor1, Doc, null)!;
+            return Cast(linkDoc.anchor1, Doc, null);
         }
     }
 }

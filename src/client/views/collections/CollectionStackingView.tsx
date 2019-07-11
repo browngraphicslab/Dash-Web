@@ -50,11 +50,11 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
 
     overlays = (doc: Doc) => {
-        return doc.type === DocTypes.IMG ? { title: "title", caption: "caption" } : {}
+        return doc.type === DocTypes.IMG ? { title: "title", caption: "caption" } : {};
     }
 
     getDisplayDoc(layoutDoc: Doc, d: Doc, dxf: () => Transform) {
-        let dataDoc = d !== this.props.DataDoc ? this.props.DataDoc : undefined
+        let dataDoc = d !== this.props.DataDoc ? this.props.DataDoc : undefined;
         let width = () => d.nativeWidth ? Math.min(layoutDoc[WidthSym](), this.columnWidth) : this.columnWidth;
         let height = () => this.getDocHeight(layoutDoc);
         let finalDxf = () => dxf().scale(this.columnWidth / layoutDoc[WidthSym]());
@@ -75,7 +75,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             addDocTab={this.props.addDocTab}
             setPreviewScript={emptyFunction}
             previewScript={undefined}>
-        </CollectionSchemaPreview>
+        </CollectionSchemaPreview>;
     }
     getDocHeight(d: Doc) {
         let nw = NumCast(d.nativeWidth);
@@ -176,7 +176,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                 if (where[0] > pos[0] && where[0] < pos1[0] && where[1] > pos[1] && where[1] < pos1[1]) {
                     targInd = i;
                 }
-            })
+            });
         }
         if (super.drop(e, de)) {
             let newDoc = de.data.droppedDocuments[0];
@@ -202,7 +202,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             if (where[0] > pos[0] && where[0] < pos1[0] && where[1] > pos[1] && where[1] < pos1[1]) {
                 targInd = i;
             }
-        })
+        });
         super.onDrop(e, {}, () => {
             if (targInd !== -1) {
                 let newDoc = this.childDocs[this.childDocs.length - 1];
