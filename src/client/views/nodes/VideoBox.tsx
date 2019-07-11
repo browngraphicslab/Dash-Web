@@ -12,6 +12,9 @@ import { positionSchema } from "./DocumentView";
 import { FieldView, FieldViewProps } from './FieldView';
 import { pageSchema } from "./ImageBox";
 import "./VideoBox.scss";
+import { ContextMenu } from "../ContextMenu";
+import { ContextMenuProps } from "../ContextMenuItem";
+import { InkingControl } from "../InkingControl";
 
 type VideoDocument = makeInterface<[typeof positionSchema, typeof pageSchema]>;
 const VideoDocument = makeInterface(positionSchema, pageSchema);
@@ -119,7 +122,17 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         });
     }
     onPointerDown = (e: React.PointerEvent) => {
-        e.stopPropagation();
+    }
+
+    @observable static _showControls: boolean = false;
+
+    specificContextMenu = (e: React.MouseEvent): void => {
+        let field = Cast(this.Document[this.props.fieldKey], VideoField);
+        if (field) {
+            let subitems: ContextMenuProps[] = [];
+            subitems.push({ description: "Toggle Show Controls", event: action(() => VideoBox._showControls = !VideoBox._showControls), icon: "expand-arrows-alt" });
+            ContextMenu.Instance.addItem({ description: "Video Funcs...", subitems: subitems });
+        }
     }
 
     render() {
@@ -132,11 +145,17 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         // });
         // //
 
-        let style = "videoBox-cont" + (this._fullScreen ? "-fullScreen" : "");
+        let interactive = InkingControl.Instance.selectedTool ? "" : "-interactive";
+        let style = "videoBox-cont" + (this._fullScreen ? "-fullScreen" : interactive);
         return !field ? <div>Loading</div> :
-            <video className={`${style}`} ref={this.setVideoRef} onCanPlay={this.videoLoad} onPointerDown={this.onPointerDown}>
-                <source src={field.url.href} type="video/mp4" />
-                Not supported.
+            VideoBox._showControls ?
+                <video className={`${style}`} ref={this.setVideoRef} onCanPlay={this.videoLoad} onPointerDown={this.onPointerDown} onContextMenu={this.specificContextMenu} controls>
+                    <source src={field.url.href} type="video/mp4" />
+                    Not supported.
+            </video> :
+                <video className={`${style}`} ref={this.setVideoRef} onCanPlay={this.videoLoad} onPointerDown={this.onPointerDown} onContextMenu={this.specificContextMenu}>
+                    <source src={field.url.href} type="video/mp4" />
+                    Not supported.
             </video>;
     }
 }
