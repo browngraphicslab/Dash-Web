@@ -28,6 +28,7 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { ObjectField } from "../../../new_fields/ObjectField";
 import { ContextMenu } from "../ContextMenu";
 import { faFile } from '@fortawesome/free-solid-svg-icons';
+import { DocServer } from "../../DocServer";
 
 export interface SearchItemProps {
     doc: Doc;
@@ -230,7 +231,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
             return docview;
         }
         if (this._previewDoc) {
-            //delete doc
+            DocServer.DeleteDocument(this._previewDoc[Id]);
         }
         let button = layoutresult.indexOf(DocTypes.PDF) !== -1 ? faFilePdf :
             layoutresult.indexOf(DocTypes.IMG) !== -1 ? faImage :
