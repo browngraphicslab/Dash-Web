@@ -178,26 +178,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
 
         let fieldTemplate = await this.inferType(sourceDoc[metaKey], metaKey);
         let previousViewType = fieldTemplate.viewType;
-
-        // move data doc fields to layout doc as needed (nativeWidth/nativeHeight, data, ??)
-        let backgroundLayout = StrCast(fieldTemplate.backgroundLayout);
-        let layout = StrCast(fieldTemplate.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
-        if (backgroundLayout) {
-            layout = StrCast(fieldTemplate.layout).replace(/fieldKey={"annotations"}/, `fieldKey={"${metaKey}"} fieldExt={"annotations"}`);
-            backgroundLayout = backgroundLayout.replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
-        }
-        let nw = NumCast(fieldTemplate.nativeWidth);
-        let nh = NumCast(fieldTemplate.nativeHeight);
-
-        fieldTemplate.title = metaKey;
-        fieldTemplate.layout = layout;
-        fieldTemplate.backgroundLayout = backgroundLayout;
-        fieldTemplate.nativeWidth = nw;
-        fieldTemplate.nativeHeight = nh;
-        fieldTemplate.embed = true;
-        fieldTemplate.isTemplate = true;
-        fieldTemplate.templates = new List<string>([Templates.TitleBar(metaKey)]);
-        fieldTemplate.proto = Doc.GetProto(parentStackingDoc);
+        Doc.MakeTemplate(fieldTemplate, metaKey, Doc.GetProto(parentStackingDoc));
         previousViewType && (fieldTemplate.viewType = previousViewType);
 
         Cast(parentStackingDoc.data, listSpec(Doc))!.push(fieldTemplate);

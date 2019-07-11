@@ -84,33 +84,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 let fieldTemplate = fieldTemplateView.props.Document;
                 let docTemplate = fieldTemplateView.props.ContainingCollectionView!.props.Document;
                 let metaKey = text.slice(1, text.length);
-
-                // move data doc fields to layout doc as needed (nativeWidth/nativeHeight, data, ??)
-                let backgroundLayout = StrCast(fieldTemplate.backgroundLayout);
-                let fieldLayoutDoc = fieldTemplate;
-                if (fieldTemplate.layout instanceof Doc) {
-                    fieldLayoutDoc = Doc.MakeDelegate(fieldTemplate.layout);
-                }
-                let layout = StrCast(fieldLayoutDoc.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
-                if (backgroundLayout) {
-                    layout = StrCast(fieldLayoutDoc.layout).replace(/fieldKey={"annotations"}/, `fieldKey={"${metaKey}"} fieldExt={"annotations"}`);
-                    backgroundLayout = backgroundLayout.replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
-                }
-                let nw = Cast(fieldTemplate.nativeWidth, "number");
-                let nh = Cast(fieldTemplate.nativeHeight, "number");
-
-                let layoutDelegate = fieldTemplate.layout instanceof Doc ? fieldLayoutDoc : fieldTemplate;
-                layoutDelegate.layout = layout;
-
-                fieldTemplate.title = metaKey;
-                fieldTemplate.layout = layoutDelegate !== fieldTemplate ? layoutDelegate : layout;
-                fieldTemplate.backgroundLayout = backgroundLayout;
-                fieldTemplate.nativeWidth = nw;
-                fieldTemplate.nativeHeight = nh;
-                fieldTemplate.embed = true;
-                fieldTemplate.isTemplate = true;
-                fieldTemplate.showTitle = "title";
-                fieldTemplate.proto = Doc.GetProto(docTemplate);
+                Doc.MakeTemplate(fieldTemplate, metaKey, Doc.GetProto(docTemplate));
             }
             else {
                 if (SelectionManager.SelectedDocuments().length > 0) {

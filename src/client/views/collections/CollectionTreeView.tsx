@@ -73,7 +73,6 @@ class TreeView extends React.Component<TreeViewProps> {
     @observable _collapsed: boolean = true;
 
     @computed get fieldKey() {
-        trace();
         let keys = Array.from(Object.keys(this.resolvedDataDoc));  // bcz: Argh -- make untracked to avoid this rerunning whenever 'libraryBrush' is set
         if (this.resolvedDataDoc.proto instanceof Doc) {
             let arr = Array.from(Object.keys(this.resolvedDataDoc.proto!));// bcz: Argh -- make untracked to avoid this rerunning whenever 'libraryBrush' is set
