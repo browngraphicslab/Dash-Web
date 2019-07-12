@@ -27,7 +27,7 @@ export class CollectionVideoView extends React.Component<FieldViewProps> {
     private get uIButtons() {
         let scaling = Math.min(1.8, this.props.ScreenToLocalTransform().Scale);
         let curTime = NumCast(this.props.Document.curPage);
-        return ([
+        return (VideoBox._showControls ? [] : [
             <div className="collectionVideoView-time" key="time" onPointerDown={this.onResetDown} style={{ transform: `scale(${scaling}, ${scaling})` }}>
                 <span>{"" + Math.round(curTime)}</span>
                 <span style={{ fontSize: 8 }}>{" " + Math.round((curTime - Math.trunc(curTime)) * 100)}</span>

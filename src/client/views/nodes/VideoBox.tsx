@@ -145,7 +145,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
     onPointerDown = (e: React.PointerEvent) => {
     }
 
-    @observable static _showControls: boolean = false;
+    @observable static _showControls: boolean;
 
     specificContextMenu = (e: React.MouseEvent): void => {
         let field = Cast(this.Document[this.props.fieldKey], VideoField);
@@ -171,3 +171,5 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
                 </video>;
     }
 }
+
+VideoBox._showControls = true;

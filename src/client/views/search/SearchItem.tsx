@@ -241,7 +241,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
                     onClick={this.onClick} onPointerDown={this.pointerDown} >
                     <div className="main-search-info">
                         <div title="Drag as document" onPointerDown={this.onPointerDown}> <FontAwesomeIcon icon="file" size="lg" /> </div>
-                        <div className="search-title" id="result" >{this.props.doc.title}</div>
+                        <div className="search-title" id="result" >{StrCast(this.props.doc.title)}</div>
                         <div className="search-info" style={{ width: this._useIcons ? "15%" : "400px" }}>
                             <div className={`icon-${this._useIcons ? "icons" : "live"}`}>
                                 <div className="search-type" >{this.DocumentIcon}</div>
