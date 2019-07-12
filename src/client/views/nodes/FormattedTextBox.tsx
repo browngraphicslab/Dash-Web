@@ -350,7 +350,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
     onPointerWheel = (e: React.WheelEvent): void => {
-        if (this.props.isSelected()) {
+        // if a text note is not selected and scrollable, this prevents us from being able to scroll and zoom out at the same time
+        if (this.props.isSelected() || e.currentTarget.scrollHeight > e.currentTarget.clientHeight) {
             e.stopPropagation();
         }
     }
