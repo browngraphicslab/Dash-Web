@@ -148,14 +148,9 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         let interactive = InkingControl.Instance.selectedTool ? "" : "-interactive";
         let style = "videoBox-cont" + (this._fullScreen ? "-fullScreen" : interactive);
         return !field ? <div>Loading</div> :
-            VideoBox._showControls ?
-                <video className={`${style}`} ref={this.setVideoRef} onCanPlay={this.videoLoad} onPointerDown={this.onPointerDown} onContextMenu={this.specificContextMenu} controls>
-                    <source src={field.url.href} type="video/mp4" />
-                    Not supported.
-            </video> :
-                <video className={`${style}`} ref={this.setVideoRef} onCanPlay={this.videoLoad} onPointerDown={this.onPointerDown} onContextMenu={this.specificContextMenu}>
-                    <source src={field.url.href} type="video/mp4" />
-                    Not supported.
+            <video className={`${style}`} ref={this.setVideoRef} onCanPlay={this.videoLoad} onPointerDown={this.onPointerDown} onContextMenu={this.specificContextMenu} controls={VideoBox._showControls}>
+                <source src={field.url.href} type="video/mp4" />
+                Not supported.
             </video>;
     }
 }

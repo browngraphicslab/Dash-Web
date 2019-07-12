@@ -317,7 +317,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                         e.preventDefault();
                     }
                 } else {
-                    let webDoc = Docs.WebDocument(href, { x: NumCast(this.props.Document.x, 0) + NumCast(this.props.Document.width, 0), y: NumCast(this.props.Document.y) });
+                    let webDoc = Docs.Create.WebDocument(href, { x: NumCast(this.props.Document.x, 0) + NumCast(this.props.Document.width, 0), y: NumCast(this.props.Document.y) });
                     this.props.addDocument && this.props.addDocument(webDoc);
                     this._linkClicked = webDoc[Id];
                 }

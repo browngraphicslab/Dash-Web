@@ -591,7 +591,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
     @action
     addNewPresentation = (presTitle: string) => {
         //creating a new presentation doc
-        let newPresentationDoc = Docs.TreeDocument([], { title: presTitle });
+        let newPresentationDoc = Docs.Create.TreeDocument([], { title: presTitle });
         this.props.Documents.push(newPresentationDoc);
 
         //setting that new doc as current

@@ -33,7 +33,7 @@ class Uploader extends React.Component {
     onClick = async () => {
         try {
             this.status = "initializing protos";
-            await Docs.initProtos();
+            await Docs.Prototypes.initialize();
             let imgPrev = document.getElementById("img_preview");
             if (imgPrev) {
                 let files: FileList | null = inputRef.current!.files;
@@ -53,7 +53,7 @@ class Uploader extends React.Component {
                     const json = await res.json();
                     json.map(async (file: any) => {
                         let path = window.location.origin + file;
-                        var doc = Docs.ImageDocument(path, { nativeWidth: 200, width: 200, title: name });
+                        var doc = Docs.Create.ImageDocument(path, { nativeWidth: 200, width: 200, title: name });
 
                         this.status = "getting user document";
 

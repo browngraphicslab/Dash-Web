@@ -202,6 +202,18 @@ export namespace Doc {
         }
         return protos;
     }
+
+    /**
+     * This function is intended to model Object.assign({}, {}) [https://mzl.la/1Mo3l21], which copies
+     * the values of the properties of a source object into the target.
+     * 
+     * This is just a specific, Dash-authored version that serves the same role for our
+     * Doc class.
+     * 
+     * @param doc the target document into which you'd like to insert the new fields 
+     * @param fields the fields to project onto the target. Its type signature defines a mapping from some string key
+     * to a potentially undefined field, where each entry in this mapping is optional. 
+     */
     export function assign<K extends string>(doc: Doc, fields: Partial<Record<K, Opt<Field>>>) {
         for (const key in fields) {
             if (fields.hasOwnProperty(key)) {

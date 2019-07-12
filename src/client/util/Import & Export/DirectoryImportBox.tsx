@@ -103,7 +103,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                 body: formData
             }).then(async (res: Response) => {
                 (await res.json()).map(action((file: any) => {
-                    let docPromise = Docs.getDocumentFromType(type, DocServer.prepend(file), { nativeWidth: 300, width: 300, title: dropFileName });
+                    let docPromise = Docs.Get.DocumentFromType(type, DocServer.prepend(file), { nativeWidth: 300, width: 300, title: dropFileName });
                     docPromise.then(doc => {
                         doc && docs.push(doc) && runInAction(() => this.remaining--);
                     });
@@ -136,7 +136,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
         };
         let parent = this.props.ContainingCollectionView;
         if (parent) {
-            let importContainer = Docs.StackingDocument(docs, options);
+            let importContainer = Docs.Create.StackingDocument(docs, options);
             importContainer.singleColumn = false;
             Doc.AddDocToList(Doc.GetProto(parent.props.Document), "data", importContainer);
             !this.persistent && this.props.removeDocument && this.props.removeDocument(doc);

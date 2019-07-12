@@ -286,7 +286,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @undoBatch
     @action createIcon = (selected: DocumentView[], layoutString: string): Doc => {
         let doc = selected[0].props.Document;
-        let iconDoc = Docs.IconDocument(layoutString);
+        let iconDoc = Docs.Create.IconDocument(layoutString);
         iconDoc.isButton = true;
         iconDoc.proto!.title = selected.length > 1 ? "-multiple-.icon" : StrCast(doc.title) + ".icon";
         iconDoc.labelField = selected.length > 1 ? undefined : this._fieldKey;

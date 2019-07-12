@@ -27,7 +27,7 @@ import { KeyCodes } from '../../northstar/utils/KeyCodes';
 
 type PdfDocument = makeInterface<[typeof positionSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(positionSchema, pageSchema);
-export const handleBackspace = (e: React.KeyboardEvent) => { if (e.keyCode === KeyCodes.BACKSPACE) e.stopPropagation() }
+export const handleBackspace = (e: React.KeyboardEvent) => { if (e.keyCode === KeyCodes.BACKSPACE) e.stopPropagation(); };
 
 @observer
 export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocument) {

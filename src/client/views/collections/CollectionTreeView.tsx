@@ -9,7 +9,7 @@ import { List } from '../../../new_fields/List';
 import { Document, listSpec } from '../../../new_fields/Schema';
 import { BoolCast, Cast, NumCast, StrCast } from '../../../new_fields/Types';
 import { emptyFunction, Utils } from '../../../Utils';
-import { Docs, DocUtils, DocTypes } from '../../documents/Documents';
+import { Docs, DocUtils, DocumentType } from '../../documents/Documents';
 import { DocumentManager } from '../../util/DocumentManager';
 import { DragManager, dropActionType, SetupDrag } from "../../util/DragManager";
 import { SelectionManager } from '../../util/SelectionManager';
@@ -171,7 +171,7 @@ class TreeView extends React.Component<TreeViewProps> {
         SetValue={(value: string) => (Doc.GetProto(this.resolvedDataDoc)[key] = value) ? true : true}
         OnFillDown={(value: string) => {
             Doc.GetProto(this.resolvedDataDoc)[key] = value;
-            let doc = Docs.FreeformDocument([], { title: "", x: 0, y: 0, width: 100, height: 25, templates: new List<string>([Templates.Title.Layout]) });
+            let doc = Docs.Create.FreeformDocument([], { title: "", x: 0, y: 0, width: 100, height: 25, templates: new List<string>([Templates.Title.Layout]) });
             TreeView.loadId = doc[Id];
             return this.props.addDocument(doc);
         }}
@@ -247,7 +247,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 ContextMenu.Instance.addItem({ description: "Open as Workspace", event: undoBatch(() => MainView.Instance.openWorkspace(this.resolvedDataDoc)), icon: "caret-square-right" });
                 ContextMenu.Instance.addItem({ description: "Delete Workspace", event: undoBatch(() => this.props.deleteDoc(this.props.document)), icon: "trash-alt" });
             }
-            ContextMenu.Instance.addItem({ description: "Open Fields", event: () => { let kvp = Docs.KVPDocument(this.props.document, { width: 300, height: 300 }); this.props.addDocTab(kvp, this.props.dataDoc ? this.props.dataDoc : kvp, "onRight"); }, icon: "layer-group" });
+            ContextMenu.Instance.addItem({ description: "Open Fields", event: () => { let kvp = Docs.Create.KVPDocument(this.props.document, { width: 300, height: 300 }); this.props.addDocTab(kvp, this.props.dataDoc ? this.props.dataDoc : kvp, "onRight"); }, icon: "layer-group" });
             ContextMenu.Instance.displayMenu(e.pageX > 156 ? e.pageX - 156 : 0, e.pageY - 15);
             e.stopPropagation();
             e.preventDefault();
@@ -323,7 +323,7 @@ class TreeView extends React.Component<TreeViewProps> {
     }
 
     @computed get boundsOfCollectionDocument() {
-        if (StrCast(this.props.document.type).indexOf(DocTypes.COL) === -1) return undefined;
+        if (StrCast(this.props.document.type).indexOf(DocumentType.COL) === -1) return undefined;
         let layoutDoc = Doc.expandTemplateLayout(this.props.document, this.props.dataDoc);
         return Doc.ComputeContentBounds(DocListCast(layoutDoc.data));
     }
@@ -545,7 +545,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                     SetValue={(value: string) => (Doc.GetProto(this.resolvedDataDoc).title = value) ? true : true}
                     OnFillDown={(value: string) => {
                         Doc.GetProto(this.props.Document).title = value;
-                        let doc = Docs.FreeformDocument([], { title: "", x: 0, y: 0, width: 100, height: 25, templates: new List<string>([Templates.Title.Layout]) });
+                        let doc = Docs.Create.FreeformDocument([], { title: "", x: 0, y: 0, width: 100, height: 25, templates: new List<string>([Templates.Title.Layout]) });
                         TreeView.loadId = doc[Id];
                         Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, this.childDocs.length ? this.childDocs[0] : undefined, true);
                     }} />
