@@ -8,7 +8,7 @@ import { Doc, DocListCast, HeightSym, WidthSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { emptyFunction, returnFalse, returnOne, Utils } from "../../../Utils";
-import { DocTypes } from "../../documents/Documents";
+import { DocumentType } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
 import { SetupDrag, DragManager } from "../../util/DragManager";
 import { LinkManager } from "../../util/LinkManager";
@@ -115,7 +115,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
                 onPointerEnter={action(() => this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE))}
                 onPointerLeave={action(() => this._displayDim = 50)} >
                 <DocumentView
-                    fitToBox={StrCast(this.props.doc.type).indexOf(DocTypes.COL) !== -1}
+                    fitToBox={StrCast(this.props.doc.type).indexOf(DocumentType.COL) !== -1}
                     Document={this.props.doc}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
@@ -138,15 +138,15 @@ export class SearchItem extends React.Component<SearchItemProps> {
         }
 
         let layoutresult = StrCast(this.props.doc.type);
-        let button = layoutresult.indexOf(DocTypes.PDF) !== -1 ? faFilePdf :
-            layoutresult.indexOf(DocTypes.IMG) !== -1 ? faImage :
-                layoutresult.indexOf(DocTypes.TEXT) !== -1 ? faStickyNote :
-                    layoutresult.indexOf(DocTypes.VID) !== -1 ? faFilm :
-                        layoutresult.indexOf(DocTypes.COL) !== -1 ? faObjectGroup :
-                            layoutresult.indexOf(DocTypes.AUDIO) !== -1 ? faMusic :
-                                layoutresult.indexOf(DocTypes.LINK) !== -1 ? faLink :
-                                    layoutresult.indexOf(DocTypes.HIST) !== -1 ? faChartBar :
-                                        layoutresult.indexOf(DocTypes.WEB) !== -1 ? faGlobeAsia :
+        let button = layoutresult.indexOf(DocumentType.PDF) !== -1 ? faFilePdf :
+            layoutresult.indexOf(DocumentType.IMG) !== -1 ? faImage :
+                layoutresult.indexOf(DocumentType.TEXT) !== -1 ? faStickyNote :
+                    layoutresult.indexOf(DocumentType.VID) !== -1 ? faFilm :
+                        layoutresult.indexOf(DocumentType.COL) !== -1 ? faObjectGroup :
+                            layoutresult.indexOf(DocumentType.AUDIO) !== -1 ? faMusic :
+                                layoutresult.indexOf(DocumentType.LINK) !== -1 ? faLink :
+                                    layoutresult.indexOf(DocumentType.HIST) !== -1 ? faChartBar :
+                                        layoutresult.indexOf(DocumentType.WEB) !== -1 ? faGlobeAsia :
                                             faCaretUp;
         return <div onPointerDown={action(() => { this._useIcons = false; this._displayDim = Number(SEARCH_THUMBNAIL_SIZE); })} >
             <FontAwesomeIcon icon={button} size="2x" />
@@ -180,7 +180,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
     pointerDown = (e: React.PointerEvent) => { e.preventDefault(); e.button === 0 && SearchBox.Instance.openSearch(e); }
 
     highlightDoc = (e: React.PointerEvent) => {
-        if (this.props.doc.type === DocTypes.LINK) {
+        if (this.props.doc.type === DocumentType.LINK) {
             if (this.props.doc.anchor1 && this.props.doc.anchor2) {
 
                 let doc1 = Cast(this.props.doc.anchor1, Doc, null);
@@ -197,7 +197,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
     }
 
     unHighlightDoc = (e: React.PointerEvent) => {
-        if (this.props.doc.type === DocTypes.LINK) {
+        if (this.props.doc.type === DocumentType.LINK) {
             if (this.props.doc.anchor1 && this.props.doc.anchor2) {
 
                 let doc1 = Cast(this.props.doc.anchor1, Doc, null);

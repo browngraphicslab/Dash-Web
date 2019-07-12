@@ -18,9 +18,6 @@ import { ImageBox } from "./ImageBox";
 import { PDFBox } from "./PDFBox";
 import { VideoBox } from "./VideoBox";
 import { Id } from "../../../new_fields/FieldSymbols";
-import { BoolCast, Cast } from "../../../new_fields/Types";
-import { DarpaDatasetDoc } from "../../northstar/model/idea/idea";
-
 
 //
 // these properties get assigned through the render() method of the DocumentView when it creates this node.

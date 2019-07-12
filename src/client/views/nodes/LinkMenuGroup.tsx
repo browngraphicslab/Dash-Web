@@ -53,7 +53,7 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
                         draggedDocs.push(opp);
                     }
                 }
-            )
+            );
             let dragData = new DragManager.DocumentDragData(draggedDocs, draggedDocs.map(d => undefined));
 
             DragManager.StartLinkedDocumentDrag([this._drag.current], this.props.sourceDoc, dragData, e.x, e.y, {
@@ -72,7 +72,7 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
         if (index > -1) keys.splice(index, 1);
         let cols = ["anchor1", "anchor2", ...[...keys]];
         let docs: Doc[] = LinkManager.Instance.getAllMetadataDocsInGroup(groupType);
-        let createTable = action(() => Docs.SchemaDocument(cols, docs, { width: 500, height: 300, title: groupType + " table" }));
+        let createTable = action(() => Docs.Create.SchemaDocument(cols, docs, { width: 500, height: 300, title: groupType + " table" }));
         let ref = React.createRef<HTMLDivElement>();
         return <div ref={ref}><button className="linkEditor-button linkEditor-tableButton" onPointerDown={SetupDrag(ref, createTable)} title="Drag to view relationship table"><FontAwesomeIcon icon="table" size="sm" /></button></div>;
     }

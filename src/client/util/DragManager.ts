@@ -88,7 +88,7 @@ export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: n
                     draggedDocs.push(opp);
                 }
             }
-            )
+            );
             // draggedDocs = linkDocs.map(link => {
             //     return LinkManager.Instance.getOppositeAnchor(link, sourceDoc);
             // });

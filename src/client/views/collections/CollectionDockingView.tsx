@@ -427,7 +427,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
     stackCreated = (stack: any) => {
         //stack.header.controlsContainer.find('.lm_popout').hide();
-        stack.header.element[0].style.backgroundColor = DocServer.isReadOnly() ? "#228540" : undefined;
+        stack.header.element[0].style.backgroundColor = DocServer.Control.isReadOnly() ? "#228540" : undefined;
         stack.header.element.on('mousedown', (e: any) => {
             if (e.target === stack.header.element[0] && e.button === 1) {
                 this.AddTab(stack, Docs.FreeformDocument([], { width: this.props.PanelWidth(), height: this.props.PanelHeight(), title: "Untitled Collection" }), undefined);

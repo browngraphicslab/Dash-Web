@@ -157,7 +157,7 @@ export default class Page extends React.Component<IPageProps> {
         e.stopPropagation();
         let thisDoc = this.props.parent.Document;
         // document that this annotation is linked to
-        let targetDoc = Docs.TextDocument({ width: 200, height: 200, title: "New Annotation" });
+        let targetDoc = Docs.Create.TextDocument({ width: 200, height: 200, title: "New Annotation" });
         targetDoc.targetPage = this.props.page;
         let annotationDoc = this.highlight(targetDoc, "red");
         // create dragData and star tdrag

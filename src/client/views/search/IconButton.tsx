@@ -6,7 +6,7 @@ import "./IconButton.scss";
 import { faSearch, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faMusic, faLink, faChartBar, faGlobeAsia, faBan, faVideo, faCaretDown } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { library, icon } from '@fortawesome/fontawesome-svg-core';
-import { DocTypes } from '../../documents/Documents';
+import { DocumentType } from '../../documents/Documents';
 import '../globalCssVariables.scss';
 import * as _ from "lodash";
 import { IconBar } from './IconBar';
@@ -80,25 +80,25 @@ export class IconButton extends React.Component<IconButtonProps>{
     @action.bound
     getIcon() {
         switch (this.props.type) {
-            case (DocTypes.NONE):
+            case (DocumentType.NONE):
                 return faBan;
-            case (DocTypes.AUDIO):
+            case (DocumentType.AUDIO):
                 return faMusic;
-            case (DocTypes.COL):
+            case (DocumentType.COL):
                 return faObjectGroup;
-            case (DocTypes.HIST):
+            case (DocumentType.HIST):
                 return faChartBar;
-            case (DocTypes.IMG):
+            case (DocumentType.IMG):
                 return faImage;
-            case (DocTypes.LINK):
+            case (DocumentType.LINK):
                 return faLink;
-            case (DocTypes.PDF):
+            case (DocumentType.PDF):
                 return faFilePdf;
-            case (DocTypes.TEXT):
+            case (DocumentType.TEXT):
                 return faStickyNote;
-            case (DocTypes.VID):
+            case (DocumentType.VID):
                 return faVideo;
-            case (DocTypes.WEB):
+            case (DocumentType.WEB):
                 return faGlobeAsia;
             default:
                 return faCaretDown;
@@ -149,25 +149,25 @@ export class IconButton extends React.Component<IconButtonProps>{
 
     getFA = () => {
         switch (this.props.type) {
-            case (DocTypes.NONE):
+            case (DocumentType.NONE):
                 return (<FontAwesomeIcon className="fontawesome-icon" icon={faBan} />);
-            case (DocTypes.AUDIO):
+            case (DocumentType.AUDIO):
                 return (<FontAwesomeIcon className="fontawesome-icon" icon={faMusic} />);
-            case (DocTypes.COL):
+            case (DocumentType.COL):
                 return (<FontAwesomeIcon className="fontawesome-icon" icon={faObjectGroup} />);
-            case (DocTypes.HIST):
+            case (DocumentType.HIST):
                 return (<FontAwesomeIcon className="fontawesome-icon" icon={faChartBar} />);
-            case (DocTypes.IMG):
+            case (DocumentType.IMG):
                 return (<FontAwesomeIcon className="fontawesome-icon" icon={faImage} />);
-            case (DocTypes.LINK):
+            case (DocumentType.LINK):
                 return (<FontAwesomeIcon className="fontawesome-icon" icon={faLink} />);
-            case (DocTypes.PDF):
+            case (DocumentType.PDF):
                 return (<FontAwesomeIcon className="fontawesome-icon" icon={faFilePdf} />);
-            case (DocTypes.TEXT):
+            case (DocumentType.TEXT):
                 return (<FontAwesomeIcon className="fontawesome-icon" icon={faStickyNote} />);
-            case (DocTypes.VID):
+            case (DocumentType.VID):
                 return (<FontAwesomeIcon className="fontawesome-icon" icon={faVideo} />);
-            case (DocTypes.WEB):
+            case (DocumentType.WEB):
                 return (<FontAwesomeIcon className="fontawesome-icon" icon={faGlobeAsia} />);
             default:
                 return (<FontAwesomeIcon className="fontawesome-icon" icon={faCaretDown} />);

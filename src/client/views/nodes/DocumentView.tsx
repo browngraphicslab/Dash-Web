@@ -10,7 +10,7 @@ import { BoolCast, Cast, FieldValue, StrCast, NumCast, PromiseValue } from "../.
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { emptyFunction, Utils, returnFalse, returnTrue } from "../../../Utils";
 import { DocServer } from "../../DocServer";
-import { Docs, DocUtils, DocTypes } from "../../documents/Documents";
+import { Docs, DocUtils, DocumentType } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager, dropActionType } from "../../util/DragManager";
 import { SearchUtil } from "../../util/SearchUtil";
@@ -396,7 +396,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     deleteClicked = (): void => { SelectionManager.DeselectAll(); this.props.removeDocument && this.props.removeDocument(this.props.Document); }
 
     @undoBatch
-    fieldsClicked = (): void => { let kvp = Docs.KVPDocument(this.props.Document, { width: 300, height: 300 }); this.props.addDocTab(kvp, this.dataDoc, "onRight"); }
+    fieldsClicked = (): void => { let kvp = Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }); this.props.addDocTab(kvp, this.dataDoc, "onRight"); }
 
     @undoBatch
     makeBtnClicked = (): void => {
@@ -522,11 +522,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         cm.addItem({ description: this.props.Document.isButton ? "Remove Button" : "Make Button", event: this.makeBtnClicked, icon: "concierge-bell" });
         cm.addItem({
             description: "Make Portal", event: () => {
-                let portal = Docs.FreeformDocument([], { width: this.props.Document[WidthSym]() + 10, height: this.props.Document[HeightSym](), title: this.props.Document.title + ".portal" });
+                let portal = Docs.Create.FreeformDocument([], { width: this.props.Document[WidthSym]() + 10, height: this.props.Document[HeightSym](), title: this.props.Document.title + ".portal" });
                 Doc.GetProto(this.props.Document).subBulletDocs = new List<Doc>([portal]);
                 //summary.proto!.maximizeLocation = "inTab";  // or "inPlace", or "onRight"
                 Doc.GetProto(this.props.Document).templates = new List<string>([Templates.Bullet.Layout]);
-                let coll = Docs.StackingDocument([this.props.Document, portal], { x: NumCast(this.props.Document.x), y: NumCast(this.props.Document.y), width: this.props.Document[WidthSym]() + 10, height: this.props.Document[HeightSym](), title: this.props.Document.title + ".cont" });
+                let coll = Docs.Create.StackingDocument([this.props.Document, portal], { x: NumCast(this.props.Document.x), y: NumCast(this.props.Document.y), width: this.props.Document[WidthSym]() + 10, height: this.props.Document[HeightSym](), title: this.props.Document.title + ".cont" });
                 this.props.addDocument && this.props.addDocument(coll);
                 this.props.removeDocument && this.props.removeDocument(this.props.Document);
             }, icon: "window-restore"
@@ -534,7 +534,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         cm.addItem({
             description: "Find aliases", event: async () => {
                 const aliases = await SearchUtil.GetAliasesOfDocument(this.props.Document);
-                this.props.addDocTab && this.props.addDocTab(Docs.SchemaDocument(["title"], aliases, {}), undefined, "onRight"); // bcz: dataDoc?
+                this.props.addDocTab && this.props.addDocTab(Docs.Create.SchemaDocument(["title"], aliases, {}), undefined, "onRight"); // bcz: dataDoc?
             }, icon: "search"
         });
         cm.addItem({ description: "Center View", event: () => this.props.focus(this.props.Document, false), icon: "crosshairs" });

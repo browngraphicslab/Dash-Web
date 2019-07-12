@@ -479,11 +479,11 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             description: "Add freeform arrangement",
             event: () => {
                 let addOverlay = (key: "arrangeScript" | "arrangeInit", options: OverlayElementOptions, params?: Record<string, string>, requiredType?: string) => {
-                    let overlayDisposer: () => void;
+                    let overlayDisposer: () => void = emptyFunction;
                     const script = this.Document[key];
                     let originalText: string | undefined = undefined;
                     if (script) originalText = script.script.originalScript;
-                    let scriptingBox = <ScriptBox initialText={originalText} onCancel={() => overlayDisposer()} onSave={(text, onError) => {
+                    let scriptingBox = <ScriptBox initialText={originalText} onCancel={overlayDisposer} onSave={(text, onError) => {
                         const script = CompileScript(text, {
                             params,
                             requiredType,

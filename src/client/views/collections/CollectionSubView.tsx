@@ -145,10 +145,10 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                             }
                         });
                     } else {
-                        this.props.addDocument && this.props.addDocument(Docs.WebDocument(href, options));
+                        this.props.addDocument && this.props.addDocument(Docs.Create.WebDocument(href, options));
                     }
                 } else if (text) {
-                    this.props.addDocument && this.props.addDocument(Docs.TextDocument({ ...options, width: 100, height: 25, documentText: "@@@" + text }), false);
+                    this.props.addDocument && this.props.addDocument(Docs.Create.TextDocument({ ...options, width: 100, height: 25, documentText: "@@@" + text }), false);
                 }
                 return;
             }
@@ -158,7 +158,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 let img = tags[0].startsWith("img") ? tags[0] : tags.length > 1 && tags[1].startsWith("img") ? tags[1] : "";
                 if (img) {
                     let split = img.split("src=\"")[1].split("\"")[0];
-                    let doc = Docs.ImageDocument(split, { ...options, width: 300 });
+                    let doc = Docs.Create.ImageDocument(split, { ...options, width: 300 });
                     this.props.addDocument(doc, false);
                     return;
                 } else {
@@ -172,7 +172,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                             }
                         });
                     } else {
-                        let htmlDoc = Docs.HtmlDocument(html, { ...options, width: 300, height: 300, documentText: text });
+                        let htmlDoc = Docs.Create.HtmlDocument(html, { ...options, width: 300, height: 300, documentText: text });
                         this.props.addDocument(htmlDoc, false);
                     }
                     return;
@@ -180,7 +180,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             }
             if (text && text.indexOf("www.youtube.com/watch") !== -1) {
                 const url = text.replace("youtube.com/watch?v=", "youtube.com/embed/");
-                this.props.addDocument(Docs.WebDocument(url, { ...options, width: 300, height: 300 }));
+                this.props.addDocument(Docs.Create.WebDocument(url, { ...options, width: 300, height: 300 }));
                 return;
             }
 
@@ -197,7 +197,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                         .then(result => {
                             let type = result["content-type"];
                             if (type) {
-                                Docs.getDocumentFromType(type, str, { ...options, width: 300, nativeWidth: 300 })
+                                Docs.Get.DocumentFromType(type, str, { ...options, width: 300, nativeWidth: 300 })
                                     .then(doc => doc && this.props.addDocument(doc, false));
                             }
                         });
@@ -220,7 +220,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                         (await res.json()).map(action((file: any) => {
                             let full = { ...options, nativeWidth: 300, width: 300, title: dropFileName };
                             let path = DocServer.prepend(file);
-                            Docs.getDocumentFromType(type, path, full).then(doc => doc && this.props.addDocument(doc));
+                            Docs.Get.DocumentFromType(type, path, full).then(doc => doc && this.props.addDocument(doc));
                         }));
                     });
                     promises.push(prom);
