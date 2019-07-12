@@ -114,6 +114,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             if (this.singleColumn) {
                 let dxf = () => this.getSingleDocTransform(layoutDoc, i, width());
                 let rowHgtPcnt = height() / (this.props.Document[HeightSym]() - 2 * this.yMargin) * 100;
+                this._docXfs.push({ dxf: dxf, width: width, height: height });
                 return <div className="collectionStackingView-columnDoc" key={d[Id]} style={{ width: width(), marginTop: i === 0 ? 0 : this.gridGap, height: `${rowHgtPcnt}%` }} >
                     {this.getDisplayDoc(layoutDoc, d, dxf)}
                 </div>;
