@@ -71,7 +71,7 @@ export default class KeyManager {
             case "backspace":
                 if (document.activeElement) {
                     if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") {
-                        return;
+                        return { stopPropagation: false, preventDefault: false };
                     }
                 }
                 UndoManager.RunInBatch(() => {
