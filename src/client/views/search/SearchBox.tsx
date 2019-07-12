@@ -16,6 +16,8 @@ import { SearchUtil } from '../../util/SearchUtil';
 import { RouteStore } from '../../../server/RouteStore';
 import { FilterBox } from './FilterBox';
 import { start } from 'repl';
+import { getForkTsCheckerWebpackPluginHooks } from 'fork-ts-checker-webpack-plugin/lib/hooks';
+import { faThumbsDown } from '@fortawesome/free-regular-svg-icons';
 
 @observer
 export class SearchBox extends React.Component {
@@ -32,7 +34,7 @@ export class SearchBox extends React.Component {
 
     private _isSearch: ("search" | "placeholder" | undefined)[] = [];
     private _currentIndex = 0;
-    private _numTotalResults = 0;
+    private _numTotalResults = -1;
     private _startIndex = -1;
     private _endIndex = -1;
     private _fetchedIndices: number[] = [0];
@@ -40,7 +42,7 @@ export class SearchBox extends React.Component {
     static Instance: SearchBox;
 
     private _maxSearchIndex: number = 0;
-    private _curRequest: Promise<SearchUtil.DocSearchResult> | undefined = undefined;
+    private _curRequest?: Promise<any> = undefined;
 
     constructor(props: any) {
         super(props);
@@ -67,7 +69,7 @@ export class SearchBox extends React.Component {
         this._results = [];
         this._visibleElements = [];
         this._currentIndex = 0;
-        this._numTotalResults = 0;
+        this._numTotalResults = -1;
         this._startIndex = -1;
         this._endIndex = -1;
         this._curRequest = undefined;
@@ -121,6 +123,7 @@ export class SearchBox extends React.Component {
             this._currentIndex = 0;
             this._startIndex = 0;
             this._endIndex = 12;
+            this._results = [];
             // this._curRequest = undefined;
             // if (this._curRequest !== undefined) {
             //     this._curRequest.then(() => {
@@ -129,6 +132,7 @@ export class SearchBox extends React.Component {
             // }
 
             this._maxSearchIndex = 0;
+            this._numTotalResults = -1;
 
             // results = await this.getResultsHelp(query);
             await this.getResultsHelp(query);
@@ -151,143 +155,57 @@ export class SearchBox extends React.Component {
 
         // let buffer = 4;
         // let maxDisplayIndex: number = this._endIndex + buffer;
-        console.log(`end index: ${this._endIndex}`)
-        console.log(this._results.length)
+        // console.log(`end index: ${this._endIndex}`)
+        // console.log(this._results.length)
 
-        while (this._results.length < this._endIndex) {
-            console.log("looping")
-            if (this._curRequest === undefined) {
-                //start at max search index, get 10, add 10 to max search index
-                // const { docs, numFound } = await SearchUtil.Search(query, true, this._maxSearchIndex, 10);
+        while (this._results.length < this._endIndex && (this._numTotalResults === -1 || this._maxSearchIndex < this._numTotalResults)) {
+            console.log("looping");
+            //start at max search index, get 10, add 10 to max search index
+            // const { docs, numFound } = await SearchUtil.Search(query, true, this._maxSearchIndex, 10);
+
+            // happens at the beginning
+            // am i gonna need this?
+            // if (numFound !== this._numTotalResults && this._numTotalResults === 0) {
+            //     this._numTotalResults = numFound;
+            // }
+
+            let prom: Promise<any>;
+            if (this._curRequest) {
+                prom = this._curRequest;
+                return;
+            } else {
+                prom = SearchUtil.Search(query, true, this._maxSearchIndex, 10);
+                this._maxSearchIndex += 10;
+            }
+            prom.then(action((res: SearchUtil.DocSearchResult) => {
 
                 // happens at the beginning
-                // am i gonna need this?
-                // if (numFound !== this._numTotalResults && this._numTotalResults === 0) {
-                //     this._numTotalResults = numFound;
-                // }
+                if (res.numFound !== this._numTotalResults && this._numTotalResults === -1) {
+                    this._numTotalResults = res.numFound;
+                }
 
-                this._curRequest = SearchUtil.Search(query, true, this._maxSearchIndex, 10);
-                this._maxSearchIndex += 10;
+                let filteredDocs = FilterBox.Instance.filterDocsByType(res.docs);
+                this._results.push(...filteredDocs);
 
-                this._curRequest.then((res: SearchUtil.DocSearchResult) => {
-
-                    // happens at the beginning
-                    if (res.numFound !== this._numTotalResults && this._numTotalResults === 0) {
-                        this._numTotalResults = res.numFound;
-                    }
-
-                    let filteredDocs = FilterBox.Instance.filterDocsByType(res.docs);
-                    this._results.push(...filteredDocs);
-
-                    console.log(this._results)
+                console.log(this._results);
+                if (prom === this._curRequest) {
                     this._curRequest = undefined;
-                    console.log("setting to undefined")
-                });
+                }
+                console.log("setting to undefined");
+            }));
 
-                //deals with if there are fewer results than can be scrolled through
-                // if (this._numTotalResults < this._endIndex) {
-                //     break;
-                // }
-            }
+
+
+            this._curRequest = prom;
+
+            await prom;
+
+            //deals with if there are fewer results than can be scrolled through
+            // if (this._numTotalResults < this._endIndex) {
+            //     break;
+            // }
         }
     }
-
-    // @action
-    // getResults = async (query: string, count: number) => {
-    //     let resDocs = [];
-    //     // count is total number of documents to be shown (i believe)
-    //     console.log(`Count: ${count}`);
-    //     while (resDocs.length < count) {
-    //         let index = count === -1 ? undefined : this._currentIndex;
-    //         let num = count === -1 ? undefined : Math.min(this._numTotalResults - this._currentIndex + 1, this._maxNum);
-    //         // num found has to be the number of docs before filtering happens - this is the total num
-    //         const { docs, numFound } = await SearchUtil.Search(query, true, index, num);
-
-    //         let filteredDocs = FilterBox.Instance.filterDocsByType(docs);
-
-    //         // accounts for the fact that there may be fewer documents than the max that are returned
-    //         count = Math.min(numFound, count);
-
-    //         // happens at the beginning
-    //         if (numFound !== this._numTotalResults && this._numTotalResults === 0) {
-    //             console.log(`Total: ${numFound}`);
-    //             this._numTotalResults = numFound;
-    //         }
-
-    //         // if (filteredDocs.length < docs.length) {
-    //         //     this._numResults -= docs.length - filteredDocs.length;
-    //         //     console.log(`New Total: ${this._numResults}`);
-    //         // }
-    //         resDocs.push(...filteredDocs);
-
-    //         this._currentIndex += docs.length;
-
-    //         console.log(`ResDocs: ${resDocs.length}`);
-    //         console.log(`CurrIndex: ${this._currentIndex}`);
-    //     }
-    //     // console.log(this.getResults2(query, count, []));
-    //     return resDocs;
-    // }
-
-    // @action
-    // getResults2 = async (query: string, count: number, docs: Doc[]) => {
-    //     console.log("results 2")
-    //     let buffer = 4;
-    //     // let goalIndex = this._endIndex + count;
-    //     // let bottomBound = Math.floor(goalIndex / 10) * 10;
-    //     let tempIndex = this._currentIndex;
-    //     let goalNum = this._endIndex + buffer;
-    //     let resDocs: Doc[] = docs;
-
-    //     // let topBound = bottomBound - 10;
-    //     // let unfilteredDocs: Doc[];
-    //     // let unfilteredFound: number;
-    //     // means this has already been fetched
-    //     // if (this._fetchedIndices.includes(topBound)) {
-    //     //     return;
-    //     // }
-
-    //     let index = count <= 0 ? undefined : this._currentIndex;
-    //     if (index) {
-    //         let topBound = Math.ceil(index / 10) * 10;
-    //         if (this._fetchedIndices.includes(topBound)) {
-    //             return;
-    //         }
-    //         let startIndex = this._fetchedIndices[this._fetchedIndices.length - 1];
-    //         let endIndex = startIndex + 10;
-    //         this._fetchedIndices.push(endIndex);
-    //         console.log(this._fetchedIndices)
-    //         let prom: Promise<SearchUtil.DocSearchResult> = SearchUtil.Search(query, true, index, 10);
-
-    //         prom.then((res: SearchUtil.DocSearchResult) => {
-    //             count = Math.min(res.numFound, count);
-    //             console.log(res.docs);
-    //             let filteredDocs = FilterBox.Instance.filterDocsByType(res.docs);
-
-    //             if (res.numFound !== this._numTotalResults && this._numTotalResults === 0) {
-    //                 this._numTotalResults = res.numFound;
-    //             }
-
-    //             resDocs.push(...filteredDocs);
-
-    //             this._currentIndex += res.docs.length;
-
-    //             if (resDocs.length <= count) {
-    //                 runInAction(() => {
-    //                     return this.getResults2(query, count, resDocs);
-    //                 });
-    //             }
-    //             else {
-    //                 return resDocs;
-    //             }
-    //             // console.log(tempIndex);
-    //             console.log(resDocs.length);
-    //         })
-
-    //     }
-
-
-    // }
 
     collectionRef = React.createRef<HTMLSpanElement>();
     startDragCollection = async () => {
@@ -350,7 +268,7 @@ export class SearchBox extends React.Component {
         this._results = [];
         this._visibleElements = [];
         this._currentIndex = 0;
-        this._numTotalResults = 0;
+        this._numTotalResults = -1;
         this._startIndex = -1;
         this._endIndex = -1;
         this._curRequest = undefined;
@@ -365,10 +283,10 @@ export class SearchBox extends React.Component {
         console.log(`end before: ${this._endIndex}`);
         let endIndex = Math.ceil(Math.min(this._numTotalResults - 1, startIndex + (560 / 70) + buffer));
 
-        if (startIndex === this._startIndex && endIndex === this._endIndex) {
-            console.log("returning")
-            return;
-        }
+        // if (startIndex === this._startIndex && endIndex === this._endIndex && this._results.length > this._endIndex) {
+        //     console.log("returning")
+        //     return;
+        // }
         console.log(`START: ${startIndex}`);
         console.log(`END: ${endIndex}`);
 
@@ -384,9 +302,9 @@ export class SearchBox extends React.Component {
         // visibleElements is all of the elements (even the ones you can't see)
         else if (this._visibleElements.length !== this._numTotalResults) {
             // undefined until a searchitem is put in there
-            this._visibleElements = Array<JSX.Element>(this._numTotalResults);
+            this._visibleElements = Array<JSX.Element>(this._numTotalResults === -1 ? 0 : this._numTotalResults);
             // indicates if things are placeholders
-            this._isSearch = Array<undefined>(this._numTotalResults);
+            this._isSearch = Array<undefined>(this._numTotalResults === -1 ? 0 : this._numTotalResults);
         }
 
         for (let i = 0; i < this._numTotalResults; i++) {
