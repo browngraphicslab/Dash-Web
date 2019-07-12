@@ -43,7 +43,7 @@ export class CollectionVideoView extends React.Component<FieldViewProps> {
 
     @action
     onPlayDown = () => {
-        if (this._videoBox && this._videoBox.player) {
+        if (this._videoBox) {
             if (this._videoBox.Playing) {
                 this._videoBox.Pause();
             } else {
