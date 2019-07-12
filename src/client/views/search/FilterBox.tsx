@@ -239,6 +239,9 @@ export class FilterBox extends React.Component {
 
     @action
     filterDocsByType(docs: Doc[]) {
+        if (this._icons.length === 9) {
+            return docs;
+        }
         let finalDocs: Doc[] = [];
         docs.forEach(doc => {
             let layoutresult = Cast(doc.type, "string");
