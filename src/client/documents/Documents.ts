@@ -91,10 +91,11 @@ export namespace Docs {
 
         type LayoutSource = { LayoutString: () => string };
         type CollectionLayoutSource = { LayoutString: (fieldStr: string, fieldExt?: string) => string };
+        type CollectionViewType = [CollectionLayoutSource, string, string?]
         type PrototypeTemplate = {
             layout: {
                 view: LayoutSource,
-                collectionView?: [CollectionLayoutSource, string, string?]
+                collectionView?: CollectionViewType
             },
             options?: Partial<DocumentOptions>
         };
@@ -109,11 +110,11 @@ export namespace Docs {
                 options: { height: 150, backgroundColor: "#f1efeb" }
             }],
             [DocumentType.HIST, {
-                layout: { view: HistogramBox, collectionView: [CollectionView, data] },
+                layout: { view: HistogramBox, collectionView: [CollectionView, data] as CollectionViewType },
                 options: { height: 300, backgroundColor: "black" }
             }],
             [DocumentType.IMG, {
-                layout: { view: ImageBox, collectionView: [CollectionView, data, anno] },
+                layout: { view: ImageBox, collectionView: [CollectionView, data, anno] as CollectionViewType },
                 options: { nativeWidth: 600, curPage: 0 }
             }],
             [DocumentType.WEB, {
@@ -129,7 +130,7 @@ export namespace Docs {
                 options: { height: 150 }
             }],
             [DocumentType.VID, {
-                layout: { view: VideoBox, collectionView: [CollectionVideoView, data, anno] },
+                layout: { view: VideoBox, collectionView: [CollectionVideoView, data, anno] as CollectionViewType },
                 options: { nativeWidth: 600, curPage: 0 },
             }],
             [DocumentType.AUDIO, {
@@ -137,7 +138,7 @@ export namespace Docs {
                 options: { height: 150 }
             }],
             [DocumentType.PDF, {
-                layout: { view: PDFBox, collectionView: [CollectionPDFView, data, anno] },
+                layout: { view: PDFBox, collectionView: [CollectionPDFView, data, anno] as CollectionViewType },
                 options: { nativeWidth: 1200, curPage: 1 }
             }],
             [DocumentType.ICON, {
@@ -375,10 +376,7 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.KVP), document, { title: document.title + ".kvp", ...options });
         }
 
-        export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions, makePrototype: boolean = true) {
-            if (!makePrototype) {
-                return MakeDataDelegate(Prototypes.get(DocumentType.COL), { ...options, viewType: CollectionViewType.Freeform }, new List(documents));
-            }
+        export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Freeform });
         }
 
@@ -463,82 +461,6 @@ export namespace Docs {
                 options = { height: options.width, ...options, title: path, nativeWidth: undefined };
             }
             return ctor ? ctor(path, options) : undefined;
-        }
-
-    }
-
-    export namespace Templating {
-
-        export function CaptionDocument(doc: Doc) {
-            const captionDoc = Doc.MakeAlias(doc);
-            captionDoc.overlayLayout = FixedCaption();
-            captionDoc.width = Cast(doc.width, "number", 0);
-            captionDoc.height = Cast(doc.height, "number", 0);
-            return captionDoc;
-        }
-
-        /**
-         * An example of custom display string for an image that shows a caption.
-         */
-        export function EmbeddedCaption() {
-            return (
-                `<div style="height:100%">
-                    <div style="position:relative; margin:auto; height:85%; width:85%;" >${ImageBox.LayoutString()}</div>
-                    <div style="position:relative; height:15%; text-align:center; ">${FormattedTextBox.LayoutString("caption")}</div> 
-                </div>`
-            );
-        }
-
-        export function FixedCaption(fieldName: string = "caption") {
-            return (
-                `<div style="position:absolute; height:30px; bottom:0; width:100%">
-                    <div style="position:absolute; width:100%; height:100%; text-align:center;bottom:0;">${FormattedTextBox.LayoutString(fieldName)}</div> 
-                </div>`
-            );
-        }
-
-        export function OuterCaption() {
-            return (`
-                <div>
-                    <div style="margin:auto; height:calc(100%); width:100%;">
-                        {layout}
-                    </div>
-                    <div style="height:(100% + 25px); width:100%; position:absolute">
-                        <FormattedTextBox
-                            doc={Document}
-                            DocumentViewForField={DocumentView}
-                            bindings={bindings}
-                            fieldKey={"caption"}
-                            isSelected={isSelected}
-                            select={select}
-                            selectOnLoad={SelectOnLoad}
-                            renderDepth={renderDepth
-                        />
-                    </div>
-                </div>       
-            `);
-        }
-
-        export function InnerCaption() {
-            return (`
-                <div>
-                    <div style="margin:auto; height:calc(100% - 25px); width:100%;">
-                        {layout}
-                    </div>
-                    <div style="height:25px; width:100%; position:absolute">
-                        <FormattedTextBox
-                            doc={Document}
-                            DocumentViewForField={DocumentView}
-                            bindings={bindings}
-                            fieldKey={"caption"}
-                            isSelected={isSelected}
-                            select={select}
-                            selectOnLoad={SelectOnLoad}
-                            renderDepth={renderDepth
-                        />
-                    </div>
-                </div>       
-            `);
         }
     }
 }
