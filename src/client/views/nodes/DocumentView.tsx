@@ -466,27 +466,29 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
-    @action
-    addTemplate = (template: Template) => {
-        this.templates.push(template.Layout);
-        this.templates = this.templates;
-    }
+    /** template functionality moved temporarily to FormattedTextBox.tsx */
 
-    @action
-    removeTemplate = (template: Template) => {
-        for (let i = 0; i < this.templates.length; i++) {
-            if (this.templates[i] === template.Layout) {
-                this.templates.splice(i, 1);
-                break;
-            }
-        }
-        this.templates = this.templates;
-    }
-    @action
-    clearTemplates = () => {
-        this.templates.length = 0;
-        this.templates = this.templates;
-    }
+    // @action
+    // addTemplate = (template: Template) => {
+    //     this.templates.push(template.Layout);
+    //     this.templates = this.templates;
+    // }
+
+    // @action
+    // removeTemplate = (template: Template) => {
+    //     for (let i = 0; i < this.templates.length; i++) {
+    //         if (this.templates[i] === template.Layout) {
+    //             this.templates.splice(i, 1);
+    //             break;
+    //         }
+    //     }
+    //     this.templates = this.templates;
+    // }
+    // @action
+    // clearTemplates = () => {
+    //     this.templates.length = 0;
+    //     this.templates = this.templates;
+    // }
 
     @undoBatch
     @action

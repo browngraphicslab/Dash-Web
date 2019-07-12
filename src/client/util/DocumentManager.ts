@@ -19,6 +19,11 @@ export class DocumentManager {
     @observable
     public DocumentViews: DocumentView[] = [];
 
+    //global holds all of the templates (currently only for formatted text boxes)
+    //
+    @observable
+    public Templates: Doc[] = DocListCast(CurrentUserUtils.UserDocument.TemplatesDoc);
+
     // singleton instance
     private static _instance: DocumentManager;
 

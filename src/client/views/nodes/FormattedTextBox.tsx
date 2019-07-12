@@ -1,5 +1,5 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faEdit, faSmile } from '@fortawesome/free-solid-svg-icons';
+import { faEdit, faSmile, faFileAlt } from '@fortawesome/free-solid-svg-icons';
 import { action, IReactionDisposer, observable, reaction, runInAction, computed } from "mobx";
 import { observer } from "mobx-react";
 import { baseKeymap } from "prosemirror-commands";
@@ -36,6 +36,7 @@ import React = require("react");
 
 library.add(faEdit);
 library.add(faSmile);
+library.add(faFileAlt);
 
 // FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document
 //
@@ -425,28 +426,29 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     @action
     addTemplate = () => {
-        console.log('added template', this);
-    }
-
-    @action
-    removeTemplate = () => {
-        console.log('removed template', this);
+        let temp = new Doc();
+        temp.backgroundColor = Doc.GetProto(this.props.Document).backgroundColor;
+        DocumentManager.Instance.Templates.push(temp);
+        console.log('added template');
     }
 
     @action
     clearTemplates = () => {
         console.log('cleared templates');
         console.log('cleared templates');
+        DocumentManager.Instance.Templates.length = 0; // clears array
     }
 
     @action
     chooseTemplates = (templateList: ContextMenuProps[]): ContextMenuProps[] => {
-        console.log('templated', DocumentManager.Instance.DocumentViews);
-        console.log('hehe');
-        DocumentManager.Instance.DocumentViews.map((value, index) => {
+        DocumentManager.Instance.Templates.map((value, index) => {
             templateList.push({
-                description: `Template ${index + 1}`, event: () => {
-                    console.log(value);
+                description: `Template ${index + 1} `, event: () => {
+                    console.log(value.backgroundColor);
+                    Doc.GetProto(this.props.Document).backgroundColor = value.backgroundColor;
+
+                    console.log(value.backgroundColor);
+                    console.log(value.marks);
                 }, icon: "file-alt"
             });
         });
@@ -461,9 +463,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         });
         let subtemplates: ContextMenuProps[] = [];
         let templateList: ContextMenuProps[] = [];
-        subtemplates.push({ description: "Add to Templates", event: this.addTemplate, icon: "file-alt" });
-        subtemplates.push({ description: "Remove from Templates", event: this.removeTemplate, icon: "file-alt" });
         subtemplates.push({ description: "Select Template", subitems: this.chooseTemplates(templateList), icon: "file-alt" });
+        subtemplates.push({ description: "Add to Templates", event: this.addTemplate, icon: "file-alt" });
+        subtemplates.push({ description: "Clear Templates", event: this.clearTemplates, icon: "file-alt" });
         ContextMenu.Instance.addItem({ description: "Templates...", subitems: subtemplates, icon: "file-alt" });
         ContextMenu.Instance.addItem({ description: "Text Funcs...", subitems: subitems });
     }
