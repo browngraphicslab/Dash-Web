@@ -92,6 +92,7 @@ export class Viewer extends React.Component<IViewerProps> {
     private _activeReactionDisposer?: IReactionDisposer;
     private _viewer: React.RefObject<HTMLDivElement>;
     private _mainCont: React.RefObject<HTMLDivElement>;
+    private _pdfViewer: any;
     // private _textContent: Pdfjs.TextContent[] = [];
     private _pdfFindController: any;
     private _searchString: string = "";
@@ -451,7 +452,7 @@ export class Viewer extends React.Component<IViewerProps> {
             return;
         }
 
-        if (this._rendered) {
+        if (this._pdfViewer._pageViewsReady) {
             this._pdfFindController.executeCommand('find',
                 {
                     caseSensitive: false,
@@ -550,23 +551,23 @@ export class Viewer extends React.Component<IViewerProps> {
             if (!this._pdfFindController) {
                 if (container && viewer) {
                     let simpleLinkService = new SimpleLinkService();
-                    let pdfViewer = new PDFJSViewer.PDFViewer({
+                    this._pdfViewer = new PDFJSViewer.PDFViewer({
                         container: container,
                         viewer: viewer,
                         linkService: simpleLinkService
                     });
                     simpleLinkService.setPdf(this.props.pdf);
                     container.addEventListener("pagesinit", () => {
-                        pdfViewer.currentScaleValue = 1;
+                        this._pdfViewer.currentScaleValue = 1;
                     });
                     container.addEventListener("pagerendered", () => {
                         console.log("rendered");
                         this._rendered = true;
                     });
-                    pdfViewer.setDocument(this.props.pdf);
-                    this._pdfFindController = new PDFJSViewer.PDFFindController(pdfViewer);
+                    this._pdfViewer.setDocument(this.props.pdf);
+                    this._pdfFindController = new PDFJSViewer.PDFFindController(this._pdfViewer);
                     // this._pdfFindController._linkService = pdfLinkService;
-                    pdfViewer.findController = this._pdfFindController;
+                    this._pdfViewer.findController = this._pdfFindController;
                 }
             }
         }
