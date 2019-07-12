@@ -430,7 +430,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         stack.header.element[0].style.backgroundColor = DocServer.Control.isReadOnly() ? "#228540" : undefined;
         stack.header.element.on('mousedown', (e: any) => {
             if (e.target === stack.header.element[0] && e.button === 1) {
-                this.AddTab(stack, Docs.FreeformDocument([], { width: this.props.PanelWidth(), height: this.props.PanelHeight(), title: "Untitled Collection" }), undefined);
+                this.AddTab(stack, Docs.Create.FreeformDocument([], { width: this.props.PanelWidth(), height: this.props.PanelHeight(), title: "Untitled Collection" }), undefined);
             }
         });
         stack.header.controlsContainer.find('.lm_close') //get the close icon
