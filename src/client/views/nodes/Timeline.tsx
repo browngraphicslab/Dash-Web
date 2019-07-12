@@ -16,6 +16,8 @@ import { DocumentContentsView } from "./DocumentContentsView";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { ContextMenu } from "../ContextMenu";
 import { string } from "prop-types";
+import { checkIfStateModificationsAreAllowed } from "mobx/lib/internal";
+import { SelectorContextMenu } from "../collections/ParentDocumentSelector";
 
 
 export interface FlyoutProps {
@@ -46,6 +48,7 @@ export class Timeline extends CollectionSubView(Document) {
     @observable private _durationInput = React.createRef<HTMLInputElement>();
     @observable private _fadeInInput = React.createRef<HTMLInputElement>();
     @observable private _fadeOutInput = React.createRef<HTMLInputElement>();
+    @observable private _timelineWrapper = React.createRef<HTMLDivElement>(); 
 
 
     @observable private _currentBarX: number = 0;
@@ -62,8 +65,8 @@ export class Timeline extends CollectionSubView(Document) {
     @observable private flyoutInfo: FlyoutProps = { x: 0, y: 0, display: "none", regiondata: new Doc(), regions: new List<Doc>() };
 
     private block = false;
-    componentWillMount() { 
-        console.log(this._ticks.length );
+    componentWillMount() {
+        console.log(this._ticks.length);
         runInAction(() => {
             //check if this is a video frame 
             for (let i = 0; i < this._time;) {
@@ -72,14 +75,15 @@ export class Timeline extends CollectionSubView(Document) {
             }
         });
     }
-    componentDidMount() {  
-        runInAction(() => {let children = Cast(this.props.Document[this.props.fieldKey], listSpec(Doc));
+    componentDidMount() {
+        runInAction(() => {
+            let children = Cast(this.props.Document[this.props.fieldKey], listSpec(Doc));
             if (!children) {
                 return;
             }
-            let childrenList = ((children[Self] as any).__fields) as List<Doc>;
-            this._nodes = (childrenList) as List<Doc>;
-        }); 
+            let childrenList = children;
+            this._nodes = childrenList;
+        });
         this.initialize();
     }
 
@@ -95,7 +99,7 @@ export class Timeline extends CollectionSubView(Document) {
     initialize = action(() => {
         let scrubber = this._scrubberbox.current!;
         this._boxLength = scrubber.getBoundingClientRect().width;
-       
+
 
         reaction(() => this._time, time => {
             let infoContainer = this._infoContainer.current!;
@@ -217,7 +221,7 @@ export class Timeline extends CollectionSubView(Document) {
         titleContainer.scrollTop = titleContainer.scrollTop - e.movementY;
     }
 
-    
+
     @action
     onResizeDown = (e: React.PointerEvent) => {
         e.preventDefault();
@@ -245,19 +249,23 @@ export class Timeline extends CollectionSubView(Document) {
     @action
     onTimelineDown = (e: React.PointerEvent) => {
         e.preventDefault();
-        e.stopPropagation();
-        document.addEventListener("pointermove", this.onTimelineMove);
-        document.addEventListener("pointerup", () => { document.removeEventListener("pointermove", this.onTimelineMove); });
+        //e.stopPropagation();
+        if (e.nativeEvent.which === 1){
+            document.addEventListener("pointermove", this.onTimelineMove);
+            document.addEventListener("pointerup", () => { document.removeEventListener("pointermove", this.onTimelineMove);});
+        } 
     }
 
     @action
     onTimelineMove = (e: PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        let timelineContainer = this._timelineContainer.current!;
-        timelineContainer.style.transform = `translate(${timelineContainer.getBoundingClientRect().left + 1}px, ${timelineContainer.getBoundingClientRect().top + 1}px)`;
-        console.log("mouse move!");
-        timelineContainer.style.width = "500px";
+        let timelineContainer = this._timelineWrapper.current!;
+        let left = parseFloat(timelineContainer.style.left!);
+        let top = parseFloat(timelineContainer.style.top!); 
+        timelineContainer.style.left = `${left + e.movementX}px`; 
+        timelineContainer.style.top = `${top + e.movementY}px`;
+        this.setPlacementHighlight(0, 0, 1000, 1000); // do something with setting the placement highlighting
     }
 
     @action
@@ -296,15 +304,22 @@ export class Timeline extends CollectionSubView(Document) {
 
     timelineContextMenu = (e: React.MouseEvent): void => {
         let subitems: ContextMenuProps[] = [];
-        let timelineContainer = this._timelineContainer.current!;
-        subitems.push({ description: "Pin to Top", event: action(() => { timelineContainer.style.transform = "translate(0px, 0px)"; }), icon: "pinterest" });
+        let timelineContainer = this._timelineWrapper.current!;
+        subitems.push({ description: "Pin to Top", event: action(() => { 
+            timelineContainer.style.transition = "top 1000ms ease-in, left 1000ms ease-in";  //?????
+            timelineContainer.style.left = "0px"; 
+            timelineContainer.style.top = "0px"; 
+            timelineContainer.style.transition = "none"; 
+
+
+        }), icon: "pinterest" });
         subitems.push({
             description: "Pin to Bottom", event: action(() => {
+                console.log(timelineContainer.getBoundingClientRect().bottom); 
                 timelineContainer.style.transform = `translate(0px, ${e.pageY - this._containerHeight}px)`;
             }), icon: "pinterest"
         });
         ContextMenu.Instance.addItem({ description: "Timeline Funcs...", subitems: subitems });
-
     }
 
     @action
@@ -355,10 +370,14 @@ export class Timeline extends CollectionSubView(Document) {
             }
         }
     }
+    private setPlacementHighlight = (x = 0, y = 0, height:(string| number) = 0, width:(string | number) = 0):JSX.Element => {
+        return <div className="placement-highlight" style ={{height: `${height}px`, width: `${width}px`, transform:`translate(${x}px, ${y}px)`}}></div>; 
+    }
 
     render() {
         return (
-            <div>
+            <div style={{left:"0px", top: "0px", position:"absolute", width:"100%", transform:"translate(0px, 0px)"}} ref = {this._timelineWrapper}>
+            {this.setPlacementHighlight(0,0,300,400)}
                 <button className="minimize" onClick={this.minimize}>Minimize</button>
                 <div className="flyout-container" style={{ left: `${this.flyoutInfo.x}px`, top: `${this.flyoutInfo.y}px`, display: `${this.flyoutInfo.display!}` }} onPointerDown={this.onFlyoutDown}>
                     <FontAwesomeIcon className="flyout" icon="comment-alt" color="grey" />
@@ -373,11 +392,10 @@ export class Timeline extends CollectionSubView(Document) {
                         <input ref={this._durationInput} type="text" placeholder={`${Math.round(NumCast(this.flyoutInfo.regiondata!.duration) / this._tickSpacing * 1000)}ms`} onKeyDown={this.changeDuration} />
                         <input ref={this._fadeInInput} type="text" placeholder={`${Math.round(NumCast(this.flyoutInfo.regiondata!.fadeIn))}ms`} onKeyDown={this.changeFadeIn} />
                         <input ref={this._fadeOutInput} type="text" placeholder={`${Math.round(NumCast(this.flyoutInfo.regiondata!.fadeOut))}ms`} onKeyDown={this.changeFadeOut} />
-
                     </div>
                     <button onClick={action((e: React.MouseEvent) => { this.flyoutInfo.regions!.splice(this.flyoutInfo.regions!.indexOf(this.flyoutInfo.regiondata!), 1); this.flyoutInfo.display = "none"; })}>delete</button>
                 </div>
-                <div className="timeline-container" style={{ height: `${this._containerHeight}px` }} ref={this._timelineContainer} onContextMenu={this.timelineContextMenu} >
+                <div className="timeline-container" style={{ height: `${this._containerHeight}px`, left:"0px", top:"0px" }} ref={this._timelineContainer}onPointerDown={this.onTimelineDown} onContextMenu={this.timelineContextMenu}>
                     <div className="toolbox">
                         <div onClick={this.windBackward}> <FontAwesomeIcon icon={faBackward} size="2x" /> </div>
                         <div onClick={this.onPlay}> <FontAwesomeIcon icon={faPlayCircle} size="2x" /> </div>
@@ -388,7 +406,6 @@ export class Timeline extends CollectionSubView(Document) {
                         </div> */}
                     </div>
                     <div className="info-container" ref={this._infoContainer}>
-
                         <div className="scrubberbox" ref={this._scrubberbox} onClick={this.onScrubberClick}>
                             {this._ticks.map(element => {
                                 return <div className="tick" style={{ transform: `translate(${element / 1000 * this._tickSpacing}px)`, position: "absolute", pointerEvents: "none" }}> <p>{this.toTime(element)}</p></div>;
@@ -398,15 +415,15 @@ export class Timeline extends CollectionSubView(Document) {
                             <div className="scrubberhead"></div>
                         </div>
                         <div className="trackbox" ref={this._trackbox} onPointerDown={this.onPanDown}>
-                            {this._nodes.map(doc => {
-                                return <Track node={(doc as any).value() as Doc} currentBarX={this._currentBarX} changeCurrentBarX={this.changeCurrentBarX} setFlyout={this.getFlyout} />;
+                            {DocListCast(this._nodes).map(doc => {
+                                return <Track node={doc} currentBarX={this._currentBarX} changeCurrentBarX={this.changeCurrentBarX} setFlyout={this.getFlyout} />;
                             })}
                         </div>
                     </div>
                     <div className="title-container" ref={this._titleContainer}>
-                        {this._nodes.map(doc => {
+                        {DocListCast(this._nodes).map(doc => {
                             return <div className="datapane">
-                                <p>{((doc as any).value() as Doc).title}</p>
+                                <p>{doc.title}</p>
                             </div>;
                         })}
                     </div>

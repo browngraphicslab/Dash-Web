@@ -12,6 +12,7 @@ import { AddComparisonParameters } from "../../northstar/model/idea/idea";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { node } from "prop-types";
 import { NorthstarSettings } from "../../northstar/manager/Gateway";
+import { getForkTsCheckerWebpackPluginHooks } from "fork-ts-checker-webpack-plugin/lib/hooks";
 
 interface IProps {
     node: Doc;
@@ -35,14 +36,15 @@ export class Track extends React.Component<IProps> {
     }
 
     componentWillMount() {
-        this.props.node.regions = new List<Doc>();
+        if (!this.props.node.regions){
+            this.props.node.regions = new List<Doc>();
+        }
         this.props.node.opacity = 1; 
     }
 
     @action
     componentDidMount() {
         this.props.node.hidden = true;
-        this.props.node.opacity = 1;
 
         this._reactionDisposers.push(reaction(() => this.props.currentBarX, () => {
             let regiondata: (Doc | undefined) = this.findRegion(this.props.currentBarX);
@@ -102,7 +104,6 @@ export class Track extends React.Component<IProps> {
             this.filterKeys(Doc.allKeys(currentkf.key as Doc)).forEach(k => {
                 this.props.node[k] = (currentkf!.key as Doc)[k];  
             }); 
-            console.log("current"); 
         } else if (leftkf && rightkf) {
             this.interpolate(leftkf, rightkf);
         } else if (leftkf) {                
@@ -238,7 +239,7 @@ export class Track extends React.Component<IProps> {
             <div className="track-container">
                 <div className="track">
                     <div className="inner" ref={this._inner} onDoubleClick={this.onInnerDoubleClick}>
-                        {this.regions.map((region) => {
+                        {DocListCast(this.regions).map((region) => {
                             return <Keyframe node={this.props.node} RegionData={region as Doc} changeCurrentBarX={this.props.changeCurrentBarX} setFlyout={this.props.setFlyout}/>;
                         })}
                     </div>

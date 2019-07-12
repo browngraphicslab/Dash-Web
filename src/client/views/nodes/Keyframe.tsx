@@ -52,13 +52,8 @@ export namespace KeyframeFunc{
         regiondata.position = 0;
         regiondata.fadeIn = 20; 
         regiondata.fadeOut = 20; 
-        regiondata.keyframes = new List<Doc>();
         return regiondata; 
     }; 
-
-    export const compareKeyframe = (propsNode: Doc, kf: Doc) => {
-        
-    };
 }
 
 
@@ -94,6 +89,14 @@ export class Keyframe extends React.Component<IProps> {
         return Cast(this.props.node.regions, listSpec(Doc)) as List<Doc>;
     }    
 
+
+    componentWillMount(){
+        if (!this.regiondata.keyframes){
+            this.regiondata.keyframes = new List<Doc>(); 
+        }
+    }
+
+
     @action
     componentDidMount() {
         let fadeIn = this.makeKeyData(this.regiondata.position + this.regiondata.fadeIn, KeyframeFunc.KeyframeType.fade)!; 
@@ -121,12 +124,12 @@ export class Keyframe extends React.Component<IProps> {
                 this.regiondata.keyframes![fadeOutIndex] =  fadeOut;  
                 this.regiondata.keyframes![startIndex] = start; 
                 this.regiondata.keyframes![finishIndex] = finish;
-               
                 this.forceUpdate(); 
             }
         }); 
     }
 
+    
     componentWillUnmount() {
 
     }
@@ -286,7 +289,6 @@ export class Keyframe extends React.Component<IProps> {
                 <div className="keyframeCircle" onPointerDown={(e) => {this.moveKeyframe(e, kf as Doc);} } onContextMenu={(e:React.MouseEvent)=>{
                     e.preventDefault(); 
                     e.stopPropagation(); 
-                    console.log(toJS(kf.key)); 
                 }}></div>
             </div>);
         }
@@ -308,15 +310,12 @@ export class Keyframe extends React.Component<IProps> {
                     e.stopPropagation(); 
                     let offsetLeft = this._bar.current!.getBoundingClientRect().left - this._bar.current!.parentElement!.getBoundingClientRect().left; 
                     let offsetTop = this._bar.current!.getBoundingClientRect().top; //+ this._bar.current!.parentElement!.getBoundingClientRect().top; 
-                    this.props.setFlyout({x:offsetLeft, y: offsetTop, display:"block", regiondata:this.regiondata, regions:this.regions}); 
-                })}>
+                    this.props.setFlyout({x:offsetLeft, y: offsetTop, display:"block", regiondata:this.regiondata, regions:this.regions}); })}>
                     <div className="leftResize" onPointerDown={this.onResizeLeft} ></div>
                     <div className="rightResize" onPointerDown={this.onResizeRight}></div>
                     {this.regiondata.keyframes!.map(kf => {
                         return this.createKeyframeJSX(kf as Doc, (kf! as Doc).type as KeyframeFunc.KeyframeType); 
                     })}
-                    {this.createDivider(KeyframeFunc.Direction.left)}
-                    {this.createDivider(KeyframeFunc.Direction.right)}
                 </div>
             </div>
         );

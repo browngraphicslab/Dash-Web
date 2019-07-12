@@ -39,6 +39,14 @@
     }
 }
 
+.placement-highlight{
+    background-color:blue; 
+    transform: translate(0px, 0px); 
+    transition: width 1000ms ease-in-out; 
+    transition: height 1000ms ease-in-out;
+    position: absolute; 
+}
+
 .timeline-container{
     width:100%;
     height:300px; 
