@@ -65,7 +65,7 @@ export class CurrentUserUtils {
             sidebar.gridGap = 5;
             sidebar.xMargin = 5;
             sidebar.yMargin = 5;
-            Doc.GetProto(sidebar).backgroundColor = "lightGray";
+            Doc.GetProto(sidebar).backgroundColor = "#aca3a6";
             sidebar.boxShadow = "1 1 3";
             doc.sidebar = sidebar;
         }

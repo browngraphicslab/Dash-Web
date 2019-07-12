@@ -533,7 +533,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
         let moveDoc = (d: Doc, target: Doc, addDoc: (doc: Doc) => boolean) => this.props.moveDocument(d, target, addDoc);
         return !this.childDocs ? (null) : (
             <div id="body" className="collectionTreeView-dropTarget"
-                style={{ overflow: "auto", background: StrCast(this.props.Document.backgroundColor, "gray") }}
+                style={{ overflow: "auto", background: StrCast(this.props.Document.backgroundColor, "lightgray") }}
                 onContextMenu={this.onContextMenu}
                 onWheel={(e: React.WheelEvent) => (e.target as any).scrollHeight > (e.target as any).clientHeight && e.stopPropagation()}
                 onDrop={this.onTreeDrop}
