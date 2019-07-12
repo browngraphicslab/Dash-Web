@@ -37,6 +37,7 @@ export class CurrentUserUtils {
         doc.gridGap = 5;
         doc.xMargin = 5;
         doc.yMargin = 5;
+        doc.boxShadow = "0 0";
         doc.excludeFromLibrary = true;
         doc.optionalRightCollection = Docs.Create.StackingDocument([], { title: "New mobile uploads" });
         // doc.library = Docs.Create.TreeDocument([doc], { title: `Library: ${CurrentUserUtils.email}` });
@@ -49,11 +50,13 @@ export class CurrentUserUtils {
             const workspaces = Docs.Create.TreeDocument([], { title: "Workspaces", height: 100 });
             workspaces.excludeFromLibrary = true;
             workspaces.workspaceLibrary = true;
+            workspaces.boxShadow = "0 0";
             doc.workspaces = workspaces;
         }
         if (doc.recentlyClosed === undefined) {
             const recentlyClosed = Docs.Create.TreeDocument([], { title: "Recently Closed", height: 75 });
             recentlyClosed.excludeFromLibrary = true;
+            recentlyClosed.boxShadow = "0 0";
             doc.recentlyClosed = recentlyClosed;
         }
         if (doc.sidebar === undefined) {
@@ -62,6 +65,8 @@ export class CurrentUserUtils {
             sidebar.gridGap = 5;
             sidebar.xMargin = 5;
             sidebar.yMargin = 5;
+            Doc.GetProto(sidebar).backgroundColor = "#aca3a6";
+            sidebar.boxShadow = "1 1 3";
             doc.sidebar = sidebar;
         }
 

@@ -524,7 +524,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     <CollectionFreeFormViewPannableContents centeringShiftX={this.centeringShiftX} centeringShiftY={this.centeringShiftY}
                         easing={easing} zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
                         <CollectionFreeFormLinksView {...this.props} key="freeformLinks">
-                            <InkingCanvas getScreenTransform={this.getTransform} Document={this.fieldExtensionDoc} inkFieldKey={"ink"} >
+                            <InkingCanvas getScreenTransform={this.getTransform} Document={this.props.Document} AnnotationDocument={this.fieldExtensionDoc} inkFieldKey={"ink"} >
                                 {this.childViews}
                             </InkingCanvas>
                         </CollectionFreeFormLinksView>

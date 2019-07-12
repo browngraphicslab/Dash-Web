@@ -5,7 +5,7 @@ import { Doc } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
 import { listSpec } from '../../../new_fields/Schema';
-import { BoolCast, Cast, NumCast, PromiseValue } from '../../../new_fields/Types';
+import { BoolCast, Cast, NumCast, PromiseValue, StrCast } from '../../../new_fields/Types';
 import { DocumentManager } from '../../util/DocumentManager';
 import { SelectionManager } from '../../util/SelectionManager';
 import { ContextMenu } from '../ContextMenu';
@@ -145,7 +145,9 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         };
         const viewtype = this.collectionViewType;
         return (
-            <div id="collectionBaseView" className={this.props.className || "collectionView-cont"}
+            <div id="collectionBaseView"
+                style={{ boxShadow: `#9c9396 ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}` }}
+                className={this.props.className || "collectionView-cont"}
                 onContextMenu={this.props.onContextMenu} ref={this.props.contentRef}>
                 {viewtype !== undefined ? this.props.children(viewtype, props) : (null)}
             </div>

@@ -1,5 +1,5 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowDown, faArrowUp, faClone, faCheck, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faThumbtack, faTree, faUndoAlt } from '@fortawesome/free-solid-svg-icons';
+import { faArrowDown, faArrowUp, faClone, faCheck, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faPortrait, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faThumbtack, faTree, faUndoAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, runInAction, reaction, trace } from 'mobx';
 import { observer } from 'mobx-react';
@@ -13,7 +13,7 @@ import { Id } from '../../new_fields/FieldSymbols';
 import { InkTool } from '../../new_fields/InkField';
 import { List } from '../../new_fields/List';
 import { listSpec } from '../../new_fields/Schema';
-import { Cast, FieldValue, NumCast, BoolCast } from '../../new_fields/Types';
+import { Cast, FieldValue, NumCast, BoolCast, StrCast } from '../../new_fields/Types';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { RouteStore } from '../../server/RouteStore';
 import { emptyFunction, returnOne, returnTrue } from '../../Utils';
@@ -64,6 +64,11 @@ export class MainView extends React.Component {
     }
 
     componentWillMount() {
+        var tag = document.createElement('script');
+
+        tag.src = "https://www.youtube.com/iframe_api";
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode!.insertBefore(tag, firstScriptTag);
         window.removeEventListener("keydown", KeyManager.Instance.handle);
         window.addEventListener("keydown", KeyManager.Instance.handle);
 
@@ -105,7 +110,7 @@ export class MainView extends React.Component {
 
         library.add(faFont);
         library.add(faExclamation);
-        library.add(faImage);
+        library.add(faPortrait);
         library.add(faFilePdf);
         library.add(faObjectGroup);
         library.add(faTable);
@@ -325,13 +330,15 @@ export class MainView extends React.Component {
     }
     @computed
     get mainContent() {
+        let sidebar = CurrentUserUtils.UserDocument.sidebar;
+        if (!(sidebar instanceof Doc)) return (null);
         return <div>
             <div className="mainView-libraryHandle"
-                style={{ left: `${this.flyoutWidth - 10}px` }}
+                style={{ left: `${this.flyoutWidth - 10}px`, backgroundColor: `${StrCast(sidebar.backgroundColor, "lightGray")}` }}
                 onPointerDown={this.onPointerDown}>
                 <span title="library View Dragger" style={{ width: "100%", height: "100%", position: "absolute" }} />
             </div>
-            <div className="mainView-libraryFlyout" style={{ width: `${this.flyoutWidth}px` }}>
+            <div className="mainView-libraryFlyout" style={{ width: `${this.flyoutWidth}px`, zIndex: 1 }}>
                 {this.flyout}
             </div>
             {this.dockingContent}
@@ -371,28 +378,21 @@ export class MainView extends React.Component {
         let addImportCollectionNode = action(() => Docs.Create.DirectoryImportDocument({ title: "Directory Import", width: 400, height: 400 }));
 
         let btns: [React.RefObject<HTMLDivElement>, IconName, string, () => Doc][] = [
-            [React.createRef<HTMLDivElement>(), "image", "Add Image", addImageNode],
+            [React.createRef<HTMLDivElement>(), "portrait", "Add Cat Image", addImageNode],
             [React.createRef<HTMLDivElement>(), "object-group", "Add Collection", addColNode],
-            [React.createRef<HTMLDivElement>(), "tree", "Add Tree", addTreeNode],
-            [React.createRef<HTMLDivElement>(), "table", "Add Schema", addSchemaNode],
             // [React.createRef<HTMLDivElement>(), "clone", "Add Docking Frame", addDockingNode],
             [React.createRef<HTMLDivElement>(), "arrow-up", "Import Directory", addImportCollectionNode],
         ];
 
         return < div id="add-nodes-menu" style={{ left: this.flyoutWidth + 5 }} >
             <input type="checkbox" id="add-menu-toggle" ref={this.addMenuToggle} />
-            <label htmlFor="add-menu-toggle" title="Add Node"><p>+</p></label>
+            <label htmlFor="add-menu-toggle" style={{ marginTop: 2 }} title="Add Node"><p>+</p></label>
 
             <div id="add-options-content">
                 <ul id="add-options-list">
                     <li key="search"><button className="add-button round-button" title="Search" onClick={this.toggleSearch}><FontAwesomeIcon icon="search" size="sm" /></button></li>
                     <li key="undo"><button className="add-button round-button" title="Undo" style={{ opacity: UndoManager.CanUndo() ? 1 : 0.5, transition: "0.4s ease all" }} onClick={() => UndoManager.Undo()}><FontAwesomeIcon icon="undo-alt" size="sm" /></button></li>
                     <li key="redo"><button className="add-button round-button" title="Redo" style={{ opacity: UndoManager.CanRedo() ? 1 : 0.5, transition: "0.4s ease all" }} onClick={() => UndoManager.Redo()}><FontAwesomeIcon icon="redo-alt" size="sm" /></button></li>
-                    <li key="color"><button className="add-button round-button" title="Select Color" onClick={() => this.toggleColorPicker()}><div className="toolbar-color-button" style={{ backgroundColor: InkingControl.Instance.selectedColor }} >
-                        <div className="toolbar-color-picker" onClick={this.onColorClick} style={this._colorPickerDisplay ? { color: "black", display: "block" } : { color: "black", display: "none" }}>
-                            <SketchPicker color={InkingControl.Instance.selectedColor} onChange={InkingControl.Instance.switchColor} />
-                        </div>
-                    </div></button></li>
                     {btns.map(btn =>
                         <li key={btn[1]} ><div ref={btn[0]}>
                             <button className="round-button add-button" title={btn[2]} onPointerDown={SetupDrag(btn[0], btn[3])}>
@@ -400,6 +400,11 @@ export class MainView extends React.Component {
                             </button>
                         </div></li>)}
                     <li key="undoTest"><button className="add-button round-button" onClick={() => UndoManager.PrintBatches()}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>
+                    <li key="color"><button className="add-button round-button" title="Select Color" onClick={() => this.toggleColorPicker()}><div className="toolbar-color-button" style={{ backgroundColor: InkingControl.Instance.selectedColor }} >
+                        <div className="toolbar-color-picker" onClick={this.onColorClick} style={this._colorPickerDisplay ? { color: "black", display: "block" } : { color: "black", display: "none" }}>
+                            <SketchPicker color={InkingControl.Instance.selectedColor} onChange={InkingControl.Instance.switchColor} />
+                        </div>
+                    </div></button></li>
                     <li key="ink" style={{ paddingRight: "6px" }}><button className="toolbar-button round-button" title="Ink" onClick={() => InkingControl.Instance.toggleDisplay()}><FontAwesomeIcon icon="pen-nib" size="sm" /> </button></li>
                     <li key="pen"><button onClick={() => InkingControl.Instance.switchTool(InkTool.Pen)} title="Pen" style={this.selected(InkTool.Pen)}><FontAwesomeIcon icon="pen" size="lg" /></button></li>
                     <li key="marker"><button onClick={() => InkingControl.Instance.switchTool(InkTool.Highlighter)} title="Highlighter" style={this.selected(InkTool.Highlighter)}><FontAwesomeIcon icon="highlighter" size="lg" /></button></li>

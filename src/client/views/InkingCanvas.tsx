@@ -13,6 +13,7 @@ import { Cast, PromiseValue, NumCast } from "../../new_fields/Types";
 
 interface InkCanvasProps {
     getScreenTransform: () => Transform;
+    AnnotationDocument: Doc;
     Document: Doc;
     inkFieldKey: string;
     children: () => JSX.Element[];
@@ -41,7 +42,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
     }
 
     componentDidMount() {
-        PromiseValue(Cast(this.props.Document[this.props.inkFieldKey], InkField)).then(ink => runInAction(() => {
+        PromiseValue(Cast(this.props.AnnotationDocument[this.props.inkFieldKey], InkField)).then(ink => runInAction(() => {
             if (ink) {
                 let bounds = Array.from(ink.inkData).reduce(([mix, max, miy, may], [id, strokeData]) =>
                     strokeData.pathData.reduce(([mix, max, miy, may], p) =>
@@ -56,12 +57,12 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
 
     @computed
     get inkData(): Map<string, StrokeData> {
-        let map = Cast(this.props.Document[this.props.inkFieldKey], InkField);
+        let map = Cast(this.props.AnnotationDocument[this.props.inkFieldKey], InkField);
         return !map ? new Map : new Map(map.inkData);
     }
 
     set inkData(value: Map<string, StrokeData>) {
-        this.props.Document[this.props.inkFieldKey] = new InkField(value);
+        this.props.AnnotationDocument[this.props.inkFieldKey] = new InkField(value);
     }
 
     @action

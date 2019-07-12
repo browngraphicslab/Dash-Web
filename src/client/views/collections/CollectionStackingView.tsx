@@ -14,7 +14,6 @@ import { undoBatch } from "../../util/UndoManager";
 import { DragManager } from "../../util/DragManager";
 import { DocumentType } from "../../documents/Documents";
 import { Transform } from "../../util/Transform";
-import { resolve } from "bluebird";
 
 @observer
 export class CollectionStackingView extends CollectionSubView(doc => doc) {
@@ -56,7 +55,6 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
 
     getDisplayDoc(layoutDoc: Doc, d: Doc, dxf: () => Transform) {
         let resolvedDataDoc = !this.props.Document.isTemplate && this.props.DataDoc !== this.props.Document ? this.props.DataDoc : undefined;
-        let dataDoc = d !== this.props.DataDoc ? this.props.DataDoc : undefined;
         let width = () => d.nativeWidth ? Math.min(layoutDoc[WidthSym](), this.columnWidth) : this.columnWidth;
         let height = () => this.getDocHeight(layoutDoc);
         let finalDxf = () => dxf().scale(this.columnWidth / layoutDoc[WidthSym]());

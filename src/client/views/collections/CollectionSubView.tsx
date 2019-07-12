@@ -179,8 +179,8 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 }
             }
             if (text && text.indexOf("www.youtube.com/watch") !== -1) {
-                const url = text.replace("youtube.com/watch?v=", "youtube.com/embed/");
-                this.props.addDocument(Docs.Create.WebDocument(url, { ...options, width: 300, height: 300 }));
+                const url = text.replace("youtube.com/watch?v=", "youtube.com/embed/");// + "?enablejsapi=1";
+                this.props.addDocument(Docs.Create.VideoDocument(url, { ...options, width: 400, height: 315 }));
                 return;
             }
 
@@ -197,7 +197,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                         .then(result => {
                             let type = result["content-type"];
                             if (type) {
-                                Docs.Get.DocumentFromType(type, str, { ...options, width: 300, nativeWidth: 300 })
+                                Docs.Get.DocumentFromType(type, str, { ...options, width: 300, nativeWidth: type.indexOf("video") !== -1 ? 600 : 300 })
                                     .then(doc => doc && this.props.addDocument(doc, false));
                             }
                         });
@@ -218,7 +218,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                         body: formData
                     }).then(async (res: Response) => {
                         (await res.json()).map(action((file: any) => {
-                            let full = { ...options, nativeWidth: 300, width: 300, title: dropFileName };
+                            let full = { ...options, nativeWidth: type.indexOf("video") !== -1 ? 600 : 300, width: 300, title: dropFileName };
                             let path = DocServer.prepend(file);
                             Docs.Get.DocumentFromType(type, path, full).then(doc => doc && this.props.addDocument(doc));
                         }));

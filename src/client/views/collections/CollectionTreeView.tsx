@@ -153,7 +153,8 @@ class TreeView extends React.Component<TreeViewProps> {
         let docList = Cast(this.resolvedDataDoc[this.fieldKey], listSpec(Doc));
         let doc = Cast(this.resolvedDataDoc[this.fieldKey], Doc);
         let isDoc = doc instanceof Doc || docList;
-        return <div className="bullet" onClick={action(() => this._collapsed = !this._collapsed)}>
+        let c
+        return <div className="bullet" onClick={action(() => this._collapsed = !this._collapsed)} style={{ color: StrCast(this.props.document.color, "black"), opacity: 0.4 }}>
             {<FontAwesomeIcon icon={this._collapsed ? (isDoc ? "caret-square-right" : "caret-right") : (isDoc ? "caret-square-down" : "caret-down")} />}
         </div>;
     }
@@ -532,7 +533,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
         let moveDoc = (d: Doc, target: Doc, addDoc: (doc: Doc) => boolean) => this.props.moveDocument(d, target, addDoc);
         return !this.childDocs ? (null) : (
             <div id="body" className="collectionTreeView-dropTarget"
-                style={{ overflow: "auto" }}
+                style={{ overflow: "auto", background: StrCast(this.props.Document.backgroundColor, "lightgray") }}
                 onContextMenu={this.onContextMenu}
                 onWheel={(e: React.WheelEvent) => (e.target as any).scrollHeight > (e.target as any).clientHeight && e.stopPropagation()}
                 onDrop={this.onTreeDrop}

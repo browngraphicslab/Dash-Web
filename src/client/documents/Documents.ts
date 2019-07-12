@@ -118,7 +118,7 @@ export namespace Docs {
                 options: { nativeWidth: 600, curPage: 0 }
             }],
             [DocumentType.WEB, {
-                layout: { view: WebBox },
+                layout: { view: WebBox, collectionView: [CollectionView, data, anno] as CollectionViewType },
                 options: { height: 300 }
             }],
             [DocumentType.COL, {
