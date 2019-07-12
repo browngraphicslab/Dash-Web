@@ -1,5 +1,5 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faEdit, faSmile, faFileAlt } from '@fortawesome/free-solid-svg-icons';
+import { faEdit, faSmile, faFileAlt, faPlus, faMinusCircle } from '@fortawesome/free-solid-svg-icons';
 import { action, IReactionDisposer, observable, reaction, runInAction, computed } from "mobx";
 import { observer } from "mobx-react";
 import { baseKeymap } from "prosemirror-commands";
@@ -33,10 +33,13 @@ import { Templates } from '../Templates';
 import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import React = require("react");
+import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
 
 library.add(faEdit);
 library.add(faSmile);
 library.add(faFileAlt);
+library.add(faPlus);
+library.add(faMinusCircle);
 
 // FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document
 //
@@ -428,7 +431,10 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     addTemplate = () => {
         let temp = new Doc();
         temp.backgroundColor = Doc.GetProto(this.props.Document).backgroundColor;
-        DocumentManager.Instance.Templates.push(temp);
+        let templates = DocumentManager.Instance.Templates;
+        if (templates) {
+            templates.push(temp);
+        }
         console.log('added template');
     }
 
@@ -436,26 +442,42 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     clearTemplates = () => {
         console.log('cleared templates');
         console.log('cleared templates');
-        DocumentManager.Instance.Templates.length = 0; // clears array
+        CurrentUserUtils.UserDocument.TemplatesDoc = new List<Doc>();
     }
 
     @action
-    chooseTemplates = (templateList: ContextMenuProps[]): ContextMenuProps[] => {
-        DocumentManager.Instance.Templates.map((value, index) => {
-            templateList.push({
-                description: `Template ${index + 1} `, event: () => {
-                    console.log(value.backgroundColor);
-                    Doc.GetProto(this.props.Document).backgroundColor = value.backgroundColor;
+    chooseTemplates = async (templateList: ContextMenuProps[]): Promise<ContextMenuProps[]> => {
+        let templates = DocumentManager.Instance.Templates;
+        if (!templates) {
+            CurrentUserUtils.UserDocument.TemplatesDoc = templates = new List<Doc>();
+        }
+        if (templates) {
+            for (let i = 0; i < templates.length; i++) {
+                let value = await templates[i];
+                templateList.push({
+                    description: `Template ${value.backgroundColor} `, event: () => {
+                        Doc.GetProto(this.props.Document).backgroundColor = value.backgroundColor;
+                    }, icon: "file-alt"
+                });
+            }
+            // return templateList;
+            // templates.map(async (tempval, index) => {
+            //     let value = await tempval;
+            //     templateList.push({
+            //         description: `Template ${index + 1} `, event: () => {
+            //             console.log(value.backgroundColor);
+            //             Doc.GetProto(this.props.Document).backgroundColor = value.backgroundColor;
 
-                    console.log(value.backgroundColor);
-                    console.log(value.marks);
-                }, icon: "file-alt"
-            });
-        });
+            //             console.log(value.backgroundColor);
+            //             console.log(value.marks);
+            //         }, icon: "file-alt"
+            //     });
+            // });
+        }
         return templateList;
     }
 
-    specificContextMenu = (e: React.MouseEvent): void => {
+    specificContextMenu = async (e: React.MouseEvent) => {
         let subitems: ContextMenuProps[] = [];
         subitems.push({
             description: BoolCast(this.props.Document.autoHeight, false) ? "Manual Height" : "Auto Height",
@@ -463,10 +485,10 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         });
         let subtemplates: ContextMenuProps[] = [];
         let templateList: ContextMenuProps[] = [];
-        subtemplates.push({ description: "Select Template", subitems: this.chooseTemplates(templateList), icon: "file-alt" });
-        subtemplates.push({ description: "Add to Templates", event: this.addTemplate, icon: "file-alt" });
-        subtemplates.push({ description: "Clear Templates", event: this.clearTemplates, icon: "file-alt" });
-        ContextMenu.Instance.addItem({ description: "Templates...", subitems: subtemplates, icon: "file-alt" });
+        subtemplates.push({ description: "Select Template", subitems: await this.chooseTemplates(templateList), icon: "file-alt" });
+        subtemplates.push({ description: "Add to Templates", event: this.addTemplate, icon: "plus" });
+        subtemplates.push({ description: "Clear All Templates", event: this.clearTemplates, icon: "minus-circle" });
+        ContextMenu.Instance.addItem({ description: "Templates...", subitems: subtemplates });
         ContextMenu.Instance.addItem({ description: "Text Funcs...", subitems: subitems });
     }
     render() {

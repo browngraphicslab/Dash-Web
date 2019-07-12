@@ -1,6 +1,6 @@
 import { computed, observable, action } from 'mobx';
 import { DocumentView } from '../views/nodes/DocumentView';
-import { Doc, DocListCast, Opt } from '../../new_fields/Doc';
+import { Doc, DocListCast, Opt, FieldResult } from '../../new_fields/Doc';
 import { FieldValue, Cast, NumCast, BoolCast, StrCast } from '../../new_fields/Types';
 import { listSpec } from '../../new_fields/Schema';
 import { undoBatch } from './UndoManager';
@@ -11,6 +11,7 @@ import { CollectionVideoView } from '../views/collections/CollectionVideoView';
 import { Id } from '../../new_fields/FieldSymbols';
 import { LinkManager } from './LinkManager';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
+import { List } from '../../new_fields/List';
 
 
 export class DocumentManager {
@@ -20,9 +21,11 @@ export class DocumentManager {
     public DocumentViews: DocumentView[] = [];
 
     //global holds all of the templates (currently only for formatted text boxes)
-    //
-    @observable
-    public Templates: Doc[] = DocListCast(CurrentUserUtils.UserDocument.TemplatesDoc);
+    @computed
+    public get Templates(): FieldResult<List<Doc>> {
+        let test = Cast(CurrentUserUtils.UserDocument.TemplatesDoc, listSpec(Doc));
+        return test;
+    }
 
     // singleton instance
     private static _instance: DocumentManager;
