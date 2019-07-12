@@ -1,70 +1,57 @@
-2019-07-11 16:05:39.322 INFO  (main) [   ] o.e.j.u.log Logging initialized @4480ms to org.eclipse.jetty.util.log.Slf4jLog
-2019-07-11 16:05:39.486 WARN  (main) [   ] o.e.j.s.AbstractConnector Ignoring deprecated socket close linger time
-2019-07-11 16:05:39.491 INFO  (main) [   ] o.e.j.s.Server jetty-9.4.14.v20181114; built: 2018-11-14T21:20:31.478Z; git: c4550056e785fb5665914545889f21dc136ad9e6; jvm 1.8.0_161-b12
-2019-07-11 16:05:39.510 INFO  (main) [   ] o.e.j.d.p.ScanningAppProvider Deployment monitor [file:///C:/Users/GFX%20lab/Desktop/AB_Documents/Dash%20Web/Dash-Web/solr-8.1.1/server/contexts/] at interval 0
-2019-07-11 16:05:45.066 INFO  (main) [   ] o.e.j.w.StandardDescriptorProcessor NO JSP Support for /solr, did not find org.apache.jasper.servlet.JspServlet
-2019-07-11 16:05:45.075 INFO  (main) [   ] o.e.j.s.session DefaultSessionIdManager workerName=node0
-2019-07-11 16:05:45.076 INFO  (main) [   ] o.e.j.s.session No SessionScavenger set, using defaults
-2019-07-11 16:05:45.077 INFO  (main) [   ] o.e.j.s.session node0 Scavenging every 660000ms
-2019-07-11 16:05:45.159 INFO  (main) [   ] o.a.s.s.SolrDispatchFilter Using logger factory org.apache.logging.slf4j.Log4jLoggerFactory
-2019-07-11 16:05:45.165 INFO  (main) [   ] o.a.s.s.SolrDispatchFilter  ___      _       Welcome to Apache Solr™ version 8.1.1
-2019-07-11 16:05:45.165 INFO  (main) [   ] o.a.s.s.SolrDispatchFilter / __| ___| |_ _   Starting in standalone mode on port 8983
-2019-07-11 16:05:45.165 INFO  (main) [   ] o.a.s.s.SolrDispatchFilter \__ \/ _ \ | '_|  Install dir: C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1
-2019-07-11 16:05:45.166 INFO  (main) [   ] o.a.s.s.SolrDispatchFilter |___/\___/_|_|    Start time: 2019-07-11T16:05:45.166Z
-2019-07-11 16:05:45.191 INFO  (main) [   ] o.a.s.c.SolrResourceLoader Using system property solr.solr.home: C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\server\solr
-2019-07-11 16:05:45.198 INFO  (main) [   ] o.a.s.c.SolrXmlConfig Loading container configuration from C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\server\solr\solr.xml
-2019-07-11 16:05:45.286 INFO  (main) [   ] o.a.s.c.SolrXmlConfig MBean server found: com.sun.jmx.mbeanserver.JmxMBeanServer@55a561cf, but no JMX reporters were configured - adding default JMX reporter.
-2019-07-11 16:05:45.610 INFO  (main) [   ] o.a.s.h.c.HttpShardHandlerFactory Host whitelist initialized: WhitelistHostChecker [whitelistHosts=null, whitelistHostCheckingEnabled=true]
-2019-07-11 16:05:46.193 WARN  (main) [   ] o.e.j.u.s.S.config No Client EndPointIdentificationAlgorithm configured for SslContextFactory@2445445a[provider=null,keyStore=null,trustStore=null]
-2019-07-11 16:05:46.294 WARN  (main) [   ] o.e.j.u.s.S.config No Client EndPointIdentificationAlgorithm configured for SslContextFactory@2b5f4d54[provider=null,keyStore=null,trustStore=null]
-2019-07-11 16:05:46.455 INFO  (main) [   ] o.a.s.c.TransientSolrCoreCacheDefault Allocating transient cache for 2147483647 transient cores
-2019-07-11 16:05:46.457 INFO  (main) [   ] o.a.s.h.a.MetricsHistoryHandler No .system collection, keeping metrics history in memory.
-2019-07-11 16:05:46.516 INFO  (main) [   ] o.a.s.m.r.SolrJmxReporter JMX monitoring for 'solr.node' (registry 'solr.node') enabled at server: com.sun.jmx.mbeanserver.JmxMBeanServer@55a561cf
-2019-07-11 16:05:46.517 INFO  (main) [   ] o.a.s.m.r.SolrJmxReporter JMX monitoring for 'solr.jvm' (registry 'solr.jvm') enabled at server: com.sun.jmx.mbeanserver.JmxMBeanServer@55a561cf
-2019-07-11 16:05:46.522 INFO  (main) [   ] o.a.s.m.r.SolrJmxReporter JMX monitoring for 'solr.jetty' (registry 'solr.jetty') enabled at server: com.sun.jmx.mbeanserver.JmxMBeanServer@55a561cf
-2019-07-11 16:05:46.559 INFO  (main) [   ] o.a.s.c.CorePropertiesLocator Found 1 core definitions underneath C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\server\solr
-2019-07-11 16:05:46.560 INFO  (main) [   ] o.a.s.c.CorePropertiesLocator Cores are: [dash]
-2019-07-11 16:05:46.618 WARN  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.c.SolrConfig Couldn't add files from C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\dist filtered by solr-cell-\d.*\.jar to classpath: C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\dist
-2019-07-11 16:05:46.619 WARN  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.c.SolrConfig Couldn't add files from C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\dist filtered by solr-clustering-\d.*\.jar to classpath: C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\dist
-2019-07-11 16:05:46.619 WARN  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.c.SolrConfig Couldn't add files from C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\dist filtered by solr-langid-\d.*\.jar to classpath: C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\dist
-2019-07-11 16:05:46.620 WARN  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.c.SolrConfig Couldn't add files from C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\dist filtered by solr-velocity-\d.*\.jar to classpath: C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\dist
-2019-07-11 16:05:46.620 WARN  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.c.SolrConfig Couldn't add files from C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\dist filtered by solr-ltr-\d.*\.jar to classpath: C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\dist
-2019-07-11 16:05:46.622 INFO  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.c.SolrResourceLoader [dash] Added 56 libs to classloader, from paths: [/C:/Users/GFX%20lab/Desktop/AB_Documents/Dash%20Web/Dash-Web/solr-8.1.1/contrib/clustering/lib, /C:/Users/GFX%20lab/Desktop/AB_Documents/Dash%20Web/Dash-Web/solr-8.1.1/contrib/extraction/lib, /C:/Users/GFX%20lab/Desktop/AB_Documents/Dash%20Web/Dash-Web/solr-8.1.1/contrib/langid/lib, /C:/Users/GFX%20lab/Desktop/AB_Documents/Dash%20Web/Dash-Web/solr-8.1.1/contrib/velocity/lib]
-2019-07-11 16:05:46.999 INFO  (main) [   ] o.e.j.s.h.ContextHandler Started o.e.j.w.WebAppContext@693fe6c9{/solr,file:///C:/Users/GFX%20lab/Desktop/AB_Documents/Dash%20Web/Dash-Web/solr-8.1.1/server/solr-webapp/webapp/,AVAILABLE}{C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\server/solr-webapp/webapp}
-2019-07-11 16:05:47.008 INFO  (main) [   ] o.e.j.s.AbstractConnector Started ServerConnector@551a20d6{HTTP/1.1,[http/1.1, h2c]}{0.0.0.0:8983}
-2019-07-11 16:05:47.008 INFO  (main) [   ] o.e.j.s.Server Started @12168ms
-2019-07-11 16:05:47.570 INFO  (qtp2114684409-23) [   ] o.a.s.s.HttpSolrCall [admin] webapp=null path=/admin/info/system params={wt=json} status=0 QTime=42
-2019-07-11 16:05:50.572 INFO  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.c.SolrConfig Using Lucene MatchVersion: 8.0.0
-2019-07-11 16:05:50.727 INFO  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.s.IndexSchema [dash] Schema name=default-config
-2019-07-11 16:05:50.834 WARN  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.s.IndexSchema Field *_a is not multivalued and destination for multiple copyFields (2)
-2019-07-11 16:05:50.834 INFO  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.s.IndexSchema Loaded schema default-config/1.6 with uniqueid field id
-2019-07-11 16:05:50.898 INFO  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.c.CoreContainer Creating SolrCore 'dash' using configuration from instancedir C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\server\solr\dash, trusted=true
-2019-07-11 16:05:50.905 INFO  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.m.r.SolrJmxReporter JMX monitoring for 'solr.core.dash' (registry 'solr.core.dash') enabled at server: com.sun.jmx.mbeanserver.JmxMBeanServer@55a561cf
-2019-07-11 16:05:50.919 INFO  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.c.SolrCore [[dash] ] Opening new SolrCore at [C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\server\solr\dash], dataDir=[C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\server\solr\dash\data\]
-2019-07-11 16:05:50.963 INFO  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.r.XSLTResponseWriter xsltCacheLifetimeSeconds=5
-2019-07-11 16:05:51.502 INFO  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.u.UpdateHandler Using UpdateLog implementation: org.apache.solr.update.UpdateLog
-2019-07-11 16:05:51.502 INFO  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.u.UpdateLog Initializing UpdateLog: dataDir= defaultSyncLevel=FLUSH numRecordsToKeep=100 maxNumLogsToKeep=10 numVersionBuckets=65536
-2019-07-11 16:05:51.533 INFO  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.u.CommitTracker Hard AutoCommit: if uncommitted for 600000ms; 
-2019-07-11 16:05:51.533 INFO  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.u.CommitTracker Soft AutoCommit: if uncommitted for 1000ms; 
-2019-07-11 16:05:51.655 INFO  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.s.SolrIndexSearcher Opening [Searcher@2fb3c0f2[dash] main]
-2019-07-11 16:05:51.666 INFO  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.r.ManagedResourceStorage File-based storage initialized to use dir: C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\server\solr\dash\conf
-2019-07-11 16:05:51.684 INFO  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.h.c.SpellCheckComponent Initializing spell checkers
-2019-07-11 16:05:51.695 INFO  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.s.DirectSolrSpellChecker init: {name=default,field=_text_,classname=solr.DirectSolrSpellChecker,distanceMeasure=internal,accuracy=0.5,maxEdits=2,minPrefix=1,maxInspections=5,minQueryLength=4,maxQueryFrequency=0.01}
-2019-07-11 16:05:51.708 INFO  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.h.ReplicationHandler Commits will be reserved for 10000ms.
-2019-07-11 16:05:51.717 INFO  (searcherExecutor-10-thread-1-processing-x:dash) [   x:dash] o.a.s.c.QuerySenderListener QuerySenderListener sending requests to Searcher@2fb3c0f2[dash] main{ExitableDirectoryReader(UninvertingDirectoryReader(Uninverting(_iiv(8.1.1):C29:[diagnostics={os=Windows 10, java.version=1.8.0_161, os.arch=amd64, java.runtime.version=1.8.0_161-b12, source=merge, os.version=10.0, java.vendor=Oracle Corporation, java.vm.version=25.161-b12, lucene.version=8.1.1, mergeMaxNumSegments=-1, mergeFactor=2, timestamp=1562861058313}]:[attributes={Lucene50StoredFieldsFormat.mode=BEST_SPEED}])))}
-2019-07-11 16:05:51.717 INFO  (searcherExecutor-10-thread-1-processing-x:dash) [   x:dash] o.a.s.c.QuerySenderListener QuerySenderListener done.
-2019-07-11 16:05:51.717 INFO  (searcherExecutor-10-thread-1-processing-x:dash) [   x:dash] o.a.s.h.c.SpellCheckComponent Loading spell index for spellchecker: default
-2019-07-11 16:05:51.723 INFO  (searcherExecutor-10-thread-1-processing-x:dash) [   x:dash] o.a.s.c.SolrCore [dash] Registered new searcher Searcher@2fb3c0f2[dash] main{ExitableDirectoryReader(UninvertingDirectoryReader(Uninverting(_iiv(8.1.1):C29:[diagnostics={os=Windows 10, java.version=1.8.0_161, os.arch=amd64, java.runtime.version=1.8.0_161-b12, source=merge, os.version=10.0, java.vendor=Oracle Corporation, java.vm.version=25.161-b12, lucene.version=8.1.1, mergeMaxNumSegments=-1, mergeFactor=2, timestamp=1562861058313}]:[attributes={Lucene50StoredFieldsFormat.mode=BEST_SPEED}])))}
-2019-07-11 16:10:06.842 INFO  (ShutdownMonitor) [   ] o.e.j.s.AbstractConnector Stopped ServerConnector@551a20d6{HTTP/1.1,[http/1.1, h2c]}{0.0.0.0:8983}
-2019-07-11 16:10:06.843 INFO  (ShutdownMonitor) [   ] o.e.j.s.session node0 Stopped scavenging
-2019-07-11 16:10:06.846 INFO  (ShutdownMonitor) [   ] o.a.s.c.CoreContainer Shutting down CoreContainer instance=1987360300
-2019-07-11 16:10:06.847 INFO  (coreCloseExecutor-15-thread-1) [   x:dash] o.a.s.c.SolrCore [dash]  CLOSING SolrCore org.apache.solr.core.SolrCore@21a1458f
-2019-07-11 16:10:06.847 INFO  (coreCloseExecutor-15-thread-1) [   x:dash] o.a.s.m.SolrMetricManager Closing metric reporters for registry=solr.core.dash, tag=21a1458f
-2019-07-11 16:10:06.847 INFO  (coreCloseExecutor-15-thread-1) [   x:dash] o.a.s.m.r.SolrJmxReporter Closing reporter [org.apache.solr.metrics.reporters.SolrJmxReporter@7af3967e: rootName = null, domain = solr.core.dash, service url = null, agent id = null] for registry solr.core.dash / com.codahale.metrics.MetricRegistry@4157999b
-2019-07-11 16:10:06.877 INFO  (ShutdownMonitor) [   ] o.a.s.m.SolrMetricManager Closing metric reporters for registry=solr.node, tag=null
-2019-07-11 16:10:06.878 INFO  (ShutdownMonitor) [   ] o.a.s.m.r.SolrJmxReporter Closing reporter [org.apache.solr.metrics.reporters.SolrJmxReporter@18a3962d: rootName = null, domain = solr.node, service url = null, agent id = null] for registry solr.node / com.codahale.metrics.MetricRegistry@330b6233
-2019-07-11 16:10:06.880 INFO  (ShutdownMonitor) [   ] o.a.s.m.SolrMetricManager Closing metric reporters for registry=solr.jvm, tag=null
-2019-07-11 16:10:06.880 INFO  (ShutdownMonitor) [   ] o.a.s.m.r.SolrJmxReporter Closing reporter [org.apache.solr.metrics.reporters.SolrJmxReporter@2b58f754: rootName = null, domain = solr.jvm, service url = null, agent id = null] for registry solr.jvm / com.codahale.metrics.MetricRegistry@2bc0ad62
-2019-07-11 16:10:06.882 INFO  (ShutdownMonitor) [   ] o.a.s.m.SolrMetricManager Closing metric reporters for registry=solr.jetty, tag=null
-2019-07-11 16:10:06.882 INFO  (ShutdownMonitor) [   ] o.a.s.m.r.SolrJmxReporter Closing reporter [org.apache.solr.metrics.reporters.SolrJmxReporter@3ebff828: rootName = null, domain = solr.jetty, service url = null, agent id = null] for registry solr.jetty / com.codahale.metrics.MetricRegistry@2ca224f2
-2019-07-11 16:10:06.894 INFO  (ShutdownMonitor) [   ] o.e.j.s.h.ContextHandler Stopped o.e.j.w.WebAppContext@693fe6c9{/solr,null,UNAVAILABLE}{C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\server/solr-webapp/webapp}
+2019-07-11 16:10:20.966 INFO  (main) [   ] o.e.j.u.log Logging initialized @1088ms to org.eclipse.jetty.util.log.Slf4jLog
+2019-07-11 16:10:21.112 WARN  (main) [   ] o.e.j.s.AbstractConnector Ignoring deprecated socket close linger time
+2019-07-11 16:10:21.116 INFO  (main) [   ] o.e.j.s.Server jetty-9.4.14.v20181114; built: 2018-11-14T21:20:31.478Z; git: c4550056e785fb5665914545889f21dc136ad9e6; jvm 1.8.0_161-b12
+2019-07-11 16:10:21.133 INFO  (main) [   ] o.e.j.d.p.ScanningAppProvider Deployment monitor [file:///C:/Users/GFX%20lab/Desktop/AB_Documents/Dash%20Web/Dash-Web/solr-8.1.1/server/contexts/] at interval 0
+2019-07-11 16:10:21.681 INFO  (main) [   ] o.e.j.w.StandardDescriptorProcessor NO JSP Support for /solr, did not find org.apache.jasper.servlet.JspServlet
+2019-07-11 16:10:21.691 INFO  (main) [   ] o.e.j.s.session DefaultSessionIdManager workerName=node0
+2019-07-11 16:10:21.691 INFO  (main) [   ] o.e.j.s.session No SessionScavenger set, using defaults
+2019-07-11 16:10:21.693 INFO  (main) [   ] o.e.j.s.session node0 Scavenging every 600000ms
+2019-07-11 16:10:21.756 INFO  (main) [   ] o.a.s.s.SolrDispatchFilter Using logger factory org.apache.logging.slf4j.Log4jLoggerFactory
+2019-07-11 16:10:21.760 INFO  (main) [   ] o.a.s.s.SolrDispatchFilter  ___      _       Welcome to Apache Solr™ version 8.1.1
+2019-07-11 16:10:21.760 INFO  (main) [   ] o.a.s.s.SolrDispatchFilter / __| ___| |_ _   Starting in standalone mode on port 8983
+2019-07-11 16:10:21.760 INFO  (main) [   ] o.a.s.s.SolrDispatchFilter \__ \/ _ \ | '_|  Install dir: C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1
+2019-07-11 16:10:21.760 INFO  (main) [   ] o.a.s.s.SolrDispatchFilter |___/\___/_|_|    Start time: 2019-07-11T16:10:21.760Z
+2019-07-11 16:10:21.777 INFO  (main) [   ] o.a.s.c.SolrResourceLoader Using system property solr.solr.home: C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\server\solr
+2019-07-11 16:10:21.782 INFO  (main) [   ] o.a.s.c.SolrXmlConfig Loading container configuration from C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\server\solr\solr.xml
+2019-07-11 16:10:21.855 INFO  (main) [   ] o.a.s.c.SolrXmlConfig MBean server found: com.sun.jmx.mbeanserver.JmxMBeanServer@55a561cf, but no JMX reporters were configured - adding default JMX reporter.
+2019-07-11 16:10:22.141 INFO  (main) [   ] o.a.s.h.c.HttpShardHandlerFactory Host whitelist initialized: WhitelistHostChecker [whitelistHosts=null, whitelistHostCheckingEnabled=true]
+2019-07-11 16:10:22.433 WARN  (main) [   ] o.e.j.u.s.S.config No Client EndPointIdentificationAlgorithm configured for SslContextFactory@2445445a[provider=null,keyStore=null,trustStore=null]
+2019-07-11 16:10:22.542 WARN  (main) [   ] o.e.j.u.s.S.config No Client EndPointIdentificationAlgorithm configured for SslContextFactory@2b5f4d54[provider=null,keyStore=null,trustStore=null]
+2019-07-11 16:10:22.716 INFO  (main) [   ] o.a.s.c.TransientSolrCoreCacheDefault Allocating transient cache for 2147483647 transient cores
+2019-07-11 16:10:22.718 INFO  (main) [   ] o.a.s.h.a.MetricsHistoryHandler No .system collection, keeping metrics history in memory.
+2019-07-11 16:10:22.775 INFO  (main) [   ] o.a.s.m.r.SolrJmxReporter JMX monitoring for 'solr.node' (registry 'solr.node') enabled at server: com.sun.jmx.mbeanserver.JmxMBeanServer@55a561cf
+2019-07-11 16:10:22.775 INFO  (main) [   ] o.a.s.m.r.SolrJmxReporter JMX monitoring for 'solr.jvm' (registry 'solr.jvm') enabled at server: com.sun.jmx.mbeanserver.JmxMBeanServer@55a561cf
+2019-07-11 16:10:22.780 INFO  (main) [   ] o.a.s.m.r.SolrJmxReporter JMX monitoring for 'solr.jetty' (registry 'solr.jetty') enabled at server: com.sun.jmx.mbeanserver.JmxMBeanServer@55a561cf
+2019-07-11 16:10:22.809 INFO  (main) [   ] o.a.s.c.CorePropertiesLocator Found 1 core definitions underneath C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\server\solr
+2019-07-11 16:10:22.809 INFO  (main) [   ] o.a.s.c.CorePropertiesLocator Cores are: [dash]
+2019-07-11 16:10:22.849 WARN  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.c.SolrConfig Couldn't add files from C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\dist filtered by solr-cell-\d.*\.jar to classpath: C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\dist
+2019-07-11 16:10:22.850 WARN  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.c.SolrConfig Couldn't add files from C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\dist filtered by solr-clustering-\d.*\.jar to classpath: C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\dist
+2019-07-11 16:10:22.850 WARN  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.c.SolrConfig Couldn't add files from C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\dist filtered by solr-langid-\d.*\.jar to classpath: C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\dist
+2019-07-11 16:10:22.852 WARN  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.c.SolrConfig Couldn't add files from C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\dist filtered by solr-velocity-\d.*\.jar to classpath: C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\dist
+2019-07-11 16:10:22.852 WARN  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.c.SolrConfig Couldn't add files from C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\dist filtered by solr-ltr-\d.*\.jar to classpath: C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\dist
+2019-07-11 16:10:22.854 INFO  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.c.SolrResourceLoader [dash] Added 56 libs to classloader, from paths: [/C:/Users/GFX%20lab/Desktop/AB_Documents/Dash%20Web/Dash-Web/solr-8.1.1/contrib/clustering/lib, /C:/Users/GFX%20lab/Desktop/AB_Documents/Dash%20Web/Dash-Web/solr-8.1.1/contrib/extraction/lib, /C:/Users/GFX%20lab/Desktop/AB_Documents/Dash%20Web/Dash-Web/solr-8.1.1/contrib/langid/lib, /C:/Users/GFX%20lab/Desktop/AB_Documents/Dash%20Web/Dash-Web/solr-8.1.1/contrib/velocity/lib]
+2019-07-11 16:10:22.967 INFO  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.c.SolrConfig Using Lucene MatchVersion: 8.0.0
+2019-07-11 16:10:23.111 INFO  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.s.IndexSchema [dash] Schema name=default-config
+2019-07-11 16:10:23.182 INFO  (main) [   ] o.e.j.s.h.ContextHandler Started o.e.j.w.WebAppContext@693fe6c9{/solr,file:///C:/Users/GFX%20lab/Desktop/AB_Documents/Dash%20Web/Dash-Web/solr-8.1.1/server/solr-webapp/webapp/,AVAILABLE}{C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\server/solr-webapp/webapp}
+2019-07-11 16:10:23.192 INFO  (main) [   ] o.e.j.s.AbstractConnector Started ServerConnector@551a20d6{HTTP/1.1,[http/1.1, h2c]}{0.0.0.0:8983}
+2019-07-11 16:10:23.192 INFO  (main) [   ] o.e.j.s.Server Started @3315ms
+2019-07-11 16:10:23.214 WARN  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.s.IndexSchema Field *_a is not multivalued and destination for multiple copyFields (2)
+2019-07-11 16:10:23.215 INFO  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.s.IndexSchema Loaded schema default-config/1.6 with uniqueid field id
+2019-07-11 16:10:23.263 INFO  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.c.CoreContainer Creating SolrCore 'dash' using configuration from instancedir C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\server\solr\dash, trusted=true
+2019-07-11 16:10:23.286 INFO  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.m.r.SolrJmxReporter JMX monitoring for 'solr.core.dash' (registry 'solr.core.dash') enabled at server: com.sun.jmx.mbeanserver.JmxMBeanServer@55a561cf
+2019-07-11 16:10:23.304 INFO  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.c.SolrCore [[dash] ] Opening new SolrCore at [C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\server\solr\dash], dataDir=[C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\server\solr\dash\data\]
+2019-07-11 16:10:23.353 INFO  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.r.XSLTResponseWriter xsltCacheLifetimeSeconds=5
+2019-07-11 16:10:23.887 INFO  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.u.UpdateHandler Using UpdateLog implementation: org.apache.solr.update.UpdateLog
+2019-07-11 16:10:23.887 INFO  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.u.UpdateLog Initializing UpdateLog: dataDir= defaultSyncLevel=FLUSH numRecordsToKeep=100 maxNumLogsToKeep=10 numVersionBuckets=65536
+2019-07-11 16:10:23.902 INFO  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.u.CommitTracker Hard AutoCommit: if uncommitted for 600000ms; 
+2019-07-11 16:10:23.902 INFO  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.u.CommitTracker Soft AutoCommit: if uncommitted for 1000ms; 
+2019-07-11 16:10:23.996 INFO  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.s.SolrIndexSearcher Opening [Searcher@595531d7[dash] main]
+2019-07-11 16:10:24.004 INFO  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.r.ManagedResourceStorage File-based storage initialized to use dir: C:\Users\GFX lab\Desktop\AB_Documents\Dash Web\Dash-Web\solr-8.1.1\server\solr\dash\conf
+2019-07-11 16:10:24.019 INFO  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.h.c.SpellCheckComponent Initializing spell checkers
+2019-07-11 16:10:24.025 INFO  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.s.DirectSolrSpellChecker init: {name=default,field=_text_,classname=solr.DirectSolrSpellChecker,distanceMeasure=internal,accuracy=0.5,maxEdits=2,minPrefix=1,maxInspections=5,minQueryLength=4,maxQueryFrequency=0.01}
+2019-07-11 16:10:24.035 INFO  (coreLoadExecutor-9-thread-1) [   x:dash] o.a.s.h.ReplicationHandler Commits will be reserved for 10000ms.
+2019-07-11 16:10:24.041 INFO  (searcherExecutor-10-thread-1-processing-x:dash) [   x:dash] o.a.s.c.QuerySenderListener QuerySenderListener sending requests to Searcher@595531d7[dash] main{ExitableDirectoryReader(UninvertingDirectoryReader(Uninverting(_iiv(8.1.1):C29:[diagnostics={os=Windows 10, java.version=1.8.0_161, os.arch=amd64, java.runtime.version=1.8.0_161-b12, source=merge, os.version=10.0, java.vendor=Oracle Corporation, java.vm.version=25.161-b12, lucene.version=8.1.1, mergeMaxNumSegments=-1, mergeFactor=2, timestamp=1562861058313}]:[attributes={Lucene50StoredFieldsFormat.mode=BEST_SPEED}])))}
+2019-07-11 16:10:24.041 INFO  (searcherExecutor-10-thread-1-processing-x:dash) [   x:dash] o.a.s.c.QuerySenderListener QuerySenderListener done.
+2019-07-11 16:10:24.041 INFO  (searcherExecutor-10-thread-1-processing-x:dash) [   x:dash] o.a.s.h.c.SpellCheckComponent Loading spell index for spellchecker: default
+2019-07-11 16:10:24.045 INFO  (searcherExecutor-10-thread-1-processing-x:dash) [   x:dash] o.a.s.c.SolrCore [dash] Registered new searcher Searcher@595531d7[dash] main{ExitableDirectoryReader(UninvertingDirectoryReader(Uninverting(_iiv(8.1.1):C29:[diagnostics={os=Windows 10, java.version=1.8.0_161, os.arch=amd64, java.runtime.version=1.8.0_161-b12, source=merge, os.version=10.0, java.vendor=Oracle Corporation, java.vm.version=25.161-b12, lucene.version=8.1.1, mergeMaxNumSegments=-1, mergeFactor=2, timestamp=1562861058313}]:[attributes={Lucene50StoredFieldsFormat.mode=BEST_SPEED}])))}
+2019-07-11 16:10:28.239 INFO  (qtp2114684409-23) [   ] o.a.s.s.HttpSolrCall [admin] webapp=null path=/admin/info/system params={wt=json} status=0 QTime=18

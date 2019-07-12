@@ -4,6 +4,5 @@ dist/
 .DS_Store
 .env
 ClientUtils.ts
-solr-8.1.1/server/logs/solr_gc.log.0.current
-solr-8.1.1/server/logs/solr.log
-solr-8.1.1/server/logs/solr_gc.log.0.current
+solr-8.1.1/server/logs/
+solr-8.1.1/server/solr/dash/data/index/
