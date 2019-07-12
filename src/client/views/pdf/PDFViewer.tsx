@@ -24,6 +24,7 @@ import { CompileScript, CompiledScript, CompileResult } from "../../util/Scripti
 import { ScriptField } from "../../../new_fields/ScriptField";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Annotation from "./Annotation";
+import { KeyCodes } from "../../northstar/utils/KeyCodes";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 
 export const scale = 2;
@@ -92,6 +93,7 @@ export class Viewer extends React.Component<IViewerProps> {
     private _activeReactionDisposer?: IReactionDisposer;
     private _viewer: React.RefObject<HTMLDivElement>;
     private _mainCont: React.RefObject<HTMLDivElement>;
+    private _pdfViewer: any;
     // private _textContent: Pdfjs.TextContent[] = [];
     private _pdfFindController: any;
     private _searchString: string = "";
@@ -451,7 +453,7 @@ export class Viewer extends React.Component<IViewerProps> {
             return;
         }
 
-        if (this._rendered) {
+        if (this._pdfViewer._pageViewsReady) {
             this._pdfFindController.executeCommand('find',
                 {
                     caseSensitive: false,
@@ -464,6 +466,18 @@ export class Viewer extends React.Component<IViewerProps> {
         else {
             let container = this._mainCont.current;
             if (container) {
+                container.addEventListener("pagesloaded", () => {
+                    console.log("rendered");
+                    this._pdfFindController.executeCommand('find',
+                        {
+                            caseSensitive: false,
+                            findPrevious: undefined,
+                            highlightAll: true,
+                            phraseSearch: true,
+                            query: searchString
+                        });
+                    this._rendered = true;
+                });
                 container.addEventListener("pagerendered", () => {
                     console.log("rendered");
                     this._pdfFindController.executeCommand('find',
@@ -538,23 +552,23 @@ export class Viewer extends React.Component<IViewerProps> {
             if (!this._pdfFindController) {
                 if (container && viewer) {
                     let simpleLinkService = new SimpleLinkService();
-                    let pdfViewer = new PDFJSViewer.PDFViewer({
+                    this._pdfViewer = new PDFJSViewer.PDFViewer({
                         container: container,
                         viewer: viewer,
                         linkService: simpleLinkService
                     });
                     simpleLinkService.setPdf(this.props.pdf);
                     container.addEventListener("pagesinit", () => {
-                        pdfViewer.currentScaleValue = 1;
+                        this._pdfViewer.currentScaleValue = 1;
                     });
                     container.addEventListener("pagerendered", () => {
                         console.log("rendered");
                         this._rendered = true;
                     });
-                    pdfViewer.setDocument(this.props.pdf);
-                    this._pdfFindController = new PDFJSViewer.PDFFindController(pdfViewer);
+                    this._pdfViewer.setDocument(this.props.pdf);
+                    this._pdfFindController = new PDFJSViewer.PDFFindController(this._pdfViewer);
                     // this._pdfFindController._linkService = pdfLinkService;
-                    pdfViewer.findController = this._pdfFindController;
+                    this._pdfViewer.findController = this._pdfFindController;
                 }
             }
         }
@@ -653,7 +667,7 @@ export class Viewer extends React.Component<IViewerProps> {
                     <button className="pdfViewer-overlayButton" title="Open Search Bar"></button>
                     {/* <button title="Previous Result" onClick={() => this.search(this._searchString)}><FontAwesomeIcon icon="arrow-up" size="3x" color="white" /></button>
                     <button title="Next Result" onClick={this.nextResult}><FontAwesomeIcon icon="arrow-down" size="3x" color="white" /></button> */}
-                    <input onKeyDown={handleBackspace} placeholder="Search" className="pdfViewer-overlaySearchBar" onChange={this.searchStringChanged} />
+                    <input onKeyDown={(e: React.KeyboardEvent) => e.keyCode === KeyCodes.ENTER ? this.search(this._searchString) : e.keyCode === KeyCodes.BACKSPACE ? e.stopPropagation() : true} placeholder="Search" className="pdfViewer-overlaySearchBar" onChange={this.searchStringChanged} />
                     <button title="Search" onClick={() => this.search(this._searchString)}><FontAwesomeIcon icon="search" size="3x" color="white" /></button>
                 </div>
                 <button className="pdfViewer-overlayButton" onClick={this.prevAnnotation} title="Previous Annotation"
