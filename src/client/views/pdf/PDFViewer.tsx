@@ -464,6 +464,18 @@ export class Viewer extends React.Component<IViewerProps> {
         else {
             let container = this._mainCont.current;
             if (container) {
+                container.addEventListener("pagesloaded", () => {
+                    console.log("rendered");
+                    this._pdfFindController.executeCommand('find',
+                        {
+                            caseSensitive: false,
+                            findPrevious: undefined,
+                            highlightAll: true,
+                            phraseSearch: true,
+                            query: searchString
+                        });
+                    this._rendered = true;
+                });
                 container.addEventListener("pagerendered", () => {
                     console.log("rendered");
                     this._pdfFindController.executeCommand('find',
