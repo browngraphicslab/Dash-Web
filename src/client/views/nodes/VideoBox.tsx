@@ -3,7 +3,7 @@ import { action, IReactionDisposer, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from "request-promise";
 import { makeInterface } from "../../../new_fields/Schema";
-import { Cast, FieldValue } from "../../../new_fields/Types";
+import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
 import { VideoField } from "../../../new_fields/URLField";
 import { RouteStore } from "../../../server/RouteStore";
 import { DocServer } from "../../DocServer";
@@ -15,6 +15,7 @@ import "./VideoBox.scss";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { InkingControl } from "../InkingControl";
+import * as $ from "jquery";
 
 type VideoDocument = makeInterface<[typeof positionSchema, typeof pageSchema]>;
 const VideoDocument = makeInterface(positionSchema, pageSchema);
@@ -22,6 +23,7 @@ const VideoDocument = makeInterface(positionSchema, pageSchema);
 @observer
 export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoDocument) {
     private _reactionDisposer?: IReactionDisposer;
+    private _youtubePlayer: any = undefined;
     private _videoRef: HTMLVideoElement | null = null;
     @observable _playTimer?: NodeJS.Timeout = undefined;
     @observable _fullScreen = false;
@@ -67,12 +69,16 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
     updateTimecode = () => {
         this.player && (this.props.Document.curPage = this.player.currentTime);
     }
-
+    @action
+    updateYoutubeTimecode = () => {
+        this._youtubePlayer && (this.props.Document.curPage = this._youtubePlayer.getCurrentTime());
+    }
     componentDidMount() {
         if (this.props.setVideoBox) this.props.setVideoBox(this);
 
         let field = Cast(this.Document[this.props.fieldKey], VideoField);
-        if (field && field.url.href.indexOf("youtube") !== -1) {
+        let videoid = field && field.url.href.indexOf("youtube") !== -1 ? ((arr: string[]) => arr[arr.length - 1])(field.url.href.split("/")) : "";
+        if (videoid) {
             let youtubeaspect = 400 / 315;
             var nativeWidth = FieldValue(this.Document.nativeWidth, 0);
             var nativeHeight = FieldValue(this.Document.nativeHeight, 0);
@@ -81,7 +87,42 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
                 this.Document.nativeHeight = this.Document.nativeWidth / youtubeaspect;
                 this.Document.height = FieldValue(this.Document.width, 0) / youtubeaspect;
             }
+            this._youtubePlayer = new YT.Player(`${videoid}-player`, {
+                height: `${NumCast(this.props.Document.height)}`,
+                width: `${NumCast(this.props.Document.width)}`,
+                videoId: videoid.toString(),
+                playerVars: { 'controls': 0 },
+                events: {
+                    //'onReady': this.onPlayerReady,
+                }
+            });
+            // let iframe = $(document.getElementById(`${videoid}-player`)!);
+            // iframe.on("load", function () {
+            //     iframe.contents().find("head")
+            //         .append($("<style type='text/css'>  .ytp-pause-overlay, .ytp-scroll-min { opacity : 0 !important; }  </style>"));
+            // });
+            reaction(() => this.props.isSelected(), (sel) => {
+                if (sel) {
+                    this._youtubePlayer.playVideo();
+                    if (!this._playTimer) this._playTimer = setInterval(this.updateYoutubeTimecode, 1000);
+                } else {
+                    let iframe = $(document.getElementById(`${videoid}-player`)!);
+                    //  .ytp-pause-overlay, .ytp-scroll-min { opacity : 0 !important; }
+                    //     $('iframe').load( function() {
+                    //     $('iframe').contents().find("head")
+                    //       .append($("<style type='text/css'>  .my-class{display:none;}  </style>"));
+                    // });
+                    //this._youtubePlayer.cueVideoById(videoid, this._youtubePlayer.getCurrentTime());
+                    this._youtubePlayer.pauseVideo();
+                    if (this._playTimer) {
+                        clearInterval(this._playTimer);
+                        this._playTimer = undefined;
+                    }
+                }
+            });
         }
+
+
     }
     componentWillUnmount() {
         this.Pause();
@@ -100,39 +141,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         }
     }
 
-    getMp4ForVideo(videoId: string = "JN5beCVArMs") {
-        return new Promise(async (resolve, reject) => {
-            const videoInfoRequestConfig = {
-                headers: {
-                    connection: 'keep-alive',
-                    "user-agent": 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:43.0) Gecko/20100101 Firefox/46.0',
-                },
-            };
-            try {
-                let responseSchema: any = {};
-                const videoInfoResponse = await rp.get(DocServer.prepend(RouteStore.corsProxy + "/" + `https://www.youtube.com/watch?v=${videoId}`), videoInfoRequestConfig);
-                const dataHtml = videoInfoResponse;
-                const start = dataHtml.indexOf('ytplayer.config = ') + 18;
-                const end = dataHtml.indexOf(';ytplayer.load');
-                const subString = dataHtml.substring(start, end);
-                const subJson = JSON.parse(subString);
-                const stringSub = subJson.args.player_response;
-                const stringSubJson = JSON.parse(stringSub);
-                const adaptiveFormats = stringSubJson.streamingData.adaptiveFormats;
-                const videoDetails = stringSubJson.videoDetails;
-                responseSchema.adaptiveFormats = adaptiveFormats;
-                responseSchema.videoDetails = videoDetails;
-                resolve(responseSchema);
-            }
-            catch (err) {
-                console.log(`
-                --- Youtube ---
-                Function: getMp4ForVideo
-                Error: `, err);
-                reject(err);
-            }
-        });
-    }
+
     onPointerDown = (e: React.PointerEvent) => {
     }
 
@@ -149,22 +158,13 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
 
     render() {
         let field = Cast(this.Document[this.props.fieldKey], VideoField);
-
-        // this.getMp4ForVideo().then((mp4) => {
-        //     console.log(mp4);
-        // }).catch(e => {
-        //     console.log("")
-        // });
-        // //
-
         let interactive = InkingControl.Instance.selectedTool || !this.props.isSelected() ? "" : "-interactive";
         let style = "videoBox-cont" + (this._fullScreen ? "-fullScreen" : interactive);
-        let videoid = field ? ((arr: string[]) => arr[arr.length - 1])(field.url.href.split("/")) : "";
+        let videoid = field && field.url.href.indexOf("youtube") !== -1 ? ((arr: string[]) => arr[arr.length - 1])(field.url.href.split("/")) : "";
+
         return !field ? <div>Loading</div> :
-            field.url.href.indexOf("youtube") !== -1 ?
-                <embed className={`${style}`} onLoad={this.videoLoad} id="video" onPointerDown={this.onPointerDown} onContextMenu={this.specificContextMenu}
-                    src={`https://www.youtube.com/v/${videoid}`} type="application/x-shockwave-flash" style={{ height: "100%" }} title="Adobe Flash Player">
-                </embed> :
+            videoid ?
+                <div id={`${videoid}-player`} className={`${style}`} style={{ height: "100%" }} /> :
                 <video className={`${style}`} ref={this.setVideoRef} onCanPlay={this.videoLoad} onPointerDown={this.onPointerDown} onContextMenu={this.specificContextMenu} controls={VideoBox._showControls}>
                     <source src={field.url.href} type="video/mp4" />
                     Not supported.

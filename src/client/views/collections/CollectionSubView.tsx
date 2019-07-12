@@ -179,8 +179,8 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 }
             }
             if (text && text.indexOf("www.youtube.com/watch") !== -1) {
-                const url = text.replace("youtube.com/watch?v=", "youtube.com/embed/");
-                this.props.addDocument(Docs.Create.WebDocument(url, { ...options, width: 300, height: 300 }));
+                const url = text.replace("youtube.com/watch?v=", "youtube.com/embed/");// + "?enablejsapi=1";
+                this.props.addDocument(Docs.Create.VideoDocument(url, { ...options, width: 400, height: 315 }));
                 return;
             }
 
