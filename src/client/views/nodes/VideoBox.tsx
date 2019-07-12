@@ -70,6 +70,18 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
 
     componentDidMount() {
         if (this.props.setVideoBox) this.props.setVideoBox(this);
+
+        let field = Cast(this.Document[this.props.fieldKey], VideoField);
+        if (field && field.url.href.indexOf("youtube") !== -1) {
+            let youtubeaspect = 400 / 315;
+            var nativeWidth = FieldValue(this.Document.nativeWidth, 0);
+            var nativeHeight = FieldValue(this.Document.nativeHeight, 0);
+            if (!nativeWidth || !nativeHeight || Math.abs(nativeWidth / nativeHeight - youtubeaspect) > 0.05) {
+                if (!this.Document.nativeWidth) this.Document.nativeWidth = 600;
+                this.Document.nativeHeight = this.Document.nativeWidth / youtubeaspect;
+                this.Document.height = FieldValue(this.Document.width, 0) / youtubeaspect;
+            }
+        }
     }
     componentWillUnmount() {
         this.Pause();
@@ -145,12 +157,17 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         // });
         // //
 
-        let interactive = InkingControl.Instance.selectedTool ? "" : "-interactive";
+        let interactive = InkingControl.Instance.selectedTool || !this.props.isSelected() ? "" : "-interactive";
         let style = "videoBox-cont" + (this._fullScreen ? "-fullScreen" : interactive);
+        let videoid = field ? ((arr: string[]) => arr[arr.length - 1])(field.url.href.split("/")) : "";
         return !field ? <div>Loading</div> :
-            <video className={`${style}`} ref={this.setVideoRef} onCanPlay={this.videoLoad} onPointerDown={this.onPointerDown} onContextMenu={this.specificContextMenu} controls={VideoBox._showControls}>
-                <source src={field.url.href} type="video/mp4" />
-                Not supported.
-            </video>;
+            field.url.href.indexOf("youtube") !== -1 ?
+                <embed className={`${style}`} onLoad={this.videoLoad} id="video" onPointerDown={this.onPointerDown} onContextMenu={this.specificContextMenu}
+                    src={`https://www.youtube.com/v/${videoid}`} type="application/x-shockwave-flash" style={{ height: "100%" }} title="Adobe Flash Player">
+                </embed> :
+                <video className={`${style}`} ref={this.setVideoRef} onCanPlay={this.videoLoad} onPointerDown={this.onPointerDown} onContextMenu={this.specificContextMenu} controls={VideoBox._showControls}>
+                    <source src={field.url.href} type="video/mp4" />
+                    Not supported.
+                </video>;
     }
 }
