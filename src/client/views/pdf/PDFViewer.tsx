@@ -24,6 +24,7 @@ import { CompileScript, CompiledScript, CompileResult } from "../../util/Scripti
 import { ScriptField } from "../../../new_fields/ScriptField";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Annotation from "./Annotation";
+import { KeyCodes } from "../../northstar/utils/KeyCodes";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 
 export const scale = 2;
@@ -666,7 +667,7 @@ export class Viewer extends React.Component<IViewerProps> {
                     <button className="pdfViewer-overlayButton" title="Open Search Bar"></button>
                     {/* <button title="Previous Result" onClick={() => this.search(this._searchString)}><FontAwesomeIcon icon="arrow-up" size="3x" color="white" /></button>
                     <button title="Next Result" onClick={this.nextResult}><FontAwesomeIcon icon="arrow-down" size="3x" color="white" /></button> */}
-                    <input onKeyDown={handleBackspace} placeholder="Search" className="pdfViewer-overlaySearchBar" onChange={this.searchStringChanged} />
+                    <input onKeyDown={(e: React.KeyboardEvent) => e.keyCode === KeyCodes.ENTER ? this.search(this._searchString) : e.keyCode === KeyCodes.BACKSPACE ? e.stopPropagation() : true} placeholder="Search" className="pdfViewer-overlaySearchBar" onChange={this.searchStringChanged} />
                     <button title="Search" onClick={() => this.search(this._searchString)}><FontAwesomeIcon icon="search" size="3x" color="white" /></button>
                 </div>
                 <button className="pdfViewer-overlayButton" onClick={this.prevAnnotation} title="Previous Annotation"
