@@ -54,7 +54,8 @@ export enum DocumentType {
     PDF = "pdf",
     ICON = "icon",
     IMPORT = "import",
-    LINK = "link"
+    LINK = "link",
+    LINKDOC = "linkdoc"
 }
 
 export interface DocumentOptions {
@@ -83,6 +84,12 @@ export interface DocumentOptions {
     dockingConfig?: string;
     dbDoc?: Doc;
     // [key: string]: Opt<Field>;
+}
+
+class EmptyBox {
+    public static LayoutString() {
+        return "";
+    }
 }
 
 export namespace Docs {
@@ -148,6 +155,11 @@ export namespace Docs {
             [DocumentType.IMPORT, {
                 layout: { view: DirectoryImportBox },
                 options: { height: 150 }
+            }],
+            [DocumentType.LINKDOC, {
+                data: new List<Doc>(),
+                layout: { view: EmptyBox },
+                options: {}
             }]
         ]);
 
@@ -193,6 +205,10 @@ export namespace Docs {
         const PrototypeMap: PrototypeMap = new Map();
         export function get(type: DocumentType): Doc {
             return PrototypeMap.get(type)!;
+        }
+
+        export function MainLinkDocument() {
+            return Prototypes.get(DocumentType.LINKDOC);
         }
 
         /**
