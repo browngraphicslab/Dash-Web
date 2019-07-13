@@ -154,7 +154,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         }
     }
 
-    @observable static _showControls: boolean = false;
+    @observable static _showControls: boolean;
 
     @computed get youtubeVideoId() {
         let field = Cast(this.Document[this.props.fieldKey], VideoField);
@@ -192,3 +192,5 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         </div>;
     }
 }
+
+VideoBox._showControls = true;

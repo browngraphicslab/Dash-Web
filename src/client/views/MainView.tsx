@@ -1,5 +1,5 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowDown, faArrowUp, faClone, faCheck, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faPortrait, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faThumbtack, faTree, faUndoAlt } from '@fortawesome/free-solid-svg-icons';
+import { faArrowDown, faArrowUp, faClone, faCheck, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faPortrait, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faThumbtack, faTree, faUndoAlt, faCat } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, runInAction, reaction, trace } from 'mobx';
 import { observer } from 'mobx-react';
@@ -38,6 +38,7 @@ import { PresentationView } from './presentationview/PresentationView';
 import { PreviewCursor } from './PreviewCursor';
 import { FilterBox } from './search/FilterBox';
 import { CollectionTreeView } from './collections/CollectionTreeView';
+import { ClientUtils } from '../util/ClientUtils';
 
 @observer
 export class MainView extends React.Component {
@@ -111,6 +112,7 @@ export class MainView extends React.Component {
         library.add(faFont);
         library.add(faExclamation);
         library.add(faPortrait);
+        library.add(faCat);
         library.add(faFilePdf);
         library.add(faObjectGroup);
         library.add(faTable);
@@ -378,11 +380,11 @@ export class MainView extends React.Component {
         let addImportCollectionNode = action(() => Docs.Create.DirectoryImportDocument({ title: "Directory Import", width: 400, height: 400 }));
 
         let btns: [React.RefObject<HTMLDivElement>, IconName, string, () => Doc][] = [
-            [React.createRef<HTMLDivElement>(), "portrait", "Add Cat Image", addImageNode],
             [React.createRef<HTMLDivElement>(), "object-group", "Add Collection", addColNode],
             // [React.createRef<HTMLDivElement>(), "clone", "Add Docking Frame", addDockingNode],
             [React.createRef<HTMLDivElement>(), "arrow-up", "Import Directory", addImportCollectionNode],
         ];
+        if (!ClientUtils.RELEASE) btns.unshift([React.createRef<HTMLDivElement>(), "cat", "Add Cat Image", addImageNode]);
 
         return < div id="add-nodes-menu" style={{ left: this.flyoutWidth + 5 }} >
             <input type="checkbox" id="add-menu-toggle" ref={this.addMenuToggle} />
@@ -399,7 +401,7 @@ export class MainView extends React.Component {
                                 <FontAwesomeIcon icon={btn[1]} size="sm" />
                             </button>
                         </div></li>)}
-                    <li key="undoTest"><button className="add-button round-button" onClick={() => UndoManager.PrintBatches()}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>
+                    <li key="undoTest"><button className="add-button round-button" title="Click if undo isn't working" onClick={() => UndoManager.TraceOpenBatches()}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>
                     <li key="color"><button className="add-button round-button" title="Select Color" onClick={() => this.toggleColorPicker()}><div className="toolbar-color-button" style={{ backgroundColor: InkingControl.Instance.selectedColor }} >
                         <div className="toolbar-color-picker" onClick={this.onColorClick} style={this._colorPickerDisplay ? { color: "black", display: "block" } : { color: "black", display: "none" }}>
                             <SketchPicker color={InkingControl.Instance.selectedColor} onChange={InkingControl.Instance.switchColor} />

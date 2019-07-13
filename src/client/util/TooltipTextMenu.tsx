@@ -252,7 +252,7 @@ export class TooltipTextMenu {
             this.linkEditor.appendChild(this.linkDrag);
             // this.linkEditor.appendChild(this.linkText);
             // this.linkEditor.appendChild(linkBtn);
-            this.tooltip.appendChild(this.linkEditor);
+            // this.tooltip.appendChild(this.linkEditor);
         }
 
         let node = this.view.state.selection.$from.nodeAfter;
@@ -266,7 +266,7 @@ export class TooltipTextMenu {
                 e.preventDefault();
             }
         };
-        this.tooltip.appendChild(this.linkEditor);
+        // this.tooltip.appendChild(this.linkEditor);
     }
 
     makeLink = (target: string) => {
