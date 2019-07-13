@@ -135,7 +135,7 @@ export namespace Docs {
             }],
             [DocumentType.AUDIO, {
                 layout: { view: AudioBox },
-                options: { height: 150 }
+                options: { height: 32 }
             }],
             [DocumentType.PDF, {
                 layout: { view: PDFBox, collectionView: [CollectionPDFView, data, anno] as CollectionViewType },
