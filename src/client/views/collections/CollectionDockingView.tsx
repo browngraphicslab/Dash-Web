@@ -1,6 +1,6 @@
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
-import { action, Lambda, observable, reaction } from "mobx";
+import { action, Lambda, observable, reaction, trace, computed } from "mobx";
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
 import Measure from "react-measure";
@@ -412,7 +412,9 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     }
                     SelectionManager.DeselectAll();
                 }
+                CollectionDockingView.Instance._ignoreStateChange = JSON.stringify(CollectionDockingView.Instance._goldenLayout.toConfig());
                 tab.contentItem.remove();
+                CollectionDockingView.Instance._ignoreStateChange = JSON.stringify(CollectionDockingView.Instance._goldenLayout.toConfig());
             });
     }
 
@@ -569,33 +571,40 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             CollectionDockingView.Instance.AddTab(this._stack, doc, dataDoc);
         }
     }
-    get content() {
+    @computed get docView() {
         if (!this._document) {
             return (null);
         }
         let resolvedDataDoc = this._document.layout instanceof Doc ? this._document : this._dataDoc;
+        return <DocumentView key={this._document[Id]}
+            Document={this._document}
+            DataDoc={resolvedDataDoc}
+            bringToFront={emptyFunction}
+            addDocument={undefined}
+            removeDocument={undefined}
+            ContentScaling={this.contentScaling}
+            PanelWidth={this.nativeWidth}
+            PanelHeight={this.nativeHeight}
+            ScreenToLocalTransform={this.ScreenToLocalTransform}
+            renderDepth={0}
+            selectOnLoad={false}
+            parentActive={returnTrue}
+            whenActiveChanged={emptyFunction}
+            focus={emptyFunction}
+            addDocTab={this.addDocTab}
+            ContainingCollectionView={undefined}
+            zoomToScale={emptyFunction}
+            getScale={returnOne} />
+    }
+
+    @computed get content() {
+        if (!this._document) {
+            return (null);
+        }
         return (
             <div className="collectionDockingView-content" ref={this._mainCont}
                 style={{ transform: `translate(${this.previewPanelCenteringOffset}px, 0px) scale(${this.scaleToFitMultiplier})` }}>
-                <DocumentView key={this._document[Id]}
-                    Document={this._document}
-                    DataDoc={resolvedDataDoc}
-                    bringToFront={emptyFunction}
-                    addDocument={undefined}
-                    removeDocument={undefined}
-                    ContentScaling={this.contentScaling}
-                    PanelWidth={this.nativeWidth}
-                    PanelHeight={this.nativeHeight}
-                    ScreenToLocalTransform={this.ScreenToLocalTransform}
-                    renderDepth={0}
-                    selectOnLoad={false}
-                    parentActive={returnTrue}
-                    whenActiveChanged={emptyFunction}
-                    focus={emptyFunction}
-                    addDocTab={this.addDocTab}
-                    ContainingCollectionView={undefined}
-                    zoomToScale={emptyFunction}
-                    getScale={returnOne} />
+                {this.docView}
             </div >);
     }
 
@@ -604,7 +613,9 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         let theContent = this.content;
         return !this._document ? (null) :
             <Measure offset onResize={action((r: any) => { this._panelWidth = r.offset.width; this._panelHeight = r.offset.height; })}>
-                {({ measureRef }) => <div ref={measureRef}>  {theContent} </div>}
+                {({ measureRef }) => <div ref={measureRef}>
+                    {theContent}
+                </div>}
             </Measure>;
     }
 }

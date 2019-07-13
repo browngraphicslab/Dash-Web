@@ -10,7 +10,7 @@ import { CollectionView } from "../../../client/views/collections/CollectionView
 import { Doc } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
-import { Cast, FieldValue } from "../../../new_fields/Types";
+import { Cast, FieldValue, StrCast } from "../../../new_fields/Types";
 import { RouteStore } from "../../RouteStore";
 
 export class CurrentUserUtils {
@@ -69,6 +69,7 @@ export class CurrentUserUtils {
             sidebar.boxShadow = "1 1 3";
             doc.sidebar = sidebar;
         }
+        StrCast(doc.title).indexOf("@") !== -1 && (doc.title = StrCast(doc.title).split("@")[0] + "'s Library");
 
     }
 
