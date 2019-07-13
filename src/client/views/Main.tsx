@@ -9,7 +9,7 @@ import { List } from "../../new_fields/List";
 
 let swapDocs = async () => {
     let oldDoc = await Cast(CurrentUserUtils.UserDocument.linkManagerDoc, Doc);
-    Docs.Prototypes.MainLinkDocument().allLinks = new List<Doc>();
+    // Docs.Prototypes.MainLinkDocument().allLinks = new List<Doc>();
     if (oldDoc) {
         let links = await DocListCastAsync(oldDoc.allLinks);
         // if (links && DocListCast(links)) {
