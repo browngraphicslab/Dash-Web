@@ -1,5 +1,5 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faLink } from '@fortawesome/free-solid-svg-icons';
+import { faLink, faTag } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
@@ -27,11 +27,13 @@ import React = require("react");
 import { RichTextField } from '../../new_fields/RichTextField';
 import { LinkManager } from '../util/LinkManager';
 import { ObjectField } from '../../new_fields/ObjectField';
+import { MetadataEntryMenu } from './MetadataEntryMenu';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
 
 library.add(faLink);
+library.add(faTag);
 
 @observer
 export class DocumentDecorations extends React.Component<{}, { value: string }> {
@@ -596,8 +598,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (!canEmbed) return (null);
         return (
             <div className="linkButtonWrapper">
-                <div style={{ paddingTop: 3, marginLeft: 30 }} title="Drag Embed" className="linkButton-linker" ref={this._embedButton} onPointerDown={this.onEmbedButtonDown}>
-                    <FontAwesomeIcon className="fa-image" icon="image" size="sm" />
+                <div title="Drag Embed" className="linkButton-linker" ref={this._embedButton} onPointerDown={this.onEmbedButtonDown}>
+                    <FontAwesomeIcon className="documentdecorations-icon" icon="image" size="sm" />
                 </div>
             </div>
         );
@@ -610,10 +612,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         this._textDoc = thisDoc;
         return (
             <div className="tooltipwrapper">
-                <div style={{ paddingTop: 3, marginLeft: 30 }} title="Hide Tooltip" className="linkButton-linker" ref={this._tooltipoff} onPointerDown={this.onTooltipOff}>
+                <div title="Hide Tooltip" className="linkButton-linker" ref={this._tooltipoff} onPointerDown={this.onTooltipOff}>
                     {/* <FontAwesomeIcon className="fa-image" icon="image" size="sm" /> */}
-                    T
-                    </div>
+                </div>
             </div>
 
         );
@@ -632,6 +633,17 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 }
             }
         }
+    }
+
+    get metadataMenu() {
+        return (
+            <div className="linkButtonWrapper">
+                <Flyout anchorPoint={anchorPoints.TOP_LEFT}
+                    content={<MetadataEntryMenu docs={() => SelectionManager.SelectedDocuments().map(dv => dv.props.Document)} />}>{/* tfs: @bcz This might need to be the data document? */}
+                    <div className="docDecs-tagButton" title="Add fields"><FontAwesomeIcon className="documentdecorations-icon" icon="tag" size="sm" /></div>
+                </Flyout>
+            </div>
+        );
     }
 
     render() {
@@ -723,10 +735,13 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     </div>
                     <div className="linkButtonWrapper">
                         <div title="Drag Link" className="linkButton-linker" ref={this._linkerButton} onPointerDown={this.onLinkerButtonDown}>
-                            <FontAwesomeIcon className="fa-icon-link" icon="link" size="sm" />
+                            <FontAwesomeIcon className="documentdecorations-icon" icon="link" size="sm" />
                         </div>
                     </div>
-                    <TemplateMenu docs={SelectionManager.ViewsSortedVertically()} templates={templates} />
+                    <div className="linkButtonWrapper">
+                        <TemplateMenu docs={SelectionManager.ViewsSortedVertically()} templates={templates} />
+                    </div>
+                    {this.metadataMenu}
                     {this.considerEmbed()}
                     {/* {this.considerTooltip()} */}
                 </div>

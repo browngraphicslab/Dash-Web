@@ -12,6 +12,15 @@ import { scriptingGlobal } from "../client/util/Scripting";
 import { List } from "./List";
 
 export namespace Field {
+    export function toKeyValueString(doc: Doc, key: string): string {
+        const onDelegate = Object.keys(doc).includes(key);
+
+        let field = FieldValue(doc[key]);
+        if (Field.IsField(field)) {
+            return (onDelegate ? "=" : "") + Field.toScriptString(field);
+        }
+        return "";
+    }
     export function toScriptString(field: Field): string {
         if (typeof field === "string") {
             return `"${field}"`;

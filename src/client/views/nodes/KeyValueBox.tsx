@@ -2,7 +2,7 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
-import { CompileScript, ScriptOptions } from "../../util/Scripting";
+import { CompileScript, ScriptOptions, CompiledScript } from "../../util/Scripting";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./KeyValueBox.scss";
 import { KeyValuePair } from "./KeyValuePair";
@@ -20,6 +20,12 @@ import { RichTextField } from "../../../new_fields/RichTextField";
 import { ImageField } from "../../../new_fields/URLField";
 import { SelectionManager } from "../../util/SelectionManager";
 import { listSpec } from "../../../new_fields/Schema";
+
+export type KVPScript = {
+    script: CompiledScript;
+    type: "computed" | "script" | false;
+    onDelegate: boolean;
+};
 
 @observer
 export class KeyValueBox extends React.Component<FieldViewProps> {
@@ -48,22 +54,27 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
             }
         }
     }
-    public static SetField(doc: Doc, key: string, value: string) {
+    public static CompileKVPScript(value: string): KVPScript | undefined {
         let eq = value.startsWith("=");
-        let target = eq ? doc : Doc.GetProto(doc);
         value = eq ? value.substr(1) : value;
-        let dubEq = value.startsWith(":=") ? 1 : value.startsWith(";=") ? 2 : 0;
+        const dubEq = value.startsWith(":=") ? "computed" : value.startsWith(";=") ? "script" : false;
         value = dubEq ? value.substr(2) : value;
         let options: ScriptOptions = { addReturn: true, params: { this: "Doc" } };
         if (dubEq) options.typecheck = false;
         let script = CompileScript(value, options);
         if (!script.compiled) {
-            return false;
+            return undefined;
         }
+        return { script, type: dubEq, onDelegate: eq };
+    }
+
+    public static ApplyKVPScript(doc: Doc, key: string, kvpScript: KVPScript): boolean {
+        const { script, type, onDelegate } = kvpScript;
+        const target = onDelegate ? doc : Doc.GetProto(doc);
         let field: Field;
-        if (dubEq === 1) {
+        if (type === "computed") {
             field = new ComputedField(script);
-        } else if (dubEq === 2) {
+        } else if (type === "script") {
             field = new ScriptField(script);
         } else {
             let res = script.run({ this: target });
@@ -75,6 +86,12 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
             return true;
         }
         return false;
+    }
+
+    public static SetField(doc: Doc, key: string, value: string) {
+        const script = this.CompileKVPScript(value);
+        if (!script) return false;
+        return this.ApplyKVPScript(doc, key, script);
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
