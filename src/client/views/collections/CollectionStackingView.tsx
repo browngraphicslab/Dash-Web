@@ -50,7 +50,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
 
     overlays = (doc: Doc) => {
-        return doc.type === DocumentType.IMG ? { title: "title", caption: "caption" } : {};
+        return doc.type === DocumentType.IMG || doc.type === DocumentType.VID ? { title: "title", caption: "caption" } : {};
     }
 
     getDisplayDoc(layoutDoc: Doc, d: Doc, dxf: () => Transform) {

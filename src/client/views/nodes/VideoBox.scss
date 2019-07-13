@@ -1,12 +1,17 @@
-.videoBox-cont, .videoBox-cont-interactive, .videoBox-cont-fullScreen {
-    width: 100%; 
+.videoBox-content-YouTube, .videoBox-content-YouTube-fullScreen,
+.videoBox-content, .videoBox-content-interactive, .videoBox-cont-fullScreen {
+    width: 100%;
+}
+
+.videoBox-content, .videoBox-content-interactive, .videoBox-content-fullScreen {
     height: Auto; 
 }
 
-.videoBox-cont-interactive {
-    pointer-events: all;
+.videoBox-content-YouTube, .videoBox-content-YouTube-fullScreen  {
+    height: 100%;
 }
 
-.videoBox-cont-fullScreen {
+.videoBox-content-interactive, .videoBox-content-fullScreen,
+.videoBox-content-YouTube-fullScreen  {
     pointer-events: all;
 }

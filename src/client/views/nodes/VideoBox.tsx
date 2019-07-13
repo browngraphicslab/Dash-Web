@@ -1,21 +1,18 @@
 import React = require("react");
-import { action, IReactionDisposer, observable, reaction } from "mobx";
+import { action, IReactionDisposer, observable, reaction, trace, computed } from "mobx";
 import { observer } from "mobx-react";
-import * as rp from "request-promise";
 import { makeInterface } from "../../../new_fields/Schema";
 import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
 import { VideoField } from "../../../new_fields/URLField";
-import { RouteStore } from "../../../server/RouteStore";
-import { DocServer } from "../../DocServer";
+import { ContextMenu } from "../ContextMenu";
+import { ContextMenuProps } from "../ContextMenuItem";
 import { DocComponent } from "../DocComponent";
+import { InkingControl } from "../InkingControl";
 import { positionSchema } from "./DocumentView";
 import { FieldView, FieldViewProps } from './FieldView';
 import { pageSchema } from "./ImageBox";
 import "./VideoBox.scss";
-import { ContextMenu } from "../ContextMenu";
-import { ContextMenuProps } from "../ContextMenuItem";
-import { InkingControl } from "../InkingControl";
-import * as $ from "jquery";
+import { InkTool } from "../../../new_fields/InkField";
 
 type VideoDocument = makeInterface<[typeof positionSchema, typeof pageSchema]>;
 const VideoDocument = makeInterface(positionSchema, pageSchema);
@@ -23,6 +20,7 @@ const VideoDocument = makeInterface(positionSchema, pageSchema);
 @observer
 export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoDocument) {
     private _reactionDisposer?: IReactionDisposer;
+    private _youtubeReactionDisposer?: IReactionDisposer;
     private _youtubePlayer: any = undefined;
     private _videoRef: HTMLVideoElement | null = null;
     @observable _playTimer?: NodeJS.Timeout = undefined;
@@ -47,45 +45,37 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
 
     @action public Play() {
         this.Playing = true;
-        if (this.player) {
-            this.player.play();
-            if (!this._playTimer) this._playTimer = setInterval(this.updateTimecode, 500);
-        } else if (this._youtubePlayer) {
-            this._youtubePlayer.playVideo();
-            if (!this._playTimer) this._playTimer = setInterval(this.updateYoutubeTimecode, 1000);
+        this.player && this.player.play();
+        this._youtubePlayer && this._youtubePlayer.playVideo();
+        !this._playTimer && (this._playTimer = setInterval(this.updateTimecode, 500));
+        this._youtubeSeekTo = false;
+    }
+
+    @action public Seek(time: number) {
+        if (this._youtubePlayer && !this.Playing) {
+            this._youtubeSeekTo = true;
+            this._youtubePlayer.seekTo(time);
         }
     }
 
     @action public Pause() {
         this.Playing = false;
-        if (this.player) {
-            this.player.pause();
-            if (this._playTimer) {
-                clearInterval(this._playTimer);
-                this._playTimer = undefined;
-            }
-        } else if (this._youtubePlayer) {
-            // let interactive = InkingControl.Instance.selectedTool || !this.props.isSelected() ? "" : "-interactive";
-            // this._youtubePlayer.getIframe().style.pointerEvents = interactive ? "all" : "none";
-            this._youtubePlayer.pauseVideo();
-            if (this._playTimer) {
-                clearInterval(this._playTimer);
-                this._playTimer = undefined;
-            }
-        }
+        this.player && this.player.pause();
+        this._youtubePlayer && this._youtubePlayer.pauseVideo();
+        this._playTimer && clearInterval(this._playTimer);
+        this._playTimer = undefined;
+        this._youtubeSeekTo = false;
     }
 
     @action public FullScreen() {
         this._fullScreen = true;
         this.player && this.player.requestFullscreen();
+        this._youtubePlayer && this.props.addDocTab(this.props.Document, this.props.DataDoc, "inTab");
     }
 
     @action
     updateTimecode = () => {
         this.player && (this.props.Document.curPage = this.player.currentTime);
-    }
-    @action
-    updateYoutubeTimecode = () => {
         this._youtubePlayer && (this.props.Document.curPage = this._youtubePlayer.getCurrentTime());
     }
     componentDidMount() {
@@ -108,9 +98,15 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
                 videoId: videoid.toString(),
                 playerVars: { 'controls': VideoBox._showControls ? 1 : 0 },
                 events: {
-                    'onStateChange': this.onPlayerStateChange,
+                    'onStateChange': this.onYoutubePlayerStateChange,
+                    'onReady': this.onYoutubePlayerReady,
                 }
             });
+            this._reactionDisposer = reaction(() => this.props.Document.curPage, () => this.Seek(this.Document.curPage || 0), { fireImmediately: true });
+            this._youtubeReactionDisposer = reaction(() => [this.props.isSelected(), InkingControl.Instance.selectedTool], () => {
+                let interactive = InkingControl.Instance.selectedTool === InkTool.None && this.props.isSelected();
+                this._youtubePlayer.getIframe().style.pointerEvents = interactive ? "all" : "none";
+            }, { fireImmediately: true })
             // let iframe = $(document.getElementById(`${videoid}-player`)!);
             // iframe.on("load", function () {
             //     iframe.contents().find("head")
@@ -120,13 +116,30 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
     }
 
     @action
-    onPlayerStateChange = (event: any) => {
+    onYoutubePlayerStateChange = (event: any) => {
+        console.log("event.data = " + event.data);
         this.Playing = event.data == YT.PlayerState.PLAYING;
+        if (this._youtubeSeekTo && this.Playing) {
+            this._youtubePlayer.pauseVideo();
+            this._youtubeSeekTo = false;
+        } else this.Playing && !this._playTimer && (this._playTimer = setInterval(this.updateTimecode, 500));
+        event.data === YT.PlayerState.PAUSED && this._playTimer && clearInterval(this._playTimer);
+    }
+    _youtubeSeekTo = false;
+    @action
+    onYoutubePlayerReady = (event: any) => {
+        this.Playing = false;
+        this._youtubePlayer && (this._youtubePlayer.getIframe().style.pointerEvents = "none");
+        if (this.Document.curPage) {
+            this.Seek(this.Document.curPage);
+            this._youtubeSeekTo = true;
+        }
     }
 
     componentWillUnmount() {
         this.Pause();
-        if (this._reactionDisposer) this._reactionDisposer();
+        this._reactionDisposer && this._reactionDisposer();
+        this._youtubeReactionDisposer && this._youtubeReactionDisposer();
     }
 
     @action
@@ -143,6 +156,11 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
 
     @observable static _showControls: boolean;
 
+    @computed get youtubeVideoId() {
+        let field = Cast(this.Document[this.props.fieldKey], VideoField);
+        return field && field.url.href.indexOf("youtube") !== -1 ? ((arr: string[]) => arr[arr.length - 1])(field.url.href.split("/")) : "";
+    }
+
     specificContextMenu = (e: React.MouseEvent): void => {
         let field = Cast(this.Document[this.props.fieldKey], VideoField);
         if (field) {
@@ -152,20 +170,26 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         }
     }
 
-    render() {
+    @computed get content() {
         let field = Cast(this.Document[this.props.fieldKey], VideoField);
         let interactive = InkingControl.Instance.selectedTool || !this.props.isSelected() ? "" : "-interactive";
-        let style = "videoBox-cont" + (this._fullScreen ? "-fullScreen" : interactive);
-        let videoid = field && field.url.href.indexOf("youtube") !== -1 ? ((arr: string[]) => arr[arr.length - 1])(field.url.href.split("/")) : "";
-
-        if (this._youtubePlayer) this._youtubePlayer.getIframe().style.pointerEvents = interactive ? "all" : "none";
+        let style = "videoBox-content" + (this._fullScreen ? "-fullScreen" : "") + interactive;
         return !field ? <div>Loading</div> :
-            videoid ?
-                <div id={`${videoid}-player`} className={`${style}`} style={{ height: "100%" }} /> :
-                <video className={`${style}`} ref={this.setVideoRef} onCanPlay={this.videoLoad} onContextMenu={this.specificContextMenu} controls={VideoBox._showControls}>
-                    <source src={field.url.href} type="video/mp4" />
-                    Not supported.
-                </video>;
+            <video className={`${style}`} ref={this.setVideoRef} onCanPlay={this.videoLoad} controls={VideoBox._showControls}>
+                <source src={field.url.href} type="video/mp4" />
+                Not supported.
+            </video>;
+    }
+
+    @computed get youtubeContent() {
+        let style = "videoBox-content-YouTube" + (this._fullScreen ? "-fullScreen" : "");
+        return <div id={`${this.youtubeVideoId}-player`} className={`${style}`} />;
+    }
+
+    render() {
+        return <div style={{ pointerEvents: "all", width: "100%", height: "100%" }} onContextMenu={this.specificContextMenu}>
+            {this.youtubeVideoId ? this.youtubeContent : this.content}
+        </div>;
     }
 }
 
