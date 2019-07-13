@@ -13,6 +13,7 @@ import { FieldView, FieldViewProps } from './FieldView';
 import { pageSchema } from "./ImageBox";
 import "./VideoBox.scss";
 import { InkTool } from "../../../new_fields/InkField";
+import { DocumentDecorations } from "../DocumentDecorations";
 
 type VideoDocument = makeInterface<[typeof positionSchema, typeof pageSchema]>;
 const VideoDocument = makeInterface(positionSchema, pageSchema);
@@ -103,8 +104,8 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
                 }
             });
             this._reactionDisposer = reaction(() => this.props.Document.curPage, () => this.Seek(this.Document.curPage || 0), { fireImmediately: true });
-            this._youtubeReactionDisposer = reaction(() => [this.props.isSelected(), InkingControl.Instance.selectedTool], () => {
-                let interactive = InkingControl.Instance.selectedTool === InkTool.None && this.props.isSelected();
+            this._youtubeReactionDisposer = reaction(() => [this.props.isSelected(), DocumentDecorations.Instance.Interacting, InkingControl.Instance.selectedTool], () => {
+                let interactive = InkingControl.Instance.selectedTool === InkTool.None && this.props.isSelected() && !DocumentDecorations.Instance.Interacting;
                 this._youtubePlayer.getIframe().style.pointerEvents = interactive ? "all" : "none";
             }, { fireImmediately: true })
             // let iframe = $(document.getElementById(`${videoid}-player`)!);
