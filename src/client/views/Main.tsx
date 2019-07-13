@@ -16,13 +16,14 @@ let swapDocs = async () => {
         if (links && links.length) {
             let data = await DocListCastAsync(Docs.Prototypes.MainLinkDocument().allLinks);
             if (data) {
-                data.push(...links);
+                data.push(...links.filter(i => data!.indexOf(i) === -1));
+                Docs.Prototypes.MainLinkDocument().allLinks = new List<Doc>(data.filter((i, idx) => data!.indexOf(i) === idx));
             }
             else {
                 Docs.Prototypes.MainLinkDocument().allLinks = new List<Doc>(links);
             }
         }
-        CurrentUserUtils.UserDocument.LinkManagerDoc = undefined;
+        CurrentUserUtils.UserDocument.linkManagerDoc = undefined;
     }
 }
 
