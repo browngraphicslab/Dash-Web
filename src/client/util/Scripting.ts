@@ -33,6 +33,8 @@ export interface CompileError {
     errors: any[];
 }
 
+export type CompileResult = CompiledScript | CompileError;
+
 export namespace Scripting {
     export function addGlobal(global: { name: string }): void;
     export function addGlobal(name: string, global: any): void;
@@ -61,7 +63,6 @@ export function scriptingGlobal(constructor: { new(...args: any[]): any }) {
 
 const scriptingGlobals: { [name: string]: any } = {};
 
-export type CompileResult = CompiledScript | CompileError;
 function Run(script: string | undefined, customParams: string[], diagnostics: any[], originalScript: string, options: ScriptOptions): CompileResult {
     const errors = diagnostics.some(diag => diag.category === ts.DiagnosticCategory.Error);
     if ((options.typecheck !== false && errors) || !script) {

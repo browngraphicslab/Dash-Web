@@ -92,13 +92,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
                             contents={contents}
                             height={36}
                             GetValue={() => {
-                                const onDelegate = Object.keys(props.Document).includes(props.fieldKey);
-
-                                let field = FieldValue(props.Document[props.fieldKey]);
-                                if (Field.IsField(field)) {
-                                    return (onDelegate ? "=" : "") + Field.toScriptString(field);
-                                }
-                                return "";
+                                return Field.toKeyValueString(props.Document, props.fieldKey);
                             }}
                             SetValue={(value: string) =>
                                 KeyValueBox.SetField(props.Document, props.fieldKey, value)}>

@@ -1,6 +1,7 @@
 @import "globalCssVariables";
 
 $linkGap : 3px;
+
 .documentDecorations {
     position: absolute;
 }
@@ -52,15 +53,16 @@ $linkGap : 3px;
         grid-column-start: 5;
         grid-column-end: 7;
     }
-    
-    #documentDecorations-borderRadius{
+
+    #documentDecorations-borderRadius {
         grid-column-start: 5;
         grid-column-end: 7;
         border-radius: 100%;
-        .borderRadiusTooltip{
-            width:10px;
-            height:10px;
-            position:absolute;
+
+        .borderRadiusTooltip {
+            width: 10px;
+            height: 10px;
+            position: absolute;
         }
     }
 
@@ -68,8 +70,9 @@ $linkGap : 3px;
     #documentDecorations-bottomRightResizer {
         cursor: nwse-resize;
     }
+
     #documentDecorations-bottomRightResizer {
-        grid-row:4;
+        grid-row: 4;
     }
 
     #documentDecorations-topRightResizer,
@@ -86,7 +89,8 @@ $linkGap : 3px;
     #documentDecorations-rightResizer {
         cursor: ew-resize;
     }
-    .title{
+
+    .title {
         background: $alt-accent;
         grid-column-start: 3;
         grid-column-end: 4;
@@ -129,7 +133,6 @@ $linkGap : 3px;
 
 .linkFlyout {
     grid-column: 2/4;
-    margin-top: $linkGap;
 }
 
 .linkButton-empty:hover {
@@ -145,6 +148,7 @@ $linkGap : 3px;
 }
 
 .link-button-container {
+    margin-top: $linkGap;
     grid-column: 1/4;
     width: auto;
     height: auto;
@@ -152,9 +156,12 @@ $linkGap : 3px;
     flex-direction: row;
 }
 
+.linkButtonWrapper {
+    pointer-events: auto;
+    padding-right: 5px;
+}
+
 .linkButton-linker {
-    margin-left: 5px;
-    margin-top: $linkGap;
     height: 20px;
     width: 20px;
     text-align: center;
@@ -169,7 +176,8 @@ $linkGap : 3px;
     transform: scale(1.05);
 }
 
-.linkButton-empty, .linkButton-nonempty {
+.linkButton-empty,
+.linkButton-nonempty {
     height: 20px;
     width: 20px;
     border-radius: 50%;
@@ -194,9 +202,6 @@ $linkGap : 3px;
 }
 
 .templating-menu {
-    position: absolute;
-    bottom: 0;
-    left: 50px;
     pointer-events: auto;
     text-transform: uppercase;
     letter-spacing: 2px;
@@ -208,15 +213,17 @@ $linkGap : 3px;
     align-items: center;
 }
 
-.fa-icon-link {
+.documentdecorations-icon {
     margin-top: 3px;
 }
-.templating-button {
+
+.templating-button,
+.docDecs-tagButton {
     width: 20px;
     height: 20px;
     border-radius: 50%;
     opacity: 0.9;
-    font-size:14;
+    font-size: 14;
     background-color: $dark-color;
     color: $light-color;
     text-align: center;
@@ -238,6 +245,7 @@ $linkGap : 3px;
     background-color: $light-color-secondary;
     padding: 2px 12px;
     list-style: none;
+
     .templateToggle {
         text-align: left;
     }
