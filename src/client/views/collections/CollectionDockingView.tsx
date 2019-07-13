@@ -298,7 +298,10 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     onPointerUp = (e: React.PointerEvent): void => {
         if (this._flush) {
             this._flush = false;
-            setTimeout(() => this.stateChanged(), 10);
+            setTimeout(() => {
+                CollectionDockingView.Instance._ignoreStateChange = JSON.stringify(CollectionDockingView.Instance._goldenLayout.toConfig());
+                this.stateChanged()
+            }, 10);
         }
     }
     @action
@@ -342,6 +345,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     }
 
     itemDropped = () => {
+        CollectionDockingView.Instance._ignoreStateChange = JSON.stringify(CollectionDockingView.Instance._goldenLayout.toConfig());
         this.stateChanged();
     }
 
@@ -357,6 +361,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             if (tab.contentItem.config.fixed) {
                 tab.contentItem.parent.config.fixed = true;
             }
+
             let doc = await DocServer.GetRefField(tab.contentItem.config.props.documentId) as Doc;
             let dataDoc = await DocServer.GetRefField(tab.contentItem.config.props.dataDocumentId) as Doc;
             if (doc instanceof Doc) {
