@@ -123,7 +123,7 @@ export class TooltipTextMenu {
         this.listTypeToIcon.set(schema.nodes.ordered_list, "1)");
         this.listTypes = Array.from(this.listTypeToIcon.keys());
 
-        this.tooltip.appendChild(this.createLink().render(this.view).dom);
+        // this.tooltip.appendChild(this.createLink().render(this.view).dom);
 
         this.tooltip.appendChild(this.createStar().render(this.view).dom);
 
@@ -252,7 +252,7 @@ export class TooltipTextMenu {
             this.linkEditor.appendChild(this.linkDrag);
             // this.linkEditor.appendChild(this.linkText);
             // this.linkEditor.appendChild(linkBtn);
-            // this.tooltip.appendChild(this.linkEditor);
+            this.tooltip.appendChild(this.linkEditor);
         }
 
         let node = this.view.state.selection.$from.nodeAfter;
