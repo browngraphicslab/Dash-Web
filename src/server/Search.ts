@@ -18,6 +18,18 @@ export class Search {
         }
     }
 
+    public async updateDocuments(documents: any[]) {
+        try {
+            const res = await rp.post(this.url + "dash/update", {
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify(documents)
+            });
+            return res;
+        } catch (e) {
+            // console.warn("Search error: " + e + document);
+        }
+    }
+
     public async search(query: string, start: number = 0, rows: number = 10) {
         try {
             const searchResults = JSON.parse(await rp.get(this.url + "dash/select", {
