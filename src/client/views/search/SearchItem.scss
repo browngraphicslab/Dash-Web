@@ -73,34 +73,38 @@
                         -o-transition: opacity 0.2s ease-in-out;
                         transition: opacity 0.2s ease-in-out;
                     }
+
                 }
 
-                .link-container.item:hover {
-                    width: 70px;
-                }
+                // .link-container.item:hover {
+                //     width: 70px;
+                // }
 
-                .link-container.item:hover .link-count {
-                    opacity: 0;
-                }
+                // .link-container.item:hover .link-count {
+                //     opacity: 0;
+                // }
 
-                .link-container.item:hover .link-extended {
-                    opacity: 1;
-                }
-                
+                // .link-container.item:hover .link-extended {
+                //     opacity: 1;
+                // }
+
                 .icon-icons {
-                    width:50px
-                }
-                .icon-live {
-                    width:175px;
+                    width: 50px
                 }
 
-                .icon-icons, .icon-live {
-                    height:50px;
-                    margin:auto;
+                .icon-live {
+                    width: 175px;
+                }
+
+                .icon-icons,
+                .icon-live {
+                    height: 50px;
+                    margin: auto;
                     overflow: hidden;
+
                     .search-type {
                         display: inline-block;
-                        width:100%;
+                        width: 100%;
                         position: absolute;
                         justify-content: center;
                         align-items: center;
@@ -112,10 +116,11 @@
                         overflow: hidden;
 
                         img {
-                            width:100% !important;
-                            height:auto !important;
+                            width: 100% !important;
+                            height: auto !important;
                         }
                     }
+
                     .search-type:hover+.search-label {
                         opacity: 1;
                     }
@@ -134,16 +139,18 @@
                 }
 
                 .icon-live:hover {
-                    height:175px;
+                    height: 175px;
+
                     .pdfBox-cont {
                         img {
-                            width:100% !important;
+                            width: 100% !important;
                         }
                     }
                 }
             }
+
             .search-info:hover {
-                width:60%; 
+                width: 60%;
             }
         }
     }
@@ -176,12 +183,15 @@
     }
 
 }
+
 .search-overview:hover {
     z-index: 1;
 }
+
 .collection {
-    display:flex;
+    display: flex;
 }
+
 .collection-item {
-    width:35px;
+    width: 35px;
 }
