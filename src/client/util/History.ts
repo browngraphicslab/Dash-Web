@@ -135,7 +135,7 @@ export namespace HistoryUtil {
             }
             const queryObj = OmitKeys(state, keys).extract;
             const query: any = {};
-            Object.keys(queryObj).forEach(key => query[key] = queryObj[key] === null ? null : queryObj[key]);
+            Object.keys(queryObj).forEach(key => query[key] = queryObj[key] === null ? null : JSON.stringify(queryObj[key]));
             const queryString = qs.stringify(query);
             return path + (queryString ? `?${queryString}` : "");
         };
