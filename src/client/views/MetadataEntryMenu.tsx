@@ -1,7 +1,7 @@
 import * as React from 'react';
 import "./MetadataEntryMenu.scss";
 import { observer } from 'mobx-react';
-import { observable, action, runInAction } from 'mobx';
+import { observable, action, runInAction, trace } from 'mobx';
 import { KeyValueBox } from './nodes/KeyValueBox';
 import { Doc } from '../../new_fields/Doc';
 import * as Autosuggest from 'react-autosuggest';
@@ -20,8 +20,8 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
     @observable private suggestions: string[] = [];
 
     @action
-    onKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        this._currentKey = e.target.value;
+    onKeyChange = (e: React.ChangeEvent, { newValue }: { newValue: string }) => {
+        this._currentKey = newValue;
     }
 
     @action
@@ -102,6 +102,7 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
     }
 
     render() {
+        trace();
         return (
             <div className="metadataEntry-outerDiv">
                 Key:
