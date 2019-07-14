@@ -1,5 +1,5 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faLink } from '@fortawesome/free-solid-svg-icons';
+import { faLink, faTag } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
@@ -27,11 +27,13 @@ import React = require("react");
 import { RichTextField } from '../../new_fields/RichTextField';
 import { LinkManager } from '../util/LinkManager';
 import { ObjectField } from '../../new_fields/ObjectField';
+import { MetadataEntryMenu } from './MetadataEntryMenu';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
 
 library.add(faLink);
+library.add(faTag);
 
 @observer
 export class DocumentDecorations extends React.Component<{}, { value: string }> {
@@ -84,26 +86,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 let fieldTemplate = fieldTemplateView.props.Document;
                 let docTemplate = fieldTemplateView.props.ContainingCollectionView!.props.Document;
                 let metaKey = text.slice(1, text.length);
-
-                // move data doc fields to layout doc as needed (nativeWidth/nativeHeight, data, ??)
-                let backgroundLayout = StrCast(fieldTemplate.backgroundLayout);
-                let layout = StrCast(fieldTemplate.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
-                if (backgroundLayout) {
-                    layout = StrCast(fieldTemplate.layout).replace(/fieldKey={"annotations"}/, `fieldKey={"${metaKey}"} fieldExt={"annotations"}`);
-                    backgroundLayout = backgroundLayout.replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
-                }
-                let nw = Cast(fieldTemplate.nativeWidth, "number");
-                let nh = Cast(fieldTemplate.nativeHeight, "number");
-
-                fieldTemplate.title = metaKey;
-                fieldTemplate.layout = layout;
-                fieldTemplate.backgroundLayout = backgroundLayout;
-                fieldTemplate.nativeWidth = nw;
-                fieldTemplate.nativeHeight = nh;
-                fieldTemplate.embed = true;
-                fieldTemplate.isTemplate = true;
-                fieldTemplate.templates = new List<string>([Templates.TitleBar(metaKey)]);
-                fieldTemplate.proto = Doc.GetProto(docTemplate);
+                Doc.MakeTemplate(fieldTemplate, metaKey, Doc.GetProto(docTemplate));
             }
             else {
                 if (SelectionManager.SelectedDocuments().length > 0) {
@@ -172,7 +155,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         document.addEventListener("pointermove", this.onBackgroundMove);
         document.addEventListener("pointerup", this.onBackgroundUp);
         e.stopPropagation();
-        e.preventDefault();
     }
 
     @action
@@ -306,7 +288,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @undoBatch
     @action createIcon = (selected: DocumentView[], layoutString: string): Doc => {
         let doc = selected[0].props.Document;
-        let iconDoc = Docs.IconDocument(layoutString);
+        let iconDoc = Docs.Create.IconDocument(layoutString);
         iconDoc.isButton = true;
         iconDoc.proto!.title = selected.length > 1 ? "-multiple-.icon" : StrCast(doc.title) + ".icon";
         iconDoc.labelField = selected.length > 1 ? undefined : this._fieldKey;
@@ -358,7 +340,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
     onRadiusMove = (e: PointerEvent): void => {
         let dist = Math.sqrt((e.clientX - this._radiusDown[0]) * (e.clientX - this._radiusDown[0]) + (e.clientY - this._radiusDown[1]) * (e.clientY - this._radiusDown[1]));
-        SelectionManager.SelectedDocuments().map(dv => Doc.GetProto(dv.props.Document).borderRounding = `${Math.min(100, dist)}%`);
+        SelectionManager.SelectedDocuments().map(dv => dv.props.Document.borderRounding = Doc.GetProto(dv.props.Document).borderRounding = `${Math.min(100, dist)}%`);
         e.stopPropagation();
         e.preventDefault();
     }
@@ -616,8 +598,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (!canEmbed) return (null);
         return (
             <div className="linkButtonWrapper">
-                <div style={{ paddingTop: 3, marginLeft: 30 }} title="Drag Embed" className="linkButton-linker" ref={this._embedButton} onPointerDown={this.onEmbedButtonDown}>
-                    <FontAwesomeIcon className="fa-image" icon="image" size="sm" />
+                <div title="Drag Embed" className="linkButton-linker" ref={this._embedButton} onPointerDown={this.onEmbedButtonDown}>
+                    <FontAwesomeIcon className="documentdecorations-icon" icon="image" size="sm" />
                 </div>
             </div>
         );
@@ -630,10 +612,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         this._textDoc = thisDoc;
         return (
             <div className="tooltipwrapper">
-                <div style={{ paddingTop: 3, marginLeft: 30 }} title="Hide Tooltip" className="linkButton-linker" ref={this._tooltipoff} onPointerDown={this.onTooltipOff}>
+                <div title="Hide Tooltip" className="linkButton-linker" ref={this._tooltipoff} onPointerDown={this.onTooltipOff}>
                     {/* <FontAwesomeIcon className="fa-image" icon="image" size="sm" /> */}
-                    T
-                    </div>
+                </div>
             </div>
 
         );
@@ -652,6 +633,17 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 }
             }
         }
+    }
+
+    get metadataMenu() {
+        return (
+            <div className="linkButtonWrapper">
+                <Flyout anchorPoint={anchorPoints.TOP_LEFT}
+                    content={<MetadataEntryMenu docs={() => SelectionManager.SelectedDocuments().map(dv => dv.props.Document)} suggestWithFunction />}>{/* tfs: @bcz This might need to be the data document? */}
+                    <div className="docDecs-tagButton" title="Add fields"><FontAwesomeIcon className="documentdecorations-icon" icon="tag" size="sm" /></div>
+                </Flyout>
+            </div>
+        );
     }
 
     render() {
@@ -743,10 +735,13 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     </div>
                     <div className="linkButtonWrapper">
                         <div title="Drag Link" className="linkButton-linker" ref={this._linkerButton} onPointerDown={this.onLinkerButtonDown}>
-                            <FontAwesomeIcon className="fa-icon-link" icon="link" size="sm" />
+                            <FontAwesomeIcon className="documentdecorations-icon" icon="link" size="sm" />
                         </div>
                     </div>
-                    <TemplateMenu docs={SelectionManager.ViewsSortedVertically()} templates={templates} />
+                    <div className="linkButtonWrapper">
+                        <TemplateMenu docs={SelectionManager.ViewsSortedVertically()} templates={templates} />
+                    </div>
+                    {this.metadataMenu}
                     {this.considerEmbed()}
                     {/* {this.considerTooltip()} */}
                 </div>

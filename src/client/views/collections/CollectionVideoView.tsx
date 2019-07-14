@@ -21,13 +21,13 @@ import { Docs, DocUtils } from "../../documents/Documents";
 export class CollectionVideoView extends React.Component<FieldViewProps> {
     private _videoBox?: VideoBox;
 
-    public static LayoutString(fieldKey: string = "data") {
-        return FieldView.LayoutString(CollectionVideoView, fieldKey);
+    public static LayoutString(fieldKey: string = "data", fieldExt: string = "annotations") {
+        return FieldView.LayoutString(CollectionVideoView, fieldKey, fieldExt);
     }
     private get uIButtons() {
         let scaling = Math.min(1.8, this.props.ScreenToLocalTransform().Scale);
         let curTime = NumCast(this.props.Document.curPage);
-        return ([
+        return (VideoBox._showControls ? [] : [
             <div className="collectionVideoView-time" key="time" onPointerDown={this.onResetDown} style={{ transform: `scale(${scaling}, ${scaling})` }}>
                 <span>{"" + Math.round(curTime)}</span>
                 <span style={{ fontSize: 8 }}>{" " + Math.round((curTime - Math.trunc(curTime)) * 100)}</span>
@@ -43,7 +43,7 @@ export class CollectionVideoView extends React.Component<FieldViewProps> {
 
     @action
     onPlayDown = () => {
-        if (this._videoBox && this._videoBox.player) {
+        if (this._videoBox) {
             if (this._videoBox.Playing) {
                 this._videoBox.Pause();
             } else {
@@ -98,7 +98,7 @@ export class CollectionVideoView extends React.Component<FieldViewProps> {
                 SearchBox.convertDataUri(dataUrl, filename).then((returnedFilename) => {
                     if (returnedFilename) {
                         let url = DocServer.prepend(returnedFilename);
-                        let imageSummary = Docs.ImageDocument(url, {
+                        let imageSummary = Docs.Create.ImageDocument(url, {
                             x: NumCast(this.props.Document.x) + width, y: NumCast(this.props.Document.y),
                             width: 150, height: height / width * 150, title: "--snapshot" + NumCast(this.props.Document.curPage) + " image-"
                         });

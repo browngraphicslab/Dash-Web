@@ -138,9 +138,9 @@ export default class Page extends React.Component<IPageProps> {
     highlight = (targetDoc?: Doc, color: string = "red") => {
         // creates annotation documents for current highlights
         let annotationDoc = this.props.makeAnnotationDocuments(targetDoc, scale, color, false);
-        let targetAnnotations = Cast(this.props.parent.Document.annotations, listSpec(Doc));
+        let targetAnnotations = Cast(this.props.parent.fieldExtensionDoc.annotations, listSpec(Doc));
         if (targetAnnotations === undefined) {
-            Doc.GetProto(this.props.parent.Document).annotations = new List([annotationDoc]);
+            Doc.GetProto(this.props.parent.fieldExtensionDoc).annotations = new List([annotationDoc]);
         } else {
             targetAnnotations.push(annotationDoc);
         }
@@ -152,18 +152,18 @@ export default class Page extends React.Component<IPageProps> {
      * start a drag event and create or put the necessary info into the drag event.
      */
     @action
-    startDrag = (e: PointerEvent): void => {
+    startDrag = (e: PointerEvent, ele: HTMLDivElement): void => {
         e.preventDefault();
         e.stopPropagation();
         let thisDoc = this.props.parent.Document;
         // document that this annotation is linked to
-        let targetDoc = Docs.TextDocument({ width: 200, height: 200, title: "New Annotation" });
+        let targetDoc = Docs.Create.TextDocument({ width: 200, height: 200, title: "New Annotation" });
         targetDoc.targetPage = this.props.page;
         let annotationDoc = this.highlight(targetDoc, "red");
         // create dragData and star tdrag
         let dragData = new DragManager.AnnotationDragData(thisDoc, annotationDoc, targetDoc);
         if (this._textLayer.current) {
-            DragManager.StartAnnotationDrag([this._textLayer.current], dragData, e.pageX, e.pageY, {
+            DragManager.StartAnnotationDrag([ele], dragData, e.pageX, e.pageY, {
                 handlers: {
                     dragComplete: emptyFunction,
                 },

@@ -8,7 +8,7 @@ import { Doc, DocListCast, HeightSym, WidthSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { emptyFunction, returnFalse, returnOne, Utils } from "../../../Utils";
-import { DocTypes } from "../../documents/Documents";
+import { DocumentType } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
 import { SetupDrag, DragManager } from "../../util/DragManager";
 import { LinkManager } from "../../util/LinkManager";
@@ -104,10 +104,6 @@ export class SearchItem extends React.Component<SearchItemProps> {
     @observable _useIcons = true;
     @observable _displayDim = 50;
 
-    fitToBox = () => {
-        let bounds = Doc.ComputeContentBounds(this.props.doc);
-        return [(bounds.x + bounds.r) / 2, (bounds.y + bounds.b) / 2, Number(SEARCH_THUMBNAIL_SIZE) / Math.max((bounds.b - bounds.y), (bounds.r - bounds.x)), this._displayDim];
-    }
     @computed
     public get DocumentIcon() {
         if (!this._useIcons) {
@@ -119,7 +115,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
                 onPointerEnter={action(() => this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE))}
                 onPointerLeave={action(() => this._displayDim = 50)} >
                 <DocumentView
-                    fitToBox={StrCast(this.props.doc.type).indexOf(DocTypes.COL) !== -1 ? this.fitToBox : undefined}
+                    fitToBox={StrCast(this.props.doc.type).indexOf(DocumentType.COL) !== -1}
                     Document={this.props.doc}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
@@ -142,15 +138,15 @@ export class SearchItem extends React.Component<SearchItemProps> {
         }
 
         let layoutresult = StrCast(this.props.doc.type);
-        let button = layoutresult.indexOf(DocTypes.PDF) !== -1 ? faFilePdf :
-            layoutresult.indexOf(DocTypes.IMG) !== -1 ? faImage :
-                layoutresult.indexOf(DocTypes.TEXT) !== -1 ? faStickyNote :
-                    layoutresult.indexOf(DocTypes.VID) !== -1 ? faFilm :
-                        layoutresult.indexOf(DocTypes.COL) !== -1 ? faObjectGroup :
-                            layoutresult.indexOf(DocTypes.AUDIO) !== -1 ? faMusic :
-                                layoutresult.indexOf(DocTypes.LINK) !== -1 ? faLink :
-                                    layoutresult.indexOf(DocTypes.HIST) !== -1 ? faChartBar :
-                                        layoutresult.indexOf(DocTypes.WEB) !== -1 ? faGlobeAsia :
+        let button = layoutresult.indexOf(DocumentType.PDF) !== -1 ? faFilePdf :
+            layoutresult.indexOf(DocumentType.IMG) !== -1 ? faImage :
+                layoutresult.indexOf(DocumentType.TEXT) !== -1 ? faStickyNote :
+                    layoutresult.indexOf(DocumentType.VID) !== -1 ? faFilm :
+                        layoutresult.indexOf(DocumentType.COL) !== -1 ? faObjectGroup :
+                            layoutresult.indexOf(DocumentType.AUDIO) !== -1 ? faMusic :
+                                layoutresult.indexOf(DocumentType.LINK) !== -1 ? faLink :
+                                    layoutresult.indexOf(DocumentType.HIST) !== -1 ? faChartBar :
+                                        layoutresult.indexOf(DocumentType.WEB) !== -1 ? faGlobeAsia :
                                             faCaretUp;
         return <div onPointerDown={action(() => { this._useIcons = false; this._displayDim = Number(SEARCH_THUMBNAIL_SIZE); })} >
             <FontAwesomeIcon icon={button} size="2x" />
@@ -184,13 +180,13 @@ export class SearchItem extends React.Component<SearchItemProps> {
     pointerDown = (e: React.PointerEvent) => { e.preventDefault(); e.button === 0 && SearchBox.Instance.openSearch(e); }
 
     highlightDoc = (e: React.PointerEvent) => {
-        if (this.props.doc.type === DocTypes.LINK) {
+        if (this.props.doc.type === DocumentType.LINK) {
             if (this.props.doc.anchor1 && this.props.doc.anchor2) {
 
-                let doc1 = Cast(this.props.doc.anchor1, Doc, new Doc());
-                let doc2 = Cast(this.props.doc.anchor2, Doc, new Doc());
-                doc1.libraryBrush = true;
-                doc2.libraryBrush = true;
+                let doc1 = Cast(this.props.doc.anchor1, Doc, null);
+                let doc2 = Cast(this.props.doc.anchor2, Doc, null);
+                doc1 && (doc1.libraryBrush = true);
+                doc2 && (doc2.libraryBrush = true);
             }
         } else {
             let docViews: DocumentView[] = DocumentManager.Instance.getAllDocumentViews(this.props.doc);
@@ -201,18 +197,18 @@ export class SearchItem extends React.Component<SearchItemProps> {
     }
 
     unHighlightDoc = (e: React.PointerEvent) => {
-        if (this.props.doc.type === DocTypes.LINK) {
+        if (this.props.doc.type === DocumentType.LINK) {
             if (this.props.doc.anchor1 && this.props.doc.anchor2) {
 
-                let doc1 = Cast(this.props.doc.anchor1, Doc, new Doc());
-                let doc2 = Cast(this.props.doc.anchor2, Doc, new Doc());
-                doc1.libraryBrush = false;
-                doc2.libraryBrush = false;
+                let doc1 = Cast(this.props.doc.anchor1, Doc, null);
+                let doc2 = Cast(this.props.doc.anchor2, Doc, null);
+                doc1 && (doc1.libraryBrush = undefined);
+                doc2 && (doc2.libraryBrush = undefined);
             }
         } else {
             let docViews: DocumentView[] = DocumentManager.Instance.getAllDocumentViews(this.props.doc);
             docViews.forEach(element => {
-                element.props.Document.libraryBrush = false;
+                element.props.Document.libraryBrush = undefined;
             });
         }
     }
@@ -231,7 +227,6 @@ export class SearchItem extends React.Component<SearchItemProps> {
 
     onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
         e.stopPropagation();
-        e.preventDefault();
         const doc = Doc.IsPrototype(this.props.doc) ? Doc.MakeDelegate(this.props.doc) : this.props.doc;
         DragManager.StartDocumentDrag([e.currentTarget], new DragManager.DocumentDragData([doc], []), e.clientX, e.clientY, {
             handlers: { dragComplete: emptyFunction },
@@ -246,7 +241,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
                     onClick={this.onClick} onPointerDown={this.pointerDown} >
                     <div className="main-search-info">
                         <div title="Drag as document" onPointerDown={this.onPointerDown}> <FontAwesomeIcon icon="file" size="lg" /> </div>
-                        <div className="search-title" id="result" >{this.props.doc.title}</div>
+                        <div className="search-title" id="result" >{StrCast(this.props.doc.title)}</div>
                         <div className="search-info" style={{ width: this._useIcons ? "15%" : "400px" }}>
                             <div className={`icon-${this._useIcons ? "icons" : "live"}`}>
                                 <div className="search-type" >{this.DocumentIcon}</div>

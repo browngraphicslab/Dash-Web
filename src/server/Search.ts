@@ -48,4 +48,25 @@ export class Search {
             });
         } catch { }
     }
+
+    public deleteDocuments(docs: string[]) {
+        const promises: rp.RequestPromise[] = [];
+        const nToDelete = 1000;
+        let index = 0;
+        while (index < docs.length) {
+            const count = Math.min(docs.length - index, nToDelete);
+            const deleteIds = docs.slice(index, index + count);
+            index += count;
+            promises.push(rp.post(this.url + "dash/update", {
+                body: {
+                    delete: {
+                        query: deleteIds.map(id => `id:"${id}"`).join(" ")
+                    }
+                },
+                json: true
+            }));
+        }
+
+        return Promise.all(promises);
+    }
 }

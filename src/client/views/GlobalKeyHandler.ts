@@ -6,7 +6,7 @@ import { DragManager } from "../util/DragManager";
 import { action } from "mobx";
 
 const modifiers = ["control", "meta", "shift", "alt"];
-type KeyHandler = (keycode: string) => KeyControlInfo;
+type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo;
 type KeyControlInfo = {
     preventDefault: boolean,
     stopPropagation: boolean
@@ -42,7 +42,7 @@ export default class KeyManager {
             return;
         }
 
-        let control = handleConstrained(keyname);
+        let control = handleConstrained(keyname, e);
 
         control.stopPropagation && e.stopPropagation();
         control.preventDefault && e.preventDefault();
@@ -53,7 +53,7 @@ export default class KeyManager {
         }
     });
 
-    private unmodified = action((keyname: string) => {
+    private unmodified = action((keyname: string, e: KeyboardEvent) => {
         switch (keyname) {
             case "escape":
                 if (MainView.Instance.isPointerDown) {
@@ -66,6 +66,21 @@ export default class KeyManager {
                     }
                 }
                 MainView.Instance.toggleColorPicker(true);
+                break;
+            case "delete":
+            case "backspace":
+                if (document.activeElement) {
+                    if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") {
+                        return { stopPropagation: false, preventDefault: false };
+                    }
+                }
+                UndoManager.RunInBatch(() => {
+                    SelectionManager.SelectedDocuments().map(docView => {
+                        let doc = docView.props.Document;
+                        let remove = docView.props.removeDocument;
+                        remove && remove(doc);
+                    });
+                }, "delete");
                 break;
         }
 

@@ -1,7 +1,7 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowDown, faArrowUp, faBell, faCheck, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faThumbtack, faTree, faUndoAlt } from '@fortawesome/free-solid-svg-icons';
+import { faArrowDown, faArrowUp, faClone, faCheck, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faPortrait, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faThumbtack, faTree, faUndoAlt, faCat } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, configure, observable, runInAction } from 'mobx';
+import { action, computed, configure, observable, runInAction, reaction, trace } from 'mobx';
 import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
@@ -13,7 +13,7 @@ import { Id } from '../../new_fields/FieldSymbols';
 import { InkTool } from '../../new_fields/InkField';
 import { List } from '../../new_fields/List';
 import { listSpec } from '../../new_fields/Schema';
-import { Cast, FieldValue, NumCast } from '../../new_fields/Types';
+import { Cast, FieldValue, NumCast, BoolCast, StrCast } from '../../new_fields/Types';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { RouteStore } from '../../server/RouteStore';
 import { emptyFunction, returnOne, returnTrue } from '../../Utils';
@@ -38,6 +38,7 @@ import { PresentationView } from './presentationview/PresentationView';
 import { PreviewCursor } from './PreviewCursor';
 import { FilterBox } from './search/FilterBox';
 import { CollectionTreeView } from './collections/CollectionTreeView';
+import { ClientUtils } from '../util/ClientUtils';
 
 @observer
 export class MainView extends React.Component {
@@ -57,30 +58,40 @@ export class MainView extends React.Component {
     private set mainContainer(doc: Opt<Doc>) {
         if (doc) {
             if (!("presentationView" in doc)) {
-                doc.presentationView = new List<Doc>([Docs.TreeDocument([], { title: "Presentation" })]);
+                doc.presentationView = new List<Doc>([Docs.Create.TreeDocument([], { title: "Presentation" })]);
             }
             CurrentUserUtils.UserDocument.activeWorkspace = doc;
         }
     }
 
     componentWillMount() {
+        var tag = document.createElement('script');
+
+        tag.src = "https://www.youtube.com/iframe_api";
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode!.insertBefore(tag, firstScriptTag);
         window.removeEventListener("keydown", KeyManager.Instance.handle);
         window.addEventListener("keydown", KeyManager.Instance.handle);
 
-        window.removeEventListener("pointerdown", this.pointerDown);
-        window.addEventListener("pointerdown", this.pointerDown);
-
-        window.removeEventListener("pointerup", this.pointerUp);
-        window.addEventListener("pointerup", this.pointerUp);
+        reaction(() => {
+            let workspaces = CurrentUserUtils.UserDocument.workspaces;
+            let recent = CurrentUserUtils.UserDocument.recentlyClosed;
+            if (!(recent instanceof Doc)) return 0;
+            if (!(workspaces instanceof Doc)) return 0;
+            let workspacesDoc = workspaces;
+            let recentDoc = recent;
+            let libraryHeight = this.getPHeight() - workspacesDoc[HeightSym]() - recentDoc[HeightSym]() - 20 + CurrentUserUtils.UserDocument[HeightSym]() * 0.00001;
+            return libraryHeight;
+        }, (libraryHeight: number) => {
+            if (libraryHeight && Math.abs(CurrentUserUtils.UserDocument[HeightSym]() - libraryHeight) > 5) {
+                CurrentUserUtils.UserDocument.height = libraryHeight;
+            }
+            (Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc) as Doc).allowClear = true;
+        }, { fireImmediately: true });
     }
-
-    pointerDown = (e: PointerEvent) => this.isPointerDown = true;
-    pointerUp = (e: PointerEvent) => this.isPointerDown = false;
 
     componentWillUnMount() {
         window.removeEventListener("keydown", KeyManager.Instance.handle);
-        window.removeEventListener("pointerdown", this.pointerDown);
-        window.removeEventListener("pointerup", this.pointerUp);
     }
 
     constructor(props: Readonly<{}>) {
@@ -88,15 +99,6 @@ export class MainView extends React.Component {
         MainView.Instance = this;
         // causes errors to be generated when modifying an observable outside of an action
         configure({ enforceActions: "observed" });
-        if (window.location.search.includes("readonly")) {
-            DocServer.makeReadOnly();
-        }
-        if (window.location.search.includes("safe")) {
-            if (!window.location.search.includes("nro")) {
-                DocServer.makeReadOnly();
-            }
-            CollectionBaseView.SetSafeMode(true);
-        }
         if (window.location.pathname !== RouteStore.home) {
             let pathname = window.location.pathname.substr(1).split("/");
             if (pathname.length > 1) {
@@ -109,7 +111,8 @@ export class MainView extends React.Component {
 
         library.add(faFont);
         library.add(faExclamation);
-        library.add(faImage);
+        library.add(faPortrait);
+        library.add(faCat);
         library.add(faFilePdf);
         library.add(faObjectGroup);
         library.add(faTable);
@@ -120,6 +123,7 @@ export class MainView extends React.Component {
         library.add(faFilm);
         library.add(faMusic);
         library.add(faTree);
+        library.add(faClone);
         library.add(faCut);
         library.add(faCommentAlt);
         library.add(faThumbtack);
@@ -135,8 +139,8 @@ export class MainView extends React.Component {
         window.addEventListener("drop", (e) => e.preventDefault(), false); // drop event handler
         window.addEventListener("dragover", (e) => e.preventDefault(), false); // drag event handler
         // click interactions for the context menu
-        document.addEventListener("pointerdown", action(function (e: PointerEvent) {
-
+        document.addEventListener("pointerdown", action((e: PointerEvent) => {
+            this.isPointerDown = true;
             const targets = document.elementsFromPoint(e.x, e.y);
             if (targets && targets.length && targets[0].className.toString().indexOf("contextMenu") === -1) {
                 ContextMenu.Instance.closeMenu();
@@ -167,9 +171,9 @@ export class MainView extends React.Component {
         if (!(workspaces instanceof Doc)) return;
         const list = Cast((CurrentUserUtils.UserDocument.workspaces as Doc).data, listSpec(Doc));
         if (list) {
-            let freeformDoc = Docs.FreeformDocument([], { x: 0, y: 400, width: this.pwidth * .7, height: this.pheight, title: `WS collection ${list.length + 1}` });
+            let freeformDoc = Docs.Create.FreeformDocument([], { x: 0, y: 400, width: this.pwidth * .7, height: this.pheight, title: `WS collection ${list.length + 1}` });
             var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc, freeformDoc, 600)] }] };
-            let mainDoc = Docs.DockDocument([CurrentUserUtils.UserDocument, freeformDoc], JSON.stringify(dockingLayout), { title: `Workspace ${list.length + 1}` }, id);
+            let mainDoc = Docs.Create.DockDocument([CurrentUserUtils.UserDocument, freeformDoc], JSON.stringify(dockingLayout), { title: `Workspace ${list.length + 1}` }, id);
             if (!CurrentUserUtils.UserDocument.linkManagerDoc) {
                 let linkManagerDoc = new Doc();
                 linkManagerDoc.allLinks = new List<Doc>([]);
@@ -189,7 +193,21 @@ export class MainView extends React.Component {
     openWorkspace = async (doc: Doc, fromHistory = false) => {
         CurrentUserUtils.MainDocId = doc[Id];
         this.mainContainer = doc;
-        fromHistory || HistoryUtil.pushState({ type: "doc", docId: doc[Id], initializers: {} });
+        const state = HistoryUtil.parseUrl(window.location) || {} as any;
+        fromHistory || HistoryUtil.pushState({ type: "doc", docId: doc[Id], readonly: state.readonly, nro: state.nro });
+        if (state.readonly === true || state.readonly === null) {
+            DocServer.Control.makeReadOnly();
+        } else if (state.safe) {
+            if (!state.nro) {
+                DocServer.Control.makeReadOnly();
+            }
+            CollectionBaseView.SetSafeMode(true);
+        } else if (state.nro || state.nro === null || state.readonly === false) {
+        } else if (BoolCast(doc.readOnly)) {
+            DocServer.Control.makeReadOnly();
+        } else {
+            DocServer.Control.makeEditable();
+        }
         const col = await Cast(CurrentUserUtils.UserDocument.optionalRightCollection, Doc);
         // if there is a pending doc, and it has new data, show it (syip: we use a timeout to prevent collection docking view from being uninitialized)
         setTimeout(async () => {
@@ -270,6 +288,7 @@ export class MainView extends React.Component {
     }
     @action
     onPointerUp = (e: PointerEvent) => {
+        this.isPointerDown = false;
         if (Math.abs(e.clientX - this._downsize) < 4) {
             if (this.flyoutWidth < 5) this.flyoutWidth = 250;
             else this.flyoutWidth = 0;
@@ -284,25 +303,12 @@ export class MainView extends React.Component {
         } else {
             CollectionDockingView.Instance.AddRightSplit(doc, undefined);
         }
-    };
+    }
     @computed
     get flyout() {
         let sidebar = CurrentUserUtils.UserDocument.sidebar;
-        let workspaces = CurrentUserUtils.UserDocument.workspaces;
-        let recent = CurrentUserUtils.UserDocument.recentlyClosed;
         if (!(sidebar instanceof Doc)) return (null);
-        if (!(recent instanceof Doc)) return (null);
-        if (!(workspaces instanceof Doc)) return (null);
-        let workspacesDoc = workspaces as Doc;
-        let sidebarDoc = sidebar as Doc;
-        let recentDoc = recent as Doc;
-        let library = CurrentUserUtils.UserDocument;
-        let gridGap = NumCast(sidebar.gridGap, 10);
-        let yMargin = NumCast(sidebar.yMargin, 2 * gridGap);
-        let libraryHeight = this.getPHeight() - workspacesDoc[HeightSym]() - recentDoc[HeightSym]() - 2 * gridGap - 2 * yMargin;
-        if (Math.abs(library[HeightSym]() - libraryHeight) > 25) {
-            setTimeout(() => CurrentUserUtils.UserDocument.height = libraryHeight, 0);
-        }
+        let sidebarDoc = sidebar;
         return <DocumentView
             Document={sidebarDoc}
             DataDoc={undefined}
@@ -322,17 +328,19 @@ export class MainView extends React.Component {
             ContainingCollectionView={undefined}
             zoomToScale={emptyFunction}
             getScale={returnOne}>
-        </DocumentView>
+        </DocumentView>;
     }
     @computed
     get mainContent() {
+        let sidebar = CurrentUserUtils.UserDocument.sidebar;
+        if (!(sidebar instanceof Doc)) return (null);
         return <div>
             <div className="mainView-libraryHandle"
-                style={{ left: `${this.flyoutWidth - 10}px` }}
+                style={{ left: `${this.flyoutWidth - 10}px`, backgroundColor: `${StrCast(sidebar.backgroundColor, "lightGray")}` }}
                 onPointerDown={this.onPointerDown}>
                 <span title="library View Dragger" style={{ width: "100%", height: "100%", position: "absolute" }} />
             </div>
-            <div className="mainView-libraryFlyout" style={{ width: `${this.flyoutWidth}px` }}>
+            <div className="mainView-libraryFlyout" style={{ width: `${this.flyoutWidth}px`, zIndex: 1 }}>
                 {this.flyout}
             </div>
             {this.dockingContent}
@@ -362,41 +370,47 @@ export class MainView extends React.Component {
 
         let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
 
-        let addColNode = action(() => Docs.FreeformDocument([], { width: this.pwidth * .7, height: this.pheight, title: "a freeform collection" }));
+        // let addDockingNode = action(() => Docs.Create.StandardCollectionDockingDocument([{ doc: addColNode(), initialWidth: 200 }], { width: 200, height: 200, title: "a nested docking freeform collection" }));
+        let addSchemaNode = action(() => Docs.Create.SchemaDocument(["title"], [], { width: 200, height: 200, title: "a schema collection" }));
+        //let addTreeNode = action(() => Docs.TreeDocument([CurrentUserUtils.UserDocument], { width: 250, height: 400, title: "Library:" + CurrentUserUtils.email, dropAction: "alias" }));
+        // let addTreeNode = action(() => Docs.TreeDocument(this._northstarSchemas, { width: 250, height: 400, title: "northstar schemas", dropAction: "copy"  }));
+        let addColNode = action(() => Docs.Create.FreeformDocument([], { width: this.pwidth * .7, height: this.pheight, title: "a freeform collection" }));
         let addTreeNode = action(() => CurrentUserUtils.UserDocument);
-        let addImageNode = action(() => Docs.ImageDocument(imgurl, { width: 200, title: "an image of a cat" }));
+        let addImageNode = action(() => Docs.Create.ImageDocument(imgurl, { width: 200, title: "an image of a cat" }));
+        let addImportCollectionNode = action(() => Docs.Create.DirectoryImportDocument({ title: "Directory Import", width: 400, height: 400 }));
 
         let btns: [React.RefObject<HTMLDivElement>, IconName, string, () => Doc][] = [
-            [React.createRef<HTMLDivElement>(), "image", "Add Image", addImageNode],
             [React.createRef<HTMLDivElement>(), "object-group", "Add Collection", addColNode],
-            [React.createRef<HTMLDivElement>(), "tree", "Add Tree", addTreeNode],
+            // [React.createRef<HTMLDivElement>(), "clone", "Add Docking Frame", addDockingNode],
+            [React.createRef<HTMLDivElement>(), "arrow-up", "Import Directory", addImportCollectionNode],
         ];
+        if (!ClientUtils.RELEASE) btns.unshift([React.createRef<HTMLDivElement>(), "cat", "Add Cat Image", addImageNode]);
 
         return < div id="add-nodes-menu" style={{ left: this.flyoutWidth + 5 }} >
             <input type="checkbox" id="add-menu-toggle" ref={this.addMenuToggle} />
-            <label htmlFor="add-menu-toggle" title="Add Node"><p>+</p></label>
+            <label htmlFor="add-menu-toggle" style={{ marginTop: 2 }} title="Add Node"><p>+</p></label>
 
             <div id="add-options-content">
                 <ul id="add-options-list">
                     <li key="search"><button className="add-button round-button" title="Search" onClick={this.toggleSearch}><FontAwesomeIcon icon="search" size="sm" /></button></li>
-                    <li key="undo"><button className="add-button round-button" title="Undo" onClick={() => UndoManager.Undo()}><FontAwesomeIcon icon="undo-alt" size="sm" /></button></li>
-                    <li key="redo"><button className="add-button round-button" title="Redo" onClick={() => UndoManager.Redo()}><FontAwesomeIcon icon="redo-alt" size="sm" /></button></li>
-                    <li key="color"><button className="add-button round-button" title="Select Color" onClick={() => this.toggleColorPicker()}><div className="toolbar-color-button" style={{ backgroundColor: InkingControl.Instance.selectedColor }} >
-                        <div className="toolbar-color-picker" onClick={this.onColorClick} style={this._colorPickerDisplay ? { color: "black", display: "block" } : { color: "black", display: "none" }}>
-                            <SketchPicker color={InkingControl.Instance.selectedColor} onChange={InkingControl.Instance.switchColor} />
-                        </div>
-                    </div></button></li>
+                    <li key="undo"><button className="add-button round-button" title="Undo" style={{ opacity: UndoManager.CanUndo() ? 1 : 0.5, transition: "0.4s ease all" }} onClick={() => UndoManager.Undo()}><FontAwesomeIcon icon="undo-alt" size="sm" /></button></li>
+                    <li key="redo"><button className="add-button round-button" title="Redo" style={{ opacity: UndoManager.CanRedo() ? 1 : 0.5, transition: "0.4s ease all" }} onClick={() => UndoManager.Redo()}><FontAwesomeIcon icon="redo-alt" size="sm" /></button></li>
                     {btns.map(btn =>
                         <li key={btn[1]} ><div ref={btn[0]}>
                             <button className="round-button add-button" title={btn[2]} onPointerDown={SetupDrag(btn[0], btn[3])}>
                                 <FontAwesomeIcon icon={btn[1]} size="sm" />
                             </button>
                         </div></li>)}
-                    <li key="undoTest"><button className="add-button round-button" onClick={() => UndoManager.PrintBatches()}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>
+                    <li key="undoTest"><button className="add-button round-button" title="Click if undo isn't working" onClick={() => UndoManager.TraceOpenBatches()}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>
+                    <li key="color"><button className="add-button round-button" title="Select Color" onClick={() => this.toggleColorPicker()}><div className="toolbar-color-button" style={{ backgroundColor: InkingControl.Instance.selectedColor }} >
+                        <div className="toolbar-color-picker" onClick={this.onColorClick} style={this._colorPickerDisplay ? { color: "black", display: "block" } : { color: "black", display: "none" }}>
+                            <SketchPicker color={InkingControl.Instance.selectedColor} onChange={InkingControl.Instance.switchColor} />
+                        </div>
+                    </div></button></li>
                     <li key="ink" style={{ paddingRight: "6px" }}><button className="toolbar-button round-button" title="Ink" onClick={() => InkingControl.Instance.toggleDisplay()}><FontAwesomeIcon icon="pen-nib" size="sm" /> </button></li>
-                    <li key="pen"><button onClick={() => InkingControl.Instance.switchTool(InkTool.Pen)} style={this.selected(InkTool.Pen)}><FontAwesomeIcon icon="pen" size="lg" title="Pen" /></button></li>
-                    <li key="marker"><button onClick={() => InkingControl.Instance.switchTool(InkTool.Highlighter)} style={this.selected(InkTool.Highlighter)}><FontAwesomeIcon icon="highlighter" size="lg" title="Pen" /></button></li>
-                    <li key="eraser"><button onClick={() => InkingControl.Instance.switchTool(InkTool.Eraser)} style={this.selected(InkTool.Eraser)}><FontAwesomeIcon icon="eraser" size="lg" title="Pen" /></button></li>
+                    <li key="pen"><button onClick={() => InkingControl.Instance.switchTool(InkTool.Pen)} title="Pen" style={this.selected(InkTool.Pen)}><FontAwesomeIcon icon="pen" size="lg" /></button></li>
+                    <li key="marker"><button onClick={() => InkingControl.Instance.switchTool(InkTool.Highlighter)} title="Highlighter" style={this.selected(InkTool.Highlighter)}><FontAwesomeIcon icon="highlighter" size="lg" /></button></li>
+                    <li key="eraser"><button onClick={() => InkingControl.Instance.switchTool(InkTool.Eraser)} title="Eraser" style={this.selected(InkTool.Eraser)}><FontAwesomeIcon icon="eraser" size="lg" /></button></li>
                     <li key="inkControls"><InkingControl /></li>
                 </ul>
             </div>
@@ -418,7 +432,7 @@ export class MainView extends React.Component {
         return [
             this.isSearchVisible ? <div className="main-searchDiv" key="search" style={{ top: '34px', right: '1px', position: 'absolute' }} > <FilterBox /> </div> : null,
             <div className="main-buttonDiv" key="logout" style={{ bottom: '0px', right: '1px', position: 'absolute' }} ref={logoutRef}>
-                <button onClick={() => request.get(DocServer.prepend(RouteStore.logout), emptyFunction)}>Log Out</button></div>
+                <button onClick={() => window.location.assign(DocServer.prepend(RouteStore.logout))}>Log Out</button></div>
         ];
 
     }
@@ -442,7 +456,7 @@ export class MainView extends React.Component {
                 <PDFMenu />
                 <MainOverlayTextBox />
                 <OverlayView />
-            </div>
+            </div >
         );
     }
 }

@@ -9,7 +9,7 @@ export namespace SerializationHelper {
 
     export function Serialize(obj: Field): any {
         if (obj === undefined || obj === null) {
-            return undefined;
+            return null;
         }
 
         if (typeof obj !== 'object') {

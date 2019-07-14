@@ -21,6 +21,7 @@ import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
 import React = require("react");
 import { RouteStore } from '../../../server/RouteStore';
+import { Docs } from '../../documents/Documents';
 var requestImageSize = require('../../util/request-image-size');
 var path = require('path');
 
@@ -31,6 +32,15 @@ library.add(faImage);
 export const pageSchema = createSchema({
     curPage: "number",
 });
+
+interface window {
+    MediaRecorder: MediaRecorder;
+}
+
+declare class MediaRecorder {
+    // whatever MediaRecorder has
+    constructor(e: any);
+}
 
 type ImageDocument = makeInterface<[typeof pageSchema, typeof positionSchema]>;
 const ImageDocument = makeInterface(pageSchema, positionSchema);
@@ -86,6 +96,8 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                             e.stopPropagation();
                         }
                     }
+                } else if (!this.props.isSelected()) {
+                    e.stopPropagation();
                 }
             }));
             // de.data.removeDocument()  bcz: need to implement
@@ -95,7 +107,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     onPointerDown = (e: React.PointerEvent): void => {
         if (e.shiftKey && e.ctrlKey) {
             e.stopPropagation(); // allows default system drag drop of images with shift+ctrl only
-        } else e.preventDefault();
+        }
         // if (Date.now() - this._lastTap < 300) {
         //     if (e.buttons === 1) {
         //         this._downX = e.clientX;
@@ -136,12 +148,43 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         }
     }
 
+    recordAudioAnnotation = () => {
+        let gumStream: any;
+        let recorder: any;
+        let self = this;
+        navigator.mediaDevices.getUserMedia({
+            audio: true
+        }).then(function (stream) {
+            gumStream = stream;
+            recorder = new MediaRecorder(stream);
+            recorder.ondataavailable = function (e: any) {
+                var url = URL.createObjectURL(e.data);
+                // upload to server with known URL 
+                let audioDoc = Docs.Create.AudioDocument(url, { title: "audio test", x: NumCast(self.props.Document.x), y: NumCast(self.props.Document.y), width: 200, height: 32 });
+                audioDoc.embed = true;
+                let audioAnnos = Cast(self.extensionDoc.audioAnnotations, listSpec(Doc));
+                if (audioAnnos === undefined) {
+                    self.extensionDoc.audioAnnotations = new List([audioDoc]);
+                } else {
+                    audioAnnos.push(audioDoc);
+                }
+            };
+            recorder.start();
+            setTimeout(() => {
+                recorder.stop();
+
+                gumStream.getAudioTracks()[0].stop();
+            }, 1000);
+        });
+    }
+
     specificContextMenu = (e: React.MouseEvent): void => {
         let field = Cast(this.Document[this.props.fieldKey], ImageField);
         if (field) {
             let url = field.url.href;
             let subitems: ContextMenuProps[] = [];
             subitems.push({ description: "Copy path", event: () => Utils.CopyText(url), icon: "expand-arrows-alt" });
+            subitems.push({ description: "Record 1sec audio", event: this.recordAudioAnnotation, icon: "expand-arrows-alt" });
             subitems.push({
                 description: "Rotate", event: action(() => {
                     let proto = Doc.GetProto(this.props.Document);
@@ -216,7 +259,9 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                     }), 0);
                 }
             })
-            .catch((err: any) => console.log(err));
+            .catch((err: any) => {
+                console.log(err);
+            });
     }
 
     render() {
@@ -232,7 +277,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         let paths: string[] = ["http://www.cs.brown.edu/~bcz/noImage.png"];
         // this._curSuffix = "";
         // if (w > 20) {
-        Doc.UpdateDocumentExtensionForField(this.extensionDoc, this.props.fieldKey);
+        Doc.UpdateDocumentExtensionForField(this.dataDoc, this.props.fieldKey);
         let alts = DocListCast(this.extensionDoc.Alternates);
         let altpaths: string[] = alts.filter(doc => doc.data instanceof ImageField).map(doc => this.choosePath((doc.data as ImageField).url));
         let field = this.dataDoc[this.props.fieldKey];

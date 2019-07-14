@@ -107,6 +107,8 @@ export class TooltipTextMenu {
         this.fontSizeToNum.set(schema.marks.p12, 12);
         this.fontSizeToNum.set(schema.marks.p14, 14);
         this.fontSizeToNum.set(schema.marks.p16, 16);
+        this.fontSizeToNum.set(schema.marks.p18, 18);
+        this.fontSizeToNum.set(schema.marks.p20, 20);
         this.fontSizeToNum.set(schema.marks.p24, 24);
         this.fontSizeToNum.set(schema.marks.p32, 32);
         this.fontSizeToNum.set(schema.marks.p48, 48);
@@ -121,7 +123,7 @@ export class TooltipTextMenu {
         this.listTypeToIcon.set(schema.nodes.ordered_list, "1)");
         this.listTypes = Array.from(this.listTypeToIcon.keys());
 
-        this.tooltip.appendChild(this.createLink().render(this.view).dom);
+        // this.tooltip.appendChild(this.createLink().render(this.view).dom);
 
         this.tooltip.appendChild(this.createStar().render(this.view).dom);
 
@@ -264,7 +266,7 @@ export class TooltipTextMenu {
                 e.preventDefault();
             }
         };
-        this.tooltip.appendChild(this.linkEditor);
+        // this.tooltip.appendChild(this.linkEditor);
     }
 
     makeLink = (target: string) => {
@@ -448,7 +450,7 @@ export class TooltipTextMenu {
                     let node = state.doc.nodeAt(from);
                     node && node.marks.map(m => {
                         m.type === markType && (curLink = m.attrs.href);
-                    })
+                    });
                     //toggleMark(markType)(state, dispatch);
                     //return true;
                 }

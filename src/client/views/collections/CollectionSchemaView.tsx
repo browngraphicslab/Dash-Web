@@ -235,7 +235,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     onPointerDown = (e: React.PointerEvent): void => {
         if (e.button === 0 && !e.altKey && !e.ctrlKey && !e.metaKey) {
             if (this.props.isSelected()) e.stopPropagation();
-            else e.preventDefault();
         }
     }
 
@@ -264,7 +263,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         let dbName = StrCast(this.props.Document.title);
         let res = await Gateway.Instance.PostSchema(csv, dbName);
         if (self.props.CollectionView.props.addDocument) {
-            let schemaDoc = await Docs.DBDocument("https://www.cs.brown.edu/" + dbName, { title: dbName }, { dbDoc: self.props.Document });
+            let schemaDoc = await Docs.Create.DBDocument("https://www.cs.brown.edu/" + dbName, { title: dbName }, { dbDoc: self.props.Document });
             if (schemaDoc) {
                 //self.props.CollectionView.props.addDocument(schemaDoc, false);
                 self.props.Document.schemaDoc = schemaDoc;
@@ -402,10 +401,11 @@ interface CollectionSchemaPreviewProps {
     Document?: Doc;
     DataDocument?: Doc;
     childDocs?: Doc[];
-    fitToBox?: () => number[];
     renderDepth: number;
+    fitToBox?: boolean;
     width: () => number;
     height: () => number;
+    showOverlays?: (doc: Doc) => { title?: string, caption?: string };
     CollectionView?: CollectionView | CollectionPDFView | CollectionVideoView;
     getTransform: () => Transform;
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
@@ -489,6 +489,7 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
                         fitToBox={this.props.fitToBox}
                         renderDepth={this.props.renderDepth + 1}
                         selectOnLoad={false}
+                        showOverlays={this.props.showOverlays}
                         addDocument={this.props.addDocument}
                         removeDocument={this.props.removeDocument}
                         moveDocument={this.props.moveDocument}
