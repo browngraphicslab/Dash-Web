@@ -1,26 +1,111 @@
 import * as React from 'react';
-import { observer } from 'mobx-react';
-import { observable, action, runInAction, flow } from 'mobx';
+
+import {
+    observer
+}
+
+    from 'mobx-react';
+
+import {
+    observable,
+    action,
+    runInAction,
+    flow,
+    computed
+}
+
+    from 'mobx';
 import "./SearchBox.scss";
 import "./FilterBox.scss";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { SetupDrag } from '../../util/DragManager';
-import { Docs } from '../../documents/Documents';
-import { NumCast } from '../../../new_fields/Types';
-import { Doc } from '../../../new_fields/Doc';
-import { SearchItem } from './SearchItem';
-import { DocServer } from '../../DocServer';
-import * as rp from 'request-promise';
-import { Id } from '../../../new_fields/FieldSymbols';
-import { SearchUtil } from '../../util/SearchUtil';
-import { RouteStore } from '../../../server/RouteStore';
-import { FilterBox } from './FilterBox';
-import { start } from 'repl';
-import { getForkTsCheckerWebpackPluginHooks } from 'fork-ts-checker-webpack-plugin/lib/hooks';
-import { faThumbsDown } from '@fortawesome/free-regular-svg-icons';
 
-@observer
-export class SearchBox extends React.Component {
+import {
+    FontAwesomeIcon
+}
+
+    from '@fortawesome/react-fontawesome';
+
+import {
+    SetupDrag
+}
+
+    from '../../util/DragManager';
+
+import {
+    Docs
+}
+
+    from '../../documents/Documents';
+
+import {
+    NumCast
+}
+
+    from '../../../new_fields/Types';
+
+import {
+    Doc
+}
+
+    from '../../../new_fields/Doc';
+
+import {
+    SearchItem
+}
+
+    from './SearchItem';
+
+import {
+    DocServer
+}
+
+    from '../../DocServer';
+import * as rp from 'request-promise';
+
+import {
+    Id
+}
+
+    from '../../../new_fields/FieldSymbols';
+
+import {
+    SearchUtil
+}
+
+    from '../../util/SearchUtil';
+
+import {
+    RouteStore
+}
+
+    from '../../../server/RouteStore';
+
+import {
+    FilterBox
+}
+
+    from './FilterBox';
+
+import {
+    start
+}
+
+    from 'repl';
+
+import {
+    getForkTsCheckerWebpackPluginHooks
+}
+
+    from 'fork-ts-checker-webpack-plugin/lib/hooks';
+
+import {
+    faThumbsDown
+}
+
+    from '@fortawesome/free-regular-svg-icons';
+import * as $ from 'jquery';
+
+
+@observer export class SearchBox extends React.Component {
 
     @observable private _searchString: string = "";
     @observable private _resultsOpen: boolean = false;
@@ -45,18 +130,19 @@ export class SearchBox extends React.Component {
         this.resultsScrolled = this.resultsScrolled.bind(this);
     }
 
-    @action
-    getViews = async (doc: Doc) => {
+    @action getViews = async (doc: Doc) => {
         const results = await SearchUtil.GetViewsOfDocument(doc);
         let toReturn: Doc[] = [];
+
         await runInAction(() => {
             toReturn = results;
-        });
+        }
+
+        );
         return toReturn;
     }
 
-    @action.bound
-    onChange(e: React.ChangeEvent<HTMLInputElement>) {
+    @action.bound onChange(e: React.ChangeEvent<HTMLInputElement>) {
         this._searchString = e.target.value;
 
         this._openNoResults = false;
@@ -69,27 +155,37 @@ export class SearchBox extends React.Component {
         this._maxSearchIndex = 0;
     }
 
-    enter = (e: React.KeyboardEvent) => { if (e.key === "Enter") { this.submitSearch(); } }
+    enter = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter") {
+            this.submitSearch();
+        }
+    }
 
     public static async convertDataUri(imageUri: string, returnedFilename: string) {
         try {
             let posting = DocServer.prepend(RouteStore.dataUriToImage);
+
             const returnedUri = await rp.post(posting, {
                 body: {
                     uri: imageUri,
                     name: returnedFilename
-                },
+                }
+
+                ,
                 json: true,
-            });
+            }
+
+            );
             return returnedUri;
 
-        } catch (e) {
+        }
+
+        catch (e) {
             console.log(e);
         }
     }
 
-    @action
-    submitSearch = async () => {
+    @action submitSearch = async () => {
         let query = this._searchString;
         query = FilterBox.Instance.getFinalQuery(query);
         this._results = [];
@@ -100,6 +196,7 @@ export class SearchBox extends React.Component {
         if (query === "") {
             return;
         }
+
         else {
             this._startIndex = 0;
             this._endIndex = 12;
@@ -112,7 +209,9 @@ export class SearchBox extends React.Component {
             this._resultsOpen = true;
             this._openNoResults = true;
             this.resultsScrolled();
-        });
+        }
+
+        );
     }
 
     getAllResults = async (query: string) => {
@@ -124,13 +223,17 @@ export class SearchBox extends React.Component {
         while (this._results.length <= this._endIndex && (this._numTotalResults === -1 || this._maxSearchIndex < this._numTotalResults)) {
 
             let prom: Promise<any>;
+
             if (this._curRequest) {
                 prom = this._curRequest;
                 return;
-            } else {
+            }
+
+            else {
                 prom = SearchUtil.Search(query, true, this._maxSearchIndex, 10);
                 this._maxSearchIndex += 10;
             }
+
             prom.then(action((res: SearchUtil.DocSearchResult) => {
 
                 // happens at the beginning
@@ -144,7 +247,9 @@ export class SearchBox extends React.Component {
                 if (prom === this._curRequest) {
                     this._curRequest = undefined;
                 }
-            }));
+            }
+
+            ));
 
             this._curRequest = prom;
 
@@ -153,47 +258,67 @@ export class SearchBox extends React.Component {
     }
 
     collectionRef = React.createRef<HTMLSpanElement>();
+
     startDragCollection = async () => {
         let res = await this.getAllResults(FilterBox.Instance.getFinalQuery(this._searchString));
+        let filtered = FilterBox.Instance.filterDocsByType(res.docs);
+
         // console.log(this._results)
-        const docs = res.docs.map(doc => {
+        const docs = filtered.map(doc => {
             const isProto = Doc.GetT(doc, "isPrototype", "boolean", true);
+
             if (isProto) {
                 return Doc.MakeDelegate(doc);
-            } else {
+            }
+
+            else {
                 return Doc.MakeAlias(doc);
             }
-        });
+        }
+
+        );
         let x = 0;
         let y = 0;
+
         for (const doc of docs) {
             doc.x = x;
             doc.y = y;
             const size = 200;
             const aspect = NumCast(doc.nativeHeight) / NumCast(doc.nativeWidth, 1);
+
             if (aspect > 1) {
                 doc.height = size;
                 doc.width = size / aspect;
-            } else if (aspect > 0) {
+            }
+
+            else if (aspect > 0) {
                 doc.width = size;
                 doc.height = size * aspect;
-            } else {
+            }
+
+            else {
                 doc.width = size;
                 doc.height = size;
             }
+
             doc.zoomBasis = 1;
             x += 250;
+
             if (x > 1000) {
                 x = 0;
                 y += 300;
             }
         }
-        return Docs.Create.FreeformDocument(docs, { width: 400, height: 400, panX: 175, panY: 175, backgroundColor: "grey", title: `Search Docs: "${this._searchString}"` });
+
+        return Docs.Create.FreeformDocument(docs, {
+            width: 400, height: 400, panX: 175, panY: 175, backgroundColor: "grey", title: `Search Docs: "${this._searchString}"`
+        }
+
+        );
 
     }
 
-    @action.bound
-    openSearch(e: React.PointerEvent) {
+    @action.bound openSearch(e: React.PointerEvent) {
         e.stopPropagation();
         this._openNoResults = false;
         FilterBox.Instance.closeFilter();
@@ -201,14 +326,12 @@ export class SearchBox extends React.Component {
         FilterBox.Instance._pointerTime = e.timeStamp;
     }
 
-    @action.bound
-    closeSearch = () => {
+    @action.bound closeSearch = () => {
         FilterBox.Instance.closeFilter();
         this.closeResults();
     }
 
-    @action.bound
-    closeResults() {
+    @action.bound closeResults() {
         this._resultsOpen = false;
         this._results = [];
         this._visibleElements = [];
@@ -245,59 +368,148 @@ export class SearchBox extends React.Component {
             this._isSearch = Array<undefined>(this._numTotalResults === -1 ? 0 : this._numTotalResults);
         }
 
-        for (let i = 0; i < this._numTotalResults; i++) {
+        for (let i = 0;
+            i < this._numTotalResults;
+
+            i++) {
+
             //if the index is out of the window then put a placeholder in
             //should ones that have already been found get set to placeholders?
             if (i < startIndex || i > endIndex) {
                 if (this._isSearch[i] !== "placeholder") {
                     this._isSearch[i] = "placeholder";
-                    this._visibleElements[i] = <div className="searchBox-placeholder" key={`searchBox-placeholder-${i}`}></div>;
+
+                    this._visibleElements[i] = <div className="searchBox-placeholder" key={
+                        `searchBox-placeholder-$ {
+                            i
+                        }
+
+                        `
+                    }
+
+                    ></div>;
                 }
             }
+
             else {
                 if (this._isSearch[i] !== "search") {
                     let result: Doc | undefined = undefined;
+
                     if (i >= this._results.length) {
                         this.getResults(this._searchString);
                         if (i < this._results.length) result = this._results[i];
+
                         if (result) {
-                            this._visibleElements[i] = <SearchItem doc={result} key={result[Id]} />;
+                            this._visibleElements[i] = <SearchItem doc={
+                                result
+                            }
+
+                                key={
+                                    result[Id]
+                                }
+
+                            />;
                             this._isSearch[i] = "search";
                         }
                     }
+
                     else {
                         result = this._results[i];
+
                         if (result) {
-                            this._visibleElements[i] = <SearchItem doc={result} key={result[Id]} />;
+                            this._visibleElements[i] = <SearchItem doc={
+                                result
+                            }
+
+                                key={
+                                    result[Id]
+                                }
+
+                            />;
                             this._isSearch[i] = "search";
                         }
                     }
                 }
             }
         }
+
         if (this._maxSearchIndex >= this._numTotalResults) {
             this._visibleElements.length = this._results.length;
             this._isSearch.length = this._results.length;
         }
-    });
+    }
+
+    );
+
+    @computed get resFull() {
+        console.log(`res full $ {
+            this._numTotalResults <=8
+        }
+
+        `) return this._numTotalResults <= 8;
+    }
+
+    @computed get resultHeight() {
+        return this._numTotalResults * 70;
+    }
 
     render() {
-        return (
-            <div className="searchBox-container">
-                <div className="searchBox-bar">
-                    <span className="searchBox-barChild searchBox-collection" onPointerDown={SetupDrag(this.collectionRef, this.startDragCollection)} ref={this.collectionRef}>
-                        <FontAwesomeIcon icon="object-group" size="lg" />
-                    </span>
-                    <input value={this._searchString} onChange={this.onChange} type="text" placeholder="Search..."
-                        className="searchBox-barChild searchBox-input" onPointerDown={this.openSearch} onKeyPress={this.enter}
-                        style={{ width: this._resultsOpen ? "500px" : "100px" }} />
-                    <button className="searchBox-barChild searchBox-filter" onClick={FilterBox.Instance.openFilter} onPointerDown={FilterBox.Instance.stopProp}>Filter</button>
-                </div>
-                <div className="searchBox-results" onScroll={this.resultsScrolled} style={this._resultsOpen ? { display: "flex" } : { display: "none" }}>
-                    {this._visibleElements}
-                </div>
-            </div>
-        );
+        return (<div className="searchBox-container"> <div className="searchBox-bar"> <span className="searchBox-barChild searchBox-collection" onPointerDown={
+            SetupDrag(this.collectionRef, this.startDragCollection)
+        }
+
+            ref={
+                this.collectionRef
+            }
+
+        > <FontAwesomeIcon icon="object-group" size="lg" /> </span> <input value={
+            this._searchString
+        }
+
+            onChange={
+                this.onChange
+            }
+
+            type="text" placeholder="Search..."
+
+            className="searchBox-barChild searchBox-input" onPointerDown={
+                this.openSearch
+            }
+
+            onKeyPress={
+                this.enter
+            }
+
+            style={
+                {
+                    width: this._resultsOpen ? "500px" : "100px"
+                }
+            }
+
+            /> <button className="searchBox-barChild searchBox-filter" onClick={
+                FilterBox.Instance.openFilter
+            }
+
+                onPointerDown={
+                    FilterBox.Instance.stopProp
+                }
+
+            >Filter</button> </div> <div className="searchBox-results" onScroll={
+                this.resultsScrolled
+            }
+
+                style={
+                    {
+                        display: this._resultsOpen ? "flex" : "none",
+                        height: this.resFull ? "560px" : this.resultHeight, overflow: this.resFull ? "auto" : "visible"
+                    }
+                }
+
+            > {
+                    this._visibleElements
+                }
+
+            </div> </div>);
     }
 
 }
