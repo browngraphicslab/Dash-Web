@@ -442,11 +442,7 @@ import * as $ from 'jquery';
     );
 
     @computed get resFull() {
-        console.log(`res full $ {
-            this._numTotalResults <=8
-        }
-
-        `) return this._numTotalResults <= 8;
+        return this._numTotalResults <= 8;
     }
 
     @computed get resultHeight() {
