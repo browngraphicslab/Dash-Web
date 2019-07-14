@@ -1,5 +1,5 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowDown, faArrowUp, faCheck, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faThumbtack, faTree, faUndoAlt } from '@fortawesome/free-solid-svg-icons';
+import { faArrowDown, faArrowUp, faCheck, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faThumbtack, faTree, faUndoAlt, faCloudUploadAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, runInAction, reaction, trace } from 'mobx';
 import { observer } from 'mobx-react';
@@ -111,7 +111,8 @@ export class MainView extends React.Component {
                 }
             }
         }
-
+        library.add(faCloudUploadAlt);
+        library.add(faFont);
         library.add(faFont);
         library.add(faExclamation);
         library.add(faImage);
@@ -369,7 +370,7 @@ export class MainView extends React.Component {
             [React.createRef<HTMLDivElement>(), "image", "Add Image", addImageNode],
             [React.createRef<HTMLDivElement>(), "object-group", "Add Collection", addColNode],
             [React.createRef<HTMLDivElement>(), "tree", "Add Tree", addTreeNode],
-            [React.createRef<HTMLDivElement>(), "arrow-up", "Import Directory", addImportCollectionNode],
+            [React.createRef<HTMLDivElement>(), "cloud-upload-alt", "Import Directory", addImportCollectionNode],
         ];
 
         return < div id="add-nodes-menu" style={{ left: this.flyoutWidth + 5 }} >

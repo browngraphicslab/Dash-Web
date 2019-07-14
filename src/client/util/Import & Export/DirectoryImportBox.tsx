@@ -8,7 +8,7 @@ import { FieldViewProps, FieldView } from "../../views/nodes/FieldView";
 import Measure, { ContentRect } from "react-measure";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faArrowUp, faTag, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { faArrowUp, faTag, faPlus, faCloudUploadAlt } from '@fortawesome/free-solid-svg-icons';
 import { Docs, DocumentOptions } from "../../documents/Documents";
 import { observer } from "mobx-react";
 import ImportMetadataEntry, { keyPlaceholder, valuePlaceholder } from "./ImportMetadataEntry";
@@ -40,7 +40,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
 
     constructor(props: FieldViewProps) {
         super(props);
-        library.add(faArrowUp, faTag, faPlus);
+        library.add(faArrowUp, faTag, faPlus, faCloudUploadAlt);
         let doc = this.props.Document;
         this.editingMetadata = this.editingMetadata || false;
         this.persistent = this.persistent || false;
@@ -242,7 +242,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                                 opacity: uploading ? 0 : 1,
                                 transition: "0.4s opacity ease"
                             }}>
-                                <FontAwesomeIcon icon={faArrowUp} color="#FFFFFF" size={"2x"} />
+                                <FontAwesomeIcon icon={faCloudUploadAlt} color="#FFFFFF" size={"2x"} />
                             </div>
                             <img
                                 style={{
@@ -318,7 +318,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                                 opacity: uploading ? 0 : 1,
                                 transition: "0.4s opacity ease"
                             }}
-                            icon={isEditing ? faArrowUp : faTag}
+                            icon={isEditing ? faCloudUploadAlt : faTag}
                             color="#FFFFFF"
                             size={"1x"}
                         />
