@@ -19,6 +19,8 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
     @observable private _currentValue: string = "";
     @observable private suggestions: string[] = [];
 
+    private autosuggestRef = React.createRef<Autosuggest>();
+
     @action
     onKeyChange = (e: React.ChangeEvent, { newValue }: { newValue: string }) => {
         this._currentKey = newValue;
@@ -62,6 +64,10 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
     clearInputs = () => {
         this._currentKey = "";
         this._currentValue = "";
+        if (this.autosuggestRef.current) {
+            const input: HTMLInputElement = (this.autosuggestRef.current as any).input;
+            input && input.focus();
+        }
     }
 
     getKeySuggestions = async (value: string): Promise<string[]> => {
@@ -106,12 +112,13 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
         return (
             <div className="metadataEntry-outerDiv">
                 Key:
-                <Autosuggest inputProps={{ value: this._currentKey, onChange: this.onKeyChange, className: "metadataEntry-input" }}
+                <Autosuggest inputProps={{ value: this._currentKey, onChange: this.onKeyChange }}
                     getSuggestionValue={this.getSuggestionValue}
                     suggestions={this.suggestions}
                     renderSuggestion={this.renderSuggestion}
                     onSuggestionsFetchRequested={this.onSuggestionFetch}
-                    onSuggestionsClearRequested={this.onSuggestionClear} />
+                    onSuggestionsClearRequested={this.onSuggestionClear}
+                    ref={this.autosuggestRef} />
                 Value:
                 <input className="metadataEntry-input" value={this._currentValue} onChange={this.onValueChange} onKeyDown={this.onValueKeyDown} />
             </div>
