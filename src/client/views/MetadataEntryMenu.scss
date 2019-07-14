@@ -37,6 +37,8 @@
 .react-autosuggest__suggestions-container--open {
     display: block;
     position: fixed;
+    overflow-y: auto;
+    max-height: 400px;
     width: 180px;
     border: 1px solid #aaa;
     background-color: #fff;
