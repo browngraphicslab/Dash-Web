@@ -152,7 +152,6 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
     }
 
     render() {
-        trace();
         return (
             <div className="metadataEntry-outerDiv">
                 Key:

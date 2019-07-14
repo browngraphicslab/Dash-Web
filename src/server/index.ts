@@ -149,6 +149,32 @@ app.get("/search", async (req, res) => {
     res.send(results);
 });
 
+function msToTime(duration: number) {
+    let milliseconds = Math.floor((duration % 1000) / 100),
+        seconds = Math.floor((duration / 1000) % 60),
+        minutes = Math.floor((duration / (1000 * 60)) % 60),
+        hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
+
+    let hoursS = (hours < 10) ? "0" + hours : hours;
+    let minutesS = (minutes < 10) ? "0" + minutes : minutes;
+    let secondsS = (seconds < 10) ? "0" + seconds : seconds;
+
+    return hoursS + ":" + minutesS + ":" + secondsS + "." + milliseconds;
+}
+
+app.get("/whosOnline", (req, res) => {
+    let users: any = { active: {}, inactive: {} };
+    const now = Date.now();
+
+    for (const user in timeMap) {
+        const time = timeMap[user];
+        const key = ((now - time) / 1000) < (60 * 5) ? "active" : "inactive";
+        users[key][user] = `Last active ${msToTime(now - time)} ago`;
+    }
+
+    res.send(users);
+});
+
 app.get("/thumbnail/:filename", (req, res) => {
     let filename = req.params.filename;
     let noExt = filename.substring(0, filename.length - ".png".length);
@@ -450,12 +476,21 @@ interface Map {
 }
 let clients: Map = {};
 
+let socketMap = new Map<SocketIO.Socket, string>();
+let timeMap: { [id: string]: number } = {};
+
 server.on("connection", function (socket: Socket) {
-    console.log("a user has connected");
+    socket.use((packet, next) => {
+        let id = socketMap.get(socket);
+        if (id) {
+            timeMap[id] = Date.now();
+        }
+        next();
+    });
 
     Utils.Emit(socket, MessageStore.Foo, "handshooken");
 
-    Utils.AddServerHandler(socket, MessageStore.Bar, barReceived);
+    Utils.AddServerHandler(socket, MessageStore.Bar, guid => barReceived(socket, guid));
     Utils.AddServerHandler(socket, MessageStore.SetField, (args) => setField(socket, args));
     Utils.AddServerHandlerCallback(socket, MessageStore.GetField, getField);
     Utils.AddServerHandlerCallback(socket, MessageStore.GetFields, getFields);
@@ -485,8 +520,10 @@ async function deleteAll() {
     await Search.Instance.clear();
 }
 
-function barReceived(guid: String) {
-    clients[guid.toString()] = new Client(guid.toString());
+function barReceived(socket: SocketIO.Socket, guid: string) {
+    clients[guid] = new Client(guid.toString());
+    console.log(`User ${guid} has connected`);
+    socketMap.set(socket, guid);
 }
 
 function getField([id, callback]: [string, (result?: Transferable) => void]) {

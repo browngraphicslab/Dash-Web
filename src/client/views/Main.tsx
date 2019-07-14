@@ -6,6 +6,7 @@ import * as React from 'react';
 import { Cast } from "../../new_fields/Types";
 import { Doc, DocListCastAsync } from "../../new_fields/Doc";
 import { List } from "../../new_fields/List";
+import { DocServer } from "../DocServer";
 
 let swapDocs = async () => {
     let oldDoc = await Cast(CurrentUserUtils.UserDocument.linkManagerDoc, Doc);
@@ -28,8 +29,10 @@ let swapDocs = async () => {
 }
 
 (async () => {
+    const info = await CurrentUserUtils.loadCurrentUser();
+    DocServer.init(window.location.protocol, window.location.hostname, 4321, info.email);
     await Docs.Prototypes.initialize();
-    await CurrentUserUtils.loadCurrentUser();
+    await CurrentUserUtils.loadUserDocument(info);
     await swapDocs();
     ReactDOM.render(<MainView />, document.getElementById('root'));
 })();
