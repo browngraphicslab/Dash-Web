@@ -26,11 +26,7 @@ export class SearchBox extends React.Component {
     @observable private _resultsOpen: boolean = false;
     @observable private _results: Doc[] = [];
     @observable private _openNoResults: boolean = false;
-    @observable public _pageNum: number = 0;
-    //temp
-    @observable public _maxNum: number = 10;
     @observable private _visibleElements: JSX.Element[] = [];
-    // @observable private _sc rollY: number = 0;
 
     private _isSearch: ("search" | "placeholder" | undefined)[] = [];
     private _numTotalResults = -1;
@@ -117,59 +113,50 @@ export class SearchBox extends React.Component {
             this._openNoResults = true;
             this.resultsScrolled();
         });
-
-        console.log(this._results)
     }
 
-    getResults = async (query: string, all: boolean = false) => {
+    getAllResults = async (query: string) => {
+        return SearchUtil.Search(query, true, 0, 10000000);
+    }
 
-        if (all) {
-            // let { numFound, docs } = await SearchUtil.Search(query, true, this._maxSearchIndex, 100000);
-            let prom: Promise<any> = SearchUtil.Search(query, true, 0, 100000);
+    getResults = async (query: string) => {
 
-            prom.then(({ docs, numFound }) => {
-                this._results = docs;
-            })
-        }
-        else {
-            while (this._results.length <= this._endIndex && (this._numTotalResults === -1 || this._maxSearchIndex < this._numTotalResults)) {
+        while (this._results.length <= this._endIndex && (this._numTotalResults === -1 || this._maxSearchIndex < this._numTotalResults)) {
 
-                let prom: Promise<any>;
-                if (this._curRequest) {
-                    prom = this._curRequest;
-                    return;
-                } else {
-                    prom = SearchUtil.Search(query, true, this._maxSearchIndex, 10);
-                    this._maxSearchIndex += 10;
-                }
-                prom.then(action((res: SearchUtil.DocSearchResult) => {
-
-                    // happens at the beginning
-                    if (res.numFound !== this._numTotalResults && this._numTotalResults === -1) {
-                        this._numTotalResults = res.numFound;
-                    }
-
-                    let filteredDocs = FilterBox.Instance.filterDocsByType(res.docs);
-                    this._results.push(...filteredDocs);
-
-                    if (prom === this._curRequest) {
-                        this._curRequest = undefined;
-                    }
-                }));
-
-                this._curRequest = prom;
-
-                await prom;
+            let prom: Promise<any>;
+            if (this._curRequest) {
+                prom = this._curRequest;
+                return;
+            } else {
+                prom = SearchUtil.Search(query, true, this._maxSearchIndex, 10);
+                this._maxSearchIndex += 10;
             }
+            prom.then(action((res: SearchUtil.DocSearchResult) => {
+
+                // happens at the beginning
+                if (res.numFound !== this._numTotalResults && this._numTotalResults === -1) {
+                    this._numTotalResults = res.numFound;
+                }
+
+                let filteredDocs = FilterBox.Instance.filterDocsByType(res.docs);
+                this._results.push(...filteredDocs);
+
+                if (prom === this._curRequest) {
+                    this._curRequest = undefined;
+                }
+            }));
+
+            this._curRequest = prom;
+
+            await prom;
         }
     }
 
     collectionRef = React.createRef<HTMLSpanElement>();
     startDragCollection = async () => {
-        await this.getResults(FilterBox.Instance.getFinalQuery(this._searchString), true);
-        console.log(this._results)
-        // if (res !== undefined) {
-        const docs = this._results.map(doc => {
+        let res = await this.getAllResults(FilterBox.Instance.getFinalQuery(this._searchString));
+        // console.log(this._results)
+        const docs = res.docs.map(doc => {
             const isProto = Doc.GetT(doc, "isPrototype", "boolean", true);
             if (isProto) {
                 return Doc.MakeDelegate(doc);
@@ -202,7 +189,7 @@ export class SearchBox extends React.Component {
             }
         }
         return Docs.FreeformDocument(docs, { width: 400, height: 400, panX: 175, panY: 175, backgroundColor: "grey", title: `Search Docs: "${this._searchString}"` });
-        // }
+
     }
 
     @action.bound
