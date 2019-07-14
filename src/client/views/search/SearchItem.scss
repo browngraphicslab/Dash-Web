@@ -64,14 +64,17 @@
                     }
 
                     .link-extended {
+                        // display: none;
+                        visibility: hidden;
                         opacity: 0;
                         position: relative;
                         z-index: 500;
                         overflow: hidden;
-                        -webkit-transition: opacity 0.2s ease-in-out;
-                        -moz-transition: opacity 0.2s ease-in-out;
-                        -o-transition: opacity 0.2s ease-in-out;
-                        transition: opacity 0.2s ease-in-out;
+                        -webkit-transition: opacity 0.2s ease-in-out .2s, visibility 0s linear 0s;
+                        -moz-transition: opacity 0.2s ease-in-out .2s, visibility 0s linear 0s;
+                        -o-transition: opacity 0.2s ease-in-out .2s, visibility 0s linear 0s;
+                        transition: opacity 0.2s ease-in-out .2s, visibility 0s linear 0s;
+                        // transition-delay: 1s;
                     }
 
                 }
@@ -86,6 +89,8 @@
 
                 .link-container.item:hover .link-extended {
                     opacity: 1;
+                    visibility: visible;
+                    // display: inline;
                 }
 
                 .icon-icons {
