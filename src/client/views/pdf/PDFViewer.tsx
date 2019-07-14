@@ -236,6 +236,7 @@ export class Viewer extends React.Component<IViewerProps> {
         }
     }
 
+    @action
     makeAnnotationDocument = (sourceDoc: Doc | undefined, s: number, color: string): Doc => {
         let annoDocs: Doc[] = [];
         let mainAnnoDoc = Docs.Create.InstanceFromProto(new Doc(), "", {});
