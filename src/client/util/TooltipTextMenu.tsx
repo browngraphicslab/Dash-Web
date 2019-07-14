@@ -1,4 +1,6 @@
 import { action } from "mobx";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faArrowUp, faTag, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { Dropdown, MenuItem, icons, } from "prosemirror-menu"; //no import css
 import { EditorState, NodeSelection, TextSelection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
@@ -20,6 +22,8 @@ import { DocumentManager } from "./DocumentManager";
 import { Id } from "../../new_fields/FieldSymbols";
 import { FormattedTextBoxProps, FormattedTextBox } from "../views/nodes/FormattedTextBox";
 import { typeAlias } from "babel-types";
+import React from "react";
+import ReactDOM from "react-dom";
 
 //appears above a selection of text in a RichTextBox to give user options such as Bold, Italics, etc.
 export class TooltipTextMenu {
@@ -443,10 +447,12 @@ export class TooltipTextMenu {
     }
 
     createBrush() {
+        const icon = <FontAwesomeIcon icon={faArrowUp} />;
+        const dom = ReactDOM.render(icon, document.body);
         return new MenuItem({
             title: "Brush tool",
             label: "Brush tool",
-            icon: icons.join,
+            icon: dom,
             css: "color:white;",
             class: "summarize",
             execEvent: "",
