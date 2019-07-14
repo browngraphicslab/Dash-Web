@@ -336,7 +336,7 @@ export class MainView extends React.Component {
         if (!(sidebar instanceof Doc)) return (null);
         return <div>
             <div className="mainView-libraryHandle"
-                style={{ left: `${this.flyoutWidth - 10}px`, backgroundColor: `${StrCast(sidebar.backgroundColor, "lightGray")}` }}
+                style={{ cursor: "ew-resize", left: `${this.flyoutWidth - 10}px`, backgroundColor: `${StrCast(sidebar.backgroundColor, "lightGray")}` }}
                 onPointerDown={this.onPointerDown}>
                 <span title="library View Dragger" style={{ width: "100%", height: "100%", position: "absolute" }} />
             </div>
