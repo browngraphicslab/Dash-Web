@@ -230,7 +230,7 @@ export class SearchBox extends React.Component {
         this._startIndex = startIndex === -1 ? 0 : startIndex;
         this._endIndex = endIndex === -1 ? 12 : endIndex;
 
-        if (this._numTotalResults === 0 && this._openNoResults) {
+        if ((this._numTotalResults === 0 || this._results.length === 0) && this._openNoResults) {
             this._visibleElements = [<div className="no-result">No Search Results</div>];
             return;
         }
