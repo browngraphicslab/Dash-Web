@@ -25,11 +25,6 @@ class GroupTypesDropdown extends React.Component<GroupTypesDropdownProps> {
     @observable private _searchTerm: string = this.props.groupType;
     @observable private _groupType: string = this.props.groupType;
     @observable private _isEditing: boolean = false;
-    // @observable private _ref: React.RefObject<HTMLInputElement> = React.createRef();
-
-    // @action setSearchTerm = (value: string): void => { this._searchTerm = value; };
-    // @action setGroupType = (value: string): void => { this._groupType = value; };
-    // @action setIsEditing = (isEditing: boolean): void => { this._isEditing = isEditing; console.log(this._isEditing); };
 
     @action
     createGroup = (groupType: string): void => {
@@ -62,7 +57,6 @@ class GroupTypesDropdown extends React.Component<GroupTypesDropdownProps> {
 
             this._searchTerm = this._groupType;
             this._isEditing = false;
-            console.log("on key down", this._isEditing);
         }
     }
 
@@ -79,14 +73,11 @@ class GroupTypesDropdown extends React.Component<GroupTypesDropdownProps> {
         }
         this._searchTerm = this._groupType;
         this._isEditing = false;
-        console.log("option clicked", this._isEditing);
     }
 
     @action
     onButtonPointerDown = (): void => {
         this._isEditing = true;
-        console.log("button down", this._isEditing);
-        //make focus on input
     }
 
     renderOptions = (): JSX.Element[] | JSX.Element => {
@@ -113,7 +104,6 @@ class GroupTypesDropdown extends React.Component<GroupTypesDropdownProps> {
     }
 
     render() {
-        console.log("render", this._isEditing);
         if (this._isEditing || this._groupType === "") {
             return (
                 <div className="linkEditor-dropdown">
