@@ -159,6 +159,7 @@ $linkGap : 3px;
 .linkButtonWrapper {
     pointer-events: auto;
     padding-right: 5px;
+    width: 25px;
 }
 
 .linkButton-linker {
@@ -202,6 +203,7 @@ $linkGap : 3px;
 }
 
 .templating-menu {
+    position: absolute;
     pointer-events: auto;
     text-transform: uppercase;
     letter-spacing: 2px;
@@ -237,8 +239,8 @@ $linkGap : 3px;
 
 #template-list {
     position: absolute;
-    top: 0;
-    left: 30px;
+    top: 25px;
+    left: 0px;
     width: max-content;
     font-family: $sans-serif;
     font-size: 12px;
