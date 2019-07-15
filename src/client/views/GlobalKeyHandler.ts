@@ -107,15 +107,25 @@ export default class KeyManager {
         };
     });
 
-    private ctrl = action((keyname: string) => {
+    private ctrl = action((keyname: string, e: KeyboardEvent) => {
         let stopPropagation = true;
         let preventDefault = true;
 
         switch (keyname) {
             case "arrowright":
+                if (document.activeElement) {
+                    if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") {
+                        return { stopPropagation: false, preventDefault: false };
+                    }
+                }
                 MainView.Instance.mainFreeform && CollectionDockingView.Instance.AddRightSplit(MainView.Instance.mainFreeform, undefined);
                 break;
             case "arrowleft":
+                if (document.activeElement) {
+                    if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") {
+                        return { stopPropagation: false, preventDefault: false };
+                    }
+                }
                 MainView.Instance.mainFreeform && CollectionDockingView.Instance.CloseRightSplit(MainView.Instance.mainFreeform);
                 break;
             case "f":
