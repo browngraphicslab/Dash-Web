@@ -639,7 +639,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         return (
             <div className="linkButtonWrapper">
                 <Flyout anchorPoint={anchorPoints.TOP_LEFT}
-                    content={<MetadataEntryMenu docs={() => SelectionManager.SelectedDocuments().map(dv => dv.props.Document)} />}>{/* tfs: @bcz This might need to be the data document? */}
+                    content={<MetadataEntryMenu docs={() => SelectionManager.SelectedDocuments().map(dv => dv.props.Document)} suggestWithFunction />}>{/* tfs: @bcz This might need to be the data document? */}
                     <div className="docDecs-tagButton" title="Add fields"><FontAwesomeIcon className="documentdecorations-icon" icon="tag" size="sm" /></div>
                 </Flyout>
             </div>

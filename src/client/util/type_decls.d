@@ -204,3 +204,5 @@ declare const Docs: {
     TreeDocument(documents: Doc[], options?: DocumentOptions): Doc;
     StackingDocument(documents: Doc[], options?: DocumentOptions): Doc;
 };
+
+declare function d(...args:any[]):any;

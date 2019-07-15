@@ -6,6 +6,7 @@ import { CompileScript } from '../client/util/Scripting';
 import { makeInterface } from '../new_fields/Schema';
 import { ObjectField } from '../new_fields/ObjectField';
 import { RefField } from '../new_fields/RefField';
+import { DocServer } from '../client/DocServer';
 
 @observer
 class Repl extends React.Component {
@@ -63,4 +64,7 @@ class Repl extends React.Component {
     }
 }
 
-ReactDOM.render(<Repl />, document.getElementById("root"));
+(async function () {
+    DocServer.init(window.location.protocol, window.location.hostname, 4321, "repl");
+    ReactDOM.render(<Repl />, document.getElementById("root"));
+})();

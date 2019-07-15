@@ -11,7 +11,7 @@ import { DragManager } from "../../../util/DragManager";
 import { HistoryUtil } from "../../../util/History";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { Transform } from "../../../util/Transform";
-import { undoBatch } from "../../../util/UndoManager";
+import { undoBatch, UndoManager } from "../../../util/UndoManager";
 import { COLLECTION_BORDER_WIDTH } from "../../../views/globalCssVariables.scss";
 import { ContextMenu } from "../../ContextMenu";
 import { InkingCanvas } from "../../InkingCanvas";
@@ -455,24 +455,26 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             description: "Arrange contents in grid",
             event: async () => {
                 const docs = await DocListCastAsync(this.Document[this.props.fieldKey]);
-                if (docs) {
-                    let startX = this.Document.panX || 0;
-                    let x = startX;
-                    let y = this.Document.panY || 0;
-                    let i = 0;
-                    const width = Math.max(...docs.map(doc => NumCast(doc.width)));
-                    const height = Math.max(...docs.map(doc => NumCast(doc.height)));
-                    for (const doc of docs) {
-                        doc.x = x;
-                        doc.y = y;
-                        x += width + 20;
-                        if (++i === 6) {
-                            i = 0;
-                            x = startX;
-                            y += height + 20;
+                UndoManager.RunInBatch(() => {
+                    if (docs) {
+                        let startX = this.Document.panX || 0;
+                        let x = startX;
+                        let y = this.Document.panY || 0;
+                        let i = 0;
+                        const width = Math.max(...docs.map(doc => NumCast(doc.width)));
+                        const height = Math.max(...docs.map(doc => NumCast(doc.height)));
+                        for (const doc of docs) {
+                            doc.x = x;
+                            doc.y = y;
+                            x += width + 20;
+                            if (++i === 6) {
+                                i = 0;
+                                x = startX;
+                                y += height + 20;
+                            }
                         }
                     }
-                }
+                }, "arrange contents");
             }
         });
         ContextMenu.Instance.addItem({
@@ -483,7 +485,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     const script = this.Document[key];
                     let originalText: string | undefined = undefined;
                     if (script) originalText = script.script.originalScript;
-                    let scriptingBox = <ScriptBox initialText={originalText} onCancel={overlayDisposer} onSave={(text, onError) => {
+                    // tslint:disable-next-line: no-unnecessary-callback-wrapper
+                    let scriptingBox = <ScriptBox initialText={originalText} onCancel={() => overlayDisposer()} onSave={(text, onError) => {
                         const script = CompileScript(text, {
                             params,
                             requiredType,
