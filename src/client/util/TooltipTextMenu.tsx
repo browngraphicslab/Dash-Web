@@ -82,9 +82,6 @@ export class TooltipTextMenu {
             { command: toggleMark(schema.marks.superscript), dom: this.icon("s", "superscript", "Superscript") },
             { command: toggleMark(schema.marks.subscript), dom: this.icon("s", "subscript", "Subscript") },
             { command: toggleMark(schema.marks.highlight), dom: this.icon("H", 'blue', 'Blue') }
-            // { command: wrapInList(schema.nodes.bullet_list), dom: this.icon(":", "bullets") },
-            // { command: wrapInList(schema.nodes.ordered_list), dom: this.icon("1)", "bullets") },
-            // { command: lift, dom: this.icon("<", "lift") },
         ];
         //add menu items
         items.forEach(({ dom, command }) => {
@@ -134,10 +131,10 @@ export class TooltipTextMenu {
         this.listTypeToIcon.set(schema.nodes.ordered_list, "1)");
         this.listTypes = Array.from(this.listTypeToIcon.keys());
 
+        //custom tools
+
         this.tooltip.appendChild(this.createBrush().render(this.view).dom);
-
         this.tooltip.appendChild(this.createLink().render(this.view).dom);
-
         this.tooltip.appendChild(this.createStar().render(this.view).dom);
 
         this.updateListItemDropdown(":", this.listTypeBtnDom);
@@ -146,7 +143,7 @@ export class TooltipTextMenu {
 
         //view.dom.parentNode!.parentNode!.insertBefore(this.tooltip, view.dom.parentNode);
 
-        // quick and dirty null check
+        // add tooltip to outerdiv to circumvent scaling problem
         const outer_div = this.editorProps.outer_div;
         outer_div && outer_div(this.tooltip);
     }
@@ -447,14 +444,16 @@ export class TooltipTextMenu {
     }
 
     createBrush() {
-        const icon = <FontAwesomeIcon icon={faArrowUp} />;
-        const dom = ReactDOM.render(icon, document.body);
+        const icon = {
+            height: 32, width: 32,
+            path: "M30.828 1.172c-1.562-1.562-4.095-1.562-5.657 0l-5.379 5.379-3.793-3.793-4.243 4.243 3.326 3.326-14.754 14.754c-0.252 0.252-0.358 0.592-0.322 0.921h-0.008v5c0 0.552 0.448 1 1 1h5c0 0 0.083 0 0.125 0 0.288 0 0.576-0.11 0.795-0.329l14.754-14.754 3.326 3.326 4.243-4.243-3.793-3.793 5.379-5.379c1.562-1.562 1.562-4.095 0-5.657zM5.409 30h-3.409v-3.409l14.674-14.674 3.409 3.409-14.674 14.674z"
+        };
         return new MenuItem({
             title: "Brush tool",
             label: "Brush tool",
-            icon: dom,
+            icon: icon,
             css: "color:white;",
-            class: "summarize",
+            class: "brush",
             execEvent: "",
             run: (state, dispatch) => {
                 this.brush_function(state, dispatch);

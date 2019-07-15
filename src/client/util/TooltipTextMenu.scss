@@ -318,3 +318,13 @@
     //   background-color: white;
       text-align: center;
   }
+
+  .brush{
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    stroke-width: 0;
+    stroke: currentColor;
+    fill: currentColor;
+    margin-right: 15px;
+  }
