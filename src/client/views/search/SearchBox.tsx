@@ -26,6 +26,8 @@ export class SearchBox extends React.Component {
     @observable private _openNoResults: boolean = false;
     @observable private _visibleElements: JSX.Element[] = [];
 
+    private resultsRef = React.createRef<HTMLDivElement>();
+
     private _isSearch: ("search" | "placeholder" | undefined)[] = [];
     private _numTotalResults = -1;
     private _endIndex = -1;
@@ -114,37 +116,34 @@ export class SearchBox extends React.Component {
         return SearchUtil.Search(query, true, 0, 10000000);
     }
 
+
+    private lockPromise?: Promise<void>;
     getResults = async (query: string) => {
-
-        while (this._results.length <= this._endIndex && (this._numTotalResults === -1 || this._maxSearchIndex < this._numTotalResults)) {
-
-            let prom: Promise<any>;
-            if (this._curRequest) {
-                prom = this._curRequest;
-                return;
-            } else {
-                prom = SearchUtil.Search(query, true, this._maxSearchIndex, 10);
-                this._maxSearchIndex += 10;
-            }
-            prom.then(action((res: SearchUtil.DocSearchResult) => {
-
-                // happens at the beginning
-                if (res.numFound !== this._numTotalResults && this._numTotalResults === -1) {
-                    this._numTotalResults = res.numFound;
-                }
-
-                let filteredDocs = FilterBox.Instance.filterDocsByType(res.docs);
-                this._results.push(...filteredDocs);
-
-                if (prom === this._curRequest) {
-                    this._curRequest = undefined;
-                }
-            }));
-
-            this._curRequest = prom;
-
-            await prom;
+        if (this.lockPromise) {
+            await this.lockPromise;
         }
+        this.lockPromise = new Promise(async res => {
+            while (this._results.length <= this._endIndex && (this._numTotalResults === -1 || this._maxSearchIndex < this._numTotalResults)) {
+                this._curRequest = SearchUtil.Search(query, true, this._maxSearchIndex, 10).then(action((res: SearchUtil.DocSearchResult) => {
+
+                    // happens at the beginning
+                    if (res.numFound !== this._numTotalResults && this._numTotalResults === -1) {
+                        this._numTotalResults = res.numFound;
+                    }
+
+                    let filteredDocs = FilterBox.Instance.filterDocsByType(res.docs);
+                    this._results.push(...filteredDocs);
+
+                    this._curRequest = undefined;
+                }));
+                this._maxSearchIndex += 10;
+
+                await this._curRequest;
+            }
+            this.resultsScrolled();
+            res();
+        });
+        return this.lockPromise;
     }
 
     collectionRef = React.createRef<HTMLSpanElement>();
@@ -215,7 +214,7 @@ export class SearchBox extends React.Component {
 
     @action
     resultsScrolled = (e?: React.UIEvent<HTMLDivElement>) => {
-        let scrollY = e ? e.currentTarget.scrollTop : 0;
+        let scrollY = e ? e.currentTarget.scrollTop : this.resultsRef.current ? this.resultsRef.current.scrollTop : 0;
         let buffer = 4;
         let startIndex = Math.floor(Math.max(0, scrollY / 70 - buffer));
         let endIndex = Math.ceil(Math.min(this._numTotalResults - 1, startIndex + (560 / 70) + buffer));
@@ -246,7 +245,7 @@ export class SearchBox extends React.Component {
             if (i < startIndex || i > endIndex) {
                 if (this._isSearch[i] !== "placeholder") {
                     this._isSearch[i] = "placeholder";
-                    this._visibleElements[i] = <div className="searchBox-placeholder" key={`searchBox-placeholder-${i}`}></div>;
+                    this._visibleElements[i] = <div className="searchBox-placeholder" key={`searchBox-placeholder-${i}`}>Loading...</div>;
                 }
             }
             else {
@@ -303,7 +302,7 @@ export class SearchBox extends React.Component {
                 <div className="searchBox-results" onScroll={this.resultsScrolled} style={{
                     display: this._resultsOpen ? "flex" : "none",
                     height: this.resFull ? "560px" : this.resultHeight, overflow: this.resFull ? "auto" : "visible"
-                }}>
+                }} ref={this.resultsRef}>
                     {this._visibleElements}
                 </div>
             </div>
