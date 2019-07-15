@@ -15,10 +15,6 @@ import { Id } from '../../../new_fields/FieldSymbols';
 import { SearchUtil } from '../../util/SearchUtil';
 import { RouteStore } from '../../../server/RouteStore';
 import { FilterBox } from './FilterBox';
-import { start } from 'repl';
-import { getForkTsCheckerWebpackPluginHooks } from 'fork-ts-checker-webpack-plugin/lib/hooks';
-import { faThumbsDown } from '@fortawesome/free-regular-svg-icons';
-import * as $ from 'jquery';
 
 
 @observer
@@ -32,7 +28,6 @@ export class SearchBox extends React.Component {
 
     private _isSearch: ("search" | "placeholder" | undefined)[] = [];
     private _numTotalResults = -1;
-    private _startIndex = -1;
     private _endIndex = -1;
 
     static Instance: SearchBox;
@@ -65,7 +60,6 @@ export class SearchBox extends React.Component {
         this._results = [];
         this._visibleElements = [];
         this._numTotalResults = -1;
-        this._startIndex = -1;
         this._endIndex = -1;
         this._curRequest = undefined;
         this._maxSearchIndex = 0;
@@ -103,7 +97,6 @@ export class SearchBox extends React.Component {
             return;
         }
         else {
-            this._startIndex = 0;
             this._endIndex = 12;
             this._maxSearchIndex = 0;
             this._numTotalResults = -1;
@@ -216,7 +209,6 @@ export class SearchBox extends React.Component {
         this._results = [];
         this._visibleElements = [];
         this._numTotalResults = -1;
-        this._startIndex = -1;
         this._endIndex = -1;
         this._curRequest = undefined;
     }
@@ -227,7 +219,6 @@ export class SearchBox extends React.Component {
         let startIndex = Math.floor(Math.max(0, scrollY / 70 - buffer));
         let endIndex = Math.ceil(Math.min(this._numTotalResults - 1, startIndex + (560 / 70) + buffer));
 
-        this._startIndex = startIndex === -1 ? 0 : startIndex;
         this._endIndex = endIndex === -1 ? 12 : endIndex;
 
         if ((this._numTotalResults === 0 || this._results.length === 0) && this._openNoResults) {
