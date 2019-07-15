@@ -412,8 +412,10 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 if (doc instanceof Doc) {
                     let theDoc = doc;
                     CollectionDockingView.Instance._removedDocs.push(theDoc);
-                    if (CurrentUserUtils.UserDocument.recentlyClosed instanceof Doc) {
-                        Doc.AddDocToList(CurrentUserUtils.UserDocument.recentlyClosed, "data", doc, undefined, true, true);
+
+                    const recent = await Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc);
+                    if (recent) {
+                        Doc.AddDocToList(recent, "data", doc, undefined, true, true);
                     }
                     SelectionManager.DeselectAll();
                 }
@@ -442,12 +444,16 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         });
         stack.header.controlsContainer.find('.lm_close') //get the close icon
             .off('click') //unbind the current click handler
-            .click(action(function () {
+            .click(action(async function () {
                 //if (confirm('really close this?')) {
+                const recent = await Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc);
                 stack.remove();
-                stack.contentItems.map(async (contentItem: any) => {
+                stack.contentItems.forEach(async (contentItem: any) => {
                     let doc = await DocServer.GetRefField(contentItem.config.props.documentId);
                     if (doc instanceof Doc) {
+                        if (recent) {
+                            Doc.AddDocToList(recent, "data", doc, undefined, true, true);
+                        }
                         let theDoc = doc;
                         CollectionDockingView.Instance._removedDocs.push(theDoc);
                     }
