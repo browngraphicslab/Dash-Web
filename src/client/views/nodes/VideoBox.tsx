@@ -44,12 +44,13 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         }
     }
 
-    @action public Play() {
+    @action public Play = () => {
         this.Playing = true;
         this.player && this.player.play();
         this._youtubePlayer && this._youtubePlayer.playVideo();
         !this._playTimer && (this._playTimer = setInterval(this.updateTimecode, 500));
         this._youtubeSeekTo = false;
+        this.updateTimecode();
     }
 
     @action public Seek(time: number) {
@@ -59,7 +60,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         }
     }
 
-    @action public Pause() {
+    @action public Pause = () => {
         this.Playing = false;
         this.player && this.player.pause();
         this._youtubePlayer && this._youtubePlayer.pauseVideo();
@@ -176,7 +177,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         let interactive = InkingControl.Instance.selectedTool || !this.props.isSelected() ? "" : "-interactive";
         let style = "videoBox-content" + (this._fullScreen ? "-fullScreen" : "") + interactive;
         return !field ? <div>Loading</div> :
-            <video className={`${style}`} ref={this.setVideoRef} onCanPlay={this.videoLoad} controls={VideoBox._showControls}>
+            <video className={`${style}`} ref={this.setVideoRef} onCanPlay={this.videoLoad} controls={VideoBox._showControls} onPlay={this.Play} onSeeked={this.updateTimecode} onPause={this.Pause}>
                 <source src={field.url.href} type="video/mp4" />
                 Not supported.
             </video>;
