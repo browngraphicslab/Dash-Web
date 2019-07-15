@@ -2,7 +2,7 @@ import { observer } from "mobx-react";
 import React = require("react");
 import { observable, action, runInAction, IReactionDisposer, reaction } from "mobx";
 import * as Pdfjs from "pdfjs-dist";
-import { Opt, Doc, FieldResult, Field, DocListCast, WidthSym, HeightSym } from "../../../new_fields/Doc";
+import { Opt, Doc, FieldResult, Field, DocListCast, WidthSym, HeightSym, DocListCastAsync } from "../../../new_fields/Doc";
 import "./PDFViewer.scss";
 import "pdfjs-dist/web/pdf_viewer.css";
 import { PDFBox } from "../nodes/PDFBox";
@@ -10,7 +10,7 @@ import { DragManager } from "../../util/DragManager";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { List } from "../../../new_fields/List";
 import { emptyFunction } from "../../../Utils";
-import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { Cast, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
 import { listSpec } from "../../../new_fields/Schema";
 import { menuBar } from "prosemirror-menu";
 import { AnnotationTypes, PDFViewer, scale } from "./PDFViewer";
@@ -159,13 +159,23 @@ export default class Page extends React.Component<IPageProps> {
         // document that this annotation is linked to
         let targetDoc = Docs.Create.TextDocument({ width: 200, height: 200, title: "New Annotation" });
         targetDoc.targetPage = this.props.page;
-        let annotationDoc = this.highlight(targetDoc, "red");
+        let annotationDoc = this.highlight(undefined, "red");
+        annotationDoc.linkedToDoc = false;
         // create dragData and star tdrag
         let dragData = new DragManager.AnnotationDragData(thisDoc, annotationDoc, targetDoc);
         if (this._textLayer.current) {
             DragManager.StartAnnotationDrag([ele], dragData, e.pageX, e.pageY, {
                 handlers: {
-                    dragComplete: emptyFunction,
+                    dragComplete: async () => {
+                        if (!(await annotationDoc.linkedToDoc)) {
+                            let annotations = await DocListCastAsync(annotationDoc.annotations);
+                            if (annotations) {
+                                annotations.forEach(anno => {
+                                    anno.target = targetDoc;
+                                });
+                            }
+                        }
+                    }
                 },
                 hideSource: false
             });
