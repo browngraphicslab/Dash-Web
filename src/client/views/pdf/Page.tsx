@@ -55,6 +55,8 @@ export default class Page extends React.Component<IPageProps> {
     // private _curly: React.RefObject<HTMLImageElement>;
     private _marqueeing: boolean = false;
     private _reactionDisposer?: IReactionDisposer;
+    private _startY: number = 0;
+    private _startX: number = 0;
 
     constructor(props: IPageProps) {
         super(props);
@@ -230,8 +232,8 @@ export default class Page extends React.Component<IPageProps> {
                 let current = this._textLayer.current;
                 if (current) {
                     let boundingRect = current.getBoundingClientRect();
-                    this._marqueeX = (e.clientX - boundingRect.left) * (current.offsetWidth / boundingRect.width);
-                    this._marqueeY = (e.clientY - boundingRect.top) * (current.offsetHeight / boundingRect.height);
+                    this._startX = this._marqueeX = (e.clientX - boundingRect.left) * (current.offsetWidth / boundingRect.width);
+                    this._startY = this._marqueeY = (e.clientY - boundingRect.top) * (current.offsetHeight / boundingRect.height);
                 }
                 this._marqueeing = true;
                 if (this._marquee.current) this._marquee.current.style.opacity = "0.2";
@@ -254,8 +256,12 @@ export default class Page extends React.Component<IPageProps> {
             if (current) {
                 // transform positions and find the width and height to set the marquee to
                 let boundingRect = current.getBoundingClientRect();
-                this._marqueeWidth = (e.clientX - boundingRect.left) * (current.offsetWidth / boundingRect.width) - this._marqueeX;
-                this._marqueeHeight = (e.clientY - boundingRect.top) * (current.offsetHeight / boundingRect.height) - this._marqueeY;
+                this._marqueeWidth = ((e.clientX - boundingRect.left) * (current.offsetWidth / boundingRect.width)) - this._startX;
+                this._marqueeHeight = ((e.clientY - boundingRect.top) * (current.offsetHeight / boundingRect.height)) - this._startY;
+                this._marqueeX = Math.min(this._startX, this._startX + this._marqueeWidth);
+                this._marqueeY = Math.min(this._startY, this._startY + this._marqueeHeight);
+                this._marqueeWidth = Math.abs(this._marqueeWidth);
+                this._marqueeHeight = Math.abs(this._marqueeHeight);
                 let { background, opacity, transform: transform } = this.getCurlyTransform();
                 if (this._marquee.current /*&& this._curly.current*/) {
                     this._marquee.current.style.background = background;
