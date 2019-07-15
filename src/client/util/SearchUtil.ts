@@ -17,6 +17,7 @@ export namespace SearchUtil {
     export function Search(query: string, filterQuery: string | undefined, returnDocs: true, start?: number, count?: number): Promise<DocSearchResult>;
     export function Search(query: string, filterQuery: string | undefined, returnDocs: false, start?: number, count?: number): Promise<IdSearchResult>;
     export async function Search(query: string, filterQuery: string | undefined, returnDocs: boolean, start?: number, rows?: number) {
+        query = query || "*"; //If we just have a filter query, search for * as the query
         const result: IdSearchResult = JSON.parse(await rp.get(DocServer.prepend("/search"), {
             qs: { query, filterQuery, start, rows },
         }));
