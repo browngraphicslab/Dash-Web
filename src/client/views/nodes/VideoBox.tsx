@@ -1,5 +1,5 @@
 import React = require("react");
-import { action, IReactionDisposer, observable, reaction, trace, computed } from "mobx";
+import { action, IReactionDisposer, observable, reaction, trace, computed, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { makeInterface } from "../../../new_fields/Schema";
 import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
@@ -44,29 +44,25 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         }
     }
 
-    @action public Play = () => {
+    @action public Play = (update: boolean = true) => {
         this.Playing = true;
-        this.player && this.player.play();
-        this._youtubePlayer && this._youtubePlayer.playVideo();
+        update && this.player && this.player.play();
+        update && this._youtubePlayer && this._youtubePlayer.playVideo();
         !this._playTimer && (this._playTimer = setInterval(this.updateTimecode, 500));
-        this._youtubeSeekTo = false;
         this.updateTimecode();
     }
 
     @action public Seek(time: number) {
-        if (this._youtubePlayer && !this.Playing) {
-            this._youtubeSeekTo = true;
-            this._youtubePlayer.seekTo(time);
-        }
+        this._youtubePlayer && !this.Playing && this._youtubePlayer.seekTo(time);
     }
 
-    @action public Pause = () => {
+    @action public Pause = (update: boolean = true) => {
         this.Playing = false;
-        this.player && this.player.pause();
-        this._youtubePlayer && this._youtubePlayer.pauseVideo();
+        update && this.player && this.player.pause();
+        update && this._youtubePlayer && this._youtubePlayer.pauseVideo();
         this._playTimer && clearInterval(this._playTimer);
         this._playTimer = undefined;
-        this._youtubeSeekTo = false;
+        this.updateTimecode();
     }
 
     @action public FullScreen() {
@@ -77,15 +73,19 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
 
     @action
     updateTimecode = () => {
+        let ctime = this._youtubePlayer.getCurrentTime();
+        let otime = this.lastyoutube ? (this.lastyoutube as any).getCurrentTime() : -1;
+        console.log("Setting " + ctime + " " + otime);
         this.player && (this.props.Document.curPage = this.player.currentTime);
         this._youtubePlayer && (this.props.Document.curPage = this._youtubePlayer.getCurrentTime());
     }
+    static _staticCounter: number = 0;
+    counter: number = -1;
+    _startupTime: number = -1;
     componentDidMount() {
         if (this.props.setVideoBox) this.props.setVideoBox(this);
 
-        let field = Cast(this.Document[this.props.fieldKey], VideoField);
-        let videoid = field && field.url.href.indexOf("youtube") !== -1 ? ((arr: string[]) => arr[arr.length - 1])(field.url.href.split("/")) : "";
-        if (videoid) {
+        if (this.youtubeVideoId) {
             let youtubeaspect = 400 / 315;
             var nativeWidth = FieldValue(this.Document.nativeWidth, 0);
             var nativeHeight = FieldValue(this.Document.nativeHeight, 0);
@@ -94,47 +94,28 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
                 this.Document.nativeHeight = this.Document.nativeWidth / youtubeaspect;
                 this.Document.height = FieldValue(this.Document.width, 0) / youtubeaspect;
             }
-            this._youtubePlayer = new YT.Player(`${videoid}-player`, {
-                height: `${NumCast(this.props.Document.height)}`,
-                width: `${NumCast(this.props.Document.width)}`,
-                videoId: videoid.toString(),
-                playerVars: { 'controls': VideoBox._showControls ? 1 : 0 },
-                events: {
-                    'onStateChange': this.onYoutubePlayerStateChange,
-                    'onReady': this.onYoutubePlayerReady,
-                }
-            });
             this._reactionDisposer = reaction(() => this.props.Document.curPage, () => this.Seek(this.Document.curPage || 0), { fireImmediately: true });
             this._youtubeReactionDisposer = reaction(() => [this.props.isSelected(), DocumentDecorations.Instance.Interacting, InkingControl.Instance.selectedTool], () => {
                 let interactive = InkingControl.Instance.selectedTool === InkTool.None && this.props.isSelected() && !DocumentDecorations.Instance.Interacting;
                 this._youtubePlayer.getIframe().style.pointerEvents = interactive ? "all" : "none";
             }, { fireImmediately: true })
-            // let iframe = $(document.getElementById(`${videoid}-player`)!);
-            // iframe.on("load", function () {
-            //     iframe.contents().find("head")
-            //         .append($("<style type='text/css'>  .ytp-pause-overlay, .ytp-scroll-min { opacity : 0 !important; }  </style>"));
-            // })
         }
     }
 
     @action
-    onYoutubePlayerStateChange = (event: any) => {
-        console.log("event.data = " + event.data);
-        this.Playing = event.data == YT.PlayerState.PLAYING;
-        if (this._youtubeSeekTo && this.Playing) {
-            this._youtubePlayer.pauseVideo();
-            this._youtubeSeekTo = false;
-        } else this.Playing && !this._playTimer && (this._playTimer = setInterval(this.updateTimecode, 500));
-        event.data === YT.PlayerState.PAUSED && this._playTimer && clearInterval(this._playTimer);
-    }
-    _youtubeSeekTo = false;
-    @action
     onYoutubePlayerReady = (event: any) => {
-        this.Playing = false;
         this._youtubePlayer && (this._youtubePlayer.getIframe().style.pointerEvents = "none");
         if (this.Document.curPage) {
-            this.Seek(this.Document.curPage);
-            this._youtubeSeekTo = true;
+            this.Playing = false;
+            if (this._startupTime !== -1) {
+                this.Seek(this.Document.curPage);
+            }
+            else {
+                let cpage = this.Document.curPage;
+                this.Pause();
+                this._startupTime = cpage;
+                this._youtubePlayer.seekTo(cpage);
+            }
         }
     }
 
@@ -183,12 +164,43 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
             </video>;
     }
 
+    times = 0;
+    lastyoutube = undefined;
+    @action load = () => {
+        let x = ++this.times;
+        console.log("LOADED " + x + " times = " + this.times);
+        let onYoutubePlayerStateChange = (event: any) => runInAction(() => {
+            console.log("STATE + " + event.data + "  times = " + this.times + " " + x);
+            //if (this.times !== x) return;
+            if (event.data === YT.PlayerState.UNSTARTED || event.data === YT.PlayerState.BUFFERING)
+                return;
+            if (this._startupTime !== -1) {
+                this._startupTime = -1;
+                if (event.data === YT.PlayerState.PLAYING) this.Pause();
+            }
+            if (event.data == YT.PlayerState.PLAYING && !this.Playing) this.Play(false);
+            if (event.data == YT.PlayerState.PAUSED && this.Playing) this.Pause(false);
+        });
+        let cpage = NumCast(this.Document.curPage);
+        this._startupTime = cpage;
+        this.lastyoutube = this._youtubePlayer;
+        this._youtubePlayer = new YT.Player(`${this.youtubeVideoId + this.counter}-player`, {
+            events: {
+                'onReady': this.onYoutubePlayerReady,
+                'onStateChange': onYoutubePlayerStateChange
+            }
+        });
+    }
+
     @computed get youtubeContent() {
+        this.counter = VideoBox._staticCounter++;
         let style = "videoBox-content-YouTube" + (this._fullScreen ? "-fullScreen" : "");
-        return <div id={`${this.youtubeVideoId}-player`} className={`${style}`} />;
+        return <iframe id={`${this.youtubeVideoId + this.counter.toString()}-player`} onLoad={this.load} className={`${style}`} width="640" height="390"
+            src={`http://www.youtube.com/embed/${this.youtubeVideoId}?enablejsapi=1`} />
     }
 
     render() {
+        trace();
         return <div style={{ pointerEvents: "all", width: "100%", height: "100%" }} onContextMenu={this.specificContextMenu}>
             {this.youtubeVideoId ? this.youtubeContent : this.content}
         </div>;
