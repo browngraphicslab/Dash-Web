@@ -213,7 +213,8 @@ export class SearchBox extends React.Component {
         this._curRequest = undefined;
     }
 
-    resultsScrolled = flow(function* (this: SearchBox, e?: React.UIEvent<HTMLDivElement>) {
+    @action
+    resultsScrolled = (e?: React.UIEvent<HTMLDivElement>) => {
         let scrollY = e ? e.currentTarget.scrollTop : 0;
         let buffer = 4;
         let startIndex = Math.floor(Math.max(0, scrollY / 70 - buffer));
@@ -273,7 +274,7 @@ export class SearchBox extends React.Component {
             this._visibleElements.length = this._results.length;
             this._isSearch.length = this._results.length;
         }
-    });
+    }
 
     @computed
     get resFull() {

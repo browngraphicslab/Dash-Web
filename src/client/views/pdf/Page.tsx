@@ -152,7 +152,7 @@ export default class Page extends React.Component<IPageProps> {
      * start a drag event and create or put the necessary info into the drag event.
      */
     @action
-    startDrag = (e: PointerEvent, ele: HTMLDivElement): void => {
+    startDrag = (e: PointerEvent, ele: HTMLElement): void => {
         e.preventDefault();
         e.stopPropagation();
         let thisDoc = this.props.parent.Document;

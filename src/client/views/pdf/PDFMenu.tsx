@@ -18,7 +18,7 @@ export default class PDFMenu extends React.Component {
     @observable private _transitionDelay: string = "";
 
 
-    StartDrag: (e: PointerEvent, ele: HTMLDivElement) => void = emptyFunction;
+    StartDrag: (e: PointerEvent, ele: HTMLElement) => void = emptyFunction;
     Highlight: (d: Doc | undefined, color: string | undefined) => void = emptyFunction;
     Delete: () => void = emptyFunction;
     Snippet: (marquee: { left: number, top: number, width: number, height: number }) => void = emptyFunction;
@@ -34,7 +34,7 @@ export default class PDFMenu extends React.Component {
     private _offsetY: number = 0;
     private _offsetX: number = 0;
     private _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
-    private _commentCont: React.RefObject<HTMLDivElement> = React.createRef();
+    private _commentCont = React.createRef<HTMLButtonElement>();
     private _snippetButton: React.RefObject<HTMLButtonElement> = React.createRef();
     private _dragging: boolean = false;
     @observable private _keyValue: string = "";
