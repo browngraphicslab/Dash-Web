@@ -26,7 +26,7 @@ export class Search {
             });
             return res;
         } catch (e) {
-            // console.warn("Search error: " + e + document);
+            // console.warn("Search error: ", e, documents);
         }
     }
 

@@ -278,6 +278,7 @@ export class Viewer extends React.Component<IViewerProps> {
         if (de.data instanceof DragManager.LinkDragData) {
             let sourceDoc = de.data.linkSourceDocument;
             let destDoc = this.makeAnnotationDocument(sourceDoc, 1, "red");
+            de.data.droppedDocuments.push(destDoc);
             let targetAnnotations = DocListCast(this.props.parent.fieldExtensionDoc.annotations);
             if (targetAnnotations) {
                 targetAnnotations.push(destDoc);
