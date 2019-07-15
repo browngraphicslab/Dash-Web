@@ -41,12 +41,13 @@
 }
 
 .searchBox-results {
-    margin-left: 27px;
+    margin-right: 142px;
     top: 300px;
     display: flex;
     flex-direction: column;
     margin-right: 72px;
     max-height: 560px;
+    overflow: hidden;
     overflow-y: auto;
 
     .no-result {

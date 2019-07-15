@@ -5,6 +5,7 @@ import { Utils, emptyFunction } from '../Utils';
 import { SerializationHelper } from './util/SerializationHelper';
 import { RefField } from '../new_fields/RefField';
 import { Id, HandleUpdate } from '../new_fields/FieldSymbols';
+import { CurrentUserUtils } from '../server/authentication/models/current_user_utils';
 
 /**
  * This class encapsulates the transfer and cross-client synchronization of
@@ -21,12 +22,31 @@ import { Id, HandleUpdate } from '../new_fields/FieldSymbols';
  */
 export namespace DocServer {
     let _cache: { [id: string]: RefField | Promise<Opt<RefField>> } = {};
-    const _socket = OpenSocket(`${window.location.protocol}//${window.location.hostname}:4321`);
+    let _socket: SocketIOClient.Socket;
     // this client's distinct GUID created at initialization
-    const GUID: string = Utils.GenerateGuid();
+    let GUID: string;
     // indicates whether or not a document is currently being udpated, and, if so, its id
     let updatingId: string | undefined;
 
+    export function init(protocol: string, hostname: string, port: number, identifier: string) {
+        _cache = {};
+        GUID = identifier;
+        _socket = OpenSocket(`${protocol}//${hostname}:${port}`);
+
+        _GetRefField = _GetRefFieldImpl;
+        _GetRefFields = _GetRefFieldsImpl;
+        _CreateField = _CreateFieldImpl;
+        _UpdateField = _UpdateFieldImpl;
+
+        /**
+         * Whenever the server sends us its handshake message on our
+         * websocket, we use the above function to return the handshake.
+         */
+        Utils.AddServerHandler(_socket, MessageStore.Foo, onConnection);
+        Utils.AddServerHandler(_socket, MessageStore.UpdateField, respondToUpdate);
+        Utils.AddServerHandler(_socket, MessageStore.DeleteField, respondToDelete);
+        Utils.AddServerHandler(_socket, MessageStore.DeleteFields, respondToDelete);
+    }
     /**
      * A convenience method. Prepends the full path (i.e. http://localhost:1050) to the
      * requested extension
@@ -34,6 +54,10 @@ export namespace DocServer {
      */
     export function prepend(extension: string): string {
         return window.location.origin + extension;
+    }
+
+    function errorFunc(): never {
+        throw new Error("Can't use DocServer without calling init first");
     }
 
     export namespace Control {
@@ -63,22 +87,16 @@ export namespace DocServer {
 
     }
 
+    /**
+     * This function emits a message (with this client's
+     * unique GUID) to the server
+     * indicating that this client has connected
+     */
+    function onConnection() {
+        _socket.emit(MessageStore.Bar.Message, GUID);
+    }
+
     export namespace Util {
-
-        /**
-         * Whenever the server sends us its handshake message on our
-         * websocket, we use the above function to return the handshake.
-         */
-        Utils.AddServerHandler(_socket, MessageStore.Foo, onConnection);
-
-        /**
-         * This function emits a message (with this client's
-         * unique GUID) to the server
-         * indicating that this client has connected
-         */
-        function onConnection() {
-            _socket.emit(MessageStore.Bar.Message, GUID);
-        }
 
         /**
          * Emits a message to the server that wipes
@@ -98,7 +116,7 @@ export namespace DocServer {
      * the server if the document has not been cached.
      * @param id the id of the requested document
      */
-    export async function GetRefField(id: string): Promise<Opt<RefField>> {
+    const _GetRefFieldImpl = (id: string): Promise<Opt<RefField>> => {
         // an initial pass through the cache to determine whether the document needs to be fetched,
         // is already in the process of being fetched or already exists in the
         // cache
@@ -139,8 +157,14 @@ export namespace DocServer {
             return cached;
         } else {
             // CACHED => great, let's just return the cached field we have
-            return cached;
+            return Promise.resolve(cached);
         }
+    };
+
+    let _GetRefField: (id: string) => Promise<Opt<RefField>> = errorFunc;
+
+    export function GetRefField(id: string): Promise<Opt<RefField>> {
+        return _GetRefField(id);
     }
 
     /**
@@ -149,7 +173,7 @@ export namespace DocServer {
      * the server if the document has not been cached.
      * @param ids the ids that map to the reqested documents
      */
-    export async function GetRefFields(ids: string[]): Promise<{ [id: string]: Opt<RefField> }> {
+    const _GetRefFieldsImpl = async (ids: string[]): Promise<{ [id: string]: Opt<RefField> }> => {
         const requestedIds: string[] = [];
         const waitingIds: string[] = [];
         const promises: Promise<Opt<RefField>>[] = [];
@@ -245,16 +269,13 @@ export namespace DocServer {
         // argument to the caller's promise (i.e. GetRefFields(["_id1_", "_id2_", "_id3_"]).then(map => //do something with map...))
         // or it is the direct return result if the promise is awaited (i.e. let fields = await GetRefFields(["_id1_", "_id2_", "_id3_"])).
         return map;
-    }
+    };
 
-    function _UpdateFieldImpl(id: string, diff: any) {
-        if (id === updatingId) {
-            return;
-        }
-        Utils.Emit(_socket, MessageStore.UpdateField, { id, diff });
-    }
+    let _GetRefFields: (ids: string[]) => Promise<{ [id: string]: Opt<RefField> }> = errorFunc;
 
-    let _UpdateField = _UpdateFieldImpl;
+    export function GetRefFields(ids: string[]) {
+        return _GetRefFields(ids);
+    }
 
     // WRITE A NEW DOCUMENT TO THE SERVER
 
@@ -274,7 +295,7 @@ export namespace DocServer {
         Utils.Emit(_socket, MessageStore.CreateField, initialState);
     }
 
-    let _CreateField = _CreateFieldImpl;
+    let _CreateField: (field: RefField) => void = errorFunc;
 
     // NOTIFY THE SERVER OF AN UPDATE TO A DOC'S STATE
 
@@ -289,6 +310,15 @@ export namespace DocServer {
     export function UpdateField(id: string, updatedState: any) {
         _UpdateField(id, updatedState);
     }
+
+    function _UpdateFieldImpl(id: string, diff: any) {
+        if (id === updatingId) {
+            return;
+        }
+        Utils.Emit(_socket, MessageStore.UpdateField, { id, diff });
+    }
+
+    let _UpdateField: (id: string, diff: any) => void = errorFunc;
 
     function _respondToUpdateImpl(diff: any) {
         const id = diff.id;
@@ -355,13 +385,4 @@ export namespace DocServer {
     function respondToDelete(ids: string | string[]) {
         _respondToDelete(ids);
     }
-
-    function connected() {
-        _socket.emit(MessageStore.Bar.Message, GUID);
-    }
-
-    Utils.AddServerHandler(_socket, MessageStore.Foo, connected);
-    Utils.AddServerHandler(_socket, MessageStore.UpdateField, respondToUpdate);
-    Utils.AddServerHandler(_socket, MessageStore.DeleteField, respondToDelete);
-    Utils.AddServerHandler(_socket, MessageStore.DeleteFields, respondToDelete);
 }

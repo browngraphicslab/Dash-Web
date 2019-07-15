@@ -152,13 +152,13 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
     }
 
     render() {
-        trace();
         return (
             <div className="metadataEntry-outerDiv">
                 Key:
                 <Autosuggest inputProps={{ value: this._currentKey, onChange: this.onKeyChange }}
                     getSuggestionValue={this.getSuggestionValue}
                     suggestions={this.suggestions}
+                    alwaysRenderSuggestions
                     renderSuggestion={this.renderSuggestion}
                     onSuggestionsFetchRequested={this.onSuggestionFetch}
                     onSuggestionsClearRequested={this.onSuggestionClear}

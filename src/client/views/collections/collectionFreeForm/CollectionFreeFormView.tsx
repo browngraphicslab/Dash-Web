@@ -485,7 +485,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     const script = this.Document[key];
                     let originalText: string | undefined = undefined;
                     if (script) originalText = script.script.originalScript;
-                    let scriptingBox = <ScriptBox initialText={originalText} onCancel={overlayDisposer} onSave={(text, onError) => {
+                    // tslint:disable-next-line: no-unnecessary-callback-wrapper
+                    let scriptingBox = <ScriptBox initialText={originalText} onCancel={() => overlayDisposer()} onSave={(text, onError) => {
                         const script = CompileScript(text, {
                             params,
                             requiredType,

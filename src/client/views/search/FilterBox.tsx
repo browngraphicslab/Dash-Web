@@ -263,7 +263,7 @@ export class FilterBox extends React.Component {
     @action.bound
     handleWordQueryChange = () => { this._basicWordStatus = !this._basicWordStatus; }
 
-    @action
+    @action.bound
     getBasicWordStatus() { return this._basicWordStatus; }
 
     @action.bound

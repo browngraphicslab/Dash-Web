@@ -73,17 +73,21 @@ export class CurrentUserUtils {
 
     }
 
-    public static async loadCurrentUser(): Promise<any> {
-        let userPromise = rp.get(DocServer.prepend(RouteStore.getCurrUser)).then(response => {
+    public static loadCurrentUser() {
+        return rp.get(DocServer.prepend(RouteStore.getCurrUser)).then(response => {
             if (response) {
-                let obj = JSON.parse(response);
-                CurrentUserUtils.curr_id = obj.id as string;
-                CurrentUserUtils.curr_email = obj.email as string;
+                const result: { id: string, email: string } = JSON.parse(response);
+                return result;
             } else {
                 throw new Error("There should be a user! Why does Dash think there isn't one?");
             }
         });
-        let userDocPromise = await rp.get(DocServer.prepend(RouteStore.getUserDocumentId)).then(id => {
+    }
+
+    public static async loadUserDocument({ id, email }: { id: string, email: string }) {
+        this.curr_id = id;
+        this.curr_email = email;
+        await rp.get(DocServer.prepend(RouteStore.getUserDocumentId)).then(id => {
             if (id) {
                 return DocServer.GetRefField(id).then(async field => {
                     if (field instanceof Doc) {
@@ -108,7 +112,6 @@ export class CurrentUserUtils {
         } catch (e) {
 
         }
-        return Promise.all([userPromise, userDocPromise]);
     }
 
     /* Northstar catalog ... really just for testing so this should eventually go away */

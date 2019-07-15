@@ -421,6 +421,18 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     @action
     drop = async (e: Event, de: DragManager.DropEvent) => {
+        if (de.data instanceof DragManager.AnnotationDragData) {
+            e.stopPropagation();
+            let annotationDoc = de.data.annotationDocument;
+            annotationDoc.linkedToDoc = true;
+            let targetDoc = this.props.Document;
+            let annotations = await DocListCastAsync(annotationDoc.annotations);
+            if (annotations) {
+                annotations.forEach(anno => {
+                    anno.target = targetDoc;
+                });
+            }
+        }
         if (de.data instanceof DragManager.LinkDragData) {
             let sourceDoc = de.data.linkSourceDocument;
             let destDoc = this.props.Document;
