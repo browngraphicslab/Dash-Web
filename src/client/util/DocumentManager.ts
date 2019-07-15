@@ -44,15 +44,14 @@ export class DocumentManager {
             DocumentManager.Instance.DocumentViews.map(view => {
                 let doc = view.props.Document.proto;
                 if (doc && doc[Id]) {
-                    if(doc[Id] === id)
-                    {toReturn.push(view);}
+                    if (doc[Id] === id) { toReturn.push(view); }
                 }
             });
         }
         return toReturn;
     }
 
-    public getAllDocumentViews(doc: Doc){
+    public getAllDocumentViews(doc: Doc) {
         return this.getDocumentViewsById(doc[Id]);
     }
 
@@ -107,14 +106,16 @@ export class DocumentManager {
 
     @computed
     public get LinkedDocumentViews() {
-        let pairs = DocumentManager.Instance.DocumentViews.filter(dv => dv.isSelected() || BoolCast(dv.props.Document.libraryBrush, false)).reduce((pairs, dv) => {
+        let pairs = DocumentManager.Instance.DocumentViews.filter(dv => dv.isSelected() || BoolCast(dv.props.Document.libraryBrush)).reduce((pairs, dv) => {
             let linksList = LinkManager.Instance.getAllRelatedLinks(dv.props.Document);
             pairs.push(...linksList.reduce((pairs, link) => {
                 if (link) {
                     let linkToDoc = LinkManager.Instance.getOppositeAnchor(link, dv.props.Document);
-                    DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 => {
-                        pairs.push({ a: dv, b: docView1, l: link });
-                    });
+                    if (linkToDoc) {
+                        DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 => {
+                            pairs.push({ a: dv, b: docView1, l: link });
+                        });
+                    }
                 }
                 return pairs;
             }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]));
@@ -150,7 +151,7 @@ export class DocumentManager {
                         docContext.panTransformType = "Ease";
                         targetContextView.props.focus(docDelegate, willZoom);
                     } else {
-                        (dockFunc || CollectionDockingView.Instance.AddRightSplit)(docContext, docContext);
+                        (dockFunc || CollectionDockingView.Instance.AddRightSplit)(docContext, undefined);
                         setTimeout(() => {
                             this.jumpToDocument(docDelegate, willZoom, forceDockFunc, dockFunc, linkPage);
                         }, 10);
@@ -159,7 +160,7 @@ export class DocumentManager {
                     const actualDoc = Doc.MakeAlias(docDelegate);
                     actualDoc.libraryBrush = true;
                     if (linkPage !== undefined) actualDoc.curPage = linkPage;
-                    (dockFunc || CollectionDockingView.Instance.AddRightSplit)(actualDoc, actualDoc);
+                    (dockFunc || CollectionDockingView.Instance.AddRightSplit)(actualDoc, undefined);
                 }
             } else {
                 let contextView: DocumentView | null;
@@ -168,7 +169,7 @@ export class DocumentManager {
                     contextDoc.panTransformType = "Ease";
                     contextView.props.focus(docDelegate, willZoom);
                 } else {
-                    (dockFunc || CollectionDockingView.Instance.AddRightSplit)(contextDoc, contextDoc);
+                    (dockFunc || CollectionDockingView.Instance.AddRightSplit)(contextDoc, undefined);
                     setTimeout(() => {
                         this.jumpToDocument(docDelegate, willZoom, forceDockFunc, dockFunc, linkPage);
                     }, 10);

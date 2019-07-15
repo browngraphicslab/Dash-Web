@@ -1,5 +1,6 @@
 import { PropSchema, serialize, deserialize, custom, setDefaultModelSchema, getDefaultModelSchema, primitive, SKIP } from "serializr";
 import { Field } from "../../new_fields/Doc";
+import { ClientUtils } from "./ClientUtils";
 
 export namespace SerializationHelper {
     let serializing: number = 0;
@@ -9,7 +10,7 @@ export namespace SerializationHelper {
 
     export function Serialize(obj: Field): any {
         if (obj === undefined || obj === null) {
-            return undefined;
+            return null;
         }
 
         if (typeof obj !== 'object') {
@@ -38,7 +39,12 @@ export namespace SerializationHelper {
 
         serializing += 1;
         if (!obj.__type) {
-            throw Error("No property 'type' found in JSON.");
+            if (ClientUtils.RELEASE) {
+                console.warn("No property 'type' found in JSON.");
+                return undefined;
+            } else {
+                throw Error("No property 'type' found in JSON.");
+            }
         }
 
         if (!(obj.__type in serializationTypes)) {

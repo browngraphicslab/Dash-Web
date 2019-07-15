@@ -25,7 +25,7 @@ import { getForgot, getLogin, getLogout, getReset, getSignup, postForgot, postLo
 import { DashUserModel } from './authentication/models/user_model';
 import { Client } from './Client';
 import { Database } from './database';
-import { MessageStore, Transferable, Types, Diff } from "./Message";
+import { MessageStore, Transferable, Types, Diff, Message } from "./Message";
 import { RouteStore } from './RouteStore';
 const app = express();
 const config = require('../../webpack.config');
@@ -103,14 +103,15 @@ enum Method {
  */
 function addSecureRoute(method: Method,
     handler: (user: DashUserModel, res: express.Response, req: express.Request) => void,
-    onRejection: (res: express.Response) => any = (res) => res.redirect(RouteStore.logout),
+    onRejection: (res: express.Response, req: express.Request) => any = res => res.redirect(RouteStore.login),
     ...subscribers: string[]
 ) {
     let abstracted = (req: express.Request, res: express.Response) => {
         if (req.user) {
             handler(req.user, res, req);
         } else {
-            onRejection(res);
+            req.session!.target = `http://localhost:${port}${req.originalUrl}`;
+            onRejection(res, req);
         }
     };
     subscribers.forEach(route => {
@@ -143,9 +144,39 @@ app.get("/pull", (req, res) =>
 // GETTERS
 
 app.get("/search", async (req, res) => {
-    let query = req.query.query || "hello";
-    let results = await Search.Instance.search(query);
+    const { query, start, rows } = req.query;
+    if (query === undefined) {
+        res.send([]);
+        return;
+    }
+    let results = await Search.Instance.search(query, start, rows);
     res.send(results);
+});
+
+function msToTime(duration: number) {
+    let milliseconds = Math.floor((duration % 1000) / 100),
+        seconds = Math.floor((duration / 1000) % 60),
+        minutes = Math.floor((duration / (1000 * 60)) % 60),
+        hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
+
+    let hoursS = (hours < 10) ? "0" + hours : hours;
+    let minutesS = (minutes < 10) ? "0" + minutes : minutes;
+    let secondsS = (seconds < 10) ? "0" + seconds : seconds;
+
+    return hoursS + ":" + minutesS + ":" + secondsS + "." + milliseconds;
+}
+
+app.get("/whosOnline", (req, res) => {
+    let users: any = { active: {}, inactive: {} };
+    const now = Date.now();
+
+    for (const user in timeMap) {
+        const time = timeMap[user];
+        const key = ((now - time) / 1000) < (60 * 5) ? "active" : "inactive";
+        users[key][user] = `Last active ${msToTime(now - time)} ago`;
+    }
+
+    res.send(users);
 });
 
 app.get("/thumbnail/:filename", (req, res) => {
@@ -218,7 +249,7 @@ addSecureRoute(
 addSecureRoute(
     Method.GET,
     async (_, res) => {
-        const cursor = await Database.Instance.query({}, "users");
+        const cursor = await Database.Instance.query({}, { email: 1, userDocumentId: 1 }, "users");
         const results = await cursor.toArray();
         res.send(results.map(user => ({ email: user.email, userDocumentId: user.userDocumentId })));
     },
@@ -295,9 +326,10 @@ app.post(
                 const file = path.basename(files[name].path);
                 const ext = path.extname(file);
                 let resizers = [
-                    { resizer: sharp().resize(100, undefined, { withoutEnlargement: true }), suffix: "_s" },
-                    { resizer: sharp().resize(400, undefined, { withoutEnlargement: true }), suffix: "_m" },
-                    { resizer: sharp().resize(900, undefined, { withoutEnlargement: true }), suffix: "_l" },
+                    { resizer: sharp().rotate(), suffix: "_o" },
+                    { resizer: sharp().resize(100, undefined, { withoutEnlargement: true }).rotate(), suffix: "_s" },
+                    { resizer: sharp().resize(400, undefined, { withoutEnlargement: true }).rotate(), suffix: "_m" },
+                    { resizer: sharp().resize(900, undefined, { withoutEnlargement: true }).rotate(), suffix: "_l" },
                 ];
                 let isImage = false;
                 if (pngTypes.includes(ext)) {
@@ -448,12 +480,21 @@ interface Map {
 }
 let clients: Map = {};
 
+let socketMap = new Map<SocketIO.Socket, string>();
+let timeMap: { [id: string]: number } = {};
+
 server.on("connection", function (socket: Socket) {
-    console.log("a user has connected");
+    socket.use((packet, next) => {
+        let id = socketMap.get(socket);
+        if (id) {
+            timeMap[id] = Date.now();
+        }
+        next();
+    });
 
     Utils.Emit(socket, MessageStore.Foo, "handshooken");
 
-    Utils.AddServerHandler(socket, MessageStore.Bar, barReceived);
+    Utils.AddServerHandler(socket, MessageStore.Bar, guid => barReceived(socket, guid));
     Utils.AddServerHandler(socket, MessageStore.SetField, (args) => setField(socket, args));
     Utils.AddServerHandlerCallback(socket, MessageStore.GetField, getField);
     Utils.AddServerHandlerCallback(socket, MessageStore.GetFields, getFields);
@@ -463,6 +504,8 @@ server.on("connection", function (socket: Socket) {
 
     Utils.AddServerHandler(socket, MessageStore.CreateField, CreateField);
     Utils.AddServerHandler(socket, MessageStore.UpdateField, diff => UpdateField(socket, diff));
+    Utils.AddServerHandler(socket, MessageStore.DeleteField, id => DeleteField(socket, id));
+    Utils.AddServerHandler(socket, MessageStore.DeleteFields, ids => DeleteFields(socket, ids));
     Utils.AddServerHandlerCallback(socket, MessageStore.GetRefField, GetRefField);
     Utils.AddServerHandlerCallback(socket, MessageStore.GetRefFields, GetRefFields);
 });
@@ -481,8 +524,10 @@ async function deleteAll() {
     await Search.Instance.clear();
 }
 
-function barReceived(guid: String) {
-    clients[guid.toString()] = new Client(guid.toString());
+function barReceived(socket: SocketIO.Socket, guid: string) {
+    clients[guid] = new Client(guid.toString());
+    console.log(`User ${guid} has connected`);
+    socketMap.set(socket, guid);
 }
 
 function getField([id, callback]: [string, (result?: Transferable) => void]) {
@@ -516,8 +561,8 @@ function GetRefFields([ids, callback]: [string[], (result?: Transferable[]) => v
 const suffixMap: { [type: string]: (string | [string, string | ((json: any) => any)]) } = {
     "number": "_n",
     "string": "_t",
-    // "boolean": "_b",
-    // "image": ["_t", "url"],
+    "boolean": "_b",
+    "image": ["_t", "url"],
     "video": ["_t", "url"],
     "pdf": ["_t", "url"],
     "audio": ["_t", "url"],
@@ -587,6 +632,23 @@ function UpdateField(socket: Socket, diff: Diff) {
     if (dynfield) {
         Search.Instance.updateDocument(update);
     }
+}
+
+function DeleteField(socket: Socket, id: string) {
+    Database.Instance.delete({ _id: id }, "newDocuments").then(() => {
+        socket.broadcast.emit(MessageStore.DeleteField.Message, id);
+    });
+
+    Search.Instance.deleteDocuments([id]);
+}
+
+function DeleteFields(socket: Socket, ids: string[]) {
+    Database.Instance.delete({ _id: { $in: ids } }, "newDocuments").then(() => {
+        socket.broadcast.emit(MessageStore.DeleteFields.Message, ids);
+    });
+
+    Search.Instance.deleteDocuments(ids);
+
 }
 
 function CreateField(newValue: any) {

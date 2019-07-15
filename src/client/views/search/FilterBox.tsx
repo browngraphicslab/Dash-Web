@@ -3,10 +3,10 @@ import { observer } from 'mobx-react';
 import { observable, action } from 'mobx';
 import "./SearchBox.scss";
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
-import { library} from '@fortawesome/fontawesome-svg-core';
+import { library } from '@fortawesome/fontawesome-svg-core';
 import { Doc } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
-import { DocTypes } from '../../documents/Documents';
+import { DocumentType } from '../../documents/Documents';
 import { Cast, StrCast } from '../../../new_fields/Types';
 import * as _ from "lodash";
 import { ToggleBar } from './ToggleBar';
@@ -32,7 +32,7 @@ export enum Keys {
 export class FilterBox extends React.Component {
 
     static Instance: FilterBox;
-    public _allIcons: string[] = [DocTypes.AUDIO, DocTypes.COL, DocTypes.HIST, DocTypes.IMG, DocTypes.LINK, DocTypes.PDF, DocTypes.TEXT, DocTypes.VID, DocTypes.WEB];
+    public _allIcons: string[] = [DocumentType.AUDIO, DocumentType.COL, DocumentType.HIST, DocumentType.IMG, DocumentType.LINK, DocumentType.PDF, DocumentType.TEXT, DocumentType.VID, DocumentType.WEB];
 
     //if true, any keywords can be used. if false, all keywords are required.
     @observable private _basicWordStatus: boolean = true;
@@ -57,7 +57,7 @@ export class FilterBox extends React.Component {
 
     componentDidMount = () => {
         document.addEventListener("pointerdown", (e) => {
-            if (e.timeStamp !== this._pointerTime) {
+            if (!e.defaultPrevented && e.timeStamp !== this._pointerTime) {
                 SearchBox.Instance.closeSearch();
             }
         });
@@ -65,9 +65,9 @@ export class FilterBox extends React.Component {
 
     setupAccordion() {
         $('document').ready(function () {
-            var acc = document.getElementsByClassName('filter-header');
-
-            for (var i = 0; i < acc.length; i++) {
+            const acc = document.getElementsByClassName('filter-header');
+            // tslint:disable-next-line: prefer-for-of
+            for (let i = 0; i < acc.length; i++) {
                 acc[i].addEventListener("click", function (this: HTMLElement) {
                     this.classList.toggle("active");
 
@@ -96,6 +96,7 @@ export class FilterBox extends React.Component {
         $('document').ready(function () {
             var acc = document.getElementsByClassName('filter-header');
 
+            // tslint:disable-next-line: prefer-for-of
             for (var i = 0; i < acc.length; i++) {
                 let classList = acc[i].classList;
                 if (classList.contains("active")) {
@@ -238,10 +239,13 @@ export class FilterBox extends React.Component {
 
     @action
     filterDocsByType(docs: Doc[]) {
+        if (this._icons.length === 9) {
+            return docs;
+        }
         let finalDocs: Doc[] = [];
         docs.forEach(doc => {
-            let layoutresult = Cast(doc.type, "string", "");
-            if (this._icons.includes(layoutresult)) {
+            let layoutresult = Cast(doc.type, "string");
+            if (layoutresult && this._icons.includes(layoutresult)) {
                 finalDocs.push(doc);
             }
         });
@@ -259,7 +263,7 @@ export class FilterBox extends React.Component {
     @action.bound
     handleWordQueryChange = () => { this._basicWordStatus = !this._basicWordStatus; }
 
-    @action
+    @action.bound
     getBasicWordStatus() { return this._basicWordStatus; }
 
     @action.bound

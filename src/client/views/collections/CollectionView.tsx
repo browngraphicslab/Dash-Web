@@ -27,7 +27,7 @@ library.add(faThList);
 
 @observer
 export class CollectionView extends React.Component<FieldViewProps> {
-    public static LayoutString(fieldStr: string = "data") { return FieldView.LayoutString(CollectionView, fieldStr); }
+    public static LayoutString(fieldStr: string = "data", fieldExt: string = "") { return FieldView.LayoutString(CollectionView, fieldStr, fieldExt); }
 
     private SubView = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
         let props = { ...this.props, ...renderProps };
@@ -43,7 +43,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
         return (null);
     }
 
-    get isAnnotationOverlay() { return this.props.fieldKey === "annotations" || this.props.fieldExt === "annotations"; }
+    get isAnnotationOverlay() { return this.props.fieldExt ? true : false; }
 
     onContextMenu = (e: React.MouseEvent): void => {
         if (!this.isAnnotationOverlay && !e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
@@ -63,7 +63,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
                     otherdoc.height = 50;
                     Doc.GetProto(otherdoc).title = "applied(" + this.props.Document.title + ")";
                     Doc.GetProto(otherdoc).layout = Doc.MakeDelegate(this.props.Document);
-                    this.props.addDocTab && this.props.addDocTab(otherdoc, otherdoc, "onRight");
+                    this.props.addDocTab && this.props.addDocTab(otherdoc, undefined, "onRight");
                 }), icon: "project-diagram"
             });
         }

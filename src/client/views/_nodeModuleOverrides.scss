@@ -2,20 +2,20 @@
 
 // goldenlayout stuff
 div .lm_header {
-  background: $dark-color;
+    background: $dark-color;
 }
 
 .lm_tab {
-  margin-top: 0.6em !important;
-  padding-top: 0.5em !important;
-  min-height: 1.35em;
-  padding-bottom: 0px;
-  border-radius: 5px;
-  font-family: $sans-serif !important;
+    //   margin-top: 0.6em !important;
+    //   padding-top: 0.5em !important;
+    //   min-height: 1.35em;
+    //   padding-bottom: 0px;
+    //   border-radius: 5px;
+    font-family: $sans-serif !important;
 }
 
 .lm_header .lm_controls {
-  right: 1em !important;
+    right: 1em !important;
 }
 
 // @TODO the ril__navgiation buttons in the img gallery are a lil messed up but I can't figure out

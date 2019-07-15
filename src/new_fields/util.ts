@@ -2,7 +2,6 @@ import { UndoManager } from "../client/util/UndoManager";
 import { Doc, Field } from "./Doc";
 import { SerializationHelper } from "../client/util/SerializationHelper";
 import { ProxyField } from "./Proxy";
-import { FieldValue } from "./Types";
 import { RefField } from "./RefField";
 import { ObjectField } from "./ObjectField";
 import { action } from "mobx";
@@ -13,6 +12,7 @@ function _readOnlySetter(): never {
     throw new Error("Documents can't be modified in read-only mode");
 }
 const _setterImpl = action(function (target: any, prop: string | symbol | number, value: any, receiver: any): boolean {
+    //console.log("-set " + target[SelfProxy].title + "(" + target[SelfProxy][prop] + ")." + prop.toString() + " = " + value);
     if (SerializationHelper.IsSerializing()) {
         target[prop] = value;
         return true;
@@ -50,6 +50,7 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
         target.__fields[prop] = value;
     }
     if (value === undefined) target[Update]({ '$unset': { ["fields." + prop]: "" } });
+    if (typeof value === "object" && !(value instanceof ObjectField)) debugger;
     else target[Update]({ '$set': { ["fields." + prop]: value instanceof ObjectField ? SerializationHelper.Serialize(value) : (value === undefined ? null : value) } });
     UndoManager.AddEvent({
         redo: () => receiver[prop] = value,

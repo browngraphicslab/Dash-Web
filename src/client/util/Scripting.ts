@@ -7,12 +7,7 @@ let ts = (window as any).ts;
 
 // @ts-ignore
 import * as typescriptlib from '!!raw-loader!./type_decls.d';
-import { Docs } from "../documents/Documents";
 import { Doc, Field } from '../../new_fields/Doc';
-import { ImageField, PdfField, VideoField, AudioField } from '../../new_fields/URLField';
-import { List } from '../../new_fields/List';
-import { RichTextField } from '../../new_fields/RichTextField';
-import { ScriptField, ComputedField } from '../../new_fields/ScriptField';
 
 export interface ScriptSucccess {
     success: true;
@@ -39,15 +34,46 @@ export interface CompileError {
 }
 
 export type CompileResult = CompiledScript | CompileError;
+
+export namespace Scripting {
+    export function addGlobal(global: { name: string }): void;
+    export function addGlobal(name: string, global: any): void;
+    export function addGlobal(nameOrGlobal: any, global?: any) {
+        let n: string;
+        let obj: any;
+        if (global !== undefined && typeof nameOrGlobal === "string") {
+            n = nameOrGlobal;
+            obj = global;
+        } else if (nameOrGlobal && typeof nameOrGlobal.name === "string") {
+            n = nameOrGlobal.name;
+            obj = nameOrGlobal;
+        } else {
+            throw new Error("Must either register an object with a name, or give a name and an object");
+        }
+        if (scriptingGlobals.hasOwnProperty(n)) {
+            throw new Error(`Global with name ${n} is already registered, choose another name`);
+        }
+        scriptingGlobals[n] = obj;
+    }
+}
+
+export function scriptingGlobal(constructor: { new(...args: any[]): any }) {
+    Scripting.addGlobal(constructor);
+}
+
+const scriptingGlobals: { [name: string]: any } = {};
+
 function Run(script: string | undefined, customParams: string[], diagnostics: any[], originalScript: string, options: ScriptOptions): CompileResult {
     const errors = diagnostics.some(diag => diag.category === ts.DiagnosticCategory.Error);
     if ((options.typecheck !== false && errors) || !script) {
         return { compiled: false, errors: diagnostics };
     }
 
-    let fieldTypes = [Doc, ImageField, PdfField, VideoField, AudioField, List, RichTextField, ScriptField, ComputedField, CompileScript];
-    let paramNames = ["Docs", ...fieldTypes.map(fn => fn.name)];
-    let params: any[] = [Docs, ...fieldTypes];
+    let paramNames = Object.keys(scriptingGlobals);
+    let params = paramNames.map(key => scriptingGlobals[key]);
+    // let fieldTypes = [Doc, ImageField, PdfField, VideoField, AudioField, List, RichTextField, ScriptField, ComputedField, CompileScript];
+    // let paramNames = ["Docs", ...fieldTypes.map(fn => fn.name)];
+    // let params: any[] = [Docs, ...fieldTypes];
     let compiledFunction = new Function(...paramNames, `return ${script}`);
     let { capturedVariables = {} } = options;
     let run = (args: { [name: string]: any } = {}): ScriptResult => {
@@ -179,3 +205,5 @@ export function CompileScript(script: string, options: ScriptOptions = {}): Comp
 
     return Run(outputText, paramNames, diagnostics, script, options);
 }
+
+Scripting.addGlobal(CompileScript);

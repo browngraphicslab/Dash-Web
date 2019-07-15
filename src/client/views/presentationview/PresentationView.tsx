@@ -494,6 +494,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
     /**
      * Adds a document to the presentation view
      **/
+    @undoBatch
     @action
     public PinDoc(doc: Doc) {
         //add this new doc to props.Document
@@ -590,7 +591,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
     @action
     addNewPresentation = (presTitle: string) => {
         //creating a new presentation doc
-        let newPresentationDoc = Docs.TreeDocument([], { title: presTitle });
+        let newPresentationDoc = Docs.Create.TreeDocument([], { title: presTitle });
         this.props.Documents.push(newPresentationDoc);
 
         //setting that new doc as current

@@ -13,12 +13,11 @@ import { faFile as fileRegular } from '@fortawesome/free-regular-svg-icons';
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 
-
 library.add(faArrowUp);
 library.add(fileSolid);
 library.add(faLocationArrow);
+library.add(fileRegular as any);
 library.add(faSearch);
-library.add(fileRegular);
 
 interface PresentationElementProps {
     mainDocument: Doc;
@@ -371,14 +370,14 @@ export default class PresentationElement extends React.Component<PresentationEle
             className += " presentationView-selected";
         }
         let onEnter = (e: React.PointerEvent) => { p.document.libraryBrush = true; };
-        let onLeave = (e: React.PointerEvent) => { p.document.libraryBrush = false; };
+        let onLeave = (e: React.PointerEvent) => { p.document.libraryBrush = undefined; };
         return (
             <div className={className} key={p.document[Id] + p.index}
                 onPointerEnter={onEnter} onPointerLeave={onLeave}
                 style={{
                     outlineColor: "maroon",
                     outlineStyle: "dashed",
-                    outlineWidth: BoolCast(p.document.libraryBrush, false) || BoolCast(p.document.protoBrush, false) ? `1px` : "0px",
+                    outlineWidth: BoolCast(p.document.libraryBrush) ? `1px` : "0px",
                 }}
                 onClick={e => { p.gotoDocument(p.index, NumCast(this.props.mainDocument.selectedDoc)); e.stopPropagation(); }}>
                 <strong className="presentationView-name">

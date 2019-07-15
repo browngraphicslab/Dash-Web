@@ -18,9 +18,6 @@ import { ImageBox } from "./ImageBox";
 import { PDFBox } from "./PDFBox";
 import { VideoBox } from "./VideoBox";
 import { Id } from "../../../new_fields/FieldSymbols";
-import { BoolCast, Cast } from "../../../new_fields/Types";
-import { DarpaDatasetDoc } from "../../northstar/model/idea/idea";
-
 
 //
 // these properties get assigned through the render() method of the DocumentView when it creates this node.
@@ -31,6 +28,7 @@ export interface FieldViewProps {
     fieldKey: string;
     fieldExt: string;
     leaveNativeSize?: boolean;
+    fitToBox?: boolean;
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
     Document: Doc;
     DataDoc?: Doc;
@@ -39,7 +37,7 @@ export interface FieldViewProps {
     renderDepth: number;
     selectOnLoad: boolean;
     addDocument?: (document: Doc, allowDuplicates?: boolean) => boolean;
-    addDocTab: (document: Doc, dataDoc: Doc, where: string) => void;
+    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
     removeDocument?: (document: Doc) => boolean;
     moveDocument?: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
@@ -54,8 +52,8 @@ export interface FieldViewProps {
 
 @observer
 export class FieldView extends React.Component<FieldViewProps> {
-    public static LayoutString(fieldType: { name: string }, fieldStr: string = "data") {
-        return `<${fieldType.name} {...props} fieldKey={"${fieldStr}"} />`;
+    public static LayoutString(fieldType: { name: string }, fieldStr: string = "data", fieldExt: string = "") {
+        return `<${fieldType.name} {...props} fieldKey={"${fieldStr}"} fieldExt={"${fieldExt}"} />`;
     }
 
     @computed

@@ -30,13 +30,13 @@ export class CollectionPDFView extends React.Component<FieldViewProps> {
             () => NumCast(this.props.Document.scrollY),
             () => {
                 // let transform = this.props.ScreenToLocalTransform();
-                if (this._buttonTray.current) {
-                    // console.log(this._buttonTray.current.offsetHeight);
-                    // console.log(NumCast(this.props.Document.scrollY));
-                    let scale = this.nativeWidth() / this.props.Document[WidthSym]();
-                    this.props.Document.panY = NumCast(this.props.Document.scrollY);
-                    // console.log(scale);
-                }
+                // if (this._buttonTray.current) {
+                // console.log(this._buttonTray.current.offsetHeight);
+                // console.log(NumCast(this.props.Document.scrollY));
+                let scale = this.nativeWidth() / this.props.Document[WidthSym]();
+                this.props.Document.panY = NumCast(this.props.Document.scrollY);
+                // console.log(scale);
+                // }
                 // console.log(this.props.Document[HeightSym]());
             },
             { fireImmediately: true }
@@ -47,8 +47,8 @@ export class CollectionPDFView extends React.Component<FieldViewProps> {
         this._reactionDisposer && this._reactionDisposer();
     }
 
-    public static LayoutString(fieldKey: string = "data") {
-        return FieldView.LayoutString(CollectionPDFView, fieldKey);
+    public static LayoutString(fieldKey: string = "data", fieldExt: string = "annotations") {
+        return FieldView.LayoutString(CollectionPDFView, fieldKey, fieldExt);
     }
     @observable _inThumb = false;
 
