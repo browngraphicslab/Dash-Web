@@ -40,6 +40,8 @@ import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormV
 import { forEach } from "typescript-collections/dist/lib/arrays";
 import { DocServer } from "../../DocServer";
 import { FormattedTextBox } from "../nodes/FormattedTextBox";
+import { EditableView } from "../EditableView";
+import { string } from "prop-types";
 
 
 type CompoundValue = String | number | Date;
@@ -106,26 +108,7 @@ class KeyToggle extends React.Component<{ keyName: string, toggle: (key: string)
 }
 
 @observer
-class FilterToggle extends React.Component<{ keyName: string, toggle: (key: string) => void }> {
-    constructor(props: any) {
-        super(props);
-    }
-
-    render() {
-        return (
-            <div ref={this.checkedref} key={this.props.keyName}>
-                <input type="checkbox" name="dude" onChange={() => this.props.toggle(this.props.keyName)} />
-                {this.props.keyName}
-            </div>
-        );
-    }
-}
-
-
-
-@observer
 export class CollectionTimelineView extends CollectionSubView(doc => doc) {
-
     @observable
     private sortstate: string = "x";
     private _range = 0;
@@ -141,12 +124,15 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     componentWillMount() {
         document.addEventListener("keydown", (e) => this.onKeyPress_Selector(e));
+        this.filtered = [];
     }
 
     componentDidMount() {
         if (this.checkedref.current !== null) {
             this.checkedref.current.checked = true;
+
         }
+
     }
 
 
@@ -188,8 +174,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         else {
             this.filtered.push(key);
         }
+        console.log(this.filtered);
     }
 
+    @observable
     private filtered: String[];
 
     @observable
@@ -244,7 +232,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     }
 
     @action
-    onPointerDown_DeleteMarker = (e: React.PointerEvent, ref: HTMLDivElement | undefined): void => {
+    onPointerDown_DeleteMarker = (e: React.PointerEvent, ref: HTMLDivElement | undefined, annotation: string, ting: MarkerUnit): void => {
+
+        this.viewvalue = annotation;
+        this.currentstring = ting.annotation;
         if (e.ctrlKey) {
             for (let i = 0; i < this.markers.length; i++) {
                 if (this.markers[i].ref === ref) {
@@ -262,7 +253,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             let leftval = (e.pageX - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98);
             let ting: MarkerUnit = {
                 ref: undefined,
-                element: <div ref={(el) => el ? ting.ref = el : null} id={"marker" + String(this.markers.length)} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, ting.ref)}
+                element: <div ref={(el) => el ? ting.ref = el : null} id={"marker" + String(this.markers.length)} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, ting.ref, ting.annotation)}
                     style={{
                         top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid" + this.selectedColor,
                         width: "10px", height: "30px", backgroundColor: this.selectedColor, opacity: "0.25", position: "absolute", left: leftval
@@ -273,7 +264,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 initialScaleRef: 10,
                 initialWidth: (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)),
                 menuref: undefined,
-                annotation: "null",
+                annotation: "Edit me!",
                 mapref: undefined,
                 map: (<div className="ugh" ref={(el) => el ? ting.mapref = el : null}
                     style={{
@@ -598,25 +589,33 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     private ticks: JSX.Element[] = [];
     private buttons: Thing[] = [];
 
+    private filterDocs = (oldbuttons: Thing[]): Thing[] => {
+        let buttons = [];
+        for (let i = 0; i < oldbuttons.length; i++) {
+            if (this.filtered.includes("Image")) {
+                if (oldbuttons[i].data instanceof ImageField) {
+                    buttons.push(oldbuttons[i]);
+                }
+            }
+            if (this.filtered.includes("Image")) {
+                if (oldbuttons[i].data instanceof ImageField) {
+                    buttons.push(oldbuttons[i]);
+                }
+            }
+
+        }
+        return buttons;
+    }
 
     @action
     checkDataString = (): string[] => {
         let field: string[] = [];
         field.push("Audio");
-
         field.push("Pdf");
-
         field.push("Text");
-
         field.push("Image");
-
-
         field.push("Video");
-
-
         field.push("Web");
-
-
         field.push("Proxy");
 
         return field;
@@ -750,6 +749,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
             };
             this.buttons.push(item);
+            console.log(item.data);
         }
 
 
@@ -801,10 +801,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             </div>)
         );
 
-
-        console.log(dudes);
-        console.log(keys);
-
+        this.buttons = this.filterDocs(this.buttons);
 
         return (<div ref={this.screenref} id="screen" >
             <div style={{ position: "absolute", height: "30%", width: "10%", overflow: "scroll", border: "1px solid", zIndex: 900 }}>
@@ -854,11 +851,11 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             </div>
 
             <div className="viewpanel" style={{ top: "5%", position: "absolute", right: "10%", bottom: "35%", background: "#GGGGGG", zIndex: -55, }}></div>
-            <div style={{ height: "100%", position: "absolute", width: "100%", }} onKeyDown={this.onKeyPress_Selector}>
-                <div className="marqueeView" style={{ borderRadius: "inherit" }} onClick={this.onClick_Selector} onPointerDown={this.onPointerDown_Selector}>
-                    <div style={{ position: "relative", transform: `translate(${p[0]}px, ${p[1]}px)` }} >
-                        {this._visible ? this.marqueeDiv : null}
-                    </div>
+            <div className="marqueeView" style={{ height: "40%", top: "60%", borderRadius: "inherit", position: "absolute", width: "100%", }} onClick={this.onClick_Selector} onPointerDown={this.onPointerDown_Selector} onKeyDown={this.onKeyPress_Selector}>
+                {console.log(p[0])}
+                {console.log(p[1])}
+                <div style={{ transform: `translate(${p[0]}px, ${p[1] - 0.58 * (document.body.clientHeight)}px)` }} >
+                    {this._visible ? this.marqueeDiv : null}
                 </div>
             </div>
             <div style={{ top: "65%", position: "absolute", bottom: "25%" }}>{this.buttons.map(item => item.button)}{this.buttons.map(item => item.header)}</div>
@@ -869,7 +866,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
 
             <div id="bar" ref={this.barref} className="backdropscroll" onPointerDown={this.onPointerDown_OffBar} style={{ top: "80%", width: "100%", bottom: "15%", position: "absolute", }}>
-                {this.buttons.map(item => this.filtered.includes(String(item.data) ? item.button : null)}
+                {this.buttons.map(item => item.map)}
                 {this.markers.map(item => item.map)}
                 <div className="v1" onPointerDown={this.onPointerDown_LeftBound} style={{ cursor: "ew-resize", position: "absolute", zIndex: 2, left: this.xmovement, height: "100%" }}>
                 </div>
@@ -952,11 +949,16 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         position: "absolute",
                         background: this.selectedColor,
                         zIndex: "1",
-                        top: this.previewHeight(this.selectedColor), left: min - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98, width: Math.abs(max - min), border: "3px solid" + this.selectedColor
+                        top: this.previewHeight(this.selectedColor),
+                        left: ((((min - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98) / this.barref.current.clientWidth)) * (this.barwidth - this.xmovement2 - this.xmovement)) + this.xmovement,
+
+
+                        width: (Math.abs(max - min)), border: "3px solid" + this.selectedColor
                     }}></div>),
             };
             this.markers.push(ting);
             this.countingfriend++;
+
         }
         this.countingfriend++;
     }
@@ -1147,12 +1149,26 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     }
 
 
+    private valueRef = React.createRef<EditableView>();
+    private viewvalue: string = "asdasdasasd";
+    private currentstring: string;
+    updateValue = (newValue: string) => {
+        this.viewvalue = newValue;
+        this.currentstring = this.viewvalue;
+        return true;
+    }
+
     documentpreview0() {
         return (
             <div>
-                <div className="window" style={{ background: "white", pointerEvents: "none", height: "100%", width: "100%", zIndex: 50, position: "absolute", }}>
-                    <FormattedTextBox {...this.props}></FormattedTextBox>
-                </div>
+                <EditableView ref={this.valueRef}
+                    contents={this.viewvalue}
+                    SetValue={this.updateValue}
+                    GetValue={() => ""}
+                    display={"inline"}
+                    height={72}
+                />
+
 
             </div >
 
