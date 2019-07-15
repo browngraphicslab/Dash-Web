@@ -243,7 +243,7 @@ export class TooltipTextMenu {
                         handlers: {
                             dragComplete: action(() => {
                                 let m = dragData.droppedDocuments;
-                                this.makeLink(DocServer.prepend("/doc/" + m[0][Id]));
+                                m.length && this.makeLink(DocServer.prepend("/doc/" + m[0][Id]));
                             }),
                         },
                         hideSource: false
