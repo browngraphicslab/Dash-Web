@@ -432,6 +432,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     anno.target = targetDoc;
                 });
             }
+            let pdfDoc = await Cast(annotationDoc.pdfDoc, Doc);
+            if (pdfDoc) {
+                DocUtils.MakeLink(annotationDoc, targetDoc, undefined, `Annotation from ${StrCast(pdfDoc.title)}`, "", StrCast(pdfDoc.title));
+            }
         }
         if (de.data instanceof DragManager.LinkDragData) {
             let sourceDoc = de.data.linkSourceDocument;
