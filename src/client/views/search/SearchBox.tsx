@@ -118,7 +118,7 @@ export class SearchBox extends React.Component {
 
     private get filterQuery() {
         const types = FilterBox.Instance.filterTypes;
-        return types && types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}"`).join(" ");
+        return "proto_i:*" + (types ? ` AND (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}"`).join(" ")})` : "");
     }
 
 
