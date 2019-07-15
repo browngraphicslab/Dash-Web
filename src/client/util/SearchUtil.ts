@@ -14,11 +14,11 @@ export namespace SearchUtil {
         numFound: number;
     }
 
-    export function Search(query: string, returnDocs: true): Promise<DocSearchResult>;
-    export function Search(query: string, returnDocs: false): Promise<IdSearchResult>;
-    export async function Search(query: string, returnDocs: boolean) {
+    export function Search(query: string, returnDocs: true, start?: number, count?: number): Promise<DocSearchResult>;
+    export function Search(query: string, returnDocs: false, start?: number, count?: number): Promise<IdSearchResult>;
+    export async function Search(query: string, returnDocs: boolean, start?: number, rows?: number) {
         const result: IdSearchResult = JSON.parse(await rp.get(DocServer.prepend("/search"), {
-            qs: { query }
+            qs: { query, start, rows }
         }));
         if (!returnDocs) {
             return result;

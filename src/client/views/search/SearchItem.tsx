@@ -99,7 +99,9 @@ export class SearchItem extends React.Component<SearchItemProps> {
     @observable _selected: boolean = false;
 
     onClick = () => {
-        DocumentManager.Instance.jumpToDocument(this.props.doc, false);
+        // I dont think this is the best functionality because clicking the name of the collection does that. Change it back if you'd like
+        // DocumentManager.Instance.jumpToDocument(this.props.doc, false);
+        CollectionDockingView.Instance.AddRightSplit(this.props.doc, undefined);
     }
     @observable _useIcons = true;
     @observable _displayDim = 50;
@@ -240,7 +242,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
                 <div className="search-item" onPointerEnter={this.highlightDoc} onPointerLeave={this.unHighlightDoc} id="result"
                     onClick={this.onClick} onPointerDown={this.pointerDown} >
                     <div className="main-search-info">
-                        <div title="Drag as document" onPointerDown={this.onPointerDown}> <FontAwesomeIcon icon="file" size="lg" /> </div>
+                        <div title="Drag as document" onPointerDown={this.onPointerDown} style={{ marginRight: "7px" }}> <FontAwesomeIcon icon="file" size="lg" /> </div>
                         <div className="search-title" id="result" >{StrCast(this.props.doc.title)}</div>
                         <div className="search-info" style={{ width: this._useIcons ? "15%" : "400px" }}>
                             <div className={`icon-${this._useIcons ? "icons" : "live"}`}>
