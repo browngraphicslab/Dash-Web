@@ -144,8 +144,12 @@ app.get("/pull", (req, res) =>
 // GETTERS
 
 app.get("/search", async (req, res) => {
-    let query = req.query.query || "hello";
-    let results = await Search.Instance.search(query);
+    const { query, start, rows } = req.query;
+    if (query === undefined) {
+        res.send([]);
+        return;
+    }
+    let results = await Search.Instance.search(query, start, rows);
     res.send(results);
 });
 

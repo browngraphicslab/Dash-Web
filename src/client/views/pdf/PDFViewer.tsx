@@ -236,12 +236,13 @@ export class Viewer extends React.Component<IViewerProps> {
         }
     }
 
+    @action
     makeAnnotationDocument = (sourceDoc: Doc | undefined, s: number, color: string): Doc => {
         let annoDocs: Doc[] = [];
         let mainAnnoDoc = Docs.Create.InstanceFromProto(new Doc(), "", {});
 
         mainAnnoDoc.title = "Annotation on " + StrCast(this.props.parent.Document.title);
-        mainAnnoDoc.pdfDoc = this.props.parent.Document;
+        mainAnnoDoc.pdfDoc = this.props.parent.props.Document;
         let minY = Number.MAX_VALUE;
         this._savedAnnotations.forEach((key: number, value: HTMLDivElement[]) => {
             for (let anno of value) {
@@ -449,10 +450,6 @@ export class Viewer extends React.Component<IViewerProps> {
 
     @action
     search = (searchString: string) => {
-        if (searchString.length === 0) {
-            return;
-        }
-
         if (this._pdfViewer._pageViewsReady) {
             this._pdfFindController.executeCommand('find',
                 {
