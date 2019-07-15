@@ -18,7 +18,6 @@ export namespace KeyframeFunc{
     export enum KeyframeType{
         fade = "fade", 
         default = "default",
-        new = "new"
     }
     export enum Direction{
         left = "left", 
@@ -91,23 +90,27 @@ export class Keyframe extends React.Component<IProps> {
 
 
     componentWillMount(){
+
+        
         if (!this.regiondata.keyframes){
             this.regiondata.keyframes = new List<Doc>(); 
+           
         }
     }
 
 
     @action
     componentDidMount() {
-        let fadeIn = this.makeKeyData(this.regiondata.position + this.regiondata.fadeIn, KeyframeFunc.KeyframeType.fade)!; 
-        let fadeOut = this.makeKeyData(this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut, KeyframeFunc.KeyframeType.fade)!;   
-        let start = this.makeKeyData(this.regiondata.position, KeyframeFunc.KeyframeType.fade)!;
-        let finish = this.makeKeyData(this.regiondata.position + this.regiondata.duration, KeyframeFunc.KeyframeType.fade)!; 
-        (fadeIn.key! as Doc).opacity = 1; 
-        (fadeOut.key! as Doc).opacity = 1;  
-        (start.key! as Doc).opacity = 0.1; 
-        (finish.key! as Doc).opacity = 0.1; 
-
+                    
+            let fadeIn = this.makeKeyData(this.regiondata.position + this.regiondata.fadeIn, KeyframeFunc.KeyframeType.fade)!; 
+            let fadeOut = this.makeKeyData(this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut, KeyframeFunc.KeyframeType.fade)!;   
+            let start = this.makeKeyData(this.regiondata.position, KeyframeFunc.KeyframeType.fade)!;
+            let finish = this.makeKeyData(this.regiondata.position + this.regiondata.duration, KeyframeFunc.KeyframeType.fade)!; 
+            (fadeIn.key! as Doc).opacity = 1; 
+            (fadeOut.key! as Doc).opacity = 1;  
+            (start.key! as Doc) .opacity = 0.1; 
+            (finish.key! as Doc).opacity = 0.1; 
+            
         observe(this.regiondata, change => {
             if (change.type === "update"){
                 fadeIn.time = this.regiondata.position + this.regiondata.fadeIn; 
@@ -129,17 +132,8 @@ export class Keyframe extends React.Component<IProps> {
         }); 
     }
 
-    
-    componentWillUnmount() {
-
-    }
-
-    componentWillUpdate(){
-       
-    }
-
     @action
-    makeKeyData = (kfpos: number, type:KeyframeFunc.KeyframeType = KeyframeFunc.KeyframeType.new) => { //Kfpos is mouse offsetX, representing time 
+    makeKeyData = (kfpos: number, type:KeyframeFunc.KeyframeType = KeyframeFunc.KeyframeType.default) => { //Kfpos is mouse offsetX, representing time 
         let hasData = false;
         this.regiondata.keyframes!.forEach(TK => { //TK is TimeAndKey
             TK = TK as Doc;
@@ -150,13 +144,7 @@ export class Keyframe extends React.Component<IProps> {
         if (!hasData) {
             let TK: Doc = new Doc();
             TK.time = kfpos; 
-            console.log(kfpos + " from makeKeyDat"); 
-            if (type === KeyframeFunc.KeyframeType.fade){
-                TK.key = Doc.MakeAlias(this.props.node); 
-            } else {
-                TK.key = Doc.MakeCopy(this.props.node, true); 
-                console.log(toJS(TK.key)); 
-            }
+            TK.key = Doc.MakeCopy(this.props.node, true); 
             TK.type = type;            
             this.regiondata.keyframes!.push(TK);
             return TK; 
@@ -180,9 +168,10 @@ export class Keyframe extends React.Component<IProps> {
         e.stopPropagation();
         let left = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.left, this.regiondata, this.regions)!;
         let right = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.right, this.regiondata, this.regions!);      
-        let bar = this._bar.current!; 
-        let barX = bar.getBoundingClientRect().left;
-        let offset = e.clientX - barX;
+        // let bar = this._bar.current!; 
+        // let barX = bar.getBoundingClientRect().left;
+        // let offset = e.clientX - barX;
+        let prevX = this.regiondata.position; 
         let futureX = this.regiondata.position + e.movementX;
         if (futureX <= 0) {
             this.regiondata.position = 0;
@@ -193,7 +182,13 @@ export class Keyframe extends React.Component<IProps> {
         } else {
             this.regiondata.position = futureX;
         }
-       
+        for (let i = 0; i < this.regiondata.keyframes!.length; i++) {
+            if ((this.regiondata.keyframes![i] as Doc).type !== KeyframeFunc.KeyframeType.fade){
+                let movement = this.regiondata.position - prevX;
+                (this.regiondata.keyframes![i] as Doc).time = NumCast((this.regiondata.keyframes![i] as Doc).time) + movement;
+            }
+        }
+        this.forceUpdate(); 
     }
 
     @action
@@ -246,8 +241,8 @@ export class Keyframe extends React.Component<IProps> {
         let barX = bar.getBoundingClientRect().right;
         let offset = e.clientX - barX;
         if (this.regiondata.duration + offset < this.regiondata.fadeIn + this.regiondata.fadeOut){
-            this.regiondata.duration = this.regiondata.fadeIn + this.regiondata.fadeOut; 
-        } else {        
+            this.regiondata.duration = this.regiondata.fadeIn + this.regiondata.fadeOut;
+        }else {        
             this.regiondata.duration += offset;
         }
     }

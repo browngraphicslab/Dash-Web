@@ -1,6 +1,6 @@
 import * as React from "react";
 import { observer } from "mobx-react";
-import { observable, reaction, action, IReactionDisposer, observe, IObservableArray, computed, toJS, IObservableObject } from "mobx";
+import { observable, reaction, action, IReactionDisposer, observe, IObservableArray, computed, toJS, IObservableObject, runInAction } from "mobx";
 import "./Track.scss";
 import { Doc, DocListCastAsync, DocListCast } from "../../../new_fields/Doc";
 import { Document, listSpec, createSchema, makeInterface, defaultSpec } from "../../../new_fields/Schema";
@@ -8,11 +8,6 @@ import { FieldValue, Cast, NumCast, BoolCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { Keyframe, KeyframeFunc, RegionData } from "./Keyframe";
 import { FlyoutProps } from "./Timeline";
-import { AddComparisonParameters } from "../../northstar/model/idea/idea";
-import { RichTextField } from "../../../new_fields/RichTextField";
-import { node } from "prop-types";
-import { NorthstarSettings } from "../../northstar/manager/Gateway";
-import { getForkTsCheckerWebpackPluginHooks } from "fork-ts-checker-webpack-plugin/lib/hooks";
 
 interface IProps {
     node: Doc;
@@ -21,14 +16,12 @@ interface IProps {
     setFlyout: (props:FlyoutProps) => any; 
 }
 
-
 @observer
 export class Track extends React.Component<IProps> {
     @observable private _inner = React.createRef<HTMLDivElement>();   
-    @observable private _onInterpolate:boolean = false; 
-
-    private _reactionDisposers: IReactionDisposer[] = [];
-    private _selectionManagerChanged?: IReactionDisposer;
+    @observable private _reactionDisposers: IReactionDisposer[] = [];
+    @observable private _keyReaction:any; //reaction that is used to dispose when necessary 
+    @observable private _currentBarXReaction:any; 
 
     @computed
     private get regions() {
@@ -39,85 +32,96 @@ export class Track extends React.Component<IProps> {
         if (!this.props.node.regions){
             this.props.node.regions = new List<Doc>();
         }
-        this.props.node.opacity = 1; 
+        this.props.node.opacity = 1;         
+        this.props.node.hidden = true;
     }
 
-    @action
     componentDidMount() {
-        this.props.node.hidden = true;
+        runInAction(() => {
+            this._keyReaction = this.keyReaction(); 
+            this._currentBarXReaction = this.currentBarXReaction(); 
+        }); 
+    }
 
-        this._reactionDisposers.push(reaction(() => this.props.currentBarX, () => {
+    componentWillUnmount() {
+       runInAction(() => {
+           this._keyReaction(); 
+           this._currentBarXReaction(); 
+       }); 
+    }
+
+    @action 
+    keyReaction = () => {
+        return reaction(() => {
+            console.log("keyreaction ran");
+            let keys = Doc.allKeys(this.props.node); 
+            return keys.map(key => FieldValue(this.props.node[key]));     
+        }, data => {
+            console.log("full reaction")
+            let regiondata = this.findRegion(this.props.currentBarX);
+            if (regiondata){
+                DocListCast(regiondata.keyframes!).forEach((kf) => {
+                    if(NumCast(kf.time!) === this.props.currentBarX){
+                        kf.key = Doc.MakeCopy(this.props.node, true); 
+                    } 
+                }); 
+            }
+        }); 
+    }
+
+    @action 
+    currentBarXReaction = () => {
+        return reaction(() => this.props.currentBarX, () => {
+            console.log("current ran"); 
+            (this._keyReaction as IReactionDisposer)(); // disposing reaction 
             let regiondata: (Doc | undefined) = this.findRegion(this.props.currentBarX);
             if (regiondata) {              
-                this.timeChange(this.props.currentBarX);    //first interpolates over to that position;  
-                (Cast(regiondata.keyframes!, listSpec(Doc)) as List<Doc>).forEach((kf) => {
-                    kf = kf as Doc; 
-                    if(NumCast(kf.time!) === this.props.currentBarX && kf.type !== KeyframeFunc.KeyframeType.fade){
-                        kf.key = Doc.MakeCopy(this.props.node, true);
-                        if (kf.type === KeyframeFunc.KeyframeType.new){
-                            kf.type = KeyframeFunc.KeyframeType.default; 
-                        } 
-                    }
-                }); 
+                this.timeChange(this.props.currentBarX);    
                 this.props.node.hidden = false;                        
             } else {
                 this.props.node.hidden = true;
             }
-        }));
-        this._reactionDisposers.push(reaction(() => {
-            let keys = Doc.allKeys(this.props.node); 
-            return keys.map(key => FieldValue(this.props.node[key]));
-            
-        }, data => {
-            let regiondata = this.findRegion(this.props.currentBarX);
-            if (regiondata){
-                (Cast(regiondata.keyframes!, listSpec(Doc)) as List<Doc>).forEach((kf) => {
-                    kf = kf as Doc; 
-                    if(NumCast(kf.time!) === this.props.currentBarX && kf.type !== KeyframeFunc.KeyframeType.fade && !this._onInterpolate){
-                        kf.key = Doc.MakeCopy(this.props.node, true); 
-                    } else {
-                        this._onInterpolate = false; 
-                    }
-                }); 
-            }
-        })); 
-    }
+            this._keyReaction = this.keyReaction(); 
 
-    /**
-     * removes reaction when the component is removed from the timeline
-     */
-    componentWillUnmount() {
-        this._reactionDisposers.forEach(disp => disp());
-        this._reactionDisposers = [];
+        });
     }
 
 
     @action
     timeChange = async (time: number) => {
-        let region = this.findRegion(Math.round(time));
-        let leftkf: (Doc | undefined) = this.calcMinLeft(region!);
-        let rightkf: (Doc | undefined) = this.calcMinRight(region!);
-        let currentkf: (Doc | undefined) = this.calcCurrent(region!); 
-        console.log(currentkf); 
-        if (currentkf && (currentkf.type !== KeyframeFunc.KeyframeType.new)){
-            this._onInterpolate = true;   
-            this.filterKeys(Doc.allKeys(currentkf.key as Doc)).forEach(k => {
-                this.props.node[k] = (currentkf!.key as Doc)[k];  
-            }); 
+        let region = this.findRegion(Math.round(time)); //finds a region that the scrubber is on
+        let leftkf: (Doc | undefined) = this.calcMinLeft(region!); // lef keyframe, if it exists
+        let rightkf: (Doc | undefined) = this.calcMinRight(region!); //right keyframe, if it exists
+        let currentkf: (Doc | undefined) = this.calcCurrent(region!); //if the scrubber is on top of the keyframe
+        if (currentkf){
+            this.applyKeys(currentkf.key as Doc); 
         } else if (leftkf && rightkf) {
             this.interpolate(leftkf, rightkf);
         } else if (leftkf) {                
-            console.log(Doc.GetProto(leftkf!.key as Doc)); 
-            this.filterKeys(Doc.allKeys(leftkf.key as Doc)).forEach(k => {
-                this.props.node[k] = (leftkf!.key as Doc)[k];
-            });
+            this.applyKeys(leftkf); 
         } else if (rightkf) {
-            this.filterKeys(Doc.allKeys(rightkf.key as Doc)).forEach(k => {
-                this.props.node[k] = (rightkf!.key as Doc)[k];
-            });
+            this.applyKeys(rightkf); 
         }
     }
 
+    @action 
+    private applyKeys = (kf: Doc) => {
+        let kf_length = Doc.allKeys(kf).length; 
+        let node_length = Doc.allKeys(this.props.node).length; 
+        if (kf_length > node_length) {
+            this.filterKeys(Doc.allKeys(kf)).forEach((k) => {
+                this.props.node[k] = kf[k]; 
+            }); 
+        } else {
+            this.filterKeys(Doc.allKeys(this.props.node)).forEach((k) => {
+                if (kf[k] === undefined) {
+                    this.props.node[k] = undefined; 
+                } else {
+                    this.props.node[k] = kf[k]; 
+                }
+            }); 
+        }
+    }
 
     @action 
     private filterKeys = (keys:string[]):string[] => {
@@ -132,8 +136,7 @@ export class Track extends React.Component<IProps> {
     @action 
     calcCurrent = (region:Doc):(Doc|undefined) => {
         let currentkf:(Doc|undefined) = undefined; 
-        (region.keyframes! as List<Doc>).forEach((kf) => {
-            kf = kf as Doc; 
+        DocListCast(region.keyframes!).forEach((kf) => {
             if (NumCast(kf.time) === Math.round(this.props.currentBarX)){
                 currentkf = kf; 
             }
@@ -146,8 +149,7 @@ export class Track extends React.Component<IProps> {
     calcMinLeft = (region: Doc): (Doc | undefined) => { //returns the time of the closet keyframe to the left
         let leftKf:(Doc| undefined) = undefined;
         let time:number = 0; 
-        (region.keyframes! as List<Doc>).forEach((kf) => {
-            kf = kf as Doc;
+        DocListCast(region.keyframes!).forEach((kf) => {
             if (NumCast(kf.time) < this.props.currentBarX && NumCast(kf.time) > NumCast(time)) {
                 leftKf = kf;
                 time = NumCast(kf.time); 
@@ -161,8 +163,7 @@ export class Track extends React.Component<IProps> {
     calcMinRight = (region: Doc): (Doc | undefined) => { //returns the time of the closest keyframe to the right 
         let rightKf: (Doc|undefined) = undefined;
         let time:number = Infinity; 
-        (region.keyframes! as List<Doc>).forEach((kf) => {
-            kf = kf as Doc;
+        DocListCast(region.keyframes!).forEach((kf) => {
             if (NumCast(kf.time) > this.props.currentBarX && NumCast(kf.time) < NumCast(time)) {
                 rightKf = kf;
                 time = NumCast(kf.time); 
@@ -232,15 +233,13 @@ export class Track extends React.Component<IProps> {
     }
 
 
-   
-
     render() {
         return (
             <div className="track-container">
                 <div className="track">
                     <div className="inner" ref={this._inner} onDoubleClick={this.onInnerDoubleClick}>
                         {DocListCast(this.regions).map((region) => {
-                            return <Keyframe node={this.props.node} RegionData={region as Doc} changeCurrentBarX={this.props.changeCurrentBarX} setFlyout={this.props.setFlyout}/>;
+                            return <Keyframe node={this.props.node} RegionData={region} changeCurrentBarX={this.props.changeCurrentBarX} setFlyout={this.props.setFlyout}/>;
                         })}
                     </div>
                 </div>
