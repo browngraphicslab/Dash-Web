@@ -450,10 +450,6 @@ export class Viewer extends React.Component<IViewerProps> {
 
     @action
     search = (searchString: string) => {
-        if (searchString.length === 0) {
-            return;
-        }
-
         if (this._pdfViewer._pageViewsReady) {
             this._pdfFindController.executeCommand('find',
                 {
