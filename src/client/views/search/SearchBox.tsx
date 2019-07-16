@@ -22,6 +22,7 @@ export class SearchBox extends React.Component {
 
     @observable private _searchString: string = "";
     @observable private _resultsOpen: boolean = false;
+    @observable private _searchbarOpen: boolean = false;
     @observable private _results: Doc[] = [];
     @observable private _openNoResults: boolean = false;
     @observable private _visibleElements: JSX.Element[] = [];
@@ -107,6 +108,7 @@ export class SearchBox extends React.Component {
 
         runInAction(() => {
             this._resultsOpen = true;
+            this._searchbarOpen = true;
             this._openNoResults = true;
             this.resultsScrolled();
         });
@@ -198,6 +200,7 @@ export class SearchBox extends React.Component {
         this._openNoResults = false;
         FilterBox.Instance.closeFilter();
         this._resultsOpen = true;
+        this._searchbarOpen = true;
         FilterBox.Instance._pointerTime = e.timeStamp;
     }
 
@@ -205,6 +208,7 @@ export class SearchBox extends React.Component {
     closeSearch = () => {
         FilterBox.Instance.closeFilter();
         this.closeResults();
+        this._searchbarOpen = false;
     }
 
     @action.bound
@@ -281,15 +285,10 @@ export class SearchBox extends React.Component {
     }
 
     @computed
-    get resFull() {
-        console.log(this._numTotalResults)
-        return this._numTotalResults <= 8;
-    }
+    get resFull() { return this._numTotalResults <= 8; }
 
     @computed
-    get resultHeight() {
-        return this._numTotalResults * 70;
-    }
+    get resultHeight() { return this._numTotalResults * 70; }
 
     render() {
         return (
@@ -300,7 +299,7 @@ export class SearchBox extends React.Component {
                     </span>
                     <input value={this._searchString} onChange={this.onChange} type="text" placeholder="Search..."
                         className="searchBox-barChild searchBox-input" onPointerDown={this.openSearch} onKeyPress={this.enter}
-                        style={{ width: this._resultsOpen ? "500px" : "100px" }} />
+                        style={{ width: this._searchbarOpen ? "500px" : "100px" }} />
                     <button className="searchBox-barChild searchBox-submit" onClick={this.submitSearch} onPointerDown={FilterBox.Instance.stopProp}>Submit</button>
                     <button className="searchBox-barChild searchBox-filter" onClick={FilterBox.Instance.openFilter} onPointerDown={FilterBox.Instance.stopProp}>Filter</button>
                 </div>

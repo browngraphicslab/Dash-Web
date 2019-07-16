@@ -87,6 +87,9 @@ export class FilterBox extends React.Component {
 
                     }
                 });
+
+                let el = acc[i] as HTMLElement;
+                el.click();
             }
         });
     }
