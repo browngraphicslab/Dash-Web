@@ -1,5 +1,5 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowDown, faCloudUploadAlt, faArrowUp, faClone, faCheck, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faPortrait, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faThumbtack, faTree, faUndoAlt, faCat } from '@fortawesome/free-solid-svg-icons';
+import { faArrowDown, faCloudUploadAlt, faArrowUp, faClone, faCheck, faPlay, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faPortrait, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faThumbtack, faTree, faUndoAlt, faCat } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, runInAction, reaction, trace } from 'mobx';
 import { observer } from 'mobx-react';
@@ -381,7 +381,7 @@ export class MainView extends React.Component {
         let addImageNode = action(() => Docs.Create.ImageDocument(imgurl, { width: 200, title: "an image of a cat" }));
         let addImportCollectionNode = action(() => Docs.Create.DirectoryImportDocument({ title: "Directory Import", width: 400, height: 400 }));
         let youtubeurl = "https://www.youtube.com/embed/TqcApsGRzWw";
-        let addYoutubeSearcher = action(() => Docs.YoutubeDocument(youtubeurl, { width: 200, height: 200, title: "youtube node" }));
+        let addYoutubeSearcher = action(() => Docs.Create.YoutubeDocument(youtubeurl, { width: 200, height: 200, title: "youtube node" }));
 
         let btns: [React.RefObject<HTMLDivElement>, IconName, string, () => Doc][] = [
             [React.createRef<HTMLDivElement>(), "object-group", "Add Collection", addColNode],

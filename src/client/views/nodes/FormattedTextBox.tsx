@@ -308,7 +308,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 href = parent.childNodes[0].href ? parent.childNodes[0].href : parent.href;
             }
             if (href) {
-                ``
                 if (href.indexOf(DocServer.prepend("/doc/")) === 0) {
                     this._linkClicked = href.replace(DocServer.prepend("/doc/"), "").split("?")[0];
                     if (this._linkClicked) {
