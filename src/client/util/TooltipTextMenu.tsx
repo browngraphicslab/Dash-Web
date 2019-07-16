@@ -238,6 +238,7 @@ export class TooltipTextMenu {
             this.linkDrag.onpointerdown = (e: PointerEvent) => {
                 let dragData = new DragManager.LinkDragData(this.editorProps.Document);
                 dragData.dontClearTextBox = true;
+                e.stopPropagation();
                 DragManager.StartLinkDrag(this.linkDrag!, dragData, e.clientX, e.clientY,
                     {
                         handlers: {
