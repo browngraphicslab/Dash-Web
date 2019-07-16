@@ -14,6 +14,7 @@ import { pageSchema } from "./ImageBox";
 import "./VideoBox.scss";
 import { InkTool } from "../../../new_fields/InkField";
 import { DocumentDecorations } from "../DocumentDecorations";
+import { addHiddenFinalProp } from "mobx/lib/internal";
 
 type VideoDocument = makeInterface<[typeof positionSchema, typeof pageSchema]>;
 const VideoDocument = makeInterface(positionSchema, pageSchema);
@@ -153,10 +154,10 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         let startupTimecode = NumCast(this.Document.curPage);
         let onYoutubePlayerStateChange = (event: any) => runInAction(() => {
             if (event.data !== YT.PlayerState.UNSTARTED && event.data !== YT.PlayerState.BUFFERING) {
-                if (startupTimecode !== -1) {
-                    startupTimecode = -1;
-                    if (event.data === YT.PlayerState.PLAYING) this.Pause();
-                }
+                // if (startupTimecode !== -1) {
+                //     startupTimecode = -1;
+                //     if (event.data === YT.PlayerState.PLAYING) this.Pause();
+                // }
                 if (event.data == YT.PlayerState.PLAYING && !this.Playing) this.Play(false);
                 if (event.data == YT.PlayerState.PAUSED && this.Playing) this.Pause(false);
             }
@@ -169,15 +170,18 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
                 let interactive = InkingControl.Instance.selectedTool === InkTool.None && this.props.isSelected() && !DocumentDecorations.Instance.Interacting;
                 iframe.style.pointerEvents = interactive ? "all" : "none";
             }, { fireImmediately: true });
-            if (startupTimecode) {
-                this.Playing = false;
-                this.Seek(startupTimecode);
-            }
+            // if (startupTimecode) {
+            //     this.Playing = false;
+            //     this.Seek(startupTimecode);
+            // }
         }
         this._youtubePlayer = new YT.Player(`${this.youtubeVideoId + this._youtubeIframeId}-player`, {
             playerVars: {
                 rel: 0,
-                start: NumCast(this.props.Document.curPage)
+                start: NumCast(this.props.Document.curPage),
+                fs: 1,
+                modestbranding: 1, // Modest
+                controls: VideoBox._showControls ? 1 : 0// YT.Controls.ShowLoadPlayer : YT.Controls.Hide
             },
             events: {
                 'onReady': onYoutubePlayerReady,
@@ -193,7 +197,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         let style = "videoBox-content-YouTube" + (this._fullScreen ? "-fullScreen" : "");
         return <iframe key={this._youtubeIframeId} id={`${this.youtubeVideoId + this._youtubeIframeId.toString()}-player`}
             onLoad={this.youtubeIframeLoaded} className={`${style}`} width="640" height="390"
-            src={`https://www.youtube.com/embed/${this.youtubeVideoId}?enablejsapi=1`} />
+            src={`https://www.youtube.com/embed/${this.youtubeVideoId}?enablejsapi=1&fs=1&rel=0&start=32&controls=0`} />
     }
 
     render() {
