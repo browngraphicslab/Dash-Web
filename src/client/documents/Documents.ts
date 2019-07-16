@@ -98,7 +98,7 @@ export namespace Docs {
 
         type LayoutSource = { LayoutString: () => string };
         type CollectionLayoutSource = { LayoutString: (fieldStr: string, fieldExt?: string) => string };
-        type CollectionViewType = [CollectionLayoutSource, string, string?]
+        type CollectionViewType = [CollectionLayoutSource, string, string?];
         type PrototypeTemplate = {
             layout: {
                 view: LayoutSource,
@@ -235,7 +235,7 @@ export namespace Docs {
             let title = prototypeId.toUpperCase().replace(upper, `_${upper}`);
             // synthesize the default options, the type and title from computed values and
             // whatever options pertain to this specific prototype
-            let options = { title: title, type: type, ...defaultOptions, ...(template.options || {}) };
+            let options = { title: title, type: type, baseProto: true, ...defaultOptions, ...(template.options || {}) };
             let primary = layout.view.LayoutString();
             let collectionView = layout.collectionView;
             if (collectionView) {

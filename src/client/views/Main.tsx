@@ -26,7 +26,7 @@ let swapDocs = async () => {
         }
         CurrentUserUtils.UserDocument.linkManagerDoc = undefined;
     }
-}
+};
 
 (async () => {
     const info = await CurrentUserUtils.loadCurrentUser();

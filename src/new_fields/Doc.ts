@@ -312,16 +312,20 @@ export namespace Doc {
     }
 
     export function UpdateDocumentExtensionForField(doc: Doc, fieldKey: string) {
-        if (doc[fieldKey + "_ext"] === undefined) {
+        let extensionDoc = doc[fieldKey + "_ext"];
+        if (extensionDoc === undefined) {
             setTimeout(() => {
                 let docExtensionForField = new Doc(doc[Id] + fieldKey, true);
                 docExtensionForField.title = "Extension of " + doc.title + "'s field:" + fieldKey;
+                docExtensionForField.extendsDoc = doc;
                 let proto: Doc | undefined = doc;
                 while (proto && !Doc.IsPrototype(proto)) {
                     proto = proto.proto;
                 }
                 (proto ? proto : doc)[fieldKey + "_ext"] = docExtensionForField;
             }, 0);
+        } else if (extensionDoc instanceof Doc && extensionDoc.extendsDoc === undefined) {
+            setTimeout(() => (extensionDoc as Doc).extendsDoc = doc, 0);
         }
     }
     export function MakeAlias(doc: Doc) {
