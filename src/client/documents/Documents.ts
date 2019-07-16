@@ -38,6 +38,7 @@ import { LinkManager } from "../util/LinkManager";
 import { DocumentManager } from "../util/DocumentManager";
 import DirectoryImportBox from "../util/Import & Export/DirectoryImportBox";
 import { Scripting } from "../util/Scripting";
+import { CognitiveServices, Services, Confidence } from "../cognitive_services/CognitiveServices";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 
@@ -104,7 +105,8 @@ export namespace Docs {
                 view: LayoutSource,
                 collectionView?: CollectionViewType
             },
-            options?: Partial<DocumentOptions>
+            options?: Partial<DocumentOptions>,
+            data?: Field
         };
         type TemplateMap = Map<DocumentType, PrototypeTemplate>;
         type PrototypeMap = Map<DocumentType, Doc>;
