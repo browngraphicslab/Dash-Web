@@ -58,8 +58,6 @@ type MarkerUnit = {
     annotation: string,
     map: JSX.Element,
     mapref: HTMLDivElement | undefined;
-    menuref: HTMLDivElement | undefined;
-    checkref: HTMLDivElement | undefined;
 };
 type Thing = {
     button: JSX.Element,
@@ -72,6 +70,11 @@ type Thing = {
     mapref: HTMLDivElement | undefined,
 
     data: any;
+};
+
+type FilterBox = {
+    el: JSX.Element,
+    checked: boolean,
 };
 
 export interface FieldViewProps {
@@ -92,15 +95,18 @@ export interface FieldViewProps {
 
 
 @observer
-class KeyToggle extends React.Component<{ keyName: string, toggle: (key: string) => void }> {
+class KeyToggle extends React.Component<{ keyName: string, toggle: (key: string) => void, initiallySelected?: boolean }> {
     constructor(props: any) {
         super(props);
     }
-
+    private checked = false;
     render() {
+        if (this.props.keyName === "x") {
+            this.checked = true;
+        }
         return (
             <div key={this.props.keyName}>
-                <input type="radio" name="dude" onChange={() => this.props.toggle(this.props.keyName)} />
+                <input type="radio" name="dude" checked={this.checked} onChange={() => this.props.toggle(this.props.keyName)} />
                 {this.props.keyName}
             </div>
         );
@@ -120,18 +126,21 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     private colorrefGreen = React.createRef<HTMLDivElement>();
     private colorrefRed = React.createRef<HTMLDivElement>();
     private colorrefBlue = React.createRef<HTMLDivElement>();
-    private checkedref = React.createRef<HTMLInputElement>();
+    private elref = React.createRef<HTMLInputElement>();
+
+    @observable private types: boolean[] = [];
 
     componentWillMount() {
+        runInAction(() => {
+            for (let i = 0; i < this.filtered.length; i++) {
+                this.types[i] = true;
+            }
+        });
         document.addEventListener("keydown", (e) => this.onKeyPress_Selector(e));
-        this.filtered = [];
     }
 
     componentDidMount() {
-        if (this.checkedref.current !== null) {
-            this.checkedref.current.checked = true;
 
-        }
 
     }
 
@@ -166,19 +175,26 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.sortstate = key;
     }
 
+    private newdudess: boolean[] = [];
+
     @action
-    toggleFilter = (key: string) => {
+    toggleFilter = (key: string, i: number, guy: React.RefObject<HTMLInputElement>) => {
+        console.log(this.filtered);
+
         if (this.filtered.includes(key)) {
             this.filtered.splice(this.filtered.indexOf(key), 1);
         }
         else {
             this.filtered.push(key);
         }
-        console.log(this.filtered);
+
+        this.types[i] = guy.current!.checked;
+
+
     }
 
     @observable
-    private filtered: String[];
+    private filtered: String[] = ["Audio", "Pdf", "Text", "Image", "Video", "Web", "Misc"];
 
     @observable
     private preview: Doc | undefined;
@@ -234,8 +250,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @action
     onPointerDown_DeleteMarker = (e: React.PointerEvent, ref: HTMLDivElement | undefined, annotation: string, ting: MarkerUnit): void => {
 
-        this.viewvalue = annotation;
-        this.currentstring = ting.annotation;
         if (e.ctrlKey) {
             for (let i = 0; i < this.markers.length; i++) {
                 if (this.markers[i].ref === ref) {
@@ -243,6 +257,18 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 }
             }
         }
+        else {
+            this.currentmarker.ref.style.opacity = "0.25";
+            this.currentmarker.ref.style.border = "0px solid black";
+            this.viewvalue = annotation;
+            this.currentmarker = ting;
+            this.currentmarker.ref.style.opacity = "0.9";
+            this.currentmarker.ref.style.border = "1px solid black";
+            this.currentmarker.ref.style.borderStyle = "dashed";
+            this.currentcolor = this.currentmarker.ref.style.backgroundColor;
+
+        }
+
     }
 
     @action
@@ -253,17 +279,15 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             let leftval = (e.pageX - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98);
             let ting: MarkerUnit = {
                 ref: undefined,
-                element: <div ref={(el) => el ? ting.ref = el : null} id={"marker" + String(this.markers.length)} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, ting.ref, ting.annotation)}
+                element: <div ref={(el) => el ? ting.ref = el : null} id={"marker" + String(this.markers.length)} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, ting.ref, ting.annotation, ting)}
                     style={{
                         top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid" + this.selectedColor,
                         width: "10px", height: "30px", backgroundColor: this.selectedColor, opacity: "0.25", position: "absolute", left: leftval
                     }}>
-                    <input ref={(el) => el ? ting.menuref = el : null}
-                        style={{ backgroundColor: this.selectedColor, border: "0px solid", width: 8 }} type="text"></input></div>,
+                </div>,
                 initialLeft: (leftval / (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement))) + (this.xmovement),
                 initialScaleRef: 10,
                 initialWidth: (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)),
-                menuref: undefined,
                 annotation: "Edit me!",
                 mapref: undefined,
                 map: (<div className="ugh" ref={(el) => el ? ting.mapref = el : null}
@@ -275,7 +299,9 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     }}></div>),
             };
 
+
             this.markers.push(ting);
+            this.currentmarker = ting;
 
             document.addEventListener("pointermove", this.onPointerMove_Selector, true);
             document.addEventListener("pointerup", this.onPointerUp_Selector, true);
@@ -368,8 +394,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 console.log(newX);
                 console.log(this.markers[this.markers.length - 1]);
                 this.markers[this.markers.length - 1].ref.style.width = String(newX);
-                this.markers[this.markers.length - 1].menuref.style.width = String(newX) - 2;
-                this.markers[this.markers.length - 1].mapref.style.width = String(newX) - 2;
+                this.markers[this.markers.length - 1].mapref.style.width = String(newX);
                 this.markers[this.markers.length - 1].initialScaleRef = newX;
 
             }
@@ -597,15 +622,42 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     buttons.push(oldbuttons[i]);
                 }
             }
-            if (this.filtered.includes("Image")) {
-                if (oldbuttons[i].data instanceof ImageField) {
+            if (this.filtered.includes("Audio")) {
+                if (oldbuttons[i].data instanceof AudioField) {
                     buttons.push(oldbuttons[i]);
                 }
+            }
+            if (this.filtered.includes("Pdf")) {
+                if (oldbuttons[i].data instanceof PdfField) {
+                    buttons.push(oldbuttons[i]);
+                }
+            }
+            if (this.filtered.includes("Text")) {
+                if (oldbuttons[i].data instanceof RichTextField) {
+                    buttons.push(oldbuttons[i]);
+                }
+            }
+            if (this.filtered.includes("Video")) {
+                if (oldbuttons[i].data instanceof VideoField) {
+                    buttons.push(oldbuttons[i]);
+                }
+            }
+            if (this.filtered.includes("Web")) {
+                if (oldbuttons[i].data instanceof WebField) {
+                    buttons.push(oldbuttons[i]);
+                }
+            }
+            else if (this.filtered.includes("Misc")) {
+                buttons.push(oldbuttons[i]);
+
             }
 
         }
         return buttons;
     }
+
+    @observable
+    private bool = true;
 
     @action
     checkDataString = (): string[] => {
@@ -616,7 +668,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         field.push("Image");
         field.push("Video");
         field.push("Web");
-        field.push("Proxy");
+        field.push("Misc");
 
         return field;
     }
@@ -788,33 +840,46 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
 
         const docs2 = DocListCast(this.props.Document[this.props.fieldKey]);
-        let keys: { [key: string]: boolean } = {};
-        untracked(() => docs2.map(doc => Doc.GetAllPrototypes(doc).map(proto => Object.keys(proto).forEach(key => keys[key] = false))));
+
         let p: [number, number] = this._visible ? this.getContainerTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
         let dudess = this.checkDataString();
-        let dudes = dudess.map(doc =>
+        let newdudes: JSX.Element[] = [];
+
+        this.newdudess = [];
+        for (let i = 0; i < dudess.length; i++) {
+            this.newdudess.push(true);
+        }
 
 
-            (<div ref={this.checkedref} key={doc}>
-                <input type="checkbox" name="dude" onChange={() => this.toggleFilter(doc)} />
-                {doc}
-            </div>)
-        );
+        for (let i = 0; i < dudess.length; i++) {
+            let doc = dudess[i];
+            let guy = React.createRef<HTMLInputElement>();
+            newdudes.push(
+                <div><input ref={guy} type="checkbox" checked={this.types[i]} onChange={() => this.toggleFilter(doc, i, guy)} />{doc}</div>);
+
+        }
 
         this.buttons = this.filterDocs(this.buttons);
 
+
+
+        let keys: { [key: string]: boolean } = {};
+        untracked(() => docs2.map(doc => Doc.GetAllPrototypes(doc).map(proto => Object.keys(proto).forEach(key => keys[key] = false))));
         return (<div ref={this.screenref} id="screen" >
             <div style={{ position: "absolute", height: "30%", width: "10%", overflow: "scroll", border: "1px solid", zIndex: 900 }}>
                 <div id="schema-options-header"><h5><b>Sort</b></h5></div>
                 <div id="options-flyout-div">
                     {Array.from(Object.keys(keys)).map(item =>
                         (<KeyToggle key={item} keyName={item} toggle={this.toggleKey} />))}
+                    {
+
+                    }
 
                 </div>
             </div>
             <div style={{ position: "absolute", top: "30%", height: "30%", width: "10%", overflow: "scroll", border: "1px solid", zIndex: 900 }}>
                 <div id="schema-options-header"><h5><b>Filter</b></h5></div>
-                {dudes}
+                {newdudes}
             </div>
             <div className="timeline" style={{ position: "absolute", height: "25px", width: "100%", top: String(document.body.clientHeight * 0.65 + 72) + "px", zIndex: -9999 }}>
                 {this.ticks}
@@ -835,10 +900,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         className="searchBox-barChild searchBox-input" />
                 </div>
                 <div className="mid">
-                    <div ref={this.colorrefYellow} onClick={(e) => this.toggleColor(e, "#ffff80")} className="toggleYellow" style={{ position: "absolute", left: "33%", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#ffff80" }}></div>
-                    <div ref={this.colorrefGreen} onClick={(e) => this.toggleColor(e, "#bfff80")} className="toggleGreen" style={{ position: "absolute", left: "35%", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#bfff80" }}></div>
-                    <div ref={this.colorrefRed} onClick={(e) => this.toggleColor(e, "#ff8080")} className="toggleRed" style={{ position: "absolute", left: "37%", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#ff8080" }}></div>
-                    <div ref={this.colorrefBlue} onClick={(e) => this.toggleColor(e, "#80dfff")} className="toggleBlue" style={{ position: "absolute", left: "39%", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#80dfff" }}></div>
+                    <div ref={this.colorrefYellow} onClick={(e) => this.toggleColor(e, "#ffff80")} className="toggleYellow" style={{ position: "absolute", left: "33%", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#ffff80", border: "2px solid black" }}></div>
+                    <div ref={this.colorrefGreen} onClick={(e) => this.toggleColor(e, "#bfff80")} className="toggleGreen" style={{ position: "absolute", left: "35%", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#bfff80", border: "2px solid #9c9396" }}></div>
+                    <div ref={this.colorrefRed} onClick={(e) => this.toggleColor(e, "#ff8080")} className="toggleRed" style={{ position: "absolute", left: "37%", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#ff8080", border: "2px solid #9c9396" }}></div>
+                    <div ref={this.colorrefBlue} onClick={(e) => this.toggleColor(e, "#80dfff")} className="toggleBlue" style={{ position: "absolute", left: "39%", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#80dfff", border: "2px solid #9c9396" }}></div>
                     {this.sortstate + ":" + this.preview4}
                 </div>
                 <div className="right">
@@ -852,8 +917,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
             <div className="viewpanel" style={{ top: "5%", position: "absolute", right: "10%", bottom: "35%", background: "#GGGGGG", zIndex: -55, }}></div>
             <div className="marqueeView" style={{ height: "40%", top: "60%", borderRadius: "inherit", position: "absolute", width: "100%", }} onClick={this.onClick_Selector} onPointerDown={this.onPointerDown_Selector} onKeyDown={this.onKeyPress_Selector}>
-                {console.log(p[0])}
-                {console.log(p[1])}
                 <div style={{ transform: `translate(${p[0]}px, ${p[1] - 0.58 * (document.body.clientHeight)}px)` }} >
                     {this._visible ? this.marqueeDiv : null}
                 </div>
@@ -892,7 +955,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
 
     @observable
-    private selectedColor: string;
+    private selectedColor: string = "ffff80";
 
     @action
     toggleColor = (e: React.MouseEvent<HTMLDivElement>, color: string) => {
@@ -936,13 +999,12 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 max = this.selections[i].getBoundingClientRect().right > max ? this.selections[i].getBoundingClientRect().right : max;
             }
             let ting: MarkerUnit = {
-                element: <div ref={(el) => el ? ting.ref = el : null} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, ting.ref)} id={"marker" + String(this.markers.length)} style={{ top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid" + this.selectedColor, height: "30px", backgroundColor: this.selectedColor, opacity: "0.25", width: Math.abs(max - min), position: "absolute", left: min - document.body.clientWidth - 3 + this.screenref.current!.clientWidth / 0.98 }}></div>,
+                element: <div ref={(el) => el ? ting.ref = el : null} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, ting.ref, ting.annotation, ting)} id={"marker" + String(this.markers.length)} style={{ top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid" + this.selectedColor, height: "30px", backgroundColor: this.selectedColor, opacity: "0.25", width: Math.abs(max - min), position: "absolute", left: min - document.body.clientWidth - 3 + this.screenref.current!.clientWidth / 0.98 }}></div>,
                 initialLeft: ((min - 3 - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98) / (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement))) + (this.xmovement),
                 initialScaleRef: Math.abs(max - min),
                 initialWidth: (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)),
                 ref: undefined,
-                menuref: undefined,
-                annotation: "null",
+                annotation: "Edit me!",
                 mapref: undefined,
                 map: (<div className="ugh" ref={(el) => el ? ting.mapref = el : null}
                     style={{
@@ -956,11 +1018,23 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         width: (Math.abs(max - min)), border: "3px solid" + this.selectedColor
                     }}></div>),
             };
+
+
+            this.currentmarker ? this.currentmarker.ref.style.opacity = "0.25" : null;
+            this.currentmarker ? this.currentmarker.ref.style.border = "0px solid black" : null;
             this.markers.push(ting);
+            this.currentmarker ? this.currentmarker.ref!.style.border = "0px" : null;
+            this.currentmarker = ting;
+
+
             this.countingfriend++;
+
 
         }
         this.countingfriend++;
+        this.currentmarker.ref ? this.currentmarker.ref.style.border = "1px solid black" : null;
+        this.currentmarker.ref ? this.currentcolor = this.currentmarker.ref.style.backgroundColor : null;
+        this.currentmarker.ref ? this.currentmarker.ref.style.borderStyle = "dashed" : null;
     }
 
 
@@ -1150,17 +1224,19 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
 
     private valueRef = React.createRef<EditableView>();
-    private viewvalue: string = "asdasdasasd";
-    private currentstring: string;
+    private viewvalue: string = "Select an annotation!";
+    private currentmarker: MarkerUnit;
+    private currentcolor: string;
+
     updateValue = (newValue: string) => {
         this.viewvalue = newValue;
-        this.currentstring = this.viewvalue;
+        this.currentmarker.annotation = newValue;
         return true;
     }
 
     documentpreview0() {
         return (
-            <div>
+            <div style={{ height: "100%", background: this.currentcolor ? this.currentcolor : "white" }}>
                 <EditableView ref={this.valueRef}
                     contents={this.viewvalue}
                     SetValue={this.updateValue}

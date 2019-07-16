@@ -21,10 +21,10 @@
         z-index: -2;
     }
 
-    .selected {
-        border: 3px solid $intermediate-color;
-        z-index: -1;
 
+    .selected {
+        z-index: -1;
+        border: 3px solid $intermediate-color;
     }
 
     .selection {
@@ -87,27 +87,27 @@
     border-top: 1px solid $intermediate-color;
 }
 
-.bottomgrid{
-    display:grid;
+.bottomgrid {
+    display: grid;
     grid-template-columns: 10% 20% 40% 20% 10%;
     background: $intermediate-color;
 
 }
 
-.left{
-    grid-column:2;
-    text-align:center;
+.left {
+    grid-column: 2;
+    text-align: center;
 }
 
-.mid{
-    grid-column:3;
-    text-align:center;
+.mid {
+    grid-column: 3;
+    text-align: center;
 
 }
 
-.right{
-    grid-column:4;
-    text-align:center;
+.right {
+    grid-column: 4;
+    text-align: center;
 
 }
 
