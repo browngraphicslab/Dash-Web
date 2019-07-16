@@ -191,6 +191,7 @@ app.get("/thumbnail/:filename", (req, res) => {
             probe(input, (err: any, result: any) => {
                 if (err) {
                     console.log(err);
+                    console.log(filename);
                     return;
                 }
                 res.send({ path: "/files/" + filename, width: result.width, height: result.height });

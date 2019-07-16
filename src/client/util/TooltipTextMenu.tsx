@@ -240,12 +240,14 @@ export class TooltipTextMenu {
                 let dragData = new DragManager.LinkDragData(this.editorProps.Document);
                 dragData.dontClearTextBox = true;
                 e.stopPropagation();
+                let ctrlKey = e.ctrlKey;
                 DragManager.StartLinkDrag(this.linkDrag!, dragData, e.clientX, e.clientY,
                     {
                         handlers: {
                             dragComplete: action(() => {
-                                let m = dragData.droppedDocuments;
-                                m.length && this.makeLink(DocServer.prepend("/doc/" + m[0][Id]));
+                                // let m = dragData.droppedDocuments;
+                                let linkDoc = dragData.linkDocument;
+                                linkDoc instanceof Doc && this.makeLink(DocServer.prepend("/doc/" + linkDoc[Id]), ctrlKey ? "onRight" : "inTab");
                             }),
                         },
                         hideSource: false
@@ -263,7 +265,7 @@ export class TooltipTextMenu {
 
         this.linkText.onkeydown = (e: KeyboardEvent) => {
             if (e.key === "Enter") {
-                this.makeLink(this.linkText!.textContent!);
+                // this.makeLink(this.linkText!.textContent!);
                 e.stopPropagation();
                 e.preventDefault();
             }
@@ -312,9 +314,9 @@ export class TooltipTextMenu {
         }
     }
 
-    makeLink = (target: string) => {
+    makeLink = (target: string, location: string) => {
         let node = this.view.state.selection.$from.nodeAfter;
-        let link = this.view.state.schema.mark(this.view.state.schema.marks.link, { href: target });
+        let link = this.view.state.schema.mark(this.view.state.schema.marks.link, { href: target, location: location });
         this.view.dispatch(this.view.state.tr.removeMark(this.view.state.selection.from, this.view.state.selection.to, this.view.state.schema.marks.link));
         this.view.dispatch(this.view.state.tr.addMark(this.view.state.selection.from, this.view.state.selection.to, link));
         node = this.view.state.selection.$from.nodeAfter;

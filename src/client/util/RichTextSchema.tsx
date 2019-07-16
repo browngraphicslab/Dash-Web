@@ -215,12 +215,13 @@ export const marks: { [index: string]: MarkSpec } = {
     link: {
         attrs: {
             href: {},
+            location: { default: null },
             title: { default: null }
         },
         inclusive: false,
         parseDOM: [{
             tag: "a[href]", getAttrs(dom: any) {
-                return { href: dom.getAttribute("href"), title: dom.getAttribute("title") };
+                return { href: dom.getAttribute("href"), location: dom.getAttribute("location"), title: dom.getAttribute("title") };
             }
         }],
         toDOM(node: any) { return ["a", node.attrs, 0]; }

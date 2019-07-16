@@ -344,7 +344,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     let first = linkedDocs.filter(d => Doc.AreProtosEqual(d.anchor1 as Doc, this.props.Document));
                     let linkedFwdDocs = first.length ? [first[0].anchor2 as Doc, first[0].anchor1 as Doc] : [expandedDocs[0], expandedDocs[0]];
 
-                    let linkedFwdContextDocs = [first.length ? await (first[0].context) as Doc : undefined, undefined];
+                    // @TODO: shouldn't always follow target context
+                    let linkedFwdContextDocs = [first.length ? await (first[0].targetContext) as Doc : undefined, undefined];
 
                     let linkedFwdPage = [first.length ? NumCast(first[0].linkedToPage, undefined) : undefined, undefined];
 
@@ -454,8 +455,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             else {
                 // const docs = await SearchUtil.Search(`data_l:"${destDoc[Id]}"`, true);
                 // const views = docs.map(d => DocumentManager.Instance.getDocumentView(d)).filter(d => d).map(d => d as DocumentView);
-                DocUtils.MakeLink(sourceDoc, destDoc, this.props.ContainingCollectionView ? this.props.ContainingCollectionView.props.Document : undefined);
+                let linkDoc = DocUtils.MakeLink(sourceDoc, destDoc, this.props.ContainingCollectionView ? this.props.ContainingCollectionView.props.Document : undefined);
                 de.data.droppedDocuments.push(destDoc);
+                de.data.linkDocument = linkDoc;
             }
         }
     }
