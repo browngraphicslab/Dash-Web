@@ -41,11 +41,10 @@
 }
 
 .searchBox-results {
-    margin-right: 142px;
+    margin-right: 136px;
     top: 300px;
     display: flex;
     flex-direction: column;
-    margin-right: 72px;
     max-height: 560px;
     overflow: hidden;
     overflow-y: auto;
@@ -60,5 +59,6 @@
         text-transform: uppercase;
         text-align: left;
         font-weight: bold;
+        margin-left: 28px;
     }
 }
