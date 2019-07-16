@@ -147,7 +147,6 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         PreviewCursor.Visible = false;
         this.cleanupInteractions(true);
         if (e.button === 2 || (e.button === 0 && e.altKey)) {
-            if (!this.props.container.props.active()) this.props.selectDocuments([this.props.container.props.Document]);
             document.addEventListener("pointermove", this.onPointerMove, true);
             document.addEventListener("pointerup", this.onPointerUp, true);
             document.addEventListener("keydown", this.marqueeCommand, true);
@@ -181,6 +180,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
 
     @action
     onPointerUp = (e: PointerEvent): void => {
+        if (!this.props.container.props.active()) this.props.selectDocuments([this.props.container.props.Document]);
         // console.log("pointer up!");
         if (this._visible) {
             // console.log("visible");
