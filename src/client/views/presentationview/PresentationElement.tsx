@@ -396,6 +396,9 @@ export default class PresentationElement extends React.Component<PresentationEle
 
     }
 
+    /**
+     * Creating a drop target for drag and drop when called.
+     */
     protected createListDropTarget = (ele: HTMLDivElement) => {
         this.listdropDisposer && this.listdropDisposer();
         if (ele) {
@@ -403,11 +406,18 @@ export default class PresentationElement extends React.Component<PresentationEle
         }
     }
 
+    /**
+     * Returns a local transformed coordinate array for given coordinates.
+     */
     ScreenToLocalListTransform = (xCord: number, yCord: number) => {
         return [xCord, yCord];
     }
 
-
+    /**
+     * This method is called when a element is dropped on a already esstablished target.
+     * It makes sure to do appropirate action depending on if the item is dropped before
+     * or after the target.
+     */
     listDrop = async (e: Event, de: DragManager.DropEvent) => {
         let x = this.ScreenToLocalListTransform(de.x, de.y);
         let rect = this.header!.getBoundingClientRect();
@@ -420,7 +430,7 @@ export default class PresentationElement extends React.Component<PresentationEle
             let movedDocs = (de.data.options === this.props.mainDocument[Id] ? de.data.draggedDocuments : de.data.droppedDocuments);
             //console.log("How is this causing an issue");
             let droppedDoc: Doc = de.data.droppedDocuments[0];
-            await this.updateGroupsOnDrop2(droppedDoc, de);
+            await this.updateGroupsOnDrop(droppedDoc, de);
             document.removeEventListener("pointermove", this.onDragMove, true);
             return (de.data.dropAction || de.data.userDropAction) ?
                 de.data.droppedDocuments.reduce((added: boolean, d: Doc) => Doc.AddDocToList(this.props.mainDocument, "data", d, this.props.document, before) || added, false)
@@ -433,8 +443,12 @@ export default class PresentationElement extends React.Component<PresentationEle
         return false;
     }
 
-
-    updateGroupsOnDrop2 = async (droppedDoc: Doc, de: DragManager.DropEvent) => {
+    /**
+     * This method is called to update groups when the user drags and drops an
+     * element to a different place. It follows the default behaviour and reconstructs
+     * the groups in the way they would appear if clicked by user.
+     */
+    updateGroupsOnDrop = async (droppedDoc: Doc, de: DragManager.DropEvent) => {
 
         let x = this.ScreenToLocalListTransform(de.x, de.y);
         let rect = this.header!.getBoundingClientRect();
@@ -482,6 +496,8 @@ export default class PresentationElement extends React.Component<PresentationEle
             }
             droppedDoc.presentId = Utils.GenerateGuid();
 
+            //making sure to correct to groups after splicing, in case the dragged element
+            //had the grouping on.
             let indexOfBelow = droppedDocIndex + 1;
             if (indexOfBelow < this.props.allListElements.length && indexOfBelow > 1) {
                 let selectedButtonsOrigBelow: boolean[] = await this.getSelectedButtonsOfDoc(this.props.allListElements[indexOfBelow]);
@@ -512,9 +528,8 @@ export default class PresentationElement extends React.Component<PresentationEle
 
         }
 
-
+        //Case, when the dropped doc had the group button clicked.
         if (droppedDocSelectedButtons[buttonIndex.Group]) {
-
             if (before) {
                 if (this.props.index > 0) {
                     let aboveDoc = this.props.allListElements[this.props.index - 1];
@@ -543,7 +558,7 @@ export default class PresentationElement extends React.Component<PresentationEle
             }
 
 
-
+            //if the group button of the element was not clicked.
         } else {
             if (before) {
                 if (this.props.index > 0) {
@@ -610,9 +625,11 @@ export default class PresentationElement extends React.Component<PresentationEle
 
     }
 
+    /**
+     * This method returns the selectedButtons boolean array of the passed in doc,
+     * retrieving it from the back-up.
+     */
     getSelectedButtonsOfDoc = async (paramDoc: Doc) => {
-        let p = this.props;
-
         let castedList = Cast(this.props.presButtonBackUp.selectedButtonDocs, listSpec(Doc));
         let foundSelectedButtons: boolean[] = new Array(6);
 
@@ -632,6 +649,7 @@ export default class PresentationElement extends React.Component<PresentationEle
 
     }
 
+    //This is used to add dragging as an event.
     onPointerEnter = (e: React.PointerEvent): void => {
         this.props.document.libraryBrush = true;
         if (e.buttons === 1 && SelectionManager.GetIsDragging()) {
@@ -647,6 +665,8 @@ export default class PresentationElement extends React.Component<PresentationEle
             document.addEventListener("pointermove", this.onDragMove, true);
         }
     }
+
+    //This is used to remove the dragging when dropped.
     onPointerLeave = (e: React.PointerEvent): void => {
         this.props.document.libraryBrush = false;
         //to get currently selected presentation doc
@@ -663,6 +683,10 @@ export default class PresentationElement extends React.Component<PresentationEle
         document.removeEventListener("pointermove", this.onDragMove, true);
     }
 
+    /**
+     * This method is passed in to be used when dragging a document.
+     * It makes it possible to show dropping lines on drop targets.
+     */
     onDragMove = (e: PointerEvent): void => {
         this.props.document.libraryBrush = false;
         let x = this.ScreenToLocalListTransform(e.clientX, e.clientY);
@@ -679,14 +703,24 @@ export default class PresentationElement extends React.Component<PresentationEle
         e.stopPropagation();
     }
 
+    /**
+     * This method is passed in to on down event of presElement, so that drag and
+     * drop can be completed with DragManager functionality.
+     */
     @action
     move: DragManager.MoveFunction = (doc: Doc, target: Doc, addDoc) => {
         return this.props.document !== target && this.props.removeDocByRef(doc) && addDoc(doc);
     }
 
-
-
-    private halveGroupArray(targetDoc: Doc, propsGroupArray: Doc[], droppedDoc: Doc, p: Readonly<PresentationElementProps> & Readonly<{ children?: React.ReactNode; }>, belowDocGuid: string) {
+    /**
+     * Helper method that gets called to divide a group array into two different groups
+     * including the targetDoc in first part.
+     * @param targetDoc document that is targeted as slicing point
+     * @param propsGroupArray the array that gets divided into 2
+     * @param droppedDoc the dropped document
+     * @param belowDocGuid presentId of the belowGroup
+     */
+    private halveGroupArray(targetDoc: Doc, propsGroupArray: Doc[], droppedDoc: Doc, belowDocGuid: string) {
         let targetIndex = propsGroupArray.indexOf(targetDoc);
         let firstPart = propsGroupArray.slice(0, targetIndex + 1);
         let firstPartNewGuid = Utils.GenerateGuid();
@@ -694,18 +728,33 @@ export default class PresentationElement extends React.Component<PresentationEle
         let secondPart = propsGroupArray.slice(targetIndex + 1);
         secondPart.unshift(droppedDoc);
         droppedDoc.presentId = belowDocGuid;
-        p.groupMappings.set(firstPartNewGuid, firstPart);
-        p.groupMappings.set(belowDocGuid, secondPart);
+        this.props.groupMappings.set(firstPartNewGuid, firstPart);
+        this.props.groupMappings.set(belowDocGuid, secondPart);
     }
 
-    private createNewGroup(aboveDoc: Doc, droppedDoc: Doc, aboveDocGuid: string, p: Readonly<PresentationElementProps> & Readonly<{ children?: React.ReactNode; }>) {
+    /**
+     * Helper method that creates a new group, pushing above document first,
+     * and dropped document second.
+     * @param aboveDoc the document above dropped document
+     * @param droppedDoc the dropped document itself
+     * @param aboveDocGuid above document's presentId
+     */
+    private createNewGroup(aboveDoc: Doc, droppedDoc: Doc, aboveDocGuid: string) {
         let newGroup: Doc[] = [];
         newGroup.push(aboveDoc);
         newGroup.push(droppedDoc);
         droppedDoc.presentId = aboveDocGuid;
-        p.groupMappings.set(aboveDocGuid, newGroup);
+        this.props.groupMappings.set(aboveDocGuid, newGroup);
     }
 
+    /**
+      * Helper method that finds the above document's group, and pushes the
+      * dropped document into that group, protecting the visual order of the
+      * presentation elements.
+      * @param aboveDoc the document above dropped document
+      * @param droppedDoc the dropped document itself
+      * @param aboveDocGuid above document's presentId
+      */
     private protectOrderAndPush(aboveDocGuid: string, aboveDoc: Doc, droppedDoc: Doc) {
         let groupArray = this.props.groupMappings.get(aboveDocGuid)!;
         let tempStack: Doc[] = [];
@@ -734,8 +783,6 @@ export default class PresentationElement extends React.Component<PresentationEle
             //this doc is selected
             className += " presentationView-selected";
         }
-        let onEnter = (e: React.PointerEvent) => { p.document.libraryBrush = true; };
-        let onLeave = (e: React.PointerEvent) => { p.document.libraryBrush = false; };
         let dropAction = StrCast(this.props.document.dropAction) as dropActionType;
         let onItemDown = SetupDrag(this.presElRef, () => p.document, this.move, dropAction, this.props.mainDocument[Id], true);
         return (
