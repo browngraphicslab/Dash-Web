@@ -118,7 +118,8 @@ export class SearchBox extends React.Component {
 
     private get filterQuery() {
         const types = FilterBox.Instance.filterTypes;
-        return "NOT baseProto_b:true" + (types ? ` AND (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}"`).join(" ")})` : "");
+        const includeDeleted = false;
+        return "NOT baseProto_b:true" + (includeDeleted ? "" : " AND NOT deleted:true") + (types ? ` AND (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}"`).join(" ")})` : "");
     }
 
 
