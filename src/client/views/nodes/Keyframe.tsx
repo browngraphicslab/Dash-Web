@@ -12,7 +12,7 @@ import { any } from "bluebird";
 import { FlyoutProps } from "./Timeline";
 import { number } from "prop-types";
 import { CollectionSchemaView, CollectionSchemaPreview } from "../collections/CollectionSchemaView";
-import { faDiceOne } from "@fortawesome/free-solid-svg-icons";
+import { faDiceOne, faFirstAid } from "@fortawesome/free-solid-svg-icons";
 
 export namespace KeyframeFunc{
     export enum KeyframeType{
@@ -77,6 +77,9 @@ interface IProps {
 export class Keyframe extends React.Component<IProps> {
 
     @observable private _bar = React.createRef<HTMLDivElement>();    
+    @observable private _firstkf: (Doc | undefined) = undefined; 
+    @observable private _lastkf: (Doc | undefined) = undefined; 
+
     @computed
     private get regiondata() {
         let index = this.regions.indexOf(this.props.RegionData);
@@ -90,11 +93,8 @@ export class Keyframe extends React.Component<IProps> {
 
 
     componentWillMount(){
-
-        
         if (!this.regiondata.keyframes){
             this.regiondata.keyframes = new List<Doc>(); 
-           
         }
     }
 
@@ -263,7 +263,7 @@ export class Keyframe extends React.Component<IProps> {
         let bar = this._bar.current!; 
         let offset = e.clientX - bar.getBoundingClientRect().left; 
         let position = NumCast(this.regiondata.position);            
-        this.makeKeyData(Math.round(position + offset));           
+        let tk = this.makeKeyData(Math.round(position + offset));           
         this.props.changeCurrentBarX(NumCast(Math.round(position + offset))); //first move the keyframe to the correct location and make a copy so the correct file gets coppied
     }
 
