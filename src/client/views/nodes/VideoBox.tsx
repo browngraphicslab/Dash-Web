@@ -157,8 +157,8 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         let iframe = e.target;
         let onYoutubePlayerStateChange = (event: any) => runInAction(() => {
             console.log("Event  " + event.data);
-            if (event.data == YT.PlayerState.PLAYING && !this.Playing) this.Play(false);
-            if (event.data == YT.PlayerState.PAUSED && this.Playing) this.Pause(false);
+            if (event.data === YT.PlayerState.PLAYING && !this.Playing) this.Play(false);
+            if (event.data === YT.PlayerState.PAUSED && this.Playing) this.Pause(false);
         });
         let onYoutubePlayerReady = (event: any) => {
             console.log("READY!");
@@ -169,7 +169,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
                 let interactive = InkingControl.Instance.selectedTool === InkTool.None && this.props.isSelected() && !DocumentDecorations.Instance.Interacting;
                 iframe.style.pointerEvents = interactive ? "all" : "none";
             }, { fireImmediately: true });
-        }
+        };
         this._youtubePlayer = new YT.Player(`${this.youtubeVideoId + this._youtubeIframeId}-player`, {
             events: {
                 'onReady': onYoutubePlayerReady,
