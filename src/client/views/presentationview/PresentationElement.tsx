@@ -142,7 +142,6 @@ export default class PresentationElement extends React.Component<PresentationEle
         }
 
         if (!foundDoc) {
-            //console.log("Adding a new fucker!!");
             let newDoc = new Doc();
             let defaultBooleanArray: boolean[] = new Array(6);
             newDoc.selectedButtons = new List(defaultBooleanArray);
@@ -150,20 +149,6 @@ export default class PresentationElement extends React.Component<PresentationEle
             castedList.push(newDoc);
             this.backUpDoc = newDoc;
         }
-
-        // if (castedList.length <= this.props.index) {
-        //     let newDoc = new Doc();
-        //     let defaultBooleanArray: boolean[] = new Array(6);
-        //     newDoc.selectedButtons = new List(defaultBooleanArray);
-        //     castedList.push(newDoc);
-        //     //otherwise update the selected buttons depending on storage.
-        // } else {
-        //     let curDoc: Doc = await castedList[this.props.index];
-        //     let selectedButtonOfDoc = Cast(curDoc.selectedButtons, listSpec("boolean"), null);
-        //     if (selectedButtonOfDoc !== undefined) {
-        //         runInAction(() => this.selectedButtons = selectedButtonOfDoc);
-        //     }
-        // }
 
     }
 
