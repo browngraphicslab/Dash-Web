@@ -12,6 +12,9 @@ import * as nodemailer from 'nodemailer';
 import c = require("crypto");
 import { RouteStore } from "../../RouteStore";
 import { Utils } from "../../../Utils";
+import { Schema } from "mongoose";
+import { Opt } from "../../../new_fields/Doc";
+import { MailOptions } from "nodemailer/lib/stream-transport";
 
 /**
  * GET /signup
@@ -45,21 +48,23 @@ export let postSignup = (req: Request, res: Response, next: NextFunction) => {
         return res.redirect(RouteStore.signup);
     }
 
-    const email = req.body.email;
+    const email = req.body.email as String;
     const password = req.body.password;
 
-    const user = new User({
-        email,
+    const model = {
+        email: { type: email, unique: true },
         password,
         userDocumentId: Utils.GenerateGuid()
-    });
+    } as Partial<DashUserModel>;
+
+    const user = new User(model);
 
     User.findOne({ email }, (err, existingUser) => {
         if (err) { return next(err); }
         if (existingUser) {
             return res.redirect(RouteStore.login);
         }
-        user.save((err) => {
+        user.save((err: any) => {
             if (err) { return next(err); }
             req.logIn(user, (err) => {
                 if (err) { return next(err); }
@@ -181,15 +186,15 @@ export let postForgot = function (req: Request, res: Response, next: NextFunctio
                 }
             });
             const mailOptions = {
-                to: user.email,
+                to: user.email.type,
                 from: 'brownptcdash@gmail.com',
                 subject: 'Dash Password Reset',
                 text: 'You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n' +
                     'Please click on the following link, or paste this into your browser to complete the process:\n\n' +
                     'http://' + req.headers.host + '/reset/' + token + '\n\n' +
                     'If you did not request this, please ignore this email and your password will remain unchanged.\n'
-            };
-            smtpTransport.sendMail(mailOptions, function (err) {
+            } as MailOptions;
+            smtpTransport.sendMail(mailOptions, function (err: Error | null) {
                 // req.flash('info', 'An e-mail has been sent to ' + user.email + ' with further instructions.');
                 done(null, err, 'done');
             });
@@ -254,12 +259,12 @@ export let postReset = function (req: Request, res: Response) {
                 }
             });
             const mailOptions = {
-                to: user.email,
+                to: user.email.type,
                 from: 'brownptcdash@gmail.com',
                 subject: 'Your password has been changed',
                 text: 'Hello,\n\n' +
                     'This is a confirmation that the password for your account ' + user.email + ' has just been changed.\n'
-            };
+            } as MailOptions;
             smtpTransport.sendMail(mailOptions, function (err) {
                 done(null, err);
             });

@@ -1,5 +1,5 @@
 import { observable, action, computed, runInAction } from "mobx";
-import { ColorResult } from 'react-color';
+import { ColorState } from 'react-color';
 import React = require("react");
 import { observer } from "mobx-react";
 import "./InkingControl.scss";
@@ -41,7 +41,7 @@ export class InkingControl extends React.Component {
     }
 
     @undoBatch
-    switchColor = action((color: ColorResult): void => {
+    switchColor = action((color: ColorState): void => {
         this._selectedColor = color.hex + (color.rgb.a !== undefined ? this.decimalToHexString(Math.round(color.rgb.a * 255)) : "ff");
         if (InkingControl.Instance.selectedTool === InkTool.None) {
             if (MainOverlayTextBox.Instance.SetColor(color.hex)) return;

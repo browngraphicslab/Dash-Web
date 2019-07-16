@@ -19,7 +19,7 @@ export function onYouTubeIframeAPIReady() {
     });
 }
 // must cast as any to set property on window
-const _global = (window /* browser */ || global /* node */) as any
+const _global = (window /* browser */ || global /* node */) as any;
 _global.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
 
 function onPlayerReady(event: any) {

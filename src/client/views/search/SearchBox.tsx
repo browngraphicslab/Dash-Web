@@ -282,7 +282,7 @@ export class SearchBox extends React.Component {
 
     @computed
     get resFull() {
-        console.log(this._numTotalResults)
+        console.log(this._numTotalResults);
         return this._numTotalResults <= 8;
     }
 
