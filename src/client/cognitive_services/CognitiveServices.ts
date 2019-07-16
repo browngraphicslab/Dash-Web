@@ -1,8 +1,7 @@
 import * as request from "request-promise";
 import { Doc } from "../../new_fields/Doc";
-import { Cast, FieldValue } from "../../new_fields/Types";
+import { Cast } from "../../new_fields/Types";
 import { ImageField } from "../../new_fields/URLField";
-import { emptyFunction } from "../../Utils";
 
 export enum Services {
     ComputerVision,
@@ -76,7 +75,9 @@ export namespace CognitiveServices {
             }
 
             let results = await analyze(data.url.href, service);
-            dataDoc[storageKey] = converter(results);
+            if (results && (!results.length || results.length > 0)) {
+                dataDoc[storageKey] = converter(results);
+            }
         };
 
         export const generateMetadata = async (target: Doc, threshold = Confidence.Excellent) => {
