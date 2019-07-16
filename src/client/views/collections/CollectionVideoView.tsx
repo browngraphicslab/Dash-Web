@@ -88,7 +88,7 @@ export class CollectionVideoView extends React.Component<FieldViewProps> {
                 canvas.width = 640;
                 canvas.height = 640 * NumCast(this.props.Document.nativeHeight) / NumCast(this.props.Document.nativeWidth);
                 var ctx = canvas.getContext('2d');//draw image to canvas. scale to target dimensions
-                this._videoBox!.player && ctx && ctx.drawImage(this._videoBox!.player!, 0, 0, canvas.width, canvas.height);
+                this._videoBox!.player && ctx && ctx.drawImage(this._videoBox!.player, 0, 0, canvas.width, canvas.height);
 
                 //convert to desired file format
                 var dataUrl = canvas.toDataURL('image/png'); // can also use 'image/png'

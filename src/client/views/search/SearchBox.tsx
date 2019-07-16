@@ -6,7 +6,7 @@ import "./FilterBox.scss";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { SetupDrag } from '../../util/DragManager';
 import { Docs } from '../../documents/Documents';
-import { NumCast } from '../../../new_fields/Types';
+import { NumCast, Cast } from '../../../new_fields/Types';
 import { Doc } from '../../../new_fields/Doc';
 import { SearchItem } from './SearchItem';
 import { DocServer } from '../../DocServer';
@@ -118,7 +118,7 @@ export class SearchBox extends React.Component {
 
     private get filterQuery() {
         const types = FilterBox.Instance.filterTypes;
-        return "proto_i:*" + (types ? ` AND (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}"`).join(" ")})` : "");
+        return "NOT baseProto_b:true" + (types ? ` AND (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}"`).join(" ")})` : "");
     }
 
 
@@ -129,15 +129,18 @@ export class SearchBox extends React.Component {
         }
         this.lockPromise = new Promise(async res => {
             while (this._results.length <= this._endIndex && (this._numTotalResults === -1 || this._maxSearchIndex < this._numTotalResults)) {
-                this._curRequest = SearchUtil.Search(query, this.filterQuery, true, this._maxSearchIndex, 10).then(action((res: SearchUtil.DocSearchResult) => {
+                this._curRequest = SearchUtil.Search(query, this.filterQuery, true, this._maxSearchIndex, 10).then(action(async (res: SearchUtil.DocSearchResult) => {
 
                     // happens at the beginning
                     if (res.numFound !== this._numTotalResults && this._numTotalResults === -1) {
                         this._numTotalResults = res.numFound;
                     }
 
-                    let filteredDocs = FilterBox.Instance.filterDocsByType(res.docs);
-                    this._results.push(...filteredDocs);
+                    const docs = await Promise.all(res.docs.map(doc => Cast(doc.extendsDoc, Doc, doc as any)));
+                    let filteredDocs = FilterBox.Instance.filterDocsByType(docs);
+                    runInAction(() => {
+                        this._results.push(...filteredDocs);
+                    });
 
                     this._curRequest = undefined;
                 }));
