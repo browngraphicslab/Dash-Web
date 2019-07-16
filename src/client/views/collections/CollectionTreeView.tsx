@@ -153,7 +153,7 @@ class TreeView extends React.Component<TreeViewProps> {
         let docList = Cast(this.resolvedDataDoc[this.fieldKey], listSpec(Doc));
         let doc = Cast(this.resolvedDataDoc[this.fieldKey], Doc);
         let isDoc = doc instanceof Doc || docList;
-        let c
+        let c;
         return <div className="bullet" onClick={action(() => this._collapsed = !this._collapsed)} style={{ color: StrCast(this.props.document.color, "black"), opacity: 0.4 }}>
             {<FontAwesomeIcon icon={this._collapsed ? (isDoc ? "caret-square-right" : "caret-right") : (isDoc ? "caret-square-down" : "caret-down")} />}
         </div>;

@@ -108,7 +108,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
             this._youtubeReactionDisposer = reaction(() => [this.props.isSelected(), DocumentDecorations.Instance.Interacting, InkingControl.Instance.selectedTool], () => {
                 let interactive = InkingControl.Instance.selectedTool === InkTool.None && this.props.isSelected() && !DocumentDecorations.Instance.Interacting;
                 this._youtubePlayer.getIframe().style.pointerEvents = interactive ? "all" : "none";
-            }, { fireImmediately: true })
+            }, { fireImmediately: true });
             // let iframe = $(document.getElementById(`${videoid}-player`)!);
             // iframe.on("load", function () {
             //     iframe.contents().find("head")
@@ -120,7 +120,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
     @action
     onYoutubePlayerStateChange = (event: any) => {
         console.log("event.data = " + event.data);
-        this.Playing = event.data == YT.PlayerState.PLAYING;
+        this.Playing = event.data === YT.PlayerState.PLAYING;
         if (this._youtubeSeekTo && this.Playing) {
             this._youtubePlayer.pauseVideo();
             this._youtubeSeekTo = false;
