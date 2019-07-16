@@ -52,7 +52,7 @@ export let postSignup = (req: Request, res: Response, next: NextFunction) => {
     const password = req.body.password;
 
     const model = {
-        email: { type: email, unique: true },
+        email,
         password,
         userDocumentId: Utils.GenerateGuid()
     } as Partial<DashUserModel>;
@@ -186,7 +186,7 @@ export let postForgot = function (req: Request, res: Response, next: NextFunctio
                 }
             });
             const mailOptions = {
-                to: user.email.type,
+                to: user.email,
                 from: 'brownptcdash@gmail.com',
                 subject: 'Dash Password Reset',
                 text: 'You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n' +
@@ -259,7 +259,7 @@ export let postReset = function (req: Request, res: Response) {
                 }
             });
             const mailOptions = {
-                to: user.email.type,
+                to: user.email,
                 from: 'brownptcdash@gmail.com',
                 subject: 'Your password has been changed',
                 text: 'Hello,\n\n' +
