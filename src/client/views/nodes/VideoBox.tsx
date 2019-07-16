@@ -186,7 +186,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         let style = "videoBox-content" + (this._fullScreen ? "-fullScreen" : "") + interactive;
         return !field ? <div>Loading</div> :
             <video className={`${style}`} ref={this.setVideoRef} onCanPlay={this.videoLoad} controls={VideoBox._showControls}
-                onPlay={() => this.Play()} onSeeked={this.updateTimecode} onPause={() => this.Pause()}>
+                onPlay={() => this.Play()} onSeeked={this.updateTimecode} onPause={() => this.Pause()} onClick={e => e.preventDefault()}>
                 <source src={field.url.href} type="video/mp4" />
                 Not supported.
             </video>;
