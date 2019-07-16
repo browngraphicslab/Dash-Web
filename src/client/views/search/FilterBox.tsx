@@ -40,7 +40,7 @@ export class FilterBox extends React.Component {
     @observable private _icons: string[] = this._allIcons;
     @observable private _titleFieldStatus: boolean = true;
     @observable private _authorFieldStatus: boolean = true;
-    @observable private _dataFieldStatus: boolean = true;
+    @observable public _deletedDocsStatus: boolean = false;
     @observable private _collectionStatus = false;
     @observable private _collectionSelfStatus = true;
     @observable private _collectionParentStatus = true;
@@ -164,13 +164,13 @@ export class FilterBox extends React.Component {
         if (this._authorFieldStatus) {
             finalQuery = finalQuery + this.basicFieldFilters(query, Keys.AUTHOR);
         }
-        if (this._dataFieldStatus) {
+        if (this._deletedDocsStatus) {
             finalQuery = finalQuery + this.basicFieldFilters(query, Keys.DATA);
         }
         return finalQuery;
     }
 
-    get fieldFiltersApplied() { return !(this._dataFieldStatus && this._authorFieldStatus && this._titleFieldStatus); }
+    get fieldFiltersApplied() { return !(this._deletedDocsStatus && this._authorFieldStatus && this._titleFieldStatus); }
 
     //TODO: basically all of this
     //gets all of the collections of all the docviews that are selected
@@ -308,7 +308,7 @@ export class FilterBox extends React.Component {
     updateAuthorStatus(newStat: boolean) { this._authorFieldStatus = newStat; }
 
     @action.bound
-    updateDataStatus(newStat: boolean) { this._dataFieldStatus = newStat; }
+    updateDataStatus(newStat: boolean) { this._deletedDocsStatus = newStat; }
 
     @action.bound
     updateCollectionStatus(newStat: boolean) { this._collectionStatus = newStat; }
@@ -324,7 +324,7 @@ export class FilterBox extends React.Component {
     getParentCollectionStatus() { return this._collectionParentStatus; }
     getTitleStatus() { return this._titleFieldStatus; }
     getAuthorStatus() { return this._authorFieldStatus; }
-    getDataStatus() { return this._dataFieldStatus; }
+    getDataStatus() { return this._deletedDocsStatus; }
 
     // Useful queries:
     // Delegates of a document: {!join from=id to=proto_i}id:{protoId}
@@ -376,7 +376,7 @@ export class FilterBox extends React.Component {
                                     <div style={{ marginLeft: "auto" }}><NaviconButton onClick={this.toggleFieldOpen} /></div>
                                 </div>
                                 <div className="filter-panel"><FieldFilters
-                                    titleFieldStatus={this._titleFieldStatus} dataFieldStatus={this._dataFieldStatus} authorFieldStatus={this._authorFieldStatus}
+                                    titleFieldStatus={this._titleFieldStatus} dataFieldStatus={this._deletedDocsStatus} authorFieldStatus={this._authorFieldStatus}
                                     updateAuthorStatus={this.updateAuthorStatus} updateDataStatus={this.updateDataStatus} updateTitleStatus={this.updateTitleStatus} /> </div>
                             </div>
                         </div>
