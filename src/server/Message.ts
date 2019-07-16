@@ -55,4 +55,6 @@ export namespace MessageStore {
     export const UpdateField = new Message<Diff>("Update Ref Field");
     export const CreateField = new Message<Reference>("Create Ref Field");
     export const YoutubeApiQuery = new Message<YoutubeQueryInput>("Youtube Api Query");
+    export const DeleteField = new Message<string>("Delete field");
+    export const DeleteFields = new Message<string[]>("Delete fields");
 }

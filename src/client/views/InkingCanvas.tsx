@@ -13,7 +13,9 @@ import { Cast, PromiseValue, NumCast } from "../../new_fields/Types";
 
 interface InkCanvasProps {
     getScreenTransform: () => Transform;
+    AnnotationDocument: Doc;
     Document: Doc;
+    inkFieldKey: string;
     children: () => JSX.Element[];
 }
 
@@ -40,7 +42,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
     }
 
     componentDidMount() {
-        PromiseValue(Cast(this.props.Document.ink, InkField)).then(ink => runInAction(() => {
+        PromiseValue(Cast(this.props.AnnotationDocument[this.props.inkFieldKey], InkField)).then(ink => runInAction(() => {
             if (ink) {
                 let bounds = Array.from(ink.inkData).reduce(([mix, max, miy, may], [id, strokeData]) =>
                     strokeData.pathData.reduce(([mix, max, miy, may], p) =>
@@ -55,12 +57,12 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
 
     @computed
     get inkData(): Map<string, StrokeData> {
-        let map = Cast(this.props.Document.ink, InkField);
+        let map = Cast(this.props.AnnotationDocument[this.props.inkFieldKey], InkField);
         return !map ? new Map : new Map(map.inkData);
     }
 
     set inkData(value: Map<string, StrokeData>) {
-        Doc.SetOnPrototype(this.props.Document, "ink", new InkField(value));
+        this.props.AnnotationDocument[this.props.inkFieldKey] = new InkField(value);
     }
 
     @action
@@ -74,7 +76,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
         e.stopPropagation();
         e.preventDefault();
 
-        this.previousState = this.inkData;
+        this.previousState = new Map(this.inkData);
 
         if (InkingControl.Instance.selectedTool !== InkTool.Eraser) {
             // start the new line, saves a uuid to represent the field of the stroke
@@ -106,10 +108,10 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
         const batch = UndoManager.StartBatch("One ink stroke");
         const oldState = this.previousState || new Map;
         this.previousState = undefined;
-        const newState = this.inkData;
+        const newState = new Map(this.inkData);
         UndoManager.AddEvent({
             undo: () => this.inkData = oldState,
-            redo: () => this.inkData = newState,
+            redo: () => this.inkData = newState
         });
         batch.end();
     }
@@ -134,9 +136,13 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
         return { x, y };
     }
 
-    @undoBatch
     @action
     removeLine = (id: string): void => {
+        if (!this.previousState) {
+            this.previousState = new Map(this.inkData);
+            document.addEventListener("pointermove", this.onPointerMove, true);
+            document.addEventListener("pointerup", this.onPointerUp, true);
+        }
         let data = this.inkData;
         data.delete(id);
         this.inkData = data;

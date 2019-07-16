@@ -2,6 +2,7 @@ import { Deserializable } from "../client/util/SerializationHelper";
 import { serializable, custom } from "serializr";
 import { ObjectField } from "./ObjectField";
 import { ToScriptString, Copy } from "./FieldSymbols";
+import { Scripting, scriptingGlobal } from "../client/util/Scripting";
 
 function url() {
     return custom(
@@ -37,9 +38,9 @@ export abstract class URLField extends ObjectField {
     }
 }
 
-@Deserializable("audio") export class AudioField extends URLField { }
-@Deserializable("image") export class ImageField extends URLField { }
-@Deserializable("video") export class VideoField extends URLField { }
-@Deserializable("pdf") export class PdfField extends URLField { }
-@Deserializable("web") export class WebField extends URLField { }
-@Deserializable("youtube") export class YoutubeField extends URLField { }
+@scriptingGlobal @Deserializable("audio") export class AudioField extends URLField { }
+@scriptingGlobal @Deserializable("image") export class ImageField extends URLField { }
+@scriptingGlobal @Deserializable("video") export class VideoField extends URLField { }
+@scriptingGlobal @Deserializable("pdf") export class PdfField extends URLField { }
+@scriptingGlobal @Deserializable("web") export class WebField extends URLField { }
+@scriptingGlobal @Deserializable("youtube") export class YoutubeField extends URLField { }

@@ -8,15 +8,15 @@ import "./PresentationView.scss";
 import { Utils } from "../../../Utils";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFile as fileSolid, faLocationArrow, faArrowUp, faSearch } from '@fortawesome/free-solid-svg-icons';
+import { faFile as fileSolid, faFileDownload, faLocationArrow, faArrowUp, faSearch } from '@fortawesome/free-solid-svg-icons';
 import { faFile as fileRegular } from '@fortawesome/free-regular-svg-icons';
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 
 library.add(faArrowUp);
 library.add(fileSolid);
-library.add(fileRegular);
 library.add(faLocationArrow);
+library.add(fileRegular as any);
 library.add(faSearch);
 
 interface PresentationElementProps {
@@ -370,14 +370,14 @@ export default class PresentationElement extends React.Component<PresentationEle
             className += " presentationView-selected";
         }
         let onEnter = (e: React.PointerEvent) => { p.document.libraryBrush = true; };
-        let onLeave = (e: React.PointerEvent) => { p.document.libraryBrush = false; };
+        let onLeave = (e: React.PointerEvent) => { p.document.libraryBrush = undefined; };
         return (
             <div className={className} key={p.document[Id] + p.index}
                 onPointerEnter={onEnter} onPointerLeave={onLeave}
                 style={{
                     outlineColor: "maroon",
                     outlineStyle: "dashed",
-                    outlineWidth: BoolCast(p.document.libraryBrush, false) || BoolCast(p.document.protoBrush, false) ? `1px` : "0px",
+                    outlineWidth: BoolCast(p.document.libraryBrush) ? `1px` : "0px",
                 }}
                 onClick={e => { p.gotoDocument(p.index, NumCast(this.props.mainDocument.selectedDoc)); e.stopPropagation(); }}>
                 <strong className="presentationView-name">
@@ -388,8 +388,8 @@ export default class PresentationElement extends React.Component<PresentationEle
                 <button title="Zoom" className={this.selectedButtons[buttonIndex.Show] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onZoomDocumentClick}><FontAwesomeIcon icon={"search"} /></button>
                 <button title="Navigate" className={this.selectedButtons[buttonIndex.Navigate] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onNavigateDocumentClick}><FontAwesomeIcon icon={"location-arrow"} /></button>
                 <button title="Hide Document Till Presented" className={this.selectedButtons[buttonIndex.HideTillPressed] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onHideDocumentUntilPressClick}><FontAwesomeIcon icon={fileSolid} /></button>
-                <button title="Fade Document After Presented" className={this.selectedButtons[buttonIndex.FadeAfter] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onFadeDocumentAfterPresentedClick}><FontAwesomeIcon icon={fileRegular} color={"gray"} /></button>
-                <button title="Hide Document After Presented" className={this.selectedButtons[buttonIndex.HideAfter] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onHideDocumentAfterPresentedClick}><FontAwesomeIcon icon={fileRegular} /></button>
+                <button title="Fade Document After Presented" className={this.selectedButtons[buttonIndex.FadeAfter] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onFadeDocumentAfterPresentedClick}><FontAwesomeIcon icon={faFileDownload} color={"gray"} /></button>
+                <button title="Hide Document After Presented" className={this.selectedButtons[buttonIndex.HideAfter] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onHideDocumentAfterPresentedClick}><FontAwesomeIcon icon={faFileDownload} /></button>
                 <button title="Group With Up" className={this.selectedButtons[buttonIndex.Group] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={(e) => {
                     e.stopPropagation();
                     this.changeGroupStatus();

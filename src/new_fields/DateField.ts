@@ -2,7 +2,9 @@ import { Deserializable } from "../client/util/SerializationHelper";
 import { serializable, date } from "serializr";
 import { ObjectField } from "./ObjectField";
 import { Copy, ToScriptString } from "./FieldSymbols";
+import { scriptingGlobal, Scripting } from "../client/util/Scripting";
 
+@scriptingGlobal
 @Deserializable("date")
 export class DateField extends ObjectField {
     @serializable(date())
@@ -21,3 +23,7 @@ export class DateField extends ObjectField {
         return `new DateField(new Date(${this.date.toISOString()}))`;
     }
 }
+
+Scripting.addGlobal(function d(...dateArgs: any[]) {
+    return new DateField(new (Date as any)(...dateArgs));
+});

@@ -94,6 +94,7 @@ export namespace UndoManager {
     }
 
     export function PrintBatches(): void {
+        console.log("Open Undo Batches:");
         GetOpenBatches().forEach(batch => console.log(batch.batchName));
     }
 

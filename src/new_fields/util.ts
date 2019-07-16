@@ -2,13 +2,17 @@ import { UndoManager } from "../client/util/UndoManager";
 import { Doc, Field } from "./Doc";
 import { SerializationHelper } from "../client/util/SerializationHelper";
 import { ProxyField } from "./Proxy";
-import { FieldValue } from "./Types";
 import { RefField } from "./RefField";
 import { ObjectField } from "./ObjectField";
 import { action } from "mobx";
-import { Parent, OnUpdate, Update, Id } from "./FieldSymbols";
+import { Parent, OnUpdate, Update, Id, SelfProxy, Self } from "./FieldSymbols";
+import { ComputedField } from "./ScriptField";
 
-export const setter = action(function (target: any, prop: string | symbol | number, value: any, receiver: any): boolean {
+function _readOnlySetter(): never {
+    throw new Error("Documents can't be modified in read-only mode");
+}
+const _setterImpl = action(function (target: any, prop: string | symbol | number, value: any, receiver: any): boolean {
+    //console.log("-set " + target[SelfProxy].title + "(" + target[SelfProxy][prop] + ")." + prop.toString() + " = " + value);
     if (SerializationHelper.IsSerializing()) {
         target[prop] = value;
         return true;
@@ -16,6 +20,9 @@ export const setter = action(function (target: any, prop: string | symbol | numb
     if (typeof prop === "symbol") {
         target[prop] = value;
         return true;
+    }
+    if (value !== undefined) {
+        value = value[SelfProxy] || value;
     }
     const curValue = target.__fields[prop];
     if (curValue === value || (curValue instanceof ProxyField && value instanceof RefField && curValue.fieldId === value[Id])) {
@@ -27,11 +34,10 @@ export const setter = action(function (target: any, prop: string | symbol | numb
         value = new ProxyField(value);
     }
     if (value instanceof ObjectField) {
-        //TODO Instead of target, maybe use target[Self]
-        if (value[Parent] && value[Parent] !== target) {
+        if (value[Parent] && value[Parent] !== receiver) {
             throw new Error("Can't put the same object in multiple documents at the same time");
         }
-        value[Parent] = target;
+        value[Parent] = receiver;
         value[OnUpdate] = updateFunction(target, prop, value, receiver);
     }
     if (curValue instanceof ObjectField) {
@@ -43,13 +49,29 @@ export const setter = action(function (target: any, prop: string | symbol | numb
     } else {
         target.__fields[prop] = value;
     }
-    target[Update]({ '$set': { ["fields." + prop]: value instanceof ObjectField ? SerializationHelper.Serialize(value) : (value === undefined ? null : value) } });
+    if (value === undefined) target[Update]({ '$unset': { ["fields." + prop]: "" } });
+    if (typeof value === "object" && !(value instanceof ObjectField)) debugger;
+    else target[Update]({ '$set': { ["fields." + prop]: value instanceof ObjectField ? SerializationHelper.Serialize(value) : (value === undefined ? null : value) } });
     UndoManager.AddEvent({
         redo: () => receiver[prop] = value,
         undo: () => receiver[prop] = curValue
     });
     return true;
 });
+
+let _setter: (target: any, prop: string | symbol | number, value: any, receiver: any) => boolean = _setterImpl;
+
+export function makeReadOnly() {
+    _setter = _readOnlySetter;
+}
+
+export function makeEditable() {
+    _setter = _setterImpl;
+}
+
+export function setter(target: any, prop: string | symbol | number, value: any, receiver: any): boolean {
+    return _setter(target, prop, value, receiver);
+}
 
 export function getter(target: any, prop: string | symbol | number, receiver: any): any {
     if (typeof prop === "symbol") {
@@ -58,36 +80,30 @@ export function getter(target: any, prop: string | symbol | number, receiver: an
     if (SerializationHelper.IsSerializing()) {
         return target[prop];
     }
-    return getField(target, prop);
-}
-function getProtoField(protoField: Doc | undefined, prop: string | number, cb?: (field: Field | undefined) => void) {
-    if (!protoField) return undefined;
-    let field = protoField[prop];
-    if (field instanceof Promise) {
-        cb && field.then(cb);
-        return field;
-    } else {
-        cb && cb(field);
-        return field;
-    }
+    return getFieldImpl(target, prop, receiver);
 }
 
-//TODO The callback parameter is never being passed in currently, so we should be able to get rid of it.
-export function getField(target: any, prop: string | number, ignoreProto: boolean = false, callback?: (field: Field | undefined) => void): any {
+function getFieldImpl(target: any, prop: string | number, receiver: any, ignoreProto: boolean = false): any {
+    receiver = receiver || target[SelfProxy];
     const field = target.__fields[prop];
     if (field instanceof ProxyField) {
-        return field.value(callback);
+        return field.value();
+    }
+    if (field instanceof ComputedField) {
+        return field.value(receiver);
     }
     if (field === undefined && !ignoreProto && prop !== "proto") {
-        const proto = getField(target, "proto", true);
+        const proto = getFieldImpl(target, "proto", receiver, true);//TODO tfs: instead of receiver we could use target[SelfProxy]... I don't which semantics we want or if it really matters
         if (proto instanceof Doc) {
-            return getProtoField(proto, prop, callback);
-        } else if (proto instanceof Promise) {
-            return proto.then(async proto => getProtoField(proto, prop, callback));
+            return getFieldImpl(proto[Self], prop, receiver, ignoreProto);
         }
+        return undefined;
     }
-    callback && callback(field);
     return field;
+
+}
+export function getField(target: any, prop: string | number, ignoreProto: boolean = false): any {
+    return getFieldImpl(target, prop, undefined, ignoreProto);
 }
 
 export function deleteProperty(target: any, prop: string | number | symbol) {
@@ -95,7 +111,8 @@ export function deleteProperty(target: any, prop: string | number | symbol) {
         delete target[prop];
         return true;
     }
-    throw new Error("Currently properties can't be deleted from documents, assign to undefined instead");
+    target[SelfProxy][prop] = undefined;
+    return true;
 }
 
 export function updateFunction(target: any, prop: any, value: any, receiver: any) {

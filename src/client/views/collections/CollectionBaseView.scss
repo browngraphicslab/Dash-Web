@@ -1,0 +1,12 @@
+@import "../globalCssVariables";
+#collectionBaseView {
+    border-width: 0;
+    border-color: $light-color-secondary;
+    border-style: solid;
+    border-radius: 0 0 $border-radius $border-radius;
+    box-sizing: border-box;
+    border-radius: inherit;
+    pointer-events: all;
+    width:100%;
+    height:100%;
+}

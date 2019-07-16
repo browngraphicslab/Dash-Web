@@ -1,8 +1,9 @@
 import { Field, Opt, FieldResult, Doc } from "./Doc";
 import { List } from "./List";
 import { RefField } from "./RefField";
+import { DateField } from "./DateField";
 
-export type ToType<T extends ToConstructor<Field> | ListSpec<Field> | DefaultFieldConstructor<Field>> =
+export type ToType<T extends InterfaceValue> =
     T extends "string" ? string :
     T extends "number" ? number :
     T extends "boolean" ? boolean :
@@ -10,7 +11,8 @@ export type ToType<T extends ToConstructor<Field> | ListSpec<Field> | DefaultFie
     // T extends { new(...args: any[]): infer R } ? (R | Promise<R>) : never;
     T extends DefaultFieldConstructor<infer _U> ? never :
     T extends { new(...args: any[]): List<Field> } ? never :
-    T extends { new(...args: any[]): infer R } ? R : never;
+    T extends { new(...args: any[]): infer R } ? R :
+    T extends (doc?: Doc) => infer R ? R : never;
 
 export type ToConstructor<T extends Field> =
     T extends string ? "string" :
@@ -38,14 +40,16 @@ export type Tail<T extends any[]> =
     ((...t: T) => any) extends ((_: any, ...tail: infer TT) => any) ? TT : [];
 export type HasTail<T extends any[]> = T extends ([] | [any]) ? false : true;
 
+export type InterfaceValue = ToConstructor<Field> | ListSpec<Field> | DefaultFieldConstructor<Field> | ((doc?: Doc) => any);
 //TODO Allow you to optionally specify default values for schemas, which should then make that field not be partial
 export interface Interface {
-    [key: string]: ToConstructor<Field> | ListSpec<Field> | DefaultFieldConstructor<Field>;
+    [key: string]: InterfaceValue;
     // [key: string]: ToConstructor<Field> | ListSpec<Field[]>;
 }
+export type WithoutRefField<T extends Field> = T extends RefField ? never : T;
 
 export function Cast<T extends ToConstructor<Field> | ListSpec<Field>>(field: FieldResult, ctor: T): FieldResult<ToType<T>>;
-export function Cast<T extends ToConstructor<Field> | ListSpec<Field>>(field: FieldResult, ctor: T, defaultVal: WithoutList<ToType<T>> | null): WithoutList<ToType<T>>;
+export function Cast<T extends ToConstructor<Field> | ListSpec<Field>>(field: FieldResult, ctor: T, defaultVal: WithoutList<WithoutRefField<ToType<T>>> | null): WithoutList<ToType<T>>;
 export function Cast<T extends ToConstructor<Field> | ListSpec<Field>>(field: FieldResult, ctor: T, defaultVal?: ToType<T> | null): FieldResult<ToType<T>> | undefined {
     if (field instanceof Promise) {
         return defaultVal === undefined ? field.then(f => Cast(f, ctor) as any) as any : defaultVal === null ? undefined : defaultVal;
@@ -76,6 +80,9 @@ export function StrCast(field: FieldResult, defaultVal: string | null = "") {
 
 export function BoolCast(field: FieldResult, defaultVal: boolean | null = null) {
     return Cast(field, "boolean", defaultVal);
+}
+export function DateCast(field: FieldResult) {
+    return Cast(field, DateField, null);
 }
 
 type WithoutList<T extends Field> = T extends List<infer R> ? (R extends RefField ? (R | Promise<R>)[] : R[]) : T;
