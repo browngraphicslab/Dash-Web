@@ -144,12 +144,13 @@ app.get("/pull", (req, res) =>
 // GETTERS
 
 app.get("/search", async (req, res) => {
-    const { query, filterQuery, start, rows } = req.query;
-    if (query === undefined) {
+    const solrQuery: any = {};
+    ["q", "fq", "start", "rows", "hl", "hl.fl"].forEach(key => solrQuery[key] = req.query[key]);
+    if (solrQuery.q === undefined) {
         res.send([]);
         return;
     }
-    let results = await Search.Instance.search(query, filterQuery, start, rows);
+    let results = await Search.Instance.search(solrQuery);
     res.send(results);
 });
 

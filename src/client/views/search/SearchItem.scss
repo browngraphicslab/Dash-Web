@@ -24,11 +24,15 @@
         flex-direction: row;
         width: 100%;
 
-        .search-title {
-            text-transform: uppercase;
-            text-align: left;
+        .search-title-container {
             width: 100%;
-            font-weight: bold;
+
+            .search-title {
+                text-transform: uppercase;
+                text-align: left;
+                width: 100%;
+                font-weight: bold;
+            }
         }
 
         .search-info {

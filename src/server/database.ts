@@ -140,6 +140,17 @@ export class Database {
         }
     }
 
+    public updateMany(query: any, update: any, collectionName = "newDocuments") {
+        if (this.db) {
+            const db = this.db;
+            return new Promise<mongodb.WriteOpResult>(res => db.collection(collectionName).update(query, update, (_, result) => res(result)));
+        } else {
+            return new Promise<mongodb.WriteOpResult>(res => {
+                this.onConnect.push(() => this.updateMany(query, update, collectionName).then(res));
+            });
+        }
+    }
+
     public print() {
         console.log("db says hi!");
     }

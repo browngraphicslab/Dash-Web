@@ -30,20 +30,14 @@ export class Search {
         }
     }
 
-    public async search(query: string, filterQuery: string = "", start: number = 0, rows: number = 10) {
+    public async search(query: any) {
         try {
             const searchResults = JSON.parse(await rp.get(this.url + "dash/select", {
-                qs: {
-                    q: query,
-                    fq: filterQuery,
-                    fl: "id",
-                    start,
-                    rows,
-                }
+                qs: query
             }));
             const { docs, numFound } = searchResults.response;
             const ids = docs.map((field: any) => field.id);
-            return { ids, numFound };
+            return { ids, numFound, highlighting: searchResults.highlighting };
         } catch {
             return { ids: [], numFound: -1 };
         }
