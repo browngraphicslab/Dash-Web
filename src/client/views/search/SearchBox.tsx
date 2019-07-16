@@ -24,6 +24,7 @@ export class SearchBox extends React.Component {
     @observable private _resultsOpen: boolean = false;
     @observable private _searchbarOpen: boolean = false;
     @observable private _results: Doc[] = [];
+    private _resultsSet = new Set<Doc>();
     @observable private _openNoResults: boolean = false;
     @observable private _visibleElements: JSX.Element[] = [];
 
@@ -61,6 +62,7 @@ export class SearchBox extends React.Component {
 
         this._openNoResults = false;
         this._results = [];
+        this._resultsSet.clear();
         this._visibleElements = [];
         this._numTotalResults = -1;
         this._endIndex = -1;
@@ -92,6 +94,7 @@ export class SearchBox extends React.Component {
         let query = this._searchString;
         query = FilterBox.Instance.getFinalQuery(query);
         this._results = [];
+        this._resultsSet.clear();
         this._isSearch = [];
         this._visibleElements = [];
 
@@ -120,7 +123,7 @@ export class SearchBox extends React.Component {
 
     private get filterQuery() {
         const types = FilterBox.Instance.filterTypes;
-        const includeDeleted = false;
+        const includeDeleted = FilterBox.Instance.getDataStatus();
         return "NOT baseProto_b:true" + (includeDeleted ? "" : " AND NOT deleted:true") + (types ? ` AND (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}"`).join(" ")})` : "");
     }
 
@@ -142,7 +145,13 @@ export class SearchBox extends React.Component {
                     const docs = await Promise.all(res.docs.map(doc => Cast(doc.extendsDoc, Doc, doc as any)));
                     let filteredDocs = FilterBox.Instance.filterDocsByType(docs);
                     runInAction(() => {
-                        this._results.push(...filteredDocs);
+                        // this._results.push(...filteredDocs);
+                        filteredDocs.forEach(doc => {
+                            if (!this._resultsSet.has(doc)) {
+                                this._results.push(doc);
+                                this._resultsSet.add(doc);
+                            }
+                        });
                     });
 
                     this._curRequest = undefined;
@@ -219,6 +228,7 @@ export class SearchBox extends React.Component {
     closeResults() {
         this._resultsOpen = false;
         this._results = [];
+        this._resultsSet.clear();
         this._visibleElements = [];
         this._numTotalResults = -1;
         this._endIndex = -1;
