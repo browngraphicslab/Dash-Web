@@ -328,3 +328,13 @@
     fill: currentColor;
     margin-right: 15px;
   }
+
+  .brush-active{
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    stroke-width: 5;
+    stroke: greenyellow;
+    fill: greenyellow;
+    margin-right: 35px;
+  }

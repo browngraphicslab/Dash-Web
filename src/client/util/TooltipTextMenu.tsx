@@ -53,8 +53,8 @@ export class TooltipTextMenu {
     private _collapseBtn?: MenuItem;
 
     private _brushMarks?: Set<Mark>;
-
     private _brushIsEmpty: boolean = true;
+    private _brush?: MenuItem;
 
     constructor(view: EditorView, editorProps: FieldViewProps & FormattedTextBoxProps) {
         this.view = view;
@@ -364,7 +364,7 @@ export class TooltipTextMenu {
     }
 
     //for a specific grouping of marks (passed in), remove all and apply the passed-in one to the selected text
-    changeToMarkInGroup = (markType: MarkType, view: EditorView, fontMarks: MarkType[]) => {
+    changeToMarkInGroup = (markType: MarkType | undefined, view: EditorView, fontMarks: MarkType[]) => {
         let { $cursor, ranges } = view.state.selection as TextSelection;
         let state = view.state;
         let dispatch = view.dispatch;
@@ -390,17 +390,23 @@ export class TooltipTextMenu {
                 }
             }
         });
-        // fontsize
-        if (markType.name[0] === 'p') {
-            let size = this.fontSizeToNum.get(markType);
-            if (size) { this.updateFontSizeDropdown(String(size) + " pt"); }
+
+        if (markType) {
+            // fontsize
+            if (markType.name[0] === 'p') {
+                let size = this.fontSizeToNum.get(markType);
+                if (size) { this.updateFontSizeDropdown(String(size) + " pt"); }
+            }
+            else {
+                let fontName = this.fontStylesToName.get(markType);
+                if (fontName) { this.updateFontStyleDropdown(fontName); }
+            }
+            //actually apply font
+            return toggleMark(markType)(view.state, view.dispatch, view);
         }
         else {
-            let fontName = this.fontStylesToName.get(markType);
-            if (fontName) { this.updateFontStyleDropdown(fontName); }
+            return;
         }
-        //actually apply font
-        return toggleMark(markType)(view.state, view.dispatch, view);
     }
 
     //remove all node typeand apply the passed-in one to the selected text
@@ -443,39 +449,56 @@ export class TooltipTextMenu {
         });
     }
 
-    createBrush() {
+    createBrush(active: boolean = false) {
         const icon = {
             height: 32, width: 32,
             path: "M30.828 1.172c-1.562-1.562-4.095-1.562-5.657 0l-5.379 5.379-3.793-3.793-4.243 4.243 3.326 3.326-14.754 14.754c-0.252 0.252-0.358 0.592-0.322 0.921h-0.008v5c0 0.552 0.448 1 1 1h5c0 0 0.083 0 0.125 0 0.288 0 0.576-0.11 0.795-0.329l14.754-14.754 3.326 3.326 4.243-4.243-3.793-3.793 5.379-5.379c1.562-1.562 1.562-4.095 0-5.657zM5.409 30h-3.409v-3.409l14.674-14.674 3.409 3.409-14.674 14.674z"
         };
-        return new MenuItem({
+        this._brush = new MenuItem({
             title: "Brush tool",
             label: "Brush tool",
             icon: icon,
             css: "color:white;",
-            class: "brush",
+            class: active ? "brush-active" : "brush",
             execEvent: "",
             run: (state, dispatch) => {
                 this.brush_function(state, dispatch);
+            },
+            active: (state) => {
+                return true;
             }
 
         });
+        return this._brush;
     }
 
     // selectionchanged event handler
 
     brush_function(state: EditorState<any>, dispatch: any) {
         if (this._brushIsEmpty) {
-            this._brushMarks = this.getMarksInSelection(state);
+            this._brushMarks = this.getMarksInSelection(this.view.state);
+            this.createBrush(true);
         }
         else {
-            let { from, to } = state.selection;
-            if (this._brushMarks && to - from > 0) {
-                this.view.state.tr.removeMark(from, to);
-                this._brushMarks.forEach((mark: Mark) => {
-                    this.view.dispatch(this.view.state.tr.addMark(from, from + to, mark));
-                });
+            let { from, to, $from } = this.view.state.selection;
+            if ($from && $from.nodeAfter) {
+                if (this._brushMarks && to - from > 0) {
+                    //this.view.dispatch(state.tr.removeMark(from, to));
+                    // let marktypes: MarkType[] = [];
+                    // nodemarks.forEach((mark: Mark) => {
+                    //     marktypes.push(mark.type);
+                    // });
+                    //this.changeToMarkInGroup(undefined, this.view, marktypes);
+                    //$from.nodeAfter.mark([]);
+                    this.view.dispatch(this.view.state.tr.removeMark(from, to));
+                    this._brushMarks.forEach((mark: Mark) => {
+                        const markType = mark.type;
+                        this.changeToMarkInGroup(markType, this.view, []);
+
+                    });
+                }
             }
+            this.createBrush();
         }
         this._brushIsEmpty = !this._brushIsEmpty;
 
