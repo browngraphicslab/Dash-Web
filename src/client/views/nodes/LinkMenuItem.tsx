@@ -37,9 +37,14 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         if (pdfDoc) {
             jumpToDoc = pdfDoc;
         }
+        let proto = Doc.GetProto(this.props.linkDoc);
+        let targetContext = await Cast(proto.targetContext, Doc);
         if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
             let self = this;
             DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, undefined, undefined, NumCast((this.props.destinationDoc === self.props.linkDoc.anchor2 ? self.props.linkDoc.anchor2Page : self.props.linkDoc.anchor1Page)));
+        }
+        else if (targetContext) {
+            DocumentManager.Instance.jumpToDocument(targetContext, e.altKey, false, document => CollectionDockingView.Instance.AddRightSplit(document, undefined));
         } else {
             CollectionDockingView.Instance.AddRightSplit(jumpToDoc, undefined);
         }
