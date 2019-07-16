@@ -32,6 +32,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     @undoBatch
     onFollowLink = async (e: React.PointerEvent): Promise<void> => {
         e.stopPropagation();
+        e.persist();
         let jumpToDoc = this.props.destinationDoc;
         let pdfDoc = FieldValue(Cast(this.props.destinationDoc, Doc));
         if (pdfDoc) {
