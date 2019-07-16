@@ -537,7 +537,7 @@ export default class PresentationElement extends React.Component<PresentationEle
                     if (this.props.groupMappings.has(aboveDocGuid)) {
                         this.protectOrderAndPush(aboveDocGuid, aboveDoc, droppedDoc);
                     } else {
-                        this.createNewGroup(aboveDoc, droppedDoc, aboveDocGuid, p);
+                        this.createNewGroup(aboveDoc, droppedDoc, aboveDocGuid);
                     }
                 } else {
                     let propsPresId = StrCast(this.props.document.presentId);
@@ -553,7 +553,7 @@ export default class PresentationElement extends React.Component<PresentationEle
                     this.protectOrderAndPush(propsDocGuid, this.props.document, droppedDoc);
 
                 } else {
-                    this.createNewGroup(this.props.document, droppedDoc, propsDocGuid, p);
+                    this.createNewGroup(this.props.document, droppedDoc, propsDocGuid);
                 }
             }
 
@@ -573,7 +573,7 @@ export default class PresentationElement extends React.Component<PresentationEle
                             let aboveGroupArray = this.props.groupMappings.get(aboveDocGuid)!;
                             let propsDocPresId = StrCast(this.props.document.presentId);
 
-                            this.halveGroupArray(aboveDoc, aboveGroupArray, droppedDoc, p, propsDocPresId);
+                            this.halveGroupArray(aboveDoc, aboveGroupArray, droppedDoc, propsDocPresId);
 
                         } else {
                             let belowPresentId = StrCast(this.props.document.presentId);
@@ -608,7 +608,7 @@ export default class PresentationElement extends React.Component<PresentationEle
 
                             let propsGroupArray = this.props.groupMappings.get(propsDocGuid)!;
 
-                            this.halveGroupArray(this.props.document, propsGroupArray, droppedDoc, p, belowDocGuid);
+                            this.halveGroupArray(this.props.document, propsGroupArray, droppedDoc, belowDocGuid);
 
                         } else {
                             belowGroupArray.splice(belowGroupArray.indexOf(this.props.document), 1);
