@@ -94,6 +94,7 @@ export class SearchBox extends React.Component {
         this._results = [];
         this._isSearch = [];
         this._visibleElements = [];
+        FilterBox.Instance.closeFilter();
 
         //if there is no query there should be no result
         if (query === "") {
