@@ -33,7 +33,7 @@ export const pageSchema = createSchema({
     curPage: "number",
 });
 
-interface window {
+interface Window {
     MediaRecorder: MediaRecorder;
 }
 

@@ -67,7 +67,7 @@ export class SearchBox extends React.Component {
         this._maxSearchIndex = 0;
     }
 
-    enter = (e: React.KeyboardEvent) => { if (e.key === "Enter") { this.submitSearch(); } }
+    enter = (e: React.KeyboardEvent) => { if (e.key === "Enter") { this.submitSearch(); } };
 
     public static async convertDataUri(imageUri: string, returnedFilename: string) {
         try {
@@ -113,7 +113,12 @@ export class SearchBox extends React.Component {
     }
 
     getAllResults = async (query: string) => {
-        return SearchUtil.Search(query, true, 0, 10000000);
+        return SearchUtil.Search(query, this.filterQuery, true, 0, 10000000);
+    }
+
+    private get filterQuery() {
+        const types = FilterBox.Instance.filterTypes;
+        return "proto_i:*" + (types ? ` AND (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}"`).join(" ")})` : "");
     }
 
 
@@ -124,7 +129,7 @@ export class SearchBox extends React.Component {
         }
         this.lockPromise = new Promise(async res => {
             while (this._results.length <= this._endIndex && (this._numTotalResults === -1 || this._maxSearchIndex < this._numTotalResults)) {
-                this._curRequest = SearchUtil.Search(query, true, this._maxSearchIndex, 10).then(action((res: SearchUtil.DocSearchResult) => {
+                this._curRequest = SearchUtil.Search(query, this.filterQuery, true, this._maxSearchIndex, 10).then(action((res: SearchUtil.DocSearchResult) => {
 
                     // happens at the beginning
                     if (res.numFound !== this._numTotalResults && this._numTotalResults === -1) {
@@ -277,7 +282,7 @@ export class SearchBox extends React.Component {
 
     @computed
     get resFull() {
-        console.log(this._numTotalResults)
+        console.log(this._numTotalResults);
         return this._numTotalResults <= 8;
     }
 

@@ -58,7 +58,7 @@ clientUtils = `//AUTO-GENERATED FILE: DO NOT EDIT\n${clientUtils.replace('"mode"
 fs.writeFileSync("./src/client/util/ClientUtils.ts", clientUtils, "utf8");
 
 const mongoUrl = 'mongodb://localhost:27017/Dash';
-mongoose.connect(mongoUrl);
+mongoose.connection.readyState === 0 && mongoose.connect(mongoUrl);
 mongoose.connection.on('connected', () => console.log("connected"));
 
 // SESSION MANAGEMENT AND AUTHENTICATION MIDDLEWARE
@@ -144,12 +144,12 @@ app.get("/pull", (req, res) =>
 // GETTERS
 
 app.get("/search", async (req, res) => {
-    const { query, start, rows } = req.query;
+    const { query, filterQuery, start, rows } = req.query;
     if (query === undefined) {
         res.send([]);
         return;
     }
-    let results = await Search.Instance.search(query, start, rows);
+    let results = await Search.Instance.search(query, filterQuery, start, rows);
     res.send(results);
 });
 

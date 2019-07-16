@@ -237,6 +237,10 @@ export class FilterBox extends React.Component {
         return "+(" + finalColString + ")" + query;
     }
 
+    get filterTypes() {
+        return this._icons.length === 9 ? undefined : this._icons;
+    }
+
     @action
     filterDocsByType(docs: Doc[]) {
         if (this._icons.length === 9) {

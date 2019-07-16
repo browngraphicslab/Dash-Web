@@ -301,7 +301,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             this._flush = false;
             setTimeout(() => {
                 CollectionDockingView.Instance._ignoreStateChange = JSON.stringify(CollectionDockingView.Instance._goldenLayout.toConfig());
-                this.stateChanged()
+                this.stateChanged();
             }, 10);
         }
     }
@@ -606,7 +606,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             addDocTab={this.addDocTab}
             ContainingCollectionView={undefined}
             zoomToScale={emptyFunction}
-            getScale={returnOne} />
+            getScale={returnOne} />;
     }
 
     @computed get content() {
