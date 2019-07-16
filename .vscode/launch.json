@@ -38,7 +38,7 @@
             "protocol": "inspector",
             "port": 9229,
             "localRoot": "${workspaceFolder}",
-            "remoteRoot": "."
+            "remoteRoot": "${workspaceFolder}"
         },
         {
             "type": "node",

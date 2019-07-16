@@ -303,15 +303,23 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         let ctrlKey = e.ctrlKey;
         if (e.button === 0 && ((!this.props.isSelected() && !e.ctrlKey) || (this.props.isSelected() && e.ctrlKey)) && !e.metaKey && e.target) {
             let href = (e.target as any).href;
+            let location = (e.target as any).attributes.location.value;
             for (let parent = (e.target as any).parentNode; !href && parent; parent = parent.parentNode) {
                 href = parent.childNodes[0].href ? parent.childNodes[0].href : parent.href;
             }
             if (href) {
+                ``
                 if (href.indexOf(DocServer.prepend("/doc/")) === 0) {
                     this._linkClicked = href.replace(DocServer.prepend("/doc/"), "").split("?")[0];
                     if (this._linkClicked) {
-                        DocServer.GetRefField(this._linkClicked).then(f => {
-                            (f instanceof Doc) && DocumentManager.Instance.jumpToDocument(f, ctrlKey, false, document => this.props.addDocTab(document, undefined, "inTab"));
+                        DocServer.GetRefField(this._linkClicked).then(async linkDoc => {
+                            if (linkDoc instanceof Doc) {
+                                let proto = Doc.GetProto(linkDoc);
+                                let targetContext = await Cast(proto.targetContext, Doc);
+                                if (targetContext) {
+                                    DocumentManager.Instance.jumpToDocument(targetContext, ctrlKey, false, document => this.props.addDocTab(document, undefined, location ? location : "inTab"));
+                                }
+                            }
                         });
                         e.stopPropagation();
                         e.preventDefault();
