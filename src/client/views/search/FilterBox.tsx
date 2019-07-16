@@ -170,7 +170,7 @@ export class FilterBox extends React.Component {
         return finalQuery;
     }
 
-    get fieldFiltersApplied() { return !(this._deletedDocsStatus && this._authorFieldStatus && this._titleFieldStatus); }
+    get fieldFiltersApplied() { return !(this._authorFieldStatus && this._titleFieldStatus); }
 
     //TODO: basically all of this
     //gets all of the collections of all the docviews that are selected
