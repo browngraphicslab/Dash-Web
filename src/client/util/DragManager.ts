@@ -1,18 +1,24 @@
-import { action, runInAction, observable } from "mobx";
-import { Doc, DocListCastAsync } from "../../new_fields/Doc";
-import { Cast, StrCast } from "../../new_fields/Types";
+import { action, runInAction } from "mobx";
+import { Doc } from "../../new_fields/Doc";
+import { Cast } from "../../new_fields/Types";
+import { URLField } from "../../new_fields/URLField";
 import { emptyFunction } from "../../Utils";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import * as globalCssVariables from "../views/globalCssVariables.scss";
-import { LinkManager } from "./LinkManager";
-import { URLField } from "../../new_fields/URLField";
-import { SelectionManager } from "./SelectionManager";
-import { Docs, DocUtils } from "../documents/Documents";
 import { DocumentManager } from "./DocumentManager";
-import { Id } from "../../new_fields/FieldSymbols";
+import { LinkManager } from "./LinkManager";
+import { SelectionManager } from "./SelectionManager";
 
 export type dropActionType = "alias" | "copy" | undefined;
-export function SetupDrag(_reference: React.RefObject<HTMLElement>, docFunc: () => Doc | Promise<Doc>, moveFunc?: DragManager.MoveFunction, dropAction?: dropActionType, options?: any, dontHideOnDrop?: boolean) {
+export function SetupDrag(
+    _reference: React.RefObject<HTMLElement>,
+    docFunc: () => Doc | Promise<Doc>,
+    moveFunc?: DragManager.MoveFunction,
+    dropAction?: dropActionType,
+    options?: any,
+    dontHideOnDrop?: boolean,
+    dragStarted?: () => void
+) {
     let onRowMove = async (e: PointerEvent) => {
         e.stopPropagation();
         e.preventDefault();
@@ -20,12 +26,13 @@ export function SetupDrag(_reference: React.RefObject<HTMLElement>, docFunc: () 
         document.removeEventListener("pointermove", onRowMove);
         document.removeEventListener('pointerup', onRowUp);
         let doc = await docFunc();
-        var dragData = new DragManager.DocumentDragData([doc], [doc]);
+        var dragData = new DragManager.DocumentDragData([doc], [undefined]);
         dragData.dropAction = dropAction;
         dragData.moveDocument = moveFunc;
         dragData.options = options;
         dragData.dontHideOnDrop = dontHideOnDrop;
         DragManager.StartDocumentDrag([_reference.current!], dragData, e.x, e.y);
+        dragStarted && dragStarted();
     };
     let onRowUp = (): void => {
         document.removeEventListener("pointermove", onRowMove);
@@ -35,7 +42,13 @@ export function SetupDrag(_reference: React.RefObject<HTMLElement>, docFunc: () 
         if (e.button === 0) {
             e.stopPropagation();
             if (e.shiftKey && CollectionDockingView.Instance) {
-                CollectionDockingView.Instance.StartOtherDrag(e, [await docFunc()]);
+                e.persist();
+                CollectionDockingView.Instance.StartOtherDrag({
+                    pageX: e.pageX,
+                    pageY: e.pageY,
+                    preventDefault: emptyFunction,
+                    button: 0
+                }, [await docFunc()]);
             } else {
                 document.addEventListener("pointermove", onRowMove);
                 document.addEventListener("pointerup", onRowUp);
@@ -45,19 +58,27 @@ export function SetupDrag(_reference: React.RefObject<HTMLElement>, docFunc: () 
     return onItemDown;
 }
 
+function moveLinkedDocument(doc: Doc, targetCollection: Doc, addDocument: (doc: Doc) => boolean): boolean {
+    const document = SelectionManager.SelectedDocuments()[0];
+    document.props.removeDocument && document.props.removeDocument(doc);
+    addDocument(doc);
+    return true;
+}
+
 export async function DragLinkAsDocument(dragEle: HTMLElement, x: number, y: number, linkDoc: Doc, sourceDoc: Doc) {
     let draggeddoc = LinkManager.Instance.getOppositeAnchor(linkDoc, sourceDoc);
-
-    let moddrag = await Cast(draggeddoc.annotationOn, Doc);
-    let dragdocs = moddrag ? [moddrag] : [draggeddoc];
-    let dragData = new DragManager.DocumentDragData(dragdocs, dragdocs);
-    dragData.dropAction = "alias" as dropActionType;
-    DragManager.StartLinkedDocumentDrag([dragEle], sourceDoc, dragData, x, y, {
-        handlers: {
-            dragComplete: action(emptyFunction),
-        },
-        hideSource: false
-    });
+    if (draggeddoc) {
+        let moddrag = await Cast(draggeddoc.annotationOn, Doc);
+        let dragdocs = moddrag ? [moddrag] : [draggeddoc];
+        let dragData = new DragManager.DocumentDragData(dragdocs, dragdocs);
+        dragData.moveDocument = moveLinkedDocument;
+        DragManager.StartLinkedDocumentDrag([dragEle], dragData, x, y, {
+            handlers: {
+                dragComplete: action(emptyFunction),
+            },
+            hideSource: false
+        });
+    }
 }
 
 export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: number, sourceDoc: Doc) {
@@ -68,8 +89,9 @@ export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: n
         let linkDocs = LinkManager.Instance.getAllRelatedLinks(srcTarg);
         if (linkDocs) {
             draggedDocs = linkDocs.map(link => {
-                return LinkManager.Instance.getOppositeAnchor(link, sourceDoc);
-            });
+                let opp = LinkManager.Instance.getOppositeAnchor(link, sourceDoc);
+                if (opp) return opp;
+            }) as Doc[];
         }
     }
     if (draggedDocs.length) {
@@ -80,7 +102,8 @@ export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: n
         }
         let dragdocs = moddrag.length ? moddrag : draggedDocs;
         let dragData = new DragManager.DocumentDragData(dragdocs, dragdocs);
-        DragManager.StartLinkedDocumentDrag([dragEle], sourceDoc, dragData, x, y, {
+        dragData.moveDocument = moveLinkedDocument;
+        DragManager.StartLinkedDocumentDrag([dragEle], dragData, x, y, {
             handlers: {
                 dragComplete: action(emptyFunction),
             },
@@ -88,6 +111,7 @@ export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: n
         });
     }
 }
+
 
 export namespace DragManager {
     export function Root() {
@@ -110,6 +134,8 @@ export namespace DragManager {
         handlers: DragHandlers;
 
         hideSource: boolean | (() => boolean);
+
+        dragHasStarted?: () => void;
 
         withoutShiftDrag?: boolean;
     }
@@ -212,15 +238,14 @@ export namespace DragManager {
             });
     }
 
-    export function StartLinkedDocumentDrag(eles: HTMLElement[], sourceDoc: Doc, dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
+    export function StartLinkedDocumentDrag(eles: HTMLElement[], dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
+        dragData.moveDocument = moveLinkedDocument;
 
         runInAction(() => StartDragFunctions.map(func => func()));
         StartDrag(eles, dragData, downX, downY, options,
             (dropData: { [id: string]: any }) => {
-                // dropData.droppedDocuments = 
                 let droppedDocuments: Doc[] = dragData.draggedDocuments.reduce((droppedDocs: Doc[], d) => {
                     let dvs = DocumentManager.Instance.getDocumentViews(d);
-
                     if (dvs.length) {
                         let inContext = dvs.filter(dv => dv.props.ContainingCollectionView === SelectionManager.SelectedDocuments()[0].props.ContainingCollectionView);
                         if (inContext.length) {
@@ -305,11 +330,13 @@ export namespace DragManager {
             scaleYs.push(scaleY);
             let dragElement = ele.cloneNode(true) as HTMLElement;
             dragElement.style.opacity = "0.7";
+            dragElement.style.borderRadius = getComputedStyle(ele).borderRadius;
             dragElement.style.position = "absolute";
             dragElement.style.margin = "0";
             dragElement.style.top = "0";
             dragElement.style.bottom = "";
             dragElement.style.left = "0";
+            dragElement.style.transition = "none";
             dragElement.style.color = "black";
             dragElement.style.transformOrigin = "0 0";
             dragElement.style.zIndex = globalCssVariables.contextMenuZindex;// "1000";
@@ -437,7 +464,7 @@ export namespace DragManager {
                         x: e.x,
                         y: e.y,
                         data: dragData,
-                        mods: e.altKey ? "AltKey" : ""
+                        mods: e.altKey ? "AltKey" : e.ctrlKey ? "CtrlKey" : ""
                     }
                 })
             );

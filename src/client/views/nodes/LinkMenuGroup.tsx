@@ -12,6 +12,8 @@ import { DragLinksAsDocuments, DragManager, SetupDrag } from "../../util/DragMan
 import { emptyFunction } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { UndoManager } from "../../util/UndoManager";
+import { StrCast } from "../../../new_fields/Types";
 
 interface LinkMenuGroupProps {
     sourceDoc: Doc;
@@ -40,21 +42,27 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
         e.stopPropagation();
     }
 
+
     onLinkButtonMoved = async (e: PointerEvent) => {
-        if (this._drag.current !== null && (e.movementX > 1 || e.movementY > 1)) {
-            document.removeEventListener("pointermove", this.onLinkButtonMoved);
-            document.removeEventListener("pointerup", this.onLinkButtonUp);
+        UndoManager.RunInBatch(() => {
+            if (this._drag.current !== null && (e.movementX > 1 || e.movementY > 1)) {
+                document.removeEventListener("pointermove", this.onLinkButtonMoved);
+                document.removeEventListener("pointerup", this.onLinkButtonUp);
 
-            let draggedDocs = this.props.group.map(linkDoc => LinkManager.Instance.getOppositeAnchor(linkDoc, this.props.sourceDoc));
-            let dragData = new DragManager.DocumentDragData(draggedDocs, draggedDocs.map(d => undefined));
+                let draggedDocs = this.props.group.map(linkDoc => {
+                    let opp = LinkManager.Instance.getOppositeAnchor(linkDoc, this.props.sourceDoc);
+                    if (opp) return opp;
+                }) as Doc[];
+                let dragData = new DragManager.DocumentDragData(draggedDocs, draggedDocs.map(d => undefined));
 
-            DragManager.StartLinkedDocumentDrag([this._drag.current], this.props.sourceDoc, dragData, e.x, e.y, {
-                handlers: {
-                    dragComplete: action(emptyFunction),
-                },
-                hideSource: false
-            });
-        }
+                DragManager.StartLinkedDocumentDrag([this._drag.current], dragData, e.x, e.y, {
+                    handlers: {
+                        dragComplete: action(emptyFunction),
+                    },
+                    hideSource: false
+                });
+            }
+        }, "drag links");
         e.stopPropagation();
     }
 
@@ -64,7 +72,7 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
         if (index > -1) keys.splice(index, 1);
         let cols = ["anchor1", "anchor2", ...[...keys]];
         let docs: Doc[] = LinkManager.Instance.getAllMetadataDocsInGroup(groupType);
-        let createTable = action(() => Docs.SchemaDocument(cols, docs, { width: 500, height: 300, title: groupType + " table" }));
+        let createTable = action(() => Docs.Create.SchemaDocument(cols, docs, { width: 500, height: 300, title: groupType + " table" }));
         let ref = React.createRef<HTMLDivElement>();
         return <div ref={ref}><button className="linkEditor-button linkEditor-tableButton" onPointerDown={SetupDrag(ref, createTable)} title="Drag to view relationship table"><FontAwesomeIcon icon="table" size="sm" /></button></div>;
     }
@@ -72,8 +80,10 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
     render() {
         let groupItems = this.props.group.map(linkDoc => {
             let destination = LinkManager.Instance.getOppositeAnchor(linkDoc, this.props.sourceDoc);
-            return <LinkMenuItem key={destination[Id] + this.props.sourceDoc[Id]} groupType={this.props.groupType}
-                linkDoc={linkDoc} sourceDoc={this.props.sourceDoc} destinationDoc={destination} showEditor={this.props.showEditor} />;
+            if (destination && this.props.sourceDoc) {
+                return <LinkMenuItem key={destination[Id] + this.props.sourceDoc[Id]} groupType={this.props.groupType}
+                    linkDoc={linkDoc} sourceDoc={this.props.sourceDoc} destinationDoc={destination} showEditor={this.props.showEditor} />;
+            }
         });
 
         return (

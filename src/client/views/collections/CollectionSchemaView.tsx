@@ -119,8 +119,8 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         let fieldContentView = <FieldView {...props} />;
         let reference = React.createRef<HTMLDivElement>();
         let onItemDown = (e: React.PointerEvent) => {
-            (this.props.CollectionView.props.isSelected() ?
-                SetupDrag(reference, () => props.Document, this.props.moveDocument, this.props.Document.schemaDoc ? "copy" : undefined)(e) : undefined);
+            (!this.props.CollectionView.props.isSelected() ? undefined :
+                SetupDrag(reference, () => props.Document, this.props.moveDocument, this.props.Document.schemaDoc ? "copy" : undefined)(e));
         };
         let applyToDoc = (doc: Doc, run: (args?: { [name: string]: any }) => any) => {
             const res = run({ this: doc });
@@ -235,7 +235,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     onPointerDown = (e: React.PointerEvent): void => {
         if (e.button === 0 && !e.altKey && !e.ctrlKey && !e.metaKey) {
             if (this.props.isSelected()) e.stopPropagation();
-            else e.preventDefault();
         }
     }
 
@@ -264,7 +263,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         let dbName = StrCast(this.props.Document.title);
         let res = await Gateway.Instance.PostSchema(csv, dbName);
         if (self.props.CollectionView.props.addDocument) {
-            let schemaDoc = await Docs.DBDocument("https://www.cs.brown.edu/" + dbName, { title: dbName }, { dbDoc: self.props.Document });
+            let schemaDoc = await Docs.Create.DBDocument("https://www.cs.brown.edu/" + dbName, { title: dbName }, { dbDoc: self.props.Document });
             if (schemaDoc) {
                 //self.props.CollectionView.props.addDocument(schemaDoc, false);
                 self.props.Document.schemaDoc = schemaDoc;
@@ -334,7 +333,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @computed
     get reactTable() {
-        trace();
         let previewWidth = this.previewWidth() + 2 * this.borderWidth + this.DIVIDER_WIDTH + 1;
         return <ReactTable style={{ position: "relative", float: "left", width: `calc(100% - ${previewWidth}px` }} data={this.childDocs} page={0} pageSize={this.childDocs.length} showPagination={false}
             columns={this.tableColumns}
@@ -349,12 +347,22 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             <div className="collectionSchemaView-dividerDragger" onPointerDown={this.onDividerDown} style={{ width: `${this.DIVIDER_WIDTH}px` }} />;
     }
 
+
     @computed
     get previewPanel() {
+        // let layoutDoc = this.previewDocument;
+        // let resolvedDataDoc = (layoutDoc !== this.props.DataDoc) ? this.props.DataDoc : undefined;
+        // if (layoutDoc && !(Cast(layoutDoc.layout, Doc) instanceof Doc) &&
+        //     resolvedDataDoc && resolvedDataDoc !== layoutDoc) {
+        //     // ... so change the layout to be an expanded view of the template layout.  This allows the view override the template's properties and be referenceable as its own document.
+        //     layoutDoc = Doc.expandTemplateLayout(layoutDoc, resolvedDataDoc);
+        // }
+
+        let layoutDoc = this.previewDocument ? Doc.expandTemplateLayout(this.previewDocument, this.props.DataDoc) : undefined;
         return <div ref={this.createTarget}>
             <CollectionSchemaPreview
-                Document={this.previewDocument}
-                DataDocument={BoolCast(this.props.Document.isTemplate) ? this.previewDocument : this.props.DataDoc}
+                Document={layoutDoc}
+                DataDocument={this.previewDocument !== this.props.DataDoc ? this.props.DataDoc : undefined}
                 childDocs={this.childDocs}
                 renderDepth={this.props.renderDepth}
                 width={this.previewWidth}
@@ -378,7 +386,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     render() {
-        trace();
         return (
             <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} onWheel={this.onWheel}
                 onDrop={(e: React.DragEvent) => this.onDrop(e, {})} onContextMenu={this.onContextMenu} ref={this.createTarget}>
@@ -395,8 +402,10 @@ interface CollectionSchemaPreviewProps {
     DataDocument?: Doc;
     childDocs?: Doc[];
     renderDepth: number;
+    fitToBox?: boolean;
     width: () => number;
     height: () => number;
+    showOverlays?: (doc: Doc) => { title?: string, caption?: string };
     CollectionView?: CollectionView | CollectionPDFView | CollectionVideoView;
     getTransform: () => Transform;
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
@@ -404,7 +413,7 @@ interface CollectionSchemaPreviewProps {
     removeDocument: (document: Doc) => boolean;
     active: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
-    addDocTab: (document: Doc, dataDoc: Doc, where: string) => void;
+    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
     setPreviewScript: (script: string) => void;
     previewScript?: string;
 }
@@ -452,18 +461,35 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
     onPreviewScriptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         this.props.setPreviewScript(e.currentTarget.value);
     }
+    @computed get borderRounding() {
+        let br = StrCast(this.props.Document!.borderRounding);
+        if (br.endsWith("%")) {
+            let percent = Number(br.substr(0, br.length - 1)) / 100;
+            let nativeDim = Math.min(NumCast(this.props.Document!.nativeWidth), NumCast(this.props.Document!.nativeHeight));
+            let minDim = percent * (nativeDim ? nativeDim : Math.min(this.PanelWidth(), this.PanelHeight()));
+            return minDim;
+        }
+        return undefined;
+    }
     render() {
         let input = this.props.previewScript === undefined ? (null) :
             <div ref={this.createTarget}><input className="collectionSchemaView-input" value={this.props.previewScript} onChange={this.onPreviewScriptChange}
                 style={{ left: `calc(50% - ${Math.min(75, (this.props.Document ? this.PanelWidth() / 2 : 75))}px)` }} /></div>;
         return (<div className="collectionSchemaView-previewRegion" style={{ width: this.props.width(), height: "100%" }}>
             {!this.props.Document || !this.props.width ? (null) : (
-                <div className="collectionSchemaView-previewDoc" style={{ transform: `translate(${this.centeringOffset}px, 0px)`, height: "100%" }}>
+                <div className="collectionSchemaView-previewDoc"
+                    style={{
+                        transform: `translate(${this.centeringOffset}px, 0px)`,
+                        borderRadius: this.borderRounding,
+                        height: "100%"
+                    }}>
                     <DocumentView
                         DataDoc={this.props.Document.layout instanceof Doc ? this.props.Document : this.props.DataDocument}
                         Document={this.props.Document}
+                        fitToBox={this.props.fitToBox}
                         renderDepth={this.props.renderDepth + 1}
                         selectOnLoad={false}
+                        showOverlays={this.props.showOverlays}
                         addDocument={this.props.addDocument}
                         removeDocument={this.props.removeDocument}
                         moveDocument={this.props.moveDocument}

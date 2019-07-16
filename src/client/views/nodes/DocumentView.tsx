@@ -8,9 +8,9 @@ import { ObjectField } from "../../../new_fields/ObjectField";
 import { createSchema, makeInterface, listSpec } from "../../../new_fields/Schema";
 import { BoolCast, Cast, FieldValue, StrCast, NumCast, PromiseValue } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
-import { emptyFunction, Utils } from "../../../Utils";
+import { emptyFunction, Utils, returnFalse, returnTrue } from "../../../Utils";
 import { DocServer } from "../../DocServer";
-import { Docs, DocUtils } from "../../documents/Documents";
+import { Docs, DocUtils, DocumentType } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager, dropActionType } from "../../util/DragManager";
 import { SearchUtil } from "../../util/SearchUtil";
@@ -24,7 +24,7 @@ import { CollectionView } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";
 import { DocComponent } from "../DocComponent";
 import { PresentationView } from "../presentationview/PresentationView";
-import { Template } from "./../Templates";
+import { Template, Templates } from "./../Templates";
 import { DocumentContentsView } from "./DocumentContentsView";
 import * as rp from "request-promise";
 import "./DocumentView.scss";
@@ -34,6 +34,7 @@ import { ContextMenuProps } from '../ContextMenuItem';
 import { list, object, createSimpleSchema } from 'serializr';
 import { LinkManager } from '../../util/LinkManager';
 import { RouteStore } from '../../../server/RouteStore';
+import { FormattedTextBox } from './FormattedTextBox';
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(fa.faTrash);
@@ -46,6 +47,7 @@ library.add(fa.faAlignCenter);
 library.add(fa.faCaretSquareRight);
 library.add(fa.faSquare);
 library.add(fa.faConciergeBell);
+library.add(fa.faWindowRestore);
 library.add(fa.faFolder);
 library.add(fa.faMapPin);
 library.add(fa.faLink);
@@ -71,11 +73,13 @@ export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
     Document: Doc;
     DataDoc?: Doc;
+    fitToBox?: boolean;
     addDocument?: (doc: Doc, allowDuplicates?: boolean) => boolean;
     removeDocument?: (doc: Doc) => boolean;
     moveDocument?: (doc: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
     renderDepth: number;
+    showOverlays?: (doc: Doc) => { title?: string, caption?: string };
     ContentScaling: () => number;
     PanelWidth: () => number;
     PanelHeight: () => number;
@@ -84,7 +88,7 @@ export interface DocumentViewProps {
     parentActive: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     bringToFront: (doc: Doc) => void;
-    addDocTab: (doc: Doc, dataDoc: Doc, where: string) => void;
+    addDocTab: (doc: Doc, dataDoc: Doc | undefined, where: string) => void;
     collapseToPoint?: (scrpt: number[], expandedDocs: Doc[] | undefined) => void;
     zoomToScale: (scale: number) => void;
     getScale: () => number;
@@ -216,7 +220,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         e.stopPropagation();
     }
 
-    get dataDoc() { return this.props.DataDoc ? this.props.DataDoc : this.props.Document; }
+    get dataDoc() {
+        if (this.props.DataDoc === undefined && this.props.Document.layout instanceof Doc) {
+            // if there is no dataDoc (ie, we're not rendering a temlplate layout), but this document
+            // has a template layout document, then we will render the template layout but use 
+            // this document as the data document for the layout.
+            return this.props.Document;
+        }
+        return this.props.DataDoc !== this.props.Document ? this.props.DataDoc : undefined;
+    }
     startDragging(x: number, y: number, dropAction: dropActionType, dragSubBullets: boolean) {
         if (this._mainCont.current) {
             let allConnected = [this.props.Document, ...(dragSubBullets ? DocListCast(this.props.Document.subBulletDocs) : [])];
@@ -254,7 +266,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 DocumentView._undoBatch = UndoManager.StartBatch("iconAnimating");
             }
             let isMinimized: boolean | undefined;
-            expandedDocs.map(d => Doc.GetProto(d)).map(maximizedDoc => {
+            expandedDocs.map(maximizedDoc => {
                 let iconAnimating = Cast(maximizedDoc.isIconAnimating, List);
                 if (!iconAnimating || (Date.now() - iconAnimating[2] > 1000)) {
                     if (isMinimized === undefined) {
@@ -281,7 +293,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             fullScreenAlias.templates = new List<string>();
             this.props.addDocTab(fullScreenAlias, this.dataDoc, "inTab");
             SelectionManager.DeselectAll();
-            this.props.Document.libraryBrush = false;
+            this.props.Document.libraryBrush = undefined;
         }
         else if (CurrentUserUtils.MainDocId !== this.props.Document[Id] &&
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
@@ -321,7 +333,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                         if (dataDocs) {
                             expandedDocs.forEach(maxDoc =>
                                 (!CollectionDockingView.Instance.CloseRightSplit(Doc.GetProto(maxDoc)) &&
-                                    this.props.addDocTab(getDispDoc(maxDoc), getDispDoc(maxDoc), maxLocation)));
+                                    this.props.addDocTab(getDispDoc(maxDoc), undefined, maxLocation)));
                         }
                     } else {
                         let scrpt = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(NumCast(this.Document.width) / 2, NumCast(this.Document.height) / 2);
@@ -329,30 +341,18 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     }
                 }
                 else if (linkedDocs.length) {
-                    let linkedDoc = linkedDocs.length ? linkedDocs[0] : expandedDocs[0];
-                    let linkedPages = [linkedDocs.length ? NumCast(linkedDocs[0].anchor1Page, undefined) : NumCast(linkedDocs[0].anchor2Page, undefined),
-                    linkedDocs.length ? NumCast(linkedDocs[0].anchor2Page, undefined) : NumCast(linkedDocs[0].anchor1Page, undefined)];
-                    let maxLocation = StrCast(linkedDoc.maximizeLocation, "inTab");
-                    DocumentManager.Instance.jumpToDocument(linkedDoc, ctrlKey, false, document => this.props.addDocTab(document, document, maxLocation), linkedPages[altKey ? 1 : 0]);
+                    let first = linkedDocs.filter(d => Doc.AreProtosEqual(d.anchor1 as Doc, this.props.Document));
+                    let linkedFwdDocs = first.length ? [first[0].anchor2 as Doc, first[0].anchor1 as Doc] : [expandedDocs[0], expandedDocs[0]];
 
-                    // else if (linkedToDocs.length || linkedFromDocs.length) {
-                    //     let linkedFwdDocs = [
-                    //         linkedToDocs.length ? linkedToDocs[0].linkedTo as Doc : linkedFromDocs.length ? linkedFromDocs[0].linkedFrom as Doc : expandedDocs[0],
-                    //         linkedFromDocs.length ? linkedFromDocs[0].linkedFrom as Doc : linkedToDocs.length ? linkedToDocs[0].linkedTo as Doc : expandedDocs[0]];
+                    let linkedFwdContextDocs = [first.length ? await (first[0].context) as Doc : undefined, undefined];
 
-                    //     let linkedFwdContextDocs = [
-                    //         linkedToDocs.length ? await (linkedToDocs[0].linkedToContext) as Doc : linkedFromDocs.length ? await PromiseValue(linkedFromDocs[0].linkedFromContext) as Doc : undefined,
-                    //         linkedFromDocs.length ? await (linkedFromDocs[0].linkedFromContext) as Doc : linkedToDocs.length ? await PromiseValue(linkedToDocs[0].linkedToContext) as Doc : undefined];
+                    let linkedFwdPage = [first.length ? NumCast(first[0].linkedToPage, undefined) : undefined, undefined];
 
-                    //     let linkedFwdPage = [
-                    //         linkedToDocs.length ? NumCast(linkedToDocs[0].linkedToPage, undefined) : linkedFromDocs.length ? NumCast(linkedFromDocs[0].linkedFromPage, undefined) : undefined,
-                    //         linkedFromDocs.length ? NumCast(linkedFromDocs[0].linkedFromPage, undefined) : linkedToDocs.length ? NumCast(linkedToDocs[0].linkedToPage, undefined) : undefined];
-
-                    //     if (!linkedFwdDocs.some(l => l instanceof Promise)) {
-                    //         let maxLocation = StrCast(linkedFwdDocs[altKey ? 1 : 0].maximizeLocation, "inTab");
-                    //         let targetContext = !Doc.AreProtosEqual(linkedFwdContextDocs[altKey ? 1 : 0], this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document) ? linkedFwdContextDocs[altKey ? 1 : 0] : undefined;
-                    //         DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0], ctrlKey, false, document => this.props.addDocTab(document, document, maxLocation), linkedFwdPage[altKey ? 1 : 0], targetContext);
-                    //     }
+                    if (!linkedFwdDocs.some(l => l instanceof Promise)) {
+                        let maxLocation = StrCast(linkedFwdDocs[0].maximizeLocation, "inTab");
+                        let targetContext = !Doc.AreProtosEqual(linkedFwdContextDocs[altKey ? 1 : 0], this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document) ? linkedFwdContextDocs[altKey ? 1 : 0] : undefined;
+                        DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0], ctrlKey, false, document => this.props.addDocTab(document, undefined, maxLocation), linkedFwdPage[altKey ? 1 : 0], targetContext);
+                    }
                 }
             }
         }
@@ -361,23 +361,23 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this._downX = e.clientX;
         this._downY = e.clientY;
         this._hitExpander = DocListCast(this.props.Document.subBulletDocs).length > 0;
-        if (e.shiftKey && e.buttons === 1 && CollectionDockingView.Instance) {
-            CollectionDockingView.Instance.StartOtherDrag(e, [Doc.MakeAlias(this.props.Document)], [this.dataDoc]);
-            e.stopPropagation();
-        } else {
-            if (this.active) e.stopPropagation(); // events stop at the lowest document that is active.  
-            document.removeEventListener("pointermove", this.onPointerMove);
-            document.addEventListener("pointermove", this.onPointerMove);
-            document.removeEventListener("pointerup", this.onPointerUp);
-            document.addEventListener("pointerup", this.onPointerUp);
-        }
+        // if (e.shiftKey && e.buttons === 1 && CollectionDockingView.Instance) {
+        // CollectionDockingView.Instance.StartOtherDrag(e, [Doc.MakeAlias(this.props.Document)], [this.dataDoc]);
+        // e.stopPropagation();
+        // } else {
+        if (this.active) e.stopPropagation(); // events stop at the lowest document that is active.  
+        document.removeEventListener("pointermove", this.onPointerMove);
+        document.addEventListener("pointermove", this.onPointerMove);
+        document.removeEventListener("pointerup", this.onPointerUp);
+        document.addEventListener("pointerup", this.onPointerUp);
+        // }
     }
     onPointerMove = (e: PointerEvent): void => {
         if (!e.cancelBubble && this.active) {
-            if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
-                document.removeEventListener("pointermove", this.onPointerMove);
-                document.removeEventListener("pointerup", this.onPointerUp);
+            if (!this.props.Document.excludeFromLibrary && (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3)) {
                 if (!e.altKey && !this.topMost && e.buttons === 1 && !BoolCast(this.props.Document.lockedPosition)) {
+                    document.removeEventListener("pointermove", this.onPointerMove);
+                    document.removeEventListener("pointerup", this.onPointerUp);
                     this.startDragging(this._downX, this._downY, e.ctrlKey || e.altKey ? "alias" : undefined, this._hitExpander);
                 }
             }
@@ -392,8 +392,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this._lastTap = Date.now();
     }
 
-    deleteClicked = (): void => { this.props.removeDocument && this.props.removeDocument(this.props.Document); };
-    fieldsClicked = (): void => { let kvp = Docs.KVPDocument(this.props.Document, { width: 300, height: 300 }); this.props.addDocTab(kvp, kvp, "onRight"); };
+    @undoBatch
+    deleteClicked = (): void => { SelectionManager.DeselectAll(); this.props.removeDocument && this.props.removeDocument(this.props.Document); }
+
+    @undoBatch
+    fieldsClicked = (): void => { let kvp = Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }); this.props.addDocTab(kvp, this.dataDoc, "onRight"); }
+
+    @undoBatch
     makeBtnClicked = (): void => {
         let doc = Doc.GetProto(this.props.Document);
         doc.isButton = !BoolCast(doc.isButton, false);
@@ -406,14 +411,32 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             doc.nativeWidth = doc.nativeHeight = undefined;
         }
     }
-    fullScreenClicked = (): void => {
-        CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(Doc.MakeAlias(this.props.Document), this.dataDoc);
+
+    @undoBatch
+    public fullScreenClicked = (): void => {
+        CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(this);
         SelectionManager.DeselectAll();
     }
 
     @undoBatch
     @action
     drop = async (e: Event, de: DragManager.DropEvent) => {
+        if (de.data instanceof DragManager.AnnotationDragData) {
+            e.stopPropagation();
+            let annotationDoc = de.data.annotationDocument;
+            annotationDoc.linkedToDoc = true;
+            let targetDoc = this.props.Document;
+            let annotations = await DocListCastAsync(annotationDoc.annotations);
+            if (annotations) {
+                annotations.forEach(anno => {
+                    anno.target = targetDoc;
+                });
+            }
+            let pdfDoc = await Cast(annotationDoc.pdfDoc, Doc);
+            if (pdfDoc) {
+                DocUtils.MakeLink(annotationDoc, targetDoc, undefined, `Annotation from ${StrCast(pdfDoc.title)}`, "", StrCast(pdfDoc.title));
+            }
+        }
         if (de.data instanceof DragManager.LinkDragData) {
             let sourceDoc = de.data.linkSourceDocument;
             let destDoc = this.props.Document;
@@ -465,7 +488,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
         this.templates = this.templates;
     }
+    @action
+    clearTemplates = () => {
+        this.templates.length = 0;
+        this.templates = this.templates;
+    }
 
+    @undoBatch
+    @action
     freezeNativeDimensions = (): void => {
         let proto = Doc.GetProto(this.props.Document);
         if (proto.ignoreAspect === undefined && !proto.nativeWidth) {
@@ -474,6 +504,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             proto.ignoreAspect = true;
         }
         proto.ignoreAspect = !BoolCast(proto.ignoreAspect, false);
+    }
+
+    @undoBatch
+    @action
+    toggleLockPosition = (): void => {
+        this.props.Document.lockedPosition = BoolCast(this.props.Document.lockedPosition) ? undefined : true;
     }
 
     @action
@@ -498,12 +534,23 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         cm.addItem({ description: "Open...", subitems: subitems, icon: "external-link-alt" });
         cm.addItem({ description: BoolCast(this.props.Document.ignoreAspect, false) || !this.props.Document.nativeWidth || !this.props.Document.nativeHeight ? "Freeze" : "Unfreeze", event: this.freezeNativeDimensions, icon: "edit" });
         cm.addItem({ description: "Pin to Pres", event: () => PresentationView.Instance.PinDoc(this.props.Document), icon: "map-pin" });
-        cm.addItem({ description: BoolCast(this.props.Document.lockedPosition) ? "Unlock Pos" : "Lock Pos", event: () => this.props.Document.lockedPosition = BoolCast(this.props.Document.lockedPosition) ? undefined : true, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
+        cm.addItem({ description: BoolCast(this.props.Document.lockedPosition) ? "Unlock Pos" : "Lock Pos", event: this.toggleLockPosition, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
         cm.addItem({ description: this.props.Document.isButton ? "Remove Button" : "Make Button", event: this.makeBtnClicked, icon: "concierge-bell" });
+        cm.addItem({
+            description: "Make Portal", event: () => {
+                let portal = Docs.Create.FreeformDocument([], { width: this.props.Document[WidthSym]() + 10, height: this.props.Document[HeightSym](), title: this.props.Document.title + ".portal" });
+                Doc.GetProto(this.props.Document).subBulletDocs = new List<Doc>([portal]);
+                //summary.proto!.maximizeLocation = "inTab";  // or "inPlace", or "onRight"
+                Doc.GetProto(this.props.Document).templates = new List<string>([Templates.Bullet.Layout]);
+                let coll = Docs.Create.StackingDocument([this.props.Document, portal], { x: NumCast(this.props.Document.x), y: NumCast(this.props.Document.y), width: this.props.Document[WidthSym]() + 10, height: this.props.Document[HeightSym](), title: this.props.Document.title + ".cont" });
+                this.props.addDocument && this.props.addDocument(coll);
+                this.props.removeDocument && this.props.removeDocument(this.props.Document);
+            }, icon: "window-restore"
+        });
         cm.addItem({
             description: "Find aliases", event: async () => {
                 const aliases = await SearchUtil.GetAliasesOfDocument(this.props.Document);
-                this.props.addDocTab && this.props.addDocTab(Docs.SchemaDocument(["title"], aliases, {}), Docs.SchemaDocument(["title"], aliases, {}), "onRight"); // bcz: dataDoc?
+                this.props.addDocTab && this.props.addDocTab(Docs.Create.SchemaDocument(["title"], aliases, {}), undefined, "onRight"); // bcz: dataDoc?
             }, icon: "search"
         });
         cm.addItem({ description: "Center View", event: () => this.props.focus(this.props.Document, false), icon: "crosshairs" });
@@ -511,25 +558,31 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         cm.addItem({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "fingerprint" });
         cm.addItem({ description: "Delete", event: this.deleteClicked, icon: "trash" });
         type User = { email: string, userDocumentId: string };
-        const users: User[] = JSON.parse(await rp.get(DocServer.prepend(RouteStore.getUsers)));
-        let usersMenu: ContextMenuProps[] = users.filter(({ email }) => email !== CurrentUserUtils.email).map(({ email, userDocumentId }) => ({
-            description: email, event: async () => {
-                const userDocument = await Cast(DocServer.GetRefField(userDocumentId), Doc);
-                if (!userDocument) {
-                    throw new Error(`Couldn't get user document of user ${email}`);
-                }
-                const notifDoc = await Cast(userDocument.optionalRightCollection, Doc);
-                if (notifDoc instanceof Doc) {
-                    const data = await Cast(notifDoc.data, listSpec(Doc));
-                    const sharedDoc = Doc.MakeAlias(this.props.Document);
-                    if (data) {
-                        data.push(sharedDoc);
-                    } else {
-                        notifDoc.data = new List([sharedDoc]);
+        let usersMenu: ContextMenuProps[] = [];
+        try {
+            let stuff = await rp.get(DocServer.prepend(RouteStore.getUsers));
+            const users: User[] = JSON.parse(stuff);
+            usersMenu = users.filter(({ email }) => email !== CurrentUserUtils.email).map(({ email, userDocumentId }) => ({
+                description: email, event: async () => {
+                    const userDocument = await Cast(DocServer.GetRefField(userDocumentId), Doc);
+                    if (!userDocument) {
+                        throw new Error(`Couldn't get user document of user ${email}`);
+                    }
+                    const notifDoc = await Cast(userDocument.optionalRightCollection, Doc);
+                    if (notifDoc instanceof Doc) {
+                        const data = await Cast(notifDoc.data, listSpec(Doc));
+                        const sharedDoc = Doc.MakeAlias(this.props.Document);
+                        if (data) {
+                            data.push(sharedDoc);
+                        } else {
+                            notifDoc.data = new List([sharedDoc]);
+                        }
                     }
                 }
-            }
-        }));
+            }));
+        } catch {
+
+        }
         runInAction(() => {
             cm.addItem({ description: "Share...", subitems: usersMenu, icon: "share" });
             if (!this.topMost) {
@@ -544,7 +597,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     onPointerEnter = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = true; };
-    onPointerLeave = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = false; };
+    onPointerLeave = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = undefined; };
 
     isSelected = () => SelectionManager.IsSelected(this);
     @action select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); };
@@ -552,25 +605,40 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get nativeWidth() { return this.Document.nativeWidth || 0; }
     @computed get nativeHeight() { return this.Document.nativeHeight || 0; }
     @computed get contents() {
-        return (
-            <DocumentContentsView {...this.props} isSelected={this.isSelected} select={this.select} selectOnLoad={this.props.selectOnLoad} layoutKey={"layout"} />);
+        return (<DocumentContentsView {...this.props} isSelected={this.isSelected} select={this.select} selectOnLoad={this.props.selectOnLoad} layoutKey={"layout"} DataDoc={this.dataDoc} />);
     }
 
     render() {
         if (this.Document.hidden) {
             return null;
         }
+        let self = this;
         let backgroundColor = this.props.Document.layout instanceof Doc ? StrCast(this.props.Document.layout.backgroundColor) : this.Document.backgroundColor;
+        let foregroundColor = StrCast(this.props.Document.layout instanceof Doc ? this.props.Document.layout.color : this.props.Document.color);
         var nativeWidth = this.nativeWidth > 0 ? `${this.nativeWidth}px` : "100%";
         var nativeHeight = BoolCast(this.props.Document.ignoreAspect) ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
+        let showOverlays = this.props.showOverlays ? this.props.showOverlays(this.props.Document) : undefined;
+        let showTitle = showOverlays && showOverlays.title ? showOverlays.title : StrCast(this.props.Document.showTitle);
+        let showCaption = showOverlays && showOverlays.caption ? showOverlays.caption : StrCast(this.props.Document.showCaption);
+        let templates = Cast(this.props.Document.templates, listSpec("string"));
+        if (templates instanceof List) {
+            templates.map(str => {
+                if (str.indexOf("{props.Document.title}") !== -1) showTitle = "title";
+                if (str.indexOf("fieldKey={\"caption\"}") !== -1) showCaption = "caption";
+            });
+        }
+        let showTextTitle = showTitle && StrCast(this.props.Document.layout).startsWith("<FormattedTextBox") || (this.props.Document.layout instanceof Doc && StrCast(this.props.Document.layout.layout).startsWith("<FormattedTextBox")) ? showTitle : undefined;
         return (
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
                 style={{
+                    color: foregroundColor,
                     outlineColor: "maroon",
                     outlineStyle: "dashed",
-                    outlineWidth: BoolCast(this.props.Document.libraryBrush) || BoolCast(this.props.Document.protoBrush) ?
+                    outlineWidth: BoolCast(this.props.Document.libraryBrush) && !StrCast(this.props.Document.borderRounding) ?
                         `${this.props.ScreenToLocalTransform().Scale}px` : "0px",
+                    border: BoolCast(this.props.Document.libraryBrush) && StrCast(this.props.Document.borderRounding) ?
+                        `dashed maroon ${this.props.ScreenToLocalTransform().Scale}px` : undefined,
                     borderRadius: "inherit",
                     background: backgroundColor,
                     width: nativeWidth,
@@ -581,7 +649,27 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
                 onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}
             >
-                {this.contents}
+                {!showTitle && !showCaption ? this.contents :
+                    <div style={{ position: "absolute", display: "inline-block", width: "100%", height: "100%", pointerEvents: "none" }}>
+                        {!showTitle ? (null) :
+                            <div style={{
+                                position: showTextTitle ? "relative" : "absolute", top: 0, textAlign: "center", textOverflow: "ellipsis", whiteSpace: "pre",
+                                overflow: "hidden", width: `${100 * this.props.ContentScaling()}%`, height: 25, background: "rgba(0, 0, 0, .4)", color: "white",
+                                transformOrigin: "top left", transform: `scale(${1 / this.props.ContentScaling()})`
+                            }}>
+                                <span>{this.props.Document[showTitle]}</span>
+                            </div>
+                        }
+                        {!showCaption ? (null) :
+                            <div style={{ position: "absolute", bottom: 0, transformOrigin: "bottom left", width: `${100 * this.props.ContentScaling()}%`, transform: `scale(${1 / this.props.ContentScaling()})` }}>
+                                <FormattedTextBox {...this.props} DataDoc={this.dataDoc} active={returnTrue} isSelected={this.isSelected} focus={emptyFunction} select={this.select} selectOnLoad={this.props.selectOnLoad} fieldExt={""} hideOnLeave={true} fieldKey={showCaption} />
+                            </div>
+                        }
+                        <div style={{ width: "100%", height: showTextTitle ? "calc(100% - 25px)" : "100%", display: "inline-block", position: showTextTitle ? "relative" : "absolute" }}>
+                            {this.contents}
+                        </div>
+                    </div>
+                }
             </div>
         );
     }

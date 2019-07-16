@@ -17,12 +17,11 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { indexOf } from "typescript-collections/dist/lib/arrays";
 import { map } from "bluebird";
 
-
 library.add(faArrowUp);
 library.add(fileSolid);
 library.add(faLocationArrow);
+library.add(fileRegular as any);
 library.add(faSearch);
-library.add(fileRegular);
 
 interface PresentationElementProps {
     mainDocument: Doc;
@@ -878,9 +877,13 @@ export default class PresentationElement extends React.Component<PresentationEle
             className += " presentationView-selected";
         }
         let onEnter = (e: React.PointerEvent) => { p.document.libraryBrush = true; };
+<<<<<<< HEAD
         let onLeave = (e: React.PointerEvent) => { p.document.libraryBrush = false; };
         let dropAction = StrCast(this.props.document.dropAction) as dropActionType;
         let onItemDown = SetupDrag(this.presElRef, () => p.document, this.move, dropAction, this.props.mainDocument[Id], true);
+=======
+        let onLeave = (e: React.PointerEvent) => { p.document.libraryBrush = undefined; };
+>>>>>>> 03deba08d6af54bfc4235ed7c5ac26b8f673607a
         return (
             <div className={className} key={p.document[Id] + p.index}
                 ref={this.presElRef}
@@ -889,7 +892,7 @@ export default class PresentationElement extends React.Component<PresentationEle
                 style={{
                     outlineColor: "maroon",
                     outlineStyle: "dashed",
-                    outlineWidth: BoolCast(p.document.libraryBrush, false) || BoolCast(p.document.protoBrush, false) ? `1px` : "0px",
+                    outlineWidth: BoolCast(p.document.libraryBrush) ? `1px` : "0px",
                 }}
                 onClick={e => { p.gotoDocument(p.index, NumCast(this.props.mainDocument.selectedDoc)); e.stopPropagation(); }}>
                 <strong className="presentationView-name">

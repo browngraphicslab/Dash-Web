@@ -36,7 +36,7 @@ export class HistogramBox extends React.Component<FieldViewProps> {
     @computed public get HistogramResult(): HistogramResult { return this.HistoOp.Result as HistogramResult; }
     @observable public SizeConverter: SizeConverter = new SizeConverter();
 
-    @computed get createOperationParamsCache() { trace(); return this.HistoOp.CreateOperationParameters(); }
+    @computed get createOperationParamsCache() { return this.HistoOp.CreateOperationParameters(); }
     @computed get BinRanges() { return this.HistogramResult ? this.HistogramResult.binRanges : undefined; }
     @computed get ChartType() {
         return !this.BinRanges ? ChartType.SinglePoint : this.BinRanges[0] instanceof AggregateBinRange ?

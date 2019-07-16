@@ -348,6 +348,17 @@ export const marks: { [index: string]: MarkSpec } = {
         }]
     },
 
+    pFontColor: {
+        attrs: {
+            color: { default: "yellow" }
+        },
+        parseDOM: [{ style: 'background: #d9dbdd' }],
+        toDOM: (node) => {
+            return ['span', {
+                style: `color: ${node.attrs.color}`
+            }];
+        }
+    },
 
     /** FONT SIZES */
     pFontSize: {
@@ -386,6 +397,20 @@ export const marks: { [index: string]: MarkSpec } = {
         parseDOM: [{ style: 'font-size: 16px;' }],
         toDOM: () => ['span', {
             style: 'font-size: 16px;'
+        }]
+    },
+
+    p18: {
+        parseDOM: [{ style: 'font-size: 18px;' }],
+        toDOM: () => ['span', {
+            style: 'font-size: 18px;'
+        }]
+    },
+
+    p20: {
+        parseDOM: [{ style: 'font-size: 20px;' }],
+        toDOM: () => ['span', {
+            style: 'font-size: 20px;'
         }]
     },
 
@@ -493,28 +518,39 @@ export class SummarizedView {
     _view: any;
     constructor(node: any, view: any, getPos: any) {
         this._collapsed = document.createElement("span");
-        this._collapsed.textContent = "㊉";
+        this._collapsed.textContent = node.attrs.visibility ? "㊀" : "㊉";
         this._collapsed.style.opacity = "0.5";
         this._collapsed.style.position = "relative";
         this._collapsed.style.width = "40px";
         this._collapsed.style.height = "20px";
         let self = this;
         this._view = view;
+        const js = node.toJSON;
+        node.toJSON = function () {
+
+            return js.apply(this, arguments);
+        };
         this._collapsed.onpointerdown = function (e: any) {
             if (node.attrs.visibility) {
-                node.attrs.visibility = !node.attrs.visibility;
+                // node.attrs.visibility = !node.attrs.visibility;
                 let y = getPos();
+                const attrs = { ...node.attrs };
+                attrs.visibility = !attrs.visibility;
                 let { from, to } = self.updateSummarizedText(y + 1, view.state.schema.marks.highlight);
                 let length = to - from;
                 let newSelection = TextSelection.create(view.state.doc, y + 1, y + 1 + length);
                 // update attrs of node
-                node.attrs.text = newSelection.content();
-                node.attrs.textslice = newSelection.content().toJSON();
+                attrs.text = newSelection.content();
+                attrs.textslice = newSelection.content().toJSON();
+                view.dispatch(view.state.tr.setNodeMarkup(y, undefined, attrs));
                 view.dispatch(view.state.tr.setSelection(newSelection).deleteSelection(view.state, () => { }));
                 self._collapsed.textContent = "㊉";
             } else {
-                node.attrs.visibility = !node.attrs.visibility;
+                // node.attrs.visibility = !node.attrs.visibility;
                 let y = getPos();
+                const attrs = { ...node.attrs };
+                attrs.visibility = !attrs.visibility;
+                view.dispatch(view.state.tr.setNodeMarkup(y, undefined, attrs));
                 let mark = view.state.schema.mark(view.state.schema.marks.highlight);
                 view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, y + 1, y + 1)));
                 const from = view.state.selection.from;

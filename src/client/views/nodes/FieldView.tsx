@@ -19,7 +19,6 @@ import { PDFBox } from "./PDFBox";
 import { VideoBox } from "./VideoBox";
 import { Id } from "../../../new_fields/FieldSymbols";
 
-
 //
 // these properties get assigned through the render() method of the DocumentView when it creates this node.
 // However, that only happens because the properties are "defined" in the markup for the field view.
@@ -28,6 +27,8 @@ import { Id } from "../../../new_fields/FieldSymbols";
 export interface FieldViewProps {
     fieldKey: string;
     fieldExt: string;
+    leaveNativeSize?: boolean;
+    fitToBox?: boolean;
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
     Document: Doc;
     DataDoc?: Doc;
@@ -36,7 +37,7 @@ export interface FieldViewProps {
     renderDepth: number;
     selectOnLoad: boolean;
     addDocument?: (document: Doc, allowDuplicates?: boolean) => boolean;
-    addDocTab: (document: Doc, dataDoc: Doc, where: string) => void;
+    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
     removeDocument?: (document: Doc) => boolean;
     moveDocument?: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
@@ -51,8 +52,8 @@ export interface FieldViewProps {
 
 @observer
 export class FieldView extends React.Component<FieldViewProps> {
-    public static LayoutString(fieldType: { name: string }, fieldStr: string = "data") {
-        return `<${fieldType.name} {...props} fieldKey={"${fieldStr}"} />`;
+    public static LayoutString(fieldType: { name: string }, fieldStr: string = "data", fieldExt: string = "") {
+        return `<${fieldType.name} {...props} fieldKey={"${fieldStr}"} fieldExt={"${fieldExt}"} />`;
     }
 
     @computed
@@ -72,7 +73,7 @@ export class FieldView extends React.Component<FieldViewProps> {
             return <FormattedTextBox {...this.props} />;
         }
         else if (field instanceof ImageField) {
-            return <ImageBox {...this.props} />;
+            return <ImageBox {...this.props} leaveNativeSize={true} />;
         }
         else if (field instanceof IconField) {
             return <IconBox {...this.props} />;
@@ -86,7 +87,7 @@ export class FieldView extends React.Component<FieldViewProps> {
             return <p>{field.date.toLocaleString()}</p>;
         }
         else if (field instanceof Doc) {
-            return <p><b>{field.title + " + " + field[Id]}</b></p>;
+            return <p><b>{field.title + " : id= " + field[Id]}</b></p>;
             // let returnHundred = () => 100;
             // return (
             //     <DocumentContentsView Document={field}

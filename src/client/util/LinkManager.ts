@@ -5,6 +5,7 @@ import { listSpec } from "../../new_fields/Schema";
 import { List } from "../../new_fields/List";
 import { Id } from "../../new_fields/FieldSymbols";
 import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
+import { Docs } from "../documents/Documents";
 
 
 /* 
@@ -35,7 +36,9 @@ export class LinkManager {
     // the linkmanagerdoc stores a list of docs representing all linkdocs in 'allLinks' and a list of strings representing all group types in 'allGroupTypes'
     // lists of strings representing the metadata keys for each group type is stored under a key that is the same as the group type 
     public get LinkManagerDoc(): Doc | undefined {
-        return FieldValue(Cast(CurrentUserUtils.UserDocument.linkManagerDoc, Doc));
+        // return FieldValue(Cast(CurrentUserUtils.UserDocument.linkManagerDoc, Doc));
+
+        return Docs.Prototypes.MainLinkDocument();
     }
 
     public getAllLinks(): Doc[] {
@@ -68,8 +71,8 @@ export class LinkManager {
     // finds all links that contain the given anchor
     public getAllRelatedLinks(anchor: Doc): Doc[] {//List<Doc> {
         let related = LinkManager.Instance.getAllLinks().filter(link => {
-            let protomatch1 = Doc.AreProtosEqual(anchor, Cast(link.anchor1, Doc, new Doc));
-            let protomatch2 = Doc.AreProtosEqual(anchor, Cast(link.anchor2, Doc, new Doc));
+            let protomatch1 = Doc.AreProtosEqual(anchor, Cast(link.anchor1, Doc, null));
+            let protomatch2 = Doc.AreProtosEqual(anchor, Cast(link.anchor2, Doc, null));
             return protomatch1 || protomatch2;
         });
         return related;
@@ -100,9 +103,11 @@ export class LinkManager {
                 if (index > -1) groupTypes.splice(index, 1);
                 LinkManager.Instance.LinkManagerDoc.allGroupTypes = new List<string>(groupTypes);
                 LinkManager.Instance.LinkManagerDoc[groupType] = undefined;
-                LinkManager.Instance.getAllLinks().forEach(linkDoc => {
-                    LinkManager.Instance.removeGroupFromAnchor(linkDoc, Cast(linkDoc.anchor1, Doc, new Doc), groupType);
-                    LinkManager.Instance.removeGroupFromAnchor(linkDoc, Cast(linkDoc.anchor2, Doc, new Doc), groupType);
+                LinkManager.Instance.getAllLinks().forEach(async linkDoc => {
+                    const anchor1 = await Cast(linkDoc.anchor1, Doc);
+                    const anchor2 = await Cast(linkDoc.anchor2, Doc);
+                    anchor1 && LinkManager.Instance.removeGroupFromAnchor(linkDoc, anchor1, groupType);
+                    anchor2 && LinkManager.Instance.removeGroupFromAnchor(linkDoc, anchor2, groupType);
                 });
             }
             return true;
@@ -122,8 +127,8 @@ export class LinkManager {
     }
 
     // gets the groups associates with an anchor in a link
-    public getAnchorGroups(linkDoc: Doc, anchor: Doc): Array<Doc> {
-        if (Doc.AreProtosEqual(anchor, Cast(linkDoc.anchor1, Doc, new Doc))) {
+    public getAnchorGroups(linkDoc: Doc, anchor?: Doc): Array<Doc> {
+        if (Doc.AreProtosEqual(anchor, Cast(linkDoc.anchor1, Doc, null))) {
             return DocListCast(linkDoc.anchor1Groups);
         } else {
             return DocListCast(linkDoc.anchor2Groups);
@@ -132,7 +137,7 @@ export class LinkManager {
 
     // sets the groups of the given anchor in the given link
     public setAnchorGroups(linkDoc: Doc, anchor: Doc, groups: Doc[]) {
-        if (Doc.AreProtosEqual(anchor, Cast(linkDoc.anchor1, Doc, new Doc))) {
+        if (Doc.AreProtosEqual(anchor, Cast(linkDoc.anchor1, Doc, null))) {
             linkDoc.anchor1Groups = new List<Doc>(groups);
         } else {
             linkDoc.anchor2Groups = new List<Doc>(groups);
@@ -209,10 +214,10 @@ export class LinkManager {
         let md: Doc[] = [];
         let allLinks = LinkManager.Instance.getAllLinks();
         allLinks.forEach(linkDoc => {
-            let anchor1Groups = LinkManager.Instance.getAnchorGroups(linkDoc, Cast(linkDoc.anchor1, Doc, new Doc));
-            let anchor2Groups = LinkManager.Instance.getAnchorGroups(linkDoc, Cast(linkDoc.anchor2, Doc, new Doc));
-            anchor1Groups.forEach(groupDoc => { if (StrCast(groupDoc.type).toUpperCase() === groupType.toUpperCase()) md.push(Cast(groupDoc.metadata, Doc, new Doc)); });
-            anchor2Groups.forEach(groupDoc => { if (StrCast(groupDoc.type).toUpperCase() === groupType.toUpperCase()) md.push(Cast(groupDoc.metadata, Doc, new Doc)); });
+            let anchor1Groups = LinkManager.Instance.getAnchorGroups(linkDoc, Cast(linkDoc.anchor1, Doc, null));
+            let anchor2Groups = LinkManager.Instance.getAnchorGroups(linkDoc, Cast(linkDoc.anchor2, Doc, null));
+            anchor1Groups.forEach(groupDoc => { if (StrCast(groupDoc.type).toUpperCase() === groupType.toUpperCase()) { const meta = Cast(groupDoc.metadata, Doc, null); meta && md.push(meta); } });
+            anchor2Groups.forEach(groupDoc => { if (StrCast(groupDoc.type).toUpperCase() === groupType.toUpperCase()) { const meta = Cast(groupDoc.metadata, Doc, null); meta && md.push(meta); } });
         });
         return md;
     }
@@ -221,18 +226,20 @@ export class LinkManager {
     public doesLinkExist(anchor1: Doc, anchor2: Doc): boolean {
         let allLinks = LinkManager.Instance.getAllLinks();
         let index = allLinks.findIndex(linkDoc => {
-            return (Doc.AreProtosEqual(Cast(linkDoc.anchor1, Doc, new Doc), anchor1) && Doc.AreProtosEqual(Cast(linkDoc.anchor2, Doc, new Doc), anchor2)) ||
-                (Doc.AreProtosEqual(Cast(linkDoc.anchor1, Doc, new Doc), anchor2) && Doc.AreProtosEqual(Cast(linkDoc.anchor2, Doc, new Doc), anchor1));
+            return (Doc.AreProtosEqual(Cast(linkDoc.anchor1, Doc, null), anchor1) && Doc.AreProtosEqual(Cast(linkDoc.anchor2, Doc, null), anchor2)) ||
+                (Doc.AreProtosEqual(Cast(linkDoc.anchor1, Doc, null), anchor2) && Doc.AreProtosEqual(Cast(linkDoc.anchor2, Doc, null), anchor1));
         });
         return index !== -1;
     }
 
     // finds the opposite anchor of a given anchor in a link
-    public getOppositeAnchor(linkDoc: Doc, anchor: Doc): Doc {
-        if (Doc.AreProtosEqual(anchor, Cast(linkDoc.anchor1, Doc, new Doc))) {
-            return Cast(linkDoc.anchor2, Doc, new Doc);
+    //TODO This should probably return undefined if there isn't an opposite anchor
+    //TODO This should also await the return value of the anchor so we don't filter out promises
+    public getOppositeAnchor(linkDoc: Doc, anchor: Doc): Doc | undefined {
+        if (Doc.AreProtosEqual(anchor, Cast(linkDoc.anchor1, Doc, null))) {
+            return Cast(linkDoc.anchor2, Doc, null);
         } else {
-            return Cast(linkDoc.anchor1, Doc, new Doc);
+            return Cast(linkDoc.anchor1, Doc, null);
         }
     }
 }

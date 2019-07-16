@@ -7,7 +7,7 @@ import { undoBatch } from "../../util/UndoManager";
 import './LinkMenu.scss';
 import React = require("react");
 import { Doc } from '../../../new_fields/Doc';
-import { StrCast, Cast, BoolCast, FieldValue } from '../../../new_fields/Types';
+import { StrCast, Cast, BoolCast, FieldValue, NumCast } from '../../../new_fields/Types';
 import { observable, action } from 'mobx';
 import { LinkManager } from '../../util/LinkManager';
 import { DragLinkAsDocument } from '../../util/DragManager';
@@ -38,7 +38,8 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
             jumpToDoc = pdfDoc;
         }
         if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
-            DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey);
+            let self = this;
+            DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, undefined, undefined, NumCast((this.props.destinationDoc === self.props.linkDoc.anchor2 ? self.props.linkDoc.anchor2Page : self.props.linkDoc.anchor1Page)));
         } else {
             CollectionDockingView.Instance.AddRightSplit(jumpToDoc, undefined);
         }
@@ -56,11 +57,13 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
 
         let mdRows: Array<JSX.Element> = [];
         if (groupDoc) {
-            let mdDoc = Cast(groupDoc.metadata, Doc, new Doc);
-            let keys = LinkManager.Instance.getMetadataKeysInGroup(this.props.groupType);//groupMetadataKeys.get(this.props.groupType);
-            mdRows = keys.map(key => {
-                return (<div key={key} className="link-metadata-row"><b>{key}</b>: {StrCast(mdDoc[key])}</div>);
-            });
+            let mdDoc = Cast(groupDoc.metadata, Doc, null);
+            if (mdDoc) {
+                let keys = LinkManager.Instance.getMetadataKeysInGroup(this.props.groupType);//groupMetadataKeys.get(this.props.groupType);
+                mdRows = keys.map(key => {
+                    return (<div key={key} className="link-metadata-row"><b>{key}</b>: {StrCast(mdDoc[key])}</div>);
+                });
+            }
         }
 
         return (<div className="link-metadata">{mdRows}</div>);

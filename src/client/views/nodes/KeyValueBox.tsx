@@ -2,14 +2,14 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
-import { CompileScript, ScriptOptions } from "../../util/Scripting";
+import { CompileScript, ScriptOptions, CompiledScript } from "../../util/Scripting";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./KeyValueBox.scss";
 import { KeyValuePair } from "./KeyValuePair";
 import React = require("react");
 import { NumCast, Cast, FieldValue, StrCast } from "../../../new_fields/Types";
-import { Doc, Field, FieldResult } from "../../../new_fields/Doc";
-import { ComputedField } from "../../../new_fields/ScriptField";
+import { Doc, Field, FieldResult, DocListCastAsync } from "../../../new_fields/Doc";
+import { ComputedField, ScriptField } from "../../../new_fields/ScriptField";
 import { SetupDrag } from "../../util/DragManager";
 import { Docs } from "../../documents/Documents";
 import { RawDataOperationParameters } from "../../northstar/model/idea/idea";
@@ -18,6 +18,14 @@ import { List } from "../../../new_fields/List";
 import { TextField } from "../../util/ProsemirrorCopy/prompt";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { ImageField } from "../../../new_fields/URLField";
+import { SelectionManager } from "../../util/SelectionManager";
+import { listSpec } from "../../../new_fields/Schema";
+
+export type KVPScript = {
+    script: CompiledScript;
+    type: "computed" | "script" | false;
+    onDelegate: boolean;
+};
 
 @observer
 export class KeyValueBox extends React.Component<FieldViewProps> {
@@ -46,20 +54,29 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
             }
         }
     }
-    public static SetField(doc: Doc, key: string, value: string) {
+    public static CompileKVPScript(value: string): KVPScript | undefined {
         let eq = value.startsWith("=");
-        let target = eq ? doc : Doc.GetProto(doc);
         value = eq ? value.substr(1) : value;
-        let dubEq = value.startsWith(":=");
+        const dubEq = value.startsWith(":=") ? "computed" : value.startsWith(";=") ? "script" : false;
         value = dubEq ? value.substr(2) : value;
         let options: ScriptOptions = { addReturn: true, params: { this: "Doc" } };
         if (dubEq) options.typecheck = false;
         let script = CompileScript(value, options);
         if (!script.compiled) {
-            return false;
+            return undefined;
         }
-        let field = new ComputedField(script);
-        if (!dubEq) {
+        return { script, type: dubEq, onDelegate: eq };
+    }
+
+    public static ApplyKVPScript(doc: Doc, key: string, kvpScript: KVPScript): boolean {
+        const { script, type, onDelegate } = kvpScript;
+        const target = onDelegate ? doc : Doc.GetProto(doc);
+        let field: Field;
+        if (type === "computed") {
+            field = new ComputedField(script);
+        } else if (type === "script") {
+            field = new ScriptField(script);
+        } else {
             let res = script.run({ this: target });
             if (!res.success) return false;
             field = res.result;
@@ -69,6 +86,12 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
             return true;
         }
         return false;
+    }
+
+    public static SetField(doc: Doc, key: string, value: string) {
+        const script = this.CompileKVPScript(value);
+        if (!script) return false;
+        return this.ApplyKVPScript(doc, key, script);
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
@@ -153,9 +176,9 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     }
 
     getTemplate = async () => {
-        let parent = Docs.StackingDocument([], { width: 800, height: 800, title: "Template" });
+        let parent = Docs.Create.StackingDocument([], { width: 800, height: 800, title: "Template" });
         parent.singleColumn = false;
-        parent.columnWidth = 50;
+        parent.columnWidth = 100;
         for (let row of this.rows.filter(row => row.isChecked)) {
             await this.createTemplateField(parent, row);
             row.uncheck();
@@ -163,45 +186,41 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         return parent;
     }
 
-    createTemplateField = async (parent: Doc, row: KeyValuePair) => {
-        let collectionKeyProp = `fieldKey={"data"}`;
+    createTemplateField = async (parentStackingDoc: Doc, row: KeyValuePair) => {
         let metaKey = row.props.keyName;
-        let metaKeyProp = `fieldKey={"${metaKey}"}`;
-
         let sourceDoc = await Cast(this.props.Document.data, Doc);
         if (!sourceDoc) {
             return;
         }
-        let target = this.inferType(sourceDoc[metaKey], metaKey);
 
-        let template = Doc.MakeAlias(target);
-        template.proto = parent;
-        template.title = metaKey;
-        template.nativeWidth = 0;
-        template.nativeHeight = 0;
-        template.embed = true;
-        template.isTemplate = true;
-        template.templates = new List<string>([Templates.TitleBar(metaKey)]);
-        if (target.backgroundLayout) {
-            let metaAnoKeyProp = `fieldKey={"${metaKey}"} fieldExt={"annotations"}`;
-            let collectionAnoKeyProp = `fieldKey={"annotations"}`;
-            template.layout = StrCast(target.layout).replace(collectionAnoKeyProp, metaAnoKeyProp);
-            template.backgroundLayout = StrCast(target.backgroundLayout).replace(collectionKeyProp, metaKeyProp);
-        } else {
-            template.layout = StrCast(target.layout).replace(collectionKeyProp, metaKeyProp);
-        }
-        Doc.AddDocToList(parent, "data", template);
-        row.uncheck();
+        let fieldTemplate = await this.inferType(sourceDoc[metaKey], metaKey);
+        let previousViewType = fieldTemplate.viewType;
+        Doc.MakeTemplate(fieldTemplate, metaKey, Doc.GetProto(parentStackingDoc));
+        previousViewType && (fieldTemplate.viewType = previousViewType);
+
+        Cast(parentStackingDoc.data, listSpec(Doc))!.push(fieldTemplate);
     }
 
-    inferType = (field: FieldResult, metaKey: string) => {
+    inferType = async (data: FieldResult, metaKey: string) => {
         let options = { width: 300, height: 300, title: metaKey };
-        if (field instanceof RichTextField || typeof field === "string" || typeof field === "number") {
-            return Docs.TextDocument(options);
-        } else if (field instanceof List) {
-            return Docs.StackingDocument([], options);
-        } else if (field instanceof ImageField) {
-            return Docs.ImageDocument("https://www.freepik.com/free-icon/picture-frame-with-mountain-image_748687.htm", options);
+        if (data instanceof RichTextField || typeof data === "string" || typeof data === "number") {
+            return Docs.Create.TextDocument(options);
+        } else if (data instanceof List) {
+            if (data.length === 0) {
+                return Docs.Create.StackingDocument([], options);
+            }
+            let first = await Cast(data[0], Doc);
+            if (!first) {
+                return Docs.Create.StackingDocument([], options);
+            }
+            switch (first.type) {
+                case "image":
+                    return Docs.Create.StackingDocument([], options);
+                case "text":
+                    return Docs.Create.TreeDocument([], options);
+            }
+        } else if (data instanceof ImageField) {
+            return Docs.Create.ImageDocument("https://image.flaticon.com/icons/png/512/23/23765.png", options);
         }
         return new Doc;
     }
