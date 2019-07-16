@@ -1,5 +1,5 @@
 import React = require("react");
-import { action, IReactionDisposer, observable, reaction, trace, computed, runInAction } from "mobx";
+import { action, IReactionDisposer, observable, reaction, trace, computed, runInAction, untracked } from "mobx";
 import { observer } from "mobx-react";
 import { makeInterface } from "../../../new_fields/Schema";
 import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
@@ -14,7 +14,6 @@ import { pageSchema } from "./ImageBox";
 import "./VideoBox.scss";
 import { InkTool } from "../../../new_fields/InkField";
 import { DocumentDecorations } from "../DocumentDecorations";
-import { addHiddenFinalProp } from "mobx/lib/internal";
 
 type VideoDocument = makeInterface<[typeof positionSchema, typeof pageSchema]>;
 const VideoDocument = makeInterface(positionSchema, pageSchema);
@@ -53,18 +52,21 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
     @action public Play = (update: boolean = true) => {
         this.Playing = true;
         update && this.player && this.player.play();
+        console.log("PLAYING = " + update);
         update && this._youtubePlayer && this._youtubePlayer.playVideo();
         !this._playTimer && (this._playTimer = setInterval(this.updateTimecode, 500));
         this.updateTimecode();
     }
 
     @action public Seek(time: number) {
+        console.log("Seeking " + time);
         //if (this._youtubePlayer && this._youtubePlayer.getPlayerState() === 5) return;
-        this._youtubePlayer && !this.Playing && this._youtubePlayer.seekTo(time);
+        this._youtubePlayer && this._youtubePlayer.seekTo(Math.round(time), true);
     }
 
     @action public Pause = (update: boolean = true) => {
         this.Playing = false;
+        console.log("PAUSING = " + update);
         update && this.player && this.player.pause();
         update && this._youtubePlayer && this._youtubePlayer.pauseVideo();
         this._playTimer && clearInterval(this._playTimer);
@@ -122,6 +124,8 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         if (field) {
             let subitems: ContextMenuProps[] = [];
             subitems.push({ description: "Toggle Show Controls", event: action(() => VideoBox._showControls = !VideoBox._showControls), icon: "expand-arrows-alt" });
+            subitems.push({ description: "GOTO 3", event: action(() => this.Seek(3)), icon: "expand-arrows-alt" });
+            subitems.push({ description: "PLAY", event: action(() => this.Play()), icon: "expand-arrows-alt" });
             ContextMenu.Instance.addItem({ description: "Video Funcs...", subitems: subitems });
         }
     }
@@ -151,38 +155,22 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         else this._youtubeContentCreated = false;
 
         let iframe = e.target;
-        let startupTimecode = NumCast(this.Document.curPage);
         let onYoutubePlayerStateChange = (event: any) => runInAction(() => {
-            if (event.data !== YT.PlayerState.UNSTARTED && event.data !== YT.PlayerState.BUFFERING) {
-                // if (startupTimecode !== -1) {
-                //     startupTimecode = -1;
-                //     if (event.data === YT.PlayerState.PLAYING) this.Pause();
-                // }
-                if (event.data == YT.PlayerState.PLAYING && !this.Playing) this.Play(false);
-                if (event.data == YT.PlayerState.PAUSED && this.Playing) this.Pause(false);
-            }
+            console.log("Event  " + event.data);
+            if (event.data == YT.PlayerState.PLAYING && !this.Playing) this.Play(false);
+            if (event.data == YT.PlayerState.PAUSED && this.Playing) this.Pause(false);
         });
         let onYoutubePlayerReady = (event: any) => {
+            console.log("READY!");
             this._reactionDisposer && this._reactionDisposer();
             this._youtubeReactionDisposer && this._youtubeReactionDisposer();
-            this._reactionDisposer = reaction(() => this.props.Document.curPage, () => this.Seek(this.Document.curPage || 0));
+            this._reactionDisposer = reaction(() => this.props.Document.curPage, () => !this.Playing && this.Seek(this.Document.curPage || 0));
             this._youtubeReactionDisposer = reaction(() => [this.props.isSelected(), DocumentDecorations.Instance.Interacting, InkingControl.Instance.selectedTool], () => {
                 let interactive = InkingControl.Instance.selectedTool === InkTool.None && this.props.isSelected() && !DocumentDecorations.Instance.Interacting;
                 iframe.style.pointerEvents = interactive ? "all" : "none";
             }, { fireImmediately: true });
-            // if (startupTimecode) {
-            //     this.Playing = false;
-            //     this.Seek(startupTimecode);
-            // }
         }
         this._youtubePlayer = new YT.Player(`${this.youtubeVideoId + this._youtubeIframeId}-player`, {
-            playerVars: {
-                rel: 0,
-                start: NumCast(this.props.Document.curPage),
-                fs: 1,
-                modestbranding: 1, // Modest
-                controls: VideoBox._showControls ? 1 : 0// YT.Controls.ShowLoadPlayer : YT.Controls.Hide
-            },
             events: {
                 'onReady': onYoutubePlayerReady,
                 'onStateChange': onYoutubePlayerStateChange,
@@ -195,9 +183,11 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         this._youtubeIframeId = VideoBox._youtubeIframeCounter++;
         this._youtubeContentCreated = this._forceCreateYouTubeIFrame ? true : true;
         let style = "videoBox-content-YouTube" + (this._fullScreen ? "-fullScreen" : "");
-        return <iframe key={this._youtubeIframeId} id={`${this.youtubeVideoId + this._youtubeIframeId.toString()}-player`}
+        let start = untracked(() => Math.round(NumCast(this.props.Document.curPage)));
+        return <iframe key={this._youtubeIframeId} id={`${this.youtubeVideoId + this._youtubeIframeId}-player`}
             onLoad={this.youtubeIframeLoaded} className={`${style}`} width="640" height="390"
-            src={`https://www.youtube.com/embed/${this.youtubeVideoId}?enablejsapi=1&fs=1&rel=0&start=32&controls=0`} />
+            src={`https://www.youtube.com/embed/${this.youtubeVideoId}?enablejsapi=1&rel=0&showinfo=1&autoplay=1&start=${start}&modestbranding=1&controls=${VideoBox._showControls ? 1 : 0}`}
+        ></iframe>;
     }
 
     render() {
