@@ -1,27 +1,18 @@
-import * as React from 'react';
-import { observer } from 'mobx-react';
-import { observable, action, runInAction } from 'mobx';
-import { Utils } from '../../Utils';
-import { MessageStore } from '../../server/Message';
-import "./SearchBox.scss";
-import { faSearch, faObjectGroup } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { library } from '@fortawesome/fontawesome-svg-core';
-// const app = express();
-// import * as express from 'express';
-import { Search } from '../../server/Search';
+import { faObjectGroup, faSearch } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { action, observable, runInAction } from 'mobx';
+import { observer } from 'mobx-react';
+import * as React from 'react';
 import * as rp from 'request-promise';
-import { SearchItem } from './search/SearchItem';
-import { isString } from 'util';
-import { constant } from 'async';
-import { DocServer } from '../DocServer';
 import { Doc } from '../../new_fields/Doc';
 import { Id } from '../../new_fields/FieldSymbols';
-import { DocumentManager } from '../util/DocumentManager';
-import { SetupDrag } from '../util/DragManager';
-import { Docs } from '../documents/Documents';
-import { RouteStore } from '../../server/RouteStore';
 import { NumCast } from '../../new_fields/Types';
+import { DocServer } from '../DocServer';
+import { Docs } from '../documents/Documents';
+import { SetupDrag } from '../util/DragManager';
+import { SearchItem } from './search/SearchItem';
+import "./SearchBox.scss";
 
 library.add(faSearch);
 library.add(faObjectGroup);
@@ -71,22 +62,6 @@ export class SearchBox extends React.Component {
             }
         }
         return docs;
-    }
-    public static async convertDataUri(imageUri: string, returnedFilename: string) {
-        try {
-            let posting = DocServer.prepend(RouteStore.dataUriToImage);
-            const returnedUri = await rp.post(posting, {
-                body: {
-                    uri: imageUri,
-                    name: returnedFilename
-                },
-                json: true,
-            });
-            return returnedUri;
-
-        } catch (e) {
-            console.log(e);
-        }
     }
 
     @action
