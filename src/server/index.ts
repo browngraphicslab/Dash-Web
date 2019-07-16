@@ -58,7 +58,7 @@ clientUtils = `//AUTO-GENERATED FILE: DO NOT EDIT\n${clientUtils.replace('"mode"
 fs.writeFileSync("./src/client/util/ClientUtils.ts", clientUtils, "utf8");
 
 const mongoUrl = 'mongodb://localhost:27017/Dash';
-mongoose.connect(mongoUrl);
+mongoose.connection.readyState === 0 && mongoose.connect(mongoUrl);
 mongoose.connection.on('connected', () => console.log("connected"));
 
 // SESSION MANAGEMENT AND AUTHENTICATION MIDDLEWARE
