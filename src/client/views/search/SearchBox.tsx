@@ -23,7 +23,7 @@ export class SearchBox extends React.Component {
     @observable private _searchString: string = "";
     @observable private _resultsOpen: boolean = false;
     @observable private _searchbarOpen: boolean = false;
-    @observable private _results: Doc[] = [];
+    @observable private _results: [Doc, string[]][] = [];
     private _resultsSet = new Set<Doc>();
     @observable private _openNoResults: boolean = false;
     @observable private _visibleElements: JSX.Element[] = [];
@@ -119,7 +119,7 @@ export class SearchBox extends React.Component {
     }
 
     getAllResults = async (query: string) => {
-        return SearchUtil.Search(query, this.filterQuery, true, 0, 10000000);
+        return SearchUtil.Search(query, true, { fq: this.filterQuery, start: 0, rows: 10000000 });
     }
 
     private get filterQuery() {
@@ -136,20 +136,22 @@ export class SearchBox extends React.Component {
         }
         this.lockPromise = new Promise(async res => {
             while (this._results.length <= this._endIndex && (this._numTotalResults === -1 || this._maxSearchIndex < this._numTotalResults)) {
-                this._curRequest = SearchUtil.Search(query, this.filterQuery, true, this._maxSearchIndex, 10).then(action(async (res: SearchUtil.DocSearchResult) => {
+                this._curRequest = SearchUtil.Search(query, true, { fq: this.filterQuery, start: this._maxSearchIndex, rows: 10, hl: true, "hl.fl": "*" }).then(action(async (res: SearchUtil.DocSearchResult) => {
 
                     // happens at the beginning
                     if (res.numFound !== this._numTotalResults && this._numTotalResults === -1) {
                         this._numTotalResults = res.numFound;
                     }
 
+                    const highlighing = res.highlighting || {};
                     const docs = await Promise.all(res.docs.map(doc => Cast(doc.extendsDoc, Doc, doc as any)));
                     let filteredDocs = FilterBox.Instance.filterDocsByType(docs);
                     runInAction(() => {
                         // this._results.push(...filteredDocs);
                         filteredDocs.forEach(doc => {
                             if (!this._resultsSet.has(doc)) {
-                                this._results.push(doc);
+                                const highlight = highlighing[doc[Id]];
+                                this._results.push([doc, highlight ? Object.keys(highlight).map(key => key.substring(0, key.length - 2)) : []]);
                                 this._resultsSet.add(doc);
                             }
                         });
@@ -274,19 +276,19 @@ export class SearchBox extends React.Component {
             }
             else {
                 if (this._isSearch[i] !== "search") {
-                    let result: Doc | undefined = undefined;
+                    let result: [Doc, string[]] | undefined = undefined;
                     if (i >= this._results.length) {
                         this.getResults(this._searchString);
                         if (i < this._results.length) result = this._results[i];
                         if (result) {
-                            this._visibleElements[i] = <SearchItem doc={result} key={result[Id]} />;
+                            this._visibleElements[i] = <SearchItem doc={result[0]} key={result[0][Id]} highlighting={result[1]} />;
                             this._isSearch[i] = "search";
                         }
                     }
                     else {
                         result = this._results[i];
                         if (result) {
-                            this._visibleElements[i] = <SearchItem doc={result} key={result[Id]} />;
+                            this._visibleElements[i] = <SearchItem doc={result[0]} key={result[0][Id]} highlighting={result[1]} />;
                             this._isSearch[i] = "search";
                         }
                     }

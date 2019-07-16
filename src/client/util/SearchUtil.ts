@@ -4,30 +4,41 @@ import { Doc } from '../../new_fields/Doc';
 import { Id } from '../../new_fields/FieldSymbols';
 
 export namespace SearchUtil {
+    export type HighlightingResult = { [id: string]: { [key: string]: string[] } };
+
     export interface IdSearchResult {
         ids: string[];
         numFound: number;
+        highlighting: HighlightingResult | undefined;
     }
 
     export interface DocSearchResult {
         docs: Doc[];
         numFound: number;
+        highlighting: HighlightingResult | undefined;
     }
 
-    export function Search(query: string, filterQuery: string | undefined, returnDocs: true, start?: number, count?: number): Promise<DocSearchResult>;
-    export function Search(query: string, filterQuery: string | undefined, returnDocs: false, start?: number, count?: number): Promise<IdSearchResult>;
-    export async function Search(query: string, filterQuery: string | undefined, returnDocs: boolean, start?: number, rows?: number) {
+    export interface SearchParams {
+        hl?: boolean;
+        "hl.fl"?: string;
+        start?: number;
+        rows?: number;
+        fq?: string;
+    }
+    export function Search(query: string, returnDocs: true, options?: SearchParams): Promise<DocSearchResult>;
+    export function Search(query: string, returnDocs: false, options?: SearchParams): Promise<IdSearchResult>;
+    export async function Search(query: string, returnDocs: boolean, options: SearchParams = {}) {
         query = query || "*"; //If we just have a filter query, search for * as the query
         const result: IdSearchResult = JSON.parse(await rp.get(DocServer.prepend("/search"), {
-            qs: { query, filterQuery, start, rows },
+            qs: { ...options, q: query },
         }));
         if (!returnDocs) {
             return result;
         }
-        const { ids, numFound } = result;
+        const { ids, numFound, highlighting } = result;
         const docMap = await DocServer.GetRefFields(ids);
         const docs = ids.map((id: string) => docMap[id]).filter((doc: any) => doc instanceof Doc);
-        return { docs, numFound };
+        return { docs, numFound, highlighting };
     }
 
     export async function GetAliasesOfDocument(doc: Doc): Promise<Doc[]>;
@@ -36,31 +47,31 @@ export namespace SearchUtil {
         const proto = Doc.GetProto(doc);
         const protoId = proto[Id];
         if (returnDocs) {
-            return (await Search("", `proto_i:"${protoId}"`, returnDocs)).docs;
+            return (await Search("", returnDocs, { fq: `proto_i:"${protoId}"` })).docs;
         } else {
-            return (await Search("", `proto_i:"${protoId}"`, returnDocs)).ids;
+            return (await Search("", returnDocs, { fq: `proto_i:"${protoId}"` })).ids;
         }
         // return Search(`{!join from=id to=proto_i}id:${protoId}`, true);
     }
 
     export async function GetViewsOfDocument(doc: Doc): Promise<Doc[]> {
-        const results = await Search("", `proto_i:"${doc[Id]}"`, true);
+        const results = await Search("", true, { fq: `proto_i:"${doc[Id]}"` });
         return results.docs;
     }
 
     export async function GetContextsOfDocument(doc: Doc): Promise<{ contexts: Doc[], aliasContexts: Doc[] }> {
-        const docContexts = (await Search("", `data_l:"${doc[Id]}"`, true)).docs;
+        const docContexts = (await Search("", true, { fq: `data_l:"${doc[Id]}"` })).docs;
         const aliases = await GetAliasesOfDocument(doc, false);
-        const aliasContexts = (await Promise.all(aliases.map(doc => Search("", `data_l:"${doc}"`, true))));
+        const aliasContexts = (await Promise.all(aliases.map(doc => Search("", true, { fq: `data_l:"${doc}"` }))));
         const contexts = { contexts: docContexts, aliasContexts: [] as Doc[] };
         aliasContexts.forEach(result => contexts.aliasContexts.push(...result.docs));
         return contexts;
     }
 
     export async function GetContextIdsOfDocument(doc: Doc): Promise<{ contexts: string[], aliasContexts: string[] }> {
-        const docContexts = (await Search("", `data_l:"${doc[Id]}"`, false)).ids;
+        const docContexts = (await Search("", false, { fq: `data_l:"${doc[Id]}"` })).ids;
         const aliases = await GetAliasesOfDocument(doc, false);
-        const aliasContexts = (await Promise.all(aliases.map(doc => Search("", `data_l:"${doc}"`, false))));
+        const aliasContexts = (await Promise.all(aliases.map(doc => Search("", false, { fq: `data_l:"${doc}"` }))));
         const contexts = { contexts: docContexts, aliasContexts: [] as string[] };
         aliasContexts.forEach(result => contexts.aliasContexts.push(...result.ids));
         return contexts;
