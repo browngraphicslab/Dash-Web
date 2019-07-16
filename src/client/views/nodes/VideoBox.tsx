@@ -1,19 +1,24 @@
 import React = require("react");
-import { action, IReactionDisposer, observable, reaction, trace, computed, runInAction, untracked } from "mobx";
+import { action, computed, IReactionDisposer, observable, reaction, runInAction, untracked } from "mobx";
 import { observer } from "mobx-react";
+import * as rp from 'request-promise';
+import { InkTool } from "../../../new_fields/InkField";
 import { makeInterface } from "../../../new_fields/Schema";
 import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
 import { VideoField } from "../../../new_fields/URLField";
+import { RouteStore } from "../../../server/RouteStore";
+import { Utils } from "../../../Utils";
+import { DocServer } from "../../DocServer";
+import { Docs, DocUtils } from "../../documents/Documents";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { DocComponent } from "../DocComponent";
+import { DocumentDecorations } from "../DocumentDecorations";
 import { InkingControl } from "../InkingControl";
 import { positionSchema } from "./DocumentView";
 import { FieldView, FieldViewProps } from './FieldView';
 import { pageSchema } from "./ImageBox";
 import "./VideoBox.scss";
-import { InkTool } from "../../../new_fields/InkField";
-import { DocumentDecorations } from "../DocumentDecorations";
 
 type VideoDocument = makeInterface<[typeof positionSchema, typeof pageSchema]>;
 const VideoDocument = makeInterface(positionSchema, pageSchema);
@@ -52,21 +57,17 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
     @action public Play = (update: boolean = true) => {
         this.Playing = true;
         update && this.player && this.player.play();
-        console.log("PLAYING = " + update);
         update && this._youtubePlayer && this._youtubePlayer.playVideo();
         !this._playTimer && (this._playTimer = setInterval(this.updateTimecode, 500));
         this.updateTimecode();
     }
 
     @action public Seek(time: number) {
-        console.log("Seeking " + time);
-        //if (this._youtubePlayer && this._youtubePlayer.getPlayerState() === 5) return;
         this._youtubePlayer && this._youtubePlayer.seekTo(Math.round(time), true);
     }
 
     @action public Pause = (update: boolean = true) => {
         this.Playing = false;
-        console.log("PAUSING = " + update);
         update && this.player && this.player.pause();
         update && this._youtubePlayer && this._youtubePlayer.pauseVideo();
         this._playTimer && clearInterval(this._playTimer);
@@ -119,13 +120,62 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         }
     }
 
+    public static async convertDataUri(imageUri: string, returnedFilename: string) {
+        try {
+            let posting = DocServer.prepend(RouteStore.dataUriToImage);
+            const returnedUri = await rp.post(posting, {
+                body: {
+                    uri: imageUri,
+                    name: returnedFilename
+                },
+                json: true,
+            });
+            return returnedUri;
+
+        } catch (e) {
+            console.log(e);
+        }
+    }
     specificContextMenu = (e: React.MouseEvent): void => {
         let field = Cast(this.Document[this.props.fieldKey], VideoField);
         if (field) {
+            let url = field.url.href;
             let subitems: ContextMenuProps[] = [];
+            subitems.push({ description: "Copy path", event: () => { Utils.CopyText(url); }, icon: "expand-arrows-alt" });
             subitems.push({ description: "Toggle Show Controls", event: action(() => VideoBox._showControls = !VideoBox._showControls), icon: "expand-arrows-alt" });
-            subitems.push({ description: "GOTO 3", event: action(() => this.Seek(3)), icon: "expand-arrows-alt" });
-            subitems.push({ description: "PLAY", event: action(() => this.Play()), icon: "expand-arrows-alt" });
+            let width = NumCast(this.props.Document.width);
+            let height = NumCast(this.props.Document.height);
+            subitems.push({
+                description: "Take Snapshot", event: async () => {
+                    var canvas = document.createElement('canvas');
+                    canvas.width = 640;
+                    canvas.height = 640 * NumCast(this.props.Document.nativeHeight) / NumCast(this.props.Document.nativeWidth);
+                    var ctx = canvas.getContext('2d');//draw image to canvas. scale to target dimensions
+                    if (ctx) {
+                        ctx.rect(0, 0, canvas.width, canvas.height);
+                        ctx.fillStyle = "blue";
+                        ctx.fill();
+                        this._videoRef && ctx.drawImage(this._videoRef, 0, 0, canvas.width, canvas.height);
+                    }
+
+                    //convert to desired file format
+                    var dataUrl = canvas.toDataURL('image/png'); // can also use 'image/png'
+                    // if you want to preview the captured image,
+                    let filename = encodeURIComponent("snapshot" + this.props.Document.title + "_" + this.props.Document.curPage).replace(/\./g, "");
+                    VideoBox.convertDataUri(dataUrl, filename).then(returnedFilename => {
+                        if (returnedFilename) {
+                            let url = DocServer.prepend(returnedFilename);
+                            let imageSummary = Docs.Create.ImageDocument(url, {
+                                x: NumCast(this.props.Document.x) + width, y: NumCast(this.props.Document.y),
+                                width: 150, height: height / width * 150, title: "--snapshot" + NumCast(this.props.Document.curPage) + " image-"
+                            });
+                            this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.addDocument && this.props.ContainingCollectionView.props.addDocument(imageSummary, false);
+                            DocUtils.MakeLink(imageSummary, this.props.Document);
+                        }
+                    });
+                },
+                icon: "expand-arrows-alt"
+            });
             ContextMenu.Instance.addItem({ description: "Video Funcs...", subitems: subitems });
         }
     }
@@ -155,13 +205,18 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         else this._youtubeContentCreated = false;
 
         let iframe = e.target;
+        let started = true;
         let onYoutubePlayerStateChange = (event: any) => runInAction(() => {
-            console.log("Event  " + event.data);
-            if (event.data == YT.PlayerState.PLAYING && !this.Playing) this.Play(false);
-            if (event.data == YT.PlayerState.PAUSED && this.Playing) this.Pause(false);
+            if (started && event.data === YT.PlayerState.PLAYING) {
+                started = false;
+                this._youtubePlayer.unMute();
+                this.Pause();
+                return;
+            }
+            if (event.data === YT.PlayerState.PLAYING && !this.Playing) this.Play(false);
+            if (event.data === YT.PlayerState.PAUSED && this.Playing) this.Pause(false);
         });
         let onYoutubePlayerReady = (event: any) => {
-            console.log("READY!");
             this._reactionDisposer && this._reactionDisposer();
             this._youtubeReactionDisposer && this._youtubeReactionDisposer();
             this._reactionDisposer = reaction(() => this.props.Document.curPage, () => !this.Playing && this.Seek(this.Document.curPage || 0));
@@ -169,7 +224,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
                 let interactive = InkingControl.Instance.selectedTool === InkTool.None && this.props.isSelected() && !DocumentDecorations.Instance.Interacting;
                 iframe.style.pointerEvents = interactive ? "all" : "none";
             }, { fireImmediately: true });
-        }
+        };
         this._youtubePlayer = new YT.Player(`${this.youtubeVideoId + this._youtubeIframeId}-player`, {
             events: {
                 'onReady': onYoutubePlayerReady,
@@ -186,7 +241,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         let start = untracked(() => Math.round(NumCast(this.props.Document.curPage)));
         return <iframe key={this._youtubeIframeId} id={`${this.youtubeVideoId + this._youtubeIframeId}-player`}
             onLoad={this.youtubeIframeLoaded} className={`${style}`} width="640" height="390"
-            src={`https://www.youtube.com/embed/${this.youtubeVideoId}?enablejsapi=1&rel=0&showinfo=1&autoplay=1&start=${start}&modestbranding=1&controls=${VideoBox._showControls ? 1 : 0}`}
+            src={`https://www.youtube.com/embed/${this.youtubeVideoId}?enablejsapi=1&rel=0&showinfo=1&autoplay=1&mute=1&start=${start}&modestbranding=1&controls=${VideoBox._showControls ? 1 : 0}`}
         ></iframe>;
     }
 

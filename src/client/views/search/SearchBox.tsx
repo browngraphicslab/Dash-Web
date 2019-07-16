@@ -6,7 +6,7 @@ import "./FilterBox.scss";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { SetupDrag } from '../../util/DragManager';
 import { Docs } from '../../documents/Documents';
-import { NumCast } from '../../../new_fields/Types';
+import { NumCast, Cast } from '../../../new_fields/Types';
 import { Doc } from '../../../new_fields/Doc';
 import { SearchItem } from './SearchItem';
 import { DocServer } from '../../DocServer';
@@ -22,7 +22,9 @@ export class SearchBox extends React.Component {
 
     @observable private _searchString: string = "";
     @observable private _resultsOpen: boolean = false;
+    @observable private _searchbarOpen: boolean = false;
     @observable private _results: Doc[] = [];
+    private _resultsSet = new Set<Doc>();
     @observable private _openNoResults: boolean = false;
     @observable private _visibleElements: JSX.Element[] = [];
 
@@ -60,6 +62,7 @@ export class SearchBox extends React.Component {
 
         this._openNoResults = false;
         this._results = [];
+        this._resultsSet.clear();
         this._visibleElements = [];
         this._numTotalResults = -1;
         this._endIndex = -1;
@@ -91,8 +94,10 @@ export class SearchBox extends React.Component {
         let query = this._searchString;
         query = FilterBox.Instance.getFinalQuery(query);
         this._results = [];
+        this._resultsSet.clear();
         this._isSearch = [];
         this._visibleElements = [];
+        FilterBox.Instance.closeFilter();
 
         //if there is no query there should be no result
         if (query === "") {
@@ -107,6 +112,7 @@ export class SearchBox extends React.Component {
 
         runInAction(() => {
             this._resultsOpen = true;
+            this._searchbarOpen = true;
             this._openNoResults = true;
             this.resultsScrolled();
         });
@@ -118,7 +124,8 @@ export class SearchBox extends React.Component {
 
     private get filterQuery() {
         const types = FilterBox.Instance.filterTypes;
-        return "proto_i:*" + (types ? ` AND (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}"`).join(" ")})` : "");
+        const includeDeleted = FilterBox.Instance.getDataStatus();
+        return "NOT baseProto_b:true" + (includeDeleted ? "" : " AND NOT deleted:true") + (types ? ` AND (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}"`).join(" ")})` : "");
     }
 
 
@@ -129,15 +136,24 @@ export class SearchBox extends React.Component {
         }
         this.lockPromise = new Promise(async res => {
             while (this._results.length <= this._endIndex && (this._numTotalResults === -1 || this._maxSearchIndex < this._numTotalResults)) {
-                this._curRequest = SearchUtil.Search(query, this.filterQuery, true, this._maxSearchIndex, 10).then(action((res: SearchUtil.DocSearchResult) => {
+                this._curRequest = SearchUtil.Search(query, this.filterQuery, true, this._maxSearchIndex, 10).then(action(async (res: SearchUtil.DocSearchResult) => {
 
                     // happens at the beginning
                     if (res.numFound !== this._numTotalResults && this._numTotalResults === -1) {
                         this._numTotalResults = res.numFound;
                     }
 
-                    let filteredDocs = FilterBox.Instance.filterDocsByType(res.docs);
-                    this._results.push(...filteredDocs);
+                    const docs = await Promise.all(res.docs.map(doc => Cast(doc.extendsDoc, Doc, doc as any)));
+                    let filteredDocs = FilterBox.Instance.filterDocsByType(docs);
+                    runInAction(() => {
+                        // this._results.push(...filteredDocs);
+                        filteredDocs.forEach(doc => {
+                            if (!this._resultsSet.has(doc)) {
+                                this._results.push(doc);
+                                this._resultsSet.add(doc);
+                            }
+                        });
+                    });
 
                     this._curRequest = undefined;
                 }));
@@ -198,6 +214,7 @@ export class SearchBox extends React.Component {
         this._openNoResults = false;
         FilterBox.Instance.closeFilter();
         this._resultsOpen = true;
+        this._searchbarOpen = true;
         FilterBox.Instance._pointerTime = e.timeStamp;
     }
 
@@ -205,12 +222,14 @@ export class SearchBox extends React.Component {
     closeSearch = () => {
         FilterBox.Instance.closeFilter();
         this.closeResults();
+        this._searchbarOpen = false;
     }
 
     @action.bound
     closeResults() {
         this._resultsOpen = false;
         this._results = [];
+        this._resultsSet.clear();
         this._visibleElements = [];
         this._numTotalResults = -1;
         this._endIndex = -1;
@@ -281,15 +300,10 @@ export class SearchBox extends React.Component {
     }
 
     @computed
-    get resFull() {
-        console.log(this._numTotalResults);
-        return this._numTotalResults <= 8;
-    }
+    get resFull() { return this._numTotalResults <= 8; }
 
     @computed
-    get resultHeight() {
-        return this._numTotalResults * 70;
-    }
+    get resultHeight() { return this._numTotalResults * 70; }
 
     render() {
         return (
@@ -300,7 +314,7 @@ export class SearchBox extends React.Component {
                     </span>
                     <input value={this._searchString} onChange={this.onChange} type="text" placeholder="Search..."
                         className="searchBox-barChild searchBox-input" onPointerDown={this.openSearch} onKeyPress={this.enter}
-                        style={{ width: this._resultsOpen ? "500px" : "100px" }} />
+                        style={{ width: this._searchbarOpen ? "500px" : "100px" }} />
                     <button className="searchBox-barChild searchBox-submit" onClick={this.submitSearch} onPointerDown={FilterBox.Instance.stopProp}>Submit</button>
                     <button className="searchBox-barChild searchBox-filter" onClick={FilterBox.Instance.openFilter} onPointerDown={FilterBox.Instance.stopProp}>Filter</button>
                 </div>

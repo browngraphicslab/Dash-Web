@@ -22,6 +22,7 @@ import "./ImageBox.scss";
 import React = require("react");
 import { RouteStore } from '../../../server/RouteStore';
 import { Docs } from '../../documents/Documents';
+import { DocServer } from '../../DocServer';
 var requestImageSize = require('../../util/request-image-size');
 var path = require('path');
 
@@ -157,8 +158,15 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         }).then(function (stream) {
             gumStream = stream;
             recorder = new MediaRecorder(stream);
-            recorder.ondataavailable = function (e: any) {
-                var url = URL.createObjectURL(e.data);
+            recorder.ondataavailable = async function (e: any) {
+                const formData = new FormData();
+                formData.append("file", e.data);
+                const res = await fetch(DocServer.prepend(RouteStore.upload), {
+                    method: 'POST',
+                    body: formData
+                });
+                const files = await res.json();
+                const url = DocServer.prepend(files[0]);
                 // upload to server with known URL 
                 let audioDoc = Docs.Create.AudioDocument(url, { title: "audio test", x: NumCast(self.props.Document.x), y: NumCast(self.props.Document.y), width: 200, height: 32 });
                 audioDoc.embed = true;
@@ -174,7 +182,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                 recorder.stop();
 
                 gumStream.getAudioTracks()[0].stop();
-            }, 1000);
+            }, 5000);
         });
     }
 

@@ -110,7 +110,7 @@ function addSecureRoute(method: Method,
         if (req.user) {
             handler(req.user, res, req);
         } else {
-            req.session!.target = `http://localhost:${port}${req.originalUrl}`;
+            req.session!.target = `${req.headers.host}${req.originalUrl}`;
             onRejection(res, req);
         }
     };
