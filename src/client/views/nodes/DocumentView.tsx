@@ -654,6 +654,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             >
                 {!showTitle && !showCaption ? this.contents :
                     <div style={{ position: "absolute", display: "inline-block", width: "100%", height: "100%", pointerEvents: "none" }}>
+
+                        <div style={{ width: "100%", height: showTextTitle ? "calc(100% - 25px)" : "100%", display: "inline-block", position: showTextTitle ? "relative" : "absolute" }}>
+                            {this.contents}
+                        </div>
                         {!showTitle ? (null) :
                             <div style={{
                                 position: showTextTitle ? "relative" : "absolute", top: 0, textAlign: "center", textOverflow: "ellipsis", whiteSpace: "pre",
@@ -668,9 +672,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                                 <FormattedTextBox {...this.props} DataDoc={this.dataDoc} active={returnTrue} isSelected={this.isSelected} focus={emptyFunction} select={this.select} selectOnLoad={this.props.selectOnLoad} fieldExt={""} hideOnLeave={true} fieldKey={showCaption} />
                             </div>
                         }
-                        <div style={{ width: "100%", height: showTextTitle ? "calc(100% - 25px)" : "100%", display: "inline-block", position: showTextTitle ? "relative" : "absolute" }}>
-                            {this.contents}
-                        </div>
                     </div>
                 }
             </div>
