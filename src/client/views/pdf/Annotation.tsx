@@ -75,7 +75,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
             () => this.props.parent.Index,
             () => {
                 if (this.props.parent.Index === this.props.index) {
-                    this.props.parent.scrollTo(this.props.y * scale - (NumCast(this.props.parent.props.parent.Document.pdfHeight) / 2));
+                    this.props.parent.scrollTo(this.props.y * scale);
                 }
             }
         );
