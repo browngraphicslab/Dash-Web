@@ -109,7 +109,8 @@ export class TooltipTextMenu {
                 if (dom.contains(e.target as Node)) {
                     e.stopPropagation();
                     command(view.state, view.dispatch, view);
-                    //this.update(view, undefined);
+                    if (dom.style.color === "white") { dom.style.color = "greenyellow"; }
+                    else { dom.style.color = "white"; }
                 }
             });
 
