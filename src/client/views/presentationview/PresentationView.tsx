@@ -65,7 +65,6 @@ export class PresentationView extends React.Component<PresViewProps>  {
     constructor(props: PresViewProps) {
         super(props);
         PresentationView.Instance = this;
-        // autorun(() => console.log("Updated: ", this.presElementsMappings));
     }
 
     //The first lifecycle function that gets called to set up the current presentation.
@@ -328,8 +327,6 @@ export class PresentationView extends React.Component<PresViewProps>  {
         if (curDocPresId !== undefined) {
             if (this.groupMappings.has(curDocPresId)) {
                 let currentDocGroup = this.groupMappings.get(curDocPresId)!;
-                Array.from(this.presElementsMappings.keys()).map(doc => console.log(doc[Id]));
-                console.log("\n");
                 currentDocGroup.forEach((doc: Doc, index: number) => {
                     let selectedButtons: boolean[] = this.presElementsMappings.get(doc)!.selected;
                     if (selectedButtons[buttonIndex.Navigate]) {
@@ -795,7 +792,6 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
     addPressElem = (keyDoc: Doc, elem: PresentationElement) => {
         this.presElementsMappings.set(keyDoc, elem);
-        // console.log(keyDoc, " : ", elem, " => ", this.presElementsMappings.size);
     }
 
 
