@@ -349,7 +349,7 @@ export class Viewer extends React.Component<IViewerProps> {
                     <img key={res.path} src={res.path} onError={handleError}
                         style={{ width: `${parseInt(res.width) * scale}px`, height: `${parseInt(res.height) * scale}px` }} />);
             } catch (e) {
-
+                console.log(e);
             }
         }
     }
