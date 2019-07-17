@@ -9,7 +9,7 @@ import { BoolCast, Cast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { RouteStore } from "../../../server/RouteStore";
 import { DocServer } from "../../DocServer";
-import { Docs, DocumentOptions } from "../../documents/Documents";
+import { Docs, DocumentOptions, DocumentType } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocComponent } from "../DocComponent";
@@ -74,7 +74,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     return;
                 }
                 // The following conditional detects a recurring bug we've seen on the server
-                if (proto[Id] === "collectionProto") {
+                if (proto[Id] === Docs.Prototypes.get(DocumentType.COL)[Id]) {
                     alert("COLLECTION PROTO CURSOR ISSUE DETECTED! Check console for more info...");
                     console.log(doc);
                     console.log(proto);
