@@ -30,6 +30,7 @@ export class ContextMenu extends React.Component {
     @observable private _mouseX: number = -1;
     @observable private _mouseY: number = -1;
     @observable private _shouldDisplay: boolean = false;
+    @observable private _mouseDown: boolean = false;
 
     private _reactionDisposer?: IReactionDisposer;
 
@@ -43,11 +44,15 @@ export class ContextMenu extends React.Component {
     componentDidMount = () => {
         document.addEventListener("pointerdown", e => {
             runInAction(() => {
+                this._mouseDown = true;
                 this._mouseX = e.clientX;
                 this._mouseY = e.clientY;
             });
         });
         document.addEventListener("pointerup", e => {
+            runInAction(() => {
+                this._mouseDown = false;
+            })
             let curX = e.clientX;
             let curY = e.clientY;
             if (this._mouseX !== curX || this._mouseY !== curY) {
@@ -56,17 +61,17 @@ export class ContextMenu extends React.Component {
                 });
             }
 
-            // if (this._shouldDisplay) {
-            //     runInAction(() => {
-            //         this._display = true;
-            //     });
-            // }
+            if (this._shouldDisplay) {
+                runInAction(() => {
+                    this._display = true;
+                });
+            }
         });
 
         this._reactionDisposer = reaction(
             () => this._shouldDisplay,
             () => {
-                if (this._shouldDisplay) {
+                if (this._shouldDisplay && !this._mouseDown) {
                     runInAction(() => {
                         this._display = true;
                     });
