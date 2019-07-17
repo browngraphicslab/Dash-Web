@@ -15,6 +15,9 @@ import { Id } from '../../../new_fields/FieldSymbols';
 import { SearchUtil } from '../../util/SearchUtil';
 import { RouteStore } from '../../../server/RouteStore';
 import { FilterBox } from './FilterBox';
+import { ReadStream } from 'fs';
+import * as $ from 'jquery';
+
 
 
 @observer
@@ -29,6 +32,7 @@ export class SearchBox extends React.Component {
     @observable private _visibleElements: JSX.Element[] = [];
 
     private resultsRef = React.createRef<HTMLDivElement>();
+    public inputRef = React.createRef<HTMLInputElement>();
 
     private _isSearch: ("search" | "placeholder" | undefined)[] = [];
     private _numTotalResults = -1;
@@ -44,6 +48,15 @@ export class SearchBox extends React.Component {
 
         SearchBox.Instance = this;
         this.resultsScrolled = this.resultsScrolled.bind(this);
+    }
+
+    componentDidMount = () => {
+        if (this.inputRef.current) {
+            this.inputRef.current.focus();
+            runInAction(() => {
+                this._searchbarOpen = true;
+            });
+        }
     }
 
     @action
@@ -321,7 +334,7 @@ export class SearchBox extends React.Component {
                     <span className="searchBox-barChild searchBox-collection" onPointerDown={SetupDrag(this.collectionRef, this.startDragCollection)} ref={this.collectionRef} title="Drag Results as Collection">
                         <FontAwesomeIcon icon="object-group" size="lg" />
                     </span>
-                    <input value={this._searchString} onChange={this.onChange} type="text" placeholder="Search..."
+                    <input value={this._searchString} onChange={this.onChange} type="text" placeholder="Search..." id="search-input" ref={this.inputRef}
                         className="searchBox-barChild searchBox-input" onPointerDown={this.openSearch} onKeyPress={this.enter}
                         style={{ width: this._searchbarOpen ? "500px" : "100px" }} />
                     <button className="searchBox-barChild searchBox-submit" onClick={this.submitSearch} onPointerDown={FilterBox.Instance.stopProp}>Submit</button>

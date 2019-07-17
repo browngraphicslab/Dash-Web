@@ -52,7 +52,7 @@ export class ContextMenu extends React.Component {
         document.addEventListener("pointerup", e => {
             runInAction(() => {
                 this._mouseDown = false;
-            })
+            });
             let curX = e.clientX;
             let curY = e.clientY;
             if (this._mouseX !== curX || this._mouseY !== curY) {

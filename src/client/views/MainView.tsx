@@ -39,6 +39,8 @@ import { PreviewCursor } from './PreviewCursor';
 import { FilterBox } from './search/FilterBox';
 import { CollectionTreeView } from './collections/CollectionTreeView';
 import { ClientUtils } from '../util/ClientUtils';
+import { SearchBox } from './search/SearchBox';
+
 
 @observer
 export class MainView extends React.Component {
@@ -439,11 +441,10 @@ export class MainView extends React.Component {
     }
 
     @observable isSearchVisible = false;
-    @action
+    @action.bound
     toggleSearch = () => {
         this.isSearchVisible = !this.isSearchVisible;
     }
-
 
     render() {
         return (
