@@ -92,6 +92,7 @@ $linkGap : 3px;
 
     .title {
         background: $alt-accent;
+        opacity: 0.8;
         grid-column-start: 3;
         grid-column-end: 4;
         pointer-events: auto;
