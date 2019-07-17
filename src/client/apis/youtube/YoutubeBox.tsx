@@ -11,6 +11,7 @@ import { Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { NumCast } from "../../../new_fields/Types";
 import "./YoutubeBox.scss";
+import { Docs } from "../../documents/Documents";
 
 
 @observer
@@ -25,7 +26,7 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
     public static LayoutString() { return FieldView.LayoutString(YoutubeBox); }
 
     componentWillMount() {
-        DocServer.getYoutubeChannels();
+        //DocServer.getYoutubeChannels();
     }
 
     _ignore = 0;
@@ -59,34 +60,50 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
     @action
     processesVideoResults = (videos: any[]) => {
         this.searchResults = videos;
+        console.log("Results: ", this.searchResults);
         if (this.searchResults.length > 0) {
             this.searchResultsFound = true;
-            this.searchResults.forEach((video) => console.log("Image Url", video.snippet));
             if (this.videoClicked) {
                 this.videoClicked = false;
             }
         }
     }
 
+    filterYoutubeTitleResult = (resultTitle: string) => {
+        let processedTitle: string = resultTitle.ReplaceAll("&amp;", "&");
+        processedTitle = processedTitle.ReplaceAll("&#39;", "'");
+        processedTitle = processedTitle.ReplaceAll("&quot;", "\"");
+        return processedTitle;
+    }
+
     renderSearchResultsOrVideo = () => {
         if (this.searchResultsFound) {
             return <ul>
                 {this.searchResults.map((video) => {
-                    return <li onClick={() => this.embedVideoOnClick(video.id.videoId)} key={video.id.videoId}><img src={video.snippet.thumbnails.medium.url} />  {video.snippet.title}</li>;
+                    let filteredTitle = this.filterYoutubeTitleResult(video.snippet.title);
+                    return <li onClick={() => this.embedVideoOnClick(video.id.videoId, filteredTitle)} key={video.id.videoId}><img src={video.snippet.thumbnails.medium.url} />  {filteredTitle}</li>;
                 })}
             </ul>;
-        } else if (this.videoClicked) {
-            return <iframe src={this.selectedVideoUrl} height={NumCast(this.props.Document.height) - 40} width={NumCast(this.props.Document.width)}></iframe>;
+            // } else if (this.videoClicked) {
+            //     return <iframe src={this.selectedVideoUrl} height={NumCast(this.props.Document.height) - 40} width={NumCast(this.props.Document.width)}></iframe>;
+            // } 
         } else {
             return (null);
         }
     }
 
     @action
-    embedVideoOnClick = (videoId: string) => {
+    embedVideoOnClick = (videoId: string, filteredTitle: string) => {
         let embeddedUrl = "https://www.youtube.com/embed/" + videoId;
         this.selectedVideoUrl = embeddedUrl;
-        this.searchResultsFound = false;
+        let addFunction = this.props.addDocument!;
+        let newVideoX = NumCast(this.props.Document.x) + NumCast(this.props.Document.width);
+        let newVideoY = NumCast(this.props.Document.y) + NumCast(this.props.Document.height);
+
+        addFunction(Docs.Create.VideoDocument(embeddedUrl, { title: filteredTitle, width: 400, height: 315, x: newVideoX, y: newVideoY }));
+
+        //this.props.addDocument(Docs.Create.VideoDocument(embeddedUrl, { title: embeddedUrl, width: 400, height: 315 }));
+        //this.searchResultsFound = false;
         this.videoClicked = true;
     }
 

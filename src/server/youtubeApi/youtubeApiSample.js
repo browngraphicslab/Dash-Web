@@ -153,7 +153,7 @@ function getSampleVideos(auth, args) {
             return;
         }
         let videos = response.data.items;
-        console.log('Videos found: ' + videos[0].id.videoId, " ", videos[0].snippet.title);
+        console.log('Videos found: ' + videos[0].id.videoId, " ", unescape(videos[0].snippet.title));
         args.callBack(videos);
     });
 }
