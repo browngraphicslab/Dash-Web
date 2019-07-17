@@ -267,7 +267,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         // this.props.Document.panX = panX;
         // this.props.Document.panY = panY;
         if (this.props.Document.scrollY) {
-            this.props.Document.scrollY = panY;
+            this.props.Document.scrollY = panY - scale * this.props.Document[HeightSym]();
         }
     }
 
