@@ -192,7 +192,9 @@ export class Viewer extends React.Component<IViewerProps> {
     }
 
     scrollTo(y: number) {
-        this.props.parent.scrollTo(y);
+        if (this.props.mainCont.current) {
+            this.props.parent.scrollTo(y - this.props.mainCont.current.clientHeight);
+        }
     }
 
     @action

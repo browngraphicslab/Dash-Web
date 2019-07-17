@@ -1,6 +1,6 @@
 import { action, IReactionDisposer, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
-import { WidthSym } from "../../../new_fields/Doc";
+import { WidthSym, HeightSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { NumCast } from "../../../new_fields/Types";
 import { emptyFunction } from "../../../Utils";
@@ -34,7 +34,7 @@ export class CollectionPDFView extends React.Component<FieldViewProps> {
                 // console.log(this._buttonTray.current.offsetHeight);
                 // console.log(NumCast(this.props.Document.scrollY));
                 let scale = this.nativeWidth() / this.props.Document[WidthSym]();
-                this.props.Document.panY = NumCast(this.props.Document.scrollY);
+                this.props.Document.panY = NumCast(this.props.Document.scrollY) - this.props.Document[HeightSym]();
                 // console.log(scale);
                 // }
                 // console.log(this.props.Document[HeightSym]());
