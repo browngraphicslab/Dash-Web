@@ -101,8 +101,8 @@ export class SearchItem extends React.Component<SearchItemProps> {
 
     onClick = () => {
         // I dont think this is the best functionality because clicking the name of the collection does that. Change it back if you'd like
-        // DocumentManager.Instance.jumpToDocument(this.props.doc, false);
-        CollectionDockingView.Instance.AddRightSplit(this.props.doc, undefined);
+        DocumentManager.Instance.jumpToDocument(this.props.doc, false);
+        // CollectionDockingView.Instance.AddRightSplit(this.props.doc, undefined);
     }
     @observable _useIcons = true;
     @observable _displayDim = 50;

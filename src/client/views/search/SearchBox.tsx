@@ -145,7 +145,7 @@ export class SearchBox extends React.Component {
 
                     const highlighting = res.highlighting || {};
                     const highlightList = res.docs.map(doc => highlighting[doc[Id]]);
-                    const docs = await Promise.all(res.docs.map(doc => Cast(doc.extendsDoc, Doc, doc as any)));
+                    const docs = await Promise.all(res.docs.map(async doc => (await Cast(doc.extendsDoc, Doc)) || doc));
                     const highlights: typeof res.highlighting = {};
                     docs.forEach((doc, index) => highlights[doc[Id]] = highlightList[index]);
                     let filteredDocs = FilterBox.Instance.filterDocsByType(docs);
