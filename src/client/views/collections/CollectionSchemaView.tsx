@@ -32,7 +32,7 @@ import { CollectionView } from "./CollectionView";
 import { undoBatch } from "../../util/UndoManager";
 import { timesSeries } from "async";
 import { CollectionSchemaHeader, CollectionSchemaAddColumnHeader } from "./CollectionSchemaHeaders";
-import { CellProps, CollectionSchemaCell } from "./CollectionSchemaCells";
+import { CellProps, CollectionSchemaCell, CollectionSchemaNumberCell, CollectionSchemaStringCell, CollectionSchemaBooleanCell, CollectionSchemaCheckboxCell } from "./CollectionSchemaCells";
 
 
 library.add(faCog);
@@ -100,7 +100,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     possibleKeys={possibleKeys}
                     existingKeys={this.columns}
                     keyType={this.getColumnType(col)}
-                    typeConst={false}
+                    typeConst={columnTypes.get(col) !== undefined}
                     onSelect={this.changeColumns}
                     setIsEditing={this.setHeaderIsEditing}
                     deleteColumn={this.deleteColumn}
@@ -130,6 +130,12 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                         setIsEditing: action(emptyFunction), //this.setCellIsEditing,
                         isEditable: true //isEditable
                     };
+
+                    let colType = this.getColumnType(col);
+                    if (colType === ColumnType.Number) return <CollectionSchemaNumberCell {...props}/>
+                    if (colType === ColumnType.String) return <CollectionSchemaStringCell {...props}/>
+                    if (colType === ColumnType.Boolean) return <CollectionSchemaBooleanCell {...props} />
+                    if (colType === ColumnType.Checkbox) return <CollectionSchemaCheckboxCell {...props} />
                     return <CollectionSchemaCell {...props}/>
                 }
             };
@@ -324,9 +330,10 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         if (columnTypes.get(key)) return;
         const typesDoc = FieldValue(Cast(this.props.Document.schemaColumnTypes, Doc));
         if (!typesDoc) {
-            // let newTypesDoc = new Doc();
-            // newTypesDoc[key] = type;
-            // this.props.Document.schemaColumnTypes  = newTypesDoc;
+            let newTypesDoc = new Doc();
+            newTypesDoc[key] = type;
+            this.props.Document.schemaColumnTypes  = newTypesDoc;
+            console.log("no typesDoc");
             return;
         } else {
             typesDoc[key] = type;

@@ -35,6 +35,7 @@ export class CollectionSchemaHeader extends React.Component<HeaderProps> {
                     possibleKeys={this.props.possibleKeys}
                     existingKeys={this.props.existingKeys}
                     keyType={this.props.keyType}
+                    typeConst={this.props.typeConst}
                     menuButtonContent={<div><FontAwesomeIcon icon={icon} size="sm" />{this.props.keyValue}</div>}
                     addNew={false}
                     onSelect={this.props.onSelect}
@@ -95,6 +96,7 @@ export interface ColumnMenuProps {
     possibleKeys: string[];
     existingKeys: string[];
     keyType: ColumnType;
+    typeConst: boolean;
     menuButtonContent: JSX.Element;
     addNew: boolean;
     onSelect: (oldKey: string, newKey: string, addnew: boolean) => void;
@@ -150,6 +152,7 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
                             addNew={this.props.addNew}
                             onSelect={this.props.onSelect}
                         />
+                        {!this.props.typeConst ? 
                         <KeysDropdown
                             keyValue={keyTypeStr}
                             possibleKeys={colTypes}
@@ -158,6 +161,7 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
                             addNew={false}
                             onSelect={this.setColumnType}
                         />
+                        : null}
                         <button onClick={() => this.props.deleteColumn(this.props.keyValue)}>Delete Column</button>
                     </div>
                 );
