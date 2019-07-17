@@ -429,7 +429,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         let docviews = docs.reduce((prev, doc) => {
             if (!(doc instanceof Doc)) return prev;
             var page = NumCast(doc.page, -1);
-            if (Math.round(page) === Math.round(curPage) || page === -1) {
+            if ((Math.abs(Math.round(page) - Math.round(curPage)) < 3) || page === -1) {
                 let minim = BoolCast(doc.isMinimized, false);
                 if (minim === undefined || !minim) {
                     const pos = script ? this.getCalculatedPositions(script, { doc, index: prev.length, collection: this.Document, docs, state }) : {};
