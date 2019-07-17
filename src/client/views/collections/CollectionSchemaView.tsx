@@ -4,10 +4,10 @@ import { faCog, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, trace, untracked } from "mobx";
 import { observer } from "mobx-react";
-import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults } from "react-table";
+import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults, TableCellRenderer } from "react-table";
 import "react-table/react-table.css";
 import { emptyFunction, returnFalse, returnZero, returnOne } from "../../../Utils";
-import { Doc, DocListCast, DocListCastAsync, Field } from "../../../new_fields/Doc";
+import { Doc, DocListCast, DocListCastAsync, Field, FieldResult } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
@@ -31,12 +31,28 @@ import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
 import { undoBatch } from "../../util/UndoManager";
 import { timesSeries } from "async";
+import { CollectionSchemaHeader, CollectionSchemaAddColumnHeader } from "./CollectionSchemaHeaders";
+import { CellProps, CollectionSchemaCell } from "./CollectionSchemaCells";
 
 
 library.add(faCog);
 library.add(faPlus);
 // bcz: need to add drag and drop of rows and columns.  This seems like it might work for rows: https://codesandbox.io/s/l94mn1q657
 
+export enum ColumnType {
+    Any,
+    Number,
+    String,
+    Boolean,
+    Doc,
+    Checkbox
+}
+// this map should be used for keys that should have a const type of value
+const columnTypes: Map<string, ColumnType> = new Map([
+    ["x", ColumnType.Number], ["y", ColumnType.Number], ["width", ColumnType.Number], ["height", ColumnType.Number],
+    ["nativeWidth", ColumnType.Number], ["nativeHeight", ColumnType.Number], ["isPrototype", ColumnType.Boolean],
+    ["page", ColumnType.Number], ["curPage", ColumnType.Number], ["libraryBrush", ColumnType.Boolean], ["zIndex", ColumnType.Number]
+]);
 
 @observer
 class KeyToggle extends React.Component<{ keyName: string, checked: boolean, toggle: (key: string) => void }> {
@@ -66,21 +82,72 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @observable _keys: string[] = [];
     @observable _newKeyName: string = "";
     @observable previewScript: string = "";
+    @observable _headerIsEditing: boolean = false;
 
     @computed get previewWidth() { return () => NumCast(this.props.Document.schemaPreviewWidth); }
     @computed get previewHeight() { return () => this.props.PanelHeight() - 2 * this.borderWidth; }
     @computed get tableWidth() { return this.props.PanelWidth() - 2 * this.borderWidth - this.DIVIDER_WIDTH - this.previewWidth(); }
     @computed get columns() { return Cast(this.props.Document.schemaColumns, listSpec("string"), []); }
+    set columns(columns: string[]) { this.props.Document.schemaColumns = new List<string>(columns); }
     @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }
     @computed get tableColumns() {
-        return this.columns.map(col => {
-            const ref = React.createRef<HTMLParagraphElement>();
+        let possibleKeys = this.documentKeys.filter(key => this.columns.findIndex(existingKey => existingKey.toUpperCase() === key.toUpperCase()) === -1);
+
+        let cols = this.columns.map(col => {
             return {
-                Header: <p ref={ref} onPointerDown={SetupDrag(ref, () => this.onHeaderDrag(col), undefined, "copy")}>{col}</p>,
+                Header: <CollectionSchemaHeader 
+                    keyValue={col}
+                    possibleKeys={possibleKeys}
+                    existingKeys={this.columns}
+                    keyType={this.getColumnType(col)}
+                    typeConst={false}
+                    onSelect={this.changeColumns}
+                    setIsEditing={this.setHeaderIsEditing}
+                    deleteColumn={this.deleteColumn}
+                    setColumnType={this.setColumnType}
+                />,
                 accessor: (doc: Doc) => doc ? doc[col] : 0,
-                id: col
+                id: col,
+                Cell: (rowProps: CellInfo) => {
+                    let row = rowProps.index;
+                    let column = this.columns.indexOf(rowProps.column.id!);
+                    // let isFocused = focusedRow === row && focusedCol === column;
+                    let isFocused = false;
+
+                    let props: CellProps = {
+                        row: row,
+                        col: column,
+                        rowProps: rowProps,
+                        isFocused: isFocused,
+                        changeFocusedCellByDirection: action(emptyFunction),//this.changeFocusedCellByDirection,
+                        changeFocusedCellByIndex: action(emptyFunction), //this.changeFocusedCellByIndex,
+                        CollectionView: this.props.CollectionView,
+                        ContainingCollection: this.props.ContainingCollectionView,
+                        Document: this.props.Document,
+                        fieldKey: this.props.fieldKey,
+                        renderDepth: this.props.renderDepth, addDocTab: this.props.addDocTab,
+                        moveDocument: this.props.moveDocument,
+                        setIsEditing: action(emptyFunction), //this.setCellIsEditing,
+                        isEditable: true //isEditable
+                    };
+                    return <CollectionSchemaCell {...props}/>
+                }
             };
+        }) as {Header: TableCellRenderer, accessor: (doc: Doc) => FieldResult<Field>, id: string, Cell: (rowProps: CellInfo) => JSX.Element}[];
+
+        cols.push({
+            Header: <CollectionSchemaAddColumnHeader
+                possibleKeys={possibleKeys}
+                existingKeys={this.columns}
+                onSelect={this.changeColumns}
+                setIsEditing={this.setHeaderIsEditing}
+            />,
+            accessor: (doc: Doc) => 0,
+            id: "add",
+            Cell: (rowProps: CellInfo) => <></>,
         });
+
+        return cols;
     }
 
     onHeaderDrag = (columnName: string) => {
@@ -95,72 +162,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             }
         }
         return this.props.Document;
-    }
-
-    renderCell = (rowProps: CellInfo) => {
-        let props: FieldViewProps = {
-            Document: rowProps.original,
-            DataDoc: rowProps.original,
-            fieldKey: rowProps.column.id as string,
-            fieldExt: "",
-            ContainingCollectionView: this.props.CollectionView,
-            isSelected: returnFalse,
-            select: emptyFunction,
-            renderDepth: this.props.renderDepth + 1,
-            selectOnLoad: false,
-            ScreenToLocalTransform: Transform.Identity,
-            focus: emptyFunction,
-            active: returnFalse,
-            whenActiveChanged: emptyFunction,
-            PanelHeight: returnZero,
-            PanelWidth: returnZero,
-            addDocTab: this.props.addDocTab,
-        };
-        let fieldContentView = <FieldView {...props} />;
-        let reference = React.createRef<HTMLDivElement>();
-        let onItemDown = (e: React.PointerEvent) => {
-            (!this.props.CollectionView.props.isSelected() ? undefined :
-                SetupDrag(reference, () => props.Document, this.props.moveDocument, this.props.Document.schemaDoc ? "copy" : undefined)(e));
-        };
-        let applyToDoc = (doc: Doc, run: (args?: { [name: string]: any }) => any) => {
-            const res = run({ this: doc });
-            if (!res.success) return false;
-            doc[props.fieldKey] = res.result;
-            return true;
-        };
-        return (
-            <div className="collectionSchemaView-cellContents" onPointerDown={onItemDown} key={props.Document[Id]} ref={reference}>
-                <EditableView
-                    display={"inline"}
-                    contents={fieldContentView}
-                    height={Number(MAX_ROW_HEIGHT)}
-                    GetValue={() => {
-                        let field = props.Document[props.fieldKey];
-                        if (Field.IsField(field)) {
-                            return Field.toScriptString(field);
-                        }
-                        return "";
-                    }}
-                    SetValue={(value: string) => {
-                        let script = CompileScript(value, { addReturn: true, params: { this: Doc.name } });
-                        if (!script.compiled) {
-                            return false;
-                        }
-                        return applyToDoc(props.Document, script.run);
-                    }}
-                    OnFillDown={async (value: string) => {
-                        let script = CompileScript(value, { addReturn: true, params: { this: Doc.name } });
-                        if (!script.compiled) {
-                            return;
-                        }
-                        const run = script.run;
-                        //TODO This should be able to be refactored to compile the script once
-                        const val = await DocListCastAsync(this.props.Document[this.props.fieldKey]);
-                        val && val.forEach(doc => applyToDoc(doc, run));
-                    }}>
-                </EditableView>
-            </div >
-        );
     }
 
     private getTrProps: ComponentPropsGetterR = (state, rowInfo) => {
@@ -187,6 +188,11 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     private createTarget = (ele: HTMLDivElement) => {
         this._mainCont = ele;
         super.CreateDropTarget(ele);
+    }
+
+    @action
+    setHeaderIsEditing = (isEditing: boolean) => {
+        this._headerIsEditing = isEditing;
     }
 
     @action
@@ -278,9 +284,59 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     @action
-    newKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        this._newKeyName = e.currentTarget.value;
+    deleteColumn = (key: string) => {
+        let list = Cast(this.props.Document.schemaColumns, listSpec("string"));
+        if (list === undefined) {
+            this.props.Document.schemaColumns = list = new List<string>([]);
+        } else {
+            const index = list.indexOf(key);
+            if (index > -1) {
+                list.splice(index, 1);
+            }
+        }
     }
+
+    @action
+    changeColumns = (oldKey: string, newKey: string, addNew: boolean) => {
+        let list = Cast(this.props.Document.schemaColumns, listSpec("string"));
+        if (list === undefined) {
+            this.props.Document.schemaColumns = list = new List<string>([newKey]);
+        } else {
+            if (addNew) {
+                this.columns.push(newKey);
+            } else {
+                const index = list.indexOf(oldKey);
+                if (index > -1) {
+                    list[index] = newKey;
+                }
+            }
+        }
+    }
+
+    getColumnType = (key: string): ColumnType => {
+        if (columnTypes.get(key)) return columnTypes.get(key)!;
+        const typesDoc = FieldValue(Cast(this.props.Document.schemaColumnTypes, Doc));
+        if (!typesDoc) return ColumnType.Any;
+        return NumCast(typesDoc[key]);
+    }
+
+    setColumnType = (key: string, type: ColumnType): void => {
+        if (columnTypes.get(key)) return;
+        const typesDoc = FieldValue(Cast(this.props.Document.schemaColumnTypes, Doc));
+        if (!typesDoc) {
+            // let newTypesDoc = new Doc();
+            // newTypesDoc[key] = type;
+            // this.props.Document.schemaColumnTypes  = newTypesDoc;
+            return;
+        } else {
+            typesDoc[key] = type;
+        }
+    }
+
+    // @action
+    // newKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    //     this._newKeyName = e.currentTarget.value;
+    // }
 
     @computed
     get previewDocument(): Doc | undefined {
@@ -289,11 +345,10 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         return pdc;
     }
 
-    getPreviewTransform = (): Transform => this.props.ScreenToLocalTransform().translate(
-        - this.borderWidth - this.DIVIDER_WIDTH - this.tableWidth, - this.borderWidth)
+    getPreviewTransform = (): Transform => this.props.ScreenToLocalTransform().translate(- this.borderWidth - this.DIVIDER_WIDTH - this.tableWidth, - this.borderWidth);
 
 
-    get documentKeysCheckList() {
+    get documentKeys() {
         const docs = DocListCast(this.props.Document[this.props.fieldKey]);
         let keys: { [key: string]: boolean } = {};
         // bcz: ugh.  this is untracked since otherwise a large collection of documents will blast the server for all their fields.
@@ -305,39 +360,60 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         untracked(() => docs.map(doc => Doc.GetAllPrototypes(doc).map(proto => Object.keys(proto).forEach(key => keys[key] = false))));
 
         this.columns.forEach(key => keys[key] = true);
-        return Array.from(Object.keys(keys)).map(item =>
-            (<KeyToggle checked={keys[item]} key={item} keyName={item} toggle={this.toggleKey} />));
+        return Array.from(Object.keys(keys));
     }
 
-    get tableOptionsPanel() {
-        return !this.props.active() ? (null) :
-            (<Flyout
-                anchorPoint={anchorPoints.RIGHT_TOP}
-                content={<div>
-                    <div id="schema-options-header"><h5><b>Options</b></h5></div>
-                    <div id="options-flyout-div">
-                        <h6 className="schema-options-subHeader">Preview Window</h6>
-                        <div id="preview-schema-checkbox-div"><input type="checkbox" key={"Show Preview"} checked={this.previewWidth() !== 0} onChange={this.toggleExpander} />  Show Preview </div>
-                        <h6 className="schema-options-subHeader" >Displayed Columns</h6>
-                        <ul id="schema-col-checklist" >
-                            {this.documentKeysCheckList}
-                        </ul>
-                        <input value={this._newKeyName} onChange={this.newKeyChange} />
-                        <button onClick={this.addColumn}><FontAwesomeIcon style={{ color: "white" }} icon="plus" size="lg" /></button>
-                    </div>
-                </div>
-                }>
-                <button id="schemaOptionsMenuBtn" ><FontAwesomeIcon style={{ color: "white" }} icon="cog" size="sm" /></button>
-            </Flyout>);
-    }
+    // get documentKeysCheckList() {
+    //     const docs = DocListCast(this.props.Document[this.props.fieldKey]);
+    //     let keys: { [key: string]: boolean } = {};
+    //     // bcz: ugh.  this is untracked since otherwise a large collection of documents will blast the server for all their fields.
+    //     //  then as each document's fields come back, we update the documents _proxies.  Each time we do this, the whole schema will be
+    //     //  invalidated and re-rendered.   This workaround will inquire all of the document fields before the options button is clicked.
+    //     //  then by the time the options button is clicked, all of the fields should be in place.  If a new field is added while this menu
+    //     //  is displayed (unlikely) it won't show up until something else changes.
+    //     //TODO Types
+    //     untracked(() => docs.map(doc => Doc.GetAllPrototypes(doc).map(proto => Object.keys(proto).forEach(key => keys[key] = false))));
+
+    //     this.columns.forEach(key => keys[key] = true);
+    //     return Array.from(Object.keys(keys)).map(item =>
+    //         (<KeyToggle checked={keys[item]} key={item} keyName={item} toggle={this.toggleKey} />));
+    // }
+
+    // get tableOptionsPanel() {
+    //     return !this.props.active() ? (null) :
+    //         (<Flyout
+    //             anchorPoint={anchorPoints.RIGHT_TOP}
+    //             content={<div>
+    //                 <div id="schema-options-header"><h5><b>Options</b></h5></div>
+    //                 <div id="options-flyout-div">
+    //                     <h6 className="schema-options-subHeader">Preview Window</h6>
+    //                     <div id="preview-schema-checkbox-div"><input type="checkbox" key={"Show Preview"} checked={this.previewWidth() !== 0} onChange={this.toggleExpander} />  Show Preview </div>
+    //                     <h6 className="schema-options-subHeader" >Displayed Columns</h6>
+    //                     <ul id="schema-col-checklist" >
+    //                         {this.documentKeysCheckList}
+    //                     </ul>
+    //                     <input value={this._newKeyName} onChange={this.newKeyChange} />
+    //                     <button onClick={this.addColumn}><FontAwesomeIcon style={{ color: "white" }} icon="plus" size="lg" /></button>
+    //                 </div>
+    //             </div>
+    //             }>
+    //             <button id="schemaOptionsMenuBtn" ><FontAwesomeIcon style={{ color: "white" }} icon="cog" size="sm" /></button>
+    //         </Flyout>);
+    // }
 
     @computed
     get reactTable() {
         let previewWidth = this.previewWidth() + 2 * this.borderWidth + this.DIVIDER_WIDTH + 1;
-        return <ReactTable style={{ position: "relative", float: "left", width: `calc(100% - ${previewWidth}px` }} data={this.childDocs} page={0} pageSize={this.childDocs.length} showPagination={false}
+        return <ReactTable 
+            style={{ position: "relative", float: "left", width: `calc(100% - ${previewWidth}px` }} 
+            data={this.childDocs} 
+            page={0} 
+            pageSize={this.childDocs.length} 
+            showPagination={false}
             columns={this.tableColumns}
-            column={{ ...ReactTableDefaults.column, Cell: this.renderCell, }}
+            // column={{ ...ReactTableDefaults.column, Cell: this.renderCell, }}
             getTrProps={this.getTrProps}
+            sortable={false}
         />;
     }
 
@@ -392,7 +468,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 {this.reactTable}
                 {this.dividerDragger}
                 {!this.previewWidth() ? (null) : this.previewPanel}
-                {this.tableOptionsPanel}
+                {/* {this.tableOptionsPanel} */}
             </div>
         );
     }

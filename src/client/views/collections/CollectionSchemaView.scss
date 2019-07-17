@@ -187,6 +187,27 @@
     .documentView-node:first-child {
         background: $light-color;
     }
+
+    .ReactTable .rt-thead .rt-resizable-header:last-child {
+        overflow: visible;
+    }
+}
+
+.collectionSchema-header-menuOptions {
+    position: absolute;
+    top: $MAX_ROW_HEIGHT;
+    left: 0;
+    z-index: 9999;
+    background-color: $light-color-secondary;
+    color: black;
+    border: 1px solid $main-accent;
+    width: 250px;
+    padding: 10px;
+
+    input {
+        color: black;
+        width: 100%;
+    }
 }
 
 //options menu styling
