@@ -311,8 +311,9 @@ export namespace Docs {
         }
 
         export function ImageDocument(url: string, options: DocumentOptions = {}) {
-            let inst = InstanceFromProto(Prototypes.get(DocumentType.IMG), new ImageField(new URL(url)), { title: path.basename(url), ...options });
-            requestImageSize(window.origin + RouteStore.corsProxy + "/" + url)
+            let imgField = new ImageField(new URL(url));
+            let inst = InstanceFromProto(Prototypes.get(DocumentType.IMG), imgField, { title: path.basename(url), ...options });
+            requestImageSize(imgField.url.href)
                 .then((size: any) => {
                     let aspect = size.height / size.width;
                     if (!inst.proto!.nativeWidth) {

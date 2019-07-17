@@ -259,7 +259,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     _curSuffix = "_m";
 
     resize(srcpath: string, layoutdoc: Doc) {
-        requestImageSize(window.origin + RouteStore.corsProxy + "/" + srcpath)
+        requestImageSize(srcpath)
             .then((size: any) => {
                 let aspect = size.height / size.width;
                 let rotation = NumCast(this.dataDoc.rotation) % 180;
