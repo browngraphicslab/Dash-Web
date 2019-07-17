@@ -295,20 +295,20 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
             }));
             this._audioState = 1;
         }
-        else {
-            if (this._audioState === 0) {
-                this._audioState = 1;
-                new Howl({
-                    src: ["https://www.kozco.com/tech/piano2-CoolEdit.mp3"],
-                    autoplay: true,
-                    loop: false,
-                    volume: 0.5,
-                    onend: function () {
-                        runInAction(() => self._audioState = 0);
-                    }
-                });
-            }
-        }
+        // else {
+        //     if (this._audioState === 0) {
+        //         this._audioState = 1;
+        //         new Howl({
+        //             src: ["https://www.kozco.com/tech/piano2-CoolEdit.mp3"],
+        //             autoplay: true,
+        //             loop: false,
+        //             volume: 0.5,
+        //             onend: function () {
+        //                 runInAction(() => self._audioState = 0);
+        //             }
+        //         });
+        //     }
+        // }
     }
 
     @action
