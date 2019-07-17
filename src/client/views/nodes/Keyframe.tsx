@@ -92,6 +92,33 @@ export class Keyframe extends React.Component<IProps> {
     }    
 
 
+    @computed
+    private get firstKeyframe(){
+        let first: (Doc | undefined) = undefined; 
+        DocListCast(this.regiondata.keyframes!).forEach(kf => {
+            if (kf.type !== KeyframeFunc.KeyframeType.fade){
+                if (!first || first && NumCast(kf.time) < NumCast(first.time)){
+                    first = kf; 
+                } 
+            }
+        }); 
+        return first; 
+    }
+
+    @computed
+    private get lastKeyframe(){
+        let last: (Doc | undefined) = undefined; 
+        DocListCast(this.regiondata.keyframes!).forEach(kf => {
+            if (kf.type !== KeyframeFunc.KeyframeType.fade){
+                if (!last || last && NumCast(kf.time) > NumCast(last.time)){
+                    last = kf; 
+                }
+            }
+        }); 
+        return last; 
+    }
+
+
     componentWillMount(){
         if (!this.regiondata.keyframes){
             this.regiondata.keyframes = new List<Doc>(); 
@@ -134,21 +161,17 @@ export class Keyframe extends React.Component<IProps> {
 
     @action
     makeKeyData = (kfpos: number, type:KeyframeFunc.KeyframeType = KeyframeFunc.KeyframeType.default) => { //Kfpos is mouse offsetX, representing time 
-        let hasData = false;
-        this.regiondata.keyframes!.forEach(TK => { //TK is TimeAndKey
-            TK = TK as Doc;
+        DocListCast(this.regiondata.keyframes!).forEach(TK => { //TK is TimeAndKey
             if (TK.time === kfpos) {
-                hasData = true;
+                return TK; 
             }
         });
-        if (!hasData) {
-            let TK: Doc = new Doc();
-            TK.time = kfpos; 
-            TK.key = Doc.MakeCopy(this.props.node, true); 
-            TK.type = type;            
-            this.regiondata.keyframes!.push(TK);
-            return TK; 
-        }
+        let TK: Doc = new Doc();
+        TK.time = kfpos; 
+        TK.key = Doc.MakeCopy(this.props.node, true); 
+        TK.type = type;            
+        this.regiondata.keyframes!.push(TK);
+        return TK; 
     }
 
     @action
@@ -218,18 +241,19 @@ export class Keyframe extends React.Component<IProps> {
         let bar = this._bar.current!;
         let barX = bar.getBoundingClientRect().left;
         let offset = e.clientX - barX;
-        if (this.regiondata.duration - offset < this.regiondata.fadeIn + this.regiondata.fadeOut){
+        let firstkf: (Doc | undefined) = this.firstKeyframe; 
+        console.log(offset); 
+        if (firstkf && this.regiondata.position + this.regiondata.fadeIn + offset>= NumCast(firstkf!.time)) {
+           this.regiondata.position = NumCast(firstkf!.time) - this.regiondata.fadeIn; 
+
+        }else if (this.regiondata.duration - offset < this.regiondata.fadeIn + this.regiondata.fadeOut){ // no keyframes, just fades
             this.regiondata.position -= (this.regiondata.fadeIn + this.regiondata.fadeOut - this.regiondata.duration); 
             this.regiondata.duration = this.regiondata.fadeIn + this.regiondata.fadeOut; 
         } else {
             this.regiondata.duration -= offset;                
             this.regiondata.position += offset;
         }
-        // for (let i = 0; i < this.regiondata.keyframes!.length; i++){
-        //     console.log((this.regiondata.keyframes![i] as Doc).time); 
-        //     (this.regiondata.keyframes![i] as Doc).time = NumCast((this.regiondata.keyframes![i] as Doc).time) - offset; 
-        //     console.log((this.regiondata.keyframes![i] as Doc).time); 
-        // }
+        
     }
 
 
@@ -245,7 +269,7 @@ export class Keyframe extends React.Component<IProps> {
         }else {        
             this.regiondata.duration += offset;
         }
-    }
+    } 
 
     createDivider = (type?: KeyframeFunc.Direction): JSX.Element => {
         if (type === "left") {

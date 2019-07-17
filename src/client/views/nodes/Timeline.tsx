@@ -5,7 +5,7 @@ import { Document, listSpec, createSchema, makeInterface, defaultSpec } from "..
 import { observer } from "mobx-react";
 import { Track } from "./Track";
 import { observable, reaction, action, IReactionDisposer, observe, IObservableArray, computed, toJS, Reaction, IObservableObject, trace, autorun, runInAction } from "mobx";
-import { Cast, NumCast } from "../../../new_fields/Types";
+import { Cast, NumCast, FieldValue } from "../../../new_fields/Types";
 import { SelectionManager } from "../../util/SelectionManager";
 import { List } from "../../../new_fields/List";
 import { Self } from "../../../new_fields/FieldSymbols";
@@ -18,6 +18,8 @@ import { ContextMenu } from "../ContextMenu";
 import { string } from "prop-types";
 import { checkIfStateModificationsAreAllowed } from "mobx/lib/internal";
 import { SelectorContextMenu } from "../collections/ParentDocumentSelector";
+import { DocumentManager } from "../../util/DocumentManager";
+import { CollectionVideoView } from "../collections/CollectionVideoView";
 
 
 export interface FlyoutProps {
@@ -56,7 +58,6 @@ export class Timeline extends CollectionSubView(Document) {
     @observable private _isPlaying: boolean = false;
     @observable private _boxLength: number = 0;
     @observable private _containerHeight: number = this.DEFAULT_CONTAINER_HEIGHT;
-    @observable private _nodes: List<Doc> = new List<Doc>();
     @observable private _time = 100000; //DEFAULT
 
     @observable private _infoContainer = React.createRef<HTMLDivElement>();
@@ -65,6 +66,12 @@ export class Timeline extends CollectionSubView(Document) {
     @observable private flyoutInfo: FlyoutProps = { x: 0, y: 0, display: "none", regiondata: new Doc(), regions: new List<Doc>() };
 
     private block = false;
+
+    @computed
+    private get children(){
+        return Cast(this.props.Document[this.props.fieldKey], listSpec(Doc)) as List<Doc>; 
+    }
+
     componentWillMount() {
         console.log(this._ticks.length);
         runInAction(() => {
@@ -76,15 +83,10 @@ export class Timeline extends CollectionSubView(Document) {
         });
     }
     componentDidMount() {
-        runInAction(() => {
-            let children = Cast(this.props.Document[this.props.fieldKey], listSpec(Doc));
-            if (!children) {
-                return;
-            }
-            let childrenList = children;
-            this._nodes = childrenList;
-        });
         this.initialize();
+
+        console.log(DocumentManager.Instance.getDocumentView(this.props.Document)); 
+        console.log(toJS(this.props.Document.data)); 
     }
 
 
@@ -415,13 +417,13 @@ export class Timeline extends CollectionSubView(Document) {
                             <div className="scrubberhead"></div>
                         </div>
                         <div className="trackbox" ref={this._trackbox} onPointerDown={this.onPanDown}>
-                            {DocListCast(this._nodes).map(doc => {
+                            {DocListCast(this.children).map(doc => {
                                 return <Track node={doc} currentBarX={this._currentBarX} changeCurrentBarX={this.changeCurrentBarX} setFlyout={this.getFlyout} />;
                             })}
                         </div>
                     </div>
                     <div className="title-container" ref={this._titleContainer}>
-                        {DocListCast(this._nodes).map(doc => {
+                        {DocListCast(this.children).map(doc => {
                             return <div className="datapane">
                                 <p>{doc.title}</p>
                             </div>;
