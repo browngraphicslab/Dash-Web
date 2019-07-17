@@ -13,6 +13,8 @@ import { Doc, Opt, Field } from '../../../new_fields/Doc';
 import { FieldValue } from '../../../new_fields/Types';
 import { KeyValueBox } from './KeyValueBox';
 import { DragManager, SetupDrag } from '../../util/DragManager';
+import { ContextMenu } from '../ContextMenu';
+import { CollectionDockingView } from '../collections/CollectionDockingView';
 
 // Represents one row in a key value plane
 
@@ -22,11 +24,24 @@ export interface KeyValuePairProps {
     doc: Doc;
     keyWidth: number;
 }
+
 @observer
 export class KeyValuePair extends React.Component<KeyValuePairProps> {
     @observable private isPointerOver = false;
     @observable public isChecked = false;
     private checkbox = React.createRef<HTMLInputElement>();
+
+    onContextMenu = () => {
+        let cm = ContextMenu.Instance;
+        cm.addItem({ description: "Open Right...", icon: "expand-arrows", event: this.tryOpenRight });
+    }
+
+    tryOpenRight = () => {
+        let target = this.props.doc[this.props.keyName];
+        if (target instanceof Doc) {
+            CollectionDockingView.Instance.AddRightSplit(target, undefined);
+        }
+    }
 
     @action
     handleCheck = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -87,7 +102,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
                     </div>
                 </td>
                 <td className="keyValuePair-td-value" style={{ width: `${100 - this.props.keyWidth}%` }}>
-                    <div className="keyValuePair-td-value-container">
+                    <div className="keyValuePair-td-value-container" onContextMenu={this.onContextMenu}>
                         <EditableView
                             contents={contents}
                             height={36}

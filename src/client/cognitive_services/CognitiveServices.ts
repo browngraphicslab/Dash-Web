@@ -84,9 +84,10 @@ export namespace CognitiveServices {
             let converter = (results: any) => {
                 let tagDoc = new Doc;
                 tagDoc.title = "Generated Tags";
+                let dataDoc = Doc.GetProto(tagDoc);
                 results.tags.map((tag: Tag) => {
                     if (tag.confidence >= +threshold) {
-                        tagDoc[tag.name] = tag.confidence;
+                        dataDoc[tag.name] = tag.confidence;
                     }
                 });
                 return tagDoc;
