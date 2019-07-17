@@ -24,7 +24,7 @@ export class SearchBox extends React.Component {
     @observable private _resultsOpen: boolean = false;
     @observable private _searchbarOpen: boolean = false;
     @observable private _results: [Doc, string[]][] = [];
-    private _resultsSet = new Set<Doc>();
+    private _resultsSet = new Map<Doc, number>();
     @observable private _openNoResults: boolean = false;
     @observable private _visibleElements: JSX.Element[] = [];
 
@@ -143,16 +143,23 @@ export class SearchBox extends React.Component {
                         this._numTotalResults = res.numFound;
                     }
 
-                    const highlighing = res.highlighting || {};
+                    const highlighting = res.highlighting || {};
+                    const highlightList = res.docs.map(doc => highlighting[doc[Id]]);
                     const docs = await Promise.all(res.docs.map(doc => Cast(doc.extendsDoc, Doc, doc as any)));
+                    const highlights: typeof res.highlighting = {};
+                    docs.forEach((doc, index) => highlights[doc[Id]] = highlightList[index]);
                     let filteredDocs = FilterBox.Instance.filterDocsByType(docs);
                     runInAction(() => {
                         // this._results.push(...filteredDocs);
                         filteredDocs.forEach(doc => {
-                            if (!this._resultsSet.has(doc)) {
-                                const highlight = highlighing[doc[Id]];
-                                this._results.push([doc, highlight ? Object.keys(highlight).map(key => key.substring(0, key.length - 2)) : []]);
-                                this._resultsSet.add(doc);
+                            const index = this._resultsSet.get(doc);
+                            const highlight = highlights[doc[Id]];
+                            const hlights = highlight ? Object.keys(highlight).map(key => key.substring(0, key.length - 2)) : []
+                            if (index === undefined) {
+                                this._resultsSet.set(doc, this._results.length);
+                                this._results.push([doc, hlights]);
+                            } else {
+                                this._results[index][1].push(...hlights);
                             }
                         });
                     });

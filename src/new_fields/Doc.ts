@@ -371,6 +371,8 @@ export namespace Doc {
                     copy[key] = field;
                 } else if (field instanceof ObjectField) {
                     copy[key] = ObjectField.MakeCopy(field);
+                } else if (field instanceof Promise) {
+                    field.then(f => (copy[key] === undefined) && (copy[key] = f)); //TODO what should we do here?
                 } else {
                     copy[key] = field;
                 }

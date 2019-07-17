@@ -183,7 +183,7 @@ app.get("/whosOnline", (req, res) => {
 app.get("/thumbnail/:filename", (req, res) => {
     let filename = req.params.filename;
     let noExt = filename.substring(0, filename.length - ".png".length);
-    let pagenumber = parseInt(noExt[noExt.length - 1]);
+    let pagenumber = parseInt(noExt.split('-')[1]);
     fs.exists(uploadDir + filename, (exists: boolean) => {
         console.log(`${uploadDir + filename} ${exists ? "exists" : "does not exist"}`);
         if (exists) {
@@ -191,14 +191,14 @@ app.get("/thumbnail/:filename", (req, res) => {
             probe(input, (err: any, result: any) => {
                 if (err) {
                     console.log(err);
-                    console.log(filename);
+                    console.log(`error on ${filename}`);
                     return;
                 }
                 res.send({ path: "/files/" + filename, width: result.width, height: result.height });
             });
         }
         else {
-            LoadPage(uploadDir + filename.substring(0, filename.length - "-n.png".length) + ".pdf", pagenumber, res);
+            LoadPage(uploadDir + filename.substring(0, filename.length - noExt.split('-')[1].length - ".PNG".length - 1) + ".pdf", pagenumber, res);
         }
     });
 });
