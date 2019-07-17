@@ -46,13 +46,13 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
             DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, undefined, undefined, NumCast((this.props.destinationDoc === self.props.linkDoc.anchor2 ? self.props.linkDoc.anchor2Page : self.props.linkDoc.anchor1Page)));
         }
         else if (!((this.props.destinationDoc === self.props.linkDoc.anchor2 && targetContext) || (this.props.destinationDoc === self.props.linkDoc.anchor1 && sourceContext))) {
-            DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, document => CollectionDockingView.Instance.AddRightSplit(document, undefined));
+            DocumentManager.Instance.jumpToDocument(jumpToDoc, true, false, document => CollectionDockingView.Instance.AddRightSplit(document, undefined));
         } else {
             if (this.props.destinationDoc === self.props.linkDoc.anchor2 && targetContext) {
-                DocumentManager.Instance.jumpToDocument(targetContext, e.altKey, false, document => CollectionDockingView.Instance.AddRightSplit(document, undefined));
+                DocumentManager.Instance.jumpToDocument(targetContext, true, false, document => CollectionDockingView.Instance.AddRightSplit(document, undefined));
             }
             else if (this.props.destinationDoc === self.props.linkDoc.anchor1 && sourceContext) {
-                DocumentManager.Instance.jumpToDocument(sourceContext, e.altKey, false, document => CollectionDockingView.Instance.AddRightSplit(document, undefined));
+                DocumentManager.Instance.jumpToDocument(sourceContext, true, false, document => CollectionDockingView.Instance.AddRightSplit(document, undefined));
             }
         }
     }
