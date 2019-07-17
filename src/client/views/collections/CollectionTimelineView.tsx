@@ -41,7 +41,8 @@ import { forEach } from "typescript-collections/dist/lib/arrays";
 import { DocServer } from "../../DocServer";
 import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { EditableView } from "../EditableView";
-import { string } from "prop-types";
+import { string, element } from "prop-types";
+import { listSpec } from "../../../new_fields/Schema";
 
 
 type CompoundValue = String | number | Date;
@@ -49,16 +50,26 @@ type DocTuple = {
     doc: Doc,
     value: CompoundValue
 };
+// type MarkerUnit = {
+//     element: JSX.Element,
+//     initialLeft: number,
+//     initialWidth: number,
+//     initialScaleRef: number,
+//     secondScaleRef?: number,
+//     ref: HTMLDivElement | undefined,
+//     annotation: string,
+//     map: JSX.Element,
+//     mapref: HTMLDivElement | undefined;
+// };
+
 type MarkerUnit = {
+    document: Doc,
     element: JSX.Element,
-    initialLeft: number,
-    initialWidth: number,
-    initialScaleRef: number
     ref: HTMLDivElement | undefined,
-    annotation: string,
     map: JSX.Element,
     mapref: HTMLDivElement | undefined;
 };
+
 type Thing = {
     button: JSX.Element,
     buttonref: HTMLDivElement | undefined,
@@ -70,11 +81,6 @@ type Thing = {
     mapref: HTMLDivElement | undefined,
 
     data: any;
-};
-
-type FilterBox = {
-    el: JSX.Element,
-    checked: boolean,
 };
 
 export interface FieldViewProps {
@@ -93,26 +99,6 @@ export interface FieldViewProps {
 
 }
 
-
-@observer
-class KeyToggle extends React.Component<{ keyName: string, toggle: (key: string) => void, initiallySelected?: boolean }> {
-    constructor(props: any) {
-        super(props);
-    }
-    private checked = false;
-    render() {
-        if (this.props.keyName === "x") {
-            this.checked = true;
-        }
-        return (
-            <div key={this.props.keyName}>
-                <input type="radio" name="dude" checked={this.checked} onChange={() => this.props.toggle(this.props.keyName)} />
-                {this.props.keyName}
-            </div>
-        );
-    }
-}
-
 @observer
 export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @observable
@@ -129,6 +115,68 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     private elref = React.createRef<HTMLInputElement>();
 
     @observable private types: boolean[] = [];
+    private fellas: boolean[] = [];
+
+    private get markerDocs() {
+        let stored = Cast(this.props.Document.markers, listSpec(Doc));
+        if (!stored) {
+            this.props.Document.markers = stored = new List<Doc>();
+        }
+        return stored;
+    }
+
+    constructor(props: SubCollectionViewProps) {
+        super(props);
+        let markers = this.markerDocs;
+        console.log(markers);
+
+        for (let i = 0; i < markers.length; i++) {
+            let doc = markers[i];
+            this.markers[i] = { document: markers[i] } as MarkerUnit;
+            this.markers[i].mapref = undefined;
+            this.markers[i].ref = undefined;
+            this.markers[i].element = (<div ref={(el) => el ? this.markers[i].ref = el : null} id={"marker" + String(this.markers.length)} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, this.markers[i].ref, String(this.markers[i].document.annotation), this.markers[i])}
+                style={{
+                    top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid" + this.selectedColor,
+                    width: "10px", height: "30px", backgroundColor: this.selectedColor, opacity: "0.25", position: "absolute", left: 0,
+                }}></div>);
+            this.markers[i].map = <div className="ugh" ref={(el) => el ? this.markers[i].mapref = el : null}
+                style={{
+                    position: "absolute",
+                    background: this.selectedColor,
+                    zIndex: "1",
+                    top: this.previewHeight(this.selectedColor),
+                    left: 0,
+                    width: 10, border: "3px solid" + this.selectedColor
+                }}></div>;
+            console.log(this.markers[i]);
+
+
+
+
+            //     let ting: MarkerUnit = {
+            //         document:
+            //             ref: undefined,
+            //         mapref: undefined,
+            //         element: <div ref={(el) => el ? ting.ref = el : null} id={"marker" + String(this.markers.length)} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, ting.ref, String(ting.document.annotation), ting)}
+            //             style={{
+            //                 top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid" + this.selectedColor,
+            //                 width: "10px", height: "30px", backgroundColor: this.selectedColor, opacity: "0.25", position: "absolute", left: 0,
+            //             }}></div>,
+            //         map: (<div className="ugh" ref={(el) => el ? ting.mapref = el : null}
+            //             style={{
+            //                 position: "absolute",
+            //                 background: this.selectedColor,
+            //                 zIndex: "1",
+            //                 top: this.previewHeight(this.selectedColor),
+            //                 left: 0,
+            //                 width: 10, border: "3px solid" + this.selectedColor
+            //             }}></div>),
+            //     }
+
+            // this.markers[i] = ting;
+        }
+    }
 
     componentWillMount() {
         runInAction(() => {
@@ -136,6 +184,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 this.types[i] = true;
             }
         });
+
+
         document.addEventListener("keydown", (e) => this.onKeyPress_Selector(e));
     }
 
@@ -171,8 +221,12 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
 
     @action
-    toggleKey = (key: string) => {
+    toggleKey = (key: string, num: number, guy: React.RefObject<HTMLInputElement>) => {
         this.sortstate = key;
+
+        this.fellas[num] = guy.current!.checked;
+
+
     }
 
     private newdudess: boolean[] = [];
@@ -189,6 +243,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
 
         this.types[i] = guy.current!.checked;
+
 
 
     }
@@ -236,8 +291,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.markers.forEach(element => {
             if (element.ref !== undefined) {
                 let oldstyle = element.ref!;
-                oldstyle.style.left = String(((element.initialLeft * (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)) - (this.xmovement * (this.barwidth) / (this.barwidth - this.xmovement2 - this.xmovement)))));
-                oldstyle.style.width = String(element.initialScaleRef * ((this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement))) / element.initialWidth);
+                oldstyle.style.left = String(((NumCast(element.document.initialLeft) * (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)) - (this.xmovement * (this.barwidth) / (this.barwidth - this.xmovement2 - this.xmovement)))));
+                oldstyle.style.width = String(NumCast(element.document.initialScaleRef) * ((this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement))) / NumCast(element.document.initialWidth));
             }
         });
 
@@ -279,25 +334,35 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             let leftval = (e.pageX - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98);
             let ting: MarkerUnit = {
                 ref: undefined,
-                element: <div ref={(el) => el ? ting.ref = el : null} id={"marker" + String(this.markers.length)} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, ting.ref, ting.annotation, ting)}
+                document: new Doc(),
+                element: <div ref={(el) => el ? ting.ref = el : null} id={"marker" + String(this.markers.length)} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, ting.ref, String(ting.document.annotation), ting)}
                     style={{
                         top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid" + this.selectedColor,
                         width: "10px", height: "30px", backgroundColor: this.selectedColor, opacity: "0.25", position: "absolute", left: leftval
                     }}>
                 </div>,
-                initialLeft: (leftval / (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement))) + (this.xmovement),
-                initialScaleRef: 10,
-                initialWidth: (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)),
-                annotation: "Edit me!",
                 mapref: undefined,
                 map: (<div className="ugh" ref={(el) => el ? ting.mapref = el : null}
                     style={{
                         position: "absolute",
                         background: this.selectedColor,
                         zIndex: "1",
-                        top: this.previewHeight(this.selectedColor), left: (e.pageX - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98), width: 10, border: "3px solid" + this.selectedColor
+                        top: this.previewHeight(this.selectedColor),
+                        left: ((((e.pageX - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98) / this.barref.current.clientWidth)) * (this.barwidth - this.xmovement2 - this.xmovement)) + this.xmovement,
+
+                        width: 10, border: "3px solid" + this.selectedColor
                     }}></div>),
             };
+
+            let d = ting.document;
+            this.markerDocs.push(d);
+            d.initialLeft = (leftval / (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement))) + (this.xmovement);
+            d.initialScaleRef = 10;
+            d.secondScaleRef = 10;
+            d.initialWidth = (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement));
+            d.annotation = "Edit me!";
+
+            let actualNumber = NumCast(d.initialLeft);
 
 
             this.markers.push(ting);
@@ -390,12 +455,16 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             if (e.movementX >= 0) {
                 console.log(e.movementX);
                 let newX = parseInt(this.markers[this.markers.length - 1].ref.style.width);
+                let newX2 = parseInt(this.markers[this.markers.length - 1].mapref.style.width);
                 newX += e.movementX;
+                newX2 += e.movementX / (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement));
+
                 console.log(newX);
                 console.log(this.markers[this.markers.length - 1]);
                 this.markers[this.markers.length - 1].ref.style.width = String(newX);
-                this.markers[this.markers.length - 1].mapref.style.width = String(newX);
-                this.markers[this.markers.length - 1].initialScaleRef = newX;
+                this.markers[this.markers.length - 1].mapref.style.width = String(newX2);
+                this.markers[this.markers.length - 1].document.initialScaleRef = newX;
+                this.markers[this.markers.length - 1].document.secondScaleRef = newX2;
 
             }
             this.countingfriend++;
@@ -801,7 +870,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
             };
             this.buttons.push(item);
-            console.log(item.data);
         }
 
 
@@ -861,19 +929,28 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
         this.buttons = this.filterDocs(this.buttons);
 
+        let fields: JSX.Element[] = [];
 
 
         let keys: { [key: string]: boolean } = {};
         untracked(() => docs2.map(doc => Doc.GetAllPrototypes(doc).map(proto => Object.keys(proto).forEach(key => keys[key] = false))));
+
+        this.fellas = Array.from(Object.keys(keys)).map(item => item === this.sortstate ? true : false);
+
+
+        for (let i = 0; i < Object.keys(keys).length; i++) {
+            let item = Object.keys(keys)[i];
+            let guy = React.createRef<HTMLInputElement>();
+            fields.push(<div>
+                <input type="radio" ref={guy} name="dude" checked={this.fellas[i]} onChange={() => this.toggleKey(item, i, guy)} />
+                {item}
+            </div>);
+        }
         return (<div ref={this.screenref} id="screen" >
             <div style={{ position: "absolute", height: "30%", width: "10%", overflow: "scroll", border: "1px solid", zIndex: 900 }}>
                 <div id="schema-options-header"><h5><b>Sort</b></h5></div>
                 <div id="options-flyout-div">
-                    {Array.from(Object.keys(keys)).map(item =>
-                        (<KeyToggle key={item} keyName={item} toggle={this.toggleKey} />))}
-                    {
-
-                    }
+                    {fields}
 
                 </div>
             </div>
@@ -999,12 +1076,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 max = this.selections[i].getBoundingClientRect().right > max ? this.selections[i].getBoundingClientRect().right : max;
             }
             let ting: MarkerUnit = {
-                element: <div ref={(el) => el ? ting.ref = el : null} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, ting.ref, ting.annotation, ting)} id={"marker" + String(this.markers.length)} style={{ top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid" + this.selectedColor, height: "30px", backgroundColor: this.selectedColor, opacity: "0.25", width: Math.abs(max - min), position: "absolute", left: min - document.body.clientWidth - 3 + this.screenref.current!.clientWidth / 0.98 }}></div>,
-                initialLeft: ((min - 3 - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98) / (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement))) + (this.xmovement),
-                initialScaleRef: Math.abs(max - min),
-                initialWidth: (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)),
+                document: new Doc(),
+
+                element: <div ref={(el) => el ? ting.ref = el : null} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, ting.ref, String(ting.document.annotation), ting)} id={"marker" + String(this.markers.length)} style={{ top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid" + this.selectedColor, height: "30px", backgroundColor: this.selectedColor, opacity: "0.25", width: Math.abs(max - min), position: "absolute", left: min - document.body.clientWidth - 3 + this.screenref.current!.clientWidth / 0.98 }}></div>,
                 ref: undefined,
-                annotation: "Edit me!",
                 mapref: undefined,
                 map: (<div className="ugh" ref={(el) => el ? ting.mapref = el : null}
                     style={{
@@ -1019,9 +1094,18 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     }}></div>),
             };
 
+            let d = ting.document;
+            d.initialLeft = ((min - 3 - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98) / (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement))) + (this.xmovement),
 
-            this.currentmarker ? this.currentmarker.ref.style.opacity = "0.25" : null;
-            this.currentmarker ? this.currentmarker.ref.style.border = "0px solid black" : null;
+                d.initialScaleRef = Math.abs(max - min);
+            d.initialWidth = (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)),
+                d.annotation = "Edit me!";
+
+
+
+
+            this.currentmarker ? this.currentmarker.ref!.style.opacity = "0.25" : null;
+            this.currentmarker ? this.currentmarker.ref!.style.border = "0px solid black" : null;
             this.markers.push(ting);
             this.currentmarker ? this.currentmarker.ref!.style.border = "0px" : null;
             this.currentmarker = ting;
@@ -1230,7 +1314,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     updateValue = (newValue: string) => {
         this.viewvalue = newValue;
-        this.currentmarker.annotation = newValue;
+        this.currentmarker.document.annotation = newValue;
         return true;
     }
 
@@ -1290,10 +1374,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
         let temp = this.barwidth - this.xmovement2 - this.xmovement;
         this.xmovement = e.pageX - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98;
-        console.log(e.pageX);
-        console.log(document.body.clientWidth)
-        console.log(this.screenref.current!.clientWidth);
-        console.log(this.xmovement);
         if (this.xmovement < 0) {
             this.xmovement = 0;
         }
