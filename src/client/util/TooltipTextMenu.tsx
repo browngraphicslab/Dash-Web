@@ -19,6 +19,7 @@ import { CollectionDockingView } from "../views/collections/CollectionDockingVie
 import { DocumentManager } from "./DocumentManager";
 import { Id } from "../../new_fields/FieldSymbols";
 import { FormattedTextBoxProps } from "../views/nodes/FormattedTextBox";
+import { SelectionManager } from "./SelectionManager";
 
 //appears above a selection of text in a RichTextBox to give user options such as Bold, Italics, etc.
 export class TooltipTextMenu {
@@ -239,6 +240,8 @@ export class TooltipTextMenu {
             this.linkDrag.onpointerdown = (e: PointerEvent) => {
                 let dragData = new DragManager.LinkDragData(this.editorProps.Document);
                 dragData.dontClearTextBox = true;
+                // hack to get source context -sy
+                let docView = DocumentManager.Instance.getDocumentView(this.editorProps.Document);
                 e.stopPropagation();
                 let ctrlKey = e.ctrlKey;
                 DragManager.StartLinkDrag(this.linkDrag!, dragData, e.clientX, e.clientY,
@@ -247,6 +250,10 @@ export class TooltipTextMenu {
                             dragComplete: action(() => {
                                 // let m = dragData.droppedDocuments;
                                 let linkDoc = dragData.linkDocument;
+                                let proto = Doc.GetProto(linkDoc);
+                                if (docView && docView.props.ContainingCollectionView) {
+                                    proto.sourceContext = docView.props.ContainingCollectionView.props.Document;
+                                }
                                 linkDoc instanceof Doc && this.makeLink(DocServer.prepend("/doc/" + linkDoc[Id]), ctrlKey ? "onRight" : "inTab");
                             }),
                         },
