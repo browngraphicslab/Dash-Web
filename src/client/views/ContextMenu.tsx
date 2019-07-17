@@ -1,6 +1,6 @@
 import React = require("react");
 import { ContextMenuItem, ContextMenuProps, OriginalMenuProps } from "./ContextMenuItem";
-import { observable, action, computed } from "mobx";
+import { observable, action, computed, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import "./ContextMenu.scss";
 import { library } from '@fortawesome/fontawesome-svg-core';
@@ -27,7 +27,9 @@ export class ContextMenu extends React.Component {
     @observable private _width: number = 0;
     @observable private _height: number = 0;
 
-    @observable private _mouseDown: boolean = false;
+    @observable private _mouseX: number = -1;
+    @observable private _mouseY: number = -1;
+    @observable private _shouldDisplay: boolean = false;
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -35,12 +37,28 @@ export class ContextMenu extends React.Component {
         ContextMenu.Instance = this;
     }
 
+    @action
     componentDidMount = () => {
         document.addEventListener("pointerdown", e => {
-            this._mouseDown = true;
+            runInAction(() => {
+                this._mouseX = e.clientX;
+                this._mouseY = e.clientY;
+            });
         });
         document.addEventListener("pointerup", e => {
-            this._mouseDown = false;
+            let curX = e.clientX;
+            let curY = e.clientY;
+            if (this._mouseX !== curX || this._mouseY !== curY) {
+                runInAction(() => {
+                    this._shouldDisplay = false;
+                });
+            }
+
+            if (this._shouldDisplay) {
+                runInAction(() => {
+                    this._display = true;
+                });
+            }
         })
     }
 
@@ -86,30 +104,21 @@ export class ContextMenu extends React.Component {
     }
 
     @action
-    displayMenu(x: number, y: number) {
+    displayMenu = (x: number, y: number) => {
         //maxX and maxY will change if the UI/font size changes, but will work for any amount
         //of items added to the menu
 
-        if (!this._mouseDown) {
-            this._pageX = x;
-            this._pageY = y;
-            this._searchString = "";
-            this._display = true;
-        }
-
-
-        // this._pageX = x;
-        // this._pageY = y;
-        
-        // this._searchString = "";
-
-        // this._display = true;
+        this._pageX = x;
+        this._pageY = y;
+        this._searchString = "";
+        this._shouldDisplay = true;
     }
 
     @action
     closeMenu = () => {
         this.clearItems();
         this._display = false;
+        this._shouldDisplay = false;
     }
 
     @computed get filteredItems(): (OriginalMenuProps | string[])[] {
