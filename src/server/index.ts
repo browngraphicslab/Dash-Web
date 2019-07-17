@@ -110,7 +110,7 @@ function addSecureRoute(method: Method,
         if (req.user) {
             handler(req.user, res, req);
         } else {
-            req.session!.target = `${req.headers.host}${req.originalUrl}`;
+            req.session!.target = req.originalUrl;
             onRejection(res, req);
         }
     };
@@ -179,7 +179,6 @@ app.get("/whosOnline", (req, res) => {
 
     res.send(users);
 });
-
 app.get("/thumbnail/:filename", (req, res) => {
     let filename = req.params.filename;
     let noExt = filename.substring(0, filename.length - ".png".length);
