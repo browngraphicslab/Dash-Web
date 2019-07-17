@@ -54,7 +54,9 @@ export class TooltipTextMenu {
 
     private _brushMarks?: Set<Mark>;
     private _brushIsEmpty: boolean = true;
-    private _brush?: MenuItem;
+    private _brushdom?: Node;
+
+    private _marksToDoms: Map<Mark, HTMLSpanElement> = new Map();
 
     constructor(view: EditorView, editorProps: FieldViewProps & FormattedTextBoxProps) {
         this.view = view;
@@ -83,9 +85,22 @@ export class TooltipTextMenu {
             { command: toggleMark(schema.marks.subscript), dom: this.icon("s", "subscript", "Subscript") },
             { command: toggleMark(schema.marks.highlight), dom: this.icon("H", 'blue', 'Blue') }
         ];
+
+        this._marksToDoms = new Map();
         //add menu items
         items.forEach(({ dom, command }) => {
             this.tooltip.appendChild(dom);
+            switch (dom.title) {
+                case "Bold":
+                    this._marksToDoms.set(schema.mark(schema.marks.strong), dom);
+                    break;
+                case "Italic":
+                    this._marksToDoms.set(schema.mark(schema.marks.em), dom);
+                    break;
+                case "Underline":
+                    this._marksToDoms.set(schema.mark(schema.marks.underline), dom);
+                    break;
+            }
 
             //pointer down handler to activate button effects
             dom.addEventListener("pointerdown", e => {
@@ -94,11 +109,13 @@ export class TooltipTextMenu {
                 if (dom.contains(e.target as Node)) {
                     e.stopPropagation();
                     command(view.state, view.dispatch, view);
+                    //this.update(view, undefined);
                 }
             });
 
         });
         this.updateLinkMenu();
+
 
         //list of font styles
         this.fontStylesToName = new Map();
@@ -133,7 +150,8 @@ export class TooltipTextMenu {
 
         //custom tools
 
-        this.tooltip.appendChild(this.createBrush().render(this.view).dom);
+        this._brushdom = this.createBrush().render(this.view).dom;
+        this.tooltip.appendChild(this._brushdom);
         this.tooltip.appendChild(this.createLink().render(this.view).dom);
         this.tooltip.appendChild(this.createStar().render(this.view).dom);
 
@@ -454,7 +472,7 @@ export class TooltipTextMenu {
             height: 32, width: 32,
             path: "M30.828 1.172c-1.562-1.562-4.095-1.562-5.657 0l-5.379 5.379-3.793-3.793-4.243 4.243 3.326 3.326-14.754 14.754c-0.252 0.252-0.358 0.592-0.322 0.921h-0.008v5c0 0.552 0.448 1 1 1h5c0 0 0.083 0 0.125 0 0.288 0 0.576-0.11 0.795-0.329l14.754-14.754 3.326 3.326 4.243-4.243-3.793-3.793 5.379-5.379c1.562-1.562 1.562-4.095 0-5.657zM5.409 30h-3.409v-3.409l14.674-14.674 3.409 3.409-14.674 14.674z"
         };
-        this._brush = new MenuItem({
+        return new MenuItem({
             title: "Brush tool",
             label: "Brush tool",
             icon: icon,
@@ -467,29 +485,26 @@ export class TooltipTextMenu {
             active: (state) => {
                 return true;
             }
-
         });
-        return this._brush;
     }
 
     // selectionchanged event handler
 
     brush_function(state: EditorState<any>, dispatch: any) {
         if (this._brushIsEmpty) {
-            this._brushMarks = this.getMarksInSelection(this.view.state);
-            this.createBrush(true);
+            const selected_marks = this.getMarksInSelection(this.view.state);
+            if (selected_marks.size > 0 && this._brushdom) {
+                this._brushMarks = selected_marks;
+                const newbrush = this.createBrush(true).render(this.view).dom;
+                this.tooltip.replaceChild(newbrush, this._brushdom);
+                this._brushdom = newbrush;
+                this._brushIsEmpty = !this._brushIsEmpty;
+            }
         }
         else {
             let { from, to, $from } = this.view.state.selection;
-            if ($from && $from.nodeAfter) {
+            if ($from && $from.nodeAfter && this._brushdom) {
                 if (this._brushMarks && to - from > 0) {
-                    //this.view.dispatch(state.tr.removeMark(from, to));
-                    // let marktypes: MarkType[] = [];
-                    // nodemarks.forEach((mark: Mark) => {
-                    //     marktypes.push(mark.type);
-                    // });
-                    //this.changeToMarkInGroup(undefined, this.view, marktypes);
-                    //$from.nodeAfter.mark([]);
                     this.view.dispatch(this.view.state.tr.removeMark(from, to));
                     this._brushMarks.forEach((mark: Mark) => {
                         const markType = mark.type;
@@ -497,10 +512,13 @@ export class TooltipTextMenu {
 
                     });
                 }
+
+                const newbrush = this.createBrush(false).render(this.view).dom;
+                this.tooltip.replaceChild(newbrush, this._brushdom);
+                this._brushdom = newbrush;
+                this._brushIsEmpty = !this._brushIsEmpty;
             }
-            this.createBrush();
         }
-        this._brushIsEmpty = !this._brushIsEmpty;
 
 
     }
@@ -681,13 +699,18 @@ export class TooltipTextMenu {
         if (lastState && lastState.doc.eq(state.doc) &&
             lastState.selection.eq(state.selection)) return;
 
+        let iterator = this._marksToDoms.values();
+        let next = iterator.next();
+        while (!next.done) {
+            next.value.style.color = "white";
+            next = iterator.next();
+        }
+
         // Hide the tooltip if the selection is empty
         if (state.selection.empty) {
             //this.tooltip.style.display = "none";
             //return;
         }
-
-
         //UPDATE LIST ITEM DROPDOWN
 
         //UPDATE FONT STYLE DROPDOWN
@@ -725,6 +748,12 @@ export class TooltipTextMenu {
             }
         }
         this.view.dispatch(this.view.state.tr.setStoredMarks(this._activeMarks));
+        this._activeMarks.forEach((mark) => {
+            if (this._marksToDoms.has(mark)) {
+                let dom = this._marksToDoms.get(mark);
+                if (dom) dom.style.color = "greenyellow";
+            }
+        });
     }
 
     //finds all active marks on selection in given group
@@ -755,9 +784,7 @@ export class TooltipTextMenu {
                 else {
                     return [];
                 }
-
                 this._activeMarks = ref_node.marks;
-
                 activeMarks = markGroup.filter(mark_type => {
                     if (dispatch) {
                         let mark = state.schema.mark(mark_type);
@@ -776,11 +803,11 @@ export class TooltipTextMenu {
 
     reference_node(pos: ResolvedPos<any>): ProsNode {
         let ref_node: ProsNode = this.view.state.doc;
-        if (pos.nodeAfter !== null && pos.nodeAfter !== undefined) {
-            ref_node = pos.nodeAfter;
-        }
-        else if (pos.nodeBefore !== null && pos.nodeBefore !== undefined) {
+        if (pos.nodeBefore !== null && pos.nodeBefore !== undefined) {
             ref_node = pos.nodeBefore;
+        }
+        else if (pos.nodeAfter !== null && pos.nodeAfter !== undefined) {
+            ref_node = pos.nodeAfter;
         }
         else if (pos.pos > 0) {
             let skip = false;
