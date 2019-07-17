@@ -27,10 +27,16 @@ export class ContextMenu extends React.Component {
     @observable private _width: number = 0;
     @observable private _height: number = 0;
 
+    @observable private _mouseDown: boolean = false;
+
     constructor(props: Readonly<{}>) {
         super(props);
 
         ContextMenu.Instance = this;
+    }
+
+    componentDidMount = () => {
+
     }
 
     @action
@@ -78,6 +84,8 @@ export class ContextMenu extends React.Component {
     displayMenu(x: number, y: number) {
         //maxX and maxY will change if the UI/font size changes, but will work for any amount
         //of items added to the menu
+
+        console.log("opening?")
 
         this._pageX = x;
         this._pageY = y;
