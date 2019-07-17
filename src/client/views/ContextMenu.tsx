@@ -36,7 +36,12 @@ export class ContextMenu extends React.Component {
     }
 
     componentDidMount = () => {
-
+        document.addEventListener("pointerdown", e => {
+            this._mouseDown = true;
+        });
+        document.addEventListener("pointerup", e => {
+            this._mouseDown = false;
+        })
     }
 
     @action
@@ -85,14 +90,20 @@ export class ContextMenu extends React.Component {
         //maxX and maxY will change if the UI/font size changes, but will work for any amount
         //of items added to the menu
 
-        console.log("opening?")
+        if (!this._mouseDown) {
+            this._pageX = x;
+            this._pageY = y;
+            this._searchString = "";
+            this._display = true;
+        }
 
-        this._pageX = x;
-        this._pageY = y;
 
-        this._searchString = "";
+        // this._pageX = x;
+        // this._pageY = y;
+        
+        // this._searchString = "";
 
-        this._display = true;
+        // this._display = true;
     }
 
     @action
