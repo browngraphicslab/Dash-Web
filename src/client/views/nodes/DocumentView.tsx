@@ -556,6 +556,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }, icon: "search"
         });
         cm.addItem({ description: "Center View", event: () => this.props.focus(this.props.Document, false), icon: "crosshairs" });
+        cm.addItem({ description: "Zoom to Document", event: () => this.props.focus(this.props.Document, true), icon: "search" });
         cm.addItem({ description: "Copy URL", event: () => Utils.CopyText(DocServer.prepend("/doc/" + this.props.Document[Id])), icon: "link" });
         cm.addItem({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "fingerprint" });
         cm.addItem({ description: "Delete", event: this.deleteClicked, icon: "trash" });

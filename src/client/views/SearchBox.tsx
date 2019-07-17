@@ -163,7 +163,7 @@ export class SearchBox extends React.Component {
                     </div>
                     {this._resultsOpen ? (
                         <div className="searchBox-results">
-                            {this._results.map(result => <SearchItem doc={result} key={result[Id]} />)}
+                            {this._results.map(result => <SearchItem doc={result} key={result[Id]} highlighting={[]} />)}
                         </div>
                     ) : null}
                 </div>

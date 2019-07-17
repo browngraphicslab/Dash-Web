@@ -180,7 +180,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             }
             if (text && text.indexOf("www.youtube.com/watch") !== -1) {
                 const url = text.replace("youtube.com/watch?v=", "youtube.com/embed/");
-                this.props.addDocument(Docs.Create.VideoDocument(url, { ...options, title: url, width: 400, height: 315 }));
+                this.props.addDocument(Docs.Create.VideoDocument(url, { ...options, title: url, width: 400, height: 315, nativeWidth: 600, nativeHeight: 472.5 }));
                 return;
             }
 
