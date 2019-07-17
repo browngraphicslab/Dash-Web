@@ -1,5 +1,5 @@
 import React = require("react");
-import { action, computed, IReactionDisposer, observable, reaction, runInAction, untracked } from "mobx";
+import { action, computed, IReactionDisposer, observable, reaction, runInAction, untracked, trace } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from 'request-promise';
 import { InkTool } from "../../../new_fields/InkField";
@@ -94,7 +94,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
             let youtubeaspect = 400 / 315;
             var nativeWidth = FieldValue(this.Document.nativeWidth, 0);
             var nativeHeight = FieldValue(this.Document.nativeHeight, 0);
-            if (!nativeWidth || !nativeHeight || Math.abs(nativeWidth / nativeHeight - youtubeaspect) > 0.05) {
+            if (!nativeWidth || !nativeHeight) {
                 if (!this.Document.nativeWidth) this.Document.nativeWidth = 600;
                 this.Document.nativeHeight = this.Document.nativeWidth / youtubeaspect;
                 this.Document.height = FieldValue(this.Document.width, 0) / youtubeaspect;
@@ -240,7 +240,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         let style = "videoBox-content-YouTube" + (this._fullScreen ? "-fullScreen" : "");
         let start = untracked(() => Math.round(NumCast(this.props.Document.curPage)));
         return <iframe key={this._youtubeIframeId} id={`${this.youtubeVideoId + this._youtubeIframeId}-player`}
-            onLoad={this.youtubeIframeLoaded} className={`${style}`} width="640" height="390"
+            onLoad={this.youtubeIframeLoaded} className={`${style}`} width={NumCast(this.props.Document.nativeWidth, 640)} height={NumCast(this.props.Document.nativeHeight, 390)}
             src={`https://www.youtube.com/embed/${this.youtubeVideoId}?enablejsapi=1&rel=0&showinfo=1&autoplay=1&mute=1&start=${start}&modestbranding=1&controls=${VideoBox._showControls ? 1 : 0}`}
         ></iframe>;
     }
