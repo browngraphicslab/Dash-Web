@@ -47,7 +47,8 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         else if (targetContext) {
             DocumentManager.Instance.jumpToDocument(targetContext, e.altKey, false, document => CollectionDockingView.Instance.AddRightSplit(document, undefined));
         } else {
-            CollectionDockingView.Instance.AddRightSplit(jumpToDoc, undefined);
+            // CollectionDockingView.Instance.AddRightSplit(jumpToDoc, undefined);
+            DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, document => CollectionDockingView.Instance.AddRightSplit(document, undefined));
         }
     }
 
