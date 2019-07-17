@@ -77,8 +77,9 @@ export let postSignup = (req: Request, res: Response, next: NextFunction) => {
 
 let tryRedirectToTarget = (req: Request, res: Response) => {
     if (req.session && req.session.target) {
-        res.redirect(req.session.target);
+        let target = req.session.target;
         req.session.target = undefined;
+        res.redirect(target);
     } else {
         res.redirect(RouteStore.home);
     }
