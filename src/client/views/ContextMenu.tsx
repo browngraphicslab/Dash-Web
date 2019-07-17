@@ -1,6 +1,6 @@
 import React = require("react");
 import { ContextMenuItem, ContextMenuProps, OriginalMenuProps } from "./ContextMenuItem";
-import { observable, action, computed, runInAction } from "mobx";
+import { observable, action, computed, runInAction, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
 import "./ContextMenu.scss";
 import { library } from '@fortawesome/fontawesome-svg-core';
@@ -31,6 +31,8 @@ export class ContextMenu extends React.Component {
     @observable private _mouseY: number = -1;
     @observable private _shouldDisplay: boolean = false;
 
+    private _reactionDisposer?: IReactionDisposer;
+
     constructor(props: Readonly<{}>) {
         super(props);
 
@@ -54,12 +56,23 @@ export class ContextMenu extends React.Component {
                 });
             }
 
-            if (this._shouldDisplay) {
-                runInAction(() => {
-                    this._display = true;
-                });
-            }
-        })
+            // if (this._shouldDisplay) {
+            //     runInAction(() => {
+            //         this._display = true;
+            //     });
+            // }
+        });
+
+        this._reactionDisposer = reaction(
+            () => this._shouldDisplay,
+            () => {
+                if (this._shouldDisplay) {
+                    runInAction(() => {
+                        this._display = true;
+                    });
+                }
+            },
+        );
     }
 
     @action
