@@ -4,6 +4,7 @@ import { Copy, ToScriptString, Parent, SelfProxy } from "./FieldSymbols";
 import { serializable, createSimpleSchema, map, primitive, object, deserialize, PropSchema, custom, SKIP } from "serializr";
 import { Deserializable } from "../client/util/SerializationHelper";
 import { Doc } from "../new_fields/Doc";
+import { Plugins } from "./util";
 
 function optional(propSchema: PropSchema) {
     return custom(value => {
@@ -93,4 +94,30 @@ export class ComputedField extends ScriptField {
         }
         return undefined;
     }
+}
+
+export namespace ComputedField {
+    let useComputed = true;
+    export function DisableComputedFields() {
+        useComputed = false;
+    }
+
+    export function EnableComputedFields() {
+        useComputed = true;
+    }
+
+    export function WithoutComputed<T>(fn: () => T) {
+        DisableComputedFields();
+        try {
+            return fn();
+        } finally {
+            EnableComputedFields();
+        }
+    }
+
+    Plugins.addGetterPlugin((doc, _, value) => {
+        if (useComputed && value instanceof ComputedField) {
+            return { value: value.value(doc), shouldReturn: true };
+        }
+    });
 }
