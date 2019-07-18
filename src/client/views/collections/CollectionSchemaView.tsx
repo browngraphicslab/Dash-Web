@@ -62,7 +62,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     private _startPreviewWidth = 0;
     private DIVIDER_WIDTH = 4;
 
-    @observable _columns: Array<string> = ["title", "data", "author"];
+    // @observable _columns: Array<string> = ["title", "data", "author"];
     @observable _selectedIndex = 0;
     @observable _columnsPercentage = 0;
     @observable _keys: string[] = [];
@@ -76,7 +76,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @computed get previewHeight() { return () => this.props.PanelHeight() - 2 * this.borderWidth; }
     @computed get tableWidth() { return this.props.PanelWidth() - 2 * this.borderWidth - this.DIVIDER_WIDTH - this.previewWidth(); }
     @computed get columns() { return Cast(this.props.Document.schemaColumns, listSpec("string"), []); }
-    set columns(columns: string[]) { this.props.Document.schemaColumns = new List<string>(columns); }
+    set columns(columns: string[]) {this.props.Document.schemaColumns = new List<string>(columns); }
     @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }
     @computed get tableColumns(): Column<Doc>[] {
         let possibleKeys = this.documentKeys.filter(key => this.columns.findIndex(existingKey => existingKey.toUpperCase() === key.toUpperCase()) === -1);
@@ -98,18 +98,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             />;
 
             return {
-                Header: <CollectionSchemaHeader 
-                    keyValue={col}
-                    possibleKeys={possibleKeys}
-                    existingKeys={this.columns}
-                    keyType={this.getColumnType(col)}
-                    typeConst={columnTypes.get(col) !== undefined}
-                    onSelect={this.changeColumns}
-                    setIsEditing={this.setHeaderIsEditing}
-                    deleteColumn={this.deleteColumn}
-                    setColumnType={this.setColumnType}
-                />,
-                // Header: <MovableColumn columnRenderer={header} columnValue={col} allColumns={this.columns} reorderColumns={this.reorderColumns} ScreenToLocalTransform={this.props.ScreenToLocalTransform} />,
+                Header: <MovableColumn columnRenderer={header} columnValue={col} allColumns={this.columns} reorderColumns={this.reorderColumns} ScreenToLocalTransform={this.props.ScreenToLocalTransform} />,
                 accessor: (doc: Doc) => doc ? doc[col] : 0,
                 id: col,
                 Cell: (rowProps: CellInfo) => {
@@ -159,7 +148,12 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         return cols;
     }
 
-    reorderColumns(toMove: string, relativeTo: string, before: boolean, columnsValues: string[]) {
+    @action
+    setColumns = (columns: string[]) => {
+        this.columns = columns;
+    }
+
+    reorderColumns = (toMove: string, relativeTo: string, before: boolean, columnsValues: string[]) => {
         let columns = [...columnsValues];
         let oldIndex = columns.indexOf(toMove);
         let relIndex = columns.indexOf(relativeTo);
@@ -168,7 +162,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         if (oldIndex === newIndex) return;
 
         columns.splice(newIndex, 0, columns.splice(oldIndex, 1)[0]);
-        this.columns = columns;
+        this.setColumns(columns);
     }
 
 
@@ -200,6 +194,9 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             return {};
         }
         return {
+            ScreenToLocalTransform: this.props.ScreenToLocalTransform,
+            addDoc: (doc: Doc, relativeTo?: Doc, before?: boolean) => Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, relativeTo, before),
+            moveDoc: (d: Doc, target: Doc, addDoc: (doc: Doc) => boolean) => this.props.moveDocument(d, target, addDoc),
             rowInfo, 
             onClick: action((e: React.MouseEvent, handleOriginal: Function) => {
                 that.props.select(e.ctrlKey);
@@ -209,10 +206,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     handleOriginal();
                 }
             }),
-            style: {
-                background: rowInfo.index === this._selectedIndex ? "lightGray" : "white",
-                //color: rowInfo.index === this._selectedIndex ? "white" : "black"
-            }
         };
     }
 
@@ -401,7 +394,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             let newTypesDoc = new Doc();
             newTypesDoc[key] = type;
             this.props.Document.schemaColumnTypes  = newTypesDoc;
-            console.log("no typesDoc");
             return;
         } else {
             typesDoc[key] = type;
@@ -478,31 +470,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @computed
     get reactTable() {
-        let addDoc = (doc: Doc, relativeTo?: Doc, before?: boolean) => Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, relativeTo, before);
-        let moveDoc = (d: Doc, target: Doc, addDoc: (doc: Doc) => boolean) => this.props.moveDocument(d, target, addDoc);
         let previewWidth = this.previewWidth() + 2 * this.borderWidth + this.DIVIDER_WIDTH + 1;
-
-        // return <MovableTable
-        //     style={{ position: "relative", float: "left", width: `calc(100% - ${previewWidth}px` }}
-        //     data={this.childDocs}
-        //     page={0}
-        //     pageSize={this.childDocs.length}
-        //     showPagination={false}
-        //     columns={this.tableColumns}
-        //     sortable={false}
-        //     getTrProps={this.getTrProps}
-
-        //     ScreenToLocalTransform={this.props.ScreenToLocalTransform}
-        //     addDoc={addDoc}
-        //     moveDoc={moveDoc}
-        //     columnsValues={this.columns}
-        //     columnsList={this.tableColumns}
-        //     setColumnsOrder={(columns: string[]) => this.columns = columns}
-        //     numImmovableColumns={1}
-        // />;
-
-
-        // // let previewWidth = this.previewWidth() + 2 * this.borderWidth + this.DIVIDER_WIDTH + 1;
         return <ReactTable 
             style={{ position: "relative", float: "left", width: `calc(100% - ${previewWidth}px` }} 
             data={this.childDocs} 
@@ -510,11 +478,9 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             pageSize={this.childDocs.length} 
             showPagination={false}
             columns={this.tableColumns}
-            // column={{ ...ReactTableDefaults.column, Cell: this.renderCell, }}
             getTrProps={this.getTrProps}
             sortable={false}
-
-            TrComponent={MovableRow(this.props.ScreenToLocalTransform, addDoc, moveDoc)}
+            TrComponent={MovableRow}
         />;
     }
 
@@ -566,7 +532,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         return (
             <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} onWheel={this.onWheel}
                 onDrop={(e: React.DragEvent) => this.onDrop(e, {})} onContextMenu={this.onContextMenu} ref={this.createTarget}>
-                    <div draggable={true} style={{backgroundColor: "green"}}>TESTER</div>
                 {this.reactTable}
                 {this.dividerDragger}
                 {!this.previewWidth() ? (null) : this.previewPanel}

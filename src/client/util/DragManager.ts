@@ -288,11 +288,24 @@ export namespace DragManager {
         [id: string]: any;
     }
 
+    // for column dragging in schema view
+    export class ColumnDragData {
+        constructor(colKey: string) {
+            this.colKey = colKey;
+        }
+        colKey: string;
+        [id: string]: any;
+    }
+
     export function StartLinkDrag(ele: HTMLElement, dragData: LinkDragData, downX: number, downY: number, options?: DragOptions) {
         StartDrag([ele], dragData, downX, downY, options);
     }
 
     export function StartEmbedDrag(ele: HTMLElement, dragData: EmbedDragData, downX: number, downY: number, options?: DragOptions) {
+        StartDrag([ele], dragData, downX, downY, options);
+    }
+
+    export function StartColumnDrag(ele: HTMLElement, dragData: ColumnDragData, downX: number, downY: number, options?:DragOptions) {
         StartDrag([ele], dragData, downX, downY, options);
     }
 

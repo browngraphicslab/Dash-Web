@@ -161,17 +161,20 @@
     background: $light-color;
 }
 
-.collectionSchema-column-header {
+.collectionSchema-col{
     height: 100%;
     background-color: green;
 
-    &.col-before {
-        border-left: 2px solid red;
-    }
-    &.col-after {
-        border-right: 2px solid red;
+    .collectionSchema-col-wrapper {
+        &.col-before {
+            border-left: 2px solid red;
+        }
+        &.col-after {
+            border-right: 2px solid red;
+        }
     }
 }  
+
 
 .collectionSchemaView-header {
     height: 100%;
