@@ -34,9 +34,18 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
 
     componentDidMount() {
         this._heightDisposer = reaction(() => [this.yMargin, this.gridGap, this.columnWidth, this.childDocs.map(d => [d.height, d.width, d.zoomBasis, d.nativeHeight, d.nativeWidth, d.isMinimized])],
-            () => this.singleColumn &&
-                (this.props.Document.height = this.filteredChildren.reduce((height, d, i) =>
-                    height + this.getDocHeight(d) + (i === this.filteredChildren.length - 1 ? this.yMargin : this.gridGap), this.yMargin))
+            () => {
+                if (this.singleColumn) {
+                    let sectionFilter = StrCast(this.props.Document.sectionFilter);
+                    let fields = new Map<object, Doc[]>();
+                    sectionFilter && this.filteredChildren.map(d => {
+                        if (!fields.has(d[sectionFilter] as object)) fields.set(d[sectionFilter] as object, [d]);
+                        else fields.get(d[sectionFilter] as object)!.push(d);
+                    });
+                    (this.props.Document.height = fields.size * 50 + this.filteredChildren.reduce((height, d, i) =>
+                        height + this.getDocHeight(d) + (i === this.filteredChildren.length - 1 ? this.yMargin : this.gridGap), this.yMargin));
+                }
+            }
             , { fireImmediately: true });
     }
     componentWillUnmount() {
@@ -112,10 +121,11 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             let width = () => d.nativeWidth ? Math.min(layoutDoc[WidthSym](), this.columnWidth) : this.columnWidth;
             let height = () => this.getDocHeight(layoutDoc);
             if (this.singleColumn) {
+                //have to add the height of all previous single column sections or the doc decorations will be in the wrong place.
                 let dxf = () => this.getSingleDocTransform(layoutDoc, i, width());
-                let rowHgtPcnt = height() / (this.props.Document[HeightSym]() - 2 * this.yMargin) * 100;
+                let rowHgtPcnt = height();
                 this._docXfs.push({ dxf: dxf, width: width, height: height });
-                return <div className="collectionStackingView-columnDoc" key={d[Id]} style={{ width: width(), marginTop: i === 0 ? 0 : this.gridGap, height: `${rowHgtPcnt}%` }} >
+                return <div className="collectionStackingView-columnDoc" key={d[Id]} style={{ width: width(), marginTop: i === 0 ? 0 : this.gridGap, height: `${rowHgtPcnt}` }} >
                     {this.getDisplayDoc(layoutDoc, d, dxf)}
                 </div>;
             } else {
@@ -231,7 +241,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     padding: this.singleColumn ? `${this.yMargin}px ${this.xMargin}px ${this.yMargin}px ${this.xMargin}px` : `${this.yMargin}px ${this.xMargin}px`,
                     margin: "auto",
                     width: this.singleColumn ? undefined : `${cols * (this.columnWidth + this.gridGap) + 2 * this.xMargin - this.gridGap}px`,
-                    height: this.singleColumn ? "100%" : 'max-content',
+                    height: 'max-content',
                     position: "relative",
                     gridGap: this.gridGap,
                     gridTemplateColumns: this.singleColumn ? undefined : templatecols,
@@ -250,7 +260,10 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             else fields.get(d[sectionFilter] as object)!.push(d);
         });
         return (
-            <div className="collectionStackingView" ref={this.createRef} onDrop={this.onDrop.bind(this)} onContextMenu={this.onContextMenu} onWheel={(e: React.WheelEvent) => e.stopPropagation()} >
+            <div className="collectionStackingView"
+
+                style={{ height: this.props.Document[HeightSym]() }}
+                ref={this.createRef} onDrop={this.onDrop.bind(this)} onContextMenu={this.onContextMenu} onWheel={(e: React.WheelEvent) => e.stopPropagation()} >
                 {/* {sectionFilter as boolean ? [
                     ["width > height", this.filteredChildren.filter(f => f[WidthSym]() >= 1 + f[HeightSym]())],
                     ["width = height", this.filteredChildren.filter(f => Math.abs(f[WidthSym]() - f[HeightSym]()) < 1)],
