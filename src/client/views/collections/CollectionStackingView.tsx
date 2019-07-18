@@ -4,7 +4,7 @@ import { action, computed, IReactionDisposer, reaction, untracked, observable, r
 import { observer } from "mobx-react";
 import { Doc, HeightSym, WidthSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
-import { BoolCast, NumCast, Cast } from "../../../new_fields/Types";
+import { BoolCast, NumCast, Cast, StrCast } from "../../../new_fields/Types";
 import { emptyFunction, Utils } from "../../../Utils";
 import { ContextMenu } from "../ContextMenu";
 import { CollectionSchemaPreview } from "./CollectionSchemaView";
@@ -15,6 +15,7 @@ import { DragManager } from "../../util/DragManager";
 import { DocumentType } from "../../documents/Documents";
 import { Transform } from "../../util/Transform";
 import { CursorProperty } from "csstype";
+import { string } from "prop-types";
 
 @observer
 export class CollectionStackingView extends CollectionSubView(doc => doc) {
@@ -104,10 +105,9 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         return this.offsetTransform(doc, translate[0], translate[1]);
     }
 
-    @computed
-    get children() {
+    children(docs: Doc[]) {
         this._docXfs.length = 0;
-        return this.filteredChildren.map((d, i) => {
+        return docs.map((d, i) => {
             let layoutDoc = Doc.expandTemplateLayout(d, this.props.DataDoc);
             let width = () => d.nativeWidth ? Math.min(layoutDoc[WidthSym](), this.columnWidth) : this.columnWidth;
             let height = () => this.getDocHeight(layoutDoc);
@@ -219,28 +219,45 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             }
         });
     }
-    render() {
+    section(heading: string, docList: Doc[]) {
         let cols = this.singleColumn ? 1 : Math.max(1, Math.min(this.filteredChildren.length,
             Math.floor((this.props.PanelWidth() - 2 * this.xMargin) / (this.columnWidth + this.gridGap))));
         let templatecols = "";
         for (let i = 0; i < cols; i++) templatecols += `${this.columnWidth}px `;
+        return <>
+            {heading ? <div key={`${heading}`} className="collectionStackingView-sectionHeader">{heading}</div> : (null)}
+            <div key={`${heading}-stack`} className={`collectionStackingView-masonry${this.singleColumn ? "Single" : "Grid"}`}
+                style={{
+                    padding: this.singleColumn ? `${this.yMargin}px ${this.xMargin}px ${this.yMargin}px ${this.xMargin}px` : `${this.yMargin}px ${this.xMargin}px`,
+                    margin: "auto",
+                    width: this.singleColumn ? undefined : `${cols * (this.columnWidth + this.gridGap) + 2 * this.xMargin - this.gridGap}px`,
+                    height: this.singleColumn ? "100%" : 'max-content',
+                    position: "relative",
+                    gridGap: this.gridGap,
+                    gridTemplateColumns: this.singleColumn ? undefined : templatecols,
+                    gridAutoRows: this.singleColumn ? undefined : `${this._gridSize}px`
+                }}
+            >
+                {this.children(docList)}
+                {this.singleColumn ? (null) : this.columnDragger}
+            </div></>;
+    }
+    render() {
+        let sectionFilter = StrCast(this.props.Document.sectionFilter);
+        let fields = new Map<object, Doc[]>();
+        sectionFilter && this.filteredChildren.map(d => {
+            if (!fields.has(d[sectionFilter] as object)) fields.set(d[sectionFilter] as object, [d]);
+            else fields.get(d[sectionFilter] as object)!.push(d);
+        });
         return (
             <div className="collectionStackingView" ref={this.createRef} onDrop={this.onDrop.bind(this)} onContextMenu={this.onContextMenu} onWheel={(e: React.WheelEvent) => e.stopPropagation()} >
-                <div className={`collectionStackingView-masonry${this.singleColumn ? "Single" : "Grid"}`}
-                    style={{
-                        padding: this.singleColumn ? `${this.yMargin}px ${this.xMargin}px ${this.yMargin}px ${this.xMargin}px` : `${this.yMargin}px ${this.xMargin}px`,
-                        margin: "auto",
-                        width: this.singleColumn ? undefined : `${cols * (this.columnWidth + this.gridGap) + 2 * this.xMargin - this.gridGap}px`,
-                        height: "100%",
-                        position: "relative",
-                        gridGap: this.gridGap,
-                        gridTemplateColumns: this.singleColumn ? undefined : templatecols,
-                        gridAutoRows: this.singleColumn ? undefined : `${this._gridSize}px`
-                    }}
-                >
-                    {this.children}
-                    {this.singleColumn ? (null) : this.columnDragger}
-                </div>
+                {/* {sectionFilter as boolean ? [
+                    ["width > height", this.filteredChildren.filter(f => f[WidthSym]() >= 1 + f[HeightSym]())],
+                    ["width = height", this.filteredChildren.filter(f => Math.abs(f[WidthSym]() - f[HeightSym]()) < 1)],
+                    ["height > width", this.filteredChildren.filter(f => f[WidthSym]() + 1 <= f[HeightSym]())]]. */}
+                {sectionFilter ? Array.from(fields.entries()).
+                    map(section => this.section(section[0].toString(), section[1] as Doc[])) :
+                    this.section("", this.filteredChildren)}
             </div>
         );
     }

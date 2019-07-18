@@ -1,6 +1,7 @@
 @import "../globalCssVariables";
 .collectionStackingView {
     overflow-y: auto;
+    height: 100%;
 
     .collectionStackingView-docView-container {
         width: 45%;
@@ -70,5 +71,14 @@
         transform-origin: top left;
         grid-column-end: span 1;
         height: 100%;
+    }
+    .collectionStackingView-sectionHeader {    
+        width: 90%;
+        background: gray;
+        text-align: center;
+        margin-left: 5%;
+        margin-right: 5%;
+        color: white;
+        margin-top: 10px;
     }
 }
