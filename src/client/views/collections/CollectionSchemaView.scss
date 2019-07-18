@@ -105,11 +105,23 @@
         direction: ltr;
         max-height: $MAX_ROW_HEIGHT;
 
+        &:nth-child(even) {
+            background-color: $light-color;
+        }
+    
+        &:nth-child(odd) {
+            background-color: $light-color-secondary;
+        }
+
         &:last-child {
             border-bottom: $intermediate-color;
             border-bottom-style: solid;
             border-bottom-width: 1;
         }
+    }
+
+    .rt-tr {
+        width: 100%;
     }
 
     .rt-td {
@@ -149,6 +161,18 @@
     background: $light-color;
 }
 
+.collectionSchema-column-header {
+    height: 100%;
+    background-color: green;
+
+    &.col-before {
+        border-left: 2px solid red;
+    }
+    &.col-after {
+        border-right: 2px solid red;
+    }
+}  
+
 .collectionSchemaView-header {
     height: 100%;
 
@@ -168,16 +192,8 @@
 }
 
 .collectionSchema-header-menuOptions {
-    // position: absolute;
-    // top: 30px;
-    // left: 50%;
-    // transform: translateX(-50%);
-    // z-index: 9999;
-    // background-color: $light-color-secondary;
     color: black;
-    // border: 1px solid $main-accent;
     width: 175px;
-    // padding: 10px;
     text-align: left;
 
     .collectionSchema-headerMenu-group {
@@ -235,15 +251,51 @@
     }
 }
 
+.collectionSchema-row {
+    height: $MAX_ROW_HEIGHT;
+    // display: flex;
+
+    .row-dragger {
+        height: $MAX_ROW_HEIGHT;
+    }
+
+    .collectionSchema-row-wrapper {
+        max-height: $MAX_ROW_HEIGHT;
+        // width: 100%;
+        // border: 1px solid lightgray;
+
+        &.row-above {
+            border-top: 1px solid red;
+        }
+        &.row-below {
+            border-bottom: 1px solid red;
+        }
+        &.row-inside {
+            border: 1px solid red;
+        }
+    }
+}
+
+
+.collectionSchemaView-cellWrapper {
+    // height: $MAX_ROW_HEIGHT;
+    // background-color: red;
+    height: 100%;
+    padding: 4px;
+
+    &.focused {
+        // background-color: yellowgreen;
+        border: 2px solid yellowgreen;
+
+        input {
+            outline: 0;
+            border: none;
+            background-color: yellow;
+        }
+    }
+}
+
 #preview-schema-checkbox-div {
     margin-left: 20px;
     font-size: 12px;
-}
-
-.-even {
-    background: $light-color !important;
-}
-
-.-odd {
-    background: $light-color-secondary !important;
 }

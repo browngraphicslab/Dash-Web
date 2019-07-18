@@ -177,7 +177,10 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
         return (
             <div className="collectionSchema-header-menu">
                 <Flyout anchorPoint={anchorPoints.TOP_CENTER} content={this.renderContent()}>
+                {/* <div onClick={this.toggleIsOpen}> */}
                     <div className="collectionSchema-header-toggler" onClick={() => { this.props.setIsEditing(true); }}>{this.props.menuButtonContent}</div>
+                    {/* {this._isOpen ? this.renderContent() : <></>} */}
+                {/* </div> */}
                 </ Flyout >
             </div>
         );

@@ -4,7 +4,7 @@ import { faCog, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, trace, untracked } from "mobx";
 import { observer } from "mobx-react";
-import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults, TableCellRenderer } from "react-table";
+import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults, TableCellRenderer, Column } from "react-table";
 import "react-table/react-table.css";
 import { emptyFunction, returnFalse, returnZero, returnOne } from "../../../Utils";
 import { Doc, DocListCast, DocListCastAsync, Field, FieldResult } from "../../../new_fields/Doc";
@@ -33,11 +33,13 @@ import { undoBatch } from "../../util/UndoManager";
 import { timesSeries } from "async";
 import { CollectionSchemaHeader, CollectionSchemaAddColumnHeader } from "./CollectionSchemaHeaders";
 import { CellProps, CollectionSchemaCell, CollectionSchemaNumberCell, CollectionSchemaStringCell, CollectionSchemaBooleanCell, CollectionSchemaCheckboxCell } from "./CollectionSchemaCells";
-
+import { MovableColumn, MovableRow } from "./CollectionSchemaMovableTableHOC";
 
 library.add(faCog);
 library.add(faPlus);
 // bcz: need to add drag and drop of rows and columns.  This seems like it might work for rows: https://codesandbox.io/s/l94mn1q657
+
+// const MovableTable = CollectionSchemaMovableSchemaHOC(ReactTable);
 
 export enum ColumnType {
     Any,
@@ -54,22 +56,6 @@ const columnTypes: Map<string, ColumnType> = new Map([
     ["page", ColumnType.Number], ["curPage", ColumnType.Number], ["libraryBrush", ColumnType.Boolean], ["zIndex", ColumnType.Number]
 ]);
 
-// @observer
-// class KeyToggle extends React.Component<{ keyName: string, checked: boolean, toggle: (key: string) => void }> {
-//     constructor(props: any) {
-//         super(props);
-//     }
-
-//     render() {
-//         return (
-//             <div key={this.props.keyName}>
-//                 <input type="checkbox" checked={this.props.checked} onChange={() => this.props.toggle(this.props.keyName)} />
-//                 {this.props.keyName}
-//             </div>
-//         );
-//     }
-// }
-
 @observer
 export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     private _mainCont?: HTMLDivElement;
@@ -83,6 +69,8 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @observable _newKeyName: string = "";
     @observable previewScript: string = "";
     @observable _headerIsEditing: boolean = false;
+    @observable _cellIsEditing: boolean = false;
+    @observable _focusedCell: {row: number, col: number} = {row: 0, col: 0};
 
     @computed get previewWidth() { return () => NumCast(this.props.Document.schemaPreviewWidth); }
     @computed get previewHeight() { return () => this.props.PanelHeight() - 2 * this.borderWidth; }
@@ -90,10 +78,25 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @computed get columns() { return Cast(this.props.Document.schemaColumns, listSpec("string"), []); }
     set columns(columns: string[]) { this.props.Document.schemaColumns = new List<string>(columns); }
     @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }
-    @computed get tableColumns() {
+    @computed get tableColumns(): Column<Doc>[] {
         let possibleKeys = this.documentKeys.filter(key => this.columns.findIndex(existingKey => existingKey.toUpperCase() === key.toUpperCase()) === -1);
 
         let cols = this.columns.map(col => {
+            let focusedRow = this._focusedCell.row;
+            let focusedCol = this._focusedCell.col;
+            let isEditable = !this._headerIsEditing;
+            let header = <CollectionSchemaHeader 
+                keyValue={col}
+                possibleKeys={possibleKeys}
+                existingKeys={this.columns}
+                keyType={this.getColumnType(col)}
+                typeConst={columnTypes.get(col) !== undefined}
+                onSelect={this.changeColumns}
+                setIsEditing={this.setHeaderIsEditing}
+                deleteColumn={this.deleteColumn}
+                setColumnType={this.setColumnType}
+            />;
+
             return {
                 Header: <CollectionSchemaHeader 
                     keyValue={col}
@@ -106,37 +109,37 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     deleteColumn={this.deleteColumn}
                     setColumnType={this.setColumnType}
                 />,
+                // Header: <MovableColumn columnRenderer={header} columnValue={col} allColumns={this.columns} reorderColumns={this.reorderColumns} ScreenToLocalTransform={this.props.ScreenToLocalTransform} />,
                 accessor: (doc: Doc) => doc ? doc[col] : 0,
                 id: col,
                 Cell: (rowProps: CellInfo) => {
                     let row = rowProps.index;
                     let column = this.columns.indexOf(rowProps.column.id!);
-                    // let isFocused = focusedRow === row && focusedCol === column;
-                    let isFocused = false;
+                    let isFocused = focusedRow === row && focusedCol === column;
 
                     let props: CellProps = {
                         row: row,
                         col: column,
                         rowProps: rowProps,
                         isFocused: isFocused,
-                        changeFocusedCellByDirection: action(emptyFunction),//this.changeFocusedCellByDirection,
-                        changeFocusedCellByIndex: action(emptyFunction), //this.changeFocusedCellByIndex,
+                        changeFocusedCellByDirection: this.changeFocusedCellByDirection,
+                        changeFocusedCellByIndex: this.changeFocusedCellByIndex,
                         CollectionView: this.props.CollectionView,
                         ContainingCollection: this.props.ContainingCollectionView,
                         Document: this.props.Document,
                         fieldKey: this.props.fieldKey,
                         renderDepth: this.props.renderDepth, addDocTab: this.props.addDocTab,
                         moveDocument: this.props.moveDocument,
-                        setIsEditing: action(emptyFunction), //this.setCellIsEditing,
-                        isEditable: true //isEditable
+                        setIsEditing: this.setCellIsEditing,
+                        isEditable: isEditable
                     };
 
                     let colType = this.getColumnType(col);
-                    if (colType === ColumnType.Number) return <CollectionSchemaNumberCell {...props}/>
-                    if (colType === ColumnType.String) return <CollectionSchemaStringCell {...props}/>
-                    if (colType === ColumnType.Boolean) return <CollectionSchemaBooleanCell {...props} />
-                    if (colType === ColumnType.Checkbox) return <CollectionSchemaCheckboxCell {...props} />
-                    return <CollectionSchemaCell {...props}/>
+                    if (colType === ColumnType.Number) return <CollectionSchemaNumberCell {...props}/>;
+                    if (colType === ColumnType.String) return <CollectionSchemaStringCell {...props}/>;
+                    if (colType === ColumnType.Boolean) return <CollectionSchemaBooleanCell {...props} />;
+                    if (colType === ColumnType.Checkbox) return <CollectionSchemaCheckboxCell {...props} />;
+                    return <CollectionSchemaCell {...props}/>;
                 }
             };
         }) as {Header: TableCellRenderer, accessor: (doc: Doc) => FieldResult<Field>, id: string, Cell: (rowProps: CellInfo) => JSX.Element}[];
@@ -156,6 +159,19 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         return cols;
     }
 
+    reorderColumns(toMove: string, relativeTo: string, before: boolean, columnsValues: string[]) {
+        let columns = [...columnsValues];
+        let oldIndex = columns.indexOf(toMove);
+        let relIndex = columns.indexOf(relativeTo);
+        let newIndex = (oldIndex > relIndex && !before) ? relIndex + 1 : (oldIndex < relIndex && before) ? relIndex - 1 : relIndex;
+
+        if (oldIndex === newIndex) return;
+
+        columns.splice(newIndex, 0, columns.splice(oldIndex, 1)[0]);
+        this.columns = columns;
+    }
+
+
     onHeaderDrag = (columnName: string) => {
         let schemaDoc = Cast(this.props.Document.schemaDoc, Doc);
         if (schemaDoc instanceof Doc) {
@@ -170,12 +186,21 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         return this.props.Document;
     }
 
+    componentDidMount() {
+        document.addEventListener("keydown", this.onKeyDown);
+    }
+
+    componentWillUnmount() {
+        document.removeEventListener("keydown", this.onKeyDown);
+    }
+
     private getTrProps: ComponentPropsGetterR = (state, rowInfo) => {
         const that = this;
         if (!rowInfo) {
             return {};
         }
         return {
+            rowInfo, 
             onClick: action((e: React.MouseEvent, handleOriginal: Function) => {
                 that.props.select(e.ctrlKey);
                 that._selectedIndex = rowInfo.index;
@@ -195,26 +220,62 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         this._mainCont = ele;
         super.CreateDropTarget(ele);
     }
+    @action
+    changeFocusedCellByDirection = (direction: string): void => {
+        switch (direction) {
+            case "tab":
+                if (this._focusedCell.col + 1 === this.columns.length && this._focusedCell.row + 1 === this.childDocs.length) {
+                    this._focusedCell = { row: 0, col: 0 };
+                } else if (this._focusedCell.col + 1 === this.columns.length) {
+                    this._focusedCell = { row: this._focusedCell.row + 1, col: 0 };
+                } else {
+                    this._focusedCell = { row: this._focusedCell.row, col: this._focusedCell.col + 1 };
+                }
+                break;
+            case "right":
+                this._focusedCell = { row: this._focusedCell.row, col: this._focusedCell.col + 1 === this.columns.length ? this._focusedCell.col : this._focusedCell.col + 1 };
+                break;
+            case "left":
+                this._focusedCell = { row: this._focusedCell.row, col: this._focusedCell.col === 0 ? this._focusedCell.col : this._focusedCell.col - 1 };
+                break;
+            case "up":
+                this._focusedCell = { row: this._focusedCell.row === 0 ? this._focusedCell.row : this._focusedCell.row - 1, col: this._focusedCell.col };
+                break;
+            case "down":
+                this._focusedCell = { row: this._focusedCell.row + 1 === this.childDocs.length ? this._focusedCell.row : this._focusedCell.row + 1, col: this._focusedCell.col };
+                break;
+        }
+    }
 
     @action
-    setHeaderIsEditing = (isEditing: boolean) => {
+    changeFocusedCellByIndex = (row: number, col: number): void => {
+        this._focusedCell = { row: row, col: col };
+    }
+
+    @action
+    setCellIsEditing = (isEditing: boolean): void => {
+        this._cellIsEditing = isEditing;
+    }
+
+    @action
+    setHeaderIsEditing = (isEditing: boolean): void => {
         this._headerIsEditing = isEditing;
     }
 
-    @action
-    toggleKey = (key: string) => {
-        let list = Cast(this.props.Document.schemaColumns, listSpec("string"));
-        if (list === undefined) {
-            this.props.Document.schemaColumns = list = new List<string>([key]);
-        } else {
-            const index = list.indexOf(key);
-            if (index === -1) {
-                list.push(key);
-            } else {
-                list.splice(index, 1);
-            }
-        }
-    }
+    // @action
+    // toggleKey = (key: string) => {
+    //     let list = Cast(this.props.Document.schemaColumns, listSpec("string"));
+    //     if (list === undefined) {
+    //         this.props.Document.schemaColumns = list = new List<string>([key]);
+    //     } else {
+    //         const index = list.indexOf(key);
+    //         if (index === -1) {
+    //             list.push(key);
+    //         } else {
+    //             list.splice(index, 1);
+    //         }
+    //     }
+    // }
 
     //toggles preview side-panel of schema
     @action
@@ -259,6 +320,13 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     onContextMenu = (e: React.MouseEvent): void => {
         if (!e.isPropagationStopped() && this.props.Document[Id] !== "mainDoc") { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
             ContextMenu.Instance.addItem({ description: "Make DB", event: this.makeDB });
+        }
+    }
+
+    onKeyDown = (e: KeyboardEvent): void => {
+        if (!this._cellIsEditing && !this._headerIsEditing) {
+            let direction = e.key === "Tab" ? "tab" : e.which === 39 ? "right" : e.which === 37 ? "left" : e.which === 38 ? "up" : e.which === 40 ? "down" : "";
+            this.changeFocusedCellByDirection(direction);
         }
     }
 
@@ -410,7 +478,31 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @computed
     get reactTable() {
+        let addDoc = (doc: Doc, relativeTo?: Doc, before?: boolean) => Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, relativeTo, before);
+        let moveDoc = (d: Doc, target: Doc, addDoc: (doc: Doc) => boolean) => this.props.moveDocument(d, target, addDoc);
         let previewWidth = this.previewWidth() + 2 * this.borderWidth + this.DIVIDER_WIDTH + 1;
+
+        // return <MovableTable
+        //     style={{ position: "relative", float: "left", width: `calc(100% - ${previewWidth}px` }}
+        //     data={this.childDocs}
+        //     page={0}
+        //     pageSize={this.childDocs.length}
+        //     showPagination={false}
+        //     columns={this.tableColumns}
+        //     sortable={false}
+        //     getTrProps={this.getTrProps}
+
+        //     ScreenToLocalTransform={this.props.ScreenToLocalTransform}
+        //     addDoc={addDoc}
+        //     moveDoc={moveDoc}
+        //     columnsValues={this.columns}
+        //     columnsList={this.tableColumns}
+        //     setColumnsOrder={(columns: string[]) => this.columns = columns}
+        //     numImmovableColumns={1}
+        // />;
+
+
+        // // let previewWidth = this.previewWidth() + 2 * this.borderWidth + this.DIVIDER_WIDTH + 1;
         return <ReactTable 
             style={{ position: "relative", float: "left", width: `calc(100% - ${previewWidth}px` }} 
             data={this.childDocs} 
@@ -421,6 +513,8 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             // column={{ ...ReactTableDefaults.column, Cell: this.renderCell, }}
             getTrProps={this.getTrProps}
             sortable={false}
+
+            TrComponent={MovableRow(this.props.ScreenToLocalTransform, addDoc, moveDoc)}
         />;
     }
 
@@ -472,6 +566,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         return (
             <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} onWheel={this.onWheel}
                 onDrop={(e: React.DragEvent) => this.onDrop(e, {})} onContextMenu={this.onContextMenu} ref={this.createTarget}>
+                    <div draggable={true} style={{backgroundColor: "green"}}>TESTER</div>
                 {this.reactTable}
                 {this.dividerDragger}
                 {!this.previewWidth() ? (null) : this.previewPanel}

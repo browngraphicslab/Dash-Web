@@ -109,8 +109,8 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         };
         let reference = React.createRef<HTMLDivElement>();
         let onItemDown = (e: React.PointerEvent) => {
-            // (!this.props.CollectionView.props.isSelected() ? undefined :
-            //     SetupDrag(reference, () => props.Document, this.props.moveDocument, this.props.Document.schemaDoc ? "copy" : undefined)(e));
+            (!this.props.CollectionView.props.isSelected() ? undefined :
+                SetupDrag(reference, () => props.Document, this.props.moveDocument, this.props.Document.schemaDoc ? "copy" : undefined)(e));
         };
 
         let field = props.Document[props.fieldKey];
@@ -201,8 +201,8 @@ export class CollectionSchemaCheckboxCell extends CollectionSchemaCell {
     render() {
         let reference = React.createRef<HTMLDivElement>();
         let onItemDown = (e: React.PointerEvent) => {
-            // (!this.props.CollectionView.props.isSelected() ? undefined :
-            //     SetupDrag(reference, () => props.Document, this.props.moveDocument, this.props.Document.schemaDoc ? "copy" : undefined)(e));
+            (!this.props.CollectionView.props.isSelected() ? undefined :
+                SetupDrag(reference, () => this._document, this.props.moveDocument, this.props.Document.schemaDoc ? "copy" : undefined)(e));
         };
         return (
             <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1} onPointerDown={this.onPointerDown}>
@@ -219,8 +219,8 @@ export class CollectionSchemaDocCell extends CollectionSchemaCell {
     render() {
         let reference = React.createRef<HTMLDivElement>();
         let onItemDown = (e: React.PointerEvent) => {
-            // (!this.props.CollectionView.props.isSelected() ? undefined :
-            //     SetupDrag(reference, () => props.Document, this.props.moveDocument, this.props.Document.schemaDoc ? "copy" : undefined)(e));
+            (!this.props.CollectionView.props.isSelected() ? undefined :
+                SetupDrag(reference, () => this._document, this.props.moveDocument, this.props.Document.schemaDoc ? "copy" : undefined)(e));
         };
         return (
             <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1} onPointerDown={this.onPointerDown}>
