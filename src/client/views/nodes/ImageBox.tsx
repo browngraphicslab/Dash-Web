@@ -279,6 +279,32 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
             });
     }
 
+    getFaceRectangles = () => {
+        let foundFaces = Doc.GetProto(this.props.Document).faces;
+        if (!foundFaces) {
+            return (null);
+        }
+        return DocListCast(foundFaces).map(async faceDoc => {
+            let rectangle = await Cast(faceDoc.faceRectangle, Doc);
+            if (!rectangle) {
+                return (null);
+            }
+            let top = NumCast(rectangle.top);
+            let left = NumCast(rectangle.left);
+            let width = NumCast(rectangle.width);
+            let height = NumCast(rectangle.heigh);
+            let style = {
+                position: "absolute",
+                top: top,
+                left: left,
+                width: width,
+                height: height,
+                border: "solid 2px red"
+            } as React.CSSProperties;
+            return <div style={style}></div>;
+        });
+    }
+
     render() {
         // let transform = this.props.ScreenToLocalTransform().inverse();
         let pw = typeof this.props.PanelWidth === "function" ? this.props.PanelWidth() : typeof this.props.PanelWidth === "number" ? (this.props.PanelWidth as any) as number : 50;
@@ -314,6 +340,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
             <div id={id} className={`imageBox-cont${interactive}`} style={{ background: "transparent" }}
                 onPointerDown={this.onPointerDown}
                 onDrop={this.onDrop} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
+                {this.getFaceRectangles()}
                 <img id={id}
                     key={this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
                     src={srcpath}

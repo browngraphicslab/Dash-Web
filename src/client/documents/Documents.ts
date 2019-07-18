@@ -440,6 +440,49 @@ export namespace Docs {
 
     export namespace Get {
 
+        const validPrimitives = ["string", "number", "boolean"];
+
+        export function DocumentHierarchyFromJsonObject(input: any): Opt<Doc>;
+        export function DocumentHierarchyFromJsonObject(input: string): Opt<Doc> {
+            let parsed = typeof input === "string" ? JSON.parse(input) : input;
+            if (typeof parsed !== "object" || parsed instanceof Array) {
+                return undefined;
+            }
+            return convertObject(parsed);
+        }
+
+        const convertObject = (object: any, title?: string) => {
+            let target = new Doc();
+            title && (target.title = title);
+            Object.keys(object).map(key => {
+                let result = valueOf(object[key]);
+                result && (target[key] = result);
+            });
+            return target;
+        };
+
+        const convertList = (list: Array<any>) => {
+            let thisLevel = new List();
+            list.map(item => {
+                let result = valueOf(item);
+                result && thisLevel.push(result);
+            });
+            return thisLevel;
+        };
+
+        const valueOf = (data: any): Opt<Field> => {
+            if (data === null || data === undefined) {
+                return undefined;
+            }
+            if (typeof data === "object") {
+                return data instanceof Array ? convertList(data) : convertObject(data);
+            } else if (validPrimitives.includes(typeof data)) {
+                return data;
+            } else {
+                throw new Error(`How did ${data} end up in JSON?`);
+            }
+        };
+
         export async function DocumentFromType(type: string, path: string, options: DocumentOptions): Promise<Opt<Doc>> {
             let ctor: ((path: string, options: DocumentOptions) => (Doc | Promise<Doc | undefined>)) | undefined = undefined;
             if (type.indexOf("image") !== -1) {

@@ -2,6 +2,9 @@ import * as request from "request-promise";
 import { Doc } from "../../new_fields/Doc";
 import { Cast } from "../../new_fields/Types";
 import { ImageField } from "../../new_fields/URLField";
+import { values } from "mobx";
+import { List } from "../../new_fields/List";
+import { Docs } from "../documents/Documents";
 
 export enum Services {
     ComputerVision,
@@ -99,7 +102,7 @@ export namespace CognitiveServices {
             let converter = (results: any) => {
                 let facesDoc = new Doc;
                 facesDoc.title = "Found Faces";
-                results.map((face: Face) => facesDoc[face.faceId] = JSON.stringify(face.faceAttributes));
+                results.map((face: Face) => facesDoc[face.faceId] = Docs.Get.DocumentHierarchyFromJsonObject(face)!);
                 return facesDoc;
             };
             mutateDocument(target, Services.Face, converter, "faces");
