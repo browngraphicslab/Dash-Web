@@ -385,12 +385,12 @@ export namespace Doc {
     export function MakeDelegate(doc: Doc, id?: string): Doc;
     export function MakeDelegate(doc: Opt<Doc>, id?: string): Opt<Doc>;
     export function MakeDelegate(doc: Opt<Doc>, id?: string): Opt<Doc> {
-        if (!doc) {
-            return undefined;
+        if (doc) {
+            const delegate = new Doc(id, true);
+            delegate.proto = doc;
+            return delegate;
         }
-        const delegate = new Doc(id, true);
-        delegate.proto = doc;
-        return delegate;
+        return undefined;
     }
 
     export function MakeTemplate(fieldTemplate: Doc, metaKey: string, proto: Doc) {

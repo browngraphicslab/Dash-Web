@@ -291,6 +291,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (this._doubleTap && this.props.renderDepth) {
             let fullScreenAlias = Doc.MakeAlias(this.props.Document);
             fullScreenAlias.templates = new List<string>();
+            if (this.props.Document.layout === this.props.Document.miniLayout) fullScreenAlias.layout = this.props.Document.detailedLayout instanceof Doc ? this.props.Document.detailedLayout : StrCast(this.props.Document.detailedLayout);
             this.props.addDocTab(fullScreenAlias, this.dataDoc, "inTab");
             SelectionManager.DeselectAll();
             this.props.Document.libraryBrush = undefined;
@@ -555,6 +556,16 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 this.props.addDocTab && this.props.addDocTab(Docs.Create.SchemaDocument(["title"], aliases, {}), undefined, "onRight"); // bcz: dataDoc?
             }, icon: "search"
         });
+        if (this.props.Document.detailedLayout && !this.props.Document.isTemplate) {
+            cm.addItem({
+                description: "Toggle detail", event: async () => {
+                    let d = this.props.Document;
+                    let miniLayout = await PromiseValue(d.miniLayout);
+                    let detailLayout = await PromiseValue(d.detailedLayout);
+                    d.layout !== miniLayout ? miniLayout && (d.layout = d.miniLayout) : detailLayout && (d.layout = detailLayout);
+                }, icon: "image"
+            });
+        }
         cm.addItem({ description: "Center View", event: () => this.props.focus(this.props.Document, false), icon: "crosshairs" });
         cm.addItem({ description: "Zoom to Document", event: () => this.props.focus(this.props.Document, true), icon: "search" });
         cm.addItem({ description: "Copy URL", event: () => Utils.CopyText(DocServer.prepend("/doc/" + this.props.Document[Id])), icon: "link" });

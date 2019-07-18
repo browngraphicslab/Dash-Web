@@ -1,11 +1,10 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faProjectDiagram, faSignature, faSquare, faTh, faThList, faTree } from '@fortawesome/free-solid-svg-icons';
+import { faProjectDiagram, faSignature, faSquare, faTh, faImage, faThList, faTree } from '@fortawesome/free-solid-svg-icons';
 import { observer } from "mobx-react";
 import * as React from 'react';
-import { Doc } from '../../../new_fields/Doc';
+import { Doc, DocListCast } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
-import { Docs } from '../../documents/Documents';
 import { undoBatch } from '../../util/UndoManager';
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
@@ -16,6 +15,7 @@ import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormV
 import { CollectionSchemaView } from "./CollectionSchemaView";
 import { CollectionStackingView } from './CollectionStackingView';
 import { CollectionTreeView } from "./CollectionTreeView";
+import { StrCast, PromiseValue } from '../../../new_fields/Types';
 export const COLLECTION_BORDER_WIDTH = 2;
 
 library.add(faTh);
@@ -24,6 +24,7 @@ library.add(faSquare);
 library.add(faProjectDiagram);
 library.add(faSignature);
 library.add(faThList);
+library.add(faImage);
 
 @observer
 export class CollectionView extends React.Component<FieldViewProps> {
@@ -63,6 +64,8 @@ export class CollectionView extends React.Component<FieldViewProps> {
                     otherdoc.height = 50;
                     Doc.GetProto(otherdoc).title = "applied(" + this.props.Document.title + ")";
                     Doc.GetProto(otherdoc).layout = Doc.MakeDelegate(this.props.Document);
+                    Doc.GetProto(otherdoc).miniLayout = StrCast(this.props.Document.miniLayout);
+                    Doc.GetProto(otherdoc).detailedLayout = Doc.GetProto(otherdoc).layout;
                     this.props.addDocTab && this.props.addDocTab(otherdoc, undefined, "onRight");
                 }), icon: "project-diagram"
             });
