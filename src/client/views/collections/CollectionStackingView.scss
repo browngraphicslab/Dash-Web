@@ -1,8 +1,9 @@
 @import "../globalCssVariables";
 .collectionStackingView {
-    overflow-y: auto;
     height: 100%;
-
+    width: 100%;
+    position: absolute;
+    overflow-y: auto;
     .collectionStackingView-docView-container {
         width: 45%;
         margin: 5% 2.5%;

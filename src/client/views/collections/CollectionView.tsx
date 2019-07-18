@@ -46,6 +46,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
 
     get isAnnotationOverlay() { return this.props.fieldExt ? true : false; }
 
+    static _applyCount: number = 0;
     onContextMenu = (e: React.MouseEvent): void => {
         if (!this.isAnnotationOverlay && !e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
             let subItems: ContextMenuProps[] = [];
@@ -62,7 +63,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
                     let otherdoc = new Doc();
                     otherdoc.width = 100;
                     otherdoc.height = 50;
-                    Doc.GetProto(otherdoc).title = "applied(" + this.props.Document.title + ")";
+                    Doc.GetProto(otherdoc).title = this.props.Document.title + "(..." + CollectionView._applyCount++ + ")"; // previously "applied"
                     Doc.GetProto(otherdoc).layout = Doc.MakeDelegate(this.props.Document);
                     Doc.GetProto(otherdoc).miniLayout = StrCast(this.props.Document.miniLayout);
                     Doc.GetProto(otherdoc).detailedLayout = Doc.GetProto(otherdoc).layout;

@@ -316,7 +316,7 @@ export namespace Doc {
         if (extensionDoc === undefined) {
             setTimeout(() => {
                 let docExtensionForField = new Doc(doc[Id] + fieldKey, true);
-                docExtensionForField.title = "Extension of " + doc.title + "'s field:" + fieldKey;
+                docExtensionForField.title = doc.title + ":" + fieldKey + ".ext";
                 docExtensionForField.extendsDoc = doc;
                 let proto: Doc | undefined = doc;
                 while (proto && !Doc.IsPrototype(proto)) {
@@ -351,7 +351,7 @@ export namespace Doc {
         if (expandedTemplateLayout === undefined && BoolCast(templateLayoutDoc.isTemplate)) {
             setTimeout(() => {
                 templateLayoutDoc["_expanded_" + dataDoc[Id]] = Doc.MakeDelegate(templateLayoutDoc);
-                (templateLayoutDoc["_expanded_" + dataDoc[Id]] as Doc).title = templateLayoutDoc.title + " applied to " + dataDoc.title;
+                (templateLayoutDoc["_expanded_" + dataDoc[Id]] as Doc).title = templateLayoutDoc.title + "[" + StrCast(dataDoc.title).match(/\.\.\.[0-9]*/) + "]";  // previously: "applied to"
                 (templateLayoutDoc["_expanded_" + dataDoc[Id]] as Doc).isExpandedTemplate = templateLayoutDoc;
             }, 0);
         }
@@ -419,5 +419,12 @@ export namespace Doc {
         fieldTemplate.isTemplate = true;
         fieldTemplate.showTitle = "title";
         setTimeout(() => fieldTemplate.proto = proto);
+    }
+
+    export async function ToggleDetailLayout(d: Doc) {
+        let miniLayout = await PromiseValue(d.miniLayout);
+        let detailLayout = await PromiseValue(d.detailedLayout);
+        d.layout !== miniLayout ? miniLayout && (d.layout = d.miniLayout) : detailLayout && (d.layout = detailLayout);
+        if (d.layout === detailLayout) Doc.GetProto(d).nativeWidth = Doc.GetProto(d).nativeHeight = undefined;
     }
 }

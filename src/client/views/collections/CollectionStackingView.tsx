@@ -15,6 +15,7 @@ import { DragManager } from "../../util/DragManager";
 import { DocumentType } from "../../documents/Documents";
 import { Transform } from "../../util/Transform";
 import { CursorProperty } from "csstype";
+import { COLLECTION_BORDER_WIDTH } from "../../views/globalCssVariables.scss";
 import { string } from "prop-types";
 
 @observer
@@ -107,6 +108,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         let { scale, translateX, translateY } = Utils.GetScreenTransform(dref);
         return this.offsetTransform(doc, translateX, translateY);
     }
+
     getSingleDocTransform(doc: Doc, ind: number, width: number) {
         let localY = this.filteredChildren.reduce((height, d, i) =>
             height + (i < ind ? this.getDocHeight(Doc.expandTemplateLayout(d, this.props.DataDoc)) + this.gridGap : 0), this.yMargin);
@@ -234,7 +236,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             Math.floor((this.props.PanelWidth() - 2 * this.xMargin) / (this.columnWidth + this.gridGap))));
         let templatecols = "";
         for (let i = 0; i < cols; i++) templatecols += `${this.columnWidth}px `;
-        return <>
+        return <div key={heading}>
             {heading ? <div key={`${heading}`} className="collectionStackingView-sectionHeader">{heading}</div> : (null)}
             <div key={`${heading}-stack`} className={`collectionStackingView-masonry${this.singleColumn ? "Single" : "Grid"}`}
                 style={{
@@ -250,7 +252,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             >
                 {this.children(docList)}
                 {this.singleColumn ? (null) : this.columnDragger}
-            </div></>;
+            </div></div>;
     }
     render() {
         let sectionFilter = StrCast(this.props.Document.sectionFilter);
@@ -261,8 +263,6 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         });
         return (
             <div className="collectionStackingView"
-
-                style={{ height: this.props.Document[HeightSym]() }}
                 ref={this.createRef} onDrop={this.onDrop.bind(this)} onContextMenu={this.onContextMenu} onWheel={(e: React.WheelEvent) => e.stopPropagation()} >
                 {/* {sectionFilter as boolean ? [
                     ["width > height", this.filteredChildren.filter(f => f[WidthSym]() >= 1 + f[HeightSym]())],
