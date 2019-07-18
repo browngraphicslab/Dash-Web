@@ -728,7 +728,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     <input ref={this.keyinput} className="title" type="text" name="dynbox" value={this._title} onBlur={this.titleBlur} onChange={this.titleChanged} onKeyPress={this.titleEntered} /> :
                     <div className="title" onPointerDown={this.onTitleDown} ><span>{`${this.selectionTitle}`}</span></div>}
                 <div className="documentDecorations-closeButton" title="Close Document" onPointerDown={this.onCloseDown}>
-                    <FontAwesomeIcon className="documentdecorations-icon" icon={faTimes} size="lg" />
+                    <FontAwesomeIcon className="documentdecorations-times" icon={faTimes} size="lg" />
                 </div>
                 <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-topResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
