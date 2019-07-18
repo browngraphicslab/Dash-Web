@@ -284,15 +284,17 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         let self = this;
         let audioAnnos = DocListCast(this.extensionDoc.audioAnnotations);
         if (audioAnnos.length && this._audioState === 0) {
-            audioAnnos.map(anno => anno.data instanceof AudioField && new Howl({
+            let anno = audioAnnos[Math.floor(Math.random() * audioAnnos.length)];
+            anno.data instanceof AudioField && new Howl({
                 src: [anno.data.url.href],
+                format: ["mp3"],
                 autoplay: true,
                 loop: false,
                 volume: 0.5,
                 onend: function () {
                     runInAction(() => self._audioState = 0);
                 }
-            }));
+            });
             this._audioState = 1;
         }
         // else {
@@ -350,28 +352,23 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
 
         return (
             <div id={id} className={`imageBox-cont${interactive}`} style={{ background: "transparent" }}
-                onPointerEnter={this.onPointerEnter}
                 onPointerDown={this.onPointerDown}
                 onDrop={this.onDrop} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
                 <img id={id}
                     key={this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
                     src={srcpath}
                     style={{ transform: `translate(0px, ${shift}px) rotate(${rotation}deg) scale(${aspect})` }}
-                    // style={{ objectFit: (this.Document.curPage === 0 ? undefined : "contain") }}
                     width={nativeWidth}
                     ref={this._imgRef}
                     onError={this.onError} />
                 {paths.length > 1 ? this.dots(paths) : (null)}
-                <div onPointerDown={this.audioDown} style={{
-                    display: DocListCast(this.extensionDoc.audioAnnotations).length ? "inline" : "inline",
-                    width: nativeWidth * 0.1,
-                    height: nativeWidth * 0.1,
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                }}>
-                    <FontAwesomeIcon
-                        style={{ width: "100%", height: "100%", color: [DocListCast(this.extensionDoc.audioAnnotations).length ? "blue" : "gray", "green", "red"][this._audioState] }} icon={faFileAudio} size="sm" />
+                <div className="imageBox-audioBackground"
+                    onPointerDown={this.audioDown}
+                    onPointerEnter={this.onPointerEnter}
+                    style={{ height: `calc(${.1 * nativeHeight / nativeWidth * 100}%)` }}
+                >
+                    <FontAwesomeIcon className="imageBox-audioFont"
+                        style={{ color: [DocListCast(this.extensionDoc.audioAnnotations).length ? "blue" : "gray", "green", "red"][this._audioState] }} icon={faFileAudio} size="sm" />
                 </div>
                 {/* {this.lightbox(paths)} */}
             </div>);
