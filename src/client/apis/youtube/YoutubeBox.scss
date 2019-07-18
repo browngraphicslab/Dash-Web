@@ -5,9 +5,15 @@ ul {
 
 li {
     margin: 4px;
+    display: inline-flex;
 }
 
 li:hover {
     cursor: pointer;
     opacity: 0.8;
+}
+
+.videoTitle {
+    margin-left: 4px;
+    font-family: Arial, Helvetica, sans-serif;
 }

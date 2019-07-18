@@ -81,7 +81,7 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
             return <ul>
                 {this.searchResults.map((video) => {
                     let filteredTitle = this.filterYoutubeTitleResult(video.snippet.title);
-                    return <li onClick={() => this.embedVideoOnClick(video.id.videoId, filteredTitle)} key={video.id.videoId}><img src={video.snippet.thumbnails.medium.url} />  {filteredTitle}</li>;
+                    return <li onClick={() => this.embedVideoOnClick(video.id.videoId, filteredTitle)} key={video.id.videoId}><img src={video.snippet.thumbnails.medium.url} /> <span className="videoTitle">{filteredTitle}</span>  </li>;
                 })}
             </ul>;
             // } else if (this.videoClicked) {
