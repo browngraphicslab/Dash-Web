@@ -35,6 +35,7 @@ import "./FormattedTextBox.scss";
 import React = require("react");
 import { DateField } from '../../../new_fields/DateField';
 import { thisExpression } from 'babel-types';
+import { Utils } from '../../../Utils';
 
 library.add(faEdit);
 library.add(faSmile);
@@ -311,8 +312,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 href = parent.childNodes[0].href ? parent.childNodes[0].href : parent.href;
             }
             if (href) {
-                if (href.indexOf(DocServer.prepend("/doc/")) === 0) {
-                    this._linkClicked = href.replace(DocServer.prepend("/doc/"), "").split("?")[0];
+                if (href.indexOf(Utils.prepend("/doc/")) === 0) {
+                    this._linkClicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
                     if (this._linkClicked) {
                         DocServer.GetRefField(this._linkClicked).then(async linkDoc => {
                             if (linkDoc instanceof Doc) {

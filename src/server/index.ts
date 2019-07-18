@@ -417,7 +417,7 @@ app.get(RouteStore.reset, getReset);
 app.post(RouteStore.reset, postReset);
 
 app.use(RouteStore.corsProxy, (req, res) =>
-    req.pipe(request(req.url.substring(1))).pipe(res));
+    req.pipe(request(decodeURIComponent(req.url.substring(1)))).pipe(res));
 
 app.get(RouteStore.delete, (req, res) => {
     if (release) {

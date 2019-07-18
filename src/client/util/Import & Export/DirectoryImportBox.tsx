@@ -98,12 +98,12 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
 
             runInAction(() => this.remaining++);
 
-            let prom = fetch(DocServer.prepend(RouteStore.upload), {
+            let prom = fetch(Utils.prepend(RouteStore.upload), {
                 method: 'POST',
                 body: formData
             }).then(async (res: Response) => {
                 (await res.json()).map(action((file: any) => {
-                    let docPromise = Docs.Get.DocumentFromType(type, DocServer.prepend(file), { nativeWidth: 300, width: 300, title: dropFileName });
+                    let docPromise = Docs.Get.DocumentFromType(type, Utils.prepend(file), { nativeWidth: 300, width: 300, title: dropFileName });
                     docPromise.then(doc => {
                         doc && docs.push(doc) && runInAction(() => this.remaining--);
                     });
