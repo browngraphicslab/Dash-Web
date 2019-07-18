@@ -25,7 +25,6 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
     @observable searchResults: any[] = [];
     @observable videoClicked: boolean = false;
     @observable selectedVideoUrl: string = "";
-    // @observable cachedResults: List<Doc> | undefined;
     @observable lisOfBackUp: JSX.Element[] = [];
 
 
@@ -38,7 +37,6 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
             this.props.Document.cachedSearch = castedBackUpDocs = new List<Doc>();
         }
         if (castedBackUpDocs.length !== 0) {
-            //let awaitedRes = await castedBackUpDocs;
 
             this.searchResultsFound = true;
 
@@ -50,7 +48,7 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
                 runInAction(() => this.lisOfBackUp.push((
                     <li
                         onClick={() => this.embedVideoOnClick(videoId, videoTitle)}
-                        key={videoId}
+                        key={Utils.GenerateGuid()}
                     >
                         <img src={thumbnailUrl} />
                         <span className="videoTitle">{videoTitle}</span>
@@ -95,7 +93,6 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
     @action
     processesVideoResults = (videos: any[]) => {
         this.searchResults = videos;
-        console.log("Results: ", this.searchResults);
         if (this.searchResults.length > 0) {
             this.searchResultsFound = true;
             this.backUpSearchResults(videos);
@@ -106,13 +103,14 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
     }
 
     backUpSearchResults = (videos: any[]) => {
-        let castedBackUpDocs = Cast(this.props.Document.cachedSearch, listSpec(Doc));
+        let newCachedList = new List<Doc>();
+        this.props.Document.cachedSearch = newCachedList;
         videos.forEach((video) => {
             let videoBackUp = new Doc();
             videoBackUp.videoId = video.id.videoId;
             videoBackUp.videoTitle = this.filterYoutubeTitleResult(video.snippet.title);
             videoBackUp.thumbnailUrl = video.snippet.thumbnails.medium.url;
-            castedBackUpDocs!.push(videoBackUp);
+            newCachedList.push(videoBackUp);
         });
     }
 
@@ -123,54 +121,16 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
         return processedTitle;
     }
 
-    // mapSearchResults = () => {
-    //     if (this.searchResults.length !== 0) {
-    //         console.log("Entered here");
-    //         return <ul>{
-    //             this.searchResults.map((video) => {
-    //                 let filteredTitle = this.filterYoutubeTitleResult(video.snippet.title);
-    //                 return <li onClick={() => this.embedVideoOnClick(video.id.videoId, filteredTitle)} key={video.id.videoId}><img src={video.snippet.thumbnails.medium.url} /> <span className="videoTitle">{filteredTitle}</span>  </li>;
-    //             })}
-    //         </ul>;
-    //     } else if (this.cachedResults!.length !== 0) {
-    //         return <ul>{
-    //             this.cachedResults!.map(async (videoBackUp) => {
-    //                 let curBackUp = await videoBackUp;
-    //                 let videoId = StrCast(curBackUp.videoId);
-    //                 let videoTitle = StrCast(curBackUp.videoTitle);
-    //                 let thumbnailUrl = StrCast(curBackUp.thumbnailUrl);
-    //                 return <li onClick={() => this.embedVideoOnClick(videoTitle, videoTitle)} key={videoId}><img src={thumbnailUrl} /> <span className="videoTitle">{videoTitle}</span>  </li>;
-    //             })}
-    //         </ul>;
-    //     }
-    // }
-
     renderSearchResultsOrVideo = () => {
         if (this.searchResultsFound) {
             if (this.searchResults.length !== 0) {
                 return <ul>
                     {this.searchResults.map((video) => {
                         let filteredTitle = this.filterYoutubeTitleResult(video.snippet.title);
-                        return <li onClick={() => this.embedVideoOnClick(video.id.videoId, filteredTitle)} key={video.id.videoId}><img src={video.snippet.thumbnails.medium.url} /> <span className="videoTitle">{filteredTitle}</span>  </li>;
+                        return <li onClick={() => this.embedVideoOnClick(video.id.videoId, filteredTitle)} key={Utils.GenerateGuid()}><img src={video.snippet.thumbnails.medium.url} /> <span className="videoTitle">{filteredTitle}</span>  </li>;
                     })}
                 </ul>;
             } else if (this.lisOfBackUp.length !== 0) {
-                // let lis: JSX.Element[] = [];
-                // for (let videoBackUp of this.cachedResults!) {
-                //     let curBackUp = await videoBackUp;
-                //     let videoId = StrCast(curBackUp.videoId);
-                //     let videoTitle = StrCast(curBackUp.videoTitle);
-                //     let thumbnailUrl = StrCast(curBackUp.thumbnailUrl);
-                //     lis.push((
-                //         <li
-                //             onClick={() => this.embedVideoOnClick(videoTitle, videoTitle)}
-                //             key={videoId}
-                //         >
-                //             <img src={thumbnailUrl} />
-                //             <span className="videoTitle">{videoTitle}</span>
-                //         </li>)
-                //     );
-                // }
                 return <ul>{this.lisOfBackUp}</ul>;
             }
         } else {
@@ -188,15 +148,11 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
         let newVideoY = NumCast(this.props.Document.y) + NumCast(this.props.Document.height);
 
         addFunction(Docs.Create.VideoDocument(embeddedUrl, { title: filteredTitle, width: 400, height: 315, x: newVideoX, y: newVideoY }));
-
-        //this.props.addDocument(Docs.Create.VideoDocument(embeddedUrl, { title: embeddedUrl, width: 400, height: 315 }));
-        //this.searchResultsFound = false;
         this.videoClicked = true;
     }
 
     render() {
         let field = this.props.Document[this.props.fieldKey];
-        //let results = this.renderSearchResultsOrVideo();
         let content =
             <div style={{ width: "100%", height: "100%", position: "absolute" }} onWheel={this.onPostWheel} onPointerDown={this.onPostPointer} onPointerMove={this.onPostPointer} onPointerUp={this.onPostPointer}>
                 <input type="text" placeholder="Search for a video" onKeyDown={this.onEnterKeyDown} style={{ height: 40, width: "100%", border: "1px solid black", padding: 5, textAlign: "center" }} ref={(e) => this.YoutubeSearchElement = e!} />
