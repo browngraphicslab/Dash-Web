@@ -44,7 +44,7 @@ export enum ColumnType {
     Number,
     String,
     Boolean,
-    Doc,
+    // Doc,
     Checkbox
 }
 // this map should be used for keys that should have a const type of value
@@ -54,21 +54,21 @@ const columnTypes: Map<string, ColumnType> = new Map([
     ["page", ColumnType.Number], ["curPage", ColumnType.Number], ["libraryBrush", ColumnType.Boolean], ["zIndex", ColumnType.Number]
 ]);
 
-@observer
-class KeyToggle extends React.Component<{ keyName: string, checked: boolean, toggle: (key: string) => void }> {
-    constructor(props: any) {
-        super(props);
-    }
+// @observer
+// class KeyToggle extends React.Component<{ keyName: string, checked: boolean, toggle: (key: string) => void }> {
+//     constructor(props: any) {
+//         super(props);
+//     }
 
-    render() {
-        return (
-            <div key={this.props.keyName}>
-                <input type="checkbox" checked={this.props.checked} onChange={() => this.props.toggle(this.props.keyName)} />
-                {this.props.keyName}
-            </div>
-        );
-    }
-}
+//     render() {
+//         return (
+//             <div key={this.props.keyName}>
+//                 <input type="checkbox" checked={this.props.checked} onChange={() => this.props.toggle(this.props.keyName)} />
+//                 {this.props.keyName}
+//             </div>
+//         );
+//     }
+// }
 
 @observer
 export class CollectionSchemaView extends CollectionSubView(doc => doc) {

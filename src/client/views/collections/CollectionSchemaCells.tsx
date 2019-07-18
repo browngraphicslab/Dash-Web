@@ -81,6 +81,13 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         this.props.changeFocusedCellByIndex(this.props.row, this.props.col);
     }
 
+    applyToDoc = (doc: Doc, run: (args?: { [name: string]: any }) => any) => {
+        const res = run({ this: doc });
+        if (!res.success) return false;
+        doc[this.props.rowProps.column.id as string] = res.result;
+        return true;
+    }
+
     renderCellWithType(type: string | undefined) {
         let props: FieldViewProps = {
             Document: this.props.rowProps.original,
@@ -104,12 +111,6 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         let onItemDown = (e: React.PointerEvent) => {
             // (!this.props.CollectionView.props.isSelected() ? undefined :
             //     SetupDrag(reference, () => props.Document, this.props.moveDocument, this.props.Document.schemaDoc ? "copy" : undefined)(e));
-        };
-        let applyToDoc = (doc: Doc, run: (args?: { [name: string]: any }) => any) => {
-            const res = run({ this: doc });
-            if (!res.success) return false;
-            doc[props.fieldKey] = res.result;
-            return true;
         };
 
         let field = props.Document[props.fieldKey];
@@ -141,7 +142,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                             if (!script.compiled) {
                                 return false;
                             }
-                            return applyToDoc(props.Document, script.run);
+                            return this.applyToDoc(props.Document, script.run);
                         }}
                         OnFillDown={async (value: string) => {
                             let script = CompileScript(value, { requiredType: type, addReturn: true, params: { this: Doc.name } });
@@ -151,7 +152,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                             const run = script.run;
                             //TODO This should be able to be refactored to compile the script once
                             const val = await DocListCastAsync(this.props.Document[this.props.fieldKey]);
-                            val && val.forEach(doc => applyToDoc(doc, run));
+                            val && val.forEach(doc => this.applyToDoc(doc, run));
                         }} />
                 </div >
             </div>
@@ -187,21 +188,13 @@ export class CollectionSchemaStringCell extends CollectionSchemaCell {
 @observer
 export class CollectionSchemaCheckboxCell extends CollectionSchemaCell {
     @observable private _isChecked: boolean = typeof this.props.rowProps.original[this.props.rowProps.column.id as string] === "boolean" ? BoolCast(this.props.rowProps.original[this.props.rowProps.column.id as string]) : false;
-    private _doc: Doc = this.props.rowProps.original;
-
-    applyToDoc = (doc: Doc, run: (args?: { [name: string]: any }) => any) => {
-        const res = run({ this: doc });
-        if (!res.success) return false;
-        doc[this.props.rowProps.column.id as string] = res.result;
-        return true;
-    }
 
     @action
     toggleChecked = (e: React.ChangeEvent<HTMLInputElement>) => {
         this._isChecked = e.target.checked;
         let script = CompileScript(e.target.checked.toString(), { requiredType: "boolean", addReturn: true, params: { this: Doc.name } });
             if (script.compiled) {
-                this.applyToDoc(this._doc, script.run);
+                this.applyToDoc(this._document, script.run);
             }
     }
 
@@ -213,8 +206,25 @@ export class CollectionSchemaCheckboxCell extends CollectionSchemaCell {
         };
         return (
             <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1} onPointerDown={this.onPointerDown}>
-                <div className="collectionSchemaView-cellContents" onPointerDown={onItemDown} key={this._doc[Id]} ref={reference}>
+                <div className="collectionSchemaView-cellContents" onPointerDown={onItemDown} key={this._document[Id]} ref={reference}>
                     <input type="checkbox" checked={this._isChecked} onChange={this.toggleChecked}/>
+                </div >
+            </div>
+        );
+    }
+}
+
+@observer
+export class CollectionSchemaDocCell extends CollectionSchemaCell {
+    render() {
+        let reference = React.createRef<HTMLDivElement>();
+        let onItemDown = (e: React.PointerEvent) => {
+            // (!this.props.CollectionView.props.isSelected() ? undefined :
+            //     SetupDrag(reference, () => props.Document, this.props.moveDocument, this.props.Document.schemaDoc ? "copy" : undefined)(e));
+        };
+        return (
+            <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1} onPointerDown={this.onPointerDown}>
+                <div className="collectionSchemaView-cellContents" onPointerDown={onItemDown} key={this._document[Id]} ref={reference}>
                 </div >
             </div>
         );
