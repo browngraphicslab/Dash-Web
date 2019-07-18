@@ -144,7 +144,7 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
         console.log("EmbeddedUrl: ", embeddedUrl);
         this.selectedVideoUrl = embeddedUrl;
         let addFunction = this.props.addDocument!;
-        let newVideoX = NumCast(this.props.Document.x) + NumCast(this.props.Document.width);
+        let newVideoX = NumCast(this.props.Document.x);
         let newVideoY = NumCast(this.props.Document.y) + NumCast(this.props.Document.height);
 
         addFunction(Docs.Create.VideoDocument(embeddedUrl, { title: filteredTitle, width: 400, height: 315, x: newVideoX, y: newVideoY }));
