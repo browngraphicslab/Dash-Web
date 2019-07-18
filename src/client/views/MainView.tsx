@@ -381,7 +381,7 @@ export class MainView extends React.Component {
         let addImageNode = action(() => Docs.Create.ImageDocument(imgurl, { width: 200, title: "an image of a cat" }));
         let addImportCollectionNode = action(() => Docs.Create.DirectoryImportDocument({ title: "Directory Import", width: 400, height: 400 }));
         let youtubeurl = "https://www.youtube.com/embed/TqcApsGRzWw";
-        let addYoutubeSearcher = action(() => Docs.Create.YoutubeDocument(youtubeurl, { width: 200, height: 200, title: "youtube node" }));
+        let addYoutubeSearcher = action(() => Docs.Create.YoutubeDocument(youtubeurl, { width: 600, height: 600, title: "youtube search" }));
 
         let btns: [React.RefObject<HTMLDivElement>, IconName, string, () => Doc][] = [
             [React.createRef<HTMLDivElement>(), "object-group", "Add Collection", addColNode],
