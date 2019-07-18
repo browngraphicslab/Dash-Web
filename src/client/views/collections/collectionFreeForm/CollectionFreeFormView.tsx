@@ -4,7 +4,7 @@ import { Doc, DocListCastAsync, HeightSym, WidthSym, DocListCast } from "../../.
 import { Id } from "../../../../new_fields/FieldSymbols";
 import { InkField, StrokeData } from "../../../../new_fields/InkField";
 import { createSchema, makeInterface } from "../../../../new_fields/Schema";
-import { BoolCast, Cast, FieldValue, NumCast } from "../../../../new_fields/Types";
+import { BoolCast, Cast, FieldValue, NumCast, StrCast } from "../../../../new_fields/Types";
 import { emptyFunction, returnOne } from "../../../../Utils";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { DragManager } from "../../../util/DragManager";
@@ -263,7 +263,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         const newPanX = Math.min((1 - 1 / scale) * this.nativeWidth, Math.max(0, panX));
         const newPanY = Math.min((1 - 1 / scale) * this.nativeHeight, Math.max(0, panY));
         this.props.Document.panX = this.isAnnotationOverlay ? newPanX : panX;
-        this.props.Document.panY = this.isAnnotationOverlay ? newPanY : panY;
+        this.props.Document.panY = this.isAnnotationOverlay && StrCast(this.props.Document.backgroundLayout).indexOf("PDFBox") === -1 ? newPanY : panY;
         // this.props.Document.panX = panX;
         // this.props.Document.panY = panY;
         if (this.props.Document.scrollY) {
