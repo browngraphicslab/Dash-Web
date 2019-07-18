@@ -50,17 +50,6 @@ type DocTuple = {
     doc: Doc,
     value: CompoundValue
 };
-// type MarkerUnit = {
-//     element: JSX.Element,
-//     initialLeft: number,
-//     initialWidth: number,
-//     initialScaleRef: number,
-//     secondScaleRef?: number,
-//     ref: HTMLDivElement | undefined,
-//     annotation: string,
-//     map: JSX.Element,
-//     mapref: HTMLDivElement | undefined;
-// };
 
 type MarkerUnit = {
     document: Doc,
@@ -127,55 +116,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     constructor(props: SubCollectionViewProps) {
         super(props);
-        let markers = this.markerDocs;
-        console.log(markers);
 
-        for (let i = 0; i < markers.length; i++) {
-            let doc = markers[i];
-            this.markers[i] = { document: markers[i] } as MarkerUnit;
-            this.markers[i].mapref = undefined;
-            this.markers[i].ref = undefined;
-            this.markers[i].element = (<div ref={(el) => el ? this.markers[i].ref = el : null} id={"marker" + String(this.markers.length)} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, this.markers[i].ref, String(this.markers[i].document.annotation), this.markers[i])}
-                style={{
-                    top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid" + this.selectedColor,
-                    width: "10px", height: "30px", backgroundColor: this.selectedColor, opacity: "0.25", position: "absolute", left: 0,
-                }}></div>);
-            this.markers[i].map = <div className="ugh" ref={(el) => el ? this.markers[i].mapref = el : null}
-                style={{
-                    position: "absolute",
-                    background: this.selectedColor,
-                    zIndex: "1",
-                    top: this.previewHeight(this.selectedColor),
-                    left: 0,
-                    width: 10, border: "3px solid" + this.selectedColor
-                }}></div>;
-            console.log(this.markers[i]);
-
-
-
-
-            //     let ting: MarkerUnit = {
-            //         document:
-            //             ref: undefined,
-            //         mapref: undefined,
-            //         element: <div ref={(el) => el ? ting.ref = el : null} id={"marker" + String(this.markers.length)} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, ting.ref, String(ting.document.annotation), ting)}
-            //             style={{
-            //                 top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid" + this.selectedColor,
-            //                 width: "10px", height: "30px", backgroundColor: this.selectedColor, opacity: "0.25", position: "absolute", left: 0,
-            //             }}></div>,
-            //         map: (<div className="ugh" ref={(el) => el ? ting.mapref = el : null}
-            //             style={{
-            //                 position: "absolute",
-            //                 background: this.selectedColor,
-            //                 zIndex: "1",
-            //                 top: this.previewHeight(this.selectedColor),
-            //                 left: 0,
-            //                 width: 10, border: "3px solid" + this.selectedColor
-            //             }}></div>),
-            //     }
-
-            // this.markers[i] = ting;
-        }
     }
 
     componentWillMount() {
@@ -185,13 +126,44 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             }
         });
 
-
+        this.initializeMarkers();
         document.addEventListener("keydown", (e) => this.onKeyPress_Selector(e));
     }
 
+    initializeMarkers = async () => {
+        let markers = this.markerDocs;
+        console.log(markers);
+
+        console.log(this.markers.length);
+        console.log(markers.length);
+        for (let i = 0; i < markers.length; i++) {
+            let doc = await markers[i];
+            let markerUnit = { document: doc, ref: undefined, mapref: undefined } as MarkerUnit;
+            console.log(markerUnit);
+            console.log(markerUnit.ref);
+            markerUnit.element = (< div ref={(el) => el ? markerUnit.ref = el : null} id={"marker" + String(this.markers.length)} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, markerUnit.ref, String(markerUnit.document.annotation), markerUnit)}
+                style={{
+                    top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid" + (markerUnit.document.color),
+                    width: "10px", height: "30px", backgroundColor: String(markerUnit.document.color), opacity: "0.25", position: "absolute", left: 0,
+                }}></div>);
+            markerUnit.map = <div className="ugh" ref={(el) => el ? markerUnit.mapref = el : null}
+                style={{
+                    position: "absolute",
+                    background: String(markerUnit.document.color),
+                    zIndex: "1",
+                    top: this.previewHeight(String(markerUnit.document.color)),
+                    left: 0,
+                    width: 10, border: "3px solid" + String(markerUnit.document.color)
+                }}></div>;
+            this.markers[i] = markerUnit;
+            this.markerrender;
+
+        }
+        console.log(this.markers.length);
+    }
+
     componentDidMount() {
-
-
+        runInAction(() => this.countingfriend++);
     }
 
 
@@ -259,8 +231,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @observable
     private preview4: string;
 
-    @observable
-    private preview0: MarkerUnit | undefined;
 
     private selections: (HTMLDivElement | undefined)[] = [];
 
@@ -280,6 +250,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this._visible = false;
     }
 
+
     private markers: MarkerUnit[] = [];
 
     @observable
@@ -292,7 +263,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             if (element.ref !== undefined) {
                 let oldstyle = element.ref!;
                 oldstyle.style.left = String(((NumCast(element.document.initialLeft) * (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)) - (this.xmovement * (this.barwidth) / (this.barwidth - this.xmovement2 - this.xmovement)))));
-                oldstyle.style.width = String(NumCast(element.document.initialScaleRef) * ((this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement))) / NumCast(element.document.initialWidth));
+                oldstyle.style.width = String(parseFloat(oldstyle.style.width) * ((this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement))) / NumCast(element.document.initialWidth));
             }
         });
 
@@ -303,20 +274,25 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     }
 
     @action
-    onPointerDown_DeleteMarker = (e: React.PointerEvent, ref: HTMLDivElement | undefined, annotation: string, ting: MarkerUnit): void => {
+    onPointerDown_DeleteMarker = (e: React.PointerEvent, ref: HTMLDivElement | undefined, annotation: string, markerUnit: MarkerUnit): void => {
 
         if (e.ctrlKey) {
-            for (let i = 0; i < this.markers.length; i++) {
-                if (this.markers[i].ref === ref) {
-                    this.markers.splice(i, 1);
-                }
-            }
+            let index = this.markerDocs.indexOf(markerUnit.document);
+            this.markerDocs.splice(index, 1);
+            index = this.markers.indexOf(markerUnit);
+            this.markers.splice(index, 1);
+            // for (let i = 0; i < this.markers.length; i++) {
+            //     if (this.markers[i].ref === ref) {
+            //         this.markers.splice(i, 1);
+            //     }
+            // }
         }
         else {
-            this.currentmarker.ref.style.opacity = "0.25";
-            this.currentmarker.ref.style.border = "0px solid black";
+
+            this.currentmarker ? this.currentmarker.ref.style.opacity = "0.25" : null;
+            this.currentmarker ? this.currentmarker.ref.style.border = "0px solid black" : null;
             this.viewvalue = annotation;
-            this.currentmarker = ting;
+            this.currentmarker = markerUnit;
             this.currentmarker.ref.style.opacity = "0.9";
             this.currentmarker.ref.style.border = "1px solid black";
             this.currentmarker.ref.style.borderStyle = "dashed";
@@ -326,8 +302,22 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     }
 
+    @observable
+    private observabletest: JSX.Element[] = [];
+
+
     @action
     onPointerDown_Selector = (e: React.PointerEvent): void => {
+        if (e.shiftKey) {
+            e.preventDefault();
+            this.observabletest.push(<div
+                style={{
+                    top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid",
+                    width: "10px", height: "30px", opacity: 0.25, position: "absolute",
+                }}></div>);
+            console.log(this.observabletest.length);
+        }
+
 
         if (e.altKey) {
             e.preventDefault;
@@ -355,14 +345,12 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             };
 
             let d = ting.document;
-            this.markerDocs.push(d);
             d.initialLeft = (leftval / (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement))) + (this.xmovement);
-            d.initialScaleRef = 10;
-            d.secondScaleRef = 10;
             d.initialWidth = (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement));
             d.annotation = "Edit me!";
+            d.color = this.selectedColor;
+            this.markerDocs.push(d);
 
-            let actualNumber = NumCast(d.initialLeft);
 
 
             this.markers.push(ting);
@@ -463,8 +451,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 console.log(this.markers[this.markers.length - 1]);
                 this.markers[this.markers.length - 1].ref.style.width = String(newX);
                 this.markers[this.markers.length - 1].mapref.style.width = String(newX2);
-                this.markers[this.markers.length - 1].document.initialScaleRef = newX;
-                this.markers[this.markers.length - 1].document.secondScaleRef = newX2;
 
             }
             this.countingfriend++;
@@ -725,8 +711,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         return buttons;
     }
 
-    @observable
-    private bool = true;
 
     @action
     checkDataString = (): string[] => {
@@ -1095,11 +1079,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             };
 
             let d = ting.document;
-            d.initialLeft = ((min - 3 - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98) / (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement))) + (this.xmovement),
+            d.initialLeft = ((min - 3 - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98) / (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement))) + (this.xmovement);
 
-                d.initialScaleRef = Math.abs(max - min);
-            d.initialWidth = (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement)),
-                d.annotation = "Edit me!";
+            d.initialWidth = (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement));
+            d.annotation = "Edit me!";
 
 
 
@@ -1109,6 +1092,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             this.markers.push(ting);
             this.currentmarker ? this.currentmarker.ref!.style.border = "0px" : null;
             this.currentmarker = ting;
+            d.color = this.selectedColor;
+
 
 
             this.countingfriend++;
@@ -1116,9 +1101,11 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
         }
         this.countingfriend++;
-        this.currentmarker.ref ? this.currentmarker.ref.style.border = "1px solid black" : null;
-        this.currentmarker.ref ? this.currentcolor = this.currentmarker.ref.style.backgroundColor : null;
-        this.currentmarker.ref ? this.currentmarker.ref.style.borderStyle = "dashed" : null;
+        if (this.currentmarker !== undefined) {
+            this.currentmarker.ref ? this.currentmarker.ref.style.border = "1px solid black" : null;
+            this.currentmarker.ref ? this.currentcolor = this.currentmarker.ref.style.backgroundColor : null;
+            this.currentmarker.ref ? this.currentmarker.ref.style.borderStyle = "dashed" : null;
+        }
     }
 
 
