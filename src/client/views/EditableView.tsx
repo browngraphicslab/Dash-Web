@@ -31,6 +31,7 @@ export interface EditableProps {
     oneLine?: boolean;
     editing?: boolean;
     onClick?: (e: React.MouseEvent) => boolean;
+    isEditingCallback?:  (isEditing: boolean) => void;
 }
 
 /**
@@ -48,6 +49,11 @@ export class EditableView extends React.Component<EditableProps> {
     }
 
     @action
+    componentWillReceiveProps(nextProps: EditableProps) {
+        this._editing = nextProps.editing ? true : false;
+    }
+
+    @action
     onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Tab") {
             this.props.OnTab && this.props.OnTab();
@@ -55,13 +61,16 @@ export class EditableView extends React.Component<EditableProps> {
             if (!e.ctrlKey) {
                 if (this.props.SetValue(e.currentTarget.value, e.shiftKey)) {
                     this._editing = false;
+                    this.props.isEditingCallback && this.props.isEditingCallback(false);
                 }
             } else if (this.props.OnFillDown) {
                 this.props.OnFillDown(e.currentTarget.value);
                 this._editing = false;
+                this.props.isEditingCallback && this.props.isEditingCallback(false);
             }
         } else if (e.key === "Escape") {
             this._editing = false;
+            this.props.isEditingCallback && this.props.isEditingCallback(false);
         }
     }
 
@@ -69,6 +78,7 @@ export class EditableView extends React.Component<EditableProps> {
     onClick = (e: React.MouseEvent) => {
         if (!this.props.onClick || !this.props.onClick(e)) {
             this._editing = true;
+            this.props.isEditingCallback && this.props.isEditingCallback(true);
         }
         e.stopPropagation();
     }
@@ -85,7 +95,7 @@ export class EditableView extends React.Component<EditableProps> {
     render() {
         if (this._editing) {
             return <input className="editableView-input" defaultValue={this.props.GetValue()} onKeyDown={this.onKeyDown} autoFocus
-                onBlur={action(() => this._editing = false)} onPointerDown={this.stopPropagation} onClick={this.stopPropagation} onPointerUp={this.stopPropagation}
+                onBlur={action(() => {this._editing = false; this.props.isEditingCallback && this.props.isEditingCallback(false);})} onPointerDown={this.stopPropagation} onClick={this.stopPropagation} onPointerUp={this.stopPropagation}
                 style={{ display: this.props.display, fontSize: this.props.fontSize }} />;
         } else {
             return (

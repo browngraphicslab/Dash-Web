@@ -4,7 +4,7 @@ import { faCog, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, trace, untracked } from "mobx";
 import { observer } from "mobx-react";
-import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults, TableCellRenderer } from "react-table";
+import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults, TableCellRenderer, Column } from "react-table";
 import "react-table/react-table.css";
 import { emptyFunction, returnFalse, returnZero, returnOne } from "../../../Utils";
 import { Doc, DocListCast, DocListCastAsync, Field, FieldResult } from "../../../new_fields/Doc";
@@ -33,7 +33,7 @@ import { undoBatch } from "../../util/UndoManager";
 import { timesSeries } from "async";
 import { CollectionSchemaHeader, CollectionSchemaAddColumnHeader } from "./CollectionSchemaHeaders";
 import { CellProps, CollectionSchemaCell, CollectionSchemaNumberCell, CollectionSchemaStringCell, CollectionSchemaBooleanCell, CollectionSchemaCheckboxCell } from "./CollectionSchemaCells";
-
+import { MovableColumn, MovableRow } from "./CollectionSchemaMovableTableHOC";
 
 library.add(faCog);
 library.add(faPlus);
@@ -54,89 +54,80 @@ const columnTypes: Map<string, ColumnType> = new Map([
     ["page", ColumnType.Number], ["curPage", ColumnType.Number], ["libraryBrush", ColumnType.Boolean], ["zIndex", ColumnType.Number]
 ]);
 
-// @observer
-// class KeyToggle extends React.Component<{ keyName: string, checked: boolean, toggle: (key: string) => void }> {
-//     constructor(props: any) {
-//         super(props);
-//     }
-
-//     render() {
-//         return (
-//             <div key={this.props.keyName}>
-//                 <input type="checkbox" checked={this.props.checked} onChange={() => this.props.toggle(this.props.keyName)} />
-//                 {this.props.keyName}
-//             </div>
-//         );
-//     }
-// }
-
 @observer
 export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     private _mainCont?: HTMLDivElement;
     private _startPreviewWidth = 0;
     private DIVIDER_WIDTH = 4;
 
-    @observable _columns: Array<string> = ["title", "data", "author"];
     @observable _selectedIndex = 0;
     @observable _columnsPercentage = 0;
     @observable _keys: string[] = [];
     @observable _newKeyName: string = "";
     @observable previewScript: string = "";
     @observable _headerIsEditing: boolean = false;
+    @observable _cellIsEditing: boolean = false;
+    @observable _focusedCell: {row: number, col: number} = {row: 0, col: 0};
+    @observable _sortedColumns: Map<string, {id: string, desc: boolean}> = new Map();
 
     @computed get previewWidth() { return () => NumCast(this.props.Document.schemaPreviewWidth); }
     @computed get previewHeight() { return () => this.props.PanelHeight() - 2 * this.borderWidth; }
     @computed get tableWidth() { return this.props.PanelWidth() - 2 * this.borderWidth - this.DIVIDER_WIDTH - this.previewWidth(); }
     @computed get columns() { return Cast(this.props.Document.schemaColumns, listSpec("string"), []); }
-    set columns(columns: string[]) { this.props.Document.schemaColumns = new List<string>(columns); }
+    set columns(columns: string[]) {this.props.Document.schemaColumns = new List<string>(columns); }
     @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }
-    @computed get tableColumns() {
+    @computed get tableColumns(): Column<Doc>[] {
         let possibleKeys = this.documentKeys.filter(key => this.columns.findIndex(existingKey => existingKey.toUpperCase() === key.toUpperCase()) === -1);
-
         let cols = this.columns.map(col => {
+            let focusedRow = this._focusedCell.row;
+            let focusedCol = this._focusedCell.col;
+            let isEditable = !this._headerIsEditing;
+            let header = <CollectionSchemaHeader 
+                keyValue={col}
+                possibleKeys={possibleKeys}
+                existingKeys={this.columns}
+                keyType={this.getColumnType(col)}
+                typeConst={columnTypes.get(col) !== undefined}
+                onSelect={this.changeColumns}
+                setIsEditing={this.setHeaderIsEditing}
+                deleteColumn={this.deleteColumn}
+                setColumnType={this.setColumnType}
+                setColumnSort={this.setColumnSort}
+                removeColumnSort={this.removeColumnSort}
+            />;
+
             return {
-                Header: <CollectionSchemaHeader 
-                    keyValue={col}
-                    possibleKeys={possibleKeys}
-                    existingKeys={this.columns}
-                    keyType={this.getColumnType(col)}
-                    typeConst={columnTypes.get(col) !== undefined}
-                    onSelect={this.changeColumns}
-                    setIsEditing={this.setHeaderIsEditing}
-                    deleteColumn={this.deleteColumn}
-                    setColumnType={this.setColumnType}
-                />,
+                Header: <MovableColumn columnRenderer={header} columnValue={col} allColumns={this.columns} reorderColumns={this.reorderColumns} ScreenToLocalTransform={this.props.ScreenToLocalTransform} />,
                 accessor: (doc: Doc) => doc ? doc[col] : 0,
                 id: col,
                 Cell: (rowProps: CellInfo) => {
                     let row = rowProps.index;
                     let column = this.columns.indexOf(rowProps.column.id!);
-                    // let isFocused = focusedRow === row && focusedCol === column;
-                    let isFocused = false;
+                    let isFocused = focusedRow === row && focusedCol === column;
 
                     let props: CellProps = {
                         row: row,
                         col: column,
                         rowProps: rowProps,
                         isFocused: isFocused,
-                        changeFocusedCellByDirection: action(emptyFunction),//this.changeFocusedCellByDirection,
-                        changeFocusedCellByIndex: action(emptyFunction), //this.changeFocusedCellByIndex,
+                        changeFocusedCellByDirection: this.changeFocusedCellByDirection,
+                        changeFocusedCellByIndex: this.changeFocusedCellByIndex,
                         CollectionView: this.props.CollectionView,
                         ContainingCollection: this.props.ContainingCollectionView,
                         Document: this.props.Document,
                         fieldKey: this.props.fieldKey,
                         renderDepth: this.props.renderDepth, addDocTab: this.props.addDocTab,
                         moveDocument: this.props.moveDocument,
-                        setIsEditing: action(emptyFunction), //this.setCellIsEditing,
-                        isEditable: true //isEditable
+                        setIsEditing: this.setCellIsEditing,
+                        isEditable: isEditable
                     };
 
                     let colType = this.getColumnType(col);
-                    if (colType === ColumnType.Number) return <CollectionSchemaNumberCell {...props}/>
-                    if (colType === ColumnType.String) return <CollectionSchemaStringCell {...props}/>
-                    if (colType === ColumnType.Boolean) return <CollectionSchemaBooleanCell {...props} />
-                    if (colType === ColumnType.Checkbox) return <CollectionSchemaCheckboxCell {...props} />
-                    return <CollectionSchemaCell {...props}/>
+                    if (colType === ColumnType.Number) return <CollectionSchemaNumberCell {...props}/>;
+                    if (colType === ColumnType.String) return <CollectionSchemaStringCell {...props}/>;
+                    if (colType === ColumnType.Boolean) return <CollectionSchemaBooleanCell {...props} />;
+                    if (colType === ColumnType.Checkbox) return <CollectionSchemaCheckboxCell {...props} />;
+                    return <CollectionSchemaCell {...props}/>;
                 }
             };
         }) as {Header: TableCellRenderer, accessor: (doc: Doc) => FieldResult<Field>, id: string, Cell: (rowProps: CellInfo) => JSX.Element}[];
@@ -156,18 +147,26 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         return cols;
     }
 
-    onHeaderDrag = (columnName: string) => {
-        let schemaDoc = Cast(this.props.Document.schemaDoc, Doc);
-        if (schemaDoc instanceof Doc) {
-            let columnDocs = DocListCast(schemaDoc.data);
-            if (columnDocs) {
-                let ddoc = columnDocs.find(doc => doc.title === columnName);
-                if (ddoc) {
-                    return ddoc;
-                }
-            }
-        }
-        return this.props.Document;
+    // onHeaderDrag = (columnName: string) => {
+    //     let schemaDoc = Cast(this.props.Document.schemaDoc, Doc);
+    //     if (schemaDoc instanceof Doc) {
+    //         let columnDocs = DocListCast(schemaDoc.data);
+    //         if (columnDocs) {
+    //             let ddoc = columnDocs.find(doc => doc.title === columnName);
+    //             if (ddoc) {
+    //                 return ddoc;
+    //             }
+    //         }
+    //     }
+    //     return this.props.Document;
+    // }
+
+    componentDidMount() {
+        document.addEventListener("keydown", this.onKeyDown);
+    }
+
+    componentWillUnmount() {
+        document.removeEventListener("keydown", this.onKeyDown);
     }
 
     private getTrProps: ComponentPropsGetterR = (state, rowInfo) => {
@@ -176,6 +175,10 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             return {};
         }
         return {
+            ScreenToLocalTransform: this.props.ScreenToLocalTransform,
+            addDoc: (doc: Doc, relativeTo?: Doc, before?: boolean) => Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, relativeTo, before),
+            moveDoc: (d: Doc, target: Doc, addDoc: (doc: Doc) => boolean) => this.props.moveDocument(d, target, addDoc),
+            rowInfo, 
             onClick: action((e: React.MouseEvent, handleOriginal: Function) => {
                 that.props.select(e.ctrlKey);
                 that._selectedIndex = rowInfo.index;
@@ -184,10 +187,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     handleOriginal();
                 }
             }),
-            style: {
-                background: rowInfo.index === this._selectedIndex ? "lightGray" : "white",
-                //color: rowInfo.index === this._selectedIndex ? "white" : "black"
-            }
         };
     }
 
@@ -197,23 +196,13 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     @action
-    setHeaderIsEditing = (isEditing: boolean) => {
-        this._headerIsEditing = isEditing;
+    setCellIsEditing = (isEditing: boolean): void => {
+        this._cellIsEditing = isEditing;
     }
 
     @action
-    toggleKey = (key: string) => {
-        let list = Cast(this.props.Document.schemaColumns, listSpec("string"));
-        if (list === undefined) {
-            this.props.Document.schemaColumns = list = new List<string>([key]);
-        } else {
-            const index = list.indexOf(key);
-            if (index === -1) {
-                list.push(key);
-            } else {
-                list.splice(index, 1);
-            }
-        }
+    setHeaderIsEditing = (isEditing: boolean): void => {
+        this._headerIsEditing = isEditing;
     }
 
     //toggles preview side-panel of schema
@@ -260,6 +249,45 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         if (!e.isPropagationStopped() && this.props.Document[Id] !== "mainDoc") { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
             ContextMenu.Instance.addItem({ description: "Make DB", event: this.makeDB });
         }
+    }
+
+    onKeyDown = (e: KeyboardEvent): void => {
+        if (!this._cellIsEditing && !this._headerIsEditing) {
+            let direction = e.key === "Tab" ? "tab" : e.which === 39 ? "right" : e.which === 37 ? "left" : e.which === 38 ? "up" : e.which === 40 ? "down" : "";
+            this.changeFocusedCellByDirection(direction);
+        }
+    }
+
+    @action
+    changeFocusedCellByDirection = (direction: string): void => {
+        switch (direction) {
+            case "tab":
+                if (this._focusedCell.col + 1 === this.columns.length && this._focusedCell.row + 1 === this.childDocs.length) {
+                    this._focusedCell = { row: 0, col: 0 };
+                } else if (this._focusedCell.col + 1 === this.columns.length) {
+                    this._focusedCell = { row: this._focusedCell.row + 1, col: 0 };
+                } else {
+                    this._focusedCell = { row: this._focusedCell.row, col: this._focusedCell.col + 1 };
+                }
+                break;
+            case "right":
+                this._focusedCell = { row: this._focusedCell.row, col: this._focusedCell.col + 1 === this.columns.length ? this._focusedCell.col : this._focusedCell.col + 1 };
+                break;
+            case "left":
+                this._focusedCell = { row: this._focusedCell.row, col: this._focusedCell.col === 0 ? this._focusedCell.col : this._focusedCell.col - 1 };
+                break;
+            case "up":
+                this._focusedCell = { row: this._focusedCell.row === 0 ? this._focusedCell.row : this._focusedCell.row - 1, col: this._focusedCell.col };
+                break;
+            case "down":
+                this._focusedCell = { row: this._focusedCell.row + 1 === this.childDocs.length ? this._focusedCell.row : this._focusedCell.row + 1, col: this._focusedCell.col };
+                break;
+        }
+    }
+
+    @action
+    changeFocusedCellByIndex = (row: number, col: number): void => {
+        this._focusedCell = { row: row, col: col };
     }
 
     @action
@@ -333,17 +361,38 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             let newTypesDoc = new Doc();
             newTypesDoc[key] = type;
             this.props.Document.schemaColumnTypes  = newTypesDoc;
-            console.log("no typesDoc");
             return;
         } else {
             typesDoc[key] = type;
         }
     }
 
-    // @action
-    // newKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    //     this._newKeyName = e.currentTarget.value;
-    // }
+    @action
+    setColumns = (columns: string[]) => {
+        this.columns = columns;
+    }
+
+    reorderColumns = (toMove: string, relativeTo: string, before: boolean, columnsValues: string[]) => {
+        let columns = [...columnsValues];
+        let oldIndex = columns.indexOf(toMove);
+        let relIndex = columns.indexOf(relativeTo);
+        let newIndex = (oldIndex > relIndex && !before) ? relIndex + 1 : (oldIndex < relIndex && before) ? relIndex - 1 : relIndex;
+
+        if (oldIndex === newIndex) return;
+
+        columns.splice(newIndex, 0, columns.splice(oldIndex, 1)[0]);
+        this.setColumns(columns);
+    }
+
+    @action
+    setColumnSort = (column: string, descending: boolean) => {
+        this._sortedColumns.set(column, {id: column, desc: descending});
+    }
+
+    @action
+    removeColumnSort = (column: string) => {
+        this._sortedColumns.delete(column);
+    } 
 
     @computed
     get previewDocument(): Doc | undefined {
@@ -370,44 +419,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         return Array.from(Object.keys(keys));
     }
 
-    // get documentKeysCheckList() {
-    //     const docs = DocListCast(this.props.Document[this.props.fieldKey]);
-    //     let keys: { [key: string]: boolean } = {};
-    //     // bcz: ugh.  this is untracked since otherwise a large collection of documents will blast the server for all their fields.
-    //     //  then as each document's fields come back, we update the documents _proxies.  Each time we do this, the whole schema will be
-    //     //  invalidated and re-rendered.   This workaround will inquire all of the document fields before the options button is clicked.
-    //     //  then by the time the options button is clicked, all of the fields should be in place.  If a new field is added while this menu
-    //     //  is displayed (unlikely) it won't show up until something else changes.
-    //     //TODO Types
-    //     untracked(() => docs.map(doc => Doc.GetAllPrototypes(doc).map(proto => Object.keys(proto).forEach(key => keys[key] = false))));
-
-    //     this.columns.forEach(key => keys[key] = true);
-    //     return Array.from(Object.keys(keys)).map(item =>
-    //         (<KeyToggle checked={keys[item]} key={item} keyName={item} toggle={this.toggleKey} />));
-    // }
-
-    // get tableOptionsPanel() {
-    //     return !this.props.active() ? (null) :
-    //         (<Flyout
-    //             anchorPoint={anchorPoints.RIGHT_TOP}
-    //             content={<div>
-    //                 <div id="schema-options-header"><h5><b>Options</b></h5></div>
-    //                 <div id="options-flyout-div">
-    //                     <h6 className="schema-options-subHeader">Preview Window</h6>
-    //                     <div id="preview-schema-checkbox-div"><input type="checkbox" key={"Show Preview"} checked={this.previewWidth() !== 0} onChange={this.toggleExpander} />  Show Preview </div>
-    //                     <h6 className="schema-options-subHeader" >Displayed Columns</h6>
-    //                     <ul id="schema-col-checklist" >
-    //                         {this.documentKeysCheckList}
-    //                     </ul>
-    //                     <input value={this._newKeyName} onChange={this.newKeyChange} />
-    //                     <button onClick={this.addColumn}><FontAwesomeIcon style={{ color: "white" }} icon="plus" size="lg" /></button>
-    //                 </div>
-    //             </div>
-    //             }>
-    //             <button id="schemaOptionsMenuBtn" ><FontAwesomeIcon style={{ color: "white" }} icon="cog" size="sm" /></button>
-    //         </Flyout>);
-    // }
-
     @computed
     get reactTable() {
         let previewWidth = this.previewWidth() + 2 * this.borderWidth + this.DIVIDER_WIDTH + 1;
@@ -418,9 +429,10 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             pageSize={this.childDocs.length} 
             showPagination={false}
             columns={this.tableColumns}
-            // column={{ ...ReactTableDefaults.column, Cell: this.renderCell, }}
             getTrProps={this.getTrProps}
             sortable={false}
+            TrComponent={MovableRow}
+            sorted={Array.from(this._sortedColumns.values())}
         />;
     }
 
@@ -468,10 +480,20 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         this.previewScript = script;
     }
 
+    @computed
+    get schemaToolbar() {
+        return (
+            <div className="collectionSchemaView-toolbar">
+                <div id="preview-schema-checkbox-div"><input type="checkbox" key={"Show Preview"} checked={this.previewWidth() !== 0} onChange={this.toggleExpander} />Show Preview</div>
+            </div>
+        );
+    }
+
     render() {
         return (
             <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} onWheel={this.onWheel}
                 onDrop={(e: React.DragEvent) => this.onDrop(e, {})} onContextMenu={this.onContextMenu} ref={this.createTarget}>
+                {this.schemaToolbar}
                 {this.reactTable}
                 {this.dividerDragger}
                 {!this.previewWidth() ? (null) : this.previewPanel}
@@ -480,6 +502,8 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         );
     }
 }
+
+
 interface CollectionSchemaPreviewProps {
     Document?: Doc;
     DataDocument?: Doc;
@@ -554,6 +578,8 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
         }
         return undefined;
     }
+
+    
     render() {
         let input = this.props.previewScript === undefined ? (null) :
             <div ref={this.createTarget}><input className="collectionSchemaView-input" value={this.props.previewScript} onChange={this.onPreviewScriptChange}
