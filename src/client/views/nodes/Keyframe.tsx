@@ -55,7 +55,6 @@ export namespace KeyframeFunc{
     }; 
 }
 
-
 export const RegionDataSchema = createSchema({
     position: defaultSpec("number", 0),
     duration: defaultSpec("number", 0),
@@ -241,19 +240,24 @@ export class Keyframe extends React.Component<IProps> {
         let bar = this._bar.current!;
         let barX = bar.getBoundingClientRect().left;
         let offset = e.clientX - barX;
+        let leftRegion = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.left, this.regiondata, this.regions); 
         let firstkf: (Doc | undefined) = this.firstKeyframe; 
-        console.log(offset); 
         if (firstkf && this.regiondata.position + this.regiondata.fadeIn + offset>= NumCast(firstkf!.time)) {
+            let dif = NumCast(firstkf!.time) - (this.regiondata.position + this.regiondata.fadeIn); 
            this.regiondata.position = NumCast(firstkf!.time) - this.regiondata.fadeIn; 
-
+           this.regiondata.duration -= dif; 
         }else if (this.regiondata.duration - offset < this.regiondata.fadeIn + this.regiondata.fadeOut){ // no keyframes, just fades
             this.regiondata.position -= (this.regiondata.fadeIn + this.regiondata.fadeOut - this.regiondata.duration); 
             this.regiondata.duration = this.regiondata.fadeIn + this.regiondata.fadeOut; 
-        } else {
+        } else if (leftRegion && this.regiondata.position + offset <= leftRegion.position + leftRegion.duration) {
+            let dif = this.regiondata.position - (leftRegion.position + leftRegion.duration); 
+            this.regiondata.position = leftRegion.position + leftRegion.duration; 
+            this.regiondata.duration += dif; 
+            
+        }else {
             this.regiondata.duration -= offset;                
             this.regiondata.position += offset;
         }
-        
     }
 
 
@@ -264,9 +268,16 @@ export class Keyframe extends React.Component<IProps> {
         let bar = this._bar.current!;
         let barX = bar.getBoundingClientRect().right;
         let offset = e.clientX - barX;
-        if (this.regiondata.duration + offset < this.regiondata.fadeIn + this.regiondata.fadeOut){
+        let rightRegion = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.right, this.regiondata, this.regions); 
+        if (this.lastKeyframe! && this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut + offset <= NumCast((this.lastKeyframe! as Doc).time)) {
+            let dif = this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut - NumCast((this.lastKeyframe! as Doc).time);  
+            this.regiondata.duration -= dif; 
+        } else if (this.regiondata.duration + offset < this.regiondata.fadeIn + this.regiondata.fadeOut){ // nokeyframes, just fades
             this.regiondata.duration = this.regiondata.fadeIn + this.regiondata.fadeOut;
-        }else {        
+        } else if (rightRegion && this.regiondata.position + this.regiondata.duration + offset >= rightRegion.position){
+            let dif = rightRegion.position - (this.regiondata.position + this.regiondata.duration); 
+            this.regiondata.duration += dif; 
+        } else {        
             this.regiondata.duration += offset;
         }
     } 

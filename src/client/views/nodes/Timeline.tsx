@@ -49,23 +49,23 @@ export class Timeline extends CollectionSubView(Document) {
     @observable private _currentBarX: number = 0;
     @observable private _windSpeed: number = 1;
     @observable private _isPlaying: boolean = false;
+    @observable private _isFrozen: boolean = false; 
     @observable private _boxLength: number = 0;
     @observable private _containerHeight: number = this.DEFAULT_CONTAINER_HEIGHT;
     @observable private _time = 100000; //DEFAULT
     @observable private _ticks: number[] = [];
-    @observable private flyoutInfo:FlyoutProps = {x: 0, y: 0, display: "block", regiondata: new Doc(), regions: new List<Doc>()}; 
+    @observable private flyoutInfo:FlyoutProps = {x: 0, y: 0, display: "none", regiondata: new Doc(), regions: new List<Doc>()}; 
 
-
+@observable private _resizing = ""; 
     @computed
     private get children(){
         return Cast(this.props.Document[this.props.fieldKey], listSpec(Doc)) as List<Doc>; 
     }
 
     componentDidMount() {
-
         runInAction(() => {
             reaction(() => {
-                this._time; 
+                return this._time; 
             }, () =>{
                 this._ticks = []; 
                 for (let i = 0; i < this._time;) {
@@ -77,6 +77,9 @@ export class Timeline extends CollectionSubView(Document) {
                 trackbox.style.width = `${this._boxLength}`;
             }, {fireImmediately: true}); 
         });
+    }
+
+    componentDidUpdate() {
     }
 
     @action
@@ -189,7 +192,7 @@ export class Timeline extends CollectionSubView(Document) {
     onResizeMove = (e: PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        let offset = e.clientY - this._containerHeight;
+        let offset = e.clientY - this._timelineContainer.current!.getBoundingClientRect().bottom; 
         if (this._containerHeight + offset <= this.MIN_CONTAINER_HEIGHT) {
             this._containerHeight = this.MIN_CONTAINER_HEIGHT;
         } else if (this._containerHeight + offset >= this.MAX_CONTAINER_HEIGHT) {
@@ -202,8 +205,9 @@ export class Timeline extends CollectionSubView(Document) {
     @action
     onTimelineDown = (e: React.PointerEvent) => {
         e.preventDefault();
-        //e.stopPropagation();
-        if (e.nativeEvent.which === 1){
+        this._resizing = e.currentTarget.id; 
+        console.log(this._resizing); 
+        if (e.nativeEvent.which === 1 && !this._isFrozen){
             document.addEventListener("pointermove", this.onTimelineMove);
             document.addEventListener("pointerup", () => { document.removeEventListener("pointermove", this.onTimelineMove);});
         } 
@@ -218,7 +222,6 @@ export class Timeline extends CollectionSubView(Document) {
         let top = parseFloat(timelineContainer.style.top!); 
         timelineContainer.style.left = `${left + e.movementX}px`; 
         timelineContainer.style.top = `${top + e.movementY}px`;
-        this.setPlacementHighlight(0, 0, 1000, 1000); // do something with setting the placement highlighting
     }
 
     @action
@@ -253,23 +256,31 @@ export class Timeline extends CollectionSubView(Document) {
         let subitems: ContextMenuProps[] = [];
         let timelineContainer = this._timelineWrapper.current!;
         subitems.push({ description: "Pin to Top", event: action(() => { 
-            timelineContainer.style.transition = "top 1000ms ease-in, left 1000ms ease-in";  //?????
-            timelineContainer.style.left = "0px"; 
-            timelineContainer.style.top = "0px"; 
-            timelineContainer.style.transition = "none"; 
+            if (!this._isFrozen){
+                timelineContainer.style.transition = "top 1000ms ease-in, left 1000ms ease-in";  //?????
+                timelineContainer.style.left = "0px"; 
+                timelineContainer.style.top = "0px"; 
+                timelineContainer.style.transition = "none"; 
+            }
+            
         }), icon: "pinterest" });
         subitems.push({
             description: "Pin to Bottom", event: action(() => {
-                timelineContainer.style.transform = `translate(0px, ${e.pageY - this._containerHeight}px)`;
+                if (!this._isFrozen){
+                    timelineContainer.style.transform = `translate(0px, ${e.pageY - this._containerHeight}px)`;
+                }
             }), icon: "pinterest"
         });
+        subitems.push({
+            description: "Freeze Timeline", event: action(() => {
+                this._isFrozen = true; 
+            }), icon: "thumbtack"
+
+        }); 
         ContextMenu.Instance.addItem({ description: "Timeline Funcs...", subitems: subitems });
     }
 
     
-    private setPlacementHighlight = (x = 0, y = 0, height:(string| number) = 0, width:(string | number) = 0):JSX.Element => {
-        return <div className="placement-highlight" style ={{height: `${height}px`, width: `${width}px`, transform:`translate(${x}px, ${y}px)`}}></div>; 
-    }
     
     @action
     getFlyout = (props: FlyoutProps) => {
@@ -281,9 +292,8 @@ export class Timeline extends CollectionSubView(Document) {
     render() {
         return (
             <div style={{left:"0px", top: "0px", position:"absolute", width:"100%", transform:"translate(0px, 0px)"}} ref = {this._timelineWrapper}>
-            {this.setPlacementHighlight(0,0,300,400)}
                 <button className="minimize" onClick={this.minimize}>Minimize</button>
-                <div className="timeline-container" style={{ height: `${this._containerHeight}px`, left:"0px", top:"0px" }} ref={this._timelineContainer}onPointerDown={this.onTimelineDown} onContextMenu={this.timelineContextMenu}>
+                <div className="timeline-container" style={{ height: `${this._containerHeight}px`, left:"0px", top:"30px" }} ref={this._timelineContainer}onPointerDown={this.onTimelineDown} onContextMenu={this.timelineContextMenu}>
                     <TimelineFlyout flyoutInfo={this.flyoutInfo} tickSpacing={this._tickSpacing}/>
                     <div className="toolbox">
                         <div onClick={this.windBackward}> <FontAwesomeIcon icon={faBackward} size="2x" /> </div>
@@ -328,10 +338,12 @@ class TimelineOverview extends React.Component{
 }
 
 class TimelineFlyout extends React.Component<TimelineFlyoutProps>{
+
     @observable private _timeInput = React.createRef<HTMLInputElement>();
     @observable private _durationInput = React.createRef<HTMLInputElement>();
     @observable private _fadeInInput = React.createRef<HTMLInputElement>();
     @observable private _fadeOutInput = React.createRef<HTMLInputElement>();    
+    
     private block = false;
 
     componentDidMount() {
