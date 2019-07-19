@@ -4,6 +4,8 @@ import { observable, action, runInAction, flow, computed } from 'mobx';
 import "./SearchBox.scss";
 import "./FilterBox.scss";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTimes } from '@fortawesome/free-solid-svg-icons';
+import { library } from '@fortawesome/fontawesome-svg-core';
 import { SetupDrag } from '../../util/DragManager';
 import { Docs } from '../../documents/Documents';
 import { NumCast, Cast } from '../../../new_fields/Types';
@@ -17,8 +19,9 @@ import { RouteStore } from '../../../server/RouteStore';
 import { FilterBox } from './FilterBox';
 import { ReadStream } from 'fs';
 import * as $ from 'jquery';
+import { MainView } from '../MainView';
 
-
+library.add(faTimes);
 
 @observer
 export class SearchBox extends React.Component {
@@ -242,6 +245,7 @@ export class SearchBox extends React.Component {
 
     @action.bound
     closeSearch = () => {
+        console.log("closing search")
         FilterBox.Instance.closeFilter();
         this.closeResults();
         this._searchbarOpen = false;
@@ -339,6 +343,7 @@ export class SearchBox extends React.Component {
                         style={{ width: this._searchbarOpen ? "500px" : "100px" }} />
                     <button className="searchBox-barChild searchBox-submit" onClick={this.submitSearch} onPointerDown={FilterBox.Instance.stopProp}>Submit</button>
                     <button className="searchBox-barChild searchBox-filter" onClick={FilterBox.Instance.openFilter} onPointerDown={FilterBox.Instance.stopProp}>Filter</button>
+                    <button className="searchBox-barChild searchBox-close" title={"Close Search Bar"} onPointerDown={MainView.Instance.toggleSearch}><FontAwesomeIcon icon={faTimes} size="lg" /></button>
                 </div>
                 <div className="searchBox-results" onScroll={this.resultsScrolled} style={{
                     display: this._resultsOpen ? "flex" : "none",

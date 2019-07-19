@@ -37,6 +37,11 @@
             margin-left: 2px;
             margin-right: 2px
         }
+
+        &.searchBox-close {
+            color: $light-color;
+            max-height: 32px;
+        }
     }
 }
 
