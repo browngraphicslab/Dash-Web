@@ -63,6 +63,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @observable private _opacity = 1;
     @observable private _removeIcon = false;
     @observable public Interacting = false;
+    @observable private _isMoving = false;
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -337,9 +338,14 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             document.addEventListener("pointermove", this.onRadiusMove);
             document.addEventListener("pointerup", this.onRadiusUp);
         }
+        if (!this._isMoving) {
+            let dist = Math.sqrt((e.clientX - this._radiusDown[0]) * (e.clientX - this._radiusDown[0]) + (e.clientY - this._radiusDown[1]) * (e.clientY - this._radiusDown[1]));
+            SelectionManager.SelectedDocuments().map(dv => dv.props.Document.borderRounding = Doc.GetProto(dv.props.Document).borderRounding = `${Math.min(100, dist)}%`);
+        }
     }
 
     onRadiusMove = (e: PointerEvent): void => {
+        this._isMoving = true;
         let dist = Math.sqrt((e.clientX - this._radiusDown[0]) * (e.clientX - this._radiusDown[0]) + (e.clientY - this._radiusDown[1]) * (e.clientY - this._radiusDown[1]));
         SelectionManager.SelectedDocuments().map(dv => dv.props.Document.borderRounding = Doc.GetProto(dv.props.Document).borderRounding = `${Math.min(100, dist)}%`);
         e.stopPropagation();
@@ -351,6 +357,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         e.preventDefault();
         this._isPointerDown = false;
         this._resizeUndo && this._resizeUndo.end();
+        this._isMoving = false;
         document.removeEventListener("pointermove", this.onRadiusMove);
         document.removeEventListener("pointerup", this.onRadiusUp);
     }
