@@ -115,9 +115,9 @@ export class Track extends React.Component<IProps> {
         let rightkf: (Doc | undefined) = this.calcMinRight(region!); //right keyframe, if it exists
         let currentkf: (Doc | undefined) = this.calcCurrent(region!); //if the scrubber is on top of the keyframe
 
-        console.log(currentkf); 
-        console.log(leftkf); 
-        console.log(rightkf); 
+        //console.log(currentkf); 
+        // console.log(leftkf); 
+        // console.log(rightkf); 
         if (currentkf){        
             this.applyKeys(currentkf.key as Doc);  
         } else {
@@ -187,7 +187,7 @@ export class Track extends React.Component<IProps> {
             let compTime = this.props.currentBarX; 
             if (ref){
                 compTime = NumCast(ref.time); 
-                console.log(compTime); 
+                //console.log(compTime); 
             } 
             if (NumCast(kf.time) < compTime && NumCast(kf.time) > NumCast(time)) {
                 leftKf = kf;

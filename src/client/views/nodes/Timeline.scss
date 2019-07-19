@@ -152,3 +152,20 @@
         left: calc(50% - 25px);
     }
 }
+
+
+
+.overview{
+    position: absolute; 
+    height: 50px; 
+    width: 200px; 
+    background-color: black; 
+    .container{        
+        position: absolute; 
+        float: left 0px; 
+        top: 25%; 
+        height: 75%; 
+        width: 100%; 
+        background-color: grey; 
+    }
+}
