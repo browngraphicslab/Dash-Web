@@ -1,0 +1,21 @@
+.overlayWindow-outerDiv {
+    position: absolute;
+    border-radius: 5px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.overlayWindow-titleBar {
+    height: 30px;
+    background: darkslategray;
+    color: whitesmoke;
+    text-align: center;
+    cursor: move;
+}
+
+.overlayWindow-closeButton {
+    float: right;
+    height: 30px;
+    width: 30px;
+}
