@@ -25,6 +25,7 @@ import { Docs } from '../../documents/Documents';
 import { DocServer } from '../../DocServer';
 import { CognitiveServices, Face } from '../../cognitive_services/CognitiveServices';
 import { number } from 'prop-types';
+import { Id } from '../../../new_fields/FieldSymbols';
 var requestImageSize = require('../../util/request-image-size');
 var path = require('path');
 
@@ -47,13 +48,6 @@ declare class MediaRecorder {
 
 type ImageDocument = makeInterface<[typeof pageSchema, typeof positionSchema]>;
 const ImageDocument = makeInterface(pageSchema, positionSchema);
-interface FaceTemplate {
-    id: string;
-    top: number;
-    left: number;
-    width: number;
-    height: number;
-}
 
 @observer
 export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageDocument) {
@@ -65,41 +59,8 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     private _lastTap: number = 0;
     @observable private _isOpen: boolean = false;
     private dropDisposer?: DragManager.DragDropDisposer;
-    @observable private faceRectangles: FaceTemplate[] = [];
 
     @computed get dataDoc() { return BoolCast(this.props.Document.isTemplate) && this.props.DataDoc ? this.props.DataDoc : this.props.Document; }
-
-    componentWillMount() {
-        this.generateFaceRectangles();
-    }
-
-    generateFaceRectangles = async () => {
-        let foundFaces = Doc.GetProto(this.props.Document).faces;
-        if (!foundFaces) {
-            return;
-        }
-        let faceDocs = await DocListCastAsync(foundFaces);
-        if (!faceDocs) {
-            return;
-        }
-        for (let faceDoc of faceDocs) {
-            let rectangle = await Cast(faceDoc.faceRectangle, Doc);
-            if (!rectangle) {
-                continue;
-            }
-            let top = NumCast(rectangle.top);
-            let left = NumCast(rectangle.left);
-            let width = NumCast(rectangle.width);
-            let height = NumCast(rectangle.height);
-            runInAction(() => this.faceRectangles.push({
-                id: StrCast(faceDoc.faceId),
-                top: top,
-                left: left,
-                width: width,
-                height: height
-            }));
-        }
-    }
 
     protected createDropTarget = (ele: HTMLDivElement) => {
         if (this.dropDisposer) {
@@ -249,23 +210,9 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
             });
 
             let modes: ContextMenuProps[] = [];
-            modes.push({ description: "Generate Tags", event: () => CognitiveServices.Image.generateMetadata(this.Document), icon: "tag" });
-            modes.push({
-                description: "Find Faces", event: () => {
-                    CognitiveServices.Image.extractFaces(this.Document).then(results => {
-                        results.map(action((face: Face) => {
-                            let rectangle = face.faceRectangle;
-                            this.faceRectangles.push({
-                                id: face.faceId,
-                                top: rectangle.top,
-                                left: rectangle.left,
-                                width: rectangle.width,
-                                height: rectangle.height
-                            });
-                        }));
-                    });
-                }, icon: "camera"
-            });
+            let dataDoc = Doc.GetProto(this.Document);
+            modes.push({ description: "Generate Tags", event: () => CognitiveServices.Image.generateMetadata(dataDoc), icon: "tag" });
+            modes.push({ description: "Find Faces", event: () => CognitiveServices.Image.extractFaces(dataDoc), icon: "camera" });
 
             ContextMenu.Instance.addItem({ description: "Image Funcs...", subitems: funcs });
             ContextMenu.Instance.addItem({ description: "Analyze...", subitems: modes });
@@ -377,18 +324,22 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                     onError={this.onError} />
                 {paths.length > 1 ? this.dots(paths) : (null)}
                 {/* {this.lightbox(paths)} */}
-                {this.faceRectangles.map(rectangle => {
-                    let style = {
-                        position: "absolute",
-                        top: rectangle.top,
-                        left: rectangle.left,
-                        width: rectangle.width,
-                        height: rectangle.height,
-                        backgroundColor: "#FF000033",
-                        border: "solid 2px red",
-                        borderRadius: 5
-                    } as React.CSSProperties;
-                    return <div key={rectangle.id} style={style} />;
+                {DocListCast(Doc.GetProto(this.props.Document).faces).map(faceDoc => {
+                    let rectangle = Cast(faceDoc.faceRectangle, Doc) as Doc;
+                    if (rectangle) {
+                        let style = {
+                            position: "absolute",
+                            top: NumCast(rectangle.top),
+                            left: NumCast(rectangle.left),
+                            width: NumCast(rectangle.width),
+                            height: NumCast(rectangle.height),
+                            backgroundColor: "#FF000033",
+                            border: "solid 2px red",
+                            borderRadius: 5
+                        } as React.CSSProperties;
+                        return <div key={rectangle[Id]} style={style} />;
+                    }
+                    return (null);
                 })}
             </div>);
     }

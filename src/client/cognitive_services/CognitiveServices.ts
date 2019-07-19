@@ -66,23 +66,35 @@ export namespace CognitiveServices {
                 }
             };
 
-            let results = await request.post(options).then(json => JSON.parse(json)).catch(err => console.log(err));
+            let results: any;
+            try {
+                results = await request.post(options).then(response => JSON.parse(response));
+            } catch (e) {
+                results = undefined;
+            }
             return results;
         };
 
         const mutateDocument = async (target: Doc, service: Services, converter: Converter, storageKey: string) => {
             let data = Cast(target.data, ImageField);
-            let dataDoc = Doc.GetProto(target);
-            let existing = await Cast(dataDoc[storageKey], Doc);
+            let existing = await Cast(target[storageKey], Doc);
             if (!data || existing) {
                 return;
             }
 
-            let results = await analyze(data.url.href, service);
-            if (results && (!results.length || results.length > 0)) {
-                dataDoc[storageKey] = converter(results);
+            let results: any;
+            let toStore: any;
+            results = await analyze(data.url.href, service);
+            if (!results) {
+                toStore = "Cognitive Services could not process the given image URL.";
+            } else {
+                if (!results.length) {
+                    toStore = converter(results);
+                } else {
+                    toStore = results.length > 0 ? converter(results) : "Empty list returned.";
+                }
             }
-            return results;
+            target[storageKey] = toStore;
         };
 
         export const generateMetadata = async (target: Doc, threshold = Confidence.Excellent) => {
@@ -97,16 +109,16 @@ export namespace CognitiveServices {
                 });
                 return tagDoc;
             };
-            return mutateDocument(target, Services.ComputerVision, converter, "generatedTags");
+            mutateDocument(target, Services.ComputerVision, converter, "generatedTags");
         };
 
         export const extractFaces = async (target: Doc) => {
             let converter = (results: any) => {
                 let faceDocs = new List<Doc>();
-                results.map((face: Face) => faceDocs.push(Docs.Get.DocumentHierarchyFromJsonObject(face, face.faceId)!));
+                results.map((face: Face) => faceDocs.push(Docs.Get.DocumentHierarchyFromJson(face, face.faceId)!));
                 return faceDocs;
             };
-            return mutateDocument(target, Services.Face, converter, "faces");
+            mutateDocument(target, Services.Face, converter, "faces");
         };
 
     }
