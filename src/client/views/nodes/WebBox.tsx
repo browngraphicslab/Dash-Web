@@ -9,22 +9,6 @@ import React = require("react");
 import { InkTool } from "../../../new_fields/InkField";
 import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
 
-export function onYouTubeIframeAPIReady() {
-    console.log("player");
-    return;
-    let player = new YT.Player('player', {
-        events: {
-            'onReady': onPlayerReady
-        }
-    });
-}
-// must cast as any to set property on window
-const _global = (window /* browser */ || global /* node */) as any;
-_global.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
-
-function onPlayerReady(event: any) {
-    event.target.playVideo();
-}
 @observer
 export class WebBox extends React.Component<FieldViewProps> {
 

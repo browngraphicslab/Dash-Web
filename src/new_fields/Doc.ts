@@ -10,6 +10,7 @@ import { RefField, FieldId } from "./RefField";
 import { ToScriptString, SelfProxy, Parent, OnUpdate, Self, HandleUpdate, Update, Id } from "./FieldSymbols";
 import { scriptingGlobal } from "../client/util/Scripting";
 import { List } from "./List";
+import { string } from "prop-types";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -344,19 +345,22 @@ export namespace Doc {
         // ... which means we change the layout to be an expanded view of the template layout.  
         // This allows the view override the template's properties and be referenceable as its own document.
 
-        let expandedTemplateLayout = templateLayoutDoc["_expanded_" + dataDoc[Id]];
+        let expandedTemplateLayout = dataDoc[templateLayoutDoc[Id]];
         if (expandedTemplateLayout instanceof Doc) {
             return expandedTemplateLayout;
         }
         if (expandedTemplateLayout === undefined && BoolCast(templateLayoutDoc.isTemplate)) {
             setTimeout(() => {
-                templateLayoutDoc["_expanded_" + dataDoc[Id]] = Doc.MakeDelegate(templateLayoutDoc);
-                (templateLayoutDoc["_expanded_" + dataDoc[Id]] as Doc).title = templateLayoutDoc.title + "[" + StrCast(dataDoc.title).match(/\.\.\.[0-9]*/) + "]";  // previously: "applied to"
-                (templateLayoutDoc["_expanded_" + dataDoc[Id]] as Doc).isExpandedTemplate = templateLayoutDoc;
+                let expandedDoc = Doc.MakeDelegate(templateLayoutDoc);
+                expandedDoc.title = templateLayoutDoc.title + "[" + StrCast(dataDoc.title).match(/\.\.\.[0-9]*/) + "]";
+                expandedDoc.isExpandedTemplate = templateLayoutDoc;
+                dataDoc[templateLayoutDoc[Id]] = expandedDoc;
             }, 0);
         }
-        return templateLayoutDoc;
+        return templateLayoutDoc; // use the templateLayout when it's not a template or the expandedTemplate is pending.
     }
+
+    let _pendingExpansions: Map<string, boolean> = new Map();
 
     export function MakeCopy(doc: Doc, copyProto: boolean = false): Doc {
         const copy = new Doc;

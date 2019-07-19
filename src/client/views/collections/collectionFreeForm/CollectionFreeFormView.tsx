@@ -1,4 +1,4 @@
-import { action, computed } from "mobx";
+import { action, computed, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCastAsync, HeightSym, WidthSym, DocListCast } from "../../../../new_fields/Doc";
 import { Id } from "../../../../new_fields/FieldSymbols";
@@ -516,7 +516,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     ]
     render() {
         const easing = () => this.props.Document.panTransformType === "Ease";
-
         Doc.UpdateDocumentExtensionForField(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey);
         return (
             <div className={"collectionfreeformview-container"} ref={this.createDropTarget} onWheel={this.onPointerWheel}

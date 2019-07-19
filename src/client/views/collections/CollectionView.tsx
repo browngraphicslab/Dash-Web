@@ -2,7 +2,7 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 import { faProjectDiagram, faSignature, faSquare, faTh, faImage, faThList, faTree } from '@fortawesome/free-solid-svg-icons';
 import { observer } from "mobx-react";
 import * as React from 'react';
-import { Doc, DocListCast } from '../../../new_fields/Doc';
+import { Doc, DocListCast, WidthSym, HeightSym } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
 import { undoBatch } from '../../util/UndoManager';
@@ -61,8 +61,8 @@ export class CollectionView extends React.Component<FieldViewProps> {
             ContextMenu.Instance.addItem({
                 description: "Apply Template", event: undoBatch(() => {
                     let otherdoc = new Doc();
-                    otherdoc.width = 100;
-                    otherdoc.height = 50;
+                    otherdoc.width = this.props.Document[WidthSym]();
+                    otherdoc.height = this.props.Document[HeightSym]();
                     Doc.GetProto(otherdoc).title = this.props.Document.title + "(..." + CollectionView._applyCount++ + ")"; // previously "applied"
                     Doc.GetProto(otherdoc).layout = Doc.MakeDelegate(this.props.Document);
                     Doc.GetProto(otherdoc).miniLayout = StrCast(this.props.Document.miniLayout);
