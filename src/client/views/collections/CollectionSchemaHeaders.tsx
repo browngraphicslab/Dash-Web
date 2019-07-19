@@ -21,6 +21,8 @@ export interface HeaderProps {
     setIsEditing: (isEditing: boolean) => void;
     deleteColumn: (column: string) => void;
     setColumnType: (key: string, type: ColumnType) => void;
+    setColumnSort: (key: string, desc: boolean) => void;
+    removeColumnSort: (key: string) => void;
 }
 
 export class CollectionSchemaHeader extends React.Component<HeaderProps> {
@@ -43,6 +45,8 @@ export class CollectionSchemaHeader extends React.Component<HeaderProps> {
                     deleteColumn={this.props.deleteColumn}
                     onlyShowOptions={false}
                     setColumnType={this.props.setColumnType}
+                    setColumnSort={this.props.setColumnSort}
+                    removeColumnSort={this.props.removeColumnSort}
                 />
             </div>
         );
@@ -59,18 +63,10 @@ export interface AddColumnHeaderProps {
 
 @observer
 export class CollectionSchemaAddColumnHeader extends React.Component<AddColumnHeaderProps> {
-    // @observable private _creatingColumn: boolean = false;
-
-    // @action
-    // onClick = (e: React.MouseEvent): void => {
-    //     this._creatingColumn = true;
-    // }
-
     render() {
         let addButton = <button><FontAwesomeIcon icon="plus" size="sm" /></button>;
         return (
             <div className="collectionSchemaView-header-addColumn" >
-                {/* {this._creatingColumn ? <></> : */}
                 <CollectionSchemaColumnMenu
                     keyValue=""
                     possibleKeys={this.props.possibleKeys}
@@ -84,6 +80,8 @@ export class CollectionSchemaAddColumnHeader extends React.Component<AddColumnHe
                     deleteColumn={action(emptyFunction)}
                     onlyShowOptions={true}
                     setColumnType={action(emptyFunction)}
+                    setColumnSort={action(emptyFunction)}
+                    removeColumnSort={action(emptyFunction)}
                 />
             </div>
         );
@@ -105,12 +103,38 @@ export interface ColumnMenuProps {
     deleteColumn: (column: string) => void;
     onlyShowOptions: boolean;
     setColumnType: (key: string, type: ColumnType) => void;
+    setColumnSort: (key: string, desc: boolean) => void;
+    removeColumnSort: (key: string) => void;
 }
 @observer
 export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps> {
     @observable private _isOpen: boolean = false;
+    // @observable private _node : HTMLDivElement | null = null;
+    @observable private _node = React.createRef<HTMLDivElement>();
 
-    @action toggleIsOpen = (): void => {
+    componentDidMount() {
+        document.addEventListener("pointerdown", this.onPointerDown);
+        console.log("did mount", this._node);
+    }
+
+    componentWillUnmount() {
+        document.removeEventListener("pointerdown", this.onPointerDown);
+    }
+
+    onPointerDown (e: PointerEvent) {
+        console.log("pointer down", this._node);
+        if (this._node ) {
+            // && this._node.contains(e.target as Node)
+            console.log("CLICKED INSNIDE");
+        } else {
+            console.log("CLICKED OUTSIDE");
+            // console.log(this._node);
+            // console.log(e.target as Node);
+        }
+    }
+
+    @action 
+    toggleIsOpen = (): void => {
         this._isOpen = !this._isOpen;
         this.props.setIsEditing(this._isOpen);
     }
@@ -120,6 +144,14 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
         let type = ColumnType[typeStr];
         this.props.setColumnType(this.props.keyValue, type);
     }
+
+    // @action
+    // setNode = (node: HTMLDivElement): void => {
+    //     if (node) {
+    //         this._node = node;
+    //         console.log("set node to ", this._node);
+    //     }
+    // }
 
     renderTypes = () => {
         if (this.props.typeConst) return <></>;
@@ -147,6 +179,19 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
         );
     }
 
+    renderSorting = () => {
+        return (
+            <div className="collectionSchema-headerMenu-group">
+                <label>Sort by:</label>
+                <div className="columnMenu-sort">
+                    <div className="columnMenu-option" onClick={() => this.props.setColumnSort(this.props.keyValue, false)}>Sort ascending</div>
+                    <div className="columnMenu-option" onClick={() => this.props.setColumnSort(this.props.keyValue, true)}>Sort descending</div>
+                    <div className="columnMenu-option" onClick={() => this.props.removeColumnSort(this.props.keyValue)}>Clear sorting</div>
+                </div>
+            </div>
+        );
+    }
+
     renderContent = () => {
         return (
             <div className="collectionSchema-header-menuOptions">
@@ -159,11 +204,13 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
                         canAddNew={true}
                         addNew={this.props.addNew}
                         onSelect={this.props.onSelect}
+                        setIsEditing={this.props.setIsEditing}
                     />
                 </div>
                 {this.props.onlyShowOptions ? <></> :
                 <>
                     {this.renderTypes()}
+                    {this.renderSorting()}
                     <div className="collectionSchema-headerMenu-group">
                         <button onClick={() => this.props.deleteColumn(this.props.keyValue)}>Delete Column</button>
                     </div>
@@ -174,23 +221,16 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
     }
 
     render() {
+        console.log("render", this._node);
         return (
-            <div className="collectionSchema-header-menu">
+            <div className="collectionSchema-header-menu" ref={this._node}>
                 <Flyout anchorPoint={anchorPoints.TOP_CENTER} content={this.renderContent()}>
-                {/* <div onClick={this.toggleIsOpen}> */}
-                    <div className="collectionSchema-header-toggler" onClick={() => { this.props.setIsEditing(true); }}>{this.props.menuButtonContent}</div>
-                    {/* {this._isOpen ? this.renderContent() : <></>} */}
-                {/* </div> */}
+                    <div className="collectionSchema-header-toggler" onClick={() => this.toggleIsOpen()}>{this.props.menuButtonContent}</div>
                 </ Flyout >
             </div>
         );
     }
 }
-
-{/* // <div className="collectionSchema-header-menu">
-            //     <div className="collectionSchema-header-toggler" onClick={() => this.toggleIsOpen()}>{this.props.menuButtonContent}</div>
-            //     {this.renderContent()}
-            // </div> */}
 
 
 interface KeysDropdownProps {
@@ -200,6 +240,7 @@ interface KeysDropdownProps {
     canAddNew: boolean;
     addNew: boolean;
     onSelect: (oldKey: string, newKey: string, addnew: boolean) => void;
+    setIsEditing: (isEditing: boolean) => void;
 }
 @observer
 class KeysDropdown extends React.Component<KeysDropdownProps> {
@@ -217,6 +258,7 @@ class KeysDropdown extends React.Component<KeysDropdownProps> {
         this.props.onSelect(this._key, key, this.props.addNew);
         this.setKey(key);
         this._isOpen = false;
+        this.props.setIsEditing(false);
     }
 
     onChange = (val: string): void => {
@@ -226,15 +268,15 @@ class KeysDropdown extends React.Component<KeysDropdownProps> {
     @action
     onFocus = (e: React.FocusEvent): void => {
         this._isOpen = true;
+        this.props.setIsEditing(true);
     }
 
     @action
     onBlur = (e: React.FocusEvent): void => {
-        // const that = this;
-        if (this._canClose) this._isOpen = false;
-        // setTimeout(function() { // TODO: this might be too hacky lol
-        //     that.setIsOpen(false);
-        // }, 100);
+        if (this._canClose) {
+            this._isOpen = false;
+            this.props.setIsEditing(false);
+        }
     }
 
     @action 

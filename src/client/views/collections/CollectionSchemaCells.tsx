@@ -125,7 +125,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                 <div className="collectionSchemaView-cellContents" onPointerDown={onItemDown} key={props.Document[Id]} ref={reference}>
                     <EditableView
                         editing={this._isEditing}
-                        // isEditingCallback={this.isEditingCallback}
+                        isEditingCallback={this.isEditingCallback}
                         display={"inline"}
                         contents={contents}
                         height={Number(MAX_ROW_HEIGHT)}
