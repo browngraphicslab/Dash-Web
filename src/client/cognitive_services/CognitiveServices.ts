@@ -1,10 +1,11 @@
 import * as request from "request-promise";
-import { Doc } from "../../new_fields/Doc";
+import { Doc, Field } from "../../new_fields/Doc";
 import { Cast } from "../../new_fields/Types";
 import { ImageField } from "../../new_fields/URLField";
 import { values } from "mobx";
 import { List } from "../../new_fields/List";
 import { Docs } from "../documents/Documents";
+import { Result } from "../northstar/model/idea/idea";
 
 export enum Services {
     ComputerVision,
@@ -20,9 +21,9 @@ export enum Confidence {
     Excellent = 0.95
 }
 
-type Tag = { name: string, confidence: number };
-type Face = { faceAttributes: any, faceId: string, faceRectangle: { top: number, left: number, width: number, height: number } };
-type Converter = (results: any) => Doc;
+export type Tag = { name: string, confidence: number };
+export type Face = { faceAttributes: any, faceId: string, faceRectangle: { top: number, left: number, width: number, height: number } };
+export type Converter = (results: any) => Field;
 
 export namespace CognitiveServices {
 
@@ -81,6 +82,7 @@ export namespace CognitiveServices {
             if (results && (!results.length || results.length > 0)) {
                 dataDoc[storageKey] = converter(results);
             }
+            return results;
         };
 
         export const generateMetadata = async (target: Doc, threshold = Confidence.Excellent) => {
@@ -95,17 +97,16 @@ export namespace CognitiveServices {
                 });
                 return tagDoc;
             };
-            mutateDocument(target, Services.ComputerVision, converter, "generatedTags");
+            return mutateDocument(target, Services.ComputerVision, converter, "generatedTags");
         };
 
         export const extractFaces = async (target: Doc) => {
             let converter = (results: any) => {
-                let facesDoc = new Doc;
-                facesDoc.title = "Found Faces";
-                results.map((face: Face) => facesDoc[face.faceId] = Docs.Get.DocumentHierarchyFromJsonObject(face)!);
-                return facesDoc;
+                let faceDocs = new List<Doc>();
+                results.map((face: Face) => faceDocs.push(Docs.Get.DocumentHierarchyFromJsonObject(face, face.faceId)!));
+                return faceDocs;
             };
-            mutateDocument(target, Services.Face, converter, "faces");
+            return mutateDocument(target, Services.Face, converter, "faces");
         };
 
     }

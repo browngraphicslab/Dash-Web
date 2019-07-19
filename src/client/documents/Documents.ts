@@ -442,13 +442,15 @@ export namespace Docs {
 
         const validPrimitives = ["string", "number", "boolean"];
 
-        export function DocumentHierarchyFromJsonObject(input: any): Opt<Doc>;
-        export function DocumentHierarchyFromJsonObject(input: string): Opt<Doc> {
+        export function DocumentHierarchyFromJsonObject(input: any, title?: string): Opt<Doc>;
+        export function DocumentHierarchyFromJsonObject(input: string, title?: string): Opt<Doc> {
             let parsed = typeof input === "string" ? JSON.parse(input) : input;
             if (typeof parsed !== "object" || parsed instanceof Array) {
                 return undefined;
             }
-            return convertObject(parsed);
+            let converted = convertObject(parsed);
+            title && (converted.title = title);
+            return converted;
         }
 
         const convertObject = (object: any, title?: string) => {

@@ -15,6 +15,8 @@ import { KeyValueBox } from './KeyValueBox';
 import { DragManager, SetupDrag } from '../../util/DragManager';
 import { ContextMenu } from '../ContextMenu';
 import { CollectionDockingView } from '../collections/CollectionDockingView';
+import { library } from '@fortawesome/fontawesome-svg-core';
+import * as fa from '@fortawesome/free-solid-svg-icons';
 
 // Represents one row in a key value plane
 
@@ -25,6 +27,8 @@ export interface KeyValuePairProps {
     keyWidth: number;
 }
 
+library.add(fa.faCaretSquareRight);
+
 @observer
 export class KeyValuePair extends React.Component<KeyValuePairProps> {
     @observable private isPointerOver = false;
@@ -33,13 +37,15 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
 
     onContextMenu = () => {
         let cm = ContextMenu.Instance;
-        cm.addItem({ description: "Open Right...", icon: "expand-arrows", event: this.tryOpenRight });
+        cm.addItem({ description: "Open Right...", icon: "caret-square-right", event: this.tryOpenRight });
     }
 
     tryOpenRight = () => {
         let target = this.props.doc[this.props.keyName];
         if (target instanceof Doc) {
             CollectionDockingView.Instance.AddRightSplit(target, undefined);
+        } else {
+            console.log(target);
         }
     }
 
