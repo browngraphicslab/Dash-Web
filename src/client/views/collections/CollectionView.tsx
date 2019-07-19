@@ -16,6 +16,7 @@ import { CollectionSchemaView } from "./CollectionSchemaView";
 import { CollectionStackingView } from './CollectionStackingView';
 import { CollectionTreeView } from "./CollectionTreeView";
 import { StrCast, PromiseValue } from '../../../new_fields/Types';
+import { DocumentType } from '../../documents/Documents';
 export const COLLECTION_BORDER_WIDTH = 2;
 
 library.add(faTh);
@@ -63,10 +64,11 @@ export class CollectionView extends React.Component<FieldViewProps> {
                     let otherdoc = new Doc();
                     otherdoc.width = this.props.Document[WidthSym]();
                     otherdoc.height = this.props.Document[HeightSym]();
-                    Doc.GetProto(otherdoc).title = this.props.Document.title + "(..." + CollectionView._applyCount++ + ")"; // previously "applied"
-                    Doc.GetProto(otherdoc).layout = Doc.MakeDelegate(this.props.Document);
-                    Doc.GetProto(otherdoc).miniLayout = StrCast(this.props.Document.miniLayout);
-                    Doc.GetProto(otherdoc).detailedLayout = Doc.GetProto(otherdoc).layout;
+                    otherdoc.title = this.props.Document.title + "(..." + CollectionView._applyCount++ + ")"; // previously "applied"
+                    otherdoc.layout = Doc.MakeDelegate(this.props.Document);
+                    otherdoc.miniLayout = StrCast(this.props.Document.miniLayout);
+                    otherdoc.detailedLayout = otherdoc.layout;
+                    otherdoc.type = DocumentType.TEMPLATE;
                     this.props.addDocTab && this.props.addDocTab(otherdoc, undefined, "onRight");
                 }), icon: "project-diagram"
             });

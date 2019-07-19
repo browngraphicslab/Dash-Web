@@ -423,7 +423,6 @@ export namespace Doc {
         fieldTemplate.nativeHeight = nh;
         fieldTemplate.isTemplate = true;
         fieldTemplate.showTitle = "title";
-        fieldTemplate.type = DocumentType.TEMPLATE;
         setTimeout(() => fieldTemplate.proto = proto);
     }
 
