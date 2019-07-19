@@ -15,7 +15,6 @@ export default class FaceRectangle extends React.Component<{ rectangle: Rectangl
         let rectangle = this.props.rectangle;
         return (
             <div
-                onPointerEnter={() => console.log(this.props.rectangle.id)}
                 style={{
                     ...rectangle.style,
                     opacity: this.opacity,
