@@ -8,7 +8,7 @@ export default class FaceRectangle extends React.Component<{ rectangle: Rectangl
     @observable private opacity = 0;
 
     componentDidMount() {
-        setTimeout(() => runInAction(() => this.opacity = 1), 500);
+        runInAction(() => this.opacity = 1);
     }
 
     render() {
