@@ -1,3 +1,4 @@
+require('dotenv').config();
 import * as bodyParser from 'body-parser';
 import { exec } from 'child_process';
 import * as cookieParser from 'cookie-parser';
@@ -24,7 +25,7 @@ import { getForgot, getLogin, getLogout, getReset, getSignup, postForgot, postLo
 import { DashUserModel } from './authentication/models/user_model';
 import { Client } from './Client';
 import { Database } from './database';
-import { MessageStore, Transferable, Types, Diff } from "./Message";
+import { MessageStore, Transferable, Types, Diff, Message } from "./Message";
 import { RouteStore } from './RouteStore';
 const app = express();
 const config = require('../../webpack.config');
@@ -45,8 +46,19 @@ const probe = require("probe-image-size");
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
 
+const release = process.env.RELEASE === "true";
+if (process.env.RELEASE === "true") {
+    console.log("Running server in release mode");
+} else {
+    console.log("Running server in debug mode");
+}
+console.log(process.env.PWD);
+let clientUtils = fs.readFileSync("./src/client/util/ClientUtils.ts.temp", "utf8");
+clientUtils = `//AUTO-GENERATED FILE: DO NOT EDIT\n${clientUtils.replace('"mode"', String(release))}`;
+fs.writeFileSync("./src/client/util/ClientUtils.ts", clientUtils, "utf8");
+
 const mongoUrl = 'mongodb://localhost:27017/Dash';
-mongoose.connect(mongoUrl);
+mongoose.connection.readyState === 0 && mongoose.connect(mongoUrl);
 mongoose.connection.on('connected', () => console.log("connected"));
 
 // SESSION MANAGEMENT AND AUTHENTICATION MIDDLEWARE
@@ -91,14 +103,15 @@ enum Method {
  */
 function addSecureRoute(method: Method,
     handler: (user: DashUserModel, res: express.Response, req: express.Request) => void,
-    onRejection: (res: express.Response) => any = (res) => res.redirect(RouteStore.logout),
+    onRejection: (res: express.Response, req: express.Request) => any = res => res.redirect(RouteStore.login),
     ...subscribers: string[]
 ) {
     let abstracted = (req: express.Request, res: express.Response) => {
         if (req.user) {
             handler(req.user, res, req);
         } else {
-            onRejection(res);
+            req.session!.target = req.originalUrl;
+            onRejection(res, req);
         }
     };
     subscribers.forEach(route => {
@@ -131,15 +144,45 @@ app.get("/pull", (req, res) =>
 // GETTERS
 
 app.get("/search", async (req, res) => {
-    let query = req.query.query || "hello";
-    let results = await Search.Instance.search(query);
+    const solrQuery: any = {};
+    ["q", "fq", "start", "rows", "hl", "hl.fl"].forEach(key => solrQuery[key] = req.query[key]);
+    if (solrQuery.q === undefined) {
+        res.send([]);
+        return;
+    }
+    let results = await Search.Instance.search(solrQuery);
     res.send(results);
 });
 
+function msToTime(duration: number) {
+    let milliseconds = Math.floor((duration % 1000) / 100),
+        seconds = Math.floor((duration / 1000) % 60),
+        minutes = Math.floor((duration / (1000 * 60)) % 60),
+        hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
+
+    let hoursS = (hours < 10) ? "0" + hours : hours;
+    let minutesS = (minutes < 10) ? "0" + minutes : minutes;
+    let secondsS = (seconds < 10) ? "0" + seconds : seconds;
+
+    return hoursS + ":" + minutesS + ":" + secondsS + "." + milliseconds;
+}
+
+app.get("/whosOnline", (req, res) => {
+    let users: any = { active: {}, inactive: {} };
+    const now = Date.now();
+
+    for (const user in timeMap) {
+        const time = timeMap[user];
+        const key = ((now - time) / 1000) < (60 * 5) ? "active" : "inactive";
+        users[key][user] = `Last active ${msToTime(now - time)} ago`;
+    }
+
+    res.send(users);
+});
 app.get("/thumbnail/:filename", (req, res) => {
     let filename = req.params.filename;
     let noExt = filename.substring(0, filename.length - ".png".length);
-    let pagenumber = parseInt(noExt[noExt.length - 1]);
+    let pagenumber = parseInt(noExt.split('-')[1]);
     fs.exists(uploadDir + filename, (exists: boolean) => {
         console.log(`${uploadDir + filename} ${exists ? "exists" : "does not exist"}`);
         if (exists) {
@@ -147,13 +190,14 @@ app.get("/thumbnail/:filename", (req, res) => {
             probe(input, (err: any, result: any) => {
                 if (err) {
                     console.log(err);
+                    console.log(`error on ${filename}`);
                     return;
                 }
                 res.send({ path: "/files/" + filename, width: result.width, height: result.height });
             });
         }
         else {
-            LoadPage(uploadDir + filename.substring(0, filename.length - "-n.png".length) + ".pdf", pagenumber, res);
+            LoadPage(uploadDir + filename.substring(0, filename.length - noExt.split('-')[1].length - ".PNG".length - 1) + ".pdf", pagenumber, res);
         }
     });
 });
@@ -206,7 +250,7 @@ addSecureRoute(
 addSecureRoute(
     Method.GET,
     async (_, res) => {
-        const cursor = await Database.Instance.query({}, "users");
+        const cursor = await Database.Instance.query({}, { email: 1, userDocumentId: 1 }, "users");
         const results = await cursor.toArray();
         res.send(results.map(user => ({ email: user.email, userDocumentId: user.userDocumentId })));
     },
@@ -283,9 +327,10 @@ app.post(
                 const file = path.basename(files[name].path);
                 const ext = path.extname(file);
                 let resizers = [
-                    { resizer: sharp().resize(100, undefined, { withoutEnlargement: true }), suffix: "_s" },
-                    { resizer: sharp().resize(400, undefined, { withoutEnlargement: true }), suffix: "_m" },
-                    { resizer: sharp().resize(900, undefined, { withoutEnlargement: true }), suffix: "_l" },
+                    { resizer: sharp().rotate(), suffix: "_o" },
+                    { resizer: sharp().resize(100, undefined, { withoutEnlargement: true }).rotate(), suffix: "_s" },
+                    { resizer: sharp().resize(400, undefined, { withoutEnlargement: true }).rotate(), suffix: "_m" },
+                    { resizer: sharp().resize(900, undefined, { withoutEnlargement: true }).rotate(), suffix: "_l" },
                 ];
                 let isImage = false;
                 if (pngTypes.includes(ext)) {
@@ -298,38 +343,6 @@ app.post(
                         element.resizer = element.resizer.jpeg();
                     });
                     isImage = true;
-                }
-                else if (pdfTypes.includes(ext)) {
-                    // Pdfjs.getDocument(uploadDir + file).promise
-                    //     .then((pdf: Pdfjs.PDFDocumentProxy) => {
-                    //         let numPages = pdf.numPages;
-                    //         let factory = new NodeCanvasFactory();
-                    //         for (let pageNum = 0; pageNum < numPages; pageNum++) {
-                    //             console.log(pageNum);
-                    //             pdf.getPage(pageNum + 1).then((page: Pdfjs.PDFPageProxy) => {
-                    //                 console.log("reading " + pageNum);
-                    //                 let viewport = page.getViewport(1);
-                    //                 let canvasAndContext = factory.create(viewport.width, viewport.height);
-                    //                 let renderContext = {
-                    //                     canvasContext: canvasAndContext.context,
-                    //                     viewport: viewport,
-                    //                     canvasFactory: factory
-                    //                 }
-                    //                 console.log("read " + pageNum);
-
-                    //                 page.render(renderContext).promise
-                    //                     .then(() => {
-                    //                         console.log("saving " + pageNum);
-                    //                         let stream = canvasAndContext.canvas.createPNGStream();
-                    //                         let out = fs.createWriteStream(uploadDir + file.substring(0, file.length - ext.length) + `-${pageNum + 1}.PNG`);
-                    //                         stream.pipe(out);
-                    //                         out.on("finish", () => console.log(`Success! Saved to ${uploadDir + file.substring(0, file.length - ext.length) + `-${pageNum + 1}.PNG`}`));
-                    //                     }, (reason: string) => {
-                    //                         console.error(reason + ` ${pageNum}`);
-                    //                     });
-                    //             });
-                    //         }
-                    //     });
                 }
                 if (isImage) {
                     resizers.forEach(resizer => {
@@ -404,13 +417,23 @@ app.get(RouteStore.reset, getReset);
 app.post(RouteStore.reset, postReset);
 
 app.use(RouteStore.corsProxy, (req, res) =>
-    req.pipe(request(req.url.substring(1))).pipe(res));
+    req.pipe(request(decodeURIComponent(req.url.substring(1)))).pipe(res));
 
-app.get(RouteStore.delete, (req, res) =>
-    deleteFields().then(() => res.redirect(RouteStore.home)));
+app.get(RouteStore.delete, (req, res) => {
+    if (release) {
+        res.send("no");
+        return;
+    }
+    deleteFields().then(() => res.redirect(RouteStore.home));
+});
 
-app.get(RouteStore.deleteAll, (req, res) =>
-    deleteAll().then(() => res.redirect(RouteStore.home)));
+app.get(RouteStore.deleteAll, (req, res) => {
+    if (release) {
+        res.send("no");
+        return;
+    }
+    deleteAll().then(() => res.redirect(RouteStore.home));
+});
 
 app.use(wdm(compiler, { publicPath: config.output.publicPath }));
 
@@ -426,19 +449,32 @@ interface Map {
 }
 let clients: Map = {};
 
+let socketMap = new Map<SocketIO.Socket, string>();
+let timeMap: { [id: string]: number } = {};
+
 server.on("connection", function (socket: Socket) {
-    console.log("a user has connected");
+    socket.use((packet, next) => {
+        let id = socketMap.get(socket);
+        if (id) {
+            timeMap[id] = Date.now();
+        }
+        next();
+    });
 
     Utils.Emit(socket, MessageStore.Foo, "handshooken");
 
-    Utils.AddServerHandler(socket, MessageStore.Bar, barReceived);
+    Utils.AddServerHandler(socket, MessageStore.Bar, guid => barReceived(socket, guid));
     Utils.AddServerHandler(socket, MessageStore.SetField, (args) => setField(socket, args));
     Utils.AddServerHandlerCallback(socket, MessageStore.GetField, getField);
     Utils.AddServerHandlerCallback(socket, MessageStore.GetFields, getFields);
-    Utils.AddServerHandler(socket, MessageStore.DeleteAll, deleteFields);
+    if (!release) {
+        Utils.AddServerHandler(socket, MessageStore.DeleteAll, deleteFields);
+    }
 
     Utils.AddServerHandler(socket, MessageStore.CreateField, CreateField);
     Utils.AddServerHandler(socket, MessageStore.UpdateField, diff => UpdateField(socket, diff));
+    Utils.AddServerHandler(socket, MessageStore.DeleteField, id => DeleteField(socket, id));
+    Utils.AddServerHandler(socket, MessageStore.DeleteFields, ids => DeleteFields(socket, ids));
     Utils.AddServerHandlerCallback(socket, MessageStore.GetRefField, GetRefField);
     Utils.AddServerHandlerCallback(socket, MessageStore.GetRefFields, GetRefFields);
 });
@@ -457,8 +493,10 @@ async function deleteAll() {
     await Search.Instance.clear();
 }
 
-function barReceived(guid: String) {
-    clients[guid.toString()] = new Client(guid.toString());
+function barReceived(socket: SocketIO.Socket, guid: string) {
+    clients[guid] = new Client(guid.toString());
+    console.log(`User ${guid} has connected`);
+    socketMap.set(socket, guid);
 }
 
 function getField([id, callback]: [string, (result?: Transferable) => void]) {
@@ -492,8 +530,8 @@ function GetRefFields([ids, callback]: [string[], (result?: Transferable[]) => v
 const suffixMap: { [type: string]: (string | [string, string | ((json: any) => any)]) } = {
     "number": "_n",
     "string": "_t",
-    // "boolean": "_b",
-    // "image": ["_t", "url"],
+    "boolean": "_b",
+    "image": ["_t", "url"],
     "video": ["_t", "url"],
     "pdf": ["_t", "url"],
     "audio": ["_t", "url"],
@@ -563,6 +601,23 @@ function UpdateField(socket: Socket, diff: Diff) {
     if (dynfield) {
         Search.Instance.updateDocument(update);
     }
+}
+
+function DeleteField(socket: Socket, id: string) {
+    Database.Instance.delete({ _id: id }, "newDocuments").then(() => {
+        socket.broadcast.emit(MessageStore.DeleteField.Message, id);
+    });
+
+    Search.Instance.deleteDocuments([id]);
+}
+
+function DeleteFields(socket: Socket, ids: string[]) {
+    Database.Instance.delete({ _id: { $in: ids } }, "newDocuments").then(() => {
+        socket.broadcast.emit(MessageStore.DeleteFields.Message, ids);
+    });
+
+    Search.Instance.deleteDocuments(ids);
+
 }
 
 function CreateField(newValue: any) {

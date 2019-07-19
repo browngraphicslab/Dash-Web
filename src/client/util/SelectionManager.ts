@@ -1,13 +1,17 @@
-import { observable, action, runInAction } from "mobx";
-import { Doc } from "../../new_fields/Doc";
+import { observable, action, runInAction, IReactionDisposer, reaction, autorun } from "mobx";
+import { Doc, Opt } from "../../new_fields/Doc";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
-import { NumCast } from "../../new_fields/Types";
+import { NumCast, StrCast } from "../../new_fields/Types";
+import { InkingControl } from "../views/InkingControl";
 
 export namespace SelectionManager {
+
     class Manager {
+
         @observable IsDragging: boolean = false;
         @observable SelectedDocuments: Array<DocumentView> = [];
+
 
         @action
         SelectDoc(docView: DocumentView, ctrlPressed: boolean): void {
@@ -18,6 +22,7 @@ export namespace SelectionManager {
                 }
 
                 manager.SelectedDocuments.push(docView);
+                // console.log(manager.SelectedDocuments);
                 docView.props.whenActiveChanged(true);
             }
         }
@@ -38,6 +43,17 @@ export namespace SelectionManager {
     }
 
     const manager = new Manager();
+    reaction(() => manager.SelectedDocuments, sel => {
+        let targetColor = "#FFFFFF";
+        if (sel.length > 0) {
+            let firstView = sel[0];
+            let doc = firstView.props.Document;
+            let targetDoc = doc.isTemplate ? doc : Doc.GetProto(doc);
+            let stored = StrCast(targetDoc.backgroundColor);
+            stored.length > 0 && (targetColor = stored);
+        }
+        InkingControl.Instance.updateSelectedColor(targetColor);
+    }, { fireImmediately: true });
 
     export function DeselectDoc(docView: DocumentView): void {
         manager.DeselectDoc(docView);

@@ -18,6 +18,7 @@
   .ProseMirror-menuitem {
     margin-right: 3px;
     display: inline-block;
+    z-index: 100000;
   }
   
   .ProseMirror-menuseparator {
@@ -59,7 +60,6 @@
   }
   
   .ProseMirror-menu-dropdown-menu, .ProseMirror-menu-submenu {
-    position: absolute;
     background: $dark-color;
     color:white;
     border: 1px solid rgb(223, 223, 223);
@@ -67,9 +67,10 @@
   }
   
   .ProseMirror-menu-dropdown-menu {
-    z-index: 15;
+    z-index: 100000;
     min-width: 6em;
     background: white;
+    position: absolute;
   }
   
   .linking {
@@ -80,6 +81,7 @@
     cursor: pointer;
     padding: 2px 8px 2px 4px;
     width: auto;
+    z-index: 100000;
   }
   
   .ProseMirror-menu-dropdown-item:hover {
@@ -233,19 +235,20 @@
   }
 
 .tooltipMenu {
-    position: absolute;
-    z-index: 50;
-    background: whitesmoke;
+    position: relative;
+    z-index: 2000;
+    background: #121721;
     border: 1px solid silver;
     border-radius: 15px;
-    padding: 2px 10px;
-    //margin-bottom: 100px;
+    //height: 60px;
+    //padding: 2px 10px;
+    //margin-top: 100px;
     //-webkit-transform: translateX(-50%);
     //transform: translateX(-50%);
-    transform: translateY(-50%);
+    transform: translateY(-85px);
     pointer-events: all;
-    height: auto;
-    width:inherit;
+    height: 30px;
+    width:550px;
     .ProseMirror-example-setup-style hr {
       padding: 2px 10px;
       border: none;
@@ -305,4 +308,11 @@
   .font-size-indicator {
       font-size: 12px;
       padding-right: 0px;
+  }
+  .summarize{
+      //margin-left: 15px;
+      color: white;
+      height: 20px;
+    //   background-color: white;
+      text-align: center;
   }

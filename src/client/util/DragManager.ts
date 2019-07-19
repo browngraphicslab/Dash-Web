@@ -1,66 +1,78 @@
-import { action, runInAction, observable } from "mobx";
-import { Doc, DocListCastAsync } from "../../new_fields/Doc";
+import { action, runInAction } from "mobx";
+import { Doc } from "../../new_fields/Doc";
 import { Cast } from "../../new_fields/Types";
+import { URLField } from "../../new_fields/URLField";
 import { emptyFunction } from "../../Utils";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import * as globalCssVariables from "../views/globalCssVariables.scss";
-import { URLField } from "../../new_fields/URLField";
+import { DocumentManager } from "./DocumentManager";
+import { LinkManager } from "./LinkManager";
 import { SelectionManager } from "./SelectionManager";
 
 export type dropActionType = "alias" | "copy" | undefined;
-export function SetupDrag(_reference: React.RefObject<HTMLElement>, docFunc: () => Doc | Promise<Doc>, moveFunc?: DragManager.MoveFunction, dropAction?: dropActionType, options?: any, dontHideOnDrop?: boolean) {
+export function SetupDrag(
+    _reference: React.RefObject<HTMLElement>,
+    docFunc: () => Doc | Promise<Doc>,
+    moveFunc?: DragManager.MoveFunction,
+    dropAction?: dropActionType,
+    options?: any,
+    dontHideOnDrop?: boolean,
+    dragStarted?: () => void
+) {
     let onRowMove = async (e: PointerEvent) => {
         e.stopPropagation();
         e.preventDefault();
 
         document.removeEventListener("pointermove", onRowMove);
         document.removeEventListener('pointerup', onRowUp);
-        var dragData = new DragManager.DocumentDragData([await docFunc()]);
+        let doc = await docFunc();
+        var dragData = new DragManager.DocumentDragData([doc], [undefined]);
         dragData.dropAction = dropAction;
         dragData.moveDocument = moveFunc;
         dragData.options = options;
         dragData.dontHideOnDrop = dontHideOnDrop;
         DragManager.StartDocumentDrag([_reference.current!], dragData, e.x, e.y);
+        dragStarted && dragStarted();
     };
     let onRowUp = (): void => {
         document.removeEventListener("pointermove", onRowMove);
         document.removeEventListener('pointerup', onRowUp);
     };
     let onItemDown = async (e: React.PointerEvent) => {
-        // if (this.props.isSelected() || this.props.isTopMost) {
         if (e.button === 0) {
             e.stopPropagation();
             if (e.shiftKey && CollectionDockingView.Instance) {
-                CollectionDockingView.Instance.StartOtherDrag([await docFunc()], e);
+                e.persist();
+                CollectionDockingView.Instance.StartOtherDrag({
+                    pageX: e.pageX,
+                    pageY: e.pageY,
+                    preventDefault: emptyFunction,
+                    button: 0
+                }, [await docFunc()]);
             } else {
                 document.addEventListener("pointermove", onRowMove);
                 document.addEventListener("pointerup", onRowUp);
             }
         }
-        //}
     };
     return onItemDown;
 }
 
-export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: number, sourceDoc: Doc) {
-    let srcTarg = sourceDoc.proto;
-    let draggedDocs: Doc[] = [];
-    let draggedFromDocs: Doc[] = [];
-    if (srcTarg) {
-        let linkToDocs = await DocListCastAsync(srcTarg.linkedToDocs);
-        let linkFromDocs = await DocListCastAsync(srcTarg.linkedFromDocs);
-        if (linkToDocs) draggedDocs = linkToDocs.map(linkDoc => Cast(linkDoc.linkedTo, Doc) as Doc);
-        if (linkFromDocs) draggedFromDocs = linkFromDocs.map(linkDoc => Cast(linkDoc.linkedFrom, Doc) as Doc);
-    }
-    draggedDocs.push(...draggedFromDocs);
-    if (draggedDocs.length) {
-        let moddrag: Doc[] = [];
-        for (const draggedDoc of draggedDocs) {
-            let doc = await Cast(draggedDoc.annotationOn, Doc);
-            if (doc) moddrag.push(doc);
-        }
-        let dragData = new DragManager.DocumentDragData(moddrag.length ? moddrag : draggedDocs);
-        DragManager.StartDocumentDrag([dragEle], dragData, x, y, {
+function moveLinkedDocument(doc: Doc, targetCollection: Doc, addDocument: (doc: Doc) => boolean): boolean {
+    const document = SelectionManager.SelectedDocuments()[0];
+    document.props.removeDocument && document.props.removeDocument(doc);
+    addDocument(doc);
+    return true;
+}
+
+export async function DragLinkAsDocument(dragEle: HTMLElement, x: number, y: number, linkDoc: Doc, sourceDoc: Doc) {
+    let draggeddoc = LinkManager.Instance.getOppositeAnchor(linkDoc, sourceDoc);
+    if (draggeddoc) {
+        let moddrag = await Cast(draggeddoc.annotationOn, Doc);
+        let dragdocs = moddrag ? [moddrag] : [draggeddoc];
+        let dragData = new DragManager.DocumentDragData(dragdocs, dragdocs);
+        dragData.moveDocument = moveLinkedDocument;
+        DragManager.StartLinkedDocumentDrag([dragEle], dragData, x, y, {
             handlers: {
                 dragComplete: action(emptyFunction),
             },
@@ -68,6 +80,38 @@ export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: n
         });
     }
 }
+
+export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: number, sourceDoc: Doc) {
+    let srcTarg = sourceDoc.proto;
+    let draggedDocs: Doc[] = [];
+
+    if (srcTarg) {
+        let linkDocs = LinkManager.Instance.getAllRelatedLinks(srcTarg);
+        if (linkDocs) {
+            draggedDocs = linkDocs.map(link => {
+                let opp = LinkManager.Instance.getOppositeAnchor(link, sourceDoc);
+                if (opp) return opp;
+            }) as Doc[];
+        }
+    }
+    if (draggedDocs.length) {
+        let moddrag: Doc[] = [];
+        for (const draggedDoc of draggedDocs) {
+            let doc = await Cast(draggedDoc.annotationOn, Doc);
+            if (doc) moddrag.push(doc);
+        }
+        let dragdocs = moddrag.length ? moddrag : draggedDocs;
+        let dragData = new DragManager.DocumentDragData(dragdocs, dragdocs);
+        dragData.moveDocument = moveLinkedDocument;
+        DragManager.StartLinkedDocumentDrag([dragEle], dragData, x, y, {
+            handlers: {
+                dragComplete: action(emptyFunction),
+            },
+            hideSource: false
+        });
+    }
+}
+
 
 export namespace DragManager {
     export function Root() {
@@ -90,6 +134,10 @@ export namespace DragManager {
         handlers: DragHandlers;
 
         hideSource: boolean | (() => boolean);
+
+        dragHasStarted?: () => void;
+
+        withoutShiftDrag?: boolean;
     }
 
     export interface DragDropDisposer {
@@ -141,13 +189,15 @@ export namespace DragManager {
 
     export type MoveFunction = (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     export class DocumentDragData {
-        constructor(dragDoc: Doc[]) {
+        constructor(dragDoc: Doc[], dragDataDocs: (Doc | undefined)[]) {
             this.draggedDocuments = dragDoc;
+            this.draggedDataDocs = dragDataDocs;
             this.droppedDocuments = dragDoc;
             this.xOffset = 0;
             this.yOffset = 0;
         }
         draggedDocuments: Doc[];
+        draggedDataDocs: (Doc | undefined)[];
         droppedDocuments: Doc[];
         xOffset: number;
         yOffset: number;
@@ -178,12 +228,38 @@ export namespace DragManager {
     export function StartDocumentDrag(eles: HTMLElement[], dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
         runInAction(() => StartDragFunctions.map(func => func()));
         StartDrag(eles, dragData, downX, downY, options,
-            (dropData: { [id: string]: any }) =>
+            (dropData: { [id: string]: any }) => {
                 (dropData.droppedDocuments = dragData.userDropAction === "alias" || (!dragData.userDropAction && dragData.dropAction === "alias") ?
                     dragData.draggedDocuments.map(d => Doc.MakeAlias(d)) :
                     dragData.userDropAction === "copy" || (!dragData.userDropAction && dragData.dropAction === "copy") ?
                         dragData.draggedDocuments.map(d => Doc.MakeCopy(d, true)) :
-                        dragData.draggedDocuments));
+                        dragData.draggedDocuments
+                );
+            });
+    }
+
+    export function StartLinkedDocumentDrag(eles: HTMLElement[], dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
+        dragData.moveDocument = moveLinkedDocument;
+
+        runInAction(() => StartDragFunctions.map(func => func()));
+        StartDrag(eles, dragData, downX, downY, options,
+            (dropData: { [id: string]: any }) => {
+                let droppedDocuments: Doc[] = dragData.draggedDocuments.reduce((droppedDocs: Doc[], d) => {
+                    let dvs = DocumentManager.Instance.getDocumentViews(d);
+                    if (dvs.length) {
+                        let inContext = dvs.filter(dv => dv.props.ContainingCollectionView === SelectionManager.SelectedDocuments()[0].props.ContainingCollectionView);
+                        if (inContext.length) {
+                            inContext.forEach(dv => droppedDocs.push(dv.props.Document));
+                        } else {
+                            droppedDocs.push(Doc.MakeAlias(d));
+                        }
+                    } else {
+                        droppedDocs.push(Doc.MakeAlias(d));
+                    }
+                    return droppedDocs;
+                }, []);
+                dropData.droppedDocuments = droppedDocuments;
+            });
     }
 
     export function StartAnnotationDrag(eles: HTMLElement[], dragData: AnnotationDragData, downX: number, downY: number, options?: DragOptions) {
@@ -238,6 +314,8 @@ export namespace DragManager {
 
         const docs: Doc[] =
             dragData instanceof DocumentDragData ? dragData.draggedDocuments : dragData instanceof AnnotationDragData ? [dragData.dragDocument] : [];
+        const datadocs: (Doc | undefined)[] =
+            dragData instanceof DocumentDragData ? dragData.draggedDataDocs : dragData instanceof AnnotationDragData ? [dragData.dragDocument] : [];
         let dragElements = eles.map(ele => {
             const w = ele.offsetWidth,
                 h = ele.offsetHeight;
@@ -252,11 +330,13 @@ export namespace DragManager {
             scaleYs.push(scaleY);
             let dragElement = ele.cloneNode(true) as HTMLElement;
             dragElement.style.opacity = "0.7";
+            dragElement.style.borderRadius = getComputedStyle(ele).borderRadius;
             dragElement.style.position = "absolute";
             dragElement.style.margin = "0";
             dragElement.style.top = "0";
             dragElement.style.bottom = "";
             dragElement.style.left = "0";
+            dragElement.style.transition = "none";
             dragElement.style.color = "black";
             dragElement.style.transformOrigin = "0 0";
             dragElement.style.zIndex = globalCssVariables.contextMenuZindex;// "1000";
@@ -312,14 +392,14 @@ export namespace DragManager {
             if (dragData instanceof DocumentDragData) {
                 dragData.userDropAction = e.ctrlKey || e.altKey ? "alias" : undefined;
             }
-            if (e.shiftKey && CollectionDockingView.Instance) {
+            if (((options && !options.withoutShiftDrag) || !options) && e.shiftKey && CollectionDockingView.Instance) {
                 AbortDrag();
-                CollectionDockingView.Instance.StartOtherDrag(docs, {
+                CollectionDockingView.Instance.StartOtherDrag({
                     pageX: e.pageX,
                     pageY: e.pageY,
                     preventDefault: emptyFunction,
                     button: 0
-                });
+                }, docs, datadocs);
             }
             //TODO: Why can't we use e.movementX and e.movementY?
             let moveX = e.pageX - lastX;
@@ -384,7 +464,7 @@ export namespace DragManager {
                         x: e.x,
                         y: e.y,
                         data: dragData,
-                        mods: e.altKey ? "AltKey" : ""
+                        mods: e.altKey ? "AltKey" : e.ctrlKey ? "CtrlKey" : ""
                     }
                 })
             );

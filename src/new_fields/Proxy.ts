@@ -48,9 +48,8 @@ export class ProxyField<T extends RefField> extends ObjectField {
     private failed = false;
     private promise?: Promise<any>;
 
-    value(callback?: ((field: T | undefined) => void)): T | undefined | FieldWaiting {
+    value(): T | undefined | FieldWaiting {
         if (this.cache) {
-            callback && callback(this.cache);
             return this.cache;
         }
         if (this.failed) {
@@ -64,7 +63,6 @@ export class ProxyField<T extends RefField> extends ObjectField {
                 return field;
             }));
         }
-        callback && this.promise.then(callback);
         return this.promise;
     }
 }

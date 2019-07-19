@@ -7,19 +7,17 @@ import { IconField } from "../../../new_fields/IconField";
 import { List } from "../../../new_fields/List";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { AudioField, ImageField, VideoField } from "../../../new_fields/URLField";
-import { emptyFunction, returnFalse, returnOne } from "../../../Utils";
 import { Transform } from "../../util/Transform";
 import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
 import { AudioBox } from "./AudioBox";
-import { DocumentContentsView } from "./DocumentContentsView";
 import { FormattedTextBox } from "./FormattedTextBox";
 import { IconBox } from "./IconBox";
 import { ImageBox } from "./ImageBox";
-import { VideoBox } from "./VideoBox";
 import { PDFBox } from "./PDFBox";
-
+import { VideoBox } from "./VideoBox";
+import { Id } from "../../../new_fields/FieldSymbols";
 
 //
 // these properties get assigned through the render() method of the DocumentView when it creates this node.
@@ -28,14 +26,18 @@ import { PDFBox } from "./PDFBox";
 //
 export interface FieldViewProps {
     fieldKey: string;
+    fieldExt: string;
+    leaveNativeSize?: boolean;
+    fitToBox?: boolean;
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
     Document: Doc;
+    DataDoc?: Doc;
     isSelected: () => boolean;
     select: (isCtrlPressed: boolean) => void;
-    isTopMost: boolean;
+    renderDepth: number;
     selectOnLoad: boolean;
     addDocument?: (document: Doc, allowDuplicates?: boolean) => boolean;
-    addDocTab: (document: Doc, where: string) => void;
+    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
     removeDocument?: (document: Doc) => boolean;
     moveDocument?: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
@@ -50,8 +52,8 @@ export interface FieldViewProps {
 
 @observer
 export class FieldView extends React.Component<FieldViewProps> {
-    public static LayoutString(fieldType: { name: string }, fieldStr: string = "data") {
-        return `<${fieldType.name} {...props} fieldKey={"${fieldStr}"} />`;
+    public static LayoutString(fieldType: { name: string }, fieldStr: string = "data", fieldExt: string = "") {
+        return `<${fieldType.name} {...props} fieldKey={"${fieldStr}"} fieldExt={"${fieldExt}"} />`;
     }
 
     @computed
@@ -71,7 +73,7 @@ export class FieldView extends React.Component<FieldViewProps> {
             return <FormattedTextBox {...this.props} />;
         }
         else if (field instanceof ImageField) {
-            return <ImageBox {...this.props} />;
+            return <ImageBox {...this.props} leaveNativeSize={true} />;
         }
         else if (field instanceof IconField) {
             return <IconBox {...this.props} />;
@@ -85,7 +87,7 @@ export class FieldView extends React.Component<FieldViewProps> {
             return <p>{field.date.toLocaleString()}</p>;
         }
         else if (field instanceof Doc) {
-            return <p><b>{field.title}</b></p>;
+            return <p><b>{field.title + " : id= " + field[Id]}</b></p>;
             // let returnHundred = () => 100;
             // return (
             //     <DocumentContentsView Document={field}
@@ -96,7 +98,7 @@ export class FieldView extends React.Component<FieldViewProps> {
             //         ContentScaling={returnOne}
             //         PanelWidth={returnHundred}
             //         PanelHeight={returnHundred}
-            //         isTopMost={true} //TODO Why is this top most?
+            //         renderDepth={0} //TODO Why is renderDepth reset?
             //         selectOnLoad={false}
             //         focus={emptyFunction}
             //         isSelected={this.props.isSelected}

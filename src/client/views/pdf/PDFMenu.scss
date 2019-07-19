@@ -21,5 +21,16 @@
     .pdfMenu-dragger {
         height: 100%;
         transition: width .2s;
+        background-image: url("https://logodix.com/logo/1020374.png");
+        background-size: 90% 100%;
+        background-repeat: no-repeat;
+        background-position: left center;
+    }
+
+    .pdfMenu-addTag {
+        display: grid;
+        width: 200px;
+        padding: 5px;
+        grid-template-columns: 90px 20px 90px;
     }
 }

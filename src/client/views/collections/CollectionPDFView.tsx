@@ -1,6 +1,6 @@
 import { action, IReactionDisposer, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
-import { WidthSym } from "../../../new_fields/Doc";
+import { WidthSym, HeightSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { NumCast } from "../../../new_fields/Types";
 import { emptyFunction } from "../../../Utils";
@@ -29,22 +29,18 @@ export class CollectionPDFView extends React.Component<FieldViewProps> {
         this._reactionDisposer = reaction(
             () => NumCast(this.props.Document.scrollY),
             () => {
-                // let transform = this.props.ScreenToLocalTransform();
-                if (this._buttonTray.current) {
-                    // console.log(this._buttonTray.current.offsetHeight);
-                    // console.log(NumCast(this.props.Document.scrollY));
-                    let scale = this.nativeWidth() / this.props.Document[WidthSym]();
-                    this.props.Document.panY = NumCast(this.props.Document.scrollY);
-                    // console.log(scale);
-                }
-                // console.log(this.props.Document[HeightSym]());
+                this.props.Document.panY = NumCast(this.props.Document.scrollY);
             },
             { fireImmediately: true }
         );
     }
 
-    public static LayoutString(fieldKey: string = "data") {
-        return FieldView.LayoutString(CollectionPDFView, fieldKey);
+    componentWillUnmount() {
+        this._reactionDisposer && this._reactionDisposer();
+    }
+
+    public static LayoutString(fieldKey: string = "data", fieldExt: string = "annotations") {
+        return FieldView.LayoutString(CollectionPDFView, fieldKey, fieldExt);
     }
     @observable _inThumb = false;
 

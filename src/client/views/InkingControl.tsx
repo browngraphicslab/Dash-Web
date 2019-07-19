@@ -1,5 +1,5 @@
-import { observable, action, computed } from "mobx";
-import { CirclePicker, ColorResult } from 'react-color';
+import { observable, action, computed, runInAction } from "mobx";
+import { ColorResult } from 'react-color';
 import React = require("react");
 import { observer } from "mobx-react";
 import "./InkingControl.scss";
@@ -8,6 +8,10 @@ import { faPen, faHighlighter, faEraser, faBan } from '@fortawesome/free-solid-s
 import { SelectionManager } from "../util/SelectionManager";
 import { InkTool } from "../../new_fields/InkField";
 import { Doc } from "../../new_fields/Doc";
+import { undoBatch, UndoManager } from "../util/UndoManager";
+import { StrCast } from "../../new_fields/Types";
+import { FormattedTextBox } from "./nodes/FormattedTextBox";
+import { MainOverlayTextBox } from "./MainOverlayTextBox";
 
 library.add(faPen, faHighlighter, faEraser, faBan);
 
@@ -17,7 +21,7 @@ export class InkingControl extends React.Component {
     @observable private _selectedTool: InkTool = InkTool.None;
     @observable private _selectedColor: string = "rgb(244, 67, 54)";
     @observable private _selectedWidth: string = "25";
-    @observable private _open: boolean = false;
+    @observable public _open: boolean = false;
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -36,11 +40,28 @@ export class InkingControl extends React.Component {
         return number.toString(16).toUpperCase();
     }
 
-    @action
-    switchColor = (color: ColorResult): void => {
+    @undoBatch
+    switchColor = action((color: ColorResult): void => {
         this._selectedColor = color.hex + (color.rgb.a !== undefined ? this.decimalToHexString(Math.round(color.rgb.a * 255)) : "ff");
-        SelectionManager.SelectedDocuments().forEach(doc => Doc.GetProto(doc.props.Document).backgroundColor = this._selectedColor);
-    }
+        if (InkingControl.Instance.selectedTool === InkTool.None) {
+            if (MainOverlayTextBox.Instance.SetColor(color.hex)) return;
+            let selected = SelectionManager.SelectedDocuments();
+            let oldColors = selected.map(view => {
+                let targetDoc = view.props.Document.isTemplate ? view.props.Document : Doc.GetProto(view.props.Document);
+                let oldColor = StrCast(targetDoc.backgroundColor);
+                targetDoc.backgroundColor = this._selectedColor;
+                return {
+                    target: targetDoc,
+                    previous: oldColor
+                };
+            });
+            let captured = this._selectedColor;
+            UndoManager.AddEvent({
+                undo: () => oldColors.forEach(pair => pair.target.backgroundColor = pair.previous),
+                redo: () => oldColors.forEach(pair => pair.target.backgroundColor = captured)
+            });
+        }
+    });
 
     @action
     switchWidth = (width: string): void => {
@@ -55,6 +76,11 @@ export class InkingControl extends React.Component {
     @computed
     get selectedColor() {
         return this._selectedColor;
+    }
+
+    @action
+    updateSelectedColor(value: string) {
+        this._selectedColor = value;
     }
 
     @computed

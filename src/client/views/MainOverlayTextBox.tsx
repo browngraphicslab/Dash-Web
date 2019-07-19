@@ -1,4 +1,4 @@
-import { action, observable, reaction } from 'mobx';
+import { action, observable, reaction, trace } from 'mobx';
 import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
@@ -10,7 +10,6 @@ import { Transform } from '../util/Transform';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import "./MainOverlayTextBox.scss";
 import { FormattedTextBox } from './nodes/FormattedTextBox';
-import { For } from 'babel-types';
 
 interface MainOverlayTextBoxProps {
 }
@@ -26,8 +25,21 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
     private _textProxyDiv: React.RefObject<HTMLDivElement>;
     private _textBottom: boolean | undefined;
     private _textAutoHeight: boolean | undefined;
+    private _setouterdiv = (outerdiv: HTMLElement | null) => { this._outerdiv = outerdiv; this.updateTooltip(); };
+    private _outerdiv: HTMLElement | null = null;
     private _textBox: FormattedTextBox | undefined;
+    private _tooltip?: HTMLElement;
     @observable public TextDoc?: Doc;
+    @observable public TextDataDoc?: Doc;
+
+    updateTooltip = () => {
+        this._outerdiv && this._tooltip && !this._outerdiv.contains(this._tooltip) && this._outerdiv.appendChild(this._tooltip);
+    }
+
+    public SetColor(color: string) {
+        return this._textBox && this._textBox.setFontColor(color);
+    }
+
 
     constructor(props: MainOverlayTextBoxProps) {
         super(props);
@@ -38,12 +50,17 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
                 this._textBox = box;
                 if (box) {
                     this.TextDoc = box.props.Document;
-                    let sxf = Utils.GetScreenTransform(box ? box.CurrentDiv : undefined);
-                    let xf = () => { box.props.ScreenToLocalTransform(); return new Transform(-sxf.translateX, -sxf.translateY, 1 / sxf.scale); };
+                    this.TextDataDoc = box.props.DataDoc;
+                    let xf = () => {
+                        box.props.ScreenToLocalTransform();
+                        let sxf = Utils.GetScreenTransform(box ? box.CurrentDiv : undefined);
+                        return new Transform(-sxf.translateX, -sxf.translateY, 1 / sxf.scale);
+                    };
                     this.setTextDoc(box.props.fieldKey, box.CurrentDiv, xf, BoolCast(box.props.Document.autoHeight, false) || box.props.height === "min-content");
                 }
                 else {
                     this.TextDoc = undefined;
+                    this.TextDataDoc = undefined;
                     this.setTextDoc();
                 }
             });
@@ -82,10 +99,10 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
     }
     @action
     textBoxMove = (e: PointerEvent) => {
-        if (e.movementX > 1 || e.movementY > 1) {
+        if ((e.movementX > 1 || e.movementY > 1) && FormattedTextBox.InputBoxOverlay) {
             document.removeEventListener("pointermove", this.textBoxMove);
             document.removeEventListener('pointerup', this.textBoxUp);
-            let dragData = new DragManager.DocumentDragData(FormattedTextBox.InputBoxOverlay ? [FormattedTextBox.InputBoxOverlay.props.Document] : []);
+            let dragData = new DragManager.DocumentDragData([FormattedTextBox.InputBoxOverlay.props.Document], [FormattedTextBox.InputBoxOverlay.props.DataDoc]);
             const [left, top] = this._textXf().inverse().transformPoint(0, 0);
             dragData.xOffset = e.clientX - left;
             dragData.yOffset = e.clientY - top;
@@ -102,26 +119,30 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
         document.removeEventListener('pointerup', this.textBoxUp);
     }
 
-    addDocTab = (doc: Doc, location: string) => {
+    addDocTab = (doc: Doc, dataDoc: Doc | undefined, location: string) => {
         if (true) { // location === "onRight") { need to figure out stack to add "inTab"
-            CollectionDockingView.Instance.AddRightSplit(doc);
+            CollectionDockingView.Instance.AddRightSplit(doc, dataDoc);
         }
     }
     render() {
-        this.TextDoc;
+        this.TextDoc; this.TextDataDoc;
         if (FormattedTextBox.InputBoxOverlay && this._textTargetDiv) {
             let textRect = this._textTargetDiv.getBoundingClientRect();
             let s = this._textXf().Scale;
             let location = this._textBottom ? textRect.bottom : textRect.top;
             let hgt = this._textAutoHeight || this._textBottom ? "auto" : this._textTargetDiv.clientHeight;
-            return <div className="mainOverlayTextBox-textInput" style={{ transform: `translate(${textRect.left}px, ${location}px) scale(${1 / s},${1 / s})`, width: "auto", height: "0px" }} >
-                <div className="mainOverlayTextBox-textInput" onPointerDown={this.textBoxDown} ref={this._textProxyDiv} onScroll={this.textScroll}
-                    style={{ width: `${textRect.width * s}px`, height: "0px" }}>
-                    <div style={{ height: hgt, width: "100%", position: "absolute", bottom: this._textBottom ? "0px" : undefined }}>
-                        <FormattedTextBox color={`${this._textColor}`} fieldKey={this.TextFieldKey} hideOnLeave={this._textHideOnLeave} isOverlay={true} Document={FormattedTextBox.InputBoxOverlay.props.Document}
-                            isSelected={returnTrue} select={emptyFunction} isTopMost={true} selectOnLoad={true}
-                            ContainingCollectionView={undefined} whenActiveChanged={emptyFunction} active={returnTrue}
-                            ScreenToLocalTransform={this._textXf} PanelWidth={returnZero} PanelHeight={returnZero} focus={emptyFunction} addDocTab={this.addDocTab} />
+            return <div ref={this._setouterdiv} className="mainOverlayTextBox-unscaled_div" style={{ transform: `translate(${textRect.left}px, ${location}px)` }} >
+                <div className="mainOverlayTextBox-textInput" style={{ transform: `scale(${1 / s},${1 / s})`, width: "auto", height: "0px" }} >
+                    <div className="mainOverlayTextBox-textInput" onPointerDown={this.textBoxDown} ref={this._textProxyDiv} onScroll={this.textScroll}
+                        style={{ width: `${textRect.width * s}px`, height: "0px" }}>
+                        <div style={{ height: hgt, width: "100%", position: "absolute", bottom: this._textBottom ? "0px" : undefined }}>
+                            <FormattedTextBox color={`${this._textColor}`} fieldKey={this.TextFieldKey} fieldExt="" hideOnLeave={this._textHideOnLeave} isOverlay={true}
+                                Document={FormattedTextBox.InputBoxOverlay.props.Document}
+                                DataDoc={FormattedTextBox.InputBoxOverlay.props.DataDoc}
+                                isSelected={returnTrue} select={emptyFunction} renderDepth={0} selectOnLoad={true}
+                                ContainingCollectionView={undefined} whenActiveChanged={emptyFunction} active={returnTrue}
+                                ScreenToLocalTransform={this._textXf} PanelWidth={returnZero} PanelHeight={returnZero} focus={emptyFunction} addDocTab={this.addDocTab} outer_div={(tooltip: HTMLElement) => { this._tooltip = tooltip; this.updateTooltip(); }} />
+                        </div>
                     </div>
                 </div>
             </ div>;

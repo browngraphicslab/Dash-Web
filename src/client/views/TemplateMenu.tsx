@@ -6,6 +6,7 @@ import './DocumentDecorations.scss';
 import { DocumentView } from "./nodes/DocumentView";
 import { Template } from "./Templates";
 import React = require("react");
+import { undoBatch } from "../util/UndoManager";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -39,6 +40,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         super(props);
     }
 
+    @undoBatch
     @action
     toggleTemplate = (event: React.ChangeEvent<HTMLInputElement>, template: Template): void => {
         if (event.target.checked) {
@@ -62,6 +64,13 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         }
     }
 
+    @undoBatch
+    @action
+    clearTemplates = (event: React.MouseEvent) => {
+        this.props.docs.map(d => d.clearTemplates());
+        Array.from(this.props.templates.keys()).map(t => this.props.templates.set(t, false));
+    }
+
     @action
     componentWillReceiveProps(nextProps: TemplateMenuProps) {
         // this._templates = nextProps.templates;
@@ -79,9 +88,10 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
 
         return (
             <div className="templating-menu" >
-                <div className="templating-button" onClick={() => this.toggleTemplateActivity()}>+</div>
+                <div title="Template Options" className="templating-button" onClick={() => this.toggleTemplateActivity()}>+</div>
                 <ul id="template-list" style={{ display: this._hidden ? "none" : "block" }}>
                     {templateMenu}
+                    <button style={{ display: this._hidden ? "none" : "block" }} onClick={this.clearTemplates}>Clear</button>
                 </ul>
             </div>
         );

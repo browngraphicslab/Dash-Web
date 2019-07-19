@@ -10,5 +10,6 @@
     "editor.detectIndentation": false,
     "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBrackets": false,
     "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
-    "workbench.colorCustomizations": {}
+    "workbench.colorCustomizations": {},
+    "search.usePCRE2": true
 }
