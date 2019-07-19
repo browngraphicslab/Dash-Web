@@ -121,13 +121,100 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
         return processedTitle;
     }
 
+    roundPublishTime = (publishTime: string) => {
+        let date = new Date(publishTime);
+        let curDate = new Date();
+        let videoYearDif = curDate.getFullYear() - date.getFullYear();
+        let videoMonthDif = curDate.getMonth() - date.getMonth();
+        let videoDayDif = curDate.getDay() - date.getDay();
+        console.log("video day dif: ", videoDayDif, " first day: ", curDate.getDay(), " second day: ", date.getDay());
+        let videoHoursDif = curDate.getHours() - date.getHours();
+        let videoMinutesDif = curDate.getMinutes() - date.getMinutes();
+        let videoSecondsDif = curDate.getSeconds() - date.getSeconds();
+        if (videoYearDif !== 0) {
+            return videoYearDif + " years ago";
+        } else if (videoMonthDif !== 0) {
+            return videoMonthDif + " months ago";
+        } else if (videoDayDif !== 0) {
+            return videoDayDif + " days ago";
+        } else if (videoHoursDif !== 0) {
+            return videoHoursDif + " hours ago";
+        } else if (videoMinutesDif) {
+            return videoMinutesDif + " minutes ago";
+        } else if (videoSecondsDif) {
+            return videoSecondsDif + " seconds ago";
+        }
+
+        console.log("Date : ", date);
+    }
+
+    roundPublishTime2 = (publishTime: string) => {
+        let date = new Date(publishTime).getTime();
+        let curDate = new Date().getTime();
+        let timeDif = curDate - date;
+        let totalSeconds = timeDif / 1000;
+        let totalMin = totalSeconds / 60;
+        let totalHours = totalMin / 60;
+        let totalDays = totalHours / 24;
+        let totalMonths = totalDays / 30.417;
+        let totalYears = totalMonths / 12;
+
+
+        let truncYears = Math.trunc(totalYears);
+        let truncMonths = Math.trunc(totalMonths);
+        let truncDays = Math.trunc(totalDays);
+        let truncHours = Math.trunc(totalHours);
+        let truncMin = Math.trunc(totalMin);
+        let truncSec = Math.trunc(totalSeconds);
+
+        let pluralCase = "";
+
+        if (truncYears !== 0) {
+            truncYears > 1 ? pluralCase = "s" : pluralCase = "";
+            return truncYears + " year" + pluralCase + " ago";
+        } else if (truncMonths !== 0) {
+            truncMonths > 1 ? pluralCase = "s" : pluralCase = "";
+            return truncMonths + " month" + pluralCase + " ago";
+        } else if (truncDays !== 0) {
+            truncDays > 1 ? pluralCase = "s" : pluralCase = "";
+            return truncDays + " day" + pluralCase + " ago";
+        } else if (truncHours !== 0) {
+            truncHours > 1 ? pluralCase = "s" : pluralCase = "";
+            return truncHours + " hour" + pluralCase + " ago";
+        } else if (truncMin !== 0) {
+            truncMin > 1 ? pluralCase = "s" : pluralCase = "";
+            return truncMin + " minute" + pluralCase + " ago";
+        } else if (truncSec !== 0) {
+            truncSec > 1 ? pluralCase = "s" : pluralCase = "";
+            return truncSec + " second" + pluralCase + " ago";
+        }
+    }
+
     renderSearchResultsOrVideo = () => {
         if (this.searchResultsFound) {
             if (this.searchResults.length !== 0) {
                 return <ul>
                     {this.searchResults.map((video) => {
                         let filteredTitle = this.filterYoutubeTitleResult(video.snippet.title);
-                        return <li onClick={() => this.embedVideoOnClick(video.id.videoId, filteredTitle)} key={Utils.GenerateGuid()}><img src={video.snippet.thumbnails.medium.url} /> <span className="videoTitle">{filteredTitle}</span>  </li>;
+                        let channelTitle = video.snippet.channelTitle;
+                        let videoDescription = video.snippet.description;
+                        let pusblishDate = this.roundPublishTime2(video.snippet.publishedAt);
+                        // let duration = video.contentDetails.duration;
+                        //let viewCount = video.statistics.viewCount;
+                        //this.roundPublishTime(pusblishDate);
+                        //this.roundPublishTime2(video.snippet.publishedAt);
+                        return <li onClick={() => this.embedVideoOnClick(video.id.videoId, filteredTitle)} key={Utils.GenerateGuid()}>
+                            <div className="search_wrapper">
+                                <img src={video.snippet.thumbnails.medium.url} />
+                                <div className="textual_info">
+                                    <span className="videoTitle">{filteredTitle}</span>
+                                    <span className="channelName">{channelTitle}</span>
+                                    <span className="publish_time">{pusblishDate}</span>
+                                    {/* <h6 className="viewCount">{viewCount}</h6> */}
+                                    <p className="video_description">{videoDescription}</p>
+                                </div>
+                            </div>
+                        </li>;
                     })}
                 </ul>;
             } else if (this.lisOfBackUp.length !== 0) {

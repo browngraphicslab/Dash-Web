@@ -1,5 +1,6 @@
 ul {
     list-style-type: none;
+    padding-inline-start: 10px;
 }
 
 
@@ -13,7 +14,74 @@ li:hover {
     opacity: 0.8;
 }
 
-.videoTitle {
-    margin-left: 4px;
-    font-family: Arial, Helvetica, sans-serif;
+.search_wrapper {
+    width: 100%;
+    display: inline-flex;
+    height: 175px;
+
+    .textual_info {
+        font-family: Arial, Helvetica, sans-serif;
+
+        .videoTitle {
+            margin-left: 4px;
+            // display: inline-block;
+            color: #0D0D0D;
+            -webkit-line-clamp: 2;
+            display: block;
+            max-height: 4.8rem;
+            overflow: hidden;
+            font-size: 1.8rem;
+            font-weight: 400;
+            line-height: 2.4rem;
+            -webkit-box-orient: vertical;
+            text-overflow: ellipsis;
+            white-space: normal;
+            display: -webkit-box;
+        }
+
+        .channelName {
+            color:#606060;
+            margin-left: 4px;
+            font-size: 1.3rem;
+            font-weight: 400;
+            line-height: 1.8rem;
+            text-transform: none;
+            margin-top: 0px;
+            display: inline-block;
+        }
+
+        .video_description {
+            margin-left: 4px;
+            // font-size: 12px;
+            color: #606060;
+            padding-top: 8px;
+            margin-bottom: 8px;
+            display: block;
+            line-height: 1.8rem;
+            max-height: 4.2rem;
+            overflow: hidden;
+            font-size: 1.3rem;
+            font-weight: 400;
+            text-transform: none;
+        }
+
+        .publish_time {
+            //display: inline-block;
+            margin-left: 8px;
+            padding: 0;
+            border: 0;
+            background: transparent;
+            color: #606060;
+            max-width: 100%;
+            line-height: 1.8rem;
+            max-height: 3.6rem;
+            overflow: hidden;
+            font-size: 1.3rem;
+            font-weight: 400;
+            text-transform: none;
+        }
+        
+            
+        
+    }
 }
