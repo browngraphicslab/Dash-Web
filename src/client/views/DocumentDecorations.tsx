@@ -339,8 +339,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             document.addEventListener("pointerup", this.onRadiusUp);
         }
         if (!this._isMoving) {
-            let dist = Math.sqrt((e.clientX - this._radiusDown[0]) * (e.clientX - this._radiusDown[0]) + (e.clientY - this._radiusDown[1]) * (e.clientY - this._radiusDown[1]));
-            SelectionManager.SelectedDocuments().map(dv => dv.props.Document.borderRounding = Doc.GetProto(dv.props.Document).borderRounding = `${Math.min(100, dist)}%`);
+            SelectionManager.SelectedDocuments().map(dv => dv.props.Document.borderRounding = Doc.GetProto(dv.props.Document).borderRounding = `${Math.min(100, 0)}%`);
         }
     }
 
