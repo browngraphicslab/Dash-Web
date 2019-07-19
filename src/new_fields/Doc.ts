@@ -10,14 +10,15 @@ import { RefField, FieldId } from "./RefField";
 import { ToScriptString, SelfProxy, Parent, OnUpdate, Self, HandleUpdate, Update, Id } from "./FieldSymbols";
 import { scriptingGlobal } from "../client/util/Scripting";
 import { List } from "./List";
+import { ComputedField } from "./ScriptField";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
         const onDelegate = Object.keys(doc).includes(key);
 
-        let field = FieldValue(doc[key]);
+        let field = ComputedField.WithoutComputed(() => FieldValue(doc[key]));
         if (Field.IsField(field)) {
-            return (onDelegate ? "=" : "") + Field.toScriptString(field);
+            return (onDelegate ? "=" : "") + (field instanceof ComputedField ? `:=${field.script.originalScript}` : Field.toScriptString(field));
         }
         return "";
     }
@@ -371,6 +372,8 @@ export namespace Doc {
                     copy[key] = field;
                 } else if (field instanceof ObjectField) {
                     copy[key] = ObjectField.MakeCopy(field);
+                } else if (field instanceof Promise) {
+                    field.then(f => (copy[key] === undefined) && (copy[key] = f)); //TODO what should we do here?
                 } else {
                     copy[key] = field;
                 }
@@ -416,6 +419,6 @@ export namespace Doc {
         fieldTemplate.nativeHeight = nh;
         fieldTemplate.isTemplate = true;
         fieldTemplate.showTitle = "title";
-        fieldTemplate.proto = proto;
+        setTimeout(() => fieldTemplate.proto = proto);
     }
 }

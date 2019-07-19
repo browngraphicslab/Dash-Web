@@ -313,8 +313,9 @@ export namespace Docs {
         }
 
         export function ImageDocument(url: string, options: DocumentOptions = {}) {
-            let inst = InstanceFromProto(Prototypes.get(DocumentType.IMG), new ImageField(new URL(url)), { title: path.basename(url), ...options });
-            requestImageSize(window.origin + RouteStore.corsProxy + "/" + url)
+            let imgField = new ImageField(new URL(url));
+            let inst = InstanceFromProto(Prototypes.get(DocumentType.IMG), imgField, { title: path.basename(url), ...options });
+            requestImageSize(imgField.url.href)
                 .then((size: any) => {
                     let aspect = size.height / size.width;
                     if (!inst.proto!.nativeWidth) {
@@ -572,18 +573,20 @@ export namespace Docs {
 
 export namespace DocUtils {
 
-    export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", tags: string = "Default") {
+    export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", tags: string = "Default", sourceContext?: Doc) {
         if (LinkManager.Instance.doesLinkExist(source, target)) return;
         let sv = DocumentManager.Instance.getDocumentView(source);
         if (sv && sv.props.ContainingCollectionView && sv.props.ContainingCollectionView.props.Document === target) return;
         if (target === CurrentUserUtils.UserDocument) return;
 
+        let linkDoc;
         UndoManager.RunInBatch(() => {
-            let linkDoc = Docs.Create.TextDocument({ width: 100, height: 30, borderRounding: "100%" });
+            linkDoc = Docs.Create.TextDocument({ width: 100, height: 30, borderRounding: "100%" });
             linkDoc.type = DocumentType.LINK;
             let linkDocProto = Doc.GetProto(linkDoc);
 
-            linkDocProto.context = targetContext;
+            linkDocProto.targetContext = targetContext;
+            linkDocProto.sourceContext = sourceContext;
             linkDocProto.title = title === "" ? source.title + " to " + target.title : title;
             linkDocProto.linkDescription = description;
             linkDocProto.linkTags = tags;
@@ -598,8 +601,8 @@ export namespace DocUtils {
 
             LinkManager.Instance.addLink(linkDoc);
 
-            return linkDoc;
         }, "make link");
+        return linkDoc;
     }
 
 }

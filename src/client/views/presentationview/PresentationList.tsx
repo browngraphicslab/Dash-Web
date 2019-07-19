@@ -7,6 +7,9 @@ import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
 import { NumCast, StrCast } from "../../../new_fields/Types";
 import { Id } from "../../../new_fields/FieldSymbols";
 import PresentationElement, { buttonIndex } from "./PresentationElement";
+import { DragManager } from "../../util/DragManager";
+import { CollectionDockingView } from "../collections/CollectionDockingView";
+import "../../../new_fields/Doc";
 
 
 
@@ -16,11 +19,14 @@ interface PresListProps {
     deleteDocument(index: number): void;
     gotoDocument(index: number, fromDoc: number): Promise<void>;
     groupMappings: Map<String, Doc[]>;
-    presElementsMappings: Map<Doc, PresentationElement>;
+    PresElementsMappings: Map<Doc, PresentationElement>;
     setChildrenDocs: (docList: Doc[]) => void;
     presStatus: boolean;
     presButtonBackUp: Doc;
     presGroupBackUp: Doc;
+    removeDocByRef(doc: Doc): boolean;
+    clearElemMap(): void;
+
 }
 
 
@@ -79,25 +85,31 @@ export default class PresentationViewList extends React.Component<PresListProps>
         this.initializeGroupIds(children);
         this.initializeScaleViews(children);
         this.props.setChildrenDocs(children);
+        this.props.clearElemMap();
         return (
-
-            <div className="presentationView-listCont">
-                {children.map((doc: Doc, index: number) => 
-                              <PresentationElement
-                                  ref={(e) => { if (e) { this.props.presElementsMappings.set(doc, e); } }}
-                                  key={doc[Id]}
-                                  mainDocument={this.props.mainDocument}
-                                  document={doc}
-                                  index={index}
-                                  deleteDocument={this.props.deleteDocument}
-                                  gotoDocument={this.props.gotoDocument}
-                                  groupMappings={this.props.groupMappings}
-                                  allListElements={children}
-                                  presStatus={this.props.presStatus}
-                                  presButtonBackUp={this.props.presButtonBackUp}
-                                  presGroupBackUp={this.props.presGroupBackUp}
-                              />
-                 )}
+            <div className="presentationView-listCont" >
+                {children.map((doc: Doc, index: number) =>
+                    <PresentationElement
+                        ref={(e) => {
+                            if (e && e !== null) {
+                                this.props.PresElementsMappings.set(doc, e);
+                            }
+                        }}
+                        key={doc[Id]}
+                        mainDocument={this.props.mainDocument}
+                        document={doc}
+                        index={index}
+                        deleteDocument={this.props.deleteDocument}
+                        gotoDocument={this.props.gotoDocument}
+                        groupMappings={this.props.groupMappings}
+                        allListElements={children}
+                        presStatus={this.props.presStatus}
+                        presButtonBackUp={this.props.presButtonBackUp}
+                        presGroupBackUp={this.props.presGroupBackUp}
+                        removeDocByRef={this.props.removeDocByRef}
+                        PresElementsMappings={this.props.PresElementsMappings}
+                    />
+                )}
             </div>
         );
     }

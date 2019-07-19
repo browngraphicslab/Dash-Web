@@ -9,7 +9,7 @@ import { BoolCast, Cast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { RouteStore } from "../../../server/RouteStore";
 import { DocServer } from "../../DocServer";
-import { Docs, DocumentOptions } from "../../documents/Documents";
+import { Docs, DocumentOptions, DocumentType } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocComponent } from "../DocComponent";
@@ -20,6 +20,7 @@ import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
 import React = require("react");
 import { MainView } from "../MainView";
+import { Utils } from "../../../Utils";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
@@ -74,7 +75,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     return;
                 }
                 // The following conditional detects a recurring bug we've seen on the server
-                if (proto[Id] === "collectionProto") {
+                if (proto[Id] === Docs.Prototypes.get(DocumentType.COL)[Id]) {
                     alert("COLLECTION PROTO CURSOR ISSUE DETECTED! Check console for more info...");
                     console.log(doc);
                     console.log(proto);
@@ -164,7 +165,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 } else {
                     let path = window.location.origin + "/doc/";
                     if (text.startsWith(path)) {
-                        let docid = text.replace(DocServer.prepend("/doc/"), "").split("?")[0];
+                        let docid = text.replace(Utils.prepend("/doc/"), "").split("?")[0];
                         DocServer.GetRefField(docid).then(f => {
                             if (f instanceof Doc) {
                                 if (options.x || options.y) { f.x = options.x; f.y = options.y; } // should be in CollectionFreeFormView
@@ -179,8 +180,8 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 }
             }
             if (text && text.indexOf("www.youtube.com/watch") !== -1) {
-                const url = text.replace("youtube.com/watch?v=", "youtube.com/embed/");// + "?enablejsapi=1";
-                this.props.addDocument(Docs.Create.VideoDocument(url, { ...options, width: 400, height: 315 }));
+                const url = text.replace("youtube.com/watch?v=", "youtube.com/embed/");
+                this.props.addDocument(Docs.Create.VideoDocument(url, { ...options, title: url, width: 400, height: 315, nativeWidth: 600, nativeHeight: 472.5 }));
                 return;
             }
 
@@ -193,7 +194,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 if (item.kind === "string" && item.type.indexOf("uri") !== -1) {
                     let str: string;
                     let prom = new Promise<string>(resolve => e.dataTransfer.items[i].getAsString(resolve))
-                        .then(action((s: string) => rp.head(DocServer.prepend(RouteStore.corsProxy + "/" + (str = s)))))
+                        .then(action((s: string) => rp.head(Utils.CorsProxy(str = s))))
                         .then(result => {
                             let type = result["content-type"];
                             if (type) {
@@ -219,7 +220,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     }).then(async (res: Response) => {
                         (await res.json()).map(action((file: any) => {
                             let full = { ...options, nativeWidth: type.indexOf("video") !== -1 ? 600 : 300, width: 300, title: dropFileName };
-                            let path = DocServer.prepend(file);
+                            let path = Utils.prepend(file);
                             Docs.Get.DocumentFromType(type, path, full).then(doc => doc && this.props.addDocument(doc));
                         }));
                     });

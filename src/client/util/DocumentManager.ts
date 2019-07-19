@@ -3,7 +3,7 @@ import { DocumentView } from '../views/nodes/DocumentView';
 import { Doc, DocListCast, Opt } from '../../new_fields/Doc';
 import { FieldValue, Cast, NumCast, BoolCast, StrCast } from '../../new_fields/Types';
 import { listSpec } from '../../new_fields/Schema';
-import { undoBatch } from './UndoManager';
+import { undoBatch, UndoManager } from './UndoManager';
 import { CollectionDockingView } from '../views/collections/CollectionDockingView';
 import { CollectionView } from '../views/collections/CollectionView';
 import { CollectionPDFView } from '../views/collections/CollectionPDFView';
@@ -142,7 +142,9 @@ export class DocumentManager {
         if (!forceDockFunc && (docView = DocumentManager.Instance.getDocumentView(doc))) {
             docView.props.Document.libraryBrush = true;
             if (linkPage !== undefined) docView.props.Document.curPage = linkPage;
-            docView.props.focus(docView.props.Document, willZoom);
+            UndoManager.RunInBatch(() => {
+                docView!.props.focus(docView!.props.Document, willZoom);
+            }, "focus");
         } else {
             if (!contextDoc) {
                 if (docContext) {

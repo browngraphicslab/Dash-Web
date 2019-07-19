@@ -534,7 +534,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                         doc.width = actualdW;
                         if (fixedAspect) doc.height = nheight / nwidth * doc.width;
                         else doc.height = actualdH;
-                        Doc.SetInPlace(element.props.Document, "nativeHeight", (doc.height || 0) / doc.width * (doc.nativeWidth || 0), true);
                     }
                     else {
                         if (!fixedAspect) {
@@ -543,7 +542,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                         doc.height = actualdH;
                         if (fixedAspect) doc.width = nwidth / nheight * doc.height;
                         else doc.width = actualdW;
-                        Doc.SetInPlace(element.props.Document, "nativeWidth", (doc.width || 0) / doc.height * (doc.nativeHeight || 0), true);
                     }
                 } else {
                     dW && (doc.width = actualdW);

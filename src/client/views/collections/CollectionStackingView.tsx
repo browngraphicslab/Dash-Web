@@ -1,6 +1,6 @@
 import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, IReactionDisposer, reaction, untracked } from "mobx";
+import { action, computed, IReactionDisposer, reaction, untracked, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, HeightSym, WidthSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
@@ -14,6 +14,7 @@ import { undoBatch } from "../../util/UndoManager";
 import { DragManager } from "../../util/DragManager";
 import { DocumentType } from "../../documents/Documents";
 import { Transform } from "../../util/Transform";
+import { CursorProperty } from "csstype";
 
 @observer
 export class CollectionStackingView extends CollectionSubView(doc => doc) {
@@ -22,6 +23,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     _heightDisposer?: IReactionDisposer;
     _gridSize = 1;
     _docXfs: any[] = [];
+    @observable private cursor: CursorProperty = "grab";
     @computed get xMargin() { return NumCast(this.props.Document.xMargin, 2 * this.gridGap); }
     @computed get yMargin() { return NumCast(this.props.Document.yMargin, 2 * this.gridGap); }
     @computed get gridGap() { return NumCast(this.props.Document.gridGap, 10); }
@@ -132,6 +134,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     columnDividerDown = (e: React.PointerEvent) => {
         e.stopPropagation();
         e.preventDefault();
+        runInAction(() => this.cursor = "grabbing");
         document.addEventListener("pointermove", this.onDividerMove);
         document.addEventListener('pointerup', this.onDividerUp);
         this._columnStart = this.props.ScreenToLocalTransform().transformPoint(e.clientX, e.clientY)[0];
@@ -147,13 +150,14 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
 
     @action
     onDividerUp = (e: PointerEvent): void => {
+        runInAction(() => this.cursor = "grab");
         document.removeEventListener("pointermove", this.onDividerMove);
         document.removeEventListener('pointerup', this.onDividerUp);
     }
 
     @computed get columnDragger() {
-        return <div className="collectionStackingView-columnDragger" onPointerDown={this.columnDividerDown} ref={this._draggerRef} style={{ left: `${this.columnWidth + this.xMargin}px` }} >
-            <FontAwesomeIcon icon={"caret-down"} />
+        return <div className="collectionStackingView-columnDragger" onPointerDown={this.columnDividerDown} ref={this._draggerRef} style={{ cursor: this.cursor, left: `${this.columnWidth + this.xMargin}px` }} >
+            <FontAwesomeIcon icon={"arrows-alt-h"} />
         </div>;
     }
     onContextMenu = (e: React.MouseEvent): void => {
