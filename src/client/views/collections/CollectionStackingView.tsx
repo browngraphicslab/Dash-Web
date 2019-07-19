@@ -258,8 +258,9 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         let sectionFilter = StrCast(this.props.Document.sectionFilter);
         let fields = new Map<object, Doc[]>();
         sectionFilter && this.filteredChildren.map(d => {
-            if (!fields.has(d[sectionFilter] as object)) fields.set(d[sectionFilter] as object, [d]);
-            else fields.get(d[sectionFilter] as object)!.push(d);
+            let sectionValue = (d[sectionFilter] ? d[sectionFilter] : "-undefined-") as object;
+            if (!fields.has(sectionValue)) fields.set(sectionValue, [d]);
+            else fields.get(sectionValue)!.push(d);
         });
         return (
             <div className="collectionStackingView"

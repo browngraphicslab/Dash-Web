@@ -11,6 +11,7 @@ import { ToScriptString, SelfProxy, Parent, OnUpdate, Self, HandleUpdate, Update
 import { scriptingGlobal } from "../client/util/Scripting";
 import { List } from "./List";
 import { string } from "prop-types";
+import { DocumentType } from "../client/documents/Documents";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -422,6 +423,7 @@ export namespace Doc {
         fieldTemplate.nativeHeight = nh;
         fieldTemplate.isTemplate = true;
         fieldTemplate.showTitle = "title";
+        fieldTemplate.type = DocumentType.TEMPLATE;
         setTimeout(() => fieldTemplate.proto = proto);
     }
 
