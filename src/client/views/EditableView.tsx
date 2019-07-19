@@ -79,7 +79,7 @@ export class EditableView extends React.Component<EditableProps> {
         if (!this.props.onClick || !this.props.onClick(e)) {
             this._editing = true;
             this.props.isEditingCallback && this.props.isEditingCallback(true);
-        }
+        } 
         e.stopPropagation();
     }
 

@@ -56,38 +56,14 @@ export class CollectionSchemaHeader extends React.Component<HeaderProps> {
 
 
 export interface AddColumnHeaderProps {
-    // possibleKeys: string[];
-    // existingKeys: string[];
-    // onSelect: (oldKey: string, newKey: string, addnew: boolean) => void;
-    // setIsEditing: (isEditing: boolean) => void;
     createColumn: () => void;
 }
 
 @observer
 export class CollectionSchemaAddColumnHeader extends React.Component<AddColumnHeaderProps> {
     render() {
-        let addButton = <button><FontAwesomeIcon icon="plus" size="sm" /></button>;
         return (
             <button onClick={() => this.props.createColumn()}><FontAwesomeIcon icon="plus" size="sm" /></button>
-            // <div className="collectionSchemaView-header-addColumn" >
-            //     <CollectionSchemaColumnMenu
-            //         keyValue=""
-            //         possibleKeys={this.props.possibleKeys}
-            //         existingKeys={this.props.existingKeys}
-            //         keyType={ColumnType.Any}
-            //         typeConst={true}
-            //         menuButtonContent={addButton}
-            //         addNew={true}
-            //         onSelect={this.props.onSelect}
-            //         setIsEditing={this.props.setIsEditing}
-            //         deleteColumn={action(emptyFunction)}
-            //         onlyShowOptions={true}
-            //         setColumnType={action(emptyFunction)}
-            //         setColumnSort={action(emptyFunction)}
-            //         removeColumnSort={action(emptyFunction)}
-            //         anchorPoint={anchorPoints.TOP_RIGHT}
-            //     />
-            // </div>
         );
     }
 }
@@ -115,8 +91,6 @@ export interface ColumnMenuProps {
 export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps> {
     @observable private _isOpen: boolean = false;
     @observable private _node : HTMLDivElement | null = null;
-    // @observable private _node = React.createRef<HTMLDivElement>();
-    @observable private _test = "test";
 
     componentDidMount() {
         document.addEventListener("pointerdown", this.detectClick);
@@ -168,9 +142,6 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
                     <button title="String" className={this.props.keyType === ColumnType.String ? "active" : ""} onClick={() => this.props.setColumnType(this.props.keyValue, ColumnType.String)}>
                         <FontAwesomeIcon icon={"font"} size="sm" />
                         </button>
-                    {/* <button title="Boolean" className={this.props.keyType === ColumnType.Boolean ? "active" : ""} onClick={() => this.props.setColumnType(this.props.keyValue, ColumnType.Boolean)}>
-                        <FontAwesomeIcon icon={"toggle-on"} size="sm" />
-                        </button> */}
                     <button title="Checkbox" className={this.props.keyType === ColumnType.Boolean ? "active" : ""} onClick={() => this.props.setColumnType(this.props.keyValue, ColumnType.Boolean)}>
                         <FontAwesomeIcon icon={"check-square"} size="sm" />
                         </button>
