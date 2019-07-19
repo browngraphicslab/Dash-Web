@@ -26,6 +26,7 @@ import { DocServer } from '../../DocServer';
 import { CognitiveServices, Face } from '../../cognitive_services/CognitiveServices';
 import { number } from 'prop-types';
 import { Id } from '../../../new_fields/FieldSymbols';
+import FaceRectangles from './FaceRectangles';
 var requestImageSize = require('../../util/request-image-size');
 var path = require('path');
 
@@ -324,23 +325,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                     onError={this.onError} />
                 {paths.length > 1 ? this.dots(paths) : (null)}
                 {/* {this.lightbox(paths)} */}
-                {DocListCast(Doc.GetProto(this.props.Document).faces).map(faceDoc => {
-                    let rectangle = Cast(faceDoc.faceRectangle, Doc) as Doc;
-                    if (rectangle) {
-                        let style = {
-                            position: "absolute",
-                            top: NumCast(rectangle.top),
-                            left: NumCast(rectangle.left),
-                            width: NumCast(rectangle.width),
-                            height: NumCast(rectangle.height),
-                            backgroundColor: "#FF000033",
-                            border: "solid 2px red",
-                            borderRadius: 5
-                        } as React.CSSProperties;
-                        return <div key={rectangle[Id]} style={style} />;
-                    }
-                    return (null);
-                })}
+                <FaceRectangles document={this.props.Document} color={"#0000FF"} backgroundColor={"#0000FF"} />
             </div>);
     }
 }
