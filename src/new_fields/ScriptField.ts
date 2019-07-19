@@ -5,6 +5,7 @@ import { serializable, createSimpleSchema, map, primitive, object, deserialize, 
 import { Deserializable } from "../client/util/SerializationHelper";
 import { Doc } from "../new_fields/Doc";
 import { Plugins } from "./util";
+import { computedFn } from "mobx-utils";
 
 function optional(propSchema: PropSchema) {
     return custom(value => {
@@ -87,13 +88,13 @@ export class ScriptField extends ObjectField {
 @Deserializable("computed", deserializeScript)
 export class ComputedField extends ScriptField {
     //TODO maybe add an observable cache based on what is passed in for doc, considering there shouldn't really be that many possible values for doc
-    value(doc: Doc) {
+    value = computedFn((doc: Doc) => {
         const val = this.script.run({ this: doc });
         if (val.success) {
             return val.result;
         }
         return undefined;
-    }
+    });
 }
 
 export namespace ComputedField {
