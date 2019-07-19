@@ -29,7 +29,7 @@ export interface HeaderProps {
 export class CollectionSchemaHeader extends React.Component<HeaderProps> {
     render() {
         let icon: IconProp = this.props.keyType === ColumnType.Number ? "hashtag" : this.props.keyType === ColumnType.String ? "font" :
-            this.props.keyType === ColumnType.Checkbox ? "check-square" : this.props.keyType === ColumnType.Boolean ? "toggle-on" : "align-justify";
+            this.props.keyType === ColumnType.Boolean ? "check-square" : "align-justify";
 
         return (
             <div className="collectionSchemaView-header" >
@@ -56,10 +56,11 @@ export class CollectionSchemaHeader extends React.Component<HeaderProps> {
 
 
 export interface AddColumnHeaderProps {
-    possibleKeys: string[];
-    existingKeys: string[];
-    onSelect: (oldKey: string, newKey: string, addnew: boolean) => void;
-    setIsEditing: (isEditing: boolean) => void;
+    // possibleKeys: string[];
+    // existingKeys: string[];
+    // onSelect: (oldKey: string, newKey: string, addnew: boolean) => void;
+    // setIsEditing: (isEditing: boolean) => void;
+    createColumn: () => void;
 }
 
 @observer
@@ -67,24 +68,26 @@ export class CollectionSchemaAddColumnHeader extends React.Component<AddColumnHe
     render() {
         let addButton = <button><FontAwesomeIcon icon="plus" size="sm" /></button>;
         return (
-            <div className="collectionSchemaView-header-addColumn" >
-                <CollectionSchemaColumnMenu
-                    keyValue=""
-                    possibleKeys={this.props.possibleKeys}
-                    existingKeys={this.props.existingKeys}
-                    keyType={ColumnType.Any}
-                    typeConst={true}
-                    menuButtonContent={addButton}
-                    addNew={true}
-                    onSelect={this.props.onSelect}
-                    setIsEditing={this.props.setIsEditing}
-                    deleteColumn={action(emptyFunction)}
-                    onlyShowOptions={true}
-                    setColumnType={action(emptyFunction)}
-                    setColumnSort={action(emptyFunction)}
-                    removeColumnSort={action(emptyFunction)}
-                />
-            </div>
+            <button onClick={() => this.props.createColumn()}><FontAwesomeIcon icon="plus" size="sm" /></button>
+            // <div className="collectionSchemaView-header-addColumn" >
+            //     <CollectionSchemaColumnMenu
+            //         keyValue=""
+            //         possibleKeys={this.props.possibleKeys}
+            //         existingKeys={this.props.existingKeys}
+            //         keyType={ColumnType.Any}
+            //         typeConst={true}
+            //         menuButtonContent={addButton}
+            //         addNew={true}
+            //         onSelect={this.props.onSelect}
+            //         setIsEditing={this.props.setIsEditing}
+            //         deleteColumn={action(emptyFunction)}
+            //         onlyShowOptions={true}
+            //         setColumnType={action(emptyFunction)}
+            //         setColumnSort={action(emptyFunction)}
+            //         removeColumnSort={action(emptyFunction)}
+            //         anchorPoint={anchorPoints.TOP_RIGHT}
+            //     />
+            // </div>
         );
     }
 }
@@ -106,6 +109,7 @@ export interface ColumnMenuProps {
     setColumnType: (key: string, type: ColumnType) => void;
     setColumnSort: (key: string, desc: boolean) => void;
     removeColumnSort: (key: string) => void;
+    anchorPoint?: any;
 }
 @observer
 export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps> {
@@ -116,7 +120,6 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
 
     componentDidMount() {
         document.addEventListener("pointerdown", this.detectClick);
-        console.log("did mount", this._node);
     }
 
     componentWillUnmount() {
@@ -124,7 +127,6 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
     }
 
     detectClick = (e: PointerEvent): void => {
-        console.log("click", this);
         if (this._node && this._node.contains(e.target as Node)) {
         } else {
             this._isOpen = false;
@@ -148,7 +150,6 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
     setNode = (node: HTMLDivElement): void => {
         if (node) {
             this._node = node;
-            console.log("set node to ", this._node);
         }
     }
 
@@ -167,10 +168,10 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
                     <button title="String" className={this.props.keyType === ColumnType.String ? "active" : ""} onClick={() => this.props.setColumnType(this.props.keyValue, ColumnType.String)}>
                         <FontAwesomeIcon icon={"font"} size="sm" />
                         </button>
-                    <button title="Boolean" className={this.props.keyType === ColumnType.Boolean ? "active" : ""} onClick={() => this.props.setColumnType(this.props.keyValue, ColumnType.Boolean)}>
+                    {/* <button title="Boolean" className={this.props.keyType === ColumnType.Boolean ? "active" : ""} onClick={() => this.props.setColumnType(this.props.keyValue, ColumnType.Boolean)}>
                         <FontAwesomeIcon icon={"toggle-on"} size="sm" />
-                        </button>
-                    <button title="Checkbox" className={this.props.keyType === ColumnType.Checkbox ? "active" : ""} onClick={() => this.props.setColumnType(this.props.keyValue, ColumnType.Checkbox)}>
+                        </button> */}
+                    <button title="Checkbox" className={this.props.keyType === ColumnType.Boolean ? "active" : ""} onClick={() => this.props.setColumnType(this.props.keyValue, ColumnType.Boolean)}>
                         <FontAwesomeIcon icon={"check-square"} size="sm" />
                         </button>
                 </div>
@@ -220,10 +221,9 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
     }
 
     render() {
-        console.log("render", this._node);
         return (
             <div className="collectionSchema-header-menu" ref={this.setNode}>
-                <Flyout anchorPoint={anchorPoints.TOP_CENTER} content={this.renderContent()}>
+                <Flyout anchorPoint={this.props.anchorPoint ? this.props.anchorPoint : anchorPoints.TOP_CENTER} content={this.renderContent()}>
                     <div className="collectionSchema-header-toggler" onClick={() => this.toggleIsOpen()}>{this.props.menuButtonContent}</div>
                 </ Flyout >
             </div>

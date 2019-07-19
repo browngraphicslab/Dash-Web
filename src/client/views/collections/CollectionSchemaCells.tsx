@@ -31,7 +31,7 @@ export interface CellProps {
     renderDepth: number;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
     moveDocument: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
-    isFocused: boolean;
+    isFocused: boolean; 
     changeFocusedCellByDirection: (direction: string) => void;
     changeFocusedCellByIndex: (row: number, col: number) => void;
     setIsEditing: (isEditing: boolean) => void;

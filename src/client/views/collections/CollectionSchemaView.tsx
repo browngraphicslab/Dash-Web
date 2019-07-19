@@ -32,7 +32,7 @@ import { CollectionView } from "./CollectionView";
 import { undoBatch } from "../../util/UndoManager";
 import { timesSeries } from "async";
 import { CollectionSchemaHeader, CollectionSchemaAddColumnHeader } from "./CollectionSchemaHeaders";
-import { CellProps, CollectionSchemaCell, CollectionSchemaNumberCell, CollectionSchemaStringCell, CollectionSchemaBooleanCell, CollectionSchemaCheckboxCell } from "./CollectionSchemaCells";
+import { CellProps, CollectionSchemaCell, CollectionSchemaNumberCell, CollectionSchemaStringCell, CollectionSchemaBooleanCell, CollectionSchemaCheckboxCell, CollectionSchemaDocCell } from "./CollectionSchemaCells";
 import { MovableColumn, MovableRow } from "./CollectionSchemaMovableTableHOC";
 
 library.add(faCog);
@@ -44,8 +44,8 @@ export enum ColumnType {
     Number,
     String,
     Boolean,
-    // Doc,
-    Checkbox
+    Doc,
+    // Checkbox
 }
 // this map should be used for keys that should have a const type of value
 const columnTypes: Map<string, ColumnType> = new Map([
@@ -125,23 +125,28 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     let colType = this.getColumnType(col);
                     if (colType === ColumnType.Number) return <CollectionSchemaNumberCell {...props}/>;
                     if (colType === ColumnType.String) return <CollectionSchemaStringCell {...props}/>;
-                    if (colType === ColumnType.Boolean) return <CollectionSchemaBooleanCell {...props} />;
-                    if (colType === ColumnType.Checkbox) return <CollectionSchemaCheckboxCell {...props} />;
+                    // if (colType === ColumnType.Boolean) return <CollectionSchemaBooleanCell {...props} />;
+                    // if (colType === ColumnType.Checkbox) return <CollectionSchemaCheckboxCell {...props} />;
+                    if (colType === ColumnType.Boolean) return <CollectionSchemaCheckboxCell {...props} />;
+                    if (colType === ColumnType.Doc) return <CollectionSchemaDocCell {...props} />;
                     return <CollectionSchemaCell {...props}/>;
                 }
             };
-        }) as {Header: TableCellRenderer, accessor: (doc: Doc) => FieldResult<Field>, id: string, Cell: (rowProps: CellInfo) => JSX.Element}[];
+        }) as {Header: TableCellRenderer, accessor: (doc: Doc) => FieldResult<Field>, id: string, Cell: (rowProps: CellInfo) => JSX.Element, width?: number, resizable?: boolean}[];
 
         cols.push({
             Header: <CollectionSchemaAddColumnHeader
-                possibleKeys={possibleKeys}
-                existingKeys={this.columns}
-                onSelect={this.changeColumns}
-                setIsEditing={this.setHeaderIsEditing}
+                createColumn={this.createColumn}
+                // possibleKeys={possibleKeys}
+                // existingKeys={this.columns}
+                // onSelect={this.changeColumns}
+                // setIsEditing={this.setHeaderIsEditing}
             />,
             accessor: (doc: Doc) => 0,
             id: "add",
             Cell: (rowProps: CellInfo) => <></>,
+            width: 45,
+            resizable: false
         });
 
         return cols;
@@ -309,6 +314,21 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 self.props.Document.schemaDoc = schemaDoc;
             }
         }
+    }
+
+    @action
+    createColumn = () => {  
+        let index = 0;
+        let found = this.columns.findIndex(col => col.toUpperCase() === "New field".toUpperCase()) > -1;
+        if (!found) {
+            this.columns.push("New field");
+            return;
+        }
+        while (found) {
+            index ++;
+            found = this.columns.findIndex(col => col.toUpperCase() === ("New field (" + index + ")").toUpperCase()) > -1;
+        }
+        this.columns.push("New field (" + index + ")");
     }
 
     @action

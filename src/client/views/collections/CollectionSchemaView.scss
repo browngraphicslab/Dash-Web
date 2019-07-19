@@ -95,6 +95,10 @@
         padding: 3px 7px;
         font-size: 13px;
         text-align: center;
+        
+        &:last-child {
+            overflow: visible;
+        }
     }
 
     .rt-tbody {
