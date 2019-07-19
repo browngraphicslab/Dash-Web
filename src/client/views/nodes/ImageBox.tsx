@@ -165,12 +165,12 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
             recorder.ondataavailable = async function (e: any) {
                 const formData = new FormData();
                 formData.append("file", e.data);
-                const res = await fetch(DocServer.prepend(RouteStore.upload), {
+                const res = await fetch(Utils.prepend(RouteStore.upload), {
                     method: 'POST',
                     body: formData
                 });
                 const files = await res.json();
-                const url = DocServer.prepend(files[0]);
+                const url = Utils.prepend(files[0]);
                 // upload to server with known URL 
                 let audioDoc = Docs.Create.AudioDocument(url, { title: "audio test", x: NumCast(self.props.Document.x), y: NumCast(self.props.Document.y), width: 200, height: 32 });
                 audioDoc.embed = true;
@@ -329,7 +329,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         let id = (this.props as any).id; // bcz: used to set id = "isExpander" in templates.tsx
         let nativeWidth = FieldValue(this.Document.nativeWidth, pw);
         let nativeHeight = FieldValue(this.Document.nativeHeight, 0);
-        let paths: string[] = [window.origin + RouteStore.corsProxy + "/" + "http://www.cs.brown.edu/~bcz/noImage.png"];
+        let paths: string[] = [Utils.CorsProxy("http://www.cs.brown.edu/~bcz/noImage.png")];
         // this._curSuffix = "";
         // if (w > 20) {
         Doc.UpdateDocumentExtensionForField(this.dataDoc, this.props.fieldKey);

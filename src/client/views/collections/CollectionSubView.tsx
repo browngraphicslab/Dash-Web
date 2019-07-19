@@ -20,6 +20,7 @@ import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
 import React = require("react");
 import { MainView } from "../MainView";
+import { Utils } from "../../../Utils";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
@@ -164,7 +165,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 } else {
                     let path = window.location.origin + "/doc/";
                     if (text.startsWith(path)) {
-                        let docid = text.replace(DocServer.prepend("/doc/"), "").split("?")[0];
+                        let docid = text.replace(Utils.prepend("/doc/"), "").split("?")[0];
                         DocServer.GetRefField(docid).then(f => {
                             if (f instanceof Doc) {
                                 if (options.x || options.y) { f.x = options.x; f.y = options.y; } // should be in CollectionFreeFormView
@@ -193,7 +194,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 if (item.kind === "string" && item.type.indexOf("uri") !== -1) {
                     let str: string;
                     let prom = new Promise<string>(resolve => e.dataTransfer.items[i].getAsString(resolve))
-                        .then(action((s: string) => rp.head(DocServer.prepend(RouteStore.corsProxy + "/" + (str = s)))))
+                        .then(action((s: string) => rp.head(Utils.CorsProxy(str = s))))
                         .then(result => {
                             let type = result["content-type"];
                             if (type) {
@@ -219,7 +220,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     }).then(async (res: Response) => {
                         (await res.json()).map(action((file: any) => {
                             let full = { ...options, nativeWidth: type.indexOf("video") !== -1 ? 600 : 300, width: 300, title: dropFileName };
-                            let path = DocServer.prepend(file);
+                            let path = Utils.prepend(file);
                             Docs.Get.DocumentFromType(type, path, full).then(doc => doc && this.props.addDocument(doc));
                         }));
                     });

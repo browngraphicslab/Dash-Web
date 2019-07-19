@@ -13,6 +13,9 @@ import { Doc, Opt, Field } from '../../../new_fields/Doc';
 import { FieldValue } from '../../../new_fields/Types';
 import { KeyValueBox } from './KeyValueBox';
 import { DragManager, SetupDrag } from '../../util/DragManager';
+import { ContextMenu } from '../ContextMenu';
+import { Docs } from '../../documents/Documents';
+import { CollectionDockingView } from '../collections/CollectionDockingView';
 
 // Represents one row in a key value plane
 
@@ -39,6 +42,16 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
         this.isChecked = false;
     }
 
+    onContextMenu = (e: React.MouseEvent) => {
+        const value = this.props.doc[this.props.keyName];
+        if (value instanceof Doc) {
+            e.stopPropagation();
+            e.preventDefault();
+            ContextMenu.Instance.addItem({ description: "Open Fields", event: () => { let kvp = Docs.Create.KVPDocument(value, { width: 300, height: 300 }); CollectionDockingView.Instance.AddRightSplit(kvp, undefined); }, icon: "layer-group" });
+            ContextMenu.Instance.displayMenu(e.clientX, e.clientY);
+        }
+    }
+
     render() {
         let props: FieldViewProps = {
             Document: this.props.doc,
@@ -60,7 +73,17 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
         };
         let contents = <FieldView {...props} />;
         // let fieldKey = Object.keys(props.Document).indexOf(props.fieldKey) !== -1 ? props.fieldKey : "(" + props.fieldKey + ")";
-        let keyStyle = Object.keys(props.Document).indexOf(props.fieldKey) !== -1 ? "black" : "blue";
+        let protoCount = 0;
+        let doc: Doc | undefined = props.Document;
+        while (doc) {
+            if (Object.keys(doc).includes(props.fieldKey)) {
+                break;
+            }
+            protoCount++;
+            doc = doc.proto;
+        }
+        const parenCount = Math.max(0, protoCount - 1);
+        let keyStyle = protoCount === 0 ? "black" : "blue";
 
         let hover = { transition: "0.3s ease opacity", opacity: this.isPointerOver || this.isChecked ? 1 : 0 };
 
@@ -83,10 +106,10 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
                             onChange={this.handleCheck}
                             ref={this.checkbox}
                         />
-                        <div className="keyValuePair-keyField" style={{ color: keyStyle }}>{props.fieldKey}</div>
+                        <div className="keyValuePair-keyField" style={{ color: keyStyle }}>{"(".repeat(parenCount)}{props.fieldKey}{")".repeat(parenCount)}</div>
                     </div>
                 </td>
-                <td className="keyValuePair-td-value" style={{ width: `${100 - this.props.keyWidth}%` }}>
+                <td className="keyValuePair-td-value" style={{ width: `${100 - this.props.keyWidth}%` }} onContextMenu={this.onContextMenu}>
                     <div className="keyValuePair-td-value-container">
                         <EditableView
                             contents={contents}

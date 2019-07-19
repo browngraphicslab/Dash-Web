@@ -2,6 +2,7 @@ import * as rp from 'request-promise';
 import { DocServer } from '../DocServer';
 import { Doc } from '../../new_fields/Doc';
 import { Id } from '../../new_fields/FieldSymbols';
+import { Utils } from '../../Utils';
 
 export namespace SearchUtil {
     export type HighlightingResult = { [id: string]: { [key: string]: string[] } };
@@ -29,7 +30,7 @@ export namespace SearchUtil {
     export function Search(query: string, returnDocs: false, options?: SearchParams): Promise<IdSearchResult>;
     export async function Search(query: string, returnDocs: boolean, options: SearchParams = {}) {
         query = query || "*"; //If we just have a filter query, search for * as the query
-        const result: IdSearchResult = JSON.parse(await rp.get(DocServer.prepend("/search"), {
+        const result: IdSearchResult = JSON.parse(await rp.get(Utils.prepend("/search"), {
             qs: { ...options, q: query },
         }));
         if (!returnDocs) {

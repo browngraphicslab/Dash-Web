@@ -13,6 +13,7 @@ import { Docs } from '../documents/Documents';
 import { SetupDrag } from '../util/DragManager';
 import { SearchItem } from './search/SearchItem';
 import "./SearchBox.scss";
+import { Utils } from '../../Utils';
 
 library.add(faSearch);
 library.add(faObjectGroup);
@@ -47,7 +48,7 @@ export class SearchBox extends React.Component {
 
     @action
     getResults = async (query: string) => {
-        let response = await rp.get(DocServer.prepend('/search'), {
+        let response = await rp.get(Utils.prepend('/search'), {
             qs: {
                 query
             }

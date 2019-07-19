@@ -344,38 +344,6 @@ app.post(
                     });
                     isImage = true;
                 }
-                else if (pdfTypes.includes(ext)) {
-                    // Pdfjs.getDocument(uploadDir + file).promise
-                    //     .then((pdf: Pdfjs.PDFDocumentProxy) => {
-                    //         let numPages = pdf.numPages;
-                    //         let factory = new NodeCanvasFactory();
-                    //         for (let pageNum = 0; pageNum < numPages; pageNum++) {
-                    //             console.log(pageNum);
-                    //             pdf.getPage(pageNum + 1).then((page: Pdfjs.PDFPageProxy) => {
-                    //                 console.log("reading " + pageNum);
-                    //                 let viewport = page.getViewport(1);
-                    //                 let canvasAndContext = factory.create(viewport.width, viewport.height);
-                    //                 let renderContext = {
-                    //                     canvasContext: canvasAndContext.context,
-                    //                     viewport: viewport,
-                    //                     canvasFactory: factory
-                    //                 }
-                    //                 console.log("read " + pageNum);
-
-                    //                 page.render(renderContext).promise
-                    //                     .then(() => {
-                    //                         console.log("saving " + pageNum);
-                    //                         let stream = canvasAndContext.canvas.createPNGStream();
-                    //                         let out = fs.createWriteStream(uploadDir + file.substring(0, file.length - ext.length) + `-${pageNum + 1}.PNG`);
-                    //                         stream.pipe(out);
-                    //                         out.on("finish", () => console.log(`Success! Saved to ${uploadDir + file.substring(0, file.length - ext.length) + `-${pageNum + 1}.PNG`}`));
-                    //                     }, (reason: string) => {
-                    //                         console.error(reason + ` ${pageNum}`);
-                    //                     });
-                    //             });
-                    //         }
-                    //     });
-                }
                 if (isImage) {
                     resizers.forEach(resizer => {
                         fs.createReadStream(uploadDir + file).pipe(resizer.resizer).pipe(fs.createWriteStream(uploadDir + file.substring(0, file.length - ext.length) + resizer.suffix + ext));
@@ -449,7 +417,7 @@ app.get(RouteStore.reset, getReset);
 app.post(RouteStore.reset, postReset);
 
 app.use(RouteStore.corsProxy, (req, res) =>
-    req.pipe(request(req.url.substring(1))).pipe(res));
+    req.pipe(request(decodeURIComponent(req.url.substring(1)))).pipe(res));
 
 app.get(RouteStore.delete, (req, res) => {
     if (release) {

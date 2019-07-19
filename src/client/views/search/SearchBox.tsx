@@ -9,12 +9,12 @@ import { Docs } from '../../documents/Documents';
 import { NumCast, Cast } from '../../../new_fields/Types';
 import { Doc } from '../../../new_fields/Doc';
 import { SearchItem } from './SearchItem';
-import { DocServer } from '../../DocServer';
 import * as rp from 'request-promise';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { SearchUtil } from '../../util/SearchUtil';
 import { RouteStore } from '../../../server/RouteStore';
 import { FilterBox } from './FilterBox';
+import { Utils } from '../../../Utils';
 
 
 @observer
@@ -74,7 +74,7 @@ export class SearchBox extends React.Component {
 
     public static async convertDataUri(imageUri: string, returnedFilename: string) {
         try {
-            let posting = DocServer.prepend(RouteStore.dataUriToImage);
+            let posting = Utils.prepend(RouteStore.dataUriToImage);
             const returnedUri = await rp.post(posting, {
                 body: {
                     uri: imageUri,
@@ -154,7 +154,7 @@ export class SearchBox extends React.Component {
                         filteredDocs.forEach(doc => {
                             const index = this._resultsSet.get(doc);
                             const highlight = highlights[doc[Id]];
-                            const hlights = highlight ? Object.keys(highlight).map(key => key.substring(0, key.length - 2)) : []
+                            const hlights = highlight ? Object.keys(highlight).map(key => key.substring(0, key.length - 2)) : [];
                             if (index === undefined) {
                                 this._resultsSet.set(doc, this._results.length);
                                 this._results.push([doc, hlights]);

@@ -47,14 +47,6 @@ export namespace DocServer {
         Utils.AddServerHandler(_socket, MessageStore.DeleteField, respondToDelete);
         Utils.AddServerHandler(_socket, MessageStore.DeleteFields, respondToDelete);
     }
-    /**
-     * A convenience method. Prepends the full path (i.e. http://localhost:1050) to the
-     * requested extension
-     * @param extension the specified sub-path to append to the window origin
-     */
-    export function prepend(extension: string): string {
-        return window.location.origin + extension;
-    }
 
     function errorFunc(): never {
         throw new Error("Can't use DocServer without calling init first");
