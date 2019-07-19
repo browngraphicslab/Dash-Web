@@ -17,7 +17,9 @@ import { CollectionPDFView } from "./CollectionPDFView";
 import "./CollectionSchemaView.scss";
 import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
-import { NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
+import { NumCast, StrCast, BoolCast, FieldValue, Cast } from "../../../new_fields/Types";
+import { Docs } from "../../documents/Documents";
+import { DocumentContentsView } from "../nodes/DocumentContentsView";
 
 
 export interface CellProps {
@@ -42,7 +44,8 @@ export interface CellProps {
 export class CollectionSchemaCell extends React.Component<CellProps> {
     @observable protected _isEditing: boolean = false;
     protected _focusRef = React.createRef<HTMLDivElement>();
-    protected _document: Doc = this.props.rowProps.original;
+    protected _document = this.props.rowProps.original;
+    private _dropDisposer?: DragManager.DragDropDisposer;
 
     componentDidMount() {
         if (this._focusRef.current) {
@@ -54,6 +57,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         }
 
         document.addEventListener("keydown", this.onKeyDown);
+
     }
 
     componentWillUnmount() {
@@ -89,6 +93,27 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         return true;
     }
 
+    private drop = (e: Event, de: DragManager.DropEvent) => {
+        if (de.data instanceof DragManager.DocumentDragData) {
+            let fieldKey = this.props.rowProps.column.id as string;
+            if (de.data.draggedDocuments.length === 1) {
+                this._document[fieldKey] = de.data.draggedDocuments[0];
+            }
+            else {
+                let coll = Docs.Create.SchemaDocument(["title"], de.data.draggedDocuments, {});
+                this._document[fieldKey] = coll;
+            }
+            e.stopPropagation();
+        }
+    }
+
+    private dropRef = (ele: HTMLElement) => {
+        this._dropDisposer && this._dropDisposer();
+        if (ele) {
+            this._dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
+        }
+    }
+
     renderCellWithType(type: string | undefined) {
         let props: FieldViewProps = {
             Document: this.props.rowProps.original,
@@ -108,22 +133,25 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             PanelWidth: returnZero,
             addDocTab: this.props.addDocTab,
         };
-        let reference = React.createRef<HTMLDivElement>();
         let onItemDown = (e: React.PointerEvent) => {
-            (!this.props.CollectionView.props.isSelected() ? undefined :
-                SetupDrag(reference, () => props.Document, this.props.moveDocument, this.props.Document.schemaDoc ? "copy" : undefined)(e));
+            SetupDrag(this._focusRef, () => this._document[props.fieldKey] instanceof Doc ? this._document[props.fieldKey] : this._document,
+                this._document[props.fieldKey] instanceof Doc ? (doc: Doc, target: Doc, addDoc: (newDoc: Doc) => any) => addDoc(doc) : this.props.moveDocument, this._document[props.fieldKey] instanceof Doc ? "alias" : this.props.Document.schemaDoc ? "copy" : undefined)(e);
         };
 
         let field = props.Document[props.fieldKey];
         let contents: any = "incorrect type";
-        if (type === undefined) contents =  <FieldView {...props} />;
+        if (type === undefined) contents = <FieldView {...props} />;
         if (type === "number") contents = typeof field === "number" ? NumCast(field) : "--" + typeof field + "--";
         if (type === "string") contents = typeof field === "string" ? (StrCast(field) === "" ? "--" : StrCast(field)) : "--" + typeof field + "--";
         if (type === "boolean") contents = typeof field === "boolean" ? (BoolCast(field) ? "true" : "false") : "--" + typeof field + "--";
+        if (type === "document") {
+            let doc = FieldValue(Cast(field, Doc));
+            contents = typeof field === "object" ? doc ? StrCast(doc.title) === "" ? "--" : StrCast(doc.title) : `--${typeof field}--` : `--${typeof field}--`;
+        }
 
         return (
             <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1} onPointerDown={this.onPointerDown}>
-                <div className="collectionSchemaView-cellContents" onPointerDown={onItemDown} key={props.Document[Id]} ref={reference}>
+                <div className="collectionSchemaView-cellContents" ref={this.dropRef} onPointerDown={onItemDown} key={props.Document[Id]}>
                     <EditableView
                         editing={this._isEditing}
                         isEditingCallback={this.isEditingCallback}
@@ -194,9 +222,9 @@ export class CollectionSchemaCheckboxCell extends CollectionSchemaCell {
     toggleChecked = (e: React.ChangeEvent<HTMLInputElement>) => {
         this._isChecked = e.target.checked;
         let script = CompileScript(e.target.checked.toString(), { requiredType: "boolean", addReturn: true, params: { this: Doc.name } });
-            if (script.compiled) {
-                this.applyToDoc(this._document, script.run);
-            }
+        if (script.compiled) {
+            this.applyToDoc(this._document, script.run);
+        }
     }
 
     render() {
@@ -208,7 +236,7 @@ export class CollectionSchemaCheckboxCell extends CollectionSchemaCell {
         return (
             <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1} onPointerDown={this.onPointerDown}>
                 <div className="collectionSchemaView-cellContents" onPointerDown={onItemDown} key={this._document[Id]} ref={reference}>
-                    <input type="checkbox" checked={this._isChecked} onChange={this.toggleChecked}/>
+                    <input type="checkbox" checked={this._isChecked} onChange={this.toggleChecked} />
                 </div >
             </div>
         );
@@ -218,16 +246,17 @@ export class CollectionSchemaCheckboxCell extends CollectionSchemaCell {
 @observer
 export class CollectionSchemaDocCell extends CollectionSchemaCell {
     render() {
-        let reference = React.createRef<HTMLDivElement>();
-        let onItemDown = (e: React.PointerEvent) => {
-            (!this.props.CollectionView.props.isSelected() ? undefined :
-                SetupDrag(reference, () => this._document, this.props.moveDocument, this.props.Document.schemaDoc ? "copy" : undefined)(e));
-        };
-        return (
-            <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1} onPointerDown={this.onPointerDown}>
-                <div className="collectionSchemaView-cellContents" onPointerDown={onItemDown} key={this._document[Id]} ref={reference}>
-                </div >
-            </div>
-        );
+        return this.renderCellWithType("document");
+        // let reference = React.createRef<HTMLDivElement>();
+        // let onItemDown = (e: React.PointerEvent) => {
+        //     // (!this.props.CollectionView.props.isSelected() ? undefined :
+        //     //     SetupDrag(reference, () => props.Document, this.props.moveDocument, this.props.Document.schemaDoc ? "copy" : undefined)(e));
+        // };
+        // return (
+        //     <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1} onPointerDown={this.onPointerDown}>
+        //         <div className="collectionSchemaView-cellContents" onPointerDown={onItemDown} key={this._document[Id]} ref={reference}>
+        //         </div >
+        //     </div>
+        // );
     }
 }
