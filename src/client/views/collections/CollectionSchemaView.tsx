@@ -480,10 +480,20 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         this.previewScript = script;
     }
 
+    @computed
+    get schemaToolbar() {
+        return (
+            <div className="collectionSchemaView-toolbar">
+                <div id="preview-schema-checkbox-div"><input type="checkbox" key={"Show Preview"} checked={this.previewWidth() !== 0} onChange={this.toggleExpander} />Show Preview</div>
+            </div>
+        );
+    }
+
     render() {
         return (
             <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} onWheel={this.onWheel}
                 onDrop={(e: React.DragEvent) => this.onDrop(e, {})} onContextMenu={this.onContextMenu} ref={this.createTarget}>
+                {this.schemaToolbar}
                 {this.reactTable}
                 {this.dividerDragger}
                 {!this.previewWidth() ? (null) : this.previewPanel}
@@ -492,6 +502,8 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         );
     }
 }
+
+
 interface CollectionSchemaPreviewProps {
     Document?: Doc;
     DataDocument?: Doc;
@@ -569,10 +581,6 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
 
     
     render() {
-
-            //                     <div id="preview-schema-checkbox-div"><input type="checkbox" key={"Show Preview"} checked={this.previewWidth() !== 0} onChange={this.toggleExpander} />  Show Preview </div>
-
-
         let input = this.props.previewScript === undefined ? (null) :
             <div ref={this.createTarget}><input className="collectionSchemaView-input" value={this.props.previewScript} onChange={this.onPreviewScriptChange}
                 style={{ left: `calc(50% - ${Math.min(75, (this.props.Document ? this.PanelWidth() / 2 : 75))}px)` }} /></div>;

@@ -8,6 +8,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Flyout, anchorPoints } from "../DocumentDecorations";
 import { ColumnType } from "./CollectionSchemaView";
 import { emptyFunction } from "../../../Utils";
+import { contains } from "typescript-collections/dist/lib/arrays";
 
 library.add(faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn);
 
@@ -109,27 +110,25 @@ export interface ColumnMenuProps {
 @observer
 export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps> {
     @observable private _isOpen: boolean = false;
-    // @observable private _node : HTMLDivElement | null = null;
-    @observable private _node = React.createRef<HTMLDivElement>();
+    @observable private _node : HTMLDivElement | null = null;
+    // @observable private _node = React.createRef<HTMLDivElement>();
+    @observable private _test = "test";
 
     componentDidMount() {
-        document.addEventListener("pointerdown", this.onPointerDown);
+        document.addEventListener("pointerdown", this.detectClick);
         console.log("did mount", this._node);
     }
 
     componentWillUnmount() {
-        document.removeEventListener("pointerdown", this.onPointerDown);
+        document.removeEventListener("pointerdown", this.detectClick);
     }
 
-    onPointerDown (e: PointerEvent) {
-        console.log("pointer down", this._node);
-        if (this._node ) {
-            // && this._node.contains(e.target as Node)
-            console.log("CLICKED INSNIDE");
+    detectClick = (e: PointerEvent): void => {
+        console.log("click", this);
+        if (this._node && this._node.contains(e.target as Node)) {
         } else {
-            console.log("CLICKED OUTSIDE");
-            // console.log(this._node);
-            // console.log(e.target as Node);
+            this._isOpen = false;
+            this.props.setIsEditing(false);
         }
     }
 
@@ -145,13 +144,13 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
         this.props.setColumnType(this.props.keyValue, type);
     }
 
-    // @action
-    // setNode = (node: HTMLDivElement): void => {
-    //     if (node) {
-    //         this._node = node;
-    //         console.log("set node to ", this._node);
-    //     }
-    // }
+    @action
+    setNode = (node: HTMLDivElement): void => {
+        if (node) {
+            this._node = node;
+            console.log("set node to ", this._node);
+        }
+    }
 
     renderTypes = () => {
         if (this.props.typeConst) return <></>;
@@ -223,7 +222,7 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
     render() {
         console.log("render", this._node);
         return (
-            <div className="collectionSchema-header-menu" ref={this._node}>
+            <div className="collectionSchema-header-menu" ref={this.setNode}>
                 <Flyout anchorPoint={anchorPoints.TOP_CENTER} content={this.renderContent()}>
                     <div className="collectionSchema-header-toggler" onClick={() => this.toggleIsOpen()}>{this.props.menuButtonContent}</div>
                 </ Flyout >
