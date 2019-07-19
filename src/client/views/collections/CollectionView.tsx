@@ -1,5 +1,5 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faProjectDiagram, faSignature, faSquare, faTh, faImage, faThList, faTree } from '@fortawesome/free-solid-svg-icons';
+import { faProjectDiagram, faSignature, faColumns, faSquare, faTh, faImage, faThList, faTree, faEllipsisV } from '@fortawesome/free-solid-svg-icons';
 import { observer } from "mobx-react";
 import * as React from 'react';
 import { Doc, DocListCast, WidthSym, HeightSym } from '../../../new_fields/Doc';
@@ -25,6 +25,8 @@ library.add(faSquare);
 library.add(faProjectDiagram);
 library.add(faSignature);
 library.add(faThList);
+library.add(faColumns);
+library.add(faEllipsisV);
 library.add(faImage);
 
 @observer
@@ -37,7 +39,8 @@ export class CollectionView extends React.Component<FieldViewProps> {
             case CollectionViewType.Schema: return (<CollectionSchemaView {...props} CollectionView={this} />);
             case CollectionViewType.Docking: return (<CollectionDockingView {...props} CollectionView={this} />);
             case CollectionViewType.Tree: return (<CollectionTreeView {...props} CollectionView={this} />);
-            case CollectionViewType.Stacking: return (<CollectionStackingView {...props} CollectionView={this} />);
+            case CollectionViewType.Stacking: { this.props.Document.singleColumn = true; return (<CollectionStackingView {...props} CollectionView={this} />); }
+            case CollectionViewType.Masonry: { this.props.Document.singleColumn = false; return (<CollectionStackingView {...props} CollectionView={this} />); }
             case CollectionViewType.Freeform:
             default:
                 return (<CollectionFreeFormView {...props} CollectionView={this} />);
@@ -57,7 +60,8 @@ export class CollectionView extends React.Component<FieldViewProps> {
             }
             subItems.push({ description: "Schema", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Schema), icon: "th-list" });
             subItems.push({ description: "Treeview", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Tree), icon: "tree" });
-            subItems.push({ description: "Stacking", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Stacking), icon: "th-list" });
+            subItems.push({ description: "Stacking", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Stacking), icon: "ellipsis-v" });
+            subItems.push({ description: "Masonry", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Masonry), icon: "columns" });
             ContextMenu.Instance.addItem({ description: "View Modes...", subitems: subItems });
             ContextMenu.Instance.addItem({
                 description: "Apply Template", event: undoBatch(() => {
