@@ -42,7 +42,7 @@ export interface CellProps {
 export class CollectionSchemaCell extends React.Component<CellProps> {
     @observable protected _isEditing: boolean = false;
     protected _focusRef = React.createRef<HTMLDivElement>();
-    protected _document = this.props.rowProps.original;
+    protected _document: Doc = this.props.rowProps.original;
 
     componentDidMount() {
         if (this._focusRef.current) {

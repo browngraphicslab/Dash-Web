@@ -4,7 +4,7 @@ import { faCog, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, trace, untracked } from "mobx";
 import { observer } from "mobx-react";
-import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults, TableCellRenderer, Column } from "react-table";
+import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults, TableCellRenderer, Column, RowInfo } from "react-table";
 import "react-table/react-table.css";
 import { emptyFunction, returnFalse, returnZero, returnOne } from "../../../Utils";
 import { Doc, DocListCast, DocListCastAsync, Field, FieldResult } from "../../../new_fields/Doc";
@@ -132,7 +132,20 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     return <CollectionSchemaCell {...props}/>;
                 }
             };
-        }) as {Header: TableCellRenderer, accessor: (doc: Doc) => FieldResult<Field>, id: string, Cell: (rowProps: CellInfo) => JSX.Element, width?: number, resizable?: boolean}[];
+        }) as {Header?: TableCellRenderer, accessor?: (doc: Doc) => FieldResult<Field>, id?: string, Cell?: (rowProps: CellInfo) => JSX.Element, width?: number, resizable?: boolean, expander?: boolean, Expander?: (rowInfo: RowInfo) => JSX.Element | null}[];
+
+        cols.push({
+            expander: true,
+            Header: "",
+            width: 45,
+            Expander: (rowInfo) => {
+                if (rowInfo.original.type === "collection") {
+                    return <div>+</div>;
+                } else {
+                    return null;
+                }
+            }
+        });
 
         cols.push({
             Header: <CollectionSchemaAddColumnHeader
@@ -148,6 +161,8 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             width: 45,
             resizable: false
         });
+
+        // SubComponent={row => row.original.type === "collection" && <div>SUB</div>}
 
         return cols;
     }
@@ -453,7 +468,10 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             sortable={false}
             TrComponent={MovableRow}
             sorted={Array.from(this._sortedColumns.values())}
+            SubComponent={row => row.original.type === "collection" && <div>this is the sub component</div>}
         />;
+
+
     }
 
     @computed

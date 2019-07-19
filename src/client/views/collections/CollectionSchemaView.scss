@@ -108,6 +108,7 @@
     .rt-tr-group {
         direction: ltr;
         max-height: $MAX_ROW_HEIGHT;
+        // for sub comp
 
         &:nth-child(even) {
             background-color: $light-color;
