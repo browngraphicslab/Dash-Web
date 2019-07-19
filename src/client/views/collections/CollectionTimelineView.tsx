@@ -97,15 +97,13 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     private screenref = React.createRef<HTMLDivElement>();
     private barref = React.createRef<HTMLDivElement>();
     private marqueeref = React.createRef<HTMLDivElement>();
-    private colorrefYellow = React.createRef<HTMLDivElement>();
-    private colorrefGreen = React.createRef<HTMLDivElement>();
-    private colorrefRed = React.createRef<HTMLDivElement>();
-    private colorrefBlue = React.createRef<HTMLDivElement>();
     private elref = React.createRef<HTMLInputElement>();
 
     @observable private types: boolean[] = [];
     private fellas: boolean[] = [];
 
+
+    @computed
     private get markerDocs() {
         let stored = Cast(this.props.Document.markers, listSpec(Doc));
         if (!stored) {
@@ -162,6 +160,26 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         console.log(this.markers.length);
     }
 
+    createmarker = (newdoc: Doc | Promise<Doc>): JSX.Element => {
+        let doc = newdoc;
+        let markerUnit = { document: doc, ref: undefined, mapref: undefined } as MarkerUnit;
+        markerUnit.element = (< div ref={(el) => el ? markerUnit.ref = el : null} id={"marker" + String(this.markers.length)} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, markerUnit.ref, String(markerUnit.document.annotation), markerUnit)}
+            style={{
+                top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid" + (markerUnit.document.color),
+                width: "10px", height: "30px", backgroundColor: String(markerUnit.document.color), opacity: "0.25", position: "absolute", left: 0,
+            }}></div>);
+        markerUnit.map = <div className="ugh" ref={(el) => el ? markerUnit.mapref = el : null}
+            style={{
+                position: "absolute",
+                background: String(markerUnit.document.color),
+                zIndex: "1",
+                top: this.previewHeight(String(markerUnit.document.color)),
+                left: 0,
+                width: 10, border: "3px solid" + String(markerUnit.document.color)
+            }}></div>;
+        return markerUnit.element;
+    }
+
     componentDidMount() {
         runInAction(() => this.countingfriend++);
     }
@@ -201,7 +219,20 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     }
 
-    private newdudess: boolean[] = [];
+    private newdudes: JSX.Element[] = [];
+
+    filtermenu() {
+        let dudess = this.checkDataString();
+        this.newdudes = [];
+
+        for (let i = 0; i < dudess.length; i++) {
+            let doc = dudess[i];
+            let guy = React.createRef<HTMLInputElement>();
+            this.newdudes.push(
+                <div><input ref={guy} type="checkbox" checked={this.types[i]} onChange={() => this.toggleFilter(doc, i, guy)} />{doc}</div>);
+
+        }
+    }
 
     @action
     toggleFilter = (key: string, i: number, guy: React.RefObject<HTMLInputElement>) => {
@@ -302,20 +333,46 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     }
 
-    @observable
-    private observabletest: JSX.Element[] = [];
 
-
+    //private observabletest: MarkerUnit[] = [];
     @action
     onPointerDown_Selector = (e: React.PointerEvent): void => {
-        if (e.shiftKey) {
-            e.preventDefault();
-            this.observabletest.push(<div
-                style={{
-                    top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid",
-                    width: "10px", height: "30px", opacity: 0.25, position: "absolute",
-                }}></div>);
-            console.log(this.observabletest.length);
+        if (e.ctrlKey) {
+
+            let leftval = (e.pageX - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98);
+            let ting: MarkerUnit = {
+                ref: undefined,
+                document: new Doc(),
+                element: <div ref={(el) => el ? ting.ref = el : null} id={"marker" + String(this.markers.length)} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, ting.ref, String(ting.document.annotation), ting)}
+                    style={{
+                        top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid" + this.selectedColor,
+                        width: "10px", height: "30px", backgroundColor: this.selectedColor, opacity: "0.25", position: "absolute", left: leftval
+                    }}>
+                </div>,
+                mapref: undefined,
+                map: (<div className="ugh" ref={(el) => el ? ting.mapref = el : null}
+                    style={{
+                        position: "absolute",
+                        background: this.selectedColor,
+                        zIndex: "1",
+                        top: this.previewHeight(this.selectedColor),
+                        left: ((((e.pageX - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98) / this.barref.current.clientWidth)) * (this.barwidth - this.xmovement2 - this.xmovement)) + this.xmovement,
+
+                        width: 10, border: "3px solid" + this.selectedColor
+                    }}></div>),
+            };
+
+            let d = ting.document;
+            d.initialLeft = (leftval / (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement))) + (this.xmovement);
+            d.initialWidth = (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement));
+            d.annotation = "Edit me!";
+            d.color = this.selectedColor;
+            this.markerDocs.push(d);
+            this.currentmarker = ting;
+
+
+
+
         }
 
 
@@ -726,6 +783,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         return field;
     }
 
+
+
     buttonloop() {
         this._range = 1;
         let arr: Doc[] = [];
@@ -827,7 +886,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     </div>;
             }
 
-
             let item: Thing = {
                 button: newbutton,
                 buttonref: undefined,
@@ -855,9 +913,29 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             };
             this.buttons.push(item);
         }
+        this.buttons = this.filterDocs(this.buttons);
+    }
 
 
+    private fields: JSX.Element[] = [];
 
+    sortmenu() {
+        this.fields = [];
+        let keys: { [key: string]: boolean } = {};
+        const docs2 = DocListCast(this.props.Document[this.props.fieldKey]);
+        untracked(() => docs2.map(doc => Doc.GetAllPrototypes(doc).map(proto => Object.keys(proto).forEach(key => keys[key] = false))));
+        this.fellas = Array.from(Object.keys(keys)).map(item => item === this.sortstate ? true : false);
+        for (let i = 0; i < Object.keys(keys).length; i++) {
+            let item = Object.keys(keys)[i];
+            let guy = React.createRef<HTMLInputElement>();
+            this.fields.push(<div>
+                <input type="radio" ref={guy} name="dude" checked={this.fellas[i]} onChange={() => this.toggleKey(item, i, guy)} />
+                {item}
+            </div>);
+        }
+    }
+
+    createticks() {
         //Creates the array of tick marks.
         let counter = 0;
         this.ticks = [];
@@ -889,163 +967,12 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             }
             counter++;
         }
-
-
-        const docs2 = DocListCast(this.props.Document[this.props.fieldKey]);
-
-        let p: [number, number] = this._visible ? this.getContainerTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
-        let dudess = this.checkDataString();
-        let newdudes: JSX.Element[] = [];
-
-        this.newdudess = [];
-        for (let i = 0; i < dudess.length; i++) {
-            this.newdudess.push(true);
-        }
-
-
-        for (let i = 0; i < dudess.length; i++) {
-            let doc = dudess[i];
-            let guy = React.createRef<HTMLInputElement>();
-            newdudes.push(
-                <div><input ref={guy} type="checkbox" checked={this.types[i]} onChange={() => this.toggleFilter(doc, i, guy)} />{doc}</div>);
-
-        }
-
-        this.buttons = this.filterDocs(this.buttons);
-
-        let fields: JSX.Element[] = [];
-
-
-        let keys: { [key: string]: boolean } = {};
-        untracked(() => docs2.map(doc => Doc.GetAllPrototypes(doc).map(proto => Object.keys(proto).forEach(key => keys[key] = false))));
-
-        this.fellas = Array.from(Object.keys(keys)).map(item => item === this.sortstate ? true : false);
-
-
-        for (let i = 0; i < Object.keys(keys).length; i++) {
-            let item = Object.keys(keys)[i];
-            let guy = React.createRef<HTMLInputElement>();
-            fields.push(<div>
-                <input type="radio" ref={guy} name="dude" checked={this.fellas[i]} onChange={() => this.toggleKey(item, i, guy)} />
-                {item}
-            </div>);
-        }
-        return (<div ref={this.screenref} id="screen" >
-            <div style={{ position: "absolute", height: "30%", width: "10%", overflow: "scroll", border: "1px solid", zIndex: 900 }}>
-                <div id="schema-options-header"><h5><b>Sort</b></h5></div>
-                <div id="options-flyout-div">
-                    {fields}
-
-                </div>
-            </div>
-            <div style={{ position: "absolute", top: "30%", height: "30%", width: "10%", overflow: "scroll", border: "1px solid", zIndex: 900 }}>
-                <div id="schema-options-header"><h5><b>Filter</b></h5></div>
-                {newdudes}
-            </div>
-            <div className="timeline" style={{ position: "absolute", height: "25px", width: "100%", top: String(document.body.clientHeight * 0.65 + 72) + "px", zIndex: -9999 }}>
-                {this.ticks}
-            </div>
-            <div style={{ left: "10%", width: "60%", height: "60%", position: "absolute", border: "1px solid" }}>
-                {this.preview ? this.documentpreview2(this.preview) : (null)}
-            </div>
-            <div style={{ left: "70%", height: "30%", position: "absolute", border: "1px solid", width: "30%" }}>
-                {this.preview2 ? this.documentpreview3(this.preview2) : (null)}
-            </div>
-            <div style={{ left: "70%", top: "30%", height: "30%", position: "absolute", border: "1px solid", width: "30%" }}>
-                {this.documentpreview0()}
-            </div>
-
-            <div className="bottomgrid" style={{ top: "85%", height: "3%", width: "100%", position: "absolute", zIndex: 1000 }}>
-                <div className="left"> Min:
-                <input value={this.searchString2} onChange={this.onChange2} onKeyPress={this.enter2} type="text" placeholder={String((this.xmovement * this._range / this.barwidth) + this._values[0])}
-                        className="searchBox-barChild searchBox-input" />
-                </div>
-                <div className="mid">
-                    <div ref={this.colorrefYellow} onClick={(e) => this.toggleColor(e, "#ffff80")} className="toggleYellow" style={{ position: "absolute", left: "33%", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#ffff80", border: "2px solid black" }}></div>
-                    <div ref={this.colorrefGreen} onClick={(e) => this.toggleColor(e, "#bfff80")} className="toggleGreen" style={{ position: "absolute", left: "35%", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#bfff80", border: "2px solid #9c9396" }}></div>
-                    <div ref={this.colorrefRed} onClick={(e) => this.toggleColor(e, "#ff8080")} className="toggleRed" style={{ position: "absolute", left: "37%", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#ff8080", border: "2px solid #9c9396" }}></div>
-                    <div ref={this.colorrefBlue} onClick={(e) => this.toggleColor(e, "#80dfff")} className="toggleBlue" style={{ position: "absolute", left: "39%", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#80dfff", border: "2px solid #9c9396" }}></div>
-                    {this.sortstate + ":" + this.preview4}
-                </div>
-                <div className="right">
-                    Max:
-                    <input value={this.searchString} onChange={this.onChange} onKeyPress={this.enter} type="text" placeholder={String(((this.barwidth - this.xmovement2) * this._range / this.barwidth) + this._values[0])}
-                        className="searchBox-barChild searchBox-input" />
-                </div>
-
-
-            </div>
-
-            <div className="viewpanel" style={{ top: "5%", position: "absolute", right: "10%", bottom: "35%", background: "#GGGGGG", zIndex: -55, }}></div>
-            <div className="marqueeView" style={{ height: "40%", top: "60%", borderRadius: "inherit", position: "absolute", width: "100%", }} onClick={this.onClick_Selector} onPointerDown={this.onPointerDown_Selector} onKeyDown={this.onKeyPress_Selector}>
-                <div style={{ transform: `translate(${p[0]}px, ${p[1] - 0.58 * (document.body.clientHeight)}px)` }} >
-                    {this._visible ? this.marqueeDiv : null}
-                </div>
-            </div>
-            <div style={{ top: "65%", position: "absolute", bottom: "25%" }}>{this.buttons.map(item => item.button)}{this.buttons.map(item => item.header)}</div>
-
-
-            {this.markerrender}
-
-
-
-            <div id="bar" ref={this.barref} className="backdropscroll" onPointerDown={this.onPointerDown_OffBar} style={{ top: "80%", width: "100%", bottom: "15%", position: "absolute", }}>
-                {this.buttons.map(item => item.map)}
-                {this.markers.map(item => item.map)}
-                <div className="v1" onPointerDown={this.onPointerDown_LeftBound} style={{ cursor: "ew-resize", position: "absolute", zIndex: 2, left: this.xmovement, height: "100%" }}>
-                </div>
-                <div className="v2" onPointerDown={this.onPointerDown2_RightBound} style={{
-                    cursor: "ew-resize",
-                    position: "absolute", right: this.xmovement2,
-                    height: "100%",
-                    zIndex: 2
-                }}>
-                </div>
-                <div className="bar" onPointerDown={this.onPointerDown_OnBar} style={{ left: this.xmovement, width: this.barwidth - this.xmovement2 - this.xmovement, height: "100%", position: "absolute" }}>
-                </div>
-                <Measure onResize={() => this.updateWidth()}>
-                    {({ measureRef }) => <div ref={measureRef}> </div>}
-                </Measure>
-
-
-            </div>
-        </div >
-        );
-
     }
-
 
     @observable
     private selectedColor: string = "ffff80";
 
-    @action
-    toggleColor = (e: React.MouseEvent<HTMLDivElement>, color: string) => {
-        this.selectedColor = color;
-        if (color === "#ffff80") {
-            this.colorrefYellow.current.style.border = "2px solid black";
-            this.colorrefGreen.current.style.border = "2px solid #9c9396";
-            this.colorrefRed.current.style.border = "2px solid #9c9396";
-            this.colorrefBlue.current.style.border = "2px solid #9c9396";
-        }
-        if (color === "#bfff80") {
-            this.colorrefGreen.current.style.border = "2px solid black";
-            this.colorrefYellow.current.style.border = "2px solid #9c9396";
-            this.colorrefRed.current.style.border = "2px solid #9c9396";
-            this.colorrefBlue.current.style.border = "2px solid #9c9396";
-        }
-        if (color === "#ff8080") {
-            this.colorrefRed.current.style.border = "2px solid black";
-            this.colorrefGreen.current.style.border = "2px solid #9c9396";
-            this.colorrefYellow.current.style.border = "2px solid #9c9396";
-            this.colorrefBlue.current.style.border = "2px solid #9c9396";
-        }
-        if (color === "#80dfff") {
-            this.colorrefBlue.current.style.border = "2px solid black";
-            this.colorrefGreen.current.style.border = "2px solid #9c9396";
-            this.colorrefRed.current.style.border = "2px solid #9c9396";
-            this.colorrefYellow.current.style.border = "2px solid #9c9396";
-        }
-    }
+
 
     @action
     onKeyPress_Selector = (e: React.KeyboardEvent) => {
@@ -1112,73 +1039,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     private getContainerTransform = (): Transform => this.props.ScreenToLocalTransform().translate(0, 0);
 
 
-    @action.bound
-    onChange(e: React.ChangeEvent<HTMLInputElement>) {
-        this.searchString = e.target.value;
-
-    }
-
-    @action.bound
-    onChange2(e: React.ChangeEvent<HTMLInputElement>) {
-        this.searchString2 = e.target.value;
-
-    }
-
-    @action
-    enter = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === "Enter") {
-            var thing = (parseFloat(this.searchString) - parseFloat(this._values[0])) * this.barwidth / this._range;
-            if (!isNaN(thing)) {
-                if (thing > this.barwidth) {
-                    this.xmovement2 = 0;
-                }
-
-                else if (this.barwidth - thing <= this.xmovement) {
-                    this.xmovement2 = this.barwidth - this.xmovement - 1;
-                }
-
-                else {
-                    this.xmovement2 = this.barwidth - thing;
-                }
-                this.searchString = "";
-            }
-        }
-        if (e.keyCode === 9) {
-            e.preventDefault;
-            e.stopPropagation();
-
-        }
-    }
-
-    @action
-    enter2 = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === "Enter") {
-            var thing = (parseFloat(this.searchString2) - parseFloat(this._values[0])) * this.barwidth / this._range;
-            if (!isNaN(thing)) {
-                if (thing < 0) {
-                    this.xmovement = 0;
-                }
-                else if (thing >= this.barwidth - this.xmovement2) {
-                    this.xmovement = this.barwidth - this.xmovement2 - 1;
-                }
-                else {
-                    this.xmovement = thing;
-                }
-            }
-            this.searchString2 = "";
-        }
-        if (e.keyCode === 9) {
-            e.preventDefault;
-            e.stopPropagation();
-
-        }
-    }
-
-    @observable
-    searchString: string = "";
-
-    @observable
-    searchString2: string = "";
 
 
     @action
@@ -1315,68 +1175,12 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     display={"inline"}
                     height={72}
                 />
-
-
             </div >
-
-
-
         );
     }
 
 
 
-    @action
-    onPointerDown_LeftBound = (e: React.PointerEvent): void => {
-        document.addEventListener("pointermove", this.onPointerMove_LeftBound);
-        this.countingfriend++;
-
-        e.stopPropagation();
-        e.preventDefault();
-    }
-
-    @action
-    onPointerDown2_RightBound = (e: React.PointerEvent): void => {
-        document.addEventListener("pointermove", this.onPointerMove_RightBound);
-        this.countingfriend++;
-
-        e.stopPropagation();
-        e.preventDefault();
-    }
-
-    @action
-    onPointerDown_OnBar = (e: React.PointerEvent): void => {
-        document.body.style.cursor = "grabbing";
-        this.countingfriend++;
-
-        document.addEventListener("pointermove", this.onPointerMove_OnBar);
-        e.stopPropagation();
-        e.preventDefault();
-
-    }
-
-    @action
-    onPointerDown_OffBar = (e: React.PointerEvent): void => {
-        this.countingfriend++;
-
-        let temp = this.barwidth - this.xmovement2 - this.xmovement;
-        this.xmovement = e.pageX - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98;
-        if (this.xmovement < 0) {
-            this.xmovement = 0;
-        }
-        this.xmovement2 = this.barwidth - temp - this.xmovement;
-        if (this.xmovement2 < 0) {
-            this.xmovement += this.xmovement2;
-            this.xmovement2 = 0;
-        }
-        e.stopPropagation();
-        e.preventDefault();
-    }
-
-    @action
-    updateWidth() {
-        this.barwidth = this.barref.current ? this.barref.current.clientWidth : (952);
-    }
 
     @observable
     private barwidth = (this.barref.current ? this.barref.current.clientWidth : (952));
@@ -1389,76 +1193,117 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     private xmovement2 = 0;
 
 
-
     @action
-    onPointerMove_LeftBound = (e: PointerEvent): void => {
-        e.stopPropagation();
-        e.preventDefault();
-
-        let prevx = this.barwidth - this.xmovement2 - this.xmovement;
-        this.xmovement += e.movementX;
-        if (this.xmovement < 0) {
-            this.xmovement = 0;
-        }
-        if (this.xmovement > this.barwidth - this.xmovement2 - 2) {
-            this.xmovement = this.barwidth - this.xmovement2 - 4;
-        }
-        document.addEventListener("pointerup", this.onPointerUp);
-
-
+    updateWidth() {
+        this.barwidth = (this.barref.current ? this.barref.current.clientWidth : (952));
     }
 
-    @action
-    onPointerMove_RightBound = (e: PointerEvent): void => {
-        e.stopPropagation();
-        e.preventDefault();
-        this.xmovement2 -= e.movementX;
-        if (this.xmovement2 < 0) {
-            this.xmovement2 = 0;
-        }
-        if (this.xmovement2 > this.barwidth - this.xmovement - 3) {
-            this.xmovement2 = this.barwidth - this.xmovement - 3;
-        }
 
-        document.addEventListener("pointerup", this.onPointerUp);
 
+    editMarkers = action((newValue: MarkerUnit[]) => {
+        this.markers = newValue;
+    });
+
+    xmovementSet = (number: number) => {
+        this.xmovement = number;
+    }
+    xmovement2Set = (number: number) => {
+        this.xmovement2 = number;
     }
 
-    @action
-    onPointerMove_OnBar = (e: PointerEvent): void => {
-        e.stopPropagation();
-        e.preventDefault();
-        this.xmovement2 -= e.movementX;
-        this.xmovement += e.movementX;
-
-
-        if (this.xmovement2 < 0) {
-            this.xmovement2 = 0;
-            this.xmovement -= e.movementX;
-        }
-        if (this.xmovement < 0) {
-            this.xmovement = 0;
-            this.xmovement2 += e.movementX;
-        }
-
-        document.addEventListener("pointerup", this.onPointerUp);
-
+    selectedColorSet = (color: string) => {
+        this.selectedColor = color;
     }
-
-    onPointerUp = (e: PointerEvent): void => {
-        document.removeEventListener("pointermove", this.onPointerMove_LeftBound);
-        document.removeEventListener("pointermove", this.onPointerMove_RightBound);
-        document.removeEventListener("pointermove", this.onPointerMove_OnBar);
-        document.body.style.cursor = "default";
+    barwidthSet = (color: number) => {
+        this.barwidth = color;
     }
 
     render() {
         this.updateWidth();
+        this.createticks();
+        this.filtermenu();
+        this.sortmenu();
+        this.buttonloop();
+        let p: [number, number] = this._visible ? this.getContainerTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
+
+        // interface ButtonLoopProps {
+        //     editMarkers: (value: MarkerUnit[]) => void;
+        // }
+        //<ButtonLoop {...this.props} editMarkers={this.editMarkers}></ButtonLoop>*
         return (
-            <div className="collectionTimelineView" id="yeet" style={{ marginLeft: "1%", width: "98%", height: "100%" }}
-                onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
-                {this.buttonloop()}
-            </div>
+
+            < div className="collectionTimelineView" id="yeet" style={{ marginLeft: "1%", width: "98%", height: "100%" }
+            }
+                onWheel={(e: React.WheelEvent) => e.stopPropagation()
+                }>
+                <div ref={this.screenref} id="screen" ><div style={{ position: "absolute", height: "30%", width: "10%", overflow: "scroll", border: "1px solid", zIndex: 900 }}>
+                    <div id="schema-options-header"><h5><b>Sort</b></h5></div>
+                    <div id="options-flyout-div">
+                        {this.fields}
+
+
+                    </div>
+                </div>
+                    <div style={{ position: "absolute", top: "30%", height: "30%", width: "10%", overflow: "scroll", border: "1px solid", zIndex: 900 }}>
+                        <div id="schema-options-header"><h5><b>Filter</b></h5></div>
+                        {this.newdudes}
+                    </div>
+                    <div className="timeline" style={{ position: "absolute", height: "25px", width: "100%", top: String(document.body.clientHeight * 0.65 + 72) + "px", zIndex: -9999 }}>
+                        {this.ticks}
+                    </div>
+                    <div style={{ left: "10%", width: "60%", height: "60%", position: "absolute", border: "1px solid" }}>
+                        {String(this.markerDocs.length)}
+                        {/*markers.map(d => (< div ref={(el) => el ? markerUnit.ref = el : null} id={"marker" + String(this.markers.length)} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, markerUnit.ref, String(markerUnit.document.annotation), markerUnit)}
+                            style={{
+                                top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid" + (markerUnit.document.color),
+                                width: "10px", height: "30px", backgroundColor: String(d.color), opacity: "0.25", position: "absolute", left: 0,
+                            }}></div>)
+
+
+                            //this.createmarker(d)
+                        )*/}
+
+                        {/*ref={(el) => el ? ting.ref = el : null} id={"marker" + String(this.markers.length)} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, ting.ref, String(d.annotation), ting)}*/}
+                        {this.preview ? this.documentpreview2(this.preview) : (null)}
+                    </div>
+                    <div style={{ left: "70%", height: "30%", position: "absolute", border: "1px solid", width: "30%" }}>
+                        {this.preview2 ? this.documentpreview3(this.preview2) : (null)}
+                    </div>
+                    <div style={{ left: "70%", top: "30%", height: "30%", position: "absolute", border: "1px solid", width: "30%" }}>
+                        {this.documentpreview0()}
+                    </div>
+
+
+                    <BottomUI xmovement={this.xmovement}
+                        xmovement2={this.xmovement2}
+                        xmovementSet={this.xmovementSet}
+                        xmovement2Set={this.xmovement2Set}
+                        _range={this._range}
+                        barwidth={this.barwidth}
+                        _values={this._values[0]}
+                        sortstate={this.sortstate}
+                        preview4={this.preview4}
+                        selectedColor={this.selectedColor}
+                        selectedColorSet={this.selectedColorSet}
+                        barref={this.barref}
+                        barWidthSet={this.barwidthSet}>
+                    </BottomUI>
+                    <Measure onResize={() => this.updateWidth()}>
+                        {({ measureRef }) => <div ref={measureRef}> </div>}
+                    </Measure>
+                    <div className="viewpanel" style={{ top: "5%", position: "absolute", right: "10%", bottom: "35%", background: "#GGGGGG", zIndex: -55, }}></div>
+                    <div className="marqueeView" style={{ height: "40%", top: "60%", borderRadius: "inherit", position: "absolute", width: "100%", }} onClick={this.onClick_Selector} onPointerDown={this.onPointerDown_Selector} onKeyDown={this.onKeyPress_Selector}>
+                        {<div style={{ transform: `translate(${p[0]}px, ${p[1] - 0.58 * (document.body.clientHeight)}px)` }} >
+                            {this._visible ? this.marqueeDiv : null}
+                        </div>}
+                    </div>
+                    <div style={{ top: "65%", position: "absolute", bottom: "25%" }}>{this.buttons.map(item => item.button)}{this.buttons.map(item => item.header)}</div>
+
+
+                    {this.markerrender}
+
+                </div>
+            </div >
         );
     }
 }
@@ -1515,3 +1360,296 @@ export class CollectionTimelinePreview extends React.Component<CollectionTimelin
     }
 }
 
+
+
+
+
+export class BottomUI extends React.Component<BottomUIProps> {
+
+    @observable
+    searchString: string = "";
+
+    @observable
+    searchString2: string = "";
+
+
+    @action.bound
+    onChange(e: React.ChangeEvent<HTMLInputElement>) {
+        this.searchString = e.target.value;
+
+    }
+
+    @action.bound
+    onChange2(e: React.ChangeEvent<HTMLInputElement>) {
+        this.searchString2 = e.target.value;
+
+    }
+
+    @action
+    enter = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") {
+            var thing = (parseFloat(this.searchString) - parseFloat(this.props._values)) * this.props.barwidth / this.props._range;
+            if (!isNaN(thing)) {
+                if (thing > this.props.barwidth) {
+                    this.props.xmovement2Set(0);
+                }
+
+                else if (this.props.barwidth - thing <= this.props.xmovement) {
+                    this.props.xmovement2Set(this.props.barwidth - this.props.xmovement - 1);
+                }
+
+                else {
+                    this.props.xmovement2Set(this.props.barwidth - thing);
+                }
+                this.searchString = "";
+            }
+        }
+        if (e.keyCode === 9) {
+            e.preventDefault;
+            e.stopPropagation();
+
+        }
+    }
+
+    @action
+    enter2 = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") {
+            var thing = (parseFloat(this.searchString2) - parseFloat(this.props._values)) * this.props.barwidth / this.props._range;
+            if (!isNaN(thing)) {
+                if (thing < 0) {
+                    this.props.xmovementSet(0);
+                }
+                else if (thing >= this.props.barwidth - this.props.xmovement2) {
+                    this.props.xmovementSet(this.props.barwidth - this.props.xmovement2 - 1);
+                }
+                else {
+                    this.props.xmovementSet(thing);
+                }
+            }
+            this.searchString2 = "";
+        }
+        if (e.keyCode === 9) {
+            e.preventDefault;
+            e.stopPropagation();
+
+        }
+    }
+
+    @action
+    toggleColor = (e: React.MouseEvent<HTMLDivElement>, color: string) => {
+        this.props.selectedColorSet(color);
+        if (color === "#ffff80") {
+            this.colorrefYellow.current.style.border = "2px solid black";
+            this.colorrefGreen.current.style.border = "2px solid #9c9396";
+            this.colorrefRed.current.style.border = "2px solid #9c9396";
+            this.colorrefBlue.current.style.border = "2px solid #9c9396";
+        }
+        if (color === "#bfff80") {
+            this.colorrefGreen.current.style.border = "2px solid black";
+            this.colorrefYellow.current.style.border = "2px solid #9c9396";
+            this.colorrefRed.current.style.border = "2px solid #9c9396";
+            this.colorrefBlue.current.style.border = "2px solid #9c9396";
+        }
+        if (color === "#ff8080") {
+            this.colorrefRed.current.style.border = "2px solid black";
+            this.colorrefGreen.current.style.border = "2px solid #9c9396";
+            this.colorrefYellow.current.style.border = "2px solid #9c9396";
+            this.colorrefBlue.current.style.border = "2px solid #9c9396";
+        }
+        if (color === "#80dfff") {
+            this.colorrefBlue.current.style.border = "2px solid black";
+            this.colorrefGreen.current.style.border = "2px solid #9c9396";
+            this.colorrefRed.current.style.border = "2px solid #9c9396";
+            this.colorrefYellow.current.style.border = "2px solid #9c9396";
+        }
+    }
+
+
+    private colorrefYellow = React.createRef<HTMLDivElement>();
+    private colorrefGreen = React.createRef<HTMLDivElement>();
+    private colorrefRed = React.createRef<HTMLDivElement>();
+    private colorrefBlue = React.createRef<HTMLDivElement>();
+
+
+    @action
+    onPointerDown_OnBar = (e: React.PointerEvent): void => {
+        document.body.style.cursor = "grabbing";
+        //this.countingfriend++;
+
+        document.addEventListener("pointermove", this.onPointerMove_OnBar);
+        e.stopPropagation();
+        e.preventDefault();
+
+    }
+
+    @action
+    onPointerMove_OnBar = (e: PointerEvent): void => {
+        e.stopPropagation();
+        e.preventDefault();
+        this.props.xmovement2Set(this.props.xmovement2 - e.movementX);
+        this.props.xmovementSet(this.props.xmovement + e.movementX);
+
+
+        if (this.props.xmovement2 < 0) {
+            this.props.xmovement2Set(0);
+            this.props.xmovement2Set(this.props.xmovement2 - e.movementX);
+        }
+        if (this.props.xmovement < 0) {
+            this.props.xmovementSet(0);
+            this.props.xmovement2Set(this.props.xmovement2 + e.movementX);
+        }
+
+        document.addEventListener("pointerup", this.onPointerUp);
+
+    }
+
+    onPointerUp = (e: PointerEvent): void => {
+        document.removeEventListener("pointermove", this.onPointerMove_LeftBound);
+        document.removeEventListener("pointermove", this.onPointerMove_RightBound);
+        document.removeEventListener("pointermove", this.onPointerMove_OnBar);
+        document.body.style.cursor = "default";
+        // this.props.editMarkers([]);
+    }
+
+    @action
+    onPointerMove_LeftBound = (e: PointerEvent): void => {
+        e.stopPropagation();
+        e.preventDefault();
+
+        let prevx = this.props.barwidth - this.props.xmovement2 - this.props.xmovement;
+        this.props.xmovementSet(this.props.xmovement + e.movementX);
+        if (this.props.xmovement < 0) {
+            this.props.xmovementSet(0);
+        }
+        if (this.props.xmovement > this.props.barwidth - this.props.xmovement2 - 2) {
+            this.props.xmovementSet(this.props.barwidth - this.props.xmovement2 - 4);
+        }
+        document.addEventListener("pointerup", this.onPointerUp);
+
+
+    }
+
+    @action
+    onPointerMove_RightBound = (e: PointerEvent): void => {
+        e.stopPropagation();
+        e.preventDefault();
+        this.props.xmovement2Set(this.props.xmovement2 - e.movementX);
+        if (this.props.xmovement2 < 0) {
+            this.props.xmovement2Set(0);
+        }
+        if (this.props.xmovement2 > this.props.barwidth - this.props.xmovement - 3) {
+            this.props.xmovement2Set(this.props.barwidth - this.props.xmovement - 3);
+        }
+
+        document.addEventListener("pointerup", this.onPointerUp);
+
+    }
+
+    @action
+    onPointerDown_LeftBound = (e: React.PointerEvent): void => {
+        document.addEventListener("pointermove", this.onPointerMove_LeftBound);
+        //this.countingfriend++;
+
+        e.stopPropagation();
+        e.preventDefault();
+    }
+
+    @action
+    onPointerDown2_RightBound = (e: React.PointerEvent): void => {
+        document.addEventListener("pointermove", this.onPointerMove_RightBound);
+        //this.countingfriend++;
+
+        e.stopPropagation();
+        e.preventDefault();
+    }
+
+
+
+    @action
+    onPointerDown_OffBar = (e: React.PointerEvent): void => {
+        //this.countingfriend++;
+
+        let temp = this.props.barwidth - this.props.xmovement2 - this.props.xmovement;
+        this.props.xmovementSet(e.pageX - document.body.clientWidth + this.props.screenref.current!.clientWidth / 0.98);
+        if (this.props.xmovement < 0) {
+            this.props.xmovementSet(0);
+        }
+        this.props.xmovement2Set(this.props.barwidth - temp - this.props.xmovement);
+        if (this.props.xmovement2 < 0) {
+            this.props.xmovementSet(this.props.xmovement + this.props.xmovement2);
+            this.props.xmovement2Set(0);
+        }
+        e.stopPropagation();
+        e.preventDefault();
+    }
+
+
+
+    //                {this.buttons.map(item => item.map)}
+    //{this.markers.map(item => item.map)}
+    //
+
+
+    render() {
+        return (
+            <div>
+                <div className="bottomgrid" style={{ top: "85%", height: "3%", width: "100%", position: "absolute", zIndex: 1000 }}>
+                    <div className="left"> Min:
+                    <input value={this.searchString2} onChange={this.onChange2} onKeyPress={this.enter2} type="text" placeholder={String((this.props.xmovement * this.props._range / this.props.barwidth) + this.props._values)}
+                            className="searchBox-barChild searchBox-input" />
+                    </div>
+                    <div className="mid">
+                        <div ref={this.colorrefYellow} onClick={(e) => this.toggleColor(e, "#ffff80")} className="toggleYellow" style={{ position: "absolute", left: "33%", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#ffff80", border: "2px solid black" }}></div>
+                        <div ref={this.colorrefGreen} onClick={(e) => this.toggleColor(e, "#bfff80")} className="toggleGreen" style={{ position: "absolute", left: "35%", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#bfff80", border: "2px solid #9c9396" }}></div>
+                        <div ref={this.colorrefRed} onClick={(e) => this.toggleColor(e, "#ff8080")} className="toggleRed" style={{ position: "absolute", left: "37%", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#ff8080", border: "2px solid #9c9396" }}></div>
+                        <div ref={this.colorrefBlue} onClick={(e) => this.toggleColor(e, "#80dfff")} className="toggleBlue" style={{ position: "absolute", left: "39%", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#80dfff", border: "2px solid #9c9396" }}></div>
+                        {this.props.sortstate + ":" + this.props.preview4}
+                    </div>
+                    <div className="right">
+                        Max:
+                        <input value={this.searchString} onChange={this.onChange} onKeyPress={this.enter} type="text" placeholder={String(((this.props.barwidth - this.props.xmovement2) * this.props._range / this.props.barwidth) + this.props._values)}
+                            className="searchBox-barChild searchBox-input" />
+                    </div>
+
+
+                </div>
+
+
+
+                <div id="bar" ref={this.props.barref} className="backdropscroll" onPointerDown={this.onPointerDown_OffBar} style={{ zIndex: 1, top: "80%", width: "100%", bottom: "15%", position: "absolute", }}>
+
+                    <div className="v1" onPointerDown={this.onPointerDown_LeftBound} style={{ cursor: "ew-resize", position: "absolute", zIndex: 3, left: this.props.xmovement, height: "100%" }}>
+                    </div>
+                    <div className="v2" onPointerDown={this.onPointerDown2_RightBound} style={{
+                        cursor: "ew-resize",
+                        position: "absolute", right: this.props.xmovement2,
+                        height: "100%",
+                        zIndex: 3
+                    }}>
+                    </div>
+                    <div className="bar" onPointerDown={this.onPointerDown_OnBar} style={{ zIndex: 2, left: this.props.xmovement, width: this.props.barwidth - this.props.xmovement2 - this.props.xmovement, height: "100%", position: "absolute" }}>
+                    </div>
+
+
+
+                </div>
+            </div>
+        );
+    }
+}
+
+export interface BottomUIProps {
+    xmovement: number;
+    xmovement2: number;
+    xmovementSet: (number: number) => void;
+    xmovement2Set: (number: number) => void;
+    _range: number;
+    barwidth: number;
+    _values: String | number | Date;
+    sortstate: string;
+    preview4: string;
+    selectedColor: string;
+    selectedColorSet: (color: string) => void;
+    barref: React.RefObject<HTMLDivElement>;
+    barwidthSet: (number: number) => void;
+}
