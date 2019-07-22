@@ -37,6 +37,7 @@ import { RouteStore } from '../../../server/RouteStore';
 import { FormattedTextBox } from './FormattedTextBox';
 import { OverlayView } from '../OverlayView';
 import { ScriptingRepl } from '../ScriptingRepl';
+import { ClientUtils } from '../../util/ClientUtils';
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(fa.faTrash);
@@ -58,6 +59,7 @@ library.add(fa.faCrosshairs);
 library.add(fa.faDesktop);
 library.add(fa.faUnlock);
 library.add(fa.faLock);
+library.add(fa.faLaptopCode);
 
 
 // const linkSchema = createSchema({
@@ -551,17 +553,18 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 this.props.removeDocument && this.props.removeDocument(this.props.Document);
             }, icon: "window-restore"
         });
-        cm.addItem({
-            description: "Find aliases", event: async () => {
-                const aliases = await SearchUtil.GetAliasesOfDocument(this.props.Document);
-                this.props.addDocTab && this.props.addDocTab(Docs.Create.SchemaDocument(["title"], aliases, {}), undefined, "onRight"); // bcz: dataDoc?
-            }, icon: "search"
-        });
-        cm.addItem({ description: "Add Repl", event: () => OverlayView.Instance.addWindow(<ScriptingRepl />, { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" }) });
-        cm.addItem({ description: "Center View", event: () => this.props.focus(this.props.Document, false), icon: "crosshairs" });
+        // cm.addItem({
+        //     description: "Find aliases", event: async () => {
+        //         const aliases = await SearchUtil.GetAliasesOfDocument(this.props.Document);
+        //         this.props.addDocTab && this.props.addDocTab(Docs.Create.SchemaDocument(["title"], aliases, {}), undefined, "onRight"); // bcz: dataDoc?
+        //     }, icon: "search"
+        // });
+        cm.addItem({ description: "Add Repl", icon: "laptop-code", event: () => OverlayView.Instance.addWindow(<ScriptingRepl />, { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" }) });
         cm.addItem({ description: "Zoom to Document", event: () => this.props.focus(this.props.Document, true), icon: "search" });
-        cm.addItem({ description: "Copy URL", event: () => Utils.CopyText(Utils.prepend("/doc/" + this.props.Document[Id])), icon: "link" });
-        cm.addItem({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "fingerprint" });
+        if (!ClientUtils.RELEASE) {
+            cm.addItem({ description: "Copy URL", event: () => Utils.CopyText(Utils.prepend("/doc/" + this.props.Document[Id])), icon: "link" });
+            cm.addItem({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "fingerprint" });
+        }
         cm.addItem({ description: "Delete", event: this.deleteClicked, icon: "trash" });
         type User = { email: string, userDocumentId: string };
         let usersMenu: ContextMenuProps[] = [];

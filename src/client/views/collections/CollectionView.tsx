@@ -1,5 +1,5 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faProjectDiagram, faSignature, faSquare, faTh, faThList, faTree } from '@fortawesome/free-solid-svg-icons';
+import { faProjectDiagram, faSignature, faSquare, faTh, faThList, faTree, faFingerprint, faLaptopCode } from '@fortawesome/free-solid-svg-icons';
 import { observer } from "mobx-react";
 import * as React from 'react';
 import { Doc } from '../../../new_fields/Doc';
@@ -24,6 +24,7 @@ library.add(faSquare);
 library.add(faProjectDiagram);
 library.add(faSignature);
 library.add(faThList);
+library.add(faFingerprint);
 
 @observer
 export class CollectionView extends React.Component<FieldViewProps> {
@@ -55,6 +56,12 @@ export class CollectionView extends React.Component<FieldViewProps> {
             subItems.push({ description: "Schema", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Schema), icon: "th-list" });
             subItems.push({ description: "Treeview", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Tree), icon: "tree" });
             subItems.push({ description: "Stacking", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Stacking), icon: "th-list" });
+            switch (this.props.Document.viewType) {
+                case CollectionViewType.Freeform: {
+                    subItems.push({ description: "Custom", icon: "fingerprint", event: CollectionFreeFormView.AddCustomLayout(this.props.Document, this.props.fieldKey) });
+                    break;
+                }
+            }
             ContextMenu.Instance.addItem({ description: "View Modes...", subitems: subItems });
             ContextMenu.Instance.addItem({
                 description: "Apply Template", event: undoBatch(() => {

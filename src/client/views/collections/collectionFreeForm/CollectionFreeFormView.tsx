@@ -477,43 +477,44 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 }, "arrange contents");
             }
         });
-        ContextMenu.Instance.addItem({
-            description: "Add freeform arrangement",
-            event: () => {
-                let addOverlay = (key: "arrangeScript" | "arrangeInit", options: OverlayElementOptions, params?: Record<string, string>, requiredType?: string) => {
-                    let overlayDisposer: () => void = emptyFunction;
-                    const script = this.Document[key];
-                    let originalText: string | undefined = undefined;
-                    if (script) originalText = script.script.originalScript;
-                    // tslint:disable-next-line: no-unnecessary-callback-wrapper
-                    let scriptingBox = <ScriptBox initialText={originalText} onCancel={() => overlayDisposer()} onSave={(text, onError) => {
-                        const script = CompileScript(text, {
-                            params,
-                            requiredType,
-                            typecheck: false
-                        });
-                        if (!script.compiled) {
-                            onError(script.errors.map(error => error.messageText).join("\n"));
-                            return;
-                        }
-                        const docs = DocListCast(this.Document[this.props.fieldKey]);
-                        docs.map(d => d.transition = "transform 1s");
-                        this.Document[key] = new ScriptField(script);
-                        overlayDisposer();
-                        setTimeout(() => docs.map(d => d.transition = undefined), 1200);
-                    }} />;
-                    overlayDisposer = OverlayView.Instance.addWindow(scriptingBox, options);
-                };
-                addOverlay("arrangeInit", { x: 400, y: 100, width: 400, height: 300, title: "Layout Initialization" }, { collection: "Doc", docs: "Doc[]" }, undefined);
-                addOverlay("arrangeScript", { x: 400, y: 500, width: 400, height: 300, title: "Layout Script" }, { doc: "Doc", index: "number", collection: "Doc", state: "any", docs: "Doc[]" }, "{x: number, y: number, width?: number, height?: number}");
-            }
-        });
     }
 
     private childViews = () => [
         <CollectionFreeFormBackgroundView key="backgroundView" {...this.props} {...this.getDocumentViewProps(this.props.Document)} />,
         ...this.views
     ]
+
+    public static AddCustomLayout(doc: Doc, dataKey: string): () => void {
+        return () => {
+            let addOverlay = (key: "arrangeScript" | "arrangeInit", options: OverlayElementOptions, params?: Record<string, string>, requiredType?: string) => {
+                let overlayDisposer: () => void = emptyFunction;
+                const script = Cast(doc[key], ScriptField);
+                let originalText: string | undefined = undefined;
+                if (script) originalText = script.script.originalScript;
+                // tslint:disable-next-line: no-unnecessary-callback-wrapper
+                let scriptingBox = <ScriptBox initialText={originalText} onCancel={() => overlayDisposer()} onSave={(text, onError) => {
+                    const script = CompileScript(text, {
+                        params,
+                        requiredType,
+                        typecheck: false
+                    });
+                    if (!script.compiled) {
+                        onError(script.errors.map(error => error.messageText).join("\n"));
+                        return;
+                    }
+                    const docs = DocListCast(doc[dataKey]);
+                    docs.map(d => d.transition = "transform 1s");
+                    doc[key] = new ScriptField(script);
+                    overlayDisposer();
+                    setTimeout(() => docs.map(d => d.transition = undefined), 1200);
+                }} />;
+                overlayDisposer = OverlayView.Instance.addWindow(scriptingBox, options);
+            };
+            addOverlay("arrangeInit", { x: 400, y: 100, width: 400, height: 300, title: "Layout Initialization" }, { collection: "Doc", docs: "Doc[]" }, undefined);
+            addOverlay("arrangeScript", { x: 400, y: 500, width: 400, height: 300, title: "Layout Script" }, { doc: "Doc", index: "number", collection: "Doc", state: "any", docs: "Doc[]" }, "{x: number, y: number, width?: number, height?: number}");
+        };
+    }
+
     render() {
         const easing = () => this.props.Document.panTransformType === "Ease";
 
