@@ -12,6 +12,7 @@ import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { Cast, FieldValue, StrCast } from "../../../new_fields/Types";
 import { RouteStore } from "../../RouteStore";
+import { Utils } from "../../../Utils";
 
 export class CurrentUserUtils {
     private static curr_email: string;
@@ -74,7 +75,7 @@ export class CurrentUserUtils {
     }
 
     public static loadCurrentUser() {
-        return rp.get(DocServer.prepend(RouteStore.getCurrUser)).then(response => {
+        return rp.get(Utils.prepend(RouteStore.getCurrUser)).then(response => {
             if (response) {
                 const result: { id: string, email: string } = JSON.parse(response);
                 return result;
@@ -87,7 +88,7 @@ export class CurrentUserUtils {
     public static async loadUserDocument({ id, email }: { id: string, email: string }) {
         this.curr_id = id;
         this.curr_email = email;
-        await rp.get(DocServer.prepend(RouteStore.getUserDocumentId)).then(id => {
+        await rp.get(Utils.prepend(RouteStore.getUserDocumentId)).then(id => {
             if (id) {
                 return DocServer.GetRefField(id).then(async field => {
                     if (field instanceof Doc) {

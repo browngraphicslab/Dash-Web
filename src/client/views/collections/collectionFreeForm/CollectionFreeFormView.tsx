@@ -4,7 +4,7 @@ import { Doc, DocListCastAsync, HeightSym, WidthSym, DocListCast } from "../../.
 import { Id } from "../../../../new_fields/FieldSymbols";
 import { InkField, StrokeData } from "../../../../new_fields/InkField";
 import { createSchema, makeInterface } from "../../../../new_fields/Schema";
-import { BoolCast, Cast, FieldValue, NumCast } from "../../../../new_fields/Types";
+import { BoolCast, Cast, FieldValue, NumCast, StrCast } from "../../../../new_fields/Types";
 import { emptyFunction, returnOne } from "../../../../Utils";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { DragManager } from "../../../util/DragManager";
@@ -263,11 +263,11 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         const newPanX = Math.min((1 - 1 / scale) * this.nativeWidth, Math.max(0, panX));
         const newPanY = Math.min((1 - 1 / scale) * this.nativeHeight, Math.max(0, panY));
         this.props.Document.panX = this.isAnnotationOverlay ? newPanX : panX;
-        this.props.Document.panY = this.isAnnotationOverlay ? newPanY : panY;
+        this.props.Document.panY = this.isAnnotationOverlay && StrCast(this.props.Document.backgroundLayout).indexOf("PDFBox") === -1 ? newPanY : panY;
         // this.props.Document.panX = panX;
         // this.props.Document.panY = panY;
         if (this.props.Document.scrollY) {
-            this.props.Document.scrollY = panY;
+            this.props.Document.scrollY = panY - scale * this.props.Document[HeightSym]();
         }
     }
 
@@ -429,7 +429,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         let docviews = docs.reduce((prev, doc) => {
             if (!(doc instanceof Doc)) return prev;
             var page = NumCast(doc.page, -1);
-            if (Math.round(page) === Math.round(curPage) || page === -1) {
+            if ((Math.abs(Math.round(page) - Math.round(curPage)) < 3) || page === -1) {
                 let minim = BoolCast(doc.isMinimized, false);
                 if (minim === undefined || !minim) {
                     const pos = script ? this.getCalculatedPositions(script, { doc, index: prev.length, collection: this.Document, docs, state }) : {};
@@ -502,10 +502,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         overlayDisposer();
                         setTimeout(() => docs.map(d => d.transition = undefined), 1200);
                     }} />;
-                    overlayDisposer = OverlayView.Instance.addElement(scriptingBox, options);
+                    overlayDisposer = OverlayView.Instance.addWindow(scriptingBox, options);
                 };
-                addOverlay("arrangeInit", { x: 400, y: 100, width: 400, height: 300 }, { collection: "Doc", docs: "Doc[]" }, undefined);
-                addOverlay("arrangeScript", { x: 400, y: 500, width: 400, height: 300 }, { doc: "Doc", index: "number", collection: "Doc", state: "any", docs: "Doc[]" }, "{x: number, y: number, width?: number, height?: number}");
+                addOverlay("arrangeInit", { x: 400, y: 100, width: 400, height: 300, title: "Layout Initialization" }, { collection: "Doc", docs: "Doc[]" }, undefined);
+                addOverlay("arrangeScript", { x: 400, y: 500, width: 400, height: 300, title: "Layout Script" }, { doc: "Doc", index: "number", collection: "Doc", state: "any", docs: "Doc[]" }, "{x: number, y: number, width?: number, height?: number}");
             }
         });
     }

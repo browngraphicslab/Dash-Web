@@ -1,6 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faImage } from '@fortawesome/free-solid-svg-icons';
-import { action, observable, computed } from 'mobx';
+import { faImage, faFileAudio } from '@fortawesome/free-solid-svg-icons';
+import { action, observable, computed, runInAction } from 'mobx';
 import { observer } from "mobx-react";
 import Lightbox from 'react-image-lightbox';
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
@@ -8,7 +8,7 @@ import { Doc, HeightSym, WidthSym, DocListCast } from '../../../new_fields/Doc';
 import { List } from '../../../new_fields/List';
 import { createSchema, listSpec, makeInterface } from '../../../new_fields/Schema';
 import { Cast, FieldValue, NumCast, StrCast, BoolCast } from '../../../new_fields/Types';
-import { ImageField } from '../../../new_fields/URLField';
+import { ImageField, AudioField } from '../../../new_fields/URLField';
 import { Utils } from '../../../Utils';
 import { DragManager } from '../../util/DragManager';
 import { undoBatch } from '../../util/UndoManager';
@@ -23,11 +23,15 @@ import React = require("react");
 import { RouteStore } from '../../../server/RouteStore';
 import { Docs } from '../../documents/Documents';
 import { DocServer } from '../../DocServer';
+import { Font } from '@react-pdf/renderer';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 var requestImageSize = require('../../util/request-image-size');
 var path = require('path');
+const { Howl, Howler } = require('howler');
 
 
 library.add(faImage);
+library.add(faFileAudio);
 
 
 export const pageSchema = createSchema({
@@ -161,12 +165,12 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
             recorder.ondataavailable = async function (e: any) {
                 const formData = new FormData();
                 formData.append("file", e.data);
-                const res = await fetch(DocServer.prepend(RouteStore.upload), {
+                const res = await fetch(Utils.prepend(RouteStore.upload), {
                     method: 'POST',
                     body: formData
                 });
                 const files = await res.json();
-                const url = DocServer.prepend(files[0]);
+                const url = Utils.prepend(files[0]);
                 // upload to server with known URL 
                 let audioDoc = Docs.Create.AudioDocument(url, { title: "audio test", x: NumCast(self.props.Document.x), y: NumCast(self.props.Document.y), width: 200, height: 32 });
                 audioDoc.embed = true;
@@ -177,10 +181,11 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                     audioAnnos.push(audioDoc);
                 }
             };
+            runInAction(() => self._audioState = 2);
             recorder.start();
             setTimeout(() => {
                 recorder.stop();
-
+                runInAction(() => self._audioState = 0);
                 gumStream.getAudioTracks()[0].stop();
             }, 5000);
         });
@@ -254,7 +259,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     _curSuffix = "_m";
 
     resize(srcpath: string, layoutdoc: Doc) {
-        requestImageSize(window.origin + RouteStore.corsProxy + "/" + srcpath)
+        requestImageSize(srcpath)
             .then((size: any) => {
                 let aspect = size.height / size.width;
                 let rotation = NumCast(this.dataDoc.rotation) % 180;
@@ -272,6 +277,48 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
             });
     }
 
+    @observable _audioState = 0;
+
+    @action
+    onPointerEnter = () => {
+        let self = this;
+        let audioAnnos = DocListCast(this.extensionDoc.audioAnnotations);
+        if (audioAnnos.length && this._audioState === 0) {
+            let anno = audioAnnos[Math.floor(Math.random() * audioAnnos.length)];
+            anno.data instanceof AudioField && new Howl({
+                src: [anno.data.url.href],
+                format: ["mp3"],
+                autoplay: true,
+                loop: false,
+                volume: 0.5,
+                onend: function () {
+                    runInAction(() => self._audioState = 0);
+                }
+            });
+            this._audioState = 1;
+        }
+        // else {
+        //     if (this._audioState === 0) {
+        //         this._audioState = 1;
+        //         new Howl({
+        //             src: ["https://www.kozco.com/tech/piano2-CoolEdit.mp3"],
+        //             autoplay: true,
+        //             loop: false,
+        //             volume: 0.5,
+        //             onend: function () {
+        //                 runInAction(() => self._audioState = 0);
+        //             }
+        //         });
+        //     }
+        // }
+    }
+
+    @action
+    audioDown = () => {
+        this.recordAudioAnnotation();
+    }
+
+
     render() {
         // let transform = this.props.ScreenToLocalTransform().inverse();
         let pw = typeof this.props.PanelWidth === "function" ? this.props.PanelWidth() : typeof this.props.PanelWidth === "number" ? (this.props.PanelWidth as any) as number : 50;
@@ -282,7 +329,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         let id = (this.props as any).id; // bcz: used to set id = "isExpander" in templates.tsx
         let nativeWidth = FieldValue(this.Document.nativeWidth, pw);
         let nativeHeight = FieldValue(this.Document.nativeHeight, 0);
-        let paths: string[] = ["http://www.cs.brown.edu/~bcz/noImage.png"];
+        let paths: string[] = [Utils.CorsProxy("http://www.cs.brown.edu/~bcz/noImage.png")];
         // this._curSuffix = "";
         // if (w > 20) {
         Doc.UpdateDocumentExtensionForField(this.dataDoc, this.props.fieldKey);
@@ -311,11 +358,18 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                     key={this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
                     src={srcpath}
                     style={{ transform: `translate(0px, ${shift}px) rotate(${rotation}deg) scale(${aspect})` }}
-                    // style={{ objectFit: (this.Document.curPage === 0 ? undefined : "contain") }}
                     width={nativeWidth}
                     ref={this._imgRef}
                     onError={this.onError} />
                 {paths.length > 1 ? this.dots(paths) : (null)}
+                <div className="imageBox-audioBackground"
+                    onPointerDown={this.audioDown}
+                    onPointerEnter={this.onPointerEnter}
+                    style={{ height: `calc(${.1 * nativeHeight / nativeWidth * 100}%)` }}
+                >
+                    <FontAwesomeIcon className="imageBox-audioFont"
+                        style={{ color: [DocListCast(this.extensionDoc.audioAnnotations).length ? "blue" : "gray", "green", "red"][this._audioState] }} icon={faFileAudio} size="sm" />
+                </div>
                 {/* {this.lightbox(paths)} */}
             </div>);
     }

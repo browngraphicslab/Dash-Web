@@ -19,6 +19,7 @@ import { CollectionDockingView } from "../views/collections/CollectionDockingVie
 import { DocumentManager } from "./DocumentManager";
 import { Id } from "../../new_fields/FieldSymbols";
 import { FormattedTextBoxProps } from "../views/nodes/FormattedTextBox";
+import { Utils } from "../../Utils";
 
 //appears above a selection of text in a RichTextBox to give user options such as Bold, Italics, etc.
 export class TooltipTextMenu {
@@ -212,8 +213,8 @@ export class TooltipTextMenu {
                 let link = node && node.marks.find(m => m.type.name === "link");
                 if (link) {
                     let href: string = link.attrs.href;
-                    if (href.indexOf(DocServer.prepend("/doc/")) === 0) {
-                        let docid = href.replace(DocServer.prepend("/doc/"), "");
+                    if (href.indexOf(Utils.prepend("/doc/")) === 0) {
+                        let docid = href.replace(Utils.prepend("/doc/"), "");
                         DocServer.GetRefField(docid).then(action((f: Opt<Field>) => {
                             if (f instanceof Doc) {
                                 if (DocumentManager.Instance.getDocumentView(f)) {
@@ -239,6 +240,8 @@ export class TooltipTextMenu {
             this.linkDrag.onpointerdown = (e: PointerEvent) => {
                 let dragData = new DragManager.LinkDragData(this.editorProps.Document);
                 dragData.dontClearTextBox = true;
+                // hack to get source context -sy
+                let docView = DocumentManager.Instance.getDocumentView(this.editorProps.Document);
                 e.stopPropagation();
                 let ctrlKey = e.ctrlKey;
                 DragManager.StartLinkDrag(this.linkDrag!, dragData, e.clientX, e.clientY,
@@ -247,7 +250,11 @@ export class TooltipTextMenu {
                             dragComplete: action(() => {
                                 // let m = dragData.droppedDocuments;
                                 let linkDoc = dragData.linkDocument;
-                                linkDoc instanceof Doc && this.makeLink(DocServer.prepend("/doc/" + linkDoc[Id]), ctrlKey ? "onRight" : "inTab");
+                                let proto = Doc.GetProto(linkDoc);
+                                if (docView && docView.props.ContainingCollectionView) {
+                                    proto.sourceContext = docView.props.ContainingCollectionView.props.Document;
+                                }
+                                linkDoc instanceof Doc && this.makeLink(Utils.prepend("/doc/" + linkDoc[Id]), ctrlKey ? "onRight" : "inTab");
                             }),
                         },
                         hideSource: false

@@ -28,6 +28,7 @@ import { RichTextField } from '../../new_fields/RichTextField';
 import { LinkManager } from '../util/LinkManager';
 import { ObjectField } from '../../new_fields/ObjectField';
 import { MetadataEntryMenu } from './MetadataEntryMenu';
+import { ImageBox } from './nodes/ImageBox';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -85,8 +86,13 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 SelectionManager.DeselectAll();
                 let fieldTemplate = fieldTemplateView.props.Document;
                 let docTemplate = fieldTemplateView.props.ContainingCollectionView!.props.Document;
-                let metaKey = text.slice(1, text.length);
-                Doc.MakeTemplate(fieldTemplate, metaKey, Doc.GetProto(docTemplate));
+                let metaKey = text.startsWith(">>") ? text.slice(2, text.length) : text.slice(1, text.length);
+                let proto = Doc.GetProto(docTemplate);
+                Doc.MakeTemplate(fieldTemplate, metaKey, proto);
+                if (text.startsWith(">>")) {
+                    proto.detailedLayout = proto.layout;
+                    proto.miniLayout = ImageBox.LayoutString(metaKey);
+                }
             }
             else {
                 if (SelectionManager.SelectedDocuments().length > 0) {
@@ -534,7 +540,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                         doc.width = actualdW;
                         if (fixedAspect) doc.height = nheight / nwidth * doc.width;
                         else doc.height = actualdH;
-                        Doc.SetInPlace(element.props.Document, "nativeHeight", (doc.height || 0) / doc.width * (doc.nativeWidth || 0), true);
                     }
                     else {
                         if (!fixedAspect) {
@@ -543,7 +548,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                         doc.height = actualdH;
                         if (fixedAspect) doc.width = nwidth / nheight * doc.height;
                         else doc.width = actualdW;
-                        Doc.SetInPlace(element.props.Document, "nativeWidth", (doc.width || 0) / doc.height * (doc.nativeHeight || 0), true);
                     }
                 } else {
                     dW && (doc.width = actualdW);

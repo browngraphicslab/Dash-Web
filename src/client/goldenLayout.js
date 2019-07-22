@@ -3995,9 +3995,11 @@
             lm.items.AbstractContentItem.prototype.removeChild.call(this, contentItem, keepChild);
 
             if (this.contentItems.length === 1 && this.config.isClosable === true) {
-                childItem = this.contentItems[0];
-                this.contentItems = [];
-                this.parent.replaceChild(this, childItem, true);
+                // bcz: this has the effect of removing children from the DOM and then re-adding them above where they were before.
+                //      in the case of things like an iFrame with a YouTube video, the video will reload for now reason.  So let's try leaving these "empty" rows alone.
+                // childItem = this.contentItems[0];
+                // this.contentItems = [];
+                // this.parent.replaceChild(this, childItem, true);
             } else {
                 this.callDownwards('setSize');
                 this.emitBubblingEvent('stateChanged');

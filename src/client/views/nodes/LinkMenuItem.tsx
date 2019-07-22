@@ -32,16 +32,28 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     @undoBatch
     onFollowLink = async (e: React.PointerEvent): Promise<void> => {
         e.stopPropagation();
+        e.persist();
         let jumpToDoc = this.props.destinationDoc;
         let pdfDoc = FieldValue(Cast(this.props.destinationDoc, Doc));
         if (pdfDoc) {
             jumpToDoc = pdfDoc;
         }
+        let proto = Doc.GetProto(this.props.linkDoc);
+        let targetContext = await Cast(proto.targetContext, Doc);
+        let sourceContext = await Cast(proto.sourceContext, Doc);
+        let self = this;
         if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
-            let self = this;
             DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, undefined, undefined, NumCast((this.props.destinationDoc === self.props.linkDoc.anchor2 ? self.props.linkDoc.anchor2Page : self.props.linkDoc.anchor1Page)));
+        }
+        else if (!((this.props.destinationDoc === self.props.linkDoc.anchor2 && targetContext) || (this.props.destinationDoc === self.props.linkDoc.anchor1 && sourceContext))) {
+            DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, document => CollectionDockingView.Instance.AddRightSplit(document, undefined));
         } else {
-            CollectionDockingView.Instance.AddRightSplit(jumpToDoc, undefined);
+            if (this.props.destinationDoc === self.props.linkDoc.anchor2 && targetContext) {
+                DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, document => CollectionDockingView.Instance.AddRightSplit(targetContext!, undefined));
+            }
+            else if (this.props.destinationDoc === self.props.linkDoc.anchor1 && sourceContext) {
+                DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, document => CollectionDockingView.Instance.AddRightSplit(sourceContext!, undefined));
+            }
         }
     }
 

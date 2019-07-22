@@ -4,23 +4,18 @@ import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
 import * as rp from "request-promise";
 import { Dictionary } from "typescript-collections";
-import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../new_fields/Doc";
+import { Doc, DocListCast, Opt } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
-import { BoolCast, Cast, NumCast, StrCast, FieldValue } from "../../../new_fields/Types";
-import { emptyFunction } from "../../../Utils";
-import { DocServer } from "../../DocServer";
-import { Docs, DocUtils, DocumentOptions } from "../../documents/Documents";
-import { DocumentManager } from "../../util/DocumentManager";
+import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { emptyFunction, Utils } from "../../../Utils";
+import { Docs, DocUtils } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
-import { DocumentView } from "../nodes/DocumentView";
-import { PDFBox, handleBackspace } from "../nodes/PDFBox";
+import { PDFBox } from "../nodes/PDFBox";
 import Page from "./Page";
 import "./PDFViewer.scss";
 import React = require("react");
-import PDFMenu from "./PDFMenu";
-import { UndoManager } from "../../util/UndoManager";
-import { CompileScript, CompiledScript, CompileResult } from "../../util/Scripting";
+import { CompileScript, CompileResult } from "../../util/Scripting";
 import { ScriptField } from "../../../new_fields/ScriptField";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Annotation from "./Annotation";
@@ -90,16 +85,12 @@ export class Viewer extends React.Component<IViewerProps> {
     private _annotationReactionDisposer?: IReactionDisposer;
     private _dropDisposer?: DragManager.DragDropDisposer;
     private _filterReactionDisposer?: IReactionDisposer;
-    private _activeReactionDisposer?: IReactionDisposer;
     private _viewer: React.RefObject<HTMLDivElement>;
     private _mainCont: React.RefObject<HTMLDivElement>;
     private _pdfViewer: any;
     // private _textContent: Pdfjs.TextContent[] = [];
     private _pdfFindController: any;
     private _searchString: string = "";
-    private _rendered: boolean = false;
-    private _pageIndex: number = -1;
-    private _matchIndex: number = 0;
 
     constructor(props: IViewerProps) {
         super(props);
@@ -135,23 +126,6 @@ export class Viewer extends React.Component<IViewerProps> {
             },
             { fireImmediately: true });
 
-        this._activeReactionDisposer = reaction(
-            () => this.props.parent.props.active(),
-            () => {
-                runInAction(() => {
-                    if (!this.props.parent.props.active()) {
-                        this._searching = false;
-                        this._pdfFindController = null;
-                        if (this._viewer.current) {
-                            let cns = this._viewer.current.childNodes;
-                            for (let i = cns.length - 1; i >= 0; i--) {
-                                cns.item(i).remove();
-                            }
-                        }
-                    }
-                });
-            }
-        );
 
         if (this.props.parent.props.ContainingCollectionView) {
             this._filterReactionDisposer = reaction(
@@ -192,7 +166,9 @@ export class Viewer extends React.Component<IViewerProps> {
     }
 
     scrollTo(y: number) {
-        this.props.parent.scrollTo(y);
+        if (this.props.mainCont.current) {
+            this.props.parent.scrollTo(y - this.props.mainCont.current.clientHeight);
+        }
     }
 
     @action
@@ -344,12 +320,12 @@ export class Viewer extends React.Component<IViewerProps> {
             this._isPage[page] = "image";
             const address = this.props.url;
             try {
-                let res = JSON.parse(await rp.get(DocServer.prepend(`/thumbnail${address.substring("files/".length, address.length - ".pdf".length)}-${page + 1}.PNG`)));
+                let res = JSON.parse(await rp.get(Utils.prepend(`/thumbnail${address.substring("files/".length, address.length - ".pdf".length)}-${page + 1}.PNG`)));
                 runInAction(() => this._visibleElements[page] =
                     <img key={res.path} src={res.path} onError={handleError}
                         style={{ width: `${parseInt(res.width) * scale}px`, height: `${parseInt(res.height) * scale}px` }} />);
             } catch (e) {
-
+                console.log(e);
             }
         }
     }
@@ -474,7 +450,6 @@ export class Viewer extends React.Component<IViewerProps> {
                             phraseSearch: true,
                             query: searchString
                         });
-                    this._rendered = true;
                 });
                 container.addEventListener("pagerendered", () => {
                     console.log("rendered");
@@ -486,7 +461,6 @@ export class Viewer extends React.Component<IViewerProps> {
                             phraseSearch: true,
                             query: searchString
                         });
-                    this._rendered = true;
                 });
             }
         }
@@ -561,7 +535,6 @@ export class Viewer extends React.Component<IViewerProps> {
                     });
                     container.addEventListener("pagerendered", () => {
                         console.log("rendered");
-                        this._rendered = true;
                     });
                     this._pdfViewer.setDocument(this.props.pdf);
                     this._pdfFindController = new PDFJSViewer.PDFFindController(this._pdfViewer);
@@ -701,17 +674,17 @@ class SimpleLinkService {
     externalLinkRel: any = null;
     pdf: any = null;
 
-    navigateTo(dest: any) { }
+    navigateTo() { }
 
-    getDestinationHash(dest: any) { return "#"; }
+    getDestinationHash() { return "#"; }
 
-    getAnchorUrl(hash: any) { return "#"; }
+    getAnchorUrl() { return "#"; }
 
-    setHash(hash: any) { }
+    setHash() { }
 
-    executeNamedAction(action: any) { }
+    executeNamedAction() { }
 
-    cachePageRef(pageNum: any, pageRef: any) { }
+    cachePageRef() { }
 
     get pagesCount() {
         return this.pdf ? this.pdf.numPages : 0;

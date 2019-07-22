@@ -35,6 +35,7 @@ import "./FormattedTextBox.scss";
 import React = require("react");
 import { DateField } from '../../../new_fields/DateField';
 import { thisExpression } from 'babel-types';
+import { Utils } from '../../../Utils';
 
 library.add(faEdit);
 library.add(faSmile);
@@ -232,10 +233,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 return field ? field.Data : `{"doc":{"type":"doc","content":[]},"selection":{"type":"text","anchor":0,"head":0}}`;
             },
             field2 => {
-                if (StrCast(this.props.Document.layout).indexOf("\"" + this.props.fieldKey + "\"") !== -1) { // bcz: UGH!  why is this needed... something is happening out of order.  test with making a collection, then adding a text note and converting that to a template field.
-                    this._editorView && !this._applyingChange &&
-                        this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field2)));
-                }
+                this._editorView && !this._applyingChange &&
+                    this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field2)));
             }
         );
 
@@ -303,18 +302,29 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         let ctrlKey = e.ctrlKey;
         if (e.button === 0 && ((!this.props.isSelected() && !e.ctrlKey) || (this.props.isSelected() && e.ctrlKey)) && !e.metaKey && e.target) {
             let href = (e.target as any).href;
-            let location = (e.target as any).attributes.location.value;
+            let location: string;
+            if ((e.target as any).attributes.location) {
+                location = (e.target as any).attributes.location.value;
+            }
             for (let parent = (e.target as any).parentNode; !href && parent; parent = parent.parentNode) {
                 href = parent.childNodes[0].href ? parent.childNodes[0].href : parent.href;
             }
             if (href) {
-                if (href.indexOf(DocServer.prepend("/doc/")) === 0) {
-                    this._linkClicked = href.replace(DocServer.prepend("/doc/"), "").split("?")[0];
+                if (href.indexOf(Utils.prepend("/doc/")) === 0) {
+                    this._linkClicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
                     if (this._linkClicked) {
                         DocServer.GetRefField(this._linkClicked).then(async linkDoc => {
                             if (linkDoc instanceof Doc) {
                                 let proto = Doc.GetProto(linkDoc);
                                 let targetContext = await Cast(proto.targetContext, Doc);
+                                let jumpToDoc = await Cast(linkDoc.anchor2, Doc);
+                                if (jumpToDoc) {
+                                    if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
+
+                                        DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, undefined, undefined, NumCast((jumpToDoc === linkDoc.anchor2 ? linkDoc.anchor2Page : linkDoc.anchor1Page)));
+                                        return;
+                                    }
+                                }
                                 if (targetContext) {
                                     DocumentManager.Instance.jumpToDocument(targetContext, ctrlKey, false, document => this.props.addDocTab(document, undefined, location ? location : "inTab"));
                                 }

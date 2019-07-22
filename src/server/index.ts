@@ -113,7 +113,7 @@ function addSecureRoute(method: Method,
         if (req.user) {
             handler(req.user, res, req);
         } else {
-            req.session!.target = `${req.headers.host}${req.originalUrl}`;
+            req.session!.target = req.originalUrl;
             onRejection(res, req);
         }
     };
@@ -147,12 +147,13 @@ app.get("/pull", (req, res) =>
 // GETTERS
 
 app.get("/search", async (req, res) => {
-    const { query, filterQuery, start, rows } = req.query;
-    if (query === undefined) {
+    const solrQuery: any = {};
+    ["q", "fq", "start", "rows", "hl", "hl.fl"].forEach(key => solrQuery[key] = req.query[key]);
+    if (solrQuery.q === undefined) {
         res.send([]);
         return;
     }
-    let results = await Search.Instance.search(query, filterQuery, start, rows);
+    let results = await Search.Instance.search(solrQuery);
     res.send(results);
 });
 
@@ -181,11 +182,10 @@ app.get("/whosOnline", (req, res) => {
 
     res.send(users);
 });
-
 app.get("/thumbnail/:filename", (req, res) => {
     let filename = req.params.filename;
     let noExt = filename.substring(0, filename.length - ".png".length);
-    let pagenumber = parseInt(noExt[noExt.length - 1]);
+    let pagenumber = parseInt(noExt.split('-')[1]);
     fs.exists(uploadDir + filename, (exists: boolean) => {
         console.log(`${uploadDir + filename} ${exists ? "exists" : "does not exist"}`);
         if (exists) {
@@ -193,14 +193,14 @@ app.get("/thumbnail/:filename", (req, res) => {
             probe(input, (err: any, result: any) => {
                 if (err) {
                     console.log(err);
-                    console.log(filename);
+                    console.log(`error on ${filename}`);
                     return;
                 }
                 res.send({ path: "/files/" + filename, width: result.width, height: result.height });
             });
         }
         else {
-            LoadPage(uploadDir + filename.substring(0, filename.length - "-n.png".length) + ".pdf", pagenumber, res);
+            LoadPage(uploadDir + filename.substring(0, filename.length - noExt.split('-')[1].length - ".PNG".length - 1) + ".pdf", pagenumber, res);
         }
     });
 });
@@ -347,38 +347,6 @@ app.post(
                     });
                     isImage = true;
                 }
-                else if (pdfTypes.includes(ext)) {
-                    // Pdfjs.getDocument(uploadDir + file).promise
-                    //     .then((pdf: Pdfjs.PDFDocumentProxy) => {
-                    //         let numPages = pdf.numPages;
-                    //         let factory = new NodeCanvasFactory();
-                    //         for (let pageNum = 0; pageNum < numPages; pageNum++) {
-                    //             console.log(pageNum);
-                    //             pdf.getPage(pageNum + 1).then((page: Pdfjs.PDFPageProxy) => {
-                    //                 console.log("reading " + pageNum);
-                    //                 let viewport = page.getViewport(1);
-                    //                 let canvasAndContext = factory.create(viewport.width, viewport.height);
-                    //                 let renderContext = {
-                    //                     canvasContext: canvasAndContext.context,
-                    //                     viewport: viewport,
-                    //                     canvasFactory: factory
-                    //                 }
-                    //                 console.log("read " + pageNum);
-
-                    //                 page.render(renderContext).promise
-                    //                     .then(() => {
-                    //                         console.log("saving " + pageNum);
-                    //                         let stream = canvasAndContext.canvas.createPNGStream();
-                    //                         let out = fs.createWriteStream(uploadDir + file.substring(0, file.length - ext.length) + `-${pageNum + 1}.PNG`);
-                    //                         stream.pipe(out);
-                    //                         out.on("finish", () => console.log(`Success! Saved to ${uploadDir + file.substring(0, file.length - ext.length) + `-${pageNum + 1}.PNG`}`));
-                    //                     }, (reason: string) => {
-                    //                         console.error(reason + ` ${pageNum}`);
-                    //                     });
-                    //             });
-                    //         }
-                    //     });
-                }
                 if (isImage) {
                     resizers.forEach(resizer => {
                         fs.createReadStream(uploadDir + file).pipe(resizer.resizer).pipe(fs.createWriteStream(uploadDir + file.substring(0, file.length - ext.length) + resizer.suffix + ext));
@@ -452,7 +420,7 @@ app.get(RouteStore.reset, getReset);
 app.post(RouteStore.reset, postReset);
 
 app.use(RouteStore.corsProxy, (req, res) =>
-    req.pipe(request(req.url.substring(1))).pipe(res));
+    req.pipe(request(decodeURIComponent(req.url.substring(1)))).pipe(res));
 
 app.get(RouteStore.delete, (req, res) => {
     if (release) {

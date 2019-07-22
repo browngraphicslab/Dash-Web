@@ -9,12 +9,12 @@ import { Docs } from '../../documents/Documents';
 import { NumCast, Cast } from '../../../new_fields/Types';
 import { Doc } from '../../../new_fields/Doc';
 import { SearchItem } from './SearchItem';
-import { DocServer } from '../../DocServer';
 import * as rp from 'request-promise';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { SearchUtil } from '../../util/SearchUtil';
 import { RouteStore } from '../../../server/RouteStore';
 import { FilterBox } from './FilterBox';
+import { Utils } from '../../../Utils';
 
 
 @observer
@@ -23,8 +23,8 @@ export class SearchBox extends React.Component {
     @observable private _searchString: string = "";
     @observable private _resultsOpen: boolean = false;
     @observable private _searchbarOpen: boolean = false;
-    @observable private _results: Doc[] = [];
-    private _resultsSet = new Set<Doc>();
+    @observable private _results: [Doc, string[]][] = [];
+    private _resultsSet = new Map<Doc, number>();
     @observable private _openNoResults: boolean = false;
     @observable private _visibleElements: JSX.Element[] = [];
 
@@ -74,7 +74,7 @@ export class SearchBox extends React.Component {
 
     public static async convertDataUri(imageUri: string, returnedFilename: string) {
         try {
-            let posting = DocServer.prepend(RouteStore.dataUriToImage);
+            let posting = Utils.prepend(RouteStore.dataUriToImage);
             const returnedUri = await rp.post(posting, {
                 body: {
                     uri: imageUri,
@@ -119,7 +119,7 @@ export class SearchBox extends React.Component {
     }
 
     getAllResults = async (query: string) => {
-        return SearchUtil.Search(query, this.filterQuery, true, 0, 10000000);
+        return SearchUtil.Search(query, true, { fq: this.filterQuery, start: 0, rows: 10000000 });
     }
 
     private get filterQuery() {
@@ -136,21 +136,30 @@ export class SearchBox extends React.Component {
         }
         this.lockPromise = new Promise(async res => {
             while (this._results.length <= this._endIndex && (this._numTotalResults === -1 || this._maxSearchIndex < this._numTotalResults)) {
-                this._curRequest = SearchUtil.Search(query, this.filterQuery, true, this._maxSearchIndex, 10).then(action(async (res: SearchUtil.DocSearchResult) => {
+                this._curRequest = SearchUtil.Search(query, true, { fq: this.filterQuery, start: this._maxSearchIndex, rows: 10, hl: true, "hl.fl": "*" }).then(action(async (res: SearchUtil.DocSearchResult) => {
 
                     // happens at the beginning
                     if (res.numFound !== this._numTotalResults && this._numTotalResults === -1) {
                         this._numTotalResults = res.numFound;
                     }
 
-                    const docs = await Promise.all(res.docs.map(doc => Cast(doc.extendsDoc, Doc, doc as any)));
+                    const highlighting = res.highlighting || {};
+                    const highlightList = res.docs.map(doc => highlighting[doc[Id]]);
+                    const docs = await Promise.all(res.docs.map(async doc => (await Cast(doc.extendsDoc, Doc)) || doc));
+                    const highlights: typeof res.highlighting = {};
+                    docs.forEach((doc, index) => highlights[doc[Id]] = highlightList[index]);
                     let filteredDocs = FilterBox.Instance.filterDocsByType(docs);
                     runInAction(() => {
                         // this._results.push(...filteredDocs);
                         filteredDocs.forEach(doc => {
-                            if (!this._resultsSet.has(doc)) {
-                                this._results.push(doc);
-                                this._resultsSet.add(doc);
+                            const index = this._resultsSet.get(doc);
+                            const highlight = highlights[doc[Id]];
+                            const hlights = highlight ? Object.keys(highlight).map(key => key.substring(0, key.length - 2)) : [];
+                            if (index === undefined) {
+                                this._resultsSet.set(doc, this._results.length);
+                                this._results.push([doc, hlights]);
+                            } else {
+                                this._results[index][1].push(...hlights);
                             }
                         });
                     });
@@ -274,19 +283,19 @@ export class SearchBox extends React.Component {
             }
             else {
                 if (this._isSearch[i] !== "search") {
-                    let result: Doc | undefined = undefined;
+                    let result: [Doc, string[]] | undefined = undefined;
                     if (i >= this._results.length) {
                         this.getResults(this._searchString);
                         if (i < this._results.length) result = this._results[i];
                         if (result) {
-                            this._visibleElements[i] = <SearchItem doc={result} key={result[Id]} />;
+                            this._visibleElements[i] = <SearchItem doc={result[0]} key={result[0][Id]} highlighting={result[1]} />;
                             this._isSearch[i] = "search";
                         }
                     }
                     else {
                         result = this._results[i];
                         if (result) {
-                            this._visibleElements[i] = <SearchItem doc={result} key={result[Id]} />;
+                            this._visibleElements[i] = <SearchItem doc={result[0]} key={result[0][Id]} highlighting={result[1]} />;
                             this._isSearch[i] = "search";
                         }
                     }
