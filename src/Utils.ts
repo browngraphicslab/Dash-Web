@@ -146,7 +146,7 @@ export type Without<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
 
 export type Predicate<K, V> = (entry: [K, V]) => boolean;
 
-export function deepCopy<K, V>(source: Map<K, V>, predicate?: Predicate<K, V>) {
+export function DeepCopy<K, V>(source: Map<K, V>, predicate?: Predicate<K, V>) {
     let deepCopy = new Map<K, V>();
     let entries = source.entries(), next = entries.next();
     while (!next.done) {
@@ -157,4 +157,18 @@ export function deepCopy<K, V>(source: Map<K, V>, predicate?: Predicate<K, V>) {
         next = entries.next();
     }
     return deepCopy;
+}
+
+export namespace JSONUtils {
+
+    export function tryParse(source: string) {
+        let results: any;
+        try {
+            results = JSON.parse(source);
+        } catch (e) {
+            results = source;
+        }
+        return results;
+    }
+
 }
