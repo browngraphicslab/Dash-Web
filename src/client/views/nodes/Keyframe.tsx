@@ -4,7 +4,7 @@ import "./Timeline.scss";
 import "./../globalCssVariables.scss";
 import { observer, Observer } from "mobx-react";
 import { observable, reaction, action, IReactionDisposer, observe, IObservableArray, computed, toJS, isComputedProp } from "mobx";
-import { Doc, DocListCast } from "../../../new_fields/Doc";
+import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
 import { Cast, FieldValue, StrCast, NumCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { createSchema, defaultSpec, makeInterface, listSpec } from "../../../new_fields/Schema";
@@ -76,8 +76,6 @@ interface IProps {
 export class Keyframe extends React.Component<IProps> {
 
     @observable private _bar = React.createRef<HTMLDivElement>();    
-    @observable private _firstkf: (Doc | undefined) = undefined; 
-    @observable private _lastkf: (Doc | undefined) = undefined; 
 
     @computed
     private get regiondata() {
@@ -89,7 +87,6 @@ export class Keyframe extends React.Component<IProps> {
     private get regions() {
         return Cast(this.props.node.regions, listSpec(Doc)) as List<Doc>;
     }    
-
 
     @computed
     private get firstKeyframe(){
@@ -126,12 +123,11 @@ export class Keyframe extends React.Component<IProps> {
 
 
     @action
-    componentDidMount() {
-                    
-            let fadeIn = this.makeKeyData(this.regiondata.position + this.regiondata.fadeIn, KeyframeFunc.KeyframeType.fade)!; 
-            let fadeOut = this.makeKeyData(this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut, KeyframeFunc.KeyframeType.fade)!;   
-            let start = this.makeKeyData(this.regiondata.position, KeyframeFunc.KeyframeType.fade)!;
-            let finish = this.makeKeyData(this.regiondata.position + this.regiondata.duration, KeyframeFunc.KeyframeType.fade)!; 
+    async componentDidMount() {
+            let fadeIn = await this.makeKeyData(this.regiondata.position + this.regiondata.fadeIn, KeyframeFunc.KeyframeType.fade)!; 
+            let fadeOut = await this.makeKeyData(this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut, KeyframeFunc.KeyframeType.fade)!;   
+            let start = await this.makeKeyData(this.regiondata.position, KeyframeFunc.KeyframeType.fade)!;
+            let finish = await this.makeKeyData(this.regiondata.position + this.regiondata.duration, KeyframeFunc.KeyframeType.fade)!; 
             (fadeIn.key! as Doc).opacity = 1; 
             (fadeOut.key! as Doc).opacity = 1;  
             (start.key! as Doc) .opacity = 0.1; 
@@ -158,19 +154,27 @@ export class Keyframe extends React.Component<IProps> {
         }); 
     }
 
+
     @action
-    makeKeyData = (kfpos: number, type:KeyframeFunc.KeyframeType = KeyframeFunc.KeyframeType.default) => { //Kfpos is mouse offsetX, representing time 
-        DocListCast(this.regiondata.keyframes!).forEach(TK => { //TK is TimeAndKey
-            if (TK.time === kfpos) {
-                return TK; 
-            }
-        });
+    makeKeyData = async (kfpos: number, type:KeyframeFunc.KeyframeType = KeyframeFunc.KeyframeType.default) => { //Kfpos is mouse offsetX, representing time 
+        let doclist = await DocListCastAsync(this.regiondata.keyframes!);
+        let existingkf:(Doc | undefined) = undefined; 
+        if (doclist) {        
+            doclist.forEach(TK => { //TK is TimeAndKey
+                if (TK.time === kfpos) {
+                    existingkf =  TK; 
+                }
+            });
+        }
+        if (existingkf) {
+            return existingkf; 
+        } 
         let TK: Doc = new Doc();
         TK.time = kfpos; 
         TK.key = Doc.MakeCopy(this.props.node, true); 
         TK.type = type;            
         this.regiondata.keyframes!.push(TK);
-        return TK; 
+        return TK;   
     }
 
     @action
@@ -297,9 +301,11 @@ export class Keyframe extends React.Component<IProps> {
         e.stopPropagation();
         let bar = this._bar.current!; 
         let offset = e.clientX - bar.getBoundingClientRect().left; 
-        let position = NumCast(this.regiondata.position);            
-        let tk = this.makeKeyData(Math.round(position + offset));           
-        this.props.changeCurrentBarX(NumCast(Math.round(position + offset))); //first move the keyframe to the correct location and make a copy so the correct file gets coppied
+        if (offset > this.regiondata.fadeIn && offset < this.regiondata.duration - this.regiondata.fadeOut) { //make sure keyframe is not created inbetween fades and ends
+            let position = NumCast(this.regiondata.position);            
+            this.makeKeyData(Math.round(position + offset));           
+            this.props.changeCurrentBarX(NumCast(Math.round(position + offset))); //first move the keyframe to the correct location and make a copy so the correct file gets coppied
+        }
     }
 
     @action 

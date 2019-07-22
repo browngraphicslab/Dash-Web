@@ -74,8 +74,7 @@ export class Timeline extends CollectionSubView(Document) {
 
     componentDidMount() {
         if (StrCast(this.props.Document.type) === "video") {
-            let dv = DocumentManager.Instance.getDocumentView(this.props.Document); 
-            console.log(toJS(dv)); 
+      
         }   
         runInAction(() => {
             reaction(() => {
