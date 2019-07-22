@@ -19,6 +19,27 @@ li:hover {
     display: inline-flex;
     height: 175px;
 
+    .video_duration {
+        margin: 0;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        display: inline-block;
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        margin: 4px;
+        color: #FFFFFF;
+        background-color: rgba(0, 0, 0, 0.80);
+        padding: 2px 4px;
+        border-radius: 2px;
+        letter-spacing: .5px;
+        font-size: 1.2rem;
+        font-weight: 500;
+        line-height: 1.2rem;
+
+    }
+
     .textual_info {
         font-family: Arial, Helvetica, sans-serif;
 
@@ -67,6 +88,22 @@ li:hover {
 
         .publish_time {
             //display: inline-block;
+            margin-left: 8px;
+            padding: 0;
+            border: 0;
+            background: transparent;
+            color: #606060;
+            max-width: 100%;
+            line-height: 1.8rem;
+            max-height: 3.6rem;
+            overflow: hidden;
+            font-size: 1.3rem;
+            font-weight: 400;
+            text-transform: none;
+        }
+
+        .viewCount {
+
             margin-left: 8px;
             padding: 0;
             border: 0;

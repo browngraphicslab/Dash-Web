@@ -168,6 +168,10 @@ export namespace DocServer {
         Utils.EmitCallback(_socket, MessageStore.YoutubeApiQuery, { type: YoutubeQueryTypes.SearchVideo, userInput: videoTitle }, callBack);
     }
 
+    export function getYoutubeVideoDetails(videoIds: string, callBack: (videoDetails: any[]) => void) {
+        Utils.EmitCallback(_socket, MessageStore.YoutubeApiQuery, { type: YoutubeQueryTypes.VideoDetails, videoIds: videoIds }, callBack);
+    }
+
 
     /**
      * Given a list of Doc GUIDs, this utility function will asynchronously attempt to each id's associated

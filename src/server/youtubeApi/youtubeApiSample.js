@@ -33,6 +33,10 @@ module.exports.authorizedGetVideos = (apiKey, userInput, callBack) => {
     authorize(JSON.parse(apiKey), getSampleVideos, { userInput: userInput, callBack: callBack });
 }
 
+module.exports.authorizedGetVideoDetails = (apiKey, videoIds, callBack) => {
+    authorize(JSON.parse(apiKey), getVideoDetails, { videoIds: videoIds, callBack: callBack });
+}
+
 
 /**
  * Create an OAuth2 client with the given credentials, and then execute the
@@ -155,5 +159,22 @@ function getSampleVideos(auth, args) {
         let videos = response.data.items;
         console.log('Videos found: ' + videos[0].id.videoId, " ", unescape(videos[0].snippet.title));
         args.callBack(videos);
+    });
+}
+
+function getVideoDetails(auth, args) {
+    let service = google.youtube('v3');
+    service.videos.list({
+        auth: auth,
+        part: 'contentDetails, statistics',
+        id: args.videoIds
+    }, function (err, response) {
+        if (err) {
+            console.log('The API returned an error: ' + err);
+            return;
+        }
+        let videoDetails = response.data.items;
+        console.log('Video Details founds: ', videoDetails);
+        args.callBack(videoDetails);
     });
 }

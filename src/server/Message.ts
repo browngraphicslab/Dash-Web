@@ -25,12 +25,13 @@ export interface Transferable {
 }
 
 export enum YoutubeQueryTypes {
-    Channels, SearchVideo
+    Channels, SearchVideo, VideoDetails
 }
 
 export interface YoutubeQueryInput {
     readonly type: YoutubeQueryTypes;
     readonly userInput?: string;
+    readonly videoIds?: string;
 }
 
 export interface Reference {

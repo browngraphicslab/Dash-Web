@@ -537,6 +537,8 @@ function HandleYoutubeQuery([query, callback]: [YoutubeQueryInput, (result?: any
             break;
         case YoutubeQueryType.SearchVideo:
             YoutubeApi.authorizedGetVideos(youtubeApiKey, query.userInput, callback);
+        case YoutubeQueryType.VideoDetails:
+            YoutubeApi.authorizedGetVideoDetails(youtubeApiKey, query.videoIds, callback);
     }
 }
 

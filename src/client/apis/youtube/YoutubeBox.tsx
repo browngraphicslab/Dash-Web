@@ -26,12 +26,15 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
     @observable videoClicked: boolean = false;
     @observable selectedVideoUrl: string = "";
     @observable lisOfBackUp: JSX.Element[] = [];
+    @observable videoIds: string | undefined;
+    @observable videoDetails: any[] = [];
 
 
     public static LayoutString() { return FieldView.LayoutString(YoutubeBox); }
 
     async componentWillMount() {
         //DocServer.getYoutubeChannels();
+        //DocServer.getYoutubeVideoDetails("Ks-_Mh1QhMc, 1NmvhSmN2uM", (results: any[]) => console.log("Details results: ", results));
         let castedBackUpDocs = Cast(this.props.Document.cachedSearch, listSpec(Doc));
         if (!castedBackUpDocs) {
             this.props.Document.cachedSearch = castedBackUpDocs = new List<Doc>();
@@ -95,11 +98,26 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
         this.searchResults = videos;
         if (this.searchResults.length > 0) {
             this.searchResultsFound = true;
+            this.videoIds = "";
+            videos.forEach((video) => {
+                if (this.videoIds === "") {
+                    this.videoIds = video.id.videoId;
+                } else {
+                    this.videoIds = this.videoIds! + ", " + video.id.videoId;
+                }
+            });
+            DocServer.getYoutubeVideoDetails(this.videoIds, this.processVideoDetails);
             this.backUpSearchResults(videos);
             if (this.videoClicked) {
                 this.videoClicked = false;
             }
         }
+    }
+
+    @action
+    processVideoDetails = (videoDetails: any[]) => {
+        this.videoDetails = videoDetails;
+        console.log("Detail Res: ", this.videoDetails);
     }
 
     backUpSearchResults = (videos: any[]) => {
@@ -190,28 +208,64 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
         }
     }
 
+    convertIsoTimeToDuration = (isoDur: string) => {
+
+        let convertedTime = isoDur.replace(/D|H|M/g, ":").replace(/P|T|S/g, "").split(":");
+
+        if (1 === convertedTime.length) {
+            2 !== convertedTime[0].length && (convertedTime[0] = "0" + convertedTime[0]), convertedTime[0] = "0:" + convertedTime[0];
+        } else {
+            for (var r = 1, l = convertedTime.length - 1; l >= r; r++) {
+                2 !== convertedTime[r].length && (convertedTime[r] = "0" + convertedTime[r]);
+            }
+        }
+
+        return convertedTime.join(":");
+    }
+
+    abbreviateViewCount = (viewCount: number) => {
+        if (viewCount < 1000) {
+            return viewCount.toString();
+        } else if (viewCount >= 1000 && viewCount < 1000000) {
+            return (Math.trunc(viewCount / 1000)) + "K";
+        } else if (viewCount >= 1000000 && viewCount < 1000000000) {
+            return (Math.trunc(viewCount / 1000000)) + "M";
+        } else if (viewCount >= 1000000000) {
+            return (Math.trunc(viewCount / 1000000000)) + "B";
+        }
+    }
+
     renderSearchResultsOrVideo = () => {
         if (this.searchResultsFound) {
             if (this.searchResults.length !== 0) {
                 return <ul>
-                    {this.searchResults.map((video) => {
+                    {this.searchResults.map((video, index) => {
                         let filteredTitle = this.filterYoutubeTitleResult(video.snippet.title);
                         let channelTitle = video.snippet.channelTitle;
                         let videoDescription = video.snippet.description;
                         let pusblishDate = this.roundPublishTime2(video.snippet.publishedAt);
-                        // let duration = video.contentDetails.duration;
-                        //let viewCount = video.statistics.viewCount;
+                        let duration;
+                        let viewCount;
+                        if (this.videoDetails.length !== 0) {
+                            duration = this.convertIsoTimeToDuration(this.videoDetails[index].contentDetails.duration);
+                            viewCount = this.abbreviateViewCount(this.videoDetails[index].statistics.viewCount);
+                        }
                         //this.roundPublishTime(pusblishDate);
                         //this.roundPublishTime2(video.snippet.publishedAt);
+
                         return <li onClick={() => this.embedVideoOnClick(video.id.videoId, filteredTitle)} key={Utils.GenerateGuid()}>
                             <div className="search_wrapper">
-                                <img src={video.snippet.thumbnails.medium.url} />
+                                <div style={{ backgroundColor: "yellow" }}>
+                                    <img src={video.snippet.thumbnails.medium.url} />
+                                    <span className="video_duration">{duration}</span>
+                                </div>
                                 <div className="textual_info">
                                     <span className="videoTitle">{filteredTitle}</span>
                                     <span className="channelName">{channelTitle}</span>
+                                    <span className="viewCount">{viewCount}</span>
                                     <span className="publish_time">{pusblishDate}</span>
-                                    {/* <h6 className="viewCount">{viewCount}</h6> */}
                                     <p className="video_description">{videoDescription}</p>
+
                                 </div>
                             </div>
                         </li>;
