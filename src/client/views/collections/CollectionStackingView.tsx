@@ -14,6 +14,7 @@ import { DragManager } from "../../util/DragManager";
 import { DocumentType } from "../../documents/Documents";
 import { Transform } from "../../util/Transform";
 import { CursorProperty } from "csstype";
+import { CollectionStackingViewFieldColumn } from "./CollectionStackingViewFieldColumn";
 
 @observer
 export class CollectionStackingView extends CollectionSubView(doc => doc) {
@@ -35,8 +36,13 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         let fields = new Map<object, Doc[]>();
         sectionFilter && this.filteredChildren.map(d => {
             let sectionValue = (d[sectionFilter] ? d[sectionFilter] : "-undefined-") as object;
-            if (!fields.has(sectionValue)) fields.set(sectionValue, [d]);
-            else fields.get(sectionValue)!.push(d);
+            let parsed = parseInt(sectionValue.toString());
+            let castedSectionValue: any = sectionValue;
+            if (!isNaN(parsed)) {
+                castedSectionValue = parsed;
+            }
+            if (!fields.has(castedSectionValue)) fields.set(castedSectionValue, [d]);
+            else fields.get(castedSectionValue)!.push(d);
         });
         return fields;
     }
@@ -66,7 +72,9 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
 
     getDisplayDoc(layoutDoc: Doc, d: Doc, dxf: () => Transform) {
         let resolvedDataDoc = !this.props.Document.isTemplate && this.props.DataDoc !== this.props.Document ? this.props.DataDoc : undefined;
-        let width = () => d.nativeWidth ? Math.min(layoutDoc[WidthSym](), this.columnWidth) : this.columnWidth;
+        let headings = Array.from(this.Sections.keys());
+        let uniqueHeadings = headings.map((i, idx) => headings.indexOf(i) === idx);
+        let width = () => (d.nativeWidth ? Math.min(layoutDoc[WidthSym](), this.columnWidth) : this.columnWidth) / (uniqueHeadings.length + 1);
         let height = () => this.getDocHeight(layoutDoc);
         let finalDxf = () => dxf().scale(this.columnWidth / layoutDoc[WidthSym]());
         return <CollectionSchemaPreview
@@ -94,49 +102,6 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         let aspect = nw && nh ? nh / nw : 1;
         let wid = Math.min(d[WidthSym](), this.columnWidth);
         return (nw && nh) ? wid * aspect : d[HeightSym]();
-    }
-
-    offsetTransform(doc: Doc, translateX: number, translateY: number) {
-        let outerXf = Utils.GetScreenTransform(this._masonryGridRef!);
-        let offset = this.props.ScreenToLocalTransform().transformDirection(outerXf.translateX - translateX, outerXf.translateY - translateY);
-        return this.props.ScreenToLocalTransform().translate(offset[0], offset[1]).scale(NumCast(doc.width, 1) / this.columnWidth);
-    }
-    getDocTransform(doc: Doc, dref: HTMLDivElement) {
-        let { scale, translateX, translateY } = Utils.GetScreenTransform(dref);
-        return this.offsetTransform(doc, translateX, translateY);
-    }
-
-    getSingleDocTransform(doc: Doc, ind: number, width: number) {
-        let localY = this.filteredChildren.reduce((height, d, i) =>
-            height + (i < ind ? this.getDocHeight(Doc.expandTemplateLayout(d, this.props.DataDoc)) + this.gridGap : 0), this.yMargin);
-        let translate = this.props.ScreenToLocalTransform().inverse().transformPoint((this.props.PanelWidth() - width) / 2, localY);
-        return this.offsetTransform(doc, translate[0], translate[1]);
-    }
-
-    children(docs: Doc[]) {
-        this._docXfs.length = 0;
-        return docs.map((d, i) => {
-            let layoutDoc = Doc.expandTemplateLayout(d, this.props.DataDoc);
-            let width = () => d.nativeWidth ? Math.min(layoutDoc[WidthSym](), this.columnWidth) : this.columnWidth;
-            let height = () => this.getDocHeight(layoutDoc);
-            if (this.singleColumn) {
-                //have to add the height of all previous single column sections or the doc decorations will be in the wrong place.
-                let dxf = () => this.getSingleDocTransform(layoutDoc, i, width());
-                let rowHgtPcnt = height();
-                this._docXfs.push({ dxf: dxf, width: width, height: height });
-                return <div className="collectionStackingView-columnDoc" key={d[Id]} style={{ width: width(), marginTop: i === 0 ? 0 : this.gridGap, height: `${rowHgtPcnt}` }} >
-                    {this.getDisplayDoc(layoutDoc, d, dxf)}
-                </div>;
-            } else {
-                let dref = React.createRef<HTMLDivElement>();
-                let dxf = () => this.getDocTransform(layoutDoc, dref.current!);
-                let rowSpan = Math.ceil((height() + this.gridGap) / this.gridGap);
-                this._docXfs.push({ dxf: dxf, width: width, height: height });
-                return <div className="collectionStackingView-masonryDoc" key={d[Id]} ref={dref} style={{ gridRowEnd: `span ${rowSpan}` }} >
-                    {this.getDisplayDoc(layoutDoc, d, dxf)}
-                </div>;
-            }
-        });
     }
 
     columnDividerDown = (e: React.PointerEvent) => {
@@ -218,30 +183,37 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             }
         });
     }
-    section(heading: string, docList: Doc[]) {
-        let cols = this.singleColumn ? 1 : Math.max(1, Math.min(this.filteredChildren.length,
+    section = (heading: string, docList: Doc[]) => {
+        let key = StrCast(this.props.Document.sectionFilter);
+        let types = docList.map(d => typeof d[key]);
+        let type: "string" | "number" | "bigint" | "boolean" | "symbol" | "undefined" | "object" | "function" | undefined = undefined;
+        if (types.map((i, idx) => types.indexOf(i) === idx).length === 1) {
+            type = types[0];
+        }
+        let parsed = parseInt(heading);
+        if (!isNaN(parsed)) {
+            heading = parsed.toString();
+        }
+        let cols = () => this.singleColumn ? 1 : Math.max(1, Math.min(this.filteredChildren.length,
             Math.floor((this.props.PanelWidth() - 2 * this.xMargin) / (this.columnWidth + this.gridGap))));
-        let templatecols = "";
-        for (let i = 0; i < cols; i++) templatecols += `${this.columnWidth}px `;
-        return <div key={heading}>
-            {heading ? <div key={`${heading}`} className="collectionStackingView-sectionHeader">{heading}</div> : (null)}
-            <div key={`${heading}-stack`} className={`collectionStackingView-masonry${this.singleColumn ? "Single" : "Grid"}`}
-                style={{
-                    padding: this.singleColumn ? `${this.yMargin}px ${this.xMargin}px ${this.yMargin}px ${this.xMargin}px` : `${this.yMargin}px ${this.xMargin}px`,
-                    margin: "auto",
-                    width: this.singleColumn ? undefined : `${cols * (this.columnWidth + this.gridGap) + 2 * this.xMargin - this.gridGap}px`,
-                    height: 'max-content',
-                    position: "relative",
-                    gridGap: this.gridGap,
-                    gridTemplateColumns: this.singleColumn ? undefined : templatecols,
-                    gridAutoRows: this.singleColumn ? undefined : "0px"
-                }}
-            >
-                {this.children(docList)}
-                {this.singleColumn ? (null) : this.columnDragger}
-            </div></div>;
+        return <CollectionStackingViewFieldColumn
+            cols={cols}
+            headings={() => Array.from(this.Sections.keys())}
+            heading={heading}
+            docList={docList}
+            parent={this}
+            type={type}
+            createDropTarget={this.createDropTarget} />;
     }
+
+    @action
+    addGroup = () => {
+
+    }
+
     render() {
+        let headings = Array.from(this.Sections.keys());
+        let uniqueHeadings = headings.map((i, idx) => headings.indexOf(i) === idx);
         return (
             <div className="collectionStackingView"
                 ref={this.createRef} onDrop={this.onDrop.bind(this)} onWheel={(e: React.WheelEvent) => e.stopPropagation()} >
@@ -249,9 +221,14 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     ["width > height", this.filteredChildren.filter(f => f[WidthSym]() >= 1 + f[HeightSym]())],
                     ["width = height", this.filteredChildren.filter(f => Math.abs(f[WidthSym]() - f[HeightSym]()) < 1)],
                     ["height > width", this.filteredChildren.filter(f => f[WidthSym]() + 1 <= f[HeightSym]())]]. */}
-                {this.props.Document.sectionFilter ? Array.from(this.Sections.entries()).
+                {this.props.Document.sectionFilter ? Array.from(this.Sections.entries()).sort((a, b) => a[0].toString() > b[0].toString() ? 1 : -1).
                     map(section => this.section(section[0].toString(), section[1] as Doc[])) :
                     this.section("", this.filteredChildren)}
+                {this.props.Document.sectionFilter ?
+                    <div key={`${this.props.Document[Id]}-addGroup`} className="collectionStackingView-addGroupButton"
+                        style={{ width: this.columnWidth / (uniqueHeadings.length + 1), marginTop: 10 }}>
+                        <button style={{ width: "100%" }} onClick={this.addGroup}>+ Add a Group</button>
+                    </div> : null}
             </div>
         );
     }
