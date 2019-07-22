@@ -1,5 +1,8 @@
 .scriptingRepl-outerContainer {
     background-color: whitesmoke;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 .scriptingRepl-resultContainer {
@@ -8,4 +11,40 @@
 
 .scriptingRepl-commandInput {
     width: 100%;
+}
+
+.scriptingRepl-commandResult,
+.scriptingRepl-commandString {
+    overflow-wrap: break-word;
+}
+
+.scriptingRepl-commandsContainer {
+    flex: 1 1 auto;
+    overflow-y: scroll;
+}
+
+.documentIcon-outerDiv {
+    background-color: white;
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 25%;
+    padding: 2px;
+}
+
+.scriptingObject-icon {
+    padding: 3px;
+    cursor: pointer;
+}
+
+.scriptingObject-iconCollapsed {
+    padding-left: 4px;
+    padding-right: 5px;
+}
+
+.scriptingObject-fields {
+    padding-left: 10px;
+}
+
+.scriptingObject-leaf {
+    margin-left: 15px;
 }

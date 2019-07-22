@@ -25,16 +25,16 @@ export interface OverlayWindowProps {
 export class OverlayWindow extends React.Component<OverlayWindowProps> {
     @observable x: number;
     @observable y: number;
-    @observable width?: number;
-    @observable height?: number;
+    @observable width: number;
+    @observable height: number;
     constructor(props: OverlayWindowProps) {
         super(props);
 
         const opts = props.overlayOptions;
         this.x = opts.x;
         this.y = opts.y;
-        this.width = opts.width;
-        this.height = opts.height;
+        this.width = opts.width || 200;
+        this.height = opts.height || 200;
     }
 
     onPointerDown = (_: React.PointerEvent) => {
@@ -44,15 +44,37 @@ export class OverlayWindow extends React.Component<OverlayWindowProps> {
         document.addEventListener("pointerup", this.onPointerUp);
     }
 
+    onResizerPointerDown = (_: React.PointerEvent) => {
+        document.removeEventListener("pointermove", this.onResizerPointerMove);
+        document.removeEventListener("pointerup", this.onResizerPointerUp);
+        document.addEventListener("pointermove", this.onResizerPointerMove);
+        document.addEventListener("pointerup", this.onResizerPointerUp);
+    }
+
     @action
     onPointerMove = (e: PointerEvent) => {
         this.x += e.movementX;
+        this.x = Math.max(Math.min(this.x, window.innerWidth - this.width), 0);
         this.y += e.movementY;
+        this.y = Math.max(Math.min(this.y, window.innerHeight - this.height), 0);
+    }
+
+    @action
+    onResizerPointerMove = (e: PointerEvent) => {
+        this.width += e.movementX;
+        this.width = Math.max(this.width, 30);
+        this.height += e.movementY;
+        this.height = Math.max(this.height, 30);
     }
 
     onPointerUp = (e: PointerEvent) => {
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
+    }
+
+    onResizerPointerUp = (e: PointerEvent) => {
+        document.removeEventListener("pointermove", this.onResizerPointerMove);
+        document.removeEventListener("pointerup", this.onResizerPointerUp);
     }
 
     render() {
@@ -62,7 +84,10 @@ export class OverlayWindow extends React.Component<OverlayWindowProps> {
                     {this.props.overlayOptions.title || "Untitled"}
                     <button onClick={this.props.onClick} className="overlayWindow-closeButton">X</button>
                 </div>
-                {this.props.children}
+                <div className="overlayWindow-content">
+                    {this.props.children}
+                </div>
+                <div className="overlayWindow-resizeDragger" onPointerDown={this.onResizerPointerDown}></div>
             </div>
         );
     }
@@ -87,8 +112,23 @@ export class OverlayView extends React.Component {
             const index = this._elements.indexOf(ele);
             if (index !== -1) this._elements.splice(index, 1);
         });
-        ele = <OverlayWindow onClick={remove} key={Utils.GenerateGuid()} overlayOptions={options}>{ele}</OverlayWindow>;
+        ele = <div key={Utils.GenerateGuid()} className="overlayView-wrapperDiv" style={{
+            transform: `translate(${options.x}px, ${options.y}px)`,
+            width: options.width,
+            height: options.height
+        }}>{ele}</div>;
         this._elements.push(ele);
+        return remove;
+    }
+
+    @action
+    addWindow(contents: JSX.Element, options: OverlayElementOptions): OverlayDisposer {
+        const remove = action(() => {
+            const index = this._elements.indexOf(contents);
+            if (index !== -1) this._elements.splice(index, 1);
+        });
+        contents = <OverlayWindow onClick={remove} key={Utils.GenerateGuid()} overlayOptions={options}>{contents}</OverlayWindow>;
+        this._elements.push(contents);
         return remove;
     }
 
