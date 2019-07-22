@@ -450,6 +450,7 @@ export namespace Docs {
          * @param title an optional title to give to the highest parent document in the hierarchy
          */
         export function DocumentHierarchyFromJson(input: any, title?: string): Opt<Doc>;
+        export function DocumentHierarchyFromJson(input: string, title?: string): Opt<Doc>;
         export function DocumentHierarchyFromJson(input: string, title?: string): Opt<Doc> {
             // preliminary check - making a document out of null or undefined is meaningless
             if (input === null || input === undefined) {
