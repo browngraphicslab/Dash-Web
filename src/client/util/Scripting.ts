@@ -1,5 +1,7 @@
-// import * as ts from "typescript"
-let ts = (window as any).ts;
+import * as ts from "typescript";
+export { ts };
+// export const ts = (window as any).ts;
+
 // // @ts-ignore
 // import * as typescriptlib from '!!raw-loader!../../../node_modules/typescript/lib/lib.d.ts'
 // // @ts-ignore
@@ -55,13 +57,35 @@ export namespace Scripting {
         }
         scriptingGlobals[n] = obj;
     }
+
+    export function makeMutableGlobalsCopy(globals?: { [name: string]: any }) {
+        return { ..._scriptingGlobals, ...(globals || {}) };
+    }
+
+    export function setScriptingGlobals(globals: { [key: string]: any }) {
+        scriptingGlobals = globals;
+    }
+
+    export function resetScriptingGlobals() {
+        scriptingGlobals = _scriptingGlobals;
+    }
+
+    // const types = Object.keys(ts.SyntaxKind).map(kind => ts.SyntaxKind[kind]);
+    export function printNodeType(node: any, indentation = "") {
+        console.log(indentation + ts.SyntaxKind[node.kind]);
+    }
+
+    export function getGlobals() {
+        return Object.keys(scriptingGlobals);
+    }
 }
 
 export function scriptingGlobal(constructor: { new(...args: any[]): any }) {
     Scripting.addGlobal(constructor);
 }
 
-const scriptingGlobals: { [name: string]: any } = {};
+const _scriptingGlobals: { [name: string]: any } = {};
+let scriptingGlobals: { [name: string]: any } = _scriptingGlobals;
 
 function Run(script: string | undefined, customParams: string[], diagnostics: any[], originalScript: string, options: ScriptOptions): CompileResult {
     const errors = diagnostics.some(diag => diag.category === ts.DiagnosticCategory.Error);
@@ -162,6 +186,8 @@ class ScriptingCompilerHost {
     }
 }
 
+export type Traverser = (node: ts.Node, indentation: string) => boolean | void;
+export type TraverserParam = Traverser | { onEnter: Traverser, onLeave: Traverser };
 export interface ScriptOptions {
     requiredType?: string;
     addReturn?: boolean;
@@ -169,10 +195,23 @@ export interface ScriptOptions {
     capturedVariables?: { [name: string]: Field };
     typecheck?: boolean;
     editable?: boolean;
+    traverser?: TraverserParam;
+    transformer?: ts.TransformerFactory<ts.SourceFile>;
+    globals?: { [name: string]: any };
+}
+
+// function forEachNode(node:ts.Node, fn:(node:any) => void);
+function forEachNode(node: ts.Node, onEnter: Traverser, onExit?: Traverser, indentation = "") {
+    return onEnter(node, indentation) || ts.forEachChild(node, (n: any) => {
+        forEachNode(n, onEnter, onExit, indentation + "    ");
+    }) || (onExit && onExit(node, indentation));
 }
 
 export function CompileScript(script: string, options: ScriptOptions = {}): CompileResult {
     const { requiredType = "", addReturn = false, params = {}, capturedVariables = {}, typecheck = true } = options;
+    if (options.globals) {
+        Scripting.setScriptingGlobals(options.globals);
+    }
     let host = new ScriptingCompilerHost;
     let paramNames: string[] = [];
     if ("this" in params || "this" in capturedVariables) {
@@ -192,10 +231,27 @@ export function CompileScript(script: string, options: ScriptOptions = {}): Comp
         paramList.push(`${key}: ${capturedVariables[key].constructor.name}`);
     }
     let paramString = paramList.join(", ");
+    if (options.traverser) {
+        const sourceFile = ts.createSourceFile('script.ts', script, ts.ScriptTarget.ES2015, true);
+        const onEnter = typeof options.traverser === "object" ? options.traverser.onEnter : options.traverser;
+        const onLeave = typeof options.traverser === "object" ? options.traverser.onLeave : undefined;
+        forEachNode(sourceFile, onEnter, onLeave);
+    }
+    if (options.transformer) {
+        const sourceFile = ts.createSourceFile('script.ts', script, ts.ScriptTarget.ES2015, true);
+        const result = ts.transform(sourceFile, [options.transformer]);
+        const transformed = result.transformed;
+        const printer = ts.createPrinter({
+            newLine: ts.NewLineKind.LineFeed
+        });
+        script = printer.printFile(transformed[0]);
+        result.dispose();
+    }
     let funcScript = `(function(${paramString})${requiredType ? `: ${requiredType}` : ''} {
         ${addReturn ? `return ${script};` : script}
     })`;
     host.writeFile("file.ts", funcScript);
+
     if (typecheck) host.writeFile('node_modules/typescript/lib/lib.d.ts', typescriptlib);
     let program = ts.createProgram(["file.ts"], {}, host);
     let testResult = program.emit();
@@ -203,7 +259,12 @@ export function CompileScript(script: string, options: ScriptOptions = {}): Comp
 
     let diagnostics = ts.getPreEmitDiagnostics(program).concat(testResult.diagnostics);
 
-    return Run(outputText, paramNames, diagnostics, script, options);
+    const result = Run(outputText, paramNames, diagnostics, script, options);
+
+    if (options.globals) {
+        Scripting.resetScriptingGlobals();
+    }
+    return result;
 }
 
 Scripting.addGlobal(CompileScript);

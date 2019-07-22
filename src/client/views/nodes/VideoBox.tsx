@@ -52,18 +52,20 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
             this.Document.nativeHeight = this.Document.nativeWidth / aspect;
             this.Document.height = FieldValue(this.Document.width, 0) / aspect;
         }
+        if (!this.Document.duration) this.Document.duration = this.player!.duration;
     }
 
     @action public Play = (update: boolean = true) => {
         this.Playing = true;
         update && this.player && this.player.play();
         update && this._youtubePlayer && this._youtubePlayer.playVideo();
-        !this._playTimer && (this._playTimer = setInterval(this.updateTimecode, 500));
+        !this._playTimer && (this._playTimer = setInterval(this.updateTimecode, 5));
         this.updateTimecode();
     }
 
     @action public Seek(time: number) {
         this._youtubePlayer && this._youtubePlayer.seekTo(Math.round(time), true);
+        this.player && (this.player.currentTime = time);
     }
 
     @action public Pause = (update: boolean = true) => {
