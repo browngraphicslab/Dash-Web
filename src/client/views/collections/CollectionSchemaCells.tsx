@@ -51,6 +51,9 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         if (this._focusRef.current) {
             if (this.props.isFocused) {
                 this._focusRef.current.className += " focused";
+                if (!this.props.isEditable) {
+                    this._focusRef.current.className += " inactive";
+                }
             } else {
                 this._focusRef.current.className = "collectionSchemaView-cellWrapper";
             }

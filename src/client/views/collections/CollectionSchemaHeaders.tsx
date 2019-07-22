@@ -9,8 +9,9 @@ import { Flyout, anchorPoints } from "../DocumentDecorations";
 import { ColumnType } from "./CollectionSchemaView";
 import { emptyFunction } from "../../../Utils";
 import { contains } from "typescript-collections/dist/lib/arrays";
+import { faFile } from "@fortawesome/free-regular-svg-icons";
 
-library.add(faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn);
+library.add(faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn, faFile);
 
 export interface HeaderProps {
     keyValue: string;
@@ -29,7 +30,7 @@ export interface HeaderProps {
 export class CollectionSchemaHeader extends React.Component<HeaderProps> {
     render() {
         let icon: IconProp = this.props.keyType === ColumnType.Number ? "hashtag" : this.props.keyType === ColumnType.String ? "font" :
-            this.props.keyType === ColumnType.Boolean ? "check-square" : "align-justify";
+            this.props.keyType === ColumnType.Boolean ? "check-square" : this.props.keyType ===  ColumnType.Doc ? "file" : "align-justify";
 
         return (
             <div className="collectionSchemaView-header" >
@@ -145,6 +146,9 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
                     <button title="Checkbox" className={this.props.keyType === ColumnType.Boolean ? "active" : ""} onClick={() => this.props.setColumnType(this.props.keyValue, ColumnType.Boolean)}>
                         <FontAwesomeIcon icon={"check-square"} size="sm" />
                         </button>
+                    <button title="Document" className={this.props.keyType === ColumnType.Doc ? "active" : ""} onClick={() => this.props.setColumnType(this.props.keyValue, ColumnType.Doc)}>
+                        <FontAwesomeIcon icon={"file"} size="sm" />
+                    </button>
                 </div>
             </div>
         );

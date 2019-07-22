@@ -34,6 +34,7 @@ import { timesSeries } from "async";
 import { CollectionSchemaHeader, CollectionSchemaAddColumnHeader } from "./CollectionSchemaHeaders";
 import { CellProps, CollectionSchemaCell, CollectionSchemaNumberCell, CollectionSchemaStringCell, CollectionSchemaBooleanCell, CollectionSchemaCheckboxCell, CollectionSchemaDocCell } from "./CollectionSchemaCells";
 import { MovableColumn, MovableRow } from "./CollectionSchemaMovableTableHOC";
+import { SelectionManager } from "../../util/SelectionManager";
 
 library.add(faCog);
 library.add(faPlus);
@@ -60,7 +61,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     private _startPreviewWidth = 0;
     private DIVIDER_WIDTH = 4;
 
-    @observable _selectedIndex = 0;
+    // @observable _selectedIndex = 0;
     @observable _columnsPercentage = 0;
     @observable _keys: string[] = [];
     @observable _newKeyName: string = "";
@@ -69,6 +70,8 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @observable _cellIsEditing: boolean = false;
     @observable _focusedCell: {row: number, col: number} = {row: 0, col: 0};
     @observable _sortedColumns: Map<string, {id: string, desc: boolean}> = new Map();
+    @observable private _node : HTMLDivElement | null = null;
+    // @observable _schemaIsFocused: boolean = 
 
     @computed get previewWidth() { return () => NumCast(this.props.Document.schemaPreviewWidth); }
     @computed get previewHeight() { return () => this.props.PanelHeight() - 2 * this.borderWidth; }
@@ -81,7 +84,10 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         let cols = this.columns.map(col => {
             let focusedRow = this._focusedCell.row;
             let focusedCol = this._focusedCell.col;
-            let isEditable = !this._headerIsEditing;
+            let isSelected = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0].props.Document === this.props.Document : false;
+            let isEditable = !this._headerIsEditing && (isSelected);// || BoolCast(this.props.Document.libraryBrush));
+            console.log(BoolCast(this.props.Document.libraryBrush), isSelected);
+
             let header = <CollectionSchemaHeader 
                 keyValue={col}
                 possibleKeys={possibleKeys}
@@ -130,22 +136,23 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     if (colType === ColumnType.Boolean) return <CollectionSchemaCheckboxCell {...props} />;
                     if (colType === ColumnType.Doc) return <CollectionSchemaDocCell {...props} />;
                     return <CollectionSchemaCell {...props}/>;
-                }
+                },
+                minWidth: 200,
             };
-        }) as {Header?: TableCellRenderer, accessor?: (doc: Doc) => FieldResult<Field>, id?: string, Cell?: (rowProps: CellInfo) => JSX.Element, width?: number, resizable?: boolean, expander?: boolean, Expander?: (rowInfo: RowInfo) => JSX.Element | null}[];
+        }) as {Header?: TableCellRenderer, accessor?: (doc: Doc) => FieldResult<Field>, id?: string, Cell?: (rowProps: CellInfo) => JSX.Element, width?: number, resizable?: boolean, expander?: boolean, Expander?: (rowInfo: RowInfo) => JSX.Element | null, minWidth?: number}[];
 
-        cols.push({
-            expander: true,
-            Header: "",
-            width: 45,
-            Expander: (rowInfo) => {
-                if (rowInfo.original.type === "collection") {
-                    return <div>+</div>;
-                } else {
-                    return null;
-                }
-            }
-        });
+        // cols.push({
+        //     expander: true,
+        //     Header: "",
+        //     width: 45,
+        //     Expander: (rowInfo) => {
+        //         if (rowInfo.original.type === "collection") {
+        //             return <div>+</div>;
+        //         } else {
+        //             return null;
+        //         }
+        //     }
+        // });
 
         cols.push({
             Header: <CollectionSchemaAddColumnHeader
@@ -178,7 +185,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     //             }
     //         }
     //     }
-    //     return this.props.Document;
+    //     return this.props.Document;  
     // }
 
     componentDidMount() {
@@ -199,14 +206,14 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             addDoc: (doc: Doc, relativeTo?: Doc, before?: boolean) => Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, relativeTo, before),
             moveDoc: (d: Doc, target: Doc, addDoc: (doc: Doc) => boolean) => this.props.moveDocument(d, target, addDoc),
             rowInfo, 
-            onClick: action((e: React.MouseEvent, handleOriginal: Function) => {
-                that.props.select(e.ctrlKey);
-                that._selectedIndex = rowInfo.index;
+            // onClick: action((e: React.MouseEvent, handleOriginal: Function) => {
+            //     that.props.select(e.ctrlKey);
+            //     that._selectedIndex = rowInfo.index;
 
-                if (handleOriginal) {
-                    handleOriginal();
-                }
-            }),
+            //     if (handleOriginal) {
+            //         handleOriginal();
+            //     }
+            // }),
         };
     }
 
@@ -214,6 +221,14 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         this._mainCont = ele;
         super.CreateDropTarget(ele);
     }
+
+    // detectClick = (e: PointerEvent): void => {
+    //     if (this._node && this._node.contains(e.target as Node)) {
+    //     } else {
+    //         this._isOpen = false;
+    //         this.props.setIsEditing(false);
+    //     }
+    // }
 
     @action
     setCellIsEditing = (isEditing: boolean): void => {
@@ -272,7 +287,8 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     onKeyDown = (e: KeyboardEvent): void => {
-        if (!this._cellIsEditing && !this._headerIsEditing) {
+        let isSelected = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0].props.Document === this.props.Document : false;
+        if (!this._cellIsEditing && !this._headerIsEditing && isSelected) {
             let direction = e.key === "Tab" ? "tab" : e.which === 39 ? "right" : e.which === 37 ? "left" : e.which === 38 ? "up" : e.which === 40 ? "down" : "";
             this.changeFocusedCellByDirection(direction);
         }
@@ -431,7 +447,9 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @computed
     get previewDocument(): Doc | undefined {
-        const selected = this.childDocs.length > this._selectedIndex ? this.childDocs[this._selectedIndex] : undefined;
+        let selectedIndex = this._focusedCell.row;
+        console.log("preview", selectedIndex);
+        const selected = this.childDocs.length > selectedIndex ? this.childDocs[selectedIndex] : undefined;
         let pdc = selected ? (this.previewScript && this.previewScript !== "this" ? FieldValue(Cast(selected[this.previewScript], Doc)) : selected) : undefined;
         return pdc;
     }
@@ -468,7 +486,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             sortable={false}
             TrComponent={MovableRow}
             sorted={Array.from(this._sortedColumns.values())}
-            SubComponent={row => row.original.type === "collection" && <div>this is the sub component</div>}
+            // SubComponent={row => row.original.type === "collection" && <div>this is the sub component</div>}
         />;
 
 
@@ -529,14 +547,16 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     render() {
         return (
+            <>
+            {this.schemaToolbar}
             <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} onWheel={this.onWheel}
                 onDrop={(e: React.DragEvent) => this.onDrop(e, {})} onContextMenu={this.onContextMenu} ref={this.createTarget}>
-                {this.schemaToolbar}
                 {this.reactTable}
                 {this.dividerDragger}
                 {!this.previewWidth() ? (null) : this.previewPanel}
                 {/* {this.tableOptionsPanel} */}
             </div>
+            </>
         );
     }
 }
