@@ -557,7 +557,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 this.props.addDocTab && this.props.addDocTab(Docs.Create.SchemaDocument(["title"], aliases, {}), undefined, "onRight"); // bcz: dataDoc?
             }, icon: "search"
         });
-        cm.addItem({ description: "Add Repl", event: () => OverlayView.Instance.addWindow(<ScriptingRepl />, { x: 300, y: 100, width: 200, height: 200 }) });
+        cm.addItem({ description: "Add Repl", event: () => OverlayView.Instance.addWindow(<ScriptingRepl />, { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" }) });
         cm.addItem({ description: "Center View", event: () => this.props.focus(this.props.Document, false), icon: "crosshairs" });
         cm.addItem({ description: "Zoom to Document", event: () => this.props.focus(this.props.Document, true), icon: "search" });
         cm.addItem({ description: "Copy URL", event: () => Utils.CopyText(Utils.prepend("/doc/" + this.props.Document[Id])), icon: "link" });

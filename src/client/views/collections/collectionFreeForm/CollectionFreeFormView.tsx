@@ -504,8 +504,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     }} />;
                     overlayDisposer = OverlayView.Instance.addWindow(scriptingBox, options);
                 };
-                addOverlay("arrangeInit", { x: 400, y: 100, width: 400, height: 300 }, { collection: "Doc", docs: "Doc[]" }, undefined);
-                addOverlay("arrangeScript", { x: 400, y: 500, width: 400, height: 300 }, { doc: "Doc", index: "number", collection: "Doc", state: "any", docs: "Doc[]" }, "{x: number, y: number, width?: number, height?: number}");
+                addOverlay("arrangeInit", { x: 400, y: 100, width: 400, height: 300, title: "Layout Initialization" }, { collection: "Doc", docs: "Doc[]" }, undefined);
+                addOverlay("arrangeScript", { x: 400, y: 500, width: 400, height: 300, title: "Layout Script" }, { doc: "Doc", index: "number", collection: "Doc", state: "any", docs: "Doc[]" }, "{x: number, y: number, width?: number, height?: number}");
             }
         });
     }
