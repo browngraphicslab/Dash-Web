@@ -827,6 +827,9 @@ export class TooltipTextMenu {
                 });
             }
         }
+        if (!ref_node.isLeaf) {
+            ref_node = ref_node.child(0);
+        }
         return ref_node;
     }
 
