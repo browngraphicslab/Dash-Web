@@ -37,6 +37,7 @@ import { RouteStore } from '../../../server/RouteStore';
 import { FormattedTextBox } from './FormattedTextBox';
 import { OverlayView } from '../OverlayView';
 import { ScriptingRepl } from '../ScriptingRepl';
+import { EditableView } from '../EditableView';
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(fa.faTrash);
@@ -287,6 +288,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     onClick = async (e: React.MouseEvent) => {
+        if (e.nativeEvent.cancelBubble) return; // needed because EditableView may stopPropagation which won't apparently stop this event from firing.
         e.stopPropagation();
         let altKey = e.altKey;
         let ctrlKey = e.ctrlKey;
@@ -664,10 +666,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                         {!showTitle ? (null) :
                             <div style={{
                                 position: showTextTitle ? "relative" : "absolute", top: 0, textAlign: "center", textOverflow: "ellipsis", whiteSpace: "pre",
+                                pointerEvents: "all",
                                 overflow: "hidden", width: `${100 * this.props.ContentScaling()}%`, height: 25, background: "rgba(0, 0, 0, .4)", color: "white",
                                 transformOrigin: "top left", transform: `scale(${1 / this.props.ContentScaling()})`
                             }}>
-                                <span>{this.props.Document[showTitle]}</span>
+                                <EditableView
+                                    contents={this.props.Document[showTitle]}
+                                    display={"block"}
+                                    height={72}
+                                    GetValue={() => StrCast(this.props.Document[showTitle])}
+                                    SetValue={(value: string) => (Doc.GetProto(this.props.Document)[showTitle] = value) ? true : true}
+                                />
                             </div>
                         }
                         {!showCaption ? (null) :

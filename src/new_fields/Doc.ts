@@ -10,6 +10,7 @@ import { RefField, FieldId } from "./RefField";
 import { ToScriptString, SelfProxy, Parent, OnUpdate, Self, HandleUpdate, Update, Id } from "./FieldSymbols";
 import { scriptingGlobal } from "../client/util/Scripting";
 import { List } from "./List";
+import { DocumentType } from "../client/documents/Documents";
 import { ComputedField } from "./ScriptField";
 
 export namespace Field {
@@ -317,7 +318,7 @@ export namespace Doc {
         if (extensionDoc === undefined) {
             setTimeout(() => {
                 let docExtensionForField = new Doc(doc[Id] + fieldKey, true);
-                docExtensionForField.title = "Extension of " + doc.title + "'s field:" + fieldKey;
+                docExtensionForField.title = doc.title + ":" + fieldKey + ".ext";
                 docExtensionForField.extendsDoc = doc;
                 let proto: Doc | undefined = doc;
                 while (proto && !Doc.IsPrototype(proto)) {
@@ -345,19 +346,22 @@ export namespace Doc {
         // ... which means we change the layout to be an expanded view of the template layout.  
         // This allows the view override the template's properties and be referenceable as its own document.
 
-        let expandedTemplateLayout = templateLayoutDoc["_expanded_" + dataDoc[Id]];
+        let expandedTemplateLayout = dataDoc[templateLayoutDoc[Id]];
         if (expandedTemplateLayout instanceof Doc) {
             return expandedTemplateLayout;
         }
         if (expandedTemplateLayout === undefined && BoolCast(templateLayoutDoc.isTemplate)) {
             setTimeout(() => {
-                templateLayoutDoc["_expanded_" + dataDoc[Id]] = Doc.MakeDelegate(templateLayoutDoc);
-                (templateLayoutDoc["_expanded_" + dataDoc[Id]] as Doc).title = templateLayoutDoc.title + " applied to " + dataDoc.title;
-                (templateLayoutDoc["_expanded_" + dataDoc[Id]] as Doc).isExpandedTemplate = templateLayoutDoc;
+                let expandedDoc = Doc.MakeDelegate(templateLayoutDoc);
+                expandedDoc.title = templateLayoutDoc.title + "[" + StrCast(dataDoc.title).match(/\.\.\.[0-9]*/) + "]";
+                expandedDoc.isExpandedTemplate = templateLayoutDoc;
+                dataDoc[templateLayoutDoc[Id]] = expandedDoc;
             }, 0);
         }
-        return templateLayoutDoc;
+        return templateLayoutDoc; // use the templateLayout when it's not a template or the expandedTemplate is pending.
     }
+
+    let _pendingExpansions: Map<string, boolean> = new Map();
 
     export function MakeCopy(doc: Doc, copyProto: boolean = false): Doc {
         const copy = new Doc;
@@ -386,12 +390,12 @@ export namespace Doc {
     export function MakeDelegate(doc: Doc, id?: string): Doc;
     export function MakeDelegate(doc: Opt<Doc>, id?: string): Opt<Doc>;
     export function MakeDelegate(doc: Opt<Doc>, id?: string): Opt<Doc> {
-        if (!doc) {
-            return undefined;
+        if (doc) {
+            const delegate = new Doc(id, true);
+            delegate.proto = doc;
+            return delegate;
         }
-        const delegate = new Doc(id, true);
-        delegate.proto = doc;
-        return delegate;
+        return undefined;
     }
 
     export function MakeTemplate(fieldTemplate: Doc, metaKey: string, proto: Doc) {
@@ -420,5 +424,12 @@ export namespace Doc {
         fieldTemplate.isTemplate = true;
         fieldTemplate.showTitle = "title";
         setTimeout(() => fieldTemplate.proto = proto);
+    }
+
+    export async function ToggleDetailLayout(d: Doc) {
+        let miniLayout = await PromiseValue(d.miniLayout);
+        let detailLayout = await PromiseValue(d.detailedLayout);
+        d.layout !== miniLayout ? miniLayout && (d.layout = d.miniLayout) : detailLayout && (d.layout = detailLayout);
+        if (d.layout === detailLayout) Doc.GetProto(d).nativeWidth = Doc.GetProto(d).nativeHeight = undefined;
     }
 }

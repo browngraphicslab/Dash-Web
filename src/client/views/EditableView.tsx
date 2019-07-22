@@ -67,6 +67,7 @@ export class EditableView extends React.Component<EditableProps> {
 
     @action
     onClick = (e: React.MouseEvent) => {
+        e.nativeEvent.stopPropagation();
         if (!this.props.onClick || !this.props.onClick(e)) {
             this._editing = true;
         }

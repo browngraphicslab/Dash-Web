@@ -233,10 +233,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 return field ? field.Data : `{"doc":{"type":"doc","content":[]},"selection":{"type":"text","anchor":0,"head":0}}`;
             },
             field2 => {
-                if (StrCast(this.props.Document.layout).indexOf("\"" + this.props.fieldKey + "\"") !== -1) { // bcz: UGH!  why is this needed... something is happening out of order.  test with making a collection, then adding a text note and converting that to a template field.
-                    this._editorView && !this._applyingChange &&
-                        this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field2)));
-                }
+                this._editorView && !this._applyingChange &&
+                    this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field2)));
             }
         );
 
