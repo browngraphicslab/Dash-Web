@@ -81,6 +81,21 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }
     @computed get tableColumns(): Column<Doc>[] {
         let possibleKeys = this.documentKeys.filter(key => this.columns.findIndex(existingKey => existingKey.toUpperCase() === key.toUpperCase()) === -1);
+        let columns: Column<Doc>[] = [
+            {
+            expander: true,
+            Header: "",
+            width: 45,
+            Expander: (rowInfo) => {
+                if (rowInfo.original.type === "collection") {
+                    return <div>+</div>;
+                } else {
+                    return null;
+                }
+            }
+        }
+        ];
+        
         let cols = this.columns.map(col => {
             let focusedRow = this._focusedCell.row;
             let focusedCol = this._focusedCell.col;
@@ -139,22 +154,10 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 },
                 minWidth: 200,
             };
-        }) as {Header?: TableCellRenderer, accessor?: (doc: Doc) => FieldResult<Field>, id?: string, Cell?: (rowProps: CellInfo) => JSX.Element, width?: number, resizable?: boolean, expander?: boolean, Expander?: (rowInfo: RowInfo) => JSX.Element | null, minWidth?: number}[];
+        });// as {Header?: TableCellRenderer, accessor?: (doc: Doc) => FieldResult<Field>, id?: string, Cell?: (rowProps: CellInfo) => JSX.Element, width?: number, resizable?: boolean, expander?: boolean, Expander?: (rowInfo: RowInfo) => JSX.Element | null, minWidth?: number}[];
+        columns.push(...cols);
 
-        // cols.push({
-        //     expander: true,
-        //     Header: "",
-        //     width: 45,
-        //     Expander: (rowInfo) => {
-        //         if (rowInfo.original.type === "collection") {
-        //             return <div>+</div>;
-        //         } else {
-        //             return null;
-        //         }
-        //     }
-        // });
-
-        cols.push({
+        columns.push({
             Header: <CollectionSchemaAddColumnHeader
                 createColumn={this.createColumn}
                 // possibleKeys={possibleKeys}
@@ -171,7 +174,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
         // SubComponent={row => row.original.type === "collection" && <div>SUB</div>}
 
-        return cols;
+        return columns;
     }
 
     // onHeaderDrag = (columnName: string) => {
@@ -201,11 +204,17 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         if (!rowInfo) {
             return {};
         }
+        let isSelected = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0].props.Document === this.props.Document : false;
         return {
             ScreenToLocalTransform: this.props.ScreenToLocalTransform,
             addDoc: (doc: Doc, relativeTo?: Doc, before?: boolean) => Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, relativeTo, before),
             moveDoc: (d: Doc, target: Doc, addDoc: (doc: Doc) => boolean) => this.props.moveDocument(d, target, addDoc),
             rowInfo, 
+            rowFocused: !this._headerIsEditing && isSelected && rowInfo.index === this._focusedCell.row,
+            // style: {
+            //     background: rowInfo.index === this._focusedCell.row ? "lightGray" : "white",
+            //     //color: rowInfo.index === this._selectedIndex ? "white" : "black"
+            // }
             // onClick: action((e: React.MouseEvent, handleOriginal: Function) => {
             //     that.props.select(e.ctrlKey);
             //     that._selectedIndex = rowInfo.index;
@@ -486,7 +495,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             sortable={false}
             TrComponent={MovableRow}
             sorted={Array.from(this._sortedColumns.values())}
-            // SubComponent={row => row.original.type === "collection" && <div>this is the sub component</div>}
+            SubComponent={row => row.original.type === "collection" && <div>this is the sub component</div>}
         />;
 
 

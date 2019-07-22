@@ -11,6 +11,7 @@
     height: calc(100% - 25px);
     // overflow: hidden;
     overflow-x: scroll;
+    border: none;
 
     .collectionSchemaView-previewRegion {
         position: relative;
@@ -70,10 +71,11 @@
 
     .rt-thead {
         &.-header {
-            background: $intermediate-color;
-            color: $light-color;
+            // background: $intermediate-color;
+            // color: $light-color;
             font-size: 12px;
             height: 30px;
+            border: 1px solid $intermediate-color;
         }
 
         .rt-resizable-header {
@@ -89,11 +91,14 @@
             height: 100%;
             overflow: visible;
         }
+
+        .rt-th {
+            padding: 0;
+        }
     }
 
     .rt-th {
-        max-height: $MAX_ROW_HEIGHT;
-        padding: 3px 7px;
+        // max-height: $MAX_ROW_HEIGHT;
         font-size: 13px;
         text-align: center;
         
@@ -108,16 +113,17 @@
 
     .rt-tr-group {
         direction: ltr;
-        max-height: $MAX_ROW_HEIGHT;
+        flex: 0 1 auto;
+        // max-height: $MAX_ROW_HEIGHT;
         // for sub comp
 
-        &:nth-child(even) {
-            background-color: $light-color;
-        }
+        // &:nth-child(even) {
+        //     background-color: $light-color;
+        // }
     
-        &:nth-child(odd) {
-            background-color: $light-color-secondary;
-        }
+        // &:nth-child(odd) {
+        //     background-color: $light-color-secondary;
+        // }
 
         &:last-child {
             border-bottom: $intermediate-color;
@@ -128,13 +134,13 @@
 
     .rt-tr {
         width: 100%;
-        height: $MAX_ROW_HEIGHT;
+        // height: $MAX_ROW_HEIGHT;
     }
 
     .rt-td {
         border-width: 1px;
         border-right-color: $intermediate-color;
-        max-height: $MAX_ROW_HEIGHT;
+        // max-height: $MAX_ROW_HEIGHT;
         padding: 0;
         font-size: 13px;
         text-align: center;
@@ -184,6 +190,7 @@
 
 .collectionSchemaView-header {
     height: 100%;
+    color: $intermediate-color;
 
     .collectionSchema-header-menu {
         height: 100%;
@@ -223,10 +230,6 @@
         position: relative;
         max-width: 175px;
 
-        // .keys-search {
-
-        // }
-
         .keys-options-wrapper {
             width: 100%;
             max-height: 150px;
@@ -261,17 +264,18 @@
 }
 
 .collectionSchema-row {
-    height: $MAX_ROW_HEIGHT;
-    // display: flex;
+    // height: $MAX_ROW_HEIGHT;
+
+    &.row-focused {
+        background-color: $light-color-secondary;
+    }
 
     .row-dragger {
-        height: $MAX_ROW_HEIGHT;
+        // height: $MAX_ROW_HEIGHT;
     }
 
     .collectionSchema-row-wrapper {
-        max-height: $MAX_ROW_HEIGHT;
-        // width: 100%;
-        // border: 1px solid lightgray;
+        // max-height: $MAX_ROW_HEIGHT;
 
         &.row-above {
             border-top: 1px solid red;
@@ -287,8 +291,6 @@
 
 
 .collectionSchemaView-cellWrapper {
-    // height: $MAX_ROW_HEIGHT;
-    // background-color: red;
     height: 100%;
     padding: 4px;
 
@@ -311,6 +313,21 @@
             border: none;
         }
     }
+
+    p {
+        width: 100%;
+        height: 100%;
+        word-wrap: break-word;
+    }
+}
+
+.doc-drag-over {
+    background-color: red;
+}
+
+.collectionSchemaView-toolbar {
+    display: flex;
+    justify-content: flex-end;
 }
 
 #preview-schema-checkbox-div {

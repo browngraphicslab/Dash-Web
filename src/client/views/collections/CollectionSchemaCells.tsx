@@ -20,6 +20,7 @@ import { CollectionView } from "./CollectionView";
 import { NumCast, StrCast, BoolCast, FieldValue, Cast } from "../../../new_fields/Types";
 import { Docs } from "../../documents/Documents";
 import { DocumentContentsView } from "../nodes/DocumentContentsView";
+import { SelectionManager } from "../../util/SelectionManager";
 
 
 export interface CellProps {
@@ -118,6 +119,8 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
     }
 
     renderCellWithType(type: string | undefined) {
+        let dragRef: React.RefObject<HTMLDivElement> = React.createRef();
+
         let props: FieldViewProps = {
             Document: this.props.rowProps.original,
             DataDoc: this.props.rowProps.original,
@@ -136,9 +139,18 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             PanelWidth: returnZero,
             addDocTab: this.props.addDocTab,
         };
+
         let onItemDown = (e: React.PointerEvent) => {
             SetupDrag(this._focusRef, () => this._document[props.fieldKey] instanceof Doc ? this._document[props.fieldKey] : this._document,
                 this._document[props.fieldKey] instanceof Doc ? (doc: Doc, target: Doc, addDoc: (newDoc: Doc) => any) => addDoc(doc) : this.props.moveDocument, this._document[props.fieldKey] instanceof Doc ? "alias" : this.props.Document.schemaDoc ? "copy" : undefined)(e);
+        };
+        let onPointerEnter = (e: React.PointerEvent): void => {
+            if (e.buttons === 1 && SelectionManager.GetIsDragging() && (type === "document" || type === undefined)) {
+                dragRef!.current!.className = "doc-drag-over";
+            }
+        };
+        let onPointerLeave = (e: React.PointerEvent): void => {
+            dragRef!.current!.className = "";
         };
 
         let field = props.Document[props.fieldKey];
@@ -153,40 +165,42 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         }
 
         return (
-            <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1} onPointerDown={this.onPointerDown}>
-                <div className="collectionSchemaView-cellContents" ref={this.dropRef} onPointerDown={onItemDown} key={props.Document[Id]}>
-                    <EditableView
-                        editing={this._isEditing}
-                        isEditingCallback={this.isEditingCallback}
-                        display={"inline"}
-                        contents={contents}
-                        height={Number(MAX_ROW_HEIGHT)}
-                        GetValue={() => {
-                            let field = props.Document[props.fieldKey];
-                            if (Field.IsField(field)) {
-                                return Field.toScriptString(field);
+            <div className="" ref={dragRef} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
+                <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1} onPointerDown={this.onPointerDown}>
+                    <div className="collectionSchemaView-cellContents" ref={type === undefined || type === "document" ? this.dropRef: null} onPointerDown={onItemDown} key={props.Document[Id]}>
+                        <EditableView
+                            editing={this._isEditing}
+                            isEditingCallback={this.isEditingCallback}
+                            display={"inline"}
+                            contents={contents}
+                            height={Number(MAX_ROW_HEIGHT)}
+                            GetValue={() => {
+                                let field = props.Document[props.fieldKey];
+                                if (Field.IsField(field)) {
+                                    return Field.toScriptString(field);
+                                }
+                                return "";
                             }
-                            return "";
-                        }
-                        }
-                        SetValue={(value: string) => {
-                            let script = CompileScript(value, { requiredType: type, addReturn: true, params: { this: Doc.name } });
-                            if (!script.compiled) {
-                                return false;
                             }
-                            return this.applyToDoc(props.Document, script.run);
-                        }}
-                        OnFillDown={async (value: string) => {
-                            let script = CompileScript(value, { requiredType: type, addReturn: true, params: { this: Doc.name } });
-                            if (!script.compiled) {
-                                return;
-                            }
-                            const run = script.run;
-                            //TODO This should be able to be refactored to compile the script once
-                            const val = await DocListCastAsync(this.props.Document[this.props.fieldKey]);
-                            val && val.forEach(doc => this.applyToDoc(doc, run));
-                        }} />
-                </div >
+                            SetValue={(value: string) => {
+                                let script = CompileScript(value, { requiredType: type, addReturn: true, params: { this: Doc.name } });
+                                if (!script.compiled) {
+                                    return false;
+                                }
+                                return this.applyToDoc(props.Document, script.run);
+                            }}
+                            OnFillDown={async (value: string) => {
+                                let script = CompileScript(value, { requiredType: type, addReturn: true, params: { this: Doc.name } });
+                                if (!script.compiled) {
+                                    return;
+                                }
+                                const run = script.run;
+                                //TODO This should be able to be refactored to compile the script once
+                                const val = await DocListCastAsync(this.props.Document[this.props.fieldKey]);
+                                val && val.forEach(doc => this.applyToDoc(doc, run));
+                            }} />
+                    </div >
+                </div>
             </div>
         );
     }
@@ -218,6 +232,13 @@ export class CollectionSchemaStringCell extends CollectionSchemaCell {
 }
 
 @observer
+export class CollectionSchemaDocCell extends CollectionSchemaCell {
+    render() {
+        return this.renderCellWithType("document");
+    }
+}
+
+@observer
 export class CollectionSchemaCheckboxCell extends CollectionSchemaCell {
     @observable private _isChecked: boolean = typeof this.props.rowProps.original[this.props.rowProps.column.id as string] === "boolean" ? BoolCast(this.props.rowProps.original[this.props.rowProps.column.id as string]) : false;
 
@@ -243,23 +264,5 @@ export class CollectionSchemaCheckboxCell extends CollectionSchemaCell {
                 </div >
             </div>
         );
-    }
-}
-
-@observer
-export class CollectionSchemaDocCell extends CollectionSchemaCell {
-    render() {
-        return this.renderCellWithType("document");
-        // let reference = React.createRef<HTMLDivElement>();
-        // let onItemDown = (e: React.PointerEvent) => {
-        //     // (!this.props.CollectionView.props.isSelected() ? undefined :
-        //     //     SetupDrag(reference, () => props.Document, this.props.moveDocument, this.props.Document.schemaDoc ? "copy" : undefined)(e));
-        // };
-        // return (
-        //     <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1} onPointerDown={this.onPointerDown}>
-        //         <div className="collectionSchemaView-cellContents" onPointerDown={onItemDown} key={this._document[Id]} ref={reference}>
-        //         </div >
-        //     </div>
-        // );
     }
 }
