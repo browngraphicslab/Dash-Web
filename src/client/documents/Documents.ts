@@ -21,7 +21,7 @@ import { AggregateFunction } from "../northstar/model/idea/idea";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { IconBox } from "../views/nodes/IconBox";
 import { Field, Doc, Opt } from "../../new_fields/Doc";
-import { OmitKeys } from "../../Utils";
+import { OmitKeys, JSONUtils } from "../../Utils";
 import { ImageField, VideoField, AudioField, PdfField, WebField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
 import { List } from "../../new_fields/List";
@@ -441,91 +441,83 @@ export namespace Docs {
 
     export namespace Get {
 
+        const primitives = ["string", "number", "boolean"];
+
         /**
          * This function takes any valid JSON(-like) data, i.e. parsed or unparsed, and at arbitrarily
          * deep levels of nesting, converts the data and structure into nested documents with the appropriate fields.
          * 
          * After building a hierarchy within / below a top-level document, it then returns that top-level parent.
          * 
+         * If we've received a string, treat it like valid JSON and try to parse it into an object. If this fails, the
+         * string is invalid JSON, so we should assume that the input is the result of a JSON.parse()
+         * call that returned a regular string value to be stored as a Field.
+         * 
+         * If we've received something other than a string, since the caller might also pass in the results of a
+         * JSON.parse() call, valid input might be an object, an array (still typeof object), a boolean or a number.
+         * Anything else (like a function, etc. passed in naively as any) is meaningless for this operation.
+         * 
+         * All TS/JS objects get converted directly to documents, directly preserving the key value structure. Everything else,
+         * lacking the key value structure, gets stored as a field in a wrapper document.
+         * 
          * @param input for convenience and flexibility, either a valid JSON string to be parsed,
          * or the result of any JSON.parse() call.
          * @param title an optional title to give to the highest parent document in the hierarchy
          */
-        export function DocumentHierarchyFromJson(input: any, title?: string): Opt<Doc>;
-        export function DocumentHierarchyFromJson(input: string, title?: string): Opt<Doc> {
-            // preliminary check - making a document out of null or undefined is meaningless
-            if (input === null || input === undefined) {
+        export function DocumentHierarchyFromJson(input: any, title?: string): Opt<Doc> {
+            if (input === null || ![...primitives, "object"].includes(typeof input)) {
                 return undefined;
             }
-            let parsed: any = input;
-            // if we've received a string, treat it like valid JSON and try to parse it into an object.
-            if (typeof input === "string") {
-                try {
-                    parsed = JSON.parse(input);
-                } catch (e) {
-                    // if this fails, the string is invalid JSON, so we should assume that the input is the
-                    // result of a JSON.parse() call that returned a regular string value to be stored.
-                    parsed = input;
-                }
-            } else if (!["object", "boolean", "number"].includes(typeof input)) {
-                // since the caller might also pass in the results of a JSON.parse() call, input
-                // might be an object, an array (still typeof object), a boolean or a number.
-                // anything else (a function, etc. that is passed in naively as any) is meaningless for this operation
-                return undefined;
-            }
+            let parsed: any = typeof input === "string" ? JSONUtils.tryParse(input) : input;
             let converted: Doc;
             if (typeof parsed === "object" && !(parsed instanceof Array)) {
-                // JavaScript object: this gets converted directly to a document, which is a also a list of key value pairs
-                converted = convertObject(parsed);
+                converted = convertObject(parsed, title);
             } else {
-                // Array, a boolean, a string or a number: this gets stored as a field in a wrapper document, since no key value structure exists
-                (converted = new Doc).json = valueOf(parsed);
+                (converted = new Doc).json = toField(parsed);
             }
-            // if we passed in a title, assign it
             title && (converted.title = title);
             return converted;
         }
 
-        const convertObject = (object: any): Doc => {
-            // create the document that will store this object's data
-            let target = new Doc();
-            // for each value of the document, recursively convert it to a document or other field
-            // and store the field at the appropriate key in the document
-            Object.keys(object).map(key => {
-                let result = valueOf(object[key]);
-                // if the result is undefined, ignore it
-                result && (target[key] = result);
-            });
+        /**
+         * For each value of the object, recursively convert it to its appropriate field value
+         * and store the field at the appropriate key in the document if it is not undefined
+         * @param object the object to convert
+         * @returns the object mapped from JSON to field values, where each mapping 
+         * might involve arbitrary recursion (since toField might itself call convertObject)
+         */
+        const convertObject = (object: any, title?: string): Doc => {
+            let target = new Doc(), result: Opt<Field>;
+            Object.keys(object).map(key => (result = toField(object[key], key)) && (target[key] = result));
+            title && (target.title = title);
             return target;
         };
 
+        /**
+         * For each element in the list, recursively convert it to a document or other field 
+         * and push the field to the list if it is not undefined
+         * @param list the list to convert
+         * @returns the list mapped from JSON to field values, where each mapping 
+         * might involve arbitrary recursion (since toField might itself call convertList)
+         */
         const convertList = (list: Array<any>): List<Field> => {
-            // create the list (Field implementation) that will store this Array's data
-            let thisLevel = new List();
-            // for each element in the list, recursively convert it to a document or other field
-            // and push the field to the list
-            list.map(item => {
-                let result = valueOf(item);
-                // if the result is undefined, ignore it
-                result && thisLevel.push(result);
-            });
-            return thisLevel;
+            let target = new List(), result: Opt<Field>;
+            list.map(item => (result = toField(item)) && target.push(result));
+            return target;
         };
 
-        const valueOf = (data: any): Opt<Field> => {
+
+        const toField = (data: any, title?: string): Opt<Field> => {
             if (data === null || data === undefined) {
                 return undefined;
             }
-            if (typeof data === "object") {
-                // recursively convert the object or array to the appropriate field value and return it
-                return data instanceof Array ? convertList(data) : convertObject(data);
-            } else if (["string", "number", "boolean"].includes(typeof data)) {
-                // no real conversion necessary - just return the data, already a valid field, to be stored
+            if (primitives.includes(typeof data)) {
                 return data;
-            } else {
-                // any other type cannot be stored in JSON, but ya never know
-                throw new Error(`How did ${data} end up in JSON?`);
             }
+            if (typeof data === "object") {
+                return data instanceof Array ? convertList(data) : convertObject(data, title);
+            }
+            throw new Error(`How did ${data} of type ${typeof data} end up in JSON?`);
         };
 
         export async function DocumentFromType(type: string, path: string, options: DocumentOptions): Promise<Opt<Doc>> {

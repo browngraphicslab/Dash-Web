@@ -6,6 +6,8 @@ import { values } from "mobx";
 import { List } from "../../new_fields/List";
 import { Docs } from "../documents/Documents";
 import { Result } from "../northstar/model/idea/idea";
+import { RouteStore } from "../../server/RouteStore";
+import { Utils } from "../../Utils";
 
 export enum Services {
     ComputerVision,
@@ -22,69 +24,75 @@ export enum Confidence {
 }
 
 export type Tag = { name: string, confidence: number };
-export type Face = { faceAttributes: any, faceId: string, faceRectangle: { top: number, left: number, width: number, height: number } };
+export type Rectangle = { top: number, left: number, width: number, height: number };
+export type Face = { faceAttributes: any, faceId: string, faceRectangle: Rectangle };
 export type Converter = (results: any) => Field;
 
+/**
+ * A file that handles all interactions with Microsoft Azure's Cognitive
+ * Services APIs. These machine learning endpoints allow basic data analytics for
+ * various media types.
+ */
 export namespace CognitiveServices {
 
     export namespace Image {
 
         export const analyze = async (imageUrl: string, service: Services) => {
-            let apiKey;
-            let uriBase;
-            let parameters;
-
-            switch (service) {
-                case Services.Face:
-                    apiKey = 'a193d5c6e62343fcbd1efb777588106e';
-                    uriBase = 'face/v1.0/detect';
-                    parameters = {
-                        'returnFaceId': 'true',
-                        'returnFaceLandmarks': 'false',
-                        'returnFaceAttributes': 'age,gender,headPose,smile,facialHair,glasses,' +
-                            'emotion,hair,makeup,occlusion,accessories,blur,exposure,noise'
-                    };
-                    break;
-                case Services.ComputerVision:
-                    apiKey = '3697018a7e234627a1bbeac9eb172ecc';
-                    uriBase = 'vision/v2.0/analyze';
-                    parameters = {
-                        'visualFeatures': 'Categories,Description,Color,Objects,Tags,Adult',
-                        'details': 'Celebrities,Landmarks',
-                        'language': 'en',
-                    };
-                    break;
-            }
-
-            const options = {
-                uri: 'https://eastus.api.cognitive.microsoft.com/' + uriBase,
-                qs: parameters,
-                body: `{"url": "${imageUrl}"}`,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Ocp-Apim-Subscription-Key': apiKey
+            return fetch(Utils.prepend(RouteStore.cognitiveServices + service)).then(async response => {
+                let apiKey = await response.text();
+                if (apiKey) {
+                    return;
                 }
-            };
+                let uriBase;
+                let parameters;
 
-            let results: any;
-            try {
-                results = await request.post(options).then(response => JSON.parse(response));
-            } catch (e) {
-                results = undefined;
-            }
-            return results;
+                switch (service) {
+                    case Services.Face:
+                        uriBase = 'face/v1.0/detect';
+                        parameters = {
+                            'returnFaceId': 'true',
+                            'returnFaceLandmarks': 'false',
+                            'returnFaceAttributes': 'age,gender,headPose,smile,facialHair,glasses,' +
+                                'emotion,hair,makeup,occlusion,accessories,blur,exposure,noise'
+                        };
+                        break;
+                    case Services.ComputerVision:
+                        uriBase = 'vision/v2.0/analyze';
+                        parameters = {
+                            'visualFeatures': 'Categories,Description,Color,Objects,Tags,Adult',
+                            'details': 'Celebrities,Landmarks',
+                            'language': 'en',
+                        };
+                        break;
+                }
+
+                const options = {
+                    uri: 'https://eastus.api.cognitive.microsoft.com/' + uriBase,
+                    qs: parameters,
+                    body: `{"url": "${imageUrl}"}`,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Ocp-Apim-Subscription-Key': apiKey
+                    }
+                };
+
+                let results: any;
+                try {
+                    results = await request.post(options).then(response => JSON.parse(response));
+                } catch (e) {
+                    results = undefined;
+                }
+                return results;
+            });
         };
 
-        const mutateDocument = async (target: Doc, service: Services, converter: Converter, storageKey: string) => {
-            let data = Cast(target.data, ImageField);
-            let existing = await Cast(target[storageKey], Doc);
-            if (!data || existing) {
+        const analyzeDocument = async (target: Doc, service: Services, converter: Converter, storageKey: string) => {
+            let imageData = Cast(target.data, ImageField);
+            if (!imageData || await Cast(target[storageKey], Doc)) {
                 return;
             }
-
-            let results: any;
             let toStore: any;
-            results = await analyze(data.url.href, service);
+            let results = await analyze(imageData.url.href, service);
             if (!results) {
                 toStore = "Cognitive Services could not process the given image URL.";
             } else {
@@ -97,28 +105,28 @@ export namespace CognitiveServices {
             target[storageKey] = toStore;
         };
 
-        export const generateMetadata = async (target: Doc, threshold = Confidence.Excellent) => {
+        export const generateMetadata = async (target: Doc, threshold: Confidence = Confidence.Excellent) => {
             let converter = (results: any) => {
                 let tagDoc = new Doc;
-                tagDoc.title = "Generated Tags";
-                let dataDoc = Doc.GetProto(tagDoc);
                 results.tags.map((tag: Tag) => {
                     if (tag.confidence >= +threshold) {
-                        dataDoc[tag.name] = tag.confidence;
+                        tagDoc[tag.name] = tag.confidence;
                     }
                 });
+                tagDoc.title = "Generated Tags";
+                tagDoc.confidenceThreshold = threshold.toString();
                 return tagDoc;
             };
-            mutateDocument(target, Services.ComputerVision, converter, "generatedTags");
+            analyzeDocument(target, Services.ComputerVision, converter, "generatedTags");
         };
 
         export const extractFaces = async (target: Doc) => {
             let converter = (results: any) => {
                 let faceDocs = new List<Doc>();
-                results.map((face: Face) => faceDocs.push(Docs.Get.DocumentHierarchyFromJson(face, face.faceId)!));
+                results.map((face: Face) => faceDocs.push(Docs.Get.DocumentHierarchyFromJson(face, `Face: ${face.faceId}`)!));
                 return faceDocs;
             };
-            mutateDocument(target, Services.Face, converter, "faces");
+            analyzeDocument(target, Services.Face, converter, "faces");
         };
 
     }

@@ -40,6 +40,7 @@ import { Search } from './Search';
 import { debug } from 'util';
 import _ = require('lodash');
 import { Response } from 'express-serve-static-core';
+import { Services } from '../client/cognitive_services/CognitiveServices';
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const probe = require("probe-image-size");
@@ -283,6 +284,20 @@ addSecureRoute(
     undefined,
     RouteStore.getCurrUser
 );
+
+app.get("cognitiveservices/:requestedservice", (req, res) => {
+    let requested = req.params.requestedservice;
+    switch (requested) {
+        case Services.Face:
+            res.send(process.env.FACE);
+            break;
+        case Services.ComputerVision:
+            res.send(process.env.VISION);
+            break;
+        default:
+            res.send(undefined);
+    }
+});
 
 class NodeCanvasFactory {
     create = (width: number, height: number) => {
