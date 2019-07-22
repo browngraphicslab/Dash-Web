@@ -109,8 +109,10 @@ export class TooltipTextMenu {
                 if (dom.contains(e.target as Node)) {
                     e.stopPropagation();
                     command(view.state, view.dispatch, view);
-                    if (dom.style.color === "white") { dom.style.color = "greenyellow"; }
-                    else { dom.style.color = "white"; }
+                    if (this.view.state.selection.empty) {
+                        if (dom.style.color === "white") { dom.style.color = "greenyellow"; }
+                        else { dom.style.color = "white"; }
+                    }
                 }
             });
 
@@ -760,7 +762,7 @@ export class TooltipTextMenu {
     //finds all active marks on selection in given group
     activeMarksOnSelection(markGroup: MarkType[]) {
         //current selection
-        let { empty, ranges } = this.view.state.selection as TextSelection;
+        let { empty, ranges, $to } = this.view.state.selection as TextSelection;
         let state = this.view.state;
         let dispatch = this.view.dispatch;
         let activeMarks: MarkType[];
@@ -775,6 +777,9 @@ export class TooltipTextMenu {
                 }
                 return false;
             });
+
+            const refnode = this.reference_node($to);
+            this._activeMarks = refnode.marks;
         }
         else {
             const pos = this.view.state.selection.$from;
