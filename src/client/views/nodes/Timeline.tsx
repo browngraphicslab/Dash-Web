@@ -74,7 +74,19 @@ export class Timeline extends CollectionSubView(Document) {
 
     componentDidMount() {
         if (StrCast(this.props.Document.type) === "video") {
-      
+            console.log("ran"); 
+            console.log(this.props.Document.duration); 
+            if (this.props.Document.duration){
+                this._time = Math.round(NumCast(this.props.Document.duration))  * 1000; 
+
+                reaction(() => {
+                    return NumCast(this.props.Document.curPage); 
+                }, curPage => {
+                    this.changeCurrentBarX(curPage * this._tickIncrement / this._tickSpacing)
+                }); 
+
+            }
+            
         }   
         runInAction(() => {
             reaction(() => {

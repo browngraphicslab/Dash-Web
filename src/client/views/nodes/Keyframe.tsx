@@ -14,16 +14,16 @@ import { number } from "prop-types";
 import { CollectionSchemaView, CollectionSchemaPreview } from "../collections/CollectionSchemaView";
 import { faDiceOne, faFirstAid } from "@fortawesome/free-solid-svg-icons";
 
-export namespace KeyframeFunc{
-    export enum KeyframeType{
-        fade = "fade", 
+export namespace KeyframeFunc {
+    export enum KeyframeType {
+        fade = "fade",
         default = "default",
     }
-    export enum Direction{
-        left = "left", 
+    export enum Direction {
+        left = "left",
         right = "right"
-    } 
-    export const findAdjacentRegion = (dir: KeyframeFunc.Direction, currentRegion:Doc, regions:List<Doc>): (RegionData | undefined) => {
+    }
+    export const findAdjacentRegion = (dir: KeyframeFunc.Direction, currentRegion: Doc, regions: List<Doc>): (RegionData | undefined) => {
         let leftMost: (RegionData | undefined) = undefined;
         let rightMost: (RegionData | undefined) = undefined;
         regions.forEach(region => {
@@ -43,23 +43,23 @@ export namespace KeyframeFunc{
         } else if (dir === Direction.right) {
             return rightMost;
         }
-    }; 
+    };
 
     export const defaultKeyframe = () => {
-        let regiondata =  new Doc(); //creating regiondata
+        let regiondata = new Doc(); //creating regiondata
         regiondata.duration = 200;
         regiondata.position = 0;
-        regiondata.fadeIn = 20; 
-        regiondata.fadeOut = 20; 
-        return regiondata; 
-    }; 
+        regiondata.fadeIn = 20;
+        regiondata.fadeOut = 20;
+        return regiondata;
+    };
 }
 
 export const RegionDataSchema = createSchema({
     position: defaultSpec("number", 0),
     duration: defaultSpec("number", 0),
-    keyframes: listSpec(Doc), 
-    fadeIn: defaultSpec("number", 0), 
+    keyframes: listSpec(Doc),
+    fadeIn: defaultSpec("number", 0),
     fadeOut: defaultSpec("number", 0)
 });
 export type RegionData = makeInterface<[typeof RegionDataSchema]>;
@@ -68,14 +68,14 @@ export const RegionData = makeInterface(RegionDataSchema);
 interface IProps {
     node: Doc;
     RegionData: Doc;
-    changeCurrentBarX: (x: number) => void; 
-    setFlyout:(props:FlyoutProps) => any; 
+    changeCurrentBarX: (x: number) => void;
+    setFlyout: (props: FlyoutProps) => any;
 }
 
 @observer
 export class Keyframe extends React.Component<IProps> {
 
-    @observable private _bar = React.createRef<HTMLDivElement>();    
+    @observable private _bar = React.createRef<HTMLDivElement>();
 
     @computed
     private get regiondata() {
@@ -86,95 +86,95 @@ export class Keyframe extends React.Component<IProps> {
     @computed
     private get regions() {
         return Cast(this.props.node.regions, listSpec(Doc)) as List<Doc>;
-    }    
-
-    @computed
-    private get firstKeyframe(){
-        let first: (Doc | undefined) = undefined; 
-        DocListCast(this.regiondata.keyframes!).forEach(kf => {
-            if (kf.type !== KeyframeFunc.KeyframeType.fade){
-                if (!first || first && NumCast(kf.time) < NumCast(first.time)){
-                    first = kf; 
-                } 
-            }
-        }); 
-        return first; 
     }
 
     @computed
-    private get lastKeyframe(){
-        let last: (Doc | undefined) = undefined; 
+    private get firstKeyframe() {
+        let first: (Doc | undefined) = undefined;
         DocListCast(this.regiondata.keyframes!).forEach(kf => {
-            if (kf.type !== KeyframeFunc.KeyframeType.fade){
-                if (!last || last && NumCast(kf.time) > NumCast(last.time)){
-                    last = kf; 
+            if (kf.type !== KeyframeFunc.KeyframeType.fade) {
+                if (!first || first && NumCast(kf.time) < NumCast(first.time)) {
+                    first = kf;
                 }
             }
-        }); 
-        return last; 
+        });
+        return first;
+    }
+
+    @computed
+    private get lastKeyframe() {
+        let last: (Doc | undefined) = undefined;
+        DocListCast(this.regiondata.keyframes!).forEach(kf => {
+            if (kf.type !== KeyframeFunc.KeyframeType.fade) {
+                if (!last || last && NumCast(kf.time) > NumCast(last.time)) {
+                    last = kf;
+                }
+            }
+        });
+        return last;
     }
 
 
-    componentWillMount(){
-        if (!this.regiondata.keyframes){
-            this.regiondata.keyframes = new List<Doc>(); 
+    componentWillMount() {
+        if (!this.regiondata.keyframes) {
+            this.regiondata.keyframes = new List<Doc>();
         }
     }
 
 
     @action
     async componentDidMount() {
-            let fadeIn = await this.makeKeyData(this.regiondata.position + this.regiondata.fadeIn, KeyframeFunc.KeyframeType.fade)!; 
-            let fadeOut = await this.makeKeyData(this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut, KeyframeFunc.KeyframeType.fade)!;   
-            let start = await this.makeKeyData(this.regiondata.position, KeyframeFunc.KeyframeType.fade)!;
-            let finish = await this.makeKeyData(this.regiondata.position + this.regiondata.duration, KeyframeFunc.KeyframeType.fade)!; 
-            (fadeIn.key! as Doc).opacity = 1; 
-            (fadeOut.key! as Doc).opacity = 1;  
-            (start.key! as Doc) .opacity = 0.1; 
-            (finish.key! as Doc).opacity = 0.1; 
-            
+        let fadeIn = await this.makeKeyData(this.regiondata.position + this.regiondata.fadeIn, KeyframeFunc.KeyframeType.fade)!;
+        let fadeOut = await this.makeKeyData(this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut, KeyframeFunc.KeyframeType.fade)!;
+        let start = await this.makeKeyData(this.regiondata.position, KeyframeFunc.KeyframeType.fade)!;
+        let finish = await this.makeKeyData(this.regiondata.position + this.regiondata.duration, KeyframeFunc.KeyframeType.fade)!;
+        (fadeIn.key! as Doc).opacity = 1;
+        (fadeOut.key! as Doc).opacity = 1;
+        (start.key! as Doc).opacity = 0.1;
+        (finish.key! as Doc).opacity = 0.1;
+
         observe(this.regiondata, change => {
-            if (change.type === "update"){
-                fadeIn.time = this.regiondata.position + this.regiondata.fadeIn; 
-                fadeOut.time = this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut; 
-                start.time = this.regiondata.position; 
+            if (change.type === "update") {
+                fadeIn.time = this.regiondata.position + this.regiondata.fadeIn;
+                fadeOut.time = this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut;
+                start.time = this.regiondata.position;
                 finish.time = this.regiondata.position + this.regiondata.duration;
 
-                let fadeInIndex = this.regiondata.keyframes!.indexOf(fadeIn); 
-                let fadeOutIndex = this.regiondata.keyframes!.indexOf(fadeOut); 
-                let startIndex = this.regiondata.keyframes!.indexOf(start); 
-                let finishIndex = this.regiondata.keyframes!.indexOf(finish); 
-        
-                this.regiondata.keyframes![fadeInIndex] = fadeIn; 
-                this.regiondata.keyframes![fadeOutIndex] =  fadeOut;  
-                this.regiondata.keyframes![startIndex] = start; 
+                let fadeInIndex = this.regiondata.keyframes!.indexOf(fadeIn);
+                let fadeOutIndex = this.regiondata.keyframes!.indexOf(fadeOut);
+                let startIndex = this.regiondata.keyframes!.indexOf(start);
+                let finishIndex = this.regiondata.keyframes!.indexOf(finish);
+
+                this.regiondata.keyframes![fadeInIndex] = fadeIn;
+                this.regiondata.keyframes![fadeOutIndex] = fadeOut;
+                this.regiondata.keyframes![startIndex] = start;
                 this.regiondata.keyframes![finishIndex] = finish;
-                this.forceUpdate(); 
+                this.forceUpdate();
             }
-        }); 
+        });
     }
 
 
     @action
-    makeKeyData = async (kfpos: number, type:KeyframeFunc.KeyframeType = KeyframeFunc.KeyframeType.default) => { //Kfpos is mouse offsetX, representing time 
+    makeKeyData = async (kfpos: number, type: KeyframeFunc.KeyframeType = KeyframeFunc.KeyframeType.default) => { //Kfpos is mouse offsetX, representing time 
         let doclist = await DocListCastAsync(this.regiondata.keyframes!);
-        let existingkf:(Doc | undefined) = undefined; 
-        if (doclist) {        
+        let existingkf: (Doc | undefined) = undefined;
+        if (doclist) {
             doclist.forEach(TK => { //TK is TimeAndKey
                 if (TK.time === kfpos) {
-                    existingkf =  TK; 
+                    existingkf = TK;
                 }
             });
         }
         if (existingkf) {
-            return existingkf; 
-        } 
+            return existingkf;
+        }
         let TK: Doc = new Doc();
-        TK.time = kfpos; 
-        TK.key = Doc.MakeCopy(this.props.node, true); 
-        TK.type = type;            
+        TK.time = kfpos;
+        TK.key = Doc.MakeCopy(this.props.node, true);
+        TK.type = type;
         this.regiondata.keyframes!.push(TK);
-        return TK;   
+        return TK;
     }
 
     @action
@@ -186,18 +186,18 @@ export class Keyframe extends React.Component<IProps> {
             document.removeEventListener("pointermove", this.onBarPointerMove);
         });
     }
-   
+
 
     @action
     onBarPointerMove = (e: PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
         let left = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.left, this.regiondata, this.regions)!;
-        let right = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.right, this.regiondata, this.regions!);      
+        let right = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.right, this.regiondata, this.regions!);
         // let bar = this._bar.current!; 
         // let barX = bar.getBoundingClientRect().left;
         // let offset = e.clientX - barX;
-        let prevX = this.regiondata.position; 
+        let prevX = this.regiondata.position;
         let futureX = this.regiondata.position + e.movementX;
         if (futureX <= 0) {
             this.regiondata.position = 0;
@@ -209,12 +209,12 @@ export class Keyframe extends React.Component<IProps> {
             this.regiondata.position = futureX;
         }
         for (let i = 0; i < this.regiondata.keyframes!.length; i++) {
-            if ((this.regiondata.keyframes![i] as Doc).type !== KeyframeFunc.KeyframeType.fade){
+            if ((this.regiondata.keyframes![i] as Doc).type !== KeyframeFunc.KeyframeType.fade) {
                 let movement = this.regiondata.position - prevX;
                 (this.regiondata.keyframes![i] as Doc).time = NumCast((this.regiondata.keyframes![i] as Doc).time) + movement;
             }
         }
-        this.forceUpdate(); 
+        this.forceUpdate();
     }
 
     @action
@@ -244,22 +244,22 @@ export class Keyframe extends React.Component<IProps> {
         let bar = this._bar.current!;
         let barX = bar.getBoundingClientRect().left;
         let offset = e.clientX - barX;
-        let leftRegion = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.left, this.regiondata, this.regions); 
-        let firstkf: (Doc | undefined) = this.firstKeyframe; 
-        if (firstkf && this.regiondata.position + this.regiondata.fadeIn + offset>= NumCast(firstkf!.time)) {
-            let dif = NumCast(firstkf!.time) - (this.regiondata.position + this.regiondata.fadeIn); 
-           this.regiondata.position = NumCast(firstkf!.time) - this.regiondata.fadeIn; 
-           this.regiondata.duration -= dif; 
-        }else if (this.regiondata.duration - offset < this.regiondata.fadeIn + this.regiondata.fadeOut){ // no keyframes, just fades
-            this.regiondata.position -= (this.regiondata.fadeIn + this.regiondata.fadeOut - this.regiondata.duration); 
-            this.regiondata.duration = this.regiondata.fadeIn + this.regiondata.fadeOut; 
+        let leftRegion = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.left, this.regiondata, this.regions);
+        let firstkf: (Doc | undefined) = this.firstKeyframe;
+        if (firstkf && this.regiondata.position + this.regiondata.fadeIn + offset >= NumCast(firstkf!.time)) {
+            let dif = NumCast(firstkf!.time) - (this.regiondata.position + this.regiondata.fadeIn);
+            this.regiondata.position = NumCast(firstkf!.time) - this.regiondata.fadeIn;
+            this.regiondata.duration -= dif;
+        } else if (this.regiondata.duration - offset < this.regiondata.fadeIn + this.regiondata.fadeOut) { // no keyframes, just fades
+            this.regiondata.position -= (this.regiondata.fadeIn + this.regiondata.fadeOut - this.regiondata.duration);
+            this.regiondata.duration = this.regiondata.fadeIn + this.regiondata.fadeOut;
         } else if (leftRegion && this.regiondata.position + offset <= leftRegion.position + leftRegion.duration) {
-            let dif = this.regiondata.position - (leftRegion.position + leftRegion.duration); 
-            this.regiondata.position = leftRegion.position + leftRegion.duration; 
-            this.regiondata.duration += dif; 
-            
-        }else {
-            this.regiondata.duration -= offset;                
+            let dif = this.regiondata.position - (leftRegion.position + leftRegion.duration);
+            this.regiondata.position = leftRegion.position + leftRegion.duration;
+            this.regiondata.duration += dif;
+
+        } else {
+            this.regiondata.duration -= offset;
             this.regiondata.position += offset;
         }
     }
@@ -272,19 +272,19 @@ export class Keyframe extends React.Component<IProps> {
         let bar = this._bar.current!;
         let barX = bar.getBoundingClientRect().right;
         let offset = e.clientX - barX;
-        let rightRegion = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.right, this.regiondata, this.regions); 
+        let rightRegion = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.right, this.regiondata, this.regions);
         if (this.lastKeyframe! && this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut + offset <= NumCast((this.lastKeyframe! as Doc).time)) {
-            let dif = this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut - NumCast((this.lastKeyframe! as Doc).time);  
-            this.regiondata.duration -= dif; 
-        } else if (this.regiondata.duration + offset < this.regiondata.fadeIn + this.regiondata.fadeOut){ // nokeyframes, just fades
+            let dif = this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut - NumCast((this.lastKeyframe! as Doc).time);
+            this.regiondata.duration -= dif;
+        } else if (this.regiondata.duration + offset < this.regiondata.fadeIn + this.regiondata.fadeOut) { // nokeyframes, just fades
             this.regiondata.duration = this.regiondata.fadeIn + this.regiondata.fadeOut;
-        } else if (rightRegion && this.regiondata.position + this.regiondata.duration + offset >= rightRegion.position){
-            let dif = rightRegion.position - (this.regiondata.position + this.regiondata.duration); 
-            this.regiondata.duration += dif; 
-        } else {        
+        } else if (rightRegion && this.regiondata.position + this.regiondata.duration + offset >= rightRegion.position) {
+            let dif = rightRegion.position - (this.regiondata.position + this.regiondata.duration);
+            this.regiondata.duration += dif;
+        } else {
             this.regiondata.duration += offset;
         }
-    } 
+    }
 
     createDivider = (type?: KeyframeFunc.Direction): JSX.Element => {
         if (type === "left") {
@@ -299,58 +299,59 @@ export class Keyframe extends React.Component<IProps> {
     createKeyframe = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        let bar = this._bar.current!; 
-        let offset = e.clientX - bar.getBoundingClientRect().left; 
+        let bar = this._bar.current!;
+        let offset = e.clientX - bar.getBoundingClientRect().left;
         if (offset > this.regiondata.fadeIn && offset < this.regiondata.duration - this.regiondata.fadeOut) { //make sure keyframe is not created inbetween fades and ends
-            let position = NumCast(this.regiondata.position);            
-            this.makeKeyData(Math.round(position + offset));           
+            let position = NumCast(this.regiondata.position);
+            this.makeKeyData(Math.round(position + offset));
             this.props.changeCurrentBarX(NumCast(Math.round(position + offset))); //first move the keyframe to the correct location and make a copy so the correct file gets coppied
         }
     }
 
-    @action 
-    moveKeyframe = (e: React.MouseEvent, kf:Doc) => {
-        e.preventDefault(); 
-        e.stopPropagation(); 
-        this.props.changeCurrentBarX(NumCast(kf.time!)); 
+    @action
+    moveKeyframe = (e: React.MouseEvent, kf: Doc) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.props.changeCurrentBarX(NumCast(kf.time!));
     }
 
 
-    @action 
-    private createKeyframeJSX = (kf:Doc, type = KeyframeFunc.KeyframeType.default) => {
-        if (type === KeyframeFunc.KeyframeType.default){
+    @action
+    private createKeyframeJSX = (kf: Doc, type = KeyframeFunc.KeyframeType.default) => {
+        if (type === KeyframeFunc.KeyframeType.default) {
             return (
-            <div className="keyframe" style={{ left: `${NumCast(kf.time) - this.regiondata.position}px`  }}>
-                {this.createDivider()}
-                <div className="keyframeCircle" onPointerDown={(e) => {this.moveKeyframe(e, kf as Doc);} } onContextMenu={(e:React.MouseEvent)=>{
-                    e.preventDefault(); 
-                    e.stopPropagation(); 
-                }}></div>
-            </div>);
+                <div className="keyframe" style={{ left: `${NumCast(kf.time) - this.regiondata.position}px` }}>
+                    {this.createDivider()}
+                    <div className="keyframeCircle" onPointerDown={(e) => { this.moveKeyframe(e, kf as Doc); }} onContextMenu={(e: React.MouseEvent) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }}></div>
+                </div>);
         }
-        return (    
-            <div className="keyframe" style={{ left: `${NumCast(kf.time) - this.regiondata.position}px`  }}>
+        return (
+            <div className="keyframe" style={{ left: `${NumCast(kf.time) - this.regiondata.position}px` }}>
                 {this.createDivider()}
             </div>
-        ); 
+        );
     }
 
     render() {
         return (
             <div>
-                <div className="bar" ref={this._bar} style={{ transform: `translate(${this.regiondata.position}px)`, width: `${this.regiondata.duration}px` }} 
-                onPointerDown={this.onBarPointerDown} 
-                onDoubleClick={this.createKeyframe}
-                onContextMenu={action((e:React.MouseEvent)=>{
-                    e.preventDefault(); 
-                    e.stopPropagation(); 
-                    let offsetLeft = this._bar.current!.getBoundingClientRect().left - this._bar.current!.parentElement!.getBoundingClientRect().left; 
-                    let offsetTop = this._bar.current!.getBoundingClientRect().top; //+ this._bar.current!.parentElement!.getBoundingClientRect().top; 
-                    this.props.setFlyout({x:offsetLeft, y: offsetTop, display:"block", regiondata:this.regiondata, regions:this.regions}); })}>
+                <div className="bar" ref={this._bar} style={{ transform: `translate(${this.regiondata.position}px)`, width: `${this.regiondata.duration}px` }}
+                    onPointerDown={this.onBarPointerDown}
+                    onDoubleClick={this.createKeyframe}
+                    onContextMenu={action((e: React.MouseEvent) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        let offsetLeft = this._bar.current!.getBoundingClientRect().left - this._bar.current!.parentElement!.getBoundingClientRect().left;
+                        let offsetTop = this._bar.current!.getBoundingClientRect().top; //+ this._bar.current!.parentElement!.getBoundingClientRect().top; 
+                        this.props.setFlyout({ x: offsetLeft, y: offsetTop, display: "block", regiondata: this.regiondata, regions: this.regions });
+                    })}>
                     <div className="leftResize" onPointerDown={this.onResizeLeft} ></div>
                     <div className="rightResize" onPointerDown={this.onResizeRight}></div>
                     {this.regiondata.keyframes!.map(kf => {
-                        return this.createKeyframeJSX(kf as Doc, (kf! as Doc).type as KeyframeFunc.KeyframeType); 
+                        return this.createKeyframeJSX(kf as Doc, (kf! as Doc).type as KeyframeFunc.KeyframeType);
                     })}
                 </div>
             </div>
