@@ -6,9 +6,9 @@
     border-style: solid;
     border-radius: $border-radius;
     box-sizing: border-box;
-    position: absolute;
+    // position: absolute;
     width: 100%;
-    height: calc(100% - 25px);
+    // height: calc(100% - 25px);
     // overflow: hidden;
     overflow-x: scroll;
     border: none;
@@ -333,4 +333,9 @@
 #preview-schema-checkbox-div {
     margin-left: 20px;
     font-size: 12px;
+}
+
+.sub {
+    padding: 20px;
+    background-color: red;
 }

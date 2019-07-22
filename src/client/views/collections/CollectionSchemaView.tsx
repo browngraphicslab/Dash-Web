@@ -61,7 +61,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     private _startPreviewWidth = 0;
     private DIVIDER_WIDTH = 4;
 
-    // @observable _selectedIndex = 0;
     @observable _columnsPercentage = 0;
     @observable _keys: string[] = [];
     @observable _newKeyName: string = "";
@@ -70,8 +69,8 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @observable _cellIsEditing: boolean = false;
     @observable _focusedCell: {row: number, col: number} = {row: 0, col: 0};
     @observable _sortedColumns: Map<string, {id: string, desc: boolean}> = new Map();
+    @observable _openCollections: Array<Doc> = [];
     @observable private _node : HTMLDivElement | null = null;
-    // @observable _schemaIsFocused: boolean = 
 
     @computed get previewWidth() { return () => NumCast(this.props.Document.schemaPreviewWidth); }
     @computed get previewHeight() { return () => this.props.PanelHeight() - 2 * this.borderWidth; }
@@ -81,27 +80,30 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }
     @computed get tableColumns(): Column<Doc>[] {
         let possibleKeys = this.documentKeys.filter(key => this.columns.findIndex(existingKey => existingKey.toUpperCase() === key.toUpperCase()) === -1);
-        let columns: Column<Doc>[] = [
-            {
-            expander: true,
-            Header: "",
-            width: 45,
-            Expander: (rowInfo) => {
-                if (rowInfo.original.type === "collection") {
-                    return <div>+</div>;
-                } else {
-                    return null;
+        let columns: Column<Doc>[] = [];
+
+        if (this.childDocs.reduce((found, doc) => found || doc.type === "collection", false)) {
+            columns.push(
+                {
+                    expander: true,
+                    Header: "",
+                    width: 45,
+                    Expander: (rowInfo) => {
+                        if (rowInfo.original.type === "collection") {
+                            if (rowInfo.isExpanded) return <div onClick={() => this.onCloseCollection(rowInfo.original)}>-</div>;
+                            if (!rowInfo.isExpanded) return <div onClick={() => this.onExpandCollection(rowInfo.original)}>+</div>;
+                        } else {
+                            return null;
+                        }
+                    }
                 }
-            }
+            );
         }
-        ];
         
         let cols = this.columns.map(col => {
             let focusedRow = this._focusedCell.row;
             let focusedCol = this._focusedCell.col;
-            let isSelected = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0].props.Document === this.props.Document : false;
-            let isEditable = !this._headerIsEditing && (isSelected);// || BoolCast(this.props.Document.libraryBrush));
-            console.log(BoolCast(this.props.Document.libraryBrush), isSelected);
+            let isEditable = !this._headerIsEditing && this.props.isSelected();// || BoolCast(this.props.Document.libraryBrush));
 
             let header = <CollectionSchemaHeader 
                 keyValue={col}
@@ -146,34 +148,23 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     let colType = this.getColumnType(col);
                     if (colType === ColumnType.Number) return <CollectionSchemaNumberCell {...props}/>;
                     if (colType === ColumnType.String) return <CollectionSchemaStringCell {...props}/>;
-                    // if (colType === ColumnType.Boolean) return <CollectionSchemaBooleanCell {...props} />;
-                    // if (colType === ColumnType.Checkbox) return <CollectionSchemaCheckboxCell {...props} />;
                     if (colType === ColumnType.Boolean) return <CollectionSchemaCheckboxCell {...props} />;
                     if (colType === ColumnType.Doc) return <CollectionSchemaDocCell {...props} />;
                     return <CollectionSchemaCell {...props}/>;
                 },
                 minWidth: 200,
             };
-        });// as {Header?: TableCellRenderer, accessor?: (doc: Doc) => FieldResult<Field>, id?: string, Cell?: (rowProps: CellInfo) => JSX.Element, width?: number, resizable?: boolean, expander?: boolean, Expander?: (rowInfo: RowInfo) => JSX.Element | null, minWidth?: number}[];
+        });
         columns.push(...cols);
 
         columns.push({
-            Header: <CollectionSchemaAddColumnHeader
-                createColumn={this.createColumn}
-                // possibleKeys={possibleKeys}
-                // existingKeys={this.columns}
-                // onSelect={this.changeColumns}
-                // setIsEditing={this.setHeaderIsEditing}
-            />,
+            Header: <CollectionSchemaAddColumnHeader createColumn={this.createColumn} />,
             accessor: (doc: Doc) => 0,
             id: "add",
             Cell: (rowProps: CellInfo) => <></>,
             width: 45,
             resizable: false
         });
-
-        // SubComponent={row => row.original.type === "collection" && <div>SUB</div>}
-
         return columns;
     }
 
@@ -204,25 +195,12 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         if (!rowInfo) {
             return {};
         }
-        let isSelected = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0].props.Document === this.props.Document : false;
         return {
             ScreenToLocalTransform: this.props.ScreenToLocalTransform,
             addDoc: (doc: Doc, relativeTo?: Doc, before?: boolean) => Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, relativeTo, before),
             moveDoc: (d: Doc, target: Doc, addDoc: (doc: Doc) => boolean) => this.props.moveDocument(d, target, addDoc),
             rowInfo, 
-            rowFocused: !this._headerIsEditing && isSelected && rowInfo.index === this._focusedCell.row,
-            // style: {
-            //     background: rowInfo.index === this._focusedCell.row ? "lightGray" : "white",
-            //     //color: rowInfo.index === this._selectedIndex ? "white" : "black"
-            // }
-            // onClick: action((e: React.MouseEvent, handleOriginal: Function) => {
-            //     that.props.select(e.ctrlKey);
-            //     that._selectedIndex = rowInfo.index;
-
-            //     if (handleOriginal) {
-            //         handleOriginal();
-            //     }
-            // }),
+            rowFocused: !this._headerIsEditing && this.props.isSelected() && rowInfo.index === this._focusedCell.row,
         };
     }
 
@@ -238,6 +216,17 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     //         this.props.setIsEditing(false);
     //     }
     // }
+
+    @action
+    onExpandCollection = (collection: Doc): void => {
+        this._openCollections.push(collection);
+    }
+
+    @action
+    onCloseCollection = (collection: Doc): void => {
+        let index = this._openCollections.findIndex(col => col === collection);
+        if (index > -1) this._openCollections.splice(index, 1);
+    }
 
     @action
     setCellIsEditing = (isEditing: boolean): void => {
@@ -296,8 +285,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     onKeyDown = (e: KeyboardEvent): void => {
-        let isSelected = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0].props.Document === this.props.Document : false;
-        if (!this._cellIsEditing && !this._headerIsEditing && isSelected) {
+        if (!this._cellIsEditing && !this._headerIsEditing && this.props.isSelected()) {
             let direction = e.key === "Tab" ? "tab" : e.which === 39 ? "right" : e.which === 37 ? "left" : e.which === 38 ? "up" : e.which === 40 ? "down" : "";
             this.changeFocusedCellByDirection(direction);
         }
@@ -457,7 +445,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @computed
     get previewDocument(): Doc | undefined {
         let selectedIndex = this._focusedCell.row;
-        console.log("preview", selectedIndex);
         const selected = this.childDocs.length > selectedIndex ? this.childDocs[selectedIndex] : undefined;
         let pdc = selected ? (this.previewScript && this.previewScript !== "this" ? FieldValue(Cast(selected[this.previewScript], Doc)) : selected) : undefined;
         return pdc;
@@ -484,6 +471,11 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @computed
     get reactTable() {
         let previewWidth = this.previewWidth() + 2 * this.borderWidth + this.DIVIDER_WIDTH + 1;
+        let hasCollectionChild = this.childDocs.reduce((found, doc) => found || doc.type === "collection", false);
+        let expandedRowsList = this._openCollections.map(col => this.childDocs.findIndex(doc => doc === col).toString());
+        let expanded = {};
+        expandedRowsList.forEach(row => expanded[row] = true);
+
         return <ReactTable 
             style={{ position: "relative", float: "left", width: `calc(100% - ${previewWidth}px` }} 
             data={this.childDocs} 
@@ -494,8 +486,11 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             getTrProps={this.getTrProps}
             sortable={false}
             TrComponent={MovableRow}
-            sorted={Array.from(this._sortedColumns.values())}
-            SubComponent={row => row.original.type === "collection" && <div>this is the sub component</div>}
+            sorted={Array.from(this._sortedColumns.values())}    
+            expanded={expanded}       
+            SubComponent={hasCollectionChild ? row => row.original.type === "collection" && 
+            <div className="sub"><CollectionSchemaView {...this.props} Document={row.original} /></div> : undefined}
+            
         />;
 
 

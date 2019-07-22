@@ -179,8 +179,6 @@ export class MovableRow extends React.Component<MovableRowProps> {
         let reference = React.createRef<HTMLDivElement>();
         let onItemDown = SetupDrag(reference, () => doc, this.props.moveDoc);
 
-        console.log("row focused", this.props.rowFocused);
-
         return (
             <div className={this.props.rowFocused ? "collectionSchema-row row-focused" : "collectionSchema-row"} ref={this.createRowDropTarget}>
                 <div className="collectionSchema-row-wrapper" ref={this._header} onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
