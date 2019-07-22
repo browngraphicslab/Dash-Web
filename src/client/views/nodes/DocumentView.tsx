@@ -351,7 +351,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     // @TODO: shouldn't always follow target context
                     let linkedFwdContextDocs = [first.length ? await (first[0].targetContext) as Doc : undefined, undefined];
 
-                    let linkedFwdPage = [first.length ? NumCast(first[0].linkedToPage, undefined) : undefined, undefined];
+                    let linkedFwdPage = [first.length ? NumCast(first[0].anchor2Page, undefined) : undefined, undefined];
 
                     if (!linkedFwdDocs.some(l => l instanceof Promise)) {
                         let maxLocation = StrCast(linkedFwdDocs[0].maximizeLocation, "inTab");
