@@ -65,6 +65,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
 
     @action public Seek(time: number) {
         this._youtubePlayer && this._youtubePlayer.seekTo(Math.round(time), true);
+        this.player && (this.player.currentTime = time);
     }
 
     @action public Pause = (update: boolean = true) => {
