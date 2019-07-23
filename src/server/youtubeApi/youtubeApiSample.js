@@ -28,7 +28,7 @@ module.exports.authorizedGetChannel = (apiKey) => {
 }
 
 module.exports.authorizedGetVideos = (apiKey, userInput, callBack) => {
-    authorize(JSON.parse(apiKey), getSampleVideos, { userInput: userInput, callBack: callBack });
+    authorize(JSON.parse(apiKey), getVideos, { userInput: userInput, callBack: callBack });
 }
 
 module.exports.authorizedGetVideoDetails = (apiKey, videoIds, callBack) => {
@@ -141,7 +141,7 @@ function getChannel(auth) {
     });
 }
 
-function getSampleVideos(auth, args) {
+function getVideos(auth, args) {
     let service = google.youtube('v3');
     service.search.list({
         auth: auth,
