@@ -95,6 +95,10 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         this._focusedTable = doc;
     }
 
+    @action
+    setPreviewDoc = (doc: Doc): void => {
+        this.previewDoc = doc;
+    }
 
     //toggles preview side-panel of schema
     @action
@@ -384,6 +388,16 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         document.removeEventListener("keydown", this.onKeyDown);
     }
 
+    tableAddDoc = (doc: Doc, relativeTo?: Doc, before?: boolean) => {
+        console.log("table add doc");
+        return Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, relativeTo, before);
+    }
+
+    tableMoveDoc = (d: Doc, target: Doc, addDoc: (doc: Doc) => boolean) => {
+        console.log("SCHEMA MOVE"); 
+        this.props.moveDocument(d, target, addDoc);
+    }
+
     private getTrProps: ComponentPropsGetterR = (state, rowInfo) => {
         const that = this;
         if (!rowInfo) {
@@ -391,8 +405,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         }
         return {
             ScreenToLocalTransform: this.props.ScreenToLocalTransform,
-            addDoc: (doc: Doc, relativeTo?: Doc, before?: boolean) => Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, relativeTo, before),
-            moveDoc: (d: Doc, target: Doc, addDoc: (doc: Doc) => boolean) => this.props.moveDocument(d, target, addDoc),
+            addDoc: this.tableAddDoc,
+            moveDoc: this.tableMoveDoc,
             rowInfo, 
             rowFocused: !this._headerIsEditing && rowInfo.index === this._focusedCell.row && this.props.isFocused(this.props.Document)
         };
@@ -654,7 +668,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     render() {
-        if (this.props.isFocused(this.props.Document)) console.log(StrCast(this.props.Document.title), "IS FOCUSED");
         // if (SelectionManager.SelectedDocuments().length > 0) console.log(StrCast(SelectionManager.SelectedDocuments()[0].Document.title));
         // if (DocumentManager.Instance.getDocumentView(this.props.Document)) console.log(StrCast(this.props.Document.title), SelectionManager.IsSelected(DocumentManager.Instance.getDocumentView(this.props.Document)!))
         return (
@@ -669,7 +682,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
 interface CollectionSchemaPreviewProps {
     Document?: Doc;
-    DataDocument?: Doc;
+    DataDocument?: Doc; 
     childDocs?: Doc[];
     renderDepth: number;
     fitToBox?: boolean;

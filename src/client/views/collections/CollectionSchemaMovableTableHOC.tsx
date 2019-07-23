@@ -5,7 +5,7 @@ import { Transform } from "../../util/Transform";
 import { Doc } from "../../../new_fields/Doc";
 import { DragManager, SetupDrag } from "../../util/DragManager";
 import { SelectionManager } from "../../util/SelectionManager";
-import { Cast, FieldValue } from "../../../new_fields/Types";
+import { Cast, FieldValue, StrCast } from "../../../new_fields/Types";
 
 
 export interface MovableColumnProps {
@@ -152,15 +152,17 @@ export class MovableRow extends React.Component<MovableRowProps> {
         let rect = this._header!.current!.getBoundingClientRect();
         let bounds = this.props.ScreenToLocalTransform().transformPoint(rect.left, rect.top + rect.height / 2);
         let before = x[1] < bounds[1];
+
         if (de.data instanceof DragManager.DocumentDragData) {
             e.stopPropagation();
             if (de.data.draggedDocuments[0] === rowDoc) return true;
             let addDocument = (doc: Doc) => this.props.addDoc(doc, rowDoc, before);
             let movedDocs = de.data.draggedDocuments; //(de.data.options === this.props.treeViewId ? de.data.draggedDocuments : de.data.droppedDocuments);
-            return (de.data.dropAction || de.data.userDropAction) ?
+            return (de.data.dropAction || de.data.userDropAction) ? 
                 de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDoc(d, rowDoc, before) || added, false)
                 : (de.data.moveDocument) ?
-                    movedDocs.reduce((added: boolean, d) => de.data.moveDocument(d, rowDoc, addDocument) || added, false)
+                    movedDocs.reduce((added: boolean, d) =>  de.data.moveDocument(d, rowDoc, addDocument) || added, false)
+                    // movedDocs.reduce((added: boolean, d) => this.props.moveDoc(d, rowDoc, addDocument) || added, false)
                     : de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDoc(d, rowDoc, before), false);
         }
         return false;
@@ -177,7 +179,7 @@ export class MovableRow extends React.Component<MovableRowProps> {
         if (!doc) return <></>;
 
         let reference = React.createRef<HTMLDivElement>();
-        let onItemDown = SetupDrag(reference, () => doc, this.props.moveDoc);
+        let onItemDown = SetupDrag(reference, () => doc);
 
         return (
             <div className={this.props.rowFocused ? "collectionSchema-row row-focused" : "collectionSchema-row"} ref={this.createRowDropTarget}>
