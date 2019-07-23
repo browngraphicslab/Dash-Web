@@ -1,0 +1,54 @@
+@import "../globalCssVariables";
+
+.collectionStackingViewChrome {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding-bottom: 10px;
+    border-bottom: .5px solid lightgrey;
+    margin: 10px;
+
+    .collectionStackingViewChrome-sectionFilter-cont {
+        justify-self: right;
+        display: flex;
+        font-size: 75%;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+
+        .collectionStackingViewChrome-sectionFilter-label {
+            vertical-align: center;
+            padding: 10px;
+        }
+
+        .collectionStackingViewChrome-sectionFilter {
+            color: white;
+            width: fit-content;
+            text-align: center;
+            background: rgb(238, 238, 238);
+            height: 37px;
+
+            .editable-view-input,
+            input,
+            .editableView-container-editing-oneLine,
+            .editableView-container-editing {
+                padding: 12px 10px 11px 10px;
+                border: 0px;
+                color: grey;
+                text-align: center;
+                text-transform: uppercase;
+                letter-spacing: 2px;
+                outline-color: black;
+                height: 100%;
+            }
+
+            .react-autosuggest__container {
+                margin: 0;
+                color: grey;
+                padding: 0px;
+            }
+        }
+    }
+
+    .collectionStackingViewChrome-sectionFilter:hover {
+        cursor: text;
+    }
+}

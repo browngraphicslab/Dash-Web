@@ -17,6 +17,7 @@ import { CollectionStackingView } from './CollectionStackingView';
 import { CollectionTreeView } from "./CollectionTreeView";
 import { StrCast, PromiseValue } from '../../../new_fields/Types';
 import { DocumentType } from '../../documents/Documents';
+import { CollectionStackingViewChrome } from './CollectionViewChromes';
 export const COLLECTION_BORDER_WIDTH = 2;
 
 library.add(faTh);
@@ -33,19 +34,38 @@ library.add(faImage);
 export class CollectionView extends React.Component<FieldViewProps> {
     public static LayoutString(fieldStr: string = "data", fieldExt: string = "") { return FieldView.LayoutString(CollectionView, fieldStr, fieldExt); }
 
-    private SubView = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
+    private SubViewHelper = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
         let props = { ...this.props, ...renderProps };
         switch (this.isAnnotationOverlay ? CollectionViewType.Freeform : type) {
-            case CollectionViewType.Schema: return (<CollectionSchemaView {...props} CollectionView={this} />);
-            case CollectionViewType.Docking: return (<CollectionDockingView {...props} CollectionView={this} />);
-            case CollectionViewType.Tree: return (<CollectionTreeView {...props} CollectionView={this} />);
-            case CollectionViewType.Stacking: { this.props.Document.singleColumn = true; return (<CollectionStackingView {...props} CollectionView={this} />); }
-            case CollectionViewType.Masonry: { this.props.Document.singleColumn = false; return (<CollectionStackingView {...props} CollectionView={this} />); }
+            case CollectionViewType.Schema: return (<CollectionSchemaView key="collview" {...props} CollectionView={this} />);
+            case CollectionViewType.Docking: return (<CollectionDockingView key="collview" {...props} CollectionView={this} />);
+            case CollectionViewType.Tree: return (<CollectionTreeView key="collview" {...props} CollectionView={this} />);
+            case CollectionViewType.Stacking: { this.props.Document.singleColumn = true; return (<CollectionStackingView key="collview" {...props} CollectionView={this} />); }
+            case CollectionViewType.Masonry: { this.props.Document.singleColumn = false; return (<CollectionStackingView key="collview" {...props} CollectionView={this} />); }
             case CollectionViewType.Freeform:
             default:
-                return (<CollectionFreeFormView {...props} CollectionView={this} />);
+                return (<CollectionFreeFormView key="collview" {...props} CollectionView={this} />);
         }
         return (null);
+    }
+
+    private Chrome = (type: CollectionViewType) => {
+        if (this.isAnnotationOverlay || this.props.Document === CurrentUserUtils.UserDocument.sidebar) {
+            return (null);
+        }
+
+        switch (type) {
+            case CollectionViewType.Stacking: return (<CollectionStackingViewChrome key="collchrome" CollectionView={this} />);
+            default:
+                return null;
+        }
+    }
+
+    private SubView = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
+        return [
+            this.Chrome(type),
+            this.SubViewHelper(type, renderProps)
+        ]
     }
 
     get isAnnotationOverlay() { return this.props.fieldExt ? true : false; }

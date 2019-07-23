@@ -32,7 +32,7 @@ export interface CollectionRenderProps {
 
 export interface CollectionViewProps extends FieldViewProps {
     onContextMenu?: (e: React.MouseEvent) => void;
-    children: (type: CollectionViewType, props: CollectionRenderProps) => JSX.Element | JSX.Element[] | null;
+    children: (type: CollectionViewType, props: CollectionRenderProps) => JSX.Element | JSX.Element[] | null | (JSX.Element | null)[];
     className?: string;
     contentRef?: React.Ref<HTMLDivElement>;
 }

@@ -2,6 +2,7 @@ import React = require('react');
 import { observer } from 'mobx-react';
 import { observable, action, trace } from 'mobx';
 import "./EditableView.scss";
+import * as Autosuggest from 'react-autosuggest';
 
 export interface EditableProps {
     /**
@@ -28,6 +29,13 @@ export interface EditableProps {
     fontSize?: number;
     height?: number;
     display?: string;
+    autosuggestProps?: {
+        resetValue: () => void;
+        value: string,
+        onChange: (e: React.ChangeEvent, { newValue }: { newValue: string }) => void,
+        autosuggestProps: Autosuggest.AutosuggestProps<string>
+
+    };
     oneLine?: boolean;
     editing?: boolean;
     onClick?: (e: React.MouseEvent) => boolean;
@@ -85,10 +93,26 @@ export class EditableView extends React.Component<EditableProps> {
 
     render() {
         if (this._editing) {
-            return <input className="editableView-input" defaultValue={this.props.GetValue()} onKeyDown={this.onKeyDown} autoFocus
-                onBlur={action(() => this._editing = false)} onPointerDown={this.stopPropagation} onClick={this.stopPropagation} onPointerUp={this.stopPropagation}
-                style={{ display: this.props.display, fontSize: this.props.fontSize }} />;
+            return this.props.autosuggestProps
+                ? <Autosuggest
+                    {...this.props.autosuggestProps.autosuggestProps}
+                    inputProps={{
+                        className: "editableView-input",
+                        onKeyDown: this.onKeyDown,
+                        autoFocus: true,
+                        onBlur: action(() => this._editing = false),
+                        onPointerDown: this.stopPropagation,
+                        onClick: this.stopPropagation,
+                        onPointerUp: this.stopPropagation,
+                        value: this.props.autosuggestProps.value,
+                        onChange: this.props.autosuggestProps.onChange
+                    }}
+                />
+                : <input className="editableView-input" defaultValue={this.props.GetValue()} onKeyDown={this.onKeyDown} autoFocus
+                    onBlur={action(() => this._editing = false)} onPointerDown={this.stopPropagation} onClick={this.stopPropagation} onPointerUp={this.stopPropagation}
+                    style={{ display: this.props.display, fontSize: this.props.fontSize }} />;
         } else {
+            if (this.props.autosuggestProps) this.props.autosuggestProps.resetValue();
             return (
                 <div className={`editableView-container-editing${this.props.oneLine ? "-oneLine" : ""}`}
                     style={{ display: this.props.display, height: "auto", maxHeight: `${this.props.height}` }}
