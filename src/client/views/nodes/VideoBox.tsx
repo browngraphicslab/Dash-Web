@@ -59,19 +59,20 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         this.Playing = true;
         update && this.player && this.player.play();
         update && this._youtubePlayer && this._youtubePlayer.playVideo();
-        !this._playTimer && (this._playTimer = setInterval(this.updateTimecode, 5));
+        this._youtubePlayer && !this._playTimer && (this._playTimer = setInterval(this.updateTimecode, 5));
         this.updateTimecode();
     }
 
     @action public Seek(time: number) {
         this._youtubePlayer && this._youtubePlayer.seekTo(Math.round(time), true);
+        this.player && (this.player.currentTime = time);
     }
 
     @action public Pause = (update: boolean = true) => {
         this.Playing = false;
         update && this.player && this.player.pause();
         update && this._youtubePlayer && this._youtubePlayer.pauseVideo();
-        this._playTimer && clearInterval(this._playTimer);
+        this._youtubePlayer && this._playTimer && clearInterval(this._playTimer);
         this._playTimer = undefined;
         this.updateTimecode();
     }
@@ -113,6 +114,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
     setVideoRef = (vref: HTMLVideoElement | null) => {
         this._videoRef = vref;
         if (vref) {
+            this._videoRef!.ontimeupdate = this.updateTimecode;
             vref.onfullscreenchange = action((e) => this._fullScreen = vref.webkitDisplayingFullscreen);
             if (this._reactionDisposer) this._reactionDisposer();
             this._reactionDisposer = reaction(() => this.props.Document.curPage, () =>

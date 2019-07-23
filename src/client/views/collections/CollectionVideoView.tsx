@@ -7,6 +7,8 @@ import { CollectionBaseView, CollectionRenderProps, CollectionViewType } from ".
 import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";
 import "./CollectionVideoView.scss";
 import React = require("react");
+import { InkingControl } from "../InkingControl";
+import { InkTool } from "../../../new_fields/InkField";
 
 
 @observer
@@ -19,18 +21,19 @@ export class CollectionVideoView extends React.Component<FieldViewProps> {
     private get uIButtons() {
         let scaling = Math.min(1.8, this.props.ScreenToLocalTransform().Scale);
         let curTime = NumCast(this.props.Document.curPage);
-        return (VideoBox._showControls ? [] : [
-            <div className="collectionVideoView-time" key="time" onPointerDown={this.onResetDown} style={{ transform: `scale(${scaling}, ${scaling})` }}>
-                <span>{"" + Math.round(curTime)}</span>
-                <span style={{ fontSize: 8 }}>{" " + Math.round((curTime - Math.trunc(curTime)) * 100)}</span>
-            </div>,
+        return ([<div className="collectionVideoView-time" key="time" onPointerDown={this.onResetDown} style={{ transform: `scale(${scaling}, ${scaling})` }}>
+            <span>{"" + Math.round(curTime)}</span>
+            <span style={{ fontSize: 8 }}>{" " + Math.round((curTime - Math.trunc(curTime)) * 100)}</span>
+        </div>,
+        VideoBox._showControls ? (null) : [
             <div className="collectionVideoView-play" key="play" onPointerDown={this.onPlayDown} style={{ transform: `scale(${scaling}, ${scaling})` }}>
                 {this._videoBox && this._videoBox.Playing ? "\"" : ">"}
             </div>,
             <div className="collectionVideoView-full" key="full" onPointerDown={this.onFullDown} style={{ transform: `scale(${scaling}, ${scaling})` }}>
                 F
                 </div>
-        ]);
+
+        ]]);
     }
 
     @action
@@ -53,12 +56,33 @@ export class CollectionVideoView extends React.Component<FieldViewProps> {
         }
     }
 
+    _isclick = 0;
     @action
-    onResetDown = () => {
+    onResetDown = (e: React.PointerEvent) => {
         if (this._videoBox) {
             this._videoBox.Pause();
-            this.props.Document.curPage = 0;
+            e.stopPropagation();
+            this._isclick = 0;
+            document.addEventListener("pointermove", this.onPointerMove, true);
+            document.addEventListener("pointerup", this.onPointerUp, true);
+            InkingControl.Instance.switchTool(InkTool.Eraser);
         }
+    }
+
+    @action
+    onPointerMove = (e: PointerEvent) => {
+        this._isclick += Math.abs(e.movementX) + Math.abs(e.movementY);
+        if (this._videoBox) {
+            this._videoBox.Seek(Math.max(0, NumCast(this.props.Document.curPage, 0) + Math.sign(e.movementX) * 0.0333));
+        }
+        e.stopImmediatePropagation();
+    }
+    @action
+    onPointerUp = (e: PointerEvent) => {
+        document.removeEventListener("pointermove", this.onPointerMove, true);
+        document.removeEventListener("pointerup", this.onPointerUp, true);
+        InkingControl.Instance.switchTool(InkTool.None);
+        this._isclick < 10 && (this.props.Document.curPage = 0);
     }
     setVideoBox = (videoBox: VideoBox) => { this._videoBox = videoBox; };
 
