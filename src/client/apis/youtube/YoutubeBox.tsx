@@ -27,6 +27,9 @@ interface VideoTemplate {
     videoDescription: string;
 }
 
+/**
+ * This class models the youtube search document that can be dropped on to canvas.
+ */
 @observer
 export class YoutubeBox extends React.Component<FieldViewProps> {
 
@@ -43,6 +46,10 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
 
     public static LayoutString() { return FieldView.LayoutString(YoutubeBox); }
 
+    /**
+     * When component mounts, last search's results are laoded in based on the back up stored
+     * in the document of the props.
+     */
     async componentWillMount() {
         //DocServer.getYoutubeChannels();
         let castedSearchBackUp = Cast(this.props.Document.cachedSearchResults, Doc);
@@ -58,6 +65,7 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
         if (jsonList!.length !== 0) {
             runInAction(() => this.searchResultsFound = true);
             let index = 0;
+            //getting the necessary information from backUps and building templates that will be used to map in render
             for (let video of jsonList!) {
 
                 let videoId = await Cast(video.id, Doc);
@@ -68,7 +76,7 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
                 let thumbnailMedium = await Cast(thumbnail!.medium, Doc);
                 let thumbnailUrl = StrCast(thumbnailMedium!.url);
                 let videoDescription = StrCast(snippet!.description);
-                let pusblishDate = (this.roundPublishTime2(StrCast(snippet!.publishedAt)))!;
+                let pusblishDate = (this.roundPublishTime(StrCast(snippet!.publishedAt)))!;
                 let channelTitle = StrCast(snippet!.channelTitle);
                 let duration: string;
                 let viewCount: string;
@@ -103,6 +111,9 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
         }
     }
 
+    /**
+     * Function that submits the title entered by user on enter press.
+     */
     onEnterKeyDown = (e: React.KeyboardEvent) => {
         if (e.keyCode === 13) {
             let submittedTitle = this.YoutubeSearchElement!.value;
@@ -113,6 +124,11 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
         }
     }
 
+    /**
+     * The callback that is passed in to server, which functions as a way to
+     * get videos that is returned by search. It also makes a call to server
+     * to get details for the videos found.
+     */
     @action
     processesVideoResults = (videos: any[]) => {
         this.searchResults = videos;
@@ -126,7 +142,7 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
                     this.videoIds = this.videoIds! + ", " + video.id.videoId;
                 }
             });
-            console.log("Video Ids: ", this.videoIds);
+            //Asking for details that include duration and viewCount from server for videoIds
             DocServer.getYoutubeVideoDetails(this.videoIds, this.processVideoDetails);
             this.backUpSearchResults(videos);
             if (this.videoClicked) {
@@ -135,25 +151,26 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
         }
     }
 
+    /**
+     * The callback that is given to server to process and receive returned details about the videos.
+     */
     @action
     processVideoDetails = (videoDetails: any[]) => {
         this.videoDetails = videoDetails;
         this.props.Document.cachedDetails = Docs.Get.DocumentHierarchyFromJson(videoDetails, "detailBackUp");
     }
 
+    /**
+     * The function that stores the search results in the props document.
+     */
     backUpSearchResults = (videos: any[]) => {
         this.props.Document.cachedSearchResults = Docs.Get.DocumentHierarchyFromJson(videos, "videosBackUp");
-        let newCachedList = new List<Doc>();
-        this.props.Document.cachedSearch = newCachedList;
-        videos.forEach((video) => {
-            let videoBackUp = new Doc();
-            videoBackUp.videoId = video.id.videoId;
-            videoBackUp.videoTitle = this.filterYoutubeTitleResult(video.snippet.title);
-            videoBackUp.thumbnailUrl = video.snippet.thumbnails.medium.url;
-            newCachedList.push(videoBackUp);
-        });
     }
 
+    /**
+     * The function that filters out escaped characters returned by the api
+     * in the title of the videos.
+     */
     filterYoutubeTitleResult = (resultTitle: string) => {
         let processedTitle: string = resultTitle.ReplaceAll("&amp;", "&");
         processedTitle = processedTitle.ReplaceAll("&#39;", "'");
@@ -161,32 +178,13 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
         return processedTitle;
     }
 
+
+
+    /**
+     * The function that converts ISO date, which is passed in, to normal date and finds the
+     * difference between today's date and that date, in terms of "ago" to imitate youtube.
+     */
     roundPublishTime = (publishTime: string) => {
-        let date = new Date(publishTime);
-        let curDate = new Date();
-        let videoYearDif = curDate.getFullYear() - date.getFullYear();
-        let videoMonthDif = curDate.getMonth() - date.getMonth();
-        let videoDayDif = curDate.getDay() - date.getDay();
-        let videoHoursDif = curDate.getHours() - date.getHours();
-        let videoMinutesDif = curDate.getMinutes() - date.getMinutes();
-        let videoSecondsDif = curDate.getSeconds() - date.getSeconds();
-        if (videoYearDif !== 0) {
-            return videoYearDif + " years ago";
-        } else if (videoMonthDif !== 0) {
-            return videoMonthDif + " months ago";
-        } else if (videoDayDif !== 0) {
-            return videoDayDif + " days ago";
-        } else if (videoHoursDif !== 0) {
-            return videoHoursDif + " hours ago";
-        } else if (videoMinutesDif) {
-            return videoMinutesDif + " minutes ago";
-        } else if (videoSecondsDif) {
-            return videoSecondsDif + " seconds ago";
-        }
-
-    }
-
-    roundPublishTime2 = (publishTime: string) => {
         let date = new Date(publishTime).getTime();
         let curDate = new Date().getTime();
         let timeDif = curDate - date;
@@ -228,6 +226,9 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
         }
     }
 
+    /**
+     * The function that converts the passed in ISO time to normal duration time.
+     */
     convertIsoTimeToDuration = (isoDur: string) => {
 
         let convertedTime = isoDur.replace(/D|H|M/g, ":").replace(/P|T|S/g, "").split(":");
@@ -243,6 +244,10 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
         return convertedTime.join(":");
     }
 
+    /**
+     * The function that rounds the viewCount to the nearest 
+     * thousand, million or billion, given a viewCount number.
+     */
     abbreviateViewCount = (viewCount: number) => {
         if (viewCount < 1000) {
             return viewCount.toString();
@@ -255,6 +260,11 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
         }
     }
 
+    /**
+     * The function that is called to decide on what'll be rendered by the component.
+     * It renders search Results if found. If user didn't do a new search, it renders from the videoTemplates
+     * generated by the backUps. If none present, renders nothing.
+     */
     renderSearchResultsOrVideo = () => {
         if (this.searchResultsFound) {
             if (this.searchResults.length !== 0) {
@@ -263,7 +273,7 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
                         let filteredTitle = this.filterYoutubeTitleResult(video.snippet.title);
                         let channelTitle = video.snippet.channelTitle;
                         let videoDescription = video.snippet.description;
-                        let pusblishDate = this.roundPublishTime2(video.snippet.publishedAt);
+                        let pusblishDate = this.roundPublishTime(video.snippet.publishedAt);
                         let duration;
                         let viewCount;
                         if (this.videoDetails.length !== 0) {
@@ -316,6 +326,10 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
         }
     }
 
+    /**
+     * Given a videoId and title, creates a new youtube embedded url, and uses that
+     * to create a new video document.
+     */
     @action
     embedVideoOnClick = (videoId: string, filteredTitle: string) => {
         let embeddedUrl = "https://www.youtube.com/embed/" + videoId;
@@ -329,7 +343,6 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
     }
 
     render() {
-        let field = this.props.Document[this.props.fieldKey];
         let content =
             <div style={{ width: "100%", height: "100%", position: "absolute" }} onWheel={this.onPostWheel} onPointerDown={this.onPostPointer} onPointerMove={this.onPostPointer} onPointerUp={this.onPostPointer}>
                 <input type="text" placeholder="Search for a video" onKeyDown={this.onEnterKeyDown} style={{ height: 40, width: "100%", border: "1px solid black", padding: 5, textAlign: "center" }} ref={(e) => this.YoutubeSearchElement = e!} />
