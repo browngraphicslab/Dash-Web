@@ -1,6 +1,6 @@
 import { observer } from "mobx-react";
 import React = require("react");
-import { observable, action, runInAction, reaction } from "mobx";
+import { observable, action, runInAction, reaction, autorun } from "mobx";
 import "./PresentationView.scss";
 import { DocumentManager } from "../../util/DocumentManager";
 import { Utils } from "../../../Utils";
@@ -231,6 +231,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
             //checking if any of the group members had used zooming in
             currentsArray.forEach((doc: Doc) => {
+                //let presElem: PresentationElement | undefined = this.presElementsMappings.get(doc);
                 if (this.presElementsMappings.get(doc)!.selected[buttonIndex.Show]) {
                     zoomOut = true;
                     return;
@@ -419,9 +420,33 @@ export class PresentationView extends React.Component<PresViewProps>  {
             }
 
             //removing it from the backUp of selected Buttons
+            // let castedList = Cast(this.presButtonBackUp.selectedButtonDocs, listSpec(Doc));
+            // if (castedList) {
+            //     castedList.forEach(async (doc, indexOfDoc) => {
+            //         let curDoc = await doc;
+            //         let curDocId = StrCast(curDoc.docId);
+            //         if (curDocId === removedDoc[Id]) {
+            //             if (castedList) {
+            //                 castedList.splice(indexOfDoc, 1);
+            //                 return;
+            //             }
+            //         }
+            //     });
+
+            // }
+            //removing it from the backUp of selected Buttons
+
             let castedList = Cast(this.presButtonBackUp.selectedButtonDocs, listSpec(Doc));
             if (castedList) {
-                castedList.splice(index, 1);
+                for (let doc of castedList) {
+                    let curDoc = await doc;
+                    let curDocId = StrCast(curDoc.docId);
+                    if (curDocId === removedDoc[Id]) {
+                        castedList.splice(castedList.indexOf(curDoc), 1);
+                        break;
+
+                    }
+                }
             }
 
             //removing it from the backup of groups
@@ -445,6 +470,19 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
 
         }
+    }
+
+    public removeDocByRef = (doc: Doc) => {
+        let indexOfDoc = this.childrenDocs.indexOf(doc);
+        const value = FieldValue(Cast(this.curPresentation.data, listSpec(Doc)));
+        if (value) {
+            value.splice(indexOfDoc, 1)[0];
+        }
+        //this.RemoveDoc(indexOfDoc, true);
+        if (indexOfDoc !== - 1) {
+            return true;
+        }
+        return false;
     }
 
     //The function that is called when a document is clicked or reached through next or back.
@@ -591,7 +629,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
     @action
     addNewPresentation = (presTitle: string) => {
         //creating a new presentation doc
-        let newPresentationDoc = Docs.TreeDocument([], { title: presTitle });
+        let newPresentationDoc = Docs.Create.TreeDocument([], { title: presTitle });
         this.props.Documents.push(newPresentationDoc);
 
         //setting that new doc as current
@@ -752,6 +790,10 @@ export class PresentationView extends React.Component<PresViewProps>  {
         this.curPresentation.title = newTitle;
     }
 
+    addPressElem = (keyDoc: Doc, elem: PresentationElement) => {
+        this.presElementsMappings.set(keyDoc, elem);
+    }
+
 
     render() {
 
@@ -782,11 +824,13 @@ export class PresentationView extends React.Component<PresViewProps>  {
                     deleteDocument={this.RemoveDoc}
                     gotoDocument={this.gotoDocument}
                     groupMappings={this.groupMappings}
-                    presElementsMappings={this.presElementsMappings}
+                    PresElementsMappings={this.presElementsMappings}
                     setChildrenDocs={this.setChildrenDocs}
                     presStatus={this.presStatus}
                     presButtonBackUp={this.presButtonBackUp}
                     presGroupBackUp={this.presGroupBackUp}
+                    removeDocByRef={this.removeDocByRef}
+                    clearElemMap={() => this.presElementsMappings.clear()}
                 />
             </div>
         );

@@ -8,7 +8,7 @@ import { Doc, DocListCast, HeightSym, WidthSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { emptyFunction, returnFalse, returnOne, Utils } from "../../../Utils";
-import { DocTypes } from "../../documents/Documents";
+import { DocumentType } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
 import { SetupDrag, DragManager } from "../../util/DragManager";
 import { LinkManager } from "../../util/LinkManager";
@@ -33,6 +33,7 @@ import { DocServer } from "../../DocServer";
 export interface SearchItemProps {
     doc: Doc;
     query?: string;
+    highlighting: string[];
 }
 
 library.add(faCaretUp);
@@ -58,9 +59,9 @@ export class SelectorContextMenu extends React.Component<SearchItemProps> {
 
     async fetchDocuments() {
         let aliases = (await SearchUtil.GetViewsOfDocument(this.props.doc)).filter(doc => doc !== this.props.doc);
-        const { docs } = await SearchUtil.Search(`data_l:"${this.props.doc[Id]}"`, true);
+        const { docs } = await SearchUtil.Search("", true, { fq: `data_l:"${this.props.doc[Id]}"` });
         const map: Map<Doc, Doc> = new Map;
-        const allDocs = await Promise.all(aliases.map(doc => SearchUtil.Search(`data_l:"${doc[Id]}"`, true).then(result => result.docs)));
+        const allDocs = await Promise.all(aliases.map(doc => SearchUtil.Search("", true, { fq: `data_l:"${doc[Id]}"` }).then(result => result.docs)));
         allDocs.forEach((docs, index) => docs.forEach(doc => map.set(doc, aliases[index])));
         docs.forEach(doc => map.delete(doc));
         runInAction(() => {
@@ -145,10 +146,12 @@ export class SearchItem extends React.Component<SearchItemProps> {
     private _previewDoc?: Doc;
 
     onClick = () => {
+        // I dont think this is the best functionality because clicking the name of the collection does that. Change it back if you'd like
         DocumentManager.Instance.jumpToDocument(this.props.doc, false);
         if (this.props.doc.data instanceof RichTextField) {
             this.highlightTextBox(this.props.doc);
         }
+        // CollectionDockingView.Instance.AddRightSplit(this.props.doc, undefined);
     }
     @observable _useIcons = true;
     @observable _displayDim = 50;
@@ -167,7 +170,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
     }
 
     fitToBox = () => {
-        let bounds = Doc.ComputeContentBounds(this.props.doc);
+        let bounds = Doc.ComputeContentBounds([this.props.doc]);
         return [(bounds.x + bounds.r) / 2, (bounds.y + bounds.b) / 2, Number(SEARCH_THUMBNAIL_SIZE) / Math.max((bounds.b - bounds.y), (bounds.r - bounds.x)), this._displayDim];
     }
 
@@ -185,7 +188,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
         if (!this._useIcons) {
             let renderDoc = this.props.doc;
             //let box: number[] = [];
-            if (layoutresult.indexOf(DocTypes.COL) !== -1) {
+            if (layoutresult.indexOf(DocumentType.COL) !== -1) {
                 renderDoc = Doc.MakeDelegate(renderDoc);
                 let bounds = DocListCast(renderDoc.data).reduce((bounds, doc) => {
                     var [sptX, sptY] = [NumCast(doc.x), NumCast(doc.y)];
@@ -210,8 +213,8 @@ export class SearchItem extends React.Component<SearchItemProps> {
                 onPointerEnter={action(() => this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE))}
                 onPointerLeave={action(() => this._displayDim = 50)} >
                 <DocumentView
-                    fitToBox={this.fitToBox}
-                    Document={newRenderDoc}
+                    fitToBox={StrCast(this.props.doc.type).indexOf(DocumentType.COL) !== -1}
+                    Document={this.props.doc}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
                     ScreenToLocalTransform={Transform.Identity}
@@ -239,15 +242,15 @@ export class SearchItem extends React.Component<SearchItemProps> {
         if (this._previewDoc) {
             DocServer.DeleteDocument(this._previewDoc[Id]);
         }
-        let button = layoutresult.indexOf(DocTypes.PDF) !== -1 ? faFilePdf :
-            layoutresult.indexOf(DocTypes.IMG) !== -1 ? faImage :
-                layoutresult.indexOf(DocTypes.TEXT) !== -1 ? faStickyNote :
-                    layoutresult.indexOf(DocTypes.VID) !== -1 ? faFilm :
-                        layoutresult.indexOf(DocTypes.COL) !== -1 ? faObjectGroup :
-                            layoutresult.indexOf(DocTypes.AUDIO) !== -1 ? faMusic :
-                                layoutresult.indexOf(DocTypes.LINK) !== -1 ? faLink :
-                                    layoutresult.indexOf(DocTypes.HIST) !== -1 ? faChartBar :
-                                        layoutresult.indexOf(DocTypes.WEB) !== -1 ? faGlobeAsia :
+        let button = layoutresult.indexOf(DocumentType.PDF) !== -1 ? faFilePdf :
+            layoutresult.indexOf(DocumentType.IMG) !== -1 ? faImage :
+                layoutresult.indexOf(DocumentType.TEXT) !== -1 ? faStickyNote :
+                    layoutresult.indexOf(DocumentType.VID) !== -1 ? faFilm :
+                        layoutresult.indexOf(DocumentType.COL) !== -1 ? faObjectGroup :
+                            layoutresult.indexOf(DocumentType.AUDIO) !== -1 ? faMusic :
+                                layoutresult.indexOf(DocumentType.LINK) !== -1 ? faLink :
+                                    layoutresult.indexOf(DocumentType.HIST) !== -1 ? faChartBar :
+                                        layoutresult.indexOf(DocumentType.WEB) !== -1 ? faGlobeAsia :
                                             faCaretUp;
         return <div onPointerDown={action(() => { this._useIcons = false; this._displayDim = Number(SEARCH_THUMBNAIL_SIZE); })} >
             <FontAwesomeIcon icon={button} size="2x" />
@@ -281,7 +284,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
     pointerDown = (e: React.PointerEvent) => { e.preventDefault(); e.button === 0 && SearchBox.Instance.openSearch(e); }
 
     highlightDoc = (e: React.PointerEvent) => {
-        if (this.props.doc.type === DocTypes.LINK) {
+        if (this.props.doc.type === DocumentType.LINK) {
             if (this.props.doc.anchor1 && this.props.doc.anchor2) {
 
                 let doc1 = Cast(this.props.doc.anchor1, Doc, null);
@@ -298,18 +301,18 @@ export class SearchItem extends React.Component<SearchItemProps> {
     }
 
     unHighlightDoc = (e: React.PointerEvent) => {
-        if (this.props.doc.type === DocTypes.LINK) {
+        if (this.props.doc.type === DocumentType.LINK) {
             if (this.props.doc.anchor1 && this.props.doc.anchor2) {
 
                 let doc1 = Cast(this.props.doc.anchor1, Doc, null);
                 let doc2 = Cast(this.props.doc.anchor2, Doc, null);
-                doc1 && (doc1.libraryBrush = false);
-                doc2 && (doc2.libraryBrush = false);
+                doc1 && (doc1.libraryBrush = undefined);
+                doc2 && (doc2.libraryBrush = undefined);
             }
         } else {
             let docViews: DocumentView[] = DocumentManager.Instance.getAllDocumentViews(this.props.doc);
             docViews.forEach(element => {
-                element.props.Document.libraryBrush = false;
+                element.props.Document.libraryBrush = undefined;
             });
         }
     }
@@ -341,12 +344,15 @@ export class SearchItem extends React.Component<SearchItemProps> {
                 <div className="search-item" onPointerEnter={this.highlightDoc} onPointerLeave={this.unHighlightDoc} id="result"
                     onClick={this.onClick} onPointerDown={this.pointerDown} >
                     <div className="main-search-info">
-                        <div title="Drag as document" onPointerDown={this.onPointerDown}> <FontAwesomeIcon icon="file" size="lg" /> </div>
-                        <div className="search-title" id="result" >{this.props.doc.title}</div>
+                        <div title="Drag as document" onPointerDown={this.onPointerDown} style={{ marginRight: "7px" }}> <FontAwesomeIcon icon="file" size="lg" /> </div>
+                        <div className="search-title-container">
+                            <div className="search-title">{StrCast(this.props.doc.title)}</div>
+                            <div className="search-highlighting">Matched fields: {this.props.highlighting.join(", ")}</div>
+                        </div>
                         <div className="search-info" style={{ width: this._useIcons ? "15%" : "400px" }}>
                             <div className={`icon-${this._useIcons ? "icons" : "live"}`}>
-                                <div className="search-type" >{this.DocumentIcon()}</div>
-                                <div className="search-label">{this.props.doc.type}</div>
+                                <div className="search-type" title="Click to Preview">{this.DocumentIcon}</div>
+                                <div className="search-label">{this.props.doc.type ? this.props.doc.type : "Other"}</div>
                             </div>
                             <div className="link-container item">
                                 <div className="link-count">{this.linkCount}</div>
@@ -356,7 +362,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
                     </div>
                 </div>
                 <div className="searchBox-instances">
-                    {this.props.doc.type === DocTypes.LINK ? <LinkContextMenu doc1={Cast(this.props.doc.anchor1, Doc, new Doc())} doc2={Cast(this.props.doc.anchor2, Doc, new Doc())} /> :
+                    {this.props.doc.type === DocumentType.LINK ? <LinkContextMenu doc1={Cast(this.props.doc.anchor1, Doc, new Doc())} doc2={Cast(this.props.doc.anchor2, Doc, new Doc())} /> :
                         <SelectorContextMenu {...this.props} />}
                 </div>
             </div>

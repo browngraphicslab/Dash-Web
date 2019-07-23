@@ -181,9 +181,12 @@ class Viewer extends React.Component {
     }
 }
 
-ReactDOM.render((
-    <div style={{ position: "absolute", width: "100%", height: "100%" }}>
-        <Viewer />
-    </div>),
-    document.getElementById('root')
-);
+(async function () {
+    await DocServer.init(window.location.protocol, window.location.hostname, 4321, "viewer");
+    ReactDOM.render((
+        <div style={{ position: "absolute", width: "100%", height: "100%" }}>
+            <Viewer />
+        </div>),
+        document.getElementById('root')
+    );
+})();

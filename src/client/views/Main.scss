@@ -235,16 +235,17 @@ ul#add-options-list {
 }
 
 .mainView-libraryHandle {
-    opacity: 0.6;
     width: 20px;
     height: 40px;
     top: 50%;
-    border-radius: 20px;
+    border: 1px solid black;
+    border-radius: 5px;
     position: absolute;
     z-index: 1;
-    background: gray;
 }
-
+.svg-inline--fa {
+    vertical-align: unset;
+}
 .mainView-workspace {
     height:200px;
     position:relative;

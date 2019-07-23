@@ -6,7 +6,7 @@ import { faTimes, faCheckCircle, faObjectGroup } from '@fortawesome/free-solid-s
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { Doc } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
-import { DocTypes } from '../../documents/Documents';
+import { DocumentType } from '../../documents/Documents';
 import { Cast, StrCast } from '../../../new_fields/Types';
 import * as _ from "lodash";
 import { ToggleBar } from './ToggleBar';
@@ -35,7 +35,7 @@ export enum Keys {
 export class FilterBox extends React.Component {
 
     static Instance: FilterBox;
-    public _allIcons: string[] = [DocTypes.AUDIO, DocTypes.COL, DocTypes.HIST, DocTypes.IMG, DocTypes.LINK, DocTypes.PDF, DocTypes.TEXT, DocTypes.VID, DocTypes.WEB];
+    public _allIcons: string[] = [DocumentType.AUDIO, DocumentType.COL, DocumentType.HIST, DocumentType.IMG, DocumentType.LINK, DocumentType.PDF, DocumentType.TEXT, DocumentType.VID, DocumentType.WEB];
 
     //if true, any keywords can be used. if false, all keywords are required.
     //this also serves as an indicator if the word status filter is applied
@@ -48,6 +48,7 @@ export class FilterBox extends React.Component {
     @observable private _authorFieldStatus: boolean = true;
     @observable private _dataFieldStatus: boolean = true;
     //this also serves as an indicator if the collection status filter is applied
+    @observable public _deletedDocsStatus: boolean = false;
     @observable private _collectionStatus = false;
     @observable private _collectionSelfStatus = true;
     @observable private _collectionParentStatus = true;
@@ -94,6 +95,9 @@ export class FilterBox extends React.Component {
 
                     }
                 });
+
+                let el = acc[i] as HTMLElement;
+                el.click();
             }
         });
     }
@@ -168,13 +172,13 @@ export class FilterBox extends React.Component {
         if (this._authorFieldStatus) {
             finalQuery = finalQuery + this.basicFieldFilters(query, Keys.AUTHOR);
         }
-        if (this._dataFieldStatus) {
+        if (this._deletedDocsStatus) {
             finalQuery = finalQuery + this.basicFieldFilters(query, Keys.DATA);
         }
         return finalQuery;
     }
 
-    get fieldFiltersApplied() { return !(this._dataFieldStatus && this._authorFieldStatus && this._titleFieldStatus); }
+    get fieldFiltersApplied() { return !(this._authorFieldStatus && this._titleFieldStatus); }
 
     //TODO: basically all of this
     //gets all of the collections of all the docviews that are selected
@@ -244,12 +248,19 @@ export class FilterBox extends React.Component {
         return "+(" + finalColString + ")" + query;
     }
 
+    get filterTypes() {
+        return this._icons.length === 9 ? undefined : this._icons;
+    }
+
     @action
     filterDocsByType(docs: Doc[]) {
+        if (this._icons.length === 9) {
+            return docs;
+        }
         let finalDocs: Doc[] = [];
         docs.forEach(doc => {
             let layoutresult = Cast(doc.type, "string");
-            if (!layoutresult || this._icons.includes(layoutresult)) {
+            if (layoutresult && this._icons.includes(layoutresult)) {
                 finalDocs.push(doc);
             }
         });
@@ -339,7 +350,7 @@ export class FilterBox extends React.Component {
     updateAuthorStatus(newStat: boolean) { this._authorFieldStatus = newStat; }
 
     @action.bound
-    updateDataStatus(newStat: boolean) { this._dataFieldStatus = newStat; }
+    updateDataStatus(newStat: boolean) { this._deletedDocsStatus = newStat; }
 
     @action.bound
     updateCollectionStatus(newStat: boolean) { this._collectionStatus = newStat; }
@@ -355,7 +366,7 @@ export class FilterBox extends React.Component {
     getParentCollectionStatus() { return this._collectionParentStatus; }
     getTitleStatus() { return this._titleFieldStatus; }
     getAuthorStatus() { return this._authorFieldStatus; }
-    getDataStatus() { return this._dataFieldStatus; }
+    getDataStatus() { return this._deletedDocsStatus; }
 
     getActiveFilters() {
         console.log(this._authorFieldStatus, this._titleFieldStatus, this._dataFieldStatus);
@@ -433,7 +444,7 @@ export class FilterBox extends React.Component {
                                     <div style={{ marginLeft: "auto" }}><NaviconButton onClick={this.toggleFieldOpen} /></div>
                                 </div>
                                 <div className="filter-panel"><FieldFilters
-                                    titleFieldStatus={this._titleFieldStatus} dataFieldStatus={this._dataFieldStatus} authorFieldStatus={this._authorFieldStatus}
+                                    titleFieldStatus={this._titleFieldStatus} dataFieldStatus={this._deletedDocsStatus} authorFieldStatus={this._authorFieldStatus}
                                     updateAuthorStatus={this.updateAuthorStatus} updateDataStatus={this.updateDataStatus} updateTitleStatus={this.updateTitleStatus} /> </div>
                             </div>
                         </div>

@@ -4,9 +4,10 @@ import { CollectionDockingView } from "./collections/CollectionDockingView";
 import { MainView } from "./MainView";
 import { DragManager } from "../util/DragManager";
 import { action } from "mobx";
+import { Doc } from "../../new_fields/Doc";
 
 const modifiers = ["control", "meta", "shift", "alt"];
-type KeyHandler = (keycode: string) => KeyControlInfo;
+type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo;
 type KeyControlInfo = {
     preventDefault: boolean,
     stopPropagation: boolean
@@ -42,7 +43,7 @@ export default class KeyManager {
             return;
         }
 
-        let control = handleConstrained(keyname);
+        let control = handleConstrained(keyname, e);
 
         control.stopPropagation && e.stopPropagation();
         control.preventDefault && e.preventDefault();
@@ -53,7 +54,7 @@ export default class KeyManager {
         }
     });
 
-    private unmodified = action((keyname: string) => {
+    private unmodified = action((keyname: string, e: KeyboardEvent) => {
         switch (keyname) {
             case "escape":
                 if (MainView.Instance.isPointerDown) {
@@ -69,11 +70,21 @@ export default class KeyManager {
                 break;
             case "delete":
             case "backspace":
-                SelectionManager.SelectedDocuments().map(docView => {
-                    let doc = docView.props.Document;
-                    let remove = docView.props.removeDocument;
-                    remove && remove(doc);
-                });
+                if (document.activeElement) {
+                    if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") {
+                        return { stopPropagation: false, preventDefault: false };
+                    }
+                }
+                UndoManager.RunInBatch(() => {
+                    SelectionManager.SelectedDocuments().map(docView => {
+                        let doc = docView.props.Document;
+                        let remove = docView.props.removeDocument;
+                        remove && remove(doc);
+                    });
+                }, "delete");
+                break;
+            case "enter":
+                SelectionManager.SelectedDocuments().map(selected => Doc.ToggleDetailLayout(selected.props.Document));
                 break;
         }
 
@@ -100,15 +111,25 @@ export default class KeyManager {
         };
     });
 
-    private ctrl = action((keyname: string) => {
+    private ctrl = action((keyname: string, e: KeyboardEvent) => {
         let stopPropagation = true;
         let preventDefault = true;
 
         switch (keyname) {
             case "arrowright":
+                if (document.activeElement) {
+                    if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") {
+                        return { stopPropagation: false, preventDefault: false };
+                    }
+                }
                 MainView.Instance.mainFreeform && CollectionDockingView.Instance.AddRightSplit(MainView.Instance.mainFreeform, undefined);
                 break;
             case "arrowleft":
+                if (document.activeElement) {
+                    if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") {
+                        return { stopPropagation: false, preventDefault: false };
+                    }
+                }
                 MainView.Instance.mainFreeform && CollectionDockingView.Instance.CloseRightSplit(MainView.Instance.mainFreeform);
                 break;
             case "f":

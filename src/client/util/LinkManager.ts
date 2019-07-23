@@ -5,6 +5,7 @@ import { listSpec } from "../../new_fields/Schema";
 import { List } from "../../new_fields/List";
 import { Id } from "../../new_fields/FieldSymbols";
 import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
+import { Docs } from "../documents/Documents";
 
 
 /* 
@@ -35,7 +36,9 @@ export class LinkManager {
     // the linkmanagerdoc stores a list of docs representing all linkdocs in 'allLinks' and a list of strings representing all group types in 'allGroupTypes'
     // lists of strings representing the metadata keys for each group type is stored under a key that is the same as the group type 
     public get LinkManagerDoc(): Doc | undefined {
-        return FieldValue(Cast(CurrentUserUtils.UserDocument.linkManagerDoc, Doc));
+        // return FieldValue(Cast(CurrentUserUtils.UserDocument.linkManagerDoc, Doc));
+
+        return Docs.Prototypes.MainLinkDocument();
     }
 
     public getAllLinks(): Doc[] {
@@ -232,11 +235,11 @@ export class LinkManager {
     // finds the opposite anchor of a given anchor in a link
     //TODO This should probably return undefined if there isn't an opposite anchor
     //TODO This should also await the return value of the anchor so we don't filter out promises
-    public getOppositeAnchor(linkDoc: Doc, anchor: Doc): Doc {
+    public getOppositeAnchor(linkDoc: Doc, anchor: Doc): Doc | undefined {
         if (Doc.AreProtosEqual(anchor, Cast(linkDoc.anchor1, Doc, null))) {
-            return Cast(linkDoc.anchor2, Doc, null)!;
+            return Cast(linkDoc.anchor2, Doc, null);
         } else {
-            return Cast(linkDoc.anchor1, Doc, null)!;
+            return Cast(linkDoc.anchor1, Doc, null);
         }
     }
 }

@@ -12,6 +12,10 @@ import { faFile as fileSolid, faFileDownload, faLocationArrow, faArrowUp, faSear
 import { faFile as fileRegular } from '@fortawesome/free-regular-svg-icons';
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
+import { DragManager, SetupDrag, dropActionType } from "../../util/DragManager";
+import { SelectionManager } from "../../util/SelectionManager";
+import { indexOf } from "typescript-collections/dist/lib/arrays";
+import { map } from "bluebird";
 
 library.add(faArrowUp);
 library.add(fileSolid);
@@ -30,6 +34,8 @@ interface PresentationElementProps {
     presStatus: boolean;
     presButtonBackUp: Doc;
     presGroupBackUp: Doc;
+    removeDocByRef(doc: Doc): boolean;
+    PresElementsMappings: Map<Doc, PresentationElement>;
 
 
 }
@@ -53,12 +59,27 @@ export enum buttonIndex {
 export default class PresentationElement extends React.Component<PresentationElementProps> {
 
     @observable private selectedButtons: boolean[];
+    private header?: HTMLDivElement | undefined;
+    private listdropDisposer?: DragManager.DragDropDisposer;
+    private presElRef: React.RefObject<HTMLDivElement>;
+    private backUpDoc: Doc | undefined;
+
+
+
 
 
     constructor(props: PresentationElementProps) {
         super(props);
         this.selectedButtons = new Array(6);
+
+        this.presElRef = React.createRef();
     }
+
+
+    componentWillUnmount() {
+        this.listdropDisposer && this.listdropDisposer();
+    }
+
 
     /**
      * Getter to get the status of the buttons.
@@ -71,12 +92,18 @@ export default class PresentationElement extends React.Component<PresentationEle
     //Lifecycle function that makes sure that button BackUp is received when mounted.
     async componentDidMount() {
         this.receiveButtonBackUp();
-
+        if (this.presElRef.current) {
+            this.header = this.presElRef.current;
+            this.createListDropTarget(this.presElRef.current);
+        }
     }
 
     //Lifecycle function that makes sure button BackUp is received when not re-mounted bu re-rendered.
     async componentDidUpdate() {
-        this.receiveButtonBackUp();
+        if (this.presElRef.current) {
+            this.header = this.presElRef.current;
+            this.createListDropTarget(this.presElRef.current);
+        }
     }
 
     receiveButtonBackUp = async () => {
@@ -86,19 +113,32 @@ export default class PresentationElement extends React.Component<PresentationEle
         if (!castedList) {
             this.props.presButtonBackUp.selectedButtonDocs = castedList = new List<Doc>();
         }
+
+        let foundDoc: boolean = false;
+
         //if this is the first time this doc mounts, push a doc for it to store
-        if (castedList.length <= this.props.index) {
+
+        for (let doc of castedList) {
+            let curDoc = await doc;
+            let curDocId = StrCast(curDoc.docId);
+            if (curDocId === this.props.document[Id]) {
+                let selectedButtonOfDoc = Cast(curDoc.selectedButtons, listSpec("boolean"), null);
+                if (selectedButtonOfDoc !== undefined) {
+                    runInAction(() => this.selectedButtons = selectedButtonOfDoc);
+                    foundDoc = true;
+                    this.backUpDoc = curDoc;
+                    break;
+                }
+            }
+        }
+
+        if (!foundDoc) {
             let newDoc = new Doc();
             let defaultBooleanArray: boolean[] = new Array(6);
             newDoc.selectedButtons = new List(defaultBooleanArray);
+            newDoc.docId = this.props.document[Id];
             castedList.push(newDoc);
-            //otherwise update the selected buttons depending on storage.
-        } else {
-            let curDoc: Doc = await castedList[this.props.index];
-            let selectedButtonOfDoc = Cast(curDoc.selectedButtons, listSpec("boolean"), null);
-            if (selectedButtonOfDoc !== undefined) {
-                runInAction(() => this.selectedButtons = selectedButtonOfDoc);
-            }
+            this.backUpDoc = newDoc;
         }
 
     }
@@ -244,9 +284,9 @@ export default class PresentationElement extends React.Component<PresentationEle
      */
     @action
     autoSaveButtonChange = async (index: buttonIndex) => {
-        let castedList = (await DocListCastAsync(this.props.presButtonBackUp.selectedButtonDocs))!;
-        castedList[this.props.index].selectedButtons = new List(this.selectedButtons);
-
+        if (this.backUpDoc) {
+            this.backUpDoc.selectedButtons = new List(this.selectedButtons);
+        }
     }
 
     /**
@@ -356,6 +396,380 @@ export default class PresentationElement extends React.Component<PresentationEle
 
     }
 
+    /**
+     * Creating a drop target for drag and drop when called.
+     */
+    protected createListDropTarget = (ele: HTMLDivElement) => {
+        this.listdropDisposer && this.listdropDisposer();
+        if (ele) {
+            this.listdropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.listDrop.bind(this) } });
+        }
+    }
+
+    /**
+     * Returns a local transformed coordinate array for given coordinates.
+     */
+    ScreenToLocalListTransform = (xCord: number, yCord: number) => {
+        return [xCord, yCord];
+    }
+
+    /**
+     * This method is called when a element is dropped on a already esstablished target.
+     * It makes sure to do appropirate action depending on if the item is dropped before
+     * or after the target.
+     */
+    listDrop = async (e: Event, de: DragManager.DropEvent) => {
+        let x = this.ScreenToLocalListTransform(de.x, de.y);
+        let rect = this.header!.getBoundingClientRect();
+        let bounds = this.ScreenToLocalListTransform(rect.left, rect.top + rect.height / 2);
+        let before = x[1] < bounds[1];
+        if (de.data instanceof DragManager.DocumentDragData) {
+            let addDoc = (doc: Doc) => Doc.AddDocToList(this.props.mainDocument, "data", doc, this.props.document, before);
+            e.stopPropagation();
+            //where does treeViewId come from
+            let movedDocs = (de.data.options === this.props.mainDocument[Id] ? de.data.draggedDocuments : de.data.droppedDocuments);
+            //console.log("How is this causing an issue");
+            let droppedDoc: Doc = de.data.droppedDocuments[0];
+            await this.updateGroupsOnDrop(droppedDoc, de);
+            document.removeEventListener("pointermove", this.onDragMove, true);
+            return (de.data.dropAction || de.data.userDropAction) ?
+                de.data.droppedDocuments.reduce((added: boolean, d: Doc) => Doc.AddDocToList(this.props.mainDocument, "data", d, this.props.document, before) || added, false)
+                : (de.data.moveDocument) ?
+                    movedDocs.reduce((added: boolean, d: Doc) => de.data.moveDocument(d, this.props.document, addDoc) || added, false)
+                    : de.data.droppedDocuments.reduce((added: boolean, d: Doc) => Doc.AddDocToList(this.props.mainDocument, "data", d, this.props.document, before), false);
+        }
+        document.removeEventListener("pointermove", this.onDragMove, true);
+
+        return false;
+    }
+
+    /**
+     * This method is called to update groups when the user drags and drops an
+     * element to a different place. It follows the default behaviour and reconstructs
+     * the groups in the way they would appear if clicked by user.
+     */
+    updateGroupsOnDrop = async (droppedDoc: Doc, de: DragManager.DropEvent) => {
+
+        let x = this.ScreenToLocalListTransform(de.x, de.y);
+        let rect = this.header!.getBoundingClientRect();
+        let bounds = this.ScreenToLocalListTransform(rect.left, rect.top + rect.height / 2);
+        let before = x[1] < bounds[1];
+
+        let droppedDocIndex = this.props.allListElements.indexOf(droppedDoc);
+
+        let dropIndexDiff = droppedDocIndex - this.props.index;
+
+        //checking if the position it's dropped corresponds to current location with 3 cases.
+        if (droppedDocIndex === this.props.index) {
+            return;
+        }
+
+        if (dropIndexDiff === 1 && !before) {
+            return;
+        }
+        if (dropIndexDiff === -1 && before) {
+            return;
+        }
+
+        let p = this.props;
+        let droppedDocSelectedButtons: boolean[] = await this.getSelectedButtonsOfDoc(droppedDoc);
+        let curDocGuid = StrCast(droppedDoc.presentId, null);
+
+        //Splicing the doc from its current group, since it's moved
+        if (p.groupMappings.has(curDocGuid)) {
+            let groupArray = this.props.groupMappings.get(curDocGuid)!;
+
+            if (droppedDocSelectedButtons[buttonIndex.Group]) {
+                let groupIndexOfDrop = groupArray.indexOf(droppedDoc);
+                let firstPart = groupArray.splice(0, groupIndexOfDrop);
+
+                if (firstPart.length > 1) {
+                    let newGroupGuid = Utils.GenerateGuid();
+                    firstPart.forEach((doc: Doc) => doc.presentId = newGroupGuid);
+                    this.props.groupMappings.set(newGroupGuid, firstPart);
+                }
+            }
+
+            groupArray.splice(groupArray.indexOf(droppedDoc), 1);
+            if (groupArray.length === 0) {
+                this.props.groupMappings.delete(curDocGuid);
+            }
+            droppedDoc.presentId = Utils.GenerateGuid();
+
+            //making sure to correct to groups after splicing, in case the dragged element
+            //had the grouping on.
+            let indexOfBelow = droppedDocIndex + 1;
+            if (indexOfBelow < this.props.allListElements.length && indexOfBelow > 1) {
+                let selectedButtonsOrigBelow: boolean[] = await this.getSelectedButtonsOfDoc(this.props.allListElements[indexOfBelow]);
+                let aboveBelowDoc: Doc = this.props.allListElements[droppedDocIndex - 1];
+                let aboveBelowDocSelectedButtons: boolean[] = await this.getSelectedButtonsOfDoc(aboveBelowDoc);
+                let belowDoc: Doc = this.props.allListElements[indexOfBelow];
+                let belowDocPresId = StrCast(belowDoc.presentId);
+
+                if (selectedButtonsOrigBelow[buttonIndex.Group]) {
+                    let belowDocGroup: Doc[] = this.props.groupMappings.get(belowDocPresId)!;
+                    if (aboveBelowDocSelectedButtons[buttonIndex.Group]) {
+                        let aboveBelowDocPresId = StrCast(aboveBelowDoc.presentId);
+                        if (this.props.groupMappings.has(aboveBelowDocPresId)) {
+                            let aboveBelowDocGroup: Doc[] = this.props.groupMappings.get(aboveBelowDocPresId)!;
+                            aboveBelowDocGroup.push(...belowDocGroup);
+                            this.props.groupMappings.delete(belowDocPresId);
+                            belowDocGroup.forEach((doc: Doc) => doc.presentId = aboveBelowDocPresId);
+
+                        }
+                    } else {
+                        belowDocGroup.unshift(aboveBelowDoc);
+                        aboveBelowDoc.presentId = belowDocPresId;
+                    }
+
+
+                }
+            }
+
+        }
+
+        //Case, when the dropped doc had the group button clicked.
+        if (droppedDocSelectedButtons[buttonIndex.Group]) {
+            if (before) {
+                if (this.props.index > 0) {
+                    let aboveDoc = this.props.allListElements[this.props.index - 1];
+                    let aboveDocGuid = StrCast(aboveDoc.presentId);
+                    if (this.props.groupMappings.has(aboveDocGuid)) {
+                        this.protectOrderAndPush(aboveDocGuid, aboveDoc, droppedDoc);
+                    } else {
+                        this.createNewGroup(aboveDoc, droppedDoc, aboveDocGuid);
+                    }
+                } else {
+                    let propsPresId = StrCast(this.props.document.presentId);
+                    if (this.selectedButtons[buttonIndex.Group]) {
+                        let propsArray = this.props.groupMappings.get(propsPresId)!;
+                        propsArray.unshift(droppedDoc);
+                        droppedDoc.presentId = propsPresId;
+                    }
+                }
+            } else {
+                let propsDocGuid = StrCast(this.props.document.presentId);
+                if (this.props.groupMappings.has(propsDocGuid)) {
+                    this.protectOrderAndPush(propsDocGuid, this.props.document, droppedDoc);
+
+                } else {
+                    this.createNewGroup(this.props.document, droppedDoc, propsDocGuid);
+                }
+            }
+
+
+            //if the group button of the element was not clicked.
+        } else {
+            if (before) {
+                if (this.props.index > 0) {
+
+                    let aboveDoc = this.props.allListElements[this.props.index - 1];
+                    let aboveDocGuid = StrCast(aboveDoc.presentId);
+                    let aboveDocSelectedButtons: boolean[] = await this.getSelectedButtonsOfDoc(aboveDoc);
+
+
+                    if (this.selectedButtons[buttonIndex.Group]) {
+                        if (aboveDocSelectedButtons[buttonIndex.Group]) {
+                            let aboveGroupArray = this.props.groupMappings.get(aboveDocGuid)!;
+                            let propsDocPresId = StrCast(this.props.document.presentId);
+
+                            this.halveGroupArray(aboveDoc, aboveGroupArray, droppedDoc, propsDocPresId);
+
+                        } else {
+                            let belowPresentId = StrCast(this.props.document.presentId);
+                            let belowGroup = this.props.groupMappings.get(belowPresentId)!;
+                            belowGroup.splice(belowGroup.indexOf(aboveDoc), 1);
+                            belowGroup.unshift(droppedDoc);
+                            droppedDoc.presentId = belowPresentId;
+                            aboveDoc.presentId = Utils.GenerateGuid();
+                        }
+
+
+                    }
+                } else {
+                    let propsPresId = StrCast(this.props.document.presentId);
+                    if (this.selectedButtons[buttonIndex.Group]) {
+                        let propsArray = this.props.groupMappings.get(propsPresId)!;
+                        propsArray.unshift(droppedDoc);
+                        droppedDoc.presentId = propsPresId;
+                    }
+                }
+            } else {
+                if (this.props.index < this.props.allListElements.length - 1) {
+                    let belowDoc = this.props.allListElements[this.props.index + 1];
+                    let belowDocGuid = StrCast(belowDoc.presentId);
+                    let belowDocSelectedButtons: boolean[] = await this.getSelectedButtonsOfDoc(belowDoc);
+
+                    let propsDocGuid = StrCast(this.props.document.presentId);
+
+                    if (belowDocSelectedButtons[buttonIndex.Group]) {
+                        let belowGroupArray = this.props.groupMappings.get(belowDocGuid)!;
+                        if (this.selectedButtons[buttonIndex.Group]) {
+
+                            let propsGroupArray = this.props.groupMappings.get(propsDocGuid)!;
+
+                            this.halveGroupArray(this.props.document, propsGroupArray, droppedDoc, belowDocGuid);
+
+                        } else {
+                            belowGroupArray.splice(belowGroupArray.indexOf(this.props.document), 1);
+                            this.props.document.presentId = Utils.GenerateGuid();
+                            belowGroupArray.unshift(droppedDoc);
+                            droppedDoc.presentId = belowDocGuid;
+                        }
+                    }
+
+                }
+            }
+        }
+        this.autoSaveGroupChanges();
+
+    }
+
+    /**
+     * This method returns the selectedButtons boolean array of the passed in doc,
+     * retrieving it from the back-up.
+     */
+    getSelectedButtonsOfDoc = async (paramDoc: Doc) => {
+        let castedList = Cast(this.props.presButtonBackUp.selectedButtonDocs, listSpec(Doc));
+        let foundSelectedButtons: boolean[] = new Array(6);
+
+        //if this is the first time this doc mounts, push a doc for it to store
+        for (let doc of castedList!) {
+            let curDoc = await doc;
+            let curDocId = StrCast(curDoc.docId);
+            if (curDocId === paramDoc[Id]) {
+                let selectedButtonOfDoc = Cast(curDoc.selectedButtons, listSpec("boolean"), null);
+                if (selectedButtonOfDoc !== undefined) {
+                    return selectedButtonOfDoc;
+                }
+            }
+        }
+
+        return foundSelectedButtons;
+
+    }
+
+    //This is used to add dragging as an event.
+    onPointerEnter = (e: React.PointerEvent): void => {
+        this.props.document.libraryBrush = true;
+        if (e.buttons === 1 && SelectionManager.GetIsDragging()) {
+            let selected = NumCast(this.props.mainDocument.selectedDoc, 0);
+
+            this.header!.className = "presentationView-item";
+
+
+            if (selected === this.props.index) {
+                //this doc is selected
+                this.header!.className = "presentationView-item presentationView-selected";
+            }
+            document.addEventListener("pointermove", this.onDragMove, true);
+        }
+    }
+
+    //This is used to remove the dragging when dropped.
+    onPointerLeave = (e: React.PointerEvent): void => {
+        this.props.document.libraryBrush = false;
+        //to get currently selected presentation doc
+        let selected = NumCast(this.props.mainDocument.selectedDoc, 0);
+
+        this.header!.className = "presentationView-item";
+
+
+        if (selected === this.props.index) {
+            //this doc is selected
+            this.header!.className = "presentationView-item presentationView-selected";
+
+        }
+        document.removeEventListener("pointermove", this.onDragMove, true);
+    }
+
+    /**
+     * This method is passed in to be used when dragging a document.
+     * It makes it possible to show dropping lines on drop targets.
+     */
+    onDragMove = (e: PointerEvent): void => {
+        this.props.document.libraryBrush = false;
+        let x = this.ScreenToLocalListTransform(e.clientX, e.clientY);
+        let rect = this.header!.getBoundingClientRect();
+        let bounds = this.ScreenToLocalListTransform(rect.left, rect.top + rect.height / 2);
+        let before = x[1] < bounds[1];
+        this.header!.className = "presentationView-item";
+        if (before) {
+            this.header!.className += " presentationView-item-above";
+        }
+        else if (!before) {
+            this.header!.className += " presentationView-item-below";
+        }
+        e.stopPropagation();
+    }
+
+    /**
+     * This method is passed in to on down event of presElement, so that drag and
+     * drop can be completed with DragManager functionality.
+     */
+    @action
+    move: DragManager.MoveFunction = (doc: Doc, target: Doc, addDoc) => {
+        return this.props.document !== target && this.props.removeDocByRef(doc) && addDoc(doc);
+    }
+
+    /**
+     * Helper method that gets called to divide a group array into two different groups
+     * including the targetDoc in first part.
+     * @param targetDoc document that is targeted as slicing point
+     * @param propsGroupArray the array that gets divided into 2
+     * @param droppedDoc the dropped document
+     * @param belowDocGuid presentId of the belowGroup
+     */
+    private halveGroupArray(targetDoc: Doc, propsGroupArray: Doc[], droppedDoc: Doc, belowDocGuid: string) {
+        let targetIndex = propsGroupArray.indexOf(targetDoc);
+        let firstPart = propsGroupArray.slice(0, targetIndex + 1);
+        let firstPartNewGuid = Utils.GenerateGuid();
+        firstPart.forEach((doc: Doc) => doc.presentId = firstPartNewGuid);
+        let secondPart = propsGroupArray.slice(targetIndex + 1);
+        secondPart.unshift(droppedDoc);
+        droppedDoc.presentId = belowDocGuid;
+        this.props.groupMappings.set(firstPartNewGuid, firstPart);
+        this.props.groupMappings.set(belowDocGuid, secondPart);
+    }
+
+    /**
+     * Helper method that creates a new group, pushing above document first,
+     * and dropped document second.
+     * @param aboveDoc the document above dropped document
+     * @param droppedDoc the dropped document itself
+     * @param aboveDocGuid above document's presentId
+     */
+    private createNewGroup(aboveDoc: Doc, droppedDoc: Doc, aboveDocGuid: string) {
+        let newGroup: Doc[] = [];
+        newGroup.push(aboveDoc);
+        newGroup.push(droppedDoc);
+        droppedDoc.presentId = aboveDocGuid;
+        this.props.groupMappings.set(aboveDocGuid, newGroup);
+    }
+
+    /**
+      * Helper method that finds the above document's group, and pushes the
+      * dropped document into that group, protecting the visual order of the
+      * presentation elements.
+      * @param aboveDoc the document above dropped document
+      * @param droppedDoc the dropped document itself
+      * @param aboveDocGuid above document's presentId
+      */
+    private protectOrderAndPush(aboveDocGuid: string, aboveDoc: Doc, droppedDoc: Doc) {
+        let groupArray = this.props.groupMappings.get(aboveDocGuid)!;
+        let tempStack: Doc[] = [];
+        while (groupArray[groupArray.length - 1] !== aboveDoc) {
+            tempStack.push(groupArray.pop()!);
+        }
+        groupArray.push(droppedDoc);
+        droppedDoc.presentId = aboveDocGuid;
+        while (tempStack.length !== 0) {
+            groupArray.push(tempStack.pop()!);
+        }
+    }
+
+
+
 
     render() {
         let p = this.props;
@@ -364,33 +778,35 @@ export default class PresentationElement extends React.Component<PresentationEle
         //to get currently selected presentation doc
         let selected = NumCast(p.mainDocument.selectedDoc, 0);
 
-        let className = "presentationView-item";
+        let className = " presentationView-item";
         if (selected === p.index) {
             //this doc is selected
             className += " presentationView-selected";
         }
-        let onEnter = (e: React.PointerEvent) => { p.document.libraryBrush = true; };
-        let onLeave = (e: React.PointerEvent) => { p.document.libraryBrush = false; };
+        let dropAction = StrCast(this.props.document.dropAction) as dropActionType;
+        let onItemDown = SetupDrag(this.presElRef, () => p.document, this.move, dropAction, this.props.mainDocument[Id], true);
         return (
             <div className={className} key={p.document[Id] + p.index}
-                onPointerEnter={onEnter} onPointerLeave={onLeave}
+                ref={this.presElRef}
+                onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}
+                onPointerDown={onItemDown}
                 style={{
                     outlineColor: "maroon",
                     outlineStyle: "dashed",
-                    outlineWidth: BoolCast(p.document.libraryBrush, false) ? `1px` : "0px",
+                    outlineWidth: BoolCast(p.document.libraryBrush) ? `1px` : "0px",
                 }}
                 onClick={e => { p.gotoDocument(p.index, NumCast(this.props.mainDocument.selectedDoc)); e.stopPropagation(); }}>
                 <strong className="presentationView-name">
                     {`${p.index + 1}. ${title}`}
                 </strong>
-                <button className="presentation-icon" onClick={e => { this.props.deleteDocument(p.index); e.stopPropagation(); }}>X</button>
+                <button className="presentation-icon" onPointerDown={(e) => e.stopPropagation()} onClick={e => { this.props.deleteDocument(p.index); e.stopPropagation(); }}>X</button>
                 <br></br>
-                <button title="Zoom" className={this.selectedButtons[buttonIndex.Show] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onZoomDocumentClick}><FontAwesomeIcon icon={"search"} /></button>
-                <button title="Navigate" className={this.selectedButtons[buttonIndex.Navigate] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onNavigateDocumentClick}><FontAwesomeIcon icon={"location-arrow"} /></button>
-                <button title="Hide Document Till Presented" className={this.selectedButtons[buttonIndex.HideTillPressed] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onHideDocumentUntilPressClick}><FontAwesomeIcon icon={fileSolid} /></button>
-                <button title="Fade Document After Presented" className={this.selectedButtons[buttonIndex.FadeAfter] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onFadeDocumentAfterPresentedClick}><FontAwesomeIcon icon={faFileDownload} color={"gray"} /></button>
-                <button title="Hide Document After Presented" className={this.selectedButtons[buttonIndex.HideAfter] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={this.onHideDocumentAfterPresentedClick}><FontAwesomeIcon icon={faFileDownload} /></button>
-                <button title="Group With Up" className={this.selectedButtons[buttonIndex.Group] ? "presentation-interaction-selected" : "presentation-interaction"} onClick={(e) => {
+                <button title="Zoom" className={this.selectedButtons[buttonIndex.Show] ? "presentation-interaction-selected" : "presentation-interaction"} onPointerDown={(e) => e.stopPropagation()} onClick={this.onZoomDocumentClick}><FontAwesomeIcon icon={"search"} /></button>
+                <button title="Navigate" className={this.selectedButtons[buttonIndex.Navigate] ? "presentation-interaction-selected" : "presentation-interaction"} onPointerDown={(e) => e.stopPropagation()} onClick={this.onNavigateDocumentClick}><FontAwesomeIcon icon={"location-arrow"} /></button>
+                <button title="Hide Document Till Presented" className={this.selectedButtons[buttonIndex.HideTillPressed] ? "presentation-interaction-selected" : "presentation-interaction"} onPointerDown={(e) => e.stopPropagation()} onClick={this.onHideDocumentUntilPressClick}><FontAwesomeIcon icon={fileSolid} /></button>
+                <button title="Fade Document After Presented" className={this.selectedButtons[buttonIndex.FadeAfter] ? "presentation-interaction-selected" : "presentation-interaction"} onPointerDown={(e) => e.stopPropagation()} onClick={this.onFadeDocumentAfterPresentedClick}><FontAwesomeIcon icon={faFileDownload} color={"gray"} /></button>
+                <button title="Hide Document After Presented" className={this.selectedButtons[buttonIndex.HideAfter] ? "presentation-interaction-selected" : "presentation-interaction"} onPointerDown={(e) => e.stopPropagation()} onClick={this.onHideDocumentAfterPresentedClick}><FontAwesomeIcon icon={faFileDownload} /></button>
+                <button title="Group With Up" className={this.selectedButtons[buttonIndex.Group] ? "presentation-interaction-selected" : "presentation-interaction"} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => {
                     e.stopPropagation();
                     this.changeGroupStatus();
                     this.onGroupClick(p.document, p.index, this.selectedButtons[buttonIndex.Group]);

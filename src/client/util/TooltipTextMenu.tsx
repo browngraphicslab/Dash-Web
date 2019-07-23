@@ -24,6 +24,7 @@ import { FormattedTextBoxProps, FormattedTextBox } from "../views/nodes/Formatte
 import { typeAlias } from "babel-types";
 import React from "react";
 import ReactDOM from "react-dom";
+import { Utils } from "../../Utils";
 
 //appears above a selection of text in a RichTextBox to give user options such as Bold, Italics, etc.
 export class TooltipTextMenu {
@@ -66,6 +67,7 @@ export class TooltipTextMenu {
         this.tooltip.className = "tooltipMenu";
         this.dragElement(this.tooltip);
 
+        this.dragElement(this.tooltip);
         // this.createCollapse();
         // if (this._collapseBtn) {
         //     this.tooltip.appendChild(this._collapseBtn.render(this.view).dom);
@@ -137,6 +139,8 @@ export class TooltipTextMenu {
         this.fontSizeToNum.set(schema.marks.p12, 12);
         this.fontSizeToNum.set(schema.marks.p14, 14);
         this.fontSizeToNum.set(schema.marks.p16, 16);
+        this.fontSizeToNum.set(schema.marks.p18, 18);
+        this.fontSizeToNum.set(schema.marks.p20, 20);
         this.fontSizeToNum.set(schema.marks.p24, 24);
         this.fontSizeToNum.set(schema.marks.p32, 32);
         this.fontSizeToNum.set(schema.marks.p48, 48);
@@ -152,6 +156,7 @@ export class TooltipTextMenu {
         this.listTypes = Array.from(this.listTypeToIcon.keys());
 
         //custom tools
+        // this.tooltip.appendChild(this.createLink().render(this.view).dom);
 
         this._brushdom = this.createBrush().render(this.view).dom;
         this.tooltip.appendChild(this._brushdom);
@@ -283,8 +288,8 @@ export class TooltipTextMenu {
                 let link = node && node.marks.find(m => m.type.name === "link");
                 if (link) {
                     let href: string = link.attrs.href;
-                    if (href.indexOf(DocServer.prepend("/doc/")) === 0) {
-                        let docid = href.replace(DocServer.prepend("/doc/"), "");
+                    if (href.indexOf(Utils.prepend("/doc/")) === 0) {
+                        let docid = href.replace(Utils.prepend("/doc/"), "");
                         DocServer.GetRefField(docid).then(action((f: Opt<Field>) => {
                             if (f instanceof Doc) {
                                 if (DocumentManager.Instance.getDocumentView(f)) {
@@ -310,12 +315,21 @@ export class TooltipTextMenu {
             this.linkDrag.onpointerdown = (e: PointerEvent) => {
                 let dragData = new DragManager.LinkDragData(this.editorProps.Document);
                 dragData.dontClearTextBox = true;
+                // hack to get source context -sy
+                let docView = DocumentManager.Instance.getDocumentView(this.editorProps.Document);
+                e.stopPropagation();
+                let ctrlKey = e.ctrlKey;
                 DragManager.StartLinkDrag(this.linkDrag!, dragData, e.clientX, e.clientY,
                     {
                         handlers: {
                             dragComplete: action(() => {
-                                let m = dragData.droppedDocuments;
-                                this.makeLink(DocServer.prepend("/doc/" + m[0][Id]));
+                                // let m = dragData.droppedDocuments;
+                                let linkDoc = dragData.linkDocument;
+                                let proto = Doc.GetProto(linkDoc);
+                                if (docView && docView.props.ContainingCollectionView) {
+                                    proto.sourceContext = docView.props.ContainingCollectionView.props.Document;
+                                }
+                                linkDoc instanceof Doc && this.makeLink(Utils.prepend("/doc/" + linkDoc[Id]), ctrlKey ? "onRight" : "inTab");
                             }),
                         },
                         hideSource: false
@@ -335,17 +349,17 @@ export class TooltipTextMenu {
 
         this.linkText.onkeydown = (e: KeyboardEvent) => {
             if (e.key === "Enter") {
-                this.makeLink(this.linkText!.textContent!);
+                // this.makeLink(this.linkText!.textContent!);
                 e.stopPropagation();
                 e.preventDefault();
             }
         };
-        this.tooltip.appendChild(this.linkEditor);
+        // this.tooltip.appendChild(this.linkEditor);
     }
 
-    makeLink = (target: string) => {
+    makeLink = (target: string, location: string) => {
         let node = this.view.state.selection.$from.nodeAfter;
-        let link = this.view.state.schema.mark(this.view.state.schema.marks.link, { href: target });
+        let link = this.view.state.schema.mark(this.view.state.schema.marks.link, { href: target, location: location });
         this.view.dispatch(this.view.state.tr.removeMark(this.view.state.selection.from, this.view.state.selection.to, this.view.state.schema.marks.link));
         this.view.dispatch(this.view.state.tr.addMark(this.view.state.selection.from, this.view.state.selection.to, link));
         node = this.view.state.selection.$from.nodeAfter;
@@ -586,7 +600,7 @@ export class TooltipTextMenu {
                     let node = state.doc.nodeAt(from);
                     node && node.marks.map(m => {
                         m.type === markType && (curLink = m.attrs.href);
-                    })
+                    });
                     //toggleMark(markType)(state, dispatch);
                     //return true;
                 }

@@ -1,6 +1,6 @@
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
-import { action, Lambda, observable, reaction } from "mobx";
+import { action, Lambda, observable, reaction, trace, computed } from "mobx";
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
 import Measure from "react-measure";
@@ -26,8 +26,9 @@ import React = require("react");
 import { MainView } from '../MainView';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faFile } from '@fortawesome/free-solid-svg-icons';
+import { faFile, faUnlockAlt } from '@fortawesome/free-solid-svg-icons';
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
+import { Docs } from '../../documents/Documents';
 library.add(faFile);
 
 @observer
@@ -259,6 +260,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                         // Because this is in a set timeout, if this component unmounts right after mounting,
                         // we will leak a GoldenLayout, because we try to destroy it before we ever create it
                         setTimeout(() => this.setupGoldenLayout(), 1);
+                        DocListCast((CurrentUserUtils.UserDocument.workspaces as Doc).data).map(d => d.workspaceBrush = false);
                         this.props.Document.workspaceBrush = true;
                     }
                     this._ignoreStateChange = "";
@@ -297,7 +299,10 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     onPointerUp = (e: React.PointerEvent): void => {
         if (this._flush) {
             this._flush = false;
-            setTimeout(() => this.stateChanged(), 10);
+            setTimeout(() => {
+                CollectionDockingView.Instance._ignoreStateChange = JSON.stringify(CollectionDockingView.Instance._goldenLayout.toConfig());
+                this.stateChanged();
+            }, 10);
         }
     }
     @action
@@ -341,6 +346,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     }
 
     itemDropped = () => {
+        CollectionDockingView.Instance._ignoreStateChange = JSON.stringify(CollectionDockingView.Instance._goldenLayout.toConfig());
         this.stateChanged();
     }
 
@@ -356,6 +362,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             if (tab.contentItem.config.fixed) {
                 tab.contentItem.parent.config.fixed = true;
             }
+
             let doc = await DocServer.GetRefField(tab.contentItem.config.props.documentId) as Doc;
             let dataDoc = await DocServer.GetRefField(tab.contentItem.config.props.dataDocumentId) as Doc;
             if (doc instanceof Doc) {
@@ -406,12 +413,16 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 if (doc instanceof Doc) {
                     let theDoc = doc;
                     CollectionDockingView.Instance._removedDocs.push(theDoc);
-                    if (CurrentUserUtils.UserDocument.recentlyClosed instanceof Doc) {
-                        Doc.AddDocToList(CurrentUserUtils.UserDocument.recentlyClosed, "data", doc, undefined, true, true);
+
+                    const recent = await Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc);
+                    if (recent) {
+                        Doc.AddDocToList(recent, "data", doc, undefined, true, true);
                     }
                     SelectionManager.DeselectAll();
                 }
+                CollectionDockingView.Instance._ignoreStateChange = JSON.stringify(CollectionDockingView.Instance._goldenLayout.toConfig());
                 tab.contentItem.remove();
+                CollectionDockingView.Instance._ignoreStateChange = JSON.stringify(CollectionDockingView.Instance._goldenLayout.toConfig());
             });
     }
 
@@ -426,14 +437,24 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
     stackCreated = (stack: any) => {
         //stack.header.controlsContainer.find('.lm_popout').hide();
+        stack.header.element[0].style.backgroundColor = DocServer.Control.isReadOnly() ? "#228540" : undefined;
+        stack.header.element.on('mousedown', (e: any) => {
+            if (e.target === stack.header.element[0] && e.button === 1) {
+                this.AddTab(stack, Docs.Create.FreeformDocument([], { width: this.props.PanelWidth(), height: this.props.PanelHeight(), title: "Untitled Collection" }), undefined);
+            }
+        });
         stack.header.controlsContainer.find('.lm_close') //get the close icon
             .off('click') //unbind the current click handler
-            .click(action(function () {
+            .click(action(async function () {
                 //if (confirm('really close this?')) {
+                const recent = await Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc);
                 stack.remove();
-                stack.contentItems.map(async (contentItem: any) => {
+                stack.contentItems.forEach(async (contentItem: any) => {
                     let doc = await DocServer.GetRefField(contentItem.config.props.documentId);
                     if (doc instanceof Doc) {
+                        if (recent) {
+                            Doc.AddDocToList(recent, "data", doc, undefined, true, true);
+                        }
                         let theDoc = doc;
                         CollectionDockingView.Instance._removedDocs.push(theDoc);
                     }
@@ -444,7 +465,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             .off('click') //unbind the current click handler
             .click(action(function () {
                 stack.config.fixed = !stack.config.fixed;
-                // var url = DocServer.prepend("/doc/" + stack.contentItems[0].tab.contentItem.config.props.documentId);
+                // var url = Utils.prepend("/doc/" + stack.contentItems[0].tab.contentItem.config.props.documentId);
                 // let win = window.open(url, stack.contentItems[0].tab.title, "width=300,height=400");
             }));
     }
@@ -470,6 +491,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 interface DockedFrameProps {
     documentId: FieldId;
     dataDocumentId: FieldId;
+    glContainer: any;
     //collectionDockingView: CollectionDockingView
 }
 @observer
@@ -479,6 +501,9 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     @observable private _panelHeight = 0;
     @observable private _document: Opt<Doc>;
     @observable private _dataDoc: Opt<Doc>;
+
+    @observable private _isActive: boolean = false;
+
     get _stack(): any {
         let parent = (this.props as any).glContainer.parent.parent;
         if (this._document && this._document.excludeFromLibrary && parent.parent && parent.parent.contentItems.length > 1) {
@@ -495,6 +520,25 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             }
         }));
     }
+
+    componentDidMount() {
+        this.props.glContainer.layoutManager.on("activeContentItemChanged", this.onActiveContentItemChanged);
+        this.props.glContainer.on("tab", this.onActiveContentItemChanged);
+        this.onActiveContentItemChanged();
+    }
+
+    componentWillUnmount() {
+        this.props.glContainer.layoutManager.off("activeContentItemChanged", this.onActiveContentItemChanged);
+        this.props.glContainer.off("tab", this.onActiveContentItemChanged);
+    }
+
+    @action.bound
+    private onActiveContentItemChanged() {
+        if (this.props.glContainer.tab) {
+            this._isActive = this.props.glContainer.tab.isActive;
+        }
+    }
+
 
     nativeWidth = () => NumCast(this._document!.nativeWidth, this._panelWidth);
     nativeHeight = () => {
@@ -539,41 +583,51 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             CollectionDockingView.Instance.AddTab(this._stack, doc, dataDoc);
         }
     }
-    get content() {
+    @computed get docView() {
         if (!this._document) {
             return (null);
         }
         let resolvedDataDoc = this._document.layout instanceof Doc ? this._document : this._dataDoc;
+        return <DocumentView key={this._document[Id]}
+            Document={this._document}
+            DataDoc={resolvedDataDoc}
+            bringToFront={emptyFunction}
+            addDocument={undefined}
+            removeDocument={undefined}
+            ContentScaling={this.contentScaling}
+            PanelWidth={this.nativeWidth}
+            PanelHeight={this.nativeHeight}
+            ScreenToLocalTransform={this.ScreenToLocalTransform}
+            renderDepth={0}
+            selectOnLoad={false}
+            parentActive={returnTrue}
+            whenActiveChanged={emptyFunction}
+            focus={emptyFunction}
+            addDocTab={this.addDocTab}
+            ContainingCollectionView={undefined}
+            zoomToScale={emptyFunction}
+            getScale={returnOne} />;
+    }
+
+    @computed get content() {
+        if (!this._document) {
+            return (null);
+        }
         return (
             <div className="collectionDockingView-content" ref={this._mainCont}
                 style={{ transform: `translate(${this.previewPanelCenteringOffset}px, 0px) scale(${this.scaleToFitMultiplier})` }}>
-                <DocumentView key={this._document[Id]}
-                    Document={this._document}
-                    DataDoc={resolvedDataDoc}
-                    bringToFront={emptyFunction}
-                    addDocument={undefined}
-                    removeDocument={undefined}
-                    ContentScaling={this.contentScaling}
-                    PanelWidth={this.nativeWidth}
-                    PanelHeight={this.nativeHeight}
-                    ScreenToLocalTransform={this.ScreenToLocalTransform}
-                    renderDepth={0}
-                    selectOnLoad={false}
-                    parentActive={returnTrue}
-                    whenActiveChanged={emptyFunction}
-                    focus={emptyFunction}
-                    addDocTab={this.addDocTab}
-                    ContainingCollectionView={undefined}
-                    zoomToScale={emptyFunction}
-                    getScale={returnOne} />
+                {this.docView}
             </div >);
     }
 
     render() {
+        if (!this._isActive) return null;
         let theContent = this.content;
         return !this._document ? (null) :
             <Measure offset onResize={action((r: any) => { this._panelWidth = r.offset.width; this._panelHeight = r.offset.height; })}>
-                {({ measureRef }) => <div ref={measureRef}>  {theContent} </div>}
+                {({ measureRef }) => <div ref={measureRef}>
+                    {theContent}
+                </div>}
             </Measure>;
     }
 }

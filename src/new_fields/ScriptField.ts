@@ -4,6 +4,8 @@ import { Copy, ToScriptString, Parent, SelfProxy } from "./FieldSymbols";
 import { serializable, createSimpleSchema, map, primitive, object, deserialize, PropSchema, custom, SKIP } from "serializr";
 import { Deserializable } from "../client/util/SerializationHelper";
 import { Doc } from "../new_fields/Doc";
+import { Plugins } from "./util";
+import { computedFn } from "mobx-utils";
 
 function optional(propSchema: PropSchema) {
     return custom(value => {
@@ -86,11 +88,39 @@ export class ScriptField extends ObjectField {
 @Deserializable("computed", deserializeScript)
 export class ComputedField extends ScriptField {
     //TODO maybe add an observable cache based on what is passed in for doc, considering there shouldn't really be that many possible values for doc
-    value(doc: Doc) {
+    value = computedFn((doc: Doc) => {
         const val = this.script.run({ this: doc });
         if (val.success) {
             return val.result;
         }
         return undefined;
+    });
+}
+
+export namespace ComputedField {
+    let useComputed = true;
+    export function DisableComputedFields() {
+        useComputed = false;
     }
+
+    export function EnableComputedFields() {
+        useComputed = true;
+    }
+
+    export const undefined = "__undefined";
+
+    export function WithoutComputed<T>(fn: () => T) {
+        DisableComputedFields();
+        try {
+            return fn();
+        } finally {
+            EnableComputedFields();
+        }
+    }
+
+    Plugins.addGetterPlugin((doc, _, value) => {
+        if (useComputed && value instanceof ComputedField) {
+            return { value: value.value(doc), shouldReturn: true };
+        }
+    });
 }

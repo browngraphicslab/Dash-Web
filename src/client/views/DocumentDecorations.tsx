@@ -1,5 +1,5 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faLink } from '@fortawesome/free-solid-svg-icons';
+import { faLink, faTag } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
@@ -27,11 +27,14 @@ import React = require("react");
 import { RichTextField } from '../../new_fields/RichTextField';
 import { LinkManager } from '../util/LinkManager';
 import { ObjectField } from '../../new_fields/ObjectField';
+import { MetadataEntryMenu } from './MetadataEntryMenu';
+import { ImageBox } from './nodes/ImageBox';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
 
 library.add(faLink);
+library.add(faTag);
 
 @observer
 export class DocumentDecorations extends React.Component<{}, { value: string }> {
@@ -83,27 +86,13 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 SelectionManager.DeselectAll();
                 let fieldTemplate = fieldTemplateView.props.Document;
                 let docTemplate = fieldTemplateView.props.ContainingCollectionView!.props.Document;
-                let metaKey = text.slice(1, text.length);
-
-                // move data doc fields to layout doc as needed (nativeWidth/nativeHeight, data, ??)
-                let backgroundLayout = StrCast(fieldTemplate.backgroundLayout);
-                let layout = StrCast(fieldTemplate.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
-                if (backgroundLayout) {
-                    layout = StrCast(fieldTemplate.layout).replace(/fieldKey={"annotations"}/, `fieldKey={"${metaKey}"} fieldExt={"annotations"}`);
-                    backgroundLayout = backgroundLayout.replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
+                let metaKey = text.startsWith(">>") ? text.slice(2, text.length) : text.slice(1, text.length);
+                let proto = Doc.GetProto(docTemplate);
+                Doc.MakeTemplate(fieldTemplate, metaKey, proto);
+                if (text.startsWith(">>")) {
+                    proto.detailedLayout = proto.layout;
+                    proto.miniLayout = ImageBox.LayoutString(metaKey);
                 }
-                let nw = Cast(fieldTemplate.nativeWidth, "number");
-                let nh = Cast(fieldTemplate.nativeHeight, "number");
-
-                fieldTemplate.title = metaKey;
-                fieldTemplate.layout = layout;
-                fieldTemplate.backgroundLayout = backgroundLayout;
-                fieldTemplate.nativeWidth = nw;
-                fieldTemplate.nativeHeight = nh;
-                fieldTemplate.embed = true;
-                fieldTemplate.isTemplate = true;
-                fieldTemplate.templates = new List<string>([Templates.TitleBar(metaKey)]);
-                fieldTemplate.proto = Doc.GetProto(docTemplate);
             }
             else {
                 if (SelectionManager.SelectedDocuments().length > 0) {
@@ -305,7 +294,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @undoBatch
     @action createIcon = (selected: DocumentView[], layoutString: string): Doc => {
         let doc = selected[0].props.Document;
-        let iconDoc = Docs.IconDocument(layoutString);
+        let iconDoc = Docs.Create.IconDocument(layoutString);
         iconDoc.isButton = true;
         iconDoc.proto!.title = selected.length > 1 ? "-multiple-.icon" : StrCast(doc.title) + ".icon";
         iconDoc.labelField = selected.length > 1 ? undefined : this._fieldKey;
@@ -470,7 +459,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (this._linkButton.current !== null && (e.movementX > 1 || e.movementY > 1)) {
             document.removeEventListener("pointermove", this.onLinkButtonMoved);
             document.removeEventListener("pointerup", this.onLinkButtonUp);
-
             DragLinksAsDocuments(this._linkButton.current, e.x, e.y, SelectionManager.SelectedDocuments()[0].props.Document);
         }
         e.stopPropagation();
@@ -552,7 +540,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                         doc.width = actualdW;
                         if (fixedAspect) doc.height = nheight / nwidth * doc.width;
                         else doc.height = actualdH;
-                        Doc.SetInPlace(element.props.Document, "nativeHeight", (doc.height || 0) / doc.width * (doc.nativeWidth || 0), true);
                     }
                     else {
                         if (!fixedAspect) {
@@ -561,7 +548,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                         doc.height = actualdH;
                         if (fixedAspect) doc.width = nwidth / nheight * doc.height;
                         else doc.width = actualdW;
-                        Doc.SetInPlace(element.props.Document, "nativeWidth", (doc.width || 0) / doc.height * (doc.nativeHeight || 0), true);
                     }
                 } else {
                     dW && (doc.width = actualdW);
@@ -615,8 +601,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (!canEmbed) return (null);
         return (
             <div className="linkButtonWrapper">
-                <div style={{ paddingTop: 3, marginLeft: 30 }} title="Drag Embed" className="linkButton-linker" ref={this._embedButton} onPointerDown={this.onEmbedButtonDown}>
-                    <FontAwesomeIcon className="fa-image" icon="image" size="sm" />
+                <div title="Drag Embed" className="linkButton-linker" ref={this._embedButton} onPointerDown={this.onEmbedButtonDown}>
+                    <FontAwesomeIcon className="documentdecorations-icon" icon="image" size="sm" />
                 </div>
             </div>
         );
@@ -629,10 +615,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         this._textDoc = thisDoc;
         return (
             <div className="tooltipwrapper">
-                <div style={{ paddingTop: 3, marginLeft: 30 }} title="Hide Tooltip" className="linkButton-linker" ref={this._tooltipoff} onPointerDown={this.onTooltipOff}>
+                <div title="Hide Tooltip" className="linkButton-linker" ref={this._tooltipoff} onPointerDown={this.onTooltipOff}>
                     {/* <FontAwesomeIcon className="fa-image" icon="image" size="sm" /> */}
-                    T
-                    </div>
+                </div>
             </div>
 
         );
@@ -651,6 +636,17 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 }
             }
         }
+    }
+
+    get metadataMenu() {
+        return (
+            <div className="linkButtonWrapper">
+                <Flyout anchorPoint={anchorPoints.TOP_LEFT}
+                    content={<MetadataEntryMenu docs={() => SelectionManager.SelectedDocuments().map(dv => dv.props.Document)} suggestWithFunction />}>{/* tfs: @bcz This might need to be the data document? */}
+                    <div className="docDecs-tagButton" title="Add fields"><FontAwesomeIcon className="documentdecorations-icon" icon="tag" size="sm" /></div>
+                </Flyout>
+            </div>
+        );
     }
 
     render() {
@@ -703,6 +699,17 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             templates.set(template, checked);
         });
 
+        bounds.x = Math.max(0, bounds.x - this._resizeBorderWidth / 2) + this._resizeBorderWidth / 2;
+        bounds.y = Math.max(0, bounds.y - this._resizeBorderWidth / 2 - this._titleHeight) + this._resizeBorderWidth / 2 + this._titleHeight;
+        const borderRadiusDraggerWidth = 15;
+        bounds.r = Math.min(window.innerWidth, bounds.r + borderRadiusDraggerWidth + this._resizeBorderWidth / 2) - this._resizeBorderWidth / 2 - borderRadiusDraggerWidth;
+        bounds.b = Math.min(window.innerHeight, bounds.b + this._resizeBorderWidth / 2 + this._linkBoxHeight) - this._resizeBorderWidth / 2 - this._linkBoxHeight;
+        if (bounds.x > bounds.r) {
+            bounds.x = bounds.r - this._resizeBorderWidth;
+        }
+        if (bounds.y > bounds.b) {
+            bounds.y = bounds.b - (this._resizeBorderWidth + this._linkBoxHeight + this._titleHeight);
+        }
         return (<div className="documentDecorations">
             <div className="documentDecorations-background" style={{
                 width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",
@@ -742,10 +749,13 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     </div>
                     <div className="linkButtonWrapper">
                         <div title="Drag Link" className="linkButton-linker" ref={this._linkerButton} onPointerDown={this.onLinkerButtonDown}>
-                            <FontAwesomeIcon className="fa-icon-link" icon="link" size="sm" />
+                            <FontAwesomeIcon className="documentdecorations-icon" icon="link" size="sm" />
                         </div>
                     </div>
-                    <TemplateMenu docs={SelectionManager.ViewsSortedVertically()} templates={templates} />
+                    <div className="linkButtonWrapper">
+                        <TemplateMenu docs={SelectionManager.ViewsSortedVertically()} templates={templates} />
+                    </div>
+                    {this.metadataMenu}
                     {this.considerEmbed()}
                     {/* {this.considerTooltip()} */}
                 </div>

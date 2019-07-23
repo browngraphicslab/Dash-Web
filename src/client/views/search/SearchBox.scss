@@ -41,7 +41,7 @@
 }
 
 .searchBox-results {
-    margin-left: 27px;
+    margin-right: 136px;
     top: 300px;
     display: flex;
     flex-direction: column;
@@ -50,6 +50,9 @@
     height: 100%;
     // overflow: hidden;
     // overflow-y: auto;
+    max-height: 560px;
+    overflow: hidden;
+    overflow-y: auto;
 
     .no-result {
         width: 500px;
@@ -61,5 +64,6 @@
         text-transform: uppercase;
         text-align: left;
         font-weight: bold;
+        margin-left: 28px;
     }
 }

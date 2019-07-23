@@ -1,4 +1,4 @@
-import { action, observable, reaction } from 'mobx';
+import { action, observable, reaction, trace } from 'mobx';
 import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
@@ -52,8 +52,11 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
                 if (box) {
                     this.TextDoc = box.props.Document;
                     this.TextDataDoc = box.props.DataDoc;
-                    let sxf = Utils.GetScreenTransform(box ? box.CurrentDiv : undefined);
-                    let xf = () => { box.props.ScreenToLocalTransform(); return new Transform(-sxf.translateX, -sxf.translateY, 1 / sxf.scale); };
+                    let xf = () => {
+                        box.props.ScreenToLocalTransform();
+                        let sxf = Utils.GetScreenTransform(box ? box.CurrentDiv : undefined);
+                        return new Transform(-sxf.translateX, -sxf.translateY, 1 / sxf.scale);
+                    };
                     this.setTextDoc(box.props.fieldKey, box.CurrentDiv, xf, BoolCast(box.props.Document.autoHeight, false) || box.props.height === "min-content");
                 }
                 else {

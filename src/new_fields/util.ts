@@ -1,5 +1,5 @@
 import { UndoManager } from "../client/util/UndoManager";
-import { Doc, Field } from "./Doc";
+import { Doc, Field, FieldResult } from "./Doc";
 import { SerializationHelper } from "../client/util/SerializationHelper";
 import { ProxyField } from "./Proxy";
 import { RefField } from "./RefField";
@@ -11,6 +11,20 @@ import { ComputedField } from "./ScriptField";
 function _readOnlySetter(): never {
     throw new Error("Documents can't be modified in read-only mode");
 }
+
+export interface GetterResult {
+    value: FieldResult;
+    shouldReturn: boolean;
+}
+export type GetterPlugin = (receiver: any, prop: string | number, currentValue: any) => GetterResult | undefined;
+const getterPlugins: GetterPlugin[] = [];
+
+export namespace Plugins {
+    export function addGetterPlugin(plugin: GetterPlugin) {
+        getterPlugins.push(plugin);
+    }
+}
+
 const _setterImpl = action(function (target: any, prop: string | symbol | number, value: any, receiver: any): boolean {
     //console.log("-set " + target[SelfProxy].title + "(" + target[SelfProxy][prop] + ")." + prop.toString() + " = " + value);
     if (SerializationHelper.IsSerializing()) {
@@ -50,6 +64,7 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
         target.__fields[prop] = value;
     }
     if (value === undefined) target[Update]({ '$unset': { ["fields." + prop]: "" } });
+    if (typeof value === "object" && !(value instanceof ObjectField)) debugger;
     else target[Update]({ '$set': { ["fields." + prop]: value instanceof ObjectField ? SerializationHelper.Serialize(value) : (value === undefined ? null : value) } });
     UndoManager.AddEvent({
         redo: () => receiver[prop] = value,
@@ -84,12 +99,18 @@ export function getter(target: any, prop: string | symbol | number, receiver: an
 
 function getFieldImpl(target: any, prop: string | number, receiver: any, ignoreProto: boolean = false): any {
     receiver = receiver || target[SelfProxy];
-    const field = target.__fields[prop];
+    let field = target.__fields[prop];
     if (field instanceof ProxyField) {
         return field.value();
     }
-    if (field instanceof ComputedField) {
-        return field.value(receiver);
+    for (const plugin of getterPlugins) {
+        const res = plugin(receiver, prop, field);
+        if (res === undefined) continue;
+        if (res.shouldReturn) {
+            return res.value;
+        } else {
+            field = res.value;
+        }
     }
     if (field === undefined && !ignoreProto && prop !== "proto") {
         const proto = getFieldImpl(target, "proto", receiver, true);//TODO tfs: instead of receiver we could use target[SelfProxy]... I don't which semantics we want or if it really matters

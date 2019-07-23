@@ -1,7 +1,9 @@
 @import "../globalCssVariables";
 .collectionStackingView {
+    height: 100%;
+    width: 100%;
+    position: absolute;
     overflow-y: auto;
-
     .collectionStackingView-docView-container {
         width: 45%;
         margin: 5% 2.5%;
@@ -56,6 +58,9 @@
         margin-left: -5;
     }
 
+    .collectionStackingView-columnDoc{
+        display: inline-block;
+    }
 
     .collectionStackingView-columnDoc, 
     .collectionStackingView-masonryDoc {
@@ -67,5 +72,14 @@
         transform-origin: top left;
         grid-column-end: span 1;
         height: 100%;
+    }
+    .collectionStackingView-sectionHeader {    
+        width: 90%;
+        background: gray;
+        text-align: center;
+        margin-left: 5%;
+        margin-right: 5%;
+        color: white;
+        margin-top: 10px;
     }
 }

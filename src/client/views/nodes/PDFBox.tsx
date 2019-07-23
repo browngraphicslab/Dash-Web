@@ -23,9 +23,11 @@ import { CompileScript } from '../../util/Scripting';
 import { Flyout, anchorPoints } from '../DocumentDecorations';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { ScriptField } from '../../../new_fields/ScriptField';
+import { KeyCodes } from '../../northstar/utils/KeyCodes';
 
 type PdfDocument = makeInterface<[typeof positionSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(positionSchema, pageSchema);
+export const handleBackspace = (e: React.KeyboardEvent) => { if (e.keyCode === KeyCodes.BACKSPACE) e.stopPropagation(); };
 
 @observer
 export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocument) {
@@ -175,13 +177,13 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
                             Annotation View Settings
                         </div>
                         <div className="pdfBox-settingsFlyout-kvpInput">
-                            <input placeholder="Key" className="pdfBox-settingsFlyout-input" onChange={this.newKeyChange}
+                            <input placeholder="Key" className="pdfBox-settingsFlyout-input" onKeyDown={handleBackspace} onChange={this.newKeyChange}
                                 style={{ gridColumn: 1 }} ref={this._keyRef} />
-                            <input placeholder="Value" className="pdfBox-settingsFlyout-input" onChange={this.newValueChange}
+                            <input placeholder="Value" className="pdfBox-settingsFlyout-input" onKeyDown={handleBackspace} onChange={this.newValueChange}
                                 style={{ gridColumn: 3 }} ref={this._valueRef} />
                         </div>
                         <div className="pdfBox-settingsFlyout-kvpInput">
-                            <input placeholder="Custom Script" onChange={this.newScriptChange} style={{ gridColumn: "1 / 4" }} ref={this._scriptRef} />
+                            <input placeholder="Custom Script" onChange={this.newScriptChange} onKeyDown={handleBackspace} style={{ gridColumn: "1 / 4" }} ref={this._scriptRef} />
                         </div>
                         <div className="pdfBox-settingsFlyout-kvpInput">
                             <button style={{ gridColumn: 1 }} onClick={this.resetFilters}>
@@ -228,6 +230,10 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         }
     }
 
+
+    @computed get fieldExtensionDoc() {
+        return Doc.resolvedFieldDataDoc(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, "true");
+    }
     render() {
         // uses mozilla pdf as default
         const pdfUrl = Cast(this.props.Document.data, PdfField);

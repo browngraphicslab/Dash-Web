@@ -16,12 +16,10 @@ export class AudioBox extends React.Component<FieldViewProps> {
         let path = field.url.href;
 
         return (
-            <div>
-                <audio controls className="audiobox-cont">
-                    <source src={path} type="audio/mpeg" />
-                    Not supported.
+            <audio controls className="audiobox-cont" style={{ pointerEvents: "all" }}>
+                <source src={path} type="audio/mpeg" />
+                Not supported.
                 </audio>
-            </div>
         );
     }
 }

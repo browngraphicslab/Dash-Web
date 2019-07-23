@@ -26,22 +26,18 @@ export class Search {
             });
             return res;
         } catch (e) {
-            // console.warn("Search error: " + e + document);
+            // console.warn("Search error: ", e, documents);
         }
     }
 
-    public async search(query: string, start: number = 0) {
+    public async search(query: any) {
         try {
             const searchResults = JSON.parse(await rp.get(this.url + "dash/select", {
-                qs: {
-                    q: query,
-                    fl: "id",
-                    start: start
-                }
+                qs: query
             }));
             const { docs, numFound } = searchResults.response;
             const ids = docs.map((field: any) => field.id);
-            return { ids, numFound };
+            return { ids, numFound, highlighting: searchResults.highlighting };
         } catch {
             return { ids: [], numFound: -1 };
         }

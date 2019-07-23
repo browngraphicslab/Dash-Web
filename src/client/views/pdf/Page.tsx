@@ -2,7 +2,7 @@ import { observer } from "mobx-react";
 import React = require("react");
 import { observable, action, runInAction, IReactionDisposer, reaction } from "mobx";
 import * as Pdfjs from "pdfjs-dist";
-import { Opt, Doc, FieldResult, Field, DocListCast, WidthSym, HeightSym } from "../../../new_fields/Doc";
+import { Opt, Doc, FieldResult, Field, DocListCast, WidthSym, HeightSym, DocListCastAsync } from "../../../new_fields/Doc";
 import "./PDFViewer.scss";
 import "pdfjs-dist/web/pdf_viewer.css";
 import { PDFBox } from "../nodes/PDFBox";
@@ -10,7 +10,7 @@ import { DragManager } from "../../util/DragManager";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { List } from "../../../new_fields/List";
 import { emptyFunction } from "../../../Utils";
-import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { Cast, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
 import { listSpec } from "../../../new_fields/Schema";
 import { menuBar } from "prosemirror-menu";
 import { AnnotationTypes, PDFViewer, scale } from "./PDFViewer";
@@ -55,6 +55,8 @@ export default class Page extends React.Component<IPageProps> {
     // private _curly: React.RefObject<HTMLImageElement>;
     private _marqueeing: boolean = false;
     private _reactionDisposer?: IReactionDisposer;
+    private _startY: number = 0;
+    private _startX: number = 0;
 
     constructor(props: IPageProps) {
         super(props);
@@ -138,9 +140,9 @@ export default class Page extends React.Component<IPageProps> {
     highlight = (targetDoc?: Doc, color: string = "red") => {
         // creates annotation documents for current highlights
         let annotationDoc = this.props.makeAnnotationDocuments(targetDoc, scale, color, false);
-        let targetAnnotations = Cast(this.props.parent.Document.annotations, listSpec(Doc));
+        let targetAnnotations = Cast(this.props.parent.fieldExtensionDoc.annotations, listSpec(Doc));
         if (targetAnnotations === undefined) {
-            Doc.GetProto(this.props.parent.Document).annotations = new List([annotationDoc]);
+            Doc.GetProto(this.props.parent.fieldExtensionDoc).annotations = new List([annotationDoc]);
         } else {
             targetAnnotations.push(annotationDoc);
         }
@@ -152,20 +154,34 @@ export default class Page extends React.Component<IPageProps> {
      * start a drag event and create or put the necessary info into the drag event.
      */
     @action
-    startDrag = (e: PointerEvent, ele: HTMLDivElement): void => {
+    startDrag = (e: PointerEvent, ele: HTMLElement): void => {
         e.preventDefault();
         e.stopPropagation();
         let thisDoc = this.props.parent.Document;
         // document that this annotation is linked to
-        let targetDoc = Docs.TextDocument({ width: 200, height: 200, title: "New Annotation" });
+        let targetDoc = Docs.Create.TextDocument({ width: 200, height: 200, title: "New Annotation" });
         targetDoc.targetPage = this.props.page;
-        let annotationDoc = this.highlight(targetDoc, "red");
+        let annotationDoc = this.highlight(undefined, "red");
+        annotationDoc.linkedToDoc = false;
         // create dragData and star tdrag
         let dragData = new DragManager.AnnotationDragData(thisDoc, annotationDoc, targetDoc);
         if (this._textLayer.current) {
             DragManager.StartAnnotationDrag([ele], dragData, e.pageX, e.pageY, {
                 handlers: {
-                    dragComplete: emptyFunction,
+                    dragComplete: async () => {
+                        if (!(await annotationDoc.linkedToDoc)) {
+                            let annotations = await DocListCastAsync(annotationDoc.annotations);
+                            if (annotations) {
+                                annotations.forEach(anno => {
+                                    anno.target = targetDoc;
+                                });
+                            }
+                            let pdfDoc = await Cast(annotationDoc.pdfDoc, Doc);
+                            if (pdfDoc) {
+                                DocUtils.MakeLink(annotationDoc, targetDoc, undefined, `Annotation from ${StrCast(pdfDoc.title)}`, "", StrCast(pdfDoc.title));
+                            }
+                        }
+                    }
                 },
                 hideSource: false
             });
@@ -220,8 +236,8 @@ export default class Page extends React.Component<IPageProps> {
                 let current = this._textLayer.current;
                 if (current) {
                     let boundingRect = current.getBoundingClientRect();
-                    this._marqueeX = (e.clientX - boundingRect.left) * (current.offsetWidth / boundingRect.width);
-                    this._marqueeY = (e.clientY - boundingRect.top) * (current.offsetHeight / boundingRect.height);
+                    this._startX = this._marqueeX = (e.clientX - boundingRect.left) * (current.offsetWidth / boundingRect.width);
+                    this._startY = this._marqueeY = (e.clientY - boundingRect.top) * (current.offsetHeight / boundingRect.height);
                 }
                 this._marqueeing = true;
                 if (this._marquee.current) this._marquee.current.style.opacity = "0.2";
@@ -244,8 +260,12 @@ export default class Page extends React.Component<IPageProps> {
             if (current) {
                 // transform positions and find the width and height to set the marquee to
                 let boundingRect = current.getBoundingClientRect();
-                this._marqueeWidth = (e.clientX - boundingRect.left) * (current.offsetWidth / boundingRect.width) - this._marqueeX;
-                this._marqueeHeight = (e.clientY - boundingRect.top) * (current.offsetHeight / boundingRect.height) - this._marqueeY;
+                this._marqueeWidth = ((e.clientX - boundingRect.left) * (current.offsetWidth / boundingRect.width)) - this._startX;
+                this._marqueeHeight = ((e.clientY - boundingRect.top) * (current.offsetHeight / boundingRect.height)) - this._startY;
+                this._marqueeX = Math.min(this._startX, this._startX + this._marqueeWidth);
+                this._marqueeY = Math.min(this._startY, this._startY + this._marqueeHeight);
+                this._marqueeWidth = Math.abs(this._marqueeWidth);
+                this._marqueeHeight = Math.abs(this._marqueeHeight);
                 let { background, opacity, transform: transform } = this.getCurlyTransform();
                 if (this._marquee.current /*&& this._curly.current*/) {
                     this._marquee.current.style.background = background;

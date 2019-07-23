@@ -60,7 +60,7 @@ clientUtils = `//AUTO-GENERATED FILE: DO NOT EDIT\n${clientUtils.replace('"mode"
 fs.writeFileSync("./src/client/util/ClientUtils.ts", clientUtils, "utf8");
 
 const mongoUrl = 'mongodb://localhost:27017/Dash';
-mongoose.connect(mongoUrl);
+mongoose.connection.readyState === 0 && mongoose.connect(mongoUrl);
 mongoose.connection.on('connected', () => console.log("connected"));
 
 // SESSION MANAGEMENT AND AUTHENTICATION MIDDLEWARE
@@ -112,7 +112,7 @@ function addSecureRoute(method: Method,
         if (req.user) {
             handler(req.user, res, req);
         } else {
-            req.session!.target = `http://localhost:${port}${req.originalUrl}`;
+            req.session!.target = req.originalUrl;
             onRejection(res, req);
         }
     };
@@ -147,15 +147,45 @@ const solrURL = "http://localhost:8983/solr/#/dash";
 // GETTERS
 
 app.get("/search", async (req, res) => {
-    let query = req.query.query || "hello";
-    let results = await Search.Instance.search(query);
+    const solrQuery: any = {};
+    ["q", "fq", "start", "rows", "hl", "hl.fl"].forEach(key => solrQuery[key] = req.query[key]);
+    if (solrQuery.q === undefined) {
+        res.send([]);
+        return;
+    }
+    let results = await Search.Instance.search(solrQuery);
     res.send(results);
 });
 
+function msToTime(duration: number) {
+    let milliseconds = Math.floor((duration % 1000) / 100),
+        seconds = Math.floor((duration / 1000) % 60),
+        minutes = Math.floor((duration / (1000 * 60)) % 60),
+        hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
+
+    let hoursS = (hours < 10) ? "0" + hours : hours;
+    let minutesS = (minutes < 10) ? "0" + minutes : minutes;
+    let secondsS = (seconds < 10) ? "0" + seconds : seconds;
+
+    return hoursS + ":" + minutesS + ":" + secondsS + "." + milliseconds;
+}
+
+app.get("/whosOnline", (req, res) => {
+    let users: any = { active: {}, inactive: {} };
+    const now = Date.now();
+
+    for (const user in timeMap) {
+        const time = timeMap[user];
+        const key = ((now - time) / 1000) < (60 * 5) ? "active" : "inactive";
+        users[key][user] = `Last active ${msToTime(now - time)} ago`;
+    }
+
+    res.send(users);
+});
 app.get("/thumbnail/:filename", (req, res) => {
     let filename = req.params.filename;
     let noExt = filename.substring(0, filename.length - ".png".length);
-    let pagenumber = parseInt(noExt[noExt.length - 1]);
+    let pagenumber = parseInt(noExt.split('-')[1]);
     fs.exists(uploadDir + filename, (exists: boolean) => {
         console.log(`${uploadDir + filename} ${exists ? "exists" : "does not exist"}`);
         if (exists) {
@@ -163,13 +193,14 @@ app.get("/thumbnail/:filename", (req, res) => {
             probe(input, (err: any, result: any) => {
                 if (err) {
                     console.log(err);
+                    console.log(`error on ${filename}`);
                     return;
                 }
                 res.send({ path: "/files/" + filename, width: result.width, height: result.height });
             });
         }
         else {
-            LoadPage(uploadDir + filename.substring(0, filename.length - "-n.png".length) + ".pdf", pagenumber, res);
+            LoadPage(uploadDir + filename.substring(0, filename.length - noExt.split('-')[1].length - ".PNG".length - 1) + ".pdf", pagenumber, res);
         }
     });
 });
@@ -256,6 +287,20 @@ addSecureRoute(
     RouteStore.getCurrUser
 );
 
+addSecureRoute(Method.GET, (user, res, req) => {
+    let requested = req.params.requestedservice;
+    switch (requested) {
+        case "face":
+            res.send(process.env.FACE);
+            break;
+        case "vision":
+            res.send(process.env.VISION);
+            break;
+        default:
+            res.send(undefined);
+    }
+}, undefined, `${RouteStore.cognitiveServices}/:requestedservice`);
+
 class NodeCanvasFactory {
     create = (width: number, height: number) => {
         var canvas = createCanvas(width, height);
@@ -315,38 +360,6 @@ app.post(
                         element.resizer = element.resizer.jpeg();
                     });
                     isImage = true;
-                }
-                else if (pdfTypes.includes(ext)) {
-                    // Pdfjs.getDocument(uploadDir + file).promise
-                    //     .then((pdf: Pdfjs.PDFDocumentProxy) => {
-                    //         let numPages = pdf.numPages;
-                    //         let factory = new NodeCanvasFactory();
-                    //         for (let pageNum = 0; pageNum < numPages; pageNum++) {
-                    //             console.log(pageNum);
-                    //             pdf.getPage(pageNum + 1).then((page: Pdfjs.PDFPageProxy) => {
-                    //                 console.log("reading " + pageNum);
-                    //                 let viewport = page.getViewport(1);
-                    //                 let canvasAndContext = factory.create(viewport.width, viewport.height);
-                    //                 let renderContext = {
-                    //                     canvasContext: canvasAndContext.context,
-                    //                     viewport: viewport,
-                    //                     canvasFactory: factory
-                    //                 }
-                    //                 console.log("read " + pageNum);
-
-                    //                 page.render(renderContext).promise
-                    //                     .then(() => {
-                    //                         console.log("saving " + pageNum);
-                    //                         let stream = canvasAndContext.canvas.createPNGStream();
-                    //                         let out = fs.createWriteStream(uploadDir + file.substring(0, file.length - ext.length) + `-${pageNum + 1}.PNG`);
-                    //                         stream.pipe(out);
-                    //                         out.on("finish", () => console.log(`Success! Saved to ${uploadDir + file.substring(0, file.length - ext.length) + `-${pageNum + 1}.PNG`}`));
-                    //                     }, (reason: string) => {
-                    //                         console.error(reason + ` ${pageNum}`);
-                    //                     });
-                    //             });
-                    //         }
-                    //     });
                 }
                 if (isImage) {
                     resizers.forEach(resizer => {
@@ -421,7 +434,7 @@ app.get(RouteStore.reset, getReset);
 app.post(RouteStore.reset, postReset);
 
 app.use(RouteStore.corsProxy, (req, res) =>
-    req.pipe(request(req.url.substring(1))).pipe(res));
+    req.pipe(request(decodeURIComponent(req.url.substring(1)))).pipe(res));
 
 app.get(RouteStore.delete, (req, res) => {
     if (release) {
@@ -453,12 +466,21 @@ interface Map {
 }
 let clients: Map = {};
 
+let socketMap = new Map<SocketIO.Socket, string>();
+let timeMap: { [id: string]: number } = {};
+
 server.on("connection", function (socket: Socket) {
-    console.log("a user has connected");
+    socket.use((packet, next) => {
+        let id = socketMap.get(socket);
+        if (id) {
+            timeMap[id] = Date.now();
+        }
+        next();
+    });
 
     Utils.Emit(socket, MessageStore.Foo, "handshooken");
 
-    Utils.AddServerHandler(socket, MessageStore.Bar, barReceived);
+    Utils.AddServerHandler(socket, MessageStore.Bar, guid => barReceived(socket, guid));
     Utils.AddServerHandler(socket, MessageStore.SetField, (args) => setField(socket, args));
     Utils.AddServerHandlerCallback(socket, MessageStore.GetField, getField);
     Utils.AddServerHandlerCallback(socket, MessageStore.GetFields, getFields);
@@ -488,8 +510,10 @@ async function deleteAll() {
     await Search.Instance.clear();
 }
 
-function barReceived(guid: String) {
-    clients[guid.toString()] = new Client(guid.toString());
+function barReceived(socket: SocketIO.Socket, guid: string) {
+    clients[guid] = new Client(guid.toString());
+    console.log(`User ${guid} has connected`);
+    socketMap.set(socket, guid);
 }
 
 function getField([id, callback]: [string, (result?: Transferable) => void]) {

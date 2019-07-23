@@ -8,7 +8,7 @@ import { FieldViewProps, FieldView } from "../../views/nodes/FieldView";
 import Measure, { ContentRect } from "react-measure";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faArrowUp, faTag, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { faTag, faPlus, faCloudUploadAlt } from '@fortawesome/free-solid-svg-icons';
 import { Docs, DocumentOptions } from "../../documents/Documents";
 import { observer } from "mobx-react";
 import ImportMetadataEntry, { keyPlaceholder, valuePlaceholder } from "./ImportMetadataEntry";
@@ -40,7 +40,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
 
     constructor(props: FieldViewProps) {
         super(props);
-        library.add(faArrowUp, faTag, faPlus);
+        library.add(faTag, faPlus);
         let doc = this.props.Document;
         this.editingMetadata = this.editingMetadata || false;
         this.persistent = this.persistent || false;
@@ -98,12 +98,12 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
 
             runInAction(() => this.remaining++);
 
-            let prom = fetch(DocServer.prepend(RouteStore.upload), {
+            let prom = fetch(Utils.prepend(RouteStore.upload), {
                 method: 'POST',
                 body: formData
             }).then(async (res: Response) => {
                 (await res.json()).map(action((file: any) => {
-                    let docPromise = Docs.getDocumentFromType(type, DocServer.prepend(file), { nativeWidth: 300, width: 300, title: dropFileName });
+                    let docPromise = Docs.Get.DocumentFromType(type, Utils.prepend(file), { nativeWidth: 300, width: 300, title: dropFileName });
                     docPromise.then(doc => {
                         doc && docs.push(doc) && runInAction(() => this.remaining--);
                     });
@@ -136,7 +136,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
         };
         let parent = this.props.ContainingCollectionView;
         if (parent) {
-            let importContainer = Docs.StackingDocument(docs, options);
+            let importContainer = Docs.Create.StackingDocument(docs, options);
             importContainer.singleColumn = false;
             Doc.AddDocToList(Doc.GetProto(parent.props.Document), "data", importContainer);
             !this.persistent && this.props.removeDocument && this.props.removeDocument(doc);
@@ -237,12 +237,12 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                             }} />
                             <div style={{
                                 position: "absolute",
-                                left: this.left + 12.6,
-                                top: this.top + 11,
+                                left: this.left + 8,
+                                top: this.top + 10,
                                 opacity: uploading ? 0 : 1,
                                 transition: "0.4s opacity ease"
                             }}>
-                                <FontAwesomeIcon icon={faArrowUp} color="#FFFFFF" size={"2x"} />
+                                <FontAwesomeIcon icon={faCloudUploadAlt} color="#FFFFFF" size={"2x"} />
                             </div>
                             <img
                                 style={{
@@ -318,7 +318,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                                 opacity: uploading ? 0 : 1,
                                 transition: "0.4s opacity ease"
                             }}
-                            icon={isEditing ? faArrowUp : faTag}
+                            icon={isEditing ? faCloudUploadAlt : faTag}
                             color="#FFFFFF"
                             size={"1x"}
                         />

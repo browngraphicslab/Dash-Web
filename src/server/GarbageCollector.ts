@@ -59,7 +59,9 @@ function addDoc(doc: any, ids: string[], files: { [name: string]: string[] }) {
     }
 }
 
-async function GarbageCollect() {
+async function GarbageCollect(full: boolean = true) {
+    console.log("start GC");
+    const start = Date.now();
     // await new Promise(res => setTimeout(res, 3000));
     const cursor = await Database.Instance.query({}, { userDocumentId: 1 }, 'users');
     const users = await cursor.toArray();
@@ -68,7 +70,7 @@ async function GarbageCollect() {
     const files: { [name: string]: string[] } = {};
 
     while (ids.length) {
-        const count = Math.min(ids.length, 100);
+        const count = Math.min(ids.length, 1000);
         const index = ids.length - count;
         const fetchIds = ids.splice(index, count).filter(id => !visited.has(id));
         if (!fetchIds.length) {
@@ -91,34 +93,58 @@ async function GarbageCollect() {
 
     cursor.close();
 
-    const toDeleteCursor = await Database.Instance.query({ _id: { $nin: Array.from(visited) } }, { _id: 1 });
+    const notToDelete = Array.from(visited);
+    const toDeleteCursor = await Database.Instance.query({ _id: { $nin: notToDelete } }, { _id: 1 });
     const toDelete: string[] = (await toDeleteCursor.toArray()).map(doc => doc._id);
     toDeleteCursor.close();
-    const result = await Database.Instance.delete({ _id: { $in: toDelete } }, "newDocuments");
-    console.log(`${result.deletedCount} documents deleted`);
+    if (!full) {
+        await Database.Instance.updateMany({ _id: { $nin: notToDelete } }, { $set: { "deleted": true } });
+        await Database.Instance.updateMany({ _id: { $in: notToDelete } }, { $unset: { "deleted": true } });
+        console.log(await Search.Instance.updateDocuments(
+            notToDelete.map<any>(id => ({
+                id, deleted: { set: null }
+            }))
+                .concat(toDelete.map(id => ({
+                    id, deleted: { set: true }
+                })))));
+        console.log("Done with partial GC");
+        console.log(`Took ${(Date.now() - start) / 1000} seconds`);
+    } else {
+        let i = 0;
+        let deleted = 0;
+        while (i < toDelete.length) {
+            const count = Math.min(toDelete.length, 5000);
+            const toDeleteDocs = toDelete.slice(i, i + count);
+            i += count;
+            const result = await Database.Instance.delete({ _id: { $in: toDeleteDocs } }, "newDocuments");
+            deleted += result.deletedCount || 0;
+        }
+        // const result = await Database.Instance.delete({ _id: { $in: toDelete } }, "newDocuments");
+        console.log(`${deleted} documents deleted`);
 
-    await Search.Instance.deleteDocuments(toDelete);
-    console.log("Cleared search documents");
+        await Search.Instance.deleteDocuments(toDelete);
+        console.log("Cleared search documents");
 
-    const folder = "./src/server/public/files/";
-    fs.readdir(folder, (_, fileList) => {
-        const filesToDelete = fileList.filter(file => {
-            const ext = path.extname(file);
-            let base = path.basename(file, ext);
-            const existsInDb = (base in files || (base = base.substring(0, base.length - 2)) in files) && files[base].includes(ext);
-            return file !== ".gitignore" && !existsInDb;
+        const folder = "./src/server/public/files/";
+        fs.readdir(folder, (_, fileList) => {
+            const filesToDelete = fileList.filter(file => {
+                const ext = path.extname(file);
+                let base = path.basename(file, ext);
+                const existsInDb = (base in files || (base = base.substring(0, base.length - 2)) in files) && files[base].includes(ext);
+                return file !== ".gitignore" && !existsInDb;
+            });
+            console.log(`Deleting ${filesToDelete.length} files`);
+            filesToDelete.forEach(file => {
+                console.log(`Deleting file ${file}`);
+                try {
+                    fs.unlinkSync(folder + file);
+                } catch {
+                    console.warn(`Couldn't delete file ${file}`);
+                }
+            });
+            console.log(`Deleted ${filesToDelete.length} files`);
         });
-        console.log(`Deleting ${filesToDelete.length} files`);
-        filesToDelete.forEach(file => {
-            console.log(`Deleting file ${file}`);
-            try {
-                fs.unlinkSync(folder + file);
-            } catch {
-                console.warn(`Couldn't delete file ${file}`);
-            }
-        });
-        console.log(`Deleted ${filesToDelete.length} files`);
-    });
+    }
 }
 
-GarbageCollect();
+GarbageCollect(false);

@@ -215,12 +215,13 @@ export const marks: { [index: string]: MarkSpec } = {
     link: {
         attrs: {
             href: {},
+            location: { default: null },
             title: { default: null }
         },
         inclusive: false,
         parseDOM: [{
             tag: "a[href]", getAttrs(dom: any) {
-                return { href: dom.getAttribute("href"), title: dom.getAttribute("title") };
+                return { href: dom.getAttribute("href"), location: dom.getAttribute("location"), title: dom.getAttribute("title") };
             }
         }],
         toDOM(node: any) { return ["a", node.attrs, 0]; }
@@ -406,6 +407,20 @@ export const marks: { [index: string]: MarkSpec } = {
         parseDOM: [{ style: 'font-size: 16px;' }],
         toDOM: () => ['span', {
             style: 'font-size: 16px;'
+        }]
+    },
+
+    p18: {
+        parseDOM: [{ style: 'font-size: 18px;' }],
+        toDOM: () => ['span', {
+            style: 'font-size: 18px;'
+        }]
+    },
+
+    p20: {
+        parseDOM: [{ style: 'font-size: 20px;' }],
+        toDOM: () => ['span', {
+            style: 'font-size: 20px;'
         }]
     },
 

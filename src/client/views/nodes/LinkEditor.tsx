@@ -22,11 +22,9 @@ interface GroupTypesDropdownProps {
 // this dropdown could be generalized
 @observer
 class GroupTypesDropdown extends React.Component<GroupTypesDropdownProps> {
-    @observable private _searchTerm: string = "";
+    @observable private _searchTerm: string = this.props.groupType;
     @observable private _groupType: string = this.props.groupType;
-
-    @action setSearchTerm = (value: string): void => { this._searchTerm = value; };
-    @action setGroupType = (value: string): void => { this._groupType = value; };
+    @observable private _isEditing: boolean = false;
 
     @action
     createGroup = (groupType: string): void => {
@@ -34,9 +32,52 @@ class GroupTypesDropdown extends React.Component<GroupTypesDropdownProps> {
         LinkManager.Instance.addGroupType(groupType);
     }
 
+    @action
     onChange = (val: string): void => {
-        this.setSearchTerm(val);
-        this.setGroupType(val);
+        this._searchTerm = val;
+        this._groupType = val;
+        this._isEditing = true;
+    }
+
+    @action
+    onKeyDown = (e: React.KeyboardEvent): void => {
+        if (e.key === "Enter") {
+            let allGroupTypes = Array.from(LinkManager.Instance.getAllGroupTypes());
+            let groupOptions = allGroupTypes.filter(groupType => groupType.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
+            let exactFound = groupOptions.findIndex(groupType => groupType.toUpperCase() === this._searchTerm.toUpperCase());
+
+            if (exactFound > -1) {
+                let groupType = groupOptions[exactFound];
+                this.props.setGroupType(groupType);
+                this._groupType = groupType;
+            } else {
+                this.createGroup(this._searchTerm);
+                this._groupType = this._searchTerm;
+            }
+
+            this._searchTerm = this._groupType;
+            this._isEditing = false;
+        }
+    }
+
+    @action
+    onOptionClick = (value: string, createNew: boolean): void => {
+        if (createNew) {
+            this.createGroup(this._searchTerm);
+            this._groupType = this._searchTerm;
+
+        } else {
+            this.props.setGroupType(value);
+            this._groupType = value;
+
+        }
+        this._searchTerm = this._groupType;
+        this._isEditing = false;
+    }
+
+    @action
+    onButtonPointerDown = (): void => {
+        this._isEditing = true;
     }
 
     renderOptions = (): JSX.Element[] | JSX.Element => {
@@ -47,29 +88,35 @@ class GroupTypesDropdown extends React.Component<GroupTypesDropdownProps> {
         let exactFound = groupOptions.findIndex(groupType => groupType.toUpperCase() === this._searchTerm.toUpperCase()) > -1;
 
         let options = groupOptions.map(groupType => {
-            return <div key={groupType} className="linkEditor-option"
-                onClick={() => { this.props.setGroupType(groupType); this.setGroupType(groupType); this.setSearchTerm(""); }}>{groupType}</div>;
+            let ref = React.createRef<HTMLDivElement>();
+            return <div key={groupType} ref={ref} className="linkEditor-option"
+                onClick={() => this.onOptionClick(groupType, false)}>{groupType}</div>;
         });
 
         // if search term does not already exist as a group type, give option to create new group type
         if (!exactFound && this._searchTerm !== "") {
-            options.push(<div key={""} className="linkEditor-option"
-                onClick={() => { this.createGroup(this._searchTerm); this.setGroupType(this._searchTerm); this.setSearchTerm(""); }}>Define new "{this._searchTerm}" relationship</div>);
+            let ref = React.createRef<HTMLDivElement>();
+            options.push(<div key={""} ref={ref} className="linkEditor-option"
+                onClick={() => this.onOptionClick(this._searchTerm, true)}>Define new "{this._searchTerm}" relationship</div>);
         }
 
         return options;
     }
 
     render() {
-        return (
-            <div className="linkEditor-dropdown">
-                <input type="text" value={this._groupType} placeholder="Search for or create a new group"
-                    onChange={e => this.onChange(e.target.value)}></input>
-                <div className="linkEditor-options-wrapper">
-                    {this.renderOptions()}
-                </div>
-            </div >
-        );
+        if (this._isEditing || this._groupType === "") {
+            return (
+                <div className="linkEditor-dropdown">
+                    <input type="text" value={this._groupType} placeholder="Search for or create a new group"
+                        onChange={e => this.onChange(e.target.value)} onKeyDown={this.onKeyDown} autoFocus></input>
+                    <div className="linkEditor-options-wrapper">
+                        {this.renderOptions()}
+                    </div>
+                </div >
+            );
+        } else {
+            return <button className="linkEditor-typeButton" onClick={() => this.onButtonPointerDown()}>{this._groupType}</button>;
+        }
     }
 }
 
@@ -200,7 +247,9 @@ export class LinkGroupEditor extends React.Component<LinkGroupEditorProps> {
         destGroupDoc.type = groupType;
         destGroupDoc.metadata = destMdDoc;
 
-        LinkManager.Instance.addGroupToAnchor(this.props.linkDoc, destDoc, destGroupDoc, true);
+        if (destDoc) {
+            LinkManager.Instance.addGroupToAnchor(this.props.linkDoc, destDoc, destGroupDoc, true);
+        }
     }
 
     @action
@@ -242,7 +291,7 @@ export class LinkGroupEditor extends React.Component<LinkGroupEditorProps> {
         if (index > -1) keys.splice(index, 1);
         let cols = ["anchor1", "anchor2", ...[...keys]];
         let docs: Doc[] = LinkManager.Instance.getAllMetadataDocsInGroup(groupType);
-        let createTable = action(() => Docs.SchemaDocument(cols, docs, { width: 500, height: 300, title: groupType + " table" }));
+        let createTable = action(() => Docs.Create.SchemaDocument(cols, docs, { width: 500, height: 300, title: groupType + " table" }));
         let ref = React.createRef<HTMLDivElement>();
         return <div ref={ref}><button className="linkEditor-button" onPointerDown={SetupDrag(ref, createTable)} title="Drag to view relationship table"><FontAwesomeIcon icon="table" size="sm" /></button></div>;
     }
@@ -274,7 +323,7 @@ export class LinkGroupEditor extends React.Component<LinkGroupEditorProps> {
         }
         return (
             <div className="linkEditor-group">
-                <div className="linkEditor-group-row">
+                <div className="linkEditor-group-row ">
                     <p className="linkEditor-group-row-label">type:</p>
                     <GroupTypesDropdown groupType={groupType} setGroupType={this.setGroupType} />
                 </div>
@@ -308,7 +357,10 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         // create new metadata document for group
         let mdDoc = new Doc();
         mdDoc.anchor1 = this.props.sourceDoc.title;
-        mdDoc.anchor2 = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc).title;
+        let opp = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
+        if (opp) {
+            mdDoc.anchor2 = opp.title;
+        }
 
         // create new group document
         let groupDoc = new Doc();
@@ -326,20 +378,22 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
             return <LinkGroupEditor key={"gred-" + StrCast(groupDoc.type)} linkDoc={this.props.linkDoc} sourceDoc={this.props.sourceDoc} groupDoc={groupDoc} />;
         });
 
-        return (
-            <div className="linkEditor">
-                <button className="linkEditor-back" onPointerDown={() => this.props.showLinks()}><FontAwesomeIcon icon="arrow-left" size="sm" /></button>
-                <div className="linkEditor-info">
-                    <p className="linkEditor-linkedTo">editing link to: <b>{destination.proto!.title}</b></p>
-                    <button className="linkEditor-button" onPointerDown={() => this.deleteLink()} title="Delete link"><FontAwesomeIcon icon="trash" size="sm" /></button>
+        if (destination) {
+            return (
+                <div className="linkEditor">
+                    <button className="linkEditor-back" onPointerDown={() => this.props.showLinks()}><FontAwesomeIcon icon="arrow-left" size="sm" /></button>
+                    <div className="linkEditor-info">
+                        <p className="linkEditor-linkedTo">editing link to: <b>{destination.proto!.title}</b></p>
+                        <button className="linkEditor-button" onPointerDown={() => this.deleteLink()} title="Delete link"><FontAwesomeIcon icon="trash" size="sm" /></button>
+                    </div>
+                    <div className="linkEditor-groupsLabel">
+                        <b>Relationships:</b>
+                        <button className="linkEditor-button" onClick={() => this.addGroup()} title=" Add Group"><FontAwesomeIcon icon="plus" size="sm" /></button>
+                    </div>
+                    {groups.length > 0 ? groups : <div className="linkEditor-group">There are currently no relationships associated with this link.</div>}
                 </div>
-                <div className="linkEditor-groupsLabel">
-                    <b>Relationships:</b>
-                    <button className="linkEditor-button" onClick={() => this.addGroup()} title=" Add Group"><FontAwesomeIcon icon="plus" size="sm" /></button>
-                </div>
-                {groups.length > 0 ? groups : <div className="linkEditor-group">There are currently no relationships associated with this link.</div>}
-            </div>
 
-        );
+            );
+        }
     }
 }
