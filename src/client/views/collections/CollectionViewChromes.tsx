@@ -109,7 +109,7 @@ export class CollectionStackingViewChrome extends React.Component<CollectionView
         return true;
     }
 
-    @action resetValue = () => { this._currentKey = this.sectionFilter; }
+    @action resetValue = () => { this._currentKey = this.sectionFilter; };
 
     render() {
         return (
