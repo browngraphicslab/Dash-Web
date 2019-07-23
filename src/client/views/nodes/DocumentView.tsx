@@ -503,7 +503,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     @action
     freezeNativeDimensions = (): void => {
-        let proto = Doc.GetProto(this.props.Document);
+        let proto = this.props.Document.isTemplate ? this.props.Document : Doc.GetProto(this.props.Document);
         if (proto.ignoreAspect === undefined && !proto.nativeWidth) {
             proto.nativeWidth = this.props.PanelWidth();
             proto.nativeHeight = this.props.PanelHeight();
@@ -629,10 +629,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         var nativeWidth = this.nativeWidth > 0 ? `${this.nativeWidth}px` : "100%";
         var nativeHeight = BoolCast(this.props.Document.ignoreAspect) ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
         let showOverlays = this.props.showOverlays ? this.props.showOverlays(this.props.Document) : undefined;
-        let showTitle = showOverlays && showOverlays.title ? showOverlays.title : StrCast(this.props.Document.showTitle);
-        let showCaption = showOverlays && showOverlays.caption ? showOverlays.caption : StrCast(this.props.Document.showCaption);
+        let showTitle = showOverlays && showOverlays.title !== "undefined" ? showOverlays.title : StrCast(this.props.Document.showTitle);
+        let showCaption = showOverlays && showOverlays.caption !== "undefined" ? showOverlays.caption : StrCast(this.props.Document.showCaption);
         let templates = Cast(this.props.Document.templates, listSpec("string"));
-        if (templates instanceof List) {
+        if (!showOverlays && templates instanceof List) {
             templates.map(str => {
                 if (str.indexOf("{props.Document.title}") !== -1) showTitle = "title";
                 if (str.indexOf("fieldKey={\"caption\"}") !== -1) showCaption = "caption";
@@ -663,12 +663,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 {!showTitle && !showCaption ? this.contents :
                     <div style={{ position: "absolute", display: "inline-block", width: "100%", height: "100%", pointerEvents: "none" }}>
 
-                        <div style={{ width: "100%", height: showTextTitle ? "calc(100% - 25px)" : "100%", display: "inline-block", position: "absolute", top: showTextTitle ? "25px" : undefined }}>
+                        <div style={{ width: "100%", height: showTextTitle ? "calc(100% - 33px)" : "100%", display: "inline-block", position: "absolute", top: showTextTitle ? "29px" : undefined }}>
                             {this.contents}
                         </div>
                         {!showTitle ? (null) :
                             <div style={{
-                                position: showTextTitle ? "relative" : "absolute", top: 0, textAlign: "center", textOverflow: "ellipsis", whiteSpace: "pre",
+                                position: showTextTitle ? "relative" : "absolute", top: 0, padding: "4px", textAlign: "center", textOverflow: "ellipsis", whiteSpace: "pre",
                                 pointerEvents: "all",
                                 overflow: "hidden", width: `${100 * this.props.ContentScaling()}%`, height: 25, background: "rgba(0, 0, 0, .4)", color: "white",
                                 transformOrigin: "top left", transform: `scale(${1 / this.props.ContentScaling()})`
@@ -677,8 +677,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                                     contents={this.props.Document[showTitle]}
                                     display={"block"}
                                     height={72}
-                                    GetValue={() => StrCast(this.props.Document[showTitle])}
-                                    SetValue={(value: string) => (Doc.GetProto(this.props.Document)[showTitle] = value) ? true : true}
+                                    fontSize={12}
+                                    GetValue={() => StrCast(this.props.Document[showTitle!])}
+                                    SetValue={(value: string) => (Doc.GetProto(this.props.Document)[showTitle!] = value) ? true : true}
                                 />
                             </div>
                         }

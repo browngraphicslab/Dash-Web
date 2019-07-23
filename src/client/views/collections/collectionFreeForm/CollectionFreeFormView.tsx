@@ -195,10 +195,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     this._pheight / this.zoomScaling());
                 let panelwidth = panelDim[0];
                 let panelheight = panelDim[1];
-                if (ranges[0][0] - dx > (this.panX() + panelwidth / 2)) x = ranges[0][1] + panelwidth / 2;
-                if (ranges[0][1] - dx < (this.panX() - panelwidth / 2)) x = ranges[0][0] - panelwidth / 2;
-                if (ranges[1][0] - dy > (this.panY() + panelheight / 2)) y = ranges[1][1] + panelheight / 2;
-                if (ranges[1][1] - dy < (this.panY() - panelheight / 2)) y = ranges[1][0] - panelheight / 2;
+                // if (ranges[0][0] - dx > (this.panX() + panelwidth / 2)) x = ranges[0][1] + panelwidth / 2;
+                // if (ranges[0][1] - dx < (this.panX() - panelwidth / 2)) x = ranges[0][0] - panelwidth / 2;
+                // if (ranges[1][0] - dy > (this.panY() + panelheight / 2)) y = ranges[1][1] + panelheight / 2;
+                // if (ranges[1][1] - dy < (this.panY() - panelheight / 2)) y = ranges[1][0] - panelheight / 2;
             }
             this.setPan(x - dx, y - dy);
             this._lastX = e.pageX;
@@ -358,6 +358,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     getChildDocumentViewProps(childDocLayout: Doc): DocumentViewProps {
         let self = this;
         let resolvedDataDoc = !this.props.Document.isTemplate && this.props.DataDoc !== this.props.Document ? this.props.DataDoc : undefined;
+        resolvedDataDoc && Doc.UpdateDocumentExtensionForField(resolvedDataDoc, this.props.fieldKey);
         let layoutDoc = Doc.expandTemplateLayout(childDocLayout, resolvedDataDoc);
         return {
             DataDoc: resolvedDataDoc !== layoutDoc && resolvedDataDoc ? resolvedDataDoc : undefined,

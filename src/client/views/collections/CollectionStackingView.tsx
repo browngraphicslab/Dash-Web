@@ -5,7 +5,7 @@ import { observer } from "mobx-react";
 import { Doc, HeightSym, WidthSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { BoolCast, NumCast, Cast, StrCast } from "../../../new_fields/Types";
-import { emptyFunction, Utils } from "../../../Utils";
+import { emptyFunction, Utils, returnTrue } from "../../../Utils";
 import { CollectionSchemaPreview } from "./CollectionSchemaView";
 import "./CollectionStackingView.scss";
 import { CollectionSubView } from "./CollectionSubView";
@@ -74,6 +74,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             DataDocument={resolvedDataDoc}
             showOverlays={this.overlays}
             renderDepth={this.props.renderDepth}
+            fitToBox={true}
             width={width}
             height={height}
             getTransform={finalDxf}
