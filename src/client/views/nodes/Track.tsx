@@ -8,10 +8,13 @@ import { FieldValue, Cast, NumCast, BoolCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { Keyframe, KeyframeFunc, RegionData } from "./Keyframe";
 import { FlyoutProps } from "./Timeline";
+import { CollectionView } from "../collections/CollectionView";
+import { Transform } from "../../util/Transform";
 
 interface IProps {
     node: Doc;
     currentBarX: number;
+    transform: Transform; 
     changeCurrentBarX: (x:number) => void;
     setFlyout: (props:FlyoutProps) => any; 
 }
@@ -215,7 +218,6 @@ export class Track extends React.Component<IProps> {
         let mainNode = new Doc(); 
         const dif_time = NumCast(kf2.time) - NumCast(kf1.time);
         const ratio = (this.props.currentBarX - NumCast(kf1.time)) / dif_time; //linear 
-
         let keys = []; 
         if (this.filterKeys(Doc.allKeys(node1)).length === Math.max(this.filterKeys(Doc.allKeys(node1)).length, this.filterKeys(Doc.allKeys(node2)).length )){
             keys = this.filterKeys(Doc.allKeys(node1)); 
@@ -254,8 +256,7 @@ export class Track extends React.Component<IProps> {
     @action
     onInnerDoubleClick = (e: React.MouseEvent) => {
         let inner = this._inner.current!;
-        let left = inner.getBoundingClientRect().left;
-        let offsetX = Math.round(e.clientX - left);
+        let offsetX = Math.round((e.clientX - inner.getBoundingClientRect().left) * this.props.transform.Scale);
         let regiondata = KeyframeFunc.defaultKeyframe();
         regiondata.position = offsetX; 
         let leftRegion = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.left, regiondata, this.regions); 
@@ -275,7 +276,7 @@ export class Track extends React.Component<IProps> {
                 <div className="track">
                     <div className="inner" ref={this._inner} onDoubleClick={this.onInnerDoubleClick}>
                         {DocListCast(this.regions).map((region) => {
-                            return <Keyframe node={this.props.node} RegionData={region} changeCurrentBarX={this.props.changeCurrentBarX} setFlyout={this.props.setFlyout}/>;
+                            return <Keyframe node={this.props.node} RegionData={region} changeCurrentBarX={this.props.changeCurrentBarX} setFlyout={this.props.setFlyout} transform={this.props.transform}/>;
                         })}
                     </div>
                 </div>

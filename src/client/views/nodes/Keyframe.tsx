@@ -13,6 +13,7 @@ import { FlyoutProps } from "./Timeline";
 import { number } from "prop-types";
 import { CollectionSchemaView, CollectionSchemaPreview } from "../collections/CollectionSchemaView";
 import { faDiceOne, faFirstAid } from "@fortawesome/free-solid-svg-icons";
+import { Transform } from "../../util/Transform";
 
 export namespace KeyframeFunc {
     export enum KeyframeType {
@@ -70,6 +71,7 @@ interface IProps {
     RegionData: Doc;
     changeCurrentBarX: (x: number) => void;
     setFlyout: (props: FlyoutProps) => any;
+    transform: Transform; 
 }
 
 @observer
@@ -300,7 +302,7 @@ export class Keyframe extends React.Component<IProps> {
         e.preventDefault();
         e.stopPropagation();
         let bar = this._bar.current!;
-        let offset = e.clientX - bar.getBoundingClientRect().left;
+        let offset = Math.round((e.clientX - bar.getBoundingClientRect().left) * this.props.transform.Scale);
         if (offset > this.regiondata.fadeIn && offset < this.regiondata.duration - this.regiondata.fadeOut) { //make sure keyframe is not created inbetween fades and ends
             let position = NumCast(this.regiondata.position);
             this.makeKeyData(Math.round(position + offset));
