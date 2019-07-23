@@ -67,8 +67,15 @@ export function DocListCast(field: FieldResult): Doc[] {
 export const WidthSym = Symbol("Width");
 export const HeightSym = Symbol("Height");
 
+function fetchProto(doc: Doc) {
+    const proto = doc.proto;
+    if (proto instanceof Promise) {
+        return proto;
+    }
+}
+
 @scriptingGlobal
-@Deserializable("doc").withFields(["id"])
+@Deserializable("doc", fetchProto).withFields(["id"])
 export class Doc extends RefField {
     constructor(id?: FieldId, forceSave?: boolean) {
         super(id);
@@ -133,14 +140,14 @@ export class Doc extends RefField {
         return "invalid";
     }
 
-    public [HandleUpdate](diff: any) {
+    public async [HandleUpdate](diff: any) {
         const set = diff.$set;
         if (set) {
             for (const key in set) {
                 if (!key.startsWith("fields.")) {
                     continue;
                 }
-                const value = SerializationHelper.Deserialize(set[key]);
+                const value = await SerializationHelper.Deserialize(set[key]);
                 const fKey = key.substring(7);
                 this[fKey] = value;
             }
