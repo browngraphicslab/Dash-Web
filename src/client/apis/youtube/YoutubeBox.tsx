@@ -16,6 +16,16 @@ import { Doc, DocListCastAsync } from "../../../new_fields/Doc";
 import { listSpec } from "../../../new_fields/Schema";
 import { List } from "../../../new_fields/List";
 
+interface VideoTemplate {
+    thumbnailUrl: string;
+    videoTitle: string;
+    videoId: string;
+    duration: string;
+    channelTitle: string;
+    viewCount: string;
+    publishDate: string;
+    videoDescription: string;
+}
 
 @observer
 export class YoutubeBox extends React.Component<FieldViewProps> {
@@ -28,58 +38,71 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
     @observable lisOfBackUp: JSX.Element[] = [];
     @observable videoIds: string | undefined;
     @observable videoDetails: any[] = [];
+    @observable curVideoTemplates: VideoTemplate[] = [];
 
 
     public static LayoutString() { return FieldView.LayoutString(YoutubeBox); }
 
     async componentWillMount() {
         //DocServer.getYoutubeChannels();
-        //DocServer.getYoutubeVideoDetails("Ks-_Mh1QhMc, 1NmvhSmN2uM", (results: any[]) => console.log("Details results: ", results));
-        let castedBackUpDocs = Cast(this.props.Document.cachedSearch, listSpec(Doc));
         let castedSearchBackUp = Cast(this.props.Document.cachedSearchResults, Doc);
         let awaitedBackUp = await castedSearchBackUp;
-
-        console.log("Backup results: ", awaitedBackUp);
-        console.log("Original Backup results: ", castedBackUpDocs);
-
-        let json = Cast(awaitedBackUp!.json, Doc);
-        let jsonList = await DocListCastAsync(json);
-        console.log("Fucked up list: ", jsonList);
-        for (let video of jsonList!) {
-            let videoId = await Cast(video.id, Doc);
-            let id = StrCast(videoId!.videoId);
-            console.log("ID: ", id);
-        }
+        let castedDetailBackUp = Cast(this.props.Document.cachedDetails, Doc);
+        let awaitedDetails = await castedDetailBackUp;
 
 
 
-        if (!castedBackUpDocs) {
-            this.props.Document.cachedSearch = castedBackUpDocs = new List<Doc>();
-        }
-        if (castedBackUpDocs.length !== 0) {
+        let jsonList = await DocListCastAsync(awaitedBackUp!.json);
+        let jsonDetailList = await DocListCastAsync(awaitedDetails!.json);
 
+        if (jsonList!.length !== 0) {
             runInAction(() => this.searchResultsFound = true);
+            let index = 0;
+            for (let video of jsonList!) {
 
-            for (let videoBackUp of castedBackUpDocs) {
-                let curBackUp = await videoBackUp;
-                let videoId = StrCast(curBackUp.videoId);
-                let videoTitle = StrCast(curBackUp.videoTitle);
-                let thumbnailUrl = StrCast(curBackUp.thumbnailUrl);
-                runInAction(() => this.lisOfBackUp.push((
-                    <li
-                        onClick={() => this.embedVideoOnClick(videoId, videoTitle)}
-                        key={Utils.GenerateGuid()}
-                    >
-                        <img src={thumbnailUrl} />
-                        <span className="videoTitle">{videoTitle}</span>
-                    </li>)
-                ));
+                let videoId = await Cast(video.id, Doc);
+                let id = StrCast(videoId!.videoId);
+                let snippet = await Cast(video.snippet, Doc);
+                let videoTitle = this.filterYoutubeTitleResult(StrCast(snippet!.title));
+                let thumbnail = await Cast(snippet!.thumbnails, Doc);
+                let thumbnailMedium = await Cast(thumbnail!.medium, Doc);
+                let thumbnailUrl = StrCast(thumbnailMedium!.url);
+                let videoDescription = StrCast(snippet!.description);
+                let pusblishDate = (this.roundPublishTime2(StrCast(snippet!.publishedAt)))!;
+                let channelTitle = StrCast(snippet!.channelTitle);
+                let duration: string;
+                let viewCount: string;
+                if (jsonDetailList!.length !== 0) {
+                    let contentDetails = await Cast(jsonDetailList![index].contentDetails, Doc);
+                    let statistics = await Cast(jsonDetailList![index].statistics, Doc);
+                    duration = this.convertIsoTimeToDuration(StrCast(contentDetails!.duration));
+                    viewCount = this.abbreviateViewCount(NumCast(statistics!.viewCount))!;
+                }
+                index = index + 1;
+                let newTemplate: VideoTemplate = { videoId: id, videoTitle: videoTitle, thumbnailUrl: thumbnailUrl, publishDate: pusblishDate, channelTitle: channelTitle, videoDescription: videoDescription, duration: duration!, viewCount: viewCount! };
+                runInAction(() => this.curVideoTemplates.push(newTemplate));
+
+                // runInAction(() => this.lisOfBackUp.push((
+                //     <li onClick={() => this.embedVideoOnClick(id, videoTitle)} key={Utils.GenerateGuid() + id}>
+                //         <div className="search_wrapper">
+                //             <div style={{ backgroundColor: "yellow" }}>
+                //                 <img src={thumbnailUrl} />
+                //                 <span className="video_duration">{duration}</span>
+                //             </div>
+                //             <div className="textual_info">
+                //                 <span className="videoTitle">{videoTitle}</span>
+                //                 <span className="channelName">{channelTitle}</span>
+                //                 <span className="viewCount">{viewCount}</span>
+                //                 <span className="publish_time">{pusblishDate}</span>
+                //                 <p className="video_description">{videoDescription}</p>
+
+                //             </div>
+                //         </div>
+                //     </li>)
+                // ));
+
             }
-
-
         }
-
-
     }
 
     _ignore = 0;
@@ -134,11 +157,10 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
     @action
     processVideoDetails = (videoDetails: any[]) => {
         this.videoDetails = videoDetails;
-        console.log("Detail Res: ", this.videoDetails);
+        this.props.Document.cachedDetails = Docs.Get.DocumentHierarchyFromJson(videoDetails, "detailBackUp");
     }
 
     backUpSearchResults = (videos: any[]) => {
-        console.log("Res: ", videos);
         this.props.Document.cachedSearchResults = Docs.Get.DocumentHierarchyFromJson(videos, "videosBackUp");
         let newCachedList = new List<Doc>();
         this.props.Document.cachedSearch = newCachedList;
@@ -164,7 +186,6 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
         let videoYearDif = curDate.getFullYear() - date.getFullYear();
         let videoMonthDif = curDate.getMonth() - date.getMonth();
         let videoDayDif = curDate.getDay() - date.getDay();
-        console.log("video day dif: ", videoDayDif, " first day: ", curDate.getDay(), " second day: ", date.getDay());
         let videoHoursDif = curDate.getHours() - date.getHours();
         let videoMinutesDif = curDate.getMinutes() - date.getMinutes();
         let videoSecondsDif = curDate.getSeconds() - date.getSeconds();
@@ -182,7 +203,6 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
             return videoSecondsDif + " seconds ago";
         }
 
-        console.log("Date : ", date);
     }
 
     roundPublishTime2 = (publishTime: string) => {
@@ -290,8 +310,26 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
                         </li>;
                     })}
                 </ul>;
-            } else if (this.lisOfBackUp.length !== 0) {
-                return <ul>{this.lisOfBackUp}</ul>;
+            } else if (this.curVideoTemplates.length !== 0) {
+                return <ul>
+                    {this.curVideoTemplates.map((video: VideoTemplate) => {
+                        return <li onClick={() => this.embedVideoOnClick(video.videoId, video.videoTitle)} key={Utils.GenerateGuid()}>
+                            <div className="search_wrapper">
+                                <div style={{ backgroundColor: "yellow" }}>
+                                    <img src={video.thumbnailUrl} />
+                                    <span className="video_duration">{video.duration}</span>
+                                </div>
+                                <div className="textual_info">
+                                    <span className="videoTitle">{video.videoTitle}</span>
+                                    <span className="channelName">{video.channelTitle}</span>
+                                    <span className="viewCount">{video.viewCount}</span>
+                                    <span className="publish_time">{video.publishDate}</span>
+                                    <p className="video_description">{video.videoDescription}</p>
+                                </div>
+                            </div>
+                        </li>;
+                    })}
+                </ul>;
             }
         } else {
             return (null);
@@ -301,7 +339,6 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
     @action
     embedVideoOnClick = (videoId: string, filteredTitle: string) => {
         let embeddedUrl = "https://www.youtube.com/embed/" + videoId;
-        console.log("EmbeddedUrl: ", embeddedUrl);
         this.selectedVideoUrl = embeddedUrl;
         let addFunction = this.props.addDocument!;
         let newVideoX = NumCast(this.props.Document.x);

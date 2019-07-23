@@ -498,7 +498,7 @@ export namespace Docs {
         const convertObject = (object: any, title?: string): Doc => {
             let target = new Doc(), result: Opt<Field>;
             Object.keys(object).map(key => (result = toField(object[key], key)) && (target[key] = result));
-            title && (target.title = title);
+            title && !target.title && (target.title = title);
             return target;
         };
 

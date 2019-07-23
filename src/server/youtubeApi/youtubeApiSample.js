@@ -23,8 +23,6 @@ module.exports.readApiKey = (callback) => {
 
 module.exports.authorizedGetChannel = (apiKey) => {
     //this didnt get called
-    console.log("I get called   ", apiKey);
-    console.log(TOKEN_PATH);
     // Authorize a client with the loaded credentials, then call the YouTube API.
     authorize(JSON.parse(apiKey), getChannel);
 }
@@ -157,7 +155,6 @@ function getSampleVideos(auth, args) {
             return;
         }
         let videos = response.data.items;
-        console.log('Videos found: ' + videos[0].id.videoId, " ", unescape(videos[0].snippet.title));
         args.callBack(videos);
     });
 }
@@ -174,7 +171,6 @@ function getVideoDetails(auth, args) {
             return;
         }
         let videoDetails = response.data.items;
-        console.log('Video Details founds: ', videoDetails);
         args.callBack(videoDetails);
     });
 }
