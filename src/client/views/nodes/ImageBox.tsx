@@ -26,6 +26,7 @@ import { DocServer } from '../../DocServer';
 import { Font } from '@react-pdf/renderer';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { CognitiveServices } from '../../cognitive_services/CognitiveServices';
+import FaceRectangles from './FaceRectangles';
 var requestImageSize = require('../../util/request-image-size');
 var path = require('path');
 const { Howl, Howler } = require('howler');
@@ -379,6 +380,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                         style={{ color: [DocListCast(this.extensionDoc.audioAnnotations).length ? "blue" : "gray", "green", "red"][this._audioState] }} icon={faFileAudio} size="sm" />
                 </div>
                 {/* {this.lightbox(paths)} */}
+                <FaceRectangles document={this.props.Document} color={"#0000FF"} backgroundColor={"#0000FF"} />
             </div>);
     }
 }

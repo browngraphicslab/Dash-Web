@@ -6,6 +6,8 @@ import { List } from "../../new_fields/List";
 import { Docs } from "../documents/Documents";
 import { RouteStore } from "../../server/RouteStore";
 import { Utils } from "../../Utils";
+import { CompileScript } from "../util/Scripting";
+import { ComputedField } from "../../new_fields/ScriptField";
 
 export enum Services {
     ComputerVision = "vision",
@@ -107,12 +109,13 @@ export namespace CognitiveServices {
             let converter = (results: any) => {
                 let tagDoc = new Doc;
                 results.tags.map((tag: Tag) => {
-                    if (tag.confidence >= +threshold) {
-                        tagDoc[tag.name] = tag.confidence;
-                    }
+                    let sanitized = tag.name.replace(" ", "_");
+                    let script = `return (${tag.confidence} >= this.confidence) ? ${tag.confidence} : ${ComputedField.undefined}`;
+                    let computed = CompileScript(script, { params: { this: "Doc" } });
+                    computed.compiled && (tagDoc[sanitized] = new ComputedField(computed));
                 });
                 tagDoc.title = "Generated Tags";
-                tagDoc.confidenceThreshold = threshold.toString();
+                tagDoc.confidence = threshold;
                 return tagDoc;
             };
             analyzeDocument(target, Services.ComputerVision, converter, "generatedTags");
