@@ -74,9 +74,10 @@ class TreeView extends React.Component<TreeViewProps> {
     @observable _collapsed: boolean = true;
 
     @computed get fieldKey() {
-        let keys = Array.from(Object.keys(this.dataDoc));  // bcz: Argh -- make untracked to avoid this rerunning whenever 'libraryBrush' is set
-        if (this.dataDoc.proto instanceof Doc) {
-            let arr = Array.from(Object.keys(this.dataDoc.proto));// bcz: Argh -- make untracked to avoid this rerunning whenever 'libraryBrush' is set
+        let target = this.props.document.layout && this.dataDoc ? this.dataDoc : this.props.document;
+        let keys = Array.from(Object.keys(target));  // bcz: Argh -- make untracked to avoid this rerunning whenever 'libraryBrush' is set
+        if (target.proto instanceof Doc) {
+            let arr = Array.from(Object.keys(target.proto));// bcz: Argh -- make untracked to avoid this rerunning whenever 'libraryBrush' is set
             keys.push(...arr);
             while (keys.indexOf("proto") !== -1) keys.splice(keys.indexOf("proto"), 1);
         }
@@ -191,16 +192,17 @@ class TreeView extends React.Component<TreeViewProps> {
     />)
 
     @computed get keyList() {
-        let keys = Array.from(Object.keys(this.dataDoc));
-        if (this.dataDoc.proto instanceof Doc) {
-            keys.push(...Array.from(Object.keys(this.dataDoc.proto)));
+        let target = this.props.document.layout && this.dataDoc ? this.dataDoc : this.props.document;
+        let keys = Array.from(Object.keys(target));
+        if (target.proto instanceof Doc) {
+            keys.push(...Array.from(Object.keys(target.proto)));
         }
         let keyList: string[] = keys.reduce((l, key) => {
-            let listspec = DocListCast(this.dataDoc[key]);
+            let listspec = DocListCast(target[key]);
             if (listspec && listspec.length) return [...l, key];
             return l;
         }, [] as string[]);
-        keys.map(key => Cast(this.dataDoc[key], Doc) instanceof Doc && (Cast(this.dataDoc[key], Doc) as Doc).type !== undefined && keyList.push(key));
+        keys.map(key => Cast(target[key], Doc) instanceof Doc && keyList.push(key));
         if (LinkManager.Instance.getAllRelatedLinks(this.props.document).length > 0) keyList.push("links");
         if (keyList.indexOf(this.fieldKey) !== -1) {
             keyList.splice(keyList.indexOf(this.fieldKey), 1);
@@ -361,7 +363,7 @@ class TreeView extends React.Component<TreeViewProps> {
         let docList = Cast(this.dataDoc[this._chosenKey], listSpec(Doc));
         let remDoc = (doc: Doc) => this.remove(doc, this._chosenKey);
         let addDoc = (doc: Doc, addBefore?: Doc, before?: boolean) => Doc.AddDocToList(this.dataDoc, this._chosenKey, doc, addBefore, before);
-        let doc = Cast(this.dataDoc[this._chosenKey], Doc);
+        let doc = Cast((this.props.document.layout ? this.dataDoc : this.props.document)[this._chosenKey], Doc);
 
         if (!this._collapsed) {
             if (!this.props.document.embed) {

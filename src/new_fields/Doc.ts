@@ -337,11 +337,15 @@ export namespace Doc {
         return Doc.MakeDelegate(doc); // bcz?
     }
 
-    export function expandTemplateLayout(templateLayoutDoc: Doc, dataDoc?: Doc) {
+    export function WillExpandTemplateLayout(templateLayoutDoc: Doc, dataDoc?: Doc) {
         let resolvedDataDoc = (templateLayoutDoc !== dataDoc) ? dataDoc : undefined;
         if (!dataDoc || !(templateLayoutDoc && !(Cast(templateLayoutDoc.layout, Doc) instanceof Doc) && resolvedDataDoc && resolvedDataDoc !== templateLayoutDoc)) {
-            return templateLayoutDoc;
+            return false;
         }
+        return true;
+    }
+    export function expandTemplateLayout(templateLayoutDoc: Doc, dataDoc?: Doc) {
+        if (!WillExpandTemplateLayout(templateLayoutDoc, dataDoc) || !dataDoc) return templateLayoutDoc;
         // if we have a data doc that doesn't match the layout, then we're rendering a template.
         // ... which means we change the layout to be an expanded view of the template layout.  
         // This allows the view override the template's properties and be referenceable as its own document.
@@ -433,6 +437,7 @@ export namespace Doc {
         layoutDelegate.layout = layout;
 
         fieldTemplate.title = metaKey;
+        fieldTemplate.templateField = metaKey;
         fieldTemplate.layout = layoutDelegate !== fieldTemplate ? layoutDelegate : layout;
         fieldTemplate.backgroundLayout = backgroundLayout;
         fieldTemplate.nativeWidth = nw;
