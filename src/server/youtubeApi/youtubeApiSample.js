@@ -160,6 +160,9 @@ function getVideos(auth, args) {
 }
 
 function getVideoDetails(auth, args) {
+    if (args.videoIds === undefined) {
+        return;
+    }
     let service = google.youtube('v3');
     service.videos.list({
         auth: auth,
