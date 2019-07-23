@@ -81,26 +81,6 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
                 index = index + 1;
                 let newTemplate: VideoTemplate = { videoId: id, videoTitle: videoTitle, thumbnailUrl: thumbnailUrl, publishDate: pusblishDate, channelTitle: channelTitle, videoDescription: videoDescription, duration: duration!, viewCount: viewCount! };
                 runInAction(() => this.curVideoTemplates.push(newTemplate));
-
-                // runInAction(() => this.lisOfBackUp.push((
-                //     <li onClick={() => this.embedVideoOnClick(id, videoTitle)} key={Utils.GenerateGuid() + id}>
-                //         <div className="search_wrapper">
-                //             <div style={{ backgroundColor: "yellow" }}>
-                //                 <img src={thumbnailUrl} />
-                //                 <span className="video_duration">{duration}</span>
-                //             </div>
-                //             <div className="textual_info">
-                //                 <span className="videoTitle">{videoTitle}</span>
-                //                 <span className="channelName">{channelTitle}</span>
-                //                 <span className="viewCount">{viewCount}</span>
-                //                 <span className="publish_time">{pusblishDate}</span>
-                //                 <p className="video_description">{videoDescription}</p>
-
-                //             </div>
-                //         </div>
-                //     </li>)
-                // ));
-
             }
         }
     }
@@ -146,6 +126,7 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
                     this.videoIds = this.videoIds! + ", " + video.id.videoId;
                 }
             });
+            console.log("Video Ids: ", this.videoIds);
             DocServer.getYoutubeVideoDetails(this.videoIds, this.processVideoDetails);
             this.backUpSearchResults(videos);
             if (this.videoClicked) {
@@ -289,8 +270,7 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
                             duration = this.convertIsoTimeToDuration(this.videoDetails[index].contentDetails.duration);
                             viewCount = this.abbreviateViewCount(this.videoDetails[index].statistics.viewCount);
                         }
-                        //this.roundPublishTime(pusblishDate);
-                        //this.roundPublishTime2(video.snippet.publishedAt);
+
 
                         return <li onClick={() => this.embedVideoOnClick(video.id.videoId, filteredTitle)} key={Utils.GenerateGuid()}>
                             <div className="search_wrapper">

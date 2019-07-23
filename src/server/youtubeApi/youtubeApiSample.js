@@ -167,7 +167,7 @@ function getVideoDetails(auth, args) {
         id: args.videoIds
     }, function (err, response) {
         if (err) {
-            console.log('The API returned an error: ' + err);
+            console.log('The API returned an error from details: ' + err);
             return;
         }
         let videoDetails = response.data.items;
