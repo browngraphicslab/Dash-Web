@@ -295,6 +295,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (this._doubleTap && this.props.renderDepth) {
             let fullScreenAlias = Doc.MakeAlias(this.props.Document);
             fullScreenAlias.templates = new List<string>();
+            if (this.props.Document.layout === this.props.Document.miniLayout) {
+                Doc.ToggleDetailLayout(fullScreenAlias);
+            }
             this.props.addDocTab(fullScreenAlias, this.dataDoc, "inTab");
             SelectionManager.DeselectAll();
             this.props.Document.libraryBrush = undefined;
@@ -616,7 +619,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get nativeWidth() { return this.Document.nativeWidth || 0; }
     @computed get nativeHeight() { return this.Document.nativeHeight || 0; }
     @computed get contents() {
-        return (<DocumentContentsView {...this.props} isSelected={this.isSelected} select={this.select} selectOnLoad={this.props.selectOnLoad} layoutKey={"layout"} DataDoc={this.dataDoc} />);
+        return (<DocumentContentsView {...this.props}
+            isSelected={this.isSelected} select={this.select}
+            selectOnLoad={this.props.selectOnLoad}
+            layoutKey={"layout"}
+            fitToBox={BoolCast(this.props.Document.fitToBox) ? true : this.props.fitToBox}
+            DataDoc={this.dataDoc} />);
     }
 
     render() {

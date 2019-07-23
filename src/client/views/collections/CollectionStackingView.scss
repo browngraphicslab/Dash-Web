@@ -1,9 +1,13 @@
 @import "../globalCssVariables";
+
 .collectionStackingView {
     height: 100%;
     width: 100%;
     position: absolute;
+    display: flex;
     overflow-y: auto;
+    flex-wrap: wrap;
+
     .collectionStackingView-docView-container {
         width: 45%;
         margin: 5% 2.5%;
@@ -18,21 +22,23 @@
         align-items: center;
     }
 
-    .collectionStackingView-masonrySingle, .collectionStackingView-masonryGrid {
-        width:100%;
-        height:100%;
+    .collectionStackingView-masonrySingle,
+    .collectionStackingView-masonryGrid {
+        width: 100%;
+        height: 100%;
         position: absolute;
-        display:grid;
+        display: grid;
         top: 0;
         left: 0;
         width: 100%;
         position: absolute;
     }
+
     .collectionStackingView-masonrySingle {
-        width:100%;
-        height:100%;
+        width: 100%;
+        height: 100%;
         position: absolute;
-        display:flex;
+        display: flex;
         flex-direction: column;
         top: 0;
         left: 0;
@@ -52,34 +58,120 @@
     }
 
     .collectionStackingView-columnDragger {
-        width: 15; 
-        height: 15; 
+        width: 15;
+        height: 15;
         position: absolute;
         margin-left: -5;
     }
 
-    .collectionStackingView-columnDoc{
+    .collectionStackingView-columnDoc {
         display: inline-block;
     }
 
-    .collectionStackingView-columnDoc, 
-    .collectionStackingView-masonryDoc {
-        margin-left: auto;
-        margin-right: auto;
-    }
-    
     .collectionStackingView-masonryDoc {
         transform-origin: top left;
         grid-column-end: span 1;
         height: 100%;
     }
-    .collectionStackingView-sectionHeader {    
-        width: 90%;
-        background: gray;
+
+    .collectionStackingView-sectionHeader {
         text-align: center;
-        margin-left: 5%;
-        margin-right: 5%;
-        color: white;
+        margin-left: 5px;
+        margin-right: 5px;
         margin-top: 10px;
+        overflow: hidden;
+
+        .editableView-input {
+            color: black;
+        }
+
+        .editableView-input:hover,
+        .editableView-container-editing:hover,
+        .editableView-container-editing-oneLine:hover {
+            cursor: text
+        }
+
+        .collectionStackingView-sectionHeader-subCont {
+            outline: none;
+            border: 0px;
+            color: $light-color;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 75%;
+            transition: transform 0.2s;
+            position: relative;
+
+            .editableView-container-editing-oneLine,
+            .editableView-container-editing {
+                color: grey;
+                padding: 10px;
+            }
+
+            .editableView-input:hover,
+            .editableView-container-editing:hover,
+            .editableView-container-editing-oneLine:hover {
+                cursor: text
+            }
+
+            .editableView-input {
+                padding: 12px 10px 11px 10px;
+                border: 0px;
+                color: grey;
+                // font-size: 75%;
+                text-align: center;
+                text-transform: uppercase;
+                letter-spacing: 2px;
+                outline-color: black;
+            }
+        }
+
+        .collectionStackingView-sectionDelete {
+            position: absolute;
+            right: 0;
+            top: 0;
+            height: 100%;
+        }
+    }
+
+    .collectionStackingView-addDocumentButton,
+    .collectionStackingView-addGroupButton {
+        display: inline-block;
+        margin: 0 5px;
+        overflow: hidden;
+        width: 90%;
+        color: lightgrey;
+        overflow: ellipses;
+    }
+
+    .collectionStackingView-addGroupButton {
+        background: rgb(238, 238, 238);
+        font-size: 75%;
+        text-align: center;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        height: fit-content;
+
+        .editableView-container-editing-oneLine,
+        .editableView-container-editing {
+            color: grey;
+            padding: 10px;
+        }
+
+        .editableView-input:hover,
+        .editableView-container-editing:hover,
+        .editableView-container-editing-oneLine:hover {
+            cursor: text
+        }
+
+        .editableView-input {
+            padding: 12px 10px 11px 10px;
+            border: 0px;
+            color: grey;
+            // font-size: 75%;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            outline-color: black;
+        }
     }
 }

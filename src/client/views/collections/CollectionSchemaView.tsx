@@ -31,17 +31,14 @@ import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
 import { undoBatch } from "../../util/UndoManager";
 import { timesSeries } from "async";
-<<<<<<< HEAD
 import { CollectionSchemaHeader, CollectionSchemaAddColumnHeader } from "./CollectionSchemaHeaders";
 import { CellProps, CollectionSchemaCell, CollectionSchemaNumberCell, CollectionSchemaStringCell, CollectionSchemaBooleanCell, CollectionSchemaCheckboxCell, CollectionSchemaDocCell } from "./CollectionSchemaCells";
 import { MovableColumn, MovableRow } from "./CollectionSchemaMovableTableHOC";
 import { SelectionManager } from "../../util/SelectionManager";
 import { DocumentManager } from "../../util/DocumentManager";
-=======
 import { ImageBox } from "../nodes/ImageBox";
 import { ComputedField } from "../../../new_fields/ScriptField";
 
->>>>>>> 86971952237b8bd01a23b52db662740126bd8477
 
 library.add(faCog);
 library.add(faPlus);
