@@ -1,6 +1,6 @@
 import { observable, action } from "mobx";
-import { serializable, primitive, map, alias, list } from "serializr";
-import { autoObject, SerializationHelper, Deserializable } from "../client/util/SerializationHelper";
+import { serializable, primitive, map, alias, list, PropSchema, custom } from "serializr";
+import { autoObject, SerializationHelper, Deserializable, afterDocDeserialize } from "../client/util/SerializationHelper";
 import { DocServer } from "../client/DocServer";
 import { setter, getter, getField, updateFunction, deleteProperty, makeEditable, makeReadOnly } from "./util";
 import { Cast, ToConstructor, PromiseValue, FieldValue, NumCast, BoolCast, StrCast } from "./Types";
@@ -61,7 +61,7 @@ export function DocListCastAsync(field: FieldResult, defaultValue?: Doc[]) {
 }
 
 export function DocListCast(field: FieldResult): Doc[] {
-    return Cast(field, listSpec(Doc), []).filter(d => d instanceof Doc) as Doc[];
+    return Cast(field, listSpec(Doc), []).filter(d => d instanceof Doc) as Doc[]; j
 }
 
 export const WidthSym = Symbol("Width");
@@ -108,7 +108,7 @@ export class Doc extends RefField {
     proto: Opt<Doc>;
     [key: string]: FieldResult;
 
-    @serializable(alias("fields", map(autoObject())))
+    @serializable(alias("fields", map(autoObject(), { afterDeserialize: afterDocDeserialize })))
     private get __fields() {
         return this.___fields;
     }

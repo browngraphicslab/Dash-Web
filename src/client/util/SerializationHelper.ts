@@ -1,9 +1,14 @@
 import { PropSchema, serialize, deserialize, custom, setDefaultModelSchema, getDefaultModelSchema, primitive, SKIP } from "serializr";
-import { Field } from "../../new_fields/Doc";
+import { Field, Doc } from "../../new_fields/Doc";
 import { ClientUtils } from "./ClientUtils";
 
+let serializing = 0;
+export function afterDocDeserialize(cb: (err: any, val: any) => void, err: any, newValue: any) {
+    serializing++;
+    cb(err, newValue);
+    serializing--;
+}
 export namespace SerializationHelper {
-    let serializing: number = 0;
     export function IsSerializing() {
         return serializing > 0;
     }
@@ -17,14 +22,14 @@ export namespace SerializationHelper {
             return obj;
         }
 
-        serializing += 1;
+        serializing++;
         if (!(obj.constructor.name in reverseMap)) {
             throw Error(`type '${obj.constructor.name}' not registered. Make sure you register it using a @Deserializable decorator`);
         }
 
         const json = serialize(obj);
         json.__type = reverseMap[obj.constructor.name];
-        serializing -= 1;
+        serializing--;
         return json;
     }
 
@@ -37,7 +42,6 @@ export namespace SerializationHelper {
             return obj;
         }
 
-        serializing += 1;
         if (!obj.__type) {
             if (ClientUtils.RELEASE) {
                 console.warn("No property 'type' found in JSON.");
@@ -54,12 +58,8 @@ export namespace SerializationHelper {
         const type = serializationTypes[obj.__type];
         const value = await new Promise(res => deserialize(type.ctor, obj, (err, result) => res(result)));
         if (type.afterDeserialize) {
-            const currentSerialization = serializing;
-            serializing = 0;
             await type.afterDeserialize(value);
-            serializing = currentSerialization;
         }
-        serializing -= 1;
         return value;
     }
 }
