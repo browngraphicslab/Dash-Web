@@ -284,6 +284,21 @@ addSecureRoute(
     RouteStore.getCurrUser
 );
 
+addSecureRoute(Method.GET, (user, res, req) => {
+    let requested = req.params.requestedservice;
+    console.log(requested);
+    switch (requested) {
+        case "Face":
+            res.send(process.env.FACE);
+            break;
+        case "ComputerVision":
+            res.send(process.env.VISION);
+            break;
+        default:
+            res.send(undefined);
+    }
+}, undefined, `${RouteStore.cognitiveServices}/:requestedservice`);
+
 class NodeCanvasFactory {
     create = (width: number, height: number) => {
         var canvas = createCanvas(width, height);

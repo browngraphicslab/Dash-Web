@@ -2,10 +2,8 @@ import * as request from "request-promise";
 import { Doc, Field } from "../../new_fields/Doc";
 import { Cast } from "../../new_fields/Types";
 import { ImageField } from "../../new_fields/URLField";
-import { values } from "mobx";
 import { List } from "../../new_fields/List";
 import { Docs } from "../documents/Documents";
-import { Result } from "../northstar/model/idea/idea";
 import { RouteStore } from "../../server/RouteStore";
 import { Utils } from "../../Utils";
 
@@ -38,7 +36,7 @@ export namespace CognitiveServices {
     export namespace Image {
 
         export const analyze = async (imageUrl: string, service: Services) => {
-            return fetch(Utils.prepend(RouteStore.cognitiveServices + service)).then(async response => {
+            return fetch(Utils.prepend(`${RouteStore.cognitiveServices}/${service}`)).then(async response => {
                 let apiKey = await response.text();
                 if (apiKey) {
                     return;

@@ -30,6 +30,6 @@ export enum RouteStore {
     reset = "/reset/:token",
 
     // APIS
-    cognitiveServices = "/cognitiveservices/"
+    cognitiveServices = "/cognitiveservices"
 
 }
