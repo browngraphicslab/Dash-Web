@@ -286,12 +286,11 @@ addSecureRoute(
 
 addSecureRoute(Method.GET, (user, res, req) => {
     let requested = req.params.requestedservice;
-    console.log(requested);
     switch (requested) {
-        case "Face":
+        case "face":
             res.send(process.env.FACE);
             break;
-        case "ComputerVision":
+        case "vision":
             res.send(process.env.VISION);
             break;
         default:

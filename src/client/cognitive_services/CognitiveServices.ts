@@ -8,8 +8,8 @@ import { RouteStore } from "../../server/RouteStore";
 import { Utils } from "../../Utils";
 
 export enum Services {
-    ComputerVision,
-    Face
+    ComputerVision = "vision",
+    Face = "face"
 }
 
 export enum Confidence {
@@ -38,8 +38,8 @@ export namespace CognitiveServices {
         export const analyze = async (imageUrl: string, service: Services) => {
             return fetch(Utils.prepend(`${RouteStore.cognitiveServices}/${service}`)).then(async response => {
                 let apiKey = await response.text();
-                if (apiKey) {
-                    return;
+                if (!apiKey) {
+                    return undefined;
                 }
                 let uriBase;
                 let parameters;
