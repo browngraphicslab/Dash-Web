@@ -4,7 +4,7 @@ import { Doc, DocListCastAsync, HeightSym, WidthSym, DocListCast } from "../../.
 import { Id } from "../../../../new_fields/FieldSymbols";
 import { InkField, StrokeData } from "../../../../new_fields/InkField";
 import { createSchema, makeInterface } from "../../../../new_fields/Schema";
-import { BoolCast, Cast, FieldValue, NumCast } from "../../../../new_fields/Types";
+import { BoolCast, Cast, FieldValue, NumCast, StrCast } from "../../../../new_fields/Types";
 import { emptyFunction, returnOne } from "../../../../Utils";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { DragManager } from "../../../util/DragManager";
@@ -195,10 +195,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     this._pheight / this.zoomScaling());
                 let panelwidth = panelDim[0];
                 let panelheight = panelDim[1];
-                if (ranges[0][0] - dx > (this.panX() + panelwidth / 2)) x = ranges[0][1] + panelwidth / 2;
-                if (ranges[0][1] - dx < (this.panX() - panelwidth / 2)) x = ranges[0][0] - panelwidth / 2;
-                if (ranges[1][0] - dy > (this.panY() + panelheight / 2)) y = ranges[1][1] + panelheight / 2;
-                if (ranges[1][1] - dy < (this.panY() - panelheight / 2)) y = ranges[1][0] - panelheight / 2;
+                // if (ranges[0][0] - dx > (this.panX() + panelwidth / 2)) x = ranges[0][1] + panelwidth / 2;
+                // if (ranges[0][1] - dx < (this.panX() - panelwidth / 2)) x = ranges[0][0] - panelwidth / 2;
+                // if (ranges[1][0] - dy > (this.panY() + panelheight / 2)) y = ranges[1][1] + panelheight / 2;
+                // if (ranges[1][1] - dy < (this.panY() - panelheight / 2)) y = ranges[1][0] - panelheight / 2;
             }
             this.setPan(x - dx, y - dy);
             this._lastX = e.pageX;
@@ -263,7 +263,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         const newPanX = Math.min((1 - 1 / scale) * this.nativeWidth, Math.max(0, panX));
         const newPanY = Math.min((1 - 1 / scale) * this.nativeHeight, Math.max(0, panY));
         this.props.Document.panX = this.isAnnotationOverlay ? newPanX : panX;
-        this.props.Document.panY = this.isAnnotationOverlay ? newPanY : panY;
+        this.props.Document.panY = this.isAnnotationOverlay && StrCast(this.props.Document.backgroundLayout).indexOf("PDFBox") === -1 ? newPanY : panY;
         // this.props.Document.panX = panX;
         // this.props.Document.panY = panY;
         if (this.props.Document.scrollY) {
@@ -358,6 +358,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     getChildDocumentViewProps(childDocLayout: Doc): DocumentViewProps {
         let self = this;
         let resolvedDataDoc = !this.props.Document.isTemplate && this.props.DataDoc !== this.props.Document ? this.props.DataDoc : undefined;
+        resolvedDataDoc && Doc.UpdateDocumentExtensionForField(resolvedDataDoc, this.props.fieldKey);
         let layoutDoc = Doc.expandTemplateLayout(childDocLayout, resolvedDataDoc);
         return {
             DataDoc: resolvedDataDoc !== layoutDoc && resolvedDataDoc ? resolvedDataDoc : undefined,
@@ -502,10 +503,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         overlayDisposer();
                         setTimeout(() => docs.map(d => d.transition = undefined), 1200);
                     }} />;
-                    overlayDisposer = OverlayView.Instance.addElement(scriptingBox, options);
+                    overlayDisposer = OverlayView.Instance.addWindow(scriptingBox, options);
                 };
-                addOverlay("arrangeInit", { x: 400, y: 100, width: 400, height: 300 }, { collection: "Doc", docs: "Doc[]" }, undefined);
-                addOverlay("arrangeScript", { x: 400, y: 500, width: 400, height: 300 }, { doc: "Doc", index: "number", collection: "Doc", state: "any", docs: "Doc[]" }, "{x: number, y: number, width?: number, height?: number}");
+                addOverlay("arrangeInit", { x: 400, y: 100, width: 400, height: 300, title: "Layout Initialization" }, { collection: "Doc", docs: "Doc[]" }, undefined);
+                addOverlay("arrangeScript", { x: 400, y: 500, width: 400, height: 300, title: "Layout Script" }, { doc: "Doc", index: "number", collection: "Doc", state: "any", docs: "Doc[]" }, "{x: number, y: number, width?: number, height?: number}");
             }
         });
     }

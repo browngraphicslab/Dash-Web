@@ -110,7 +110,7 @@ function addSecureRoute(method: Method,
         if (req.user) {
             handler(req.user, res, req);
         } else {
-            req.session!.target = `${req.headers.host}${req.originalUrl}`;
+            req.session!.target = req.originalUrl;
             onRejection(res, req);
         }
     };
@@ -179,7 +179,6 @@ app.get("/whosOnline", (req, res) => {
 
     res.send(users);
 });
-
 app.get("/thumbnail/:filename", (req, res) => {
     let filename = req.params.filename;
     let noExt = filename.substring(0, filename.length - ".png".length);
@@ -285,6 +284,20 @@ addSecureRoute(
     RouteStore.getCurrUser
 );
 
+addSecureRoute(Method.GET, (user, res, req) => {
+    let requested = req.params.requestedservice;
+    switch (requested) {
+        case "face":
+            res.send(process.env.FACE);
+            break;
+        case "vision":
+            res.send(process.env.VISION);
+            break;
+        default:
+            res.send(undefined);
+    }
+}, undefined, `${RouteStore.cognitiveServices}/:requestedservice`);
+
 class NodeCanvasFactory {
     create = (width: number, height: number) => {
         var canvas = createCanvas(width, height);
@@ -344,38 +357,6 @@ app.post(
                         element.resizer = element.resizer.jpeg();
                     });
                     isImage = true;
-                }
-                else if (pdfTypes.includes(ext)) {
-                    // Pdfjs.getDocument(uploadDir + file).promise
-                    //     .then((pdf: Pdfjs.PDFDocumentProxy) => {
-                    //         let numPages = pdf.numPages;
-                    //         let factory = new NodeCanvasFactory();
-                    //         for (let pageNum = 0; pageNum < numPages; pageNum++) {
-                    //             console.log(pageNum);
-                    //             pdf.getPage(pageNum + 1).then((page: Pdfjs.PDFPageProxy) => {
-                    //                 console.log("reading " + pageNum);
-                    //                 let viewport = page.getViewport(1);
-                    //                 let canvasAndContext = factory.create(viewport.width, viewport.height);
-                    //                 let renderContext = {
-                    //                     canvasContext: canvasAndContext.context,
-                    //                     viewport: viewport,
-                    //                     canvasFactory: factory
-                    //                 }
-                    //                 console.log("read " + pageNum);
-
-                    //                 page.render(renderContext).promise
-                    //                     .then(() => {
-                    //                         console.log("saving " + pageNum);
-                    //                         let stream = canvasAndContext.canvas.createPNGStream();
-                    //                         let out = fs.createWriteStream(uploadDir + file.substring(0, file.length - ext.length) + `-${pageNum + 1}.PNG`);
-                    //                         stream.pipe(out);
-                    //                         out.on("finish", () => console.log(`Success! Saved to ${uploadDir + file.substring(0, file.length - ext.length) + `-${pageNum + 1}.PNG`}`));
-                    //                     }, (reason: string) => {
-                    //                         console.error(reason + ` ${pageNum}`);
-                    //                     });
-                    //             });
-                    //         }
-                    //     });
                 }
                 if (isImage) {
                     resizers.forEach(resizer => {
@@ -450,7 +431,7 @@ app.get(RouteStore.reset, getReset);
 app.post(RouteStore.reset, postReset);
 
 app.use(RouteStore.corsProxy, (req, res) =>
-    req.pipe(request(req.url.substring(1))).pipe(res));
+    req.pipe(request(decodeURIComponent(req.url.substring(1)))).pipe(res));
 
 app.get(RouteStore.delete, (req, res) => {
     if (release) {

@@ -31,11 +31,17 @@ import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
 import { undoBatch } from "../../util/UndoManager";
 import { timesSeries } from "async";
+<<<<<<< HEAD
 import { CollectionSchemaHeader, CollectionSchemaAddColumnHeader } from "./CollectionSchemaHeaders";
 import { CellProps, CollectionSchemaCell, CollectionSchemaNumberCell, CollectionSchemaStringCell, CollectionSchemaBooleanCell, CollectionSchemaCheckboxCell, CollectionSchemaDocCell } from "./CollectionSchemaCells";
 import { MovableColumn, MovableRow } from "./CollectionSchemaMovableTableHOC";
 import { SelectionManager } from "../../util/SelectionManager";
 import { DocumentManager } from "../../util/DocumentManager";
+=======
+import { ImageBox } from "../nodes/ImageBox";
+import { ComputedField } from "../../../new_fields/ScriptField";
+
+>>>>>>> 86971952237b8bd01a23b52db662740126bd8477
 
 library.add(faCog);
 library.add(faPlus);
@@ -729,8 +735,12 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
     drop = (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.DocumentDragData) {
             let docDrag = de.data;
+            let computed = CompileScript("return this.image_data[0]", { params: { this: "Doc" } });
             this.props.childDocs && this.props.childDocs.map(otherdoc => {
-                Doc.GetProto(otherdoc).layout = Doc.MakeDelegate(docDrag.draggedDocuments[0]);
+                let doc = docDrag.draggedDocuments[0];
+                let target = Doc.GetProto(otherdoc);
+                target.layout = target.detailedLayout = Doc.MakeDelegate(doc);
+                computed.compiled && (target.miniLayout = new ComputedField(computed));
             });
             e.stopPropagation();
         }

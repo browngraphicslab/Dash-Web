@@ -18,7 +18,8 @@ export enum CollectionViewType {
     Schema,
     Docking,
     Tree,
-    Stacking
+    Stacking,
+    Masonry
 }
 
 export interface CollectionRenderProps {
@@ -78,7 +79,6 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
 
     @action.bound
     addDocument(doc: Doc, allowDuplicates: boolean = false): boolean {
-        let self = this;
         var curPage = NumCast(this.props.Document.curPage, -1);
         Doc.GetProto(doc).page = curPage;
         if (curPage >= 0) {
@@ -146,7 +146,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         const viewtype = this.collectionViewType;
         return (
             <div id="collectionBaseView"
-                style={{ boxShadow: `#9c9396 ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}` }}
+                style={{ overflow: "auto", boxShadow: `#9c9396 ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}` }}
                 className={this.props.className || "collectionView-cont"}
                 onContextMenu={this.props.onContextMenu} ref={this.props.contentRef}>
                 {viewtype !== undefined ? this.props.children(viewtype, props) : (null)}

@@ -21,6 +21,14 @@
     transition: all .1s;
 }
 
+.presentationView-item-above {
+    border-top: black 2px solid;
+}
+
+.presentationView-item-below {
+    border-bottom: black 2px solid;
+}
+
 .presentationView-listCont {
     padding-left: 10px;
     padding-right: 10px;

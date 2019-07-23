@@ -2,7 +2,7 @@ import { Deserializable } from "../client/util/SerializationHelper";
 import { serializable, custom, createSimpleSchema, list, object, map } from "serializr";
 import { ObjectField } from "./ObjectField";
 import { Copy, ToScriptString } from "./FieldSymbols";
-import { deepCopy } from "../Utils";
+import { DeepCopy } from "../Utils";
 
 export enum InkTool {
     None,
@@ -39,7 +39,7 @@ export class InkField extends ObjectField {
     }
 
     [Copy]() {
-        return new InkField(deepCopy(this.inkData));
+        return new InkField(DeepCopy(this.inkData));
     }
 
     [ToScriptString]() {

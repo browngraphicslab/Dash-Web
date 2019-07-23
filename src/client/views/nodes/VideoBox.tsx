@@ -52,25 +52,27 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
             this.Document.nativeHeight = this.Document.nativeWidth / aspect;
             this.Document.height = FieldValue(this.Document.width, 0) / aspect;
         }
+        if (!this.Document.duration) this.Document.duration = this.player!.duration;
     }
 
     @action public Play = (update: boolean = true) => {
         this.Playing = true;
         update && this.player && this.player.play();
         update && this._youtubePlayer && this._youtubePlayer.playVideo();
-        !this._playTimer && (this._playTimer = setInterval(this.updateTimecode, 500));
+        this._youtubePlayer && !this._playTimer && (this._playTimer = setInterval(this.updateTimecode, 5));
         this.updateTimecode();
     }
 
     @action public Seek(time: number) {
         this._youtubePlayer && this._youtubePlayer.seekTo(Math.round(time), true);
+        this.player && (this.player.currentTime = time);
     }
 
     @action public Pause = (update: boolean = true) => {
         this.Playing = false;
         update && this.player && this.player.pause();
         update && this._youtubePlayer && this._youtubePlayer.pauseVideo();
-        this._playTimer && clearInterval(this._playTimer);
+        this._youtubePlayer && this._playTimer && clearInterval(this._playTimer);
         this._playTimer = undefined;
         this.updateTimecode();
     }
@@ -112,6 +114,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
     setVideoRef = (vref: HTMLVideoElement | null) => {
         this._videoRef = vref;
         if (vref) {
+            this._videoRef!.ontimeupdate = this.updateTimecode;
             vref.onfullscreenchange = action((e) => this._fullScreen = vref.webkitDisplayingFullscreen);
             if (this._reactionDisposer) this._reactionDisposer();
             this._reactionDisposer = reaction(() => this.props.Document.curPage, () =>
@@ -122,7 +125,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
 
     public static async convertDataUri(imageUri: string, returnedFilename: string) {
         try {
-            let posting = DocServer.prepend(RouteStore.dataUriToImage);
+            let posting = Utils.prepend(RouteStore.dataUriToImage);
             const returnedUri = await rp.post(posting, {
                 body: {
                     uri: imageUri,
@@ -164,7 +167,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
                     let filename = encodeURIComponent("snapshot" + this.props.Document.title + "_" + this.props.Document.curPage).replace(/\./g, "");
                     VideoBox.convertDataUri(dataUrl, filename).then(returnedFilename => {
                         if (returnedFilename) {
-                            let url = DocServer.prepend(returnedFilename);
+                            let url = Utils.prepend(returnedFilename);
                             let imageSummary = Docs.Create.ImageDocument(url, {
                                 x: NumCast(this.props.Document.x) + width, y: NumCast(this.props.Document.y),
                                 width: 150, height: height / width * 150, title: "--snapshot" + NumCast(this.props.Document.curPage) + " image-"

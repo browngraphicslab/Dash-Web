@@ -25,6 +25,8 @@ import { Docs } from '../../documents/Documents';
 import { DocServer } from '../../DocServer';
 import { Font } from '@react-pdf/renderer';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { CognitiveServices } from '../../cognitive_services/CognitiveServices';
+import FaceRectangles from './FaceRectangles';
 var requestImageSize = require('../../util/request-image-size');
 var path = require('path');
 const { Howl, Howler } = require('howler');
@@ -165,12 +167,12 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
             recorder.ondataavailable = async function (e: any) {
                 const formData = new FormData();
                 formData.append("file", e.data);
-                const res = await fetch(DocServer.prepend(RouteStore.upload), {
+                const res = await fetch(Utils.prepend(RouteStore.upload), {
                     method: 'POST',
                     body: formData
                 });
                 const files = await res.json();
-                const url = DocServer.prepend(files[0]);
+                const url = Utils.prepend(files[0]);
                 // upload to server with known URL 
                 let audioDoc = Docs.Create.AudioDocument(url, { title: "audio test", x: NumCast(self.props.Document.x), y: NumCast(self.props.Document.y), width: 200, height: 32 });
                 audioDoc.embed = true;
@@ -195,10 +197,10 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         let field = Cast(this.Document[this.props.fieldKey], ImageField);
         if (field) {
             let url = field.url.href;
-            let subitems: ContextMenuProps[] = [];
-            subitems.push({ description: "Copy path", event: () => Utils.CopyText(url), icon: "expand-arrows-alt" });
-            subitems.push({ description: "Record 1sec audio", event: this.recordAudioAnnotation, icon: "expand-arrows-alt" });
-            subitems.push({
+            let funcs: ContextMenuProps[] = [];
+            funcs.push({ description: "Copy path", event: () => Utils.CopyText(url), icon: "expand-arrows-alt" });
+            funcs.push({ description: "Record 1sec audio", event: this.recordAudioAnnotation, icon: "expand-arrows-alt" });
+            funcs.push({
                 description: "Rotate", event: action(() => {
                     let proto = Doc.GetProto(this.props.Document);
                     let nw = this.props.Document.nativeWidth;
@@ -212,7 +214,14 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                     this.props.Document.height = w;
                 }), icon: "expand-arrows-alt"
             });
-            ContextMenu.Instance.addItem({ description: "Image Funcs...", subitems: subitems });
+
+            let modes: ContextMenuProps[] = [];
+            let dataDoc = Doc.GetProto(this.Document);
+            modes.push({ description: "Generate Tags", event: () => CognitiveServices.Image.generateMetadata(dataDoc), icon: "tag" });
+            modes.push({ description: "Find Faces", event: () => CognitiveServices.Image.extractFaces(dataDoc), icon: "camera" });
+
+            ContextMenu.Instance.addItem({ description: "Image Funcs...", subitems: funcs });
+            ContextMenu.Instance.addItem({ description: "Analyze...", subitems: modes });
         }
     }
 
@@ -259,7 +268,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     _curSuffix = "_m";
 
     resize(srcpath: string, layoutdoc: Doc) {
-        requestImageSize(window.origin + RouteStore.corsProxy + "/" + srcpath)
+        requestImageSize(srcpath)
             .then((size: any) => {
                 let aspect = size.height / size.width;
                 let rotation = NumCast(this.dataDoc.rotation) % 180;
@@ -284,15 +293,17 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         let self = this;
         let audioAnnos = DocListCast(this.extensionDoc.audioAnnotations);
         if (audioAnnos.length && this._audioState === 0) {
-            audioAnnos.map(anno => anno.data instanceof AudioField && new Howl({
+            let anno = audioAnnos[Math.floor(Math.random() * audioAnnos.length)];
+            anno.data instanceof AudioField && new Howl({
                 src: [anno.data.url.href],
+                format: ["mp3"],
                 autoplay: true,
                 loop: false,
                 volume: 0.5,
                 onend: function () {
                     runInAction(() => self._audioState = 0);
                 }
-            }));
+            });
             this._audioState = 1;
         }
         // else {
@@ -327,7 +338,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         let id = (this.props as any).id; // bcz: used to set id = "isExpander" in templates.tsx
         let nativeWidth = FieldValue(this.Document.nativeWidth, pw);
         let nativeHeight = FieldValue(this.Document.nativeHeight, 0);
-        let paths: string[] = [window.origin + RouteStore.corsProxy + "/" + "http://www.cs.brown.edu/~bcz/noImage.png"];
+        let paths: string[] = [Utils.CorsProxy("http://www.cs.brown.edu/~bcz/noImage.png")];
         // this._curSuffix = "";
         // if (w > 20) {
         Doc.UpdateDocumentExtensionForField(this.dataDoc, this.props.fieldKey);
@@ -350,30 +361,26 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
 
         return (
             <div id={id} className={`imageBox-cont${interactive}`} style={{ background: "transparent" }}
-                onPointerEnter={this.onPointerEnter}
                 onPointerDown={this.onPointerDown}
                 onDrop={this.onDrop} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
                 <img id={id}
                     key={this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
                     src={srcpath}
                     style={{ transform: `translate(0px, ${shift}px) rotate(${rotation}deg) scale(${aspect})` }}
-                    // style={{ objectFit: (this.Document.curPage === 0 ? undefined : "contain") }}
                     width={nativeWidth}
                     ref={this._imgRef}
                     onError={this.onError} />
                 {paths.length > 1 ? this.dots(paths) : (null)}
-                <div onPointerDown={this.audioDown} style={{
-                    display: DocListCast(this.extensionDoc.audioAnnotations).length ? "inline" : "inline",
-                    width: nativeWidth * 0.1,
-                    height: nativeWidth * 0.1,
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                }}>
-                    <FontAwesomeIcon
-                        style={{ width: "100%", height: "100%", color: [DocListCast(this.extensionDoc.audioAnnotations).length ? "blue" : "gray", "green", "red"][this._audioState] }} icon={faFileAudio} size="sm" />
+                <div className="imageBox-audioBackground"
+                    onPointerDown={this.audioDown}
+                    onPointerEnter={this.onPointerEnter}
+                    style={{ height: `calc(${.1 * nativeHeight / nativeWidth * 100}%)` }}
+                >
+                    <FontAwesomeIcon className="imageBox-audioFont"
+                        style={{ color: [DocListCast(this.extensionDoc.audioAnnotations).length ? "blue" : "gray", "green", "red"][this._audioState] }} icon={faFileAudio} size="sm" />
                 </div>
                 {/* {this.lightbox(paths)} */}
+                <FaceRectangles document={this.props.Document} color={"#0000FF"} backgroundColor={"#0000FF"} />
             </div>);
     }
 }

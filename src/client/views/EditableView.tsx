@@ -76,6 +76,7 @@ export class EditableView extends React.Component<EditableProps> {
 
     @action
     onClick = (e: React.MouseEvent) => {
+        e.nativeEvent.stopPropagation();
         if (!this.props.onClick || !this.props.onClick(e)) {
             this._editing = true;
             this.props.isEditingCallback && this.props.isEditingCallback(true);
@@ -102,7 +103,7 @@ export class EditableView extends React.Component<EditableProps> {
                 <div className={`editableView-container-editing${this.props.oneLine ? "-oneLine" : ""}`}
                     style={{ display: this.props.display, height: "auto", maxHeight: `${this.props.height}` }}
                     onClick={this.onClick} >
-                    <span style={{ fontStyle: this.props.fontStyle }}>{this.props.contents}</span>
+                    <span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize }}>{this.props.contents}</span>
                 </div>
             );
         }
