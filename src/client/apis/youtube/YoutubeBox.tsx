@@ -12,7 +12,7 @@ import { DocServer } from "../../DocServer";
 import { NumCast, Cast, StrCast } from "../../../new_fields/Types";
 import "./YoutubeBox.scss";
 import { Docs } from "../../documents/Documents";
-import { Doc } from "../../../new_fields/Doc";
+import { Doc, DocListCastAsync } from "../../../new_fields/Doc";
 import { listSpec } from "../../../new_fields/Schema";
 import { List } from "../../../new_fields/List";
 
@@ -36,12 +36,29 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
         //DocServer.getYoutubeChannels();
         //DocServer.getYoutubeVideoDetails("Ks-_Mh1QhMc, 1NmvhSmN2uM", (results: any[]) => console.log("Details results: ", results));
         let castedBackUpDocs = Cast(this.props.Document.cachedSearch, listSpec(Doc));
+        let castedSearchBackUp = Cast(this.props.Document.cachedSearchResults, Doc);
+        let awaitedBackUp = await castedSearchBackUp;
+
+        console.log("Backup results: ", awaitedBackUp);
+        console.log("Original Backup results: ", castedBackUpDocs);
+
+        let json = Cast(awaitedBackUp!.json, Doc);
+        let jsonList = await DocListCastAsync(json);
+        console.log("Fucked up list: ", jsonList);
+        for (let video of jsonList!) {
+            let videoId = await Cast(video.id, Doc);
+            let id = StrCast(videoId!.videoId);
+            console.log("ID: ", id);
+        }
+
+
+
         if (!castedBackUpDocs) {
             this.props.Document.cachedSearch = castedBackUpDocs = new List<Doc>();
         }
         if (castedBackUpDocs.length !== 0) {
 
-            this.searchResultsFound = true;
+            runInAction(() => this.searchResultsFound = true);
 
             for (let videoBackUp of castedBackUpDocs) {
                 let curBackUp = await videoBackUp;
@@ -121,6 +138,8 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
     }
 
     backUpSearchResults = (videos: any[]) => {
+        console.log("Res: ", videos);
+        this.props.Document.cachedSearchResults = Docs.Get.DocumentHierarchyFromJson(videos, "videosBackUp");
         let newCachedList = new List<Doc>();
         this.props.Document.cachedSearch = newCachedList;
         videos.forEach((video) => {
