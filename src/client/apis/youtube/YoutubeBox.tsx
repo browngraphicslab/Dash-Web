@@ -86,7 +86,7 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
                         let contentDetails = await Cast(jsonDetailList![index].contentDetails, Doc);
                         let statistics = await Cast(jsonDetailList![index].statistics, Doc);
                         duration = this.convertIsoTimeToDuration(StrCast(contentDetails!.duration));
-                        viewCount = this.abbreviateViewCount(NumCast(statistics!.viewCount))!;
+                        viewCount = this.abbreviateViewCount(parseInt(StrCast(statistics!.viewCount)))!;
                     }
                     index = index + 1;
                     let newTemplate: VideoTemplate = { videoId: id, videoTitle: videoTitle, thumbnailUrl: thumbnailUrl, publishDate: pusblishDate, channelTitle: channelTitle, videoDescription: videoDescription, duration: duration!, viewCount: viewCount! };
