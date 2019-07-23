@@ -110,7 +110,7 @@ export namespace CognitiveServices {
                 let tagDoc = new Doc;
                 results.tags.map((tag: Tag) => {
                     let sanitized = tag.name.replace(" ", "_");
-                    let script = `return (${tag.confidence} >= this.confidence) ? ${tag.confidence} : ${ComputedField.undefined}`;
+                    let script = `return (${tag.confidence} >= this.confidence) ? ${tag.confidence} : "${ComputedField.undefined}"`;
                     let computed = CompileScript(script, { params: { this: "Doc" } });
                     computed.compiled && (tagDoc[sanitized] = new ComputedField(computed));
                 });
