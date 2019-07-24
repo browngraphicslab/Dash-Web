@@ -7,4 +7,4 @@ export const Id = Symbol("Id");
 export const OnUpdate = Symbol("OnUpdate");
 export const Parent = Symbol("Parent");
 export const Copy = Symbol("Copy");
-export const ToScriptString = Symbol("Copy");
+export const ToScriptString = Symbol("ToScriptString");

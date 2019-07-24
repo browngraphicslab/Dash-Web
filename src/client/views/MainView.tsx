@@ -394,6 +394,7 @@ export class MainView extends React.Component {
             <div id="add-options-content">
                 <ul id="add-options-list">
                     <li key="search"><button className="add-button round-button" title="Search" onClick={this.toggleSearch}><FontAwesomeIcon icon="search" size="sm" /></button></li>
+                    <li key="presentation"><button className="add-button round-button" title="Open Presentation View" onClick={() => PresentationView.Instance.toggle(undefined)}><FontAwesomeIcon icon="table" size="sm" /></button></li>
                     <li key="undo"><button className="add-button round-button" title="Undo" style={{ opacity: UndoManager.CanUndo() ? 1 : 0.5, transition: "0.4s ease all" }} onClick={() => UndoManager.Undo()}><FontAwesomeIcon icon="undo-alt" size="sm" /></button></li>
                     <li key="redo"><button className="add-button round-button" title="Redo" style={{ opacity: UndoManager.CanRedo() ? 1 : 0.5, transition: "0.4s ease all" }} onClick={() => UndoManager.Redo()}><FontAwesomeIcon icon="redo-alt" size="sm" /></button></li>
                     {btns.map(btn =>
@@ -443,7 +444,6 @@ export class MainView extends React.Component {
     toggleSearch = () => {
         this.isSearchVisible = !this.isSearchVisible;
     }
-
 
     render() {
         return (

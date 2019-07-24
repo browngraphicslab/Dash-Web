@@ -31,6 +31,7 @@ import { ScriptField } from "../../../../new_fields/ScriptField";
 import { OverlayView, OverlayElementOptions } from "../../OverlayView";
 import { ScriptBox } from "../../ScriptBox";
 import { CompileScript } from "../../../util/Scripting";
+import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 
 
 export const panZoomSchema = createSchema({
@@ -51,6 +52,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private _lastY: number = 0;
     private get _pwidth() { return this.props.PanelWidth(); }
     private get _pheight() { return this.props.PanelHeight(); }
+    private inkKey = "ink";
 
     @computed get contentBounds() {
         let bounds = this.props.fitToBox && !NumCast(this.nativeWidth) ? Doc.ComputeContentBounds(DocListCast(this.props.Document.data)) : undefined;
@@ -358,8 +360,12 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     getChildDocumentViewProps(childDocLayout: Doc): DocumentViewProps {
         let self = this;
         let resolvedDataDoc = !this.props.Document.isTemplate && this.props.DataDoc !== this.props.Document ? this.props.DataDoc : undefined;
-        resolvedDataDoc && Doc.UpdateDocumentExtensionForField(resolvedDataDoc, this.props.fieldKey);
-        let layoutDoc = Doc.expandTemplateLayout(childDocLayout, resolvedDataDoc);
+        let layoutDoc = childDocLayout;
+        if (resolvedDataDoc && Doc.WillExpandTemplateLayout(childDocLayout, resolvedDataDoc)) {
+            Doc.UpdateDocumentExtensionForField(resolvedDataDoc, this.props.fieldKey);
+            let fieldExtensionDoc = Doc.resolvedFieldDataDoc(resolvedDataDoc, StrCast(childDocLayout.templateField, StrCast(childDocLayout.title)), "dummy");
+            layoutDoc = Doc.expandTemplateLayout(childDocLayout, fieldExtensionDoc !== resolvedDataDoc ? fieldExtensionDoc : undefined);
+        } else layoutDoc = Doc.expandTemplateLayout(childDocLayout, resolvedDataDoc);
         return {
             DataDoc: resolvedDataDoc !== layoutDoc && resolvedDataDoc ? resolvedDataDoc : undefined,
             Document: layoutDoc,
@@ -478,7 +484,17 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 }, "arrange contents");
             }
         });
+        ContextMenu.Instance.addItem({
+            description: "Analyze Strokes", event: async () => {
+                let data = Cast(this.fieldExtensionDoc[this.inkKey], InkField);
+                if (!data) {
+                    return;
+                }
+                CognitiveServices.Inking.analyze(data.inkData, Doc.GetProto(this.props.Document));
+            }
+        });
     }
+
 
     private childViews = () => [
         <CollectionFreeFormBackgroundView key="backgroundView" {...this.props} {...this.getDocumentViewProps(this.props.Document)} />,

@@ -8,10 +8,12 @@ import { RouteStore } from "../../server/RouteStore";
 import { Utils } from "../../Utils";
 import { CompileScript } from "../util/Scripting";
 import { ComputedField } from "../../new_fields/ScriptField";
+import { InkData } from "../../new_fields/InkField";
 
 export enum Services {
     ComputerVision = "vision",
-    Face = "face"
+    Face = "face",
+    Handwriting = "handwriting"
 }
 
 export enum Confidence {
@@ -128,6 +130,92 @@ export namespace CognitiveServices {
                 return faceDocs;
             };
             analyzeDocument(target, Services.Face, converter, "faces");
+        };
+
+    }
+
+    export namespace Inking {
+
+        export interface AzureStrokeData {
+            id: number;
+            points: string;
+            language?: string;
+        }
+
+        export interface HandwritingUnit {
+            version: number;
+            language: string;
+            unit: string;
+            strokes: AzureStrokeData[];
+        }
+
+        export const analyze = async (inkData: InkData, target: Doc) => {
+            return fetch(Utils.prepend(`${RouteStore.cognitiveServices}/${Services.Handwriting}`)).then(async response => {
+                let apiKey = await response.text();
+                if (!apiKey) {
+                    return undefined;
+                }
+
+                let xhttp = new XMLHttpRequest();
+                let serverAddress = "https://api.cognitive.microsoft.com";
+                let endpoint = serverAddress + "/inkrecognizer/v1.0-preview/recognize";
+
+                let requestExecutor = (resolve: any, reject: any) => {
+                    let result: any;
+                    let body = format(inkData);
+
+                    xhttp.onreadystatechange = function () {
+                        if (this.readyState === 4) {
+                            try {
+                                result = JSON.parse(xhttp.responseText);
+                            } catch (e) {
+                                return reject(e);
+                            }
+                            switch (this.status) {
+                                case 200:
+                                    return resolve(result);
+                                case 400:
+                                default:
+                                    return reject(result);
+                            }
+                        }
+                    };
+
+                    xhttp.open("PUT", endpoint, true);
+                    xhttp.setRequestHeader('Ocp-Apim-Subscription-Key', apiKey);
+                    xhttp.setRequestHeader('Content-Type', 'application/json');
+                    xhttp.send(body);
+                };
+
+                let results = await new Promise<any>(requestExecutor);
+
+                if (results) {
+                    results.recognitionUnits && (results = results.recognitionUnits);
+                    target.inkAnalysis = Docs.Get.DocumentHierarchyFromJson(results, "Ink Analysis");
+                    let recognizedText = results.map((item: any) => item.recognizedText);
+                    let individualWords = recognizedText.filter((text: string) => text && text.split(" ").length === 1);
+                    target.handwriting = individualWords.join(" ");
+                }
+            });
+        };
+
+        const format = (inkData: InkData): string => {
+            let entries = inkData.entries(), next = entries.next();
+            let strokes: AzureStrokeData[] = [], id = 0;
+            while (!next.done) {
+                strokes.push({
+                    id: id++,
+                    points: next.value[1].pathData.map(point => `${point.x},${point.y}`).join(","),
+                    language: "en-US"
+                });
+                next = entries.next();
+            }
+            return JSON.stringify({
+                version: 1,
+                language: "en-US",
+                unit: "mm",
+                strokes: strokes
+            });
         };
 
     }

@@ -10,6 +10,8 @@ import { undoBatch, UndoManager } from "../util/UndoManager";
 import { StrokeData, InkField, InkTool } from "../../new_fields/InkField";
 import { Doc } from "../../new_fields/Doc";
 import { Cast, PromiseValue, NumCast } from "../../new_fields/Types";
+import { CognitiveServices } from "../cognitive_services/CognitiveServices";
+import { ContextMenu } from "./ContextMenu";
 
 interface InkCanvasProps {
     getScreenTransform: () => Transform;
@@ -178,7 +180,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
     render() {
         let svgCanvasStyle = InkingControl.Instance.selectedTool !== InkTool.None ? "canSelect" : "noSelect";
         return (
-            <div className="inkingCanvas" >
+            <div className="inkingCanvas">
                 <div className={`inkingCanvas-${svgCanvasStyle}`} onPointerDown={this.onPointerDown} />
                 {this.props.children()}
                 {this.drawnPaths}
