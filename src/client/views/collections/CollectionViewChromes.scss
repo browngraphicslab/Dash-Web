@@ -1,11 +1,119 @@
 @import "../globalCssVariables";
+@import '~js-datepicker/dist/datepicker.min.css';
+
+.collectionViewBaseChrome {
+    display: flex;
+
+    .collectionViewBaseChrome-viewPicker {
+        font-size: 75%;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        background: rgb(238, 238, 238);
+        color: grey;
+        outline-color: black;
+        border: none;
+        padding: 12px 10px 11px 10px;
+    }
+
+    .collectionViewBaseChrome-viewPicker:active {
+        outline-color: black;
+    }
+
+    .collectionViewBaseChrome-collapse {
+        margin-right: 10px;
+        transition: all .5s;
+    }
+
+    .collectionViewBaseChrome-viewSpecs {
+        margin-left: 10px;
+        display: grid;
+
+        .collectionViewBaseChrome-viewSpecsInput {
+            padding: 12px 10px 11px 10px;
+            border: 0px;
+            color: grey;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            outline-color: black;
+            font-size: 75%;
+            background: rgb(238, 238, 238);
+            height: 100%;
+            width: 150px;
+        }
+
+        .collectionViewBaseChrome-viewSpecsMenu {
+            overflow: hidden;
+            transition: height .5s, display .5s;
+            position: absolute;
+            top: 60px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            background: rgb(238, 238, 238);
+            box-shadow: grey 2px 2px 4px;
+
+            .qs-datepicker {
+                left: unset;
+                right: 0;
+            }
+
+            .collectionViewBaseChrome-viewSpecsMenu-row {
+                display: grid;
+                grid-template-columns: 150px 200px 150px;
+                margin-top: 10px;
+                margin-right: 10px;
+
+                .collectionViewBaseChrome-viewSpecsMenu-rowLeft,
+                .collectionViewBaseChrome-viewSpecsMenu-rowMiddle,
+                .collectionViewBaseChrome-viewSpecsMenu-rowRight {
+                    font-size: 75%;
+                    letter-spacing: 2px;
+                    color: grey;
+                    margin-left: 10px;
+                    padding: 5px;
+                    border: none;
+                    outline-color: black;
+                }
+            }
+
+            .collectionViewBaseChrome-viewSpecsMenu-lastRow {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                grid-gap: 10px;
+                margin: 10px;
+            }
+        }
+    }
+}
 
 .collectionStackingViewChrome {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr auto;
     padding-bottom: 10px;
     border-bottom: .5px solid lightgrey;
     margin: 10px;
+
+    .collectionStackingViewChrome-cont {
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .collectionStackingViewChrome-sort {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        .collectionStackingViewChrome-sortIcon {
+            transition: transform .5s;
+            margin-left: 10px;
+        }
+    }
+
+    button:hover {
+        transform: scale(1);
+    }
+
 
     .collectionStackingViewChrome-sectionFilter-cont {
         justify-self: right;
@@ -21,10 +129,9 @@
 
         .collectionStackingViewChrome-sectionFilter {
             color: white;
-            width: fit-content;
+            width: 100px;
             text-align: center;
             background: rgb(238, 238, 238);
-            height: 37px;
 
             .editable-view-input,
             input,

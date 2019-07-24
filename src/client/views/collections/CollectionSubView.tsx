@@ -21,6 +21,8 @@ import { CollectionView } from "./CollectionView";
 import React = require("react");
 import { MainView } from "../MainView";
 import { Utils } from "../../../Utils";
+import { ScriptField } from "../../../new_fields/ScriptField";
+import { CompileScript } from "../../util/Scripting";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
@@ -54,7 +56,18 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             let self = this;
             //TODO tfs: This might not be what we want?
             //This linter error can't be fixed because of how js arguments work, so don't switch this to filter(FieldValue)
-            return DocListCast(this.extensionDoc[this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey]);
+            let docs = DocListCast(this.extensionDoc[this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey]);
+            let viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
+            if (viewSpecScript) {
+                let script = viewSpecScript.script;
+                docs = docs.filter(d => {
+                    let res = script.run({ doc: d });
+                    if (res.success) {
+                        return res.result;
+                    }
+                });
+            }
+            return docs;
         }
         get childDocList() {
             //TODO tfs: This might not be what we want?

@@ -116,7 +116,7 @@ export class EditableView extends React.Component<EditableProps> {
             return (
                 <div className={`editableView-container-editing${this.props.oneLine ? "-oneLine" : ""}`}
                     style={{ display: this.props.display, height: "auto", maxHeight: `${this.props.height}` }}
-                    onClick={this.onClick} >
+                    onClick={this.onClick}>
                     <span style={{ fontStyle: this.props.fontStyle }}>{this.props.contents}</span>
                 </div>
             );

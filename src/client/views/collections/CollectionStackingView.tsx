@@ -249,6 +249,13 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         return false;
     }
 
+    sortFunc = (a: [SchemaHeaderField, Doc[]], b: [SchemaHeaderField, Doc[]]): 1 | -1 => {
+        let descending = BoolCast(this.props.Document.stackingHeadersSortDescending);
+        let firstEntry = descending ? b : a;
+        let secondEntry = descending ? a : b;
+        return firstEntry[0].heading > secondEntry[0].heading ? 1 : -1;
+    }
+
     render() {
         let headings = Array.from(this.Sections.keys());
         let editableViewProps = {
@@ -264,7 +271,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     ["width > height", this.filteredChildren.filter(f => f[WidthSym]() >= 1 + f[HeightSym]())],
                     ["width = height", this.filteredChildren.filter(f => Math.abs(f[WidthSym]() - f[HeightSym]()) < 1)],
                     ["height > width", this.filteredChildren.filter(f => f[WidthSym]() + 1 <= f[HeightSym]())]]. */}
-                {this.props.Document.sectionFilter ? Array.from(this.Sections.entries()).sort((a, b) => a[0].toString() > b[0].toString() ? 1 : -1).
+                {this.props.Document.sectionFilter ? Array.from(this.Sections.entries()).sort(this.sortFunc).
                     map(section => this.section(section[0], section[1] as Doc[])) :
                     this.section(undefined, this.filteredChildren)}
                 {this.props.Document.sectionFilter ?
