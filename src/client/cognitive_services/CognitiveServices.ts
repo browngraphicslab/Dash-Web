@@ -160,8 +160,10 @@ export namespace CognitiveServices {
                 let serverAddress = "https://api.cognitive.microsoft.com";
                 let endpoint = serverAddress + "/inkrecognizer/v1.0-preview/recognize";
 
-                let results = await new Promise<any>((resolve, reject) => {
+                let requestExecutor = (resolve: any, reject: any) => {
                     let result: any;
+                    let body = format(inkData);
+
                     xhttp.onreadystatechange = function () {
                         if (this.readyState === 4) {
                             try {
@@ -182,36 +184,35 @@ export namespace CognitiveServices {
                     xhttp.open("PUT", endpoint, true);
                     xhttp.setRequestHeader('Ocp-Apim-Subscription-Key', apiKey);
                     xhttp.setRequestHeader('Content-Type', 'application/json');
-                    xhttp.send(JSON.stringify(toHandwritingUnit(inkData)));
-                });
+                    xhttp.send(body);
+                };
 
-                let recognizedText = results.recognitionUnits.map((unit: any) => unit.recognizedText);
+                let results = (await new Promise<any>(requestExecutor)).recognitionUnits;
+
+                target.inkAnalysis = Docs.Get.DocumentHierarchyFromJson(results, "Ink Analysis");
+                let recognizedText = results.map((item: any) => item.recognizedText);
                 let individualWords = recognizedText.filter((text: string) => text && text.split(" ").length === 1);
-                target.inkAnalysis = Docs.Get.DocumentHierarchyFromJson(results.recognitionUnits, "Ink Analysis");
                 target.handwriting = individualWords.join(" ");
             });
         };
 
-        const toHandwritingUnit = (inkData: InkData): HandwritingUnit => {
+        const format = (inkData: InkData): string => {
             let entries = inkData.entries(), next = entries.next();
-            let strokes: AzureStrokeData[] = [];
-            let id = 0;
+            let strokes: AzureStrokeData[] = [], id = 0;
             while (!next.done) {
-                let entry = next.value;
-                let data = {
+                strokes.push({
                     id: id++,
-                    points: entry[1].pathData.map(point => `${point.x},${point.y}`).join(","),
+                    points: next.value[1].pathData.map(point => `${point.x},${point.y}`).join(","),
                     language: "en-US"
-                };
-                strokes.push(data);
+                });
                 next = entries.next();
             }
-            return {
+            return JSON.stringify({
                 version: 1,
                 language: "en-US",
                 unit: "mm",
                 strokes: strokes
-            };
+            });
         };
 
     }
