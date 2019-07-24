@@ -267,21 +267,28 @@ export namespace Doc {
 
     export function AddDocToList(target: Doc, key: string, doc: Doc, relativeTo?: Doc, before?: boolean, first?: boolean, allowDuplicates?: boolean) {
         if (target[key] === undefined) {
+            console.log("target key undefined");
             Doc.GetProto(target)[key] = new List<Doc>();
         }
         let list = Cast(target[key], listSpec(Doc));
         if (list) {
+            console.log("has list");
             if (allowDuplicates !== true) {
                 let pind = list.reduce((l, d, i) => d instanceof Doc && Doc.AreProtosEqual(d, doc) ? i : l, -1);
                 if (pind !== -1) {
                     list.splice(pind, 1);
                 }
             }
-            if (first) list.splice(0, 0, doc);
+            if (first) {
+                console.log("is first");
+                list.splice(0, 0, doc);
+            }
             else {
+                console.log("not first");
                 let ind = relativeTo ? list.indexOf(relativeTo) : -1;
                 if (ind === -1) list.push(doc);
                 else list.splice(before ? ind : ind + 1, 0, doc);
+                console.log("index", ind);
             }
         }
         return true;

@@ -1,6 +1,6 @@
 import { action, runInAction } from "mobx";
 import { Doc } from "../../new_fields/Doc";
-import { Cast } from "../../new_fields/Types";
+import { Cast, StrCast } from "../../new_fields/Types";
 import { URLField } from "../../new_fields/URLField";
 import { emptyFunction } from "../../Utils";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
@@ -305,7 +305,7 @@ export namespace DragManager {
         StartDrag([ele], dragData, downX, downY, options);
     }
 
-    export function StartColumnDrag(ele: HTMLElement, dragData: ColumnDragData, downX: number, downY: number, options?:DragOptions) {
+    export function StartColumnDrag(ele: HTMLElement, dragData: ColumnDragData, downX: number, downY: number, options?: DragOptions) {
         StartDrag([ele], dragData, downX, downY, options);
     }
 

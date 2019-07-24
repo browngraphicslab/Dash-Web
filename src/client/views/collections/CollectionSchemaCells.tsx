@@ -34,7 +34,7 @@ export interface CellProps {
     renderDepth: number;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
     moveDocument: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
-    isFocused: boolean; 
+    isFocused: boolean;
     changeFocusedCellByIndex: (row: number, col: number) => void;
     setIsEditing: (isEditing: boolean) => void;
     isEditable: boolean;
@@ -42,22 +42,22 @@ export interface CellProps {
 
 @observer
 export class CollectionSchemaCell extends React.Component<CellProps> {
-    @observable protected _isEditing: boolean = false;
+    @observable protected _isEditing: boolean = this.props.isEditing ? true : false;
     protected _focusRef = React.createRef<HTMLDivElement>();
     protected _document = this.props.rowProps.original;
     private _dropDisposer?: DragManager.DragDropDisposer;
 
     componentDidMount() {
-        if (this._focusRef.current) {
-            if (this.props.isFocused) {
-                this._focusRef.current.className += " focused";
-                if (!this.props.isEditable) {
-                    this._focusRef.current.className += " inactive";
-                }
-            } else {
-                this._focusRef.current.className = "collectionSchemaView-cellWrapper";
-            }
-        }
+        // if (this._focusRef.current) {
+        //     if (this.props.isFocused) {
+        //         this._focusRef.current.className += " focused";
+        //         if (!this.props.isEditable) {
+        //             this._focusRef.current.className += " inactive";
+        //         }
+        //     } else {
+        //         this._focusRef.current.className = "collectionSchemaView-cellWrapper";
+        //     }
+        // }
 
         document.addEventListener("keydown", this.onKeyDown);
 
@@ -69,6 +69,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
 
     @action
     onKeyDown = (e: KeyboardEvent): void => {
+        console.log("CELL keydown");
         if (this.props.isFocused && this.props.isEditable) {
             document.removeEventListener("keydown", this.onKeyDown);
             this._isEditing = true;
@@ -139,10 +140,10 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             addDocTab: this.props.addDocTab,
         };
 
-        let onItemDown = (e: React.PointerEvent) => {
-            SetupDrag(this._focusRef, () => this._document[props.fieldKey] instanceof Doc ? this._document[props.fieldKey] : this._document,
-                this._document[props.fieldKey] instanceof Doc ? (doc: Doc, target: Doc, addDoc: (newDoc: Doc) => any) => addDoc(doc) : this.props.moveDocument, this._document[props.fieldKey] instanceof Doc ? "alias" : this.props.Document.schemaDoc ? "copy" : undefined)(e);
-        };
+        // let onItemDown = (e: React.PointerEvent) => {
+        //     SetupDrag(this._focusRef, () => this._document[props.fieldKey] instanceof Doc ? this._document[props.fieldKey] : this._document,
+        //         this._document[props.fieldKey] instanceof Doc ? (doc: Doc, target: Doc, addDoc: (newDoc: Doc) => any) => addDoc(doc) : this.props.moveDocument, this._document[props.fieldKey] instanceof Doc ? "alias" : this.props.Document.schemaDoc ? "copy" : undefined)(e);
+        // };
         let onPointerEnter = (e: React.PointerEvent): void => {
             if (e.buttons === 1 && SelectionManager.GetIsDragging() && (type === "document" || type === undefined)) {
                 dragRef!.current!.className = "doc-drag-over";
@@ -163,10 +164,15 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             contents = typeof field === "object" ? doc ? StrCast(doc.title) === "" ? "--" : StrCast(doc.title) : `--${typeof field}--` : `--${typeof field}--`;
         }
 
+        let className = "collectionSchemaView-cellWrapper";
+        if (this._isEditing) className += " editing";
+        if (this.props.isFocused && this.props.isEditable) className += " focused";
+        if (this.props.isFocused && !this.props.isEditable) className += " inactive";
+
         return (
             <div className="" ref={dragRef} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
-                <div className="collectionSchemaView-cellWrapper" ref={this._focusRef} tabIndex={-1} onPointerDown={this.onPointerDown}>
-                    <div className="collectionSchemaView-cellContents" ref={type === undefined || type === "document" ? this.dropRef: null} onPointerDown={onItemDown} key={props.Document[Id]}>
+                <div className={className} ref={this._focusRef} tabIndex={-1} onPointerDown={this.onPointerDown}>
+                    <div className="collectionSchemaView-cellContents" ref={type === undefined || type === "document" ? this.dropRef : null} key={props.Document[Id]}>
                         <EditableView
                             editing={this._isEditing}
                             isEditingCallback={this.isEditingCallback}

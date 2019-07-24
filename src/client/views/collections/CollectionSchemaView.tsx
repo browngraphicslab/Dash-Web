@@ -344,7 +344,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                         addDocTab: this.props.addDocTab,
                         moveDocument: this.props.moveDocument,
                         setIsEditing: this.setCellIsEditing,
-                        isEditable: isEditable
+                        isEditable: isEditable,
                     };
 
                     let colType = this.getColumnType(col);
@@ -393,13 +393,16 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     tableAddDoc = (doc: Doc, relativeTo?: Doc, before?: boolean) => {
-        console.log("table add doc");
         return Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, relativeTo, before);
     }
 
-    tableMoveDoc = (d: Doc, target: Doc, addDoc: (doc: Doc) => boolean) => {
-        console.log("SCHEMA MOVE", StrCast(d.title), StrCast(target.title));
-        this.props.moveDocument(d, target, addDoc);
+    tableRemoveDoc = (document: Doc): boolean => {
+        let index = this.props.childDocs.findIndex(d => d === document);
+        if (index !== -1) {
+            this.props.childDocs.splice(index, 1);
+            return true;
+        }
+        return false;
     }
 
     private getTrProps: ComponentPropsGetterR = (state, rowInfo) => {
@@ -410,7 +413,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         return {
             ScreenToLocalTransform: this.props.ScreenToLocalTransform,
             addDoc: this.tableAddDoc,
-            moveDoc: this.tableMoveDoc,
+            removeDoc: this.tableRemoveDoc,
             rowInfo,
             rowFocused: !this._headerIsEditing && rowInfo.index === this._focusedCell.row && this.props.isFocused(this.props.Document),
             textWrapRow: this.textWrapRow,
@@ -467,6 +470,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     onKeyDown = (e: KeyboardEvent): void => {
+        console.log("schema keydown", !this._cellIsEditing, !this._headerIsEditing, this.props.isFocused(this.props.Document));
         if (!this._cellIsEditing && !this._headerIsEditing && this.props.isFocused(this.props.Document)) {// && this.props.isSelected()) {
             let direction = e.key === "Tab" ? "tab" : e.which === 39 ? "right" : e.which === 37 ? "left" : e.which === 38 ? "up" : e.which === 40 ? "down" : "";
             this.changeFocusedCellByDirection(direction);
@@ -504,7 +508,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     changeFocusedCellByIndex = (row: number, col: number): void => {
         this._focusedCell = { row: row, col: col };
         this.props.setFocused(this.props.Document);
-        // console.log("changed cell by index", StrCast(this.props.Document.title));
     }
 
     @action

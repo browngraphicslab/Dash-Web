@@ -148,7 +148,7 @@
         padding: 0;
         font-size: 13px;
         text-align: center;
-        // white-space: normal;
+        white-space: normal;
 
         .imageBox-cont {
             position: relative;
@@ -196,8 +196,6 @@
 .collectionSchemaView-header {
     height: 100%;
     color: gray;
-    letter-spacing: 2px;
-    text-transform: uppercase;
 
     .collectionSchema-header-menu {
         height: 100%;
@@ -206,16 +204,18 @@
             width: 100%;
             height: 100%;
             padding: 4px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
 
             svg {
                 margin-right: 4px;
             }
         }
 
-        div[class*="css"] {
-            width: 100%;
-            height: 100%;
-        }
+        // div[class*="css"] {
+        //     width: 100%;
+        //     height: 100%;
+        // }
     }
 }
 
@@ -287,12 +287,6 @@ button.add-column {
         background-color: $light-color-secondary;
     }
 
-    &.row-wrapped {
-        .rt-td {
-            white-space: normal;
-        }
-    }
-
     .row-dragger {
         // height: $MAX_ROW_HEIGHT;
     }
@@ -308,6 +302,10 @@ button.add-column {
         }
         &.row-inside {
             border: 1px solid red;
+        }
+
+        .row-dragging {
+            background-color: blue;
         }
     }
 }
