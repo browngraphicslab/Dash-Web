@@ -74,7 +74,7 @@ class TreeView extends React.Component<TreeViewProps> {
     @observable _collapsed: boolean = true;
 
     @computed get fieldKey() {
-        let target = this.props.document.layout && this.dataDoc ? this.dataDoc : this.props.document;
+        let target = this.props.document;
         let keys = Array.from(Object.keys(target));  // bcz: Argh -- make untracked to avoid this rerunning whenever 'libraryBrush' is set
         if (target.proto instanceof Doc) {
             let arr = Array.from(Object.keys(target.proto));// bcz: Argh -- make untracked to avoid this rerunning whenever 'libraryBrush' is set
@@ -89,7 +89,7 @@ class TreeView extends React.Component<TreeViewProps> {
             }
         });
         let layout = StrCast(this.props.document.layout);
-        if (layout.indexOf("fieldKey={\"") !== -1) {
+        if (layout.indexOf("fieldKey={\"") !== -1 && layout.indexOf("fieldExt=") === -1) {
             return layout.split("fieldKey={\"")[1].split("\"")[0];
         }
         return keyList.length ? keyList[0] : "data";
@@ -192,7 +192,7 @@ class TreeView extends React.Component<TreeViewProps> {
     />)
 
     @computed get keyList() {
-        let target = this.props.document.layout && this.dataDoc ? this.dataDoc : this.props.document;
+        let target = this.props.document;
         let keys = Array.from(Object.keys(target));
         if (target.proto instanceof Doc) {
             keys.push(...Array.from(Object.keys(target.proto)));
@@ -363,10 +363,10 @@ class TreeView extends React.Component<TreeViewProps> {
         let docList = Cast(this.dataDoc[this._chosenKey], listSpec(Doc));
         let remDoc = (doc: Doc) => this.remove(doc, this._chosenKey);
         let addDoc = (doc: Doc, addBefore?: Doc, before?: boolean) => Doc.AddDocToList(this.dataDoc, this._chosenKey, doc, addBefore, before);
-        let doc = Cast((this.props.document.layout ? this.dataDoc : this.props.document)[this._chosenKey], Doc);
 
         if (!this._collapsed) {
             if (!this.props.document.embed) {
+                let doc = Cast(this.props.document[this._chosenKey], Doc);
                 contentElement = <ul key={this._chosenKey + "more"}>
                     {this._chosenKey === "links" ? this.renderLinks() :
                         TreeView.GetChildElements(doc instanceof Doc ? [doc] : DocListCast(docList), this.props.treeViewId, this.props.document, this.resolvedDataDoc, this._chosenKey, addDoc, remDoc, this.move,

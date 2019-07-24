@@ -318,7 +318,7 @@ export namespace Doc {
         if (extensionDoc === undefined) {
             setTimeout(() => {
                 let docExtensionForField = new Doc(doc[Id] + fieldKey, true);
-                docExtensionForField.title = doc.title + ":" + fieldKey + ".ext";
+                docExtensionForField.title = fieldKey + "[" + StrCast(doc.title).match(/\.\.\.[0-9]*/) + "].ext";
                 docExtensionForField.extendsDoc = doc;
                 let proto: Doc | undefined = doc;
                 while (proto && !Doc.IsPrototype(proto)) {
@@ -337,9 +337,16 @@ export namespace Doc {
         return Doc.MakeDelegate(doc); // bcz?
     }
 
-    export function WillExpandTemplateLayout(templateLayoutDoc: Doc, dataDoc?: Doc) {
-        let resolvedDataDoc = (templateLayoutDoc !== dataDoc) ? dataDoc : undefined;
-        if (!dataDoc || !(templateLayoutDoc && !(Cast(templateLayoutDoc.layout, Doc) instanceof Doc) && resolvedDataDoc && resolvedDataDoc !== templateLayoutDoc)) {
+    //
+    // Determines whether the combination of the layoutDoc and dataDoc represents
+    // a template relationship.  If so, the layoutDoc will be expanded into a new
+    // document that inherits the properties of the original layout while allowing
+    // for individual layout properties to be overridden in the expanded layout.
+    //
+    export function WillExpandTemplateLayout(layoutDoc: Doc, dataDoc?: Doc) {
+        let resolvedDataDoc = (layoutDoc !== dataDoc) ? dataDoc : undefined;
+        if (!dataDoc || !(layoutDoc && !(Cast(layoutDoc.layout, Doc) instanceof Doc) &&
+            resolvedDataDoc && resolvedDataDoc !== layoutDoc)) {
             return false;
         }
         return true;
@@ -354,16 +361,18 @@ export namespace Doc {
         if (expandedTemplateLayout instanceof Doc) {
             return expandedTemplateLayout;
         }
-        expandedTemplateLayout = dataDoc[templateLayoutDoc.title + templateLayoutDoc[Id]];
+        // expandedTemplateLayout = dataDoc[templateLayoutDoc.title + templateLayoutDoc[Id]];
+        expandedTemplateLayout = dataDoc["Layout[" + templateLayoutDoc[Id] + "]"];
         if (expandedTemplateLayout instanceof Doc) {
             return expandedTemplateLayout;
         }
         if (expandedTemplateLayout === undefined && BoolCast(templateLayoutDoc.isTemplate)) {
             setTimeout(() => {
                 let expandedDoc = Doc.MakeDelegate(templateLayoutDoc);
+                //expandedDoc.title = templateLayoutDoc.title + "[" + StrCast(dataDoc.title).match(/\.\.\.[0-9]*/) + "]";
                 expandedDoc.title = templateLayoutDoc.title + "[" + StrCast(dataDoc.title).match(/\.\.\.[0-9]*/) + "]";
                 expandedDoc.isExpandedTemplate = templateLayoutDoc;
-                dataDoc[templateLayoutDoc.title + templateLayoutDoc[Id]] = expandedDoc;
+                dataDoc["Layout[" + templateLayoutDoc[Id] + "]"] = expandedDoc;
             }, 0);
         }
         return templateLayoutDoc; // use the templateLayout when it's not a template or the expandedTemplate is pending.
