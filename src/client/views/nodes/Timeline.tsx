@@ -17,6 +17,7 @@ import { VideoBox } from "./VideoBox";
 import { VideoField } from "../../../new_fields/URLField";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { Transform } from "../../util/Transform";
+import { faGrinTongueSquint } from "@fortawesome/free-regular-svg-icons";
 
 
 export interface FlyoutProps {
@@ -73,8 +74,7 @@ export class Timeline extends CollectionSubView(Document) {
         return Cast(this.props.Document[this.props.fieldKey], listSpec(Doc)) as List<Doc>;
     }
 
-    componentWillMount(){
-    }
+  
     componentDidMount() {
         if (StrCast(this.props.Document.type) === "video") {
             console.log("ran");
@@ -85,7 +85,7 @@ export class Timeline extends CollectionSubView(Document) {
                 reaction(() => {
                     return NumCast(this.props.Document.curPage);
                 }, curPage => {
-                    this.changeCurrentBarX(curPage * this._tickIncrement / this._tickSpacing)
+                    this.changeCurrentBarX(curPage * this._tickIncrement / this._tickSpacing);
                 });
 
             }
@@ -106,9 +106,6 @@ export class Timeline extends CollectionSubView(Document) {
                 this._scrubberbox.current!.style.width = `${this._boxLength}`;
             }, { fireImmediately: true });
         });
-    }
-
-    componentDidUpdate() {
     }
 
     @action
@@ -258,10 +255,10 @@ export class Timeline extends CollectionSubView(Document) {
         let timelineContainer = this._timelineContainer.current!;
         if (this._isMinimized) {
             this._isMinimized = false;
-            timelineContainer.style.transform = `translate(0px, 0px)`;
+            timelineContainer.style.visibility = "visible";
         } else {
             this._isMinimized = true;
-            timelineContainer.style.transform = `translate(0px, ${- this._containerHeight - 30}px)`;
+            timelineContainer.style.visibility = "hidden";
         }
     }
 
@@ -323,6 +320,7 @@ export class Timeline extends CollectionSubView(Document) {
         for (const [k, v] of Object.entries(props)) {
             (this.flyoutInfo as any)[k] = v;
         }
+        console.log(this.flyoutInfo); 
     }
 
     render() {
@@ -330,12 +328,11 @@ export class Timeline extends CollectionSubView(Document) {
             <div style={{ left: "0px", top: "0px", position: "absolute", width: "100%", transform: "translate(0px, 0px)" }} ref={this._timelineWrapper}>
                 <button className="minimize" onClick={this.minimize}>Minimize</button>
                 <div className="timeline-container" style={{ height: `${this._containerHeight}px`, left: "0px", top: "30px" }} ref={this._timelineContainer} onPointerDown={this.onTimelineDown} onContextMenu={this.timelineContextMenu}>
-                    {/* <TimelineFlyout flyoutInfo={this.flyoutInfo} tickSpacing={this._tickSpacing}/> */}
+                    <TimelineFlyout flyoutInfo={this.flyoutInfo} tickSpacing={this._tickSpacing}/>
                     <div className="toolbox">
                         <div onClick={this.windBackward}> <FontAwesomeIcon icon={faBackward} size="2x" /> </div>
                         <div onClick={this.onPlay}> <FontAwesomeIcon icon={faPlayCircle} size="2x" /> </div>
                         <div onClick={this.windForward}> <FontAwesomeIcon icon={faForward} size="2x" /> </div>
-                        {/* <TimelineOverview currentBarX = {this._currentBarX}/> */}
                     </div>
                     <div className="info-container" ref={this._infoContainer}>
                         <div className="scrubberbox" ref={this._scrubberbox} onClick={this.onScrubberClick}>
@@ -399,21 +396,21 @@ class TimelineFlyout extends React.Component<TimelineFlyoutProps>{
     @observable private _durationInput = React.createRef<HTMLInputElement>();
     @observable private _fadeInInput = React.createRef<HTMLInputElement>();
     @observable private _fadeOutInput = React.createRef<HTMLInputElement>();
+    @observable private  _data: FlyoutProps = { x: 0, y: 0, display: "none", regiondata: new Doc(), regions: new List<Doc>() };
 
     private block = false;
 
     componentDidMount() {
+        
         document.addEventListener("pointerdown", this.closeFlyout);
     }
+
+
     componentWillUnmount() {
         document.removeEventListener("pointerdown", this.closeFlyout);
     }
 
-    componentDidUpdate() {
-        console.log(this.props.flyoutInfo);
-    }
-
-
+   
     @action
     changeTime = (e: React.KeyboardEvent) => {
         let time = this._timeInput.current!;
@@ -427,7 +424,7 @@ class TimelineFlyout extends React.Component<TimelineFlyoutProps>{
     }
     @action
     onFlyoutDown = (e: React.PointerEvent) => {
-        this.props.flyoutInfo.display = "block";
+        this._data.display = "block";
         this.block = true;
     }
 
@@ -437,7 +434,7 @@ class TimelineFlyout extends React.Component<TimelineFlyoutProps>{
             this.block = false;
             return;
         }
-        this.props.flyoutInfo.display = "none";
+        this._data.display = "none";
     }
 
     @action
@@ -479,7 +476,7 @@ class TimelineFlyout extends React.Component<TimelineFlyoutProps>{
     render() {
         return (
             <div>
-                <div className="flyout-container" style={{ left: `${this.props.flyoutInfo.x}px`, top: `${this.props.flyoutInfo.y}px`, display: `${this.props.flyoutInfo.display!}` }} onPointerDown={this.onFlyoutDown}>
+                <div className="flyout-container" style={{ left: `${this._data.x}px`, top: `${this._data.y}px`, display: `${this._data.display!}` }} onPointerDown={this.onFlyoutDown}>
                     <FontAwesomeIcon className="flyout" icon="comment-alt" color="grey" />
                     <div className="text-container">
                         <p>Time:</p>

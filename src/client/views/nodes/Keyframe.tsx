@@ -23,7 +23,7 @@ export namespace KeyframeFunc {
     export const findAdjacentRegion = (dir: KeyframeFunc.Direction, currentRegion: Doc, regions: List<Doc>): (RegionData | undefined) => {
         let leftMost: (RegionData | undefined) = undefined;
         let rightMost: (RegionData | undefined) = undefined;
-        regions.forEach(region => {
+        DocListCast(regions).forEach(region => {
             let neighbor = RegionData(region as Doc);
             if (currentRegion.position! > neighbor.position) {
                 if (!leftMost || neighbor.position > leftMost.position) {
@@ -113,22 +113,14 @@ export class Keyframe extends React.Component<IProps> {
     }
 
 
-    componentWillMount() {
+    async componentWillMount() {
         if (!this.regiondata.keyframes) {
             this.regiondata.keyframes = new List<Doc>();
         }
-    }
-
-
-    @action
-    componentDidMount() {
-      
-        console.log(toJS(this.props.node));
-        console.log("hi");      
-        let fadeIn =  this.makeKeyData(this.regiondata.position + this.regiondata.fadeIn, KeyframeFunc.KeyframeType.fade)!;
-        let fadeOut =  this.makeKeyData(this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut, KeyframeFunc.KeyframeType.fade)!;
-        let start =  this.makeKeyData(this.regiondata.position, KeyframeFunc.KeyframeType.fade)!;
-        let finish =  this.makeKeyData(this.regiondata.position + this.regiondata.duration, KeyframeFunc.KeyframeType.fade)!;
+        let fadeIn =  await this.makeKeyData(this.regiondata.position + this.regiondata.fadeIn, KeyframeFunc.KeyframeType.fade)!;
+        let fadeOut =  await this.makeKeyData(this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut, KeyframeFunc.KeyframeType.fade)!;
+        let start =  await this.makeKeyData(this.regiondata.position, KeyframeFunc.KeyframeType.fade)!;
+        let finish =  await this.makeKeyData(this.regiondata.position + this.regiondata.duration, KeyframeFunc.KeyframeType.fade)!;
         (fadeIn.key! as Doc).opacity = 1;
         (fadeOut.key! as Doc).opacity = 1;
         (start.key! as Doc).opacity = 0.1;
@@ -140,12 +132,10 @@ export class Keyframe extends React.Component<IProps> {
                 fadeOut.time = this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut;
                 start.time = this.regiondata.position;
                 finish.time = this.regiondata.position + this.regiondata.duration;
-
                 let fadeInIndex = this.regiondata.keyframes!.indexOf(fadeIn);
                 let fadeOutIndex = this.regiondata.keyframes!.indexOf(fadeOut);
                 let startIndex = this.regiondata.keyframes!.indexOf(start);
                 let finishIndex = this.regiondata.keyframes!.indexOf(finish);
-
                 this.regiondata.keyframes![fadeInIndex] = fadeIn;
                 this.regiondata.keyframes![fadeOutIndex] = fadeOut;
                 this.regiondata.keyframes![startIndex] = start;
@@ -155,21 +145,17 @@ export class Keyframe extends React.Component<IProps> {
         });
     }
 
-
     @action
-    makeKeyData = (kfpos: number, type: KeyframeFunc.KeyframeType = KeyframeFunc.KeyframeType.default) => { //Kfpos is mouse offsetX, representing time 
-        let doclist =  DocListCast(this.regiondata.keyframes!);
+    makeKeyData = async (kfpos: number, type: KeyframeFunc.KeyframeType = KeyframeFunc.KeyframeType.default) => { //Kfpos is mouse offsetX, representing time 
+        let doclist =  await DocListCastAsync(this.regiondata.keyframes);
         let existingkf: (Doc | undefined) = undefined;
         if (doclist) {
-            doclist.forEach(TK => { //TK is TimeAndKey
-                if (TK.time === kfpos) {
-                    existingkf = TK;
-                }
+            (doclist).forEach(TK => {
+                TK = TK as Doc; 
+                if (TK.time === kfpos) existingkf = TK;  
             });
         }
-        if (existingkf) {
-            return existingkf;
-        }
+        if (existingkf) return existingkf;
         let TK: Doc = new Doc();
         TK.time = kfpos;
         TK.key = Doc.MakeCopy(this.props.node, true);
@@ -195,9 +181,6 @@ export class Keyframe extends React.Component<IProps> {
         e.stopPropagation();
         let left = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.left, this.regiondata, this.regions)!;
         let right = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.right, this.regiondata, this.regions!);
-        // let bar = this._bar.current!; 
-        // let barX = bar.getBoundingClientRect().left;
-        // let offset = e.clientX - barX;
         let prevX = this.regiondata.position;
         let futureX = this.regiondata.position + e.movementX;
         if (futureX <= 0) {
@@ -295,14 +278,14 @@ export class Keyframe extends React.Component<IProps> {
     }
 
     @action
-    createKeyframe = (e: React.MouseEvent) => {
+    createKeyframe = async (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
         let bar = this._bar.current!;
         let offset = Math.round((e.clientX - bar.getBoundingClientRect().left) * this.props.transform.Scale);
         if (offset > this.regiondata.fadeIn && offset < this.regiondata.duration - this.regiondata.fadeOut) { //make sure keyframe is not created inbetween fades and ends
             let position = NumCast(this.regiondata.position);
-            this.makeKeyData(Math.round(position + offset));
+            await this.makeKeyData(Math.round(position + offset));
             console.log(this.regiondata.keyframes!.length); 
             this.props.changeCurrentBarX(NumCast(Math.round(position + offset))); //first move the keyframe to the correct location and make a copy so the correct file gets coppied
         }
@@ -347,7 +330,7 @@ export class Keyframe extends React.Component<IProps> {
                         e.stopPropagation();
                         let offsetLeft = this._bar.current!.getBoundingClientRect().left - this._bar.current!.parentElement!.getBoundingClientRect().left;
                         let offsetTop = this._bar.current!.getBoundingClientRect().top; //+ this._bar.current!.parentElement!.getBoundingClientRect().top; 
-                        this.props.setFlyout({ x: offsetLeft, y: offsetTop, display: "block", regiondata: this.regiondata, regions: this.regions });
+                        this.props.setFlyout({ x: offsetLeft * this.props.transform.Scale, y: offsetTop * this.props.transform.Scale, display: "block", regiondata: this.regiondata, regions: this.regions });
                     })}>
                     <div className="leftResize" onPointerDown={this.onResizeLeft} ></div>
                     <div className="rightResize" onPointerDown={this.onResizeRight}></div>
