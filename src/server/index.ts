@@ -284,18 +284,15 @@ addSecureRoute(
     RouteStore.getCurrUser
 );
 
+const ServicesApiKeyMap = new Map<string, string | undefined>([
+    ["face", process.env.FACE],
+    ["vision", process.env.VISION],
+    ["handwriting", process.env.HANDWRITING]
+]);
+
 addSecureRoute(Method.GET, (user, res, req) => {
-    let requested = req.params.requestedservice;
-    switch (requested) {
-        case "face":
-            res.send(process.env.FACE);
-            break;
-        case "vision":
-            res.send(process.env.VISION);
-            break;
-        default:
-            res.send(undefined);
-    }
+    let service = req.params.requestedservice;
+    res.send(ServicesApiKeyMap.get(service));
 }, undefined, `${RouteStore.cognitiveServices}/:requestedservice`);
 
 class NodeCanvasFactory {

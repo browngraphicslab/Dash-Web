@@ -31,6 +31,8 @@ export interface PresViewProps {
     Documents: List<Doc>;
 }
 
+const expandedWidth = 400;
+
 @observer
 export class PresentationView extends React.Component<PresViewProps>  {
     public static Instance: PresentationView;
@@ -65,6 +67,14 @@ export class PresentationView extends React.Component<PresViewProps>  {
     constructor(props: PresViewProps) {
         super(props);
         PresentationView.Instance = this;
+    }
+
+    toggle = (forcedValue: boolean | undefined) => {
+        if (forcedValue !== undefined) {
+            this.curPresentation.width = forcedValue ? expandedWidth : 0;
+        } else {
+            this.curPresentation.width = this.curPresentation.width === expandedWidth ? 0 : expandedWidth;
+        }
     }
 
     //The first lifecycle function that gets called to set up the current presentation.
@@ -543,7 +553,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
             this.curPresentation.data = new List([doc]);
         }
 
-        this.curPresentation.width = 400;
+        this.toggle(true);
     }
 
     //Function that sets the store of the children docs.
