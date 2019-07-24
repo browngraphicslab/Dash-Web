@@ -448,7 +448,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 dataDoc={dataDoc}
                 containingCollection={containingCollection}
                 treeViewId={treeViewId}
-                key={child[Id] + "child " + i}
+                key={child[Id]}
                 indentDocument={indent}
                 renderDepth={renderDepth}
                 deleteDoc={remove}

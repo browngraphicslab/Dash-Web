@@ -463,4 +463,12 @@ export namespace Doc {
         d.layout !== miniLayout ? miniLayout && (d.layout = d.miniLayout) : detailLayout && (d.layout = detailLayout);
         if (d.layout === detailLayout) Doc.GetProto(d).nativeWidth = Doc.GetProto(d).nativeHeight = undefined;
     }
+    export async function UseDetailLayout(d: Doc) {
+        let miniLayout = await PromiseValue(d.miniLayout);
+        let detailLayout = await PromiseValue(d.detailedLayout);
+        if (miniLayout && d.layout === miniLayout && detailLayout) {
+            d.layout = detailLayout;
+            Doc.GetProto(d).nativeWidth = Doc.GetProto(d).nativeHeight = undefined;
+        }
+    }
 }
