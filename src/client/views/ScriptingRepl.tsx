@@ -16,18 +16,14 @@ library.add(faCaretRight);
 @observer
 export class DocumentIcon extends React.Component<{ view: DocumentView, index: number }> {
     render() {
-        this.props.view.props.ScreenToLocalTransform();
-        const doc = this.props.view.props.Document;
-        doc.width;
-        doc.height;
-        doc.x;
-        doc.y;
-        const screenCoords = this.props.view.screenRect();
+        const view = this.props.view;
+        const transform = view.props.ScreenToLocalTransform().scale(view.props.ContentScaling()).inverse();
+        const { x, y, width, height } = transform.transformBounds(0, 0, view.props.PanelWidth(), view.props.PanelHeight());
 
         return (
             <div className="documentIcon-outerDiv" style={{
                 position: "absolute",
-                transform: `translate(${screenCoords.left + screenCoords.width / 2}px, ${screenCoords.top}px)`,
+                transform: `translate(${x + width / 2}px, ${y}px)`,
             }}>
                 <p>${this.props.index}</p>
             </div>
