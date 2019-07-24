@@ -57,7 +57,7 @@
 .ReactTable {
     width: 100%;
     height: 100%;
-    background: $light-color;
+    background: white;
     box-sizing: border-box;
     border: none !important;
 
@@ -76,6 +76,7 @@
             font-size: 12px;
             height: 30px;
             border: 1px solid $intermediate-color;
+            box-shadow: none;
         }
 
         .rt-resizable-header {
@@ -101,6 +102,7 @@
         // max-height: $MAX_ROW_HEIGHT;
         font-size: 13px;
         text-align: center;
+        background-color: $light-color-secondary;
         
         &:last-child {
             overflow: visible;
@@ -114,6 +116,7 @@
     .rt-tr-group {
         direction: ltr;
         flex: 0 1 auto;
+        min-height: 30px;
         // max-height: $MAX_ROW_HEIGHT;
         // for sub comp
 
@@ -134,6 +137,7 @@
 
     .rt-tr {
         width: 100%;
+        min-height: 30px;
         // height: $MAX_ROW_HEIGHT;
     }
 
@@ -144,6 +148,7 @@
         padding: 0;
         font-size: 13px;
         text-align: center;
+        white-space: normal;
 
         .imageBox-cont {
             position: relative;
@@ -190,7 +195,9 @@
 
 .collectionSchemaView-header {
     height: 100%;
-    color: $intermediate-color;
+    color: gray;
+    letter-spacing: 2px;
+    text-transform: uppercase;
 
     .collectionSchema-header-menu {
         height: 100%;
@@ -204,7 +211,16 @@
                 margin-right: 4px;
             }
         }
+
+        div[class*="css"] {
+            width: 100%;
+            height: 100%;
+        }
     }
+}
+
+button.add-column {
+    width: 28px;
 }
 
 .collectionSchema-header-menuOptions {
@@ -265,6 +281,7 @@
 
 .collectionSchema-row {
     // height: $MAX_ROW_HEIGHT;
+    height: 100%;
 
     &.row-focused {
         background-color: $light-color-secondary;
@@ -317,7 +334,7 @@
     p {
         width: 100%;
         height: 100%;
-        word-wrap: break-word;
+        // word-wrap: break-word;
     }
 }
 
@@ -337,5 +354,9 @@
 
 .sub {
     padding: 20px;
-    background-color: red;
+    background-color: $intermediate-color;
+}
+
+.collectionSchemaView-expander {
+    height: 100%;
 }

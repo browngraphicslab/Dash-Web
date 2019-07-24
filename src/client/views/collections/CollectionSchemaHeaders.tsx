@@ -30,7 +30,7 @@ export interface HeaderProps {
 export class CollectionSchemaHeader extends React.Component<HeaderProps> {
     render() {
         let icon: IconProp = this.props.keyType === ColumnType.Number ? "hashtag" : this.props.keyType === ColumnType.String ? "font" :
-            this.props.keyType === ColumnType.Boolean ? "check-square" : this.props.keyType ===  ColumnType.Doc ? "file" : "align-justify";
+            this.props.keyType === ColumnType.Boolean ? "check-square" : this.props.keyType === ColumnType.Doc ? "file" : "align-justify";
 
         return (
             <div className="collectionSchemaView-header" >
@@ -64,7 +64,7 @@ export interface AddColumnHeaderProps {
 export class CollectionSchemaAddColumnHeader extends React.Component<AddColumnHeaderProps> {
     render() {
         return (
-            <button onClick={() => this.props.createColumn()}><FontAwesomeIcon icon="plus" size="sm" /></button>
+            <button className="add-column" onClick={() => this.props.createColumn()}><FontAwesomeIcon icon="plus" size="sm" /></button>
         );
     }
 }
@@ -91,7 +91,7 @@ export interface ColumnMenuProps {
 @observer
 export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps> {
     @observable private _isOpen: boolean = false;
-    @observable private _node : HTMLDivElement | null = null;
+    @observable private _node: HTMLDivElement | null = null;
 
     componentDidMount() {
         document.addEventListener("pointerdown", this.detectClick);
@@ -109,7 +109,7 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
         }
     }
 
-    @action 
+    @action
     toggleIsOpen = (): void => {
         this._isOpen = !this._isOpen;
         this.props.setIsEditing(this._isOpen);
@@ -133,19 +133,19 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
         return (
             <div className="collectionSchema-headerMenu-group">
                 <label>Column type:</label>
-                <div className="columnMenu-types"> 
+                <div className="columnMenu-types">
                     <button title="Any" className={this.props.keyType === ColumnType.Any ? "active" : ""} onClick={() => this.props.setColumnType(this.props.keyValue, ColumnType.Any)}>
                         <FontAwesomeIcon icon={"align-justify"} size="sm" />
-                        </button>
+                    </button>
                     <button title="Number" className={this.props.keyType === ColumnType.Number ? "active" : ""} onClick={() => this.props.setColumnType(this.props.keyValue, ColumnType.Number)}>
                         <FontAwesomeIcon icon={"hashtag"} size="sm" />
-                        </button>
+                    </button>
                     <button title="String" className={this.props.keyType === ColumnType.String ? "active" : ""} onClick={() => this.props.setColumnType(this.props.keyValue, ColumnType.String)}>
                         <FontAwesomeIcon icon={"font"} size="sm" />
-                        </button>
+                    </button>
                     <button title="Checkbox" className={this.props.keyType === ColumnType.Boolean ? "active" : ""} onClick={() => this.props.setColumnType(this.props.keyValue, ColumnType.Boolean)}>
                         <FontAwesomeIcon icon={"check-square"} size="sm" />
-                        </button>
+                    </button>
                     <button title="Document" className={this.props.keyType === ColumnType.Doc ? "active" : ""} onClick={() => this.props.setColumnType(this.props.keyValue, ColumnType.Doc)}>
                         <FontAwesomeIcon icon={"file"} size="sm" />
                     </button>
@@ -183,13 +183,13 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
                     />
                 </div>
                 {this.props.onlyShowOptions ? <></> :
-                <>
-                    {this.renderTypes()}
-                    {this.renderSorting()}
-                    <div className="collectionSchema-headerMenu-group">
-                        <button onClick={() => this.props.deleteColumn(this.props.keyValue)}>Delete Column</button>
-                    </div>
-                </>
+                    <>
+                        {this.renderTypes()}
+                        {this.renderSorting()}
+                        <div className="collectionSchema-headerMenu-group">
+                            <button onClick={() => this.props.deleteColumn(this.props.keyValue)}>Delete Column</button>
+                        </div>
+                    </>
                 }
             </div>
         );
@@ -225,7 +225,7 @@ class KeysDropdown extends React.Component<KeysDropdownProps> {
 
     @action setSearchTerm = (value: string): void => { this._searchTerm = value; };
     @action setKey = (key: string): void => { this._key = key; };
-    @action setIsOpen = (isOpen: boolean): void => {this._isOpen = isOpen;};
+    @action setIsOpen = (isOpen: boolean): void => { this._isOpen = isOpen; };
 
     @action
     onSelect = (key: string): void => {
@@ -253,7 +253,7 @@ class KeysDropdown extends React.Component<KeysDropdownProps> {
         }
     }
 
-    @action 
+    @action
     onPointerEnter = (e: React.PointerEvent): void => {
         this._canClose = false;
     }
@@ -278,7 +278,7 @@ class KeysDropdown extends React.Component<KeysDropdownProps> {
         if (!exactFound && this._searchTerm !== "" && this.props.canAddNew) {
             options.push(<div key={""} className="key-option"
                 onClick={() => { this.onSelect(this._searchTerm); this.setSearchTerm(""); }}>
-                    Create "{this._searchTerm}" key</div>);
+                Create "{this._searchTerm}" key</div>);
         }
 
         return options;
