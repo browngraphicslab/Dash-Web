@@ -16,6 +16,7 @@ import { faArrowRight, faArrowLeft, faPlay, faStop, faPlus, faTimes, faMinus, fa
 import { Docs } from "../../documents/Documents";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import PresentationViewList from "./PresentationList";
+import { ContextMenu } from "../ContextMenu";
 
 library.add(faArrowLeft);
 library.add(faArrowRight);
@@ -804,7 +805,6 @@ export class PresentationView extends React.Component<PresViewProps>  {
     addPressElem = (keyDoc: Doc, elem: PresentationElement) => {
         this.presElementsMappings.set(keyDoc, elem);
     }
-
 
     render() {
 

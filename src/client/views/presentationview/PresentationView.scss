@@ -19,6 +19,10 @@
     -ms-user-select: none;
     user-select: none;
     transition: all .1s;
+
+    .jsx-parser {
+        height: auto;
+    }
 }
 
 .presentationView-item-above {

@@ -64,7 +64,7 @@ library.add(faArrowsAltH);
 /**
  * Component that takes in a document prop and a boolean whether it's collapsed or not.
  */
-class TreeView extends React.Component<TreeViewProps> {
+export class TreeView extends React.Component<TreeViewProps> {
     private _header?: React.RefObject<HTMLDivElement> = React.createRef();
     private _treedropDisposer?: DragManager.DragDropDisposer;
     private _dref = React.createRef<HTMLDivElement>();

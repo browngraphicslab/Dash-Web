@@ -1,11 +1,11 @@
 import { observer } from "mobx-react";
 import React = require("react");
 import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
-import { NumCast, BoolCast, StrCast, Cast } from "../../../new_fields/Types";
+import { NumCast, BoolCast, StrCast, Cast, FieldValue } from "../../../new_fields/Types";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { observable, action, computed, runInAction } from "mobx";
 import "./PresentationView.scss";
-import { Utils } from "../../../Utils";
+import { Utils, emptyFunction, returnFalse } from "../../../Utils";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFile as fileSolid, faFileDownload, faLocationArrow, faArrowUp, faSearch } from '@fortawesome/free-solid-svg-icons';
@@ -16,6 +16,11 @@ import { DragManager, SetupDrag, dropActionType } from "../../util/DragManager";
 import { SelectionManager } from "../../util/SelectionManager";
 import { indexOf } from "typescript-collections/dist/lib/arrays";
 import { map } from "bluebird";
+import { ContextMenu } from "../ContextMenu";
+import { DocumentContentsView } from "../nodes/DocumentContentsView";
+import { Transform } from "../../util/Transform";
+import { FieldView } from "../nodes/FieldView";
+import { DocumentView } from "../nodes/DocumentView";
 
 library.add(faArrowUp);
 library.add(fileSolid);
@@ -768,8 +773,51 @@ export default class PresentationElement extends React.Component<PresentationEle
         }
     }
 
+    private get embedInline() {
+        return BoolCast(this.props.document.embedOpen);
+    }
 
+    private set embedInline(value: boolean) {
+        this.props.document.embedOpen = value;
+    }
 
+    onContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        ContextMenu.Instance.addItem({ description: this.embedInline ? "Collapse Inline" : "Expand Inline", event: () => this.embedInline = !this.embedInline, icon: "expand" });
+        ContextMenu.Instance.displayMenu(e.clientX, e.clientY);
+    }
+
+    renderEmbeddedInline = () => {
+        if (!this.embedInline) {
+            return (null);
+        }
+
+        // return <ul key={this.props.document[Id] + "more"}>
+        //     {TreeView.GetChildElements([this.props.document], "", new Doc(), undefined, "", (doc: Doc, relativeTo?: Doc, before?: boolean) => false, this.props.removeDocByRef, this.move,
+        //         StrCast(this.props.document.dropAction) as dropActionType, (doc: Doc, dataDoc: Doc | undefined, where: string) => { }, Transform.Identity, () => ({ translateX: 0, translateY: 0 }), () => false, () => 400, 7)}
+        // </ul >;
+
+        return (
+            <DocumentView
+                Document={this.props.document}
+                ContainingCollectionView={undefined}
+                ScreenToLocalTransform={Transform.Identity}
+                renderDepth={7}
+                ContentScaling={() => 1}
+                PanelWidth={() => 400}
+                PanelHeight={() => 400}
+                focus={(doc: Doc, willZoom: boolean) => { }}
+                selectOnLoad={false}
+                parentActive={returnFalse}
+                whenActiveChanged={(isActive: boolean) => { }}
+                bringToFront={(doc: Doc) => { }}
+                addDocTab={(doc: Doc, dataDoc: Doc | undefined, where: string) => { }}
+                zoomToScale={(scale: number) => { }}
+                getScale={() => 3.1415}
+            />
+        );
+    }
 
     render() {
         let p = this.props;
@@ -786,7 +834,7 @@ export default class PresentationElement extends React.Component<PresentationEle
         let dropAction = StrCast(this.props.document.dropAction) as dropActionType;
         let onItemDown = SetupDrag(this.presElRef, () => p.document, this.move, dropAction, this.props.mainDocument[Id], true);
         return (
-            <div className={className} key={p.document[Id] + p.index}
+            <div className={className} onContextMenu={this.onContextMenu} key={p.document[Id] + p.index}
                 ref={this.presElRef}
                 onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}
                 onPointerDown={onItemDown}
@@ -794,6 +842,7 @@ export default class PresentationElement extends React.Component<PresentationEle
                     outlineColor: "maroon",
                     outlineStyle: "dashed",
                     outlineWidth: BoolCast(p.document.libraryBrush) ? `1px` : "0px",
+                    overflowY: "scroll"
                 }}
                 onClick={e => { p.gotoDocument(p.index, NumCast(this.props.mainDocument.selectedDoc)); e.stopPropagation(); }}>
                 <strong className="presentationView-name">
@@ -811,7 +860,8 @@ export default class PresentationElement extends React.Component<PresentationEle
                     this.changeGroupStatus();
                     this.onGroupClick(p.document, p.index, this.selectedButtons[buttonIndex.Group]);
                 }}> <FontAwesomeIcon icon={"arrow-up"} /> </button>
-
+                <br />
+                {this.renderEmbeddedInline()}
             </div>
         );
     }
