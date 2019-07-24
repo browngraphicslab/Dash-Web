@@ -1,4 +1,4 @@
-import { action } from "mobx";
+import { action, observable, observe } from "mobx";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowUp, faTag, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { Dropdown, MenuItem, icons, } from "prosemirror-menu"; //no import css
@@ -59,6 +59,10 @@ export class TooltipTextMenu {
 
     private _marksToDoms: Map<Mark, HTMLSpanElement> = new Map();
 
+    @observable
+    private _storedMarks: Mark<any>[] | null | undefined;
+
+
     constructor(view: EditorView, editorProps: FieldViewProps & FormattedTextBoxProps) {
         this.view = view;
         this.editorProps = editorProps;
@@ -67,7 +71,8 @@ export class TooltipTextMenu {
         this.tooltip.className = "tooltipMenu";
         this.dragElement(this.tooltip);
 
-        this.dragElement(this.tooltip);
+        this._storedMarks = this.view.state.storedMarks;
+
         // this.createCollapse();
         // if (this._collapseBtn) {
         //     this.tooltip.appendChild(this._collapseBtn.render(this.view).dom);
@@ -111,10 +116,10 @@ export class TooltipTextMenu {
                 if (dom.contains(e.target as Node)) {
                     e.stopPropagation();
                     command(view.state, view.dispatch, view);
-                    if (this.view.state.selection.empty) {
-                        if (dom.style.color === "white") { dom.style.color = "greenyellow"; }
-                        else { dom.style.color = "white"; }
-                    }
+                    // if (this.view.state.selection.empty) {
+                    //     if (dom.style.color === "white") { dom.style.color = "greenyellow"; }
+                    //     else { dom.style.color = "white"; }
+                    // }
                 }
             });
 
@@ -520,20 +525,23 @@ export class TooltipTextMenu {
         }
         else {
             let { from, to, $from } = this.view.state.selection;
-            if ($from && $from.nodeAfter && this._brushdom) {
-                if (this._brushMarks && to - from > 0) {
-                    this.view.dispatch(this.view.state.tr.removeMark(from, to));
-                    this._brushMarks.forEach((mark: Mark) => {
-                        const markType = mark.type;
-                        this.changeToMarkInGroup(markType, this.view, []);
+            if (this._brushdom) {
+                if (!this.view.state.selection.empty && $from && $from.nodeAfter) {
+                    if (this._brushMarks && to - from > 0) {
+                        this.view.dispatch(this.view.state.tr.removeMark(from, to));
+                        this._brushMarks.forEach((mark: Mark) => {
+                            const markType = mark.type;
+                            this.changeToMarkInGroup(markType, this.view, []);
 
-                    });
+                        });
+                    }
                 }
-
-                const newbrush = this.createBrush(false).render(this.view).dom;
-                this.tooltip.replaceChild(newbrush, this._brushdom);
-                this._brushdom = newbrush;
-                this._brushIsEmpty = !this._brushIsEmpty;
+                else {
+                    const newbrush = this.createBrush(false).render(this.view).dom;
+                    this.tooltip.replaceChild(newbrush, this._brushdom);
+                    this._brushdom = newbrush;
+                    this._brushIsEmpty = !this._brushIsEmpty;
+                }
             }
         }
 
@@ -709,6 +717,15 @@ export class TooltipTextMenu {
         return found;
     }
 
+    reset_mark_doms() {
+        let iterator = this._marksToDoms.values();
+        let next = iterator.next();
+        while (!next.done) {
+            next.value.style.color = "white";
+            next = iterator.next();
+        }
+    }
+
     //updates the tooltip menu when the selection changes
     update(view: EditorView, lastState: EditorState | undefined) {
         let state = view.state;
@@ -716,12 +733,7 @@ export class TooltipTextMenu {
         if (lastState && lastState.doc.eq(state.doc) &&
             lastState.selection.eq(state.selection)) return;
 
-        let iterator = this._marksToDoms.values();
-        let next = iterator.next();
-        while (!next.done) {
-            next.value.style.color = "white";
-            next = iterator.next();
-        }
+        this.reset_mark_doms();
 
         // Hide the tooltip if the selection is empty
         if (state.selection.empty) {
@@ -765,6 +777,18 @@ export class TooltipTextMenu {
             }
         }
         this.view.dispatch(this.view.state.tr.setStoredMarks(this._activeMarks));
+        this.update_mark_doms();
+    }
+
+    public mark_key_pressed(marks: Mark<any>[]) {
+        if (this.view.state.selection.empty) {
+            if (marks) this._activeMarks = marks;
+            this.update_mark_doms();
+        }
+    }
+
+    update_mark_doms() {
+        this.reset_mark_doms();
         this._activeMarks.forEach((mark) => {
             if (this._marksToDoms.has(mark)) {
                 let dom = this._marksToDoms.get(mark);

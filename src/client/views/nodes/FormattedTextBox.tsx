@@ -145,6 +145,10 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (this._editorView) {
             const state = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
+            if (state.selection.empty && FormattedTextBox._toolTipTextMenu) {
+                const marks = tx.storedMarks;
+                if (marks) { FormattedTextBox._toolTipTextMenu.mark_key_pressed(marks); }
+            }
             this._applyingChange = true;
             const fieldkey = "preview";
             if (Object.keys(this.dataDoc).indexOf(fieldkey) !== -1) {
