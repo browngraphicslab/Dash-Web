@@ -360,8 +360,12 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     getChildDocumentViewProps(childDocLayout: Doc): DocumentViewProps {
         let self = this;
         let resolvedDataDoc = !this.props.Document.isTemplate && this.props.DataDoc !== this.props.Document ? this.props.DataDoc : undefined;
-        resolvedDataDoc && Doc.UpdateDocumentExtensionForField(resolvedDataDoc, this.props.fieldKey);
-        let layoutDoc = Doc.expandTemplateLayout(childDocLayout, resolvedDataDoc);
+        let layoutDoc = childDocLayout;
+        if (resolvedDataDoc && Doc.WillExpandTemplateLayout(childDocLayout, resolvedDataDoc)) {
+            Doc.UpdateDocumentExtensionForField(resolvedDataDoc, this.props.fieldKey);
+            let fieldExtensionDoc = Doc.resolvedFieldDataDoc(resolvedDataDoc, StrCast(childDocLayout.templateField, StrCast(childDocLayout.title)), "dummy");
+            layoutDoc = Doc.expandTemplateLayout(childDocLayout, fieldExtensionDoc !== resolvedDataDoc ? fieldExtensionDoc : undefined);
+        } else layoutDoc = Doc.expandTemplateLayout(childDocLayout, resolvedDataDoc);
         return {
             DataDoc: resolvedDataDoc !== layoutDoc && resolvedDataDoc ? resolvedDataDoc : undefined,
             Document: layoutDoc,

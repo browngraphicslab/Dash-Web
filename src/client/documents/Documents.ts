@@ -56,7 +56,8 @@ export enum DocumentType {
     IMPORT = "import",
     LINK = "link",
     LINKDOC = "linkdoc",
-    TEMPLATE = "template"
+    TEMPLATE = "template",
+    EXTENSION = "extension"
 }
 
 export interface DocumentOptions {
