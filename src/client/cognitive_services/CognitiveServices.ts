@@ -187,12 +187,15 @@ export namespace CognitiveServices {
                     xhttp.send(body);
                 };
 
-                let results = (await new Promise<any>(requestExecutor)).recognitionUnits;
+                let results = await new Promise<any>(requestExecutor);
 
-                target.inkAnalysis = Docs.Get.DocumentHierarchyFromJson(results, "Ink Analysis");
-                let recognizedText = results.map((item: any) => item.recognizedText);
-                let individualWords = recognizedText.filter((text: string) => text && text.split(" ").length === 1);
-                target.handwriting = individualWords.join(" ");
+                if (results) {
+                    results.recognitionUnits && (results = results.recognitionUnits);
+                    target.inkAnalysis = Docs.Get.DocumentHierarchyFromJson(results, "Ink Analysis");
+                    let recognizedText = results.map((item: any) => item.recognizedText);
+                    let individualWords = recognizedText.filter((text: string) => text && text.split(" ").length === 1);
+                    target.handwriting = individualWords.join(" ");
+                }
             });
         };
 

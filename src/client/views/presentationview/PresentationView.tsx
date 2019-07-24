@@ -69,6 +69,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
         PresentationView.Instance = this;
     }
 
+    @action
     toggle = (forcedValue: boolean | undefined) => {
         if (forcedValue !== undefined) {
             this.curPresentation.width = forcedValue ? expandedWidth : 0;
