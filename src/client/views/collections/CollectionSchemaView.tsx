@@ -15,7 +15,7 @@ import { Cast, FieldValue, NumCast, StrCast, BoolCast } from "../../../new_field
 import { Docs } from "../../documents/Documents";
 import { Gateway } from "../../northstar/manager/Gateway";
 import { SetupDrag, DragManager } from "../../util/DragManager";
-import { CompileScript } from "../../util/Scripting";
+import { CompileScript, ts, Transformer } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
 import { COLLECTION_BORDER_WIDTH, MAX_ROW_HEIGHT } from '../../views/globalCssVariables.scss';
 import { ContextMenu } from "../ContextMenu";
@@ -30,7 +30,7 @@ import { CollectionSubView } from "./CollectionSubView";
 import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
 import { undoBatch } from "../../util/UndoManager";
-import { timesSeries } from "async";
+import { ComputedField } from "../../../new_fields/ScriptField";
 
 
 library.add(faCog);
@@ -97,6 +97,78 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         return this.props.Document;
     }
 
+    getField(row: number, col?: number) {
+        const docs = DocListCast(this.props.Document[this.props.fieldKey]);
+        row = row % docs.length;
+        while (row < 0) row += docs.length;
+        const columns = this.columns;
+        const doc = docs[row];
+        if (col === undefined) {
+            return doc;
+        }
+        if (col >= 0 && col < columns.length) {
+            const column = this.columns[col];
+            return doc[column];
+        }
+        return undefined;
+    }
+
+    createTransformer = (row: number, col: number): Transformer => {
+        const self = this;
+        const captures: { [name: string]: Field } = {};
+
+        const transformer: ts.TransformerFactory<ts.SourceFile> = context => {
+            return root => {
+                function visit(node: ts.Node) {
+                    node = ts.visitEachChild(node, visit, context);
+                    if (ts.isIdentifier(node)) {
+                        const isntPropAccess = !ts.isPropertyAccessExpression(node.parent) || node.parent.expression === node;
+                        const isntPropAssign = !ts.isPropertyAssignment(node.parent) || node.parent.name !== node;
+                        if (isntPropAccess && isntPropAssign) {
+                            if (node.text === "$r") {
+                                return ts.createNumericLiteral(row.toString());
+                            } else if (node.text === "$c") {
+                                return ts.createNumericLiteral(col.toString());
+                            } else if (node.text === "$") {
+                                if (ts.isCallExpression(node.parent)) {
+                                    captures.doc = self.props.Document;
+                                    captures.key = self.props.fieldKey;
+                                }
+                            }
+                        }
+                    }
+
+                    return node;
+                }
+                return ts.visitNode(root, visit);
+            };
+        };
+
+        const getVars = () => {
+            return { capturedVariables: captures };
+        };
+
+        return { transformer, getVars };
+    }
+
+    setComputed(script: string, doc: Doc, field: string, row: number, col: number): boolean {
+        script =
+            `const $ = (row:number, col?:number) => {
+                if(col === undefined) {
+                    return (doc as any)[key][row + ${row}];
+                }
+                return (doc as any)[key][row + ${row}][(doc as any).schemaColumns[col + ${col}]];
+            }
+            return ${script}`;
+        const compiled = CompileScript(script, { params: { this: Doc.name }, typecheck: true, transformer: this.createTransformer(row, col) });
+        if (compiled.compiled) {
+            doc[field] = new ComputedField(compiled);
+            return true;
+        }
+
+        return false;
+    }
+
     renderCell = (rowProps: CellInfo) => {
         let props: FieldViewProps = {
             Document: rowProps.original,
@@ -122,12 +194,13 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             (!this.props.CollectionView.props.isSelected() ? undefined :
                 SetupDrag(reference, () => props.Document, this.props.moveDocument, this.props.Document.schemaDoc ? "copy" : undefined)(e));
         };
-        let applyToDoc = (doc: Doc, run: (args?: { [name: string]: any }) => any) => {
-            const res = run({ this: doc });
+        let applyToDoc = (doc: Doc, row: number, column: number, run: (args?: { [name: string]: any }) => any) => {
+            const res = run({ this: doc, $r: row, $c: column, $: (r: number = 0, c: number = 0) => this.getField(r + row, c + column) });
             if (!res.success) return false;
             doc[props.fieldKey] = res.result;
             return true;
         };
+        const colIndex = this.columns.indexOf(rowProps.column.id!);
         return (
             <div className="collectionSchemaView-cellContents" onPointerDown={onItemDown} key={props.Document[Id]} ref={reference}>
                 <EditableView
@@ -142,21 +215,23 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                         return "";
                     }}
                     SetValue={(value: string) => {
-                        let script = CompileScript(value, { addReturn: true, params: { this: Doc.name } });
+                        if (value.startsWith(":=")) {
+                            return this.setComputed(value.substring(2), props.Document, rowProps.column.id!, rowProps.index, colIndex);
+                        }
+                        let script = CompileScript(value, { addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
                         if (!script.compiled) {
                             return false;
                         }
-                        return applyToDoc(props.Document, script.run);
+                        return applyToDoc(props.Document, rowProps.index, colIndex, script.run);
                     }}
                     OnFillDown={async (value: string) => {
-                        let script = CompileScript(value, { addReturn: true, params: { this: Doc.name } });
+                        let script = CompileScript(value, { addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
                         if (!script.compiled) {
                             return;
                         }
                         const run = script.run;
-                        //TODO This should be able to be refactored to compile the script once
                         const val = await DocListCastAsync(this.props.Document[this.props.fieldKey]);
-                        val && val.forEach(doc => applyToDoc(doc, run));
+                        val && val.forEach((doc, i) => applyToDoc(doc, i, colIndex, run));
                     }}>
                 </EditableView>
             </div >
@@ -446,8 +521,12 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
     drop = (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.DocumentDragData) {
             let docDrag = de.data;
+            let computed = CompileScript("return this.image_data[0]", { params: { this: "Doc" } });
             this.props.childDocs && this.props.childDocs.map(otherdoc => {
-                Doc.GetProto(otherdoc).layout = Doc.MakeDelegate(docDrag.draggedDocuments[0]);
+                let doc = docDrag.draggedDocuments[0];
+                let target = Doc.GetProto(otherdoc);
+                target.layout = target.detailedLayout = Doc.MakeDelegate(doc);
+                computed.compiled && (target.miniLayout = new ComputedField(computed));
             });
             e.stopPropagation();
         }

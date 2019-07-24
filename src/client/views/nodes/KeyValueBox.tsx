@@ -114,7 +114,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         let protos = Doc.GetAllPrototypes(doc);
         for (const proto of protos) {
             Object.keys(proto).forEach(key => {
-                if (!(key in ids)) {
+                if (!(key in ids) && realDoc[key] !== ComputedField.undefined) {
                     ids[key] = key;
                 }
             });
