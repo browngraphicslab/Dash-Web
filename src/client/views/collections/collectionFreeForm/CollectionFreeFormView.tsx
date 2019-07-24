@@ -503,11 +503,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         onError(script.errors.map(error => error.messageText).join("\n"));
                         return;
                     }
-                    const docs = DocListCast(doc[dataKey]);
-                    docs.map(d => d.transition = "transform 1s");
                     doc[key] = new ScriptField(script);
                     overlayDisposer();
-                    setTimeout(() => docs.map(d => d.transition = undefined), 1200);
                 }} />;
                 overlayDisposer = OverlayView.Instance.addWindow(scriptingBox, options);
             };
