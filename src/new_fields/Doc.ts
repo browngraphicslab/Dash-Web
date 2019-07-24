@@ -444,7 +444,6 @@ export namespace Doc {
         }
         let layout = StrCast(fieldLayoutDoc.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
         if (backgroundLayout) {
-            layout = StrCast(fieldLayoutDoc.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"} fieldExt={"annotations"}`);
             backgroundLayout = backgroundLayout.replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
         }
         let nw = Cast(fieldTemplate.nativeWidth, "number");
