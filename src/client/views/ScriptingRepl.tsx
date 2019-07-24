@@ -2,7 +2,7 @@ import * as React from 'react';
 import { observer } from 'mobx-react';
 import { observable, action } from 'mobx';
 import './ScriptingRepl.scss';
-import { Scripting, CompileScript, ts } from '../util/Scripting';
+import { Scripting, CompileScript, ts, Transformer } from '../util/Scripting';
 import { DocumentManager } from '../util/DocumentManager';
 import { DocumentView } from './nodes/DocumentView';
 import { OverlayView } from './OverlayView';
@@ -17,8 +17,11 @@ library.add(faCaretRight);
 export class DocumentIcon extends React.Component<{ view: DocumentView, index: number }> {
     render() {
         this.props.view.props.ScreenToLocalTransform();
-        this.props.view.props.Document.width;
-        this.props.view.props.Document.height;
+        const doc = this.props.view.props.Document;
+        doc.width;
+        doc.height;
+        doc.x;
+        doc.y;
         const screenCoords = this.props.view.screenRect();
 
         return (
@@ -26,7 +29,7 @@ export class DocumentIcon extends React.Component<{ view: DocumentView, index: n
                 position: "absolute",
                 transform: `translate(${screenCoords.left + screenCoords.width / 2}px, ${screenCoords.top}px)`,
             }}>
-                <p >${this.props.index}</p>
+                <p>${this.props.index}</p>
             </div>
         );
     }
@@ -106,31 +109,35 @@ export class ScriptingRepl extends React.Component {
 
     private args: any = {};
 
-    getTransformer: ts.TransformerFactory<ts.SourceFile> = context => {
-        const knownVars: { [name: string]: number } = {};
-        const usedDocuments: number[] = [];
-        Scripting.getGlobals().forEach(global => knownVars[global] = 1);
-        return root => {
-            function visit(node: ts.Node) {
-                node = ts.visitEachChild(node, visit, context);
+    getTransformer = (): Transformer => {
+        return {
+            transformer: context => {
+                const knownVars: { [name: string]: number } = {};
+                const usedDocuments: number[] = [];
+                Scripting.getGlobals().forEach(global => knownVars[global] = 1);
+                return root => {
+                    function visit(node: ts.Node) {
+                        node = ts.visitEachChild(node, visit, context);
 
-                if (ts.isIdentifier(node)) {
-                    const isntPropAccess = !ts.isPropertyAccessExpression(node.parent) || node.parent.expression === node;
-                    const isntPropAssign = !ts.isPropertyAssignment(node.parent) || node.parent.name !== node;
-                    if (isntPropAccess && isntPropAssign && !(node.text in knownVars) && !(node.text in globalThis)) {
-                        const match = node.text.match(/\$([0-9]+)/);
-                        if (match) {
-                            const m = parseInt(match[1]);
-                            usedDocuments.push(m);
-                        } else {
-                            return ts.createPropertyAccess(ts.createIdentifier("args"), node);
+                        if (ts.isIdentifier(node)) {
+                            const isntPropAccess = !ts.isPropertyAccessExpression(node.parent) || node.parent.expression === node;
+                            const isntPropAssign = !ts.isPropertyAssignment(node.parent) || node.parent.name !== node;
+                            if (isntPropAccess && isntPropAssign && !(node.text in knownVars) && !(node.text in globalThis)) {
+                                const match = node.text.match(/\$([0-9]+)/);
+                                if (match) {
+                                    const m = parseInt(match[1]);
+                                    usedDocuments.push(m);
+                                } else {
+                                    return ts.createPropertyAccess(ts.createIdentifier("args"), node);
+                                }
+                            }
                         }
-                    }
-                }
 
-                return node;
+                        return node;
+                    }
+                    return ts.visitNode(root, visit);
+                };
             }
-            return ts.visitNode(root, visit);
         };
     }
 
@@ -142,7 +149,7 @@ export class ScriptingRepl extends React.Component {
                 const docGlobals: { [name: string]: any } = {};
                 DocumentManager.Instance.DocumentViews.forEach((dv, i) => docGlobals[`$${i}`] = dv.props.Document);
                 const globals = Scripting.makeMutableGlobalsCopy(docGlobals);
-                const script = CompileScript(this.commandString, { typecheck: false, addReturn: true, editable: true, params: { args: "any" }, transformer: this.getTransformer, globals });
+                const script = CompileScript(this.commandString, { typecheck: false, addReturn: true, editable: true, params: { args: "any" }, transformer: this.getTransformer(), globals });
                 if (!script.compiled) {
                     return;
                 }

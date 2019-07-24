@@ -1,6 +1,6 @@
 import { observable, action } from "mobx";
-import { serializable, primitive, map, alias, list } from "serializr";
-import { autoObject, SerializationHelper, Deserializable } from "../client/util/SerializationHelper";
+import { serializable, primitive, map, alias, list, PropSchema, custom } from "serializr";
+import { autoObject, SerializationHelper, Deserializable, afterDocDeserialize } from "../client/util/SerializationHelper";
 import { DocServer } from "../client/DocServer";
 import { setter, getter, getField, updateFunction, deleteProperty, makeEditable, makeReadOnly } from "./util";
 import { Cast, ToConstructor, PromiseValue, FieldValue, NumCast, BoolCast, StrCast } from "./Types";
@@ -68,8 +68,15 @@ export function DocListCast(field: FieldResult): Doc[] {
 export const WidthSym = Symbol("Width");
 export const HeightSym = Symbol("Height");
 
+function fetchProto(doc: Doc) {
+    const proto = doc.proto;
+    if (proto instanceof Promise) {
+        return proto;
+    }
+}
+
 @scriptingGlobal
-@Deserializable("doc").withFields(["id"])
+@Deserializable("doc", fetchProto).withFields(["id"])
 export class Doc extends RefField {
     constructor(id?: FieldId, forceSave?: boolean) {
         super(id);
@@ -102,7 +109,7 @@ export class Doc extends RefField {
     proto: Opt<Doc>;
     [key: string]: FieldResult;
 
-    @serializable(alias("fields", map(autoObject())))
+    @serializable(alias("fields", map(autoObject(), { afterDeserialize: afterDocDeserialize })))
     private get __fields() {
         return this.___fields;
     }
@@ -134,14 +141,14 @@ export class Doc extends RefField {
         return "invalid";
     }
 
-    public [HandleUpdate](diff: any) {
+    public async [HandleUpdate](diff: any) {
         const set = diff.$set;
         if (set) {
             for (const key in set) {
                 if (!key.startsWith("fields.")) {
                     continue;
                 }
-                const value = SerializationHelper.Deserialize(set[key]);
+                const value = await SerializationHelper.Deserialize(set[key]);
                 const fKey = key.substring(7);
                 this[fKey] = value;
             }
@@ -244,7 +251,7 @@ export namespace Doc {
         let r = (doc === other);
         let r2 = (doc.proto === other);
         let r3 = (other.proto === doc);
-        let r4 = (doc.proto === other.proto);
+        let r4 = (doc.proto === other.proto && other.proto !== undefined);
         return r || r2 || r3 || r4;
     }
 
@@ -298,7 +305,7 @@ export namespace Doc {
                 x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
                 r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)
             };
-        }, { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: Number.MIN_VALUE, b: Number.MIN_VALUE });
+        }, { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: -Number.MAX_VALUE, b: -Number.MAX_VALUE });
         return bounds;
     }
 
@@ -350,18 +357,20 @@ export namespace Doc {
         if (expandedTemplateLayout instanceof Doc) {
             return expandedTemplateLayout;
         }
+        expandedTemplateLayout = dataDoc[templateLayoutDoc.title + templateLayoutDoc[Id]];
+        if (expandedTemplateLayout instanceof Doc) {
+            return expandedTemplateLayout;
+        }
         if (expandedTemplateLayout === undefined && BoolCast(templateLayoutDoc.isTemplate)) {
             setTimeout(() => {
                 let expandedDoc = Doc.MakeDelegate(templateLayoutDoc);
                 expandedDoc.title = templateLayoutDoc.title + "[" + StrCast(dataDoc.title).match(/\.\.\.[0-9]*/) + "]";
                 expandedDoc.isExpandedTemplate = templateLayoutDoc;
-                dataDoc[templateLayoutDoc[Id]] = expandedDoc;
+                dataDoc[templateLayoutDoc.title + templateLayoutDoc[Id]] = expandedDoc;
             }, 0);
         }
         return templateLayoutDoc; // use the templateLayout when it's not a template or the expandedTemplate is pending.
     }
-
-    let _pendingExpansions: Map<string, boolean> = new Map();
 
     export function MakeCopy(doc: Doc, copyProto: boolean = false): Doc {
         const copy = new Doc;
@@ -396,6 +405,20 @@ export namespace Doc {
             return delegate;
         }
         return undefined;
+    }
+
+    let _applyCount: number = 0;
+    export function ApplyTemplate(templateDoc: Doc) {
+        if (!templateDoc) return undefined;
+        let otherdoc = new Doc();
+        otherdoc.width = templateDoc[WidthSym]();
+        otherdoc.height = templateDoc[HeightSym]();
+        otherdoc.title = templateDoc.title + "(..." + _applyCount++ + ")";
+        otherdoc.layout = Doc.MakeDelegate(templateDoc);
+        otherdoc.miniLayout = StrCast(templateDoc.miniLayout);
+        otherdoc.detailedLayout = otherdoc.layout;
+        otherdoc.type = DocumentType.TEMPLATE;
+        return otherdoc;
     }
 
     export function MakeTemplate(fieldTemplate: Doc, metaKey: string, proto: Doc) {

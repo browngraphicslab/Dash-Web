@@ -126,12 +126,11 @@ export namespace DocServer {
             // future .proto calls on the Doc won't have to go farther than the cache to get their actual value.
             const deserializeField = getSerializedField.then(async fieldJson => {
                 // deserialize
-                const field = SerializationHelper.Deserialize(fieldJson);
+                const field = await SerializationHelper.Deserialize(fieldJson);
                 // either way, overwrite or delete any promises cached at this id (that we inserted as flags
                 // to indicate that the field was in the process of being fetched). Now everything
                 // should be an actual value within or entirely absent from the cache.
                 if (field !== undefined) {
-                    await field.proto;
                     _cache[id] = field;
                 } else {
                     delete _cache[id];
@@ -202,18 +201,18 @@ export namespace DocServer {
         // future .proto calls on the Doc won't have to go farther than the cache to get their actual value.
         const deserializeFields = getSerializedFields.then(async fields => {
             const fieldMap: { [id: string]: RefField } = {};
-            const protosToLoad: any = [];
+            // const protosToLoad: any = [];
             for (const field of fields) {
                 if (field !== undefined) {
                     // deserialize
-                    let deserialized: any = SerializationHelper.Deserialize(field);
+                    let deserialized = await SerializationHelper.Deserialize(field);
                     fieldMap[field.id] = deserialized;
                     // adds to a list of promises that will be awaited asynchronously
-                    protosToLoad.push(deserialized.proto);
+                    // protosToLoad.push(deserialized.proto);
                 }
             }
             // this actually handles the loading of prototypes
-            await Promise.all(protosToLoad);
+            // await Promise.all(protosToLoad);
             return fieldMap;
         });
 

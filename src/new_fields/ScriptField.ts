@@ -2,10 +2,11 @@ import { ObjectField } from "./ObjectField";
 import { CompiledScript, CompileScript, scriptingGlobal } from "../client/util/Scripting";
 import { Copy, ToScriptString, Parent, SelfProxy } from "./FieldSymbols";
 import { serializable, createSimpleSchema, map, primitive, object, deserialize, PropSchema, custom, SKIP } from "serializr";
-import { Deserializable } from "../client/util/SerializationHelper";
+import { Deserializable, autoObject } from "../client/util/SerializationHelper";
 import { Doc } from "../new_fields/Doc";
 import { Plugins } from "./util";
 import { computedFn } from "mobx-utils";
+import { ProxyField } from "./Proxy";
 
 function optional(propSchema: PropSchema) {
     return custom(value => {
@@ -34,7 +35,16 @@ const scriptSchema = createSimpleSchema({
     originalScript: true
 });
 
-function deserializeScript(script: ScriptField) {
+async function deserializeScript(script: ScriptField) {
+    const captures: ProxyField<Doc> = (script as any).captures;
+    if (captures) {
+        const doc = (await captures.value())!;
+        const captured: any = {};
+        const keys = Object.keys(doc);
+        const vals = await Promise.all(keys.map(key => doc[key]) as any);
+        keys.forEach((key, i) => captured[key] = vals[i]);
+        (script.script.options as any).capturedVariables = captured;
+    }
     const comp = CompileScript(script.script.originalScript, script.script.options);
     if (!comp.compiled) {
         throw new Error("Couldn't compile loaded script");
@@ -48,8 +58,16 @@ export class ScriptField extends ObjectField {
     @serializable(object(scriptSchema))
     readonly script: CompiledScript;
 
+    @serializable(autoObject())
+    private captures?: ProxyField<Doc>;
+
     constructor(script: CompiledScript) {
         super();
+
+        if (script && script.options.capturedVariables) {
+            const doc = Doc.assign(new Doc, script.options.capturedVariables);
+            this.captures = new ProxyField(doc);
+        }
 
         this.script = script;
     }

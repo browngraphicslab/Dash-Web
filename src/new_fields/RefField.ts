@@ -1,10 +1,11 @@
 import { serializable, primitive, alias } from "serializr";
 import { Utils } from "../Utils";
 import { Id, HandleUpdate, ToScriptString } from "./FieldSymbols";
+import { afterDocDeserialize } from "../client/util/SerializationHelper";
 
 export type FieldId = string;
 export abstract class RefField {
-    @serializable(alias("id", primitive()))
+    @serializable(alias("id", primitive({ afterDeserialize: afterDocDeserialize })))
     private __id: FieldId;
     readonly [Id]: FieldId;
 
