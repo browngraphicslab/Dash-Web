@@ -420,6 +420,25 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return result.result === undefined ? {} : result.result;
     }
 
+    private viewDefToJSX(viewDef: any): JSX.Element | undefined {
+        if (viewDef.type === "text") {
+            const text = Cast(viewDef.text, "string");
+            const x = Cast(viewDef.x, "number");
+            const y = Cast(viewDef.y, "number");
+            const width = Cast(viewDef.width, "number");
+            const height = Cast(viewDef.height, "number");
+            const fontSize = Cast(viewDef.fontSize, "number");
+            if ([text, x, y].some(val => val === undefined)) {
+                return undefined;
+            }
+
+            return <div className="collectionFreeform-customText" style={{
+                transform: `translate(${x}px, ${y}px)`,
+                width, height, fontSize
+            }}>{text}</div>;
+        }
+    }
+
     @computed.struct
     get views() {
         let curPage = FieldValue(this.Document.curPage, -1);
@@ -427,10 +446,20 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         const script = this.Document.arrangeScript;
         let state: any = undefined;
         const docs = this.childDocs;
+        let elements: JSX.Element[] = [];
         if (initScript) {
             const initResult = initScript.script.run({ docs, collection: this.Document });
             if (initResult.success) {
-                state = initResult.result;
+                const result = initResult.result;
+                const { state: scriptState, views } = result;
+                state = scriptState;
+                if (Array.isArray(views)) {
+                    elements = views.reduce<JSX.Element[]>((prev, ele) => {
+                        const jsx = this.viewDefToJSX(ele);
+                        jsx && prev.push(jsx);
+                        return prev;
+                    }, elements);
+                }
             }
         }
         let docviews = docs.reduce((prev, doc) => {
@@ -445,7 +474,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 }
             }
             return prev;
-        }, [] as JSX.Element[]);
+        }, elements);
 
         setTimeout(() => this._selectOnLoaded = "", 600);// bcz: surely there must be a better way ....
 

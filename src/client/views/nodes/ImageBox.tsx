@@ -355,7 +355,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         let rotation = NumCast(this.dataDoc.rotation, 0);
         let aspect = (rotation % 180) ? this.dataDoc[HeightSym]() / this.dataDoc[WidthSym]() : 1;
         let shift = (rotation % 180) ? (nativeHeight - nativeWidth / aspect) / 2 : 0;
-        let srcpath = paths[Math.min(paths.length, this.Document.curPage || 0)];
+        let srcpath = paths[Math.min(paths.length - 1, this.Document.curPage || 0)];
 
         if (!this.props.Document.ignoreAspect && !this.props.leaveNativeSize) this.resize(srcpath, this.props.Document);
 
