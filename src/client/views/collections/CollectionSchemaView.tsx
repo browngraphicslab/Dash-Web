@@ -53,6 +53,7 @@ export enum ColumnType {
 }
 // this map should be used for keys that should have a const type of value
 const columnTypes: Map<string, ColumnType> = new Map([
+    ["title", ColumnType.String],
     ["x", ColumnType.Number], ["y", ColumnType.Number], ["width", ColumnType.Number], ["height", ColumnType.Number],
     ["nativeWidth", ColumnType.Number], ["nativeHeight", ColumnType.Number], ["isPrototype", ColumnType.Boolean],
     ["page", ColumnType.Number], ["curPage", ColumnType.Number], ["libraryBrush", ColumnType.Boolean], ["zIndex", ColumnType.Number]
@@ -268,7 +269,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     @observable _cellIsEditing: boolean = false;
     @observable _focusedCell: { row: number, col: number } = { row: 0, col: 0 };
     @observable _sortedColumns: Map<string, { id: string, desc: boolean }> = new Map();
-    @observable _openCollections: Array<Doc> = [];
+    @observable _openCollections: Array<string> = [];
+    @observable _textWrappedRows: Array<string> = [];
     @observable private _node: HTMLDivElement | null = null;
 
     @computed get previewWidth() { return () => NumCast(this.props.Document.schemaPreviewWidth); }
@@ -396,7 +398,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     tableMoveDoc = (d: Doc, target: Doc, addDoc: (doc: Doc) => boolean) => {
-        console.log("SCHEMA MOVE");
+        console.log("SCHEMA MOVE", StrCast(d.title), StrCast(target.title));
         this.props.moveDocument(d, target, addDoc);
     }
 
@@ -410,7 +412,9 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             addDoc: this.tableAddDoc,
             moveDoc: this.tableMoveDoc,
             rowInfo,
-            rowFocused: !this._headerIsEditing && rowInfo.index === this._focusedCell.row && this.props.isFocused(this.props.Document)
+            rowFocused: !this._headerIsEditing && rowInfo.index === this._focusedCell.row && this.props.isFocused(this.props.Document),
+            textWrapRow: this.textWrapRow,
+            rowWrapped: this._textWrappedRows.findIndex(id => rowInfo.original[Id] === id) > -1
         };
     }
 
@@ -429,12 +433,12 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     @action
     onExpandCollection = (collection: Doc): void => {
-        this._openCollections.push(collection);
+        this._openCollections.push(collection[Id]);
     }
 
     @action
     onCloseCollection = (collection: Doc): void => {
-        let index = this._openCollections.findIndex(col => col === collection);
+        let index = this._openCollections.findIndex(col => col === collection[Id]);
         if (index > -1) this._openCollections.splice(index, 1);
     }
 
@@ -610,13 +614,25 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         return Array.from(Object.keys(keys));
     }
 
+    @action
+    textWrapRow = (doc: Doc): void => {
+        let index = this._textWrappedRows.findIndex(id => doc[Id] === id);
+        if (index > -1) {
+            this._textWrappedRows.splice(index, 1);
+        } else {
+            this._textWrappedRows.push(doc[Id]);
+        }
+
+    }
+
     @computed
     get reactTable() {
         let previewWidth = this.previewWidth() + 2 * this.borderWidth + this.DIVIDER_WIDTH + 1;
         let hasCollectionChild = this.props.childDocs.reduce((found, doc) => found || doc.type === "collection", false);
-        let expandedRowsList = this._openCollections.map(col => this.props.childDocs.findIndex(doc => doc === col).toString());
+        let expandedRowsList = this._openCollections.map(col => this.props.childDocs.findIndex(doc => doc[Id] === col).toString());
         let expanded = {};
         expandedRowsList.forEach(row => expanded[row] = true);
+        console.log(...[...this._textWrappedRows]); // TODO: get component to rerender on text wrap change without needign to console.log :((((
 
         return <ReactTable
             style={{ position: "relative", float: "left", width: `calc(100% - ${previewWidth}px` }}

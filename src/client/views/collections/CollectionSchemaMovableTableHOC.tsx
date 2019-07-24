@@ -1,11 +1,12 @@
 import React = require("react");
-import { ReactTableDefaults, TableCellRenderer, ComponentPropsGetterR, ComponentPropsGetter0 } from "react-table";
+import { ReactTableDefaults, TableCellRenderer, ComponentPropsGetterR, ComponentPropsGetter0, RowInfo } from "react-table";
 import "./CollectionSchemaView.scss";
 import { Transform } from "../../util/Transform";
 import { Doc } from "../../../new_fields/Doc";
 import { DragManager, SetupDrag } from "../../util/DragManager";
 import { SelectionManager } from "../../util/SelectionManager";
 import { Cast, FieldValue, StrCast } from "../../../new_fields/Types";
+import { ContextMenu } from "../ContextMenu";
 
 
 export interface MovableColumnProps {
@@ -60,7 +61,7 @@ export class MovableColumn extends React.Component<MovableColumnProps> {
         return false;
     }
 
-    setupDrag (ref: React.RefObject<HTMLElement>) {
+    setupDrag(ref: React.RefObject<HTMLElement>) {
         let onRowMove = (e: PointerEvent) => {
             e.stopPropagation();
             e.preventDefault();
@@ -102,10 +103,13 @@ export class MovableColumn extends React.Component<MovableColumnProps> {
 }
 
 export interface MovableRowProps {
+    rowInfo: RowInfo;
     ScreenToLocalTransform: () => Transform;
     addDoc: (doc: Doc, relativeTo?: Doc, before?: boolean) => boolean;
     moveDoc: DragManager.MoveFunction;
     rowFocused: boolean;
+    textWrapRow: (doc: Doc) => void;
+    rowWrapped: boolean;
 }
 
 export class MovableRow extends React.Component<MovableRowProps> {
@@ -141,11 +145,10 @@ export class MovableRow extends React.Component<MovableRowProps> {
     }
 
     rowDrop = (e: Event, de: DragManager.DropEvent) => {
-        const { children = null, rowInfo } = this.props;
-        if (!rowInfo) return false;
+        // const { children = null, rowInfo } = this.props;
+        // if (!rowInfo) return false;
 
-        const { original } = rowInfo;
-        const rowDoc = FieldValue(Cast(original, Doc));
+        const rowDoc = FieldValue(Cast(this.props.rowInfo.original, Doc));
         if (!rowDoc) return false;
 
         let x = this.props.ScreenToLocalTransform().transformPoint(de.x, de.y);
@@ -158,14 +161,21 @@ export class MovableRow extends React.Component<MovableRowProps> {
             if (de.data.draggedDocuments[0] === rowDoc) return true;
             let addDocument = (doc: Doc) => this.props.addDoc(doc, rowDoc, before);
             let movedDocs = de.data.draggedDocuments; //(de.data.options === this.props.treeViewId ? de.data.draggedDocuments : de.data.droppedDocuments);
-            return (de.data.dropAction || de.data.userDropAction) ? 
+            return (de.data.dropAction || de.data.userDropAction) ?
                 de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDoc(d, rowDoc, before) || added, false)
                 : (de.data.moveDocument) ?
-                    movedDocs.reduce((added: boolean, d) =>  de.data.moveDocument(d, rowDoc, addDocument) || added, false)
+                    movedDocs.reduce((added: boolean, d) => de.data.moveDocument(d, rowDoc, addDocument) || added, false)
                     // movedDocs.reduce((added: boolean, d) => this.props.moveDoc(d, rowDoc, addDocument) || added, false)
                     : de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDoc(d, rowDoc, before), false);
         }
         return false;
+    }
+
+    onRowContextMenu = (e: React.MouseEvent): void => {
+        // const { rowInfo } = this.props;
+        // const { textWrapRow, original } = rowInfo;
+        let description = this.props.rowWrapped ? "Unwrap text on row" : "Text wrap row";
+        ContextMenu.Instance.addItem({ description: description, event: () => this.props.textWrapRow(this.props.rowInfo.original) });
     }
 
     render() {
@@ -179,10 +189,14 @@ export class MovableRow extends React.Component<MovableRowProps> {
         if (!doc) return <></>;
 
         let reference = React.createRef<HTMLDivElement>();
-        let onItemDown = SetupDrag(reference, () => doc);
+        let onItemDown = SetupDrag(reference, () => doc, this.props.moveDoc);
+
+        let className = "collectionSchema-row";
+        if (this.props.rowFocused) className += " row-focused";
+        if (this.props.rowWrapped) className += " row-wrapped";
 
         return (
-            <div className={this.props.rowFocused ? "collectionSchema-row row-focused" : "collectionSchema-row"} ref={this.createRowDropTarget}>
+            <div className={className} ref={this.createRowDropTarget} onContextMenu={this.onRowContextMenu}>
                 <div className="collectionSchema-row-wrapper" ref={this._header} onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
                     <div className="row-dragger" ref={reference} onPointerDown={onItemDown}>
                         <ReactTableDefaults.TrComponent>

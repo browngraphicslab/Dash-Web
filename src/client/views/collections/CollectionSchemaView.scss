@@ -148,7 +148,7 @@
         padding: 0;
         font-size: 13px;
         text-align: center;
-        white-space: normal;
+        // white-space: normal;
 
         .imageBox-cont {
             position: relative;
@@ -285,6 +285,12 @@ button.add-column {
 
     &.row-focused {
         background-color: $light-color-secondary;
+    }
+
+    &.row-wrapped {
+        .rt-td {
+            white-space: normal;
+        }
     }
 
     .row-dragger {
