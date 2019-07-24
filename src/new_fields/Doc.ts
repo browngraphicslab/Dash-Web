@@ -10,6 +10,7 @@ import { RefField, FieldId } from "./RefField";
 import { ToScriptString, SelfProxy, Parent, OnUpdate, Self, HandleUpdate, Update, Id } from "./FieldSymbols";
 import { scriptingGlobal } from "../client/util/Scripting";
 import { List } from "./List";
+import { DocumentType } from "../client/documents/Documents";
 import { ComputedField } from "./ScriptField";
 
 export namespace Field {
@@ -61,7 +62,7 @@ export function DocListCastAsync(field: FieldResult, defaultValue?: Doc[]) {
 }
 
 export function DocListCast(field: FieldResult): Doc[] {
-    return Cast(field, listSpec(Doc), []).filter(d => d instanceof Doc) as Doc[]; j
+    return Cast(field, listSpec(Doc), []).filter(d => d instanceof Doc) as Doc[];
 }
 
 export const WidthSym = Symbol("Width");
@@ -250,7 +251,7 @@ export namespace Doc {
         let r = (doc === other);
         let r2 = (doc.proto === other);
         let r3 = (other.proto === doc);
-        let r4 = (doc.proto === other.proto);
+        let r4 = (doc.proto === other.proto && other.proto !== undefined);
         return r || r2 || r3 || r4;
     }
 
@@ -304,7 +305,7 @@ export namespace Doc {
                 x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
                 r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)
             };
-        }, { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: Number.MIN_VALUE, b: Number.MIN_VALUE });
+        }, { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: -Number.MAX_VALUE, b: -Number.MAX_VALUE });
         return bounds;
     }
 
@@ -324,7 +325,7 @@ export namespace Doc {
         if (extensionDoc === undefined) {
             setTimeout(() => {
                 let docExtensionForField = new Doc(doc[Id] + fieldKey, true);
-                docExtensionForField.title = "Extension of " + doc.title + "'s field:" + fieldKey;
+                docExtensionForField.title = doc.title + ":" + fieldKey + ".ext";
                 docExtensionForField.extendsDoc = doc;
                 let proto: Doc | undefined = doc;
                 while (proto && !Doc.IsPrototype(proto)) {
@@ -352,18 +353,23 @@ export namespace Doc {
         // ... which means we change the layout to be an expanded view of the template layout.  
         // This allows the view override the template's properties and be referenceable as its own document.
 
-        let expandedTemplateLayout = templateLayoutDoc["_expanded_" + dataDoc[Id]];
+        let expandedTemplateLayout = dataDoc[templateLayoutDoc[Id]];
+        if (expandedTemplateLayout instanceof Doc) {
+            return expandedTemplateLayout;
+        }
+        expandedTemplateLayout = dataDoc[templateLayoutDoc.title + templateLayoutDoc[Id]];
         if (expandedTemplateLayout instanceof Doc) {
             return expandedTemplateLayout;
         }
         if (expandedTemplateLayout === undefined && BoolCast(templateLayoutDoc.isTemplate)) {
             setTimeout(() => {
-                templateLayoutDoc["_expanded_" + dataDoc[Id]] = Doc.MakeDelegate(templateLayoutDoc);
-                (templateLayoutDoc["_expanded_" + dataDoc[Id]] as Doc).title = templateLayoutDoc.title + " applied to " + dataDoc.title;
-                (templateLayoutDoc["_expanded_" + dataDoc[Id]] as Doc).isExpandedTemplate = templateLayoutDoc;
+                let expandedDoc = Doc.MakeDelegate(templateLayoutDoc);
+                expandedDoc.title = templateLayoutDoc.title + "[" + StrCast(dataDoc.title).match(/\.\.\.[0-9]*/) + "]";
+                expandedDoc.isExpandedTemplate = templateLayoutDoc;
+                dataDoc[templateLayoutDoc.title + templateLayoutDoc[Id]] = expandedDoc;
             }, 0);
         }
-        return templateLayoutDoc;
+        return templateLayoutDoc; // use the templateLayout when it's not a template or the expandedTemplate is pending.
     }
 
     export function MakeCopy(doc: Doc, copyProto: boolean = false): Doc {
@@ -393,12 +399,26 @@ export namespace Doc {
     export function MakeDelegate(doc: Doc, id?: string): Doc;
     export function MakeDelegate(doc: Opt<Doc>, id?: string): Opt<Doc>;
     export function MakeDelegate(doc: Opt<Doc>, id?: string): Opt<Doc> {
-        if (!doc) {
-            return undefined;
+        if (doc) {
+            const delegate = new Doc(id, true);
+            delegate.proto = doc;
+            return delegate;
         }
-        const delegate = new Doc(id, true);
-        delegate.proto = doc;
-        return delegate;
+        return undefined;
+    }
+
+    let _applyCount: number = 0;
+    export function ApplyTemplate(templateDoc: Doc) {
+        if (!templateDoc) return undefined;
+        let otherdoc = new Doc();
+        otherdoc.width = templateDoc[WidthSym]();
+        otherdoc.height = templateDoc[HeightSym]();
+        otherdoc.title = templateDoc.title + "(..." + _applyCount++ + ")";
+        otherdoc.layout = Doc.MakeDelegate(templateDoc);
+        otherdoc.miniLayout = StrCast(templateDoc.miniLayout);
+        otherdoc.detailedLayout = otherdoc.layout;
+        otherdoc.type = DocumentType.TEMPLATE;
+        return otherdoc;
     }
 
     export function MakeTemplate(fieldTemplate: Doc, metaKey: string, proto: Doc) {
@@ -427,5 +447,12 @@ export namespace Doc {
         fieldTemplate.isTemplate = true;
         fieldTemplate.showTitle = "title";
         setTimeout(() => fieldTemplate.proto = proto);
+    }
+
+    export async function ToggleDetailLayout(d: Doc) {
+        let miniLayout = await PromiseValue(d.miniLayout);
+        let detailLayout = await PromiseValue(d.detailedLayout);
+        d.layout !== miniLayout ? miniLayout && (d.layout = d.miniLayout) : detailLayout && (d.layout = detailLayout);
+        if (d.layout === detailLayout) Doc.GetProto(d).nativeWidth = Doc.GetProto(d).nativeHeight = undefined;
     }
 }

@@ -25,6 +25,8 @@ import { Docs } from '../../documents/Documents';
 import { DocServer } from '../../DocServer';
 import { Font } from '@react-pdf/renderer';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { CognitiveServices } from '../../cognitive_services/CognitiveServices';
+import FaceRectangles from './FaceRectangles';
 var requestImageSize = require('../../util/request-image-size');
 var path = require('path');
 const { Howl, Howler } = require('howler');
@@ -195,10 +197,10 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         let field = Cast(this.Document[this.props.fieldKey], ImageField);
         if (field) {
             let url = field.url.href;
-            let subitems: ContextMenuProps[] = [];
-            subitems.push({ description: "Copy path", event: () => Utils.CopyText(url), icon: "expand-arrows-alt" });
-            subitems.push({ description: "Record 1sec audio", event: this.recordAudioAnnotation, icon: "expand-arrows-alt" });
-            subitems.push({
+            let funcs: ContextMenuProps[] = [];
+            funcs.push({ description: "Copy path", event: () => Utils.CopyText(url), icon: "expand-arrows-alt" });
+            funcs.push({ description: "Record 1sec audio", event: this.recordAudioAnnotation, icon: "expand-arrows-alt" });
+            funcs.push({
                 description: "Rotate", event: action(() => {
                     let proto = Doc.GetProto(this.props.Document);
                     let nw = this.props.Document.nativeWidth;
@@ -212,7 +214,14 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                     this.props.Document.height = w;
                 }), icon: "expand-arrows-alt"
             });
-            ContextMenu.Instance.addItem({ description: "Image Funcs...", subitems: subitems });
+
+            let modes: ContextMenuProps[] = [];
+            let dataDoc = Doc.GetProto(this.Document);
+            modes.push({ description: "Generate Tags", event: () => CognitiveServices.Image.generateMetadata(dataDoc), icon: "tag" });
+            modes.push({ description: "Find Faces", event: () => CognitiveServices.Image.extractFaces(dataDoc), icon: "camera" });
+
+            ContextMenu.Instance.addItem({ description: "Image Funcs...", subitems: funcs });
+            ContextMenu.Instance.addItem({ description: "Analyze...", subitems: modes });
         }
     }
 
@@ -371,6 +380,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                         style={{ color: [DocListCast(this.extensionDoc.audioAnnotations).length ? "blue" : "gray", "green", "red"][this._audioState] }} icon={faFileAudio} size="sm" />
                 </div>
                 {/* {this.lightbox(paths)} */}
+                <FaceRectangles document={this.props.Document} color={"#0000FF"} backgroundColor={"#0000FF"} />
             </div>);
     }
 }

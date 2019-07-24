@@ -125,6 +125,8 @@ export namespace ComputedField {
         useComputed = true;
     }
 
+    export const undefined = "__undefined";
+
     export function WithoutComputed<T>(fn: () => T) {
         DisableComputedFields();
         try {

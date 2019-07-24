@@ -4,6 +4,7 @@ import { CollectionDockingView } from "./collections/CollectionDockingView";
 import { MainView } from "./MainView";
 import { DragManager } from "../util/DragManager";
 import { action } from "mobx";
+import { Doc } from "../../new_fields/Doc";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo;
@@ -81,6 +82,9 @@ export default class KeyManager {
                         remove && remove(doc);
                     });
                 }, "delete");
+                break;
+            case "enter":
+                SelectionManager.SelectedDocuments().map(selected => Doc.ToggleDetailLayout(selected.props.Document));
                 break;
         }
 
