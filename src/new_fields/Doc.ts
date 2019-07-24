@@ -314,20 +314,22 @@ export namespace Doc {
     }
 
     export function UpdateDocumentExtensionForField(doc: Doc, fieldKey: string) {
-        let extensionDoc = doc[fieldKey + "_ext"];
-        if (extensionDoc === undefined) {
+        let docExtensionForField = doc[fieldKey + "_ext"] as Doc;
+        if (docExtensionForField === undefined) {
             setTimeout(() => {
-                let docExtensionForField = new Doc(doc[Id] + fieldKey, true);
-                docExtensionForField.title = fieldKey + "[" + StrCast(doc.title).match(/\.\.\.[0-9]*/) + "].ext";
-                docExtensionForField.extendsDoc = doc;
+                docExtensionForField = new Doc(doc[Id] + fieldKey, true);
+                docExtensionForField.title = fieldKey + ".ext";
+                docExtensionForField.extendsDoc = doc; // this is used by search to map field matches on the extension doc back to the document it extends.
+                docExtensionForField.type = DocumentType.EXTENSION;
                 let proto: Doc | undefined = doc;
                 while (proto && !Doc.IsPrototype(proto)) {
                     proto = proto.proto;
                 }
                 (proto ? proto : doc)[fieldKey + "_ext"] = docExtensionForField;
             }, 0);
-        } else if (extensionDoc instanceof Doc && extensionDoc.extendsDoc === undefined) {
-            setTimeout(() => (extensionDoc as Doc).extendsDoc = doc, 0);
+        } else if (doc instanceof Doc) { // backward compatibility -- add fields for docs that don't have them already
+            docExtensionForField.extendsDoc === undefined && setTimeout(() => (docExtensionForField as Doc).extendsDoc = doc, 0);
+            docExtensionForField.type === undefined && setTimeout(() => (docExtensionForField as Doc).type = DocumentType.EXTENSION, 0);
         }
     }
     export function MakeAlias(doc: Doc) {
@@ -344,13 +346,16 @@ export namespace Doc {
     // for individual layout properties to be overridden in the expanded layout.
     //
     export function WillExpandTemplateLayout(layoutDoc: Doc, dataDoc?: Doc) {
-        let resolvedDataDoc = (layoutDoc !== dataDoc) ? dataDoc : undefined;
-        if (!dataDoc || !(layoutDoc && !(Cast(layoutDoc.layout, Doc) instanceof Doc) &&
-            resolvedDataDoc && resolvedDataDoc !== layoutDoc)) {
-            return false;
-        }
-        return true;
+        return BoolCast(layoutDoc.isTemplate) && dataDoc && layoutDoc !== dataDoc && !(layoutDoc.layout instanceof Doc);
     }
+
+    //
+    // Returns an expanded template layout for a target data document.
+    // First it checks if an expanded layout already exists -- if so it will be stored on the dataDoc
+    // using the template layout doc's id as the field key.
+    // If it doesn't find the expanded layout, then it makes a delegate of the template layout and
+    // saves it on the data doc indexed by the template layout's id
+    //
     export function expandTemplateLayout(templateLayoutDoc: Doc, dataDoc?: Doc) {
         if (!WillExpandTemplateLayout(templateLayoutDoc, dataDoc) || !dataDoc) return templateLayoutDoc;
         // if we have a data doc that doesn't match the layout, then we're rendering a template.
@@ -361,19 +366,14 @@ export namespace Doc {
         if (expandedTemplateLayout instanceof Doc) {
             return expandedTemplateLayout;
         }
-        // expandedTemplateLayout = dataDoc[templateLayoutDoc.title + templateLayoutDoc[Id]];
-        expandedTemplateLayout = dataDoc["Layout[" + templateLayoutDoc[Id] + "]"];
+        let expandedLayoutFieldKey = "Layout[" + templateLayoutDoc[Id] + "]";
+        expandedTemplateLayout = dataDoc[expandedLayoutFieldKey];
         if (expandedTemplateLayout instanceof Doc) {
             return expandedTemplateLayout;
         }
-        if (expandedTemplateLayout === undefined && BoolCast(templateLayoutDoc.isTemplate)) {
-            setTimeout(() => {
-                let expandedDoc = Doc.MakeDelegate(templateLayoutDoc);
-                //expandedDoc.title = templateLayoutDoc.title + "[" + StrCast(dataDoc.title).match(/\.\.\.[0-9]*/) + "]";
-                expandedDoc.title = templateLayoutDoc.title + "[" + StrCast(dataDoc.title).match(/\.\.\.[0-9]*/) + "]";
-                expandedDoc.isExpandedTemplate = templateLayoutDoc;
-                dataDoc["Layout[" + templateLayoutDoc[Id] + "]"] = expandedDoc;
-            }, 0);
+        if (expandedTemplateLayout === undefined) {
+            setTimeout(() =>
+                dataDoc[expandedLayoutFieldKey] = Doc.MakeDelegate(templateLayoutDoc, undefined, templateLayoutDoc.title + ".layout"), 0);
         }
         return templateLayoutDoc; // use the templateLayout when it's not a template or the expandedTemplate is pending.
     }
@@ -402,12 +402,13 @@ export namespace Doc {
         return copy;
     }
 
-    export function MakeDelegate(doc: Doc, id?: string): Doc;
-    export function MakeDelegate(doc: Opt<Doc>, id?: string): Opt<Doc>;
-    export function MakeDelegate(doc: Opt<Doc>, id?: string): Opt<Doc> {
+    export function MakeDelegate(doc: Doc, id?: string, title?: string): Doc;
+    export function MakeDelegate(doc: Opt<Doc>, id?: string, title?: string): Opt<Doc>;
+    export function MakeDelegate(doc: Opt<Doc>, id?: string, title?: string): Opt<Doc> {
         if (doc) {
             const delegate = new Doc(id, true);
             delegate.proto = doc;
+            title && (delegate.title = title);
             return delegate;
         }
         return undefined;
