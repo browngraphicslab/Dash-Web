@@ -456,6 +456,8 @@ export class CollectionTreeView extends CollectionSubView(Document) {
     private treedropDisposer?: DragManager.DragDropDisposer;
     private _mainEle?: HTMLDivElement;
 
+    @computed get chromeCollapsed() { return this.props.chromeCollapsed; }
+
     protected createTreeDropTarget = (ele: HTMLDivElement) => {
         this.treedropDisposer && this.treedropDisposer();
         if (this._mainEle = ele) {

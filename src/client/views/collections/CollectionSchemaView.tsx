@@ -69,6 +69,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @observable _newKeyName: string = "";
     @observable previewScript: string = "";
 
+    @computed get chromeCollapsed() { return this.props.chromeCollapsed; }
     @computed get previewWidth() { return () => NumCast(this.props.Document.schemaPreviewWidth); }
     @computed get previewHeight() { return () => this.props.PanelHeight() - 2 * this.borderWidth; }
     @computed get tableWidth() { return this.props.PanelWidth() - 2 * this.borderWidth - this.DIVIDER_WIDTH - this.previewWidth(); }
@@ -390,6 +391,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     render() {
         return (
             <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} onWheel={this.onWheel}
+                style={{ top: this.chromeCollapsed ? 0 : "unset" }}
                 onDrop={(e: React.DragEvent) => this.onDrop(e, {})} onContextMenu={this.onContextMenu} ref={this.createTarget}>
                 {this.reactTable}
                 {this.dividerDragger}

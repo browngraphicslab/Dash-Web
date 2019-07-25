@@ -18,7 +18,7 @@ import { CollectionTreeView } from "./CollectionTreeView";
 import { StrCast, PromiseValue } from '../../../new_fields/Types';
 import { DocumentType } from '../../documents/Documents';
 import { CollectionStackingViewChrome, CollectionViewBaseChrome } from './CollectionViewChromes';
-import { observable } from 'mobx';
+import { observable, action, runInAction } from 'mobx';
 export const COLLECTION_BORDER_WIDTH = 2;
 
 library.add(faTh);
@@ -37,11 +37,20 @@ export class CollectionView extends React.Component<FieldViewProps> {
 
     public static LayoutString(fieldStr: string = "data", fieldExt: string = "") { return FieldView.LayoutString(CollectionView, fieldStr, fieldExt); }
 
+    componentDidMount = () => {
+        // chrome status is one of disabled, collapsed, or visible. this determines initial state from document
+        let chromeStatus = this.props.Document.chromeStatus;
+        if (chromeStatus && (chromeStatus === "disabled" || chromeStatus === "collapsed")) {
+            runInAction(() => this._collapsed = true);
+        }
+    }
+
     private SubViewHelper = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
         let props = { ...this.props, ...renderProps };
         switch (this.isAnnotationOverlay ? CollectionViewType.Freeform : type) {
             case CollectionViewType.Schema: return (<CollectionSchemaView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />);
-            case CollectionViewType.Docking: return (<CollectionDockingView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />);
+            // currently cant think of a reason for collection docking view to have a chrome. mind may change if we ever have nested docking views -syip
+            case CollectionViewType.Docking: return (<CollectionDockingView chromeCollapsed={true} key="collview" {...props} CollectionView={this} />);
             case CollectionViewType.Tree: return (<CollectionTreeView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />);
             case CollectionViewType.Stacking: { this.props.Document.singleColumn = true; return (<CollectionStackingView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />); }
             case CollectionViewType.Masonry: { this.props.Document.singleColumn = false; return (<CollectionStackingView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />); }
@@ -52,12 +61,15 @@ export class CollectionView extends React.Component<FieldViewProps> {
         return (null);
     }
 
+    @action
     private collapse = (value: boolean) => {
         this._collapsed = value;
+        this.props.Document.chromeStatus = value ? "collapsed" : "visible";
     }
 
     private SubView = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
-        if (this.isAnnotationOverlay || this.props.Document === CurrentUserUtils.UserDocument.sidebar) {
+        // currently cant think of a reason for collection docking view to have a chrome. mind may change if we ever have nested docking views -syip
+        if (this.isAnnotationOverlay || this.props.Document.chromeStatus === "disabled" || type === CollectionViewType.Docking) {
             return [(null), this.SubViewHelper(type, renderProps)];
         }
         else {

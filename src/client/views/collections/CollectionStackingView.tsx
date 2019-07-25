@@ -21,8 +21,6 @@ import { List } from "../../../new_fields/List";
 import { EditableView } from "../EditableView";
 import { CollectionViewProps } from "./CollectionBaseView";
 
-let valuesCreated = 1;
-
 @observer
 export class CollectionStackingView extends CollectionSubView(doc => doc) {
     _masonryGridRef: HTMLDivElement | null = null;
@@ -33,7 +31,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     _columnStart: number = 0;
     @observable private cursor: CursorProperty = "grab";
     get sectionHeaders() { return Cast(this.props.Document.sectionHeaders, listSpec(SchemaHeaderField)); }
-    get chromeCollapsed() { return this.props.chromeCollapsed; }
+    @computed get chromeCollapsed() { return this.props.chromeCollapsed; }
     @computed get xMargin() { return NumCast(this.props.Document.xMargin, 2 * this.gridGap); }
     @computed get yMargin() { return NumCast(this.props.Document.yMargin, 2 * this.gridGap); }
     @computed get gridGap() { return NumCast(this.props.Document.gridGap, 10); }
@@ -84,7 +82,6 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             () => StrCast(this.props.Document.sectionFilter),
             () => {
                 this.props.Document.sectionHeaders = new List();
-                valuesCreated = 1;
             }
         )
     }
