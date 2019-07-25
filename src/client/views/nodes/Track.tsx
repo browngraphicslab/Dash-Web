@@ -1,6 +1,6 @@
 import * as React from "react";
 import { observer } from "mobx-react";
-import { observable, reaction, action, IReactionDisposer, observe, IObservableArray, computed, toJS, IObservableObject, runInAction } from "mobx";
+import { observable, reaction, action, IReactionDisposer, observe, IObservableArray, computed, toJS, IObservableObject, runInAction, autorun } from "mobx";
 import "./Track.scss";
 import { Doc, DocListCastAsync, DocListCast, Field } from "../../../new_fields/Doc";
 import { listSpec } from "../../../new_fields/Schema";
@@ -41,7 +41,7 @@ export class Track extends React.Component<IProps> {
     componentDidMount() {
         runInAction(() => {
             this._currentBarXReaction = this.currentBarXReaction();
-            if (this.regions.length === 0 ) this.createRegion(this.props.currentBarX);
+            if (this.regions.length === 0) this.createRegion(this.props.currentBarX);
             this.props.node.hidden = false;
         });
     }
@@ -54,19 +54,19 @@ export class Track extends React.Component<IProps> {
     }
 
     @action
-    keyReaction = () => {
+    keyReaction = () => { 
         return reaction(() => {
-            console.log("triggered keyReaction"); 
-            let keys = Doc.allKeys(this.props.node);
-            return keys.map(key => FieldValue(this.props.node[key]));
+            return Doc.allKeys(this.props.node).map(key => FieldValue(this.props.node[key]));
         }, data => {
-            console.log("full reaction");
             let regiondata = this.findRegion(this.props.currentBarX);
             if (regiondata) {
                 DocListCast(regiondata.keyframes!).forEach((kf) => {
                     if (kf.type === KeyframeFunc.KeyframeType.default && kf.time === this.props.currentBarX) {
-                        console.log("data updated"); 
+            
+                        //for this specific keyframe
                         kf.key = Doc.MakeCopy(this.props.node, true);
+
+                        //for fades
                         let leftkf: (Doc | undefined) = this.calcMinLeft(regiondata!, kf); // lef keyframe, if it exists
                         let rightkf: (Doc | undefined) = this.calcMinRight(regiondata!, kf); //right keyframe, if it exists
                         if (leftkf!.type === KeyframeFunc.KeyframeType.fade) { //replicating this keyframe to fades
@@ -91,18 +91,12 @@ export class Track extends React.Component<IProps> {
 
     @action
     currentBarXReaction = () => {
-        return reaction(() =>  this.props.currentBarX, () => {
+        return reaction(() => this.props.currentBarX, () => {
             if (this._keyReaction) this._keyReaction(); //dispose previous reaction first
             let regiondata: (Doc | undefined) = this.findRegion(this.props.currentBarX);
             if (regiondata) {
-                this.props.node.hidden = false;                
+                this.props.node.hidden = false;
                 this.timeChange(this.props.currentBarX);
-                DocListCast(regiondata.keyframes).forEach((kf) => {
-                    if (kf.time === this.props.currentBarX && kf.type === KeyframeFunc.KeyframeType.default) {
-                        this.applyKeys(kf); 
-                        this._keyReaction = this.keyReaction(); //reactivates reaction. 
-                    }
-                });                
             } else {
                 this.props.node.hidden = true;
             }
@@ -117,17 +111,21 @@ export class Track extends React.Component<IProps> {
             let leftkf: (Doc | undefined) = this.calcMinLeft(regiondata!); // lef keyframe, if it exists
             let rightkf: (Doc | undefined) = this.calcMinRight(regiondata!); //right keyframe, if it exists            
             let currentkf: (Doc | undefined) = this.calcCurrent(regiondata!); //if the scrubber is on top of the keyframe
-           
+
+            if (currentkf) {
+                this.applyKeys(currentkf);
+                this._keyReaction = this.keyReaction(); //reactivates reaction. 
+            }
             if (leftkf && rightkf) {
                 this.interpolate(leftkf, rightkf);
-            }  
+            }
         }
     }
 
     @action
     private applyKeys = (kf: Doc) => {
         this.filterKeys(Doc.allKeys(kf)).forEach(key => {
-            if (key === "title" || key === "documentText") Doc.SetOnPrototype(this.props.node, key, StrCast(kf[key]));
+            // if (key === "title" || key === "documentText") Doc.SetOnPrototype(this.props.node, key, StrCast(kf[key]));
             this.props.node[key] = kf[key];
         });
     }
@@ -136,7 +134,7 @@ export class Track extends React.Component<IProps> {
     @action
     private filterKeys = (keys: string[]): string[] => {
         return keys.reduce((acc: string[], key: string) => {
-            if (key !== "regions" && key !== "data" && key !== "creationDate" && key !== "cursors" && key !== "hidden" && key !== "nativeHeight" && key!== "nativeWidth") acc.push(key);
+            if (key !== "regions" && key !== "data" && key !== "creationDate" && key !== "cursors" && key !== "hidden" && key !== "nativeHeight" && key !== "nativeWidth") acc.push(key);
             return acc;
         }, []) as string[];
     }
@@ -197,7 +195,7 @@ export class Track extends React.Component<IProps> {
             if (leftNode[key] && rightNode[key] && typeof (leftNode[key]) === "number" && typeof (rightNode[key]) === "number") { //if it is number, interpolate
                 const diff = NumCast(rightNode[key]) - NumCast(leftNode[key]);
                 const adjusted = diff * ratio;
-                this.props.node[key] = NumCast(leftNode[key]) + adjusted;                
+                this.props.node[key] = NumCast(leftNode[key]) + adjusted;
             } else if (key === "title" || key === "documentText") {
                 Doc.SetOnPrototype(this.props.node, key, StrCast(leftNode[key]));
                 this.props.node[key] = leftNode[key];
@@ -209,7 +207,7 @@ export class Track extends React.Component<IProps> {
     findRegion(time: number): (RegionData | undefined) {
         let foundRegion = undefined;
         DocListCast(this.regions).map(region => {
-            region = region as RegionData; 
+            region = region as RegionData;
             if (time >= NumCast(region.position) && time <= (NumCast(region.position) + NumCast(region.duration))) {
                 foundRegion = region;
             }

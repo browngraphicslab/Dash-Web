@@ -92,6 +92,7 @@ export class Timeline extends CollectionSubView(Document) {
 
         }
         runInAction(() => {
+
             reaction(() => {
                 return this._time;
             }, () => {
