@@ -519,7 +519,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 if (!data) {
                     return;
                 }
-                CognitiveServices.Inking.Manager.applier(Doc.GetProto(this.props.Document), data.inkData);
+                let target = Doc.GetProto(this.props.Document);
+                let relevantKeys = ["inkAnalysis", "handwriting"];
+                CognitiveServices.Inking.Manager.analyzer(target, relevantKeys, data.inkData);
             }
         });
     }
