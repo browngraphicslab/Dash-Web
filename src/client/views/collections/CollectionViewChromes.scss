@@ -5,7 +5,7 @@
     position: relative;
     z-index: 9001;
     transition: top .5s;
-    background: rgb(238, 238, 238);
+    background: lightslategray;
     padding: 10px;
 
     .collectionViewChrome {
@@ -48,7 +48,6 @@
                     border: 0px;
                     color: grey;
                     text-align: center;
-                    text-transform: uppercase;
                     letter-spacing: 2px;
                     outline-color: black;
                     font-size: 75%;
@@ -128,7 +127,6 @@
             justify-self: right;
             display: flex;
             font-size: 75%;
-            text-transform: uppercase;
             letter-spacing: 2px;
 
             .collectionStackingViewChrome-sectionFilter-label {
@@ -150,7 +148,6 @@
                     border: 0px;
                     color: grey;
                     text-align: center;
-                    text-transform: uppercase;
                     letter-spacing: 2px;
                     outline-color: black;
                     height: 100%;

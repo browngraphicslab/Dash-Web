@@ -47,7 +47,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         let fields = new Map<SchemaHeaderField, Doc[]>(sectionHeaders.map(sh => [sh, []]));
         if (sectionFilter) {
             this.filteredChildren.map(d => {
-                let sectionValue = (d[sectionFilter] ? d[sectionFilter] : `No ${sectionFilter} value`) as object;
+                let sectionValue = (d[sectionFilter] ? d[sectionFilter] : `NO ${sectionFilter.toUpperCase()} VALUE`) as object;
                 // the next five lines ensures that floating point rounding errors don't create more than one section -syip
                 let parsed = parseInt(sectionValue.toString());
                 let castedSectionValue: any = sectionValue;
@@ -56,12 +56,12 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                 }
 
                 // look for if header exists already
-                let existingHeader = sectionHeaders!.find(sh => sh.heading === (castedSectionValue ? castedSectionValue.toString() : `No ${sectionFilter} value`));
+                let existingHeader = sectionHeaders!.find(sh => sh.heading === (castedSectionValue ? castedSectionValue.toString() : `NO ${sectionFilter.toUpperCase()} VALUE`));
                 if (existingHeader) {
                     fields.get(existingHeader)!.push(d);
                 }
                 else {
-                    let newSchemaHeader = new SchemaHeaderField(castedSectionValue ? castedSectionValue.toString() : `No ${sectionFilter} value`);
+                    let newSchemaHeader = new SchemaHeaderField(castedSectionValue ? castedSectionValue.toString() : `NO ${sectionFilter.toUpperCase()} VALUE`);
                     fields.set(newSchemaHeader, [d]);
                     sectionHeaders!.push(newSchemaHeader);
                 }
@@ -260,7 +260,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         let editableViewProps = {
             GetValue: () => "",
             SetValue: this.addGroup,
-            contents: "+ Add a Group"
+            contents: "+ ADD A GROUP"
         }
         // let uniqueHeadings = headings.map((i, idx) => headings.indexOf(i) === idx);
         return (

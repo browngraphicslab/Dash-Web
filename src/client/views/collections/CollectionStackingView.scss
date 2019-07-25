@@ -96,7 +96,6 @@
             outline: none;
             border: 0px;
             color: $light-color;
-            text-transform: uppercase;
             letter-spacing: 2px;
             font-size: 75%;
             transition: transform 0.2s;
@@ -118,9 +117,7 @@
                 padding: 12px 10px 11px 10px;
                 border: 0px;
                 color: grey;
-                // font-size: 75%;
                 text-align: center;
-                text-transform: uppercase;
                 letter-spacing: 2px;
                 outline-color: black;
             }
@@ -142,15 +139,6 @@
         width: 90%;
         color: lightgrey;
         overflow: ellipses;
-    }
-
-    .collectionStackingView-addGroupButton {
-        background: rgb(238, 238, 238);
-        font-size: 75%;
-        text-align: center;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        height: fit-content;
 
         .editableView-container-editing-oneLine,
         .editableView-container-editing {
@@ -165,14 +153,32 @@
         }
 
         .editableView-input {
-            padding: 12px 10px 11px 10px;
-            border: 0px;
-            color: grey;
-            // font-size: 75%;
-            text-align: center;
-            text-transform: uppercase;
-            letter-spacing: 2px;
             outline-color: black;
+            letter-spacing: 2px;
+            color: grey;
+            border: 0px;
+            padding: 12px 10px 11px 10px;
         }
+    }
+
+    .collectionStackingView-addDocumentButton {
+        font-size: 75%;
+        letter-spacing: 2px;
+
+        .editableView-input {
+            outline-color: black;
+            letter-spacing: 2px;
+            color: grey;
+            border: 0px;
+            padding: 12px 10px 11px 10px;
+        }
+    }
+
+    .collectionStackingView-addGroupButton {
+        background: rgb(238, 238, 238);
+        font-size: 75%;
+        text-align: center;
+        letter-spacing: 2px;
+        height: fit-content;
     }
 }

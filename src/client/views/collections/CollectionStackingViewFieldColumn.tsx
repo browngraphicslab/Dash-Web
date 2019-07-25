@@ -18,6 +18,7 @@ import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { ScriptField } from "../../../new_fields/ScriptField";
 import { CompileScript } from "../../util/Scripting";
+import { RichTextField } from "../../../new_fields/RichTextField";
 
 
 interface CSVFieldColumnProps {
@@ -168,11 +169,11 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
     }
 
     @action
-    addDocument = () => {
+    addDocument = (value: string, shiftDown?: boolean) => {
         let key = StrCast(this.props.parent.props.Document.sectionFilter);
-        let newDoc = Docs.Create.TextDocument({ height: 18, title: "new text document" });
+        let newDoc = Docs.Create.TextDocument({ height: 18, width: 200, title: value });
         newDoc[key] = this.getValue(this.props.heading);
-        this.props.parent.props.addDocument(newDoc);
+        return this.props.parent.props.addDocument(newDoc);
     }
 
     @action
@@ -231,12 +232,17 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         let style = this.props.parent;
         let singleColumn = style.singleColumn;
         let uniqueHeadings = headings.map((i, idx) => headings.indexOf(i) === idx);
-        let evContents = heading ? heading : this.props.type && this.props.type === "number" ? "0" : `No ${key} value`;
-        let editableViewProps = {
+        let evContents = heading ? heading : this.props.type && this.props.type === "number" ? "0" : `NO ${key.toUpperCase()} VALUE`;
+        let headerEditableViewProps = {
             GetValue: () => evContents,
             SetValue: this.headingChanged,
             contents: evContents,
             oneLine: true
+        }
+        let newEditableViewProps = {
+            GetValue: () => "",
+            SetValue: this.addDocument,
+            contents: "+ NEW"
         }
         let headingView = this.props.headingObject ?
             <div key={heading} className="collectionStackingView-sectionHeader" ref={this._headerRef}
@@ -244,16 +250,16 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                 {/* the default bucket (no key value) has a tooltip that describes what it is.
                     Further, it does not have a color and cannot be deleted. */}
                 <div className="collectionStackingView-sectionHeader-subCont" onPointerDown={this.headerDown}
-                    title={evContents === `No ${key} value` ?
+                    title={evContents === `NO ${key.toUpperCase()} VALUE` ?
                         `Documents that don't have a ${key} value will go here. This column cannot be removed.` : ""}
                     style={{
                         width: "100%",
-                        background: this.props.headingObject && evContents !== `No ${key} value` ?
+                        background: this.props.headingObject && evContents !== `NO ${key.toUpperCase()} VALUE` ?
                             this.props.headingObject.color : "lightgrey",
                         color: "grey"
                     }}>
-                    <EditableView {...editableViewProps} />
-                    {evContents === `No ${key} value` ?
+                    <EditableView {...headerEditableViewProps} />
+                    {evContents === `NO ${key.toUpperCase()} VALUE` ?
                         (null) :
                         <button className="collectionStackingView-sectionDelete" onClick={this.deleteColumn}>
                             <FontAwesomeIcon icon="trash" />
@@ -282,7 +288,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                 </div>
                 <div key={`${heading}-add-document`} className="collectionStackingView-addDocumentButton"
                     style={{ width: style.columnWidth / (uniqueHeadings.length + 1) }}>
-                    <button style={{ width: "100%" }} onClick={this.addDocument}>+ New</button>
+                    <EditableView {...newEditableViewProps} />
                 </div>
             </div>
         );

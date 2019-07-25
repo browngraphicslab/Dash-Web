@@ -180,11 +180,11 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="2">Schema View</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="4">Tree View</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="5">Stacking View</option>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="6">Masonry View></option>
+                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="6">Masonry View</option>
                         </select>
                         <div className="collectionViewBaseChrome-viewSpecs">
                             <input className="collectionViewBaseChrome-viewSpecsInput"
-                                placeholder="Filter Documents"
+                                placeholder="FILTER DOCUMENTS"
                                 value={this.filterValue ? this.filterValue.script.originalScript : ""}
                                 onPointerDown={this.openViewSpecs} />
                             <div className="collectionViewBaseChrome-viewSpecsMenu"
@@ -304,7 +304,7 @@ export class CollectionStackingViewChrome extends React.Component<CollectionView
                 </button>
                 <div className="collectionStackingViewChrome-sectionFilter-cont">
                     <div className="collectionStackingViewChrome-sectionFilter-label">
-                        Group items by:
+                        GROUP ITEMS BY:
                         </div>
                     <div className="collectionStackingViewChrome-sectionFilter">
                         <EditableView
