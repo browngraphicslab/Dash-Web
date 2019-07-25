@@ -75,8 +75,10 @@ function fetchProto(doc: Doc) {
     }
 }
 
+let updatingFromServer = false;
+
 @scriptingGlobal
-@Deserializable("doc", fetchProto).withFields(["id"])
+@Deserializable("Doc", fetchProto).withFields(["id"])
 export class Doc extends RefField {
     constructor(id?: FieldId, forceSave?: boolean) {
         super(id);
@@ -129,6 +131,9 @@ export class Doc extends RefField {
     private ___fields: any = {};
 
     private [Update] = (diff: any) => {
+        if (updatingFromServer) {
+            return;
+        }
         DocServer.UpdateField(this[Id], diff);
     }
 
@@ -150,7 +155,9 @@ export class Doc extends RefField {
                 }
                 const value = await SerializationHelper.Deserialize(set[key]);
                 const fKey = key.substring(7);
+                updatingFromServer = true;
                 this[fKey] = value;
+                updatingFromServer = false;
             }
         }
         const unset = diff.$unset;
@@ -160,7 +167,9 @@ export class Doc extends RefField {
                     continue;
                 }
                 const fKey = key.substring(7);
+                updatingFromServer = true;
                 delete this[fKey];
+                updatingFromServer = false;
             }
         }
     }
