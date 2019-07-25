@@ -21,6 +21,7 @@ import { DocumentContentsView } from "../nodes/DocumentContentsView";
 import { Transform } from "../../util/Transform";
 import { FieldView } from "../nodes/FieldView";
 import { DocumentView } from "../nodes/DocumentView";
+import { DocumentType } from "../../documents/Documents";
 
 library.add(faArrowUp);
 library.add(fileSolid);
@@ -656,7 +657,7 @@ export default class PresentationElement extends React.Component<PresentationEle
 
     //This is used to add dragging as an event.
     onPointerEnter = (e: React.PointerEvent): void => {
-        this.props.document.libraryBrush = true;
+        // this.props.document.libraryBrush = true;
         if (e.buttons === 1 && SelectionManager.GetIsDragging()) {
             let selected = NumCast(this.props.mainDocument.selectedDoc, 0);
 
@@ -673,7 +674,7 @@ export default class PresentationElement extends React.Component<PresentationEle
 
     //This is used to remove the dragging when dropped.
     onPointerLeave = (e: React.PointerEvent): void => {
-        this.props.document.libraryBrush = false;
+        // this.props.document.libraryBrush = false;
         //to get currently selected presentation doc
         let selected = NumCast(this.props.mainDocument.selectedDoc, 0);
 
@@ -797,7 +798,7 @@ export default class PresentationElement extends React.Component<PresentationEle
         //     {TreeView.GetChildElements([this.props.document], "", new Doc(), undefined, "", (doc: Doc, relativeTo?: Doc, before?: boolean) => false, this.props.removeDocByRef, this.move,
         //         StrCast(this.props.document.dropAction) as dropActionType, (doc: Doc, dataDoc: Doc | undefined, where: string) => { }, Transform.Identity, () => ({ translateX: 0, translateY: 0 }), () => false, () => 400, 7)}
         // </ul >;
-
+        let scale = () => 175 / NumCast(this.props.document.nativeWidth, 175);
         return (
             // <DocumentView
             //     Document={this.props.document}
@@ -816,6 +817,7 @@ export default class PresentationElement extends React.Component<PresentationEle
             //     zoomToScale={(scale: number) => { }}
             //     getScale={() => 3.1415}
             // />
+
             <DocumentView
                 fitToBox={StrCast(this.props.document.type).indexOf(DocumentType.COL) !== -1}
                 Document={this.props.document}
@@ -824,8 +826,8 @@ export default class PresentationElement extends React.Component<PresentationEle
                 ScreenToLocalTransform={Transform.Identity}
                 addDocTab={returnFalse}
                 renderDepth={1}
-                PanelWidth={returnXDimension}
-                PanelHeight={returnYDimension}
+                PanelWidth={() => 175}
+                PanelHeight={() => 175}
                 focus={emptyFunction}
                 selectOnLoad={false}
                 parentActive={returnFalse}
@@ -861,8 +863,7 @@ export default class PresentationElement extends React.Component<PresentationEle
                 style={{
                     outlineColor: "maroon",
                     outlineStyle: "dashed",
-                    outlineWidth: BoolCast(p.document.libraryBrush) ? `1px` : "0px",
-                    overflowY: "scroll"
+                    outlineWidth: BoolCast(p.document.libraryBrush) ? `1px` : "0px"
                 }}
                 onClick={e => { p.gotoDocument(p.index, NumCast(this.props.mainDocument.selectedDoc)); e.stopPropagation(); }}>
                 <strong className="presentationView-name">
