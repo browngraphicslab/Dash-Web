@@ -66,7 +66,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     private DIVIDER_WIDTH = 4;
 
     @observable previewScript: string = "";
-    @observable previewDoc: Doc | undefined = this.childDocs.length ? this.childDocs[0] : undefined;
+    @observable previewDoc: Doc | undefined = undefined;
     @observable private _node: HTMLDivElement | null = null;
     @observable private _focusedTable: Doc = this.props.Document;
 
@@ -100,6 +100,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @action
     setPreviewDoc = (doc: Doc): void => {
+        console.log("set");
         this.previewDoc = doc;
     }
 
@@ -147,6 +148,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     get previewDocument(): Doc | undefined {
         let selected = this.previewDoc;
         let pdc = selected ? (this.previewScript && this.previewScript !== "this" ? FieldValue(Cast(selected[this.previewScript], Doc)) : selected) : undefined;
+        console.log("preview document", pdc);
         return pdc;
     }
 
@@ -209,6 +211,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 isSelected={this.props.isSelected}
                 isFocused={this.isFocused}
                 setFocused={this.setFocused}
+                setPreviewDoc={this.setPreviewDoc}
             />
         );
     }
@@ -217,7 +220,9 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     get schemaToolbar() {
         return (
             <div className="collectionSchemaView-toolbar">
-                <div id="preview-schema-checkbox-div"><input type="checkbox" key={"Show Preview"} checked={this.previewWidth() !== 0} onChange={this.toggleExpander} />Show Preview</div>
+                <div className="collectionSchemaView-toolbar-item">
+                    <div id="preview-schema-checkbox-div"><input type="checkbox" key={"Show Preview"} checked={this.previewWidth() !== 0} onChange={this.toggleExpander} />Show Preview</div>
+                </div>
             </div>
         );
     }
@@ -258,6 +263,7 @@ export interface SchemaTableProps {
     isSelected: () => boolean;
     isFocused: (document: Doc) => boolean;
     setFocused: (document: Doc) => void;
+    setPreviewDoc: (document: Doc) => void;
 }
 
 @observer
@@ -430,9 +436,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         // let col = column ? this.columns.indexOf(column!) : -1;
         let isFocused = this._focusedCell.row === row && this._focusedCell.col === col && this.props.isFocused(this.props.Document);
         // let column = this.columns.indexOf(column.id!);
-
-        console.log("td style", row, col, this._focusedCell.row, this._focusedCell.col);
-
         return {
             style: {
                 border: !this._headerIsEditing && isFocused ? "2px solid rgb(255, 160, 160)" : "1px solid #f1efeb"
@@ -519,12 +522,16 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                 this._focusedCell = { row: this._focusedCell.row + 1 === this.props.childDocs.length ? this._focusedCell.row : this._focusedCell.row + 1, col: this._focusedCell.col };
                 break;
         }
+        let doc = this.props.childDocs[this._focusedCell.row];
+        this.props.setPreviewDoc(doc);
     }
 
     @action
     changeFocusedCellByIndex = (row: number, col: number): void => {
         this._focusedCell = { row: row, col: col };
         this.props.setFocused(this.props.Document);
+        let doc = this.props.childDocs[this._focusedCell.row];
+        this.props.setPreviewDoc(doc);
     }
 
     @action
@@ -647,7 +654,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     @computed
     get reactTable() {
-        let previewWidth = this.previewWidth() + 2 * this.borderWidth + this.DIVIDER_WIDTH + 1;
+        let previewWidth = this.previewWidth(); // + 2 * this.borderWidth + this.DIVIDER_WIDTH + 1;
         let hasCollectionChild = this.props.childDocs.reduce((found, doc) => found || doc.type === "collection", false);
         let expandedRowsList = this._openCollections.map(col => this.props.childDocs.findIndex(doc => doc[Id] === col).toString());
         let expanded = {};

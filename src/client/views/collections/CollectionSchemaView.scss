@@ -40,22 +40,23 @@
 
     .collectionSchemaView-dividerDragger {
         position: relative;
-        background: black;
         float: left;
-        height: 37px;
+        height: 100%;
         width: 20px;
         z-index: 20;
         right: 0;
         top: 0;
-        background: $main-accent;
-        box-sizing: border-box;
-        border-left: 1px solid $intermediate-color;
-        border-right: 1px solid $intermediate-color;
+        background: gray;
+        cursor: col-resize;
+        // background: $main-accent;
+        // box-sizing: border-box;
+        // border-left: 1px solid $intermediate-color;
+        // border-right: 1px solid $intermediate-color;
     }
 }
 
 .ReactTable {
-    width: 100% !important;
+    width: 100%;
     height: 100%;
     background: white;
     box-sizing: border-box;
@@ -400,14 +401,25 @@ button.add-column {
 }
 
 .collectionSchemaView-toolbar {
-    height: 50px;
+    height: 30px;
     display: flex;
     justify-content: flex-end;
+    padding: 0 10px;
+
+    .collectionSchemaView-toolbar-item {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
 }
 
 #preview-schema-checkbox-div {
     margin-left: 20px;
     font-size: 12px;
+}
+
+.collectionSchemaView-table {
+    width: calc(100% - 7px);
 }
 
 .sub {
@@ -428,6 +440,10 @@ button.add-column {
 
     .rt-table {
         background-color: rgb(252, 252, 252);
+    }
+
+    .collectionSchemaView-table {
+        width: 100%;
     }
 }
 
