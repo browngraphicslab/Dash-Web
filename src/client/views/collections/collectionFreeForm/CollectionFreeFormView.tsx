@@ -519,7 +519,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 if (!data) {
                     return;
                 }
-                CognitiveServices.Inking.analyze(data.inkData, Doc.GetProto(this.props.Document));
+                CognitiveServices.Inking.Manager.applier(Doc.GetProto(this.props.Document), data.inkData);
             }
         });
     }

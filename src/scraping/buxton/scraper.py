@@ -15,6 +15,7 @@ source = "./source"
 dist = "../../server/public/files"
 
 db = MongoClient("localhost", 27017)["Dash"]
+target_collection = db.newDocuments
 schema_guids = []
 
 
@@ -84,7 +85,7 @@ def write_schema(parse_results, display_fields, storage_key):
             "height": 600,
             "panX": 0,
             "panY": 0,
-            "zoomBasis": 0.5,
+            "zoomBasis": 1,
             "zIndex": 2,
             "libraryBrush": False,
             "viewType": 2
@@ -106,8 +107,8 @@ def write_schema(parse_results, display_fields, storage_key):
     fields["isPrototype"] = True
     fields["page"] = -1
 
-    db.newDocuments.insert_one(data_doc)
-    db.newDocuments.insert_one(view_doc)
+    target_collection.insert_one(data_doc)
+    target_collection.insert_one(view_doc)
 
     data_doc_guid = data_doc["_id"]
     print(f"inserted view document ({view_doc_guid})")
@@ -158,8 +159,8 @@ def write_text_doc(content):
         "__type": "Doc"
     }
 
-    db.newDocuments.insert_one(view_doc)
-    db.newDocuments.insert_one(data_doc)
+    target_collection.insert_one(view_doc)
+    target_collection.insert_one(data_doc)
 
     return view_doc_guid
 
@@ -209,8 +210,8 @@ def write_image(folder, name):
         "__type": "Doc"
     }
 
-    db.newDocuments.insert_one(view_doc)
-    db.newDocuments.insert_one(data_doc)
+    target_collection.insert_one(view_doc)
+    target_collection.insert_one(data_doc)
 
     return view_doc_guid
 
@@ -372,7 +373,7 @@ parent_guid = write_schema({
 }, ["title", "short_description", "original_price"], "data")
 
 print("appending parent schema to main workspace...\n")
-db.newDocuments.update_one(
+target_collection.update_one(
     {"fields.title": "WS collection 1"},
     {"$push": {"fields.data.fields": {"fieldId": parent_guid, "__type": "proxy"}}}
 )
