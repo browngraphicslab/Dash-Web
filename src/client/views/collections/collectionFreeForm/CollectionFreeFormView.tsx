@@ -32,7 +32,10 @@ import { OverlayView, OverlayElementOptions } from "../../OverlayView";
 import { ScriptBox } from "../../ScriptBox";
 import { CompileScript } from "../../../util/Scripting";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
+import { library } from "@fortawesome/fontawesome-svg-core";
+import { faEye } from "@fortawesome/free-regular-svg-icons";
 
+library.add(faEye);
 
 export const panZoomSchema = createSchema({
     panX: "number",
@@ -522,7 +525,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 let target = Doc.GetProto(this.props.Document);
                 let relevantKeys = ["inkAnalysis", "handwriting"];
                 CognitiveServices.Inking.Manager.analyzer(target, relevantKeys, data.inkData);
-            }
+            }, icon: "eye"
         });
     }
 
