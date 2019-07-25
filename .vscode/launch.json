@@ -7,10 +7,6 @@
         {
             "type": "chrome",
             "request": "launch",
-            "runtimeArgs": [
-                "--enable-logging",
-                "--v=1"
-            ],
             "name": "Launch Chrome against localhost",
             "sourceMaps": true,
             "breakOnLoad": true,

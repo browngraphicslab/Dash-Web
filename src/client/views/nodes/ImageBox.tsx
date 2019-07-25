@@ -176,7 +176,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                 const url = Utils.prepend(files[0]);
                 // upload to server with known URL 
                 let audioDoc = Docs.Create.AudioDocument(url, { title: "audio test", x: NumCast(self.props.Document.x), y: NumCast(self.props.Document.y), width: 200, height: 32 });
-                audioDoc.embed = true;
+                audioDoc.treeViewExpandedView = "layout";
                 let audioAnnos = Cast(self.extensionDoc.audioAnnotations, listSpec(Doc));
                 if (audioAnnos === undefined) {
                     self.extensionDoc.audioAnnotations = new List([audioDoc]);
