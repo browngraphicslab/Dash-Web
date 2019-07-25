@@ -139,6 +139,16 @@ app.get("/pull", (req, res) =>
         res.redirect("/");
     }));
 
+app.get("/version", (req, res) => {
+    exec('"C:\\Program Files\\Git\\bin\\git.exe" rev-parse HEAD', (err, stdout, stderr) => {
+        if (err) {
+            res.send(err.message);
+            return;
+        }
+        res.send(stdout);
+    });
+});
+
 // SEARCH
 
 // GETTERS
