@@ -17,6 +17,7 @@ dist = "../../server/public/files"
 db = MongoClient("localhost", 27017)["Dash"]
 target_collection = db.newDocuments
 schema_guids = []
+common_proto_id = ""
 
 
 def extract_links(fileName):
@@ -93,7 +94,7 @@ def write_schema(parse_results, display_fields, storage_key):
         "__type": "Doc"
     }
 
-    fields["proto"] = protofy("collectionProto")
+    fields["proto"] = protofy(common_proto_id)
     fields[storage_key] = listify(proxify_guids(view_guids))
     fields["schemaColumns"] = listify(display_fields)
     fields["backgroundColor"] = "white"
@@ -137,7 +138,7 @@ def write_text_doc(content):
     data_doc = {
         "_id": data_doc_guid,
         "fields": {
-            "proto": protofy("textProto"),
+            "proto": protofy("commonImportProto"),
             "data": {
                 "Data": '{"doc":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"' + content + '"}]}]},"selection":{"type":"text","anchor":1,"head":1}' + '}',
                 "__type": "RichTextField"
@@ -348,12 +349,30 @@ def proxify_guids(guids):
     return list(map(lambda guid: {"fieldId": guid, "__type": "proxy"}, guids))
 
 
+def write_common_proto():
+    id = guid()
+    common_proto = {
+        "_id": id,
+        "fields": {
+            "proto": protofy("collectionProto"),
+            "title": "Common Import Proto",
+        },
+        "__type": "Doc"
+    }
+
+    target_collection.insert_one(common_proto)
+
+    return id
+
+
 if os.path.exists(dist):
     shutil.rmtree(dist)
 while os.path.exists(dist):
     pass
 os.mkdir(dist)
 mkdir_if_absent(source)
+
+common_proto_id = write_common_proto()
 
 candidates = 0
 for file_name in os.listdir(source):
