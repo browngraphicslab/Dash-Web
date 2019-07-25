@@ -1,5 +1,5 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faProjectDiagram, faSignature, faColumns, faSquare, faTh, faImage, faThList, faTree, faEllipsisV } from '@fortawesome/free-solid-svg-icons';
+import { faProjectDiagram, faSignature, faColumns, faSquare, faTh, faImage, faThList, faTree, faEllipsisV, faFingerprint, faLaptopCode } from '@fortawesome/free-solid-svg-icons';
 import { observer } from "mobx-react";
 import * as React from 'react';
 import { Doc, DocListCast, WidthSym, HeightSym } from '../../../new_fields/Doc';
@@ -27,6 +27,7 @@ library.add(faSquare);
 library.add(faProjectDiagram);
 library.add(faSignature);
 library.add(faThList);
+library.add(faFingerprint);
 library.add(faColumns);
 library.add(faEllipsisV);
 library.add(faImage);
@@ -82,7 +83,6 @@ export class CollectionView extends React.Component<FieldViewProps> {
 
     get isAnnotationOverlay() { return this.props.fieldExt ? true : false; }
 
-    static _applyCount: number = 0;
     onContextMenu = (e: React.MouseEvent): void => {
         if (!this.isAnnotationOverlay && !e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
             let subItems: ContextMenuProps[] = [];
@@ -94,20 +94,14 @@ export class CollectionView extends React.Component<FieldViewProps> {
             subItems.push({ description: "Treeview", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Tree), icon: "tree" });
             subItems.push({ description: "Stacking", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Stacking), icon: "ellipsis-v" });
             subItems.push({ description: "Masonry", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Masonry), icon: "columns" });
+            switch (this.props.Document.viewType) {
+                case CollectionViewType.Freeform: {
+                    subItems.push({ description: "Custom", icon: "fingerprint", event: CollectionFreeFormView.AddCustomLayout(this.props.Document, this.props.fieldKey) });
+                    break;
+                }
+            }
             ContextMenu.Instance.addItem({ description: "View Modes...", subitems: subItems });
-            ContextMenu.Instance.addItem({
-                description: "Apply Template", event: undoBatch(() => {
-                    let otherdoc = new Doc();
-                    otherdoc.width = this.props.Document[WidthSym]();
-                    otherdoc.height = this.props.Document[HeightSym]();
-                    otherdoc.title = this.props.Document.title + "(..." + CollectionView._applyCount++ + ")"; // previously "applied"
-                    otherdoc.layout = Doc.MakeDelegate(this.props.Document);
-                    otherdoc.miniLayout = StrCast(this.props.Document.miniLayout);
-                    otherdoc.detailedLayout = otherdoc.layout;
-                    otherdoc.type = DocumentType.TEMPLATE;
-                    this.props.addDocTab && this.props.addDocTab(otherdoc, undefined, "onRight");
-                }), icon: "project-diagram"
-            });
+            ContextMenu.Instance.addItem({ description: "Apply Template", event: undoBatch(() => this.props.addDocTab && this.props.addDocTab(Doc.ApplyTemplate(this.props.Document)!, undefined, "onRight")), icon: "project-diagram" });
         }
     }
 

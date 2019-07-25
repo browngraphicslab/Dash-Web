@@ -1,9 +1,10 @@
-import { UndoManager, undoBatch } from "../util/UndoManager";
+import { UndoManager } from "../util/UndoManager";
 import { SelectionManager } from "../util/SelectionManager";
 import { CollectionDockingView } from "./collections/CollectionDockingView";
 import { MainView } from "./MainView";
 import { DragManager } from "../util/DragManager";
 import { action } from "mobx";
+import { Doc } from "../../new_fields/Doc";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo;
@@ -82,6 +83,9 @@ export default class KeyManager {
                     });
                 }, "delete");
                 break;
+            case "enter":
+                SelectionManager.SelectedDocuments().map(selected => Doc.ToggleDetailLayout(selected.props.Document));
+                break;
         }
 
         return {
@@ -140,9 +144,11 @@ export default class KeyManager {
                 break;
             case "y":
                 UndoManager.Redo();
+                stopPropagation = false;
                 break;
             case "z":
                 UndoManager.Undo();
+                stopPropagation = false;
                 break;
             case "a":
             case "c":

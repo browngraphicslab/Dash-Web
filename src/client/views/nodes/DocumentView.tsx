@@ -37,6 +37,7 @@ import { RouteStore } from '../../../server/RouteStore';
 import { FormattedTextBox } from './FormattedTextBox';
 import { OverlayView } from '../OverlayView';
 import { ScriptingRepl } from '../ScriptingRepl';
+import { ClientUtils } from '../../util/ClientUtils';
 import { EditableView } from '../EditableView';
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
@@ -59,6 +60,7 @@ library.add(fa.faCrosshairs);
 library.add(fa.faDesktop);
 library.add(fa.faUnlock);
 library.add(fa.faLock);
+library.add(fa.faLaptopCode);
 
 
 // const linkSchema = createSchema({
@@ -193,10 +195,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 DocumentView.animateBetweenIconFunc(doc, width, height, stime, maximizing, cb);
             }
             else {
-                Doc.GetProto(doc).isMinimized = !maximizing;
-                Doc.GetProto(doc).isIconAnimating = undefined;
+                doc.isMinimized = !maximizing;
+                doc.isIconAnimating = undefined;
             }
-            Doc.GetProto(doc).willMaximize = false;
+            doc.willMaximize = false;
         },
             2);
     }
@@ -295,12 +297,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (this._doubleTap && this.props.renderDepth) {
             let fullScreenAlias = Doc.MakeAlias(this.props.Document);
             fullScreenAlias.templates = new List<string>();
-            if (this.props.Document.layout === this.props.Document.miniLayout) {
-                Doc.ToggleDetailLayout(fullScreenAlias);
-            }
+            Doc.UseDetailLayout(fullScreenAlias);
             this.props.addDocTab(fullScreenAlias, this.dataDoc, "inTab");
             SelectionManager.DeselectAll();
-            this.props.Document.libraryBrush = undefined;
+            this.props.Document.libraryBrush = false;
         }
         else if (CurrentUserUtils.MainDocId !== this.props.Document[Id] &&
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
@@ -319,20 +319,19 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 expandedDocs = summarizedDocs ? [...summarizedDocs, ...expandedDocs] : expandedDocs;
                 // let expandedDocs = [...(subBulletDocs ? subBulletDocs : []), ...(maximizedDocs ? maximizedDocs : []), ...(summarizedDocs ? summarizedDocs : []),];
                 if (expandedDocs.length) {   // bcz: need a better way to associate behaviors with click events on widget-documents
-                    let expandedProtoDocs = expandedDocs.map(doc => Doc.GetProto(doc));
                     let maxLocation = StrCast(this.props.Document.maximizeLocation, "inPlace");
                     let getDispDoc = (target: Doc) => Object.getOwnPropertyNames(target).indexOf("isPrototype") === -1 ? target : Doc.MakeDelegate(target);
                     if (altKey || ctrlKey) {
                         maxLocation = this.props.Document.maximizeLocation = (ctrlKey ? maxLocation : (maxLocation === "inPlace" || !maxLocation ? "inTab" : "inPlace"));
                         if (!maxLocation || maxLocation === "inPlace") {
-                            let hadView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedProtoDocs[0], this.props.ContainingCollectionView);
+                            let hadView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedDocs[0], this.props.ContainingCollectionView);
                             let wasMinimized = !hadView && expandedDocs.reduce((min, d) => !min && !BoolCast(d.IsMinimized, false), false);
                             expandedDocs.forEach(maxDoc => Doc.GetProto(maxDoc).isMinimized = false);
-                            let hasView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedProtoDocs[0], this.props.ContainingCollectionView);
+                            let hasView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedDocs[0], this.props.ContainingCollectionView);
                             if (!hasView) {
                                 this.props.addDocument && expandedDocs.forEach(async maxDoc => this.props.addDocument!(getDispDoc(maxDoc), false));
                             }
-                            expandedProtoDocs.forEach(maxDoc => maxDoc.isMinimized = wasMinimized);
+                            expandedDocs.forEach(maxDoc => maxDoc.isMinimized = wasMinimized);
                         }
                     }
                     if (maxLocation && maxLocation !== "inPlace" && CollectionDockingView.Instance) {
@@ -344,7 +343,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                         }
                     } else {
                         let scrpt = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(NumCast(this.Document.width) / 2, NumCast(this.Document.height) / 2);
-                        this.collapseTargetsToPoint(scrpt, expandedProtoDocs);
+                        this.collapseTargetsToPoint(scrpt, expandedDocs);
                     }
                 }
                 else if (linkedDocs.length) {
@@ -506,7 +505,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     @action
     freezeNativeDimensions = (): void => {
-        let proto = Doc.GetProto(this.props.Document);
+        let proto = this.props.Document.isTemplate ? this.props.Document : Doc.GetProto(this.props.Document);
         if (proto.ignoreAspect === undefined && !proto.nativeWidth) {
             proto.nativeWidth = this.props.PanelWidth();
             proto.nativeHeight = this.props.PanelHeight();
@@ -556,20 +555,22 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 this.props.removeDocument && this.props.removeDocument(this.props.Document);
             }, icon: "window-restore"
         });
-        cm.addItem({
-            description: "Find aliases", event: async () => {
-                const aliases = await SearchUtil.GetAliasesOfDocument(this.props.Document);
-                this.props.addDocTab && this.props.addDocTab(Docs.Create.SchemaDocument(["title"], aliases, {}), undefined, "onRight"); // bcz: dataDoc?
-            }, icon: "search"
-        });
+        // cm.addItem({
+        //     description: "Find aliases", event: async () => {
+        //         const aliases = await SearchUtil.GetAliasesOfDocument(this.props.Document);
+        //         this.props.addDocTab && this.props.addDocTab(Docs.Create.SchemaDocument(["title"], aliases, {}), undefined, "onRight"); // bcz: dataDoc?
+        //     }, icon: "search"
+        // });
         if (this.props.Document.detailedLayout && !this.props.Document.isTemplate) {
             cm.addItem({ description: "Toggle detail", event: () => Doc.ToggleDetailLayout(this.props.Document), icon: "image" });
         }
-        cm.addItem({ description: "Add Repl", event: () => OverlayView.Instance.addWindow(<ScriptingRepl />, { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" }) });
+        cm.addItem({ description: "Add Repl", icon: "laptop-code", event: () => OverlayView.Instance.addWindow(<ScriptingRepl />, { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" }) });
         cm.addItem({ description: "Center View", event: () => this.props.focus(this.props.Document, false), icon: "crosshairs" });
         cm.addItem({ description: "Zoom to Document", event: () => this.props.focus(this.props.Document, true), icon: "search" });
-        cm.addItem({ description: "Copy URL", event: () => Utils.CopyText(Utils.prepend("/doc/" + this.props.Document[Id])), icon: "link" });
-        cm.addItem({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "fingerprint" });
+        if (!ClientUtils.RELEASE) {
+            cm.addItem({ description: "Copy URL", event: () => Utils.CopyText(Utils.prepend("/doc/" + this.props.Document[Id])), icon: "link" });
+            cm.addItem({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "fingerprint" });
+        }
         cm.addItem({ description: "Delete", event: this.deleteClicked, icon: "trash" });
         type User = { email: string, userDocumentId: string };
         let usersMenu: ContextMenuProps[] = [];
@@ -611,7 +612,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     onPointerEnter = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = true; };
-    onPointerLeave = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = undefined; };
+    onPointerLeave = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = false; };
 
     isSelected = () => SelectionManager.IsSelected(this);
     @action select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); };
@@ -637,10 +638,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         var nativeWidth = this.nativeWidth > 0 ? `${this.nativeWidth}px` : "100%";
         var nativeHeight = BoolCast(this.props.Document.ignoreAspect) ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
         let showOverlays = this.props.showOverlays ? this.props.showOverlays(this.props.Document) : undefined;
-        let showTitle = showOverlays && showOverlays.title ? showOverlays.title : StrCast(this.props.Document.showTitle);
-        let showCaption = showOverlays && showOverlays.caption ? showOverlays.caption : StrCast(this.props.Document.showCaption);
+        let showTitle = showOverlays && showOverlays.title !== "undefined" ? showOverlays.title : StrCast(this.props.Document.showTitle);
+        let showCaption = showOverlays && showOverlays.caption !== "undefined" ? showOverlays.caption : StrCast(this.props.Document.showCaption);
         let templates = Cast(this.props.Document.templates, listSpec("string"));
-        if (templates instanceof List) {
+        if (!showOverlays && templates instanceof List) {
             templates.map(str => {
                 if (str.indexOf("{props.Document.title}") !== -1) showTitle = "title";
                 if (str.indexOf("fieldKey={\"caption\"}") !== -1) showCaption = "caption";
@@ -671,12 +672,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 {!showTitle && !showCaption ? this.contents :
                     <div style={{ position: "absolute", display: "inline-block", width: "100%", height: "100%", pointerEvents: "none" }}>
 
-                        <div style={{ width: "100%", height: showTextTitle ? "calc(100% - 25px)" : "100%", display: "inline-block", position: "absolute", top: showTextTitle ? "25px" : undefined }}>
+                        <div style={{ width: "100%", height: showTextTitle ? "calc(100% - 33px)" : "100%", display: "inline-block", position: "absolute", top: showTextTitle ? "29px" : undefined }}>
                             {this.contents}
                         </div>
                         {!showTitle ? (null) :
                             <div style={{
-                                position: showTextTitle ? "relative" : "absolute", top: 0, textAlign: "center", textOverflow: "ellipsis", whiteSpace: "pre",
+                                position: showTextTitle ? "relative" : "absolute", top: 0, padding: "4px", textAlign: "center", textOverflow: "ellipsis", whiteSpace: "pre",
                                 pointerEvents: "all",
                                 overflow: "hidden", width: `${100 * this.props.ContentScaling()}%`, height: 25, background: "rgba(0, 0, 0, .4)", color: "white",
                                 transformOrigin: "top left", transform: `scale(${1 / this.props.ContentScaling()})`
@@ -685,8 +686,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                                     contents={this.props.Document[showTitle]}
                                     display={"block"}
                                     height={72}
-                                    GetValue={() => StrCast(this.props.Document[showTitle])}
-                                    SetValue={(value: string) => (Doc.GetProto(this.props.Document)[showTitle] = value) ? true : true}
+                                    fontSize={12}
+                                    GetValue={() => StrCast(this.props.Document[showTitle!])}
+                                    SetValue={(value: string) => (Doc.GetProto(this.props.Document)[showTitle!] = value) ? true : true}
                                 />
                             </div>
                         }

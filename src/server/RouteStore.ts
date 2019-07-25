@@ -29,4 +29,7 @@ export enum RouteStore {
     forgot = "/forgotpassword",
     reset = "/reset/:token",
 
+    // APIS
+    cognitiveServices = "/cognitiveservices"
+
 }

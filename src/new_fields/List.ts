@@ -1,4 +1,4 @@
-import { Deserializable, autoObject } from "../client/util/SerializationHelper";
+import { Deserializable, autoObject, afterDocDeserialize } from "../client/util/SerializationHelper";
 import { Field } from "./Doc";
 import { setter, getter, deleteProperty, updateFunction } from "./util";
 import { serializable, alias, list } from "serializr";
@@ -254,7 +254,7 @@ class ListImpl<T extends Field> extends ObjectField {
 
     [key: number]: T | (T extends RefField ? Promise<T> : never);
 
-    @serializable(alias("fields", list(autoObject())))
+    @serializable(alias("fields", list(autoObject(), { afterDeserialize: afterDocDeserialize })))
     private get __fields() {
         return this.___fields;
     }

@@ -205,13 +205,13 @@ export class SearchItem extends React.Component<SearchItemProps> {
 
                 let doc1 = Cast(this.props.doc.anchor1, Doc, null);
                 let doc2 = Cast(this.props.doc.anchor2, Doc, null);
-                doc1 && (doc1.libraryBrush = undefined);
-                doc2 && (doc2.libraryBrush = undefined);
+                doc1 && (doc1.libraryBrush = false);
+                doc2 && (doc2.libraryBrush = false);
             }
         } else {
             let docViews: DocumentView[] = DocumentManager.Instance.getAllDocumentViews(this.props.doc);
             docViews.forEach(element => {
-                element.props.Document.libraryBrush = undefined;
+                element.props.Document.libraryBrush = false;
             });
         }
     }
