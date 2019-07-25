@@ -70,6 +70,9 @@
     }
 
     .rt-thead {
+        width: calc(100% - 30px);
+        margin-left: 30px;
+
         &.-header {
             // background: $intermediate-color;
             // color: $light-color;
@@ -77,6 +80,8 @@
             height: 30px;
             // border: 1px solid $intermediate-color;
             box-shadow: none;
+            // width: calc(100% - 30px);
+            // margin-right: -30px;
         }
 
         .rt-resizable-header {
@@ -298,6 +303,10 @@ button.add-column {
 
     .row-dragger {
         // height: $MAX_ROW_HEIGHT;
+        width: 30px;
+        height: 100%;
+        padding: 10px;
+        color: gray;
     }
 
     .collectionSchema-row-wrapper {

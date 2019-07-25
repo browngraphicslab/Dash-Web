@@ -8,7 +8,11 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { Cast, FieldValue, StrCast } from "../../../new_fields/Types";
 import { ContextMenu } from "../ContextMenu";
 import { action } from "mobx";
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { faGripVertical } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
+library.add(faGripVertical);
 
 export interface MovableColumnProps {
     columnRenderer: TableCellRenderer;
@@ -198,11 +202,12 @@ export class MovableRow extends React.Component<MovableRowProps> {
         return (
             <div className={className} ref={this.createRowDropTarget} onContextMenu={this.onRowContextMenu}>
                 <div className="collectionSchema-row-wrapper" ref={this._header} onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
-                    <div className="row-dragger" ref={reference} onPointerDown={onItemDown}>
-                        <ReactTableDefaults.TrComponent>
-                            {children}
-                        </ReactTableDefaults.TrComponent>
-                    </div>
+                    <ReactTableDefaults.TrComponent>
+                        <div className="row-dragger" ref={reference} onPointerDown={onItemDown}>
+                            <FontAwesomeIcon icon={"grip-vertical"} size="sm" />
+                        </div>
+                        {children}
+                    </ReactTableDefaults.TrComponent>
                 </div>
             </div>
         );

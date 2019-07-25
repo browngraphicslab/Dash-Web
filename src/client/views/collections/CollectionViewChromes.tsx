@@ -53,7 +53,7 @@ class CollectionViewBaseChrome extends React.Component<CollectionViewChromeProps
                     <option value="masonry" selected={this.props.CollectionView.props.Document.viewType === CollectionViewType.Masonry}>Masonry View</option>
                 </select>
             </div>
-        )
+        );
     }
 }
 
@@ -147,6 +147,6 @@ export class CollectionStackingViewChrome extends React.Component<CollectionView
                     </div>
                 </div>
             </div>
-        )
+        );
     }
 }
