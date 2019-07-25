@@ -435,7 +435,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
         return {
             style: {
-                border: !this._headerIsEditing && isFocused ? "2px solid black" : "1px solid #f1efeb"
+                border: !this._headerIsEditing && isFocused ? "2px solid rgb(255, 160, 160)" : "1px solid #f1efeb"
             }
         };
     }

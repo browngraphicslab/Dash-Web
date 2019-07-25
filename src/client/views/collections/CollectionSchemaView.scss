@@ -8,7 +8,7 @@
     box-sizing: border-box;
     // position: absolute;
     width: 100%;
-    // height: calc(100% - 25px);
+    height: calc(100% - 50px);
     // overflow: hidden;
     overflow-x: scroll;
     border: none;
@@ -55,7 +55,7 @@
 }
 
 .ReactTable {
-    width: 100%;
+    width: 100% !important;
     height: 100%;
     background: white;
     box-sizing: border-box;
@@ -70,8 +70,8 @@
     }
 
     .rt-thead {
-        width: calc(100% - 30px);
-        margin-left: 30px;
+        width: calc(100% - 50px);
+        margin-left: 50px;
 
         &.-header {
             // background: $intermediate-color;
@@ -118,6 +118,7 @@
 
     .rt-tbody {
         direction: rtl;
+        overflow: visible;
     }
 
     .rt-tr-group {
@@ -139,12 +140,12 @@
         //     background-color: $light-color-secondary;
         // }
 
-        &:first-child {
-            border-top: 1px solid $light-color-secondary !important;
-        }
-        &:last-child {
-            border-bottom: 1px solid $light-color-secondary !important;
-        }
+        // &:first-child {
+        //     border-top: 1px solid $light-color-secondary !important;
+        // }
+        // &:last-child {
+        //     border-bottom: 1px solid $light-color-secondary !important;
+        // }
     }
 
     .rt-tr {
@@ -162,7 +163,8 @@
         padding: 0;
         font-size: 13px;
         text-align: center;
-        white-space: normal;
+        
+        // white-space: normal;
 
         .imageBox-cont {
             position: relative;
@@ -296,17 +298,46 @@ button.add-column {
 .collectionSchema-row {
     // height: $MAX_ROW_HEIGHT;
     height: 100%;
+    background-color: white;
 
     &.row-focused {
-        background-color: rgb(253, 191, 191);//$light-color-secondary;
+        background-color: rgb(255, 246, 246);//$light-color-secondary;
+    }
+
+    &.row-wrapped {
+        white-space: normal;
     }
 
     .row-dragger {
+        display: flex;
+        justify-content: space-evenly;
         // height: $MAX_ROW_HEIGHT;
-        width: 30px;
+        flex: 50 0 auto;
+        width: 50px;
+        max-width: 50px;
         height: 100%;
-        padding: 10px;
-        color: gray;
+        min-height: 30px;
+        // padding: 5px 5px 5px 0;
+        color: lightgray;
+        background-color: white;
+        transition: color 0.1s ease;
+
+        // &:hover {
+        //     color: lightgray;
+        // }
+
+        .row-option {
+            // padding: 5px;
+            cursor: pointer;
+            transition: color 0.1s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+
+            &:hover {
+                color: gray;
+            }
+        }
     }
 
     .collectionSchema-row-wrapper {
@@ -369,6 +400,7 @@ button.add-column {
 }
 
 .collectionSchemaView-toolbar {
+    height: 50px;
     display: flex;
     justify-content: flex-end;
 }
@@ -379,8 +411,24 @@ button.add-column {
 }
 
 .sub {
-    padding: 20px;
-    background-color: $intermediate-color;
+    padding: 10px 30px;
+    // padding-left: 80px;
+    background-color: rgb(252, 252, 252);
+    width: calc(100% - 50px);
+    margin-left: 50px;
+
+    .rt-table {
+        overflow-x: hidden; // todo; this shouldnt be like this :((
+        overflow-y: visible;
+    } // TODO fix
+
+    .row-dragger {
+        background-color: rgb(252, 252, 252);
+    }
+
+    .rt-table {
+        background-color: rgb(252, 252, 252);
+    }
 }
 
 .collectionSchemaView-expander {

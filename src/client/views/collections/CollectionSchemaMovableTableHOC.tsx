@@ -9,10 +9,10 @@ import { Cast, FieldValue, StrCast } from "../../../new_fields/Types";
 import { ContextMenu } from "../ContextMenu";
 import { action } from "mobx";
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faGripVertical } from '@fortawesome/free-solid-svg-icons';
+import { faGripVertical, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
-library.add(faGripVertical);
+library.add(faGripVertical, faTrash);
 
 export interface MovableColumnProps {
     columnRenderer: TableCellRenderer;
@@ -198,13 +198,15 @@ export class MovableRow extends React.Component<MovableRowProps> {
         let className = "collectionSchema-row";
         if (this.props.rowFocused) className += " row-focused";
         if (this.props.rowWrapped) className += " row-wrapped";
+        // if (!this.props.rowWrapped) className += " row-unwrapped";
 
         return (
             <div className={className} ref={this.createRowDropTarget} onContextMenu={this.onRowContextMenu}>
                 <div className="collectionSchema-row-wrapper" ref={this._header} onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
                     <ReactTableDefaults.TrComponent>
-                        <div className="row-dragger" ref={reference} onPointerDown={onItemDown}>
-                            <FontAwesomeIcon icon={"grip-vertical"} size="sm" />
+                        <div className="row-dragger">
+                            <div className="row-option" onClick={() => this.props.removeDoc(this.props.rowInfo.original)}><FontAwesomeIcon icon="trash" size="sm" /></div>
+                            <div className="row-option" style={{ cursor: "grab" }} ref={reference} onPointerDown={onItemDown}><FontAwesomeIcon icon="grip-vertical" size="sm" /></div>
                         </div>
                         {children}
                     </ReactTableDefaults.TrComponent>
