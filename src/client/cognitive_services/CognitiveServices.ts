@@ -45,6 +45,7 @@ export namespace CognitiveServices {
         return fetch(Utils.prepend(`${RouteStore.cognitiveServices}/${service}`)).then(async response => {
             let apiKey = await response.text();
             if (!apiKey) {
+                console.log(`No API key found for ${service}: ensure index.ts has access to a .env file in your root directory`);
                 return undefined;
             }
 
