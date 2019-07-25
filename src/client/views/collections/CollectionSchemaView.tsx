@@ -292,7 +292,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                 {
                     expander: true,
                     Header: "",
-                    width: 45,
+                    width: 30,
                     Expander: (rowInfo) => {
                         if (rowInfo.original.type === "collection") {
                             if (rowInfo.isExpanded) return <div className="collectionSchemaView-expander" onClick={() => this.onCloseCollection(rowInfo.original)}><FontAwesomeIcon icon={"sort-up"} size="sm" /></div>;
@@ -421,6 +421,25 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         };
     }
 
+    private getTdProps: ComponentPropsGetterR = (state, rowInfo, column, instance) => {
+        if (!rowInfo) return {};
+        if (!column) return {};
+
+        let row = rowInfo.index;
+        let col = this.columns.indexOf(column.id);
+        // let col = column ? this.columns.indexOf(column!) : -1;
+        let isFocused = this._focusedCell.row === row && this._focusedCell.col === col && this.props.isFocused(this.props.Document);
+        // let column = this.columns.indexOf(column.id!);
+
+        console.log("td style", row, col, this._focusedCell.row, this._focusedCell.col);
+
+        return {
+            style: {
+                border: !this._headerIsEditing && isFocused ? "2px solid black" : "1px solid #f1efeb"
+            }
+        };
+    }
+
     // private createTarget = (ele: HTMLDivElement) => {
     //     this._mainCont = ele;
     //     this.props.CreateDropTarget(ele);
@@ -456,7 +475,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
-        // console.log("pointer down", StrCast(this.props.Document.title));
         this.props.setFocused(this.props.Document);
         if (e.button === 0 && !e.altKey && !e.ctrlKey && !e.metaKey) {
             if (this.props.isSelected()) e.stopPropagation();
@@ -470,7 +488,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     onKeyDown = (e: KeyboardEvent): void => {
-        console.log("schema keydown", !this._cellIsEditing, !this._headerIsEditing, this.props.isFocused(this.props.Document));
         if (!this._cellIsEditing && !this._headerIsEditing && this.props.isFocused(this.props.Document)) {// && this.props.isSelected()) {
             let direction = e.key === "Tab" ? "tab" : e.which === 39 ? "right" : e.which === 37 ? "left" : e.which === 38 ? "up" : e.which === 40 ? "down" : "";
             this.changeFocusedCellByDirection(direction);
@@ -645,6 +662,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             showPagination={false}
             columns={this.tableColumns}
             getTrProps={this.getTrProps}
+            getTdProps={this.getTdProps}
             sortable={false}
             TrComponent={MovableRow}
             sorted={Array.from(this._sortedColumns.values())}
