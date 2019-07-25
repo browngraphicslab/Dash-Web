@@ -5,7 +5,7 @@ import { NumCast, BoolCast, StrCast, Cast, FieldValue } from "../../../new_field
 import { Id } from "../../../new_fields/FieldSymbols";
 import { observable, action, computed, runInAction } from "mobx";
 import "./PresentationView.scss";
-import { Utils, emptyFunction, returnFalse } from "../../../Utils";
+import { Utils, emptyFunction, returnFalse, returnOne } from "../../../Utils";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFile as fileSolid, faFileDownload, faLocationArrow, faArrowUp, faSearch } from '@fortawesome/free-solid-svg-icons';
@@ -799,22 +799,42 @@ export default class PresentationElement extends React.Component<PresentationEle
         // </ul >;
 
         return (
+            // <DocumentView
+            //     Document={this.props.document}
+            //     ContainingCollectionView={undefined}
+            //     ScreenToLocalTransform={Transform.Identity}
+            //     renderDepth={7}
+            //     ContentScaling={() => 1}
+            //     PanelWidth={() => 400}
+            //     PanelHeight={() => 400}
+            //     focus={(doc: Doc, willZoom: boolean) => { }}
+            //     selectOnLoad={false}
+            //     parentActive={returnFalse}
+            //     whenActiveChanged={(isActive: boolean) => { }}
+            //     bringToFront={(doc: Doc) => { }}
+            //     addDocTab={(doc: Doc, dataDoc: Doc | undefined, where: string) => { }}
+            //     zoomToScale={(scale: number) => { }}
+            //     getScale={() => 3.1415}
+            // />
             <DocumentView
+                fitToBox={StrCast(this.props.document.type).indexOf(DocumentType.COL) !== -1}
                 Document={this.props.document}
-                ContainingCollectionView={undefined}
+                addDocument={returnFalse}
+                removeDocument={returnFalse}
                 ScreenToLocalTransform={Transform.Identity}
-                renderDepth={7}
-                ContentScaling={() => 1}
-                PanelWidth={() => 400}
-                PanelHeight={() => 400}
-                focus={(doc: Doc, willZoom: boolean) => { }}
+                addDocTab={returnFalse}
+                renderDepth={1}
+                PanelWidth={returnXDimension}
+                PanelHeight={returnYDimension}
+                focus={emptyFunction}
                 selectOnLoad={false}
                 parentActive={returnFalse}
-                whenActiveChanged={(isActive: boolean) => { }}
-                bringToFront={(doc: Doc) => { }}
-                addDocTab={(doc: Doc, dataDoc: Doc | undefined, where: string) => { }}
-                zoomToScale={(scale: number) => { }}
-                getScale={() => 3.1415}
+                whenActiveChanged={returnFalse}
+                bringToFront={emptyFunction}
+                zoomToScale={emptyFunction}
+                getScale={returnOne}
+                ContainingCollectionView={undefined}
+                ContentScaling={scale}
             />
         );
     }
