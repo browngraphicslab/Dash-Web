@@ -195,10 +195,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 DocumentView.animateBetweenIconFunc(doc, width, height, stime, maximizing, cb);
             }
             else {
-                Doc.GetProto(doc).isMinimized = !maximizing;
-                Doc.GetProto(doc).isIconAnimating = undefined;
+                doc.isMinimized = !maximizing;
+                doc.isIconAnimating = undefined;
             }
-            Doc.GetProto(doc).willMaximize = false;
+            doc.willMaximize = false;
         },
             2);
     }
@@ -319,20 +319,19 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 expandedDocs = summarizedDocs ? [...summarizedDocs, ...expandedDocs] : expandedDocs;
                 // let expandedDocs = [...(subBulletDocs ? subBulletDocs : []), ...(maximizedDocs ? maximizedDocs : []), ...(summarizedDocs ? summarizedDocs : []),];
                 if (expandedDocs.length) {   // bcz: need a better way to associate behaviors with click events on widget-documents
-                    let expandedProtoDocs = expandedDocs.map(doc => Doc.GetProto(doc));
                     let maxLocation = StrCast(this.props.Document.maximizeLocation, "inPlace");
                     let getDispDoc = (target: Doc) => Object.getOwnPropertyNames(target).indexOf("isPrototype") === -1 ? target : Doc.MakeDelegate(target);
                     if (altKey || ctrlKey) {
                         maxLocation = this.props.Document.maximizeLocation = (ctrlKey ? maxLocation : (maxLocation === "inPlace" || !maxLocation ? "inTab" : "inPlace"));
                         if (!maxLocation || maxLocation === "inPlace") {
-                            let hadView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedProtoDocs[0], this.props.ContainingCollectionView);
+                            let hadView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedDocs[0], this.props.ContainingCollectionView);
                             let wasMinimized = !hadView && expandedDocs.reduce((min, d) => !min && !BoolCast(d.IsMinimized, false), false);
                             expandedDocs.forEach(maxDoc => Doc.GetProto(maxDoc).isMinimized = false);
-                            let hasView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedProtoDocs[0], this.props.ContainingCollectionView);
+                            let hasView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedDocs[0], this.props.ContainingCollectionView);
                             if (!hasView) {
                                 this.props.addDocument && expandedDocs.forEach(async maxDoc => this.props.addDocument!(getDispDoc(maxDoc), false));
                             }
-                            expandedProtoDocs.forEach(maxDoc => maxDoc.isMinimized = wasMinimized);
+                            expandedDocs.forEach(maxDoc => maxDoc.isMinimized = wasMinimized);
                         }
                     }
                     if (maxLocation && maxLocation !== "inPlace" && CollectionDockingView.Instance) {
@@ -344,7 +343,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                         }
                     } else {
                         let scrpt = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(NumCast(this.Document.width) / 2, NumCast(this.Document.height) / 2);
-                        this.collapseTargetsToPoint(scrpt, expandedProtoDocs);
+                        this.collapseTargetsToPoint(scrpt, expandedDocs);
                     }
                 }
                 else if (linkedDocs.length) {
