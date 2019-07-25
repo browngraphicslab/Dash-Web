@@ -16,6 +16,8 @@ import "./CollectionStackingView.scss";
 import { Docs } from "../../documents/Documents";
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { ScriptField } from "../../../new_fields/ScriptField";
+import { CompileScript } from "../../util/Scripting";
 
 
 interface CSVFieldColumnProps {
@@ -35,6 +37,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
 
     private _dropRef: HTMLDivElement | null = null;
     private dropDisposer?: DragManager.DragDropDisposer;
+    private _headerRef: React.RefObject<HTMLDivElement> = React.createRef();
 
     @observable _heading = this.props.headingObject ? this.props.headingObject.heading : this.props.heading;
 
@@ -182,6 +185,43 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         }
     }
 
+    startDrag = (e: PointerEvent) => {
+        let alias = Doc.MakeAlias(this.props.parent.props.Document);
+        let key = StrCast(this.props.parent.props.Document.sectionFilter);
+        let value = this.getValue(this._heading);
+        value = typeof value === "string" ? `"${value}"` : value;
+        let script = `return doc.${key} === ${value}`;
+        let compiled = CompileScript(script, { params: { doc: Doc.name } });
+        if (compiled.compiled) {
+            let scriptField = new ScriptField(compiled);
+            alias.viewSpecScript = scriptField;
+            let dragData = new DragManager.DocumentDragData([alias], [alias.proto]);
+            DragManager.StartDocumentDrag([this._headerRef.current!], dragData, e.clientX, e.clientY);
+        }
+
+        e.stopPropagation();
+        document.removeEventListener("pointermove", this.startDrag);
+        document.removeEventListener("pointerup", this.pointerUp);
+    }
+
+    pointerUp = (e: PointerEvent) => {
+        e.stopPropagation();
+        e.preventDefault();
+
+        document.removeEventListener("pointermove", this.startDrag);
+        document.removeEventListener("pointerup", this.pointerUp);
+    }
+
+    headerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+        e.stopPropagation();
+        e.preventDefault();
+
+        document.removeEventListener("pointermove", this.startDrag);
+        document.addEventListener("pointermove", this.startDrag);
+        document.removeEventListener("pointerup", this.pointerUp);
+        document.addEventListener("pointerup", this.pointerUp);
+    }
+
     render() {
         let cols = this.props.cols();
         let key = StrCast(this.props.parent.props.Document.sectionFilter);
@@ -199,11 +239,11 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             oneLine: true
         }
         let headingView = this.props.headingObject ?
-            <div key={heading} className="collectionStackingView-sectionHeader"
+            <div key={heading} className="collectionStackingView-sectionHeader" ref={this._headerRef}
                 style={{ width: (style.columnWidth) / (uniqueHeadings.length + 1) }}>
                 {/* the default bucket (no key value) has a tooltip that describes what it is.
                     Further, it does not have a color and cannot be deleted. */}
-                <div className="collectionStackingView-sectionHeader-subCont"
+                <div className="collectionStackingView-sectionHeader-subCont" onPointerDown={this.headerDown}
                     title={evContents === `No ${key} value` ?
                         `Documents that don't have a ${key} value will go here. This column cannot be removed.` : ""}
                     style={{

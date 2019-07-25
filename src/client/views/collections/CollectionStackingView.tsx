@@ -8,7 +8,7 @@ import { BoolCast, NumCast, Cast, StrCast, FieldValue } from "../../../new_field
 import { emptyFunction, Utils } from "../../../Utils";
 import { CollectionSchemaPreview } from "./CollectionSchemaView";
 import "./CollectionStackingView.scss";
-import { CollectionSubView } from "./CollectionSubView";
+import { CollectionSubView, SubCollectionViewProps } from "./CollectionSubView";
 import { undoBatch } from "../../util/UndoManager";
 import { DragManager } from "../../util/DragManager";
 import { DocumentType } from "../../documents/Documents";
@@ -19,6 +19,7 @@ import { listSpec } from "../../../new_fields/Schema";
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import { List } from "../../../new_fields/List";
 import { EditableView } from "../EditableView";
+import { CollectionViewProps } from "./CollectionBaseView";
 
 let valuesCreated = 1;
 
@@ -32,6 +33,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     _columnStart: number = 0;
     @observable private cursor: CursorProperty = "grab";
     get sectionHeaders() { return Cast(this.props.Document.sectionHeaders, listSpec(SchemaHeaderField)); }
+    get chromeCollapsed() { return this.props.chromeCollapsed; }
     @computed get xMargin() { return NumCast(this.props.Document.xMargin, 2 * this.gridGap); }
     @computed get yMargin() { return NumCast(this.props.Document.yMargin, 2 * this.gridGap); }
     @computed get gridGap() { return NumCast(this.props.Document.gridGap, 10); }
@@ -250,6 +252,13 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         return false;
     }
 
+    sortFunc = (a: [SchemaHeaderField, Doc[]], b: [SchemaHeaderField, Doc[]]): 1 | -1 => {
+        let descending = BoolCast(this.props.Document.stackingHeadersSortDescending);
+        let firstEntry = descending ? b : a;
+        let secondEntry = descending ? a : b;
+        return firstEntry[0].heading > secondEntry[0].heading ? 1 : -1;
+    }
+
     render() {
         let headings = Array.from(this.Sections.keys());
         let editableViewProps = {
@@ -259,13 +268,13 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         }
         // let uniqueHeadings = headings.map((i, idx) => headings.indexOf(i) === idx);
         return (
-            <div className="collectionStackingView"
+            <div className="collectionStackingView" style={{ top: this.chromeCollapsed ? 0 : 100 }}
                 ref={this.createRef} onDrop={this.onDrop.bind(this)} onWheel={(e: React.WheelEvent) => e.stopPropagation()} >
                 {/* {sectionFilter as boolean ? [
                     ["width > height", this.filteredChildren.filter(f => f[WidthSym]() >= 1 + f[HeightSym]())],
                     ["width = height", this.filteredChildren.filter(f => Math.abs(f[WidthSym]() - f[HeightSym]()) < 1)],
                     ["height > width", this.filteredChildren.filter(f => f[WidthSym]() + 1 <= f[HeightSym]())]]. */}
-                {this.props.Document.sectionFilter ? Array.from(this.Sections.entries()).sort((a, b) => a[0].toString() > b[0].toString() ? 1 : -1).
+                {this.props.Document.sectionFilter ? Array.from(this.Sections.entries()).sort(this.sortFunc).
                     map(section => this.section(section[0], section[1] as Doc[])) :
                     this.section(undefined, this.filteredChildren)}
                 {this.props.Document.sectionFilter ?
