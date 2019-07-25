@@ -34,9 +34,9 @@ import { CompileScript } from "../../../util/Scripting";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faEye } from "@fortawesome/free-regular-svg-icons";
-import { faTable } from "@fortawesome/free-solid-svg-icons";
+import { faTable, faPaintBrush, faAsterisk } from "@fortawesome/free-solid-svg-icons";
 
-library.add(faEye, faTable);
+library.add(faEye, faTable, faPaintBrush);
 
 export const panZoomSchema = createSchema({
     panX: "number",
@@ -524,10 +524,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 if (!data) {
                     return;
                 }
-                let target = Doc.GetProto(this.props.Document);
                 let relevantKeys = ["inkAnalysis", "handwriting"];
-                CognitiveServices.Inking.Manager.analyzer(target, relevantKeys, data.inkData);
-            }, icon: "eye"
+                CognitiveServices.Inking.Manager.analyzer(this.fieldExtensionDoc, relevantKeys, data.inkData);
+            }, icon: "paint-brush"
         });
     }
 

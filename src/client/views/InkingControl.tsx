@@ -20,7 +20,7 @@ export class InkingControl extends React.Component {
     static Instance: InkingControl = new InkingControl({});
     @observable private _selectedTool: InkTool = InkTool.None;
     @observable private _selectedColor: string = "rgb(244, 67, 54)";
-    @observable private _selectedWidth: string = "25";
+    @observable private _selectedWidth: string = "5";
     @observable public _open: boolean = false;
 
     constructor(props: Readonly<{}>) {

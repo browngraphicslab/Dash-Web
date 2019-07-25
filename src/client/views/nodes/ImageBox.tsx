@@ -1,5 +1,5 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faImage, faFileAudio } from '@fortawesome/free-solid-svg-icons';
+import { faImage, faFileAudio, faPaintBrush, faAsterisk } from '@fortawesome/free-solid-svg-icons';
 import { action, observable, computed, runInAction } from 'mobx';
 import { observer } from "mobx-react";
 import Lightbox from 'react-image-lightbox';
@@ -27,13 +27,14 @@ import { Font } from '@react-pdf/renderer';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { CognitiveServices } from '../../cognitive_services/CognitiveServices';
 import FaceRectangles from './FaceRectangles';
+import { faEye } from '@fortawesome/free-regular-svg-icons';
 var requestImageSize = require('../../util/request-image-size');
 var path = require('path');
 const { Howl, Howler } = require('howler');
 
 
-library.add(faImage);
-library.add(faFileAudio);
+library.add(faImage, faEye, faPaintBrush);
+library.add(faFileAudio, faAsterisk);
 
 
 export const pageSchema = createSchema({
@@ -220,8 +221,8 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
             modes.push({ description: "Generate Tags", event: () => CognitiveServices.Image.generateMetadata(dataDoc), icon: "tag" });
             modes.push({ description: "Find Faces", event: () => CognitiveServices.Image.extractFaces(dataDoc), icon: "camera" });
 
-            ContextMenu.Instance.addItem({ description: "Image Funcs...", subitems: funcs });
-            ContextMenu.Instance.addItem({ description: "Analyze...", subitems: modes });
+            ContextMenu.Instance.addItem({ description: "Image Funcs...", subitems: funcs, icon: "asterisk" });
+            ContextMenu.Instance.addItem({ description: "Analyze...", subitems: modes, icon: "eye" });
         }
     }
 
