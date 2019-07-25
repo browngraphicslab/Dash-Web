@@ -198,7 +198,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 Document={this.props.Document} // child doc
                 PanelHeight={this.props.PanelHeight}
                 PanelWidth={this.props.PanelWidth}
-                childDocs={this.childDocs}
+                // childDocs={this.childDocs}
                 CollectionView={this.props.CollectionView}
                 ContainingCollectionView={this.props.ContainingCollectionView}
                 fieldKey={this.props.fieldKey} // might just be this.
@@ -213,6 +213,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 setFocused={this.setFocused}
                 setPreviewDoc={this.setPreviewDoc}
                 deleteDocument={this.props.removeDocument}
+                dataDoc={this.props.DataDoc}
             />
         );
     }
@@ -248,9 +249,10 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
 export interface SchemaTableProps {
     Document: Doc; // child doc
+    dataDoc?: Doc;
     PanelHeight: () => number;
     PanelWidth: () => number;
-    childDocs: Doc[];
+    // childDocs: Doc[];
     CollectionView: CollectionView | CollectionPDFView | CollectionVideoView;
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
     fieldKey: string;
@@ -295,7 +297,10 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         let focusedCol = this._focusedCell.col;
         let isEditable = !this._headerIsEditing;// && this.props.isSelected();
 
-        if (this.props.childDocs.reduce((found, doc) => found || doc.type === "collection", false)) {
+        let cdoc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
+        let children = DocListCast(cdoc[this.props.fieldKey]);
+
+        if (children.reduce((found, doc) => found || doc.type === "collection", false)) {
             columns.push(
                 {
                     expander: true,
@@ -405,9 +410,10 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     tableRemoveDoc = (document: Doc): boolean => {
-        let index = this.props.childDocs.findIndex(d => d === document);
-        if (index !== -1) {
-            this.props.childDocs.splice(index, 1);
+        let doc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
+        let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
+        if (children.indexOf(document) !== -1) {
+            children.splice(children.indexOf(document), 1);
             return true;
         }
         return false;
@@ -422,6 +428,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             ScreenToLocalTransform: this.props.ScreenToLocalTransform,
             addDoc: this.tableAddDoc,
             removeDoc: this.tableRemoveDoc,
+            // removeDoc: this.props.deleteDocument,
             rowInfo,
             rowFocused: !this._headerIsEditing && rowInfo.index === this._focusedCell.row && this.props.isFocused(this.props.Document),
             textWrapRow: this.textWrapRow,
@@ -501,9 +508,11 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     @action
     changeFocusedCellByDirection = (direction: string): void => {
+        let doc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
+        let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
         switch (direction) {
             case "tab":
-                if (this._focusedCell.col + 1 === this.columns.length && this._focusedCell.row + 1 === this.props.childDocs.length) {
+                if (this._focusedCell.col + 1 === this.columns.length && this._focusedCell.row + 1 === children.length) {
                     this._focusedCell = { row: 0, col: 0 };
                 } else if (this._focusedCell.col + 1 === this.columns.length) {
                     this._focusedCell = { row: this._focusedCell.row + 1, col: 0 };
@@ -521,19 +530,23 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                 this._focusedCell = { row: this._focusedCell.row === 0 ? this._focusedCell.row : this._focusedCell.row - 1, col: this._focusedCell.col };
                 break;
             case "down":
-                this._focusedCell = { row: this._focusedCell.row + 1 === this.props.childDocs.length ? this._focusedCell.row : this._focusedCell.row + 1, col: this._focusedCell.col };
+                this._focusedCell = { row: this._focusedCell.row + 1 === children.length ? this._focusedCell.row : this._focusedCell.row + 1, col: this._focusedCell.col };
                 break;
         }
-        let doc = this.props.childDocs[this._focusedCell.row];
-        this.props.setPreviewDoc(doc);
+        const pdoc = FieldValue(children[this._focusedCell.row]);
+        pdoc && this.props.setPreviewDoc(pdoc);
     }
 
     @action
     changeFocusedCellByIndex = (row: number, col: number): void => {
+        let doc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
+        let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
+
         this._focusedCell = { row: row, col: col };
         this.props.setFocused(this.props.Document);
-        let doc = this.props.childDocs[this._focusedCell.row];
-        this.props.setPreviewDoc(doc);
+
+        const fdoc = FieldValue(children[this._focusedCell.row]);
+        fdoc && this.props.setPreviewDoc(fdoc);
     }
 
     @action
@@ -656,18 +669,21 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     @computed
     get reactTable() {
+        let cdoc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
+        let children = DocListCast(cdoc[this.props.fieldKey]);
+
         let previewWidth = this.previewWidth(); // + 2 * this.borderWidth + this.DIVIDER_WIDTH + 1;
-        let hasCollectionChild = this.props.childDocs.reduce((found, doc) => found || doc.type === "collection", false);
-        let expandedRowsList = this._openCollections.map(col => this.props.childDocs.findIndex(doc => doc[Id] === col).toString());
+        let hasCollectionChild = children.reduce((found, doc) => found || doc.type === "collection", false);
+        let expandedRowsList = this._openCollections.map(col => children.findIndex(doc => doc[Id] === col).toString());
         let expanded = {};
         expandedRowsList.forEach(row => expanded[row] = true);
         console.log(...[...this._textWrappedRows]); // TODO: get component to rerender on text wrap change without needign to console.log :((((
 
         return <ReactTable
             style={{ position: "relative", float: "left", width: `calc(100% - ${previewWidth}px` }}
-            data={this.props.childDocs}
+            data={children}
             page={0}
-            pageSize={this.props.childDocs.length}
+            pageSize={children.length}
             showPagination={false}
             columns={this.tableColumns}
             getTrProps={this.getTrProps}
@@ -679,8 +695,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             SubComponent={hasCollectionChild ?
                 row => {
                     if (row.original.type === "collection") {
-                        let childDocs = DocListCast(row.original[this.props.fieldKey]);
-                        return <div className="sub"><SchemaTable {...this.props} Document={row.original} childDocs={childDocs} /></div>;
+                        // let childDocs = DocListCast(row.original[this.props.fieldKey]);
+                        return <div className="sub"><SchemaTable {...this.props} Document={row.original} /></div>;
                     }
                 }
                 : undefined}
