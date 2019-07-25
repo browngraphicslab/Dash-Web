@@ -311,7 +311,7 @@ button.add-column {
 
     .row-dragger {
         display: flex;
-        justify-content: space-evenly;
+        justify-content: space-around;
         // height: $MAX_ROW_HEIGHT;
         flex: 50 0 auto;
         width: 50px;
@@ -405,6 +405,9 @@ button.add-column {
     display: flex;
     justify-content: flex-end;
     padding: 0 10px;
+
+    border-bottom: 2px solid gray;
+    // margin-bottom: 10px;
 
     .collectionSchemaView-toolbar-item {
         display: flex;

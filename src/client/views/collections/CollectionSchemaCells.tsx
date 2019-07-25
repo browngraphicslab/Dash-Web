@@ -158,8 +158,8 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         if (this.props.isFocused && !this.props.isEditable) className += " inactive";
 
         return (
-            <div className="collectionSchemaView-cellContainer" ref={dragRef} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
-                <div className={className} ref={this._focusRef} tabIndex={-1} onPointerDown={this.onPointerDown}>
+            <div className="collectionSchemaView-cellContainer" ref={dragRef} onPointerDown={this.onPointerDown} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
+                <div className={className} ref={this._focusRef} tabIndex={-1}>
                     <div className="collectionSchemaView-cellContents" ref={type === undefined || type === "document" ? this.dropRef : null} key={props.Document[Id]}>
                         <EditableView
                             editing={this._isEditing}
