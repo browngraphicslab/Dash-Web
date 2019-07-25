@@ -1,4 +1,4 @@
-import { UndoManager, undoBatch } from "../util/UndoManager";
+import { UndoManager } from "../util/UndoManager";
 import { SelectionManager } from "../util/SelectionManager";
 import { CollectionDockingView } from "./collections/CollectionDockingView";
 import { MainView } from "./MainView";
@@ -144,9 +144,11 @@ export default class KeyManager {
                 break;
             case "y":
                 UndoManager.Redo();
+                stopPropagation = false;
                 break;
             case "z":
                 UndoManager.Undo();
+                stopPropagation = false;
                 break;
             case "a":
             case "c":

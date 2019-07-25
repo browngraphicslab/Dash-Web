@@ -14,7 +14,7 @@ export abstract class RefField {
         this[Id] = this.__id;
     }
 
-    protected [HandleUpdate]?(diff: any): void;
+    protected [HandleUpdate]?(diff: any): void | Promise<void>;
 
     abstract [ToScriptString](): string;
 }

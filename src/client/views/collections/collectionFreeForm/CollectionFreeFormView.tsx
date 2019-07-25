@@ -32,7 +32,11 @@ import { OverlayView, OverlayElementOptions } from "../../OverlayView";
 import { ScriptBox } from "../../ScriptBox";
 import { CompileScript } from "../../../util/Scripting";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
+import { library } from "@fortawesome/fontawesome-svg-core";
+import { faEye } from "@fortawesome/free-regular-svg-icons";
+import { faTable } from "@fortawesome/free-solid-svg-icons";
 
+library.add(faEye, faTable);
 
 export const panZoomSchema = createSchema({
     panX: "number",
@@ -489,6 +493,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     onContextMenu = () => {
         ContextMenu.Instance.addItem({
             description: "Arrange contents in grid",
+            icon: "table",
             event: async () => {
                 const docs = await DocListCastAsync(this.Document[this.props.fieldKey]);
                 UndoManager.RunInBatch(() => {
@@ -522,7 +527,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 let target = Doc.GetProto(this.props.Document);
                 let relevantKeys = ["inkAnalysis", "handwriting"];
                 CognitiveServices.Inking.Manager.analyzer(target, relevantKeys, data.inkData);
-            }
+            }, icon: "eye"
         });
     }
 
