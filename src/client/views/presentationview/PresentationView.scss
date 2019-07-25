@@ -19,12 +19,20 @@
     -ms-user-select: none;
     user-select: none;
     transition: all .1s;
-    max-height: 250px;
+    //max-height: 250px;
 
     .jsx-parser {
-        height: 300px;
+        // height: 300px;
         //width: 400px;
-        margin-top: 20px;
+        // margin-top: 20px;
+        // overflow-y: scroll;
+    }
+
+    .documentView-node {
+        // height: auto !important;
+        // width: aut !important;
+        position: absolute;
+        z-index: 1;
     }
 
 }

@@ -798,6 +798,8 @@ export default class PresentationElement extends React.Component<PresentationEle
         //     {TreeView.GetChildElements([this.props.document], "", new Doc(), undefined, "", (doc: Doc, relativeTo?: Doc, before?: boolean) => false, this.props.removeDocByRef, this.move,
         //         StrCast(this.props.document.dropAction) as dropActionType, (doc: Doc, dataDoc: Doc | undefined, where: string) => { }, Transform.Identity, () => ({ translateX: 0, translateY: 0 }), () => false, () => 400, 7)}
         // </ul >;
+        let propDocWidth = NumCast(this.props.document.nativeWidth);
+        let propDocHeight = NumCast(this.props.document.nativeHeight);
         let scale = () => 175 / NumCast(this.props.document.nativeWidth, 175);
         return (
             // <DocumentView
@@ -817,27 +819,47 @@ export default class PresentationElement extends React.Component<PresentationEle
             //     zoomToScale={(scale: number) => { }}
             //     getScale={() => 3.1415}
             // />
+            <div style={{
+                // overflowY: "scroll",
+                position: "relative",
+                // right: "45%",
+                // maxHeight: 250
+                height: propDocHeight === 0 ? "auto" : propDocHeight * scale(),
+                width: propDocWidth === 0 ? "auto" : propDocWidth * scale(),
+                marginTop: 15
 
-            <DocumentView
-                fitToBox={StrCast(this.props.document.type).indexOf(DocumentType.COL) !== -1}
-                Document={this.props.document}
-                addDocument={returnFalse}
-                removeDocument={returnFalse}
-                ScreenToLocalTransform={Transform.Identity}
-                addDocTab={returnFalse}
-                renderDepth={1}
-                PanelWidth={() => 175}
-                PanelHeight={() => 175}
-                focus={emptyFunction}
-                selectOnLoad={false}
-                parentActive={returnFalse}
-                whenActiveChanged={returnFalse}
-                bringToFront={emptyFunction}
-                zoomToScale={emptyFunction}
-                getScale={returnOne}
-                ContainingCollectionView={undefined}
-                ContentScaling={scale}
-            />
+            }}>
+                <DocumentView
+                    fitToBox={StrCast(this.props.document.type).indexOf(DocumentType.COL) !== -1}
+                    Document={this.props.document}
+                    addDocument={returnFalse}
+                    removeDocument={returnFalse}
+                    ScreenToLocalTransform={Transform.Identity}
+                    addDocTab={returnFalse}
+                    renderDepth={1}
+                    PanelWidth={() => 20}
+                    PanelHeight={() => 20}
+                    focus={emptyFunction}
+                    selectOnLoad={false}
+                    parentActive={returnFalse}
+                    whenActiveChanged={returnFalse}
+                    bringToFront={emptyFunction}
+                    zoomToScale={emptyFunction}
+                    getScale={returnOne}
+                    ContainingCollectionView={undefined}
+                    ContentScaling={scale}
+                />
+                <div style={{
+                    width: " 100%",
+                    height: " 100%",
+                    position: "absolute",
+                    left: 0,
+                    top: 0,
+                    background: "transparent",
+                    zIndex: 2,
+
+                }}></div>
+            </div>
         );
     }
 
@@ -863,7 +885,7 @@ export default class PresentationElement extends React.Component<PresentationEle
                 style={{
                     outlineColor: "maroon",
                     outlineStyle: "dashed",
-                    outlineWidth: BoolCast(p.document.libraryBrush) ? `1px` : "0px"
+                    outlineWidth: BoolCast(p.document.libraryBrush) ? `1px` : "0px",
                 }}
                 onClick={e => { p.gotoDocument(p.index, NumCast(this.props.mainDocument.selectedDoc)); e.stopPropagation(); }}>
                 <strong className="presentationView-name">
