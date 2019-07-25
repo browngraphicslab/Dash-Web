@@ -7,6 +7,7 @@
     display: flex;
     overflow-y: auto;
     flex-wrap: wrap;
+    transition: top .5s;
 
     .collectionStackingView-docView-container {
         width: 45%;

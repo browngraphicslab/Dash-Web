@@ -19,16 +19,19 @@ const datepicker = require('js-datepicker');
 
 interface CollectionViewChromeProps {
     CollectionView: CollectionView;
+    type: CollectionViewType;
+    collapse?: (value: boolean) => any;
 }
 
 let stopPropagation = (e: React.SyntheticEvent) => e.stopPropagation();
 
 @observer
-class CollectionViewBaseChrome extends React.Component<CollectionViewChromeProps> {
+export class CollectionViewBaseChrome extends React.Component<CollectionViewChromeProps> {
     @observable private _viewSpecsOpen: boolean = false;
     @observable private _dateWithinValue: string = "";
     @observable private _dateValue: Date = new Date();
     @observable private _keyRestrictions: [JSX.Element, string][] = [];
+    @observable private _collapsed: boolean = false;
     @computed private get filterValue() { return Cast(this.props.CollectionView.props.Document.viewSpecScript, ScriptField); }
 
     private _picker: any;
@@ -124,68 +127,92 @@ class CollectionViewBaseChrome extends React.Component<CollectionViewChromeProps
         document.removeEventListener("pointerdown", this.closeDatePicker);
     }
 
+    @action
+    toggleCollapse = () => {
+        this._collapsed = !this._collapsed;
+        this.props.collapse(this._collapsed);
+    }
+
+    subChrome = () => {
+
+        switch (this.props.type) {
+            case CollectionViewType.Stacking: return (
+                <CollectionStackingViewChrome
+                    key="collchrome"
+                    CollectionView={this.props.CollectionView}
+                    type={this.props.type} />);
+            default:
+                return null;
+        }
+    }
+
     render() {
         return (
-            <div className="collectionViewBaseChrome">
-                <button className="collectionViewBaseChrome-collapse" title="Collapse collection chrome">
-                    <FontAwesomeIcon icon="caret-up" size="2x" />
-                </button>
-                <select
-                    className="collectionViewBaseChrome-viewPicker"
-                    onPointerDown={stopPropagation}
-                    onChange={this.viewChanged}
-                    value={NumCast(this.props.CollectionView.props.Document.viewType)}>
-                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="1">Freeform View</option>
-                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="2">Schema View</option>
-                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="4">Tree View</option>
-                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="5">Stacking View</option>
-                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="6">Masonry View></option>
-                </select>
-                <div className="collectionViewBaseChrome-viewSpecs">
-                    <input className="collectionViewBaseChrome-viewSpecsInput"
-                        placeholder="Filter Documents"
-                        value={this.filterValue ? this.filterValue.script.originalScript : ""}
-                        onPointerDown={this.openViewSpecs} />
-                    <div className="collectionViewBaseChrome-viewSpecsMenu"
-                        onPointerDown={this.openViewSpecs}
-                        style={{
-                            height: this._viewSpecsOpen ? "fit-content" : "0px",
-                            overflow: this._viewSpecsOpen ? "initial" : "hidden"
-                        }}>
-                        {this._keyRestrictions.map(i => i[0])}
-                        <div className="collectionViewBaseChrome-viewSpecsMenu-row">
-                            <div className="collectionViewBaseChrome-viewSpecsMenu-rowLeft">
-                                CREATED WITHIN:
+            <div className="collectionViewChrome" style={{ top: this._collapsed ? -100 : 0 }}>
+                <div className="collectionViewBaseChrome">
+                    <button className="collectionViewBaseChrome-collapse"
+                        style={{ top: this._collapsed ? 80 : 0, transform: `rotate(${this._collapsed ? 180 : 0}deg)` }}
+                        title="Collapse collection chrome" onClick={this.toggleCollapse}>
+                        <FontAwesomeIcon icon="caret-up" size="2x" />
+                    </button>
+                    <select
+                        className="collectionViewBaseChrome-viewPicker"
+                        onPointerDown={stopPropagation}
+                        onChange={this.viewChanged}
+                        value={NumCast(this.props.CollectionView.props.Document.viewType)}>
+                        <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="1">Freeform View</option>
+                        <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="2">Schema View</option>
+                        <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="4">Tree View</option>
+                        <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="5">Stacking View</option>
+                        <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="6">Masonry View></option>
+                    </select>
+                    <div className="collectionViewBaseChrome-viewSpecs">
+                        <input className="collectionViewBaseChrome-viewSpecsInput"
+                            placeholder="Filter Documents"
+                            value={this.filterValue ? this.filterValue.script.originalScript : ""}
+                            onPointerDown={this.openViewSpecs} />
+                        <div className="collectionViewBaseChrome-viewSpecsMenu"
+                            onPointerDown={this.openViewSpecs}
+                            style={{
+                                height: this._viewSpecsOpen ? "fit-content" : "0px",
+                                overflow: this._viewSpecsOpen ? "initial" : "hidden"
+                            }}>
+                            {this._keyRestrictions.map(i => i[0])}
+                            <div className="collectionViewBaseChrome-viewSpecsMenu-row">
+                                <div className="collectionViewBaseChrome-viewSpecsMenu-rowLeft">
+                                    CREATED WITHIN:
                             </div>
-                            <select className="collectionViewBaseChrome-viewSpecsMenu-rowMiddle"
-                                style={{ textTransform: "uppercase", textAlign: "center" }}
-                                value={this._dateWithinValue}
-                                onChange={(e) => runInAction(() => this._dateWithinValue = e.target.value)}>
-                                <option value="1d">1 day of</option>
-                                <option value="3d">3 days of</option>
-                                <option value="1w">1 week of</option>
-                                <option value="2w">2 weeks of</option>
-                                <option value="1m">1 month of</option>
-                                <option value="2m">2 months of</option>
-                                <option value="6m">6 months of</option>
-                                <option value="1y">1 year of</option>
-                            </select>
-                            <input className="collectionViewBaseChrome-viewSpecsMenu-rowRight"
-                                id={this._datePickerElGuid}
-                                value={this._dateValue.toLocaleDateString()}
-                                onPointerDown={this.openDatePicker}
-                                placeholder="Value" />
-                        </div>
-                        <div className="collectionViewBaseChrome-viewSpecsMenu-lastRow">
-                            <button className="collectonViewBaseChrome-viewSpecsMenu-lastRowButton" onClick={this.addKeyRestriction}>
-                                ADD KEY RESTRICTION
+                                <select className="collectionViewBaseChrome-viewSpecsMenu-rowMiddle"
+                                    style={{ textTransform: "uppercase", textAlign: "center" }}
+                                    value={this._dateWithinValue}
+                                    onChange={(e) => runInAction(() => this._dateWithinValue = e.target.value)}>
+                                    <option value="1d">1 day of</option>
+                                    <option value="3d">3 days of</option>
+                                    <option value="1w">1 week of</option>
+                                    <option value="2w">2 weeks of</option>
+                                    <option value="1m">1 month of</option>
+                                    <option value="2m">2 months of</option>
+                                    <option value="6m">6 months of</option>
+                                    <option value="1y">1 year of</option>
+                                </select>
+                                <input className="collectionViewBaseChrome-viewSpecsMenu-rowRight"
+                                    id={this._datePickerElGuid}
+                                    value={this._dateValue.toLocaleDateString()}
+                                    onPointerDown={this.openDatePicker}
+                                    placeholder="Value" />
+                            </div>
+                            <div className="collectionViewBaseChrome-viewSpecsMenu-lastRow">
+                                <button className="collectonViewBaseChrome-viewSpecsMenu-lastRowButton" onClick={this.addKeyRestriction}>
+                                    ADD KEY RESTRICTION
                             </button>
-                            <button className="collectonViewBaseChrome-viewSpecsMenu-lastRowButton" onClick={this.applyFilter}>
-                                APPLY FILTER
+                                <button className="collectonViewBaseChrome-viewSpecsMenu-lastRowButton" onClick={this.applyFilter}>
+                                    APPLY FILTER
                             </button>
+                            </div>
                         </div>
                     </div>
                 </div>
+                {this.subChrome()}
             </div>
         )
     }
@@ -249,48 +276,45 @@ export class CollectionStackingViewChrome extends React.Component<CollectionView
 
     render() {
         return (
-            <div className="collectionStackingViewChrome">
-                <CollectionViewBaseChrome CollectionView={this.props.CollectionView} />
-                <div className="collectionStackingViewChrome-cont">
-                    <button className="collectionStackingViewChrome-sort" onClick={this.toggleSort}>
-                        <div className="collectionStackingViewChrome-sortLabel">
-                            Sort
+            <div className="collectionStackingViewChrome-cont">
+                <button className="collectionStackingViewChrome-sort" onClick={this.toggleSort}>
+                    <div className="collectionStackingViewChrome-sortLabel">
+                        Sort
                         </div>
-                        <div className="collectionStackingViewChrome-sortIcon" style={{ transform: `rotate(${this.descending ? "180" : "0"}deg)` }}>
-                            <FontAwesomeIcon icon="caret-up" size="2x" color="white" />
+                    <div className="collectionStackingViewChrome-sortIcon" style={{ transform: `rotate(${this.descending ? "180" : "0"}deg)` }}>
+                        <FontAwesomeIcon icon="caret-up" size="2x" color="white" />
+                    </div>
+                </button>
+                <div className="collectionStackingViewChrome-sectionFilter-cont">
+                    <div className="collectionStackingViewChrome-sectionFilter-label">
+                        Group items by:
                         </div>
-                    </button>
-                    <div className="collectionStackingViewChrome-sectionFilter-cont">
-                        <div className="collectionStackingViewChrome-sectionFilter-label">
-                            Group items by:
-                        </div>
-                        <div className="collectionStackingViewChrome-sectionFilter">
-                            <EditableView
-                                GetValue={() => this.sectionFilter}
-                                autosuggestProps={
-                                    {
-                                        resetValue: this.resetValue,
-                                        value: this._currentKey,
-                                        onChange: this.onKeyChange,
-                                        autosuggestProps: {
-                                            inputProps:
-                                            {
-                                                value: this._currentKey,
-                                                onChange: this.onKeyChange
-                                            },
-                                            getSuggestionValue: this.getSuggestionValue,
-                                            suggestions: this.suggestions,
-                                            alwaysRenderSuggestions: true,
-                                            renderSuggestion: this.renderSuggestion,
-                                            onSuggestionsFetchRequested: this.onSuggestionFetch,
-                                            onSuggestionsClearRequested: this.onSuggestionClear
-                                        }
-                                    }}
-                                oneLine
-                                SetValue={this.setValue}
-                                contents={this.sectionFilter ? this.sectionFilter : "N/A"}
-                            />
-                        </div>
+                    <div className="collectionStackingViewChrome-sectionFilter">
+                        <EditableView
+                            GetValue={() => this.sectionFilter}
+                            autosuggestProps={
+                                {
+                                    resetValue: this.resetValue,
+                                    value: this._currentKey,
+                                    onChange: this.onKeyChange,
+                                    autosuggestProps: {
+                                        inputProps:
+                                        {
+                                            value: this._currentKey,
+                                            onChange: this.onKeyChange
+                                        },
+                                        getSuggestionValue: this.getSuggestionValue,
+                                        suggestions: this.suggestions,
+                                        alwaysRenderSuggestions: true,
+                                        renderSuggestion: this.renderSuggestion,
+                                        onSuggestionsFetchRequested: this.onSuggestionFetch,
+                                        onSuggestionsClearRequested: this.onSuggestionClear
+                                    }
+                                }}
+                            oneLine
+                            SetValue={this.setValue}
+                            contents={this.sectionFilter ? this.sectionFilter : "N/A"}
+                        />
                     </div>
                 </div>
             </div>

@@ -30,6 +30,7 @@ export interface CollectionViewProps extends FieldViewProps {
     moveDocument: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     PanelWidth: () => number;
     PanelHeight: () => number;
+    chromeCollapsed: boolean;
 }
 
 export interface SubCollectionViewProps extends CollectionViewProps {
