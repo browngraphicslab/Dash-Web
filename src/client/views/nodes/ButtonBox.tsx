@@ -50,7 +50,8 @@ export class ButtonBox extends DocComponent<FieldViewProps, ButtonDocument>(Butt
                 let scriptingBox = <ScriptBox initialText={originalText} onCancel={() => overlayDisposer()} onSave={(text, onError) => {
                     const script = CompileScript(text, {
                         params: { this: Doc.name },
-                        typecheck: false
+                        typecheck: false,
+                        editable: true
                     });
                     if (!script.compiled) {
                         onError(script.errors.map(error => error.messageText).join("\n"));
