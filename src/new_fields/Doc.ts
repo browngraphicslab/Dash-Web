@@ -380,7 +380,7 @@ export namespace Doc {
         }
         if (expandedTemplateLayout === undefined) {
             setTimeout(() =>
-                dataDoc[expandedLayoutFieldKey] = Doc.MakeDelegate(templateLayoutDoc, undefined, templateLayoutDoc.title + ".layout"), 0);
+                dataDoc[expandedLayoutFieldKey] = Doc.MakeDelegate(templateLayoutDoc, undefined, "["+templateLayoutDoc.title + "]"), 0);
         }
         return templateLayoutDoc; // use the templateLayout when it's not a template or the expandedTemplate is pending.
     }
