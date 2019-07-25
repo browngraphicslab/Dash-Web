@@ -6,12 +6,10 @@ import "./InkingCanvas.scss";
 import { InkingControl } from "./InkingControl";
 import { InkingStroke } from "./InkingStroke";
 import React = require("react");
-import { undoBatch, UndoManager } from "../util/UndoManager";
+import { UndoManager } from "../util/UndoManager";
 import { StrokeData, InkField, InkTool } from "../../new_fields/InkField";
 import { Doc } from "../../new_fields/Doc";
 import { Cast, PromiseValue, NumCast } from "../../new_fields/Types";
-import { CognitiveServices } from "../cognitive_services/CognitiveServices";
-import { ContextMenu } from "./ContextMenu";
 
 interface InkCanvasProps {
     getScreenTransform: () => Transform;

@@ -5,7 +5,6 @@ import { Utils, emptyFunction } from '../Utils';
 import { SerializationHelper } from './util/SerializationHelper';
 import { RefField } from '../new_fields/RefField';
 import { Id, HandleUpdate } from '../new_fields/FieldSymbols';
-import { CurrentUserUtils } from '../server/authentication/models/current_user_utils';
 
 /**
  * This class encapsulates the transfer and cross-client synchronization of

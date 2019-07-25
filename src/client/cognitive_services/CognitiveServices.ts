@@ -1,5 +1,5 @@
 import * as request from "request-promise";
-import { Doc, Field } from "../../new_fields/Doc";
+import { Doc, Field, Opt } from "../../new_fields/Doc";
 import { Cast } from "../../new_fields/Types";
 import { ImageField } from "../../new_fields/URLField";
 import { List } from "../../new_fields/List";
@@ -10,7 +10,16 @@ import { CompileScript } from "../util/Scripting";
 import { ComputedField } from "../../new_fields/ScriptField";
 import { InkData } from "../../new_fields/InkField";
 
-export enum Services {
+type APIManager<D> = { converter: BodyConverter<D>, requester: RequestExecutor, analyzer: AnalysisApplier };
+type RequestExecutor = (apiKey: string, body: string, service: Service) => Promise<string>;
+type AnalysisApplier = (target: Doc, relevantKeys: string[], ...args: any) => any;
+type BodyConverter<D> = (data: D) => string;
+type Converter = (results: any) => Field;
+
+export type Tag = { name: string, confidence: number };
+export type Rectangle = { top: number, left: number, width: number, height: number };
+
+export enum Service {
     ComputerVision = "vision",
     Face = "face",
     Handwriting = "handwriting"
@@ -25,11 +34,6 @@ export enum Confidence {
     Excellent = 0.95
 }
 
-export type Tag = { name: string, confidence: number };
-export type Rectangle = { top: number, left: number, width: number, height: number };
-export type Face = { faceAttributes: any, faceId: string, faceRectangle: Rectangle };
-export type Converter = (results: any) => Field;
-
 /**
  * A file that handles all interactions with Microsoft Azure's Cognitive
  * Services APIs. These machine learning endpoints allow basic data analytics for
@@ -37,19 +41,36 @@ export type Converter = (results: any) => Field;
  */
 export namespace CognitiveServices {
 
+    const executeQuery = async <D, R>(service: Service, manager: APIManager<D>, data: D): Promise<Opt<R>> => {
+        return fetch(Utils.prepend(`${RouteStore.cognitiveServices}/${service}`)).then(async response => {
+            let apiKey = await response.text();
+            if (!apiKey) {
+                console.log(`No API key found for ${service}: ensure index.ts has access to a .env file in your root directory`);
+                return undefined;
+            }
+
+            let results: Opt<R>;
+            try {
+                results = await manager.requester(apiKey, manager.converter(data), service).then(json => JSON.parse(json));
+            } catch {
+                results = undefined;
+            }
+            return results;
+        });
+    };
+
     export namespace Image {
 
-        export const analyze = async (imageUrl: string, service: Services) => {
-            return fetch(Utils.prepend(`${RouteStore.cognitiveServices}/${service}`)).then(async response => {
-                let apiKey = await response.text();
-                if (!apiKey) {
-                    return undefined;
-                }
+        export const Manager: APIManager<string> = {
+
+            converter: (imageUrl: string) => JSON.stringify({ url: imageUrl }),
+
+            requester: async (apiKey: string, body: string, service: Service) => {
                 let uriBase;
                 let parameters;
 
                 switch (service) {
-                    case Services.Face:
+                    case Service.Face:
                         uriBase = 'face/v1.0/detect';
                         parameters = {
                             'returnFaceId': 'true',
@@ -58,7 +79,7 @@ export namespace CognitiveServices {
                                 'emotion,hair,makeup,occlusion,accessories,blur,exposure,noise'
                         };
                         break;
-                    case Services.ComputerVision:
+                    case Service.ComputerVision:
                         uriBase = 'vision/v2.0/analyze';
                         parameters = {
                             'visualFeatures': 'Categories,Description,Color,Objects,Tags,Adult',
@@ -71,41 +92,39 @@ export namespace CognitiveServices {
                 const options = {
                     uri: 'https://eastus.api.cognitive.microsoft.com/' + uriBase,
                     qs: parameters,
-                    body: `{"url": "${imageUrl}"}`,
+                    body: body,
                     headers: {
                         'Content-Type': 'application/json',
                         'Ocp-Apim-Subscription-Key': apiKey
                     }
                 };
 
-                let results: any;
-                try {
-                    results = await request.post(options).then(response => JSON.parse(response));
-                } catch (e) {
-                    results = undefined;
+                return request.post(options);
+            },
+
+            analyzer: async (target: Doc, keys: string[], service: Service, converter: Converter) => {
+                let imageData = Cast(target.data, ImageField);
+                let storageKey = keys[0];
+                if (!imageData || await Cast(target[storageKey], Doc)) {
+                    return;
                 }
-                return results;
-            });
+                let toStore: any;
+                let results = await executeQuery<string, any>(service, Manager, imageData.url.href);
+                if (!results) {
+                    toStore = "Cognitive Services could not process the given image URL.";
+                } else {
+                    if (!results.length) {
+                        toStore = converter(results);
+                    } else {
+                        toStore = results.length > 0 ? converter(results) : "Empty list returned.";
+                    }
+                }
+                target[storageKey] = toStore;
+            }
+
         };
 
-        const analyzeDocument = async (target: Doc, service: Services, converter: Converter, storageKey: string) => {
-            let imageData = Cast(target.data, ImageField);
-            if (!imageData || await Cast(target[storageKey], Doc)) {
-                return;
-            }
-            let toStore: any;
-            let results = await analyze(imageData.url.href, service);
-            if (!results) {
-                toStore = "Cognitive Services could not process the given image URL.";
-            } else {
-                if (!results.length) {
-                    toStore = converter(results);
-                } else {
-                    toStore = results.length > 0 ? converter(results) : "Empty list returned.";
-                }
-            }
-            target[storageKey] = toStore;
-        };
+        export type Face = { faceAttributes: any, faceId: string, faceRectangle: Rectangle };
 
         export const generateMetadata = async (target: Doc, threshold: Confidence = Confidence.Excellent) => {
             let converter = (results: any) => {
@@ -120,7 +139,7 @@ export namespace CognitiveServices {
                 tagDoc.confidence = threshold;
                 return tagDoc;
             };
-            analyzeDocument(target, Services.ComputerVision, converter, "generatedTags");
+            Manager.analyzer(target, ["generatedTags"], Service.ComputerVision, converter);
         };
 
         export const extractFaces = async (target: Doc) => {
@@ -129,48 +148,43 @@ export namespace CognitiveServices {
                 results.map((face: Face) => faceDocs.push(Docs.Get.DocumentHierarchyFromJson(face, `Face: ${face.faceId}`)!));
                 return faceDocs;
             };
-            analyzeDocument(target, Services.Face, converter, "faces");
+            Manager.analyzer(target, ["faces"], Service.Face, converter);
         };
 
     }
 
     export namespace Inking {
 
-        export interface AzureStrokeData {
-            id: number;
-            points: string;
-            language?: string;
-        }
+        export const Manager: APIManager<InkData> = {
 
-        export interface HandwritingUnit {
-            version: number;
-            language: string;
-            unit: string;
-            strokes: AzureStrokeData[];
-        }
-
-        export const analyze = async (inkData: InkData, target: Doc) => {
-            return fetch(Utils.prepend(`${RouteStore.cognitiveServices}/${Services.Handwriting}`)).then(async response => {
-                let apiKey = await response.text();
-                if (!apiKey) {
-                    return undefined;
+            converter: (inkData: InkData): string => {
+                let entries = inkData.entries(), next = entries.next();
+                let strokes: AzureStrokeData[] = [], id = 0;
+                while (!next.done) {
+                    strokes.push({
+                        id: id++,
+                        points: next.value[1].pathData.map(point => `${point.x},${point.y}`).join(","),
+                        language: "en-US"
+                    });
+                    next = entries.next();
                 }
+                return JSON.stringify({
+                    version: 1,
+                    language: "en-US",
+                    unit: "mm",
+                    strokes: strokes
+                });
+            },
 
+            requester: async (apiKey: string, body: string) => {
                 let xhttp = new XMLHttpRequest();
                 let serverAddress = "https://api.cognitive.microsoft.com";
                 let endpoint = serverAddress + "/inkrecognizer/v1.0-preview/recognize";
 
-                let requestExecutor = (resolve: any, reject: any) => {
-                    let result: any;
-                    let body = format(inkData);
-
+                let promisified = (resolve: any, reject: any) => {
                     xhttp.onreadystatechange = function () {
                         if (this.readyState === 4) {
-                            try {
-                                result = JSON.parse(xhttp.responseText);
-                            } catch (e) {
-                                return reject(e);
-                            }
+                            let result = xhttp.responseText;
                             switch (this.status) {
                                 case 200:
                                     return resolve(result);
@@ -187,36 +201,34 @@ export namespace CognitiveServices {
                     xhttp.send(body);
                 };
 
-                let results = await new Promise<any>(requestExecutor);
+                return new Promise<any>(promisified);
+            },
 
+            analyzer: async (target: Doc, keys: string[], inkData: InkData) => {
+                let results = await executeQuery<InkData, any>(Service.Handwriting, Manager, inkData);
                 if (results) {
                     results.recognitionUnits && (results = results.recognitionUnits);
-                    target.inkAnalysis = Docs.Get.DocumentHierarchyFromJson(results, "Ink Analysis");
+                    target[keys[0]] = Docs.Get.DocumentHierarchyFromJson(results, "Ink Analysis");
                     let recognizedText = results.map((item: any) => item.recognizedText);
                     let individualWords = recognizedText.filter((text: string) => text && text.split(" ").length === 1);
-                    target.handwriting = individualWords.join(" ");
+                    target[keys[1]] = individualWords.join(" ");
                 }
-            });
+            }
+
         };
 
-        const format = (inkData: InkData): string => {
-            let entries = inkData.entries(), next = entries.next();
-            let strokes: AzureStrokeData[] = [], id = 0;
-            while (!next.done) {
-                strokes.push({
-                    id: id++,
-                    points: next.value[1].pathData.map(point => `${point.x},${point.y}`).join(","),
-                    language: "en-US"
-                });
-                next = entries.next();
-            }
-            return JSON.stringify({
-                version: 1,
-                language: "en-US",
-                unit: "mm",
-                strokes: strokes
-            });
-        };
+        export interface AzureStrokeData {
+            id: number;
+            points: string;
+            language?: string;
+        }
+
+        export interface HandwritingUnit {
+            version: number;
+            language: string;
+            unit: string;
+            strokes: AzureStrokeData[];
+        }
 
     }
 

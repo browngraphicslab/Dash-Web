@@ -216,7 +216,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
             });
 
             let modes: ContextMenuProps[] = [];
-            let dataDoc = Doc.GetProto(this.Document);
+            let dataDoc = Doc.GetProto(this.props.Document);
             modes.push({ description: "Generate Tags", event: () => CognitiveServices.Image.generateMetadata(dataDoc), icon: "tag" });
             modes.push({ description: "Find Faces", event: () => CognitiveServices.Image.extractFaces(dataDoc), icon: "camera" });
 
