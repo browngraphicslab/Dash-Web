@@ -82,6 +82,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     }
 
     render() {
+        const hasPosition = this.props.x !== undefined || this.props.y !== undefined;
         return (
             <div className="collectionFreeFormDocumentView-container"
                 style={{
@@ -90,7 +91,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     backgroundColor: "transparent",
                     borderRadius: this.borderRounding(),
                     transform: this.transform,
-                    transition: StrCast(this.props.Document.transition),
+                    transition: hasPosition ? "transform 1s" : StrCast(this.props.Document.transition),
                     width: this.width,
                     height: this.height,
                     zIndex: this.Document.zIndex || 0,
