@@ -90,6 +90,10 @@ export class MovableColumn extends React.Component<MovableColumnProps> {
         return onItemDown;
     }
 
+    // onColDrag = (e: React.DragEvent, ref: React.RefObject<HTMLDivElement>) => {
+    //     this.setupDrag(reference);
+    // }
+
 
     render() {
         let reference = React.createRef<HTMLDivElement>();
@@ -98,7 +102,7 @@ export class MovableColumn extends React.Component<MovableColumnProps> {
         return (
             <div className="collectionSchema-col" ref={this.createColDropTarget}>
                 <div className="collectionSchema-col-wrapper" ref={this._header} onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
-                    <div className="col-dragger" ref={reference} onPointerDown={onItemDown}>
+                    <div className="col-dragger" ref={reference} onPointerDown={onItemDown} >
                         {this.props.columnRenderer}
                     </div>
                 </div>

@@ -212,6 +212,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 isFocused={this.isFocused}
                 setFocused={this.setFocused}
                 setPreviewDoc={this.setPreviewDoc}
+                deleteDocument={this.props.removeDocument}
             />
         );
     }
@@ -254,6 +255,7 @@ export interface SchemaTableProps {
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
     fieldKey: string;
     renderDepth: number;
+    deleteDocument: (document: Doc) => boolean;
     moveDocument: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
     // CreateDropTarget: (ele: HTMLDivElement)=> void; // super createdriotarget
