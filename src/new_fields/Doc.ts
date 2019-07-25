@@ -78,7 +78,7 @@ function fetchProto(doc: Doc) {
 let updatingFromServer = false;
 
 @scriptingGlobal
-@Deserializable("doc", fetchProto).withFields(["id"])
+@Deserializable("Doc", fetchProto).withFields(["id"])
 export class Doc extends RefField {
     constructor(id?: FieldId, forceSave?: boolean) {
         super(id);
