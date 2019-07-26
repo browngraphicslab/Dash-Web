@@ -34,9 +34,11 @@ import { CompileScript } from "../../../util/Scripting";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faEye } from "@fortawesome/free-regular-svg-icons";
-import { faTable, faPaintBrush, faAsterisk } from "@fortawesome/free-solid-svg-icons";
+import { faTable, faPaintBrush, faAsterisk, faExpandArrowsAlt, faCompressArrowsAlt } from "@fortawesome/free-solid-svg-icons";
+import { undo } from "prosemirror-history";
+import { number } from "prop-types";
 
-library.add(faEye, faTable, faPaintBrush);
+library.add(faEye, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt);
 
 export const panZoomSchema = createSchema({
     panX: "number",
@@ -58,24 +60,29 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private get _pheight() { return this.props.PanelHeight(); }
     private inkKey = "ink";
 
+    get prevScaling() {
+        return (this.props as any).ContentScaling && this.Document.nativeWidth && this.fitToBox ? (this.props as any).ContentScaling() : 1;
+    }
+
     @computed get contentBounds() {
-        let bounds = this.props.fitToBox && !NumCast(this.nativeWidth) ? Doc.ComputeContentBounds(DocListCast(this.props.Document.data)) : undefined;
+        let bounds = (this.fitToBox) && !this.nativeWidth ? Doc.ComputeContentBounds(DocListCast(this.props.Document.data)) : undefined;
         return {
             panX: bounds ? (bounds.x + bounds.r) / 2 : this.Document.panX || 0,
             panY: bounds ? (bounds.y + bounds.b) / 2 : this.Document.panY || 0,
-            scale: bounds ? Math.min(this.props.PanelHeight() / (bounds.b - bounds.y), this.props.PanelWidth() / (bounds.r - bounds.x)) : this.Document.scale || 1
+            scale: (bounds ? Math.min(this.props.PanelHeight() / (bounds.b - bounds.y), this.props.PanelWidth() / (bounds.r - bounds.x)) : this.Document.scale || 1) / this.prevScaling
         };
     }
 
-    @computed get nativeWidth() { return this.Document.nativeWidth || 0; }
-    @computed get nativeHeight() { return this.Document.nativeHeight || 0; }
+    @computed get fitToBox() { return this.props.fitToBox || this.props.Document.fitToBox; }
+    @computed get nativeWidth() { return this.fitToBox ? 0 : this.Document.nativeWidth || 0; }
+    @computed get nativeHeight() { return this.fitToBox ? 0 : this.Document.nativeHeight || 0; }
     public get isAnnotationOverlay() { return this.props.fieldExt ? true : false; } // fieldExt will be "" or "annotation". should maybe generalize this, or make it more specific (ie, 'annotation' instead of 'fieldExt')
     private get borderWidth() { return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH; }
     private panX = () => this.contentBounds.panX;
     private panY = () => this.contentBounds.panY;
     private zoomScaling = () => this.contentBounds.scale;
-    private centeringShiftX = () => !this.nativeWidth ? this._pwidth / 2 : 0;  // shift so pan position is at center of window for non-overlay collections
-    private centeringShiftY = () => !this.nativeHeight ? this._pheight / 2 : 0;// shift so pan position is at center of window for non-overlay collections
+    private centeringShiftX = () => !this.nativeWidth ? this._pwidth / 2 / this.prevScaling : 0;  // shift so pan position is at center of window for non-overlay collections
+    private centeringShiftY = () => !this.nativeHeight ? this._pheight / 2 / this.prevScaling : 0;// shift so pan position is at center of window for non-overlay collections
     private getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth + 1, -this.borderWidth + 1).translate(-this.centeringShiftX(), -this.centeringShiftY()).transform(this.getLocalTransform());
     private getContainerTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth, -this.borderWidth);
     private getLocalTransform = (): Transform => Transform.Identity().scale(1 / this.zoomScaling()).translate(this.panX(), this.panY());
@@ -109,11 +116,11 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @undoBatch
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
+        let xf = this.getTransform();
         if (super.drop(e, de)) {
             if (de.data instanceof DragManager.DocumentDragData) {
                 if (de.data.droppedDocuments.length) {
-                    let dragDoc = de.data.droppedDocuments[0];
-                    let [xp, yp] = this.getTransform().transformPoint(de.x, de.y);
+                    let [xp, yp] = xf.transformPoint(de.x, de.y);
                     let x = xp - de.data.xOffset;
                     let y = yp - de.data.yOffset;
                     let dropX = NumCast(de.data.droppedDocuments[0].x);
@@ -491,6 +498,11 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     onContextMenu = () => {
+        ContextMenu.Instance.addItem({
+            description: `${this.fitToBox ? "Unset" : "Set"} Fit To Container`,
+            event: undoBatch(async () => this.props.Document.fitToBox = !this.fitToBox),
+            icon: !this.fitToBox ? "expand-arrows-alt" : "compress-arrows-alt"
+        });
         ContextMenu.Instance.addItem({
             description: "Arrange contents in grid",
             icon: "table",

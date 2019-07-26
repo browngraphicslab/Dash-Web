@@ -126,7 +126,6 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         let self = this;
         let targetDataDoc = this.props.Document;
         if (Doc.AreProtosEqual(targetDataDoc, targetCollection)) {
-            //if (Doc.AreProtosEqual(this.extensionDoc, targetCollection)) {
             return true;
         }
         if (this.removeDocument(doc)) {
@@ -146,7 +145,10 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         const viewtype = this.collectionViewType;
         return (
             <div id="collectionBaseView"
-                style={{ overflow: "auto", boxShadow: `#9c9396 ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}` }}
+                style={{
+                    pointerEvents: this.props.Document.isBackground ? "none" : "all",
+                    boxShadow: `#9c9396 ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}`
+                }}
                 className={this.props.className || "collectionView-cont"}
                 onContextMenu={this.props.onContextMenu} ref={this.props.contentRef}>
                 {viewtype !== undefined ? this.props.children(viewtype, props) : (null)}
