@@ -834,7 +834,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
         document.removeEventListener("pointerup", this.onPointerUp);
     }
 
-    togglePresView = (e) => {
+    togglePresView = (e: React.MouseEvent) => {
         e.stopPropagation();
         e.preventDefault();
         let width = NumCast(this.curPresentation.width);
