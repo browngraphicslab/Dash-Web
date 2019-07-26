@@ -63,6 +63,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
     //Variable that holds reference to title input, so that new presentations get titles assigned.
     @observable titleInputElement: HTMLInputElement | undefined;
     @observable PresTitleChangeOpen: boolean = false;
+    @observable PresViewWidth: number | undefined;
 
     //initilize class variables
     constructor(props: PresViewProps) {
@@ -81,6 +82,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
     //The first lifecycle function that gets called to set up the current presentation.
     async componentWillMount() {
+
         this.props.Documents.forEach(async (doc, index: number) => {
 
             //For each presentation received from mainContainer, a mapping is created.
@@ -806,43 +808,90 @@ export class PresentationView extends React.Component<PresViewProps>  {
         this.presElementsMappings.set(keyDoc, elem);
     }
 
+    //_downsize = 0;
+    onPointerDown = (e: React.PointerEvent) => {
+        //this._downsize = e.clientX;
+        document.removeEventListener("pointermove", this.onPointerMove);
+        document.removeEventListener("pointerup", this.onPointerUp);
+        document.addEventListener("pointermove", this.onPointerMove);
+        document.addEventListener("pointerup", this.onPointerUp);
+        e.stopPropagation();
+        e.preventDefault();
+    }
+    @action
+    onPointerMove = (e: PointerEvent) => {
+
+        this.curPresentation.width = Math.max(window.innerWidth - e.clientX, 255);
+    }
+    @action
+    onPointerUp = (e: PointerEvent) => {
+        //this.isPointerDown = false;
+        // if (Math.abs(e.clientX - this._downsize) < 4) {
+        //     if (this.flyoutWidth < 5) this.flyoutWidth = 250;
+        //     else this.flyoutWidth = 0;
+        // }
+        document.removeEventListener("pointermove", this.onPointerMove);
+        document.removeEventListener("pointerup", this.onPointerUp);
+    }
+
+    togglePresView = (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        let width = NumCast(this.curPresentation.width);
+        if (width === 0) {
+            this.curPresentation.width = 255;
+        } else {
+            this.curPresentation.width = 0;
+        }
+    }
+
     render() {
 
         let width = NumCast(this.curPresentation.width);
+        this.PresViewWidth = width;
+
 
         return (
-            <div className="presentationView-cont" style={{ width: width, overflowY: "scroll", overflowX: "hidden" }}>
-                <div className="presentationView-heading">
-                    {this.renderSelectOrPresSelection()}
-                    <button title="Close Presentation" className='presentation-icon' onClick={this.closePresentation}><FontAwesomeIcon icon={"times"} /></button>
-                    <button title="Add Presentation" className="presentation-icon" style={{ marginRight: 10 }} onClick={() => {
-                        runInAction(() => { if (this.PresTitleChangeOpen) { this.PresTitleChangeOpen = false; } });
-                        runInAction(() => this.PresTitleInputOpen ? this.PresTitleInputOpen = false : this.PresTitleInputOpen = true);
-                    }}><FontAwesomeIcon icon={"plus"} /></button>
-                    <button title="Remove Presentation" className='presentation-icon' style={{ marginRight: 10 }} onClick={this.removePresentation}><FontAwesomeIcon icon={"minus"} /></button>
-                    <button title="Change Presentation Title" className="presentation-icon" style={{ marginRight: 10 }} onClick={() => {
-                        runInAction(() => { if (this.PresTitleInputOpen) { this.PresTitleInputOpen = false; } });
-                        runInAction(() => this.PresTitleChangeOpen ? this.PresTitleChangeOpen = false : this.PresTitleChangeOpen = true);
-                    }}><FontAwesomeIcon icon={"edit"} /></button>
+            <div>
+                <div className="presentationView-cont" style={{ width: width, overflowY: "scroll", overflowX: "hidden" }}>
+                    <div className="presentationView-heading">
+                        {this.renderSelectOrPresSelection()}
+                        <button title="Close Presentation" className='presentation-icon' onClick={this.closePresentation}><FontAwesomeIcon icon={"times"} /></button>
+                        <button title="Add Presentation" className="presentation-icon" style={{ marginRight: 10 }} onClick={() => {
+                            runInAction(() => { if (this.PresTitleChangeOpen) { this.PresTitleChangeOpen = false; } });
+                            runInAction(() => this.PresTitleInputOpen ? this.PresTitleInputOpen = false : this.PresTitleInputOpen = true);
+                        }}><FontAwesomeIcon icon={"plus"} /></button>
+                        <button title="Remove Presentation" className='presentation-icon' style={{ marginRight: 10 }} onClick={this.removePresentation}><FontAwesomeIcon icon={"minus"} /></button>
+                        <button title="Change Presentation Title" className="presentation-icon" style={{ marginRight: 10 }} onClick={() => {
+                            runInAction(() => { if (this.PresTitleInputOpen) { this.PresTitleInputOpen = false; } });
+                            runInAction(() => this.PresTitleChangeOpen ? this.PresTitleChangeOpen = false : this.PresTitleChangeOpen = true);
+                        }}><FontAwesomeIcon icon={"edit"} /></button>
+                    </div>
+                    <div className="presentation-buttons">
+                        <button title="Back" className="presentation-button" onClick={this.back}><FontAwesomeIcon icon={"arrow-left"} /></button>
+                        {this.renderPlayPauseButton()}
+                        <button title="Next" className="presentation-button" onClick={this.next}><FontAwesomeIcon icon={"arrow-right"} /></button>
+                    </div>
+
+                    <PresentationViewList
+                        mainDocument={this.curPresentation}
+                        deleteDocument={this.RemoveDoc}
+                        gotoDocument={this.gotoDocument}
+                        groupMappings={this.groupMappings}
+                        PresElementsMappings={this.presElementsMappings}
+                        setChildrenDocs={this.setChildrenDocs}
+                        presStatus={this.presStatus}
+                        presButtonBackUp={this.presButtonBackUp}
+                        presGroupBackUp={this.presGroupBackUp}
+                        removeDocByRef={this.removeDocByRef}
+                        clearElemMap={() => this.presElementsMappings.clear()}
+                    />
                 </div>
-                <div className="presentation-buttons">
-                    <button title="Back" className="presentation-button" onClick={this.back}><FontAwesomeIcon icon={"arrow-left"} /></button>
-                    {this.renderPlayPauseButton()}
-                    <button title="Next" className="presentation-button" onClick={this.next}><FontAwesomeIcon icon={"arrow-right"} /></button>
+                <div className="mainView-libraryHandle"
+                    style={{ cursor: "ew-resize", right: `${width - 10}px`, backgroundColor: "white" }}
+                    onPointerDown={this.onPointerDown} onClick={this.togglePresView}>
+                    <span title="library View Dragger" style={{ width: "100%", height: "100%", position: "absolute" }} />
                 </div>
-                <PresentationViewList
-                    mainDocument={this.curPresentation}
-                    deleteDocument={this.RemoveDoc}
-                    gotoDocument={this.gotoDocument}
-                    groupMappings={this.groupMappings}
-                    PresElementsMappings={this.presElementsMappings}
-                    setChildrenDocs={this.setChildrenDocs}
-                    presStatus={this.presStatus}
-                    presButtonBackUp={this.presButtonBackUp}
-                    presGroupBackUp={this.presGroupBackUp}
-                    removeDocByRef={this.removeDocByRef}
-                    clearElemMap={() => this.presElementsMappings.clear()}
-                />
             </div>
         );
     }
