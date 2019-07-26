@@ -31,6 +31,8 @@ export interface PresViewProps {
     Documents: List<Doc>;
 }
 
+const expandedWidth = 400;
+
 @observer
 export class PresentationView extends React.Component<PresViewProps>  {
     public static Instance: PresentationView;
@@ -61,10 +63,23 @@ export class PresentationView extends React.Component<PresViewProps>  {
     @observable titleInputElement: HTMLInputElement | undefined;
     @observable PresTitleChangeOpen: boolean = false;
 
+    @observable opacity = 1;
+    @observable persistOpacity = true;
+    @observable labelOpacity = 0;
+
     //initilize class variables
     constructor(props: PresViewProps) {
         super(props);
         PresentationView.Instance = this;
+    }
+
+    @action
+    toggle = (forcedValue: boolean | undefined) => {
+        if (forcedValue !== undefined) {
+            this.curPresentation.width = forcedValue ? expandedWidth : 0;
+        } else {
+            this.curPresentation.width = this.curPresentation.width === expandedWidth ? 0 : expandedWidth;
+        }
     }
 
     //The first lifecycle function that gets called to set up the current presentation.
@@ -543,7 +558,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
             this.curPresentation.data = new List([doc]);
         }
 
-        this.curPresentation.width = 400;
+        this.toggle(true);
     }
 
     //Function that sets the store of the children docs.
@@ -800,7 +815,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
         let width = NumCast(this.curPresentation.width);
 
         return (
-            <div className="presentationView-cont" style={{ width: width, overflow: "hidden" }}>
+            <div className="presentationView-cont" onPointerEnter={action(() => !this.persistOpacity && (this.opacity = 1))} onPointerLeave={action(() => !this.persistOpacity && (this.opacity = 0.4))} style={{ width: width, overflow: "hidden", opacity: this.opacity, transition: "0.7s opacity ease" }}>
                 <div className="presentationView-heading">
                     {this.renderSelectOrPresSelection()}
                     <button title="Close Presentation" className='presentation-icon' onClick={this.closePresentation}><FontAwesomeIcon icon={"times"} /></button>
@@ -819,6 +834,18 @@ export class PresentationView extends React.Component<PresViewProps>  {
                     {this.renderPlayPauseButton()}
                     <button title="Next" className="presentation-button" onClick={this.next}><FontAwesomeIcon icon={"arrow-right"} /></button>
                 </div>
+                <input
+                    type="checkbox"
+                    onChange={action((e: React.ChangeEvent<HTMLInputElement>) => {
+                        this.persistOpacity = e.target.checked;
+                        this.opacity = this.persistOpacity ? 1 : 0.4;
+                    })}
+                    checked={this.persistOpacity}
+                    style={{ position: "absolute", bottom: 5, left: 5 }}
+                    onPointerEnter={action(() => this.labelOpacity = 1)}
+                    onPointerLeave={action(() => this.labelOpacity = 0)}
+                />
+                <p style={{ position: "absolute", bottom: 1, left: 22, opacity: this.labelOpacity, transition: "0.7s opacity ease" }}>opacity {this.persistOpacity ? "persistent" : "on focus"}</p>
                 <PresentationViewList
                     mainDocument={this.curPresentation}
                     deleteDocument={this.RemoveDoc}

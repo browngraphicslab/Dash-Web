@@ -139,6 +139,16 @@ app.get("/pull", (req, res) =>
         res.redirect("/");
     }));
 
+app.get("/version", (req, res) => {
+    exec('"C:\\Program Files\\Git\\bin\\git.exe" rev-parse HEAD', (err, stdout, stderr) => {
+        if (err) {
+            res.send(err.message);
+            return;
+        }
+        res.send(stdout);
+    });
+});
+
 // SEARCH
 
 // GETTERS
@@ -284,18 +294,15 @@ addSecureRoute(
     RouteStore.getCurrUser
 );
 
+const ServicesApiKeyMap = new Map<string, string | undefined>([
+    ["face", process.env.FACE],
+    ["vision", process.env.VISION],
+    ["handwriting", process.env.HANDWRITING]
+]);
+
 addSecureRoute(Method.GET, (user, res, req) => {
-    let requested = req.params.requestedservice;
-    switch (requested) {
-        case "face":
-            res.send(process.env.FACE);
-            break;
-        case "vision":
-            res.send(process.env.VISION);
-            break;
-        default:
-            res.send(undefined);
-    }
+    let service = req.params.requestedservice;
+    res.send(ServicesApiKeyMap.get(service));
 }, undefined, `${RouteStore.cognitiveServices}/:requestedservice`);
 
 class NodeCanvasFactory {

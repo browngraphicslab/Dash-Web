@@ -112,7 +112,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 } else if (de.data.moveDocument) {
                     let movedDocs = de.data.options === this.props.Document[Id] ? de.data.draggedDocuments : de.data.droppedDocuments;
                     added = movedDocs.reduce((added: boolean, d) =>
-                        de.data.moveDocument(d, /*this.props.DataDoc ? this.props.DataDoc :*/ this.props.Document, this.props.addDocument) || added, false);
+                        de.data.moveDocument(d, this.props.Document, this.props.addDocument) || added, false);
                 } else {
                     added = de.data.droppedDocuments.reduce((added: boolean, d) => {
                         let moved = this.props.addDocument(d);

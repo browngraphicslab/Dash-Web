@@ -38,6 +38,7 @@ import { LinkManager } from "../util/LinkManager";
 import { DocumentManager } from "../util/DocumentManager";
 import DirectoryImportBox from "../util/Import & Export/DirectoryImportBox";
 import { Scripting } from "../util/Scripting";
+import { ButtonBox } from "../views/nodes/ButtonBox";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 
@@ -56,7 +57,9 @@ export enum DocumentType {
     IMPORT = "import",
     LINK = "link",
     LINKDOC = "linkdoc",
-    TEMPLATE = "template"
+    BUTTON = "button",
+    TEMPLATE = "template",
+    EXTENSION = "extension"
 }
 
 export interface DocumentOptions {
@@ -161,6 +164,9 @@ export namespace Docs {
                 data: new List<Doc>(),
                 layout: { view: EmptyBox },
                 options: {}
+            }],
+            [DocumentType.BUTTON, {
+                layout: { view: ButtonBox },
             }]
         ]);
 
@@ -276,7 +282,7 @@ export namespace Docs {
          * only when creating a DockDocument from the current user's already existing
          * main document.
          */
-        export function InstanceFromProto(proto: Doc, data: Field, options: DocumentOptions, delegId?: string) {
+        export function InstanceFromProto(proto: Doc, data: Field | undefined, options: DocumentOptions, delegId?: string) {
             const { omit: protoProps, extract: delegateProps } = OmitKeys(options, delegateKeys);
 
             if (!("author" in protoProps)) {
@@ -305,9 +311,11 @@ export namespace Docs {
          * @param options initial values to apply to this new delegate
          * @param value the data to store in this new delegate
          */
-        function MakeDataDelegate<D extends Field>(proto: Doc, options: DocumentOptions, value: D) {
+        function MakeDataDelegate<D extends Field>(proto: Doc, options: DocumentOptions, value?: D) {
             const deleg = Doc.MakeDelegate(proto);
-            deleg.data = value;
+            if (value !== undefined) {
+                deleg.data = value;
+            }
             return Doc.assign(deleg, options);
         }
 
@@ -408,6 +416,10 @@ export namespace Docs {
 
         export function StackingDocument(documents: Array<Doc>, options: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Stacking });
+        }
+
+        export function ButtonDocument(options?: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.BUTTON), undefined, { ...(options || {}) });
         }
 
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
