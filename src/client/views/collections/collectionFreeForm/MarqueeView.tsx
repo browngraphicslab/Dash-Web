@@ -365,7 +365,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     marqueeSelect() {
         let selRect = this.Bounds;
         let selection: Doc[] = [];
-        this.props.activeDocuments().map(doc => {
+        this.props.activeDocuments().filter(doc => !doc.isBackground).map(doc => {
             var z = NumCast(doc.zoomBasis, 1);
             var x = NumCast(doc.x);
             var y = NumCast(doc.y);

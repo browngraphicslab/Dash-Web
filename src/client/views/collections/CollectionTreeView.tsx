@@ -360,7 +360,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 let remDoc = (doc: Doc) => this.remove(doc, key);
                 let addDoc = (doc: Doc, addBefore?: Doc, before?: boolean) => Doc.AddDocToList(this.dataDoc, key, doc, addBefore, before);
                 contentElement = key === "links" ? this.renderLinks() :
-                    TreeView.GetChildElements(docList instanceof Doc ? [docList as Doc] : DocListCast(docList), this.props.treeViewId, realDoc, undefined, key, addDoc, remDoc, this.move,
+                    TreeView.GetChildElements(docList instanceof Doc ? [docList] : DocListCast(docList), this.props.treeViewId, realDoc, undefined, key, addDoc, remDoc, this.move,
                         this.props.dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active, this.props.panelWidth, this.props.renderDepth);
             } else {
                 contentElement = <EditableView

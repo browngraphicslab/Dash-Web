@@ -23,15 +23,20 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     _docXfs: any[] = [];
     _columnStart: number = 0;
     @observable private cursor: CursorProperty = "grab";
-    @computed get xMargin() { return NumCast(this.props.Document.xMargin, 2 * this.gridGap); }
-    @computed get yMargin() { return NumCast(this.props.Document.yMargin, 2 * this.gridGap); }
-    @computed get gridGap() { return NumCast(this.props.Document.gridGap, 10); }
-    @computed get singleColumn() { return BoolCast(this.props.Document.singleColumn, true); }
-    @computed get columnWidth() { return this.singleColumn ? (this.props.PanelWidth() / (this.props as any).ContentScaling() - 2 * this.xMargin) : Math.min(this.props.PanelWidth() - 2 * this.xMargin, NumCast(this.props.Document.columnWidth, 250)); }
+    @computed get xMargin() { return NumCast(this.layoutDoc.xMargin, 2 * this.gridGap); }
+    @computed get yMargin() { return NumCast(this.layoutDoc.yMargin, 2 * this.gridGap); }
+    @computed get gridGap() { return NumCast(this.layoutDoc.gridGap, 10); }
+    @computed get singleColumn() { return BoolCast(this.layoutDoc.singleColumn, true); }
+    @computed get columnWidth() { return this.singleColumn ? (this.props.PanelWidth() / (this.props as any).ContentScaling() - 2 * this.xMargin) : Math.min(this.props.PanelWidth() - 2 * this.xMargin, NumCast(this.layoutDoc.columnWidth, 250)); }
     @computed get filteredChildren() { return this.childDocs.filter(d => !d.isMinimized); }
 
+    get layoutDoc() {
+        // if this document's layout field contains a document (ie, a rendering template), then we will use that
+        // to determine the render JSX string, otherwise the layout field should directly contain a JSX layout string.
+        return this.props.Document.layout instanceof Doc ? this.props.Document.layout : this.props.Document;
+    }
     @computed get Sections() {
-        let sectionFilter = StrCast(this.props.Document.sectionFilter);
+        let sectionFilter = StrCast(this.layoutDoc.sectionFilter);
         let fields = new Map<object, Doc[]>();
         sectionFilter && this.filteredChildren.map(d => {
             let sectionValue = (d[sectionFilter] ? d[sectionFilter] : "-undefined-") as object;
@@ -42,10 +47,15 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
     componentDidMount() {
         this._heightDisposer = reaction(() => [this.yMargin, this.gridGap, this.columnWidth, this.childDocs.map(d => [d.height, d.width, d.zoomBasis, d.nativeHeight, d.nativeWidth, d.isMinimized])],
-            () => this.singleColumn &&
-                (this.props.Document.height = this.Sections.size * 50 + this.filteredChildren.reduce((height, d, i) =>
-                    height + this.getDocHeight(d) + (i === this.filteredChildren.length - 1 ? this.yMargin : this.gridGap), this.yMargin))
-            , { fireImmediately: true });
+            () => {
+                if (this.singleColumn) {
+                    let hgt = this.Sections.size * 50 + this.filteredChildren.reduce((height, d, i) => {
+                        let xhgt = height + this.getDocHeight(d) + (i === this.filteredChildren.length - 1 ? this.yMargin : this.gridGap);
+                        return xhgt;
+                    }, this.yMargin);
+                    this.layoutDoc.height = hgt;
+                }
+            }, { fireImmediately: true });
     }
     componentWillUnmount() {
         this._heightDisposer && this._heightDisposer();
@@ -65,7 +75,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
 
     getDisplayDoc(layoutDoc: Doc, d: Doc, dxf: () => Transform) {
-        let resolvedDataDoc = !this.props.Document.isTemplate && this.props.DataDoc !== this.props.Document ? this.props.DataDoc : undefined;
+        let resolvedDataDoc = !this.layoutDoc.isTemplate && this.props.DataDoc !== this.layoutDoc ? this.props.DataDoc : undefined;
         let width = () => d.nativeWidth ? Math.min(layoutDoc[WidthSym](), this.columnWidth) : this.columnWidth;
         let height = () => this.getDocHeight(layoutDoc);
         let finalDxf = () => dxf().scale(this.columnWidth / layoutDoc[WidthSym]());
@@ -153,7 +163,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         let dragPos = this.props.ScreenToLocalTransform().transformPoint(e.clientX, e.clientY)[0];
         let delta = dragPos - this._columnStart;
         this._columnStart = dragPos;
-        this.props.Document.columnWidth = this.columnWidth + delta;
+        this.layoutDoc.columnWidth = this.columnWidth + delta;
     }
 
     @action
@@ -250,7 +260,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     ["width > height", this.filteredChildren.filter(f => f[WidthSym]() >= 1 + f[HeightSym]())],
                     ["width = height", this.filteredChildren.filter(f => Math.abs(f[WidthSym]() - f[HeightSym]()) < 1)],
                     ["height > width", this.filteredChildren.filter(f => f[WidthSym]() + 1 <= f[HeightSym]())]]. */}
-                {this.props.Document.sectionFilter ? Array.from(this.Sections.entries()).
+                {this.layoutDoc.sectionFilter ? Array.from(this.Sections.entries()).
                     map(section => this.section(section[0].toString(), section[1])) :
                     this.section("", this.filteredChildren)}
             </div>

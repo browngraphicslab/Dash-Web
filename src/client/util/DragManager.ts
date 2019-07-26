@@ -412,7 +412,6 @@ export namespace DragManager {
         };
 
         let hideDragElements = () => {
-            SelectionManager.SetIsDragging(false);
             dragElements.map(dragElement => dragElement.parentNode === dragDiv && dragDiv.removeChild(dragElement));
             eles.map(ele => (ele.hidden = false));
         };
@@ -426,11 +425,13 @@ export namespace DragManager {
 
         AbortDrag = () => {
             hideDragElements();
+            SelectionManager.SetIsDragging(false);
             endDrag();
         };
         const upHandler = (e: PointerEvent) => {
             hideDragElements();
             dispatchDrag(eles, e, dragData, options, finishDrag);
+            SelectionManager.SetIsDragging(false);
             endDrag();
         };
         document.addEventListener("pointermove", moveHandler, true);

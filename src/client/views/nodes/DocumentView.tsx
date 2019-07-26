@@ -298,6 +298,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             let fullScreenAlias = Doc.MakeAlias(this.props.Document);
             fullScreenAlias.templates = new List<string>();
             Doc.UseDetailLayout(fullScreenAlias);
+            fullScreenAlias.showCaption = true;
             this.props.addDocTab(fullScreenAlias, this.dataDoc, "inTab");
             SelectionManager.DeselectAll();
             this.props.Document.libraryBrush = false;
@@ -513,6 +514,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
         proto.ignoreAspect = !BoolCast(proto.ignoreAspect, false);
     }
+    @undoBatch
+    @action
+    makeBackground = (): void => {
+        this.props.Document.isBackground = true;
+    }
 
     @undoBatch
     @action
@@ -543,6 +549,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         cm.addItem({ description: BoolCast(this.props.Document.ignoreAspect, false) || !this.props.Document.nativeWidth || !this.props.Document.nativeHeight ? "Freeze" : "Unfreeze", event: this.freezeNativeDimensions, icon: "edit" });
         cm.addItem({ description: "Pin to Pres", event: () => PresentationView.Instance.PinDoc(this.props.Document), icon: "map-pin" });
         cm.addItem({ description: BoolCast(this.props.Document.lockedPosition) ? "Unlock Pos" : "Lock Pos", event: this.toggleLockPosition, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
+        cm.addItem({ description: "Make Background", event: this.makeBackground, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
         cm.addItem({ description: this.props.Document.isButton ? "Remove Button" : "Make Button", event: this.makeBtnClicked, icon: "concierge-bell" });
         cm.addItem({
             description: "Make Portal", event: () => {
@@ -623,36 +630,42 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return (<DocumentContentsView {...this.props} isSelected={this.isSelected} select={this.select} selectOnLoad={this.props.selectOnLoad} layoutKey={"layout"} DataDoc={this.dataDoc} />);
     }
 
+    get layoutDoc() {
+        // if this document's layout field contains a document (ie, a rendering template), then we will use that
+        // to determine the render JSX string, otherwise the layout field should directly contain a JSX layout string.
+        return this.props.Document.layout instanceof Doc ? this.props.Document.layout : this.props.Document;
+    }
     render() {
         if (this.Document.hidden) {
             return null;
         }
         let self = this;
-        let backgroundColor = this.props.Document.layout instanceof Doc ? StrCast(this.props.Document.layout.backgroundColor) : this.Document.backgroundColor;
-        let foregroundColor = StrCast(this.props.Document.layout instanceof Doc ? this.props.Document.layout.color : this.props.Document.color);
+        let backgroundColor = StrCast(this.layoutDoc.backgroundColor);
+        let foregroundColor = StrCast(this.layoutDoc.color);
         var nativeWidth = this.nativeWidth > 0 ? `${this.nativeWidth}px` : "100%";
         var nativeHeight = BoolCast(this.props.Document.ignoreAspect) ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
-        let showOverlays = this.props.showOverlays ? this.props.showOverlays(this.props.Document) : undefined;
-        let showTitle = showOverlays && showOverlays.title !== "undefined" ? showOverlays.title : StrCast(this.props.Document.showTitle);
-        let showCaption = showOverlays && showOverlays.caption !== "undefined" ? showOverlays.caption : StrCast(this.props.Document.showCaption);
-        let templates = Cast(this.props.Document.templates, listSpec("string"));
+        let showOverlays = this.props.showOverlays ? this.props.showOverlays(this.layoutDoc) : undefined;
+        let showTitle = showOverlays && showOverlays.title !== "undefined" ? showOverlays.title : StrCast(this.layoutDoc.showTitle);
+        let showCaption = showOverlays && showOverlays.caption !== "undefined" ? showOverlays.caption : StrCast(this.layoutDoc.showCaption);
+        let templates = Cast(this.layoutDoc.templates, listSpec("string"));
         if (!showOverlays && templates instanceof List) {
             templates.map(str => {
                 if (str.indexOf("{props.Document.title}") !== -1) showTitle = "title";
                 if (str.indexOf("fieldKey={\"caption\"}") !== -1) showCaption = "caption";
             });
         }
-        let showTextTitle = showTitle && StrCast(this.props.Document.layout).startsWith("<FormattedTextBox") || (this.props.Document.layout instanceof Doc && StrCast(this.props.Document.layout.layout).startsWith("<FormattedTextBox")) ? showTitle : undefined;
+        let showTextTitle = showTitle && StrCast(this.layoutDoc.layout).startsWith("<FormattedTextBox") ? showTitle : undefined;
         return (
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
                 style={{
+                    pointerEvents: this.layoutDoc.isBackground ? "none" : "all",
                     color: foregroundColor,
                     outlineColor: "maroon",
                     outlineStyle: "dashed",
-                    outlineWidth: BoolCast(this.props.Document.libraryBrush) && !StrCast(this.props.Document.borderRounding) ?
+                    outlineWidth: BoolCast(this.layoutDoc.libraryBrush) && !StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
                         `${this.props.ScreenToLocalTransform().Scale}px` : "0px",
-                    border: BoolCast(this.props.Document.libraryBrush) && StrCast(this.props.Document.borderRounding) ?
+                    border: BoolCast(this.layoutDoc.libraryBrush) && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
                         `dashed maroon ${this.props.ScreenToLocalTransform().Scale}px` : undefined,
                     borderRadius: "inherit",
                     background: backgroundColor,
@@ -673,17 +686,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                         {!showTitle ? (null) :
                             <div style={{
                                 position: showTextTitle ? "relative" : "absolute", top: 0, padding: "4px", textAlign: "center", textOverflow: "ellipsis", whiteSpace: "pre",
-                                pointerEvents: "all",
+                                pointerEvents: SelectionManager.GetIsDragging() ? "none" : "all",
                                 overflow: "hidden", width: `${100 * this.props.ContentScaling()}%`, height: 25, background: "rgba(0, 0, 0, .4)", color: "white",
                                 transformOrigin: "top left", transform: `scale(${1 / this.props.ContentScaling()})`
                             }}>
                                 <EditableView
-                                    contents={this.props.Document[showTitle]}
+                                    contents={this.layoutDoc[showTitle]}
                                     display={"block"}
                                     height={72}
                                     fontSize={12}
-                                    GetValue={() => StrCast(this.props.Document[showTitle!])}
-                                    SetValue={(value: string) => (Doc.GetProto(this.props.Document)[showTitle!] = value) ? true : true}
+                                    GetValue={() => StrCast(this.layoutDoc[showTitle!])}
+                                    SetValue={(value: string) => (Doc.GetProto(this.layoutDoc)[showTitle!] = value) ? true : true}
                                 />
                             </div>
                         }
