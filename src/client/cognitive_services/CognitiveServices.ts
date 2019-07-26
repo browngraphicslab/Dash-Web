@@ -9,6 +9,10 @@ import { Utils } from "../../Utils";
 import { CompileScript } from "../util/Scripting";
 import { ComputedField } from "../../new_fields/ScriptField";
 import { InkData } from "../../new_fields/InkField";
+import "microsoft-cognitiveservices-speech-sdk";
+import "fs";
+import { AudioInputStream } from "microsoft-cognitiveservices-speech-sdk";
+import { createReadStream, ReadStream } from "fs";
 
 type APIManager<D> = { converter: BodyConverter<D>, requester: RequestExecutor, analyzer: AnalysisApplier };
 type RequestExecutor = (apiKey: string, body: string, service: Service) => Promise<string>;
@@ -22,7 +26,8 @@ export type Rectangle = { top: number, left: number, width: number, height: numb
 export enum Service {
     ComputerVision = "vision",
     Face = "face",
-    Handwriting = "handwriting"
+    Handwriting = "handwriting",
+    Transcription = "transcription"
 }
 
 export enum Confidence {
@@ -229,6 +234,26 @@ export namespace CognitiveServices {
             unit: string;
             strokes: AzureStrokeData[];
         }
+
+    }
+
+    export namespace Transcription {
+
+        export const Manager: APIManager<string> = {
+
+            converter: (data: string) => data,
+
+            requester: async (apiKey: string, body: string, service: Service) => {
+                let analysis = await fetch(`${RouteStore.audioData}/${body}`).then(async response => JSON.parse(await response.json()));
+                console.log(analysis);
+                return "";
+            },
+
+            analyzer: async (doc: Doc, keys: string[], filename: string) => {
+                let results = await executeQuery<string, any>(Service.Transcription, Manager, filename);
+            }
+
+        };
 
     }
 

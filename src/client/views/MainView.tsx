@@ -39,6 +39,7 @@ import { PreviewCursor } from './PreviewCursor';
 import { FilterBox } from './search/FilterBox';
 import { CollectionTreeView } from './collections/CollectionTreeView';
 import { ClientUtils } from '../util/ClientUtils';
+import { CognitiveServices } from '../cognitive_services/CognitiveServices';
 
 @observer
 export class MainView extends React.Component {
@@ -66,6 +67,8 @@ export class MainView extends React.Component {
 
     componentWillMount() {
         var tag = document.createElement('script');
+
+        CognitiveServices.Transcription.Manager.analyzer(new Doc, ["hello", "world"], "Sunflower.mp3");
 
         tag.src = "https://www.youtube.com/iframe_api";
         var firstScriptTag = document.getElementsByTagName('script')[0];

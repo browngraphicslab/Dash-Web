@@ -40,6 +40,8 @@ import { Search } from './Search';
 import { debug } from 'util';
 import _ = require('lodash');
 import { Response } from 'express-serve-static-core';
+import { AudioInputStream, AudioConfig, SpeechConfig, SpeechRecognizer, SpeechRecognitionResult } from 'microsoft-cognitiveservices-speech-sdk';
+import { Opt } from '../new_fields/Doc';
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const probe = require("probe-image-size");
@@ -297,13 +299,68 @@ addSecureRoute(
 const ServicesApiKeyMap = new Map<string, string | undefined>([
     ["face", process.env.FACE],
     ["vision", process.env.VISION],
-    ["handwriting", process.env.HANDWRITING]
+    ["handwriting", process.env.HANDWRITING],
+    ["transcription", process.env.TRANSCRIPTION]
 ]);
 
 addSecureRoute(Method.GET, (user, res, req) => {
     let service = req.params.requestedservice;
     res.send(ServicesApiKeyMap.get(service));
 }, undefined, `${RouteStore.cognitiveServices}/:requestedservice`);
+
+addSecureRoute(
+    Method.GET,
+    (user, res, req) => {
+        let asset = req.params.asset;
+        let pushStream = AudioInputStream.createPushStream();
+        let readStream = fs.createReadStream(path.join(__dirname, '../../deploy/assets/' + asset));
+
+        let apiKey = process.env.TRANSCRIPTION;
+        if (!apiKey) {
+            res.send(undefined);
+            return;
+        }
+
+        console.log("API KEY FOUND: ", apiKey);
+
+        readStream.on('data', arrayBuffer => {
+            pushStream.write(arrayBuffer.buffer);
+            console.log(arrayBuffer.buffer);
+        });
+        readStream.on('end', () => pushStream.close());
+        readStream.on('error', (error) => {
+            console.log("ERROR! ", error);
+            res.end(error);
+        });
+
+        let audioConfig = AudioConfig.fromStreamInput(pushStream);
+        let speechConfig = SpeechConfig.fromSubscription(apiKey, "eastus");
+
+        console.log("Here are the configs!");
+        console.log(audioConfig);
+        console.log(speechConfig);
+
+        speechConfig.speechRecognitionLanguage = "en-US";
+
+        let recognizer: Opt<SpeechRecognizer> = new SpeechRecognizer(speechConfig, audioConfig);
+        recognizer.recognizeOnceAsync(
+            (result: SpeechRecognitionResult) => {
+                console.log("RESULT! ", result);
+                res.send(result);
+                recognizer && recognizer.close();
+                recognizer = undefined;
+            },
+            (error: string) => {
+                console.log("RESULT ERROR: ", error);
+                res.send(error);
+                recognizer && recognizer.close();
+                recognizer = undefined;
+            },
+        );
+    },
+    undefined,
+    `${RouteStore.audioData}/:asset`
+);
 
 class NodeCanvasFactory {
     create = (width: number, height: number) => {
