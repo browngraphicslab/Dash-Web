@@ -16,6 +16,7 @@ import KeyRestrictionRow from "./KeyRestrictionRow";
 import { CompileScript } from "../../util/Scripting";
 import { ScriptField } from "../../../new_fields/ScriptField";
 import { CollectionSchemaView } from "./CollectionSchemaView";
+import { COLLECTION_BORDER_WIDTH } from "../globalCssVariables.scss";
 const datepicker = require('js-datepicker');
 
 interface CollectionViewChromeProps {
@@ -346,16 +347,26 @@ export class CollectionStackingViewChrome extends React.Component<CollectionView
     }
 }
 
-interface SchemaChromeProps extends CollectionViewChromeProps {
-    toolbar: JSX.Element;
-}
 
 @observer
-export class CollectionSchemaViewChrome extends React.Component<SchemaChromeProps> {
+export class CollectionSchemaViewChrome extends React.Component<CollectionViewChromeProps> {
+
+    togglePreview = () => {
+        let dividerWidth = 4;
+        let borderWidth = Number(COLLECTION_BORDER_WIDTH);
+        let panelWidth = this.props.CollectionView.props.PanelWidth();
+        let previewWidth = NumCast(this.props.CollectionView.props.Document.schemaPreviewWidth);
+        let tableWidth = panelWidth - 2 * borderWidth - dividerWidth - previewWidth;
+        this.props.CollectionView.props.Document.schemaPreviewWidth = previewWidth === 0 ? Math.min(tableWidth / 3, 200) : 0;
+
+    }
+
+
     render() {
+        let previewWidth = NumCast(this.props.CollectionView.props.Document.schemaPreviewWidth);
         return (
             <div className="collectionStackingViewChrome-cont">
-                {this.props.toolbar}
+                <div id="preview-schema-checkbox-div"><input type="checkbox" key={"Show Preview"} checked={previewWidth !== 0} onChange={this.togglePreview} />Show Preview</div>
             </div>
         );
     }
