@@ -800,7 +800,12 @@ export default class PresentationElement extends React.Component<PresentationEle
         // </ul >;
         let propDocWidth = NumCast(this.props.document.nativeWidth);
         let propDocHeight = NumCast(this.props.document.nativeHeight);
-        let scale = () => 175 / NumCast(this.props.document.nativeWidth, 175);
+        let previewWidth = NumCast(this.props.document.schemaPreviewWidth);
+        let scale = () => {
+            let newScale = 175 / NumCast(this.props.document.nativeWidth, 175);
+            console.log("New Scale: ", newScale);
+            return newScale;
+        };
         return (
             // <DocumentView
             //     Document={this.props.document}
@@ -819,12 +824,13 @@ export default class PresentationElement extends React.Component<PresentationEle
             //     zoomToScale={(scale: number) => { }}
             //     getScale={() => 3.1415}
             // />
+
             <div style={{
                 // overflowY: "scroll",
                 position: "relative",
                 // right: "45%",
                 // maxHeight: 250
-                height: propDocHeight === 0 ? "auto" : propDocHeight * scale(),
+                height: propDocHeight === 0 ? 100 : propDocHeight * scale(),
                 width: propDocWidth === 0 ? "auto" : propDocWidth * scale(),
                 marginTop: 15
 
@@ -837,8 +843,8 @@ export default class PresentationElement extends React.Component<PresentationEle
                     ScreenToLocalTransform={Transform.Identity}
                     addDocTab={returnFalse}
                     renderDepth={1}
-                    PanelWidth={() => 20}
-                    PanelHeight={() => 20}
+                    PanelWidth={() => 350}
+                    PanelHeight={() => 100}
                     focus={emptyFunction}
                     selectOnLoad={false}
                     parentActive={returnFalse}

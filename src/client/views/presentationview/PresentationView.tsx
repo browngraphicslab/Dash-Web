@@ -811,7 +811,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
         let width = NumCast(this.curPresentation.width);
 
         return (
-            <div className="presentationView-cont" style={{ width: width, overflow: "hidden" }}>
+            <div className="presentationView-cont" style={{ width: width, overflowY: "scroll", overflowX: "hidden" }}>
                 <div className="presentationView-heading">
                     {this.renderSelectOrPresSelection()}
                     <button title="Close Presentation" className='presentation-icon' onClick={this.closePresentation}><FontAwesomeIcon icon={"times"} /></button>
