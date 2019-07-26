@@ -124,7 +124,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
     @action.bound
     moveDocument(doc: Doc, targetCollection: Doc, addDocument: (doc: Doc) => boolean): boolean {
         let self = this;
-        let targetDataDoc = this.props.fieldExt || this.props.Document.isTemplate ? this.extensionDoc : this.props.Document;
+        let targetDataDoc = this.props.Document;
         if (Doc.AreProtosEqual(targetDataDoc, targetCollection)) {
             //if (Doc.AreProtosEqual(this.extensionDoc, targetCollection)) {
             return true;

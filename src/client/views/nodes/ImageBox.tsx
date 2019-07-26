@@ -104,8 +104,6 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                             e.stopPropagation();
                         }
                     }
-                } else if (!this.props.isSelected()) {
-                    e.stopPropagation();
                 }
             }));
             // de.data.removeDocument()  bcz: need to implement

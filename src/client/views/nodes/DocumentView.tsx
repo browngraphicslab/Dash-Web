@@ -298,6 +298,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             let fullScreenAlias = Doc.MakeAlias(this.props.Document);
             fullScreenAlias.templates = new List<string>();
             Doc.UseDetailLayout(fullScreenAlias);
+            fullScreenAlias.showCaption = true;
             this.props.addDocTab(fullScreenAlias, this.dataDoc, "inTab");
             SelectionManager.DeselectAll();
             this.props.Document.libraryBrush = false;
@@ -673,7 +674,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                         {!showTitle ? (null) :
                             <div style={{
                                 position: showTextTitle ? "relative" : "absolute", top: 0, padding: "4px", textAlign: "center", textOverflow: "ellipsis", whiteSpace: "pre",
-                                pointerEvents: "all",
+                                pointerEvents: SelectionManager.GetIsDragging() ? "none" : "all",
                                 overflow: "hidden", width: `${100 * this.props.ContentScaling()}%`, height: 25, background: "rgba(0, 0, 0, .4)", color: "white",
                                 transformOrigin: "top left", transform: `scale(${1 / this.props.ContentScaling()})`
                             }}>
