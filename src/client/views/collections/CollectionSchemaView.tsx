@@ -101,7 +101,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @action
     setPreviewDoc = (doc: Doc): void => {
-        console.log("set");
         this.previewDoc = doc;
     }
 
@@ -136,6 +135,9 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     onPointerDown = (e: React.PointerEvent): void => {
         if (e.button === 0 && !e.altKey && !e.ctrlKey && !e.metaKey) {
             if (this.props.isSelected()) e.stopPropagation();
+            else {
+                this.props.select(false);
+            }
         }
     }
 
@@ -149,7 +151,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     get previewDocument(): Doc | undefined {
         let selected = this.previewDoc;
         let pdc = selected ? (this.previewScript && this.previewScript !== "this" ? FieldValue(Cast(selected[this.previewScript], Doc)) : selected) : undefined;
-        console.log("preview document", pdc);
         return pdc;
     }
 
@@ -231,7 +232,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     render() {
-
         // if (SelectionManager.SelectedDocuments().length > 0) console.log(StrCast(SelectionManager.SelectedDocuments()[0].Document.title));
         // if (DocumentManager.Instance.getDocumentView(this.props.Document)) console.log(StrCast(this.props.Document.title), SelectionManager.IsSelected(DocumentManager.Instance.getDocumentView(this.props.Document)!))
         return (
@@ -549,7 +549,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     createRow = () => {
-        console.log("creating row");
         let doc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
         let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
 
@@ -679,6 +678,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     @computed
     get reactTable() {
+
         let cdoc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
         let children = DocListCast(cdoc[this.props.fieldKey]);
 
