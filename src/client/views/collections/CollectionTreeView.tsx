@@ -201,7 +201,11 @@ class TreeView extends React.Component<TreeViewProps> {
 
         let headerElements = (
             <span className="collectionTreeView-keyHeader" key={this.treeViewExpandedView}
-                onPointerDown={action(() => this.props.document.treeViewExpandedView = this.treeViewExpandedView === "data" ? "fields" : this.treeViewExpandedView === "fields" && this.props.document.layout ? "layout" : "data")}>
+                onPointerDown={action(() => {
+                    this.props.document.treeViewExpandedView = this.treeViewExpandedView === "data" ? "fields" :
+                        this.treeViewExpandedView === "fields" && this.props.document.layout ? "layout" : "data";
+                    this._collapsed = false;
+                })}>
                 {this.treeViewExpandedView}
             </span>);
         let dataDocs = CollectionDockingView.Instance ? Cast(CollectionDockingView.Instance.props.Document[this.fieldKey], listSpec(Doc), []) : [];
