@@ -1,5 +1,5 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faProjectDiagram, faSignature, faColumns, faSquare, faTh, faImage, faThList, faTree, faEllipsisV } from '@fortawesome/free-solid-svg-icons';
+import { faProjectDiagram, faSignature, faColumns, faSquare, faTh, faImage, faThList, faTree, faEllipsisV, faFingerprint, faLaptopCode } from '@fortawesome/free-solid-svg-icons';
 import { observer } from "mobx-react";
 import * as React from 'react';
 import { Doc, DocListCast, WidthSym, HeightSym } from '../../../new_fields/Doc';
@@ -18,7 +18,7 @@ import { CollectionTreeView } from "./CollectionTreeView";
 import { StrCast, PromiseValue } from '../../../new_fields/Types';
 import { DocumentType } from '../../documents/Documents';
 import { CollectionStackingViewChrome, CollectionViewBaseChrome } from './CollectionViewChromes';
-import { observable } from 'mobx';
+import { observable, action, runInAction } from 'mobx';
 export const COLLECTION_BORDER_WIDTH = 2;
 
 library.add(faTh);
@@ -27,6 +27,7 @@ library.add(faSquare);
 library.add(faProjectDiagram);
 library.add(faSignature);
 library.add(faThList);
+library.add(faFingerprint);
 library.add(faColumns);
 library.add(faEllipsisV);
 library.add(faImage);
@@ -37,11 +38,20 @@ export class CollectionView extends React.Component<FieldViewProps> {
 
     public static LayoutString(fieldStr: string = "data", fieldExt: string = "") { return FieldView.LayoutString(CollectionView, fieldStr, fieldExt); }
 
+    componentDidMount = () => {
+        // chrome status is one of disabled, collapsed, or visible. this determines initial state from document
+        let chromeStatus = this.props.Document.chromeStatus;
+        if (chromeStatus && (chromeStatus === "disabled" || chromeStatus === "collapsed")) {
+            runInAction(() => this._collapsed = true);
+        }
+    }
+
     private SubViewHelper = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
         let props = { ...this.props, ...renderProps };
         switch (this.isAnnotationOverlay ? CollectionViewType.Freeform : type) {
             case CollectionViewType.Schema: return (<CollectionSchemaView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />);
-            case CollectionViewType.Docking: return (<CollectionDockingView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />);
+            // currently cant think of a reason for collection docking view to have a chrome. mind may change if we ever have nested docking views -syip
+            case CollectionViewType.Docking: return (<CollectionDockingView chromeCollapsed={true} key="collview" {...props} CollectionView={this} />);
             case CollectionViewType.Tree: return (<CollectionTreeView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />);
             case CollectionViewType.Stacking: { this.props.Document.singleColumn = true; return (<CollectionStackingView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />); }
             case CollectionViewType.Masonry: { this.props.Document.singleColumn = false; return (<CollectionStackingView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />); }
@@ -52,17 +62,20 @@ export class CollectionView extends React.Component<FieldViewProps> {
         return (null);
     }
 
+    @action
     private collapse = (value: boolean) => {
         this._collapsed = value;
+        this.props.Document.chromeStatus = value ? "collapsed" : "visible";
     }
 
     private SubView = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
-        if (this.isAnnotationOverlay || this.props.Document === CurrentUserUtils.UserDocument.sidebar) {
+        // currently cant think of a reason for collection docking view to have a chrome. mind may change if we ever have nested docking views -syip
+        if (this.isAnnotationOverlay || this.props.Document.chromeStatus === "disabled" || type === CollectionViewType.Docking) {
             return [(null), this.SubViewHelper(type, renderProps)];
         }
         else {
             return [
-                // (<CollectionViewBaseChrome CollectionView={this} type={type} collapse={this.collapse} />),
+                (<CollectionViewBaseChrome CollectionView={this} type={type} collapse={this.collapse} />),
                 this.SubViewHelper(type, renderProps)
             ];
         }
@@ -81,6 +94,12 @@ export class CollectionView extends React.Component<FieldViewProps> {
             subItems.push({ description: "Treeview", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Tree), icon: "tree" });
             subItems.push({ description: "Stacking", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Stacking), icon: "ellipsis-v" });
             subItems.push({ description: "Masonry", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Masonry), icon: "columns" });
+            switch (this.props.Document.viewType) {
+                case CollectionViewType.Freeform: {
+                    subItems.push({ description: "Custom", icon: "fingerprint", event: CollectionFreeFormView.AddCustomLayout(this.props.Document, this.props.fieldKey) });
+                    break;
+                }
+            }
             ContextMenu.Instance.addItem({ description: "View Modes...", subitems: subItems });
             ContextMenu.Instance.addItem({ description: "Apply Template", event: undoBatch(() => this.props.addDocTab && this.props.addDocTab(Doc.ApplyTemplate(this.props.Document)!, undefined, "onRight")), icon: "project-diagram" });
         }

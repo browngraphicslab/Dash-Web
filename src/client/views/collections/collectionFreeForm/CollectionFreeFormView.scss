@@ -19,6 +19,11 @@
     transform-origin: left top;
 }
 
+.collectionFreeform-customText {
+    position: absolute;
+    text-align: center;
+}
+
 .collectionfreeformview-container {
     .collectionfreeformview>.jsx-parser {
         position: inherit;

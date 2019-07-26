@@ -10,8 +10,19 @@
     width: 100%;
     height: calc(100% - 50px);
     // overflow: hidden;
-    overflow-x: scroll;
-    border: none;
+    // overflow-x: scroll;
+    // border: none;
+    overflow: hidden;
+    transition: top 0.5s;
+
+    // .collectionSchemaView-cellContents {
+    //     height: $MAX_ROW_HEIGHT;
+
+    //     img {
+    //         width: auto;
+    //         max-height: $MAX_ROW_HEIGHT;
+    //     }
+    // }
 
     .collectionSchemaView-previewRegion {
         position: relative;

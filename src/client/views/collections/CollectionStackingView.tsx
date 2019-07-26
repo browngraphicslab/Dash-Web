@@ -4,8 +4,8 @@ import { action, computed, IReactionDisposer, reaction, untracked, observable, r
 import { observer } from "mobx-react";
 import { Doc, HeightSym, WidthSym, DocListCast } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
-import { BoolCast, NumCast, Cast, StrCast, FieldValue } from "../../../new_fields/Types";
-import { emptyFunction, Utils } from "../../../Utils";
+import { BoolCast, NumCast, Cast, StrCast } from "../../../new_fields/Types";
+import { emptyFunction, Utils, returnTrue } from "../../../Utils";
 import { CollectionSchemaPreview } from "./CollectionSchemaView";
 import "./CollectionStackingView.scss";
 import { CollectionSubView, SubCollectionViewProps } from "./CollectionSubView";
@@ -21,8 +21,6 @@ import { List } from "../../../new_fields/List";
 import { EditableView } from "../EditableView";
 import { CollectionViewProps } from "./CollectionBaseView";
 
-let valuesCreated = 1;
-
 @observer
 export class CollectionStackingView extends CollectionSubView(doc => doc) {
     _masonryGridRef: HTMLDivElement | null = null;
@@ -33,7 +31,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     _columnStart: number = 0;
     @observable private cursor: CursorProperty = "grab";
     get sectionHeaders() { return Cast(this.props.Document.sectionHeaders, listSpec(SchemaHeaderField)); }
-    get chromeCollapsed() { return this.props.chromeCollapsed; }
+    @computed get chromeCollapsed() { return this.props.chromeCollapsed; }
     @computed get xMargin() { return NumCast(this.props.Document.xMargin, 2 * this.gridGap); }
     @computed get yMargin() { return NumCast(this.props.Document.yMargin, 2 * this.gridGap); }
     @computed get gridGap() { return NumCast(this.props.Document.gridGap, 10); }
@@ -49,7 +47,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         let fields = new Map<SchemaHeaderField, Doc[]>(sectionHeaders.map(sh => [sh, []]));
         if (sectionFilter) {
             this.filteredChildren.map(d => {
-                let sectionValue = (d[sectionFilter] ? d[sectionFilter] : `No ${sectionFilter} value`) as object;
+                let sectionValue = (d[sectionFilter] ? d[sectionFilter] : `NO ${sectionFilter.toUpperCase()} VALUE`) as object;
                 // the next five lines ensures that floating point rounding errors don't create more than one section -syip
                 let parsed = parseInt(sectionValue.toString());
                 let castedSectionValue: any = sectionValue;
@@ -58,12 +56,12 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                 }
 
                 // look for if header exists already
-                let existingHeader = sectionHeaders!.find(sh => sh.heading === (castedSectionValue ? castedSectionValue.toString() : `No ${sectionFilter} value`));
+                let existingHeader = sectionHeaders!.find(sh => sh.heading === (castedSectionValue ? castedSectionValue.toString() : `NO ${sectionFilter.toUpperCase()} VALUE`));
                 if (existingHeader) {
                     fields.get(existingHeader)!.push(d);
                 }
                 else {
-                    let newSchemaHeader = new SchemaHeaderField(castedSectionValue ? castedSectionValue.toString() : `No ${sectionFilter} value`);
+                    let newSchemaHeader = new SchemaHeaderField(castedSectionValue ? castedSectionValue.toString() : `NO ${sectionFilter.toUpperCase()} VALUE`);
                     fields.set(newSchemaHeader, [d]);
                     sectionHeaders!.push(newSchemaHeader);
                 }
@@ -84,9 +82,8 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             () => StrCast(this.props.Document.sectionFilter),
             () => {
                 this.props.Document.sectionHeaders = new List();
-                valuesCreated = 1;
             }
-        )
+        );
     }
     componentWillUnmount() {
         this._heightDisposer && this._heightDisposer();
@@ -264,8 +261,8 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         let editableViewProps = {
             GetValue: () => "",
             SetValue: this.addGroup,
-            contents: "+ Add a Group"
-        }
+            contents: "+ ADD A GROUP"
+        };
         // let uniqueHeadings = headings.map((i, idx) => headings.indexOf(i) === idx);
         return (
             <div className="collectionStackingView" style={{ top: this.chromeCollapsed ? 0 : 100 }}
@@ -275,7 +272,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     ["width = height", this.filteredChildren.filter(f => Math.abs(f[WidthSym]() - f[HeightSym]()) < 1)],
                     ["height > width", this.filteredChildren.filter(f => f[WidthSym]() + 1 <= f[HeightSym]())]]. */}
                 {this.props.Document.sectionFilter ? Array.from(this.Sections.entries()).sort(this.sortFunc).
-                    map(section => this.section(section[0], section[1] as Doc[])) :
+                    map(section => this.section(section[0], section[1])) :
                     this.section(undefined, this.filteredChildren)}
                 {this.props.Document.sectionFilter ?
                     <div key={`${this.props.Document[Id]}-addGroup`} className="collectionStackingView-addGroupButton"

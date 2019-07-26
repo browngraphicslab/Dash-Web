@@ -1,5 +1,5 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faImage, faFileAudio } from '@fortawesome/free-solid-svg-icons';
+import { faImage, faFileAudio, faPaintBrush, faAsterisk } from '@fortawesome/free-solid-svg-icons';
 import { action, observable, computed, runInAction } from 'mobx';
 import { observer } from "mobx-react";
 import Lightbox from 'react-image-lightbox';
@@ -27,13 +27,14 @@ import { Font } from '@react-pdf/renderer';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { CognitiveServices } from '../../cognitive_services/CognitiveServices';
 import FaceRectangles from './FaceRectangles';
+import { faEye } from '@fortawesome/free-regular-svg-icons';
 var requestImageSize = require('../../util/request-image-size');
 var path = require('path');
 const { Howl, Howler } = require('howler');
 
 
-library.add(faImage);
-library.add(faFileAudio);
+library.add(faImage, faEye, faPaintBrush);
+library.add(faFileAudio, faAsterisk);
 
 
 export const pageSchema = createSchema({
@@ -175,7 +176,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                 const url = Utils.prepend(files[0]);
                 // upload to server with known URL 
                 let audioDoc = Docs.Create.AudioDocument(url, { title: "audio test", x: NumCast(self.props.Document.x), y: NumCast(self.props.Document.y), width: 200, height: 32 });
-                audioDoc.embed = true;
+                audioDoc.treeViewExpandedView = "layout";
                 let audioAnnos = Cast(self.extensionDoc.audioAnnotations, listSpec(Doc));
                 if (audioAnnos === undefined) {
                     self.extensionDoc.audioAnnotations = new List([audioDoc]);
@@ -216,12 +217,12 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
             });
 
             let modes: ContextMenuProps[] = [];
-            let dataDoc = Doc.GetProto(this.Document);
+            let dataDoc = Doc.GetProto(this.props.Document);
             modes.push({ description: "Generate Tags", event: () => CognitiveServices.Image.generateMetadata(dataDoc), icon: "tag" });
             modes.push({ description: "Find Faces", event: () => CognitiveServices.Image.extractFaces(dataDoc), icon: "camera" });
 
-            ContextMenu.Instance.addItem({ description: "Image Funcs...", subitems: funcs });
-            ContextMenu.Instance.addItem({ description: "Analyze...", subitems: modes });
+            ContextMenu.Instance.addItem({ description: "Image Funcs...", subitems: funcs, icon: "asterisk" });
+            ContextMenu.Instance.addItem({ description: "Analyze...", subitems: modes, icon: "eye" });
         }
     }
 
@@ -355,7 +356,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         let rotation = NumCast(this.dataDoc.rotation, 0);
         let aspect = (rotation % 180) ? this.dataDoc[HeightSym]() / this.dataDoc[WidthSym]() : 1;
         let shift = (rotation % 180) ? (nativeHeight - nativeWidth / aspect) / 2 : 0;
-        let srcpath = paths[Math.min(paths.length, this.Document.curPage || 0)];
+        let srcpath = paths[Math.min(paths.length - 1, this.Document.curPage || 0)];
 
         if (!this.props.Document.ignoreAspect && !this.props.leaveNativeSize) this.resize(srcpath, this.props.Document);
 

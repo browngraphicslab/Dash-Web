@@ -15,7 +15,7 @@ import { Cast, FieldValue, NumCast, StrCast, BoolCast } from "../../../new_field
 import { Docs, DocumentOptions } from "../../documents/Documents";
 import { Gateway } from "../../northstar/manager/Gateway";
 import { SetupDrag, DragManager } from "../../util/DragManager";
-import { CompileScript } from "../../util/Scripting";
+import { CompileScript, ts, Transformer } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
 import { COLLECTION_BORDER_WIDTH, MAX_ROW_HEIGHT } from '../../views/globalCssVariables.scss';
 import { ContextMenu } from "../ContextMenu";
@@ -70,6 +70,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @observable private _node: HTMLDivElement | null = null;
     @observable private _focusedTable: Doc = this.props.Document;
 
+    @computed get chromeCollapsed() { return this.props.chromeCollapsed; }
     @computed get previewWidth() { return () => NumCast(this.props.Document.schemaPreviewWidth); }
     @computed get previewHeight() { return () => this.props.PanelHeight() - 2 * this.borderWidth; }
     @computed get tableWidth() { return this.props.PanelWidth() - 2 * this.borderWidth - this.DIVIDER_WIDTH - this.previewWidth(); }
@@ -219,7 +220,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     @computed
-    get schemaToolbar() {
+    public get schemaToolbar() {
         return (
             <div className="collectionSchemaView-toolbar">
                 <div className="collectionSchemaView-toolbar-item">
@@ -234,15 +235,12 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         // if (SelectionManager.SelectedDocuments().length > 0) console.log(StrCast(SelectionManager.SelectedDocuments()[0].Document.title));
         // if (DocumentManager.Instance.getDocumentView(this.props.Document)) console.log(StrCast(this.props.Document.title), SelectionManager.IsSelected(DocumentManager.Instance.getDocumentView(this.props.Document)!))
         return (
-            <>
-                {this.schemaToolbar}
-                <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} onWheel={this.onWheel}
-                    onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createTarget}>
-                    {this.schemaTable}
-                    {this.dividerDragger}
-                    {!this.previewWidth() ? (null) : this.previewPanel}
-                </div>
-            </>
+            <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} onWheel={this.onWheel}
+                onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createTarget}>
+                {this.schemaTable}
+                {this.dividerDragger}
+                {!this.previewWidth() ? (null) : this.previewPanel}
+            </div>
         );
     }
 }
@@ -441,7 +439,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         if (!column) return {};
 
         let row = rowInfo.index;
-        let col = this.columns.indexOf(column.id);
+        //@ts-ignore
+        let col = this.columns.indexOf(column!.id);
         // let col = column ? this.columns.indexOf(column!) : -1;
         let isFocused = this._focusedCell.row === row && this._focusedCell.col === col && this.props.isFocused(this.props.Document);
         // let column = this.columns.indexOf(column.id!);
@@ -547,6 +546,17 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
         const fdoc = FieldValue(children[this._focusedCell.row]);
         fdoc && this.props.setPreviewDoc(fdoc);
+    }
+
+    createRow = () => {
+        console.log("creating row");
+        let doc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
+        let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
+
+        let newDoc = Docs.Create.TextDocument({ width: 100, height: 30 });
+        let proto = Doc.GetProto(newDoc);
+        proto.title = "";
+        children.push(newDoc);
     }
 
     @action
@@ -676,6 +686,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         let hasCollectionChild = children.reduce((found, doc) => found || doc.type === "collection", false);
         let expandedRowsList = this._openCollections.map(col => children.findIndex(doc => doc[Id] === col).toString());
         let expanded = {};
+        //@ts-ignore
         expandedRowsList.forEach(row => expanded[row] = true);
         console.log(...[...this._textWrappedRows]); // TODO: get component to rerender on text wrap change without needign to console.log :((((
 
@@ -738,6 +749,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             <div className="collectionSchemaView-table" onPointerDown={this.onPointerDown} onWheel={this.onWheel}
                 onDrop={(e: React.DragEvent) => this.props.onDrop(e, {})} onContextMenu={this.onContextMenu} >
                 {this.reactTable}
+                <button onClick={() => this.createRow()}>new row</button>
             </div>
         );
     }
