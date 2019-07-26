@@ -60,16 +60,16 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private get _pheight() { return this.props.PanelHeight(); }
     private inkKey = "ink";
 
-    get prevScaling() {
-        return (this.props as any).ContentScaling && this.Document.nativeWidth && this.fitToBox ? (this.props as any).ContentScaling() : 1;
+    get parentScaling() {
+        return (this.props as any).ContentScaling && this.Document.nativeWidth && this.fitToBox && !this.isAnnotationOverlay ? (this.props as any).ContentScaling() : 1;
     }
 
     @computed get contentBounds() {
-        let bounds = (this.fitToBox) && !this.nativeWidth ? Doc.ComputeContentBounds(DocListCast(this.props.Document.data)) : undefined;
+        let bounds = this.fitToBox && !this.nativeWidth && !this.isAnnotationOverlay ? Doc.ComputeContentBounds(DocListCast(this.props.Document.data)) : undefined;
         return {
             panX: bounds ? (bounds.x + bounds.r) / 2 : this.Document.panX || 0,
             panY: bounds ? (bounds.y + bounds.b) / 2 : this.Document.panY || 0,
-            scale: (bounds ? Math.min(this.props.PanelHeight() / (bounds.b - bounds.y), this.props.PanelWidth() / (bounds.r - bounds.x)) : this.Document.scale || 1) / this.prevScaling
+            scale: (bounds ? Math.min(this.props.PanelHeight() / (bounds.b - bounds.y), this.props.PanelWidth() / (bounds.r - bounds.x)) : this.Document.scale || 1) / this.parentScaling
         };
     }
 
@@ -81,8 +81,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private panX = () => this.contentBounds.panX;
     private panY = () => this.contentBounds.panY;
     private zoomScaling = () => this.contentBounds.scale;
-    private centeringShiftX = () => !this.nativeWidth ? this._pwidth / 2 / this.prevScaling : 0;  // shift so pan position is at center of window for non-overlay collections
-    private centeringShiftY = () => !this.nativeHeight ? this._pheight / 2 / this.prevScaling : 0;// shift so pan position is at center of window for non-overlay collections
+    private centeringShiftX = () => !this.nativeWidth && !this.isAnnotationOverlay ? this._pwidth / 2 / this.parentScaling : 0;  // shift so pan position is at center of window for non-overlay collections
+    private centeringShiftY = () => !this.nativeHeight && !this.isAnnotationOverlay ? this._pheight / 2 / this.parentScaling : 0;// shift so pan position is at center of window for non-overlay collections
     private getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth + 1, -this.borderWidth + 1).translate(-this.centeringShiftX(), -this.centeringShiftY()).transform(this.getLocalTransform());
     private getContainerTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth, -this.borderWidth);
     private getLocalTransform = (): Transform => Transform.Identity().scale(1 / this.zoomScaling()).translate(this.panX(), this.panY());
