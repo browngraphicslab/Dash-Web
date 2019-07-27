@@ -5,7 +5,7 @@ import { observer } from "mobx-react";
 import { baseKeymap } from "prosemirror-commands";
 import { history } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
-import { NodeType } from 'prosemirror-model';
+import { NodeType, Slice } from 'prosemirror-model';
 import { EditorState, Plugin, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { Doc, Opt } from "../../../new_fields/Doc";
@@ -251,6 +251,23 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         this.setupEditor(config, this.dataDoc, this.props.fieldKey);
     }
 
+    clipboardTextSerializer = (slice: Slice): string => {
+        let text = "", separated = true;
+        const from = 0, to = slice.content.size;
+        slice.content.nodesBetween(from, to, (node, pos) => {
+            if (node.isText) {
+                text += node.text!.slice(Math.max(from, pos) - pos, to - pos);
+                separated = false;
+            } else if (!separated && node.isBlock) {
+                text += "\n";
+                separated = true;
+            } else if (node.type.name === "hard_break") {
+                text += "\n";
+            }
+        }, 0);
+        return text;
+    }
+
     private setupEditor(config: any, doc: Doc, fieldKey: string) {
         let field = doc ? Cast(doc[fieldKey], RichTextField) : undefined;
         let startup = StrCast(doc.documentText);
@@ -270,7 +287,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 nodeViews: {
                     image(node, view, getPos) { return new ImageResizeView(node, view, getPos); },
                     star(node, view, getPos) { return new SummarizedView(node, view, getPos); }
-                }
+                },
+                clipboardTextSerializer: this.clipboardTextSerializer
             });
             if (startup) {
                 Doc.GetProto(doc).documentText = undefined;
