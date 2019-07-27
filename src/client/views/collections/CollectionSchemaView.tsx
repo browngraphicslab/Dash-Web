@@ -563,7 +563,7 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
                         height: "100%"
                     }}>
                     <DocumentView
-                        DataDoc={this.props.Document.layout instanceof Doc ? this.props.Document : this.props.DataDocument}
+                        DataDoc={this.props.DataDocument}
                         Document={this.props.Document}
                         fitToBox={this.props.fitToBox}
                         renderDepth={this.props.renderDepth + 1}

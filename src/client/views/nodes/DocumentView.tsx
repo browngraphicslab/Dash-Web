@@ -507,12 +507,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @action
     freezeNativeDimensions = (): void => {
         let proto = this.props.Document.isTemplate ? this.props.Document : Doc.GetProto(this.props.Document);
-        if (proto.ignoreAspect === undefined && !proto.nativeWidth) {
+        this.props.Document.autoHeight = proto.autoHeight = false;
+        proto.ignoreAspect = !BoolCast(proto.ignoreAspect);
+        if (!BoolCast(proto.ignoreAspect) && !proto.nativeWidth) {
             proto.nativeWidth = this.props.PanelWidth();
             proto.nativeHeight = this.props.PanelHeight();
-            proto.ignoreAspect = true;
         }
-        proto.ignoreAspect = !BoolCast(proto.ignoreAspect, false);
     }
     @undoBatch
     @action
@@ -546,7 +546,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         subitems.push({ description: "Open Right Alias", event: () => this.props.addDocTab && this.props.addDocTab(Doc.MakeAlias(this.props.Document), this.dataDoc, "onRight"), icon: "caret-square-right" });
         subitems.push({ description: "Open Fields", event: this.fieldsClicked, icon: "layer-group" });
         cm.addItem({ description: "Open...", subitems: subitems, icon: "external-link-alt" });
-        cm.addItem({ description: BoolCast(this.props.Document.ignoreAspect, false) || !this.props.Document.nativeWidth || !this.props.Document.nativeHeight ? "Freeze" : "Unfreeze", event: this.freezeNativeDimensions, icon: "edit" });
+        cm.addItem({ description: !BoolCast(this.props.Document.ignoreAspect) && this.props.Document.nativeWidth && this.props.Document.nativeHeight ? "Unfreeze" : "Freeze", event: this.freezeNativeDimensions, icon: "edit" });
         cm.addItem({ description: "Pin to Pres", event: () => PresentationView.Instance.PinDoc(this.props.Document), icon: "map-pin" });
         cm.addItem({ description: BoolCast(this.props.Document.lockedPosition) ? "Unlock Pos" : "Lock Pos", event: this.toggleLockPosition, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
         cm.addItem({ description: "Make Background", event: this.makeBackground, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
@@ -642,7 +642,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let self = this;
         let backgroundColor = StrCast(this.layoutDoc.backgroundColor);
         let foregroundColor = StrCast(this.layoutDoc.color);
-        var nativeWidth = this.nativeWidth > 0 ? `${this.nativeWidth}px` : "100%";
+        var nativeWidth = this.nativeWidth > 0 && !BoolCast(this.props.Document.ignoreAspect) ? `${this.nativeWidth}px` : "100%";
         var nativeHeight = BoolCast(this.props.Document.ignoreAspect) ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
         let showOverlays = this.props.showOverlays ? this.props.showOverlays(this.layoutDoc) : undefined;
         let showTitle = showOverlays && showOverlays.title !== "undefined" ? showOverlays.title : StrCast(this.layoutDoc.showTitle);
@@ -665,6 +665,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     outlineStyle: "dashed",
                     outlineWidth: BoolCast(this.layoutDoc.libraryBrush) && !StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
                         `${this.props.ScreenToLocalTransform().Scale}px` : "0px",
+                    marginLeft: BoolCast(this.layoutDoc.libraryBrush) && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
+                        `${-1 * this.props.ScreenToLocalTransform().Scale}px` : undefined,
+                    marginTop: BoolCast(this.layoutDoc.libraryBrush) && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
+                        `${-1 * this.props.ScreenToLocalTransform().Scale}px` : undefined,
                     border: BoolCast(this.layoutDoc.libraryBrush) && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
                         `dashed maroon ${this.props.ScreenToLocalTransform().Scale}px` : undefined,
                     borderRadius: "inherit",

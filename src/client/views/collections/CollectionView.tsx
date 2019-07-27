@@ -15,8 +15,6 @@ import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormV
 import { CollectionSchemaView } from "./CollectionSchemaView";
 import { CollectionStackingView } from './CollectionStackingView';
 import { CollectionTreeView } from "./CollectionTreeView";
-import { StrCast, PromiseValue } from '../../../new_fields/Types';
-import { DocumentType } from '../../documents/Documents';
 export const COLLECTION_BORDER_WIDTH = 2;
 
 library.add(faTh);

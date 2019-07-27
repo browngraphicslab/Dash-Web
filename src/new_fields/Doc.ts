@@ -389,9 +389,20 @@ export namespace Doc {
         }
         if (expandedTemplateLayout === undefined) {
             setTimeout(() =>
-                dataDoc[expandedLayoutFieldKey] = Doc.MakeDelegate(templateLayoutDoc, undefined, "["+templateLayoutDoc.title + "]"), 0);
+                dataDoc[expandedLayoutFieldKey] = Doc.MakeDelegate(templateLayoutDoc, undefined, "[" + templateLayoutDoc.title + "]"), 0);
         }
         return templateLayoutDoc; // use the templateLayout when it's not a template or the expandedTemplate is pending.
+    }
+
+    export function GetLayoutDataDocPair(doc: Doc, dataDoc: Doc | undefined, fieldKey: string, childDocLayout: Doc) {
+        let layoutDoc = childDocLayout;
+        let resolvedDataDoc = !doc.isTemplate && dataDoc !== doc ? dataDoc : undefined;
+        if (resolvedDataDoc && Doc.WillExpandTemplateLayout(childDocLayout, resolvedDataDoc)) {
+            Doc.UpdateDocumentExtensionForField(resolvedDataDoc, fieldKey);
+            let fieldExtensionDoc = Doc.resolvedFieldDataDoc(resolvedDataDoc, StrCast(childDocLayout.templateField, StrCast(childDocLayout.title)), "dummy");
+            layoutDoc = Doc.expandTemplateLayout(childDocLayout, fieldExtensionDoc !== resolvedDataDoc ? fieldExtensionDoc : undefined);
+        } else layoutDoc = Doc.expandTemplateLayout(childDocLayout, resolvedDataDoc);
+        return { layout: layoutDoc, data: resolvedDataDoc };
     }
 
     export function MakeCopy(doc: Doc, copyProto: boolean = false): Doc {
