@@ -38,6 +38,10 @@ export class ContextMenu extends React.Component {
         this._items = [];
     }
 
+    findByDescription = (target: string) => {
+        return this._items.find(menuItem => menuItem.description === target);
+    }
+
     @action
     addItem(item: ContextMenuProps) {
         if (this._items.indexOf(item) === -1) {
