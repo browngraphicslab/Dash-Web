@@ -6,6 +6,9 @@
     z-index: $contextMenu-zindex;
     box-shadow: $intermediate-color 0.2vw 0.2vw 0.4vw;
     flex-direction: column;
+    background: whitesmoke;
+    padding-bottom: 10px;
+    border-radius: 15px;
 }
 
 // .contextMenu-item:first-child {
@@ -33,7 +36,7 @@
 .contextMenu-item {
     // width: 11vw; //10vw
     height: 30px; //2vh
-    background: #DDDDDD;
+    background: whitesmoke;
     display: flex; //comment out to allow search icon to be inline with search text
     justify-content: left;
     align-items: center;
@@ -44,13 +47,22 @@
     -ms-user-select: none;
     user-select: none;
     transition: all .1s;
+    border-style: none;
+    // padding: 10px 0px 10px 0px;
+    white-space: nowrap;
+    font-size: 13px;
+    color: grey;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding-right: 10px;
+}
+
+.contextMenu-item:hover {
     border-width: .11px;
     border-style: none;
     border-color: $intermediate-color; //  rgb(187, 186, 186);
     border-bottom-style: solid;
-    // padding: 10px 0px 10px 0px;
-    white-space: nowrap;
-    font-size: 20px;
+    border-top-style: solid;
 }
 
 .contextMenu-itemSelected {
@@ -60,7 +72,7 @@
 .contextMenu-group {
     // width: 11vw; //10vw
     height: 30px; //2vh
-    background: rgb(200, 200, 200);
+    background: lightgoldenrodyellow;
     display: flex; //comment out to allow search icon to be inline with search text
     justify-content: left;
     align-items: center;
@@ -74,27 +86,41 @@
     border-width: .11px;
     border-style: none;
     border-color: $intermediate-color; //  rgb(187, 186, 186);
-    border-bottom-style: solid;
     // padding: 10px 0px 10px 0px;
     white-space: nowrap;
-    font-size: 20px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    padding-left: 5px;
 }
 
 .contextMenu-item:hover {
-    transition: all 0.1s;
+    transition: all 0.1s ease;
     background: $lighter-alt-accent;
 }
 
 .contextMenu-description {
-    font-size: 20px;
+    margin-left: 5px;
     text-align: left;
     display: inline; //need this?
 }
 
+.search-icon {
+    margin: 10px;
+}
+
+.search {
+    margin-left: 10px;
+    padding-left: 10px;
+    border: solid black 1px;
+    border-radius: 5px;
+}
+
 .icon-background {
     pointer-events: none;
-    background-color: #DDDDDD;
+    background-color: transparent;
     width: 35px;
     text-align: center;
-    font-size: 22px;
+    font-size: 20px;
+    margin-left: 5px;
 }

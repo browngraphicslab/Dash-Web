@@ -10,14 +10,14 @@ library.add(faAngleRight);
 export interface OriginalMenuProps {
     description: string;
     event: () => void;
-    icon?: IconProp; //maybe should be optional (icon?)
+    icon: IconProp; //maybe should be optional (icon?)
     closeMenu?: () => void;
 }
 
 export interface SubmenuProps {
     description: string;
     subitems: ContextMenuProps[];
-    icon?: IconProp; //maybe should be optional (icon?)
+    icon: IconProp; //maybe should be optional (icon?)
     closeMenu?: () => void;
 }
 
@@ -94,7 +94,7 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
                     ) : null}
                     <div className="contextMenu-description">
                         {this.props.description}
-                        <FontAwesomeIcon icon={faAngleRight} size="lg" style={{ position: "absolute", right: "5px" }} />
+                        <FontAwesomeIcon icon={faAngleRight} size="lg" style={{ position: "absolute", right: "10px" }} />
                     </div>
                     {submenu}
                 </div>

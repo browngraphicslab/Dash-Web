@@ -1,5 +1,5 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faEdit, faSmile } from '@fortawesome/free-solid-svg-icons';
+import { faEdit, faSmile, faTextHeight } from '@fortawesome/free-solid-svg-icons';
 import { action, IReactionDisposer, observable, reaction, runInAction, computed, trace } from "mobx";
 import { observer } from "mobx-react";
 import { baseKeymap } from "prosemirror-commands";
@@ -38,7 +38,7 @@ import { thisExpression } from 'babel-types';
 import { Utils } from '../../../Utils';
 
 library.add(faEdit);
-library.add(faSmile);
+library.add(faSmile, faTextHeight);
 
 // FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document
 //
@@ -462,7 +462,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             description: BoolCast(this.props.Document.autoHeight, false) ? "Manual Height" : "Auto Height",
             event: action(() => Doc.GetProto(this.props.Document).autoHeight = !BoolCast(this.props.Document.autoHeight, false)), icon: "expand-arrows-alt"
         });
-        ContextMenu.Instance.addItem({ description: "Text Funcs...", subitems: subitems });
+        ContextMenu.Instance.addItem({ description: "Text Funcs...", subitems: subitems, icon: "text-height" });
     }
     render() {
         let self = this;

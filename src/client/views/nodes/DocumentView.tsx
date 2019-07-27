@@ -39,6 +39,7 @@ import { OverlayView } from '../OverlayView';
 import { ScriptingRepl } from '../ScriptingRepl';
 import { ClientUtils } from '../../util/ClientUtils';
 import { EditableView } from '../EditableView';
+import { faHandPointer, faHandPointRight } from '@fortawesome/free-regular-svg-icons';
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(fa.faTrash);
@@ -60,7 +61,7 @@ library.add(fa.faCrosshairs);
 library.add(fa.faDesktop);
 library.add(fa.faUnlock);
 library.add(fa.faLock);
-library.add(fa.faLaptopCode);
+library.add(fa.faLaptopCode, fa.faMale, fa.faCopy, faHandPointRight);
 
 
 // const linkSchema = createSchema({
@@ -547,11 +548,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         subitems.push({ description: "Open Fields", event: this.fieldsClicked, icon: "layer-group" });
         cm.addItem({ description: "Open...", subitems: subitems, icon: "external-link-alt" });
         cm.addItem({ description: BoolCast(this.props.Document.ignoreAspect, false) || !this.props.Document.nativeWidth || !this.props.Document.nativeHeight ? "Freeze" : "Unfreeze", event: this.freezeNativeDimensions, icon: "edit" });
-        cm.addItem({ description: "Pin to Pres", event: () => PresentationView.Instance.PinDoc(this.props.Document), icon: "map-pin" });
-        cm.addItem({ description: BoolCast(this.props.Document.lockedPosition) ? "Unlock Pos" : "Lock Pos", event: this.toggleLockPosition, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
-        cm.addItem({ description: "Make Background", event: this.makeBackground, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
-        cm.addItem({ description: this.props.Document.isButton ? "Remove Button" : "Make Button", event: this.makeBtnClicked, icon: "concierge-bell" });
-        cm.addItem({
+        cm.addItem({ description: "Pin to Presentation", event: () => PresentationView.Instance.PinDoc(this.props.Document), icon: "map-pin" });
+        cm.addItem({ description: BoolCast(this.props.Document.lockedPosition) ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
+        let makes: ContextMenuProps[] = [];
+        makes.push({ description: "Make Background", event: this.makeBackground, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
+        makes.push({ description: this.props.Document.isButton ? "Remove Button" : "Make Button", event: this.makeBtnClicked, icon: "concierge-bell" });
+        makes.push({
             description: "Make Portal", event: () => {
                 let portal = Docs.Create.FreeformDocument([], { width: this.props.Document[WidthSym]() + 10, height: this.props.Document[HeightSym](), title: this.props.Document.title + ".portal" });
                 Doc.GetProto(this.props.Document).subBulletDocs = new List<Doc>([portal]);
@@ -562,6 +564,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 this.props.removeDocument && this.props.removeDocument(this.props.Document);
             }, icon: "window-restore"
         });
+        cm.addItem({ description: "Make...", subitems: makes, icon: "hand-point-right" });
         // cm.addItem({
         //     description: "Find aliases", event: async () => {
         //         const aliases = await SearchUtil.GetAliasesOfDocument(this.props.Document);
@@ -575,8 +578,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         cm.addItem({ description: "Center View", event: () => this.props.focus(this.props.Document, false), icon: "crosshairs" });
         cm.addItem({ description: "Zoom to Document", event: () => this.props.focus(this.props.Document, true), icon: "search" });
         if (!ClientUtils.RELEASE) {
-            cm.addItem({ description: "Copy URL", event: () => Utils.CopyText(Utils.prepend("/doc/" + this.props.Document[Id])), icon: "link" });
-            cm.addItem({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "fingerprint" });
+            let copies: ContextMenuProps[] = [];
+            copies.push({ description: "Copy URL", event: () => Utils.CopyText(Utils.prepend("/doc/" + this.props.Document[Id])), icon: "link" });
+            copies.push({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "fingerprint" });
+            cm.addItem({ description: "Copy...", subitems: copies, icon: "copy" });
         }
         cm.addItem({ description: "Delete", event: this.deleteClicked, icon: "trash" });
         type User = { email: string, userDocumentId: string };
@@ -600,7 +605,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                             notifDoc.data = new List([sharedDoc]);
                         }
                     }
-                }
+                }, icon: "male"
             }));
         } catch {
 

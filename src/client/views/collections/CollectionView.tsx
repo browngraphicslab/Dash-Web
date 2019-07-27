@@ -17,6 +17,7 @@ import { CollectionStackingView } from './CollectionStackingView';
 import { CollectionTreeView } from "./CollectionTreeView";
 import { StrCast, PromiseValue } from '../../../new_fields/Types';
 import { DocumentType } from '../../documents/Documents';
+import { faEye } from '@fortawesome/free-regular-svg-icons';
 export const COLLECTION_BORDER_WIDTH = 2;
 
 library.add(faTh);
@@ -28,7 +29,7 @@ library.add(faThList);
 library.add(faFingerprint);
 library.add(faColumns);
 library.add(faEllipsisV);
-library.add(faImage);
+library.add(faImage, faEye);
 
 @observer
 export class CollectionView extends React.Component<FieldViewProps> {
@@ -68,7 +69,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
                     break;
                 }
             }
-            ContextMenu.Instance.addItem({ description: "View Modes...", subitems: subItems });
+            ContextMenu.Instance.addItem({ description: "View Modes...", subitems: subItems, icon: "eye" });
             ContextMenu.Instance.addItem({ description: "Apply Template", event: undoBatch(() => this.props.addDocTab && this.props.addDocTab(Doc.ApplyTemplate(this.props.Document)!, undefined, "onRight")), icon: "project-diagram" });
         }
     }
