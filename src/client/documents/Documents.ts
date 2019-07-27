@@ -39,6 +39,7 @@ import { DocumentManager } from "../util/DocumentManager";
 import DirectoryImportBox from "../util/Import & Export/DirectoryImportBox";
 import { Scripting } from "../util/Scripting";
 import { ButtonBox } from "../views/nodes/ButtonBox";
+import { SchemaHeaderField, RandomPastel } from "../../new_fields/SchemaHeaderField";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 
@@ -84,7 +85,7 @@ export interface DocumentOptions {
     curPage?: number;
     documentText?: string;
     borderRounding?: string;
-    schemaColumns?: List<string>;
+    schemaColumns?: List<SchemaHeaderField>;
     dockingConfig?: string;
     dbDoc?: Doc;
     // [key: string]: Opt<Field>;
@@ -403,19 +404,23 @@ export namespace Docs {
         }
 
         export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Freeform });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaColumns: new List([new SchemaHeaderField("title")]), ...options, viewType: CollectionViewType.Freeform });
         }
 
-        export function SchemaDocument(schemaColumns: string[], documents: Array<Doc>, options: DocumentOptions) {
+        export function SchemaDocument(schemaColumns: SchemaHeaderField[], documents: Array<Doc>, options: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaColumns: new List(schemaColumns), ...options, viewType: CollectionViewType.Schema });
         }
 
         export function TreeDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Tree });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaColumns: new List([new SchemaHeaderField("title")]), ...options, viewType: CollectionViewType.Tree });
         }
 
         export function StackingDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Stacking });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaColumns: new List([new SchemaHeaderField("title")]), ...options, viewType: CollectionViewType.Stacking });
+        }
+
+        export function MasonryDocument(documents: Array<Doc>, options: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaColumns: new List([new SchemaHeaderField("title")]), ...options, viewType: CollectionViewType.Masonry });
         }
 
         export function ButtonDocument(options?: DocumentOptions) {
