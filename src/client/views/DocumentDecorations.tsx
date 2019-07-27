@@ -54,6 +54,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     private _downY = 0;
     private _iconDoc?: Doc = undefined;
     private _resizeUndo?: UndoManager.Batch;
+    private _linkDrag?: UndoManager.Batch;
     @observable private _minimizedX = 0;
     @observable private _minimizedY = 0;
     @observable private _title: string = "";
@@ -376,7 +377,16 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         }
     }
 
+    endLinkDragBatch = () => {
+        if (!this._linkDrag) {
+            return;
+        }
+        this._linkDrag.end();
+        this._linkDrag = undefined;
+    }
+
     onLinkerButtonDown = (e: React.PointerEvent): void => {
+        this._linkDrag = UndoManager.StartBatch("Drag Link");
         e.stopPropagation();
         document.removeEventListener("pointermove", this.onLinkerButtonMoved);
         document.addEventListener("pointermove", this.onLinkerButtonMoved);

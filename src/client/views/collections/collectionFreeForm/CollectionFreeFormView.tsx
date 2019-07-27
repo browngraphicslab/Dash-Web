@@ -13,7 +13,7 @@ import { SelectionManager } from "../../../util/SelectionManager";
 import { Transform } from "../../../util/Transform";
 import { undoBatch, UndoManager } from "../../../util/UndoManager";
 import { COLLECTION_BORDER_WIDTH } from "../../../views/globalCssVariables.scss";
-import { ContextMenu } from "../../ContextMenu";
+import { SubmenuProps, ContextMenuProps } from "../../ContextMenuItem";
 import { InkingCanvas } from "../../InkingCanvas";
 import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
 import { DocumentContentsView } from "../../nodes/DocumentContentsView";
@@ -34,11 +34,12 @@ import { CompileScript } from "../../../util/Scripting";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faEye } from "@fortawesome/free-regular-svg-icons";
-import { faTable, faPaintBrush, faAsterisk, faExpandArrowsAlt, faCompressArrowsAlt } from "@fortawesome/free-solid-svg-icons";
+import { faTable, faPaintBrush, faAsterisk, faExpandArrowsAlt, faCompressArrowsAlt, faCompass } from "@fortawesome/free-solid-svg-icons";
 import { undo } from "prosemirror-history";
 import { number } from "prop-types";
+import { ContextMenu } from "../../ContextMenu";
 
-library.add(faEye, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt);
+library.add(faEye, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass);
 
 export const panZoomSchema = createSchema({
     panX: "number",
@@ -492,12 +493,13 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     onContextMenu = () => {
-        ContextMenu.Instance.addItem({
+        let layoutItems: ContextMenuProps[] = [];
+        layoutItems.push({
             description: `${this.fitToBox ? "Unset" : "Set"} Fit To Container`,
             event: undoBatch(async () => this.props.Document.fitToBox = !this.fitToBox),
             icon: !this.fitToBox ? "expand-arrows-alt" : "compress-arrows-alt"
         });
-        ContextMenu.Instance.addItem({
+        layoutItems.push({
             description: "Arrange contents in grid",
             icon: "table",
             event: async () => {
@@ -524,6 +526,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 }, "arrange contents");
             }
         });
+        ContextMenu.Instance.addItem({ description: "Layout...", subitems: layoutItems, icon: "compass" });
         ContextMenu.Instance.addItem({
             description: "Analyze Strokes", event: async () => {
                 let data = Cast(this.fieldExtensionDoc[this.inkKey], InkField);

@@ -1,6 +1,6 @@
 import React = require("react");
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faCog, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { faCog, faPlus, faTable } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, trace, untracked } from "mobx";
 import { observer } from "mobx-react";
@@ -34,7 +34,7 @@ import { ComputedField } from "../../../new_fields/ScriptField";
 
 
 library.add(faCog);
-library.add(faPlus);
+library.add(faPlus, faTable);
 // bcz: need to add drag and drop of rows and columns.  This seems like it might work for rows: https://codesandbox.io/s/l94mn1q657
 
 
@@ -321,7 +321,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     onContextMenu = (e: React.MouseEvent): void => {
         if (!e.isPropagationStopped() && this.props.Document[Id] !== "mainDoc") { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
-            ContextMenu.Instance.addItem({ description: "Make DB", event: this.makeDB });
+            ContextMenu.Instance.addItem({ description: "Make DB", event: this.makeDB, icon: "table" });
         }
     }
 
