@@ -40,11 +40,11 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     private _datePickerElGuid = Utils.GenerateGuid();
 
     componentDidMount = () => {
-        this._picker = datepicker("#" + this._datePickerElGuid, {
+        setTimeout(() => this._picker = datepicker("#" + this._datePickerElGuid, {
             disabler: (date: Date) => date > new Date(),
             onSelect: (instance: any, date: Date) => runInAction(() => this._dateValue = date),
             dateSelected: new Date()
-        });
+        }), 1000);
 
         runInAction(() => {
             this._keyRestrictions.push([<KeyRestrictionRow key={Utils.GenerateGuid()} contains={true} script={(value: string) => runInAction(() => this._keyRestrictions[0][1] = value)} />, ""]);
