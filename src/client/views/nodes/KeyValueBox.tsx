@@ -46,6 +46,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     @action
     onEnterKey = (e: React.KeyboardEvent): void => {
         if (e.key === 'Enter') {
+            e.stopPropagation();
             if (this._keyInput && this._valueInput && this.fieldDocToLayout) {
                 if (KeyValueBox.SetField(this.fieldDocToLayout, this._keyInput, this._valueInput)) {
                     this._keyInput = "";
@@ -153,7 +154,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
                     <input style={{ width: "100%" }} type="text" value={this._keyInput} placeholder="Key" onChange={this.keyChanged} />
                 </td>
                 <td className="keyValueBox-td-value" style={{ width: `${this.splitPercentage}%` }}>
-                    <input style={{ width: "100%" }} type="text" value={this._valueInput} placeholder="Value" onChange={this.valueChanged} onKeyPress={this.onEnterKey} />
+                    <input style={{ width: "100%" }} type="text" value={this._valueInput} placeholder="Value" onChange={this.valueChanged} onKeyDown={this.onEnterKey} />
                 </td>
             </tr>
         )

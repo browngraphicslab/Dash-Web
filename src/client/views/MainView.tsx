@@ -7,7 +7,6 @@ import "normalize.css";
 import * as React from 'react';
 import { SketchPicker } from 'react-color';
 import Measure from 'react-measure';
-import * as request from 'request';
 import { Doc, DocListCast, Opt, HeightSym } from '../../new_fields/Doc';
 import { Id } from '../../new_fields/FieldSymbols';
 import { InkTool } from '../../new_fields/InkField';

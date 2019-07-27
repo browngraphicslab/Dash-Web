@@ -171,7 +171,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
 
         //storing the presentation status,ie. whether it was stopped or playing
-        let presStatusBackUp = BoolCast(this.curPresentation.presStatus, null);
+        let presStatusBackUp = BoolCast(this.curPresentation.presStatus);
         runInAction(() => this.presStatus = presStatusBackUp);
     }
 

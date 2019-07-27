@@ -275,7 +275,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 let iconAnimating = Cast(maximizedDoc.isIconAnimating, List);
                 if (!iconAnimating || (Date.now() - iconAnimating[2] > 1000)) {
                     if (isMinimized === undefined) {
-                        isMinimized = BoolCast(maximizedDoc.isMinimized, false);
+                        isMinimized = BoolCast(maximizedDoc.isMinimized);
                     }
                     maximizedDoc.willMaximize = isMinimized;
                     maximizedDoc.isMinimized = false;
@@ -308,7 +308,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
             SelectionManager.SelectDoc(this, e.ctrlKey);
             let isExpander = (e.target as any).id === "isExpander";
-            if (BoolCast(this.props.Document.isButton, false) || isExpander) {
+            if (BoolCast(this.props.Document.isButton) || isExpander) {
                 SelectionManager.DeselectAll();
                 let subBulletDocs = await DocListCastAsync(this.props.Document.subBulletDocs);
                 let maximizedDocs = await DocListCastAsync(this.props.Document.maximizedDocs);
@@ -326,7 +326,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                         maxLocation = this.props.Document.maximizeLocation = (ctrlKey ? maxLocation : (maxLocation === "inPlace" || !maxLocation ? "inTab" : "inPlace"));
                         if (!maxLocation || maxLocation === "inPlace") {
                             let hadView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedDocs[0], this.props.ContainingCollectionView);
-                            let wasMinimized = !hadView && expandedDocs.reduce((min, d) => !min && !BoolCast(d.IsMinimized, false), false);
+                            let wasMinimized = !hadView && expandedDocs.reduce((min, d) => !min && !BoolCast(d.IsMinimized), false);
                             expandedDocs.forEach(maxDoc => Doc.GetProto(maxDoc).isMinimized = false);
                             let hasView = expandedDocs.length === 1 && DocumentManager.Instance.getDocumentView(expandedDocs[0], this.props.ContainingCollectionView);
                             if (!hasView) {
@@ -409,7 +409,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     makeBtnClicked = (): void => {
         let doc = Doc.GetProto(this.props.Document);
-        doc.isButton = !BoolCast(doc.isButton, false);
+        doc.isButton = !BoolCast(doc.isButton);
         if (doc.isButton) {
             if (!doc.nativeWidth) {
                 doc.nativeWidth = this.props.Document[WidthSym]();

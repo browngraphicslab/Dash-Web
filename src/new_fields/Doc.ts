@@ -455,7 +455,7 @@ export namespace Doc {
         return otherdoc;
     }
 
-    export function MakeTemplate(fieldTemplate: Doc, metaKey: string, proto: Doc) {
+    export function MakeTemplate(fieldTemplate: Doc, metaKey: string, templateDataDoc: Doc) {
         // move data doc fields to layout doc as needed (nativeWidth/nativeHeight, data, ??)
         let backgroundLayout = StrCast(fieldTemplate.backgroundLayout);
         let fieldLayoutDoc = fieldTemplate;
@@ -466,21 +466,24 @@ export namespace Doc {
         if (backgroundLayout) {
             backgroundLayout = backgroundLayout.replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
         }
-        let nw = Cast(fieldTemplate.nativeWidth, "number");
-        let nh = Cast(fieldTemplate.nativeHeight, "number");
 
         let layoutDelegate = fieldTemplate.layout instanceof Doc ? fieldLayoutDoc : fieldTemplate;
         layoutDelegate.layout = layout;
 
-        fieldTemplate.title = metaKey;
         fieldTemplate.templateField = metaKey;
+        fieldTemplate.title = metaKey;
+        fieldTemplate.isTemplate = true;
         fieldTemplate.layout = layoutDelegate !== fieldTemplate ? layoutDelegate : layout;
         fieldTemplate.backgroundLayout = backgroundLayout;
-        fieldTemplate.nativeWidth = nw;
-        fieldTemplate.nativeHeight = nh;
-        fieldTemplate.isTemplate = true;
+        /* move certain layout properties from the original data doc to the template layout to avoid
+           inheriting them from the template's data doc which may also define these fields for its own use.
+        */
+        fieldTemplate.ignoreAspect = BoolCast(fieldTemplate.ignoreAspect);
+        fieldTemplate.singleColumn = BoolCast(fieldTemplate.singleColumn);
+        fieldTemplate.nativeWidth = Cast(fieldTemplate.nativeWidth, "number");
+        fieldTemplate.nativeHeight = Cast(fieldTemplate.nativeHeight, "number");
         fieldTemplate.showTitle = "title";
-        setTimeout(() => fieldTemplate.proto = proto);
+        setTimeout(() => fieldTemplate.proto = templateDataDoc);
     }
 
     export async function ToggleDetailLayout(d: Doc) {

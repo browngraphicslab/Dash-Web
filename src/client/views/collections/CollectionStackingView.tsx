@@ -53,7 +53,8 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                         let xhgt = height + this.getDocHeight(d) + (i === this.filteredChildren.length - 1 ? this.yMargin : this.gridGap);
                         return xhgt;
                     }, this.yMargin);
-                    this.layoutDoc.height = hgt * (this.props as any).ContentScaling();
+                    (this.props.DataDoc && this.props.DataDoc.layout === this.layoutDoc ? this.props.DataDoc : this.layoutDoc)
+                        .height = hgt * (this.props as any).ContentScaling();
                 }
             }, { fireImmediately: true });
     }

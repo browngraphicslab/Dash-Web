@@ -459,8 +459,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     specificContextMenu = (e: React.MouseEvent): void => {
         let subitems: ContextMenuProps[] = [];
         subitems.push({
-            description: BoolCast(this.props.Document.autoHeight, false) ? "Manual Height" : "Auto Height",
-            event: action(() => Doc.GetProto(this.props.Document).autoHeight = !BoolCast(this.props.Document.autoHeight, false)), icon: "expand-arrows-alt"
+            description: BoolCast(this.props.Document.autoHeight) ? "Manual Height" : "Auto Height",
+            event: action(() => Doc.GetProto(this.props.Document).autoHeight = !BoolCast(this.props.Document.autoHeight)), icon: "expand-arrows-alt"
         });
         ContextMenu.Instance.addItem({ description: "Text Funcs...", subitems: subitems });
     }
