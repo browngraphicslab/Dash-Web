@@ -296,7 +296,7 @@ export class CollectionStackingViewChrome extends React.Component<CollectionView
         return true;
     }
 
-    @action toggleSort = () => { this.props.CollectionView.props.Document.stackingHeadersSortDescending = !this.props.CollectionView.props.Document.stackingHeadersSortDescending; }
+    @action toggleSort = () => { this.props.CollectionView.props.Document.stackingHeadersSortDescending = !this.props.CollectionView.props.Document.stackingHeadersSortDescending; };
     @action resetValue = () => { this._currentKey = this.sectionFilter; };
 
     render() {

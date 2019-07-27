@@ -40,6 +40,6 @@ export default class KeyRestrictionRow extends React.Component<IKeyRestrictionPr
                     onChange={(e) => runInAction(() => this._value = e.target.value)}
                     placeholder="VALUE" />
             </div>
-        )
+        );
     }
 }
