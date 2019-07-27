@@ -180,7 +180,7 @@ export class MovableRow extends React.Component<MovableRowProps> {
 
     onRowContextMenu = (e: React.MouseEvent): void => {
         let description = this.props.rowWrapped ? "Unwrap text on row" : "Text wrap row";
-        ContextMenu.Instance.addItem({ description: description, event: () => this.props.textWrapRow(this.props.rowInfo.original) });
+        ContextMenu.Instance.addItem({ description: description, event: () => this.props.textWrapRow(this.props.rowInfo.original), icon: "file-pdf" });
     }
 
     @action
