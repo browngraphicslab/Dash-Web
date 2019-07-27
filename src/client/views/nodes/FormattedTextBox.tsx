@@ -6,7 +6,7 @@ import { baseKeymap } from "prosemirror-commands";
 import { history } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
 import { NodeType } from 'prosemirror-model';
-import { EditorState, Plugin, Transaction } from "prosemirror-state";
+import { EditorState, Plugin, Transaction, Selection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { Doc, Opt } from "../../../new_fields/Doc";
 import { Id, Copy } from '../../../new_fields/FieldSymbols';
@@ -123,11 +123,39 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (this.props.isOverlay) {
             DragManager.StartDragFunctions.push(() => FormattedTextBox.InputBoxOverlay = undefined);
         }
+
+        document.addEventListener("paste", this.paste);
     }
 
     @computed get extensionDoc() { return Doc.resolvedFieldDataDoc(this.dataDoc, this.props.fieldKey, "dummy"); }
 
     @computed get dataDoc() { return BoolCast(this.props.Document.isTemplate) && this.props.DataDoc ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
+
+    paste = (e: ClipboardEvent) => {
+        if (e.clipboardData && this._editorView) {
+            let pdfPasteText = `${Utils.GenerateDeterministicGuid("pdf paste")}`;
+            for (let i = 0; i < e.clipboardData.items.length; i++) {
+                let item = e.clipboardData.items.item(i);
+                if (item.type === "text/plain") {
+                    item.getAsString((text) => {
+                        let pdfPasteIndex = text.indexOf(pdfPasteText);
+                        if (pdfPasteIndex > -1) {
+                            let insertText = text.substr(0, pdfPasteIndex);
+                            const tx = this._editorView!.state.tr.insertText(insertText);
+                            // tx.setSelection(new Selection(tx.))
+                            const state = this._editorView!.state;
+                            this._editorView!.dispatch(tx);
+                            if (this._toolTipTextMenu) {
+                                // this._toolTipTextMenu.makeLinkWithState(state)
+                            }
+                            e.stopPropagation();
+                            e.preventDefault();
+                        }
+                    });
+                }
+            }
+        }
+    }
 
     dispatchTransaction = (tx: Transaction) => {
         if (this._editorView) {

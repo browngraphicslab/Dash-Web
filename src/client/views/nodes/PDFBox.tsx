@@ -24,6 +24,8 @@ import { Flyout, anchorPoints } from '../DocumentDecorations';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { ScriptField } from '../../../new_fields/ScriptField';
 import { KeyCodes } from '../../northstar/utils/KeyCodes';
+import { Utils } from '../../../Utils';
+import { Id } from '../../../new_fields/FieldSymbols';
 
 type PdfDocument = makeInterface<[typeof positionSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(positionSchema, pageSchema);
@@ -32,6 +34,7 @@ export const handleBackspace = (e: React.KeyboardEvent) => { if (e.keyCode === K
 @observer
 export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocument) {
     public static LayoutString() { return FieldView.LayoutString(PDFBox); }
+    public selectionText: string = "";
 
     @observable private _alt = false;
     @observable private _scrollY: number = 0;
@@ -63,6 +66,8 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         this._keyRef = React.createRef();
         this._valueRef = React.createRef();
         this._scriptRef = React.createRef();
+
+        document.addEventListener("keydown", this.onKeyDown);
     }
 
     componentDidMount() {
@@ -71,6 +76,14 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
 
     componentWillUnmount() {
         this._reactionDisposer && this._reactionDisposer();
+    }
+
+    onKeyDown = (e: KeyboardEvent) => {
+        if (e.ctrlKey && e.keyCode === KeyCodes.C) {
+            let text = this.selectionText;
+            text += `${Utils.GenerateDeterministicGuid("pdf paste")}/${this.props.Document[Id]}`;
+            navigator.clipboard.writeText(text);
+        }
     }
 
     public GetPage() {
@@ -241,6 +254,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         let classname = "pdfBox-cont" + (this.props.active() && !InkingControl.Instance.selectedTool && !this._alt ? "-interactive" : "");
         return (
             <div className={classname}
+                onKeyDown={this.onKeyDown}
                 onScroll={this.onScroll}
                 style={{
                     marginTop: `${NumCast(this.props.ContainingCollectionView!.props.Document.panY)}px`
