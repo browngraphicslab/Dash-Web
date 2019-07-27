@@ -50,8 +50,8 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             () => {
                 if (this.singleColumn && BoolCast(this.props.Document.autoHeight)) {
                     let hgt = this.Sections.size * 50 + this.filteredChildren.reduce((height, d, i) => {
-                        let xhgt = height + this.getDocHeight(d) + (i === this.filteredChildren.length - 1 ? this.yMargin : this.gridGap);
-                        return xhgt;
+                        let pair = Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, this.props.fieldKey, d);
+                        return height + this.getDocHeight(pair.layout) + (i === this.filteredChildren.length - 1 ? this.yMargin : this.gridGap);
                     }, this.yMargin);
                     (this.props.DataDoc && this.props.DataDoc.layout === this.layoutDoc ? this.props.DataDoc : this.layoutDoc)
                         .height = hgt * (this.props as any).ContentScaling();
