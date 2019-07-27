@@ -139,7 +139,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()));
             this._applyingChange = false;
             let title = StrCast(this.dataDoc.title);
-            if (title && title.startsWith("-") && this._editorView) {
+            if (title && title.startsWith("-") && this._editorView && !this.Document.customTitle) {
                 let str = this._editorView.state.doc.textContent;
                 let titlestr = str.substr(0, Math.min(40, str.length));
                 this.dataDoc.title = "-" + titlestr + (str.length > 40 ? "..." : "");
@@ -422,7 +422,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         // stop propagation doesn't seem to stop propagation of native keyboard events.
         // so we set a flag on the native event that marks that the event's been handled.
         (e.nativeEvent as any).DASHFormattedTextBoxHandled = true;
-        if (StrCast(this.dataDoc.title).startsWith("-") && this._editorView) {
+        if (StrCast(this.dataDoc.title).startsWith("-") && this._editorView && !this.Document.customTitle) {
             let str = this._editorView.state.doc.textContent;
             let titlestr = str.substr(0, Math.min(40, str.length));
             this.dataDoc.title = "-" + titlestr + (str.length > 40 ? "..." : "");

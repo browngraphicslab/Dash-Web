@@ -97,6 +97,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             }
             else {
                 if (SelectionManager.SelectedDocuments().length > 0) {
+                    SelectionManager.SelectedDocuments()[0].props.Document.customTitle = true;
                     let field = SelectionManager.SelectedDocuments()[0].props.Document[this._fieldKey];
                     if (typeof field === "number") {
                         SelectionManager.SelectedDocuments().forEach(d => {
