@@ -1,6 +1,6 @@
 import { action, runInAction } from "mobx";
 import { Doc } from "../../new_fields/Doc";
-import { Cast } from "../../new_fields/Types";
+import { Cast, StrCast } from "../../new_fields/Types";
 import { URLField } from "../../new_fields/URLField";
 import { emptyFunction } from "../../Utils";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
@@ -8,6 +8,7 @@ import * as globalCssVariables from "../views/globalCssVariables.scss";
 import { DocumentManager } from "./DocumentManager";
 import { LinkManager } from "./LinkManager";
 import { SelectionManager } from "./SelectionManager";
+import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
 import { DocumentDecorations } from "../views/DocumentDecorations";
 
 export type dropActionType = "alias" | "copy" | undefined;
@@ -289,11 +290,24 @@ export namespace DragManager {
         [id: string]: any;
     }
 
+    // for column dragging in schema view
+    export class ColumnDragData {
+        constructor(colKey: SchemaHeaderField) {
+            this.colKey = colKey;
+        }
+        colKey: SchemaHeaderField;
+        [id: string]: any;
+    }
+
     export function StartLinkDrag(ele: HTMLElement, dragData: LinkDragData, downX: number, downY: number, options?: DragOptions) {
         StartDrag([ele], dragData, downX, downY, options);
     }
 
     export function StartEmbedDrag(ele: HTMLElement, dragData: EmbedDragData, downX: number, downY: number, options?: DragOptions) {
+        StartDrag([ele], dragData, downX, downY, options);
+    }
+
+    export function StartColumnDrag(ele: HTMLElement, dragData: ColumnDragData, downX: number, downY: number, options?: DragOptions) {
         StartDrag([ele], dragData, downX, downY, options);
     }
 

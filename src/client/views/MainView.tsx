@@ -1,5 +1,5 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowDown, faCloudUploadAlt, faArrowUp, faClone, faCheck, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faPortrait, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faThumbtack, faTree, faUndoAlt, faCat, faBolt } from '@fortawesome/free-solid-svg-icons';
+import { faArrowDown, faCaretUp, faLongArrowAltRight, faCloudUploadAlt, faArrowUp, faClone, faCheck, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faPortrait, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faThumbtack, faTree, faUndoAlt, faCat, faBolt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, runInAction, reaction, trace } from 'mobx';
 import { observer } from 'mobx-react';
@@ -38,6 +38,7 @@ import { PreviewCursor } from './PreviewCursor';
 import { FilterBox } from './search/FilterBox';
 import { CollectionTreeView } from './collections/CollectionTreeView';
 import { ClientUtils } from '../util/ClientUtils';
+import { SchemaHeaderField, RandomPastel } from '../../new_fields/SchemaHeaderField';
 
 @observer
 export class MainView extends React.Component {
@@ -126,7 +127,9 @@ export class MainView extends React.Component {
         library.add(faCut);
         library.add(faCommentAlt);
         library.add(faThumbtack);
+        library.add(faLongArrowAltRight);
         library.add(faCheck);
+        library.add(faCaretUp);
         library.add(faArrowDown);
         library.add(faArrowUp);
         library.add(faCloudUploadAlt);
@@ -372,7 +375,7 @@ export class MainView extends React.Component {
         let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
 
         // let addDockingNode = action(() => Docs.Create.StandardCollectionDockingDocument([{ doc: addColNode(), initialWidth: 200 }], { width: 200, height: 200, title: "a nested docking freeform collection" }));
-        let addSchemaNode = action(() => Docs.Create.SchemaDocument(["title"], [], { width: 200, height: 200, title: "a schema collection" }));
+        let addSchemaNode = action(() => Docs.Create.SchemaDocument([new SchemaHeaderField("title")], [], { width: 200, height: 200, title: "a schema collection" }));
         //let addTreeNode = action(() => Docs.TreeDocument([CurrentUserUtils.UserDocument], { width: 250, height: 400, title: "Library:" + CurrentUserUtils.email, dropAction: "alias" }));
         // let addTreeNode = action(() => Docs.TreeDocument(this._northstarSchemas, { width: 250, height: 400, title: "northstar schemas", dropAction: "copy"  }));
         let addColNode = action(() => Docs.Create.FreeformDocument([], { width: this.pwidth * .7, height: this.pheight, title: "a freeform collection" }));
