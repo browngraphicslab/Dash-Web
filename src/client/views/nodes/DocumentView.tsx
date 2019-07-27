@@ -88,7 +88,7 @@ export interface DocumentViewProps {
     ContentScaling: () => number;
     PanelWidth: () => number;
     PanelHeight: () => number;
-    focus: (doc: Doc, willZoom: boolean) => void;
+    focus: (doc: Doc, willZoom: boolean, scale?: number) => void;
     selectOnLoad: boolean;
     parentActive: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
@@ -359,7 +359,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     if (!linkedFwdDocs.some(l => l instanceof Promise)) {
                         let maxLocation = StrCast(linkedFwdDocs[0].maximizeLocation, "inTab");
                         let targetContext = !Doc.AreProtosEqual(linkedFwdContextDocs[altKey ? 1 : 0], this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document) ? linkedFwdContextDocs[altKey ? 1 : 0] : undefined;
-                        DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0], ctrlKey, false, document => this.props.addDocTab(document, undefined, maxLocation), linkedFwdPage[altKey ? 1 : 0], targetContext);
+                        DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0], ctrlKey, false, document => {
+                            this.props.focus(this.props.Document, true, 1);
+                            setTimeout(() =>
+                                this.props.addDocTab(document, undefined, maxLocation), 1000);
+                        }
+                            , linkedFwdPage[altKey ? 1 : 0], targetContext);
                     }
                 }
             }
@@ -554,12 +559,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         cm.addItem({
             description: "Make Portal", event: () => {
                 let portal = Docs.Create.FreeformDocument([], { width: this.props.Document[WidthSym]() + 10, height: this.props.Document[HeightSym](), title: this.props.Document.title + ".portal" });
-                Doc.GetProto(this.props.Document).subBulletDocs = new List<Doc>([portal]);
+                //Doc.GetProto(this.props.Document).subBulletDocs = new List<Doc>([portal]);
                 //summary.proto!.maximizeLocation = "inTab";  // or "inPlace", or "onRight"
-                Doc.GetProto(this.props.Document).templates = new List<string>([Templates.Bullet.Layout]);
-                let coll = Docs.Create.StackingDocument([this.props.Document, portal], { x: NumCast(this.props.Document.x), y: NumCast(this.props.Document.y), width: this.props.Document[WidthSym]() + 10, height: this.props.Document[HeightSym](), title: this.props.Document.title + ".cont" });
-                this.props.addDocument && this.props.addDocument(coll);
-                this.props.removeDocument && this.props.removeDocument(this.props.Document);
+                //Doc.GetProto(this.props.Document).templates = new List<string>([Templates.Bullet.Layout]);
+                //let coll = Docs.Create.StackingDocument([this.props.Document, portal], { x: NumCast(this.props.Document.x), y: NumCast(this.props.Document.y), width: this.props.Document[WidthSym]() + 10, height: this.props.Document[HeightSym](), title: this.props.Document.title + ".cont" });
+                //this.props.addDocument && this.props.addDocument(coll);
+                //this.props.removeDocument && this.props.removeDocument(this.props.Document);
+                DocUtils.MakeLink(this.props.Document, portal, undefined, this.props.Document.title + ".portal");
+                this.makeBtnClicked();
+
             }, icon: "window-restore"
         });
         // cm.addItem({
