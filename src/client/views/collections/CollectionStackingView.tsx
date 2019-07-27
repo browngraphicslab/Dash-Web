@@ -46,14 +46,15 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         return fields;
     }
     componentDidMount() {
-        this._heightDisposer = reaction(() => [this.yMargin, this.gridGap, this.columnWidth, this.childDocs.map(d => [d.height, d.width, d.zoomBasis, d.nativeHeight, d.nativeWidth, d.isMinimized])],
+        this._heightDisposer = reaction(() => [this.yMargin, this.props.Document[WidthSym](), this.gridGap, this.columnWidth, this.childDocs.map(d => [d.height, d.width, d.zoomBasis, d.nativeHeight, d.nativeWidth, d.isMinimized])],
             () => {
-                if (this.singleColumn) {
+                if (this.singleColumn && BoolCast(this.props.Document.autoHeight)) {
                     let hgt = this.Sections.size * 50 + this.filteredChildren.reduce((height, d, i) => {
-                        let xhgt = height + this.getDocHeight(d) + (i === this.filteredChildren.length - 1 ? this.yMargin : this.gridGap);
-                        return xhgt;
+                        let pair = Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, this.props.fieldKey, d);
+                        return height + this.getDocHeight(pair.layout) + (i === this.filteredChildren.length - 1 ? this.yMargin : this.gridGap);
                     }, this.yMargin);
-                    this.layoutDoc.height = hgt;
+                    (this.props.DataDoc && this.props.DataDoc.layout === this.layoutDoc ? this.props.DataDoc : this.layoutDoc)
+                        .height = hgt * (this.props as any).ContentScaling();
                 }
             }, { fireImmediately: true });
     }
@@ -74,14 +75,12 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         return doc.type === DocumentType.IMG || doc.type === DocumentType.VID ? { title: "title", caption: "caption" } : {};
     }
 
-    getDisplayDoc(layoutDoc: Doc, d: Doc, dxf: () => Transform) {
-        let resolvedDataDoc = !this.layoutDoc.isTemplate && this.props.DataDoc !== this.layoutDoc ? this.props.DataDoc : undefined;
-        let width = () => d.nativeWidth ? Math.min(layoutDoc[WidthSym](), this.columnWidth) : this.columnWidth;
+    getDisplayDoc(layoutDoc: Doc, dataDoc: Doc | undefined, dxf: () => Transform, width: () => number) {
         let height = () => this.getDocHeight(layoutDoc);
         let finalDxf = () => dxf().scale(this.columnWidth / layoutDoc[WidthSym]());
         return <CollectionSchemaPreview
             Document={layoutDoc}
-            DataDocument={resolvedDataDoc}
+            DataDocument={dataDoc}
             showOverlays={this.overlays}
             renderDepth={this.props.renderDepth}
             fitToBox={true}
@@ -102,51 +101,37 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     getDocHeight(d: Doc) {
         let nw = NumCast(d.nativeWidth);
         let nh = NumCast(d.nativeHeight);
-        let aspect = nw && nh ? nh / nw : 1;
-        let wid = Math.min(d[WidthSym](), this.columnWidth);
-        return (nw && nh) ? wid * aspect : d[HeightSym]();
+        if (!BoolCast(d.ignoreAspect) && nw && nh) {
+            let aspect = nw && nh ? nh / nw : 1;
+            let wid = Math.min(d[WidthSym](), this.columnWidth);
+            return wid * aspect;
+        }
+        return d[HeightSym]();
     }
 
-    offsetTransform(doc: Doc, translateX: number, translateY: number) {
+    getDocTransform(doc: Doc, dref: HTMLDivElement) {
+        let { scale, translateX, translateY } = Utils.GetScreenTransform(dref);
         let outerXf = Utils.GetScreenTransform(this._masonryGridRef!);
         let offset = this.props.ScreenToLocalTransform().transformDirection(outerXf.translateX - translateX, outerXf.translateY - translateY);
         return this.props.ScreenToLocalTransform().translate(offset[0], offset[1]).scale(NumCast(doc.width, 1) / this.columnWidth);
-    }
-    getDocTransform(doc: Doc, dref: HTMLDivElement) {
-        let { scale, translateX, translateY } = Utils.GetScreenTransform(dref);
-        return this.offsetTransform(doc, translateX, translateY);
-    }
-
-    getSingleDocTransform(doc: Doc, ind: number, width: number) {
-        let localY = this.filteredChildren.reduce((height, d, i) =>
-            height + (i < ind ? this.getDocHeight(Doc.expandTemplateLayout(d, this.props.DataDoc)) + this.gridGap : 0), this.yMargin);
-        let translate = this.props.ScreenToLocalTransform().inverse().transformPoint((this.props.PanelWidth() - width) / 2, localY);
-        return this.offsetTransform(doc, translate[0], translate[1]);
     }
 
     children(docs: Doc[]) {
         this._docXfs.length = 0;
         return docs.map((d, i) => {
-            let layoutDoc = Doc.expandTemplateLayout(d, this.props.DataDoc);
-            let width = () => d.nativeWidth ? Math.min(layoutDoc[WidthSym](), this.columnWidth) : this.columnWidth;
-            let height = () => this.getDocHeight(layoutDoc);
-            if (this.singleColumn) {
-                //have to add the height of all previous single column sections or the doc decorations will be in the wrong place.
-                let dxf = () => this.getSingleDocTransform(layoutDoc, i, width());
-                let rowHgtPcnt = height();
-                this._docXfs.push({ dxf: dxf, width: width, height: height });
-                return <div className="collectionStackingView-columnDoc" key={d[Id]} style={{ width: width(), marginTop: i === 0 ? 0 : this.gridGap, height: `${rowHgtPcnt}` }} >
-                    {this.getDisplayDoc(layoutDoc, d, dxf)}
-                </div>;
-            } else {
-                let dref = React.createRef<HTMLDivElement>();
-                let dxf = () => this.getDocTransform(layoutDoc, dref.current!);
-                let rowSpan = Math.ceil((height() + this.gridGap) / this.gridGap);
-                this._docXfs.push({ dxf: dxf, width: width, height: height });
-                return <div className="collectionStackingView-masonryDoc" key={d[Id]} ref={dref} style={{ gridRowEnd: `span ${rowSpan}` }} >
-                    {this.getDisplayDoc(layoutDoc, d, dxf)}
-                </div>;
-            }
+            let pair = Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, this.props.fieldKey, d)
+            let width = () => d.nativeWidth && !BoolCast(d.ignoreAspect) ? Math.min(pair.layout[WidthSym](), this.columnWidth) : this.columnWidth;
+            let height = () => this.getDocHeight(pair.layout);
+            let dref = React.createRef<HTMLDivElement>();
+            let dxf = () => this.getDocTransform(pair.layout, dref.current!);
+            this._docXfs.push({ dxf: dxf, width: width, height: height });
+            let rowHgtPcnt = height();
+            let rowSpan = Math.ceil((height() + this.gridGap) / this.gridGap);
+            let style = this.singleColumn ? { width: width(), marginTop: i === 0 ? 0 : this.gridGap, height: `${rowHgtPcnt}` } : { gridRowEnd: `span ${rowSpan}` };
+
+            return <div className={`collectionStackingView-${this.singleColumn ? "columnDoc" : "masonryDoc"}`} key={d[Id]} ref={dref} style={style} >
+                {this.getDisplayDoc(pair.layout, pair.data, dxf, width)}
+            </div>;
         });
     }
 

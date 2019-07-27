@@ -21,10 +21,10 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         if (e.button === 0 && !InkingControl.Instance.selectedTool) {
             let a = this.props.A;
             let b = this.props.B;
-            let x1 = NumCast(a.x) + (BoolCast(a.isMinimized, false) ? 5 : a[WidthSym]() / 2);
-            let y1 = NumCast(a.y) + (BoolCast(a.isMinimized, false) ? 5 : a[HeightSym]() / 2);
-            let x2 = NumCast(b.x) + (BoolCast(b.isMinimized, false) ? 5 : b[WidthSym]() / 2);
-            let y2 = NumCast(b.y) + (BoolCast(b.isMinimized, false) ? 5 : b[HeightSym]() / 2);
+            let x1 = NumCast(a.x) + (BoolCast(a.isMinimized) ? 5 : a[WidthSym]() / 2);
+            let y1 = NumCast(a.y) + (BoolCast(a.isMinimized) ? 5 : a[HeightSym]() / 2);
+            let x2 = NumCast(b.x) + (BoolCast(b.isMinimized) ? 5 : b[WidthSym]() / 2);
+            let y2 = NumCast(b.y) + (BoolCast(b.isMinimized) ? 5 : b[HeightSym]() / 2);
             // this.props.LinkDocs.map(l => {
             //     let width = l[WidthSym]();
             //     l.x = (x1 + x2) / 2 - width / 2;

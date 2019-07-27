@@ -11,7 +11,7 @@ import { Doc, DocListCast, DocListCastAsync, Field } from "../../../new_fields/D
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
-import { Cast, FieldValue, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
+import { Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
 import { Docs } from "../../documents/Documents";
 import { Gateway } from "../../northstar/manager/Gateway";
 import { SetupDrag, DragManager } from "../../util/DragManager";
@@ -563,7 +563,7 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
                         height: "100%"
                     }}>
                     <DocumentView
-                        DataDoc={this.props.Document.layout instanceof Doc ? this.props.Document : this.props.DataDocument}
+                        DataDoc={this.props.DataDocument}
                         Document={this.props.Document}
                         fitToBox={this.props.fitToBox}
                         renderDepth={this.props.renderDepth + 1}

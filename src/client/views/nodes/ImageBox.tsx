@@ -21,7 +21,7 @@ import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
 import React = require("react");
 import { RouteStore } from '../../../server/RouteStore';
-import { Docs } from '../../documents/Documents';
+import { Docs, DocumentType } from '../../documents/Documents';
 import { DocServer } from '../../DocServer';
 import { Font } from '@react-pdf/renderer';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -85,10 +85,20 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     @computed get extensionDoc() { return Doc.resolvedFieldDataDoc(this.dataDoc, this.props.fieldKey, "Alternates"); }
 
     @undoBatch
+    @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.DocumentDragData) {
             de.data.droppedDocuments.forEach(action((drop: Doc) => {
-                if (de.mods === "AltKey" && /*this.dataDoc !== this.props.Document &&*/ drop.data instanceof ImageField) {
+                if (de.mods === "CtrlKey") {
+                    let temp = Doc.MakeDelegate(drop);
+                    this.props.Document.nativeWidth = Doc.GetProto(this.props.Document).nativeWidth = undefined;
+                    this.props.Document.nativeHeight = Doc.GetProto(this.props.Document).nativeHeight = undefined;
+                    this.props.Document.width = drop.width;
+                    this.props.Document.height = drop.height;
+                    Doc.GetProto(this.props.Document).type = DocumentType.TEMPLATE;
+                    this.props.Document.layout = temp;
+                    e.stopPropagation();
+                } else if (de.mods === "AltKey" && /*this.dataDoc !== this.props.Document &&*/ drop.data instanceof ImageField) {
                     Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new ImageField(drop.data.url);
                     e.stopPropagation();
                 } else if (de.mods === "CtrlKey") {
