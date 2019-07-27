@@ -30,7 +30,7 @@ import FaceRectangles from './FaceRectangles';
 import { faEye } from '@fortawesome/free-regular-svg-icons';
 var requestImageSize = require('../../util/request-image-size');
 var path = require('path');
-const { Howl, Howler } = require('howler');
+const { Howl } = require('howler');
 
 
 library.add(faImage, faEye, faPaintBrush);
@@ -252,11 +252,15 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
 
     choosePath(url: URL) {
         const lower = url.href.toLowerCase();
-        if (url.protocol === "data" || url.href.indexOf(window.location.origin) === -1 || !(lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg"))) {
+        if (url.protocol === "data") {
             return url.href;
+        } else if (url.href.indexOf(window.location.origin) === -1) {
+            return Utils.CorsProxy(url.href);
+        } else if (!(lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg"))) {
+            return url.href;//Why is this here
         }
         let ext = path.extname(url.href);
-        const suffix = this.props.renderDepth <= 1 ? "_o" : this._curSuffix;
+        const suffix = this.props.renderDepth < 1 ? "_o" : this._curSuffix;
         return url.href.replace(ext, suffix + ext);
     }
 

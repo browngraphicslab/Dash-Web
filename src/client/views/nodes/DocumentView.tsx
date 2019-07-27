@@ -703,7 +703,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                                 transformOrigin: "top left", transform: `scale(${1 / this.props.ContentScaling()})`
                             }}>
                                 <EditableView
-                                    contents={this.layoutDoc[showTitle]}
+                                    contents={(this.dataDoc || this.layoutDoc)[showTitle]}
                                     display={"block"}
                                     height={72}
                                     fontSize={12}
