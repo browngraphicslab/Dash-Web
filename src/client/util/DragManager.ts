@@ -8,6 +8,7 @@ import * as globalCssVariables from "../views/globalCssVariables.scss";
 import { DocumentManager } from "./DocumentManager";
 import { LinkManager } from "./LinkManager";
 import { SelectionManager } from "./SelectionManager";
+import { DocumentDecorations } from "../views/DocumentDecorations";
 
 export type dropActionType = "alias" | "copy" | undefined;
 export function SetupDrag(
@@ -421,6 +422,7 @@ export namespace DragManager {
             if (options) {
                 options.handlers.dragComplete({});
             }
+            DocumentDecorations.Instance.endLinkDragBatch();
         };
 
         AbortDrag = () => {

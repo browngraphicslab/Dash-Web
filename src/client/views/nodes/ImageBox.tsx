@@ -192,6 +192,20 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         });
     }
 
+    @undoBatch
+    rotate = action(() => {
+        let proto = Doc.GetProto(this.props.Document);
+        let nw = this.props.Document.nativeWidth;
+        let nh = this.props.Document.nativeHeight;
+        let w = this.props.Document.width;
+        let h = this.props.Document.height;
+        proto.rotation = (NumCast(this.props.Document.rotation) + 90) % 360;
+        proto.nativeWidth = nh;
+        proto.nativeHeight = nw;
+        this.props.Document.width = h;
+        this.props.Document.height = w;
+    });
+
     specificContextMenu = (e: React.MouseEvent): void => {
         let field = Cast(this.Document[this.props.fieldKey], ImageField);
         if (field) {
@@ -199,20 +213,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
             let funcs: ContextMenuProps[] = [];
             funcs.push({ description: "Copy path", event: () => Utils.CopyText(url), icon: "expand-arrows-alt" });
             funcs.push({ description: "Record 1sec audio", event: this.recordAudioAnnotation, icon: "expand-arrows-alt" });
-            funcs.push({
-                description: "Rotate", event: action(() => {
-                    let proto = Doc.GetProto(this.props.Document);
-                    let nw = this.props.Document.nativeWidth;
-                    let nh = this.props.Document.nativeHeight;
-                    let w = this.props.Document.width;
-                    let h = this.props.Document.height;
-                    proto.rotation = (NumCast(this.props.Document.rotation) + 90) % 360;
-                    proto.nativeWidth = nh;
-                    proto.nativeHeight = nw;
-                    this.props.Document.width = h;
-                    this.props.Document.height = w;
-                }), icon: "expand-arrows-alt"
-            });
+            funcs.push({ description: "Rotate", event: this.rotate, icon: "expand-arrows-alt" });
 
             let modes: ContextMenuProps[] = [];
             let dataDoc = Doc.GetProto(this.props.Document);

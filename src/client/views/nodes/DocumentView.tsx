@@ -40,6 +40,7 @@ import { ScriptingRepl } from '../ScriptingRepl';
 import { ClientUtils } from '../../util/ClientUtils';
 import { EditableView } from '../EditableView';
 import { faHandPointer, faHandPointRight } from '@fortawesome/free-regular-svg-icons';
+import { DocumentDecorations } from '../DocumentDecorations';
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(fa.faTrash);
