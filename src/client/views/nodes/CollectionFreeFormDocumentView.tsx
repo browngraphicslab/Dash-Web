@@ -7,6 +7,7 @@ import { DocComponent } from "../DocComponent";
 import { DocumentView, DocumentViewProps, positionSchema } from "./DocumentView";
 import "./DocumentView.scss";
 import React = require("react");
+import { Doc } from "../../../new_fields/Doc";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     x?: number;
@@ -34,21 +35,9 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     @computed get zoom(): number { return 1 / FieldValue(this.Document.zoomBasis, 1); }
     @computed get nativeWidth(): number { return FieldValue(this.Document.nativeWidth, 0); }
     @computed get nativeHeight(): number { return FieldValue(this.Document.nativeHeight, 0); }
-
-    set width(w: number) {
-        this.Document.width = w;
-        if (this.nativeWidth && this.nativeHeight) {
-            this.Document.height = this.nativeHeight / this.nativeWidth * w;
-        }
-    }
-    set height(h: number) {
-        this.Document.height = h;
-        if (this.nativeWidth && this.nativeHeight) {
-            this.Document.width = this.nativeWidth / this.nativeHeight * h;
-        }
-    }
     @computed get scaleToOverridingWidth() { return this.width / NumCast(this.props.Document.width, this.width); }
-    contentScaling = () => this.nativeWidth > 0 ? this.width / this.nativeWidth : 1;
+
+    contentScaling = () => this.nativeWidth > 0 && !BoolCast(this.props.Document.ignoreAspect) ? this.width / this.nativeWidth : 1;
     panelWidth = () => this.props.PanelWidth();
     panelHeight = () => this.props.PanelHeight();
     getTransform = (): Transform => this.props.ScreenToLocalTransform()
@@ -70,23 +59,27 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     }
 
     borderRounding = () => {
-        let br = NumCast(this.props.Document.borderRounding);
-        return br >= 0 ? br :
-            NumCast(this.props.Document.nativeWidth) === 0 ?
-                Math.min(this.props.PanelWidth(), this.props.PanelHeight())
-                : Math.min(this.Document.nativeWidth || 0, this.Document.nativeHeight || 0);
+        let br = StrCast(this.props.Document.layout instanceof Doc ? this.props.Document.layout.borderRounding : this.props.Document.borderRounding);
+        if (br.endsWith("%")) {
+            let percent = Number(br.substr(0, br.length - 1)) / 100;
+            let nativeDim = Math.min(NumCast(this.props.Document.nativeWidth), NumCast(this.props.Document.nativeHeight));
+            let minDim = percent * (nativeDim ? nativeDim : Math.min(this.props.PanelWidth(), this.props.PanelHeight()));
+            return minDim;
+        }
+        return undefined;
     }
 
     render() {
+        const hasPosition = this.props.x !== undefined || this.props.y !== undefined;
         return (
             <div className="collectionFreeFormDocumentView-container"
                 style={{
                     transformOrigin: "left top",
                     position: "absolute",
                     backgroundColor: "transparent",
-                    borderRadius: `${this.borderRounding()}px`,
+                    borderRadius: this.borderRounding(),
                     transform: this.transform,
-                    transition: StrCast(this.props.Document.transition),
+                    transition: hasPosition ? "transform 1s" : StrCast(this.props.Document.transition),
                     width: this.width,
                     height: this.height,
                     zIndex: this.Document.zIndex || 0,

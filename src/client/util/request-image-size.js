@@ -21,7 +21,9 @@ module.exports = function requestImageSize(options) {
     if (options && typeof options === 'object') {
         opts = Object.assign(options, opts);
     } else if (options && typeof options === 'string') {
-        opts = Object.assign({ uri: options }, opts);
+        opts = Object.assign({
+            uri: options
+        }, opts);
     } else {
         return Promise.reject(new Error('You should provide an URI string or a "request" options object.'));
     }

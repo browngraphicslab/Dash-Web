@@ -23,9 +23,9 @@ export class SelectorContextMenu extends React.Component<SelectorProps> {
 
     async fetchDocuments() {
         let aliases = (await SearchUtil.GetAliasesOfDocument(this.props.Document)).filter(doc => doc !== this.props.Document);
-        const { docs } = await SearchUtil.Search(`data_l:"${this.props.Document[Id]}"`, true);
+        const { docs } = await SearchUtil.Search("", true, { fq: `data_l:"${this.props.Document[Id]}"` });
         const map: Map<Doc, Doc> = new Map;
-        const allDocs = await Promise.all(aliases.map(doc => SearchUtil.Search(`data_l:"${doc[Id]}"`, true).then(result => result.docs)));
+        const allDocs = await Promise.all(aliases.map(doc => SearchUtil.Search("", true, { fq: `data_l:"${doc[Id]}"` }).then(result => result.docs)));
         allDocs.forEach((docs, index) => docs.forEach(doc => map.set(doc, aliases[index])));
         docs.forEach(doc => map.delete(doc));
         runInAction(() => {

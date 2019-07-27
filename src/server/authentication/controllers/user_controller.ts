@@ -12,6 +12,9 @@ import * as nodemailer from 'nodemailer';
 import c = require("crypto");
 import { RouteStore } from "../../RouteStore";
 import { Utils } from "../../../Utils";
+import { Schema } from "mongoose";
+import { Opt } from "../../../new_fields/Doc";
+import { MailOptions } from "nodemailer/lib/stream-transport";
 
 /**
  * GET /signup
@@ -42,38 +45,44 @@ export let postSignup = (req: Request, res: Response, next: NextFunction) => {
     const errors = req.validationErrors();
 
     if (errors) {
-        res.render("signup.pug", {
-            title: "Sign Up",
-            user: req.user,
-        });
         return res.redirect(RouteStore.signup);
     }
 
-    const email = req.body.email;
+    const email = req.body.email as String;
     const password = req.body.password;
 
-    const user = new User({
+    const model = {
         email,
         password,
         userDocumentId: Utils.GenerateGuid()
-    });
+    } as Partial<DashUserModel>;
+
+    const user = new User(model);
 
     User.findOne({ email }, (err, existingUser) => {
         if (err) { return next(err); }
         if (existingUser) {
             return res.redirect(RouteStore.login);
         }
-        user.save((err) => {
+        user.save((err: any) => {
             if (err) { return next(err); }
             req.logIn(user, (err) => {
-                if (err) {
-                    return next(err);
-                }
-                res.redirect(RouteStore.home);
+                if (err) { return next(err); }
+                tryRedirectToTarget(req, res);
             });
         });
     });
 
+};
+
+let tryRedirectToTarget = (req: Request, res: Response) => {
+    if (req.session && req.session.target) {
+        let target = req.session.target;
+        req.session.target = undefined;
+        res.redirect(target);
+    } else {
+        res.redirect(RouteStore.home);
+    }
 };
 
 
@@ -83,6 +92,7 @@ export let postSignup = (req: Request, res: Response, next: NextFunction) => {
  */
 export let getLogin = (req: Request, res: Response) => {
     if (req.user) {
+        req.session!.target = undefined;
         return res.redirect(RouteStore.home);
     }
     res.render("login.pug", {
@@ -115,7 +125,7 @@ export let postLogin = (req: Request, res: Response, next: NextFunction) => {
         }
         req.logIn(user, (err) => {
             if (err) { next(err); return; }
-            res.redirect(RouteStore.home);
+            tryRedirectToTarget(req, res);
         });
     })(req, res, next);
 };
@@ -184,8 +194,8 @@ export let postForgot = function (req: Request, res: Response, next: NextFunctio
                     'Please click on the following link, or paste this into your browser to complete the process:\n\n' +
                     'http://' + req.headers.host + '/reset/' + token + '\n\n' +
                     'If you did not request this, please ignore this email and your password will remain unchanged.\n'
-            };
-            smtpTransport.sendMail(mailOptions, function (err) {
+            } as MailOptions;
+            smtpTransport.sendMail(mailOptions, function (err: Error | null) {
                 // req.flash('info', 'An e-mail has been sent to ' + user.email + ' with further instructions.');
                 done(null, err, 'done');
             });
@@ -255,7 +265,7 @@ export let postReset = function (req: Request, res: Response) {
                 subject: 'Your password has been changed',
                 text: 'Hello,\n\n' +
                     'This is a confirmation that the password for your account ' + user.email + ' has just been changed.\n'
-            };
+            } as MailOptions;
             smtpTransport.sendMail(mailOptions, function (err) {
                 done(null, err);
             });

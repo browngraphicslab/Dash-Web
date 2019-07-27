@@ -1,0 +1,42 @@
+.overlayWindow-outerDiv {
+    border-radius: 5px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.overlayWindow-outerDiv,
+.overlayView-wrapperDiv {
+    position: absolute;
+    z-index: 1;
+}
+
+.overlayWindow-titleBar {
+    flex: 0 1 30px;
+    background: darkslategray;
+    color: whitesmoke;
+    text-align: center;
+    cursor: move;
+}
+
+.overlayWindow-content {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.overlayWindow-closeButton {
+    float: right;
+    height: 30px;
+    width: 30px;
+}
+
+.overlayWindow-resizeDragger {
+    background-color: rgb(0, 0, 0);
+    position: absolute;
+    right: 0px;
+    bottom: 0px;
+    width: 10px;
+    height: 10px;
+    cursor: nwse-resize;
+}

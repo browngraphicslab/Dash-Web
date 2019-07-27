@@ -18,7 +18,8 @@ export enum CollectionViewType {
     Schema,
     Docking,
     Tree,
-    Stacking
+    Stacking,
+    Masonry
 }
 
 export interface CollectionRenderProps {
@@ -64,7 +65,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
 
     active = (): boolean => {
         var isSelected = this.props.isSelected();
-        return isSelected || this._isChildActive || this.props.renderDepth === 0;
+        return isSelected || this._isChildActive || this.props.renderDepth === 0 || BoolCast(this.props.Document.excludeFromLibrary);
     }
 
     //TODO should this be observable?
@@ -74,6 +75,8 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         this.props.whenActiveChanged(isActive);
     }
 
+    @computed get extensionDoc() { return Doc.resolvedFieldDataDoc(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt); }
+
     @action.bound
     addDocument(doc: Doc, allowDuplicates: boolean = false): boolean {
         var curPage = NumCast(this.props.Document.curPage, -1);
@@ -82,13 +85,15 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
             Doc.GetProto(doc).annotationOn = this.props.Document;
         }
         allowDuplicates = true;
-        const value = Cast(this.dataDoc[this.dataField], listSpec(Doc));
+        let targetDataDoc = this.props.fieldExt || this.props.Document.isTemplate ? this.extensionDoc : this.props.Document;
+        let targetField = (this.props.fieldExt || this.props.Document.isTemplate) && this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey;
+        const value = Cast(targetDataDoc[targetField], listSpec(Doc));
         if (value !== undefined) {
             if (allowDuplicates || !value.some(v => v instanceof Doc && v[Id] === doc[Id])) {
                 value.push(doc);
             }
         } else {
-            Doc.GetProto(this.dataDoc)[this.dataField] = new List([doc]);
+            Doc.GetProto(targetDataDoc)[targetField] = new List([doc]);
         }
         return true;
     }
@@ -98,7 +103,9 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         let docView = DocumentManager.Instance.getDocumentView(doc, this.props.ContainingCollectionView);
         docView && SelectionManager.DeselectDoc(docView);
         //TODO This won't create the field if it doesn't already exist
-        const value = Cast(this.dataDoc[this.dataField], listSpec(Doc), []);
+        let targetDataDoc = this.props.fieldExt || this.props.Document.isTemplate ? this.extensionDoc : this.props.Document;
+        let targetField = (this.props.fieldExt || this.props.Document.isTemplate) && this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey;
+        let value = Cast(targetDataDoc[targetField], listSpec(Doc), []);
         let index = value.reduce((p, v, i) => (v instanceof Doc && v[Id] === doc[Id]) ? i : p, -1);
         PromiseValue(Cast(doc.annotationOn, Doc)).then(annotationOn =>
             annotationOn === this.dataDoc.Document && (doc.annotationOn = undefined)
@@ -116,7 +123,9 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
 
     @action.bound
     moveDocument(doc: Doc, targetCollection: Doc, addDocument: (doc: Doc) => boolean): boolean {
-        if (Doc.AreProtosEqual(this.dataDoc, targetCollection)) {
+        let self = this;
+        let targetDataDoc = this.props.Document;
+        if (Doc.AreProtosEqual(targetDataDoc, targetCollection)) {
             return true;
         }
         if (this.removeDocument(doc)) {
@@ -135,7 +144,12 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         };
         const viewtype = this.collectionViewType;
         return (
-            <div id="collectionBaseView" className={this.props.className || "collectionView-cont"}
+            <div id="collectionBaseView"
+                style={{
+                    pointerEvents: this.props.Document.isBackground ? "none" : "all",
+                    boxShadow: `#9c9396 ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}`
+                }}
+                className={this.props.className || "collectionView-cont"}
                 onContextMenu={this.props.onContextMenu} ref={this.props.contentRef}>
                 {viewtype !== undefined ? this.props.children(viewtype, props) : (null)}
             </div>

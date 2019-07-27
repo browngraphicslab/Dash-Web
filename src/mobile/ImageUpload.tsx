@@ -11,6 +11,7 @@ import { listSpec } from '../new_fields/Schema';
 import { List } from '../new_fields/List';
 import { observer } from 'mobx-react';
 import { observable } from 'mobx';
+import { Utils } from '../Utils';
 
 
 
@@ -33,7 +34,7 @@ class Uploader extends React.Component {
     onClick = async () => {
         try {
             this.status = "initializing protos";
-            await Docs.initProtos();
+            await Docs.Prototypes.initialize();
             let imgPrev = document.getElementById("img_preview");
             if (imgPrev) {
                 let files: FileList | null = inputRef.current!.files;
@@ -53,11 +54,11 @@ class Uploader extends React.Component {
                     const json = await res.json();
                     json.map(async (file: any) => {
                         let path = window.location.origin + file;
-                        var doc = Docs.ImageDocument(path, { nativeWidth: 200, width: 200, title: name });
+                        var doc = Docs.Create.ImageDocument(path, { nativeWidth: 200, width: 200, title: name });
 
                         this.status = "getting user document";
 
-                        const res = await rp.get(DocServer.prepend(RouteStore.getUserDocumentId));
+                        const res = await rp.get(Utils.prepend(RouteStore.getUserDocumentId));
                         if (!res) {
                             throw new Error("No user id returned");
                         }
@@ -103,6 +104,8 @@ class Uploader extends React.Component {
 
 }
 
+
+DocServer.init(window.location.protocol, window.location.hostname, 4321, "image upload");
 
 ReactDOM.render((
     <Uploader />

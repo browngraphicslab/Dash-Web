@@ -7,7 +7,7 @@ import { undoBatch, UndoManager } from "../../util/UndoManager";
 import './LinkMenu.scss';
 import React = require("react");
 import { Doc } from '../../../new_fields/Doc';
-import { StrCast, Cast, BoolCast, FieldValue } from '../../../new_fields/Types';
+import { StrCast, Cast, FieldValue, NumCast } from '../../../new_fields/Types';
 import { observable, action } from 'mobx';
 import { LinkManager } from '../../util/LinkManager';
 import { DragLinkAsDocument } from '../../util/DragManager';
@@ -33,21 +33,28 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     @undoBatch
     onFollowLink = async (e: React.PointerEvent): Promise<void> => {
         e.stopPropagation();
+        e.persist();
         let jumpToDoc = this.props.destinationDoc;
         let pdfDoc = FieldValue(Cast(this.props.destinationDoc, Doc));
         if (pdfDoc) {
             jumpToDoc = pdfDoc;
         }
-        let dvs = DocumentManager.Instance.getDocumentViews(jumpToDoc);
-        if (dvs.length) {
-            let inContext = dvs.filter(dv => dv.props.ContainingCollectionView === SelectionManager.SelectedDocuments()[0].props.ContainingCollectionView);
-            if (inContext) {
-                DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey);
-            } else {
-                CollectionDockingView.Instance.AddRightSplit(jumpToDoc, undefined);
-            }
+        let proto = Doc.GetProto(this.props.linkDoc);
+        let targetContext = await Cast(proto.targetContext, Doc);
+        let sourceContext = await Cast(proto.sourceContext, Doc);
+        let self = this;
+        if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
+            DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, undefined, undefined, NumCast((this.props.destinationDoc === self.props.linkDoc.anchor2 ? self.props.linkDoc.anchor2Page : self.props.linkDoc.anchor1Page)));
+        }
+        else if (!((this.props.destinationDoc === self.props.linkDoc.anchor2 && targetContext) || (this.props.destinationDoc === self.props.linkDoc.anchor1 && sourceContext))) {
+            DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, document => CollectionDockingView.Instance.AddRightSplit(document, undefined));
         } else {
-            CollectionDockingView.Instance.AddRightSplit(jumpToDoc, undefined);
+            if (this.props.destinationDoc === self.props.linkDoc.anchor2 && targetContext) {
+                DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, document => CollectionDockingView.Instance.AddRightSplit(targetContext!, undefined));
+            }
+            else if (this.props.destinationDoc === self.props.linkDoc.anchor1 && sourceContext) {
+                DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, document => CollectionDockingView.Instance.AddRightSplit(sourceContext!, undefined));
+            }
         }
     }
 
@@ -62,11 +69,13 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
 
         let mdRows: Array<JSX.Element> = [];
         if (groupDoc) {
-            let mdDoc = Cast(groupDoc.metadata, Doc, new Doc);
-            let keys = LinkManager.Instance.getMetadataKeysInGroup(this.props.groupType);//groupMetadataKeys.get(this.props.groupType);
-            mdRows = keys.map(key => {
-                return (<div key={key} className="link-metadata-row"><b>{key}</b>: {StrCast(mdDoc[key])}</div>);
-            });
+            let mdDoc = Cast(groupDoc.metadata, Doc, null);
+            if (mdDoc) {
+                let keys = LinkManager.Instance.getMetadataKeysInGroup(this.props.groupType);//groupMetadataKeys.get(this.props.groupType);
+                mdRows = keys.map(key => {
+                    return (<div key={key} className="link-metadata-row"><b>{key}</b>: {StrCast(mdDoc[key])}</div>);
+                });
+            }
         }
 
         return (<div className="link-metadata">{mdRows}</div>);

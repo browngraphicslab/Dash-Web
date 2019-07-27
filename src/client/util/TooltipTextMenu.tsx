@@ -19,6 +19,7 @@ import { CollectionDockingView } from "../views/collections/CollectionDockingVie
 import { DocumentManager } from "./DocumentManager";
 import { Id } from "../../new_fields/FieldSymbols";
 import { FormattedTextBoxProps } from "../views/nodes/FormattedTextBox";
+import { Utils } from "../../Utils";
 
 //appears above a selection of text in a RichTextBox to give user options such as Bold, Italics, etc.
 export class TooltipTextMenu {
@@ -32,7 +33,6 @@ export class TooltipTextMenu {
     private fontSizeToNum: Map<MarkType, number>;
     private fontStylesToName: Map<MarkType, string>;
     private listTypeToIcon: Map<NodeType, string>;
-    private link: HTMLAnchorElement;
 
     private linkEditor?: HTMLDivElement;
     private linkText?: HTMLDivElement;
@@ -52,6 +52,7 @@ export class TooltipTextMenu {
         this.tooltip = document.createElement("div");
         this.tooltip.className = "tooltipMenu";
 
+        this.dragElement(this.tooltip);
         // this.createCollapse();
         // if (this._collapseBtn) {
         //     this.tooltip.appendChild(this._collapseBtn.render(this.view).dom);
@@ -89,6 +90,7 @@ export class TooltipTextMenu {
             });
 
         });
+        this.updateLinkMenu();
 
         //list of font styles
         this.fontStylesToName = new Map();
@@ -107,11 +109,14 @@ export class TooltipTextMenu {
         this.fontSizeToNum.set(schema.marks.p12, 12);
         this.fontSizeToNum.set(schema.marks.p14, 14);
         this.fontSizeToNum.set(schema.marks.p16, 16);
+        this.fontSizeToNum.set(schema.marks.p18, 18);
+        this.fontSizeToNum.set(schema.marks.p20, 20);
         this.fontSizeToNum.set(schema.marks.p24, 24);
         this.fontSizeToNum.set(schema.marks.p32, 32);
         this.fontSizeToNum.set(schema.marks.p48, 48);
         this.fontSizeToNum.set(schema.marks.p72, 72);
-        //this.fontSizeToNum.set(schema.marks.pFontSize,schema.marks.pFontSize.)
+        this.fontSizeToNum.set(schema.marks.pFontSize, 10);
+        this.fontSizeToNum.set(schema.marks.pFontSize, 10);
         this.fontSizes = Array.from(this.fontSizeToNum.keys());
 
         //list types
@@ -120,12 +125,7 @@ export class TooltipTextMenu {
         this.listTypeToIcon.set(schema.nodes.ordered_list, "1)");
         this.listTypes = Array.from(this.listTypeToIcon.keys());
 
-        this.link = document.createElement("a");
-        this.link.target = "_blank";
-        this.link.style.color = "white";
-        //this.tooltip.appendChild(this.link);
-
-        this.tooltip.appendChild(this.createLink().render(this.view).dom);
+        // this.tooltip.appendChild(this.createLink().render(this.view).dom);
 
         this.tooltip.appendChild(this.createStar().render(this.view).dom);
 
@@ -190,6 +190,7 @@ export class TooltipTextMenu {
     updateLinkMenu() {
         if (!this.linkEditor || !this.linkText) {
             this.linkEditor = document.createElement("div");
+            this.linkEditor.className = "ProseMirror-icon menuicon";
             this.linkEditor.style.color = "black";
             this.linkText = document.createElement("div");
             this.linkText.style.cssFloat = "left";
@@ -212,8 +213,8 @@ export class TooltipTextMenu {
                 let link = node && node.marks.find(m => m.type.name === "link");
                 if (link) {
                     let href: string = link.attrs.href;
-                    if (href.indexOf(DocServer.prepend("/doc/")) === 0) {
-                        let docid = href.replace(DocServer.prepend("/doc/"), "");
+                    if (href.indexOf(Utils.prepend("/doc/")) === 0) {
+                        let docid = href.replace(Utils.prepend("/doc/"), "");
                         DocServer.GetRefField(docid).then(action((f: Opt<Field>) => {
                             if (f instanceof Doc) {
                                 if (DocumentManager.Instance.getDocumentView(f)) {
@@ -230,29 +231,39 @@ export class TooltipTextMenu {
             };
             this.linkDrag = document.createElement("img");
             this.linkDrag.src = "https://seogurusnyc.com/wp-content/uploads/2016/12/link-1.png";
-            this.linkDrag.style.width = "20px";
-            this.linkDrag.style.height = "20px";
+            this.linkDrag.style.width = "15px";
+            this.linkDrag.style.height = "15px";
+            this.linkDrag.title = "Drag to create link";
             this.linkDrag.style.color = "black";
             this.linkDrag.style.background = "black";
             this.linkDrag.style.cssFloat = "left";
             this.linkDrag.onpointerdown = (e: PointerEvent) => {
                 let dragData = new DragManager.LinkDragData(this.editorProps.Document);
                 dragData.dontClearTextBox = true;
+                // hack to get source context -sy
+                let docView = DocumentManager.Instance.getDocumentView(this.editorProps.Document);
+                e.stopPropagation();
+                let ctrlKey = e.ctrlKey;
                 DragManager.StartLinkDrag(this.linkDrag!, dragData, e.clientX, e.clientY,
                     {
                         handlers: {
                             dragComplete: action(() => {
-                                let m = dragData.droppedDocuments;
-                                this.makeLink(DocServer.prepend("/doc/" + m[0][Id]));
+                                // let m = dragData.droppedDocuments;
+                                let linkDoc = dragData.linkDocument;
+                                let proto = Doc.GetProto(linkDoc);
+                                if (docView && docView.props.ContainingCollectionView) {
+                                    proto.sourceContext = docView.props.ContainingCollectionView.props.Document;
+                                }
+                                linkDoc instanceof Doc && this.makeLink(Utils.prepend("/doc/" + linkDoc[Id]), ctrlKey ? "onRight" : "inTab");
                             }),
                         },
                         hideSource: false
                     });
             };
-            // this.linkEditor.appendChild(this.linkDrag);
+            this.linkEditor.appendChild(this.linkDrag);
             // this.linkEditor.appendChild(this.linkText);
             // this.linkEditor.appendChild(linkBtn);
-            //this.tooltip.appendChild(this.linkEditor);
+            this.tooltip.appendChild(this.linkEditor);
         }
 
         let node = this.view.state.selection.$from.nodeAfter;
@@ -261,17 +272,58 @@ export class TooltipTextMenu {
 
         this.linkText.onkeydown = (e: KeyboardEvent) => {
             if (e.key === "Enter") {
-                this.makeLink(this.linkText!.textContent!);
+                // this.makeLink(this.linkText!.textContent!);
                 e.stopPropagation();
                 e.preventDefault();
             }
         };
-        this.tooltip.appendChild(this.linkEditor);
+        // this.tooltip.appendChild(this.linkEditor);
     }
 
-    makeLink = (target: string) => {
+    dragElement(elmnt: HTMLElement) {
+        var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        if (elmnt) {
+            // if present, the header is where you move the DIV from:
+            elmnt.onpointerdown = dragMouseDown;
+        }
+        const self = this;
+
+        function dragMouseDown(e: PointerEvent) {
+            e = e || window.event;
+            //e.preventDefault();
+            // get the mouse cursor position at startup:
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            document.onpointerup = closeDragElement;
+            // call a function whenever the cursor moves:
+            document.onpointermove = elementDrag;
+        }
+
+        function elementDrag(e: PointerEvent) {
+            e = e || window.event;
+            //e.preventDefault();
+            // calculate the new cursor position:
+            pos1 = pos3 - e.clientX;
+            pos2 = pos4 - e.clientY;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            // set the element's new position:
+            elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+            elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+        }
+
+        function closeDragElement() {
+            // stop moving when mouse button is released:
+            document.onpointerup = null;
+            document.onpointermove = null;
+            //self.highlightSearchTerms(self.state, ["hello"]);
+            //FormattedTextBox.Instance.unhighlightSearchTerms();
+        }
+    }
+
+    makeLink = (target: string, location: string) => {
         let node = this.view.state.selection.$from.nodeAfter;
-        let link = this.view.state.schema.mark(this.view.state.schema.marks.link, { href: target });
+        let link = this.view.state.schema.mark(this.view.state.schema.marks.link, { href: target, location: location });
         this.view.dispatch(this.view.state.tr.removeMark(this.view.state.selection.from, this.view.state.selection.to, this.view.state.schema.marks.link));
         this.view.dispatch(this.view.state.tr.addMark(this.view.state.selection.from, this.view.state.selection.to, link));
         node = this.view.state.selection.$from.nodeAfter;
@@ -443,16 +495,24 @@ export class TooltipTextMenu {
             enable(state) { return !state.selection.empty; },
             run: (state, dispatch, view) => {
                 // to remove link
+                let curLink = "";
                 if (this.markActive(state, markType)) {
-                    toggleMark(markType)(state, dispatch);
-                    return true;
+
+                    let { from, $from, to, empty } = state.selection;
+                    let node = state.doc.nodeAt(from);
+                    node && node.marks.map(m => {
+                        m.type === markType && (curLink = m.attrs.href);
+                    });
+                    //toggleMark(markType)(state, dispatch);
+                    //return true;
                 }
                 // to create link
                 openPrompt({
                     title: "Create a link",
                     fields: {
                         href: new TextField({
-                            label: "Link target",
+                            value: curLink,
+                            label: "Link Target",
                             required: true
                         }),
                         title: new TextField({ label: "Title" })
@@ -602,7 +662,6 @@ export class TooltipTextMenu {
             }
         }
         this.view.dispatch(this.view.state.tr.setStoredMarks(this._activeMarks));
-        this.updateLinkMenu();
     }
 
     //finds all active marks on selection in given group

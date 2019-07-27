@@ -2,6 +2,8 @@ import { Doc, Opt, Field } from "../../new_fields/Doc";
 import { DocServer } from "../DocServer";
 import { RouteStore } from "../../server/RouteStore";
 import { MainView } from "../views/MainView";
+import * as qs from 'query-string';
+import { Utils, OmitKeys } from "../../Utils";
 
 export namespace HistoryUtil {
     export interface DocInitializerList {
@@ -11,9 +13,11 @@ export namespace HistoryUtil {
     export interface DocUrl {
         type: "doc";
         docId: string;
-        initializers: {
+        initializers?: {
             [docId: string]: DocInitializerList;
         };
+        readonly?: boolean;
+        nro?: boolean;
     }
 
     export type ParsedUrl = DocUrl;
@@ -21,7 +25,7 @@ export namespace HistoryUtil {
     // const handlers: ((state: ParsedUrl | null) => void)[] = [];
     function onHistory(e: PopStateEvent) {
         if (window.location.pathname !== RouteStore.home) {
-            const url = e.state as ParsedUrl || parseUrl(window.location.pathname);
+            const url = e.state as ParsedUrl || parseUrl(window.location);
             if (url) {
                 switch (url.type) {
                     case "doc":
@@ -62,42 +66,111 @@ export namespace HistoryUtil {
     //     }
     // }
 
-    export function parseUrl(pathname: string): ParsedUrl | undefined {
-        let pathnameSplit = pathname.split("/");
-        if (pathnameSplit.length !== 2) {
-            return undefined;
-        }
-        const type = pathnameSplit[0];
-        const data = pathnameSplit[1];
+    const parsers: { [type: string]: (pathname: string[], opts: qs.ParsedQuery) => ParsedUrl | undefined } = {};
+    const stringifiers: { [type: string]: (state: ParsedUrl) => string } = {};
 
-        if (type === "doc") {
-            const s = data.split("?");
-            if (s.length < 1 || s.length > 2) {
-                return undefined;
+    type ParserValue = true | "none" | "json" | ((value: string) => any);
+
+    type Parser = {
+        [key: string]: ParserValue
+    };
+
+    function addParser(type: string, requiredFields: Parser, optionalFields: Parser, customParser?: (pathname: string[], opts: qs.ParsedQuery, current: ParsedUrl) => ParsedUrl | null | undefined) {
+        function parse(parser: ParserValue, value: string | string[] | null | undefined) {
+            if (value === undefined || value === null) {
+                return value;
             }
-            const docId = s[0];
-            const initializers = s.length === 2 ? JSON.parse(decodeURIComponent(s[1])) : {};
-            return {
-                type: "doc",
-                docId,
-                initializers
-            };
+            if (Array.isArray(value)) {
+            } else if (parser === true || parser === "json") {
+                value = JSON.parse(value);
+            } else if (parser === "none") {
+            } else {
+                value = parser(value);
+            }
+            return value;
+        }
+        parsers[type] = (pathname, opts) => {
+            const current: any = { type };
+            for (const required in requiredFields) {
+                if (!(required in opts)) {
+                    return undefined;
+                }
+                const parser = requiredFields[required];
+                let value = opts[required];
+                value = parse(parser, value);
+                if (value !== null && value !== undefined) {
+                    current[required] = value;
+                }
+            }
+            for (const opt in optionalFields) {
+                if (!(opt in opts)) {
+                    continue;
+                }
+                const parser = optionalFields[opt];
+                let value = opts[opt];
+                value = parse(parser, value);
+                if (value !== undefined) {
+                    current[opt] = value;
+                }
+            }
+            if (customParser) {
+                const val = customParser(pathname, opts, current);
+                if (val === null) {
+                    return undefined;
+                } else if (val === undefined) {
+                    return current;
+                } else {
+                    return val;
+                }
+            }
+            return current;
+        };
+    }
+
+    function addStringifier(type: string, keys: string[], customStringifier?: (state: ParsedUrl, current: string) => string) {
+        stringifiers[type] = state => {
+            let path = Utils.prepend(`/${type}`);
+            if (customStringifier) {
+                path = customStringifier(state, path);
+            }
+            const queryObj = OmitKeys(state, keys).extract;
+            const query: any = {};
+            Object.keys(queryObj).forEach(key => query[key] = queryObj[key] === null ? null : JSON.stringify(queryObj[key]));
+            const queryString = qs.stringify(query);
+            return path + (queryString ? `?${queryString}` : "");
+        };
+    }
+
+    addParser("doc", {}, { readonly: true, initializers: true, nro: true }, (pathname, opts, current) => {
+        if (pathname.length !== 2) return undefined;
+
+        current.initializers = current.initializers || {};
+        const docId = pathname[1];
+        current.docId = docId;
+    });
+    addStringifier("doc", ["initializers", "readonly", "nro"], (state, current) => {
+        return `${current}/${state.docId}`;
+    });
+
+
+    export function parseUrl(location: Location | URL): ParsedUrl | undefined {
+        const pathname = location.pathname.substring(1);
+        const search = location.search;
+        const opts = qs.parse(search, { sort: false });
+        let pathnameSplit = pathname.split("/");
+
+        const type = pathnameSplit[0];
+
+        if (type in parsers) {
+            return parsers[type](pathnameSplit, opts);
         }
 
         return undefined;
     }
 
     export function createUrl(params: ParsedUrl): string {
-        let baseUrl = DocServer.prepend(`/${params.type}`);
-        switch (params.type) {
-            case "doc":
-                const initializers = encodeURIComponent(JSON.stringify(params.initializers));
-                const id = params.docId;
-                let url = baseUrl + `/${id}`;
-                if (Object.keys(params.initializers).length) {
-                    url += `?${initializers}`;
-                }
-                return url;
+        if (params.type in stringifiers) {
+            return stringifiers[params.type](params);
         }
         return "";
     }
@@ -112,7 +185,10 @@ export namespace HistoryUtil {
 
     async function onDocUrl(url: DocUrl) {
         const field = await DocServer.GetRefField(url.docId);
-        await Promise.all(Object.keys(url.initializers).map(id => initDoc(id, url.initializers[id])));
+        const init = url.initializers;
+        if (init) {
+            await Promise.all(Object.keys(init).map(id => initDoc(id, init[id])));
+        }
         if (field instanceof Doc) {
             MainView.Instance.openWorkspace(field, true);
         }

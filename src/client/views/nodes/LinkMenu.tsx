@@ -11,8 +11,11 @@ import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { UndoManager } from "../../util/UndoManager";
-
+import { Cast, FieldValue, StrCast } from "../../../new_fields/Types";
+import { Id } from "../../../new_fields/FieldSymbols";
+import { DocumentType } from "../../documents/Documents";
 library.add(faTrash);
+
 
 interface Props {
     docView: DocumentView;

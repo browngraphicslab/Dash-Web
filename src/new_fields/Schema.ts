@@ -104,7 +104,7 @@ export function makeStrictInterface<T extends Interface>(schema: T): (doc: Doc) 
 }
 
 export function createSchema<T extends Interface>(schema: T): T & { proto: ToConstructor<Doc> } {
-    schema.proto = Doc;
+    (schema as any).proto = Doc;
     return schema as any;
 }
 

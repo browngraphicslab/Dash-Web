@@ -8,6 +8,7 @@ import * as globalCssVariables from "../views/globalCssVariables.scss";
 import { DocumentManager } from "./DocumentManager";
 import { LinkManager } from "./LinkManager";
 import { SelectionManager } from "./SelectionManager";
+import { DocumentDecorations } from "../views/DocumentDecorations";
 
 export type dropActionType = "alias" | "copy" | undefined;
 export function SetupDrag(
@@ -41,9 +42,14 @@ export function SetupDrag(
     let onItemDown = async (e: React.PointerEvent) => {
         if (e.button === 0) {
             e.stopPropagation();
-            e.preventDefault();
             if (e.shiftKey && CollectionDockingView.Instance) {
-                CollectionDockingView.Instance.StartOtherDrag(e, [await docFunc()]);
+                e.persist();
+                CollectionDockingView.Instance.StartOtherDrag({
+                    pageX: e.pageX,
+                    pageY: e.pageY,
+                    preventDefault: emptyFunction,
+                    button: 0
+                }, [await docFunc()]);
             } else {
                 document.addEventListener("pointermove", onRowMove);
                 document.addEventListener("pointerup", onRowUp);
@@ -106,6 +112,7 @@ export async function DragLinksAsDocuments(dragEle: HTMLElement, x: number, y: n
         });
     }
 }
+
 
 export namespace DragManager {
     export function Root() {
@@ -324,11 +331,13 @@ export namespace DragManager {
             scaleYs.push(scaleY);
             let dragElement = ele.cloneNode(true) as HTMLElement;
             dragElement.style.opacity = "0.7";
+            dragElement.style.borderRadius = getComputedStyle(ele).borderRadius;
             dragElement.style.position = "absolute";
             dragElement.style.margin = "0";
             dragElement.style.top = "0";
             dragElement.style.bottom = "";
             dragElement.style.left = "0";
+            dragElement.style.transition = "none";
             dragElement.style.color = "black";
             dragElement.style.transformOrigin = "0 0";
             dragElement.style.zIndex = globalCssVariables.contextMenuZindex;// "1000";
@@ -404,7 +413,6 @@ export namespace DragManager {
         };
 
         let hideDragElements = () => {
-            SelectionManager.SetIsDragging(false);
             dragElements.map(dragElement => dragElement.parentNode === dragDiv && dragDiv.removeChild(dragElement));
             eles.map(ele => (ele.hidden = false));
         };
@@ -414,15 +422,18 @@ export namespace DragManager {
             if (options) {
                 options.handlers.dragComplete({});
             }
+            DocumentDecorations.Instance.endLinkDragBatch();
         };
 
         AbortDrag = () => {
             hideDragElements();
+            SelectionManager.SetIsDragging(false);
             endDrag();
         };
         const upHandler = (e: PointerEvent) => {
             hideDragElements();
             dispatchDrag(eles, e, dragData, options, finishDrag);
+            SelectionManager.SetIsDragging(false);
             endDrag();
         };
         document.addEventListener("pointermove", moveHandler, true);
@@ -456,7 +467,7 @@ export namespace DragManager {
                         x: e.x,
                         y: e.y,
                         data: dragData,
-                        mods: e.altKey ? "AltKey" : ""
+                        mods: e.altKey ? "AltKey" : e.ctrlKey ? "CtrlKey" : ""
                     }
                 })
             );

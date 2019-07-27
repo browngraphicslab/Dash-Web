@@ -1,33 +1,39 @@
 import { PropSchema, serialize, deserialize, custom, setDefaultModelSchema, getDefaultModelSchema, primitive, SKIP } from "serializr";
-import { Field } from "../../new_fields/Doc";
+import { Field, Doc } from "../../new_fields/Doc";
+import { ClientUtils } from "./ClientUtils";
 
+let serializing = 0;
+export function afterDocDeserialize(cb: (err: any, val: any) => void, err: any, newValue: any) {
+    serializing++;
+    cb(err, newValue);
+    serializing--;
+}
 export namespace SerializationHelper {
-    let serializing: number = 0;
     export function IsSerializing() {
         return serializing > 0;
     }
 
     export function Serialize(obj: Field): any {
         if (obj === undefined || obj === null) {
-            return undefined;
+            return null;
         }
 
         if (typeof obj !== 'object') {
             return obj;
         }
 
-        serializing += 1;
+        serializing++;
         if (!(obj.constructor.name in reverseMap)) {
             throw Error(`type '${obj.constructor.name}' not registered. Make sure you register it using a @Deserializable decorator`);
         }
 
         const json = serialize(obj);
         json.__type = reverseMap[obj.constructor.name];
-        serializing -= 1;
+        serializing--;
         return json;
     }
 
-    export function Deserialize(obj: any): any {
+    export async function Deserialize(obj: any): Promise<any> {
         if (obj === undefined || obj === null) {
             return undefined;
         }
@@ -36,9 +42,13 @@ export namespace SerializationHelper {
             return obj;
         }
 
-        serializing += 1;
         if (!obj.__type) {
-            throw Error("No property 'type' found in JSON.");
+            if (ClientUtils.RELEASE) {
+                console.warn("No property 'type' found in JSON.");
+                return undefined;
+            } else {
+                throw Error("No property 'type' found in JSON.");
+            }
         }
 
         if (!(obj.__type in serializationTypes)) {
@@ -46,16 +56,15 @@ export namespace SerializationHelper {
         }
 
         const type = serializationTypes[obj.__type];
-        const value = deserialize(type.ctor, obj);
+        const value = await new Promise(res => deserialize(type.ctor, obj, (err, result) => res(result)));
         if (type.afterDeserialize) {
-            type.afterDeserialize(value);
+            await type.afterDeserialize(value);
         }
-        serializing -= 1;
         return value;
     }
 }
 
-let serializationTypes: { [name: string]: { ctor: { new(): any }, afterDeserialize?: (obj: any) => void } } = {};
+let serializationTypes: { [name: string]: { ctor: { new(): any }, afterDeserialize?: (obj: any) => void | Promise<any> } } = {};
 let reverseMap: { [ctor: string]: string } = {};
 
 export interface DeserializableOpts {
@@ -63,7 +72,7 @@ export interface DeserializableOpts {
     withFields(fields: string[]): Function;
 }
 
-export function Deserializable(name: string, afterDeserialize?: (obj: any) => void): DeserializableOpts;
+export function Deserializable(name: string, afterDeserialize?: (obj: any) => void | Promise<any>): DeserializableOpts;
 export function Deserializable(constructor: { new(...args: any[]): any }): void;
 export function Deserializable(constructor: { new(...args: any[]): any } | string, afterDeserialize?: (obj: any) => void): DeserializableOpts | void {
     function addToMap(name: string, ctor: { new(...args: any[]): any }) {
@@ -82,15 +91,15 @@ export function Deserializable(constructor: { new(...args: any[]): any } | strin
     if (typeof constructor === "string") {
         return Object.assign((ctor: { new(...args: any[]): any }) => {
             addToMap(constructor, ctor);
-        }, { withFields: Deserializable.withFields });
+        }, { withFields: (fields: string[]) => Deserializable.withFields(fields, name, afterDeserialize) });
     }
     addToMap(constructor.name, constructor);
 }
 
 export namespace Deserializable {
-    export function withFields(fields: string[]) {
+    export function withFields(fields: string[], name?: string, afterDeserialize?: (obj: any) => void | Promise<any>) {
         return function (constructor: { new(...fields: any[]): any }) {
-            Deserializable(constructor);
+            Deserializable(name || constructor.name, afterDeserialize)(constructor);
             let schema = getDefaultModelSchema(constructor);
             if (schema) {
                 schema.factory = context => {
@@ -129,6 +138,6 @@ export namespace Deserializable {
 export function autoObject(): PropSchema {
     return custom(
         (s) => SerializationHelper.Serialize(s),
-        (s) => SerializationHelper.Deserialize(s)
+        (json: any, context: any, oldValue: any, cb: (err: any, result: any) => void) => SerializationHelper.Deserialize(json).then(res => cb(null, res))
     );
 }

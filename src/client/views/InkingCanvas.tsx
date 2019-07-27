@@ -6,13 +6,14 @@ import "./InkingCanvas.scss";
 import { InkingControl } from "./InkingControl";
 import { InkingStroke } from "./InkingStroke";
 import React = require("react");
-import { undoBatch, UndoManager } from "../util/UndoManager";
+import { UndoManager } from "../util/UndoManager";
 import { StrokeData, InkField, InkTool } from "../../new_fields/InkField";
 import { Doc } from "../../new_fields/Doc";
 import { Cast, PromiseValue, NumCast } from "../../new_fields/Types";
 
 interface InkCanvasProps {
     getScreenTransform: () => Transform;
+    AnnotationDocument: Doc;
     Document: Doc;
     inkFieldKey: string;
     children: () => JSX.Element[];
@@ -41,7 +42,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
     }
 
     componentDidMount() {
-        PromiseValue(Cast(this.props.Document[this.props.inkFieldKey], InkField)).then(ink => runInAction(() => {
+        PromiseValue(Cast(this.props.AnnotationDocument[this.props.inkFieldKey], InkField)).then(ink => runInAction(() => {
             if (ink) {
                 let bounds = Array.from(ink.inkData).reduce(([mix, max, miy, may], [id, strokeData]) =>
                     strokeData.pathData.reduce(([mix, max, miy, may], p) =>
@@ -56,12 +57,12 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
 
     @computed
     get inkData(): Map<string, StrokeData> {
-        let map = Cast(this.props.Document[this.props.inkFieldKey], InkField);
+        let map = Cast(this.props.AnnotationDocument[this.props.inkFieldKey], InkField);
         return !map ? new Map : new Map(map.inkData);
     }
 
     set inkData(value: Map<string, StrokeData>) {
-        Doc.GetProto(this.props.Document)[this.props.inkFieldKey] = new InkField(value);
+        this.props.AnnotationDocument[this.props.inkFieldKey] = new InkField(value);
     }
 
     @action
@@ -151,7 +152,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
     get drawnPaths() {
         let curPage = NumCast(this.props.Document.curPage, -1);
         let paths = Array.from(this.inkData).reduce((paths, [id, strokeData]) => {
-            if (strokeData.page === -1 || Math.round(strokeData.page) === Math.round(curPage)) {
+            if (strokeData.page === -1 || (Math.abs(Math.round(strokeData.page) - Math.round(curPage)) < 3)) {
                 paths.push(<InkingStroke key={id} id={id}
                     line={strokeData.pathData}
                     count={strokeData.pathData.length}
@@ -177,7 +178,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
     render() {
         let svgCanvasStyle = InkingControl.Instance.selectedTool !== InkTool.None ? "canSelect" : "noSelect";
         return (
-            <div className="inkingCanvas" >
+            <div className="inkingCanvas">
                 <div className={`inkingCanvas-${svgCanvasStyle}`} onPointerDown={this.onPointerDown} />
                 {this.props.children()}
                 {this.drawnPaths}

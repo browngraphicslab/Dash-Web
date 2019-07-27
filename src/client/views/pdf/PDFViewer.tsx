@@ -4,26 +4,22 @@ import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
 import * as rp from "request-promise";
 import { Dictionary } from "typescript-collections";
-import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../new_fields/Doc";
+import { Doc, DocListCast, Opt } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
-import { BoolCast, Cast, NumCast, StrCast, FieldValue } from "../../../new_fields/Types";
-import { emptyFunction } from "../../../Utils";
-import { DocServer } from "../../DocServer";
-import { Docs, DocUtils, DocumentOptions } from "../../documents/Documents";
-import { DocumentManager } from "../../util/DocumentManager";
+import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { emptyFunction, Utils } from "../../../Utils";
+import { Docs, DocUtils } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
-import { DocumentView } from "../nodes/DocumentView";
 import { PDFBox } from "../nodes/PDFBox";
 import Page from "./Page";
 import "./PDFViewer.scss";
 import React = require("react");
-import PDFMenu from "./PDFMenu";
-import { UndoManager } from "../../util/UndoManager";
-import { CompileScript, CompiledScript, CompileResult } from "../../util/Scripting";
+import { CompileScript, CompileResult } from "../../util/Scripting";
 import { ScriptField } from "../../../new_fields/ScriptField";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Annotation from "./Annotation";
+import { KeyCodes } from "../../northstar/utils/KeyCodes";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 
 export const scale = 2;
@@ -89,15 +85,12 @@ export class Viewer extends React.Component<IViewerProps> {
     private _annotationReactionDisposer?: IReactionDisposer;
     private _dropDisposer?: DragManager.DragDropDisposer;
     private _filterReactionDisposer?: IReactionDisposer;
-    private _activeReactionDisposer?: IReactionDisposer;
     private _viewer: React.RefObject<HTMLDivElement>;
     private _mainCont: React.RefObject<HTMLDivElement>;
+    private _pdfViewer: any;
     // private _textContent: Pdfjs.TextContent[] = [];
     private _pdfFindController: any;
     private _searchString: string = "";
-    private _rendered: boolean = false;
-    private _pageIndex: number = -1;
-    private _matchIndex: number = 0;
 
     constructor(props: IViewerProps) {
         super(props);
@@ -125,28 +118,14 @@ export class Viewer extends React.Component<IViewerProps> {
             }, { fireImmediately: true });
 
         this._annotationReactionDisposer = reaction(
-            () => this.props.parent.Document && DocListCast(this.props.parent.Document.annotations),
-            (annotations: Doc[]) =>
-                annotations && annotations.length && this.renderAnnotations(annotations, true),
+            () => {
+                return this.props.parent && this.props.parent.fieldExtensionDoc && DocListCast(this.props.parent.fieldExtensionDoc.annotations);
+            },
+            (annotations: Doc[]) => {
+                annotations && annotations.length && this.renderAnnotations(annotations, true);
+            },
             { fireImmediately: true });
 
-        this._activeReactionDisposer = reaction(
-            () => this.props.parent.props.active(),
-            () => {
-                runInAction(() => {
-                    if (!this.props.parent.props.active()) {
-                        this._searching = false;
-                        this._pdfFindController = null;
-                        if (this._viewer.current) {
-                            let cns = this._viewer.current.childNodes;
-                            for (let i = cns.length - 1; i >= 0; i--) {
-                                cns.item(i).remove();
-                            }
-                        }
-                    }
-                });
-            }
-        );
 
         if (this.props.parent.props.ContainingCollectionView) {
             this._filterReactionDisposer = reaction(
@@ -156,7 +135,9 @@ export class Viewer extends React.Component<IViewerProps> {
                         let scriptfield = Cast(this.props.parent.Document.filterScript, ScriptField);
                         this._script = scriptfield ? scriptfield.script : CompileScript("return true");
                         if (this.props.parent.props.ContainingCollectionView) {
-                            let ccvAnnos = DocListCast(this.props.parent.props.ContainingCollectionView.props.Document.annotations);
+                            let fieldDoc = Doc.resolvedFieldDataDoc(this.props.parent.props.ContainingCollectionView.props.DataDoc ?
+                                this.props.parent.props.ContainingCollectionView.props.DataDoc : this.props.parent.props.ContainingCollectionView.props.Document, this.props.parent.props.ContainingCollectionView.props.fieldKey, "true");
+                            let ccvAnnos = DocListCast(fieldDoc.annotations);
                             ccvAnnos.forEach(d => {
                                 if (this._script && this._script.compiled) {
                                     let run = this._script.run(d);
@@ -185,7 +166,9 @@ export class Viewer extends React.Component<IViewerProps> {
     }
 
     scrollTo(y: number) {
-        this.props.parent.scrollTo(y);
+        if (this.props.mainCont.current) {
+            this.props.parent.scrollTo(y - this.props.mainCont.current.clientHeight);
+        }
     }
 
     @action
@@ -229,12 +212,13 @@ export class Viewer extends React.Component<IViewerProps> {
         }
     }
 
+    @action
     makeAnnotationDocument = (sourceDoc: Doc | undefined, s: number, color: string): Doc => {
         let annoDocs: Doc[] = [];
-        let mainAnnoDoc = Docs.CreateInstance(new Doc(), "", {});
+        let mainAnnoDoc = Docs.Create.InstanceFromProto(new Doc(), "", {});
 
         mainAnnoDoc.title = "Annotation on " + StrCast(this.props.parent.Document.title);
-        mainAnnoDoc.pdfDoc = this.props.parent.Document;
+        mainAnnoDoc.pdfDoc = this.props.parent.props.Document;
         let minY = Number.MAX_VALUE;
         this._savedAnnotations.forEach((key: number, value: HTMLDivElement[]) => {
             for (let anno of value) {
@@ -270,13 +254,14 @@ export class Viewer extends React.Component<IViewerProps> {
         if (de.data instanceof DragManager.LinkDragData) {
             let sourceDoc = de.data.linkSourceDocument;
             let destDoc = this.makeAnnotationDocument(sourceDoc, 1, "red");
-            let targetAnnotations = DocListCast(this.props.parent.Document.annotations);
+            de.data.droppedDocuments.push(destDoc);
+            let targetAnnotations = DocListCast(this.props.parent.fieldExtensionDoc.annotations);
             if (targetAnnotations) {
                 targetAnnotations.push(destDoc);
-                this.props.parent.Document.annotations = new List<Doc>(targetAnnotations);
+                this.props.parent.fieldExtensionDoc.annotations = new List<Doc>(targetAnnotations);
             }
             else {
-                this.props.parent.Document.annotations = new List<Doc>([destDoc]);
+                this.props.parent.fieldExtensionDoc.annotations = new List<Doc>([destDoc]);
             }
             e.stopPropagation();
         }
@@ -335,12 +320,12 @@ export class Viewer extends React.Component<IViewerProps> {
             this._isPage[page] = "image";
             const address = this.props.url;
             try {
-                let res = JSON.parse(await rp.get(DocServer.prepend(`/thumbnail${address.substring("files/".length, address.length - ".pdf".length)}-${page + 1}.PNG`)));
+                let res = JSON.parse(await rp.get(Utils.prepend(`/thumbnail${address.substring("files/".length, address.length - ".pdf".length)}-${page + 1}.PNG`)));
                 runInAction(() => this._visibleElements[page] =
                     <img key={res.path} src={res.path} onError={handleError}
                         style={{ width: `${parseInt(res.width) * scale}px`, height: `${parseInt(res.height) * scale}px` }} />);
             } catch (e) {
-
+                console.log(e);
             }
         }
     }
@@ -442,11 +427,7 @@ export class Viewer extends React.Component<IViewerProps> {
 
     @action
     search = (searchString: string) => {
-        if (searchString.length === 0) {
-            return;
-        }
-
-        if (this._rendered) {
+        if (this._pdfViewer._pageViewsReady) {
             this._pdfFindController.executeCommand('find',
                 {
                     caseSensitive: false,
@@ -459,6 +440,17 @@ export class Viewer extends React.Component<IViewerProps> {
         else {
             let container = this._mainCont.current;
             if (container) {
+                container.addEventListener("pagesloaded", () => {
+                    console.log("rendered");
+                    this._pdfFindController.executeCommand('find',
+                        {
+                            caseSensitive: false,
+                            findPrevious: undefined,
+                            highlightAll: true,
+                            phraseSearch: true,
+                            query: searchString
+                        });
+                });
                 container.addEventListener("pagerendered", () => {
                     console.log("rendered");
                     this._pdfFindController.executeCommand('find',
@@ -469,7 +461,6 @@ export class Viewer extends React.Component<IViewerProps> {
                             phraseSearch: true,
                             query: searchString
                         });
-                    this._rendered = true;
                 });
             }
         }
@@ -533,23 +524,22 @@ export class Viewer extends React.Component<IViewerProps> {
             if (!this._pdfFindController) {
                 if (container && viewer) {
                     let simpleLinkService = new SimpleLinkService();
-                    let pdfViewer = new PDFJSViewer.PDFViewer({
+                    this._pdfViewer = new PDFJSViewer.PDFViewer({
                         container: container,
                         viewer: viewer,
                         linkService: simpleLinkService
                     });
                     simpleLinkService.setPdf(this.props.pdf);
                     container.addEventListener("pagesinit", () => {
-                        pdfViewer.currentScaleValue = 1;
+                        this._pdfViewer.currentScaleValue = 1;
                     });
                     container.addEventListener("pagerendered", () => {
                         console.log("rendered");
-                        this._rendered = true;
                     });
-                    pdfViewer.setDocument(this.props.pdf);
-                    this._pdfFindController = new PDFJSViewer.PDFFindController(pdfViewer);
+                    this._pdfViewer.setDocument(this.props.pdf);
+                    this._pdfFindController = new PDFJSViewer.PDFFindController(this._pdfViewer);
                     // this._pdfFindController._linkService = pdfLinkService;
-                    pdfViewer.findController = this._pdfFindController;
+                    this._pdfViewer.findController = this._pdfFindController;
                 }
             }
         }
@@ -588,7 +578,7 @@ export class Viewer extends React.Component<IViewerProps> {
             }
             return true;
         });
-        this.Index = Math.min(this.Index + 1, filtered.length - 1)
+        this.Index = Math.min(this.Index + 1, filtered.length - 1);
     }
 
     nextResult = () => {
@@ -648,7 +638,7 @@ export class Viewer extends React.Component<IViewerProps> {
                     <button className="pdfViewer-overlayButton" title="Open Search Bar"></button>
                     {/* <button title="Previous Result" onClick={() => this.search(this._searchString)}><FontAwesomeIcon icon="arrow-up" size="3x" color="white" /></button>
                     <button title="Next Result" onClick={this.nextResult}><FontAwesomeIcon icon="arrow-down" size="3x" color="white" /></button> */}
-                    <input placeholder="Search" className="pdfViewer-overlaySearchBar" onChange={this.searchStringChanged} />
+                    <input onKeyDown={(e: React.KeyboardEvent) => e.keyCode === KeyCodes.ENTER ? this.search(this._searchString) : e.keyCode === KeyCodes.BACKSPACE ? e.stopPropagation() : true} placeholder="Search" className="pdfViewer-overlaySearchBar" onChange={this.searchStringChanged} />
                     <button title="Search" onClick={() => this.search(this._searchString)}><FontAwesomeIcon icon="search" size="3x" color="white" /></button>
                 </div>
                 <button className="pdfViewer-overlayButton" onClick={this.prevAnnotation} title="Previous Annotation"
@@ -684,17 +674,17 @@ class SimpleLinkService {
     externalLinkRel: any = null;
     pdf: any = null;
 
-    navigateTo(dest: any) { }
+    navigateTo() { }
 
-    getDestinationHash(dest: any) { return "#"; }
+    getDestinationHash() { return "#"; }
 
-    getAnchorUrl(hash: any) { return "#"; }
+    getAnchorUrl() { return "#"; }
 
-    setHash(hash: any) { }
+    setHash() { }
 
-    executeNamedAction(action: any) { }
+    executeNamedAction() { }
 
-    cachePageRef(pageNum: any, pageRef: any) { }
+    cachePageRef() { }
 
     get pagesCount() {
         return this.pdf ? this.pdf.numPages : 0;

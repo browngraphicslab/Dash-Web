@@ -1,4 +1,5 @@
 import os
+from shutil import copyfile
 import docx2txt
 from docx import Document
 from docx.opc.constants import RELATIONSHIP_TYPE as RT
@@ -15,7 +16,9 @@ source = "./source"
 dist = "../../server/public/files"
 
 db = MongoClient("localhost", 27017)["Dash"]
+target_collection = db.newDocuments
 schema_guids = []
+common_proto_id = ""
 
 
 def extract_links(fileName):
@@ -26,7 +29,7 @@ def extract_links(fileName):
         item = rels[rel]
         if item.reltype == RT.HYPERLINK and ".aspx" not in item._target:
             links.append(item._target)
-    return listify(links)
+    return text_doc_map(links)
 
 
 def extract_value(kv_string):
@@ -60,6 +63,12 @@ def protofy(fieldId):
     }
 
 
+def text_doc_map(string_list):
+    def guid_map(caption):
+        return write_text_doc(caption)
+    return listify(proxify_guids(list(map(guid_map, string_list))))
+
+
 def write_schema(parse_results, display_fields, storage_key):
     view_guids = parse_results["child_guids"]
 
@@ -78,7 +87,7 @@ def write_schema(parse_results, display_fields, storage_key):
             "height": 600,
             "panX": 0,
             "panY": 0,
-            "zoomBasis": 0.5,
+            "zoomBasis": 1,
             "zIndex": 2,
             "libraryBrush": False,
             "viewType": 2
@@ -86,7 +95,7 @@ def write_schema(parse_results, display_fields, storage_key):
         "__type": "Doc"
     }
 
-    fields["proto"] = protofy("collectionProto")
+    fields["proto"] = protofy(common_proto_id)
     fields[storage_key] = listify(proxify_guids(view_guids))
     fields["schemaColumns"] = listify(display_fields)
     fields["backgroundColor"] = "white"
@@ -100,12 +109,60 @@ def write_schema(parse_results, display_fields, storage_key):
     fields["isPrototype"] = True
     fields["page"] = -1
 
-    db.newDocuments.insert_one(data_doc)
-    db.newDocuments.insert_one(view_doc)
+    target_collection.insert_one(data_doc)
+    target_collection.insert_one(view_doc)
 
     data_doc_guid = data_doc["_id"]
     print(f"inserted view document ({view_doc_guid})")
     print(f"inserted data document ({data_doc_guid})\n")
+
+    return view_doc_guid
+
+
+def write_text_doc(content):
+    data_doc_guid = guid()
+    view_doc_guid = guid()
+
+    view_doc = {
+        "_id": view_doc_guid,
+        "fields": {
+            "proto": protofy(data_doc_guid),
+            "x": 10,
+            "y": 10,
+            "width": 400,
+            "zIndex": 2,
+            "libraryBrush": False
+        },
+        "__type": "Doc"
+    }
+
+    data_doc = {
+        "_id": data_doc_guid,
+        "fields": {
+            "proto": protofy("commonImportProto"),
+            "data": {
+                "Data": '{"doc":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"' + content + '"}]}]},"selection":{"type":"text","anchor":1,"head":1}' + '}',
+                "__type": "RichTextField"
+            },
+            "title": content,
+            "nativeWidth": 200,
+            "author": "Bill Buxton",
+            "creationDate": {
+                "date": datetime.datetime.utcnow().microsecond,
+                "__type": "date"
+            },
+            "isPrototype": True,
+            "autoHeight": True,
+            "page": -1,
+            "nativeHeight": 200,
+            "height": 200,
+            "data_text": content
+        },
+        "__type": "Doc"
+    }
+
+    target_collection.insert_one(view_doc)
+    target_collection.insert_one(data_doc)
 
     return view_doc_guid
 
@@ -155,8 +212,8 @@ def write_image(folder, name):
         "__type": "Doc"
     }
 
-    db.newDocuments.insert_one(view_doc)
-    db.newDocuments.insert_one(data_doc)
+    target_collection.insert_one(view_doc)
+    target_collection.insert_one(data_doc)
 
     return view_doc_guid
 
@@ -177,6 +234,8 @@ def parse_document(file_name: str):
     for image in os.listdir(dir_path):
         count += 1
         view_guids.append(write_image(pure_name, image))
+        copyfile(dir_path + "/" + image, dir_path +
+                  "/" + image.replace(".", "_o.", 1))
         os.rename(dir_path + "/" + image, dir_path +
                   "/" + image.replace(".", "_m.", 1))
     print(f"extracted {count} images...")
@@ -253,7 +312,7 @@ def parse_document(file_name: str):
     while lines[cur] != "Image":
         link_descriptions.append(lines[cur].strip())
         cur += 1
-    result["link_descriptions"] = listify(link_descriptions)
+    result["link_descriptions"] = text_doc_map(link_descriptions)
 
     result["hyperlinks"] = extract_links(source + "/" + file_name)
 
@@ -265,7 +324,8 @@ def parse_document(file_name: str):
         captions.append(lines[cur + 1])
         cur += 2
     result["images"] = listify(images)
-    result["captions"] = listify(captions)
+
+    result["captions"] = text_doc_map(captions)
 
     notes = []
     if (cur < len(lines) and lines[cur] == "NOTES:"):
@@ -292,12 +352,30 @@ def proxify_guids(guids):
     return list(map(lambda guid: {"fieldId": guid, "__type": "proxy"}, guids))
 
 
+def write_common_proto():
+    id = guid()
+    common_proto = {
+        "_id": id,
+        "fields": {
+            "proto": protofy("collectionProto"),
+            "title": "Common Import Proto",
+        },
+        "__type": "Doc"
+    }
+
+    target_collection.insert_one(common_proto)
+
+    return id
+
+
 if os.path.exists(dist):
     shutil.rmtree(dist)
 while os.path.exists(dist):
     pass
 os.mkdir(dist)
 mkdir_if_absent(source)
+
+common_proto_id = write_common_proto()
 
 candidates = 0
 for file_name in os.listdir(source):
@@ -317,7 +395,7 @@ parent_guid = write_schema({
 }, ["title", "short_description", "original_price"], "data")
 
 print("appending parent schema to main workspace...\n")
-db.newDocuments.update_one(
+target_collection.update_one(
     {"fields.title": "WS collection 1"},
     {"$push": {"fields.data.fields": {"fieldId": parent_guid, "__type": "proxy"}}}
 )

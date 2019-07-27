@@ -1,6 +1,6 @@
 import { observer } from "mobx-react";
 import React = require("react");
-import { observable, action, runInAction, reaction } from "mobx";
+import { observable, action, runInAction, reaction, autorun } from "mobx";
 import "./PresentationView.scss";
 import { DocumentManager } from "../../util/DocumentManager";
 import { Utils } from "../../../Utils";
@@ -30,6 +30,8 @@ library.add(faEdit);
 export interface PresViewProps {
     Documents: List<Doc>;
 }
+
+const expandedWidth = 400;
 
 @observer
 export class PresentationView extends React.Component<PresViewProps>  {
@@ -61,10 +63,23 @@ export class PresentationView extends React.Component<PresViewProps>  {
     @observable titleInputElement: HTMLInputElement | undefined;
     @observable PresTitleChangeOpen: boolean = false;
 
+    @observable opacity = 1;
+    @observable persistOpacity = true;
+    @observable labelOpacity = 0;
+
     //initilize class variables
     constructor(props: PresViewProps) {
         super(props);
         PresentationView.Instance = this;
+    }
+
+    @action
+    toggle = (forcedValue: boolean | undefined) => {
+        if (forcedValue !== undefined) {
+            this.curPresentation.width = forcedValue ? expandedWidth : 0;
+        } else {
+            this.curPresentation.width = this.curPresentation.width === expandedWidth ? 0 : expandedWidth;
+        }
     }
 
     //The first lifecycle function that gets called to set up the current presentation.
@@ -156,7 +171,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
 
         //storing the presentation status,ie. whether it was stopped or playing
-        let presStatusBackUp = BoolCast(this.curPresentation.presStatus, null);
+        let presStatusBackUp = BoolCast(this.curPresentation.presStatus);
         runInAction(() => this.presStatus = presStatusBackUp);
     }
 
@@ -231,6 +246,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
             //checking if any of the group members had used zooming in
             currentsArray.forEach((doc: Doc) => {
+                //let presElem: PresentationElement | undefined = this.presElementsMappings.get(doc);
                 if (this.presElementsMappings.get(doc)!.selected[buttonIndex.Show]) {
                     zoomOut = true;
                     return;
@@ -419,9 +435,33 @@ export class PresentationView extends React.Component<PresViewProps>  {
             }
 
             //removing it from the backUp of selected Buttons
+            // let castedList = Cast(this.presButtonBackUp.selectedButtonDocs, listSpec(Doc));
+            // if (castedList) {
+            //     castedList.forEach(async (doc, indexOfDoc) => {
+            //         let curDoc = await doc;
+            //         let curDocId = StrCast(curDoc.docId);
+            //         if (curDocId === removedDoc[Id]) {
+            //             if (castedList) {
+            //                 castedList.splice(indexOfDoc, 1);
+            //                 return;
+            //             }
+            //         }
+            //     });
+
+            // }
+            //removing it from the backUp of selected Buttons
+
             let castedList = Cast(this.presButtonBackUp.selectedButtonDocs, listSpec(Doc));
             if (castedList) {
-                castedList.splice(index, 1);
+                for (let doc of castedList) {
+                    let curDoc = await doc;
+                    let curDocId = StrCast(curDoc.docId);
+                    if (curDocId === removedDoc[Id]) {
+                        castedList.splice(castedList.indexOf(curDoc), 1);
+                        break;
+
+                    }
+                }
             }
 
             //removing it from the backup of groups
@@ -445,6 +485,19 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
 
         }
+    }
+
+    public removeDocByRef = (doc: Doc) => {
+        let indexOfDoc = this.childrenDocs.indexOf(doc);
+        const value = FieldValue(Cast(this.curPresentation.data, listSpec(Doc)));
+        if (value) {
+            value.splice(indexOfDoc, 1)[0];
+        }
+        //this.RemoveDoc(indexOfDoc, true);
+        if (indexOfDoc !== - 1) {
+            return true;
+        }
+        return false;
     }
 
     //The function that is called when a document is clicked or reached through next or back.
@@ -505,7 +558,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
             this.curPresentation.data = new List([doc]);
         }
 
-        this.curPresentation.width = 400;
+        this.toggle(true);
     }
 
     //Function that sets the store of the children docs.
@@ -591,7 +644,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
     @action
     addNewPresentation = (presTitle: string) => {
         //creating a new presentation doc
-        let newPresentationDoc = Docs.TreeDocument([], { title: presTitle });
+        let newPresentationDoc = Docs.Create.TreeDocument([], { title: presTitle });
         this.props.Documents.push(newPresentationDoc);
 
         //setting that new doc as current
@@ -752,13 +805,17 @@ export class PresentationView extends React.Component<PresViewProps>  {
         this.curPresentation.title = newTitle;
     }
 
+    addPressElem = (keyDoc: Doc, elem: PresentationElement) => {
+        this.presElementsMappings.set(keyDoc, elem);
+    }
+
 
     render() {
 
         let width = NumCast(this.curPresentation.width);
 
         return (
-            <div className="presentationView-cont" style={{ width: width, overflow: "hidden" }}>
+            <div className="presentationView-cont" onPointerEnter={action(() => !this.persistOpacity && (this.opacity = 1))} onPointerLeave={action(() => !this.persistOpacity && (this.opacity = 0.4))} style={{ width: width, overflow: "hidden", opacity: this.opacity, transition: "0.7s opacity ease" }}>
                 <div className="presentationView-heading">
                     {this.renderSelectOrPresSelection()}
                     <button title="Close Presentation" className='presentation-icon' onClick={this.closePresentation}><FontAwesomeIcon icon={"times"} /></button>
@@ -777,16 +834,30 @@ export class PresentationView extends React.Component<PresViewProps>  {
                     {this.renderPlayPauseButton()}
                     <button title="Next" className="presentation-button" onClick={this.next}><FontAwesomeIcon icon={"arrow-right"} /></button>
                 </div>
+                <input
+                    type="checkbox"
+                    onChange={action((e: React.ChangeEvent<HTMLInputElement>) => {
+                        this.persistOpacity = e.target.checked;
+                        this.opacity = this.persistOpacity ? 1 : 0.4;
+                    })}
+                    checked={this.persistOpacity}
+                    style={{ position: "absolute", bottom: 5, left: 5 }}
+                    onPointerEnter={action(() => this.labelOpacity = 1)}
+                    onPointerLeave={action(() => this.labelOpacity = 0)}
+                />
+                <p style={{ position: "absolute", bottom: 1, left: 22, opacity: this.labelOpacity, transition: "0.7s opacity ease" }}>opacity {this.persistOpacity ? "persistent" : "on focus"}</p>
                 <PresentationViewList
                     mainDocument={this.curPresentation}
                     deleteDocument={this.RemoveDoc}
                     gotoDocument={this.gotoDocument}
                     groupMappings={this.groupMappings}
-                    presElementsMappings={this.presElementsMappings}
+                    PresElementsMappings={this.presElementsMappings}
                     setChildrenDocs={this.setChildrenDocs}
                     presStatus={this.presStatus}
                     presButtonBackUp={this.presButtonBackUp}
                     presGroupBackUp={this.presGroupBackUp}
+                    removeDocByRef={this.removeDocByRef}
+                    clearElemMap={() => this.presElementsMappings.clear()}
                 />
             </div>
         );

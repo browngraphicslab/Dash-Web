@@ -18,9 +18,6 @@ import { ImageBox } from "./ImageBox";
 import { PDFBox } from "./PDFBox";
 import { VideoBox } from "./VideoBox";
 import { Id } from "../../../new_fields/FieldSymbols";
-import { BoolCast, Cast } from "../../../new_fields/Types";
-import { DarpaDatasetDoc } from "../../northstar/model/idea/idea";
-
 
 //
 // these properties get assigned through the render() method of the DocumentView when it creates this node.
@@ -31,7 +28,7 @@ export interface FieldViewProps {
     fieldKey: string;
     fieldExt: string;
     leaveNativeSize?: boolean;
-    fitToBox?: () => number[];
+    fitToBox?: boolean;
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
     Document: Doc;
     DataDoc?: Doc;
@@ -55,8 +52,8 @@ export interface FieldViewProps {
 
 @observer
 export class FieldView extends React.Component<FieldViewProps> {
-    public static LayoutString(fieldType: { name: string }, fieldStr: string = "data") {
-        return `<${fieldType.name} {...props} fieldKey={"${fieldStr}"} />`;
+    public static LayoutString(fieldType: { name: string }, fieldStr: string = "data", fieldExt: string = "") {
+        return `<${fieldType.name} {...props} fieldKey={"${fieldStr}"} fieldExt={"${fieldExt}"} />`;
     }
 
     @computed
@@ -90,7 +87,8 @@ export class FieldView extends React.Component<FieldViewProps> {
             return <p>{field.date.toLocaleString()}</p>;
         }
         else if (field instanceof Doc) {
-            return <p><b>{field.title + " : id= " + field[Id]}</b></p>;
+            return <p><b>{field.title}</b></p>;
+            //return <p><b>{field.title + " : id= " + field[Id]}</b></p>;
             // let returnHundred = () => 100;
             // return (
             //     <DocumentContentsView Document={field}

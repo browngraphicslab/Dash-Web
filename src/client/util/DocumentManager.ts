@@ -1,16 +1,14 @@
-import { computed, observable, action } from 'mobx';
-import { DocumentView } from '../views/nodes/DocumentView';
-import { Doc, DocListCast, Opt } from '../../new_fields/Doc';
-import { FieldValue, Cast, NumCast, BoolCast, StrCast } from '../../new_fields/Types';
-import { listSpec } from '../../new_fields/Schema';
-import { undoBatch } from './UndoManager';
+import { action, computed, observable } from 'mobx';
+import { Doc } from '../../new_fields/Doc';
+import { Id } from '../../new_fields/FieldSymbols';
+import { BoolCast, Cast, NumCast } from '../../new_fields/Types';
 import { CollectionDockingView } from '../views/collections/CollectionDockingView';
-import { CollectionView } from '../views/collections/CollectionView';
 import { CollectionPDFView } from '../views/collections/CollectionPDFView';
 import { CollectionVideoView } from '../views/collections/CollectionVideoView';
-import { Id } from '../../new_fields/FieldSymbols';
+import { CollectionView } from '../views/collections/CollectionView';
+import { DocumentView } from '../views/nodes/DocumentView';
 import { LinkManager } from './LinkManager';
-import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
+import { undoBatch, UndoManager } from './UndoManager';
 
 
 export class DocumentManager {
@@ -106,7 +104,7 @@ export class DocumentManager {
 
     @computed
     public get LinkedDocumentViews() {
-        let pairs = DocumentManager.Instance.DocumentViews.filter(dv => dv.isSelected() || BoolCast(dv.props.Document.libraryBrush, false)).reduce((pairs, dv) => {
+        let pairs = DocumentManager.Instance.DocumentViews.filter(dv => dv.isSelected() || BoolCast(dv.props.Document.libraryBrush)).reduce((pairs, dv) => {
             let linksList = LinkManager.Instance.getAllRelatedLinks(dv.props.Document);
             pairs.push(...linksList.reduce((pairs, link) => {
                 if (link) {
@@ -142,7 +140,9 @@ export class DocumentManager {
         if (!forceDockFunc && (docView = DocumentManager.Instance.getDocumentView(doc))) {
             docView.props.Document.libraryBrush = true;
             if (linkPage !== undefined) docView.props.Document.curPage = linkPage;
-            docView.props.focus(docView.props.Document, willZoom);
+            UndoManager.RunInBatch(() => {
+                docView!.props.focus(docView!.props.Document, willZoom);
+            }, "focus");
         } else {
             if (!contextDoc) {
                 if (docContext) {

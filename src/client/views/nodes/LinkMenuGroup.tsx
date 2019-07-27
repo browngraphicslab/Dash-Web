@@ -13,6 +13,7 @@ import { emptyFunction } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { UndoManager } from "../../util/UndoManager";
+import { StrCast } from "../../../new_fields/Types";
 
 interface LinkMenuGroupProps {
     sourceDoc: Doc;
@@ -39,6 +40,7 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
         document.removeEventListener("pointerup", this.onLinkButtonUp);
         e.stopPropagation();
     }
+
 
     onLinkButtonMoved = async (e: PointerEvent) => {
         UndoManager.RunInBatch(() => {
@@ -81,7 +83,7 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
         if (index > -1) keys.splice(index, 1);
         let cols = ["anchor1", "anchor2", "direction", ...[...keys]];
         let docs: Doc[] = LinkManager.Instance.getAllMetadataDocsInGroup(this.props.groupType);
-        let createTable = action(() => Docs.SchemaDocument(cols, docs, { width: 500, height: 300, title: this.props.groupType + " table" }));
+        let createTable = action(() => Docs.Create.SchemaDocument(cols, docs, { width: 500, height: 300, title: this.props.groupType + " table" }));
         let ref = React.createRef<HTMLDivElement>();
         return <div ref={ref}><button className="linkEditor-button linkEditor-tableButton" onPointerDown={SetupDrag(ref, createTable)} title="Drag to view relationship table"><FontAwesomeIcon icon="table" size="sm" /></button></div>;
     }

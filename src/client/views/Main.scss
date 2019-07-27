@@ -144,7 +144,7 @@ button:hover {
 #add-nodes-menu {
     position: absolute;
     bottom: 22px;
-    left: 24px;
+    left: 250px;
 
     > label {
         background: $dark-color;
@@ -230,15 +230,34 @@ ul#add-options-list {
 .mainView-libraryFlyout {
     height: 100%;
     position: absolute;
+    display: flex;
+    flex-direction:column;
 }
 
 .mainView-libraryHandle {
-    opacity: 0.6;
     width: 20px;
     height: 40px;
     top: 50%;
-    border-radius: 20px;
+    border: 1px solid black;
+    border-radius: 5px;
     position: absolute;
     z-index: 1;
-    background: gray;
+}
+.svg-inline--fa {
+    vertical-align: unset;
+}
+.mainView-workspace {
+    height:200px;
+    position:relative;
+    display:flex;
+}
+.mainView-library {
+    height:75%;
+    position:relative;
+    display:flex;
+}
+.mainView-recentlyClosed {
+    height:25%;
+    position:relative;
+    display:flex;
 }
