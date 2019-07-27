@@ -66,7 +66,7 @@ export class IconBox extends React.Component<FieldViewProps> {
         let hideLabel = BoolCast(this.props.Document.hideLabel);
         let maxDocs = DocListCast(this.props.Document.maximizedDocs);
         let firstDoc = maxDocs.length ? maxDocs[0] : undefined;
-        let label = hideLabel ? "" : (firstDoc && labelField && !BoolCast(this.props.Document.useOwnTitle, false) ? firstDoc[labelField] : this.props.Document.title);
+        let label = hideLabel ? "" : (firstDoc && labelField && !BoolCast(this.props.Document.useOwnTitle) ? firstDoc[labelField] : this.props.Document.title);
         return (
             <div className="iconBox-container" onContextMenu={this.specificContextMenu}>
                 {this.minimizedIcon}

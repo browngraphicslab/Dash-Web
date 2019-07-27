@@ -543,7 +543,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     proto.nativeHeight = nheight = doc.height || 0;
                     proto.ignoreAspect = true;
                 }
-                if (nwidth > 0 && nheight > 0) {
+                if (nwidth > 0 && nheight > 0 && !BoolCast(proto.ignoreAspect)) {
                     if (Math.abs(dW) > Math.abs(dH)) {
                         if (!fixedAspect) {
                             Doc.SetInPlace(element.props.Document, "nativeWidth", actualdW / (doc.width || 1) * (doc.nativeWidth || 0), true);
@@ -563,7 +563,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 } else {
                     dW && (doc.width = actualdW);
                     dH && (doc.height = actualdH);
-                    Doc.SetInPlace(element.props.Document, "autoHeight", undefined, true);
+                    dH && Doc.SetInPlace(element.props.Document, "autoHeight", undefined, true);
                 }
             }
         });

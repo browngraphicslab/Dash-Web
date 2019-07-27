@@ -76,6 +76,7 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
 
     onValueKeyDown = async (e: React.KeyboardEvent) => {
         if (e.key === "Enter") {
+            e.stopPropagation();
             const script = KeyValueBox.CompileKVPScript(this._currentValue);
             if (!script) return;
             let doc = this.props.docs;

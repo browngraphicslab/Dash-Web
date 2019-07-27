@@ -95,6 +95,7 @@ export class ScriptingValueDisplay extends React.Component<{ scrollToBottom: () 
 @observer
 export class ScriptingRepl extends React.Component {
     @observable private commands: { command: string, result: any }[] = [];
+    private commandsHistory: string[] = [];
 
     @observable private commandString: string = "";
     private commandBuffer: string = "";
@@ -113,12 +114,21 @@ export class ScriptingRepl extends React.Component {
                 Scripting.getGlobals().forEach(global => knownVars[global] = 1);
                 return root => {
                     function visit(node: ts.Node) {
+                        let skip = false;
+                        if (ts.isIdentifier(node)) {
+                            if (ts.isParameter(node.parent)) {
+                                skip = true;
+                                knownVars[node.text] = 1;
+                            }
+                        }
                         node = ts.visitEachChild(node, visit, context);
 
                         if (ts.isIdentifier(node)) {
                             const isntPropAccess = !ts.isPropertyAccessExpression(node.parent) || node.parent.expression === node;
                             const isntPropAssign = !ts.isPropertyAssignment(node.parent) || node.parent.name !== node;
-                            if (isntPropAccess && isntPropAssign && !(node.text in knownVars) && !(node.text in globalThis)) {
+                            if (ts.isParameter(node.parent)) {
+                                // delete knownVars[node.text];
+                            } else if (isntPropAccess && isntPropAssign && !(node.text in knownVars) && !(node.text in globalThis)) {
                                 const match = node.text.match(/\$([0-9]+)/);
                                 if (match) {
                                     const m = parseInt(match[1]);
@@ -147,13 +157,16 @@ export class ScriptingRepl extends React.Component {
                 const globals = Scripting.makeMutableGlobalsCopy(docGlobals);
                 const script = CompileScript(this.commandString, { typecheck: false, addReturn: true, editable: true, params: { args: "any" }, transformer: this.getTransformer(), globals });
                 if (!script.compiled) {
+                    this.commands.push({ command: this.commandString, result: script.errors });
                     return;
                 }
                 const result = script.run({ args: this.args });
                 if (!result.success) {
+                    this.commands.push({ command: this.commandString, result: result.error.toString() });
                     return;
                 }
                 this.commands.push({ command: this.commandString, result: result.result });
+                this.commandsHistory.push(this.commandString);
 
                 this.maybeScrollToBottom();
 
@@ -168,7 +181,7 @@ export class ScriptingRepl extends React.Component {
                     if (this.historyIndex === 0) {
                         this.commandBuffer = this.commandString;
                     }
-                    this.commandString = this.commands[this.commands.length - 1 - this.historyIndex].command;
+                    this.commandString = this.commandsHistory[this.commands.length - 1 - this.historyIndex];
                 }
                 break;
             }
@@ -179,7 +192,7 @@ export class ScriptingRepl extends React.Component {
                         this.commandString = this.commandBuffer;
                         this.commandBuffer = "";
                     } else {
-                        this.commandString = this.commands[this.commands.length - 1 - this.historyIndex].command;
+                        this.commandString = this.commandsHistory[this.commands.length - 1 - this.historyIndex];
                     }
                 }
                 break;

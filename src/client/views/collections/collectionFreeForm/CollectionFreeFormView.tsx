@@ -62,11 +62,11 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private inkKey = "ink";
 
     get parentScaling() {
-        return (this.props as any).ContentScaling && this.Document.nativeWidth && this.fitToBox && !this.isAnnotationOverlay ? (this.props as any).ContentScaling() : 1;
+        return (this.props as any).ContentScaling && this.fitToBox && !this.isAnnotationOverlay ? (this.props as any).ContentScaling() : 1;
     }
 
     @computed get contentBounds() {
-        let bounds = this.fitToBox && !this.nativeWidth && !this.isAnnotationOverlay ? Doc.ComputeContentBounds(DocListCast(this.props.Document.data)) : undefined;
+        let bounds = this.fitToBox && !this.isAnnotationOverlay ? Doc.ComputeContentBounds(DocListCast(this.props.Document.data)) : undefined;
         return {
             panX: bounds ? (bounds.x + bounds.r) / 2 : this.Document.panX || 0,
             panY: bounds ? (bounds.y + bounds.b) / 2 : this.Document.panY || 0,
@@ -304,7 +304,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         doc.zIndex = docs.length + 1;
     }
 
-    focusDocument = (doc: Doc, willZoom: boolean) => {
+    focusDocument = (doc: Doc, willZoom: boolean, scale?: number) => {
         const panX = this.Document.panX;
         const panY = this.Document.panY;
         const id = this.Document[Id];
@@ -336,20 +336,20 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         this.props.Document.panTransformType = "Ease";
         this.props.focus(this.props.Document);
         if (willZoom) {
-            this.setScaleToZoom(doc);
+            this.setScaleToZoom(doc, scale);
         }
 
     }
 
-    setScaleToZoom = (doc: Doc) => {
+    setScaleToZoom = (doc: Doc, scale: number = 0.5) => {
         let p = this.props;
         let PanelHeight = p.PanelHeight();
         let panelWidth = p.PanelWidth();
 
         let docHeight = NumCast(doc.height);
         let docWidth = NumCast(doc.width);
-        let targetHeight = 0.5 * PanelHeight;
-        let targetWidth = 0.5 * panelWidth;
+        let targetHeight = scale * PanelHeight;
+        let targetWidth = scale * panelWidth;
 
         let maxScaleX: number = targetWidth / docWidth;
         let maxScaleY: number = targetHeight / docHeight;
@@ -371,24 +371,18 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     getChildDocumentViewProps(childDocLayout: Doc): DocumentViewProps {
         let self = this;
-        let resolvedDataDoc = !this.props.Document.isTemplate && this.props.DataDoc !== this.props.Document ? this.props.DataDoc : undefined;
-        let layoutDoc = childDocLayout;
-        if (resolvedDataDoc && Doc.WillExpandTemplateLayout(childDocLayout, resolvedDataDoc)) {
-            Doc.UpdateDocumentExtensionForField(resolvedDataDoc, this.props.fieldKey);
-            let fieldExtensionDoc = Doc.resolvedFieldDataDoc(resolvedDataDoc, StrCast(childDocLayout.templateField, StrCast(childDocLayout.title)), "dummy");
-            layoutDoc = Doc.expandTemplateLayout(childDocLayout, fieldExtensionDoc !== resolvedDataDoc ? fieldExtensionDoc : undefined);
-        } else layoutDoc = Doc.expandTemplateLayout(childDocLayout, resolvedDataDoc);
+        let pair = Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, this.props.fieldKey, childDocLayout);
         return {
-            DataDoc: resolvedDataDoc !== layoutDoc && resolvedDataDoc ? resolvedDataDoc : undefined,
-            Document: layoutDoc,
+            DataDoc: pair.data,
+            Document: pair.layout,
             addDocument: this.props.addDocument,
             removeDocument: this.props.removeDocument,
             moveDocument: this.props.moveDocument,
             ScreenToLocalTransform: this.getTransform,
             renderDepth: this.props.renderDepth + 1,
-            selectOnLoad: layoutDoc[Id] === this._selectOnLoaded,
-            PanelWidth: layoutDoc[WidthSym],
-            PanelHeight: layoutDoc[HeightSym],
+            selectOnLoad: pair.layout[Id] === this._selectOnLoaded,
+            PanelWidth: pair.layout[WidthSym],
+            PanelHeight: pair.layout[HeightSym],
             ContentScaling: returnOne,
             ContainingCollectionView: this.props.CollectionView,
             focus: this.focusDocument,
@@ -408,7 +402,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             removeDocument: this.props.removeDocument,
             moveDocument: this.props.moveDocument,
             ScreenToLocalTransform: this.getTransform,
-            renderDepth: this.props.renderDepth + 1,
+            renderDepth: this.props.renderDepth,
             selectOnLoad: layoutDoc[Id] === this._selectOnLoaded,
             PanelWidth: layoutDoc[WidthSym],
             PanelHeight: layoutDoc[HeightSym],
@@ -478,7 +472,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             if (!(doc instanceof Doc)) return prev;
             var page = NumCast(doc.page, -1);
             if ((Math.abs(Math.round(page) - Math.round(curPage)) < 3) || page === -1) {
-                let minim = BoolCast(doc.isMinimized, false);
+                let minim = BoolCast(doc.isMinimized);
                 if (minim === undefined || !minim) {
                     const pos = script ? this.getCalculatedPositions(script, { doc, index: prev.length, collection: this.Document, docs, state }) : {};
                     state = pos.state === undefined ? state : pos.state;
