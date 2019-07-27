@@ -8,6 +8,7 @@ import * as globalCssVariables from "../views/globalCssVariables.scss";
 import { DocumentManager } from "./DocumentManager";
 import { LinkManager } from "./LinkManager";
 import { SelectionManager } from "./SelectionManager";
+import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
 
 export type dropActionType = "alias" | "copy" | undefined;
 export function SetupDrag(
@@ -290,10 +291,10 @@ export namespace DragManager {
 
     // for column dragging in schema view
     export class ColumnDragData {
-        constructor(colKey: string) {
+        constructor(colKey: SchemaHeaderField) {
             this.colKey = colKey;
         }
-        colKey: string;
+        colKey: SchemaHeaderField;
         [id: string]: any;
     }
 

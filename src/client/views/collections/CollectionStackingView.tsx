@@ -16,7 +16,7 @@ import { Transform } from "../../util/Transform";
 import { CursorProperty } from "csstype";
 import { CollectionStackingViewFieldColumn } from "./CollectionStackingViewFieldColumn";
 import { listSpec } from "../../../new_fields/Schema";
-import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
+import { SchemaHeaderField, RandomPastel } from "../../../new_fields/SchemaHeaderField";
 import { List } from "../../../new_fields/List";
 import { EditableView } from "../EditableView";
 import { CollectionViewProps } from "./CollectionBaseView";

@@ -10,11 +10,12 @@ import { ColumnType } from "./CollectionSchemaView";
 import { emptyFunction } from "../../../Utils";
 import { contains } from "typescript-collections/dist/lib/arrays";
 import { faFile } from "@fortawesome/free-regular-svg-icons";
+import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 
 library.add(faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn, faFile);
 
 export interface HeaderProps {
-    keyValue: string;
+    keyValue: SchemaHeaderField;
     possibleKeys: string[];
     existingKeys: string[];
     keyType: ColumnType;
@@ -33,14 +34,14 @@ export class CollectionSchemaHeader extends React.Component<HeaderProps> {
             this.props.keyType === ColumnType.Boolean ? "check-square" : this.props.keyType === ColumnType.Doc ? "file" : "align-justify";
 
         return (
-            <div className="collectionSchemaView-header" >
+            <div className="collectionSchemaView-header" style={{ background: this.props.keyValue.color }}>
                 <CollectionSchemaColumnMenu
-                    keyValue={this.props.keyValue}
+                    keyValue={this.props.keyValue.heading}
                     possibleKeys={this.props.possibleKeys}
                     existingKeys={this.props.existingKeys}
                     keyType={this.props.keyType}
                     typeConst={this.props.typeConst}
-                    menuButtonContent={<div><FontAwesomeIcon icon={icon} size="sm" />{this.props.keyValue}</div>}
+                    menuButtonContent={<div><FontAwesomeIcon icon={icon} size="sm" />{this.props.keyValue.heading}</div>}
                     addNew={false}
                     onSelect={this.props.onSelect}
                     setIsEditing={this.props.setIsEditing}

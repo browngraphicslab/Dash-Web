@@ -379,6 +379,7 @@ button.add-column {
 .collectionSchemaView-cellWrapper {
     height: 100%;
     padding: 4px;
+    position: relative;
 
     &:focus {
         outline: none;
@@ -405,6 +406,20 @@ button.add-column {
         height: 100%;
         // word-wrap: break-word;
     }
+
+    &:hover .collectionSchemaView-cellContents-docExpander {
+        display: block;
+    }
+}
+
+.collectionSchemaView-cellContents-docExpander {
+    height: 30px;
+    width: 30px;
+    display: none;
+    position: absolute;
+    top: 0;
+    right: 0;
+    background-color: lightgray;
 }
 
 .doc-drag-over {

@@ -38,6 +38,7 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { DocumentManager } from "../../util/DocumentManager";
 import { ImageBox } from "../nodes/ImageBox";
 import { ComputedField } from "../../../new_fields/ScriptField";
+import { SchemaHeaderField, RandomPastel } from "../../../new_fields/SchemaHeaderField";
 
 
 library.add(faCog, faPlus, faSortUp, faSortDown);
@@ -284,11 +285,13 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     @computed get previewWidth() { return () => NumCast(this.props.Document.schemaPreviewWidth); }
     @computed get previewHeight() { return () => this.props.PanelHeight() - 2 * this.borderWidth; }
     @computed get tableWidth() { return this.props.PanelWidth() - 2 * this.borderWidth - this.DIVIDER_WIDTH - this.previewWidth(); }
-    @computed get columns() { return Cast(this.props.Document.schemaColumns, listSpec("string"), []); }
-    set columns(columns: string[]) { this.props.Document.schemaColumns = new List<string>(columns); }
+    @computed get columns() {
+        return Cast(this.props.Document.schemaColumns, listSpec(SchemaHeaderField), []);
+    }
+    set columns(columns: SchemaHeaderField[]) { this.props.Document.schemaColumns = new List<SchemaHeaderField>(columns); }
     @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }
     @computed get tableColumns(): Column<Doc>[] {
-        let possibleKeys = this.documentKeys.filter(key => this.columns.findIndex(existingKey => existingKey.toUpperCase() === key.toUpperCase()) === -1);
+        let possibleKeys = this.documentKeys.filter(key => this.columns.findIndex(existingKey => existingKey.heading.toUpperCase() === key.toUpperCase()) === -1);
         let columns: Column<Doc>[] = [];
         let tableIsFocused = this.props.isFocused(this.props.Document);
         let focusedRow = this._focusedCell.row;
@@ -321,9 +324,9 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             let header = <CollectionSchemaHeader
                 keyValue={col}
                 possibleKeys={possibleKeys}
-                existingKeys={this.columns}
+                existingKeys={this.columns.map(c => c.heading)}
                 keyType={this.getColumnType(col)}
-                typeConst={columnTypes.get(col) !== undefined}
+                typeConst={col.type !== undefined || columnTypes.get(col.heading) !== undefined}
                 onSelect={this.changeColumns}
                 setIsEditing={this.setHeaderIsEditing}
                 deleteColumn={this.deleteColumn}
@@ -334,16 +337,16 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
             return {
                 Header: <MovableColumn columnRenderer={header} columnValue={col} allColumns={this.columns} reorderColumns={this.reorderColumns} ScreenToLocalTransform={this.props.ScreenToLocalTransform} />,
-                accessor: (doc: Doc) => doc ? doc[col] : 0,
-                id: col,
+                accessor: (doc: Doc) => doc ? doc[col.heading] : 0,
+                id: col.heading,
                 Cell: (rowProps: CellInfo) => {
-                    let row = rowProps.index;
-                    let column = this.columns.indexOf(rowProps.column.id!);
-                    let isFocused = focusedRow === row && focusedCol === column && tableIsFocused;
+                    let rowIndex = rowProps.index;
+                    let columnIndex = this.columns.map(c => c.heading).indexOf(rowProps.column.id!);
+                    let isFocused = focusedRow === rowIndex && focusedCol === columnIndex && tableIsFocused;
 
                     let props: CellProps = {
-                        row: row,
-                        col: column,
+                        row: rowIndex,
+                        col: columnIndex,
                         rowProps: rowProps,
                         isFocused: isFocused,
                         changeFocusedCellByIndex: this.changeFocusedCellByIndex,
@@ -356,6 +359,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                         moveDocument: this.props.moveDocument,
                         setIsEditing: this.setCellIsEditing,
                         isEditable: isEditable,
+                        setPreviewDoc: this.props.setPreviewDoc
                     };
 
                     let colType = this.getColumnType(col);
@@ -394,6 +398,15 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     //     }
     //     return this.props.Document;  
     // }
+    constructor(props: SchemaTableProps) {
+        super(props);
+        // convert old schema columns (list of strings) into new schema columns (list of schema header fields)
+        let oldSchemaColumns = Cast(this.props.Document.schemaColumns, listSpec("string"), []);
+        if (oldSchemaColumns && oldSchemaColumns.length) {
+            let newSchemaColumns = oldSchemaColumns.map(i => typeof i === "string" ? new SchemaHeaderField(i) : i);
+            this.props.Document.schemaColumns = new List<SchemaHeaderField>(newSchemaColumns);
+        }
+    }
 
     componentDidMount() {
         document.addEventListener("keydown", this.onKeyDown);
@@ -440,7 +453,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
         let row = rowInfo.index;
         //@ts-ignore
-        let col = this.columns.indexOf(column!.id);
+        let col = this.columns.map(c => c.heading).indexOf(column!.id);
         // let col = column ? this.columns.indexOf(column!) : -1;
         let isFocused = this._focusedCell.row === row && this._focusedCell.col === col && this.props.isFocused(this.props.Document);
         // let column = this.columns.indexOf(column.id!);
@@ -502,6 +515,11 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         if (!this._cellIsEditing && !this._headerIsEditing && this.props.isFocused(this.props.Document)) {// && this.props.isSelected()) {
             let direction = e.key === "Tab" ? "tab" : e.which === 39 ? "right" : e.which === 37 ? "left" : e.which === 38 ? "up" : e.which === 40 ? "down" : "";
             this.changeFocusedCellByDirection(direction);
+
+            let doc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
+            let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
+            const pdoc = FieldValue(children[this._focusedCell.row]);
+            pdoc && this.props.setPreviewDoc(pdoc);
         }
     }
 
@@ -532,8 +550,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                 this._focusedCell = { row: this._focusedCell.row + 1 === children.length ? this._focusedCell.row : this._focusedCell.row + 1, col: this._focusedCell.col };
                 break;
         }
-        const pdoc = FieldValue(children[this._focusedCell.row]);
-        pdoc && this.props.setPreviewDoc(pdoc);
+        // const pdoc = FieldValue(children[this._focusedCell.row]);
+        // pdoc && this.props.setPreviewDoc(pdoc);
     }
 
     @action
@@ -544,8 +562,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         this._focusedCell = { row: row, col: col };
         this.props.setFocused(this.props.Document);
 
-        const fdoc = FieldValue(children[this._focusedCell.row]);
-        fdoc && this.props.setPreviewDoc(fdoc);
+        // const fdoc = FieldValue(children[this._focusedCell.row]);
+        // fdoc && this.props.setPreviewDoc(fdoc);
     }
 
     createRow = () => {
@@ -561,25 +579,25 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     @action
     createColumn = () => {
         let index = 0;
-        let found = this.columns.findIndex(col => col.toUpperCase() === "New field".toUpperCase()) > -1;
+        let found = this.columns.findIndex(col => col.heading.toUpperCase() === "New field".toUpperCase()) > -1;
         if (!found) {
-            this.columns.push("New field");
+            this.columns.push(new SchemaHeaderField("New field"));
             return;
         }
         while (found) {
             index++;
-            found = this.columns.findIndex(col => col.toUpperCase() === ("New field (" + index + ")").toUpperCase()) > -1;
+            found = this.columns.findIndex(col => col.heading.toUpperCase() === ("New field (" + index + ")").toUpperCase()) > -1;
         }
-        this.columns.push("New field (" + index + ")");
+        this.columns.push(new SchemaHeaderField("New field (" + index + ")"));
     }
 
     @action
     deleteColumn = (key: string) => {
-        let list = Cast(this.props.Document.schemaColumns, listSpec("string"));
+        let list = Cast(this.props.Document.schemaColumns, listSpec(SchemaHeaderField));
         if (list === undefined) {
-            this.props.Document.schemaColumns = list = new List<string>([]);
+            this.props.Document.schemaColumns = list = new List<SchemaHeaderField>([]);
         } else {
-            const index = list.indexOf(key);
+            const index = list.map(c => c.heading).indexOf(key);
             if (index > -1) {
                 list.splice(index, 1);
             }
@@ -588,26 +606,37 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     @action
     changeColumns = (oldKey: string, newKey: string, addNew: boolean) => {
-        let list = Cast(this.props.Document.schemaColumns, listSpec("string"));
+        let list = Cast(this.props.Document.schemaColumns, listSpec(SchemaHeaderField));
         if (list === undefined) {
-            this.props.Document.schemaColumns = list = new List<string>([newKey]);
+            this.props.Document.schemaColumns = list = new List<SchemaHeaderField>([new SchemaHeaderField(newKey)]);
         } else {
             if (addNew) {
-                this.columns.push(newKey);
+                this.columns.push(new SchemaHeaderField(newKey));
             } else {
-                const index = list.indexOf(oldKey);
+                const index = list.map(c => c.heading).indexOf(oldKey);
                 if (index > -1) {
-                    list[index] = newKey;
+                    list[index] = new SchemaHeaderField(newKey);
                 }
             }
         }
     }
 
-    getColumnType = (key: string): ColumnType => {
-        if (columnTypes.get(key)) return columnTypes.get(key)!;
+    getColumnType = (column: SchemaHeaderField): ColumnType => {
+        // added functionality to convert old column type stuff to new column type stuff -syip
+        if (column.type && column.type !== 0) {
+            return column.type;
+        }
+        if (columnTypes.get(column.heading)) {
+            column.type = columnTypes.get(column.heading)!;
+            return columnTypes.get(column.heading)!;
+        }
         const typesDoc = FieldValue(Cast(this.props.Document.schemaColumnTypes, Doc));
-        if (!typesDoc) return ColumnType.Any;
-        return NumCast(typesDoc[key]);
+        if (!typesDoc) {
+            column.type = ColumnType.Any;
+            return ColumnType.Any;
+        }
+        column.type = NumCast(typesDoc[column.heading]);
+        return NumCast(typesDoc[column.heading]);
     }
 
     setColumnType = (key: string, type: ColumnType): void => {
@@ -624,11 +653,11 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     @action
-    setColumns = (columns: string[]) => {
+    setColumns = (columns: SchemaHeaderField[]) => {
         this.columns = columns;
     }
 
-    reorderColumns = (toMove: string, relativeTo: string, before: boolean, columnsValues: string[]) => {
+    reorderColumns = (toMove: SchemaHeaderField, relativeTo: SchemaHeaderField, before: boolean, columnsValues: SchemaHeaderField[]) => {
         let columns = [...columnsValues];
         let oldIndex = columns.indexOf(toMove);
         let relIndex = columns.indexOf(relativeTo);
@@ -661,7 +690,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         //TODO Types
         untracked(() => docs.map(doc => Doc.GetAllPrototypes(doc).map(proto => Object.keys(proto).forEach(key => keys[key] = false))));
 
-        this.columns.forEach(key => keys[key] = true);
+        this.columns.forEach(key => keys[key.heading] = true);
         return Array.from(Object.keys(keys));
     }
 
@@ -727,7 +756,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         csv = csv.substr(0, csv.length - 1) + "\n";
         let self = this;
         DocListCast(this.props.Document.data).map(doc => {
-            csv += self.columns.reduce((val, col) => val + (doc[col] ? doc[col]!.toString() : "0") + ",", "");
+            csv += self.columns.reduce((val, col) => val + (doc[col.heading] ? doc[col.heading]!.toString() : "0") + ",", "");
             csv = csv.substr(0, csv.length - 1) + "\n";
         });
         csv.substring(0, csv.length - 1);

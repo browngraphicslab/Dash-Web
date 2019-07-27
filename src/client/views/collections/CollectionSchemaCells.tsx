@@ -21,7 +21,12 @@ import { NumCast, StrCast, BoolCast, FieldValue, Cast } from "../../../new_field
 import { Docs } from "../../documents/Documents";
 import { DocumentContentsView } from "../nodes/DocumentContentsView";
 import { SelectionManager } from "../../util/SelectionManager";
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { faExpand } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { SchemaHeaderField, RandomPastel } from "../../../new_fields/SchemaHeaderField";
 
+library.add(faExpand);
 
 export interface CellProps {
     row: number;
@@ -38,6 +43,7 @@ export interface CellProps {
     changeFocusedCellByIndex: (row: number, col: number) => void;
     setIsEditing: (isEditing: boolean) => void;
     isEditable: boolean;
+    setPreviewDoc: (doc: Doc) => void;
 }
 
 @observer
@@ -92,7 +98,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                 this._document[fieldKey] = de.data.draggedDocuments[0];
             }
             else {
-                let coll = Docs.Create.SchemaDocument(["title"], de.data.draggedDocuments, {});
+                let coll = Docs.Create.SchemaDocument([new SchemaHeaderField("title")], de.data.draggedDocuments, {});
                 this._document[fieldKey] = coll;
             }
             e.stopPropagation();
@@ -104,6 +110,18 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         if (ele) {
             this._dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
         }
+    }
+
+    expandDoc = (e: React.PointerEvent) => {
+        let field = this.props.rowProps.original[this.props.rowProps.column.id as string];
+        let doc = FieldValue(Cast(field, Doc));
+
+        console.log("Expanding doc", StrCast(doc!.title));
+        this.props.setPreviewDoc(doc!);
+
+        // this.props.changeFocusedCellByIndex(this.props.row, this.props.col);
+
+        e.stopPropagation();
     }
 
     renderCellWithType(type: string | undefined) {
@@ -157,6 +175,15 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         if (this.props.isFocused && this.props.isEditable) className += " focused";
         if (this.props.isFocused && !this.props.isEditable) className += " inactive";
 
+        let doc = FieldValue(Cast(field, Doc));
+        if (type === "document") console.log("doc", typeof field);
+        let fieldIsDoc = (type === "document" && typeof field === "object") || (typeof field === "object" && doc);
+        let docExpander = (
+            <div className="collectionSchemaView-cellContents-docExpander" onPointerDown={this.expandDoc} >
+                <FontAwesomeIcon icon="expand" size="sm" />
+            </div>
+        );
+
         return (
             <div className="collectionSchemaView-cellContainer" ref={dragRef} onPointerDown={this.onPointerDown} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
                 <div className={className} ref={this._focusRef} tabIndex={-1}>
@@ -193,6 +220,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                                 val && val.forEach(doc => this.applyToDoc(doc, run));
                             }} />
                     </div >
+                    {fieldIsDoc ? docExpander : null}
                 </div>
             </div>
         );

@@ -19,6 +19,7 @@ import { CollectionViewType } from "../CollectionBaseView";
 import { CollectionFreeFormView } from "./CollectionFreeFormView";
 import "./MarqueeView.scss";
 import React = require("react");
+import { SchemaHeaderField, RandomPastel } from "../../../../new_fields/SchemaHeaderField";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -134,7 +135,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 doc.width = 200;
                 docList.push(doc);
             }
-            let newCol = Docs.Create.SchemaDocument([...(groupAttr ? ["_group"] : []), ...columns.filter(c => c)], docList, { x: x, y: y, title: "droppedTable", width: 300, height: 100 });
+            let newCol = Docs.Create.SchemaDocument([...(groupAttr ? [new SchemaHeaderField("_group")] : []), ...columns.filter(c => c).map(c => new SchemaHeaderField(c))], docList, { x: x, y: y, title: "droppedTable", width: 300, height: 100 });
 
             this.props.addDocument(newCol, false);
         }

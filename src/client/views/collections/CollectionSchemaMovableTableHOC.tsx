@@ -12,14 +12,15 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 import { faGripVertical, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { DocumentManager } from "../../util/DocumentManager";
+import { PastelSchemaPalette, SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 
 library.add(faGripVertical, faTrash);
 
 export interface MovableColumnProps {
     columnRenderer: TableCellRenderer;
-    columnValue: string;
-    allColumns: string[];
-    reorderColumns: (toMove: string, relativeTo: string, before: boolean, columns: string[]) => void;
+    columnValue: SchemaHeaderField;
+    allColumns: SchemaHeaderField[];
+    reorderColumns: (toMove: SchemaHeaderField, relativeTo: SchemaHeaderField, before: boolean, columns: SchemaHeaderField[]) => void;
     ScreenToLocalTransform: () => Transform;
 }
 export class MovableColumn extends React.Component<MovableColumnProps> {
