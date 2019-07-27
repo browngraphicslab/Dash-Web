@@ -94,7 +94,7 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
                     ) : null}
                     <div className="contextMenu-description">
                         {this.props.description}
-                        <FontAwesomeIcon icon={faAngleRight} size="lg" style={{ position: "absolute", right: "10px", marginTop: "-2px"}} />
+                        <FontAwesomeIcon icon={faAngleRight} size="lg" style={{ position: "absolute", right: "10px"}} />
                     </div>
                     {submenu}
                 </div>
