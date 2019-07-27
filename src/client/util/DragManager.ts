@@ -422,7 +422,6 @@ export namespace DragManager {
             if (options) {
                 options.handlers.dragComplete({});
             }
-            DocumentDecorations.Instance.endLinkDragBatch();
         };
 
         AbortDrag = () => {
