@@ -70,10 +70,6 @@ export class CurrentUserUtils {
             sidebar.boxShadow = "1 1 3";
             doc.sidebar = sidebar;
         }
-        (Cast(doc.workspaces, Doc) as Doc).chromeStatus = "disabled";
-        (Cast(doc.recentlyClosed, Doc) as Doc).chromeStatus = "disabled";
-        (Cast(doc.sidebar, Doc) as Doc).chromeStatus = "disabled";
-        doc.chromeStatus = "disabled";
         StrCast(doc.title).indexOf("@") !== -1 && (doc.title = StrCast(doc.title).split("@")[0] + "'s Library");
 
     }
