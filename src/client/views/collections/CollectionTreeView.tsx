@@ -1,5 +1,5 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faAngleRight, faCamera, faExpand, faTrash, faBell, faCaretDown, faCaretRight, faArrowsAltH, faCaretSquareDown, faCaretSquareRight, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
+import { faAngleRight, faCamera, faExpand, faTrash, faBell, faCaretDown, faCaretRight, faArrowsAltH, faCaretSquareDown, faCaretSquareRight, faTrashAlt, faPlus, faMinus } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, trace, untracked } from "mobx";
 import { observer } from "mobx-react";
@@ -61,7 +61,7 @@ library.add(faCaretRight);
 library.add(faCaretSquareDown);
 library.add(faCaretSquareRight);
 library.add(faArrowsAltH);
-
+library.add(faPlus, faMinus);
 @observer
 /**
  * Component that takes in a document prop and a boolean whether it's collapsed or not.
@@ -201,7 +201,11 @@ class TreeView extends React.Component<TreeViewProps> {
 
         let headerElements = (
             <span className="collectionTreeView-keyHeader" key={this.treeViewExpandedView}
-                onPointerDown={action(() => this.props.document.treeViewExpandedView = this.treeViewExpandedView === "data" ? "fields" : this.treeViewExpandedView === "fields" && this.props.document.layout ? "layout" : "data")}>
+                onPointerDown={action(() => {
+                    this.props.document.treeViewExpandedView = this.treeViewExpandedView === "data" ? "fields" :
+                        this.treeViewExpandedView === "fields" && this.props.document.layout ? "layout" : "data";
+                    this._collapsed = false;
+                })}>
                 {this.treeViewExpandedView}
             </span>);
         let dataDocs = CollectionDockingView.Instance ? Cast(CollectionDockingView.Instance.props.Document[this.fieldKey], listSpec(Doc), []) : [];
@@ -356,7 +360,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 let remDoc = (doc: Doc) => this.remove(doc, key);
                 let addDoc = (doc: Doc, addBefore?: Doc, before?: boolean) => Doc.AddDocToList(this.dataDoc, key, doc, addBefore, before);
                 contentElement = key === "links" ? this.renderLinks() :
-                    TreeView.GetChildElements(docList instanceof Doc ? [docList as Doc] : DocListCast(docList), this.props.treeViewId, realDoc, undefined, key, addDoc, remDoc, this.move,
+                    TreeView.GetChildElements(docList instanceof Doc ? [docList] : DocListCast(docList), this.props.treeViewId, realDoc, undefined, key, addDoc, remDoc, this.move,
                         this.props.dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active, this.props.panelWidth, this.props.renderDepth);
             } else {
                 contentElement = <EditableView
@@ -518,8 +522,8 @@ export class CollectionTreeView extends CollectionSubView(Document) {
     onContextMenu = (e: React.MouseEvent): void => {
         // need to test if propagation has stopped because GoldenLayout forces a parallel react hierarchy to be created for its top-level layout
         if (!e.isPropagationStopped() && this.props.Document.workspaceLibrary) { // excludeFromLibrary means this is the user document
-            ContextMenu.Instance.addItem({ description: "Create Workspace", event: undoBatch(() => MainView.Instance.createNewWorkspace()) });
-            ContextMenu.Instance.addItem({ description: "Delete Workspace", event: undoBatch(() => this.remove(this.props.Document)) });
+            ContextMenu.Instance.addItem({ description: "Create Workspace", event: undoBatch(() => MainView.Instance.createNewWorkspace()), icon: "plus" });
+            ContextMenu.Instance.addItem({ description: "Delete Workspace", event: undoBatch(() => this.remove(this.props.Document)), icon: "minus" });
             e.stopPropagation();
             e.preventDefault();
             ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);

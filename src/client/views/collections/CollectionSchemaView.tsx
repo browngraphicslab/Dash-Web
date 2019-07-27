@@ -1,6 +1,6 @@
 import React = require("react");
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faCog, faPlus, faSortUp, faSortDown } from '@fortawesome/free-solid-svg-icons';
+import { faCog, faPlus, faTable, faSortUp, faSortDown } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, trace, untracked } from "mobx";
 import { observer } from "mobx-react";
@@ -11,8 +11,8 @@ import { Doc, DocListCast, DocListCastAsync, Field, FieldResult, Opt } from "../
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
-import { Cast, FieldValue, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
 import { Docs, DocumentOptions } from "../../documents/Documents";
+import { Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
 import { Gateway } from "../../northstar/manager/Gateway";
 import { SetupDrag, DragManager } from "../../util/DragManager";
 import { CompileScript, ts, Transformer } from "../../util/Scripting";
@@ -42,6 +42,7 @@ import { SchemaHeaderField, RandomPastel } from "../../../new_fields/SchemaHeade
 
 
 library.add(faCog, faPlus, faSortUp, faSortDown);
+library.add(faTable);
 // bcz: need to add drag and drop of rows and columns.  This seems like it might work for rows: https://codesandbox.io/s/l94mn1q657
 
 export enum ColumnType {
@@ -746,7 +747,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     onContextMenu = (e: React.MouseEvent): void => {
         if (!e.isPropagationStopped() && this.props.Document[Id] !== "mainDoc") { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
-            ContextMenu.Instance.addItem({ description: "Make DB", event: this.makeDB });
+            ContextMenu.Instance.addItem({ description: "Make DB", event: this.makeDB, icon: "table" });
         }
     }
 
@@ -878,7 +879,7 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
                         height: "100%"
                     }}>
                     <DocumentView
-                        DataDoc={this.props.Document.layout instanceof Doc ? this.props.Document : this.props.DataDocument}
+                        DataDoc={this.props.DataDocument}
                         Document={this.props.Document}
                         fitToBox={this.props.fitToBox}
                         renderDepth={this.props.renderDepth + 1}

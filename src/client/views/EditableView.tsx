@@ -69,8 +69,10 @@ export class EditableView extends React.Component<EditableProps> {
     @action
     onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Tab") {
+            e.stopPropagation();
             this.props.OnTab && this.props.OnTab();
         } else if (e.key === "Enter") {
+            e.stopPropagation();
             if (!e.ctrlKey) {
                 if (this.props.SetValue(e.currentTarget.value, e.shiftKey)) {
                     this._editing = false;
@@ -82,6 +84,7 @@ export class EditableView extends React.Component<EditableProps> {
                 this.props.isEditingCallback && this.props.isEditingCallback(false);
             }
         } else if (e.key === "Escape") {
+            e.stopPropagation();
             this._editing = false;
             this.props.isEditingCallback && this.props.isEditingCallback(false);
         }

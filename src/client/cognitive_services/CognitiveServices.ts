@@ -9,6 +9,7 @@ import { Utils } from "../../Utils";
 import { CompileScript } from "../util/Scripting";
 import { ComputedField } from "../../new_fields/ScriptField";
 import { InkData } from "../../new_fields/InkField";
+import { undoBatch, UndoManager } from "../util/UndoManager";
 
 type APIManager<D> = { converter: BodyConverter<D>, requester: RequestExecutor, analyzer: AnalysisApplier };
 type RequestExecutor = (apiKey: string, body: string, service: Service) => Promise<string>;
@@ -103,6 +104,7 @@ export namespace CognitiveServices {
             },
 
             analyzer: async (target: Doc, keys: string[], service: Service, converter: Converter) => {
+                let batch = UndoManager.StartBatch("Image Analysis");
                 let imageData = Cast(target.data, ImageField);
                 let storageKey = keys[0];
                 if (!imageData || await Cast(target[storageKey], Doc)) {
@@ -120,6 +122,7 @@ export namespace CognitiveServices {
                     }
                 }
                 target[storageKey] = toStore;
+                batch.end();
             }
 
         };
@@ -205,6 +208,7 @@ export namespace CognitiveServices {
             },
 
             analyzer: async (target: Doc, keys: string[], inkData: InkData) => {
+                let batch = UndoManager.StartBatch("Ink Analysis");
                 let results = await executeQuery<InkData, any>(Service.Handwriting, Manager, inkData);
                 if (results) {
                     results.recognitionUnits && (results = results.recognitionUnits);
@@ -213,6 +217,7 @@ export namespace CognitiveServices {
                     let individualWords = recognizedText.filter((text: string) => text && text.split(" ").length === 1);
                     target[keys[1]] = individualWords.join(" ");
                 }
+                batch.end();
             }
 
         };

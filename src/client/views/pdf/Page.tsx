@@ -1,22 +1,18 @@
+import { action, IReactionDisposer, observable } from "mobx";
 import { observer } from "mobx-react";
-import React = require("react");
-import { observable, action, runInAction, IReactionDisposer, reaction } from "mobx";
 import * as Pdfjs from "pdfjs-dist";
-import { Opt, Doc, FieldResult, Field, DocListCast, WidthSym, HeightSym, DocListCastAsync } from "../../../new_fields/Doc";
-import "./PDFViewer.scss";
 import "pdfjs-dist/web/pdf_viewer.css";
-import { PDFBox } from "../nodes/PDFBox";
-import { DragManager } from "../../util/DragManager";
-import { Docs, DocUtils } from "../../documents/Documents";
+import { Doc, DocListCastAsync, Opt, WidthSym } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
-import { emptyFunction } from "../../../Utils";
-import { Cast, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
 import { listSpec } from "../../../new_fields/Schema";
-import { menuBar } from "prosemirror-menu";
-import { AnnotationTypes, PDFViewer, scale } from "./PDFViewer";
+import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { Docs, DocUtils } from "../../documents/Documents";
+import { DragManager } from "../../util/DragManager";
+import { PDFBox } from "../nodes/PDFBox";
 import PDFMenu from "./PDFMenu";
-import { UndoManager } from "../../util/UndoManager";
-import { copy } from "typescript-collections/dist/lib/arrays";
+import { scale } from "./PDFViewer";
+import "./PDFViewer.scss";
+import React = require("react");
 
 
 interface IPageProps {

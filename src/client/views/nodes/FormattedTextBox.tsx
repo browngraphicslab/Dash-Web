@@ -1,5 +1,5 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faEdit, faSmile } from '@fortawesome/free-solid-svg-icons';
+import { faEdit, faSmile, faTextHeight } from '@fortawesome/free-solid-svg-icons';
 import { action, IReactionDisposer, observable, reaction, runInAction, computed, trace } from "mobx";
 import { observer } from "mobx-react";
 import { baseKeymap } from "prosemirror-commands";
@@ -38,7 +38,7 @@ import { thisExpression } from 'babel-types';
 import { Utils } from '../../../Utils';
 
 library.add(faEdit);
-library.add(faSmile);
+library.add(faSmile, faTextHeight);
 
 // FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document
 //
@@ -139,7 +139,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()));
             this._applyingChange = false;
             let title = StrCast(this.dataDoc.title);
-            if (title && title.startsWith("-") && this._editorView) {
+            if (title && title.startsWith("-") && this._editorView && !this.Document.customTitle) {
                 let str = this._editorView.state.doc.textContent;
                 let titlestr = str.substr(0, Math.min(40, str.length));
                 this.dataDoc.title = "-" + titlestr + (str.length > 40 ? "..." : "");
@@ -422,7 +422,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         // stop propagation doesn't seem to stop propagation of native keyboard events.
         // so we set a flag on the native event that marks that the event's been handled.
         (e.nativeEvent as any).DASHFormattedTextBoxHandled = true;
-        if (StrCast(this.dataDoc.title).startsWith("-") && this._editorView) {
+        if (StrCast(this.dataDoc.title).startsWith("-") && this._editorView && !this.Document.customTitle) {
             let str = this._editorView.state.doc.textContent;
             let titlestr = str.substr(0, Math.min(40, str.length));
             this.dataDoc.title = "-" + titlestr + (str.length > 40 ? "..." : "");
@@ -459,10 +459,10 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     specificContextMenu = (e: React.MouseEvent): void => {
         let subitems: ContextMenuProps[] = [];
         subitems.push({
-            description: BoolCast(this.props.Document.autoHeight, false) ? "Manual Height" : "Auto Height",
-            event: action(() => Doc.GetProto(this.props.Document).autoHeight = !BoolCast(this.props.Document.autoHeight, false)), icon: "expand-arrows-alt"
+            description: BoolCast(this.props.Document.autoHeight) ? "Manual Height" : "Auto Height",
+            event: action(() => Doc.GetProto(this.props.Document).autoHeight = !BoolCast(this.props.Document.autoHeight)), icon: "expand-arrows-alt"
         });
-        ContextMenu.Instance.addItem({ description: "Text Funcs...", subitems: subitems });
+        ContextMenu.Instance.addItem({ description: "Text Funcs...", subitems: subitems, icon: "text-height" });
     }
     render() {
         let self = this;

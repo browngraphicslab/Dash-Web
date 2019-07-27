@@ -9,6 +9,7 @@ import { DocumentManager } from "./DocumentManager";
 import { LinkManager } from "./LinkManager";
 import { SelectionManager } from "./SelectionManager";
 import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
+import { DocumentDecorations } from "../views/DocumentDecorations";
 
 export type dropActionType = "alias" | "copy" | undefined;
 export function SetupDrag(
@@ -426,7 +427,6 @@ export namespace DragManager {
         };
 
         let hideDragElements = () => {
-            SelectionManager.SetIsDragging(false);
             dragElements.map(dragElement => dragElement.parentNode === dragDiv && dragDiv.removeChild(dragElement));
             eles.map(ele => (ele.hidden = false));
         };
@@ -436,15 +436,18 @@ export namespace DragManager {
             if (options) {
                 options.handlers.dragComplete({});
             }
+            DocumentDecorations.Instance.endLinkDragBatch();
         };
 
         AbortDrag = () => {
             hideDragElements();
+            SelectionManager.SetIsDragging(false);
             endDrag();
         };
         const upHandler = (e: PointerEvent) => {
             hideDragElements();
             dispatchDrag(eles, e, dragData, options, finishDrag);
+            SelectionManager.SetIsDragging(false);
             endDrag();
         };
         document.addEventListener("pointermove", moveHandler, true);
