@@ -34,7 +34,6 @@ export const handleBackspace = (e: React.KeyboardEvent) => { if (e.keyCode === K
 @observer
 export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocument) {
     public static LayoutString() { return FieldView.LayoutString(PDFBox); }
-    public selectionText: string = "";
 
     @observable private _alt = false;
     @observable private _scrollY: number = 0;
@@ -82,7 +81,6 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
 
     private copy = (e: ClipboardEvent) => {
         if (this.props.active()) {
-            let text = this.selectionText;
             if (e.clipboardData) {
                 e.clipboardData.setData("text/plain", text);
                 e.clipboardData.setData("dash/pdfOrigin", this.props.Document[Id]);

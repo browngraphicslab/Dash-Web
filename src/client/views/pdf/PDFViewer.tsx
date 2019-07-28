@@ -92,6 +92,7 @@ export class Viewer extends React.Component<IViewerProps> {
     // private _textContent: Pdfjs.TextContent[] = [];
     private _pdfFindController: any;
     private _searchString: string = "";
+    private _selectionText: string = "";
 
     constructor(props: IViewerProps) {
         super(props);
@@ -100,6 +101,10 @@ export class Viewer extends React.Component<IViewerProps> {
         this._script = scriptfield ? scriptfield.script : CompileScript("return true");
         this._viewer = React.createRef();
         this._mainCont = React.createRef();
+    }
+
+    setSelectionText = (text: string) => {
+        this._selectionText = text;
     }
 
     componentDidUpdate = (prevProps: IViewerProps) => {
@@ -158,8 +163,8 @@ export class Viewer extends React.Component<IViewerProps> {
             this._dropDisposer = this._mainCont.current && DragManager.MakeDropTarget(this._mainCont.current, { handlers: { drop: this.drop.bind(this) } });
         }
 
-        document.removeEventListener("paste", this.paste);
-        document.addEventListener("paste", this.paste);
+        document.removeEventListener("copy", this.copy);
+        document.addEventListener("copy", this.copy);
     }
 
     componentWillUnmount = () => {
@@ -167,7 +172,24 @@ export class Viewer extends React.Component<IViewerProps> {
         this._annotationReactionDisposer && this._annotationReactionDisposer();
         this._filterReactionDisposer && this._filterReactionDisposer();
         this._dropDisposer && this._dropDisposer();
-        document.removeEventListener("paste", this.paste);
+        document.removeEventListener("copy", this.copy);
+    }
+
+    private copy = (e: ClipboardEvent) => {
+        if (this.props.parent.props.active()) {
+            let text = this._selectionText;
+            if (e.clipboardData) {
+                e.clipboardData.setData("text/plain", text);
+                e.clipboardData.setData("dash/pdfOrigin", this.props.parent.props.Document[Id]);
+                let annoDoc = this.makeAnnotationDocument(undefined, 0, "#0390fc");
+                e.clipboardData.setData("dash/pdfRegion", annoDoc[Id]);
+                e.preventDefault();
+            }
+        }
+        // let targetAnnotations = DocListCast(this.props.parent.fieldExtensionDoc.annotations);
+        // if (targetAnnotations) {
+        //     targetAnnotations.push(destDoc);
+        // }
     }
 
     paste = (e: ClipboardEvent) => {
@@ -281,7 +303,6 @@ export class Viewer extends React.Component<IViewerProps> {
             let targetAnnotations = DocListCast(this.props.parent.fieldExtensionDoc.annotations);
             if (targetAnnotations) {
                 targetAnnotations.push(destDoc);
-                this.props.parent.fieldExtensionDoc.annotations = new List<Doc>(targetAnnotations);
             }
             else {
                 this.props.parent.fieldExtensionDoc.annotations = new List<Doc>([destDoc]);
@@ -315,6 +336,7 @@ export class Viewer extends React.Component<IViewerProps> {
             this._isPage[page] = "page";
             this._visibleElements[page] = (
                 <Page
+                    setSelectionText={this.setSelectionText}
                     size={this._pageSizes[page]}
                     pdf={this.props.pdf}
                     page={page}

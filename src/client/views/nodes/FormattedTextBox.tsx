@@ -8,7 +8,7 @@ import { keymap } from "prosemirror-keymap";
 import { EditorState, Plugin, Transaction, Selection } from "prosemirror-state";
 import { NodeType, Slice, Node, Fragment } from 'prosemirror-model';
 import { EditorView } from "prosemirror-view";
-import { Doc, Opt } from "../../../new_fields/Doc";
+import { Doc, Opt, DocListCast } from "../../../new_fields/Doc";
 import { Id, Copy } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
 import { RichTextField } from "../../../new_fields/RichTextField";
@@ -302,28 +302,42 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     handlePaste = (view: EditorView, event: Event, slice: Slice): boolean => {
         let cbe = event as ClipboardEvent;
         let docId: string;
+        let regionId: string;
         if (!cbe.clipboardData) {
             return false;
         }
         let linkId: string;
         docId = cbe.clipboardData.getData("dash/pdfOrigin");
-        if (!docId) {
+        regionId = cbe.clipboardData.getData("dash/pdfRegion");
+        if (!docId || !regionId) {
             return false;
         }
 
         DocServer.GetRefField(docId).then(doc => {
-            if (!(doc instanceof Doc)) {
-                return;
-            }
-            let link = DocUtils.MakeLink(this.props.Document, doc);
-            if (link) {
-                cbe.clipboardData!.setData("dash/linkDoc", link[Id]);
-                linkId = link[Id];
-                let frag = addMarkToFrag(slice.content);
-                slice = new Slice(frag, slice.openStart, slice.openEnd);
-                var tr = view.state.tr.replaceSelection(slice);
-                view.dispatch(tr.scrollIntoView().setMeta("paste", true).setMeta("uiEvent", "paste"));
-            }
+            DocServer.GetRefField(regionId).then(region => {
+                if (!(doc instanceof Doc) || !(region instanceof Doc)) {
+                    return;
+                }
+
+                let annotations = DocListCast(region.annotations);
+                annotations.forEach(anno => anno.target = this.props.Document);
+                let fieldExtDoc = Doc.resolvedFieldDataDoc(doc, "data", "true");
+                let targetAnnotations = DocListCast(fieldExtDoc.annotations);
+                if (targetAnnotations) {
+                    targetAnnotations.push(region);
+                    fieldExtDoc.annotations = new List<Doc>(targetAnnotations);
+                }
+
+                let link = DocUtils.MakeLink(this.props.Document, region);
+                if (link) {
+                    cbe.clipboardData!.setData("dash/linkDoc", link[Id]);
+                    linkId = link[Id];
+                    let frag = addMarkToFrag(slice.content);
+                    slice = new Slice(frag, slice.openStart, slice.openEnd);
+                    var tr = view.state.tr.replaceSelection(slice);
+                    view.dispatch(tr.scrollIntoView().setMeta("paste", true).setMeta("uiEvent", "paste"));
+                }
+            });
         });
 
         return true;

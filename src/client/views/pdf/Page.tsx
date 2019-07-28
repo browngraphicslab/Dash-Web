@@ -29,6 +29,7 @@ interface IPageProps {
     createAnnotation: (div: HTMLDivElement, page: number) => void;
     makeAnnotationDocuments: (doc: Doc | undefined, scale: number, color: string, linkTo: boolean) => Doc;
     getScrollFromPage: (page: number) => number;
+    setSelectionText: (text: string) => void;
 }
 
 @observer
@@ -392,7 +393,7 @@ export default class Page extends React.Component<IPageProps> {
         }
         let text = selRange.extractContents().textContent;
         if (text) {
-            this.props.parent.selectionText = text;
+            this.props.setSelectionText(text);
         }
         // clear selection
         if (sel.empty) {  // Chrome
