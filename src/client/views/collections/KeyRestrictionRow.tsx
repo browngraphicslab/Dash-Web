@@ -26,6 +26,9 @@ export default class KeyRestrictionRow extends React.Component<IKeyRestrictionPr
             let scriptText = `${this._contains ? "" : "!"}((doc.${this._key} as ${type})${type === "string" ? ".includes" : "<="}(${parsedValue}))`;
             this.props.script(scriptText);
         }
+        else {
+            this.props.script("");
+        }
         return (
             <div className="collectionViewBaseChrome-viewSpecsMenu-row">
                 <input className="collectionViewBaseChrome-viewSpecsMenu-rowLeft"
