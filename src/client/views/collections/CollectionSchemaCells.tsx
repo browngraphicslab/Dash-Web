@@ -84,6 +84,11 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         this.props.changeFocusedCellByIndex(this.props.row, this.props.col);
+        this.props.setPreviewDoc(this.props.rowProps.original);
+
+        let field = this.props.rowProps.original[this.props.rowProps.column.id!];
+        let doc = FieldValue(Cast(field, Doc));
+        if (typeof field === "object" && doc) this.props.setPreviewDoc(doc);
     }
 
     applyToDoc = (doc: Doc, row: number, col: number, run: (args?: { [name: string]: any }) => any) => {
@@ -150,10 +155,10 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             addDocTab: this.props.addDocTab,
         };
 
-        // let onItemDown = (e: React.PointerEvent) => {
-        //     SetupDrag(this._focusRef, () => this._document[props.fieldKey] instanceof Doc ? this._document[props.fieldKey] : this._document,
-        //         this._document[props.fieldKey] instanceof Doc ? (doc: Doc, target: Doc, addDoc: (newDoc: Doc) => any) => addDoc(doc) : this.props.moveDocument, this._document[props.fieldKey] instanceof Doc ? "alias" : this.props.Document.schemaDoc ? "copy" : undefined)(e);
-        // };
+        let onItemDown = (e: React.PointerEvent) => {
+            SetupDrag(this._focusRef, () => this._document[props.fieldKey] instanceof Doc ? this._document[props.fieldKey] : this._document,
+                this._document[props.fieldKey] instanceof Doc ? (doc: Doc, target: Doc, addDoc: (newDoc: Doc) => any) => addDoc(doc) : this.props.moveDocument, this._document[props.fieldKey] instanceof Doc ? "alias" : this.props.Document.schemaDoc ? "copy" : undefined)(e);
+        };
         let onPointerEnter = (e: React.PointerEvent): void => {
             if (e.buttons === 1 && SelectionManager.GetIsDragging() && (type === "document" || type === undefined)) {
                 dragRef!.current!.className = "collectionSchemaView-cellContainer doc-drag-over";
@@ -181,16 +186,16 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
 
         let doc = FieldValue(Cast(field, Doc));
         let fieldIsDoc = (type === "document" && typeof field === "object") || (typeof field === "object" && doc);
-        let docExpander = (
-            <div className="collectionSchemaView-cellContents-docExpander" onPointerDown={this.expandDoc} >
-                <FontAwesomeIcon icon="expand" size="sm" />
-            </div>
-        );
+        // let docExpander = (
+        //     <div className="collectionSchemaView-cellContents-docExpander" onPointerDown={this.expandDoc} >
+        //         <FontAwesomeIcon icon="expand" size="sm" />
+        //     </div>
+        // );
 
         return (
-            <div className="collectionSchemaView-cellContainer" ref={dragRef} onPointerDown={this.onPointerDown} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
+            <div className="collectionSchemaView-cellContainer" style={{ cursor: fieldIsDoc ? "grab" : "auto" }} ref={dragRef} onPointerDown={this.onPointerDown} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
                 <div className={className} ref={this._focusRef} tabIndex={-1}>
-                    <div className="collectionSchemaView-cellContents" ref={type === undefined || type === "document" ? this.dropRef : null} key={props.Document[Id]}>
+                    <div className="collectionSchemaView-cellContents" ref={type === undefined || type === "document" ? this.dropRef : null} onPointerDown={onItemDown} key={props.Document[Id]}>
                         <EditableView
                             editing={this._isEditing}
                             isEditingCallback={this.isEditingCallback}
@@ -226,7 +231,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                             }}
                         />
                     </div >
-                    {fieldIsDoc ? docExpander : null}
+                    {/* {fieldIsDoc ? docExpander : null} */}
                 </div>
             </div>
         );
