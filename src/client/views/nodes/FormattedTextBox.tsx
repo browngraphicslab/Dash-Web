@@ -5,17 +5,17 @@ import { observer } from "mobx-react";
 import { baseKeymap } from "prosemirror-commands";
 import { history } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
+import { EditorState, Plugin, Transaction, Selection } from "prosemirror-state";
 import { NodeType, Slice, Node, Fragment } from 'prosemirror-model';
-import { EditorState, Plugin, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { Doc, Opt } from "../../../new_fields/Doc";
+import { Doc, Opt, DocListCast } from "../../../new_fields/Doc";
 import { Id, Copy } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { createSchema, listSpec, makeInterface } from "../../../new_fields/Schema";
 import { BoolCast, Cast, NumCast, StrCast, DateCast } from "../../../new_fields/Types";
 import { DocServer } from "../../DocServer";
-import { Docs } from '../../documents/Documents';
+import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentManager } from '../../util/DocumentManager';
 import { DragManager } from "../../util/DragManager";
 import buildKeymap from "../../util/ProsemirrorExampleTransfer";
@@ -122,11 +122,39 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (this.props.isOverlay) {
             DragManager.StartDragFunctions.push(() => FormattedTextBox.InputBoxOverlay = undefined);
         }
+
+        document.addEventListener("paste", this.paste);
     }
 
     @computed get extensionDoc() { return Doc.resolvedFieldDataDoc(this.dataDoc, this.props.fieldKey, "dummy"); }
 
     @computed get dataDoc() { return BoolCast(this.props.Document.isTemplate) && this.props.DataDoc ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
+
+    paste = (e: ClipboardEvent) => {
+        if (e.clipboardData && this._editorView) {
+            let pdfPasteText = `${Utils.GenerateDeterministicGuid("pdf paste")}`;
+            for (let i = 0; i < e.clipboardData.items.length; i++) {
+                let item = e.clipboardData.items.item(i);
+                if (item.type === "text/plain") {
+                    item.getAsString((text) => {
+                        let pdfPasteIndex = text.indexOf(pdfPasteText);
+                        if (pdfPasteIndex > -1) {
+                            let insertText = text.substr(0, pdfPasteIndex);
+                            const tx = this._editorView!.state.tr.insertText(insertText);
+                            // tx.setSelection(new Selection(tx.))
+                            const state = this._editorView!.state;
+                            this._editorView!.dispatch(tx);
+                            if (this._toolTipTextMenu) {
+                                // this._toolTipTextMenu.makeLinkWithState(state)
+                            }
+                            e.stopPropagation();
+                            e.preventDefault();
+                        }
+                    });
+                }
+            }
+        }
+    }
 
     dispatchTransaction = (tx: Transaction) => {
         if (this._editorView) {
@@ -272,7 +300,48 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     handlePaste = (view: EditorView, event: Event, slice: Slice): boolean => {
-        return false;
+        let cbe = event as ClipboardEvent;
+        let docId: string;
+        let regionId: string;
+        if (!cbe.clipboardData) {
+            return false;
+        }
+        let linkId: string;
+        docId = cbe.clipboardData.getData("dash/pdfOrigin");
+        regionId = cbe.clipboardData.getData("dash/pdfRegion");
+        if (!docId || !regionId) {
+            return false;
+        }
+
+        DocServer.GetRefField(docId).then(doc => {
+            DocServer.GetRefField(regionId).then(region => {
+                if (!(doc instanceof Doc) || !(region instanceof Doc)) {
+                    return;
+                }
+
+                let annotations = DocListCast(region.annotations);
+                annotations.forEach(anno => anno.target = this.props.Document);
+                let fieldExtDoc = Doc.resolvedFieldDataDoc(doc, "data", "true");
+                let targetAnnotations = DocListCast(fieldExtDoc.annotations);
+                if (targetAnnotations) {
+                    targetAnnotations.push(region);
+                    fieldExtDoc.annotations = new List<Doc>(targetAnnotations);
+                }
+
+                let link = DocUtils.MakeLink(this.props.Document, region);
+                if (link) {
+                    cbe.clipboardData!.setData("dash/linkDoc", link[Id]);
+                    linkId = link[Id];
+                    let frag = addMarkToFrag(slice.content);
+                    slice = new Slice(frag, slice.openStart, slice.openEnd);
+                    var tr = view.state.tr.replaceSelection(slice);
+                    view.dispatch(tr.scrollIntoView().setMeta("paste", true).setMeta("uiEvent", "paste"));
+                }
+            });
+        });
+
+        return true;
+
         function addMarkToFrag(frag: Fragment) {
             const nodes: Node[] = [];
             frag.forEach(node => nodes.push(addLinkMark(node)));
@@ -285,7 +354,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             }
             const marks = [...node.marks];
             const linkIndex = marks.findIndex(mark => mark.type.name === "link");
-            const link = view.state.schema.mark(view.state.schema.marks.link, { href: "http://localhost:1050/doc/[link document id]", location: "onRight" });
+            const link = view.state.schema.mark(view.state.schema.marks.link, { href: `http://localhost:1050/doc/${linkId}`, location: "onRight" });
             if (linkIndex !== -1) {
                 marks.splice(linkIndex, 1, link);
             } else {
@@ -293,11 +362,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             }
             return node.mark(marks);
         }
-        let frag = addMarkToFrag(slice.content);
-        slice = new Slice(frag, slice.openStart, slice.openEnd);
-        var tr = view.state.tr.replaceSelection(slice);
-        view.dispatch(tr.scrollIntoView().setMeta("paste", true).setMeta("uiEvent", "paste"));
-        return true;
     }
 
     private setupEditor(config: any, doc: Doc, fieldKey: string) {
