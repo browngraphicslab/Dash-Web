@@ -4,39 +4,14 @@ import { observable, action } from 'mobx';
 import './ScriptingRepl.scss';
 import { Scripting, CompileScript, ts, Transformer } from '../util/Scripting';
 import { DocumentManager } from '../util/DocumentManager';
-import { DocumentView } from './nodes/DocumentView';
 import { OverlayView } from './OverlayView';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faCaretDown, faCaretRight } from '@fortawesome/free-solid-svg-icons';
+import { DocumentIconContainer } from './nodes/DocumentIcon';
 
 library.add(faCaretDown);
 library.add(faCaretRight);
-
-@observer
-export class DocumentIcon extends React.Component<{ view: DocumentView, index: number }> {
-    render() {
-        const view = this.props.view;
-        const transform = view.props.ScreenToLocalTransform().scale(view.props.ContentScaling()).inverse();
-        const { x, y, width, height } = transform.transformBounds(0, 0, view.props.PanelWidth(), view.props.PanelHeight());
-
-        return (
-            <div className="documentIcon-outerDiv" style={{
-                position: "absolute",
-                transform: `translate(${x + width / 2}px, ${y}px)`,
-            }}>
-                <p>${this.props.index}</p>
-            </div>
-        );
-    }
-}
-
-@observer
-export class DocumentIconContainer extends React.Component {
-    render() {
-        return DocumentManager.Instance.DocumentViews.map((dv, i) => <DocumentIcon key={i} index={i} view={dv} />);
-    }
-}
 
 @observer
 export class ScriptingObjectDisplay extends React.Component<{ scrollToBottom: () => void, value: { [key: string]: any }, name?: string }> {
@@ -129,7 +104,7 @@ export class ScriptingRepl extends React.Component {
                             if (ts.isParameter(node.parent)) {
                                 // delete knownVars[node.text];
                             } else if (isntPropAccess && isntPropAssign && !(node.text in knownVars) && !(node.text in globalThis)) {
-                                const match = node.text.match(/\$([0-9]+)/);
+                                const match = node.text.match(/\d([0-9]+)/);
                                 if (match) {
                                     const m = parseInt(match[1]);
                                     usedDocuments.push(m);
@@ -153,7 +128,7 @@ export class ScriptingRepl extends React.Component {
         switch (e.key) {
             case "Enter": {
                 const docGlobals: { [name: string]: any } = {};
-                DocumentManager.Instance.DocumentViews.forEach((dv, i) => docGlobals[`$${i}`] = dv.props.Document);
+                DocumentManager.Instance.DocumentViews.forEach((dv, i) => docGlobals[`d${i}`] = dv.props.Document);
                 const globals = Scripting.makeMutableGlobalsCopy(docGlobals);
                 const script = CompileScript(this.commandString, { typecheck: false, addReturn: true, editable: true, params: { args: "any" }, transformer: this.getTransformer(), globals });
                 if (!script.compiled) {
