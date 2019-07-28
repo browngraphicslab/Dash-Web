@@ -13,6 +13,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { SetupDrag } from "../../util/DragManager";
 import { UndoManager } from "../../util/UndoManager";
 import { EditableView } from "../EditableView";
+import { SchemaHeaderField, RandomPastel } from "../../../new_fields/SchemaHeaderField";
 
 library.add(faArrowLeft, faEllipsisV, faTable, faTrash, faCog, faExchangeAlt, faTimes, faPlus, faLongArrowAltRight);
 
@@ -350,6 +351,17 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
             this._metadata = new Map();
             linkDocProto.title = "Link: " + StrCast(this.props.sourceDoc.title) + ", " + (destDoc ? StrCast(destDoc.title) : "");
         }, "remove relationship from link");
+    }
+
+    viewGroupAsTable = (groupType: string): JSX.Element => {
+        let keys = LinkManager.Instance.getMetadataKeysInGroup(groupType);
+        let index = keys.indexOf("");
+        if (index > -1) keys.splice(index, 1);
+        let cols = ["anchor1", "anchor2", ...[...keys]].map(c => new SchemaHeaderField(c));
+        let docs: Doc[] = LinkManager.Instance.getAllMetadataDocsInGroup(groupType);
+        let createTable = action(() => Docs.Create.SchemaDocument(cols, docs, { width: 500, height: 300, title: groupType + " table" }));
+        let ref = React.createRef<HTMLDivElement>();
+        return <div ref={ref}><button className="linkEditor-button" onPointerDown={SetupDrag(ref, createTable)} title="Drag to view relationship table"><FontAwesomeIcon icon="table" size="sm" /></button></div>;
     }
 
     @action

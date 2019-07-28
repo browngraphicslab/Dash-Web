@@ -97,6 +97,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             }
             else {
                 if (SelectionManager.SelectedDocuments().length > 0) {
+                    SelectionManager.SelectedDocuments()[0].props.Document.customTitle = true;
                     let field = SelectionManager.SelectedDocuments()[0].props.Document[this._fieldKey];
                     if (typeof field === "number") {
                         SelectionManager.SelectedDocuments().forEach(d => {
@@ -377,16 +378,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         }
     }
 
-    endLinkDragBatch = () => {
-        if (!this._linkDrag) {
-            return;
-        }
-        this._linkDrag.end();
-        this._linkDrag = undefined;
-    }
-
     onLinkerButtonDown = (e: React.PointerEvent): void => {
-        this._linkDrag = UndoManager.StartBatch("Drag Link");
         e.stopPropagation();
         document.removeEventListener("pointermove", this.onLinkerButtonMoved);
         document.addEventListener("pointermove", this.onLinkerButtonMoved);
@@ -423,9 +415,15 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             let container = selDoc.props.ContainingCollectionView ? selDoc.props.ContainingCollectionView.props.Document.proto : undefined;
             let dragData = new DragManager.LinkDragData(selDoc.props.Document, container ? [container] : []);
             FormattedTextBox.InputBoxOverlay = undefined;
+            this._linkDrag = UndoManager.StartBatch("Drag Link");
             DragManager.StartLinkDrag(this._linkerButton.current, dragData, e.pageX, e.pageY, {
                 handlers: {
-                    dragComplete: action(emptyFunction),
+                    dragComplete: () => {
+                        if (this._linkDrag) {
+                            this._linkDrag.end();
+                            this._linkDrag = undefined;
+                        }
+                    },
                 },
                 hideSource: false
             });
@@ -682,6 +680,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             linkButton = (<Flyout
                 anchorPoint={anchorPoints.RIGHT_TOP}
                 content={<LinkMenu docView={selFirst}
+                    addDocTab={selFirst.props.addDocTab}
                     changeFlyout={this.changeFlyoutContent} />}>
                 <div className={"linkButton-" + (linkCount ? "nonempty" : "empty")} onPointerDown={this.onLinkButtonDown} >{linkCount}</div>
             </Flyout >);

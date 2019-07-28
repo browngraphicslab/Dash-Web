@@ -14,12 +14,14 @@ import { Docs } from "../../documents/Documents";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { UndoManager } from "../../util/UndoManager";
 import { StrCast } from "../../../new_fields/Types";
+import { SchemaHeaderField, RandomPastel } from "../../../new_fields/SchemaHeaderField";
 
 interface LinkMenuGroupProps {
     sourceDoc: Doc;
     group: Doc[];
     groupType: string;
     showEditor: (linkDoc: Doc) => void;
+    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
 }
 
 @observer
@@ -81,7 +83,7 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
         let keys = LinkManager.Instance.getMetadataKeysInGroup(this.props.groupType);
         let index = keys.indexOf("");
         if (index > -1) keys.splice(index, 1);
-        let cols = ["anchor1", "anchor2", "direction", ...[...keys]];
+        let cols = ["anchor1", "anchor2", "direction", ...[...keys]].map(c => new SchemaHeaderField(c));
         let docs: Doc[] = LinkManager.Instance.getAllMetadataDocsInGroup(this.props.groupType);
         let createTable = action(() => Docs.Create.SchemaDocument(cols, docs, { width: 500, height: 300, title: this.props.groupType + " table" }));
         let ref = React.createRef<HTMLDivElement>();
@@ -93,6 +95,7 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
             let destination = LinkManager.Instance.getOppositeAnchor(linkDoc, this.props.sourceDoc);
             if (destination) {
                 return <LinkMenuItem key={destination[Id] + this.props.sourceDoc[Id]} groupType={this.props.groupType}
+                    addDocTab={this.props.addDocTab}
                     linkDoc={linkDoc} sourceDoc={this.props.sourceDoc} destinationDoc={destination} showEditor={this.props.showEditor} />;
             }
         });
