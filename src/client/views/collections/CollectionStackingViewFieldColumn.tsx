@@ -74,7 +74,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             let layoutDoc = Doc.expandTemplateLayout(d, parent.props.DataDoc);
             let headings = this.props.headings();
             let uniqueHeadings = headings.map((i, idx) => headings.indexOf(i) === idx);
-            let pair = Doc.GetLayoutDataDocPair(parent.props.Document, parent.props.DataDoc, parent.props.fieldKey, d)
+            let pair = Doc.GetLayoutDataDocPair(parent.props.Document, parent.props.DataDoc, parent.props.fieldKey, d);
             let width = () => (d.nativeWidth && !BoolCast(d.ignoreAspect) ? Math.min(pair.layout[WidthSym](), parent.columnWidth) : parent.columnWidth) / (uniqueHeadings.length + 1);
             let height = () => parent.getDocHeight(pair.layout);
             if (parent.singleColumn) {
@@ -243,12 +243,12 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             SetValue: this.headingChanged,
             contents: evContents,
             oneLine: true
-        }
+        };
         let newEditableViewProps = {
             GetValue: () => "",
             SetValue: this.addDocument,
             contents: "+ NEW"
-        }
+        };
         let headingView = this.props.headingObject ?
             <div key={heading} className="collectionStackingView-sectionHeader" ref={this._headerRef}
                 style={{ width: (style.columnWidth) / (uniqueHeadings.length + 1) }}>

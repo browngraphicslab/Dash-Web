@@ -5,7 +5,7 @@ import { observer } from "mobx-react";
 import { baseKeymap } from "prosemirror-commands";
 import { history } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
-import { NodeType } from 'prosemirror-model';
+import { NodeType, Slice, Node, Fragment } from 'prosemirror-model';
 import { EditorState, Plugin, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { Doc, Opt } from "../../../new_fields/Doc";
@@ -34,7 +34,6 @@ import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import React = require("react");
 import { DateField } from '../../../new_fields/DateField';
-import { thisExpression } from 'babel-types';
 import { Utils } from '../../../Utils';
 
 library.add(faEdit);
@@ -251,6 +250,56 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         this.setupEditor(config, this.dataDoc, this.props.fieldKey);
     }
 
+    clipboardTextSerializer = (slice: Slice): string => {
+        let text = "", separated = true;
+        const from = 0, to = slice.content.size;
+        slice.content.nodesBetween(from, to, (node, pos) => {
+            if (node.isText) {
+                text += node.text!.slice(Math.max(from, pos) - pos, to - pos);
+                separated = false;
+            } else if (!separated && node.isBlock) {
+                text += "\n";
+                separated = true;
+            } else if (node.type.name === "hard_break") {
+                text += "\n";
+            }
+        }, 0);
+        return text;
+    }
+
+    sliceSingleNode(slice: Slice) {
+        return slice.openStart === 0 && slice.openEnd === 0 && slice.content.childCount === 1 ? slice.content.firstChild : null;
+    }
+
+    handlePaste = (view: EditorView, event: Event, slice: Slice): boolean => {
+        return false;
+        function addMarkToFrag(frag: Fragment) {
+            const nodes: Node[] = [];
+            frag.forEach(node => nodes.push(addLinkMark(node)));
+            return Fragment.fromArray(nodes);
+        }
+        function addLinkMark(node: Node) {
+            if (!node.isText) {
+                const content = addMarkToFrag(node.content);
+                return node.copy(content);
+            }
+            const marks = [...node.marks];
+            const linkIndex = marks.findIndex(mark => mark.type.name === "link");
+            const link = view.state.schema.mark(view.state.schema.marks.link, { href: "http://localhost:1050/doc/[link document id]", location: "onRight" });
+            if (linkIndex !== -1) {
+                marks.splice(linkIndex, 1, link);
+            } else {
+                marks.push(link);
+            }
+            return node.mark(marks);
+        }
+        let frag = addMarkToFrag(slice.content);
+        slice = new Slice(frag, slice.openStart, slice.openEnd);
+        var tr = view.state.tr.replaceSelection(slice);
+        view.dispatch(tr.scrollIntoView().setMeta("paste", true).setMeta("uiEvent", "paste"));
+        return true;
+    }
+
     private setupEditor(config: any, doc: Doc, fieldKey: string) {
         let field = doc ? Cast(doc[fieldKey], RichTextField) : undefined;
         let startup = StrCast(doc.documentText);
@@ -270,7 +319,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 nodeViews: {
                     image(node, view, getPos) { return new ImageResizeView(node, view, getPos); },
                     star(node, view, getPos) { return new SummarizedView(node, view, getPos); }
-                }
+                },
+                clipboardTextSerializer: this.clipboardTextSerializer,
+                handlePaste: this.handlePaste,
             });
             if (startup) {
                 Doc.GetProto(doc).documentText = undefined;
