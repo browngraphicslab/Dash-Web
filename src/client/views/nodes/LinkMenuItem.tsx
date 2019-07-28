@@ -45,10 +45,10 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         let sourceContext = await Cast(proto.sourceContext, Doc);
         let self = this;
 
-        let dockingFunc = (document: Doc) => CollectionDockingView.Instance.AddRightSplit(document, undefined);
 
+        let dockingFunc = (document: Doc) => { this.props.addDocTab(document, undefined, "inTab"); SelectionManager.DeselectAll(); };
         if (e.ctrlKey) {
-            dockingFunc = (document: Doc) => { this.props.addDocTab(document, undefined, "inTab"); SelectionManager.DeselectAll(); };
+            dockingFunc = (document: Doc) => CollectionDockingView.Instance.AddRightSplit(document, undefined);
         }
 
         if (this.props.destinationDoc === self.props.linkDoc.anchor2 && targetContext) {
