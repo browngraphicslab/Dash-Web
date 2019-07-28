@@ -24,7 +24,7 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faExpand } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { SchemaHeaderField, RandomPastel } from "../../../new_fields/SchemaHeaderField";
+import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 
 library.add(faExpand);
 
@@ -44,6 +44,8 @@ export interface CellProps {
     setIsEditing: (isEditing: boolean) => void;
     isEditable: boolean;
     setPreviewDoc: (doc: Doc) => void;
+    setComputed: (script: string, doc: Doc, field: string, row: number, col: number) => boolean;
+    getField: (row: number, col?: number) => void;
 }
 
 @observer
@@ -82,11 +84,18 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         this.props.changeFocusedCellByIndex(this.props.row, this.props.col);
+        this.props.setPreviewDoc(this.props.rowProps.original);
+
+        let field = this.props.rowProps.original[this.props.rowProps.column.id!];
+        let doc = FieldValue(Cast(field, Doc));
+        if (typeof field === "object" && doc) this.props.setPreviewDoc(doc);
     }
 
-    applyToDoc = (doc: Doc, run: (args?: { [name: string]: any }) => any) => {
-        const res = run({ this: doc });
+    applyToDoc = (doc: Doc, row: number, col: number, run: (args?: { [name: string]: any }) => any) => {
+        const res = run({ this: doc, $r: row, $c: col, $: (r: number = 0, c: number = 0) => this.props.getField(r + row, c + col) });
         if (!res.success) return false;
+        // doc[this.props.fieldKey] = res.result;
+        // return true;
         doc[this.props.rowProps.column.id as string] = res.result;
         return true;
     }
@@ -146,10 +155,16 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             addDocTab: this.props.addDocTab,
         };
 
-        // let onItemDown = (e: React.PointerEvent) => {
-        //     SetupDrag(this._focusRef, () => this._document[props.fieldKey] instanceof Doc ? this._document[props.fieldKey] : this._document,
-        //         this._document[props.fieldKey] instanceof Doc ? (doc: Doc, target: Doc, addDoc: (newDoc: Doc) => any) => addDoc(doc) : this.props.moveDocument, this._document[props.fieldKey] instanceof Doc ? "alias" : this.props.Document.schemaDoc ? "copy" : undefined)(e);
-        // };
+        let field = props.Document[props.fieldKey];
+        let doc = FieldValue(Cast(field, Doc));
+        let fieldIsDoc = (type === "document" && typeof field === "object") || (typeof field === "object" && doc);
+
+        let onItemDown = (e: React.PointerEvent) => {
+            if (fieldIsDoc) {
+                SetupDrag(this._focusRef, () => this._document[props.fieldKey] instanceof Doc ? this._document[props.fieldKey] : this._document,
+                    this._document[props.fieldKey] instanceof Doc ? (doc: Doc, target: Doc, addDoc: (newDoc: Doc) => any) => addDoc(doc) : this.props.moveDocument, this._document[props.fieldKey] instanceof Doc ? "alias" : this.props.Document.schemaDoc ? "copy" : undefined)(e);
+            }
+        };
         let onPointerEnter = (e: React.PointerEvent): void => {
             if (e.buttons === 1 && SelectionManager.GetIsDragging() && (type === "document" || type === undefined)) {
                 dragRef!.current!.className = "collectionSchemaView-cellContainer doc-drag-over";
@@ -159,7 +174,6 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             dragRef!.current!.className = "collectionSchemaView-cellContainer";
         };
 
-        let field = props.Document[props.fieldKey];
         let contents: any = "incorrect type";
         if (type === undefined) contents = <FieldView {...props} />;
         if (type === "number") contents = typeof field === "number" ? NumCast(field) : "--" + typeof field + "--";
@@ -175,18 +189,16 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         if (this.props.isFocused && this.props.isEditable) className += " focused";
         if (this.props.isFocused && !this.props.isEditable) className += " inactive";
 
-        let doc = FieldValue(Cast(field, Doc));
-        if (type === "document") console.log("doc", typeof field);
-        let fieldIsDoc = (type === "document" && typeof field === "object") || (typeof field === "object" && doc);
-        let docExpander = (
-            <div className="collectionSchemaView-cellContents-docExpander" onPointerDown={this.expandDoc} >
-                <FontAwesomeIcon icon="expand" size="sm" />
-            </div>
-        );
+
+        // let docExpander = (
+        //     <div className="collectionSchemaView-cellContents-docExpander" onPointerDown={this.expandDoc} >
+        //         <FontAwesomeIcon icon="expand" size="sm" />
+        //     </div>
+        // );
 
         return (
-            <div className="collectionSchemaView-cellContainer" ref={dragRef} onPointerDown={this.onPointerDown} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
-                <div className={className} ref={this._focusRef} tabIndex={-1}>
+            <div className="collectionSchemaView-cellContainer" style={{ cursor: fieldIsDoc ? "grab" : "auto" }} ref={dragRef} onPointerDown={this.onPointerDown} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
+                <div className={className} ref={this._focusRef} onPointerDown={onItemDown} tabIndex={-1}>
                     <div className="collectionSchemaView-cellContents" ref={type === undefined || type === "document" ? this.dropRef : null} key={props.Document[Id]}>
                         <EditableView
                             editing={this._isEditing}
@@ -203,24 +215,27 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                             }
                             }
                             SetValue={(value: string) => {
-                                let script = CompileScript(value, { requiredType: type, addReturn: true, params: { this: Doc.name } });
+                                if (value.startsWith(":=")) {
+                                    return this.props.setComputed(value.substring(2), props.Document, this.props.rowProps.column.id!, this.props.row, this.props.col);
+                                }
+                                let script = CompileScript(value, { requiredType: type, addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
                                 if (!script.compiled) {
                                     return false;
                                 }
-                                return this.applyToDoc(props.Document, script.run);
+                                return this.applyToDoc(props.Document, this.props.row, this.props.col, script.run);
                             }}
                             OnFillDown={async (value: string) => {
-                                let script = CompileScript(value, { requiredType: type, addReturn: true, params: { this: Doc.name } });
+                                let script = CompileScript(value, { requiredType: type, addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
                                 if (!script.compiled) {
                                     return;
                                 }
                                 const run = script.run;
-                                //TODO This should be able to be refactored to compile the script once
                                 const val = await DocListCastAsync(this.props.Document[this.props.fieldKey]);
-                                val && val.forEach(doc => this.applyToDoc(doc, run));
-                            }} />
+                                val && val.forEach((doc, i) => this.applyToDoc(doc, i, this.props.col, run));
+                            }}
+                        />
                     </div >
-                    {fieldIsDoc ? docExpander : null}
+                    {/* {fieldIsDoc ? docExpander : null} */}
                 </div>
             </div>
         );
