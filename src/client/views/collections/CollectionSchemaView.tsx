@@ -321,13 +321,12 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         }
 
         let cols = this.columns.map(col => {
-
             let header = <CollectionSchemaHeader
                 keyValue={col}
                 possibleKeys={possibleKeys}
                 existingKeys={this.columns.map(c => c.heading)}
                 keyType={this.getColumnType(col)}
-                typeConst={col.type !== undefined || columnTypes.get(col.heading) !== undefined}
+                typeConst={columnTypes.get(col.heading) !== undefined}
                 onSelect={this.changeColumns}
                 setIsEditing={this.setHeaderIsEditing}
                 deleteColumn={this.deleteColumn}
@@ -360,7 +359,9 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                         moveDocument: this.props.moveDocument,
                         setIsEditing: this.setCellIsEditing,
                         isEditable: isEditable,
-                        setPreviewDoc: this.props.setPreviewDoc
+                        setPreviewDoc: this.props.setPreviewDoc,
+                        setComputed: this.setComputed,
+                        getField: this.getField,
                     };
 
                     let colType = this.getColumnType(col);
@@ -770,6 +771,81 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                 self.props.Document.schemaDoc = schemaDoc;
             }
         }
+    }
+
+    getField = (row: number, col?: number) => {
+        // const docs = DocListCast(this.props.Document[this.props.fieldKey]);
+
+        let cdoc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
+        const docs = DocListCast(cdoc[this.props.fieldKey]);
+
+        row = row % docs.length;
+        while (row < 0) row += docs.length;
+        const columns = this.columns;
+        const doc = docs[row];
+        if (col === undefined) {
+            return doc;
+        }
+        if (col >= 0 && col < columns.length) {
+            const column = this.columns[col].heading;
+            return doc[column];
+        }
+        return undefined;
+    }
+
+    createTransformer = (row: number, col: number): Transformer => {
+        const self = this;
+        const captures: { [name: string]: Field } = {};
+
+        const transformer: ts.TransformerFactory<ts.SourceFile> = context => {
+            return root => {
+                function visit(node: ts.Node) {
+                    node = ts.visitEachChild(node, visit, context);
+                    if (ts.isIdentifier(node)) {
+                        const isntPropAccess = !ts.isPropertyAccessExpression(node.parent) || node.parent.expression === node;
+                        const isntPropAssign = !ts.isPropertyAssignment(node.parent) || node.parent.name !== node;
+                        if (isntPropAccess && isntPropAssign) {
+                            if (node.text === "$r") {
+                                return ts.createNumericLiteral(row.toString());
+                            } else if (node.text === "$c") {
+                                return ts.createNumericLiteral(col.toString());
+                            } else if (node.text === "$") {
+                                if (ts.isCallExpression(node.parent)) {
+                                    // captures.doc = self.props.Document;
+                                    // captures.key = self.props.fieldKey;
+                                }
+                            }
+                        }
+                    }
+
+                    return node;
+                }
+                return ts.visitNode(root, visit);
+            };
+        };
+
+        // const getVars = () => {
+        //     return { capturedVariables: captures };
+        // };
+
+        return { transformer, /*getVars*/ };
+    }
+
+    setComputed = (script: string, doc: Doc, field: string, row: number, col: number): boolean => {
+        script =
+            `const $ = (row:number, col?:number) => {
+                if(col === undefined) {
+                    return (doc as any)[key][row + ${row}];
+                }
+                return (doc as any)[key][row + ${row}][(doc as any).schemaColumns[col + ${col}].heading];
+            }
+            return ${script}`;
+        const compiled = CompileScript(script, { params: { this: Doc.name }, capturedVariables: { doc: this.props.Document, key: this.props.fieldKey }, typecheck: true, transformer: this.createTransformer(row, col) });
+        if (compiled.compiled) {
+            doc[field] = new ComputedField(compiled);
+            return true;
+        }
+        return false;
     }
 
     render() {

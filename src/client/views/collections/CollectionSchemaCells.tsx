@@ -24,7 +24,7 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faExpand } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { SchemaHeaderField, RandomPastel } from "../../../new_fields/SchemaHeaderField";
+import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 
 library.add(faExpand);
 
@@ -44,6 +44,8 @@ export interface CellProps {
     setIsEditing: (isEditing: boolean) => void;
     isEditable: boolean;
     setPreviewDoc: (doc: Doc) => void;
+    setComputed: (script: string, doc: Doc, field: string, row: number, col: number) => boolean;
+    getField: (row: number, col?: number) => void;
 }
 
 @observer
@@ -84,9 +86,11 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         this.props.changeFocusedCellByIndex(this.props.row, this.props.col);
     }
 
-    applyToDoc = (doc: Doc, run: (args?: { [name: string]: any }) => any) => {
-        const res = run({ this: doc });
+    applyToDoc = (doc: Doc, row: number, col: number, run: (args?: { [name: string]: any }) => any) => {
+        const res = run({ this: doc, $r: row, $c: col, $: (r: number = 0, c: number = 0) => this.props.getField(r + row, c + col) });
         if (!res.success) return false;
+        // doc[this.props.fieldKey] = res.result;
+        // return true;
         doc[this.props.rowProps.column.id as string] = res.result;
         return true;
     }
@@ -176,7 +180,6 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         if (this.props.isFocused && !this.props.isEditable) className += " inactive";
 
         let doc = FieldValue(Cast(field, Doc));
-        if (type === "document") console.log("doc", typeof field);
         let fieldIsDoc = (type === "document" && typeof field === "object") || (typeof field === "object" && doc);
         let docExpander = (
             <div className="collectionSchemaView-cellContents-docExpander" onPointerDown={this.expandDoc} >
@@ -203,22 +206,25 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                             }
                             }
                             SetValue={(value: string) => {
-                                let script = CompileScript(value, { requiredType: type, addReturn: true, params: { this: Doc.name } });
+                                if (value.startsWith(":=")) {
+                                    return this.props.setComputed(value.substring(2), props.Document, this.props.rowProps.column.id!, this.props.row, this.props.col);
+                                }
+                                let script = CompileScript(value, { requiredType: type, addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
                                 if (!script.compiled) {
                                     return false;
                                 }
-                                return this.applyToDoc(props.Document, script.run);
+                                return this.applyToDoc(props.Document, this.props.row, this.props.col, script.run);
                             }}
                             OnFillDown={async (value: string) => {
-                                let script = CompileScript(value, { requiredType: type, addReturn: true, params: { this: Doc.name } });
+                                let script = CompileScript(value, { requiredType: type, addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
                                 if (!script.compiled) {
                                     return;
                                 }
                                 const run = script.run;
-                                //TODO This should be able to be refactored to compile the script once
                                 const val = await DocListCastAsync(this.props.Document[this.props.fieldKey]);
-                                val && val.forEach(doc => this.applyToDoc(doc, run));
-                            }} />
+                                val && val.forEach((doc, i) => this.applyToDoc(doc, i, this.props.col, run));
+                            }}
+                        />
                     </div >
                     {fieldIsDoc ? docExpander : null}
                 </div>
