@@ -155,9 +155,15 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             addDocTab: this.props.addDocTab,
         };
 
+        let field = props.Document[props.fieldKey];
+        let doc = FieldValue(Cast(field, Doc));
+        let fieldIsDoc = (type === "document" && typeof field === "object") || (typeof field === "object" && doc);
+
         let onItemDown = (e: React.PointerEvent) => {
-            SetupDrag(this._focusRef, () => this._document[props.fieldKey] instanceof Doc ? this._document[props.fieldKey] : this._document,
-                this._document[props.fieldKey] instanceof Doc ? (doc: Doc, target: Doc, addDoc: (newDoc: Doc) => any) => addDoc(doc) : this.props.moveDocument, this._document[props.fieldKey] instanceof Doc ? "alias" : this.props.Document.schemaDoc ? "copy" : undefined)(e);
+            if (fieldIsDoc) {
+                SetupDrag(this._focusRef, () => this._document[props.fieldKey] instanceof Doc ? this._document[props.fieldKey] : this._document,
+                    this._document[props.fieldKey] instanceof Doc ? (doc: Doc, target: Doc, addDoc: (newDoc: Doc) => any) => addDoc(doc) : this.props.moveDocument, this._document[props.fieldKey] instanceof Doc ? "alias" : this.props.Document.schemaDoc ? "copy" : undefined)(e);
+            }
         };
         let onPointerEnter = (e: React.PointerEvent): void => {
             if (e.buttons === 1 && SelectionManager.GetIsDragging() && (type === "document" || type === undefined)) {
@@ -168,7 +174,6 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             dragRef!.current!.className = "collectionSchemaView-cellContainer";
         };
 
-        let field = props.Document[props.fieldKey];
         let contents: any = "incorrect type";
         if (type === undefined) contents = <FieldView {...props} />;
         if (type === "number") contents = typeof field === "number" ? NumCast(field) : "--" + typeof field + "--";
@@ -184,8 +189,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         if (this.props.isFocused && this.props.isEditable) className += " focused";
         if (this.props.isFocused && !this.props.isEditable) className += " inactive";
 
-        let doc = FieldValue(Cast(field, Doc));
-        let fieldIsDoc = (type === "document" && typeof field === "object") || (typeof field === "object" && doc);
+
         // let docExpander = (
         //     <div className="collectionSchemaView-cellContents-docExpander" onPointerDown={this.expandDoc} >
         //         <FontAwesomeIcon icon="expand" size="sm" />
@@ -194,8 +198,8 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
 
         return (
             <div className="collectionSchemaView-cellContainer" style={{ cursor: fieldIsDoc ? "grab" : "auto" }} ref={dragRef} onPointerDown={this.onPointerDown} onPointerEnter={onPointerEnter} onPointerLeave={onPointerLeave}>
-                <div className={className} ref={this._focusRef} tabIndex={-1}>
-                    <div className="collectionSchemaView-cellContents" ref={type === undefined || type === "document" ? this.dropRef : null} onPointerDown={onItemDown} key={props.Document[Id]}>
+                <div className={className} ref={this._focusRef} onPointerDown={onItemDown} tabIndex={-1}>
+                    <div className="collectionSchemaView-cellContents" ref={type === undefined || type === "document" ? this.dropRef : null} key={props.Document[Id]}>
                         <EditableView
                             editing={this._isEditing}
                             isEditingCallback={this.isEditingCallback}
