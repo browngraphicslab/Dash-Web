@@ -119,7 +119,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     children(docs: Doc[]) {
         this._docXfs.length = 0;
         return docs.map((d, i) => {
-            let pair = Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, this.props.fieldKey, d)
+            let pair = Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, this.props.fieldKey, d);
             let width = () => d.nativeWidth && !BoolCast(d.ignoreAspect) ? Math.min(pair.layout[WidthSym](), this.columnWidth) : this.columnWidth;
             let height = () => this.getDocHeight(pair.layout);
             let dref = React.createRef<HTMLDivElement>();

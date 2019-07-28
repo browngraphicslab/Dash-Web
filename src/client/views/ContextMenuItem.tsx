@@ -4,12 +4,14 @@ import { observer } from "mobx-react";
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
 import { faAngleRight } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { UndoManager } from "../util/UndoManager";
 
 library.add(faAngleRight);
 
 export interface OriginalMenuProps {
     description: string;
     event: () => void;
+    undoable?: boolean;
     icon: IconProp; //maybe should be optional (icon?)
     closeMenu?: () => void;
 }
@@ -37,7 +39,12 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
 
     handleEvent = (e: React.MouseEvent<HTMLDivElement>) => {
         if ("event" in this.props) {
+            let batch: UndoManager.Batch | undefined;
+            if (this.props.undoable !== false) {
+                batch = UndoManager.StartBatch(`Context menu event: ${this.props.description}`);
+            }
             this.props.event();
+            batch && batch.end();
             this.props.closeMenu && this.props.closeMenu();
         }
     }
@@ -94,7 +101,7 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
                     ) : null}
                     <div className="contextMenu-description">
                         {this.props.description}
-                        <FontAwesomeIcon icon={faAngleRight} size="lg" style={{ position: "absolute", right: "10px"}} />
+                        <FontAwesomeIcon icon={faAngleRight} size="lg" style={{ position: "absolute", right: "10px" }} />
                     </div>
                     {submenu}
                 </div>
