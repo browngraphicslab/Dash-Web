@@ -20,6 +20,7 @@ import { ScriptField } from "../../../new_fields/ScriptField";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Annotation from "./Annotation";
 import { KeyCodes } from "../../northstar/utils/KeyCodes";
+import { DocServer } from "../../DocServer";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 
 export const scale = 2;
@@ -156,6 +157,9 @@ export class Viewer extends React.Component<IViewerProps> {
         if (this._mainCont.current) {
             this._dropDisposer = this._mainCont.current && DragManager.MakeDropTarget(this._mainCont.current, { handlers: { drop: this.drop.bind(this) } });
         }
+
+        document.removeEventListener("paste", this.paste);
+        document.addEventListener("paste", this.paste);
     }
 
     componentWillUnmount = () => {
@@ -163,6 +167,25 @@ export class Viewer extends React.Component<IViewerProps> {
         this._annotationReactionDisposer && this._annotationReactionDisposer();
         this._filterReactionDisposer && this._filterReactionDisposer();
         this._dropDisposer && this._dropDisposer();
+        document.removeEventListener("paste", this.paste);
+    }
+
+    paste = (e: ClipboardEvent) => {
+        if (e.clipboardData) {
+            if (e.clipboardData.getData("dash/pdfOrigin") === this.props.parent.props.Document[Id]) {
+                let linkDocId = e.clipboardData.getData("dash/linkDoc");
+                if (linkDocId) {
+                    DocServer.GetRefField(linkDocId).then(async (link) => {
+                        if (!(link instanceof Doc)) {
+                            return;
+                        }
+                        let proto = Doc.GetProto(link);
+                        let source = await Cast(proto.anchor1, Doc);
+                        proto.anchor2 = this.makeAnnotationDocument(source, 0, "#0390fc", false);
+                    });
+                }
+            }
+        }
     }
 
     scrollTo(y: number) {
@@ -213,7 +236,7 @@ export class Viewer extends React.Component<IViewerProps> {
     }
 
     @action
-    makeAnnotationDocument = (sourceDoc: Doc | undefined, s: number, color: string): Doc => {
+    makeAnnotationDocument = (sourceDoc: Doc | undefined, s: number, color: string, createLink: boolean = true): Doc => {
         let annoDocs: Doc[] = [];
         let mainAnnoDoc = Docs.Create.InstanceFromProto(new Doc(), "", {});
 
@@ -242,7 +265,7 @@ export class Viewer extends React.Component<IViewerProps> {
 
         mainAnnoDoc.y = Math.max(minY, 0);
         mainAnnoDoc.annotations = new List<Doc>(annoDocs);
-        if (sourceDoc) {
+        if (sourceDoc && createLink) {
             DocUtils.MakeLink(sourceDoc, mainAnnoDoc, undefined, `Annotation from ${StrCast(this.props.parent.Document.title)}`, "", StrCast(this.props.parent.Document.title));
         }
         this._savedAnnotations.clear();
@@ -611,7 +634,7 @@ export class Viewer extends React.Component<IViewerProps> {
                 <div className="viewer" style={this._searching ? { position: "absolute", top: 0 } : {}}>
                     {this._visibleElements}
                 </div>
-                <div className="pdfViewer-text" ref={this._viewer} style={{ transform: "scale(1.5)", transformOrigin: "top left" }} />
+                <div className="pdfViewer-text" ref={this._viewer} onCopy={() => console.log("gello world")} style={{ transform: "scale(1.5)", transformOrigin: "top left" }} />
                 <div className="pdfViewer-annotationLayer"
                     style={{
                         height: this.props.parent.Document.nativeHeight, width: `100%`,

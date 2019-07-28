@@ -15,7 +15,7 @@ import { RichTextField } from "../../../new_fields/RichTextField";
 import { createSchema, listSpec, makeInterface } from "../../../new_fields/Schema";
 import { BoolCast, Cast, NumCast, StrCast, DateCast } from "../../../new_fields/Types";
 import { DocServer } from "../../DocServer";
-import { Docs } from '../../documents/Documents';
+import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentManager } from '../../util/DocumentManager';
 import { DragManager } from "../../util/DragManager";
 import buildKeymap from "../../util/ProsemirrorExampleTransfer";
@@ -300,7 +300,34 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     handlePaste = (view: EditorView, event: Event, slice: Slice): boolean => {
-        return false;
+        let cbe = event as ClipboardEvent;
+        let docId: string;
+        if (!cbe.clipboardData) {
+            return false;
+        }
+        let linkId: string;
+        docId = cbe.clipboardData.getData("dash/pdfOrigin");
+        if (!docId) {
+            return false;
+        }
+
+        DocServer.GetRefField(docId).then(doc => {
+            if (!(doc instanceof Doc)) {
+                return;
+            }
+            let link = DocUtils.MakeLink(this.props.Document, doc);
+            if (link) {
+                cbe.clipboardData!.setData("dash/linkDoc", link[Id]);
+                linkId = link[Id];
+                let frag = addMarkToFrag(slice.content);
+                slice = new Slice(frag, slice.openStart, slice.openEnd);
+                var tr = view.state.tr.replaceSelection(slice);
+                view.dispatch(tr.scrollIntoView().setMeta("paste", true).setMeta("uiEvent", "paste"));
+            }
+        });
+
+        return true;
+
         function addMarkToFrag(frag: Fragment) {
             const nodes: Node[] = [];
             frag.forEach(node => nodes.push(addLinkMark(node)));
@@ -313,7 +340,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             }
             const marks = [...node.marks];
             const linkIndex = marks.findIndex(mark => mark.type.name === "link");
-            const link = view.state.schema.mark(view.state.schema.marks.link, { href: "http://localhost:1050/doc/[link document id]", location: "onRight" });
+            const link = view.state.schema.mark(view.state.schema.marks.link, { href: `http://localhost:1050/doc/${linkId}`, location: "onRight" });
             if (linkIndex !== -1) {
                 marks.splice(linkIndex, 1, link);
             } else {
@@ -321,11 +348,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             }
             return node.mark(marks);
         }
-        let frag = addMarkToFrag(slice.content);
-        slice = new Slice(frag, slice.openStart, slice.openEnd);
-        var tr = view.state.tr.replaceSelection(slice);
-        view.dispatch(tr.scrollIntoView().setMeta("paste", true).setMeta("uiEvent", "paste"));
-        return true;
     }
 
     private setupEditor(config: any, doc: Doc, fieldKey: string) {

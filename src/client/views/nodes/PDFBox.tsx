@@ -66,23 +66,28 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         this._keyRef = React.createRef();
         this._valueRef = React.createRef();
         this._scriptRef = React.createRef();
-
-        document.addEventListener("keydown", this.onKeyDown);
     }
 
     componentDidMount() {
         if (this.props.setPdfBox) this.props.setPdfBox(this);
+
+        document.removeEventListener("copy", this.copy);
+        document.addEventListener("copy", this.copy);
     }
 
     componentWillUnmount() {
         this._reactionDisposer && this._reactionDisposer();
+        document.removeEventListener("copy", this.copy);
     }
 
-    onKeyDown = (e: KeyboardEvent) => {
-        if (e.ctrlKey && e.keyCode === KeyCodes.C) {
+    private copy = (e: ClipboardEvent) => {
+        if (this.props.active()) {
             let text = this.selectionText;
-            text += `${Utils.GenerateDeterministicGuid("pdf paste")}/${this.props.Document[Id]}`;
-            navigator.clipboard.writeText(text);
+            if (e.clipboardData) {
+                e.clipboardData.setData("text/plain", text);
+                e.clipboardData.setData("dash/pdfOrigin", this.props.Document[Id]);
+                e.preventDefault();
+            }
         }
     }
 
@@ -254,7 +259,6 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         let classname = "pdfBox-cont" + (this.props.active() && !InkingControl.Instance.selectedTool && !this._alt ? "-interactive" : "");
         return (
             <div className={classname}
-                onKeyDown={this.onKeyDown}
                 onScroll={this.onScroll}
                 style={{
                     marginTop: `${NumCast(this.props.ContainingCollectionView!.props.Document.panY)}px`
