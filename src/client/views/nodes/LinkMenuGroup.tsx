@@ -21,6 +21,7 @@ interface LinkMenuGroupProps {
     group: Doc[];
     groupType: string;
     showEditor: (linkDoc: Doc) => void;
+    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
 }
 
 @observer
@@ -83,6 +84,7 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
             let destination = LinkManager.Instance.getOppositeAnchor(linkDoc, this.props.sourceDoc);
             if (destination && this.props.sourceDoc) {
                 return <LinkMenuItem key={destination[Id] + this.props.sourceDoc[Id]} groupType={this.props.groupType}
+                    addDocTab={this.props.addDocTab}
                     linkDoc={linkDoc} sourceDoc={this.props.sourceDoc} destinationDoc={destination} showEditor={this.props.showEditor} />;
             }
         });
