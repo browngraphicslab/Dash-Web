@@ -67,6 +67,7 @@ export default class KeyManager {
                     }
                 }
                 MainView.Instance.toggleColorPicker(true);
+                SelectionManager.DeselectAll();
                 break;
             case "delete":
             case "backspace":

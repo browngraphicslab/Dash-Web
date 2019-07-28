@@ -1,12 +1,12 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faEdit, faSmile } from '@fortawesome/free-solid-svg-icons';
+import { faEdit, faSmile, faTextHeight } from '@fortawesome/free-solid-svg-icons';
 import { action, IReactionDisposer, observable, reaction, runInAction, computed, trace } from "mobx";
 import { observer } from "mobx-react";
 import { baseKeymap } from "prosemirror-commands";
 import { history } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
-import { NodeType } from 'prosemirror-model';
 import { EditorState, Plugin, Transaction, Selection } from "prosemirror-state";
+import { NodeType, Slice, Node, Fragment } from 'prosemirror-model';
 import { EditorView } from "prosemirror-view";
 import { Doc, Opt } from "../../../new_fields/Doc";
 import { Id, Copy } from '../../../new_fields/FieldSymbols';
@@ -34,11 +34,10 @@ import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import React = require("react");
 import { DateField } from '../../../new_fields/DateField';
-import { thisExpression } from 'babel-types';
 import { Utils } from '../../../Utils';
 
 library.add(faEdit);
-library.add(faSmile);
+library.add(faSmile, faTextHeight);
 
 // FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document
 //
@@ -167,7 +166,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()));
             this._applyingChange = false;
             let title = StrCast(this.dataDoc.title);
-            if (title && title.startsWith("-") && this._editorView) {
+            if (title && title.startsWith("-") && this._editorView && !this.Document.customTitle) {
                 let str = this._editorView.state.doc.textContent;
                 let titlestr = str.substr(0, Math.min(40, str.length));
                 this.dataDoc.title = "-" + titlestr + (str.length > 40 ? "..." : "");
@@ -279,6 +278,56 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         this.setupEditor(config, this.dataDoc, this.props.fieldKey);
     }
 
+    clipboardTextSerializer = (slice: Slice): string => {
+        let text = "", separated = true;
+        const from = 0, to = slice.content.size;
+        slice.content.nodesBetween(from, to, (node, pos) => {
+            if (node.isText) {
+                text += node.text!.slice(Math.max(from, pos) - pos, to - pos);
+                separated = false;
+            } else if (!separated && node.isBlock) {
+                text += "\n";
+                separated = true;
+            } else if (node.type.name === "hard_break") {
+                text += "\n";
+            }
+        }, 0);
+        return text;
+    }
+
+    sliceSingleNode(slice: Slice) {
+        return slice.openStart === 0 && slice.openEnd === 0 && slice.content.childCount === 1 ? slice.content.firstChild : null;
+    }
+
+    handlePaste = (view: EditorView, event: Event, slice: Slice): boolean => {
+        return false;
+        function addMarkToFrag(frag: Fragment) {
+            const nodes: Node[] = [];
+            frag.forEach(node => nodes.push(addLinkMark(node)));
+            return Fragment.fromArray(nodes);
+        }
+        function addLinkMark(node: Node) {
+            if (!node.isText) {
+                const content = addMarkToFrag(node.content);
+                return node.copy(content);
+            }
+            const marks = [...node.marks];
+            const linkIndex = marks.findIndex(mark => mark.type.name === "link");
+            const link = view.state.schema.mark(view.state.schema.marks.link, { href: "http://localhost:1050/doc/[link document id]", location: "onRight" });
+            if (linkIndex !== -1) {
+                marks.splice(linkIndex, 1, link);
+            } else {
+                marks.push(link);
+            }
+            return node.mark(marks);
+        }
+        let frag = addMarkToFrag(slice.content);
+        slice = new Slice(frag, slice.openStart, slice.openEnd);
+        var tr = view.state.tr.replaceSelection(slice);
+        view.dispatch(tr.scrollIntoView().setMeta("paste", true).setMeta("uiEvent", "paste"));
+        return true;
+    }
+
     private setupEditor(config: any, doc: Doc, fieldKey: string) {
         let field = doc ? Cast(doc[fieldKey], RichTextField) : undefined;
         let startup = StrCast(doc.documentText);
@@ -298,7 +347,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 nodeViews: {
                     image(node, view, getPos) { return new ImageResizeView(node, view, getPos); },
                     star(node, view, getPos) { return new SummarizedView(node, view, getPos); }
-                }
+                },
+                clipboardTextSerializer: this.clipboardTextSerializer,
+                handlePaste: this.handlePaste,
             });
             if (startup) {
                 Doc.GetProto(doc).documentText = undefined;
@@ -450,7 +501,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         // stop propagation doesn't seem to stop propagation of native keyboard events.
         // so we set a flag on the native event that marks that the event's been handled.
         (e.nativeEvent as any).DASHFormattedTextBoxHandled = true;
-        if (StrCast(this.dataDoc.title).startsWith("-") && this._editorView) {
+        if (StrCast(this.dataDoc.title).startsWith("-") && this._editorView && !this.Document.customTitle) {
             let str = this._editorView.state.doc.textContent;
             let titlestr = str.substr(0, Math.min(40, str.length));
             this.dataDoc.title = "-" + titlestr + (str.length > 40 ? "..." : "");
@@ -487,10 +538,10 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     specificContextMenu = (e: React.MouseEvent): void => {
         let subitems: ContextMenuProps[] = [];
         subitems.push({
-            description: BoolCast(this.props.Document.autoHeight, false) ? "Manual Height" : "Auto Height",
-            event: action(() => Doc.GetProto(this.props.Document).autoHeight = !BoolCast(this.props.Document.autoHeight, false)), icon: "expand-arrows-alt"
+            description: BoolCast(this.props.Document.autoHeight) ? "Manual Height" : "Auto Height",
+            event: action(() => Doc.GetProto(this.props.Document).autoHeight = !BoolCast(this.props.Document.autoHeight)), icon: "expand-arrows-alt"
         });
-        ContextMenu.Instance.addItem({ description: "Text Funcs...", subitems: subitems });
+        ContextMenu.Instance.addItem({ description: "Text Funcs...", subitems: subitems, icon: "text-height" });
     }
     render() {
         let self = this;
