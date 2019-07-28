@@ -425,7 +425,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     tableRemoveDoc = (document: Doc): boolean => {
         let doc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
-        let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
+        // let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
+        let children = this.props.childDocs;
         if (children.indexOf(document) !== -1) {
             children.splice(children.indexOf(document), 1);
             return true;
@@ -520,7 +521,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             this.changeFocusedCellByDirection(direction);
 
             let doc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
-            let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
+            // let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
+            let children = this.props.childDocs;
             const pdoc = FieldValue(children[this._focusedCell.row]);
             pdoc && this.props.setPreviewDoc(pdoc);
         }
@@ -529,7 +531,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     @action
     changeFocusedCellByDirection = (direction: string): void => {
         let doc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
-        let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
+        // let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
+        let children = this.props.childDocs;
         switch (direction) {
             case "tab":
                 if (this._focusedCell.col + 1 === this.columns.length && this._focusedCell.row + 1 === children.length) {
@@ -560,7 +563,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     @action
     changeFocusedCellByIndex = (row: number, col: number): void => {
         let doc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
-        let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
+        // let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
 
         this._focusedCell = { row: row, col: col };
         this.props.setFocused(this.props.Document);
@@ -571,7 +574,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     createRow = () => {
         let doc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
-        let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
+        // let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
+        let children = this.props.childDocs;
 
         let newDoc = Docs.Create.TextDocument({ width: 100, height: 30 });
         let proto = Doc.GetProto(newDoc);
@@ -683,7 +687,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     get documentKeys() {
-        const docs = DocListCast(this.props.Document[this.props.fieldKey]);
+        // const docs = DocListCast(this.props.Document[this.props.fieldKey]);
+        let docs = this.props.childDocs;
         let keys: { [key: string]: boolean } = {};
         // bcz: ugh.  this is untracked since otherwise a large collection of documents will blast the server for all their fields.
         //  then as each document's fields come back, we update the documents _proxies.  Each time we do this, the whole schema will be
@@ -712,7 +717,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     get reactTable() {
 
         let cdoc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
-        let children = DocListCast(cdoc[this.props.fieldKey]);
+        // let children = DocListCast(cdoc[this.props.fieldKey]);
+        let children = this.props.childDocs;
 
         let previewWidth = this.previewWidth(); // + 2 * this.borderWidth + this.DIVIDER_WIDTH + 1;
         let hasCollectionChild = children.reduce((found, doc) => found || doc.type === "collection", false);
@@ -758,7 +764,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         let csv: string = this.columns.reduce((val, col) => val + col + ",", "");
         csv = csv.substr(0, csv.length - 1) + "\n";
         let self = this;
-        DocListCast(this.props.Document.data).map(doc => {
+        this.props.childDocs.map(doc => {
             csv += self.columns.reduce((val, col) => val + (doc[col.heading] ? doc[col.heading]!.toString() : "0") + ",", "");
             csv = csv.substr(0, csv.length - 1) + "\n";
         });
@@ -778,7 +784,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         // const docs = DocListCast(this.props.Document[this.props.fieldKey]);
 
         let cdoc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
-        const docs = DocListCast(cdoc[this.props.fieldKey]);
+        // const docs = DocListCast(cdoc[this.props.fieldKey]);
+        let docs = this.props.childDocs;
 
         row = row % docs.length;
         while (row < 0) row += docs.length;
