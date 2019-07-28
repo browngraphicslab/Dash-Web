@@ -202,7 +202,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 Document={this.props.Document} // child doc
                 PanelHeight={this.props.PanelHeight}
                 PanelWidth={this.props.PanelWidth}
-                // childDocs={this.childDocs}
+                childDocs={this.childDocs}
                 CollectionView={this.props.CollectionView}
                 ContainingCollectionView={this.props.ContainingCollectionView}
                 fieldKey={this.props.fieldKey} // might just be this.
@@ -252,7 +252,7 @@ export interface SchemaTableProps {
     dataDoc?: Doc;
     PanelHeight: () => number;
     PanelWidth: () => number;
-    // childDocs: Doc[];
+    childDocs: Doc[];
     CollectionView: CollectionView | CollectionPDFView | CollectionVideoView;
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
     fieldKey: string;
@@ -299,8 +299,9 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         let focusedCol = this._focusedCell.col;
         let isEditable = !this._headerIsEditing;// && this.props.isSelected();
 
-        let cdoc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
-        let children = DocListCast(cdoc[this.props.fieldKey]);
+        // let cdoc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
+        // let children = DocListCast(cdoc[this.props.fieldKey]);
+        let children = this.props.childDocs;
 
         if (children.reduce((found, doc) => found || doc.type === "collection", false)) {
             columns.push(
