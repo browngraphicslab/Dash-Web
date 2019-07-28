@@ -287,9 +287,10 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     @computed get previewHeight() { return () => this.props.PanelHeight() - 2 * this.borderWidth; }
     @computed get tableWidth() { return this.props.PanelWidth() - 2 * this.borderWidth - this.DIVIDER_WIDTH - this.previewWidth(); }
     @computed get columns() {
+        console.log("columns");
         return Cast(this.props.Document.schemaColumns, listSpec(SchemaHeaderField), []);
     }
-    set columns(columns: SchemaHeaderField[]) { this.props.Document.schemaColumns = new List<SchemaHeaderField>(columns); }
+    set columns(columns: SchemaHeaderField[]) { console.log("setting columns"); this.props.Document.schemaColumns = new List<SchemaHeaderField>(columns); }
     @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }
     @computed get tableColumns(): Column<Doc>[] {
         let possibleKeys = this.documentKeys.filter(key => this.columns.findIndex(existingKey => existingKey.heading.toUpperCase() === key.toUpperCase()) === -1);
@@ -404,7 +405,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         super(props);
         // convert old schema columns (list of strings) into new schema columns (list of schema header fields)
         let oldSchemaColumns = Cast(this.props.Document.schemaColumns, listSpec("string"), []);
-        if (oldSchemaColumns && oldSchemaColumns.length) {
+        if (oldSchemaColumns && oldSchemaColumns.length && typeof oldSchemaColumns[0] !== "object") {
+            console.log("REMAKING COLUMNs");
             let newSchemaColumns = oldSchemaColumns.map(i => typeof i === "string" ? new SchemaHeaderField(i) : i);
             this.props.Document.schemaColumns = new List<SchemaHeaderField>(newSchemaColumns);
         }
@@ -583,6 +585,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         let index = 0;
         let found = this.columns.findIndex(col => col.heading.toUpperCase() === "New field".toUpperCase()) > -1;
         if (!found) {
+            console.log("create column found");
             this.columns.push(new SchemaHeaderField("New field"));
             return;
         }
@@ -590,13 +593,16 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             index++;
             found = this.columns.findIndex(col => col.heading.toUpperCase() === ("New field (" + index + ")").toUpperCase()) > -1;
         }
+        console.log("create column new");
         this.columns.push(new SchemaHeaderField("New field (" + index + ")"));
     }
 
     @action
     deleteColumn = (key: string) => {
+        console.log("deleting columnnn");
         let list = Cast(this.props.Document.schemaColumns, listSpec(SchemaHeaderField));
         if (list === undefined) {
+            console.log("delete column");
             this.props.Document.schemaColumns = list = new List<SchemaHeaderField>([]);
         } else {
             const index = list.map(c => c.heading).indexOf(key);
@@ -608,10 +614,13 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     @action
     changeColumns = (oldKey: string, newKey: string, addNew: boolean) => {
+        console.log("changingin columnsdfhs");
         let list = Cast(this.props.Document.schemaColumns, listSpec(SchemaHeaderField));
         if (list === undefined) {
+            console.log("change columns new");
             this.props.Document.schemaColumns = list = new List<SchemaHeaderField>([new SchemaHeaderField(newKey)]);
         } else {
+            console.log("change column");
             if (addNew) {
                 this.columns.push(new SchemaHeaderField(newKey));
             } else {

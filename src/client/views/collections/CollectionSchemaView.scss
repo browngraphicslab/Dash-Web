@@ -161,7 +161,7 @@
     }
 
     .rt-tr {
-        width: 100%;
+        // width: 100%;
         min-height: 30px;
         // height: $MAX_ROW_HEIGHT;
     }
@@ -194,6 +194,11 @@
             width: auto;
             height: 100%;
         }
+    }
+
+    .rt-resizer {
+        width: 20px;
+        right: -10px;
     }
 }
 
@@ -312,7 +317,7 @@ button.add-column {
     height: 100%;
     background-color: white;
 
-    &.row-focused {
+    &.row-focused .rt-tr {
         background-color: rgb(255, 246, 246);//$light-color-secondary;
     }
 
