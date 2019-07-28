@@ -18,10 +18,12 @@ export default class KeyRestrictionRow extends React.Component<IKeyRestrictionPr
         if (this._key && this._value) {
             let parsedValue: string | number = `"${this._value}"`;
             let parsed = parseInt(this._value);
+            let type = "string";
             if (!isNaN(parsed)) {
                 parsedValue = parsed;
+                type = "number";
             }
-            let scriptText = `(doc.${this._key} ${this._contains ? "===" : "!=="} ${parsedValue})`;
+            let scriptText = `${this._contains ? "" : "!"}((doc.${this._key} as ${type})${type === "string" ? ".includes" : "<="}(${parsedValue}))`;
             this.props.script(scriptText);
         }
         return (

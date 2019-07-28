@@ -582,12 +582,12 @@ export namespace Docs {
 export namespace DocUtils {
 
     export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", tags: string = "Default", sourceContext?: Doc) {
-        if (LinkManager.Instance.doesLinkExist(source, target)) return;
+        if (LinkManager.Instance.doesLinkExist(source, target)) return undefined;
         let sv = DocumentManager.Instance.getDocumentView(source);
         if (sv && sv.props.ContainingCollectionView && sv.props.ContainingCollectionView.props.Document === target) return;
-        if (target === CurrentUserUtils.UserDocument) return;
+        if (target === CurrentUserUtils.UserDocument) return undefined;
 
-        let linkDoc;
+        let linkDoc: Doc | undefined;
         UndoManager.RunInBatch(() => {
             linkDoc = Docs.Create.TextDocument({ width: 100, height: 30, borderRounding: "100%" });
             linkDoc.type = DocumentType.LINK;

@@ -202,7 +202,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 Document={this.props.Document} // child doc
                 PanelHeight={this.props.PanelHeight}
                 PanelWidth={this.props.PanelWidth}
-                // childDocs={this.childDocs}
+                childDocs={this.childDocs}
                 CollectionView={this.props.CollectionView}
                 ContainingCollectionView={this.props.ContainingCollectionView}
                 fieldKey={this.props.fieldKey} // might just be this.
@@ -252,7 +252,7 @@ export interface SchemaTableProps {
     dataDoc?: Doc;
     PanelHeight: () => number;
     PanelWidth: () => number;
-    // childDocs: Doc[];
+    childDocs: Doc[];
     CollectionView: CollectionView | CollectionPDFView | CollectionVideoView;
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
     fieldKey: string;
@@ -299,8 +299,9 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         let focusedCol = this._focusedCell.col;
         let isEditable = !this._headerIsEditing;// && this.props.isSelected();
 
-        let cdoc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
-        let children = DocListCast(cdoc[this.props.fieldKey]);
+        // let cdoc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
+        // let children = DocListCast(cdoc[this.props.fieldKey]);
+        let children = this.props.childDocs;
 
         if (children.reduce((found, doc) => found || doc.type === "collection", false)) {
             columns.push(
@@ -321,13 +322,12 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         }
 
         let cols = this.columns.map(col => {
-
             let header = <CollectionSchemaHeader
                 keyValue={col}
                 possibleKeys={possibleKeys}
                 existingKeys={this.columns.map(c => c.heading)}
                 keyType={this.getColumnType(col)}
-                typeConst={col.type !== undefined || columnTypes.get(col.heading) !== undefined}
+                typeConst={columnTypes.get(col.heading) !== undefined}
                 onSelect={this.changeColumns}
                 setIsEditing={this.setHeaderIsEditing}
                 deleteColumn={this.deleteColumn}
@@ -360,7 +360,9 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                         moveDocument: this.props.moveDocument,
                         setIsEditing: this.setCellIsEditing,
                         isEditable: isEditable,
-                        setPreviewDoc: this.props.setPreviewDoc
+                        setPreviewDoc: this.props.setPreviewDoc,
+                        setComputed: this.setComputed,
+                        getField: this.getField,
                     };
 
                     let colType = this.getColumnType(col);
@@ -423,7 +425,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     tableRemoveDoc = (document: Doc): boolean => {
         let doc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
-        let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
+        // let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
+        let children = this.props.childDocs;
         if (children.indexOf(document) !== -1) {
             children.splice(children.indexOf(document), 1);
             return true;
@@ -518,7 +521,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             this.changeFocusedCellByDirection(direction);
 
             let doc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
-            let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
+            // let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
+            let children = this.props.childDocs;
             const pdoc = FieldValue(children[this._focusedCell.row]);
             pdoc && this.props.setPreviewDoc(pdoc);
         }
@@ -527,7 +531,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     @action
     changeFocusedCellByDirection = (direction: string): void => {
         let doc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
-        let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
+        // let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
+        let children = this.props.childDocs;
         switch (direction) {
             case "tab":
                 if (this._focusedCell.col + 1 === this.columns.length && this._focusedCell.row + 1 === children.length) {
@@ -558,7 +563,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     @action
     changeFocusedCellByIndex = (row: number, col: number): void => {
         let doc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
-        let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
+        // let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
 
         this._focusedCell = { row: row, col: col };
         this.props.setFocused(this.props.Document);
@@ -569,7 +574,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     createRow = () => {
         let doc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
-        let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
+        // let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
+        let children = this.props.childDocs;
 
         let newDoc = Docs.Create.TextDocument({ width: 100, height: 30 });
         let proto = Doc.GetProto(newDoc);
@@ -681,7 +687,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     get documentKeys() {
-        const docs = DocListCast(this.props.Document[this.props.fieldKey]);
+        // const docs = DocListCast(this.props.Document[this.props.fieldKey]);
+        let docs = this.props.childDocs;
         let keys: { [key: string]: boolean } = {};
         // bcz: ugh.  this is untracked since otherwise a large collection of documents will blast the server for all their fields.
         //  then as each document's fields come back, we update the documents _proxies.  Each time we do this, the whole schema will be
@@ -710,7 +717,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     get reactTable() {
 
         let cdoc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
-        let children = DocListCast(cdoc[this.props.fieldKey]);
+        // let children = DocListCast(cdoc[this.props.fieldKey]);
+        let children = this.props.childDocs;
 
         let previewWidth = this.previewWidth(); // + 2 * this.borderWidth + this.DIVIDER_WIDTH + 1;
         let hasCollectionChild = children.reduce((found, doc) => found || doc.type === "collection", false);
@@ -756,7 +764,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         let csv: string = this.columns.reduce((val, col) => val + col + ",", "");
         csv = csv.substr(0, csv.length - 1) + "\n";
         let self = this;
-        DocListCast(this.props.Document.data).map(doc => {
+        this.props.childDocs.map(doc => {
             csv += self.columns.reduce((val, col) => val + (doc[col.heading] ? doc[col.heading]!.toString() : "0") + ",", "");
             csv = csv.substr(0, csv.length - 1) + "\n";
         });
@@ -770,6 +778,82 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                 self.props.Document.schemaDoc = schemaDoc;
             }
         }
+    }
+
+    getField = (row: number, col?: number) => {
+        // const docs = DocListCast(this.props.Document[this.props.fieldKey]);
+
+        let cdoc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
+        // const docs = DocListCast(cdoc[this.props.fieldKey]);
+        let docs = this.props.childDocs;
+
+        row = row % docs.length;
+        while (row < 0) row += docs.length;
+        const columns = this.columns;
+        const doc = docs[row];
+        if (col === undefined) {
+            return doc;
+        }
+        if (col >= 0 && col < columns.length) {
+            const column = this.columns[col].heading;
+            return doc[column];
+        }
+        return undefined;
+    }
+
+    createTransformer = (row: number, col: number): Transformer => {
+        const self = this;
+        const captures: { [name: string]: Field } = {};
+
+        const transformer: ts.TransformerFactory<ts.SourceFile> = context => {
+            return root => {
+                function visit(node: ts.Node) {
+                    node = ts.visitEachChild(node, visit, context);
+                    if (ts.isIdentifier(node)) {
+                        const isntPropAccess = !ts.isPropertyAccessExpression(node.parent) || node.parent.expression === node;
+                        const isntPropAssign = !ts.isPropertyAssignment(node.parent) || node.parent.name !== node;
+                        if (isntPropAccess && isntPropAssign) {
+                            if (node.text === "$r") {
+                                return ts.createNumericLiteral(row.toString());
+                            } else if (node.text === "$c") {
+                                return ts.createNumericLiteral(col.toString());
+                            } else if (node.text === "$") {
+                                if (ts.isCallExpression(node.parent)) {
+                                    // captures.doc = self.props.Document;
+                                    // captures.key = self.props.fieldKey;
+                                }
+                            }
+                        }
+                    }
+
+                    return node;
+                }
+                return ts.visitNode(root, visit);
+            };
+        };
+
+        // const getVars = () => {
+        //     return { capturedVariables: captures };
+        // };
+
+        return { transformer, /*getVars*/ };
+    }
+
+    setComputed = (script: string, doc: Doc, field: string, row: number, col: number): boolean => {
+        script =
+            `const $ = (row:number, col?:number) => {
+                if(col === undefined) {
+                    return (doc as any)[key][row + ${row}];
+                }
+                return (doc as any)[key][row + ${row}][(doc as any).schemaColumns[col + ${col}].heading];
+            }
+            return ${script}`;
+        const compiled = CompileScript(script, { params: { this: Doc.name }, capturedVariables: { doc: this.props.Document, key: this.props.fieldKey }, typecheck: true, transformer: this.createTransformer(row, col) });
+        if (compiled.compiled) {
+            doc[field] = new ComputedField(compiled);
+            return true;
+        }
+        return false;
     }
 
     render() {
