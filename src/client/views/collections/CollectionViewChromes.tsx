@@ -251,9 +251,9 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                                 </div>
                             </div>
                         </div>
-                        <button className="collectionViewBaseChrome-button" >
+                        {/* <button className="collectionViewBaseChrome-button" >
                             SHOW TIMELINE
-                        </button>
+                        </button> */}
                     </div>
                     {this.subChrome()}
                 </div>

@@ -80,6 +80,13 @@
         position:absolute; 
     }
 
+    .fadeIn-container, .fadeOut-container, .body-container{
+        position:absolute; 
+        height:100%; 
+        background-color: rgba(0, 0, 0, 0.5);
+        opacity: 0; 
+    }
+ 
 
 }
     

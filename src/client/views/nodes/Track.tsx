@@ -15,6 +15,7 @@ interface IProps {
     node: Doc;
     currentBarX: number;
     transform: Transform;
+    collection: Doc; 
     changeCurrentBarX: (x: number) => void;
     setFlyout: (props: FlyoutProps) => any;
 }
@@ -116,7 +117,7 @@ export class Track extends React.Component<IProps> {
                 await this.applyKeys(currentkf);
                 this._keyReaction = this.keyReaction(); //reactivates reaction. 
             } else if (leftkf && rightkf) {
-                this.interpolate(leftkf, rightkf);
+                this.interpolate(leftkf, rightkf, regiondata);
             }
         }
     }
@@ -193,16 +194,27 @@ export class Track extends React.Component<IProps> {
     }
 
     @action
-    interpolate = (left: Doc, right: Doc) => {
+    interpolate = (left: Doc, right: Doc, regiondata:Doc) => {
         console.log("interpolating");
         let leftNode = left.key as Doc;
         let rightNode = right.key as Doc;
         const dif_time = NumCast(right.time) - NumCast(left.time);
-        const ratio = (this.props.currentBarX - NumCast(left.time)) / dif_time; //linear 
+        const timeratio = (this.props.currentBarX - NumCast(left.time)) / dif_time; //linear 
+        let fadeInX:List<number> = regiondata.fadeInX as List<number>; 
+        let fadeInY:List<number> = regiondata.fadeInY as List<number>; 
+        let index = fadeInX[Math.round(fadeInX.length - 1 * timeratio)];  
+        let correspondingY = fadeInY[index]; 
+        let correspondingYRatio = correspondingY / fadeInY[fadeInY.length - 1] - fadeInY[0]; 
+
         this.filterKeys(Doc.allKeys(leftNode)).forEach(key => {
             if (leftNode[key] && rightNode[key] && typeof (leftNode[key]) === "number" && typeof (rightNode[key]) === "number") { //if it is number, interpolate
+                if(index + 1 <= fadeInX.length) {
+
+                } else if (index - 1 >= fadeInX.length) {
+
+                }
                 const diff = NumCast(rightNode[key]) - NumCast(leftNode[key]);
-                const adjusted = diff * ratio;
+                const adjusted = diff * timeratio;
                 this.props.node[key] = NumCast(leftNode[key]) + adjusted;
             } else {
                 this.props.node[key] = leftNode[key];
@@ -250,7 +262,7 @@ export class Track extends React.Component<IProps> {
                 <div className="track">
                     <div className="inner" ref={this._inner} onDoubleClick={this.onInnerDoubleClick}>
                         {DocListCast(this.regions).map((region) => {
-                            return <Keyframe node={this.props.node} RegionData={region} changeCurrentBarX={this.props.changeCurrentBarX} setFlyout={this.props.setFlyout} transform={this.props.transform} />;
+                            return <Keyframe node={this.props.node} RegionData={region} changeCurrentBarX={this.props.changeCurrentBarX} setFlyout={this.props.setFlyout} transform={this.props.transform} collection={this.props.collection}/>;
                         })}
                     </div>
                 </div>

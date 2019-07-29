@@ -18,6 +18,9 @@ import { VideoField } from "../../../new_fields/URLField";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { Transform } from "../../util/Transform";
 import { faGrinTongueSquint } from "@fortawesome/free-regular-svg-icons";
+import { InkField } from "../../../new_fields/InkField";
+import { AddComparisonParameters } from "../../northstar/model/idea/idea";
+import { keepAlive } from "mobx-utils";
 
 
 export interface FlyoutProps {
@@ -65,6 +68,7 @@ export class Timeline extends CollectionSubView(Document) {
     @computed
     private get children(): List<Doc> {
         let extendedDocument = ["image", "video", "pdf"].includes(StrCast(this.props.Document.type));
+       
         if (extendedDocument) {
             if (this.props.Document.data_ext) {
                 return Cast((Cast(this.props.Document.data_ext, Doc) as Doc).annotations, listSpec(Doc)) as List<Doc>;
@@ -73,6 +77,17 @@ export class Timeline extends CollectionSubView(Document) {
             }
         }
         return Cast(this.props.Document[this.props.fieldKey], listSpec(Doc)) as List<Doc>;
+    }
+
+    @computed
+    private get inks(){
+        if (this.props.Document.data_ext){        
+            let data_ext = Cast(this.props.Document.data_ext, Doc) as Doc; 
+            let ink = Cast(data_ext.ink, InkField) as InkField; 
+            if (ink){
+                return ink.inkData; 
+            }
+        }
     }
 
   
@@ -348,7 +363,7 @@ export class Timeline extends CollectionSubView(Document) {
                             <div className="scrubberhead"></div>
                         </div>
                         <div className="trackbox" ref={this._trackbox} onPointerDown={this.onPanDown}>
-                            {DocListCast(this.children).map(doc => <Track node={doc} currentBarX={this._currentBarX} changeCurrentBarX={this.changeCurrentBarX} setFlyout={this.getFlyout} transform={this.props.ScreenToLocalTransform()}/>)}
+                            {DocListCast(this.children).map(doc => <Track node={doc} currentBarX={this._currentBarX} changeCurrentBarX={this.changeCurrentBarX} setFlyout={this.getFlyout} transform={this.props.ScreenToLocalTransform()} collection = {this.props.Document}/>)}
                         </div>
                     </div>
                     <div className="title-container" ref={this._titleContainer}>

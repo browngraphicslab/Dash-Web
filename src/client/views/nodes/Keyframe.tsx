@@ -10,6 +10,9 @@ import { List } from "../../../new_fields/List";
 import { createSchema, defaultSpec, makeInterface, listSpec } from "../../../new_fields/Schema";
 import { FlyoutProps } from "./Timeline";
 import { Transform } from "../../util/Transform";
+import { DocumentManager } from "../../util/DocumentManager";
+import { CollectionView } from "../collections/CollectionView";
+import { InkField } from "../../../new_fields/InkField";
 
 export namespace KeyframeFunc {
     export enum KeyframeType {
@@ -48,6 +51,7 @@ export namespace KeyframeFunc {
         regiondata.position = 0;
         regiondata.fadeIn = 20;
         regiondata.fadeOut = 20;
+        regiondata.fadeInX = new List([1, 100]); 
         return regiondata;
     };
 }
@@ -65,6 +69,7 @@ export const RegionData = makeInterface(RegionDataSchema);
 interface IProps {
     node: Doc;
     RegionData: Doc;
+    collection:Doc; 
     changeCurrentBarX: (x: number) => void;
     setFlyout: (props: FlyoutProps) => any;
     transform: Transform; 
@@ -74,6 +79,9 @@ interface IProps {
 export class Keyframe extends React.Component<IProps> {
 
     @observable private _bar = React.createRef<HTMLDivElement>();
+    @observable private _fadeInContainer = React.createRef<HTMLDivElement>(); 
+    @observable private _fadeOutContainer = React.createRef<HTMLDivElement>(); 
+    @observable private _bodyContainer = React.createRef<HTMLDivElement>(); 
 
     @computed
     private get regiondata() {
@@ -110,6 +118,17 @@ export class Keyframe extends React.Component<IProps> {
             }
         });
         return last;
+    }
+
+    @computed
+    private get inks(){
+        if (this.props.collection.data_ext){        
+            let data_ext = Cast(this.props.collection.data_ext, Doc) as Doc; 
+            let ink = Cast(data_ext.ink, InkField) as InkField; 
+            if (ink){
+                return ink.inkData; 
+            }
+        }
     }
 
 
@@ -300,6 +319,13 @@ export class Keyframe extends React.Component<IProps> {
     }
 
 
+    @action 
+    onKeyframeOver = (e: React.PointerEvent) => {
+        e.preventDefault(); 
+        e.stopPropagation(); 
+        this.props.node.backgroundColor = "#000000"; 
+        
+    }
     @action
     private createKeyframeJSX = (kf: Doc, type = KeyframeFunc.KeyframeType.default) => {
         if (type === KeyframeFunc.KeyframeType.default) {
@@ -319,6 +345,34 @@ export class Keyframe extends React.Component<IProps> {
         );
     }
 
+    onContainerOver = (e: React.PointerEvent, ref:React.RefObject<HTMLDivElement>) => {
+        e.preventDefault(); 
+        e.stopPropagation(); 
+        let div = ref.current!; 
+        div.style.opacity = "1"; 
+    }
+
+    onContainerOut = (e: React.PointerEvent, ref: React.RefObject<HTMLDivElement>) => {
+        e.preventDefault(); 
+        e.stopPropagation(); 
+        let div = ref.current!; 
+        div.style.opacity ="0"; 
+    }
+
+    onContainerDown = (e: React.PointerEvent, ref: React.RefObject<HTMLDivElement>) => {
+        e.preventDefault(); 
+        let mouse = e.nativeEvent; 
+        if (mouse.which === 3){        
+            let reac = reaction(() => {
+                return this.inks;}, () => {
+                    document.addEventListener("pointerup", () => {
+                        reac(); 
+                    console.log("disposed"); 
+                }); 
+            console.log("drawing"); }); 
+        }
+        
+    }
     render() {
         return (
             <div>
@@ -337,6 +391,18 @@ export class Keyframe extends React.Component<IProps> {
                     {this.regiondata.keyframes!.map(kf => {
                         return this.createKeyframeJSX(kf as Doc, (kf! as Doc).type as KeyframeFunc.KeyframeType);
                     })}
+                    <div ref={this._fadeOutContainer}className="fadeOut-container" style={{right: `0px`, width: `${this.regiondata.fadeOut}px`}}
+                    onPointerOver={(e) => {this.onContainerOver(e, this._fadeOutContainer); }}
+                    onPointerOut ={(e) => {this.onContainerOut(e, this._fadeOutContainer);}}
+                    onPointerDown={(e) => {this.onContainerDown(e, this._fadeOutContainer); }}> </div> 
+                    <div ref={this._fadeInContainer}className="fadeIn-container" style={{left: "0px", width:`${this.regiondata.fadeIn}px`}}
+                    onPointerOver={(e) => {this.onContainerOver(e, this._fadeInContainer); }}
+                    onPointerOut ={(e) => {this.onContainerOut(e, this._fadeInContainer);}}
+                    onPointerDown={(e) => {this.onContainerDown(e, this._fadeInContainer); }}></div>
+                    <div ref={this._bodyContainer}className="body-container" style={{left: `${this.regiondata.fadeIn}px`, width:`${this.regiondata.duration - this.regiondata.fadeIn - this.regiondata.fadeOut}px`}}
+                    onPointerOver={(e) => {this.onContainerOver(e, this._bodyContainer); }}
+                    onPointerOut ={(e) => {this.onContainerOut(e, this._bodyContainer);}}
+                    onPointerDown={(e) => {this.onContainerDown(e, this._bodyContainer); }}> </div>
                 </div>
             </div>
         );
