@@ -18,6 +18,7 @@ import { undoBatch, UndoManager } from "../../util/UndoManager";
 import PresentationViewList from "./PresentationList";
 import { ContextMenu } from "../ContextMenu";
 import PresModeMenu from "./PresentationModeMenu";
+import { CollectionDockingView } from "../collections/CollectionDockingView";
 
 library.add(faArrowLeft);
 library.add(faArrowRight);
@@ -418,7 +419,8 @@ export class PresentationView extends React.Component<PresViewProps>  {
             DocumentManager.Instance.jumpToDocument(curDoc, false);
         } else {
             console.log("Open in tab!!");
-            DocumentManager.Instance.jumpToDocument(curDoc, false, undefined, this.props.addDocTab);
+            // DocumentManager.Instance.jumpToDocument(curDoc, false, undefined, this.props.addDocTab);
+            CollectionDockingView.Instance.AddTab(undefined, curDoc, undefined);
         }
     }
 
