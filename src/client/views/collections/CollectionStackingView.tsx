@@ -278,7 +278,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         };
         // let uniqueHeadings = headings.map((i, idx) => headings.indexOf(i) === idx);
         return (
-            <div className="collectionStackingView" style={{ top: this.chromeCollapsed ? 0 : 100 }}
+            <div className="collectionStackingView"
                 ref={this.createRef} onDrop={this.onDrop.bind(this)} onWheel={(e: React.WheelEvent) => e.stopPropagation()} >
                 {/* {sectionFilter as boolean ? [
                     ["width > height", this.filteredChildren.filter(f => f[WidthSym]() >= 1 + f[HeightSym]())],

@@ -18,7 +18,7 @@ import { CollectionTreeView } from "./CollectionTreeView";
 import { StrCast, PromiseValue } from '../../../new_fields/Types';
 import { DocumentType } from '../../documents/Documents';
 import { CollectionStackingViewChrome, CollectionViewBaseChrome } from './CollectionViewChromes';
-import { observable, action, runInAction } from 'mobx';
+import { observable, action, runInAction, IReactionDisposer, reaction } from 'mobx';
 import { faEye } from '@fortawesome/free-regular-svg-icons';
 export const COLLECTION_BORDER_WIDTH = 2;
 
@@ -37,14 +37,23 @@ library.add(faImage, faEye);
 export class CollectionView extends React.Component<FieldViewProps> {
     @observable private _collapsed = false;
 
+    private _reactionDisposer: IReactionDisposer | undefined;
+
     public static LayoutString(fieldStr: string = "data", fieldExt: string = "") { return FieldView.LayoutString(CollectionView, fieldStr, fieldExt); }
 
     componentDidMount = () => {
-        // chrome status is one of disabled, collapsed, or visible. this determines initial state from document
-        let chromeStatus = this.props.Document.chromeStatus;
-        if (chromeStatus && (chromeStatus === "disabled" || chromeStatus === "collapsed")) {
-            runInAction(() => this._collapsed = true);
-        }
+        this._reactionDisposer = reaction(() => StrCast(this.props.Document.chromeStatus),
+            () => {
+                // chrome status is one of disabled, collapsed, or visible. this determines initial state from document
+                let chromeStatus = this.props.Document.chromeStatus;
+                if (chromeStatus && (chromeStatus === "disabled" || chromeStatus === "collapsed")) {
+                    runInAction(() => this._collapsed = true);
+                }
+            });
+    }
+
+    componentWillUnmount = () => {
+        this._reactionDisposer && this._reactionDisposer();
     }
 
     private SubViewHelper = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
