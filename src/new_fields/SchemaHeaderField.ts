@@ -49,7 +49,6 @@ export class SchemaHeaderField extends ObjectField {
     type: number;
 
     constructor(heading: string = "", color?: string, type?: ColumnType) {
-        console.log("CREATING SCHEMA HEADER FIELD");
         super();
 
         this.heading = heading;

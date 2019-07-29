@@ -211,7 +211,20 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         }
         let docContentConfig = CollectionDockingView.makeDocumentConfig(document, dataDocument);
         var newContentItem = stack.layoutManager.createContentItem(docContentConfig, this._goldenLayout);
-        stack.addChild(newContentItem.contentItems[0], undefined);
+        if (stack === undefined) {
+            if (this._goldenLayout.root.contentItems.length === 0) {
+                this._goldenLayout.root.addChild(newContentItem);
+            } else {
+                const rowOrCol = this._goldenLayout.root.contentItems[0];
+                if (rowOrCol.contentItems.length) {
+                    rowOrCol.contentItems[0].addChild(newContentItem);
+                } else {
+                    rowOrCol.addChild(newContentItem);
+                }
+            }
+        } else {
+            stack.addChild(newContentItem.contentItems[0], undefined);
+        }
         this.layoutChanged();
     }
 
