@@ -69,24 +69,10 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
 
     componentDidMount() {
         if (this.props.setPdfBox) this.props.setPdfBox(this);
-
-        document.removeEventListener("copy", this.copy);
-        document.addEventListener("copy", this.copy);
     }
 
     componentWillUnmount() {
         this._reactionDisposer && this._reactionDisposer();
-        document.removeEventListener("copy", this.copy);
-    }
-
-    private copy = (e: ClipboardEvent) => {
-        if (this.props.active()) {
-            if (e.clipboardData) {
-                e.clipboardData.setData("text/plain", text);
-                e.clipboardData.setData("dash/pdfOrigin", this.props.Document[Id]);
-                e.preventDefault();
-            }
-        }
     }
 
     public GetPage() {

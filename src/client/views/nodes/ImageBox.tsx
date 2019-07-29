@@ -96,7 +96,11 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                     this.props.Document.width = drop.width;
                     this.props.Document.height = drop.height;
                     Doc.GetProto(this.props.Document).type = DocumentType.TEMPLATE;
-                    this.props.Document.layout = temp;
+                    if (this.props.DataDoc && this.props.DataDoc.layout === this.props.Document) {
+                        this.props.DataDoc.layout = temp;
+                    } else {
+                        this.props.Document.layout = temp;
+                    }
                     e.stopPropagation();
                 } else if (de.mods === "AltKey" && /*this.dataDoc !== this.props.Document &&*/ drop.data instanceof ImageField) {
                     Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new ImageField(drop.data.url);
