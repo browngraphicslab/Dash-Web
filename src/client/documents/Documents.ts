@@ -163,7 +163,6 @@ export namespace Docs {
             [DocumentType.LINKDOC, {
                 data: new List<Doc>(),
                 layout: { view: EmptyBox },
-                options: {}
             }],
             [DocumentType.BUTTON, {
                 layout: { view: ButtonBox },
@@ -414,8 +413,8 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Tree });
         }
 
-        export function StackingDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Stacking });
+        export function StackingDocument(documents: Array<Doc>, options: DocumentOptions, viewType: CollectionViewType = CollectionViewType.Stacking) {
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: viewType });
         }
 
         export function ButtonDocument(options?: DocumentOptions) {

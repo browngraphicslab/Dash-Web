@@ -20,6 +20,7 @@ import { RichTextField } from "../../../new_fields/RichTextField";
 import { ImageField } from "../../../new_fields/URLField";
 import { SelectionManager } from "../../util/SelectionManager";
 import { listSpec } from "../../../new_fields/Schema";
+import { CollectionViewType } from "../collections/CollectionBaseView";
 
 export type KVPScript = {
     script: CompiledScript;
@@ -195,6 +196,9 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         }
 
         let fieldTemplate = await this.inferType(sourceDoc[metaKey], metaKey);
+        if (!fieldTemplate) {
+            return;
+        }
         let previousViewType = fieldTemplate.viewType;
         Doc.MakeTemplate(fieldTemplate, metaKey, Doc.GetProto(parentStackingDoc));
         previousViewType && (fieldTemplate.viewType = previousViewType);
@@ -211,14 +215,17 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
                 return Docs.Create.StackingDocument([], options);
             }
             let first = await Cast(data[0], Doc);
-            if (!first) {
+            if (!first || !first.data) {
                 return Docs.Create.StackingDocument([], options);
             }
-            switch (first.type) {
-                case "image":
-                    return Docs.Create.StackingDocument([], options);
-                case "text":
+            switch (first.data.constructor) {
+                case RichTextField:
                     return Docs.Create.TreeDocument([], options);
+                case ImageField:
+                    return Docs.Create.StackingDocument([], options, CollectionViewType.Masonry);
+                default:
+                    console.log(`Template for ${first.data.constructor} not supported!`);
+                    return undefined;
             }
         } else if (data instanceof ImageField) {
             return Docs.Create.ImageDocument("https://image.flaticon.com/icons/png/512/23/23765.png", options);
