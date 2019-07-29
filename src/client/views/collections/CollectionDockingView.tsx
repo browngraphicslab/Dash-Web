@@ -561,7 +561,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         }
         return Transform.Identity();
     }
-    get previewPanelCenteringOffset() { return this.nativeWidth && !BoolCast(this._document!.ignoreAspect) ? (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2 : 0; }
+    get previewPanelCenteringOffset() { return this.nativeWidth && !BoolCast(this._document!.ignoreAspect) ? (this._panelWidth - this.nativeWidth()) / 2 : 0; }
 
     addDocTab = (doc: Doc, dataDoc: Doc | undefined, location: string) => {
         if (doc.dockingConfig) {

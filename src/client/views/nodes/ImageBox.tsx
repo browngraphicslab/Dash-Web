@@ -291,7 +291,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                 let aspect = size.height / size.width;
                 let rotation = NumCast(this.dataDoc.rotation) % 180;
                 if (rotation === 90 || rotation === 270) aspect = 1 / aspect;
-                if (Math.abs(layoutdoc[HeightSym]() / layoutdoc[WidthSym]() - aspect) > 0.01) {
+                if (Math.abs(NumCast(layoutdoc.height) - size.height) > 1 || Math.abs(NumCast(layoutdoc.width) - size.width) > 1) {
                     setTimeout(action(() => {
                         layoutdoc.height = layoutdoc[WidthSym]() * aspect;
                         layoutdoc.nativeHeight = size.height;
