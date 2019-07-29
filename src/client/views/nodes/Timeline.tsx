@@ -9,7 +9,7 @@ import { Cast, NumCast, FieldValue, StrCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlayCircle, faBackward, faForward, faGripLines, faArrowUp, faArrowDown, faClock } from "@fortawesome/free-solid-svg-icons";
+import { faPlayCircle, faBackward, faForward, faGripLines, faArrowUp, faArrowDown, faClock, faPauseCircle } from "@fortawesome/free-solid-svg-icons";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { ContextMenu } from "../ContextMenu";
 import { DocumentManager } from "../../util/DocumentManager";
@@ -59,6 +59,7 @@ export class Timeline extends CollectionSubView(Document) {
     @observable private _containerHeight: number = this.DEFAULT_CONTAINER_HEIGHT;
     @observable private _time = 100000; //DEFAULT
     @observable private _ticks: number[] = [];
+    @observable private _playButton = faPlayCircle; 
     @observable private flyoutInfo: FlyoutProps = { x: 0, y: 0, display: "none", regiondata: new Doc(), regions: new List<Doc>() };
 
     @computed
@@ -119,8 +120,10 @@ export class Timeline extends CollectionSubView(Document) {
     onPlay = async (e: React.MouseEvent) => {
         if (this._isPlaying) {
             this._isPlaying = false;
+            this._playButton = faPlayCircle; 
         } else {
             this._isPlaying = true;
+            this._playButton = faPauseCircle; 
             this.changeCurrentX();
         }
     }
@@ -332,7 +335,7 @@ export class Timeline extends CollectionSubView(Document) {
                     <TimelineFlyout flyoutInfo={this.flyoutInfo} tickSpacing={this._tickSpacing}/>
                     <div className="toolbox">
                         <div onClick={this.windBackward}> <FontAwesomeIcon icon={faBackward} size="2x" /> </div>
-                        <div onClick={this.onPlay}> <FontAwesomeIcon icon={faPlayCircle} size="2x" /> </div>
+                        <div onClick={this.onPlay}> <FontAwesomeIcon icon={this._playButton} size="2x" /> </div>
                         <div onClick={this.windForward}> <FontAwesomeIcon icon={faForward} size="2x" /> </div>
                     </div>
                     <div className="info-container" ref={this._infoContainer}>
