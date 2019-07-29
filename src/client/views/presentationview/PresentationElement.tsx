@@ -8,7 +8,7 @@ import "./PresentationView.scss";
 import { Utils, emptyFunction, returnFalse, returnOne } from "../../../Utils";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFile as fileSolid, faFileDownload, faLocationArrow, faArrowUp, faSearch } from '@fortawesome/free-solid-svg-icons';
+import { faFile as fileSolid, faFileDownload, faLocationArrow, faArrowUp, faSearch, faArrowRight } from '@fortawesome/free-solid-svg-icons';
 import { faFile as fileRegular } from '@fortawesome/free-regular-svg-icons';
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
@@ -28,6 +28,7 @@ library.add(fileSolid);
 library.add(faLocationArrow);
 library.add(fileRegular as any);
 library.add(faSearch);
+library.add(faArrowRight);
 
 interface PresentationElementProps {
     mainDocument: Doc;
@@ -54,6 +55,7 @@ export enum buttonIndex {
     FadeAfter = 3,
     HideAfter = 4,
     Group = 5,
+    OpenRight = 6
 
 }
 
@@ -76,7 +78,7 @@ export default class PresentationElement extends React.Component<PresentationEle
 
     constructor(props: PresentationElementProps) {
         super(props);
-        this.selectedButtons = new Array(6);
+        this.selectedButtons = new Array(7);
 
         this.presElRef = React.createRef();
     }
@@ -140,7 +142,7 @@ export default class PresentationElement extends React.Component<PresentationEle
 
         if (!foundDoc) {
             let newDoc = new Doc();
-            let defaultBooleanArray: boolean[] = new Array(6);
+            let defaultBooleanArray: boolean[] = new Array(7);
             newDoc.selectedButtons = new List(defaultBooleanArray);
             newDoc.docId = this.props.document[Id];
             castedList.push(newDoc);
@@ -402,6 +404,18 @@ export default class PresentationElement extends React.Component<PresentationEle
 
     }
 
+    @action
+    onRightTabClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (this.selectedButtons[buttonIndex.OpenRight]) {
+            this.selectedButtons[buttonIndex.OpenRight] = false;
+            // action maybe
+        } else {
+            this.selectedButtons[buttonIndex.OpenRight] = true;
+        }
+        this.autoSaveButtonChange(buttonIndex.OpenRight);
+    }
+
     /**
      * Creating a drop target for drag and drop when called.
      */
@@ -637,7 +651,7 @@ export default class PresentationElement extends React.Component<PresentationEle
      */
     getSelectedButtonsOfDoc = async (paramDoc: Doc) => {
         let castedList = Cast(this.props.presButtonBackUp.selectedButtonDocs, listSpec(Doc));
-        let foundSelectedButtons: boolean[] = new Array(6);
+        let foundSelectedButtons: boolean[] = new Array(7);
 
         //if this is the first time this doc mounts, push a doc for it to store
         for (let doc of castedList!) {
@@ -887,6 +901,8 @@ export default class PresentationElement extends React.Component<PresentationEle
                     this.changeGroupStatus();
                     this.onGroupClick(p.document, p.index, this.selectedButtons[buttonIndex.Group]);
                 }}> <FontAwesomeIcon icon={"arrow-up"} /> </button>
+                <button title="Open Right" className={this.selectedButtons[buttonIndex.OpenRight] ? "presentation-interaction-selected" : "presentation-interaction"} onPointerDown={(e) => e.stopPropagation()} onClick={this.onRightTabClick}><FontAwesomeIcon icon={"arrow-right"} /></button>
+
                 <br />
                 {this.renderEmbeddedInline()}
             </div>

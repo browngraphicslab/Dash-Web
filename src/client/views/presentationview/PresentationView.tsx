@@ -4,7 +4,7 @@ import { observable, action, runInAction, reaction, autorun } from "mobx";
 import "./PresentationView.scss";
 import { DocumentManager } from "../../util/DocumentManager";
 import { Utils } from "../../../Utils";
-import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
+import { Doc, DocListCast, DocListCastAsync, WidthSym } from "../../../new_fields/Doc";
 import { listSpec } from "../../../new_fields/Schema";
 import { Cast, NumCast, FieldValue, PromiseValue, StrCast, BoolCast } from "../../../new_fields/Types";
 import { Id } from "../../../new_fields/FieldSymbols";
@@ -12,11 +12,12 @@ import { List } from "../../../new_fields/List";
 import PresentationElement, { buttonIndex } from "./PresentationElement";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowRight, faArrowLeft, faPlay, faStop, faPlus, faTimes, faMinus, faEdit } from '@fortawesome/free-solid-svg-icons';
+import { faArrowRight, faArrowLeft, faPlay, faStop, faPlus, faTimes, faMinus, faEdit, faEye } from '@fortawesome/free-solid-svg-icons';
 import { Docs } from "../../documents/Documents";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import PresentationViewList from "./PresentationList";
 import { ContextMenu } from "../ContextMenu";
+import PresModeMenu from "./PresentationModeMenu";
 
 library.add(faArrowLeft);
 library.add(faArrowRight);
@@ -26,10 +27,12 @@ library.add(faPlus);
 library.add(faTimes);
 library.add(faMinus);
 library.add(faEdit);
+library.add(faEye);
 
 
 export interface PresViewProps {
     Documents: List<Doc>;
+    addDocTab: (doc: Doc) => void;
 }
 
 const expandedWidth = 400;
@@ -63,7 +66,8 @@ export class PresentationView extends React.Component<PresViewProps>  {
     //Variable that holds reference to title input, so that new presentations get titles assigned.
     @observable titleInputElement: HTMLInputElement | undefined;
     @observable PresTitleChangeOpen: boolean = false;
-    @observable PresViewWidth: number | undefined;
+    @observable presMode: boolean = false;
+
 
     //initilize class variables
     constructor(props: PresViewProps) {
@@ -360,11 +364,21 @@ export class PresentationView extends React.Component<PresViewProps>  {
             //checking if curDoc has navigation open
             let curDocButtons = this.presElementsMappings.get(curDoc)!.selected;
             if (curDocButtons[buttonIndex.Navigate]) {
-                DocumentManager.Instance.jumpToDocument(curDoc, false);
+                // if (curDocButtons[buttonIndex.OpenRight]) {
+                //     DocumentManager.Instance.jumpToDocument(curDoc, false);
+                // } else {
+                //     DocumentManager.Instance.jumpToDocument(curDoc, false, undefined, this.props.addDocTab);
+                // }
+                this.jumpToTabOrRight(curDocButtons, curDoc);
             } else if (curDocButtons[buttonIndex.Show]) {
                 let curScale = DocumentManager.Instance.getScaleOfDocView(this.childrenDocs[fromDoc]);
-                //awaiting jump so that new scale can be found, since jumping is async
-                await DocumentManager.Instance.jumpToDocument(curDoc, true);
+                if (curDocButtons[buttonIndex.OpenRight]) {
+                    //awaiting jump so that new scale can be found, since jumping is async
+                    await DocumentManager.Instance.jumpToDocument(curDoc, true);
+                } else {
+                    await DocumentManager.Instance.jumpToDocument(curDoc, false, undefined, this.props.addDocTab);
+                }
+
                 let newScale = DocumentManager.Instance.getScaleOfDocView(curDoc);
                 curDoc.viewScale = newScale;
 
@@ -377,9 +391,15 @@ export class PresentationView extends React.Component<PresViewProps>  {
             return;
         }
         let curScale = DocumentManager.Instance.getScaleOfDocView(this.childrenDocs[fromDoc]);
+        let curDocButtons = this.presElementsMappings.get(docToJump)!.selected;
 
-        //awaiting jump so that new scale can be found, since jumping is async
-        await DocumentManager.Instance.jumpToDocument(docToJump, willZoom);
+
+        if (curDocButtons[buttonIndex.OpenRight]) {
+            //awaiting jump so that new scale can be found, since jumping is async
+            await DocumentManager.Instance.jumpToDocument(docToJump, willZoom);
+        } else {
+            await DocumentManager.Instance.jumpToDocument(docToJump, willZoom, undefined, this.props.addDocTab);
+        }
         let newScale = DocumentManager.Instance.getScaleOfDocView(curDoc);
         curDoc.viewScale = newScale;
         //saving the scale that user was on
@@ -387,6 +407,15 @@ export class PresentationView extends React.Component<PresViewProps>  {
             this.childrenDocs[fromDoc].viewScale = curScale;
         }
 
+    }
+
+    jumpToTabOrRight = (curDocButtons: boolean[], curDoc: Doc) => {
+        if (curDocButtons[buttonIndex.OpenRight]) {
+            DocumentManager.Instance.jumpToDocument(curDoc, false);
+        } else {
+            console.log("Open in tab!!");
+            DocumentManager.Instance.jumpToDocument(curDoc, false, undefined, this.props.addDocTab);
+        }
     }
 
     /**
@@ -578,16 +607,33 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
     //The function that starts or resets presentaton functionally, depending on status flag.
     @action
-    startOrResetPres = () => {
+    startOrResetPres = async () => {
         if (this.presStatus) {
             this.resetPresentation();
         } else {
             this.presStatus = true;
-            this.startPresentation(0);
+            let startIndex = await this.findStartDocument();
+            this.startPresentation(startIndex);
             const current = NumCast(this.curPresentation.selectedDoc);
-            this.gotoDocument(0, current);
+            this.gotoDocument(startIndex, current);
         }
         this.curPresentation.presStatus = this.presStatus;
+    }
+
+    findStartDocument = async () => {
+        let docAtZero = await this.getDocAtIndex(0);
+        if (docAtZero === undefined) {
+            return 0;
+        }
+        let docAtZeroPresId = StrCast(docAtZero.presentId);
+
+        if (this.groupMappings.has(docAtZeroPresId)) {
+            let group = this.groupMappings.get(docAtZeroPresId)!;
+            let lastDoc = group[group.length - 1];
+            return this.childrenDocs.indexOf(lastDoc);
+        } else {
+            return 0;
+        }
     }
 
     //The function that resets the presentation by removing every action done by it. It also
@@ -808,9 +854,9 @@ export class PresentationView extends React.Component<PresViewProps>  {
         this.presElementsMappings.set(keyDoc, elem);
     }
 
-    //_downsize = 0;
+    _downsize = 0;
     onPointerDown = (e: React.PointerEvent) => {
-        //this._downsize = e.clientX;
+        this._downsize = e.clientX;
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
         document.addEventListener("pointermove", this.onPointerMove);
@@ -821,15 +867,16 @@ export class PresentationView extends React.Component<PresViewProps>  {
     @action
     onPointerMove = (e: PointerEvent) => {
 
-        this.curPresentation.width = Math.max(window.innerWidth - e.clientX, 255);
+        this.curPresentation.width = Math.max(window.innerWidth - e.clientX, 300);
     }
     @action
     onPointerUp = (e: PointerEvent) => {
-        //this.isPointerDown = false;
-        // if (Math.abs(e.clientX - this._downsize) < 4) {
-        //     if (this.flyoutWidth < 5) this.flyoutWidth = 250;
-        //     else this.flyoutWidth = 0;
-        // }
+        if (Math.abs(e.clientX - this._downsize) < 4) {
+            let presWidth = NumCast(this.curPresentation.width);
+            if (presWidth - 300 !== 0) {
+                this.curPresentation.width = 0;
+            }
+        }
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
     }
@@ -839,17 +886,38 @@ export class PresentationView extends React.Component<PresViewProps>  {
         e.preventDefault();
         let width = NumCast(this.curPresentation.width);
         if (width === 0) {
-            this.curPresentation.width = 255;
-        } else {
-            this.curPresentation.width = 0;
+            this.curPresentation.width = 300;
         }
+    }
+    @action
+    openPresMode = () => {
+        if (!this.presMode) {
+            this.curPresentation.width = 0;
+            this.presMode = true;
+        }
+    }
+
+    @action
+    closePresMode = () => {
+        if (this.presMode) {
+            this.presMode = false;
+            this.curPresentation.width = 300;
+        }
+
+    }
+
+    renderPresMode = () => {
+        if (this.presMode) {
+            return <PresModeMenu next={this.next} back={this.back} startOrResetPres={this.startOrResetPres} presStatus={this.presStatus} closePresMode={this.closePresMode} />;
+        } else {
+            return (null);
+        }
+
     }
 
     render() {
 
         let width = NumCast(this.curPresentation.width);
-        this.PresViewWidth = width;
-
 
         return (
             <div>
@@ -857,6 +925,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
                     <div className="presentationView-heading">
                         {this.renderSelectOrPresSelection()}
                         <button title="Close Presentation" className='presentation-icon' onClick={this.closePresentation}><FontAwesomeIcon icon={"times"} /></button>
+                        <button title="Open Presentation Mode" className="presentation-icon" style={{ marginRight: 10 }} onClick={this.openPresMode}><FontAwesomeIcon icon={"eye"} /></button>
                         <button title="Add Presentation" className="presentation-icon" style={{ marginRight: 10 }} onClick={() => {
                             runInAction(() => { if (this.PresTitleChangeOpen) { this.PresTitleChangeOpen = false; } });
                             runInAction(() => this.PresTitleInputOpen ? this.PresTitleInputOpen = false : this.PresTitleInputOpen = true);
@@ -892,6 +961,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
                     onPointerDown={this.onPointerDown} onClick={this.togglePresView}>
                     <span title="library View Dragger" style={{ width: "100%", height: "100%", position: "absolute" }} />
                 </div>
+                {this.renderPresMode()}
             </div>
         );
     }

@@ -267,7 +267,7 @@ export class MainView extends React.Component {
                             zoomToScale={emptyFunction}
                             getScale={returnOne}
                         />}
-                    {castRes ? <PresentationView Documents={castRes} key="presentation" /> : null}
+                    {castRes ? <PresentationView addDocTab={this.addDocTabFunc} Documents={castRes} key="presentation" /> : null}
                 </div>
             }
         </Measure>;
