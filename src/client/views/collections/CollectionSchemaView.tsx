@@ -635,15 +635,15 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         let list = Cast(this.props.Document.schemaColumns, listSpec(SchemaHeaderField));
         if (list === undefined) {
             console.log("change columns new");
-            this.props.Document.schemaColumns = list = new List<SchemaHeaderField>([new SchemaHeaderField(newKey, "f1efeb")]);
+            this.props.Document.schemaColumns = list = new List<SchemaHeaderField>([new SchemaHeaderField(newKey, "#f1efeb")]);
         } else {
             console.log("change column");
             if (addNew) {
-                this.columns.push(new SchemaHeaderField(newKey, "f1efeb"));
+                this.columns.push(new SchemaHeaderField(newKey, "#f1efeb"));
             } else {
                 const index = list.map(c => c.heading).indexOf(oldKey);
                 if (index > -1) {
-                    list[index] = new SchemaHeaderField(newKey, "f1efeb");
+                    list[index] = new SchemaHeaderField(newKey, "#f1efeb");
                 }
             }
         }

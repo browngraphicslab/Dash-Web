@@ -97,15 +97,6 @@
             // margin-right: -30px;
         }
 
-        .rt-resizable-header {
-            padding: 0;
-            height: 30px;
-
-            &:last-child {
-                overflow: visible;
-            }
-        }
-
         .rt-resizable-header-content {
             height: 100%;
             overflow: visible;
@@ -198,8 +189,22 @@
     }
 
     .rt-resizer {
-        width: 20px;
-        right: -10px;
+        width: 8px;
+        right: -4px;
+    }
+
+    .rt-resizable-header {
+        padding: 0;
+        height: 30px;
+    }
+
+    .rt-resizable-header:last-child {
+        overflow: visible;
+        border: 3px solid red !important;
+
+        .rt-resizer {
+            width: 5px !important;
+        }
     }
 }
 
@@ -318,7 +323,7 @@ button.add-column {
         input[type="radio"] {
             display: none;
         }
-        
+
         .columnMenu-colorPicker {
             width: 20px;
             height: 20px;
@@ -497,4 +502,14 @@ button.add-column {
 
 .collectionSchemaView-expander {
     height: 100%;
+    min-height: 30px;
+    position: relative;
+    color: gray;
+
+    svg {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
 }

@@ -48,12 +48,12 @@ export class SchemaHeaderField extends ObjectField {
     color: string;
     type: number;
 
-    constructor(heading: string = "", color?: string, type?: ColumnType) {
+    constructor(heading: string = "", color: string, type?: ColumnType) {
         console.log("CREATING SCHEMA HEADER FIELD");
         super();
 
         this.heading = heading;
-        this.color = color === "" || color === undefined ? RandomPastel() : color;
+        this.color = color === undefined ? "#000" : color;
         if (type) {
             this.type = type;
         }

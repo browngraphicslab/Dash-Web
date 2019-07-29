@@ -108,7 +108,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                 this._document[fieldKey] = de.data.draggedDocuments[0];
             }
             else {
-                let coll = Docs.Create.SchemaDocument([new SchemaHeaderField("title")], de.data.draggedDocuments, {});
+                let coll = Docs.Create.SchemaDocument([new SchemaHeaderField("title", "f1efeb")], de.data.draggedDocuments, {});
                 this._document[fieldKey] = coll;
             }
             e.stopPropagation();

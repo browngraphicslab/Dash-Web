@@ -404,7 +404,7 @@ export namespace Docs {
         }
 
         export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaColumns: new List([new SchemaHeaderField("title")]), ...options, viewType: CollectionViewType.Freeform });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, viewType: CollectionViewType.Freeform });
         }
 
         export function SchemaDocument(schemaColumns: SchemaHeaderField[], documents: Array<Doc>, options: DocumentOptions) {
@@ -412,15 +412,15 @@ export namespace Docs {
         }
 
         export function TreeDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaColumns: new List([new SchemaHeaderField("title")]), ...options, viewType: CollectionViewType.Tree });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, viewType: CollectionViewType.Tree });
         }
 
         export function StackingDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaColumns: new List([new SchemaHeaderField("title")]), ...options, viewType: CollectionViewType.Stacking });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, viewType: CollectionViewType.Stacking });
         }
 
         export function MasonryDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaColumns: new List([new SchemaHeaderField("title")]), ...options, viewType: CollectionViewType.Masonry });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, viewType: CollectionViewType.Masonry });
         }
 
         export function ButtonDocument(options?: DocumentOptions) {

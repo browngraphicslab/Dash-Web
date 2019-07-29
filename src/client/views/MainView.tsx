@@ -375,7 +375,7 @@ export class MainView extends React.Component {
         let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
 
         // let addDockingNode = action(() => Docs.Create.StandardCollectionDockingDocument([{ doc: addColNode(), initialWidth: 200 }], { width: 200, height: 200, title: "a nested docking freeform collection" }));
-        let addSchemaNode = action(() => Docs.Create.SchemaDocument([new SchemaHeaderField("title")], [], { width: 200, height: 200, title: "a schema collection" }));
+        let addSchemaNode = action(() => Docs.Create.SchemaDocument([new SchemaHeaderField("title", "#f1efeb")], [], { width: 200, height: 200, title: "a schema collection" }));
         //let addTreeNode = action(() => Docs.TreeDocument([CurrentUserUtils.UserDocument], { width: 250, height: 400, title: "Library:" + CurrentUserUtils.email, dropAction: "alias" }));
         // let addTreeNode = action(() => Docs.TreeDocument(this._northstarSchemas, { width: 250, height: 400, title: "northstar schemas", dropAction: "copy"  }));
         let addColNode = action(() => Docs.Create.FreeformDocument([], { width: this.pwidth * .7, height: this.pheight, title: "a freeform collection" }));

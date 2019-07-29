@@ -135,7 +135,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 doc.width = 200;
                 docList.push(doc);
             }
-            let newCol = Docs.Create.SchemaDocument([...(groupAttr ? [new SchemaHeaderField("_group")] : []), ...columns.filter(c => c).map(c => new SchemaHeaderField(c))], docList, { x: x, y: y, title: "droppedTable", width: 300, height: 100 });
+            let newCol = Docs.Create.SchemaDocument([...(groupAttr ? [new SchemaHeaderField("_group", "#f1efeb")] : []), ...columns.filter(c => c).map(c => new SchemaHeaderField(c))], docList, { x: x, y: y, title: "droppedTable", width: 300, height: 100 });
 
             this.props.addDocument(newCol, false);
         }
