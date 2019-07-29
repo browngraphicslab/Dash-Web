@@ -35,7 +35,7 @@ library.add(faImage, faEye);
 
 @observer
 export class CollectionView extends React.Component<FieldViewProps> {
-    @observable private _collapsed = false;
+    @observable private _collapsed = true;
 
     private _reactionDisposer: IReactionDisposer | undefined;
 
