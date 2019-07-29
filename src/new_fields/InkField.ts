@@ -19,6 +19,8 @@ export interface StrokeData {
     page: number;
 }
 
+export type InkData = Map<string, StrokeData>;
+
 const pointSchema = createSimpleSchema({
     x: true, y: true
 });
@@ -31,9 +33,9 @@ const strokeDataSchema = createSimpleSchema({
 @Deserializable("ink")
 export class InkField extends ObjectField {
     @serializable(map(object(strokeDataSchema)))
-    readonly inkData: Map<string, StrokeData>;
+    readonly inkData: InkData;
 
-    constructor(data?: Map<string, StrokeData>) {
+    constructor(data?: InkData) {
         super();
         this.inkData = data || new Map;
     }

@@ -4,9 +4,9 @@
     "description": "",
     "main": "index.js",
     "scripts": {
-        "start": "cd solr-8.1.1/bin && solr.cmd start && cd ../../ && ts-node-dev -- src/server/index.ts",
-        "debug": "cross-env NODE_OPTIONS=--max_old_space_size=4096 ts-node-dev --inspect -- src/server/index.ts",
-        "build": "cross-env NODE_OPTIONS=--max_old_space_size=4096 webpack --env production",
+        "start": "cross-env NODE_OPTIONS=--max_old_space_size=4096 ts-node-dev -- src/server/index.ts",
+        "debug": "cross-env NODE_OPTIONS=--max_old_space_size=8192 ts-node-dev --inspect -- src/server/index.ts",
+        "build": "cross-env NODE_OPTIONS=--max_old_space_size=8192 webpack --env production",
         "test": "mocha -r ts-node/register test/**/*.ts",
         "tsc": "tsc"
     },
@@ -137,6 +137,7 @@
         "image-size": "^0.7.4",
         "imagesloaded": "^4.1.4",
         "jquery-awesome-cursor": "^0.3.1",
+        "js-datepicker": "^4.6.6",
         "jsonwebtoken": "^8.5.0",
         "jsx-to-string": "^1.4.0",
         "lodash": "^4.17.11",

@@ -1,4 +1,4 @@
-import { action, computed } from "mobx";
+import { action, computed, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCastAsync, HeightSym, WidthSym, DocListCast } from "../../../../new_fields/Doc";
 import { Id } from "../../../../new_fields/FieldSymbols";
@@ -13,7 +13,7 @@ import { SelectionManager } from "../../../util/SelectionManager";
 import { Transform } from "../../../util/Transform";
 import { undoBatch, UndoManager } from "../../../util/UndoManager";
 import { COLLECTION_BORDER_WIDTH } from "../../../views/globalCssVariables.scss";
-import { ContextMenu } from "../../ContextMenu";
+import { SubmenuProps, ContextMenuProps } from "../../ContextMenuItem";
 import { InkingCanvas } from "../../InkingCanvas";
 import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
 import { DocumentContentsView } from "../../nodes/DocumentContentsView";
@@ -31,7 +31,15 @@ import { ScriptField } from "../../../../new_fields/ScriptField";
 import { OverlayView, OverlayElementOptions } from "../../OverlayView";
 import { ScriptBox } from "../../ScriptBox";
 import { CompileScript } from "../../../util/Scripting";
+import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
+import { library } from "@fortawesome/fontawesome-svg-core";
+import { faEye } from "@fortawesome/free-regular-svg-icons";
+import { faTable, faPaintBrush, faAsterisk, faExpandArrowsAlt, faCompressArrowsAlt, faCompass } from "@fortawesome/free-solid-svg-icons";
+import { undo } from "prosemirror-history";
+import { number } from "prop-types";
+import { ContextMenu } from "../../ContextMenu";
 
+library.add(faEye, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass);
 
 export const panZoomSchema = createSchema({
     panX: "number",
@@ -51,25 +59,31 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private _lastY: number = 0;
     private get _pwidth() { return this.props.PanelWidth(); }
     private get _pheight() { return this.props.PanelHeight(); }
+    private inkKey = "ink";
+
+    get parentScaling() {
+        return (this.props as any).ContentScaling && this.fitToBox && !this.isAnnotationOverlay ? (this.props as any).ContentScaling() : 1;
+    }
 
     @computed get contentBounds() {
-        let bounds = this.props.fitToBox && !NumCast(this.nativeWidth) ? Doc.ComputeContentBounds(DocListCast(this.props.Document.data)) : undefined;
+        let bounds = this.fitToBox && !this.isAnnotationOverlay ? Doc.ComputeContentBounds(DocListCast(this.props.Document.data)) : undefined;
         return {
             panX: bounds ? (bounds.x + bounds.r) / 2 : this.Document.panX || 0,
             panY: bounds ? (bounds.y + bounds.b) / 2 : this.Document.panY || 0,
-            scale: bounds ? Math.min(this.props.PanelHeight() / (bounds.b - bounds.y), this.props.PanelWidth() / (bounds.r - bounds.x)) : this.Document.scale || 1
+            scale: (bounds ? Math.min(this.props.PanelHeight() / (bounds.b - bounds.y), this.props.PanelWidth() / (bounds.r - bounds.x)) : this.Document.scale || 1) / this.parentScaling
         };
     }
 
-    @computed get nativeWidth() { return this.Document.nativeWidth || 0; }
-    @computed get nativeHeight() { return this.Document.nativeHeight || 0; }
+    @computed get fitToBox() { return this.props.fitToBox || this.props.Document.fitToBox; }
+    @computed get nativeWidth() { return this.fitToBox ? 0 : this.Document.nativeWidth || 0; }
+    @computed get nativeHeight() { return this.fitToBox ? 0 : this.Document.nativeHeight || 0; }
     public get isAnnotationOverlay() { return this.props.fieldExt ? true : false; } // fieldExt will be "" or "annotation". should maybe generalize this, or make it more specific (ie, 'annotation' instead of 'fieldExt')
     private get borderWidth() { return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH; }
     private panX = () => this.contentBounds.panX;
     private panY = () => this.contentBounds.panY;
     private zoomScaling = () => this.contentBounds.scale;
-    private centeringShiftX = () => !this.nativeWidth ? this._pwidth / 2 : 0;  // shift so pan position is at center of window for non-overlay collections
-    private centeringShiftY = () => !this.nativeHeight ? this._pheight / 2 : 0;// shift so pan position is at center of window for non-overlay collections
+    private centeringShiftX = () => !this.nativeWidth && !this.isAnnotationOverlay ? this._pwidth / 2 / this.parentScaling : 0;  // shift so pan position is at center of window for non-overlay collections
+    private centeringShiftY = () => !this.nativeHeight && !this.isAnnotationOverlay ? this._pheight / 2 / this.parentScaling : 0;// shift so pan position is at center of window for non-overlay collections
     private getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth + 1, -this.borderWidth + 1).translate(-this.centeringShiftX(), -this.centeringShiftY()).transform(this.getLocalTransform());
     private getContainerTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth, -this.borderWidth);
     private getLocalTransform = (): Transform => Transform.Identity().scale(1 / this.zoomScaling()).translate(this.panX(), this.panY());
@@ -103,11 +117,11 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @undoBatch
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
+        let xf = this.getTransform();
         if (super.drop(e, de)) {
             if (de.data instanceof DragManager.DocumentDragData) {
                 if (de.data.droppedDocuments.length) {
-                    let dragDoc = de.data.droppedDocuments[0];
-                    let [xp, yp] = this.getTransform().transformPoint(de.x, de.y);
+                    let [xp, yp] = xf.transformPoint(de.x, de.y);
                     let x = xp - de.data.xOffset;
                     let y = yp - de.data.yOffset;
                     let dropX = NumCast(de.data.droppedDocuments[0].x);
@@ -195,10 +209,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     this._pheight / this.zoomScaling());
                 let panelwidth = panelDim[0];
                 let panelheight = panelDim[1];
-                if (ranges[0][0] - dx > (this.panX() + panelwidth / 2)) x = ranges[0][1] + panelwidth / 2;
-                if (ranges[0][1] - dx < (this.panX() - panelwidth / 2)) x = ranges[0][0] - panelwidth / 2;
-                if (ranges[1][0] - dy > (this.panY() + panelheight / 2)) y = ranges[1][1] + panelheight / 2;
-                if (ranges[1][1] - dy < (this.panY() - panelheight / 2)) y = ranges[1][0] - panelheight / 2;
+                // if (ranges[0][0] - dx > (this.panX() + panelwidth / 2)) x = ranges[0][1] + panelwidth / 2;
+                // if (ranges[0][1] - dx < (this.panX() - panelwidth / 2)) x = ranges[0][0] - panelwidth / 2;
+                // if (ranges[1][0] - dy > (this.panY() + panelheight / 2)) y = ranges[1][1] + panelheight / 2;
+                // if (ranges[1][1] - dy < (this.panY() - panelheight / 2)) y = ranges[1][0] - panelheight / 2;
             }
             this.setPan(x - dx, y - dy);
             this._lastX = e.pageX;
@@ -290,7 +304,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         doc.zIndex = docs.length + 1;
     }
 
-    focusDocument = (doc: Doc, willZoom: boolean) => {
+    focusDocument = (doc: Doc, willZoom: boolean, scale?: number) => {
         const panX = this.Document.panX;
         const panY = this.Document.panY;
         const id = this.Document[Id];
@@ -322,20 +336,20 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         this.props.Document.panTransformType = "Ease";
         this.props.focus(this.props.Document);
         if (willZoom) {
-            this.setScaleToZoom(doc);
+            this.setScaleToZoom(doc, scale);
         }
 
     }
 
-    setScaleToZoom = (doc: Doc) => {
+    setScaleToZoom = (doc: Doc, scale: number = 0.5) => {
         let p = this.props;
         let PanelHeight = p.PanelHeight();
         let panelWidth = p.PanelWidth();
 
         let docHeight = NumCast(doc.height);
         let docWidth = NumCast(doc.width);
-        let targetHeight = 0.5 * PanelHeight;
-        let targetWidth = 0.5 * panelWidth;
+        let targetHeight = scale * PanelHeight;
+        let targetWidth = scale * panelWidth;
 
         let maxScaleX: number = targetWidth / docWidth;
         let maxScaleY: number = targetHeight / docHeight;
@@ -357,19 +371,18 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     getChildDocumentViewProps(childDocLayout: Doc): DocumentViewProps {
         let self = this;
-        let resolvedDataDoc = !this.props.Document.isTemplate && this.props.DataDoc !== this.props.Document ? this.props.DataDoc : undefined;
-        let layoutDoc = Doc.expandTemplateLayout(childDocLayout, resolvedDataDoc);
+        let pair = Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, this.props.fieldKey, childDocLayout);
         return {
-            DataDoc: resolvedDataDoc !== layoutDoc && resolvedDataDoc ? resolvedDataDoc : undefined,
-            Document: layoutDoc,
+            DataDoc: pair.data,
+            Document: pair.layout,
             addDocument: this.props.addDocument,
             removeDocument: this.props.removeDocument,
             moveDocument: this.props.moveDocument,
             ScreenToLocalTransform: this.getTransform,
             renderDepth: this.props.renderDepth + 1,
-            selectOnLoad: layoutDoc[Id] === this._selectOnLoaded,
-            PanelWidth: layoutDoc[WidthSym],
-            PanelHeight: layoutDoc[HeightSym],
+            selectOnLoad: pair.layout[Id] === this._selectOnLoaded,
+            PanelWidth: pair.layout[WidthSym],
+            PanelHeight: pair.layout[HeightSym],
             ContentScaling: returnOne,
             ContainingCollectionView: this.props.CollectionView,
             focus: this.focusDocument,
@@ -389,7 +402,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             removeDocument: this.props.removeDocument,
             moveDocument: this.props.moveDocument,
             ScreenToLocalTransform: this.getTransform,
-            renderDepth: this.props.renderDepth + 1,
+            renderDepth: this.props.renderDepth,
             selectOnLoad: layoutDoc[Id] === this._selectOnLoaded,
             PanelWidth: layoutDoc[WidthSym],
             PanelHeight: layoutDoc[HeightSym],
@@ -413,6 +426,25 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return result.result === undefined ? {} : result.result;
     }
 
+    private viewDefToJSX(viewDef: any): JSX.Element | undefined {
+        if (viewDef.type === "text") {
+            const text = Cast(viewDef.text, "string");
+            const x = Cast(viewDef.x, "number");
+            const y = Cast(viewDef.y, "number");
+            const width = Cast(viewDef.width, "number");
+            const height = Cast(viewDef.height, "number");
+            const fontSize = Cast(viewDef.fontSize, "number");
+            if ([text, x, y].some(val => val === undefined)) {
+                return undefined;
+            }
+
+            return <div className="collectionFreeform-customText" style={{
+                transform: `translate(${x}px, ${y}px)`,
+                width, height, fontSize
+            }}>{text}</div>;
+        }
+    }
+
     @computed.struct
     get views() {
         let curPage = FieldValue(this.Document.curPage, -1);
@@ -420,17 +452,27 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         const script = this.Document.arrangeScript;
         let state: any = undefined;
         const docs = this.childDocs;
+        let elements: JSX.Element[] = [];
         if (initScript) {
             const initResult = initScript.script.run({ docs, collection: this.Document });
             if (initResult.success) {
-                state = initResult.result;
+                const result = initResult.result;
+                const { state: scriptState, views } = result;
+                state = scriptState;
+                if (Array.isArray(views)) {
+                    elements = views.reduce<JSX.Element[]>((prev, ele) => {
+                        const jsx = this.viewDefToJSX(ele);
+                        jsx && prev.push(jsx);
+                        return prev;
+                    }, elements);
+                }
             }
         }
         let docviews = docs.reduce((prev, doc) => {
             if (!(doc instanceof Doc)) return prev;
             var page = NumCast(doc.page, -1);
             if ((Math.abs(Math.round(page) - Math.round(curPage)) < 3) || page === -1) {
-                let minim = BoolCast(doc.isMinimized, false);
+                let minim = BoolCast(doc.isMinimized);
                 if (minim === undefined || !minim) {
                     const pos = script ? this.getCalculatedPositions(script, { doc, index: prev.length, collection: this.Document, docs, state }) : {};
                     state = pos.state === undefined ? state : pos.state;
@@ -438,7 +480,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 }
             }
             return prev;
-        }, [] as JSX.Element[]);
+        }, elements);
 
         setTimeout(() => this._selectOnLoaded = "", 600);// bcz: surely there must be a better way ....
 
@@ -451,8 +493,15 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     onContextMenu = () => {
-        ContextMenu.Instance.addItem({
+        let layoutItems: ContextMenuProps[] = [];
+        layoutItems.push({
+            description: `${this.fitToBox ? "Unset" : "Set"} Fit To Container`,
+            event: undoBatch(async () => this.props.Document.fitToBox = !this.fitToBox),
+            icon: !this.fitToBox ? "expand-arrows-alt" : "compress-arrows-alt"
+        });
+        layoutItems.push({
             description: "Arrange contents in grid",
+            icon: "table",
             event: async () => {
                 const docs = await DocListCastAsync(this.Document[this.props.fieldKey]);
                 UndoManager.RunInBatch(() => {
@@ -477,46 +526,55 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 }, "arrange contents");
             }
         });
+        ContextMenu.Instance.addItem({ description: "Layout...", subitems: layoutItems, icon: "compass" });
         ContextMenu.Instance.addItem({
-            description: "Add freeform arrangement",
-            event: () => {
-                let addOverlay = (key: "arrangeScript" | "arrangeInit", options: OverlayElementOptions, params?: Record<string, string>, requiredType?: string) => {
-                    let overlayDisposer: () => void = emptyFunction;
-                    const script = this.Document[key];
-                    let originalText: string | undefined = undefined;
-                    if (script) originalText = script.script.originalScript;
-                    // tslint:disable-next-line: no-unnecessary-callback-wrapper
-                    let scriptingBox = <ScriptBox initialText={originalText} onCancel={() => overlayDisposer()} onSave={(text, onError) => {
-                        const script = CompileScript(text, {
-                            params,
-                            requiredType,
-                            typecheck: false
-                        });
-                        if (!script.compiled) {
-                            onError(script.errors.map(error => error.messageText).join("\n"));
-                            return;
-                        }
-                        const docs = DocListCast(this.Document[this.props.fieldKey]);
-                        docs.map(d => d.transition = "transform 1s");
-                        this.Document[key] = new ScriptField(script);
-                        overlayDisposer();
-                        setTimeout(() => docs.map(d => d.transition = undefined), 1200);
-                    }} />;
-                    overlayDisposer = OverlayView.Instance.addWindow(scriptingBox, options);
-                };
-                addOverlay("arrangeInit", { x: 400, y: 100, width: 400, height: 300, title: "Layout Initialization" }, { collection: "Doc", docs: "Doc[]" }, undefined);
-                addOverlay("arrangeScript", { x: 400, y: 500, width: 400, height: 300, title: "Layout Script" }, { doc: "Doc", index: "number", collection: "Doc", state: "any", docs: "Doc[]" }, "{x: number, y: number, width?: number, height?: number}");
-            }
+            description: "Analyze Strokes", event: async () => {
+                let data = Cast(this.fieldExtensionDoc[this.inkKey], InkField);
+                if (!data) {
+                    return;
+                }
+                let relevantKeys = ["inkAnalysis", "handwriting"];
+                CognitiveServices.Inking.Manager.analyzer(this.fieldExtensionDoc, relevantKeys, data.inkData);
+            }, icon: "paint-brush"
         });
     }
+
 
     private childViews = () => [
         <CollectionFreeFormBackgroundView key="backgroundView" {...this.props} {...this.getDocumentViewProps(this.props.Document)} />,
         ...this.views
     ]
+
+    public static AddCustomLayout(doc: Doc, dataKey: string): () => void {
+        return () => {
+            let addOverlay = (key: "arrangeScript" | "arrangeInit", options: OverlayElementOptions, params?: Record<string, string>, requiredType?: string) => {
+                let overlayDisposer: () => void = emptyFunction;
+                const script = Cast(doc[key], ScriptField);
+                let originalText: string | undefined = undefined;
+                if (script) originalText = script.script.originalScript;
+                // tslint:disable-next-line: no-unnecessary-callback-wrapper
+                let scriptingBox = <ScriptBox initialText={originalText} onCancel={() => overlayDisposer()} onSave={(text, onError) => {
+                    const script = CompileScript(text, {
+                        params,
+                        requiredType,
+                        typecheck: false
+                    });
+                    if (!script.compiled) {
+                        onError(script.errors.map(error => error.messageText).join("\n"));
+                        return;
+                    }
+                    doc[key] = new ScriptField(script);
+                    overlayDisposer();
+                }} />;
+                overlayDisposer = OverlayView.Instance.addWindow(scriptingBox, options);
+            };
+            addOverlay("arrangeInit", { x: 400, y: 100, width: 400, height: 300, title: "Layout Initialization" }, { collection: "Doc", docs: "Doc[]" }, undefined);
+            addOverlay("arrangeScript", { x: 400, y: 500, width: 400, height: 300, title: "Layout Script" }, { doc: "Doc", index: "number", collection: "Doc", state: "any", docs: "Doc[]" }, "{x: number, y: number, width?: number, height?: number}");
+        };
+    }
+
     render() {
         const easing = () => this.props.Document.panTransformType === "Ease";
-
         Doc.UpdateDocumentExtensionForField(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey);
         return (
             <div className={"collectionfreeformview-container"} ref={this.createDropTarget} onWheel={this.onPointerWheel}

@@ -179,7 +179,7 @@ declare class Doc extends RefField {
     // [ToScriptString](): string;
 }
 
-declare class ListImpl<T extends Field> extends ObjectField {
+declare class List<T extends Field> extends ObjectField {
     constructor(fields?: T[]);
     [index: number]: T | (T extends RefField ? Promise<T> : never);
     [Copy](): ObjectField;

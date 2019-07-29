@@ -1,6 +1,6 @@
 import React = require("react");
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faCaretUp, faChartBar, faFilePdf, faFilm, faGlobeAsia, faImage, faLink, faMusic, faObjectGroup, faStickyNote } from '@fortawesome/free-solid-svg-icons';
+import { faCaretUp, faChartBar, faFilePdf, faFilm, faGlobeAsia, faImage, faLink, faMusic, faObjectGroup, faStickyNote, faFingerprint } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
@@ -45,7 +45,7 @@ library.add(faFilm);
 library.add(faMusic);
 library.add(faLink);
 library.add(faChartBar);
-library.add(faGlobeAsia);
+library.add(faGlobeAsia, faFingerprint);
 
 @observer
 export class SelectorContextMenu extends React.Component<SearchItemProps> {
@@ -306,13 +306,13 @@ export class SearchItem extends React.Component<SearchItemProps> {
 
                 let doc1 = Cast(this.props.doc.anchor1, Doc, null);
                 let doc2 = Cast(this.props.doc.anchor2, Doc, null);
-                doc1 && (doc1.libraryBrush = undefined);
-                doc2 && (doc2.libraryBrush = undefined);
+                doc1 && (doc1.libraryBrush = false);
+                doc2 && (doc2.libraryBrush = false);
             }
         } else {
             let docViews: DocumentView[] = DocumentManager.Instance.getAllDocumentViews(this.props.doc);
             docViews.forEach(element => {
-                element.props.Document.libraryBrush = undefined;
+                element.props.Document.libraryBrush = false;
             });
         }
     }
@@ -324,7 +324,8 @@ export class SearchItem extends React.Component<SearchItemProps> {
         ContextMenu.Instance.addItem({
             description: "Copy ID", event: () => {
                 Utils.CopyText(this.props.doc[Id]);
-            }
+            },
+            icon: "fingerprint"
         });
         ContextMenu.Instance.displayMenu(e.clientX, e.clientY);
     }

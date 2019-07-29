@@ -1,8 +1,8 @@
 import { action, observable, observe } from "mobx";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faArrowUp, faTag, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { faTag, faPlus, faCloudUploadAlt } from '@fortawesome/free-solid-svg-icons';
 import { Dropdown, MenuItem, icons, } from "prosemirror-menu"; //no import css
-import { EditorState, NodeSelection, TextSelection } from "prosemirror-state";
+import { EditorState, NodeSelection, TextSelection, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { schema } from "./RichTextSchema";
 import { Schema, NodeType, MarkType, Mark, ResolvedPos } from "prosemirror-model";
@@ -25,6 +25,8 @@ import { typeAlias } from "babel-types";
 import React from "react";
 import ReactDOM from "react-dom";
 import { Utils } from "../../Utils";
+import { LinkManager } from "./LinkManager";
+import { bool } from "prop-types";
 
 //appears above a selection of text in a RichTextBox to give user options such as Bold, Italics, etc.
 export class TooltipTextMenu {
@@ -39,7 +41,8 @@ export class TooltipTextMenu {
     private fontStylesToName: Map<MarkType, string>;
     private listTypeToIcon: Map<NodeType, string>;
     //private link: HTMLAnchorElement;
-    //private wrapper: HTMLDivElement;
+    private wrapper: HTMLDivElement;
+    private extras: HTMLDivElement;
 
     private linkEditor?: HTMLDivElement;
     private linkText?: HTMLDivElement;
@@ -66,10 +69,24 @@ export class TooltipTextMenu {
     constructor(view: EditorView, editorProps: FieldViewProps & FormattedTextBoxProps) {
         this.view = view;
         this.editorProps = editorProps;
-        //this.wrapper = document.createElement("div");
+
+        this.wrapper = document.createElement("div");
         this.tooltip = document.createElement("div");
+        this.extras = document.createElement("div");
+
+        this.wrapper.appendChild(this.tooltip);
+        this.wrapper.appendChild(this.extras);
+
         this.tooltip.className = "tooltipMenu";
-        this.dragElement(this.tooltip);
+        this.extras.className = "tooltipExtras";
+        this.wrapper.className = "wrapper";
+
+        const dragger = document.createElement("span");
+        dragger.className = "dragger";
+        dragger.textContent = ">>>";
+        this.extras.appendChild(dragger);
+
+        this.dragElement(dragger, this.wrapper);
 
         this._storedMarks = this.view.state.storedMarks;
 
@@ -176,7 +193,7 @@ export class TooltipTextMenu {
 
         // add tooltip to outerdiv to circumvent scaling problem
         const outer_div = this.editorProps.outer_div;
-        outer_div && outer_div(this.tooltip);
+        outer_div && outer_div(this.wrapper);
     }
 
     //label of dropdown will change to given label
@@ -201,48 +218,7 @@ export class TooltipTextMenu {
         this.fontSizeDom = newfontSizeDom;
     }
 
-    // Make the DIV element draggable:
-
-    dragElement(elmnt: HTMLElement) {
-        var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-        if (elmnt) {
-            // if present, the header is where you move the DIV from:
-            elmnt.onpointerdown = dragMouseDown;
-        }
-        const self = this;
-
-        function dragMouseDown(e: PointerEvent) {
-            e = e || window.event;
-            //e.preventDefault();
-            // get the mouse cursor position at startup:
-            pos3 = e.clientX;
-            pos4 = e.clientY;
-            document.onpointerup = closeDragElement;
-            // call a function whenever the cursor moves:
-            document.onpointermove = elementDrag;
-        }
-
-        function elementDrag(e: PointerEvent) {
-            e = e || window.event;
-            //e.preventDefault();
-            // calculate the new cursor position:
-            pos1 = pos3 - e.clientX;
-            pos2 = pos4 - e.clientY;
-            pos3 = e.clientX;
-            pos4 = e.clientY;
-            // set the element's new position:
-            elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
-            elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
-        }
-
-        function closeDragElement() {
-            // stop moving when mouse button is released:
-            document.onpointerup = null;
-            document.onpointermove = null;
-            //self.highlightSearchTerms(self.state, ["hello"]);
-            //FormattedTextBox.Instance.unhighlightSearchTerms();
-        }
-    }
+    // Make the DIV element draggable
 
     //label of dropdown will change to given label
     updateFontStyleDropdown(label: string) {
@@ -362,6 +338,55 @@ export class TooltipTextMenu {
         // this.tooltip.appendChild(this.linkEditor);
     }
 
+    dragElement(elmnt: HTMLElement, wrapper: HTMLElement) {
+        var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        if (elmnt) {
+            // if present, the header is where you move the DIV from:
+            elmnt.onpointerdown = dragMouseDown;
+        }
+        const self = this;
+
+        function dragMouseDown(e: PointerEvent) {
+            e = e || window.event;
+            //e.preventDefault();
+            // get the mouse cursor position at startup:
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            document.onpointerup = closeDragElement;
+            // call a function whenever the cursor moves:
+            document.onpointermove = elementDrag;
+        }
+
+        function elementDrag(e: PointerEvent) {
+            e = e || window.event;
+            //e.preventDefault();
+            // calculate the new cursor position:
+            pos1 = pos3 - e.clientX;
+            pos2 = pos4 - e.clientY;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            // set the element's new position:
+            // elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+            // elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+
+            wrapper.style.top = (wrapper.offsetTop - pos2) + "px";
+            wrapper.style.left = (wrapper.offsetLeft - pos1) + "px";
+        }
+
+        function closeDragElement() {
+            // stop moving when mouse button is released:
+            document.onpointerup = null;
+            document.onpointermove = null;
+            //self.highlightSearchTerms(self.state, ["hello"]);
+            //FormattedTextBox.Instance.unhighlightSearchTerms();
+            self.deleteLink();
+        }
+    }
+
+    makeLinkWithState = (state: EditorState, target: string, location: string) => {
+        let link = state.schema.mark(state.schema.marks.link, { href: target, location: location });
+    }
+
     makeLink = (target: string, location: string) => {
         let node = this.view.state.selection.$from.nodeAfter;
         let link = this.view.state.schema.mark(this.view.state.schema.marks.link, { href: target, location: location });
@@ -369,6 +394,27 @@ export class TooltipTextMenu {
         this.view.dispatch(this.view.state.tr.addMark(this.view.state.selection.from, this.view.state.selection.to, link));
         node = this.view.state.selection.$from.nodeAfter;
         link = node && node.marks.find(m => m.type.name === "link");
+    }
+
+    deleteLink = () => {
+        let node = this.view.state.selection.$from.nodeAfter;
+        let link = node && node.marks.find(m => m.type.name === "link");
+        let href = link!.attrs.href;
+        if (href) {
+            if (href.indexOf(Utils.prepend("/doc/")) === 0) {
+                const linkclicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
+                if (linkclicked) {
+                    DocServer.GetRefField(linkclicked).then(async linkDoc => {
+                        if (linkDoc instanceof Doc) {
+                            LinkManager.Instance.deleteLink(linkDoc);
+                            this.view.dispatch(this.view.state.tr.removeMark(this.view.state.selection.from, this.view.state.selection.to, this.view.state.schema.marks.link));
+                        }
+                    });
+                }
+            }
+        }
+
+
     }
 
     public static insertStar(state: EditorState<any>, dispatch: any) {
@@ -515,12 +561,14 @@ export class TooltipTextMenu {
     brush_function(state: EditorState<any>, dispatch: any) {
         if (this._brushIsEmpty) {
             const selected_marks = this.getMarksInSelection(this.view.state);
-            if (selected_marks.size > 0 && this._brushdom) {
-                this._brushMarks = selected_marks;
-                const newbrush = this.createBrush(true).render(this.view).dom;
-                this.tooltip.replaceChild(newbrush, this._brushdom);
-                this._brushdom = newbrush;
-                this._brushIsEmpty = !this._brushIsEmpty;
+            if (this._brushdom) {
+                if (selected_marks.size >= 0) {
+                    this._brushMarks = selected_marks;
+                    const newbrush = this.createBrush(true).render(this.view).dom;
+                    this.tooltip.replaceChild(newbrush, this._brushdom);
+                    this._brushdom = newbrush;
+                    this._brushIsEmpty = !this._brushIsEmpty;
+                }
             }
         }
         else {
@@ -777,6 +825,7 @@ export class TooltipTextMenu {
             }
         }
         this.view.dispatch(this.view.state.tr.setStoredMarks(this._activeMarks));
+
         this.update_mark_doms();
     }
 
@@ -789,12 +838,31 @@ export class TooltipTextMenu {
 
     update_mark_doms() {
         this.reset_mark_doms();
+        let foundlink = false;
         this._activeMarks.forEach((mark) => {
             if (this._marksToDoms.has(mark)) {
                 let dom = this._marksToDoms.get(mark);
                 if (dom) dom.style.color = "greenyellow";
             }
+            if (mark.type.name === "link" && !this.view.state.selection.empty) {
+                let del = document.createElement("button");
+                del.textContent = "X";
+                del.style.color = "red";
+                del.onclick = this.deleteLink;
+                this.extras.appendChild(del);
+                foundlink = true;
+            }
         });
+        if (!foundlink) {
+            let children = this.extras.childNodes;
+            for (let i = 0; i < children.length; i++) {
+                if (i !== 0) {
+                    this.extras.removeChild(children[i]);
+                    i--;
+                }
+            }
+        }
+
     }
 
     //finds all active marks on selection in given group

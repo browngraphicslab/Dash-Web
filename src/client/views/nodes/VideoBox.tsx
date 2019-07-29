@@ -19,9 +19,13 @@ import { positionSchema } from "./DocumentView";
 import { FieldView, FieldViewProps } from './FieldView';
 import { pageSchema } from "./ImageBox";
 import "./VideoBox.scss";
+import { library } from "@fortawesome/fontawesome-svg-core";
+import { faVideo } from "@fortawesome/free-solid-svg-icons";
 
 type VideoDocument = makeInterface<[typeof positionSchema, typeof pageSchema]>;
 const VideoDocument = makeInterface(positionSchema, pageSchema);
+
+library.add(faVideo);
 
 @observer
 export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoDocument) {
@@ -59,7 +63,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         this.Playing = true;
         update && this.player && this.player.play();
         update && this._youtubePlayer && this._youtubePlayer.playVideo();
-        !this._playTimer && (this._playTimer = setInterval(this.updateTimecode, 5));
+        this._youtubePlayer && !this._playTimer && (this._playTimer = setInterval(this.updateTimecode, 5));
         this.updateTimecode();
     }
 
@@ -72,7 +76,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         this.Playing = false;
         update && this.player && this.player.pause();
         update && this._youtubePlayer && this._youtubePlayer.pauseVideo();
-        this._playTimer && clearInterval(this._playTimer);
+        this._youtubePlayer && this._playTimer && clearInterval(this._playTimer);
         this._playTimer = undefined;
         this.updateTimecode();
     }
@@ -114,6 +118,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
     setVideoRef = (vref: HTMLVideoElement | null) => {
         this._videoRef = vref;
         if (vref) {
+            this._videoRef!.ontimeupdate = this.updateTimecode;
             vref.onfullscreenchange = action((e) => this._fullScreen = vref.webkitDisplayingFullscreen);
             if (this._reactionDisposer) this._reactionDisposer();
             this._reactionDisposer = reaction(() => this.props.Document.curPage, () =>
@@ -178,7 +183,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
                 },
                 icon: "expand-arrows-alt"
             });
-            ContextMenu.Instance.addItem({ description: "Video Funcs...", subitems: subitems });
+            ContextMenu.Instance.addItem({ description: "Video Funcs...", subitems: subitems, icon: "video" });
         }
     }
 

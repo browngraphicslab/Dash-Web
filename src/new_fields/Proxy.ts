@@ -6,6 +6,7 @@ import { DocServer } from "../client/DocServer";
 import { RefField } from "./RefField";
 import { ObjectField } from "./ObjectField";
 import { Id, Copy, ToScriptString } from "./FieldSymbols";
+import { scriptingGlobal } from "../client/util/Scripting";
 
 @Deserializable("proxy")
 export class ProxyField<T extends RefField> extends ObjectField {
@@ -48,7 +49,7 @@ export class ProxyField<T extends RefField> extends ObjectField {
     private failed = false;
     private promise?: Promise<any>;
 
-    value(): T | undefined | FieldWaiting {
+    value(): T | undefined | FieldWaiting<T> {
         if (this.cache) {
             return this.cache;
         }
@@ -63,6 +64,15 @@ export class ProxyField<T extends RefField> extends ObjectField {
                 return field;
             }));
         }
-        return this.promise;
+        return this.promise as any;
     }
+}
+
+function prefetchValue(proxy: PrefetchProxy<RefField>) {
+    return proxy.value() as any;
+}
+
+@scriptingGlobal
+@Deserializable("prefetch_proxy", prefetchValue)
+export class PrefetchProxy<T extends RefField> extends ProxyField<T> {
 }
