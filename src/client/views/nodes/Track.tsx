@@ -55,29 +55,30 @@ export class Track extends React.Component<IProps> {
 
     @action
     keyReaction = () => { 
-        return reaction(() => {
+        return reaction( () => {
             return Doc.allKeys(this.props.node).map(key => FieldValue(this.props.node[key]));
-        }, data => {
+        }, async () => {
             let regiondata = this.findRegion(this.props.currentBarX);
             if (regiondata) {
-                DocListCast(regiondata.keyframes!).forEach((kf) => {
+                let keyframes = await DocListCastAsync(regiondata.keyframes!); 
+                keyframes!.forEach( async (kf) => {
                     if (kf.type === KeyframeFunc.KeyframeType.default && kf.time === this.props.currentBarX) {
-            
+                        console.log("full keychange triggered"); 
                         //for this specific keyframe
                         kf.key = Doc.MakeCopy(this.props.node, true);
 
                         //for fades
-                        let leftkf: (Doc | undefined) = this.calcMinLeft(regiondata!, kf); // lef keyframe, if it exists
-                        let rightkf: (Doc | undefined) = this.calcMinRight(regiondata!, kf); //right keyframe, if it exists
+                        let leftkf: (Doc | undefined) = await this.calcMinLeft(regiondata!, kf); // lef keyframe, if it exists
+                        let rightkf: (Doc | undefined) = await this.calcMinRight(regiondata!, kf); //right keyframe, if it exists
                         if (leftkf!.type === KeyframeFunc.KeyframeType.fade) { //replicating this keyframe to fades
-                            let edge = this.calcMinLeft(regiondata!, leftkf!);
+                            let edge:(Doc | undefined) = await this.calcMinLeft(regiondata!, leftkf!);
                             edge!.key = Doc.MakeCopy(kf.key as Doc, true);
                             leftkf!.key = Doc.MakeCopy(kf.key as Doc, true);
                             (Cast(edge!.key, Doc)! as Doc).opacity = 0.1;
                             (Cast(leftkf!.key, Doc)! as Doc).opacity = 1;
                         }
                         if (rightkf!.type === KeyframeFunc.KeyframeType.fade) {
-                            let edge = this.calcMinRight(regiondata!, rightkf!);
+                            let edge:(Doc | undefined) = await this.calcMinRight(regiondata!, rightkf!);
                             edge!.key = Doc.MakeCopy(kf.key as Doc, true);
                             rightkf!.key = Doc.MakeCopy(kf.key as Doc, true);
                             (Cast(edge!.key, Doc)! as Doc).opacity = 0.1;
@@ -86,17 +87,17 @@ export class Track extends React.Component<IProps> {
                     }
                 });
             }
-        });
+        }, {fireImmediately: true});
     }
 
-    @action
+    @action 
     currentBarXReaction = () => {
-        return reaction(() => this.props.currentBarX, () => {
+        return reaction(() => this.props.currentBarX, async () => {
             if (this._keyReaction) this._keyReaction(); //dispose previous reaction first
             let regiondata: (Doc | undefined) = this.findRegion(this.props.currentBarX);
             if (regiondata) {
                 this.props.node.hidden = false;
-                this.timeChange(this.props.currentBarX);
+                await this.timeChange(this.props.currentBarX);
             } else {
                 this.props.node.hidden = true;
             }
@@ -105,18 +106,16 @@ export class Track extends React.Component<IProps> {
 
 
     @action
-    timeChange = (time: number) => {
+    timeChange = async (time: number) => {
         let regiondata = this.findRegion(Math.round(time)); //finds a region that the scrubber is on
         if (regiondata) {
-            let leftkf: (Doc | undefined) = this.calcMinLeft(regiondata!); // lef keyframe, if it exists
-            let rightkf: (Doc | undefined) = this.calcMinRight(regiondata!); //right keyframe, if it exists            
-            let currentkf: (Doc | undefined) = this.calcCurrent(regiondata!); //if the scrubber is on top of the keyframe
-
+            let leftkf: (Doc | undefined) = await this.calcMinLeft(regiondata!); // lef keyframe, if it exists
+            let rightkf: (Doc | undefined) = await this.calcMinRight(regiondata!); //right keyframe, if it exists            
+            let currentkf: (Doc | undefined) = await this.calcCurrent(regiondata!); //if the scrubber is on top of the keyframe
             if (currentkf) {
                 this.applyKeys(currentkf);
                 this._keyReaction = this.keyReaction(); //reactivates reaction. 
-            }
-            if (leftkf && rightkf) {
+            } else if (leftkf && rightkf) {
                 this.interpolate(leftkf, rightkf);
             }
         }
@@ -124,9 +123,16 @@ export class Track extends React.Component<IProps> {
 
     @action
     private applyKeys = (kf: Doc) => {
-        this.filterKeys(Doc.allKeys(kf)).forEach(key => {
+        let kfNode = Cast(kf.key, Doc) as Doc; 
+        let docFromApply = kfNode; 
+        if (this.filterKeys(Doc.allKeys(this.props.node)).length > this.filterKeys(Doc.allKeys(kfNode)).length) docFromApply = this.props.node; 
+        this.filterKeys(Doc.allKeys(docFromApply)).forEach(key => {
             // if (key === "title" || key === "documentText") Doc.SetOnPrototype(this.props.node, key, StrCast(kf[key]));
-            this.props.node[key] = kf[key];
+            if (!kfNode[key]) {
+                this.props.node[key] = undefined; 
+            } else {
+                this.props.node[key] = kfNode[key];
+            }
         });
     }
 
@@ -140,9 +146,10 @@ export class Track extends React.Component<IProps> {
     }
 
     @action
-    calcCurrent = (region: Doc): (Doc | undefined) => {
+    calcCurrent = async (region: Doc) => {
         let currentkf: (Doc | undefined) = undefined;
-        DocListCast(region.keyframes!).forEach((kf) => {
+        let keyframes = await DocListCastAsync(region.keyframes!); 
+        keyframes!.forEach((kf) => {
             if (NumCast(kf.time) === Math.round(this.props.currentBarX)) currentkf = kf;
         });
         return currentkf;
@@ -150,10 +157,11 @@ export class Track extends React.Component<IProps> {
 
 
     @action
-    calcMinLeft = (region: Doc, ref?: Doc): (Doc | undefined) => { //returns the time of the closet keyframe to the left
+    calcMinLeft =  async (region: Doc, ref?: Doc) => { //returns the time of the closet keyframe to the left
         let leftKf: (Doc | undefined) = undefined;
         let time: number = 0;
-        DocListCast(region.keyframes!).forEach((kf) => {
+        let keyframes = await DocListCastAsync(region.keyframes!); 
+        keyframes!.forEach((kf) => {
             let compTime = this.props.currentBarX;
             if (ref) {
                 compTime = NumCast(ref.time);
@@ -168,10 +176,11 @@ export class Track extends React.Component<IProps> {
 
 
     @action
-    calcMinRight = (region: Doc, ref?: Doc): (Doc | undefined) => { //returns the time of the closest keyframe to the right 
+    calcMinRight = async (region: Doc, ref?: Doc) => { //returns the time of the closest keyframe to the right 
         let rightKf: (Doc | undefined) = undefined;
         let time: number = Infinity;
-        DocListCast(region.keyframes!).forEach((kf) => {
+        let keyframes = await DocListCastAsync(region.keyframes!); 
+        keyframes!.forEach((kf) => {
             let compTime = this.props.currentBarX;
             if (ref) {
                 compTime = NumCast(ref.time);

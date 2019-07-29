@@ -293,7 +293,7 @@ export class Keyframe extends React.Component<IProps> {
     
 
     @action
-    moveKeyframe = (e: React.MouseEvent, kf: Doc) => {
+    moveKeyframe = async (e: React.MouseEvent, kf: Doc) => {
         e.preventDefault();
         e.stopPropagation();
         this.props.changeCurrentBarX(NumCast(kf.time!));
