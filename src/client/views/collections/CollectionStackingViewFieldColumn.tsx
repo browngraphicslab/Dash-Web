@@ -34,7 +34,7 @@ interface CSVFieldColumnProps {
 
 @observer
 export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldColumnProps> {
-    @observable private _background = "white";
+    @observable private _background = "inherit";
 
     private _dropRef: HTMLDivElement | null = null;
     private dropDisposer?: DragManager.DragDropDisposer;
@@ -158,7 +158,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
 
     @action
     pointerLeave = () => {
-        this._background = "white";
+        this._background = "inherit";
     }
 
     @action
