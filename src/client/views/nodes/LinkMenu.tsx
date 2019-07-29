@@ -19,6 +19,7 @@ import { DocumentType } from "../../documents/Documents";
 interface Props {
     docView: DocumentView;
     changeFlyout: () => void;
+    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
 }
 
 @observer
@@ -39,7 +40,13 @@ export class LinkMenu extends React.Component<Props> {
         let linkItems: Array<JSX.Element> = [];
         groups.forEach((group, groupType) => {
             linkItems.push(
-                <LinkMenuGroup key={groupType} sourceDoc={this.props.docView.props.Document} group={group} groupType={groupType} showEditor={action((linkDoc: Doc) => this._editingLink = linkDoc)} />
+                <LinkMenuGroup
+                    key={groupType}
+                    sourceDoc={this.props.docView.props.Document}
+                    group={group}
+                    groupType={groupType}
+                    showEditor={action((linkDoc: Doc) => this._editingLink = linkDoc)}
+                    addDocTab={this.props.addDocTab} />
             );
         });
 

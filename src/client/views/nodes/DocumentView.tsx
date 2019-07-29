@@ -643,7 +643,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get nativeWidth() { return this.Document.nativeWidth || 0; }
     @computed get nativeHeight() { return this.Document.nativeHeight || 0; }
     @computed get contents() {
-        return (<DocumentContentsView {...this.props} isSelected={this.isSelected} select={this.select} selectOnLoad={this.props.selectOnLoad} layoutKey={"layout"} DataDoc={this.dataDoc} />);
+        return (<DocumentContentsView {...this.props}
+            isSelected={this.isSelected} select={this.select}
+            selectOnLoad={this.props.selectOnLoad}
+            layoutKey={"layout"}
+            fitToBox={BoolCast(this.props.Document.fitToBox) ? true : this.props.fitToBox}
+            DataDoc={this.dataDoc} />);
     }
 
     get layoutDoc() {
@@ -711,7 +716,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                                 transformOrigin: "top left", transform: `scale(${1 / this.props.ContentScaling()})`
                             }}>
                                 <EditableView
-                                    contents={(this.dataDoc || this.layoutDoc)[showTitle]}
+                                    contents={this.layoutDoc[showTitle]}
                                     display={"block"}
                                     height={72}
                                     fontSize={12}

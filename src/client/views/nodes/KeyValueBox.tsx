@@ -222,7 +222,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
                 case RichTextField:
                     return Docs.Create.TreeDocument([], options);
                 case ImageField:
-                    return Docs.Create.StackingDocument([], options, CollectionViewType.Masonry);
+                    return Docs.Create.MasonryDocument([], options);
                 default:
                     console.log(`Template for ${first.data.constructor} not supported!`);
                     return undefined;

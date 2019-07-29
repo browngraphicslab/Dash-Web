@@ -78,7 +78,7 @@ export class CollectionPDFView extends React.Component<FieldViewProps> {
         let props = { ...this.props, ...renderProps };
         return (
             <>
-                <CollectionFreeFormView {...props} setPdfBox={this.setPdfBox} CollectionView={this} />
+                <CollectionFreeFormView {...props} setPdfBox={this.setPdfBox} CollectionView={this} chromeCollapsed={true} />
                 {renderProps.active() ? this.uIButtons : (null)}
             </>
         );
