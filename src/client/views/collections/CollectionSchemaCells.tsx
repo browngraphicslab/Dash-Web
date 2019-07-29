@@ -108,7 +108,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                 this._document[fieldKey] = de.data.draggedDocuments[0];
             }
             else {
-                let coll = Docs.Create.SchemaDocument([new SchemaHeaderField("title", "f1efeb")], de.data.draggedDocuments, {});
+                let coll = Docs.Create.SchemaDocument([new SchemaHeaderField("title", "#f1efeb")], de.data.draggedDocuments, {});
                 this._document[fieldKey] = coll;
             }
             e.stopPropagation();
@@ -284,7 +284,7 @@ export class CollectionSchemaCheckboxCell extends CollectionSchemaCell {
         this._isChecked = e.target.checked;
         let script = CompileScript(e.target.checked.toString(), { requiredType: "boolean", addReturn: true, params: { this: Doc.name } });
         if (script.compiled) {
-            this.applyToDoc(this._document, script.run);
+            this.applyToDoc(this._document, this.props.row, this.props.col, script.run);
         }
     }
 

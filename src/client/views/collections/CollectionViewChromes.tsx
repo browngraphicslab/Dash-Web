@@ -17,6 +17,9 @@ import { CompileScript } from "../../util/Scripting";
 import { ScriptField } from "../../../new_fields/ScriptField";
 import { CollectionSchemaView } from "./CollectionSchemaView";
 import { COLLECTION_BORDER_WIDTH } from "../globalCssVariables.scss";
+import { listSpec } from "../../../new_fields/Schema";
+import { List } from "../../../new_fields/List";
+import { Id } from "../../../new_fields/FieldSymbols";
 const datepicker = require('js-datepicker');
 
 interface CollectionViewChromeProps {
@@ -365,6 +368,7 @@ export class CollectionStackingViewChrome extends React.Component<CollectionView
 
 @observer
 export class CollectionSchemaViewChrome extends React.Component<CollectionViewChromeProps> {
+    // private _textwrapAllRows: boolean = Cast(this.props.CollectionView.props.Document.textwrappedSchemaRows, listSpec("string"), []).length > 0;
 
     togglePreview = () => {
         let dividerWidth = 4;
@@ -373,14 +377,43 @@ export class CollectionSchemaViewChrome extends React.Component<CollectionViewCh
         let previewWidth = NumCast(this.props.CollectionView.props.Document.schemaPreviewWidth);
         let tableWidth = panelWidth - 2 * borderWidth - dividerWidth - previewWidth;
         this.props.CollectionView.props.Document.schemaPreviewWidth = previewWidth === 0 ? Math.min(tableWidth / 3, 200) : 0;
+    }
 
+    @action
+    toggleTextwrap = async () => {
+        console.log("toggle text wrap");
+        let textwrappedRows = Cast(this.props.CollectionView.props.Document.textwrappedSchemaRows, listSpec("string"), []);
+        if (textwrappedRows.length) {
+            console.log("unwrap");
+            this.props.CollectionView.props.Document.textwrappedSchemaRows = new List<string>([]);
+        } else {
+            console.log("wrap");
+            let docs: Doc | Doc[] | Promise<Doc> | Promise<Doc[]> | (() => DocLike)
+                = () => DocListCast(this.props.CollectionView.props.Document[this.props.CollectionView.props.fieldExt ? this.props.CollectionView.props.fieldExt : this.props.CollectionView.props.fieldKey]);
+            if (typeof docs === "function") {
+                docs = docs();
+            }
+            docs = await docs;
+            if (docs instanceof Doc) {
+                let allRows = [docs[Id]];
+                console.log(...[...allRows]);
+                this.props.CollectionView.props.Document.textwrappedSchemaRows = new List<string>(allRows);
+            } else {
+                let allRows = docs.map(doc => doc[Id]);
+                console.log(...[...allRows]);
+                this.props.CollectionView.props.Document.textwrappedSchemaRows = new List<string>(allRows);
+            }
+        }
     }
 
 
     render() {
         let previewWidth = NumCast(this.props.CollectionView.props.Document.schemaPreviewWidth);
+        let textWrapped = Cast(this.props.CollectionView.props.Document.textwrappedSchemaRows, listSpec("string"), []).length > 0;
+
         return (
             <div className="collectionStackingViewChrome-cont">
+                <div id=""><input type="checkbox" key={"Toggle textwrap"} checked={textWrapped} onChange={this.toggleTextwrap} />Textwrap</div>
                 <div id="preview-schema-checkbox-div"><input type="checkbox" key={"Show Preview"} checked={previewWidth !== 0} onChange={this.togglePreview} />Show Preview</div>
             </div>
         );

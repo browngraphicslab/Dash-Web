@@ -6,7 +6,7 @@ import { scriptingGlobal, Scripting } from "../client/util/Scripting";
 import { ColumnType } from "../client/views/collections/CollectionSchemaView";
 
 export const PastelSchemaPalette = new Map<string, string>([
-    ["pink1", "#FFB4E8"],
+    // ["pink1", "#FFB4E8"],
     ["pink2", "#ff9cee"],
     ["pink3", "#ffccf9"],
     ["pink4", "#fcc2ff"],
@@ -32,7 +32,7 @@ export const PastelSchemaPalette = new Map<string, string>([
     ["yellow2", "#e7ffac"],
     ["yellow3", "#ffffd1"],
     ["yellow4", "#fff5ba"],
-    ["red1", "#ffc9de"],
+    // ["red1", "#ffc9de"],
     ["red2", "#ffabab"],
     ["red3", "#ffbebc"],
     ["red4", "#ffcbc1"],
@@ -45,15 +45,16 @@ export const RandomPastel = () => Array.from(PastelSchemaPalette.values())[Math.
 export class SchemaHeaderField extends ObjectField {
     @serializable(primitive())
     heading: string;
+    @serializable(primitive())
     color: string;
+    @serializable(primitive())
     type: number;
 
-    constructor(heading: string = "", color: string, type?: ColumnType) {
-        console.log("CREATING SCHEMA HEADER FIELD");
+    constructor(heading: string = "", color: string = RandomPastel(), type?: ColumnType) {
         super();
 
         this.heading = heading;
-        this.color = color === undefined ? "#000" : color;
+        this.color = color;
         if (type) {
             this.type = type;
         }

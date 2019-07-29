@@ -167,8 +167,8 @@
         padding: 0;
         font-size: 13px;
         text-align: center;
-        
         // white-space: normal;
+        white-space: nowrap;
 
         .imageBox-cont {
             position: relative;
@@ -318,15 +318,19 @@ button.add-column {
     }
 
     .columnMenu-colors {
-
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
 
         input[type="radio"] {
             display: none;
         }
 
         .columnMenu-colorPicker {
+            cursor: pointer;
             width: 20px;
             height: 20px;
+            border-radius: 10px;
         }
     }
 }
@@ -335,13 +339,16 @@ button.add-column {
     // height: $MAX_ROW_HEIGHT;
     height: 100%;
     background-color: white;
+    // white-space: nowrap;
 
     &.row-focused .rt-tr {
         background-color: rgb(255, 246, 246);//$light-color-secondary;
     }
 
     &.row-wrapped {
-        white-space: normal;
+        .rt-td {
+            white-space: normal;
+        }
     }
 
     .row-dragger {
