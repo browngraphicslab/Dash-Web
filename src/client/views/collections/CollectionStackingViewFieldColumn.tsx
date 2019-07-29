@@ -239,7 +239,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         };
         let headingView = this.props.headingObject ?
             <div key={heading} className="collectionStackingView-sectionHeader" ref={this._headerRef}
-                style={{ width: (style.columnWidth) / (uniqueHeadings.length + 1) }}>
+                style={{ width: (style.columnWidth) / (uniqueHeadings.length + (this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'disabled' ? 1 : 0)) }}>
                 {/* the default bucket (no key value) has a tooltip that describes what it is.
                     Further, it does not have a color and cannot be deleted. */}
                 <div className="collectionStackingView-sectionHeader-subCont" onPointerDown={this.headerDown}
@@ -261,7 +261,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             </div> : (null);
         for (let i = 0; i < cols; i++) templatecols += `${style.columnWidth}px `;
         return (
-            <div key={heading} style={{ width: `${100 / (uniqueHeadings.length + 1)}%`, background: this._background }}
+            <div key={heading} style={{ width: `${100 / (uniqueHeadings.length + (this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'disabled' ? 1 : 0))}%`, background: this._background }}
                 ref={this.createColumnDropRef} onPointerEnter={this.pointerEntered} onPointerLeave={this.pointerLeave}>
                 {headingView}
                 <div key={`${heading}-stack`} className={`collectionStackingView-masonry${singleColumn ? "Single" : "Grid"}`}
@@ -281,7 +281,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                 </div>
                 {(this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'disabled') ?
                     <div key={`${heading}-add-document`} className="collectionStackingView-addDocumentButton"
-                        style={{ width: style.columnWidth / (uniqueHeadings.length + 1) }}>
+                        style={{ width: style.columnWidth / (uniqueHeadings.length + (this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'disabled' ? 1 : 0)) }}>
                         <EditableView {...newEditableViewProps} />
                     </div> : null}
             </div>
