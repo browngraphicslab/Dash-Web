@@ -311,6 +311,19 @@ button.add-column {
             border-radius: 20px;
         }
     }
+
+    .columnMenu-colors {
+
+
+        input[type="radio"] {
+            display: none;
+        }
+        
+        .columnMenu-colorPicker {
+            width: 20px;
+            height: 20px;
+        }
+    }
 }
 
 .collectionSchema-row {
