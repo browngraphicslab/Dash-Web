@@ -133,6 +133,13 @@ export default class KeyManager {
                 }
                 MainView.Instance.mainFreeform && CollectionDockingView.Instance.CloseRightSplit(MainView.Instance.mainFreeform);
                 break;
+            case "backspace":
+                if (document.activeElement) {
+                    if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") {
+                        return { stopPropagation: false, preventDefault: false };
+                    }
+                }
+                break;
             case "f":
                 MainView.Instance.isSearchVisible = !MainView.Instance.isSearchVisible;
                 break;
@@ -152,9 +159,9 @@ export default class KeyManager {
                 stopPropagation = false;
                 break;
             case "a":
-            case "c":
             case "v":
             case "x":
+            case "c":
                 stopPropagation = false;
                 preventDefault = false;
                 break;

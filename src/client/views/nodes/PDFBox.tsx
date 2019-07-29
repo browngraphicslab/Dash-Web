@@ -24,6 +24,8 @@ import { Flyout, anchorPoints } from '../DocumentDecorations';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { ScriptField } from '../../../new_fields/ScriptField';
 import { KeyCodes } from '../../northstar/utils/KeyCodes';
+import { Utils } from '../../../Utils';
+import { Id } from '../../../new_fields/FieldSymbols';
 
 type PdfDocument = makeInterface<[typeof positionSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(positionSchema, pageSchema);
@@ -67,10 +69,24 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
 
     componentDidMount() {
         if (this.props.setPdfBox) this.props.setPdfBox(this);
+
+        document.removeEventListener("copy", this.copy);
+        document.addEventListener("copy", this.copy);
     }
 
     componentWillUnmount() {
         this._reactionDisposer && this._reactionDisposer();
+        document.removeEventListener("copy", this.copy);
+    }
+
+    private copy = (e: ClipboardEvent) => {
+        if (this.props.active()) {
+            if (e.clipboardData) {
+                e.clipboardData.setData("text/plain", text);
+                e.clipboardData.setData("dash/pdfOrigin", this.props.Document[Id]);
+                e.preventDefault();
+            }
+        }
     }
 
     public GetPage() {
@@ -151,7 +167,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
 
     scrollTo(y: number) {
         if (this._mainCont.current) {
-            this._mainCont.current.scrollTo({ top: y, behavior: "auto" });
+            this._mainCont.current.scrollTo({ top: Math.max(y - (this._mainCont.current!.offsetHeight / 2), 0), behavior: "auto" });
         }
     }
 

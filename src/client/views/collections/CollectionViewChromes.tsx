@@ -31,7 +31,7 @@ let stopPropagation = (e: React.SyntheticEvent) => e.stopPropagation();
 export class CollectionViewBaseChrome extends React.Component<CollectionViewChromeProps> {
     @observable private _viewSpecsOpen: boolean = false;
     @observable private _dateWithinValue: string = "";
-    @observable private _dateValue: Date = new Date();
+    @observable private _dateValue: Date | string = "";
     @observable private _keyRestrictions: [JSX.Element, string][] = [];
     @observable private _collapsed: boolean = false;
     @computed private get filterValue() { return Cast(this.props.CollectionView.props.Document.viewSpecScript, ScriptField); }
@@ -124,10 +124,24 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
         let monthOffset = this._dateWithinValue[1] === 'm' ? parseInt(this._dateWithinValue[0]) : 0;
         let weekOffset = this._dateWithinValue[1] === 'w' ? parseInt(this._dateWithinValue[0]) : 0;
         let dayOffset = (this._dateWithinValue[1] === 'd' ? parseInt(this._dateWithinValue[0]) : 0) + weekOffset * 7;
-        let lowerBound = new Date(this._dateValue.getFullYear() - yearOffset, this._dateValue.getMonth() - monthOffset, this._dateValue.getDate() - dayOffset);
-        let upperBound = new Date(this._dateValue.getFullYear() + yearOffset, this._dateValue.getMonth() + monthOffset, this._dateValue.getDate() + dayOffset + 1);
-        let dateRestrictionScript = `((doc.creationDate as any).date >= ${lowerBound.valueOf()} && (doc.creationDate as any).date <= ${upperBound.valueOf()})`;
-        let fullScript = `return ${dateRestrictionScript} && ${keyRestrictionScript}`;
+        let dateRestrictionScript = "";
+        if (this._dateValue instanceof Date) {
+            let lowerBound = new Date(this._dateValue.getFullYear() - yearOffset, this._dateValue.getMonth() - monthOffset, this._dateValue.getDate() - dayOffset);
+            let upperBound = new Date(this._dateValue.getFullYear() + yearOffset, this._dateValue.getMonth() + monthOffset, this._dateValue.getDate() + dayOffset + 1);
+            dateRestrictionScript = `((doc.creationDate as any).date >= ${lowerBound.valueOf()} && (doc.creationDate as any).date <= ${upperBound.valueOf()})`;
+        }
+        else {
+            let createdDate = new Date(this._dateValue);
+            if (!isNaN(createdDate.getTime())) {
+                let lowerBound = new Date(createdDate.getFullYear() - yearOffset, createdDate.getMonth() - monthOffset, createdDate.getDate() - dayOffset);
+                let upperBound = new Date(createdDate.getFullYear() + yearOffset, createdDate.getMonth() + monthOffset, createdDate.getDate() + dayOffset + 1);
+                dateRestrictionScript = `((doc.creationDate as any).date >= ${lowerBound.valueOf()} && (doc.creationDate as any).date <= ${upperBound.valueOf()})`;
+            }
+        }
+        let fullScript = dateRestrictionScript.length || keyRestrictionScript.length ? dateRestrictionScript.length ?
+            `return ${dateRestrictionScript} ${keyRestrictionScript.length ? "&&" : ""} ${keyRestrictionScript}` :
+            `return ${keyRestrictionScript} ${dateRestrictionScript.length ? "&&" : ""} ${dateRestrictionScript}` :
+            "return true";
         let compiled = CompileScript(fullScript, { params: { doc: Doc.name } });
         if (compiled.compiled) {
             this.props.CollectionView.props.Document.viewSpecScript = new ScriptField(compiled);
@@ -221,7 +235,8 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                                     </select>
                                     <input className="collectionViewBaseChrome-viewSpecsMenu-rowRight"
                                         id={this._datePickerElGuid}
-                                        value={this._dateValue.toLocaleDateString()}
+                                        value={this._dateValue instanceof Date ? this._dateValue.toLocaleDateString() : this._dateValue}
+                                        onChange={(e) => runInAction(() => this._dateValue = e.target.value)}
                                         onPointerDown={this.openDatePicker}
                                         placeholder="Value" />
                                 </div>

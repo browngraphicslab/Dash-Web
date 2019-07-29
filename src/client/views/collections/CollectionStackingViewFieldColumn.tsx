@@ -69,62 +69,50 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
 
     children(docs: Doc[]) {
         let parent = this.props.parent;
-        this.props.parent._docXfs.length = 0;
+        parent._docXfs.length = 0;
         return docs.map((d, i) => {
-            let layoutDoc = Doc.expandTemplateLayout(d, parent.props.DataDoc);
             let headings = this.props.headings();
             let uniqueHeadings = headings.map((i, idx) => headings.indexOf(i) === idx);
             let pair = Doc.GetLayoutDataDocPair(parent.props.Document, parent.props.DataDoc, parent.props.fieldKey, d);
-            let width = () => (d.nativeWidth && !BoolCast(d.ignoreAspect) ? Math.min(pair.layout[WidthSym](), parent.columnWidth) : parent.columnWidth) / (uniqueHeadings.length + 1);
-            let height = () => parent.getDocHeight(pair.layout);
-            if (parent.singleColumn) {
-                let dxf;
-                let dref = React.createRef<HTMLDivElement>();
-                if (uniqueHeadings.length > 0) {
-                    dxf = () => this.getDocTransform(layoutDoc, dref.current!);
-                    this.props.parent._docXfs.push({ dxf: dxf, width: width, height: height });
-                }
-                else {
-                    //have to add the height of all previous single column sections or the doc decorations will be in the wrong place.
-                    dxf = () => this.getSingleDocTransform(layoutDoc, i, width());
-                    this.props.parent._docXfs.push({ dxf: dxf, width: width, height: height });
-                }
-                let rowHgtPcnt = height();
-                return <div className="collectionStackingView-columnDoc" key={d[Id]} ref={dref} style={{ width: width(), marginTop: i === 0 ? 0 : parent.gridGap, height: `${rowHgtPcnt}` }} >
-                    {this.props.parent.getDisplayDoc(layoutDoc, d, dxf, width)}
-                </div>;
-            } else {
-                let dref = React.createRef<HTMLDivElement>();
-                let dxf = () => this.getDocTransform(layoutDoc, dref.current!);
-                this.props.parent._docXfs.push({ dxf: dxf, width: width, height: height });
-                let rowHgtPcnt = height();
-                let rowSpan = Math.ceil((height() + parent.gridGap) / parent.gridGap);
-                let divStyle = parent.singleColumn ? { width: width(), marginTop: i === 0 ? 0 : parent.gridGap, height: `${rowHgtPcnt}` } : { gridRowEnd: `span ${rowSpan}` };
-                return <div className="collectionStackingView-masonryDoc" key={d[Id]} ref={dref} style={divStyle} >
-                    {this.props.parent.getDisplayDoc(layoutDoc, d, dxf, width)}
-                </div>;
-            }
+            let width = () => (d.nativeWidth && !BoolCast(d.ignoreAspect) ? Math.min(pair.layout[WidthSym](), parent.columnWidth / (uniqueHeadings.length + 1)) : parent.columnWidth / (uniqueHeadings.length + 1));/// (uniqueHeadings.length + 1);
+            let height = () => parent.getDocHeight(pair.layout, uniqueHeadings.length + 1);// / (d.nativeWidth && !BoolCast(d.ignoreAspect) ? uniqueHeadings.length + 1 : 1);
+            let dref = React.createRef<HTMLDivElement>();
+            // if (uniqueHeadings.length > 0) {
+            let dxf = () => this.getDocTransform(pair.layout, dref.current!);
+            this.props.parent._docXfs.push({ dxf: dxf, width: width, height: height });
+            // }
+            // else {
+            //     //have to add the height of all previous single column sections or the doc decorations will be in the wrong place.
+            //     let dxf = () => this.getDocTransform(layoutDoc, i, width());
+            //     this.props.parent._docXfs.push({ dxf: dxf, width: width, height: height });
+            // }
+            let rowHgtPcnt = height();
+            let rowSpan = Math.ceil((height() + parent.gridGap) / parent.gridGap);
+            let style = parent.singleColumn ? { width: width(), margin: "auto", marginTop: i === 0 ? 0 : parent.gridGap, height: `${rowHgtPcnt}` } : { gridRowEnd: `span ${rowSpan}` };
+            return <div className={`collectionStackingView-${parent.singleColumn ? "columnDoc" : "masonryDoc"}`} key={d[Id]} ref={dref} style={style} >
+                {this.props.parent.getDisplayDoc(pair.layout, pair.data, dxf, width)}
+            </div>;
+            // } else {
+            // let dref = React.createRef<HTMLDivElement>();
+            // let dxf = () => this.getDocTransform(layoutDoc, dref.current!);
+            // this.props.parent._docXfs.push({ dxf: dxf, width: width, height: height });
+            // let rowHgtPcnt = height();
+            // let rowSpan = Math.ceil((height() + parent.gridGap) / parent.gridGap);
+            // let divStyle = parent.singleColumn ? { width: width(), marginTop: i === 0 ? 0 : parent.gridGap, height: `${rowHgtPcnt}` } : { gridRowEnd: `span ${rowSpan}` };
+            // return <div className="collectionStackingView-masonryDoc" key={d[Id]} ref={dref} style={divStyle} >
+            //     {this.props.parent.getDisplayDoc(layoutDoc, d, dxf, width)}
+            // </div>;
+            // }
         });
-    }
-
-    getSingleDocTransform(doc: Doc, ind: number, width: number) {
-        let localY = this.props.parent.filteredChildren.reduce((height, d, i) =>
-            height + (i < ind ? this.props.parent.getDocHeight(Doc.expandTemplateLayout(d, this.props.parent.props.DataDoc)) + this.props.parent.gridGap : 0), this.props.parent.yMargin);
-        let translate = this.props.parent.props.ScreenToLocalTransform().inverse().transformPoint((this.props.parent.props.PanelWidth() - width) / 2, localY);
-        return this.offsetTransform(doc, translate[0], translate[1]);
-    }
-
-    offsetTransform(doc: Doc, translateX: number, translateY: number) {
-        let outerXf = Utils.GetScreenTransform(this.props.parent._masonryGridRef!);
-        let offset = this.props.parent.props.ScreenToLocalTransform().transformDirection(outerXf.translateX - translateX, outerXf.translateY - translateY);
-        return this.props.parent.props.ScreenToLocalTransform().translate(offset[0], offset[1]).scale(NumCast(doc.width, 1) / this.props.parent.columnWidth);
     }
 
     getDocTransform(doc: Doc, dref: HTMLDivElement) {
         let { scale, translateX, translateY } = Utils.GetScreenTransform(dref);
         let outerXf = Utils.GetScreenTransform(this.props.parent._masonryGridRef!);
         let offset = this.props.parent.props.ScreenToLocalTransform().transformDirection(outerXf.translateX - translateX, outerXf.translateY - translateY);
-        return this.props.parent.props.ScreenToLocalTransform().translate(offset[0], offset[1]).scale(NumCast(doc.width, 1) / this.props.parent.columnWidth);
+        return this.props.parent.props.ScreenToLocalTransform().
+            translate(offset[0], offset[1] - (this.props.parent.chromeCollapsed ? 0 : 100)).
+            scale(NumCast(doc.width, 1) / this.props.parent.columnWidth);
     }
 
     getValue = (value: string): any => {
@@ -279,8 +267,8 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                 <div key={`${heading}-stack`} className={`collectionStackingView-masonry${singleColumn ? "Single" : "Grid"}`}
                     style={{
                         padding: singleColumn ? `${style.yMargin}px ${0}px ${style.yMargin}px ${0}px` : `${style.yMargin}px ${0}px`,
-                        margin: "auto 5px",
-                        width: singleColumn ? undefined : `${cols * (style.columnWidth + style.gridGap) + 2 * style.xMargin - style.gridGap}px`,
+                        margin: "auto",
+                        width: "max-content", //singleColumn ? undefined : `${cols * (style.columnWidth + style.gridGap) + 2 * style.xMargin - style.gridGap}px`,
                         height: 'max-content',
                         position: "relative",
                         gridGap: style.gridGap,

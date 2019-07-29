@@ -29,6 +29,7 @@ interface IPageProps {
     createAnnotation: (div: HTMLDivElement, page: number) => void;
     makeAnnotationDocuments: (doc: Doc | undefined, scale: number, color: string, linkTo: boolean) => Doc;
     getScrollFromPage: (page: number) => number;
+    setSelectionText: (text: string) => void;
 }
 
 @observer
@@ -353,7 +354,8 @@ export default class Page extends React.Component<IPageProps> {
         else {
             let sel = window.getSelection();
             if (sel && sel.type === "Range") {
-                this.createTextAnnotation(sel);
+                let selRange = sel.getRangeAt(0);
+                this.createTextAnnotation(sel, selRange);
                 PDFMenu.Instance.jumpTo(e.clientX, e.clientY);
             }
         }
@@ -371,8 +373,8 @@ export default class Page extends React.Component<IPageProps> {
     }
 
     @action
-    createTextAnnotation = (sel: Selection) => {
-        let clientRects = sel.getRangeAt(0).getClientRects();
+    createTextAnnotation = (sel: Selection, selRange: Range) => {
+        let clientRects = selRange.getClientRects();
         if (this._textLayer.current) {
             let boundingRect = this._textLayer.current.getBoundingClientRect();
             for (let i = 0; i < clientRects.length; i++) {
@@ -388,6 +390,10 @@ export default class Page extends React.Component<IPageProps> {
                     this.props.createAnnotation(annoBox, this.props.page);
                 }
             }
+        }
+        let text = selRange.extractContents().textContent;
+        if (text) {
+            this.props.setSelectionText(text);
         }
         // clear selection
         if (sel.empty) {  // Chrome
