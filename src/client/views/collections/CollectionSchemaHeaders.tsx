@@ -129,7 +129,7 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
 
     changeColumnType = (type: ColumnType): void => {
         console.log("change type", this.props.columnField.heading);
-        // this.props.setColumnType(this.props.columnField, type);
+        this.props.setColumnType(this.props.columnField, type);
     }
 
     @action
@@ -265,9 +265,10 @@ interface KeysDropdownProps {
 @observer
 class KeysDropdown extends React.Component<KeysDropdownProps> {
     @observable private _key: string = this.props.keyValue;
-    @observable private _searchTerm: string = "";
+    @observable private _searchTerm: string = this.props.keyValue;
     @observable private _isOpen: boolean = false;
     @observable private _canClose: boolean = true;
+    @observable private _inputRef: React.RefObject<HTMLInputElement> = React.createRef();
 
     @action setSearchTerm = (value: string): void => { this._searchTerm = value; };
     @action setKey = (key: string): void => { this._key = key; };
@@ -279,6 +280,21 @@ class KeysDropdown extends React.Component<KeysDropdownProps> {
         this.setKey(key);
         this._isOpen = false;
         this.props.setIsEditing(false);
+    }
+
+    @action
+    onKeyDown = (e: React.KeyboardEvent): void => {
+        if (e.key === "Enter") {
+            let keyOptions = this._searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
+            let exactFound = keyOptions.findIndex(key => key.toUpperCase() === this._searchTerm.toUpperCase()) > -1 ||
+                this.props.existingKeys.findIndex(key => key.toUpperCase() === this._searchTerm.toUpperCase()) > -1;
+
+            if (!exactFound && this._searchTerm !== "" && this.props.canAddNew) {
+                this.onSelect(this._searchTerm);
+            } else {
+                this._searchTerm = this._key;
+            }
+        }
     }
 
     onChange = (val: string): void => {
@@ -333,7 +349,7 @@ class KeysDropdown extends React.Component<KeysDropdownProps> {
     render() {
         return (
             <div className="keys-dropdown">
-                <input className="keys-search" type="text" value={this._searchTerm} placeholder="Search for or create a new key"
+                <input className="keys-search" ref={this._inputRef} type="text" value={this._searchTerm} placeholder="Column key" onKeyDown={this.onKeyDown}
                     onChange={e => this.onChange(e.target.value)} onFocus={this.onFocus} onBlur={this.onBlur}></input>
                 <div className="keys-options-wrapper" onPointerEnter={this.onPointerEnter} onPointerOut={this.onPointerOut}>
                     {this.renderOptions()}
