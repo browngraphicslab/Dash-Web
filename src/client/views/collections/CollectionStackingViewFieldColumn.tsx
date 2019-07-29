@@ -111,7 +111,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         let outerXf = Utils.GetScreenTransform(this.props.parent._masonryGridRef!);
         let offset = this.props.parent.props.ScreenToLocalTransform().transformDirection(outerXf.translateX - translateX, outerXf.translateY - translateY);
         return this.props.parent.props.ScreenToLocalTransform().
-            translate(offset[0], offset[1] - (this.props.parent.chromeCollapsed ? 0 : 100)).
+            translate(offset[0], offset[1]).
             scale(NumCast(doc.width, 1) / this.props.parent.columnWidth);
     }
 
