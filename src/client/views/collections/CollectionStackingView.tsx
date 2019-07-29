@@ -287,7 +287,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                 {this.props.Document.sectionFilter ? Array.from(this.Sections.entries()).sort(this.sortFunc).
                     map(section => this.section(section[0], section[1])) :
                     this.section(undefined, this.filteredChildren)}
-                {this.props.Document.sectionFilter ?
+                {(this.props.Document.sectionFilter && this.props.CollectionView.props.Document.chromeStatus !== 'disabled') ?
                     <div key={`${this.props.Document[Id]}-addGroup`} className="collectionStackingView-addGroupButton"
                         style={{ width: (this.columnWidth / (headings.length + 1)) - 10, marginTop: 10 }}>
                         <EditableView {...editableViewProps} />
