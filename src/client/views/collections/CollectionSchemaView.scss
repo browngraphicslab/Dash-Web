@@ -9,7 +9,8 @@
     position: absolute;
     top: 0;
     width: 100%;
-    height: calc(100% - 50px);
+    transition: height .5s;
+    height: 100%;
     // overflow: hidden;
     // overflow-x: scroll;
     // border: none;
@@ -195,6 +196,11 @@
             height: 100%;
         }
     }
+
+    .rt-resizer {
+        width: 20px;
+        right: -10px;
+    }
 }
 
 .documentView-node-topmost {
@@ -306,6 +312,19 @@ button.add-column {
             border-radius: 20px;
         }
     }
+
+    .columnMenu-colors {
+
+
+        input[type="radio"] {
+            display: none;
+        }
+
+        .columnMenu-colorPicker {
+            width: 20px;
+            height: 20px;
+        }
+    }
 }
 
 .collectionSchema-row {
@@ -313,7 +332,7 @@ button.add-column {
     height: 100%;
     background-color: white;
 
-    &.row-focused {
+    &.row-focused .rt-tr {
         background-color: rgb(255, 246, 246); //$light-color-secondary;
     }
 

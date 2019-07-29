@@ -7,6 +7,8 @@
     z-index: 9001;
     transition: top .5s;
     background: lightgrey;
+    transition: margin-top .5s;
+    background: lightgray;
     padding: 10px;
 
     .collectionViewChrome {

@@ -496,7 +496,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         let layoutItems: ContextMenuProps[] = [];
         layoutItems.push({
             description: `${this.fitToBox ? "Unset" : "Set"} Fit To Container`,
-            event: undoBatch(async () => this.props.Document.fitToBox = !this.fitToBox),
+            event: async () => this.props.Document.fitToBox = !this.fitToBox,
             icon: !this.fitToBox ? "expand-arrows-alt" : "compress-arrows-alt"
         });
         layoutItems.push({

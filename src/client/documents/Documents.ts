@@ -164,7 +164,6 @@ export namespace Docs {
             [DocumentType.LINKDOC, {
                 data: new List<Doc>(),
                 layout: { view: EmptyBox },
-                options: {}
             }],
             [DocumentType.BUTTON, {
                 layout: { view: ButtonBox },
