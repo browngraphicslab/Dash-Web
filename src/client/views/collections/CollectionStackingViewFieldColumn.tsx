@@ -279,10 +279,11 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                     {this.children(this.props.docList)}
                     {singleColumn ? (null) : this.props.parent.columnDragger}
                 </div>
-                <div key={`${heading}-add-document`} className="collectionStackingView-addDocumentButton"
-                    style={{ width: style.columnWidth / (uniqueHeadings.length + 1) }}>
-                    <EditableView {...newEditableViewProps} />
-                </div>
+                {(this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'disabled') ?
+                    <div key={`${heading}-add-document`} className="collectionStackingView-addDocumentButton"
+                        style={{ width: style.columnWidth / (uniqueHeadings.length + 1) }}>
+                        <EditableView {...newEditableViewProps} />
+                    </div> : null}
             </div>
         );
     }
