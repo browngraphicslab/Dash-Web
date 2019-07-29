@@ -26,6 +26,7 @@ const optionsSchema = createSimpleSchema({
     requiredType: true,
     addReturn: true,
     typecheck: true,
+    editable: true,
     readonly: true,
     params: optional(map(primitive()))
 });

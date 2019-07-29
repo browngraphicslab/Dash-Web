@@ -1,16 +1,14 @@
-import { computed, observable, action } from 'mobx';
-import { DocumentView } from '../views/nodes/DocumentView';
-import { Doc, DocListCast, Opt } from '../../new_fields/Doc';
-import { FieldValue, Cast, NumCast, BoolCast, StrCast } from '../../new_fields/Types';
-import { listSpec } from '../../new_fields/Schema';
-import { undoBatch, UndoManager } from './UndoManager';
+import { action, computed, observable } from 'mobx';
+import { Doc } from '../../new_fields/Doc';
+import { Id } from '../../new_fields/FieldSymbols';
+import { BoolCast, Cast, NumCast } from '../../new_fields/Types';
 import { CollectionDockingView } from '../views/collections/CollectionDockingView';
-import { CollectionView } from '../views/collections/CollectionView';
 import { CollectionPDFView } from '../views/collections/CollectionPDFView';
 import { CollectionVideoView } from '../views/collections/CollectionVideoView';
-import { Id } from '../../new_fields/FieldSymbols';
+import { CollectionView } from '../views/collections/CollectionView';
+import { DocumentView } from '../views/nodes/DocumentView';
 import { LinkManager } from './LinkManager';
-import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
+import { undoBatch, UndoManager } from './UndoManager';
 
 
 export class DocumentManager {

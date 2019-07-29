@@ -19,9 +19,13 @@ import { positionSchema } from "./DocumentView";
 import { FieldView, FieldViewProps } from './FieldView';
 import { pageSchema } from "./ImageBox";
 import "./VideoBox.scss";
+import { library } from "@fortawesome/fontawesome-svg-core";
+import { faVideo } from "@fortawesome/free-solid-svg-icons";
 
 type VideoDocument = makeInterface<[typeof positionSchema, typeof pageSchema]>;
 const VideoDocument = makeInterface(positionSchema, pageSchema);
+
+library.add(faVideo);
 
 @observer
 export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoDocument) {
@@ -179,7 +183,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
                 },
                 icon: "expand-arrows-alt"
             });
-            ContextMenu.Instance.addItem({ description: "Video Funcs...", subitems: subitems });
+            ContextMenu.Instance.addItem({ description: "Video Funcs...", subitems: subitems, icon: "video" });
         }
     }
 

@@ -1,9 +1,9 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faAngleRight, faCamera, faExpand, faTrash, faBell, faCaretDown, faCaretRight, faArrowsAltH, faCaretSquareDown, faCaretSquareRight, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
+import { faAngleRight, faCamera, faExpand, faTrash, faBell, faCaretDown, faCaretRight, faArrowsAltH, faCaretSquareDown, faCaretSquareRight, faTrashAlt, faPlus, faMinus } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, trace, untracked } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, HeightSym, WidthSym, Opt } from '../../../new_fields/Doc';
+import { Doc, DocListCast, HeightSym, WidthSym, Opt, Field } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
 import { Document, listSpec } from '../../../new_fields/Schema';
@@ -26,6 +26,8 @@ import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTreeView.scss";
 import React = require("react");
 import { LinkManager } from '../../util/LinkManager';
+import { ComputedField } from '../../../new_fields/ScriptField';
+import { KeyValueBox } from '../nodes/KeyValueBox';
 
 
 export interface TreeViewProps {
@@ -59,7 +61,7 @@ library.add(faCaretRight);
 library.add(faCaretSquareDown);
 library.add(faCaretSquareRight);
 library.add(faArrowsAltH);
-
+library.add(faPlus, faMinus);
 @observer
 /**
  * Component that takes in a document prop and a boolean whether it's collapsed or not.
@@ -68,8 +70,7 @@ export class TreeView extends React.Component<TreeViewProps> {
     private _header?: React.RefObject<HTMLDivElement> = React.createRef();
     private _treedropDisposer?: DragManager.DragDropDisposer;
     private _dref = React.createRef<HTMLDivElement>();
-    @observable __chosenKey: string = "";
-    @computed get _chosenKey() { return this.__chosenKey ? this.__chosenKey : this.fieldKey; }
+    @computed get treeViewExpandedView() { return StrCast(this.props.document.treeViewExpandedView, "data"); }
     @computed get MAX_EMBED_HEIGHT() { return NumCast(this.props.document.maxEmbedHeight, 300); }
     @observable _collapsed: boolean = true;
 
@@ -125,12 +126,12 @@ export class TreeView extends React.Component<TreeViewProps> {
         }
     }
     onPointerLeave = (e: React.PointerEvent): void => {
-        this.props.document.libraryBrush = undefined;
+        this.props.document.libraryBrush = false;
         this._header!.current!.className = "treeViewItem-header";
         document.removeEventListener("pointermove", this.onDragMove, true);
     }
     onDragMove = (e: PointerEvent): void => {
-        this.props.document.libraryBrush = undefined;
+        this.props.document.libraryBrush = false;
         let x = this.props.ScreenToLocalTransform().transformPoint(e.clientX, e.clientY);
         let rect = this._header!.current!.getBoundingClientRect();
         let bounds = this.props.ScreenToLocalTransform().transformPoint(rect.left, rect.top + rect.height / 2);
@@ -191,25 +192,6 @@ export class TreeView extends React.Component<TreeViewProps> {
         OnTab={() => this.props.indentDocument && this.props.indentDocument()}
     />)
 
-    @computed get keyList() {
-        let target = this.props.document;
-        let keys = Array.from(Object.keys(target));
-        if (target.proto instanceof Doc) {
-            keys.push(...Array.from(Object.keys(target.proto)));
-        }
-        let keyList: string[] = keys.reduce((l, key) => {
-            let listspec = DocListCast(target[key]);
-            if (listspec && listspec.length) return [...l, key];
-            return l;
-        }, [] as string[]);
-        keys.map(key => Cast(target[key], Doc) instanceof Doc && keyList.push(key));
-        if (LinkManager.Instance.getAllRelatedLinks(this.props.document).length > 0) keyList.push("links");
-        if (keyList.indexOf(this.fieldKey) !== -1) {
-            keyList.splice(keyList.indexOf(this.fieldKey), 1);
-        }
-        keyList.splice(0, 0, this.fieldKey);
-        return keyList.filter((item, index) => keyList.indexOf(item) >= index);
-    }
     /**
      * Renders the EditableView title element for placement into the tree.
      */
@@ -218,13 +200,13 @@ export class TreeView extends React.Component<TreeViewProps> {
         let onItemDown = SetupDrag(reference, () => this.dataDoc, this.move, this.props.dropAction, this.props.treeViewId, true);
 
         let headerElements = (
-            <span className="collectionTreeView-keyHeader" key={this._chosenKey + "chosen"}
+            <span className="collectionTreeView-keyHeader" key={this.treeViewExpandedView}
                 onPointerDown={action(() => {
-                    let ind = this.keyList.indexOf(this._chosenKey);
-                    ind = (ind + 1) % this.keyList.length;
-                    this.__chosenKey = this.keyList[ind];
-                })} >
-                {this._chosenKey}
+                    this.props.document.treeViewExpandedView = this.treeViewExpandedView === "data" ? "fields" :
+                        this.treeViewExpandedView === "fields" && this.props.document.layout ? "layout" : "data";
+                    this._collapsed = false;
+                })}>
+                {this.treeViewExpandedView}
             </span>);
         let dataDocs = CollectionDockingView.Instance ? Cast(CollectionDockingView.Instance.props.Document[this.fieldKey], listSpec(Doc), []) : [];
         let openRight = dataDocs && dataDocs.indexOf(this.dataDoc) !== -1 ? (null) : (
@@ -249,17 +231,16 @@ export class TreeView extends React.Component<TreeViewProps> {
 
     onWorkspaceContextMenu = (e: React.MouseEvent): void => {
         if (!e.isPropagationStopped()) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
-            ContextMenu.Instance.addItem({ description: (BoolCast(this.props.document.embed) ? "Collapse" : "Expand") + " inline", event: () => this.props.document.embed = !BoolCast(this.props.document.embed), icon: "expand" });
             if (NumCast(this.props.document.viewType) !== CollectionViewType.Docking) {
                 ContextMenu.Instance.addItem({ description: "Open Tab", event: () => this.props.addDocTab(this.props.document, this.resolvedDataDoc, "inTab"), icon: "folder" });
                 ContextMenu.Instance.addItem({ description: "Open Right", event: () => this.props.addDocTab(this.props.document, this.resolvedDataDoc, "onRight"), icon: "caret-square-right" });
                 if (DocumentManager.Instance.getDocumentViews(this.dataDoc).length) {
                     ContextMenu.Instance.addItem({ description: "Focus", event: () => DocumentManager.Instance.getDocumentViews(this.dataDoc).map(view => view.props.focus(this.props.document, true)), icon: "camera" });
                 }
-                ContextMenu.Instance.addItem({ description: "Delete Item", event: undoBatch(() => this.props.deleteDoc(this.props.document)), icon: "trash-alt" });
+                ContextMenu.Instance.addItem({ description: "Delete Item", event: () => this.props.deleteDoc(this.props.document), icon: "trash-alt" });
             } else {
-                ContextMenu.Instance.addItem({ description: "Open as Workspace", event: undoBatch(() => MainView.Instance.openWorkspace(this.dataDoc)), icon: "caret-square-right" });
-                ContextMenu.Instance.addItem({ description: "Delete Workspace", event: undoBatch(() => this.props.deleteDoc(this.props.document)), icon: "trash-alt" });
+                ContextMenu.Instance.addItem({ description: "Open as Workspace", event: () => MainView.Instance.openWorkspace(this.dataDoc), icon: "caret-square-right" });
+                ContextMenu.Instance.addItem({ description: "Delete Workspace", event: () => this.props.deleteDoc(this.props.document), icon: "trash-alt" });
             }
             ContextMenu.Instance.addItem({ description: "Open Fields", event: () => { let kvp = Docs.Create.KVPDocument(this.props.document, { width: 300, height: 300 }); this.props.addDocTab(kvp, this.props.dataDoc ? this.props.dataDoc : kvp, "onRight"); }, icon: "layer-group" });
             ContextMenu.Instance.displayMenu(e.pageX > 156 ? e.pageX - 156 : 0, e.pageY - 15);
@@ -311,8 +292,8 @@ export class TreeView extends React.Component<TreeViewProps> {
 
     renderLinks = () => {
         let ele: JSX.Element[] = [];
-        let remDoc = (doc: Doc) => this.remove(doc, this._chosenKey);
-        let addDoc = (doc: Doc, addBefore?: Doc, before?: boolean) => Doc.AddDocToList(this.props.document, this._chosenKey, doc, addBefore, before);
+        let remDoc = (doc: Doc) => this.remove(doc, this.fieldKey);
+        let addDoc = (doc: Doc, addBefore?: Doc, before?: boolean) => Doc.AddDocToList(this.props.document, this.fieldKey, doc, addBefore, before);
         let groups = LinkManager.Instance.getRelatedGroupedLinks(this.props.document);
         groups.forEach((groupLinkDocs, groupType) => {
             // let destLinks = groupLinkDocs.map(d => LinkManager.Instance.getOppositeAnchor(d, this.props.document));
@@ -358,20 +339,65 @@ export class TreeView extends React.Component<TreeViewProps> {
 
     noOverlays = (doc: Doc) => ({ title: "", caption: "" });
 
+    expandedField = (doc?: Doc) => {
+        if (!doc) return <div />;
+        let realDoc = doc;
+
+        let ids: { [key: string]: string } = {};
+        Object.keys(doc).forEach(key => {
+            if (!(key in ids) && realDoc[key] !== ComputedField.undefined) {
+                ids[key] = key;
+            }
+        });
+
+        let rows: JSX.Element[] = [];
+        for (let key of Object.keys(ids).sort()) {
+            let contents = realDoc[key] ? realDoc[key] : undefined;
+            let contentElement: JSX.Element[] | JSX.Element = [];
+
+            if (contents instanceof Doc || Cast(contents, listSpec(Doc))) {
+                let docList = contents;
+                let remDoc = (doc: Doc) => this.remove(doc, key);
+                let addDoc = (doc: Doc, addBefore?: Doc, before?: boolean) => Doc.AddDocToList(this.dataDoc, key, doc, addBefore, before);
+                contentElement = key === "links" ? this.renderLinks() :
+                    TreeView.GetChildElements(docList instanceof Doc ? [docList] : DocListCast(docList), this.props.treeViewId, realDoc, undefined, key, addDoc, remDoc, this.move,
+                        this.props.dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active, this.props.panelWidth, this.props.renderDepth);
+            } else {
+                contentElement = <EditableView
+                    key="editableView"
+                    contents={contents ? contents.toString() : "null"}
+                    height={13}
+                    fontSize={12}
+                    GetValue={() => Field.toKeyValueString(realDoc, key)}
+                    SetValue={(value: string) => KeyValueBox.SetField(realDoc, key, value)} />;
+            }
+            rows.push(<div style={{ display: "flex" }} key={key}>
+                <span style={{ fontWeight: "bold" }}>{key + ":"}</span>
+                &nbsp;
+                {contentElement}
+            </div>);
+        }
+        return rows;
+    }
+
     render() {
         let contentElement: (JSX.Element | null) = null;
-        let docList = Cast(this.dataDoc[this._chosenKey], listSpec(Doc));
-        let remDoc = (doc: Doc) => this.remove(doc, this._chosenKey);
-        let addDoc = (doc: Doc, addBefore?: Doc, before?: boolean) => Doc.AddDocToList(this.dataDoc, this._chosenKey, doc, addBefore, before);
+        let docList = Cast(this.dataDoc[this.fieldKey], listSpec(Doc));
+        let remDoc = (doc: Doc) => this.remove(doc, this.fieldKey);
+        let addDoc = (doc: Doc, addBefore?: Doc, before?: boolean) => Doc.AddDocToList(this.dataDoc, this.fieldKey, doc, addBefore, before);
 
         if (!this._collapsed) {
-            if (!this.props.document.embed) {
-                let doc = Cast(this.props.document[this._chosenKey], Doc);
-                contentElement = <ul key={this._chosenKey + "more"}>
-                    {this._chosenKey === "links" ? this.renderLinks() :
-                        TreeView.GetChildElements(doc instanceof Doc ? [doc] : DocListCast(docList), this.props.treeViewId, this.props.document, this.resolvedDataDoc, this._chosenKey, addDoc, remDoc, this.move,
+            if (this.treeViewExpandedView === "data") {
+                let doc = Cast(this.props.document[this.fieldKey], Doc);
+                contentElement = <ul key={this.fieldKey + "more"}>
+                    {this.fieldKey === "links" ? this.renderLinks() :
+                        TreeView.GetChildElements(doc instanceof Doc ? [doc] : DocListCast(docList), this.props.treeViewId, this.props.document, this.resolvedDataDoc, this.fieldKey, addDoc, remDoc, this.move,
                             this.props.dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active, this.props.panelWidth, this.props.renderDepth)}
                 </ul >;
+            } else if (this.treeViewExpandedView === "fields") {
+                contentElement = <ul><div ref={this._dref} style={{ display: "inline-block" }} key={this.props.document[Id] + this.props.document.title}>
+                    {this.expandedField(this.dataDoc)}
+                </div></ul>;
             } else {
                 let layoutDoc = this.props.document;
                 contentElement = <div ref={this._dref} style={{ display: "inline-block", height: this.docHeight() }} key={this.props.document[Id] + this.props.document.title}>
@@ -471,6 +497,8 @@ export class CollectionTreeView extends CollectionSubView(Document) {
     private treedropDisposer?: DragManager.DragDropDisposer;
     private _mainEle?: HTMLDivElement;
 
+    @computed get chromeCollapsed() { return this.props.chromeCollapsed; }
+
     protected createTreeDropTarget = (ele: HTMLDivElement) => {
         this.treedropDisposer && this.treedropDisposer();
         if (this._mainEle = ele) {
@@ -494,8 +522,8 @@ export class CollectionTreeView extends CollectionSubView(Document) {
     onContextMenu = (e: React.MouseEvent): void => {
         // need to test if propagation has stopped because GoldenLayout forces a parallel react hierarchy to be created for its top-level layout
         if (!e.isPropagationStopped() && this.props.Document.workspaceLibrary) { // excludeFromLibrary means this is the user document
-            ContextMenu.Instance.addItem({ description: "Create Workspace", event: undoBatch(() => MainView.Instance.createNewWorkspace()) });
-            ContextMenu.Instance.addItem({ description: "Delete Workspace", event: undoBatch(() => this.remove(this.props.Document)) });
+            ContextMenu.Instance.addItem({ description: "Create Workspace", event: () => MainView.Instance.createNewWorkspace(), icon: "plus" });
+            ContextMenu.Instance.addItem({ description: "Delete Workspace", event: () => this.remove(this.props.Document), icon: "minus" });
             e.stopPropagation();
             e.preventDefault();
             ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);

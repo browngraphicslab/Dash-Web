@@ -1,4 +1,4 @@
-import { UndoManager, undoBatch } from "../util/UndoManager";
+import { UndoManager } from "../util/UndoManager";
 import { SelectionManager } from "../util/SelectionManager";
 import { CollectionDockingView } from "./collections/CollectionDockingView";
 import { MainView } from "./MainView";
@@ -67,6 +67,7 @@ export default class KeyManager {
                     }
                 }
                 MainView.Instance.toggleColorPicker(true);
+                SelectionManager.DeselectAll();
                 break;
             case "delete":
             case "backspace":
@@ -132,6 +133,13 @@ export default class KeyManager {
                 }
                 MainView.Instance.mainFreeform && CollectionDockingView.Instance.CloseRightSplit(MainView.Instance.mainFreeform);
                 break;
+            case "backspace":
+                if (document.activeElement) {
+                    if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") {
+                        return { stopPropagation: false, preventDefault: false };
+                    }
+                }
+                break;
             case "f":
                 MainView.Instance.isSearchVisible = !MainView.Instance.isSearchVisible;
                 break;
@@ -144,14 +152,16 @@ export default class KeyManager {
                 break;
             case "y":
                 UndoManager.Redo();
+                stopPropagation = false;
                 break;
             case "z":
                 UndoManager.Undo();
+                stopPropagation = false;
                 break;
             case "a":
-            case "c":
             case "v":
             case "x":
+            case "c":
                 stopPropagation = false;
                 preventDefault = false;
                 break;

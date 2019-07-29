@@ -54,6 +54,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     private _downY = 0;
     private _iconDoc?: Doc = undefined;
     private _resizeUndo?: UndoManager.Batch;
+    private _linkDrag?: UndoManager.Batch;
     @observable private _minimizedX = 0;
     @observable private _minimizedY = 0;
     @observable private _title: string = "";
@@ -96,6 +97,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             }
             else {
                 if (SelectionManager.SelectedDocuments().length > 0) {
+                    SelectionManager.SelectedDocuments()[0].props.Document.customTitle = true;
                     let field = SelectionManager.SelectedDocuments()[0].props.Document[this._fieldKey];
                     if (typeof field === "number") {
                         SelectionManager.SelectedDocuments().forEach(d => {
@@ -304,7 +306,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         iconDoc.height = Number(MINIMIZED_ICON_SIZE);
         iconDoc.x = NumCast(doc.x);
         iconDoc.y = NumCast(doc.y) - 24;
-        iconDoc.maximizedDocs = new List<Doc>(selected.map(s => s.props.Document.proto!));
+        iconDoc.maximizedDocs = new List<Doc>(selected.map(s => s.props.Document));
         selected.length === 1 && (doc.minimizedDoc = iconDoc);
         selected[0].props.addDocument && selected[0].props.addDocument(iconDoc, false);
         return iconDoc;
@@ -346,7 +348,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
     onRadiusMove = (e: PointerEvent): void => {
         let dist = Math.sqrt((e.clientX - this._radiusDown[0]) * (e.clientX - this._radiusDown[0]) + (e.clientY - this._radiusDown[1]) * (e.clientY - this._radiusDown[1]));
-        SelectionManager.SelectedDocuments().map(dv => dv.props.Document.borderRounding = Doc.GetProto(dv.props.Document).borderRounding = `${Math.min(100, dist)}%`);
+        SelectionManager.SelectedDocuments().map(dv => dv.props.Document.layout instanceof Doc ? dv.props.Document.layout : dv.props.Document.isTemplate ? dv.props.Document : Doc.GetProto(dv.props.Document)).
+            map(d => d.borderRounding = `${Math.min(100, dist)}%`);
         e.stopPropagation();
         e.preventDefault();
     }
@@ -412,9 +415,15 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             let container = selDoc.props.ContainingCollectionView ? selDoc.props.ContainingCollectionView.props.Document.proto : undefined;
             let dragData = new DragManager.LinkDragData(selDoc.props.Document, container ? [container] : []);
             FormattedTextBox.InputBoxOverlay = undefined;
+            this._linkDrag = UndoManager.StartBatch("Drag Link");
             DragManager.StartLinkDrag(this._linkerButton.current, dragData, e.pageX, e.pageY, {
                 handlers: {
-                    dragComplete: action(emptyFunction),
+                    dragComplete: () => {
+                        if (this._linkDrag) {
+                            this._linkDrag.end();
+                            this._linkDrag = undefined;
+                        }
+                    },
                 },
                 hideSource: false
             });
@@ -532,7 +541,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     proto.nativeHeight = nheight = doc.height || 0;
                     proto.ignoreAspect = true;
                 }
-                if (nwidth > 0 && nheight > 0) {
+                if (nwidth > 0 && nheight > 0 && !BoolCast(proto.ignoreAspect)) {
                     if (Math.abs(dW) > Math.abs(dH)) {
                         if (!fixedAspect) {
                             Doc.SetInPlace(element.props.Document, "nativeWidth", actualdW / (doc.width || 1) * (doc.nativeWidth || 0), true);
@@ -552,7 +561,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 } else {
                     dW && (doc.width = actualdW);
                     dH && (doc.height = actualdH);
-                    Doc.SetInPlace(element.props.Document, "autoHeight", undefined, true);
+                    dH && Doc.SetInPlace(element.props.Document, "autoHeight", undefined, true);
                 }
             }
         });
@@ -667,6 +676,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             linkButton = (<Flyout
                 anchorPoint={anchorPoints.RIGHT_TOP}
                 content={<LinkMenu docView={selFirst}
+                    addDocTab={selFirst.props.addDocTab}
                     changeFlyout={this.changeFlyoutContent} />}>
                 <div className={"linkButton-" + (linkCount ? "nonempty" : "empty")} onPointerDown={this.onLinkButtonDown} >{linkCount}</div>
             </Flyout >);

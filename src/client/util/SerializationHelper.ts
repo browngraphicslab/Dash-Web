@@ -91,15 +91,15 @@ export function Deserializable(constructor: { new(...args: any[]): any } | strin
     if (typeof constructor === "string") {
         return Object.assign((ctor: { new(...args: any[]): any }) => {
             addToMap(constructor, ctor);
-        }, { withFields: Deserializable.withFields });
+        }, { withFields: (fields: string[]) => Deserializable.withFields(fields, name, afterDeserialize) });
     }
     addToMap(constructor.name, constructor);
 }
 
 export namespace Deserializable {
-    export function withFields(fields: string[]) {
+    export function withFields(fields: string[], name?: string, afterDeserialize?: (obj: any) => void | Promise<any>) {
         return function (constructor: { new(...fields: any[]): any }) {
-            Deserializable(constructor);
+            Deserializable(name || constructor.name, afterDeserialize)(constructor);
             let schema = getDefaultModelSchema(constructor);
             if (schema) {
                 schema.factory = context => {

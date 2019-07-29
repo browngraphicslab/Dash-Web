@@ -1,18 +1,16 @@
-import { observer } from "mobx-react";
-import React = require("react");
-import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
-import { NumCast, BoolCast, StrCast, Cast, FieldValue } from "../../../new_fields/Types";
-import { Id } from "../../../new_fields/FieldSymbols";
-import { observable, action, computed, runInAction } from "mobx";
-import "./PresentationView.scss";
-import { Utils, emptyFunction, returnFalse, returnOne } from "../../../Utils";
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFile as fileSolid, faFileDownload, faLocationArrow, faArrowUp, faSearch, faArrowRight } from '@fortawesome/free-solid-svg-icons';
 import { faFile as fileRegular } from '@fortawesome/free-regular-svg-icons';
+import { faArrowUp, faFile as fileSolid, faFileDownload, faLocationArrow, faSearch, faArrowRight } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { action, computed, observable, runInAction } from "mobx";
+import { observer } from "mobx-react";
+import { Doc } from "../../../new_fields/Doc";
+import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
-import { DragManager, SetupDrag, dropActionType } from "../../util/DragManager";
+import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { Utils, returnFalse, emptyFunction, returnOne } from "../../../Utils";
+import { DragManager, dropActionType, SetupDrag } from "../../util/DragManager";
 import { SelectionManager } from "../../util/SelectionManager";
 import { indexOf } from "typescript-collections/dist/lib/arrays";
 import { map } from "bluebird";
@@ -22,6 +20,8 @@ import { Transform } from "../../util/Transform";
 import { FieldView } from "../nodes/FieldView";
 import { DocumentView } from "../nodes/DocumentView";
 import { DocumentType } from "../../documents/Documents";
+import React = require("react");
+
 
 library.add(faArrowUp);
 library.add(fileSolid);
