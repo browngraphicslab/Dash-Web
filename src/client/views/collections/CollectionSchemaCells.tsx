@@ -25,6 +25,7 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 import { faExpand } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
+import { KeyCodes } from "../../northstar/utils/KeyCodes";
 
 library.add(faExpand);
 
@@ -66,7 +67,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
 
     @action
     onKeyDown = (e: KeyboardEvent): void => {
-        if (this.props.isFocused && this.props.isEditable) {
+        if (this.props.isFocused && this.props.isEditable && e.keyCode === KeyCodes.ENTER) {
             document.removeEventListener("keydown", this.onKeyDown);
             this._isEditing = true;
             this.props.setIsEditing(true);

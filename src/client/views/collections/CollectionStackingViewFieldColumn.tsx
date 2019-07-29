@@ -74,8 +74,8 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             let headings = this.props.headings();
             let uniqueHeadings = headings.map((i, idx) => headings.indexOf(i) === idx);
             let pair = Doc.GetLayoutDataDocPair(parent.props.Document, parent.props.DataDoc, parent.props.fieldKey, d);
-            let width = () => (d.nativeWidth && !BoolCast(d.ignoreAspect) ? Math.min(pair.layout[WidthSym](), parent.columnWidth) : parent.columnWidth) / (uniqueHeadings.length + 1);
-            let height = () => parent.getDocHeight(pair.layout);
+            let width = () => (d.nativeWidth && !BoolCast(d.ignoreAspect) ? Math.min(pair.layout[WidthSym](), parent.columnWidth / (uniqueHeadings.length + 1)) : parent.columnWidth / (uniqueHeadings.length + 1));/// (uniqueHeadings.length + 1);
+            let height = () => parent.getDocHeight(pair.layout, uniqueHeadings.length + 1);// / (d.nativeWidth && !BoolCast(d.ignoreAspect) ? uniqueHeadings.length + 1 : 1);
             let dref = React.createRef<HTMLDivElement>();
             // if (uniqueHeadings.length > 0) {
             let dxf = () => this.getDocTransform(pair.layout, dref.current!);
@@ -88,7 +88,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             // }
             let rowHgtPcnt = height();
             let rowSpan = Math.ceil((height() + parent.gridGap) / parent.gridGap);
-            let style = parent.singleColumn ? { width: width(), marginTop: i === 0 ? 0 : parent.gridGap, height: `${rowHgtPcnt}` } : { gridRowEnd: `span ${rowSpan}` };
+            let style = parent.singleColumn ? { width: width(), margin: "auto", marginTop: i === 0 ? 0 : parent.gridGap, height: `${rowHgtPcnt}` } : { gridRowEnd: `span ${rowSpan}` };
             return <div className={`collectionStackingView-${parent.singleColumn ? "columnDoc" : "masonryDoc"}`} key={d[Id]} ref={dref} style={style} >
                 {this.props.parent.getDisplayDoc(pair.layout, pair.data, dxf, width)}
             </div>;
@@ -266,9 +266,9 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                 {headingView}
                 <div key={`${heading}-stack`} className={`collectionStackingView-masonry${singleColumn ? "Single" : "Grid"}`}
                     style={{
-                        padding: singleColumn ? `${style.yMargin}px ${0}px ${style.yMargin}px ${0}px` : `${style.yMargin}px ${0}px`,
-                        margin: "auto 5px",
-                        width: singleColumn ? undefined : `${cols * (style.columnWidth + style.gridGap) + 2 * style.xMargin - style.gridGap}px`,
+                        padding: singleColumn ? `${style.yMargin}px ${5}px ${style.yMargin}px ${5}px` : `${style.yMargin}px ${0}px`,
+                        margin: "auto",
+                        width: "max-content", //singleColumn ? undefined : `${cols * (style.columnWidth + style.gridGap) + 2 * style.xMargin - style.gridGap}px`,
                         height: 'max-content',
                         position: "relative",
                         gridGap: style.gridGap,

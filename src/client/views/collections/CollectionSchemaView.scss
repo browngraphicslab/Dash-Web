@@ -6,14 +6,15 @@
     border-style: solid;
     border-radius: $border-radius;
     box-sizing: border-box;
-    // position: absolute;
+    position: absolute;
+    top: 0;
     width: 100%;
-    height: calc(100% - 50px);
+    transition: height .5s;
+    height: 100%;
     // overflow: hidden;
     // overflow-x: scroll;
     // border: none;
     overflow: hidden;
-    transition: top 0.5s;
 
     // .collectionSchemaView-cellContents {
     //     height: $MAX_ROW_HEIGHT;
@@ -78,7 +79,7 @@
         overflow-x: auto;
         height: 100%;
         display: -webkit-inline-box;
-        direction: ltr; 
+        direction: ltr;
     }
 
     .rt-thead {
@@ -122,7 +123,7 @@
         font-size: 13px;
         text-align: center;
         background-color: $light-color-secondary;
-        
+
         &:last-child {
             overflow: visible;
         }
@@ -147,7 +148,7 @@
         // &:nth-child(even) {
         //     background-color: $light-color;
         // }
-    
+
         // &:nth-child(odd) {
         //     background-color: $light-color-secondary;
         // }
@@ -175,7 +176,7 @@
         padding: 0;
         font-size: 13px;
         text-align: center;
-        
+
         // white-space: normal;
 
         .imageBox-cont {
@@ -195,6 +196,11 @@
             height: 100%;
         }
     }
+
+    .rt-resizer {
+        width: 20px;
+        right: -10px;
+    }
 }
 
 .documentView-node-topmost {
@@ -207,18 +213,19 @@
     background: $light-color;
 }
 
-.collectionSchema-col{
+.collectionSchema-col {
     height: 100%;
 
     .collectionSchema-col-wrapper {
         &.col-before {
             border-left: 2px solid red;
         }
+
         &.col-after {
             border-right: 2px solid red;
         }
     }
-}  
+}
 
 
 .collectionSchemaView-header {
@@ -285,7 +292,7 @@ button.add-column {
                 background-color: $light-color;
                 border: 1px solid $light-color-secondary;
                 padding: 2px 3px;
-                
+
                 &:not(:last-child) {
                     border-top: 0;
                 }
@@ -305,6 +312,19 @@ button.add-column {
             border-radius: 20px;
         }
     }
+
+    .columnMenu-colors {
+
+
+        input[type="radio"] {
+            display: none;
+        }
+
+        .columnMenu-colorPicker {
+            width: 20px;
+            height: 20px;
+        }
+    }
 }
 
 .collectionSchema-row {
@@ -312,8 +332,8 @@ button.add-column {
     height: 100%;
     background-color: white;
 
-    &.row-focused {
-        background-color: rgb(255, 246, 246);//$light-color-secondary;
+    &.row-focused .rt-tr {
+        background-color: rgb(255, 246, 246); //$light-color-secondary;
     }
 
     &.row-wrapped {
@@ -358,9 +378,11 @@ button.add-column {
         &.row-above {
             border-top: 1px solid red;
         }
+
         &.row-below {
             border-bottom: 1px solid red;
         }
+
         &.row-inside {
             border: 1px solid red;
         }
@@ -461,7 +483,9 @@ button.add-column {
     .rt-table {
         overflow-x: hidden; // todo; this shouldnt be like this :((
         overflow-y: visible;
-    } // TODO fix
+    }
+
+    // TODO fix
 
     .row-dragger {
         background-color: rgb(252, 252, 252);

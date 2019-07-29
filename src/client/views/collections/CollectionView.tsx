@@ -18,7 +18,7 @@ import { CollectionTreeView } from "./CollectionTreeView";
 import { StrCast, PromiseValue } from '../../../new_fields/Types';
 import { DocumentType } from '../../documents/Documents';
 import { CollectionStackingViewChrome, CollectionViewBaseChrome } from './CollectionViewChromes';
-import { observable, action, runInAction } from 'mobx';
+import { observable, action, runInAction, IReactionDisposer, reaction } from 'mobx';
 import { faEye } from '@fortawesome/free-regular-svg-icons';
 export const COLLECTION_BORDER_WIDTH = 2;
 
@@ -37,14 +37,23 @@ library.add(faImage, faEye);
 export class CollectionView extends React.Component<FieldViewProps> {
     @observable private _collapsed = false;
 
+    private _reactionDisposer: IReactionDisposer | undefined;
+
     public static LayoutString(fieldStr: string = "data", fieldExt: string = "") { return FieldView.LayoutString(CollectionView, fieldStr, fieldExt); }
 
     componentDidMount = () => {
-        // chrome status is one of disabled, collapsed, or visible. this determines initial state from document
-        let chromeStatus = this.props.Document.chromeStatus;
-        if (chromeStatus && (chromeStatus === "disabled" || chromeStatus === "collapsed")) {
-            runInAction(() => this._collapsed = true);
-        }
+        this._reactionDisposer = reaction(() => StrCast(this.props.Document.chromeStatus),
+            () => {
+                // chrome status is one of disabled, collapsed, or visible. this determines initial state from document
+                let chromeStatus = this.props.Document.chromeStatus;
+                if (chromeStatus && (chromeStatus === "disabled" || chromeStatus === "collapsed")) {
+                    runInAction(() => this._collapsed = true);
+                }
+            });
+    }
+
+    componentWillUnmount = () => {
+        this._reactionDisposer && this._reactionDisposer();
     }
 
     private SubViewHelper = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
@@ -87,14 +96,14 @@ export class CollectionView extends React.Component<FieldViewProps> {
     onContextMenu = (e: React.MouseEvent): void => {
         if (!this.isAnnotationOverlay && !e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
             let subItems: ContextMenuProps[] = [];
-            subItems.push({ description: "Freeform", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Freeform), icon: "signature" });
+            subItems.push({ description: "Freeform", event: () => this.props.Document.viewType = CollectionViewType.Freeform, icon: "signature" });
             if (CollectionBaseView.InSafeMode()) {
-                ContextMenu.Instance.addItem({ description: "Test Freeform", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Invalid), icon: "project-diagram" });
+                ContextMenu.Instance.addItem({ description: "Test Freeform", event: () => this.props.Document.viewType = CollectionViewType.Invalid, icon: "project-diagram" });
             }
-            subItems.push({ description: "Schema", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Schema), icon: "th-list" });
-            subItems.push({ description: "Treeview", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Tree), icon: "tree" });
-            subItems.push({ description: "Stacking", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Stacking), icon: "ellipsis-v" });
-            subItems.push({ description: "Masonry", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Masonry), icon: "columns" });
+            subItems.push({ description: "Schema", event: () => this.props.Document.viewType = CollectionViewType.Schema, icon: "th-list" });
+            subItems.push({ description: "Treeview", event: () => this.props.Document.viewType = CollectionViewType.Tree, icon: "tree" });
+            subItems.push({ description: "Stacking", event: () => this.props.Document.viewType = CollectionViewType.Stacking, icon: "ellipsis-v" });
+            subItems.push({ description: "Masonry", event: () => this.props.Document.viewType = CollectionViewType.Masonry, icon: "columns" });
             switch (this.props.Document.viewType) {
                 case CollectionViewType.Freeform: {
                     subItems.push({ description: "Custom", icon: "fingerprint", event: CollectionFreeFormView.AddCustomLayout(this.props.Document, this.props.fieldKey) });
@@ -102,7 +111,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
                 }
             }
             ContextMenu.Instance.addItem({ description: "View Modes...", subitems: subItems, icon: "eye" });
-            ContextMenu.Instance.addItem({ description: "Apply Template", event: undoBatch(() => this.props.addDocTab && this.props.addDocTab(Doc.ApplyTemplate(this.props.Document)!, undefined, "onRight")), icon: "project-diagram" });
+            ContextMenu.Instance.addItem({ description: "Apply Template", event: () => this.props.addDocTab && this.props.addDocTab(Doc.ApplyTemplate(this.props.Document)!, undefined, "onRight"), icon: "project-diagram" });
         }
     }
 
