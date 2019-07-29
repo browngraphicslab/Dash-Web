@@ -8,7 +8,8 @@
     box-sizing: border-box;
     // position: absolute;
     width: 100%;
-    height: calc(100% - 70px);
+    transition: height .5s;
+    height: 100%;
     // overflow: hidden;
     // overflow-x: scroll;
     // border: none;

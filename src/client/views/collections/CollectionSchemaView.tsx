@@ -237,8 +237,8 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         // if (SelectionManager.SelectedDocuments().length > 0) console.log(StrCast(SelectionManager.SelectedDocuments()[0].Document.title));
         // if (DocumentManager.Instance.getDocumentView(this.props.Document)) console.log(StrCast(this.props.Document.title), SelectionManager.IsSelected(DocumentManager.Instance.getDocumentView(this.props.Document)!))
         return (
-            <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} onWheel={this.onWheel}
-                onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createTarget}>
+            <div className="collectionSchemaView-container" style={{ height: this.chromeCollapsed ? "100%" : "calc(100% - 70px" }}
+                onPointerDown={this.onPointerDown} onWheel={this.onWheel} onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createTarget}>
                 {this.schemaTable}
                 {this.dividerDragger}
                 {!this.previewWidth() ? (null) : this.previewPanel}
