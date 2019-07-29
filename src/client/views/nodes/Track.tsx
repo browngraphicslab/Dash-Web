@@ -113,7 +113,7 @@ export class Track extends React.Component<IProps> {
             let rightkf: (Doc | undefined) = await this.calcMinRight(regiondata!); //right keyframe, if it exists            
             let currentkf: (Doc | undefined) = await this.calcCurrent(regiondata!); //if the scrubber is on top of the keyframe
             if (currentkf) {
-                this.applyKeys(currentkf);
+                await this.applyKeys(currentkf);
                 this._keyReaction = this.keyReaction(); //reactivates reaction. 
             } else if (leftkf && rightkf) {
                 this.interpolate(leftkf, rightkf);
@@ -122,12 +122,11 @@ export class Track extends React.Component<IProps> {
     }
 
     @action
-    private applyKeys = (kf: Doc) => {
-        let kfNode = Cast(kf.key, Doc) as Doc; 
+    private applyKeys = async (kf: Doc) => {
+        let kfNode = await Cast(kf.key, Doc) as Doc; 
         let docFromApply = kfNode; 
         if (this.filterKeys(Doc.allKeys(this.props.node)).length > this.filterKeys(Doc.allKeys(kfNode)).length) docFromApply = this.props.node; 
         this.filterKeys(Doc.allKeys(docFromApply)).forEach(key => {
-            // if (key === "title" || key === "documentText") Doc.SetOnPrototype(this.props.node, key, StrCast(kf[key]));
             if (!kfNode[key]) {
                 this.props.node[key] = undefined; 
             } else {
@@ -205,8 +204,7 @@ export class Track extends React.Component<IProps> {
                 const diff = NumCast(rightNode[key]) - NumCast(leftNode[key]);
                 const adjusted = diff * ratio;
                 this.props.node[key] = NumCast(leftNode[key]) + adjusted;
-            } else if (key === "title" || key === "documentText") {
-                Doc.SetOnPrototype(this.props.node, key, StrCast(leftNode[key]));
+            } else {
                 this.props.node[key] = leftNode[key];
             }
         });

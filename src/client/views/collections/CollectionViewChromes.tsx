@@ -247,9 +247,13 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                                     <button className="collectonViewBaseChrome-viewSpecsMenu-lastRowButton" onClick={this.applyFilter}>
                                         APPLY FILTER
                             </button>
+                                    
                                 </div>
                             </div>
                         </div>
+                        <button className="collectionViewBaseChrome-button" >
+                            SHOW TIMELINE
+                        </button>
                     </div>
                     {this.subChrome()}
                 </div>

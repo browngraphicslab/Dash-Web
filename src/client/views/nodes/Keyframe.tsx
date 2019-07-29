@@ -322,7 +322,7 @@ export class Keyframe extends React.Component<IProps> {
     render() {
         return (
             <div>
-                <div className="bar" ref={this._bar} style={{ transform: `translate(${this.regiondata.position}px)`, width: `${this.regiondata.duration}px` }}
+                <div className="bar" ref={this._bar} style={{ transform: `translate(${this.regiondata.position}px)`, width: `${this.regiondata.duration}px`, background: `linear-gradient(90deg, rgba(77, 153, 0, 0) 0%, rgba(77, 153, 0, 1) ${this.regiondata.fadeIn / this.regiondata.duration * 100}%, rgba(77, 153, 0, 1) ${(this.regiondata.duration - this.regiondata.fadeOut)/this.regiondata.duration * 100}%, rgba(77, 153, 0, 0) 100% )` }}
                     onPointerDown={this.onBarPointerDown}
                     onDoubleClick={this.createKeyframe}
                     onContextMenu={action((e: React.MouseEvent) => {
