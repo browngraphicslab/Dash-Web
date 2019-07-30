@@ -148,7 +148,7 @@ function getVideos(auth, args) {
         part: 'id, snippet',
         type: 'video',
         q: args.userInput,
-        maxResults: 3
+        maxResults: 10
     }, function (err, response) {
         if (err) {
             console.log('The API returned an error: ' + err);
