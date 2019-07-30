@@ -1,5 +1,5 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowDown, faCloudUploadAlt, faArrowUp, faClone, faCheck, faPlay, faCaretUp, faLongArrowAltRight, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faPortrait, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faThumbtack, faTree, faUndoAlt, faCat, faBolt } from '@fortawesome/free-solid-svg-icons';
+import { faArrowDown, faCloudUploadAlt, faArrowUp, faClone, faCheck, faPlay, faPause, faCaretUp, faLongArrowAltRight, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faPortrait, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faThumbtack, faTree, faUndoAlt, faCat, faBolt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, runInAction, reaction, trace } from 'mobx';
 import { observer } from 'mobx-react';
@@ -126,6 +126,7 @@ export class MainView extends React.Component {
         library.add(faMusic);
         library.add(faTree);
         library.add(faPlay);
+        library.add(faPause);
         library.add(faClone);
         library.add(faCut);
         library.add(faCommentAlt);

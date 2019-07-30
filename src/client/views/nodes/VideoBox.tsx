@@ -89,6 +89,56 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         this._youtubePlayer && this.props.addDocTab(this.props.Document, this.props.DataDoc, "inTab");
     }
 
+    @action public Snapshot() {
+        let width = NumCast(this.props.Document.width);
+        let height = NumCast(this.props.Document.height);
+        var canvas = document.createElement('canvas');
+        canvas.width = 640;
+        canvas.height = 640 * NumCast(this.props.Document.nativeHeight) / NumCast(this.props.Document.nativeWidth);
+        var ctx = canvas.getContext('2d');//draw image to canvas. scale to target dimensions
+        if (ctx) {
+            ctx.rect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "blue";
+            ctx.fill();
+            this._videoRef && ctx.drawImage(this._videoRef, 0, 0, canvas.width, canvas.height);
+        }
+
+        if (!this._videoRef) { // can't find a way to take snapshots of videos
+            let b = Docs.Create.ButtonDocument({
+                x: NumCast(this.props.Document.x) + width, y: NumCast(this.props.Document.y),
+                width: 150, height: 50, title: NumCast(this.props.Document.curPage).toString()
+            });
+            const script = CompileScript(`(self as any).curPage = ${NumCast(this.props.Document.curPage)}`, {
+                params: { this: Doc.name },
+                capturedVariables: { self: this.props.Document },
+                typecheck: false,
+                editable: true,
+            });
+            if (script.compiled) {
+                b.onClick = new ScriptField(script);
+                this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.addDocument && this.props.ContainingCollectionView.props.addDocument(b, false);
+            } else {
+                console.log(script.errors.map(error => error.messageText).join("\n"));
+            }
+        } else {
+            //convert to desired file format
+            var dataUrl = canvas.toDataURL('image/png'); // can also use 'image/png'
+            // if you want to preview the captured image,
+            let filename = encodeURIComponent("snapshot" + this.props.Document.title + "_" + this.props.Document.curPage).replace(/\./g, "");
+            VideoBox.convertDataUri(dataUrl, filename).then(returnedFilename => {
+                if (returnedFilename) {
+                    let url = Utils.prepend(returnedFilename);
+                    let imageSummary = Docs.Create.ImageDocument(url, {
+                        x: NumCast(this.props.Document.x) + width, y: NumCast(this.props.Document.y),
+                        width: 150, height: height / width * 150, title: "--snapshot" + NumCast(this.props.Document.curPage) + " image-"
+                    });
+                    this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.addDocument && this.props.ContainingCollectionView.props.addDocument(imageSummary, false);
+                    DocUtils.MakeLink(imageSummary, this.props.Document);
+                }
+            });
+        }
+    }
+
     @action
     updateTimecode = () => {
         this.player && (this.props.Document.curPage = this.player.currentTime);
@@ -152,56 +202,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
             let subitems: ContextMenuProps[] = [];
             subitems.push({ description: "Copy path", event: () => { Utils.CopyText(url); }, icon: "expand-arrows-alt" });
             subitems.push({ description: "Toggle Show Controls", event: action(() => VideoBox._showControls = !VideoBox._showControls), icon: "expand-arrows-alt" });
-            let width = NumCast(this.props.Document.width);
-            let height = NumCast(this.props.Document.height);
-            subitems.push({
-                description: "Take Snapshot", event: async () => {
-                    var canvas = document.createElement('canvas');
-                    canvas.width = 640;
-                    canvas.height = 640 * NumCast(this.props.Document.nativeHeight) / NumCast(this.props.Document.nativeWidth);
-                    var ctx = canvas.getContext('2d');//draw image to canvas. scale to target dimensions
-                    if (ctx) {
-                        ctx.rect(0, 0, canvas.width, canvas.height);
-                        ctx.fillStyle = "blue";
-                        ctx.fill();
-                        this._videoRef && ctx.drawImage(this._videoRef, 0, 0, canvas.width, canvas.height);
-                    }
-
-                    if (!this._videoRef) { // can't find a way to take snapshots of videos
-                        let b = Docs.Create.ButtonDocument({
-                            x: NumCast(this.props.Document.x) + width, y: NumCast(this.props.Document.y), width: 150, height: 50, title: NumCast(this.props.Document.curPage).toString()
-                        });
-                        const script = CompileScript(`this.props.Document.curPage = ${NumCast(this.props.Document.curPage)}`, {
-                            params: { this: Doc.name },
-                            typecheck: false,
-                            editable: true,
-                        });
-                        if (!script.compiled) {
-                            console.log(script.errors.map(error => error.messageText).join("\n"));
-                            return;
-                        }
-                        b.onClick = new ScriptField(script);
-                        this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.addDocument && this.props.ContainingCollectionView.props.addDocument(b, false);
-                    } else {
-                        //convert to desired file format
-                        var dataUrl = canvas.toDataURL('image/png'); // can also use 'image/png'
-                        // if you want to preview the captured image,
-                        let filename = encodeURIComponent("snapshot" + this.props.Document.title + "_" + this.props.Document.curPage).replace(/\./g, "");
-                        VideoBox.convertDataUri(dataUrl, filename).then(returnedFilename => {
-                            if (returnedFilename) {
-                                let url = Utils.prepend(returnedFilename);
-                                let imageSummary = Docs.Create.ImageDocument(url, {
-                                    x: NumCast(this.props.Document.x) + width, y: NumCast(this.props.Document.y),
-                                    width: 150, height: height / width * 150, title: "--snapshot" + NumCast(this.props.Document.curPage) + " image-"
-                                });
-                                this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.addDocument && this.props.ContainingCollectionView.props.addDocument(imageSummary, false);
-                                DocUtils.MakeLink(imageSummary, this.props.Document);
-                            }
-                        });
-                    }
-                },
-                icon: "expand-arrows-alt"
-            });
+            subitems.push({ description: "Take Snapshot", event: () => this.Snapshot(), icon: "expand-arrows-alt" });
             ContextMenu.Instance.addItem({ description: "Video Funcs...", subitems: subitems, icon: "video" });
         }
     }
