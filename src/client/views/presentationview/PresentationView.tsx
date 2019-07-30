@@ -881,23 +881,14 @@ export class PresentationView extends React.Component<PresViewProps>  {
             if (presWidth - presMinWidth !== 0) {
                 this.curPresentation.width = 0;
             }
+            if (presWidth === 0) {
+                this.curPresentation.width = presMinWidth;
+            }
         }
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
     }
 
-    /**
-     * This function gets triggered on click of the dragger. It opens up the
-     * presentation view, if it was closed beforehand.
-     */
-    togglePresView = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        e.preventDefault();
-        let width = NumCast(this.curPresentation.width);
-        if (width === 0) {
-            this.curPresentation.width = presMinWidth;
-        }
-    }
     /**
      * This function is a setter that opens up the 
      * presentation mode, by setting it's render flag
@@ -992,7 +983,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
                 </div>
                 <div className="mainView-libraryHandle"
                     style={{ cursor: "ew-resize", right: `${width - 10}px`, backgroundColor: "white", opacity: this.opacity, transition: "0.7s opacity ease" }}
-                    onPointerDown={this.onPointerDown} onClick={this.togglePresView}>
+                    onPointerDown={this.onPointerDown}>
                     <span title="library View Dragger" style={{ width: "100%", height: "100%", position: "absolute" }} />
                 </div>
                 {this.renderPresMode()}
