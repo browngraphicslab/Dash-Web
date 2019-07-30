@@ -33,7 +33,6 @@ library.add(faEye);
 
 export interface PresViewProps {
     Documents: List<Doc>;
-    addDocTab: (doc: Doc) => void;
 }
 
 const expandedWidth = 400;
@@ -369,11 +368,6 @@ export class PresentationView extends React.Component<PresViewProps>  {
             //checking if curDoc has navigation open
             let curDocButtons = this.presElementsMappings.get(curDoc)!.selected;
             if (curDocButtons[buttonIndex.Navigate]) {
-                // if (curDocButtons[buttonIndex.OpenRight]) {
-                //     DocumentManager.Instance.jumpToDocument(curDoc, false);
-                // } else {
-                //     DocumentManager.Instance.jumpToDocument(curDoc, false, undefined, this.props.addDocTab);
-                // }
                 this.jumpToTabOrRight(curDocButtons, curDoc);
             } else if (curDocButtons[buttonIndex.Show]) {
                 let curScale = DocumentManager.Instance.getScaleOfDocView(this.childrenDocs[fromDoc]);
@@ -381,7 +375,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
                     //awaiting jump so that new scale can be found, since jumping is async
                     await DocumentManager.Instance.jumpToDocument(curDoc, true);
                 } else {
-                    await DocumentManager.Instance.jumpToDocument(curDoc, false, undefined, this.props.addDocTab);
+                    await DocumentManager.Instance.jumpToDocument(curDoc, false, undefined, doc => CollectionDockingView.Instance.AddTab(undefined, doc, undefined));
                 }
 
                 let newScale = DocumentManager.Instance.getScaleOfDocView(curDoc);
@@ -403,7 +397,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
             //awaiting jump so that new scale can be found, since jumping is async
             await DocumentManager.Instance.jumpToDocument(docToJump, willZoom);
         } else {
-            await DocumentManager.Instance.jumpToDocument(docToJump, willZoom, undefined, this.props.addDocTab);
+            await DocumentManager.Instance.jumpToDocument(docToJump, willZoom, undefined, doc => CollectionDockingView.Instance.AddTab(undefined, doc, undefined));
         }
         let newScale = DocumentManager.Instance.getScaleOfDocView(curDoc);
         curDoc.viewScale = newScale;
@@ -418,9 +412,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
         if (curDocButtons[buttonIndex.OpenRight]) {
             DocumentManager.Instance.jumpToDocument(curDoc, false);
         } else {
-            console.log("Open in tab!!");
-            // DocumentManager.Instance.jumpToDocument(curDoc, false, undefined, this.props.addDocTab);
-            CollectionDockingView.Instance.AddTab(undefined, curDoc, undefined);
+            DocumentManager.Instance.jumpToDocument(curDoc, false, undefined, doc => CollectionDockingView.Instance.AddTab(undefined, doc, undefined));
         }
     }
 
