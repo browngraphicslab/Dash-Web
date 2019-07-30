@@ -1,6 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faFile as fileRegular } from '@fortawesome/free-regular-svg-icons';
-import { faArrowUp, faFile as fileSolid, faFileDownload, faLocationArrow, faSearch } from '@fortawesome/free-solid-svg-icons';
+import { faArrowUp, faFile as fileSolid, faFileDownload, faLocationArrow, faSearch, faArrowRight } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
@@ -9,17 +9,26 @@ import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { Utils } from "../../../Utils";
+import { Utils, returnFalse, emptyFunction, returnOne } from "../../../Utils";
 import { DragManager, dropActionType, SetupDrag } from "../../util/DragManager";
 import { SelectionManager } from "../../util/SelectionManager";
-import "./PresentationView.scss";
+import { indexOf } from "typescript-collections/dist/lib/arrays";
+import { map } from "bluebird";
+import { ContextMenu } from "../ContextMenu";
+import { DocumentContentsView } from "../nodes/DocumentContentsView";
+import { Transform } from "../../util/Transform";
+import { FieldView } from "../nodes/FieldView";
+import { DocumentView } from "../nodes/DocumentView";
+import { DocumentType } from "../../documents/Documents";
 import React = require("react");
+
 
 library.add(faArrowUp);
 library.add(fileSolid);
 library.add(faLocationArrow);
 library.add(fileRegular as any);
 library.add(faSearch);
+library.add(faArrowRight);
 
 interface PresentationElementProps {
     mainDocument: Doc;
@@ -46,6 +55,7 @@ export enum buttonIndex {
     FadeAfter = 3,
     HideAfter = 4,
     Group = 5,
+    OpenRight = 6
 
 }
 
@@ -68,7 +78,7 @@ export default class PresentationElement extends React.Component<PresentationEle
 
     constructor(props: PresentationElementProps) {
         super(props);
-        this.selectedButtons = new Array(6);
+        this.selectedButtons = new Array(7);
 
         this.presElRef = React.createRef();
     }
@@ -132,7 +142,7 @@ export default class PresentationElement extends React.Component<PresentationEle
 
         if (!foundDoc) {
             let newDoc = new Doc();
-            let defaultBooleanArray: boolean[] = new Array(6);
+            let defaultBooleanArray: boolean[] = new Array(7);
             newDoc.selectedButtons = new List(defaultBooleanArray);
             newDoc.docId = this.props.document[Id];
             castedList.push(newDoc);
@@ -394,6 +404,18 @@ export default class PresentationElement extends React.Component<PresentationEle
 
     }
 
+    @action
+    onRightTabClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (this.selectedButtons[buttonIndex.OpenRight]) {
+            this.selectedButtons[buttonIndex.OpenRight] = false;
+            // action maybe
+        } else {
+            this.selectedButtons[buttonIndex.OpenRight] = true;
+        }
+        this.autoSaveButtonChange(buttonIndex.OpenRight);
+    }
+
     /**
      * Creating a drop target for drag and drop when called.
      */
@@ -629,7 +651,7 @@ export default class PresentationElement extends React.Component<PresentationEle
      */
     getSelectedButtonsOfDoc = async (paramDoc: Doc) => {
         let castedList = Cast(this.props.presButtonBackUp.selectedButtonDocs, listSpec(Doc));
-        let foundSelectedButtons: boolean[] = new Array(6);
+        let foundSelectedButtons: boolean[] = new Array(7);
 
         //if this is the first time this doc mounts, push a doc for it to store
         for (let doc of castedList!) {
@@ -649,7 +671,7 @@ export default class PresentationElement extends React.Component<PresentationEle
 
     //This is used to add dragging as an event.
     onPointerEnter = (e: React.PointerEvent): void => {
-        this.props.document.libraryBrush = true;
+        // this.props.document.libraryBrush = true;
         if (e.buttons === 1 && SelectionManager.GetIsDragging()) {
             let selected = NumCast(this.props.mainDocument.selectedDoc, 0);
 
@@ -666,7 +688,7 @@ export default class PresentationElement extends React.Component<PresentationEle
 
     //This is used to remove the dragging when dropped.
     onPointerLeave = (e: React.PointerEvent): void => {
-        this.props.document.libraryBrush = false;
+        // this.props.document.libraryBrush = false;
         //to get currently selected presentation doc
         let selected = NumCast(this.props.mainDocument.selectedDoc, 0);
 
@@ -766,8 +788,78 @@ export default class PresentationElement extends React.Component<PresentationEle
         }
     }
 
+    private get embedInline() {
+        return BoolCast(this.props.document.embedOpen);
+    }
 
+    private set embedInline(value: boolean) {
+        this.props.document.embedOpen = value;
+    }
 
+    onContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        ContextMenu.Instance.addItem({ description: this.embedInline ? "Collapse Inline" : "Expand Inline", event: () => this.embedInline = !this.embedInline, icon: "expand" });
+        ContextMenu.Instance.displayMenu(e.clientX, e.clientY);
+    }
+
+    renderEmbeddedInline = () => {
+        if (!this.embedInline) {
+            return (null);
+        }
+
+        // return <ul key={this.props.document[Id] + "more"}>
+        //     {TreeView.GetChildElements([this.props.document], "", new Doc(), undefined, "", (doc: Doc, relativeTo?: Doc, before?: boolean) => false, this.props.removeDocByRef, this.move,
+        //         StrCast(this.props.document.dropAction) as dropActionType, (doc: Doc, dataDoc: Doc | undefined, where: string) => { }, Transform.Identity, () => ({ translateX: 0, translateY: 0 }), () => false, () => 400, 7)}
+        // </ul >;
+        let propDocWidth = NumCast(this.props.document.nativeWidth);
+        let propDocHeight = NumCast(this.props.document.nativeHeight);
+        let scale = () => {
+            let newScale = 175 / NumCast(this.props.document.nativeWidth, 175);
+            console.log("New Scale: ", newScale);
+            return newScale;
+        };
+        return (
+            <div style={{
+                position: "relative",
+                height: propDocHeight === 0 ? 100 : propDocHeight * scale(),
+                width: propDocWidth === 0 ? "auto" : propDocWidth * scale(),
+                marginTop: 15
+
+            }}>
+                <DocumentView
+                    fitToBox={StrCast(this.props.document.type).indexOf(DocumentType.COL) !== -1}
+                    Document={this.props.document}
+                    addDocument={returnFalse}
+                    removeDocument={returnFalse}
+                    ScreenToLocalTransform={Transform.Identity}
+                    addDocTab={returnFalse}
+                    renderDepth={1}
+                    PanelWidth={() => 350}
+                    PanelHeight={() => 100}
+                    focus={emptyFunction}
+                    selectOnLoad={false}
+                    parentActive={returnFalse}
+                    whenActiveChanged={returnFalse}
+                    bringToFront={emptyFunction}
+                    zoomToScale={emptyFunction}
+                    getScale={returnOne}
+                    ContainingCollectionView={undefined}
+                    ContentScaling={scale}
+                />
+                <div style={{
+                    width: " 100%",
+                    height: " 100%",
+                    position: "absolute",
+                    left: 0,
+                    top: 0,
+                    background: "transparent",
+                    zIndex: 2,
+
+                }}></div>
+            </div>
+        );
+    }
 
     render() {
         let p = this.props;
@@ -784,7 +876,7 @@ export default class PresentationElement extends React.Component<PresentationEle
         let dropAction = StrCast(this.props.document.dropAction) as dropActionType;
         let onItemDown = SetupDrag(this.presElRef, () => p.document, this.move, dropAction, this.props.mainDocument[Id], true);
         return (
-            <div className={className} key={p.document[Id] + p.index}
+            <div className={className} onContextMenu={this.onContextMenu} key={p.document[Id] + p.index}
                 ref={this.presElRef}
                 onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}
                 onPointerDown={onItemDown}
@@ -809,7 +901,10 @@ export default class PresentationElement extends React.Component<PresentationEle
                     this.changeGroupStatus();
                     this.onGroupClick(p.document, p.index, this.selectedButtons[buttonIndex.Group]);
                 }}> <FontAwesomeIcon icon={"arrow-up"} /> </button>
+                <button title="Open Right" className={this.selectedButtons[buttonIndex.OpenRight] ? "presentation-interaction-selected" : "presentation-interaction"} onPointerDown={(e) => e.stopPropagation()} onClick={this.onRightTabClick}><FontAwesomeIcon icon={"arrow-right"} /></button>
 
+                <br />
+                {this.renderEmbeddedInline()}
             </div>
         );
     }
