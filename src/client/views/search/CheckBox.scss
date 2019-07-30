@@ -13,9 +13,9 @@
         margin-top: 0px;
 
         .check-container:hover~.check-box {
-            background-color: $intermediate-color;
+            background-color: $darker-alt-accent;
         }
-    
+
         .check-container {
             width: 40px;
             height: 40px;
@@ -27,7 +27,8 @@
                 position: absolute;
                 fill-opacity: 0;
                 stroke-width: 4px;
-                stroke: white;
+                // stroke: white;
+                stroke: gray;
             }
         }
 
@@ -56,4 +57,3 @@
     }
 
 }
-

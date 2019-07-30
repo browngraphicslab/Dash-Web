@@ -66,6 +66,9 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     if (res.success) {
                         return res.result;
                     }
+                    else {
+                        console.log(res.error);
+                    }
                 });
             }
             return docs;

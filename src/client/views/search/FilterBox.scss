@@ -3,22 +3,25 @@
 
 .filter-form {
     padding: 25px;
-    width: 600px;
-    background: $dark-color;
+    width: 440px;
+    background: whitesmoke;
     position: relative;
     right: 1px;
-    color: $light-color;
+    color: grey;
     flex-direction: column;
     display: inline-block;
     transform-origin: top;
     overflow: auto;
+    border-radius: 15px;
+    box-shadow: $intermediate-color 0.2vw 0.2vw 0.4vw;
+    border: solid #BBBBBBBB 1px;
 
     .top-filter-header {
 
         #header {
             text-transform: uppercase;
             letter-spacing: 2px;
-            font-size: 25;
+            font-size: 13;
             width: 80%;
         }
 
@@ -26,13 +29,13 @@
             width: 20%;
             opacity: .6;
             position: relative;
-            display: inline-block;
+            display: block;
 
             .line {
                 display: block;
                 background: $alt-accent;
-                width: $width-line;
-                height: $height-line;
+                width: 20;
+                height: 3;
                 position: absolute;
                 right: 0;
                 border-radius: ($height-line / 2);
@@ -69,9 +72,10 @@
                 display: flex;
                 align-items: center;
                 margin-bottom: 10px;
+                letter-spacing: 2px;
 
                 .filter-title {
-                    font-size: 18;
+                    font-size: 13;
                     text-transform: uppercase;
                     margin-top: 10px;
                     margin-bottom: 10px;
@@ -96,6 +100,7 @@
                 -moz-transition: all 0.2s ease-in-out;
                 -o-transition: all 0.2s ease-in-out;
                 transition: all 0.2s ease-in-out;
+                text-align: center;
             }
         }
     }
@@ -160,5 +165,16 @@
         display: flex;
         align-items: center;
         justify-content: center;
+
+    .save-filter,
+    .reset-filter,
+    .all-filter {
+        background-color: gray;
+    }
+
+    .save-filter:hover,
+    .reset-filter:hover,
+    .all-filter:hover {
+        background-color: $darker-alt-accent;
     }
 }

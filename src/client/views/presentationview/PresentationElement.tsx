@@ -12,12 +12,8 @@ import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { Utils, returnFalse, emptyFunction, returnOne } from "../../../Utils";
 import { DragManager, dropActionType, SetupDrag } from "../../util/DragManager";
 import { SelectionManager } from "../../util/SelectionManager";
-import { indexOf } from "typescript-collections/dist/lib/arrays";
-import { map } from "bluebird";
 import { ContextMenu } from "../ContextMenu";
-import { DocumentContentsView } from "../nodes/DocumentContentsView";
 import { Transform } from "../../util/Transform";
-import { FieldView } from "../nodes/FieldView";
 import { DocumentView } from "../nodes/DocumentView";
 import { DocumentType } from "../../documents/Documents";
 import React = require("react");
@@ -73,9 +69,6 @@ export default class PresentationElement extends React.Component<PresentationEle
     private backUpDoc: Doc | undefined;
 
 
-
-
-
     constructor(props: PresentationElementProps) {
         super(props);
         this.selectedButtons = new Array(7);
@@ -114,6 +107,9 @@ export default class PresentationElement extends React.Component<PresentationEle
         }
     }
 
+    /**
+     * Function that will be called to receive stored backUp for buttons
+     */
     receiveButtonBackUp = async () => {
 
         //get the list that stores docs that keep track of buttons
@@ -404,6 +400,10 @@ export default class PresentationElement extends React.Component<PresentationEle
 
     }
 
+    /**
+     * Function that opens up the option to open a element on right when navigated,
+     * instead of openening it as tab as default.
+     */
     @action
     onRightTabClick = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -671,7 +671,6 @@ export default class PresentationElement extends React.Component<PresentationEle
 
     //This is used to add dragging as an event.
     onPointerEnter = (e: React.PointerEvent): void => {
-        // this.props.document.libraryBrush = true;
         if (e.buttons === 1 && SelectionManager.GetIsDragging()) {
             let selected = NumCast(this.props.mainDocument.selectedDoc, 0);
 
@@ -688,7 +687,6 @@ export default class PresentationElement extends React.Component<PresentationEle
 
     //This is used to remove the dragging when dropped.
     onPointerLeave = (e: React.PointerEvent): void => {
-        // this.props.document.libraryBrush = false;
         //to get currently selected presentation doc
         let selected = NumCast(this.props.mainDocument.selectedDoc, 0);
 
@@ -787,15 +785,23 @@ export default class PresentationElement extends React.Component<PresentationEle
             groupArray.push(tempStack.pop()!);
         }
     }
-
+    /**
+     * This function is a getter to get if a document is in previewMode.
+     */
     private get embedInline() {
         return BoolCast(this.props.document.embedOpen);
     }
 
+    /**
+     * This function sets document in presentation preview mode as the given value.
+     */
     private set embedInline(value: boolean) {
         this.props.document.embedOpen = value;
     }
 
+    /**
+     * The function that recreates that context menu of presentation elements.
+     */
     onContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
         e.preventDefault();
         e.stopPropagation();
@@ -803,20 +809,19 @@ export default class PresentationElement extends React.Component<PresentationEle
         ContextMenu.Instance.displayMenu(e.clientX, e.clientY);
     }
 
+    /**
+     * The function that is responsible for rendering the a preview or not for this
+     * presentation element.
+     */
     renderEmbeddedInline = () => {
         if (!this.embedInline) {
             return (null);
         }
 
-        // return <ul key={this.props.document[Id] + "more"}>
-        //     {TreeView.GetChildElements([this.props.document], "", new Doc(), undefined, "", (doc: Doc, relativeTo?: Doc, before?: boolean) => false, this.props.removeDocByRef, this.move,
-        //         StrCast(this.props.document.dropAction) as dropActionType, (doc: Doc, dataDoc: Doc | undefined, where: string) => { }, Transform.Identity, () => ({ translateX: 0, translateY: 0 }), () => false, () => 400, 7)}
-        // </ul >;
         let propDocWidth = NumCast(this.props.document.nativeWidth);
         let propDocHeight = NumCast(this.props.document.nativeHeight);
         let scale = () => {
             let newScale = 175 / NumCast(this.props.document.nativeWidth, 175);
-            console.log("New Scale: ", newScale);
             return newScale;
         };
         return (
@@ -836,7 +841,7 @@ export default class PresentationElement extends React.Component<PresentationEle
                     addDocTab={returnFalse}
                     renderDepth={1}
                     PanelWidth={() => 350}
-                    PanelHeight={() => 100}
+                    PanelHeight={() => 90}
                     focus={emptyFunction}
                     selectOnLoad={false}
                     parentActive={returnFalse}

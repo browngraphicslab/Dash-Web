@@ -5,7 +5,7 @@ import { Id } from "../../../../new_fields/FieldSymbols";
 import { InkField, StrokeData } from "../../../../new_fields/InkField";
 import { createSchema, makeInterface } from "../../../../new_fields/Schema";
 import { BoolCast, Cast, FieldValue, NumCast, StrCast } from "../../../../new_fields/Types";
-import { emptyFunction, returnOne } from "../../../../Utils";
+import { emptyFunction, returnOne, Utils } from "../../../../Utils";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { DragManager } from "../../../util/DragManager";
 import { HistoryUtil } from "../../../util/History";
@@ -34,12 +34,14 @@ import { CompileScript } from "../../../util/Scripting";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faEye } from "@fortawesome/free-regular-svg-icons";
-import { faTable, faPaintBrush, faAsterisk, faExpandArrowsAlt, faCompressArrowsAlt, faCompass } from "@fortawesome/free-solid-svg-icons";
+import { faTable, faPaintBrush, faAsterisk, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload } from "@fortawesome/free-solid-svg-icons";
 import { undo } from "prosemirror-history";
 import { number } from "prop-types";
 import { ContextMenu } from "../../ContextMenu";
+import { RouteStore } from "../../../../server/RouteStore";
+import { DocServer } from "../../../DocServer";
 
-library.add(faEye, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass);
+library.add(faEye, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload);
 
 export const panZoomSchema = createSchema({
     panX: "number",
@@ -516,7 +518,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY));
     }
 
-    onContextMenu = () => {
+    onContextMenu = (e: React.MouseEvent) => {
         let layoutItems: ContextMenuProps[] = [];
         layoutItems.push({
             description: `${this.fitToBox ? "Unset" : "Set"} Fit To Container`,
@@ -560,6 +562,35 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 let relevantKeys = ["inkAnalysis", "handwriting"];
                 CognitiveServices.Inking.Manager.analyzer(this.fieldExtensionDoc, relevantKeys, data.inkData);
             }, icon: "paint-brush"
+        });
+        ContextMenu.Instance.addItem({
+            description: "Import document", icon: "upload", event: () => {
+                const input = document.createElement("input");
+                input.type = "file";
+                input.accept = ".zip";
+                input.onchange = async _e => {
+                    const files = input.files;
+                    if (!files) return;
+                    const file = files[0];
+                    let formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('remap', "true");
+                    const upload = Utils.prepend("/uploadDoc");
+                    const response = await fetch(upload, { method: "POST", body: formData });
+                    const json = await response.json();
+                    if (json === "error") {
+                        return;
+                    }
+                    const doc = await DocServer.GetRefField(json);
+                    if (!doc || !(doc instanceof Doc)) {
+                        return;
+                    }
+                    const [x, y] = this.props.ScreenToLocalTransform().transformPoint(e.pageX, e.pageY);
+                    doc.x = x, doc.y = y;
+                    this.addDocument(doc, false);
+                };
+                input.click();
+            }
         });
     }
 
