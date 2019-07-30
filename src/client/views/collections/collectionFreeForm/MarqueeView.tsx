@@ -302,6 +302,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 summary.templates = new List<string>([Templates.Bullet.Layout]);
                 let container = Docs.Create.FreeformDocument([summary, newCollection], { x: bounds.left, y: bounds.top, width: 300, height: 200, chromeStatus: "disabled", title: "-summary-" });
                 container.viewType = CollectionViewType.Stacking;
+                container.autoHeight = true;
                 this.props.addLiveTextDocument(container);
                 // });
             } else if (e.key === "S") {
@@ -320,6 +321,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 //this.props.addDocument(newCollection, false);
                 summary.proto!.summarizedDocs = new List<Doc>(selected);
                 summary.proto!.maximizeLocation = "inTab";  // or "inPlace", or "onRight"
+                summary.autoHeight = true;
 
                 this.props.addLiveTextDocument(summary);
             }
