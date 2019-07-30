@@ -4,7 +4,7 @@ import { observable, action, runInAction, reaction, autorun } from "mobx";
 import "./PresentationView.scss";
 import { DocumentManager } from "../../util/DocumentManager";
 import { Utils } from "../../../Utils";
-import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
+import { Doc, DocListCast, DocListCastAsync, WidthSym } from "../../../new_fields/Doc";
 import { listSpec } from "../../../new_fields/Schema";
 import { Cast, NumCast, FieldValue, PromiseValue, StrCast, BoolCast } from "../../../new_fields/Types";
 import { Id } from "../../../new_fields/FieldSymbols";
@@ -12,10 +12,13 @@ import { List } from "../../../new_fields/List";
 import PresentationElement, { buttonIndex } from "./PresentationElement";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowRight, faArrowLeft, faPlay, faStop, faPlus, faTimes, faMinus, faEdit } from '@fortawesome/free-solid-svg-icons';
+import { faArrowRight, faArrowLeft, faPlay, faStop, faPlus, faTimes, faMinus, faEdit, faEye } from '@fortawesome/free-solid-svg-icons';
 import { Docs } from "../../documents/Documents";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import PresentationViewList from "./PresentationList";
+import { ContextMenu } from "../ContextMenu";
+import PresModeMenu from "./PresentationModeMenu";
+import { CollectionDockingView } from "../collections/CollectionDockingView";
 
 library.add(faArrowLeft);
 library.add(faArrowRight);
@@ -25,6 +28,7 @@ library.add(faPlus);
 library.add(faTimes);
 library.add(faMinus);
 library.add(faEdit);
+library.add(faEye);
 
 
 export interface PresViewProps {
@@ -62,6 +66,8 @@ export class PresentationView extends React.Component<PresViewProps>  {
     //Variable that holds reference to title input, so that new presentations get titles assigned.
     @observable titleInputElement: HTMLInputElement | undefined;
     @observable PresTitleChangeOpen: boolean = false;
+    @observable presMode: boolean = false;
+
 
     @observable opacity = 1;
     @observable persistOpacity = true;
@@ -84,6 +90,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
     //The first lifecycle function that gets called to set up the current presentation.
     async componentWillMount() {
+
         this.props.Documents.forEach(async (doc, index: number) => {
 
             //For each presentation received from mainContainer, a mapping is created.
@@ -361,11 +368,16 @@ export class PresentationView extends React.Component<PresViewProps>  {
             //checking if curDoc has navigation open
             let curDocButtons = this.presElementsMappings.get(curDoc)!.selected;
             if (curDocButtons[buttonIndex.Navigate]) {
-                DocumentManager.Instance.jumpToDocument(curDoc, false);
+                this.jumpToTabOrRight(curDocButtons, curDoc);
             } else if (curDocButtons[buttonIndex.Show]) {
                 let curScale = DocumentManager.Instance.getScaleOfDocView(this.childrenDocs[fromDoc]);
-                //awaiting jump so that new scale can be found, since jumping is async
-                await DocumentManager.Instance.jumpToDocument(curDoc, true);
+                if (curDocButtons[buttonIndex.OpenRight]) {
+                    //awaiting jump so that new scale can be found, since jumping is async
+                    await DocumentManager.Instance.jumpToDocument(curDoc, true);
+                } else {
+                    await DocumentManager.Instance.jumpToDocument(curDoc, false, undefined, doc => CollectionDockingView.Instance.AddTab(undefined, doc, undefined));
+                }
+
                 let newScale = DocumentManager.Instance.getScaleOfDocView(curDoc);
                 curDoc.viewScale = newScale;
 
@@ -378,9 +390,15 @@ export class PresentationView extends React.Component<PresViewProps>  {
             return;
         }
         let curScale = DocumentManager.Instance.getScaleOfDocView(this.childrenDocs[fromDoc]);
+        let curDocButtons = this.presElementsMappings.get(docToJump)!.selected;
 
-        //awaiting jump so that new scale can be found, since jumping is async
-        await DocumentManager.Instance.jumpToDocument(docToJump, willZoom);
+
+        if (curDocButtons[buttonIndex.OpenRight]) {
+            //awaiting jump so that new scale can be found, since jumping is async
+            await DocumentManager.Instance.jumpToDocument(docToJump, willZoom);
+        } else {
+            await DocumentManager.Instance.jumpToDocument(docToJump, willZoom, undefined, doc => CollectionDockingView.Instance.AddTab(undefined, doc, undefined));
+        }
         let newScale = DocumentManager.Instance.getScaleOfDocView(curDoc);
         curDoc.viewScale = newScale;
         //saving the scale that user was on
@@ -388,6 +406,14 @@ export class PresentationView extends React.Component<PresViewProps>  {
             this.childrenDocs[fromDoc].viewScale = curScale;
         }
 
+    }
+
+    jumpToTabOrRight = (curDocButtons: boolean[], curDoc: Doc) => {
+        if (curDocButtons[buttonIndex.OpenRight]) {
+            DocumentManager.Instance.jumpToDocument(curDoc, false);
+        } else {
+            DocumentManager.Instance.jumpToDocument(curDoc, false, undefined, doc => CollectionDockingView.Instance.AddTab(undefined, doc, undefined));
+        }
     }
 
     /**
@@ -579,16 +605,33 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
     //The function that starts or resets presentaton functionally, depending on status flag.
     @action
-    startOrResetPres = () => {
+    startOrResetPres = async () => {
         if (this.presStatus) {
             this.resetPresentation();
         } else {
             this.presStatus = true;
-            this.startPresentation(0);
+            let startIndex = await this.findStartDocument();
+            this.startPresentation(startIndex);
             const current = NumCast(this.curPresentation.selectedDoc);
-            this.gotoDocument(0, current);
+            this.gotoDocument(startIndex, current);
         }
         this.curPresentation.presStatus = this.presStatus;
+    }
+
+    findStartDocument = async () => {
+        let docAtZero = await this.getDocAtIndex(0);
+        if (docAtZero === undefined) {
+            return 0;
+        }
+        let docAtZeroPresId = StrCast(docAtZero.presentId);
+
+        if (this.groupMappings.has(docAtZeroPresId)) {
+            let group = this.groupMappings.get(docAtZeroPresId)!;
+            let lastDoc = group[group.length - 1];
+            return this.childrenDocs.indexOf(lastDoc);
+        } else {
+            return 0;
+        }
     }
 
     //The function that resets the presentation by removing every action done by it. It also
@@ -809,56 +852,127 @@ export class PresentationView extends React.Component<PresViewProps>  {
         this.presElementsMappings.set(keyDoc, elem);
     }
 
+    _downsize = 0;
+    onPointerDown = (e: React.PointerEvent) => {
+        this._downsize = e.clientX;
+        document.removeEventListener("pointermove", this.onPointerMove);
+        document.removeEventListener("pointerup", this.onPointerUp);
+        document.addEventListener("pointermove", this.onPointerMove);
+        document.addEventListener("pointerup", this.onPointerUp);
+        e.stopPropagation();
+        e.preventDefault();
+    }
+    @action
+    onPointerMove = (e: PointerEvent) => {
+
+        this.curPresentation.width = Math.max(window.innerWidth - e.clientX, 300);
+    }
+    @action
+    onPointerUp = (e: PointerEvent) => {
+        if (Math.abs(e.clientX - this._downsize) < 4) {
+            let presWidth = NumCast(this.curPresentation.width);
+            if (presWidth - 300 !== 0) {
+                this.curPresentation.width = 0;
+            }
+        }
+        document.removeEventListener("pointermove", this.onPointerMove);
+        document.removeEventListener("pointerup", this.onPointerUp);
+    }
+
+    togglePresView = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        e.preventDefault();
+        let width = NumCast(this.curPresentation.width);
+        if (width === 0) {
+            this.curPresentation.width = 300;
+        }
+    }
+    @action
+    openPresMode = () => {
+        if (!this.presMode) {
+            this.curPresentation.width = 0;
+            this.presMode = true;
+        }
+    }
+
+    @action
+    closePresMode = () => {
+        if (this.presMode) {
+            this.presMode = false;
+            this.curPresentation.width = 300;
+        }
+
+    }
+
+    renderPresMode = () => {
+        if (this.presMode) {
+            return <PresModeMenu next={this.next} back={this.back} startOrResetPres={this.startOrResetPres} presStatus={this.presStatus} closePresMode={this.closePresMode} />;
+        } else {
+            return (null);
+        }
+
+    }
 
     render() {
 
         let width = NumCast(this.curPresentation.width);
 
         return (
-            <div className="presentationView-cont" onPointerEnter={action(() => !this.persistOpacity && (this.opacity = 1))} onPointerLeave={action(() => !this.persistOpacity && (this.opacity = 0.4))} style={{ width: width, overflow: "hidden", opacity: this.opacity, transition: "0.7s opacity ease" }}>
-                <div className="presentationView-heading">
-                    {this.renderSelectOrPresSelection()}
-                    <button title="Close Presentation" className='presentation-icon' onClick={this.closePresentation}><FontAwesomeIcon icon={"times"} /></button>
-                    <button title="Add Presentation" className="presentation-icon" style={{ marginRight: 10 }} onClick={() => {
-                        runInAction(() => { if (this.PresTitleChangeOpen) { this.PresTitleChangeOpen = false; } });
-                        runInAction(() => this.PresTitleInputOpen ? this.PresTitleInputOpen = false : this.PresTitleInputOpen = true);
-                    }}><FontAwesomeIcon icon={"plus"} /></button>
-                    <button title="Remove Presentation" className='presentation-icon' style={{ marginRight: 10 }} onClick={this.removePresentation}><FontAwesomeIcon icon={"minus"} /></button>
-                    <button title="Change Presentation Title" className="presentation-icon" style={{ marginRight: 10 }} onClick={() => {
-                        runInAction(() => { if (this.PresTitleInputOpen) { this.PresTitleInputOpen = false; } });
-                        runInAction(() => this.PresTitleChangeOpen ? this.PresTitleChangeOpen = false : this.PresTitleChangeOpen = true);
-                    }}><FontAwesomeIcon icon={"edit"} /></button>
+            <div>
+                <div className="presentationView-cont" onPointerEnter={action(() => !this.persistOpacity && (this.opacity = 1))} onPointerLeave={action(() => !this.persistOpacity && (this.opacity = 0.4))} style={{ width: width, overflowY: "scroll", overflowX: "hidden", opacity: this.opacity, transition: "0.7s opacity ease" }}>
+                    <div className="presentationView-heading">
+                        {this.renderSelectOrPresSelection()}
+                        <button title="Close Presentation" className='presentation-icon' onClick={this.closePresentation}><FontAwesomeIcon icon={"times"} /></button>
+                        <button title="Open Presentation Mode" className="presentation-icon" style={{ marginRight: 10 }} onClick={this.openPresMode}><FontAwesomeIcon icon={"eye"} /></button>
+                        <button title="Add Presentation" className="presentation-icon" style={{ marginRight: 10 }} onClick={() => {
+                            runInAction(() => { if (this.PresTitleChangeOpen) { this.PresTitleChangeOpen = false; } });
+                            runInAction(() => this.PresTitleInputOpen ? this.PresTitleInputOpen = false : this.PresTitleInputOpen = true);
+                        }}><FontAwesomeIcon icon={"plus"} /></button>
+                        <button title="Remove Presentation" className='presentation-icon' style={{ marginRight: 10 }} onClick={this.removePresentation}><FontAwesomeIcon icon={"minus"} /></button>
+                        <button title="Change Presentation Title" className="presentation-icon" style={{ marginRight: 10 }} onClick={() => {
+                            runInAction(() => { if (this.PresTitleInputOpen) { this.PresTitleInputOpen = false; } });
+                            runInAction(() => this.PresTitleChangeOpen ? this.PresTitleChangeOpen = false : this.PresTitleChangeOpen = true);
+                        }}><FontAwesomeIcon icon={"edit"} /></button>
+                    </div>
+                    <div className="presentation-buttons">
+                        <button title="Back" className="presentation-button" onClick={this.back}><FontAwesomeIcon icon={"arrow-left"} /></button>
+                        {this.renderPlayPauseButton()}
+                        <button title="Next" className="presentation-button" onClick={this.next}><FontAwesomeIcon icon={"arrow-right"} /></button>
+                    </div>
+
+                    <PresentationViewList
+                        mainDocument={this.curPresentation}
+                        deleteDocument={this.RemoveDoc}
+                        gotoDocument={this.gotoDocument}
+                        groupMappings={this.groupMappings}
+                        PresElementsMappings={this.presElementsMappings}
+                        setChildrenDocs={this.setChildrenDocs}
+                        presStatus={this.presStatus}
+                        presButtonBackUp={this.presButtonBackUp}
+                        presGroupBackUp={this.presGroupBackUp}
+                        removeDocByRef={this.removeDocByRef}
+                        clearElemMap={() => this.presElementsMappings.clear()}
+                    />
+                    <input
+                        type="checkbox"
+                        onChange={action((e: React.ChangeEvent<HTMLInputElement>) => {
+                            this.persistOpacity = e.target.checked;
+                            this.opacity = this.persistOpacity ? 1 : 0.4;
+                        })}
+                        checked={this.persistOpacity}
+                        style={{ position: "absolute", bottom: 5, left: 5 }}
+                        onPointerEnter={action(() => this.labelOpacity = 1)}
+                        onPointerLeave={action(() => this.labelOpacity = 0)}
+                    />
+                    <p style={{ position: "absolute", bottom: 1, left: 22, opacity: this.labelOpacity, transition: "0.7s opacity ease" }}>opacity {this.persistOpacity ? "persistent" : "on focus"}</p>
                 </div>
-                <div className="presentation-buttons">
-                    <button title="Back" className="presentation-button" onClick={this.back}><FontAwesomeIcon icon={"arrow-left"} /></button>
-                    {this.renderPlayPauseButton()}
-                    <button title="Next" className="presentation-button" onClick={this.next}><FontAwesomeIcon icon={"arrow-right"} /></button>
+                <div className="mainView-libraryHandle"
+                    style={{ cursor: "ew-resize", right: `${width - 10}px`, backgroundColor: "white", opacity: this.opacity, transition: "0.7s opacity ease" }}
+                    onPointerDown={this.onPointerDown} onClick={this.togglePresView}>
+                    <span title="library View Dragger" style={{ width: "100%", height: "100%", position: "absolute" }} />
                 </div>
-                <input
-                    type="checkbox"
-                    onChange={action((e: React.ChangeEvent<HTMLInputElement>) => {
-                        this.persistOpacity = e.target.checked;
-                        this.opacity = this.persistOpacity ? 1 : 0.4;
-                    })}
-                    checked={this.persistOpacity}
-                    style={{ position: "absolute", bottom: 5, left: 5 }}
-                    onPointerEnter={action(() => this.labelOpacity = 1)}
-                    onPointerLeave={action(() => this.labelOpacity = 0)}
-                />
-                <p style={{ position: "absolute", bottom: 1, left: 22, opacity: this.labelOpacity, transition: "0.7s opacity ease" }}>opacity {this.persistOpacity ? "persistent" : "on focus"}</p>
-                <PresentationViewList
-                    mainDocument={this.curPresentation}
-                    deleteDocument={this.RemoveDoc}
-                    gotoDocument={this.gotoDocument}
-                    groupMappings={this.groupMappings}
-                    PresElementsMappings={this.presElementsMappings}
-                    setChildrenDocs={this.setChildrenDocs}
-                    presStatus={this.presStatus}
-                    presButtonBackUp={this.presButtonBackUp}
-                    presGroupBackUp={this.presGroupBackUp}
-                    removeDocByRef={this.removeDocByRef}
-                    clearElemMap={() => this.presElementsMappings.clear()}
-                />
+                {this.renderPresMode()}
+
             </div>
         );
     }
