@@ -12,6 +12,7 @@ import { scriptingGlobal } from "../client/util/Scripting";
 import { List } from "./List";
 import { DocumentType } from "../client/documents/Documents";
 import { ComputedField } from "./ScriptField";
+import { PrefetchProxy } from "./Proxy";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -348,7 +349,7 @@ export namespace Doc {
                 while (proto && !Doc.IsPrototype(proto)) {
                     proto = proto.proto;
                 }
-                (proto ? proto : doc)[fieldKey + "_ext"] = docExtensionForField;
+                (proto ? proto : doc)[fieldKey + "_ext"] = new PrefetchProxy(docExtensionForField);
             }, 0);
         } else if (doc instanceof Doc) { // backward compatibility -- add fields for docs that don't have them already
             docExtensionForField.extendsDoc === undefined && setTimeout(() => docExtensionForField.extendsDoc = doc, 0);

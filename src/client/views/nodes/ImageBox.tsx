@@ -96,7 +96,11 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                     this.props.Document.width = drop.width;
                     this.props.Document.height = drop.height;
                     Doc.GetProto(this.props.Document).type = DocumentType.TEMPLATE;
-                    this.props.Document.layout = temp;
+                    if (this.props.DataDoc && this.props.DataDoc.layout === this.props.Document) {
+                        this.props.DataDoc.layout = temp;
+                    } else {
+                        this.props.Document.layout = temp;
+                    }
                     e.stopPropagation();
                 } else if (de.mods === "AltKey" && /*this.dataDoc !== this.props.Document &&*/ drop.data instanceof ImageField) {
                     Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new ImageField(drop.data.url);
@@ -287,7 +291,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                 let aspect = size.height / size.width;
                 let rotation = NumCast(this.dataDoc.rotation) % 180;
                 if (rotation === 90 || rotation === 270) aspect = 1 / aspect;
-                if (Math.abs(layoutdoc[HeightSym]() / layoutdoc[WidthSym]() - aspect) > 0.01) {
+                if (Math.abs(NumCast(layoutdoc.height) - size.height) > 1 || Math.abs(NumCast(layoutdoc.width) - size.width) > 1) {
                     setTimeout(action(() => {
                         layoutdoc.height = layoutdoc[WidthSym]() * aspect;
                         layoutdoc.nativeHeight = size.height;

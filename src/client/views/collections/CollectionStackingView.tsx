@@ -276,6 +276,8 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             SetValue: this.addGroup,
             contents: "+ ADD A GROUP"
         };
+        Doc.UpdateDocumentExtensionForField(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey);
+
         // let uniqueHeadings = headings.map((i, idx) => headings.indexOf(i) === idx);
         return (
             <div className="collectionStackingView"
