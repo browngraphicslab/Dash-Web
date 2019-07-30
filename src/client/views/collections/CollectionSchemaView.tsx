@@ -44,7 +44,6 @@ export enum ColumnType {
     String,
     Boolean,
     Doc,
-    // Checkbox
 }
 // this map should be used for keys that should have a const type of value
 const columnTypes: Map<string, ColumnType> = new Map([
@@ -74,14 +73,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         this._mainCont = ele;
         super.CreateDropTarget(ele);
     }
-
-    // detectClick = (e: PointerEvent): void => {
-    //     if (this._node && this._node.contains(e.target as Node)) {
-    //     } else {
-    //         this._isOpen = false;
-    //         this.props.setIsEditing(false);
-    //     }
-    // }
 
     isFocused = (doc: Doc): boolean => {
         if (!this.props.isSelected()) return false;
@@ -119,8 +110,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         let movedWidth = this.props.ScreenToLocalTransform().transformDirection(nativeWidth.right - e.clientX, 0)[0];
         let width = movedWidth < minWidth ? minWidth : movedWidth > maxWidth ? maxWidth : movedWidth;
         this.props.Document.schemaPreviewWidth = width;
-        // this.props.Document.schemaPreviewWidth = Math.min(nativeWidth.right - nativeWidth.left - 40,
-        //     this.props.ScreenToLocalTransform().transformDirection(nativeWidth.right - e.clientX, 0)[0]);
     }
     @action
     onDividerUp = (e: PointerEvent): void => {
@@ -257,7 +246,6 @@ export interface SchemaTableProps {
     deleteDocument: (document: Doc) => boolean;
     moveDocument: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
-    // CreateDropTarget: (ele: HTMLDivElement)=> void; // super createdriotarget
     active: () => boolean;
     onDrop: (e: React.DragEvent<Element>, options: DocumentOptions, completed?: (() => void) | undefined) => void;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
@@ -269,7 +257,6 @@ export interface SchemaTableProps {
 
 @observer
 export class SchemaTable extends React.Component<SchemaTableProps> {
-    // private _mainCont?: HTMLDivElement;
     private DIVIDER_WIDTH = 4;
 
     @observable _headerIsEditing: boolean = false;
@@ -499,7 +486,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     @action
     setCellIsEditing = (isEditing: boolean): void => {
-        console.log("SET CELL IS EDITING", isEditing);
         this._cellIsEditing = isEditing;
     }
 
@@ -739,8 +725,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     @computed
     get reactTable() {
         let children = this.childDocs;
-
-        // let previewWidth = this.previewWidth(); // + 2 * this.borderWidth + this.DIVIDER_WIDTH + 1;
         let hasCollectionChild = children.reduce((found, doc) => found || doc.type === "collection", false);
         let expandedRowsList = this._openCollections.map(col => children.findIndex(doc => doc[Id] === col).toString());
         let expanded = {};
