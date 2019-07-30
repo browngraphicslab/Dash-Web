@@ -151,6 +151,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     let dropY = NumCast(de.data.dropDocument.y);
                     dragDoc.x = x + NumCast(dragDoc.x) - dropX;
                     dragDoc.y = y + NumCast(dragDoc.y) - dropY;
+                    de.data.targetContext = this.props.Document;
+                    dragDoc.targetContext = this.props.Document;
                     this.bringToFront(dragDoc);
                 }
             }
