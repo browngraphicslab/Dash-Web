@@ -48,6 +48,8 @@ import { DocComponent } from '../client/views/DocComponent';
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const probe = require("probe-image-size");
+var SolrNode = require('solr-node');
+var shell = require('shelljs');
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
 let youtubeApiKey: string;
@@ -157,6 +159,7 @@ app.get("/version", (req, res) => {
 });
 
 // SEARCH
+const solrURL = "http://localhost:8983/solr/#/dash";
 
 // GETTERS
 

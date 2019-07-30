@@ -458,6 +458,7 @@ export class MainView extends React.Component {
     @observable isSearchVisible = false;
     @action
     toggleSearch = () => {
+        // console.log("search toggling")
         this.isSearchVisible = !this.isSearchVisible;
     }
 
@@ -471,7 +472,7 @@ export class MainView extends React.Component {
                 {this.nodesMenu()}
                 {this.miscButtons}
                 <PDFMenu />
-                <MainOverlayTextBox />
+                <MainOverlayTextBox firstinstance={true} />
                 <OverlayView />
             </div >
         );
