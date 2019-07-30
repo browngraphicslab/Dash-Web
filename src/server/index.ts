@@ -25,7 +25,7 @@ import { getForgot, getLogin, getLogout, getReset, getSignup, postForgot, postLo
 import { DashUserModel } from './authentication/models/user_model';
 import { Client } from './Client';
 import { Database } from './database';
-import { MessageStore, Transferable, Types, Diff, Message } from "./Message";
+import { MessageStore, Transferable, Types, Diff, YoutubeQueryTypes as YoutubeQueryType, YoutubeQueryInput } from "./Message";
 import { RouteStore } from './RouteStore';
 import v4 = require('uuid/v4');
 const app = express();
@@ -42,6 +42,7 @@ import { debug } from 'util';
 import _ = require('lodash');
 import * as Archiver from 'archiver';
 import * as AdmZip from 'adm-zip';
+import * as YoutubeApi from './youtubeApi/youtubeApiSample.js';
 import { Response } from 'express-serve-static-core';
 import { DocComponent } from '../client/views/DocComponent';
 const MongoStore = require('connect-mongo')(session);
@@ -49,6 +50,8 @@ const mongoose = require('mongoose');
 const probe = require("probe-image-size");
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
+let youtubeApiKey: string;
+YoutubeApi.readApiKey((apiKey: string) => youtubeApiKey = apiKey);
 
 const release = process.env.RELEASE === "true";
 if (process.env.RELEASE === "true") {
@@ -670,6 +673,7 @@ server.on("connection", function (socket: Socket) {
     }
 
     Utils.AddServerHandler(socket, MessageStore.CreateField, CreateField);
+    Utils.AddServerHandlerCallback(socket, MessageStore.YoutubeApiQuery, HandleYoutubeQuery);
     Utils.AddServerHandler(socket, MessageStore.UpdateField, diff => UpdateField(socket, diff));
     Utils.AddServerHandler(socket, MessageStore.DeleteField, id => DeleteField(socket, id));
     Utils.AddServerHandler(socket, MessageStore.DeleteFields, ids => DeleteFields(socket, ids));
@@ -724,6 +728,17 @@ function GetRefFields([ids, callback]: [string[], (result?: Transferable[]) => v
     Database.Instance.getDocuments(ids, callback, "newDocuments");
 }
 
+function HandleYoutubeQuery([query, callback]: [YoutubeQueryInput, (result?: any[]) => void]) {
+    switch (query.type) {
+        case YoutubeQueryType.Channels:
+            YoutubeApi.authorizedGetChannel(youtubeApiKey);
+            break;
+        case YoutubeQueryType.SearchVideo:
+            YoutubeApi.authorizedGetVideos(youtubeApiKey, query.userInput, callback);
+        case YoutubeQueryType.VideoDetails:
+            YoutubeApi.authorizedGetVideoDetails(youtubeApiKey, query.videoIds, callback);
+    }
+}
 
 const suffixMap: { [type: string]: (string | [string, string | ((json: any) => any)]) } = {
     "number": "_n",
@@ -824,3 +839,4 @@ function CreateField(newValue: any) {
 
 server.listen(serverPort);
 console.log(`listening on port ${serverPort}`);
+

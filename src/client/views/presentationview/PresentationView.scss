@@ -1,7 +1,7 @@
 .presentationView-cont {
     position: absolute;
     background: white;
-    z-index: 1;
+    z-index: 2;
     box-shadow: #AAAAAA .2vw .2vw .4vw;
     right: 0;
     top: 0;
@@ -19,6 +19,17 @@
     -ms-user-select: none;
     user-select: none;
     transition: all .1s;
+    //max-height: 250px;
+
+    
+
+    .documentView-node {
+        // height: auto !important;
+        // width: aut !important;
+        position: absolute;
+        z-index: 1;
+    }
+
 }
 
 .presentationView-item-above {
@@ -55,7 +66,7 @@
     padding-bottom: 3px;
     font-size: 25px;
     display: inline-block;
-    width: calc(100% - 160px);
+    width: calc(100% - 200px);
 }
 
 .presentation-icon {
