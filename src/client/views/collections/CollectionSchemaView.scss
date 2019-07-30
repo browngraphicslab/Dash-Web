@@ -120,6 +120,7 @@
             padding: 0;
             border: solid lightgray;
             border-width: 0 1px;
+            border-bottom: 2px solid lightgray;
         }
     }
 
@@ -127,7 +128,7 @@
         // max-height: $MAX_ROW_HEIGHT;
         font-size: 13px;
         text-align: center;
-        background-color: $light-color-secondary;
+        // background-color: $light-color-secondary;
 
         &:last-child {
             overflow: visible;
@@ -145,25 +146,11 @@
         flex: 0 1 auto;
         min-height: 30px;
         border: 0 !important;
-        // border: solid lightgray;
-        // border-width: 1px 0;
-        // border-left: 1px solid lightgray;
-        // max-height: $MAX_ROW_HEIGHT;
-        // for sub comp
-
-        // &:nth-child(even) {
-        //     background-color: $light-color;
-        // }
-
-        // &:nth-child(odd) {
-        //     background-color: $light-color-secondary;
-        // }
 
         // &:first-child {
-        //     border-top: 1px solid $light-color-secondary !important;
-        // }
-        // &:last-child {
-        //     border-bottom: 1px solid $light-color-secondary !important;
+        //     .rt-td {
+        //         border-top: 1px solid lightgray !important;
+        //     }
         // }
     }
 
@@ -215,7 +202,6 @@
 
     .rt-resizable-header:last-child {
         overflow: visible;
-        border: 3px solid red !important;
 
         .rt-resizer {
             width: 5px !important;
@@ -396,8 +382,9 @@ button.add-column {
     background-color: white;
     // white-space: nowrap;
 
-    &.row-focused .rt-tr {
+    &.row-focused .rt-td {
         background-color: rgb(255, 246, 246); //$light-color-secondary;
+        // background-color: $light-color;
     }
 
     &.row-wrapped {
@@ -473,15 +460,22 @@ button.add-column {
         outline: none;
     }
 
-    &.focused {
-        // background-color: yellowgreen;
-        // border: 2px solid yellowgreen;
-
+    &.editing {
+        padding: 0;
         input {
             outline: 0;
             border: none;
-            background-color: yellow;
+            background-color: rgb(255, 217, 217);
+            width: 100%;
+            height: 100%;
+            padding: 2px 3px;
+            min-height: 26px;
         }
+    }
+
+    &.focused {
+        // background-color: yellowgreen;
+        // border: 2px solid yellowgreen;
 
         &.inactive {
             // border: 2px solid rgba(255, 255, 0, 0.4);

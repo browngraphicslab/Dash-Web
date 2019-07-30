@@ -225,7 +225,6 @@ export class MovableRow extends React.Component<MovableRowProps> {
         let className = "collectionSchema-row";
         if (this.props.rowFocused) className += " row-focused";
         if (this.props.rowWrapped) className += " row-wrapped";
-        // if (!this.props.rowWrapped) className += " row-unwrapped";
 
         return (
             <div className={className} ref={this.createRowDropTarget} onContextMenu={this.onRowContextMenu}>

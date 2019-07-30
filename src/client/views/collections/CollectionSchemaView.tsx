@@ -477,6 +477,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         //@ts-ignore
         let col = this.columns.map(c => c.heading).indexOf(column!.id);
         let isFocused = this._focusedCell.row === row && this._focusedCell.col === col && this.props.isFocused(this.props.Document);
+        let isEditing = this.props.isFocused(this.props.Document) && this._cellIsEditing;
+        // TODO: editing border doesn't work :(
         return {
             style: {
                 border: !this._headerIsEditing && isFocused ? "2px solid rgb(255, 160, 160)" : "1px solid #f1efeb"
@@ -497,6 +499,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     @action
     setCellIsEditing = (isEditing: boolean): void => {
+        console.log("SET CELL IS EDITING", isEditing);
         this._cellIsEditing = isEditing;
     }
 
