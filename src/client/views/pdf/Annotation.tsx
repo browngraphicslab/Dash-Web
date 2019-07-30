@@ -119,7 +119,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
                 let context = await Cast(targetDoc.targetContext, Doc);
                 if (context) {
                     DocumentManager.Instance.jumpToDocument(targetDoc, false, undefined,
-                        ((doc) => this.props.parent.props.parent.props.addDocTab(context, context.proto, e.ctrlKey ? "onRight" : "inTab")));
+                        ((doc) => this.props.parent.props.parent.props.addDocTab(context!, context!.proto, e.ctrlKey ? "onRight" : "inTab")));
                 }
             }
         }
