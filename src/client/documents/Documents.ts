@@ -39,6 +39,7 @@ import { DocumentManager } from "../util/DocumentManager";
 import DirectoryImportBox from "../util/Import & Export/DirectoryImportBox";
 import { Scripting } from "../util/Scripting";
 import { ButtonBox } from "../views/nodes/ButtonBox";
+import { SchemaHeaderField, RandomPastel } from "../../new_fields/SchemaHeaderField";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 
@@ -81,10 +82,11 @@ export interface DocumentOptions {
     backgroundColor?: string;
     dropAction?: dropActionType;
     backgroundLayout?: string;
+    chromeStatus?: string;
     curPage?: number;
     documentText?: string;
     borderRounding?: string;
-    schemaColumns?: List<string>;
+    schemaColumns?: List<SchemaHeaderField>;
     dockingConfig?: string;
     dbDoc?: Doc;
     // [key: string]: Opt<Field>;
@@ -163,7 +165,6 @@ export namespace Docs {
             [DocumentType.LINKDOC, {
                 data: new List<Doc>(),
                 layout: { view: EmptyBox },
-                options: {}
             }],
             [DocumentType.BUTTON, {
                 layout: { view: ButtonBox },
@@ -403,19 +404,23 @@ export namespace Docs {
         }
 
         export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Freeform });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title")]), ...options, viewType: CollectionViewType.Freeform });
         }
 
-        export function SchemaDocument(schemaColumns: string[], documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaColumns: new List(schemaColumns), ...options, viewType: CollectionViewType.Schema });
+        export function SchemaDocument(schemaColumns: SchemaHeaderField[], documents: Array<Doc>, options: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List(schemaColumns), ...options, viewType: CollectionViewType.Schema });
         }
 
         export function TreeDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Tree });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title")]), ...options, viewType: CollectionViewType.Tree });
         }
 
         export function StackingDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Stacking });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title")]), ...options, viewType: CollectionViewType.Stacking });
+        }
+
+        export function MasonryDocument(documents: Array<Doc>, options: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title")]), ...options, viewType: CollectionViewType.Masonry });
         }
 
         export function ButtonDocument(options?: DocumentOptions) {
@@ -577,12 +582,12 @@ export namespace Docs {
 export namespace DocUtils {
 
     export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", tags: string = "Default", sourceContext?: Doc) {
-        if (LinkManager.Instance.doesLinkExist(source, target)) return;
+        if (LinkManager.Instance.doesLinkExist(source, target)) return undefined;
         let sv = DocumentManager.Instance.getDocumentView(source);
         if (sv && sv.props.ContainingCollectionView && sv.props.ContainingCollectionView.props.Document === target) return;
-        if (target === CurrentUserUtils.UserDocument) return;
+        if (target === CurrentUserUtils.UserDocument) return undefined;
 
-        let linkDoc;
+        let linkDoc: Doc | undefined;
         UndoManager.RunInBatch(() => {
             linkDoc = Docs.Create.TextDocument({ width: 100, height: 30, borderRounding: "100%" });
             linkDoc.type = DocumentType.LINK;

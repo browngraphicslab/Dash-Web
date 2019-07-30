@@ -1,24 +1,25 @@
 import * as request from "request-promise";
 import { Doc, Field, Opt } from "../../new_fields/Doc";
 import { Cast } from "../../new_fields/Types";
-import { ImageField } from "../../new_fields/URLField";
-import { List } from "../../new_fields/List";
 import { Docs } from "../documents/Documents";
 import { RouteStore } from "../../server/RouteStore";
 import { Utils } from "../../Utils";
-import { CompileScript } from "../util/Scripting";
-import { ComputedField } from "../../new_fields/ScriptField";
 import { InkData } from "../../new_fields/InkField";
 import "microsoft-cognitiveservices-speech-sdk";
 import "fs";
-import { AudioInputStream } from "microsoft-cognitiveservices-speech-sdk";
-import { createReadStream, ReadStream } from "fs";
+import { UndoManager } from "../util/UndoManager";
 
 type APIManager<D> = { converter: BodyConverter<D>, requester: RequestExecutor, analyzer: AnalysisApplier };
 type RequestExecutor = (apiKey: string, body: string, service: Service) => Promise<string>;
 type AnalysisApplier = (target: Doc, relevantKeys: string[], ...args: any) => any;
 type BodyConverter<D> = (data: D) => string;
 type Converter = (results: any) => Field;
+
+namespace CORE {
+    export interface IWindow extends Window {
+        webkitSpeechRecognition: any;
+    }
+}
 
 export type Tag = { name: string, confidence: number };
 export type Rectangle = { top: number, left: number, width: number, height: number };
@@ -27,7 +28,6 @@ export enum Service {
     ComputerVision = "vision",
     Face = "face",
     Handwriting = "handwriting",
-    Transcription = "transcription"
 }
 
 export enum Confidence {
@@ -46,7 +46,7 @@ export enum Confidence {
  */
 export namespace CognitiveServices {
 
-    const executeQuery = async <D, R>(service: Service, manager: APIManager<D>, data: D): Promise<Opt<R>> => {
+    const ExecuteQuery = async <D, R>(service: Service, manager: APIManager<D>, data: D): Promise<Opt<R>> => {
         return fetch(Utils.prepend(`${RouteStore.cognitiveServices}/${service}`)).then(async response => {
             let apiKey = await response.text();
             if (!apiKey) {
@@ -107,14 +107,15 @@ export namespace CognitiveServices {
                 return request.post(options);
             },
 
-            analyzer: async (target: Doc, keys: string[], service: Service, converter: Converter) => {
-                let imageData = Cast(target.data, ImageField);
+            analyzer: async (target: Doc, keys: string[], url: string, service: Service, converter: Converter) => {
+                let batch = UndoManager.StartBatch("Image Analysis");
+
                 let storageKey = keys[0];
-                if (!imageData || await Cast(target[storageKey], Doc)) {
+                if (!url || await Cast(target[storageKey], Doc)) {
                     return;
                 }
                 let toStore: any;
-                let results = await executeQuery<string, any>(service, Manager, imageData.url.href);
+                let results = await ExecuteQuery<string, any>(service, Manager, url);
                 if (!results) {
                     toStore = "Cognitive Services could not process the given image URL.";
                 } else {
@@ -125,36 +126,13 @@ export namespace CognitiveServices {
                     }
                 }
                 target[storageKey] = toStore;
+
+                batch.end();
             }
 
         };
 
         export type Face = { faceAttributes: any, faceId: string, faceRectangle: Rectangle };
-
-        export const generateMetadata = async (target: Doc, threshold: Confidence = Confidence.Excellent) => {
-            let converter = (results: any) => {
-                let tagDoc = new Doc;
-                results.tags.map((tag: Tag) => {
-                    let sanitized = tag.name.replace(" ", "_");
-                    let script = `return (${tag.confidence} >= this.confidence) ? ${tag.confidence} : "${ComputedField.undefined}"`;
-                    let computed = CompileScript(script, { params: { this: "Doc" } });
-                    computed.compiled && (tagDoc[sanitized] = new ComputedField(computed));
-                });
-                tagDoc.title = "Generated Tags";
-                tagDoc.confidence = threshold;
-                return tagDoc;
-            };
-            Manager.analyzer(target, ["generatedTags"], Service.ComputerVision, converter);
-        };
-
-        export const extractFaces = async (target: Doc) => {
-            let converter = (results: any) => {
-                let faceDocs = new List<Doc>();
-                results.map((face: Face) => faceDocs.push(Docs.Get.DocumentHierarchyFromJson(face, `Face: ${face.faceId}`)!));
-                return faceDocs;
-            };
-            Manager.analyzer(target, ["faces"], Service.Face, converter);
-        };
 
     }
 
@@ -210,7 +188,9 @@ export namespace CognitiveServices {
             },
 
             analyzer: async (target: Doc, keys: string[], inkData: InkData) => {
-                let results = await executeQuery<InkData, any>(Service.Handwriting, Manager, inkData);
+                let batch = UndoManager.StartBatch("Ink Analysis");
+
+                let results = await ExecuteQuery<InkData, any>(Service.Handwriting, Manager, inkData);
                 if (results) {
                     results.recognitionUnits && (results = results.recognitionUnits);
                     target[keys[0]] = Docs.Get.DocumentHierarchyFromJson(results, "Ink Analysis");
@@ -218,6 +198,8 @@ export namespace CognitiveServices {
                     let individualWords = recognizedText.filter((text: string) => text && text.split(" ").length === 1);
                     target[keys[1]] = individualWords.join(" ");
                 }
+
+                batch.end();
             }
 
         };
@@ -239,20 +221,18 @@ export namespace CognitiveServices {
 
     export namespace Transcription {
 
-        export const Manager: APIManager<string> = {
+        export const analyzer = (doc: Doc, keys: string[]) => {
+            let { webkitSpeechRecognition }: CORE.IWindow = window as CORE.IWindow;
+            let recognizer = new webkitSpeechRecognition();
+            recognizer.interimResults = true;
+            recognizer.continuous = true;
 
-            converter: (data: string) => data,
+            recognizer.onresult = (e: any) => {
+                let result = e.results[0][0];
+                doc[keys[0]] = result.transcript;
+            };
 
-            requester: async (apiKey: string, body: string, service: Service) => {
-                let analysis = await fetch(`${RouteStore.audioData}/${body}`).then(async response => JSON.parse(await response.json()));
-                console.log(analysis);
-                return "";
-            },
-
-            analyzer: async (doc: Doc, keys: string[], filename: string) => {
-                let results = await executeQuery<string, any>(Service.Transcription, Manager, filename);
-            }
-
+            recognizer.start();
         };
 
     }

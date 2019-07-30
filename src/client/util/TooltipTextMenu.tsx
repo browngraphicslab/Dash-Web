@@ -1,6 +1,6 @@
 import { action } from "mobx";
 import { Dropdown, MenuItem, icons, } from "prosemirror-menu"; //no import css
-import { EditorState, NodeSelection, TextSelection } from "prosemirror-state";
+import { EditorState, NodeSelection, TextSelection, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { schema } from "./RichTextSchema";
 import { Schema, NodeType, MarkType, Mark, ResolvedPos } from "prosemirror-model";
@@ -319,6 +319,10 @@ export class TooltipTextMenu {
             //self.highlightSearchTerms(self.state, ["hello"]);
             //FormattedTextBox.Instance.unhighlightSearchTerms();
         }
+    }
+
+    makeLinkWithState = (state: EditorState, target: string, location: string) => {
+        let link = state.schema.mark(state.schema.marks.link, { href: target, location: location });
     }
 
     makeLink = (target: string, location: string) => {

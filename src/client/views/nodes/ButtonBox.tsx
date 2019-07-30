@@ -14,6 +14,7 @@ import { Doc } from '../../../new_fields/Doc';
 
 import './ButtonBox.scss';
 import { observer } from 'mobx-react';
+import { DocumentIconContainer } from './DocumentIcon';
 
 library.add(faEdit);
 
@@ -51,7 +52,8 @@ export class ButtonBox extends DocComponent<FieldViewProps, ButtonDocument>(Butt
                     const script = CompileScript(text, {
                         params: { this: Doc.name },
                         typecheck: false,
-                        editable: true
+                        editable: true,
+                        transformer: DocumentIconContainer.getTransformer()
                     });
                     if (!script.compiled) {
                         onError(script.errors.map(error => error.messageText).join("\n"));
@@ -59,7 +61,7 @@ export class ButtonBox extends DocComponent<FieldViewProps, ButtonDocument>(Butt
                     }
                     this.Document.onClick = new ScriptField(script);
                     overlayDisposer();
-                }} />;
+                }} showDocumentIcons />;
                 overlayDisposer = OverlayView.Instance.addWindow(scriptingBox, { x: 400, y: 200, width: 500, height: 400, title: `${this.Document.title || ""} OnClick` });
             }
         });
@@ -68,7 +70,7 @@ export class ButtonBox extends DocComponent<FieldViewProps, ButtonDocument>(Butt
     render() {
         return (
             <div className="buttonBox-outerDiv" onContextMenu={this.onContextMenu}>
-                <button className="buttonBox-mainButton" onClick={this.onClick}>{this.Document.text || "Button"}</button>
+                <button className="buttonBox-mainButton" onClick={this.onClick}>{this.Document.text || this.Document.title || "Button"}</button>
             </div>
         );
     }

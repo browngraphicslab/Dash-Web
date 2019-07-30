@@ -47,7 +47,7 @@ export class InkingControl extends React.Component {
             if (MainOverlayTextBox.Instance.SetColor(color.hex)) return;
             let selected = SelectionManager.SelectedDocuments();
             let oldColors = selected.map(view => {
-                let targetDoc = view.props.Document.isTemplate ? view.props.Document : Doc.GetProto(view.props.Document);
+                let targetDoc = view.props.Document.layout instanceof Doc ? view.props.Document.layout : view.props.Document.isTemplate ? view.props.Document : Doc.GetProto(view.props.Document);
                 let oldColor = StrCast(targetDoc.backgroundColor);
                 targetDoc.backgroundColor = this._selectedColor;
                 return {

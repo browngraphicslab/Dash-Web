@@ -19,6 +19,7 @@ import { CollectionViewType } from "../CollectionBaseView";
 import { CollectionFreeFormView } from "./CollectionFreeFormView";
 import "./MarqueeView.scss";
 import React = require("react");
+import { SchemaHeaderField, RandomPastel } from "../../../../new_fields/SchemaHeaderField";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -134,7 +135,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 doc.width = 200;
                 docList.push(doc);
             }
-            let newCol = Docs.Create.SchemaDocument([...(groupAttr ? ["_group"] : []), ...columns.filter(c => c)], docList, { x: x, y: y, title: "droppedTable", width: 300, height: 100 });
+            let newCol = Docs.Create.SchemaDocument([...(groupAttr ? [new SchemaHeaderField("_group")] : []), ...columns.filter(c => c).map(c => new SchemaHeaderField(c))], docList, { x: x, y: y, title: "droppedTable", width: 300, height: 100 });
 
             this.props.addDocument(newCol, false);
         }
@@ -292,15 +293,16 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     d.page = -1;
                     return d;
                 });
+                newCollection.chromeStatus = "disabled";
                 let summary = Docs.Create.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
                 newCollection.proto!.summaryDoc = summary;
                 selected = [newCollection];
                 newCollection.x = bounds.left + bounds.width;
                 summary.proto!.subBulletDocs = new List<Doc>(selected);
-                //summary.proto!.maximizeLocation = "inTab";  // or "inPlace", or "onRight"
                 summary.templates = new List<string>([Templates.Bullet.Layout]);
-                let container = Docs.Create.FreeformDocument([summary, newCollection], { x: bounds.left, y: bounds.top, width: 300, height: 200, title: "-summary-" });
+                let container = Docs.Create.FreeformDocument([summary, newCollection], { x: bounds.left, y: bounds.top, width: 300, height: 200, chromeStatus: "disabled", title: "-summary-" });
                 container.viewType = CollectionViewType.Stacking;
+                container.autoHeight = true;
                 this.props.addLiveTextDocument(container);
                 // });
             } else if (e.key === "S") {
@@ -311,6 +313,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     d.page = -1;
                     return d;
                 });
+                newCollection.chromeStatus = "disabled";
                 let summary = Docs.Create.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
                 newCollection.proto!.summaryDoc = summary;
                 selected = [newCollection];
@@ -318,6 +321,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 //this.props.addDocument(newCollection, false);
                 summary.proto!.summarizedDocs = new List<Doc>(selected);
                 summary.proto!.maximizeLocation = "inTab";  // or "inPlace", or "onRight"
+                summary.autoHeight = true;
 
                 this.props.addLiveTextDocument(summary);
             }
@@ -365,7 +369,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     marqueeSelect() {
         let selRect = this.Bounds;
         let selection: Doc[] = [];
-        this.props.activeDocuments().map(doc => {
+        this.props.activeDocuments().filter(doc => !doc.isBackground).map(doc => {
             var z = NumCast(doc.zoomBasis, 1);
             var x = NumCast(doc.x);
             var y = NumCast(doc.y);

@@ -6,6 +6,7 @@ import { DocServer } from "../client/DocServer";
 import { RefField } from "./RefField";
 import { ObjectField } from "./ObjectField";
 import { Id, Copy, ToScriptString } from "./FieldSymbols";
+import { scriptingGlobal } from "../client/util/Scripting";
 
 @Deserializable("proxy")
 export class ProxyField<T extends RefField> extends ObjectField {
@@ -65,4 +66,13 @@ export class ProxyField<T extends RefField> extends ObjectField {
         }
         return this.promise as any;
     }
+}
+
+function prefetchValue(proxy: PrefetchProxy<RefField>) {
+    return proxy.value() as any;
+}
+
+@scriptingGlobal
+@Deserializable("prefetch_proxy", prefetchValue)
+export class PrefetchProxy<T extends RefField> extends ProxyField<T> {
 }

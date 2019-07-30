@@ -1,7 +1,7 @@
 import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
-import { emptyFunction, returnFalse, returnZero, returnTrue } from '../../../Utils';
+import { emptyFunction, returnFalse, returnZero, returnTrue, returnOne } from '../../../Utils';
 import { CompileScript, CompiledScript, ScriptOptions } from "../../util/Scripting";
 import { Transform } from '../../util/Transform';
 import { EditableView } from "../EditableView";
@@ -16,6 +16,7 @@ import { DragManager, SetupDrag } from '../../util/DragManager';
 import { ContextMenu } from '../ContextMenu';
 import { Docs } from '../../documents/Documents';
 import { CollectionDockingView } from '../collections/CollectionDockingView';
+import { undoBatch } from '../../util/UndoManager';
 
 // Represents one row in a key value plane
 
@@ -70,6 +71,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             PanelWidth: returnZero,
             PanelHeight: returnZero,
             addDocTab: returnZero,
+            ContentScaling: returnOne
         };
         let contents = <FieldView {...props} />;
         // let fieldKey = Object.keys(props.Document).indexOf(props.fieldKey) !== -1 ? props.fieldKey : "(" + props.fieldKey + ")";
@@ -91,12 +93,12 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             <tr className={this.props.rowStyle} onPointerEnter={action(() => this.isPointerOver = true)} onPointerLeave={action(() => this.isPointerOver = false)}>
                 <td className="keyValuePair-td-key" style={{ width: `${this.props.keyWidth}%` }}>
                     <div className="keyValuePair-td-key-container">
-                        <button style={hover} className="keyValuePair-td-key-delete" onClick={() => {
+                        <button style={hover} className="keyValuePair-td-key-delete" onClick={undoBatch(() => {
                             if (Object.keys(props.Document).indexOf(props.fieldKey) !== -1) {
                                 props.Document[props.fieldKey] = undefined;
                             }
                             else props.Document.proto![props.fieldKey] = undefined;
-                        }}>
+                        })}>
                             X
                         </button>
                         <input
