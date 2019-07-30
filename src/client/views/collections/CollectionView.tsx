@@ -45,6 +45,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
         this._reactionDisposer = reaction(() => StrCast(this.props.Document.chromeStatus),
             () => {
                 // chrome status is one of disabled, collapsed, or visible. this determines initial state from document
+                // chrome status may also be view-mode, in reference to stacking view's toggle mode. it is essentially disabled mode, but prevents the toggle button from showing up on the left sidebar.
                 let chromeStatus = this.props.Document.chromeStatus;
                 if (chromeStatus && (chromeStatus === "disabled" || chromeStatus === "collapsed")) {
                     runInAction(() => this._collapsed = true);

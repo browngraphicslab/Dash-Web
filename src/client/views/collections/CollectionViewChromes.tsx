@@ -189,7 +189,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
 
     render() {
         return (
-            <div className="collectionViewChrome-cont" style={{ marginTop: this._collapsed ? -70 : 0, height: 70 }}>
+            <div className="collectionViewChrome-cont" style={{ top: this._collapsed ? -100 : 0 }}>
                 <div className="collectionViewChrome">
                     <div className="collectionViewBaseChrome">
                         <button className="collectionViewBaseChrome-collapse"

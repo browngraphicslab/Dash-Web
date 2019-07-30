@@ -79,8 +79,8 @@
 
     .collectionStackingView-sectionHeader {
         text-align: center;
-        margin-left: 5px;
-        margin-right: 5px;
+        margin-left: 2px;
+        margin-right: 2px;
         margin-top: 10px;
         // overflow: hidden; overflow is visible so the color menu isn't hidden -ftong
 
@@ -221,4 +221,52 @@
         letter-spacing: 2px;
         height: fit-content;
     }
+
+    .rc-switch {
+        position: absolute;
+        display: inline-block;
+        bottom: 15px;
+        right: 15px;
+        width: 125px;
+        height: 54px;
+        border-radius: 40px 40px;
+    }
+
+    .rc-switch:after {
+        position: absolute;
+        width: 36px;
+        height: 36px;
+        left: 7px;
+        top: 9px;
+        border-radius: 50% 50%;
+        background-color: #fff;
+        content: " ";
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.26);
+        -webkit-transform: scale(1);
+        transform: scale(1);
+        transition: left 0.3s cubic-bezier(0.35, 0, 0.25, 1);
+        -webkit-animation-timing-function: cubic-bezier(0.35, 0, 0.25, 1);
+        animation-timing-function: cubic-bezier(0.35, 0, 0.25, 1);
+        -webkit-animation-duration: 0.3s;
+        animation-duration: 0.3s;
+    }
+
+    .rc-switch-checked:after {
+        left: 80px;
+    }
+
+    .rc-switch-inner {
+        color: #fff;
+        font-size: 22px;
+        position: absolute;
+        left: 50px;
+        top: 14px;
+    }
+
+    .rc-switch-checked .rc-switch-inner {
+        left: 17px;
+    }
+
+
 }
