@@ -6,9 +6,11 @@
     border-style: solid;
     border-radius: $border-radius;
     box-sizing: border-box;
-    // position: absolute;
+    position: absolute;
+    top: 0;
     width: 100%;
-    transition: height .5s;
+    // transition: height .5s;
+    // transition: margin-top .5s;
     height: 100%;
     // overflow: hidden;
     // overflow-x: scroll;
@@ -126,7 +128,7 @@
         font-size: 13px;
         text-align: center;
         background-color: $light-color-secondary;
-        
+
         &:last-child {
             overflow: visible;
         }
@@ -152,7 +154,7 @@
         // &:nth-child(even) {
         //     background-color: $light-color;
         // }
-    
+
         // &:nth-child(odd) {
         //     background-color: $light-color-secondary;
         // }
@@ -231,18 +233,19 @@
     background: $light-color;
 }
 
-.collectionSchema-col{
+.collectionSchema-col {
     height: 100%;
 
     .collectionSchema-col-wrapper {
         &.col-before {
             border-left: 2px solid red;
         }
+
         &.col-after {
             border-right: 2px solid red;
         }
     }
-}  
+}
 
 
 .collectionSchemaView-header {
@@ -356,7 +359,7 @@ button.add-column {
                 background-color: $light-color;
                 border: 1px solid $light-color-secondary;
                 padding: 2px 3px;
-                
+
                 &:not(:last-child) {
                     border-top: 0;
                 }
@@ -394,7 +397,7 @@ button.add-column {
     // white-space: nowrap;
 
     &.row-focused .rt-tr {
-        background-color: rgb(255, 246, 246);//$light-color-secondary;
+        background-color: rgb(255, 246, 246); //$light-color-secondary;
     }
 
     &.row-wrapped {
@@ -441,9 +444,11 @@ button.add-column {
         &.row-above {
             border-top: 1px solid red;
         }
+
         &.row-below {
             border-bottom: 1px solid red;
         }
+
         &.row-inside {
             border: 1px solid red;
         }

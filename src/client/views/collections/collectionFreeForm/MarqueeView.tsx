@@ -293,15 +293,16 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     d.page = -1;
                     return d;
                 });
+                newCollection.chromeStatus = "disabled";
                 let summary = Docs.Create.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
                 newCollection.proto!.summaryDoc = summary;
                 selected = [newCollection];
                 newCollection.x = bounds.left + bounds.width;
                 summary.proto!.subBulletDocs = new List<Doc>(selected);
-                //summary.proto!.maximizeLocation = "inTab";  // or "inPlace", or "onRight"
                 summary.templates = new List<string>([Templates.Bullet.Layout]);
-                let container = Docs.Create.FreeformDocument([summary, newCollection], { x: bounds.left, y: bounds.top, width: 300, height: 200, title: "-summary-" });
+                let container = Docs.Create.FreeformDocument([summary, newCollection], { x: bounds.left, y: bounds.top, width: 300, height: 200, chromeStatus: "disabled", title: "-summary-" });
                 container.viewType = CollectionViewType.Stacking;
+                container.autoHeight = true;
                 this.props.addLiveTextDocument(container);
                 // });
             } else if (e.key === "S") {
@@ -312,6 +313,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                     d.page = -1;
                     return d;
                 });
+                newCollection.chromeStatus = "disabled";
                 let summary = Docs.Create.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
                 newCollection.proto!.summaryDoc = summary;
                 selected = [newCollection];
@@ -319,6 +321,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 //this.props.addDocument(newCollection, false);
                 summary.proto!.summarizedDocs = new List<Doc>(selected);
                 summary.proto!.maximizeLocation = "inTab";  // or "inPlace", or "onRight"
+                summary.autoHeight = true;
 
                 this.props.addLiveTextDocument(summary);
             }

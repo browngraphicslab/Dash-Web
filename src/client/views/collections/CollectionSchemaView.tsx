@@ -65,7 +65,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @observable private _node: HTMLDivElement | null = null;
     @observable private _focusedTable: Doc = this.props.Document;
 
-    @computed get chromeCollapsed() { return this.props.chromeCollapsed; }
     @computed get previewWidth() { return () => NumCast(this.props.Document.schemaPreviewWidth); }
     @computed get previewHeight() { return () => this.props.PanelHeight() - 2 * this.borderWidth; }
     @computed get tableWidth() { return this.props.PanelWidth() - 2 * this.borderWidth - this.DIVIDER_WIDTH - this.previewWidth(); }
@@ -232,8 +231,9 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     render() {
+        Doc.UpdateDocumentExtensionForField(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey);
         return (
-            <div className="collectionSchemaView-container" style={{ height: this.chromeCollapsed ? "100%" : "calc(100% - 70px" }}>
+            <div className="collectionSchemaView-container" style={{ height: this.props.chromeCollapsed ? "100%" : "calc(100% - 70px", marginTop: this.props.chromeCollapsed ? "0" : "70px", transition: "all .5s" }}>
                 <div className="collectionSchemaView-tableContainer" onPointerDown={this.onPointerDown} onWheel={this.onWheel} onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createTarget}>
                     {this.schemaTable}
                 </div>

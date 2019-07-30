@@ -1,5 +1,5 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowDown, faCaretUp, faLongArrowAltRight, faCloudUploadAlt, faArrowUp, faClone, faCheck, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faPortrait, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faThumbtack, faTree, faUndoAlt, faCat, faBolt } from '@fortawesome/free-solid-svg-icons';
+import { faArrowDown, faCloudUploadAlt, faArrowUp, faClone, faCheck, faPlay, faPause, faCaretUp, faLongArrowAltRight, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faPortrait, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faThumbtack, faTree, faUndoAlt, faCat, faBolt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, runInAction, reaction, trace } from 'mobx';
 import { observer } from 'mobx-react';
@@ -92,6 +92,8 @@ export class MainView extends React.Component {
 
     componentWillUnMount() {
         window.removeEventListener("keydown", KeyManager.Instance.handle);
+        window.removeEventListener("pointerdown", this.globalPointerDown);
+        window.removeEventListener("pointerup", this.globalPointerUp);
     }
 
     constructor(props: Readonly<{}>) {
@@ -123,6 +125,8 @@ export class MainView extends React.Component {
         library.add(faFilm);
         library.add(faMusic);
         library.add(faTree);
+        library.add(faPlay);
+        library.add(faPause);
         library.add(faClone);
         library.add(faCut);
         library.add(faCommentAlt);
@@ -138,18 +142,23 @@ export class MainView extends React.Component {
         this.initAuthenticationRouters();
     }
 
+    globalPointerDown = action((e: PointerEvent) => {
+        this.isPointerDown = true;
+        const targets = document.elementsFromPoint(e.x, e.y);
+        if (targets && targets.length && targets[0].className.toString().indexOf("contextMenu") === -1) {
+            ContextMenu.Instance.closeMenu();
+        }
+    });
+
+    globalPointerUp = () => this.isPointerDown = false;
+
     initEventListeners = () => {
         // window.addEventListener("pointermove", (e) => this.reportLocation(e))
         window.addEventListener("drop", (e) => e.preventDefault(), false); // drop event handler
         window.addEventListener("dragover", (e) => e.preventDefault(), false); // drag event handler
         // click interactions for the context menu
-        document.addEventListener("pointerdown", action((e: PointerEvent) => {
-            this.isPointerDown = true;
-            const targets = document.elementsFromPoint(e.x, e.y);
-            if (targets && targets.length && targets[0].className.toString().indexOf("contextMenu") === -1) {
-                ContextMenu.Instance.closeMenu();
-            }
-        }), true);
+        document.addEventListener("pointerdown", this.globalPointerDown);
+        document.addEventListener("pointerup", this.globalPointerUp);
     }
 
     initAuthenticationRouters = async () => {
@@ -292,7 +301,6 @@ export class MainView extends React.Component {
     }
     @action
     onPointerUp = (e: PointerEvent) => {
-        this.isPointerDown = false;
         if (Math.abs(e.clientX - this._downsize) < 4) {
             if (this.flyoutWidth < 5) this.flyoutWidth = 250;
             else this.flyoutWidth = 0;
@@ -383,12 +391,15 @@ export class MainView extends React.Component {
         let addImageNode = action(() => Docs.Create.ImageDocument(imgurl, { width: 200, title: "an image of a cat" }));
         let addButtonDocument = action(() => Docs.Create.ButtonDocument({ width: 150, height: 50, title: "Button" }));
         let addImportCollectionNode = action(() => Docs.Create.DirectoryImportDocument({ title: "Directory Import", width: 400, height: 400 }));
+        let youtubeurl = "https://www.youtube.com/embed/TqcApsGRzWw";
+        let addYoutubeSearcher = action(() => Docs.Create.YoutubeDocument(youtubeurl, { width: 600, height: 600, title: "youtube search" }));
 
         let btns: [React.RefObject<HTMLDivElement>, IconName, string, () => Doc][] = [
             [React.createRef<HTMLDivElement>(), "object-group", "Add Collection", addColNode],
             [React.createRef<HTMLDivElement>(), "bolt", "Add Button", addButtonDocument],
             // [React.createRef<HTMLDivElement>(), "clone", "Add Docking Frame", addDockingNode],
             [React.createRef<HTMLDivElement>(), "cloud-upload-alt", "Import Directory", addImportCollectionNode],
+            [React.createRef<HTMLDivElement>(), "play", "Add Youtube Searcher", addYoutubeSearcher]
         ];
         if (!ClientUtils.RELEASE) btns.unshift([React.createRef<HTMLDivElement>(), "cat", "Add Cat Image", addImageNode]);
 

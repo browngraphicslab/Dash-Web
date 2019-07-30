@@ -139,7 +139,7 @@ def write_text_doc(content):
     data_doc = {
         "_id": data_doc_guid,
         "fields": {
-            "proto": protofy("commonImportProto"),
+            "proto": protofy("textProto"),
             "data": {
                 "Data": '{"doc":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"' + content + '"}]}]},"selection":{"type":"text","anchor":1,"head":1}' + '}',
                 "__type": "RichTextField"
@@ -235,8 +235,8 @@ def parse_document(file_name: str):
         count += 1
         view_guids.append(write_image(pure_name, image))
         copyfile(dir_path + "/" + image, dir_path +
-                  "/" + image.replace(".", "_o.", 1))
-        os.rename(dir_path + "/" + image, dir_path +
+                 "/" + image.replace(".", "_o.", 1))
+        copyfile(dir_path + "/" + image, dir_path +
                   "/" + image.replace(".", "_m.", 1))
     print(f"extracted {count} images...")
 

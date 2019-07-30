@@ -279,9 +279,11 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             SetValue: this.addGroup,
             contents: "+ ADD A GROUP"
         };
+        Doc.UpdateDocumentExtensionForField(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey);
+
         // let uniqueHeadings = headings.map((i, idx) => headings.indexOf(i) === idx);
         return (
-            <div className="collectionStackingView" style={{ top: this.chromeCollapsed ? 0 : 100 }}
+            <div className="collectionStackingView"
                 ref={this.createRef} onDrop={this.onDrop.bind(this)} onWheel={(e: React.WheelEvent) => e.stopPropagation()} >
                 {/* {sectionFilter as boolean ? [
                     ["width > height", this.filteredChildren.filter(f => f[WidthSym]() >= 1 + f[HeightSym]())],
@@ -290,9 +292,9 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                 {this.props.Document.sectionFilter ? Array.from(this.Sections.entries()).sort(this.sortFunc).
                     map(section => this.section(section[0], section[1])) :
                     this.section(undefined, this.filteredChildren)}
-                {this.props.Document.sectionFilter ?
+                {(this.props.Document.sectionFilter && this.props.CollectionView.props.Document.chromeStatus !== 'disabled') ?
                     <div key={`${this.props.Document[Id]}-addGroup`} className="collectionStackingView-addGroupButton"
-                        style={{ width: (this.columnWidth / (headings.length + 1)) - 10, marginTop: 10 }}>
+                        style={{ width: (this.columnWidth / (headings.length + (this.props.CollectionView.props.Document.chromeStatus !== 'disabled' ? 1 : 0))) - 10, marginTop: 10 }}>
                         <EditableView {...editableViewProps} />
                     </div> : null}
             </div>

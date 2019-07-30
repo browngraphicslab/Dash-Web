@@ -3,16 +3,19 @@
 
 .collectionViewChrome-cont {
     position: relative;
+    opacity: 0.9;
     z-index: 9001;
+    transition: top .5s;
+    background: lightgrey;
     transition: margin-top .5s;
-    background: lightslategray;
+    background: lightgray;
     padding: 10px;
 
     .collectionViewChrome {
         display: grid;
         grid-template-columns: 1fr auto;
         padding-bottom: 10px;
-        border-bottom: .5px solid lightgrey;
+        border-bottom: .5px solid rgb(180, 180, 180);
 
         .collectionViewBaseChrome {
             display: flex;

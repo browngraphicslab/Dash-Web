@@ -41,10 +41,13 @@ import { ClientUtils } from '../../util/ClientUtils';
 import { EditableView } from '../EditableView';
 import { faHandPointer, faHandPointRight } from '@fortawesome/free-regular-svg-icons';
 import { DocumentDecorations } from '../DocumentDecorations';
+import { CognitiveServices } from '../../cognitive_services/CognitiveServices';
+import DictationManager from '../../util/DictationManager';
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(fa.faTrash);
 library.add(fa.faShare);
+library.add(fa.faDownload);
 library.add(fa.faExpandArrowsAlt);
 library.add(fa.faCompressArrowsAlt);
 library.add(fa.faLayerGroup);
@@ -62,7 +65,7 @@ library.add(fa.faCrosshairs);
 library.add(fa.faDesktop);
 library.add(fa.faUnlock);
 library.add(fa.faLock);
-library.add(fa.faLaptopCode, fa.faMale, fa.faCopy, fa.faHandPointRight, fa.faCompass, fa.faSnowflake);
+library.add(fa.faLaptopCode, fa.faMale, fa.faCopy, fa.faHandPointRight, fa.faCompass, fa.faSnowflake, fa.faMicrophone);
 
 // const linkSchema = createSchema({
 //     title: "string",
@@ -99,6 +102,7 @@ export interface DocumentViewProps {
     zoomToScale: (scale: number) => void;
     getScale: () => number;
     animateBetweenIcon?: (iconPos: number[], startTime: number, maximizing: boolean) => void;
+    ChromeHeight?: () => number;
 }
 
 const schema = createSchema({
@@ -439,7 +443,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             e.stopPropagation();
             let annotationDoc = de.data.annotationDocument;
             annotationDoc.linkedToDoc = true;
+            de.data.targetContext = this.props.ContainingCollectionView!.props.Document;
             let targetDoc = this.props.Document;
+            targetDoc.targetContext = de.data.targetContext;
             let annotations = await DocListCastAsync(annotationDoc.annotations);
             if (annotations) {
                 annotations.forEach(anno => {
@@ -448,7 +454,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }
             let pdfDoc = await Cast(annotationDoc.pdfDoc, Doc);
             if (pdfDoc) {
-                DocUtils.MakeLink(annotationDoc, targetDoc, undefined, `Annotation from ${StrCast(pdfDoc.title)}`, "", StrCast(pdfDoc.title));
+                DocUtils.MakeLink(annotationDoc, targetDoc, this.props.ContainingCollectionView!.props.Document, `Annotation from ${StrCast(pdfDoc.title)}`, "", StrCast(pdfDoc.title));
             }
         }
         if (de.data instanceof DragManager.LinkDragData) {
@@ -532,6 +538,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this.props.Document.lockedPosition = BoolCast(this.props.Document.lockedPosition) ? undefined : true;
     }
 
+    listen = async () => {
+        let transcript = await DictationManager.Instance.listen();
+        transcript && (Doc.GetProto(this.props.Document).transcript = transcript);
+    }
+
     @action
     onContextMenu = async (e: React.MouseEvent): Promise<void> => {
         e.persist();
@@ -555,6 +566,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         cm.addItem({ description: BoolCast(this.props.Document.ignoreAspect, false) || !this.props.Document.nativeWidth || !this.props.Document.nativeHeight ? "Freeze" : "Unfreeze", event: this.freezeNativeDimensions, icon: "snowflake" });
         cm.addItem({ description: "Pin to Presentation", event: () => PresentationView.Instance.PinDoc(this.props.Document), icon: "map-pin" });
         cm.addItem({ description: BoolCast(this.props.Document.lockedPosition) ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
+        cm.addItem({ description: "Transcribe Speech", event: this.listen, icon: "microphone" });
         let makes: ContextMenuProps[] = [];
         makes.push({ description: "Make Background", event: this.makeBackground, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
         makes.push({ description: this.props.Document.isButton ? "Remove Button" : "Make Button", event: this.makeBtnClicked, icon: "concierge-bell" });
@@ -594,6 +606,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             copies.push({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "fingerprint" });
             cm.addItem({ description: "Copy...", subitems: copies, icon: "copy" });
         }
+        cm.addItem({
+            description: "Download document", icon: "download", event: () => {
+                const a = document.createElement("a");
+                const url = Utils.prepend(`/downloadId/${this.props.Document[Id]}`);
+                a.href = url;
+                a.download = `DocExport-${this.props.Document[Id]}.zip`;
+                a.click();
+            }
+        });
         cm.addItem({ description: "Delete", event: this.deleteClicked, icon: "trash" });
         type User = { email: string, userDocumentId: string };
         let usersMenu: ContextMenuProps[] = [];
@@ -644,11 +665,18 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get nativeHeight() { return this.Document.nativeHeight || 0; }
     @computed get contents() {
         return (<DocumentContentsView {...this.props}
+            ChromeHeight={this.chromeHeight}
             isSelected={this.isSelected} select={this.select}
             selectOnLoad={this.props.selectOnLoad}
             layoutKey={"layout"}
             fitToBox={BoolCast(this.props.Document.fitToBox) ? true : this.props.fitToBox}
             DataDoc={this.dataDoc} />);
+    }
+
+    chromeHeight = () => {
+        let showOverlays = this.props.showOverlays ? this.props.showOverlays(this.layoutDoc) : undefined;
+        let showTitle = showOverlays && "title" in showOverlays ? showOverlays.title : StrCast(this.layoutDoc.showTitle);
+        return showTitle ? 25 : 0;
     }
 
     get layoutDoc() {
@@ -666,8 +694,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         var nativeWidth = this.nativeWidth > 0 && !BoolCast(this.props.Document.ignoreAspect) ? `${this.nativeWidth}px` : "100%";
         var nativeHeight = BoolCast(this.props.Document.ignoreAspect) ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
         let showOverlays = this.props.showOverlays ? this.props.showOverlays(this.layoutDoc) : undefined;
-        let showTitle = showOverlays && showOverlays.title !== "undefined" ? showOverlays.title : StrCast(this.layoutDoc.showTitle);
-        let showCaption = showOverlays && showOverlays.caption !== "undefined" ? showOverlays.caption : StrCast(this.layoutDoc.showCaption);
+        let showTitle = showOverlays && "title" in showOverlays ? showOverlays.title : StrCast(this.layoutDoc.showTitle);
+        let showCaption = showOverlays && "caption" in showOverlays ? showOverlays.caption : StrCast(this.layoutDoc.showCaption);
         let templates = Cast(this.layoutDoc.templates, listSpec("string"));
         if (!showOverlays && templates instanceof List) {
             templates.map(str => {
@@ -716,11 +744,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                                 transformOrigin: "top left", transform: `scale(${1 / this.props.ContentScaling()})`
                             }}>
                                 <EditableView
-                                    contents={this.layoutDoc[showTitle]}
+                                    contents={(this.layoutDoc.isTemplate || !this.dataDoc ? this.layoutDoc : this.dataDoc)[showTitle]}
                                     display={"block"}
                                     height={72}
                                     fontSize={12}
-                                    GetValue={() => StrCast(this.layoutDoc[showTitle!])}
+                                    GetValue={() => StrCast((this.layoutDoc.isTemplate || !this.dataDoc ? this.layoutDoc : this.dataDoc)[showTitle!])}
                                     SetValue={(value: string) => (Doc.GetProto(this.layoutDoc)[showTitle!] = value) ? true : true}
                                 />
                             </div>
