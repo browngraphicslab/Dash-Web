@@ -95,7 +95,7 @@ export default class PresentationViewList extends React.Component<PresListProps>
                                 this.props.PresElementsMappings.set(doc, e);
                             }
                         }}
-                        key={doc[Id] + index}
+                        key={doc[Id]}
                         mainDocument={this.props.mainDocument}
                         document={doc}
                         index={index}
