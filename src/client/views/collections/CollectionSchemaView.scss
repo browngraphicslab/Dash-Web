@@ -13,9 +13,12 @@
     // overflow: hidden;
     // overflow-x: scroll;
     // border: none;
-    overflow: scroll;
+    // overflow: scroll;
     // overflow-y: scroll;
     transition: top 0.5s;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: nowrap;
 
     // .collectionSchemaView-cellContents {
     //     height: $MAX_ROW_HEIGHT;
@@ -26,10 +29,16 @@
     //     }
     // }
 
+    .collectionSchemaView-tableContainer {
+        width: 100%;
+        height: 100%;
+        overflow: scroll;
+    }
+
     .collectionSchemaView-previewRegion {
         position: relative;
         background: $light-color;
-        float: left;
+        // float: left;
         height: 100%;
 
         .collectionSchemaView-previewDoc {
@@ -53,7 +62,7 @@
 
     .collectionSchemaView-dividerDragger {
         position: relative;
-        float: left;
+        // float: left;
         height: 100%;
         width: 20px;
         z-index: 20;
@@ -74,6 +83,7 @@
     background: white;
     box-sizing: border-box;
     border: none !important;
+    float: none !important;
 
     .rt-table {
         // overflow-y: auto;
@@ -526,4 +536,15 @@ button.add-column {
         left: 50%;
         transform: translate(-50%, -50%);
     }
+}
+
+.collectionSchemaView-addRow {
+    color: gray;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    font-size: 10.5px;
+    padding: 10px;
+    margin-left: 50px;
+    margin-top: 10px;
 }
