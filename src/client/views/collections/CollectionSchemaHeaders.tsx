@@ -10,7 +10,7 @@ import { ColumnType } from "./CollectionSchemaView";
 import { emptyFunction } from "../../../Utils";
 import { contains } from "typescript-collections/dist/lib/arrays";
 import { faFile } from "@fortawesome/free-regular-svg-icons";
-import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
+import { SchemaHeaderField, RandomPastel, PastelSchemaPalette } from "../../../new_fields/SchemaHeaderField";
 
 library.add(faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn, faFile);
 
@@ -73,8 +73,6 @@ export class CollectionSchemaAddColumnHeader extends React.Component<AddColumnHe
     }
 }
 
-
-
 export interface ColumnMenuProps {
     columnField: SchemaHeaderField;
     // keyValue: string;
@@ -115,12 +113,6 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
         }
     }
 
-    setNewColor = (color: string): void => {
-        this.changeColumnType(ColumnType.Any);
-        console.log("change color", this.props.columnField.heading);
-        this.props.setColumnColor(this.props.columnField, color);
-    }
-
     @action
     toggleIsOpen = (): void => {
         this._isOpen = !this._isOpen;
@@ -128,8 +120,11 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
     }
 
     changeColumnType = (type: ColumnType): void => {
-        console.log("change type", this.props.columnField.heading);
         this.props.setColumnType(this.props.columnField, type);
+    }
+
+    changeColumnColor = (color: string): void => {
+        this.props.setColumnColor(this.props.columnField, color);
     }
 
     @action
@@ -179,34 +174,17 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
     }
 
     renderColors = () => {
+        let selected = this.props.columnField.color;
         return (
             <div className="collectionSchema-headerMenu-group">
                 <label>Color:</label>
                 <div className="columnMenu-colors">
-                    <input type="radio" name="column-color" id="pink" value="#FFB4E8" onClick={() => this.setNewColor("#FFB4E8")} />
-                    <label htmlFor="pink">
-                        <div className="columnMenu-colorPicker" style={{ backgroundColor: "#FFB4E8" }}></div>
-                    </label>
-                    <input type="radio" name="column-color" id="purple" value="#b28dff" onClick={() => this.setNewColor("#b28dff")} />
-                    <label htmlFor="purple">
-                        <div className="columnMenu-colorPicker" style={{ backgroundColor: "#b28dff" }}></div>
-                    </label>
-                    <input type="radio" name="column-color" id="blue" value="#afcbff" onClick={() => this.setNewColor("#afcbff")} />
-                    <label htmlFor="blue">
-                        <div className="columnMenu-colorPicker" style={{ backgroundColor: "#afcbff" }}></div>
-                    </label>
-                    <input type="radio" name="column-color" id="yellow" value="#fff5ba" onClick={() => this.setNewColor("#fff5ba")} />
-                    <label htmlFor="yellow">
-                        <div className="columnMenu-colorPicker" style={{ backgroundColor: "#fff5ba" }}></div>
-                    </label>
-                    <input type="radio" name="column-color" id="red" value="#ffabab" onClick={() => this.setNewColor("#ffabab")} />
-                    <label htmlFor="red">
-                        <div className="columnMenu-colorPicker" style={{ backgroundColor: "#ffabab" }}></div>
-                    </label>
-                    <input type="radio" name="column=color" id="none" value="#f1efeb" onClick={() => this.setNewColor("#f1efeb")} />
-                    <label htmlFor="none">
-                        <div className="columnMenu-colorPicker" style={{ backgroundColor: "#f1efeb" }}></div>
-                    </label>
+                    <div className={"columnMenu-colorPicker" + (selected === "#FFB4E8" ? " active" : "")} style={{ backgroundColor: "#FFB4E8" }} onClick={() => this.changeColumnColor("#FFB4E8")}></div>
+                    <div className={"columnMenu-colorPicker" + (selected === "#b28dff" ? " active" : "")} style={{ backgroundColor: "#b28dff" }} onClick={() => this.changeColumnColor("#b28dff")}></div>
+                    <div className={"columnMenu-colorPicker" + (selected === "#afcbff" ? " active" : "")} style={{ backgroundColor: "#afcbff" }} onClick={() => this.changeColumnColor("#afcbff")}></div>
+                    <div className={"columnMenu-colorPicker" + (selected === "#fff5ba" ? " active" : "")} style={{ backgroundColor: "#fff5ba" }} onClick={() => this.changeColumnColor("#fff5ba")}></div>
+                    <div className={"columnMenu-colorPicker" + (selected === "#ffabab" ? " active" : "")} style={{ backgroundColor: "#ffabab" }} onClick={() => this.changeColumnColor("#ffabab")}></div>
+                    <div className={"columnMenu-colorPicker" + (selected === "#f1efeb" ? " active" : "")} style={{ backgroundColor: "#f1efeb" }} onClick={() => this.changeColumnColor("#f1efeb")}></div>
                 </div>
             </div>
         );
@@ -231,7 +209,7 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
                     <>
                         {this.renderTypes()}
                         {this.renderSorting()}
-                        {/* {this.renderColors()} */}
+                        {this.renderColors()}
                         <div className="collectionSchema-headerMenu-group">
                             <button onClick={() => this.props.deleteColumn(this.props.columnField.heading)}>Delete Column</button>
                         </div>

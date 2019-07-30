@@ -327,6 +327,18 @@ button.add-column {
 
         button {
             border-radius: 20px;
+            width: 22px;
+            height: 22px;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            flex-direction: column;
+            padding: 0;
+
+            &.active {
+                border: 2px solid white;
+                box-shadow: 0 0 0 2px lightgray;
+            }
         }
     }
 
@@ -335,15 +347,27 @@ button.add-column {
         justify-content: space-between;
         flex-wrap: wrap;
 
-        input[type="radio"] {
-            display: none;
-        }
+        // input[type="radio"] {
+        //     display: none;
+        // }
+
+        // input[type="radio"]:checked + label {
+        //     .columnMenu-colorPicker {
+        //         border: 2px solid white;
+        //         box-shadow: 0 0 0 2px  lightgray;
+        //     }
+        // }
 
         .columnMenu-colorPicker {
             cursor: pointer;
             width: 20px;
             height: 20px;
             border-radius: 10px;
+
+            &.active {
+                border: 2px solid white;
+                box-shadow: 0 0 0 2px lightgray;
+            }
         }
     }
 }
