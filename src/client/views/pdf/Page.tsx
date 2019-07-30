@@ -175,7 +175,7 @@ export default class Page extends React.Component<IPageProps> {
                             }
                             let pdfDoc = await Cast(annotationDoc.pdfDoc, Doc);
                             if (pdfDoc) {
-                                DocUtils.MakeLink(annotationDoc, targetDoc, undefined, `Annotation from ${StrCast(pdfDoc.title)}`, "", StrCast(pdfDoc.title));
+                                DocUtils.MakeLink(annotationDoc, targetDoc, dragData.targetContext, `Annotation from ${StrCast(pdfDoc.title)}`, "", StrCast(pdfDoc.title));
                             }
                         }
                     }

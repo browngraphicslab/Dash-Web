@@ -440,7 +440,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             e.stopPropagation();
             let annotationDoc = de.data.annotationDocument;
             annotationDoc.linkedToDoc = true;
+            de.data.targetContext = this.props.ContainingCollectionView!.props.Document;
             let targetDoc = this.props.Document;
+            targetDoc.targetContext = de.data.targetContext;
             let annotations = await DocListCastAsync(annotationDoc.annotations);
             if (annotations) {
                 annotations.forEach(anno => {
@@ -449,7 +451,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }
             let pdfDoc = await Cast(annotationDoc.pdfDoc, Doc);
             if (pdfDoc) {
-                DocUtils.MakeLink(annotationDoc, targetDoc, undefined, `Annotation from ${StrCast(pdfDoc.title)}`, "", StrCast(pdfDoc.title));
+                DocUtils.MakeLink(annotationDoc, targetDoc, this.props.ContainingCollectionView!.props.Document, `Annotation from ${StrCast(pdfDoc.title)}`, "", StrCast(pdfDoc.title));
             }
         }
         if (de.data instanceof DragManager.LinkDragData) {
