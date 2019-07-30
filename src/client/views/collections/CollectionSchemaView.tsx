@@ -122,7 +122,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @action
     onDividerMove = (e: PointerEvent): void => {
         let nativeWidth = this._mainCont!.getBoundingClientRect();
-        console.log("divider", nativeWidth.right - nativeWidth.left, this.props.ScreenToLocalTransform().transformDirection(nativeWidth.right - e.clientX, 0)[0]);
         let minWidth = 40;
         let maxWidth = 1000;
         let movedWidth = this.props.ScreenToLocalTransform().transformDirection(nativeWidth.right - e.clientX, 0)[0];
@@ -240,8 +239,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     render() {
-        // if (SelectionManager.SelectedDocuments().length > 0) console.log(StrCast(SelectionManager.SelectedDocuments()[0].Document.title));
-        // if (DocumentManager.Instance.getDocumentView(this.props.Document)) console.log(StrCast(this.props.Document.title), SelectionManager.IsSelected(DocumentManager.Instance.getDocumentView(this.props.Document)!))
         return (
             <div className="collectionSchemaView-container" style={{ height: this.chromeCollapsed ? "100%" : "calc(100% - 70px" }}>
                 <div className="collectionSchemaView-tableContainer" onPointerDown={this.onPointerDown} onWheel={this.onWheel} onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createTarget}>
@@ -419,7 +416,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         // convert old schema columns (list of strings) into new schema columns (list of schema header fields)
         let oldSchemaColumns = Cast(this.props.Document.schemaColumns, listSpec("string"), []);
         if (oldSchemaColumns && oldSchemaColumns.length && typeof oldSchemaColumns[0] !== "object") {
-            console.log("REMAKING COLUMNs");
             let newSchemaColumns = oldSchemaColumns.map(i => typeof i === "string" ? new SchemaHeaderField(i, "#f1efeb") : i);
             this.props.Document.schemaColumns = new List<SchemaHeaderField>(newSchemaColumns);
         }
@@ -720,7 +716,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     toggleTextWrapRow = (doc: Doc): void => {
         let textWrapped = this.textWrappedRows;
         let index = textWrapped.findIndex(id => doc[Id] === id);
-        console.log("toggle text wrap", index);
 
         if (index > -1) {
             textWrapped.splice(index, 1);
@@ -736,7 +731,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         let children = this.childDocs;
 
         let previewWidth = this.previewWidth(); // + 2 * this.borderWidth + this.DIVIDER_WIDTH + 1;
-        console.log(previewWidth);
         let hasCollectionChild = children.reduce((found, doc) => found || doc.type === "collection", false);
         let expandedRowsList = this._openCollections.map(col => children.findIndex(doc => doc[Id] === col).toString());
         let expanded = {};

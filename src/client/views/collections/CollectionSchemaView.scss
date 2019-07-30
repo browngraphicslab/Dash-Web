@@ -492,7 +492,8 @@ button.add-column {
 }
 
 .collectionSchemaView-table {
-    width: calc(100% - 7px);
+    // width: calc(100% - 7px);
+    width: 100%;
     height: 100%;
     // overflow-y: scroll;
     overflow: visible;
