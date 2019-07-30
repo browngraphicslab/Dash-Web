@@ -440,7 +440,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return result.result === undefined ? {} : result.result;
     }
 
-    private viewDefToJSX(viewDef: any): JSX.Element | undefined {
+    private viewDefToJSX(viewDef: any): { ele: JSX.Element, bounds?: { x: number, y: number, width: number, height: number } } | undefined {
         if (viewDef.type === "text") {
             const text = Cast(viewDef.text, "string");
             const x = Cast(viewDef.x, "number");
@@ -448,14 +448,16 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             const width = Cast(viewDef.width, "number");
             const height = Cast(viewDef.height, "number");
             const fontSize = Cast(viewDef.fontSize, "number");
-            if ([text, x, y].some(val => val === undefined)) {
+            if ([text, x, y, width, height].some(val => val === undefined)) {
                 return undefined;
             }
 
-            return <div className="collectionFreeform-customText" style={{
-                transform: `translate(${x}px, ${y}px)`,
-                width, height, fontSize
-            }}>{text}</div>;
+            return {
+                ele: <div className="collectionFreeform-customText" style={{
+                    transform: `translate(${x}px, ${y}px)`,
+                    width, height, fontSize
+                }}>{text}</div>, bounds: { x: x!, y: y!, width: width!, height: height! }
+            };
         }
     }
 
@@ -474,9 +476,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 const { state: scriptState, views } = result;
                 state = scriptState;
                 if (Array.isArray(views)) {
-                    elements = views.reduce((prev, ele) => {
+                    elements = views.reduce<typeof elements>((prev, ele) => {
                         const jsx = this.viewDefToJSX(ele);
-                        jsx && prev.push({ ele: jsx });
+                        jsx && prev.push(jsx);
                         return prev;
                     }, elements);
                 }
