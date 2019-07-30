@@ -1,20 +1,16 @@
-import "../../views/nodes/WebBox.scss";
-import React = require("react");
-import { FieldViewProps, FieldView } from "../../views/nodes/FieldView";
-import { HtmlField } from "../../../new_fields/HtmlField";
-import { WebField } from "../../../new_fields/URLField";
+import { action, observable, runInAction } from 'mobx';
 import { observer } from "mobx-react";
-import { computed, reaction, IReactionDisposer, observable, action, runInAction } from 'mobx';
-import { DocumentDecorations } from "../../views/DocumentDecorations";
-import { InkingControl } from "../../views/InkingControl";
+import { Doc, DocListCastAsync } from "../../../new_fields/Doc";
+import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
-import { NumCast, Cast, StrCast } from "../../../new_fields/Types";
-import "./YoutubeBox.scss";
 import { Docs } from "../../documents/Documents";
-import { Doc, DocListCastAsync } from "../../../new_fields/Doc";
-import { listSpec } from "../../../new_fields/Schema";
-import { List } from "../../../new_fields/List";
+import { DocumentDecorations } from "../../views/DocumentDecorations";
+import { InkingControl } from "../../views/InkingControl";
+import { FieldView, FieldViewProps } from "../../views/nodes/FieldView";
+import "../../views/nodes/WebBox.scss";
+import "./YoutubeBox.scss";
+import React = require("react");
 
 interface VideoTemplate {
     thumbnailUrl: string;
