@@ -30,7 +30,6 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     _sectionFilterDisposer?: IReactionDisposer;
     _docXfs: any[] = [];
     _columnStart: number = 0;
-    _toggleTitle: string = "author mode";
     @observable private cursor: CursorProperty = "grab";
     get sectionHeaders() { return Cast(this.props.Document.sectionHeaders, listSpec(SchemaHeaderField)); }
     @computed get chromeCollapsed() { return this.props.chromeCollapsed; }
