@@ -119,6 +119,7 @@ export class FilterBox extends React.Component {
     resetFilters = () => {
         ToggleBar.Instance.resetToggle();
         // RequiredWordsFilter.Instance.resetRequiredFieldFilters();
+        this._basicWordStatus = true;
         IconBar.Instance.selectAll();
         FieldFilters.Instance.resetFieldFilters();
         CollectionFilters.Instance.resetCollectionFilters();
