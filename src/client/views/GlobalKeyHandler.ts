@@ -101,8 +101,8 @@ export default class KeyManager {
     });
 
     private shift = async (keyname: string) => {
-        let stopPropagation = true;
-        let preventDefault = true;
+        let stopPropagation = false;
+        let preventDefault = false;
 
         switch (keyname) {
             case " ":
@@ -110,6 +110,9 @@ export default class KeyManager {
                 console.log(`I heard${transcript ? `: ${transcript.toLowerCase()}` : " nothing: I thought I was still listening from an earlier session."}`);
                 let command: ContextMenuProps | undefined;
                 transcript && (command = ContextMenu.Instance.findByDescription(transcript, true)) && "event" in command && command.event();
+                stopPropagation = true;
+                preventDefault = true;
+                break;
         }
 
         return {
