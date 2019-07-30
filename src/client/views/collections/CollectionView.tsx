@@ -85,7 +85,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
         }
         else {
             return [
-                (<CollectionViewBaseChrome CollectionView={this} type={type} collapse={this.collapse} />),
+                (<CollectionViewBaseChrome CollectionView={this} key="chrome" type={type} collapse={this.collapse} />),
                 this.SubViewHelper(type, renderProps)
             ];
         }

@@ -213,6 +213,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                             <input className="collectionViewBaseChrome-viewSpecsInput"
                                 placeholder="FILTER DOCUMENTS"
                                 value={this.filterValue ? this.filterValue.script.originalScript : ""}
+                                onChange={(e) => { }}
                                 onPointerDown={this.openViewSpecs} />
                             <div className="collectionViewBaseChrome-viewSpecsMenu"
                                 onPointerDown={this.openViewSpecs}

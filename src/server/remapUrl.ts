@@ -30,10 +30,10 @@ async function update() {
             const value = fields[key];
             if (value && value.__type && suffixMap[value.__type]) {
                 const url = new URL(value.url);
-                if (url.href.includes("azure")) {
+                if (url.href.includes("localhost")) {
                     dynfield = true;
 
-                    update.$set = { ["fields." + key + ".url"]: `${url.protocol}//localhost:1050${url.pathname}` };
+                    update.$set = { ["fields." + key + ".url"]: `${url.protocol}//http://dash-web.eastus2.cloudapp.azure.com:1050${url.pathname}` };
                 }
             }
         }
