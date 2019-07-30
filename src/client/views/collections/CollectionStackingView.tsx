@@ -20,6 +20,7 @@ import { SchemaHeaderField, RandomPastel } from "../../../new_fields/SchemaHeade
 import { List } from "../../../new_fields/List";
 import { EditableView } from "../EditableView";
 import { CollectionViewProps } from "./CollectionBaseView";
+import Switch from 'rc-switch';
 
 @observer
 export class CollectionStackingView extends CollectionSubView(doc => doc) {
@@ -29,6 +30,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     _sectionFilterDisposer?: IReactionDisposer;
     _docXfs: any[] = [];
     _columnStart: number = 0;
+    _toggleTitle: string = "author mode";
     @observable private cursor: CursorProperty = "grab";
     get sectionHeaders() { return Cast(this.props.Document.sectionHeaders, listSpec(SchemaHeaderField)); }
     @computed get chromeCollapsed() { return this.props.chromeCollapsed; }
@@ -269,6 +271,14 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         return firstEntry[0].heading > secondEntry[0].heading ? 1 : -1;
     }
 
+    onToggle = (checked: Boolean) => {
+        if (checked) {
+            this.props.CollectionView.props.Document.chromeStatus = 'collapsed';
+        } else {
+            this.props.CollectionView.props.Document.chromeStatus = 'view-mode';
+        }
+    }
+
     render() {
         let headings = Array.from(this.Sections.keys());
         let editableViewProps = {
@@ -289,11 +299,18 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                 {this.props.Document.sectionFilter ? Array.from(this.Sections.entries()).sort(this.sortFunc).
                     map(section => this.section(section[0], section[1])) :
                     this.section(undefined, this.filteredChildren)}
-                {(this.props.Document.sectionFilter && this.props.CollectionView.props.Document.chromeStatus !== 'disabled') ?
+                {(this.props.Document.sectionFilter && this.props.CollectionView.props.Document.chromeStatus !== 'view-mode') ?
                     <div key={`${this.props.Document[Id]}-addGroup`} className="collectionStackingView-addGroupButton"
-                        style={{ width: (this.columnWidth / (headings.length + (this.props.CollectionView.props.Document.chromeStatus !== 'disabled' ? 1 : 0))) - 10, marginTop: 10 }}>
+                        style={{ width: (this.columnWidth / (headings.length + (this.props.CollectionView.props.Document.chromeStatus !== 'view-mode' ? 1 : 0))) - 10, marginTop: 10 }}>
                         <EditableView {...editableViewProps} />
                     </div> : null}
+                {this.props.CollectionView.props.Document.chromeStatus !== 'disabled' ? <Switch
+                    onChange={this.onToggle}
+                    onClick={this.onToggle}
+                    defaultChecked={this.props.CollectionView.props.Document.chromeStatus !== 'view-mode'}
+                    checkedChildren="edit"
+                    unCheckedChildren="view"
+                /> : null}
             </div>
         );
     }
