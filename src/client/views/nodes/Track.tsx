@@ -10,6 +10,7 @@ import { Keyframe, KeyframeFunc, RegionData } from "./Keyframe";
 import { FlyoutProps } from "./Timeline";
 import { Transform } from "../../util/Transform";
 import { AddComparisonParameters } from "../../northstar/model/idea/idea";
+import { CollectionSchemaBooleanCell } from "../collections/CollectionSchemaCells";
 
 interface IProps {
     node: Doc;
@@ -59,9 +60,9 @@ export class Track extends React.Component<IProps> {
         return reaction( () => {
             return Doc.allKeys(this.props.node).map(key => FieldValue(this.props.node[key]));
         }, async () => {
-            let regiondata = this.findRegion(this.props.currentBarX);
+            let regiondata: (Doc | undefined) = await this.findRegion(this.props.currentBarX) ;
             if (regiondata) {
-                let keyframes = await DocListCastAsync(regiondata.keyframes!); 
+                let keyframes = await DocListCastAsync((regiondata as Doc).keyframes!); 
                 keyframes!.forEach( async (kf) => {
                     if (kf.type === KeyframeFunc.KeyframeType.default && kf.time === this.props.currentBarX) {
                         console.log("full keychange triggered"); 
@@ -95,7 +96,7 @@ export class Track extends React.Component<IProps> {
     currentBarXReaction = () => {
         return reaction(() => this.props.currentBarX, async () => {
             if (this._keyReaction) this._keyReaction(); //dispose previous reaction first
-            let regiondata: (Doc | undefined) = this.findRegion(this.props.currentBarX);
+            let regiondata: (Doc | undefined) = await this.findRegion(this.props.currentBarX);
             if (regiondata) {
                 this.props.node.hidden = false;
                 await this.timeChange(this.props.currentBarX);
@@ -108,11 +109,11 @@ export class Track extends React.Component<IProps> {
 
     @action
     timeChange = async (time: number) => {
-        let regiondata = this.findRegion(Math.round(time)); //finds a region that the scrubber is on
+        let regiondata = await this.findRegion(Math.round(time)); //finds a region that the scrubber is on
         if (regiondata) {
-            let leftkf: (Doc | undefined) = await this.calcMinLeft(regiondata!); // lef keyframe, if it exists
-            let rightkf: (Doc | undefined) = await this.calcMinRight(regiondata!); //right keyframe, if it exists            
-            let currentkf: (Doc | undefined) = await this.calcCurrent(regiondata!); //if the scrubber is on top of the keyframe
+            let leftkf: (Doc | undefined) = await this.calcMinLeft(regiondata); // lef keyframe, if it exists
+            let rightkf: (Doc | undefined) = await this.calcMinRight(regiondata); //right keyframe, if it exists            
+            let currentkf: (Doc | undefined) = await this.calcCurrent(regiondata); //if the scrubber is on top of the keyframe
             if (currentkf) {
                 await this.applyKeys(currentkf);
                 this._keyReaction = this.keyReaction(); //reactivates reaction. 
@@ -200,21 +201,25 @@ export class Track extends React.Component<IProps> {
         let rightNode = right.key as Doc;
         const dif_time = NumCast(right.time) - NumCast(left.time);
         const timeratio = (this.props.currentBarX - NumCast(left.time)) / dif_time; //linear 
-        let fadeInX:List<number> = regiondata.fadeInX as List<number>; 
-        let fadeInY:List<number> = regiondata.fadeInY as List<number>; 
-        let index = fadeInX[Math.round(fadeInX.length - 1 * timeratio)];  
-        let correspondingY = fadeInY[index]; 
-        let correspondingYRatio = correspondingY / fadeInY[fadeInY.length - 1] - fadeInY[0]; 
-
+        let fadeInY:List<number> = regiondata.fadeInY as List<number>;  
+        let realIndex = (fadeInY.length - 1) * timeratio; 
+        let xIndex = Math.floor(realIndex);  
+        let yValue = fadeInY[xIndex]; 
+        let secondYOffset:number = yValue; 
+        let minY = fadeInY[0];  // for now
+        let maxY = fadeInY[fadeInY.length - 1]; //for now 
+        if (fadeInY.length !== 1) {
+            secondYOffset = fadeInY[xIndex] + ((realIndex - xIndex) / 1) * (fadeInY[xIndex + 1] - fadeInY[xIndex]) - minY; 
+        }
+        console.log(secondYOffset); 
+        console.log(maxY - minY); 
+        console.log(minY); 
+        let finalRatio = secondYOffset / (maxY - minY); 
+        console.log(finalRatio); 
         this.filterKeys(Doc.allKeys(leftNode)).forEach(key => {
             if (leftNode[key] && rightNode[key] && typeof (leftNode[key]) === "number" && typeof (rightNode[key]) === "number") { //if it is number, interpolate
-                if(index + 1 <= fadeInX.length) {
-
-                } else if (index - 1 >= fadeInX.length) {
-
-                }
                 const diff = NumCast(rightNode[key]) - NumCast(leftNode[key]);
-                const adjusted = diff * timeratio;
+                const adjusted = diff * finalRatio;
                 this.props.node[key] = NumCast(leftNode[key]) + adjusted;
             } else {
                 this.props.node[key] = leftNode[key];
@@ -223,9 +228,10 @@ export class Track extends React.Component<IProps> {
     }
 
     @action
-    findRegion(time: number): (RegionData | undefined) {
-        let foundRegion = undefined;
-        DocListCast(this.regions).map(region => {
+    findRegion = async (time: number)  => {
+        let foundRegion:(Doc | undefined) = undefined;
+        let regions = await DocListCastAsync(this.regions); 
+        regions!.forEach(region => {
             region = region as RegionData;
             if (time >= NumCast(region.position) && time <= (NumCast(region.position) + NumCast(region.duration))) {
                 foundRegion = region;

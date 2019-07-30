@@ -12,7 +12,7 @@ import { FlyoutProps } from "./Timeline";
 import { Transform } from "../../util/Transform";
 import { DocumentManager } from "../../util/DocumentManager";
 import { CollectionView } from "../collections/CollectionView";
-import { InkField } from "../../../new_fields/InkField";
+import { InkField, StrokeData } from "../../../new_fields/InkField";
 
 export namespace KeyframeFunc {
     export enum KeyframeType {
@@ -51,7 +51,10 @@ export namespace KeyframeFunc {
         regiondata.position = 0;
         regiondata.fadeIn = 20;
         regiondata.fadeOut = 20;
-        regiondata.fadeInX = new List([1, 100]); 
+        regiondata.fadeInX = new List([0, 1]); 
+        regiondata.fadeInY = new List([0, 100]); 
+        regiondata.fadeInMaxY = 100; 
+        regiondata.fadeInMinX = 0; 
         return regiondata;
     };
 }
@@ -61,7 +64,11 @@ export const RegionDataSchema = createSchema({
     duration: defaultSpec("number", 0),
     keyframes: listSpec(Doc),
     fadeIn: defaultSpec("number", 0),
-    fadeOut: defaultSpec("number", 0)
+    fadeOut: defaultSpec("number", 0), 
+    fadeInX: listSpec("number"), 
+    fadeInY: listSpec("number"), 
+    fadeInMaxY: defaultSpec("number", 0), 
+    fadeInMinY: defaultSpec("number", 0)
 });
 export type RegionData = makeInterface<[typeof RegionDataSchema]>;
 export const RegionData = makeInterface(RegionDataSchema);
@@ -359,20 +366,54 @@ export class Keyframe extends React.Component<IProps> {
         div.style.opacity ="0"; 
     }
 
-    onContainerDown = (e: React.PointerEvent, ref: React.RefObject<HTMLDivElement>) => {
+    onContainerDown = (e: React.MouseEvent, ref: React.RefObject<HTMLDivElement>) => {
         e.preventDefault(); 
-        let mouse = e.nativeEvent; 
-        if (mouse.which === 3){        
-            let reac = reaction(() => {
-                return this.inks;}, () => {
-                    document.addEventListener("pointerup", () => {
-                        reac(); 
-                    console.log("disposed"); 
-                }); 
-            console.log("drawing"); }); 
-        }
-        
+        let reac: (undefined | IReactionDisposer) = undefined; 
+        let plotList: ([string, StrokeData] | undefined) = undefined; 
+        let listener = (e:PointerEvent) => {
+            if (reac){
+                reac(); 
+                let xPlots = new List<number>(); 
+                let yPlots = new List<number>(); 
+                let maxY = 0; 
+                let minY = Infinity; 
+                let pathData = plotList![1].pathData; 
+
+                for (let i = pathData.length - 1; i >= 0; i--) {
+                    let val = pathData[i];  
+                    if(val.y > maxY) {
+                        maxY = val.y; 
+                    } 
+                    if (val.y < minY) {
+                        minY = val.y; 
+                    }
+                    xPlots.push(val.x); 
+                    yPlots.push(val.y); 
+                }
+                this.regiondata.fadeInX = xPlots; 
+                this.regiondata.fadeInY = yPlots; 
+                this.regiondata.fadeInMaxY = maxY; 
+                this.regiondata.fadeInMinY = minY; 
+                this.inks!.delete(plotList![0]); 
+                document.removeEventListener("pointerup", listener); 
+                
+            }
+        }; 
+        let listenerCreated = false; 
+        reac = reaction(() => {
+            return this.inks;
+        }, data => {
+            plotList = Array.from(data!)[data!.size - 1]!;  
+            if (!listenerCreated) {
+                e.stopPropagation(); 
+                document.addEventListener("pointerup", listener); 
+                listenerCreated = true; 
+            }
+        }); 
     }
+
+
+
     render() {
         return (
             <div>
@@ -394,15 +435,15 @@ export class Keyframe extends React.Component<IProps> {
                     <div ref={this._fadeOutContainer}className="fadeOut-container" style={{right: `0px`, width: `${this.regiondata.fadeOut}px`}}
                     onPointerOver={(e) => {this.onContainerOver(e, this._fadeOutContainer); }}
                     onPointerOut ={(e) => {this.onContainerOut(e, this._fadeOutContainer);}}
-                    onPointerDown={(e) => {this.onContainerDown(e, this._fadeOutContainer); }}> </div> 
+                    onContextMenu={(e) => {this.onContainerDown(e, this._fadeOutContainer); }}> </div> 
                     <div ref={this._fadeInContainer}className="fadeIn-container" style={{left: "0px", width:`${this.regiondata.fadeIn}px`}}
                     onPointerOver={(e) => {this.onContainerOver(e, this._fadeInContainer); }}
                     onPointerOut ={(e) => {this.onContainerOut(e, this._fadeInContainer);}}
-                    onPointerDown={(e) => {this.onContainerDown(e, this._fadeInContainer); }}></div>
+                    onContextMenu={(e) => {this.onContainerDown(e, this._fadeInContainer); }}></div>
                     <div ref={this._bodyContainer}className="body-container" style={{left: `${this.regiondata.fadeIn}px`, width:`${this.regiondata.duration - this.regiondata.fadeIn - this.regiondata.fadeOut}px`}}
                     onPointerOver={(e) => {this.onContainerOver(e, this._bodyContainer); }}
                     onPointerOut ={(e) => {this.onContainerOut(e, this._bodyContainer);}}
-                    onPointerDown={(e) => {this.onContainerDown(e, this._bodyContainer); }}> </div>
+                    onContextMenu={(e) => {this.onContainerDown(e, this._bodyContainer); }}> </div>
                 </div>
             </div>
         );
