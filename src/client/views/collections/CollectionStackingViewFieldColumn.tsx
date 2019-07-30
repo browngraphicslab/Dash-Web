@@ -19,6 +19,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { ScriptField } from "../../../new_fields/ScriptField";
 import { CompileScript } from "../../util/Scripting";
 import { RichTextField } from "../../../new_fields/RichTextField";
+import { Transform } from "../../util/Transform";
 
 
 interface CSVFieldColumnProps {
@@ -30,6 +31,7 @@ interface CSVFieldColumnProps {
     parent: CollectionStackingView;
     type: "string" | "number" | "bigint" | "boolean" | "symbol" | "undefined" | "object" | "function" | undefined;
     createDropTarget: (ele: HTMLDivElement) => void;
+    screenToLocalTransform: () => Transform;
 }
 
 @observer
@@ -39,6 +41,8 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
     private _dropRef: HTMLDivElement | null = null;
     private dropDisposer?: DragManager.DragDropDisposer;
     private _headerRef: React.RefObject<HTMLDivElement> = React.createRef();
+    private _startDragPosition: { x: number, y: number } = { x: 0, y: 0 };
+    private _sensitivity: number = 16;
 
     @observable _heading = this.props.headingObject ? this.props.headingObject.heading : this.props.heading;
 
@@ -159,6 +163,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
     @action
     pointerLeave = () => {
         this._background = "white";
+        document.removeEventListener("pointermove", this.startDrag);
     }
 
     @action
@@ -180,22 +185,26 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
     }
 
     startDrag = (e: PointerEvent) => {
-        let alias = Doc.MakeAlias(this.props.parent.props.Document);
-        let key = StrCast(this.props.parent.props.Document.sectionFilter);
-        let value = this.getValue(this._heading);
-        value = typeof value === "string" ? `"${value}"` : value;
-        let script = `return doc.${key} === ${value}`;
-        let compiled = CompileScript(script, { params: { doc: Doc.name } });
-        if (compiled.compiled) {
-            let scriptField = new ScriptField(compiled);
-            alias.viewSpecScript = scriptField;
-            let dragData = new DragManager.DocumentDragData([alias], [alias.proto]);
-            DragManager.StartDocumentDrag([this._headerRef.current!], dragData, e.clientX, e.clientY);
-        }
+        let [dx, dy] = this.props.screenToLocalTransform().transformDirection(e.clientX - this._startDragPosition.x, e.clientY - this._startDragPosition.y);
+        if (Math.abs(dx) + Math.abs(dy) > this._sensitivity) {
+            console.log("start stack drag");
+            let alias = Doc.MakeAlias(this.props.parent.props.Document);
+            let key = StrCast(this.props.parent.props.Document.sectionFilter);
+            let value = this.getValue(this._heading);
+            value = typeof value === "string" ? `"${value}"` : value;
+            let script = `return doc.${key} === ${value}`;
+            let compiled = CompileScript(script, { params: { doc: Doc.name } });
+            if (compiled.compiled) {
+                let scriptField = new ScriptField(compiled);
+                alias.viewSpecScript = scriptField;
+                let dragData = new DragManager.DocumentDragData([alias], [alias.proto]);
+                DragManager.StartDocumentDrag([this._headerRef.current!], dragData, e.clientX, e.clientY);
+            }
 
-        e.stopPropagation();
-        document.removeEventListener("pointermove", this.startDrag);
-        document.removeEventListener("pointerup", this.pointerUp);
+            e.stopPropagation();
+            document.removeEventListener("pointermove", this.startDrag);
+            document.removeEventListener("pointerup", this.pointerUp);
+        }
     }
 
     pointerUp = (e: PointerEvent) => {
@@ -209,6 +218,9 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
     headerDown = (e: React.PointerEvent<HTMLDivElement>) => {
         e.stopPropagation();
         e.preventDefault();
+
+        let [dx, dy] = this.props.screenToLocalTransform().transformDirection(e.clientX, e.clientY);
+        this._startDragPosition = { x: dx, y: dy };
 
         document.removeEventListener("pointermove", this.startDrag);
         document.addEventListener("pointermove", this.startDrag);
