@@ -5,8 +5,6 @@ import { Docs } from "../documents/Documents";
 import { RouteStore } from "../../server/RouteStore";
 import { Utils } from "../../Utils";
 import { InkData } from "../../new_fields/InkField";
-import "microsoft-cognitiveservices-speech-sdk";
-import "fs";
 import { UndoManager } from "../util/UndoManager";
 
 type APIManager<D> = { converter: BodyConverter<D>, requester: RequestExecutor, analyzer: AnalysisApplier };
@@ -27,7 +25,7 @@ export type Rectangle = { top: number, left: number, width: number, height: numb
 export enum Service {
     ComputerVision = "vision",
     Face = "face",
-    Handwriting = "handwriting",
+    Handwriting = "handwriting"
 }
 
 export enum Confidence {
@@ -221,7 +219,7 @@ export namespace CognitiveServices {
 
     export namespace Transcription {
 
-        export const analyzer = (doc: Doc, keys: string[]) => {
+        export const analyzer = (target: Doc, keys: string[]) => {
             let { webkitSpeechRecognition }: CORE.IWindow = window as CORE.IWindow;
             let recognizer = new webkitSpeechRecognition();
             recognizer.interimResults = true;
@@ -229,7 +227,7 @@ export namespace CognitiveServices {
 
             recognizer.onresult = (e: any) => {
                 let result = e.results[0][0];
-                doc[keys[0]] = result.transcript;
+                target[keys[0]] = result.transcript;
             };
 
             recognizer.start();

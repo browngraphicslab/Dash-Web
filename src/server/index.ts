@@ -40,8 +40,6 @@ import { Search } from './Search';
 import { debug } from 'util';
 import _ = require('lodash');
 import { Response } from 'express-serve-static-core';
-import { AudioInputStream, AudioConfig, SpeechConfig, SpeechRecognizer, SpeechRecognitionResult } from 'microsoft-cognitiveservices-speech-sdk';
-import { Opt } from '../new_fields/Doc';
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const probe = require("probe-image-size");
@@ -299,7 +297,7 @@ addSecureRoute(
 const ServicesApiKeyMap = new Map<string, string | undefined>([
     ["face", process.env.FACE],
     ["vision", process.env.VISION],
-    ["handwriting", process.env.HANDWRITING],
+    ["handwriting", process.env.HANDWRITING]
 ]);
 
 addSecureRoute(Method.GET, (user, res, req) => {

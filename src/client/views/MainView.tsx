@@ -38,7 +38,6 @@ import { PreviewCursor } from './PreviewCursor';
 import { FilterBox } from './search/FilterBox';
 import { CollectionTreeView } from './collections/CollectionTreeView';
 import { ClientUtils } from '../util/ClientUtils';
-import { CognitiveServices } from '../cognitive_services/CognitiveServices';
 import { SchemaHeaderField, RandomPastel } from '../../new_fields/SchemaHeaderField';
 
 @observer
