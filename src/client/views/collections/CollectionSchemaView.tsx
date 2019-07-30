@@ -4,10 +4,10 @@ import { faCog, faPlus, faTable, faSortUp, faSortDown } from '@fortawesome/free-
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, trace, untracked } from "mobx";
 import { observer } from "mobx-react";
-import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults, TableCellRenderer, Column, RowInfo } from "react-table";
+import ReactTable, { CellInfo, ComponentPropsGetterR, Column, RowInfo, ResizedChangeFunction, Resize } from "react-table";
 import "react-table/react-table.css";
-import { emptyFunction, returnFalse, returnZero, returnOne } from "../../../Utils";
-import { Doc, DocListCast, DocListCastAsync, Field, FieldResult, Opt } from "../../../new_fields/Doc";
+import { emptyFunction, returnOne } from "../../../Utils";
+import { Doc, DocListCast, Field, Opt } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
@@ -17,28 +17,21 @@ import { Gateway } from "../../northstar/manager/Gateway";
 import { SetupDrag, DragManager } from "../../util/DragManager";
 import { CompileScript, ts, Transformer } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
-import { COLLECTION_BORDER_WIDTH, MAX_ROW_HEIGHT } from '../../views/globalCssVariables.scss';
+import { COLLECTION_BORDER_WIDTH } from '../../views/globalCssVariables.scss';
 import { ContextMenu } from "../ContextMenu";
-import { anchorPoints, Flyout } from "../DocumentDecorations";
 import '../DocumentDecorations.scss';
-import { EditableView } from "../EditableView";
 import { DocumentView } from "../nodes/DocumentView";
-import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import { CollectionPDFView } from "./CollectionPDFView";
 import "./CollectionSchemaView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
 import { undoBatch } from "../../util/UndoManager";
-import { timesSeries } from "async";
 import { CollectionSchemaHeader, CollectionSchemaAddColumnHeader } from "./CollectionSchemaHeaders";
 import { CellProps, CollectionSchemaCell, CollectionSchemaNumberCell, CollectionSchemaStringCell, CollectionSchemaBooleanCell, CollectionSchemaCheckboxCell, CollectionSchemaDocCell } from "./CollectionSchemaCells";
 import { MovableColumn, MovableRow } from "./CollectionSchemaMovableTableHOC";
-import { SelectionManager } from "../../util/SelectionManager";
-import { DocumentManager } from "../../util/DocumentManager";
-import { ImageBox } from "../nodes/ImageBox";
 import { ComputedField } from "../../../new_fields/ScriptField";
-import { SchemaHeaderField, RandomPastel } from "../../../new_fields/SchemaHeaderField";
+import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 
 
 library.add(faCog, faPlus, faSortUp, faSortDown);
@@ -51,7 +44,6 @@ export enum ColumnType {
     String,
     Boolean,
     Doc,
-    // Checkbox
 }
 // this map should be used for keys that should have a const type of value
 const columnTypes: Map<string, ColumnType> = new Map([
@@ -81,14 +73,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
         this._mainCont = ele;
         super.CreateDropTarget(ele);
     }
-
-    // detectClick = (e: PointerEvent): void => {
-    //     if (this._node && this._node.contains(e.target as Node)) {
-    //     } else {
-    //         this._isOpen = false;
-    //         this.props.setIsEditing(false);
-    //     }
-    // }
 
     isFocused = (doc: Doc): boolean => {
         if (!this.props.isSelected()) return false;
@@ -121,8 +105,11 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @action
     onDividerMove = (e: PointerEvent): void => {
         let nativeWidth = this._mainCont!.getBoundingClientRect();
-        this.props.Document.schemaPreviewWidth = Math.min(nativeWidth.right - nativeWidth.left - 40,
-            this.props.ScreenToLocalTransform().transformDirection(nativeWidth.right - e.clientX, 0)[0]);
+        let minWidth = 40;
+        let maxWidth = 1000;
+        let movedWidth = this.props.ScreenToLocalTransform().transformDirection(nativeWidth.right - e.clientX, 0)[0];
+        let width = movedWidth < minWidth ? minWidth : movedWidth > maxWidth ? maxWidth : movedWidth;
+        this.props.Document.schemaPreviewWidth = width;
     }
     @action
     onDividerUp = (e: PointerEvent): void => {
@@ -234,12 +221,11 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     render() {
         Doc.UpdateDocumentExtensionForField(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey);
-        // if (SelectionManager.SelectedDocuments().length > 0) console.log(StrCast(SelectionManager.SelectedDocuments()[0].Document.title));
-        // if (DocumentManager.Instance.getDocumentView(this.props.Document)) console.log(StrCast(this.props.Document.title), SelectionManager.IsSelected(DocumentManager.Instance.getDocumentView(this.props.Document)!))
         return (
-            <div className="collectionSchemaView-container"
-                onPointerDown={this.onPointerDown} onWheel={this.onWheel} onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createTarget}>
-                {this.schemaTable}
+            <div className="collectionSchemaView-container" style={{ height: this.props.chromeCollapsed ? "100%" : "calc(100% - 70px", marginTop: this.props.chromeCollapsed ? "0" : "70px", transition: "all .5s" }}>
+                <div className="collectionSchemaView-tableContainer" onPointerDown={this.onPointerDown} onWheel={this.onWheel} onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createTarget}>
+                    {this.schemaTable}
+                </div>
                 {this.dividerDragger}
                 {!this.previewWidth() ? (null) : this.previewPanel}
             </div>
@@ -260,7 +246,6 @@ export interface SchemaTableProps {
     deleteDocument: (document: Doc) => boolean;
     moveDocument: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
-    // CreateDropTarget: (ele: HTMLDivElement)=> void; // super createdriotarget
     active: () => boolean;
     onDrop: (e: React.DragEvent<Element>, options: DocumentOptions, completed?: (() => void) | undefined) => void;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
@@ -272,24 +257,24 @@ export interface SchemaTableProps {
 
 @observer
 export class SchemaTable extends React.Component<SchemaTableProps> {
-    // private _mainCont?: HTMLDivElement;
     private DIVIDER_WIDTH = 4;
 
     @observable _headerIsEditing: boolean = false;
     @observable _cellIsEditing: boolean = false;
     @observable _focusedCell: { row: number, col: number } = { row: 0, col: 0 };
-    @observable _sortedColumns: Map<string, { id: string, desc: boolean }> = new Map();
     @observable _openCollections: Array<string> = [];
-    @observable _textWrappedRows: Array<string> = [];
-    @observable private _node: HTMLDivElement | null = null;
 
     @computed get previewWidth() { return () => NumCast(this.props.Document.schemaPreviewWidth); }
     @computed get previewHeight() { return () => this.props.PanelHeight() - 2 * this.borderWidth; }
     @computed get tableWidth() { return this.props.PanelWidth() - 2 * this.borderWidth - this.DIVIDER_WIDTH - this.previewWidth(); }
+
     @computed get columns() {
-        console.log("columns");
         return Cast(this.props.Document.schemaColumns, listSpec(SchemaHeaderField), []);
     }
+    set columns(columns: SchemaHeaderField[]) {
+        this.props.Document.schemaColumns = new List<SchemaHeaderField>(columns);
+    }
+
     @computed get childDocs() {
         if (this.props.childDocs) return this.props.childDocs;
 
@@ -300,7 +285,32 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         let doc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
         doc[this.props.fieldKey] = new List<Doc>(docs);
     }
-    set columns(columns: SchemaHeaderField[]) { this.props.Document.schemaColumns = new List<SchemaHeaderField>(columns); }
+
+    @computed get textWrappedRows() {
+        return Cast(this.props.Document.textwrappedSchemaRows, listSpec("string"), []);
+    }
+    set textWrappedRows(textWrappedRows: string[]) {
+        this.props.Document.textwrappedSchemaRows = new List<string>(textWrappedRows);
+    }
+
+    @computed get resized(): { "id": string, "value": number }[] {
+        return this.columns.reduce((resized, shf) => {
+            if (shf.width > -1) {
+                resized.push({ "id": shf.heading, "value": shf.width });
+            }
+            return resized;
+        }, [] as { "id": string, "value": number }[]);
+    }
+
+    @computed get sorted(): { "id": string, "desc": boolean }[] {
+        return this.columns.reduce((sorted, shf) => {
+            if (shf.desc) {
+                sorted.push({ "id": shf.heading, "desc": shf.desc });
+            }
+            return sorted;
+        }, [] as { "id": string, "desc": boolean }[]);
+    }
+
     @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }
     @computed get tableColumns(): Column<Doc>[] {
         let possibleKeys = this.documentKeys.filter(key => this.columns.findIndex(existingKey => existingKey.heading.toUpperCase() === key.toUpperCase()) === -1);
@@ -310,8 +320,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         let focusedCol = this._focusedCell.col;
         let isEditable = !this._headerIsEditing;// && this.props.isSelected();
 
-        // let cdoc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
-        // let children = DocListCast(cdoc[this.props.fieldKey]);
         let children = this.childDocs;
 
         if (children.reduce((found, doc) => found || doc.type === "collection", false)) {
@@ -344,7 +352,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                 deleteColumn={this.deleteColumn}
                 setColumnType={this.setColumnType}
                 setColumnSort={this.setColumnSort}
-                removeColumnSort={this.removeColumnSort}
+                setColumnColor={this.setColumnColor}
             />;
 
             return {
@@ -399,25 +407,11 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         return columns;
     }
 
-    // onHeaderDrag = (columnName: string) => {
-    //     let schemaDoc = Cast(this.props.Document.schemaDoc, Doc);
-    //     if (schemaDoc instanceof Doc) {
-    //         let columnDocs = DocListCast(schemaDoc.data);
-    //         if (columnDocs) {
-    //             let ddoc = columnDocs.find(doc => doc.title === columnName);
-    //             if (ddoc) {
-    //                 return ddoc;
-    //             }
-    //         }
-    //     }
-    //     return this.props.Document;  
-    // }
     constructor(props: SchemaTableProps) {
         super(props);
         // convert old schema columns (list of strings) into new schema columns (list of schema header fields)
         let oldSchemaColumns = Cast(this.props.Document.schemaColumns, listSpec("string"), []);
         if (oldSchemaColumns && oldSchemaColumns.length && typeof oldSchemaColumns[0] !== "object") {
-            console.log("REMAKING COLUMNs");
             let newSchemaColumns = oldSchemaColumns.map(i => typeof i === "string" ? new SchemaHeaderField(i, "#f1efeb") : i);
             this.props.Document.schemaColumns = new List<SchemaHeaderField>(newSchemaColumns);
         }
@@ -436,8 +430,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     tableRemoveDoc = (document: Doc): boolean => {
-        // let doc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
-        // let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
+
         let children = this.childDocs;
         if (children.indexOf(document) !== -1) {
             children.splice(children.indexOf(document), 1);
@@ -456,11 +449,10 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             ScreenToLocalTransform: this.props.ScreenToLocalTransform,
             addDoc: this.tableAddDoc,
             removeDoc: this.tableRemoveDoc,
-            // removeDoc: this.props.deleteDocument,
             rowInfo,
             rowFocused: !this._headerIsEditing && rowInfo.index === this._focusedCell.row && this.props.isFocused(this.props.Document),
-            textWrapRow: this.textWrapRow,
-            rowWrapped: this._textWrappedRows.findIndex(id => rowInfo.original[Id] === id) > -1
+            textWrapRow: this.toggleTextWrapRow,
+            rowWrapped: this.textWrappedRows.findIndex(id => rowInfo.original[Id] === id) > -1
         };
     }
 
@@ -471,28 +463,15 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         let row = rowInfo.index;
         //@ts-ignore
         let col = this.columns.map(c => c.heading).indexOf(column!.id);
-        // let col = column ? this.columns.indexOf(column!) : -1;
         let isFocused = this._focusedCell.row === row && this._focusedCell.col === col && this.props.isFocused(this.props.Document);
-        // let column = this.columns.indexOf(column.id!);
+        let isEditing = this.props.isFocused(this.props.Document) && this._cellIsEditing;
+        // TODO: editing border doesn't work :(
         return {
             style: {
                 border: !this._headerIsEditing && isFocused ? "2px solid rgb(255, 160, 160)" : "1px solid #f1efeb"
             }
         };
     }
-
-    // private createTarget = (ele: HTMLDivElement) => {
-    //     this._mainCont = ele;
-    //     this.props.CreateDropTarget(ele);
-    // }
-
-    // detectClick = (e: PointerEvent): void => {
-    //     if (this._node && this._node.contains(e.target as Node)) {
-    //     } else {
-    //         this._isOpen = false;
-    //         this.props.setIsEditing(false);
-    //     }
-    // }
 
     @action
     onExpandCollection = (collection: Doc): void => {
@@ -533,8 +512,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             let direction = e.key === "Tab" ? "tab" : e.which === 39 ? "right" : e.which === 37 ? "left" : e.which === 38 ? "up" : e.which === 40 ? "down" : "";
             this.changeFocusedCellByDirection(direction);
 
-            // let doc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
-            // let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
             let children = this.childDocs;
             const pdoc = FieldValue(children[this._focusedCell.row]);
             pdoc && this.props.setPreviewDoc(pdoc);
@@ -543,8 +520,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     @action
     changeFocusedCellByDirection = (direction: string): void => {
-        // let doc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
-        // let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
         let children = this.childDocs;
         switch (direction) {
             case "tab":
@@ -569,81 +544,73 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                 this._focusedCell = { row: this._focusedCell.row + 1 === children.length ? this._focusedCell.row : this._focusedCell.row + 1, col: this._focusedCell.col };
                 break;
         }
-        // const pdoc = FieldValue(children[this._focusedCell.row]);
-        // pdoc && this.props.setPreviewDoc(pdoc);
     }
 
     @action
     changeFocusedCellByIndex = (row: number, col: number): void => {
-        // let doc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
-        // let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
-
         this._focusedCell = { row: row, col: col };
         this.props.setFocused(this.props.Document);
-
-        // const fdoc = FieldValue(children[this._focusedCell.row]);
-        // fdoc && this.props.setPreviewDoc(fdoc);
     }
 
     createRow = () => {
-        // let doc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
-        // let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
         let children = this.childDocs;
 
         let newDoc = Docs.Create.TextDocument({ width: 100, height: 30 });
         let proto = Doc.GetProto(newDoc);
         proto.title = "";
         children.push(newDoc);
+
         this.childDocs = children;
     }
 
     @action
     createColumn = () => {
         let index = 0;
-        let found = this.columns.findIndex(col => col.heading.toUpperCase() === "New field".toUpperCase()) > -1;
+        let columns = this.columns;
+        let found = columns.findIndex(col => col.heading.toUpperCase() === "New field".toUpperCase()) > -1;
         if (!found) {
-            console.log("create column found");
-            this.columns.push(new SchemaHeaderField("New field", "#f1efeb"));
+            columns.push(new SchemaHeaderField("New field", "#f1efeb"));
+            this.columns = columns;
             return;
         }
         while (found) {
             index++;
-            found = this.columns.findIndex(col => col.heading.toUpperCase() === ("New field (" + index + ")").toUpperCase()) > -1;
+            found = columns.findIndex(col => col.heading.toUpperCase() === ("New field (" + index + ")").toUpperCase()) > -1;
         }
-        console.log("create column new");
-        this.columns.push(new SchemaHeaderField("New field (" + index + ")", "#f1efeb"));
+        columns.push(new SchemaHeaderField("New field (" + index + ")", "#f1efeb"));
+        this.columns = columns;
     }
 
     @action
     deleteColumn = (key: string) => {
-        console.log("deleting columnnn");
-        let list = Cast(this.props.Document.schemaColumns, listSpec(SchemaHeaderField));
-        if (list === undefined) {
-            console.log("delete column");
-            this.props.Document.schemaColumns = list = new List<SchemaHeaderField>([]);
+        let columns = this.columns;
+        if (columns === undefined) {
+            this.columns = new List<SchemaHeaderField>([]);
         } else {
-            const index = list.map(c => c.heading).indexOf(key);
+            const index = columns.map(c => c.heading).indexOf(key);
             if (index > -1) {
-                list.splice(index, 1);
+                columns.splice(index, 1);
+                this.columns = columns;
             }
         }
     }
 
     @action
     changeColumns = (oldKey: string, newKey: string, addNew: boolean) => {
-        console.log("changingin columnsdfhs");
-        let list = Cast(this.props.Document.schemaColumns, listSpec(SchemaHeaderField));
-        if (list === undefined) {
-            console.log("change columns new");
-            this.props.Document.schemaColumns = list = new List<SchemaHeaderField>([new SchemaHeaderField(newKey, "f1efeb")]);
+        let columns = this.columns;
+        if (columns === undefined) {
+            this.columns = new List<SchemaHeaderField>([new SchemaHeaderField(newKey, "f1efeb")]);
         } else {
-            console.log("change column");
             if (addNew) {
-                this.columns.push(new SchemaHeaderField(newKey, "f1efeb"));
+                columns.push(new SchemaHeaderField(newKey, "f1efeb"));
+                this.columns = columns;
             } else {
-                const index = list.map(c => c.heading).indexOf(oldKey);
+                const index = columns.map(c => c.heading).indexOf(oldKey);
                 if (index > -1) {
-                    list[index] = new SchemaHeaderField(newKey, "f1efeb");
+                    let column = columns[index];
+                    column.setHeading(newKey);
+                    columns[index] = column;
+                    this.columns = columns;
                 }
             }
         }
@@ -667,16 +634,35 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         return NumCast(typesDoc[column.heading]);
     }
 
-    setColumnType = (key: string, type: ColumnType): void => {
-        if (columnTypes.get(key)) return;
-        const typesDoc = FieldValue(Cast(this.props.Document.schemaColumnTypes, Doc));
-        if (!typesDoc) {
-            let newTypesDoc = new Doc();
-            newTypesDoc[key] = type;
-            this.props.Document.schemaColumnTypes = newTypesDoc;
-            return;
-        } else {
-            typesDoc[key] = type;
+    setColumnType = (columnField: SchemaHeaderField, type: ColumnType): void => {
+        if (columnTypes.get(columnField.heading)) return;
+
+        let columns = this.columns;
+        let index = columns.indexOf(columnField);
+        if (index > -1) {
+            columnField.setType(NumCast(type));
+            columns[index] = columnField;
+            this.columns = columns;
+        }
+
+        // const typesDoc = FieldValue(Cast(this.props.Document.schemaColumnTypes, Doc));
+        // if (!typesDoc) {
+        //     let newTypesDoc = new Doc();
+        //     newTypesDoc[key] = type;
+        //     this.props.Document.schemaColumnTypes = newTypesDoc;
+        //     return;
+        // } else {
+        //     typesDoc[key] = type;
+        // }
+    }
+
+    setColumnColor = (columnField: SchemaHeaderField, color: string): void => {
+        let columns = this.columns;
+        let index = columns.indexOf(columnField);
+        if (index > -1) {
+            columnField.setColor(color);
+            columns[index] = columnField;
+            this.columns = columns; // need to set the columns to trigger rerender
         }
     }
 
@@ -694,23 +680,21 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         if (oldIndex === newIndex) return;
 
         columns.splice(newIndex, 0, columns.splice(oldIndex, 1)[0]);
-        this.setColumns(columns);
+        this.columns = columns;
     }
 
     @action
-    setColumnSort = (column: string, descending: boolean) => {
-        this._sortedColumns.set(column, { id: column, desc: descending });
-    }
-
-    @action
-    removeColumnSort = (column: string) => {
-        this._sortedColumns.delete(column);
+    setColumnSort = (columnField: SchemaHeaderField, descending: boolean | undefined) => {
+        let columns = this.columns;
+        let index = columns.findIndex(c => c.heading === columnField.heading);
+        let column = columns[index];
+        column.setDesc(descending);
+        columns[index] = column;
+        this.columns = columns;
     }
 
     get documentKeys() {
-        const docs = DocListCast(this.props.Document[this.props.fieldKey]);
-
-        // let docs = this.childDocs;
+        let docs = this.childDocs;
         let keys: { [key: string]: boolean } = {};
         // bcz: ugh.  this is untracked since otherwise a large collection of documents will blast the server for all their fields.
         //  then as each document's fields come back, we update the documents _proxies.  Each time we do this, the whole schema will be
@@ -725,33 +709,31 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     @action
-    textWrapRow = (doc: Doc): void => {
-        let index = this._textWrappedRows.findIndex(id => doc[Id] === id);
+    toggleTextWrapRow = (doc: Doc): void => {
+        let textWrapped = this.textWrappedRows;
+        let index = textWrapped.findIndex(id => doc[Id] === id);
+
         if (index > -1) {
-            this._textWrappedRows.splice(index, 1);
+            textWrapped.splice(index, 1);
         } else {
-            this._textWrappedRows.push(doc[Id]);
+            textWrapped.push(doc[Id]);
         }
 
+        this.textWrappedRows = textWrapped;
     }
 
     @computed
     get reactTable() {
-
-        // let cdoc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
-        // let children = DocListCast(cdoc[this.props.fieldKey]);
         let children = this.childDocs;
-
-        let previewWidth = this.previewWidth(); // + 2 * this.borderWidth + this.DIVIDER_WIDTH + 1;
         let hasCollectionChild = children.reduce((found, doc) => found || doc.type === "collection", false);
         let expandedRowsList = this._openCollections.map(col => children.findIndex(doc => doc[Id] === col).toString());
         let expanded = {};
         //@ts-ignore
         expandedRowsList.forEach(row => expanded[row] = true);
-        console.log(...[...this._textWrappedRows]); // TODO: get component to rerender on text wrap change without needign to console.log :((((
+        console.log("text wrapped rows", ...[...this.textWrappedRows]); // TODO: get component to rerender on text wrap change without needign to console.log :((((
 
         return <ReactTable
-            style={{ position: "relative", float: "left", width: `calc(100% - ${previewWidth}px` }}
+            style={{ position: "relative" }}
             data={children}
             page={0}
             pageSize={children.length}
@@ -761,18 +743,30 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             getTdProps={this.getTdProps}
             sortable={false}
             TrComponent={MovableRow}
-            sorted={Array.from(this._sortedColumns.values())}
+            sorted={this.sorted}
             expanded={expanded}
+            resized={this.resized}
+            onResizedChange={this.onResizedChange}
             SubComponent={hasCollectionChild ?
                 row => {
                     if (row.original.type === "collection") {
-                        // let childDocs = DocListCast(row.original[this.props.fieldKey]);
                         return <div className="sub"><SchemaTable {...this.props} Document={row.original} childDocs={undefined} /></div>;
                     }
                 }
                 : undefined}
 
         />;
+    }
+
+    onResizedChange = (newResized: Resize[], event: any) => {
+        let columns = this.columns;
+        newResized.forEach(resized => {
+            let index = columns.findIndex(c => c.heading === resized.id);
+            let column = columns[index];
+            column.setWidth(resized.value);
+            columns[index] = column;
+        });
+        this.columns = columns;
     }
 
     onContextMenu = (e: React.MouseEvent): void => {
@@ -786,8 +780,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         let csv: string = this.columns.reduce((val, col) => val + col + ",", "");
         csv = csv.substr(0, csv.length - 1) + "\n";
         let self = this;
-        let cdoc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
-        // let children = DocListCast(cdoc[this.props.fieldKey]);
         this.childDocs.map(doc => {
             csv += self.columns.reduce((val, col) => val + (doc[col.heading] ? doc[col.heading]!.toString() : "0") + ",", "");
             csv = csv.substr(0, csv.length - 1) + "\n";
@@ -805,11 +797,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     getField = (row: number, col?: number) => {
-        // const docs = DocListCast(this.props.Document[this.props.fieldKey]);
-
-        let cdoc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
-        const docs = DocListCast(cdoc[this.props.fieldKey]);
-        // let docs = this.childDocs;
+        let docs = this.childDocs;
 
         row = row % docs.length;
         while (row < 0) row += docs.length;
@@ -881,13 +869,11 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     render() {
-        // if (SelectionManager.SelectedDocuments().length > 0) console.log(StrCast(SelectionManager.SelectedDocuments()[0].Document.title));
-        // if (DocumentManager.Instance.getDocumentView(this.props.Document)) console.log(StrCast(this.props.Document.title), SelectionManager.IsSelected(DocumentManager.Instance.getDocumentView(this.props.Document)!))
         return (
             <div className="collectionSchemaView-table" onPointerDown={this.onPointerDown} onWheel={this.onWheel}
                 onDrop={(e: React.DragEvent) => this.props.onDrop(e, {})} onContextMenu={this.onContextMenu} >
                 {this.reactTable}
-                <button onClick={() => this.createRow()}>new row</button>
+                <div className="collectionSchemaView-addRow" onClick={() => this.createRow()}>+ new</div>
             </div>
         );
     }

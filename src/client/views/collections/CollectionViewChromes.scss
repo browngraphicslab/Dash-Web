@@ -170,3 +170,54 @@
         }
     }
 }
+
+.collectionSchemaViewChrome-cont {
+    display: flex;
+    font-size: 10.5px;
+
+    .collectionSchemaViewChrome-toggle {
+        display: flex;
+        margin-left: 10px;
+    }
+
+    .collectionSchemaViewChrome-label {
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-right: 5px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .collectionSchemaViewChrome-toggler {
+        width: 100px;
+        height: 41px;
+        background-color: black;
+        position: relative;
+    }
+
+    .collectionSchemaViewChrome-togglerButton {
+        width: 47px;
+        height: 35px;
+        background-color: $light-color-secondary;
+        // position: absolute;
+        transition: all 0.5s ease;
+        // top: 3px;
+        margin-top: 3px;
+        color: gray;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        text-align: center;
+
+        &.on {
+            margin-left: 3px;
+        }
+
+        &.off {
+            margin-left: 50px;
+        }
+    }
+}

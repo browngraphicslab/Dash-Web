@@ -248,7 +248,10 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             docList={docList}
             parent={this}
             type={type}
-            createDropTarget={this.createDropTarget} />;
+            createDropTarget={this.createDropTarget}
+            screenToLocalTransform={this.props.ScreenToLocalTransform}
+        />;
+
     }
 
     @action
