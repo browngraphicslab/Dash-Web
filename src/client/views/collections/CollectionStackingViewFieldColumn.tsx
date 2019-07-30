@@ -14,12 +14,17 @@ import { DocumentManager } from "../../util/DocumentManager";
 import { SelectionManager } from "../../util/SelectionManager";
 import "./CollectionStackingView.scss";
 import { Docs } from "../../documents/Documents";
-import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
+import { SchemaHeaderField, PastelSchemaPalette } from "../../../new_fields/SchemaHeaderField";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { ScriptField } from "../../../new_fields/ScriptField";
 import { CompileScript } from "../../util/Scripting";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { Transform } from "../../util/Transform";
+import { Flyout, anchorPoints } from "../DocumentDecorations";
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { faPalette } from '@fortawesome/free-solid-svg-icons';
+
+library.add(faPalette);
 
 
 interface CSVFieldColumnProps {
@@ -45,6 +50,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
     private _sensitivity: number = 16;
 
     @observable _heading = this.props.headingObject ? this.props.headingObject.heading : this.props.heading;
+    @observable _color = this.props.headingObject ? this.props.headingObject.color : "#f1efeb";
 
     createColumnDropRef = (ele: HTMLDivElement | null) => {
         this._dropRef = ele;
@@ -154,6 +160,14 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
     }
 
     @action
+    changeColumnColor = (color: string) => {
+        if (this.props.headingObject) {
+            this.props.headingObject.setColor(color);
+            this._color = color;
+        }
+    }
+
+    @action
     pointerEntered = () => {
         if (SelectionManager.GetIsDragging()) {
             this._background = "#b4b4b4";
@@ -227,6 +241,36 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         document.addEventListener("pointerup", this.pointerUp);
     }
 
+    renderColorPicker = () => {
+        let selected = this.props.headingObject ? this.props.headingObject.color : "#f1efeb";
+
+        let pink = PastelSchemaPalette.get("pink2");
+        let purple = PastelSchemaPalette.get("purple4");
+        let blue = PastelSchemaPalette.get("bluegreen1");
+        let yellow = PastelSchemaPalette.get("yellow4");
+        let red = PastelSchemaPalette.get("red2");
+        let green = PastelSchemaPalette.get("bluegreen7");
+        let cyan = PastelSchemaPalette.get("bluegreen5");
+        let orange = PastelSchemaPalette.get("orange1");
+        let gray = "#f1efeb";
+
+        return (
+            <div className="collectionStackingView-colorPicker">
+                <div className="colorOptions">
+                    <div className={"colorPicker" + (selected === pink ? " active" : "")} style={{ backgroundColor: pink }} onClick={() => this.changeColumnColor(pink!)}></div>
+                    <div className={"colorPicker" + (selected === purple ? " active" : "")} style={{ backgroundColor: purple }} onClick={() => this.changeColumnColor(purple!)}></div>
+                    <div className={"colorPicker" + (selected === blue ? " active" : "")} style={{ backgroundColor: blue }} onClick={() => this.changeColumnColor(blue!)}></div>
+                    <div className={"colorPicker" + (selected === yellow ? " active" : "")} style={{ backgroundColor: yellow }} onClick={() => this.changeColumnColor(yellow!)}></div>
+                    <div className={"colorPicker" + (selected === red ? " active" : "")} style={{ backgroundColor: red }} onClick={() => this.changeColumnColor(red!)}></div>
+                    <div className={"colorPicker" + (selected === gray ? " active" : "")} style={{ backgroundColor: gray }} onClick={() => this.changeColumnColor(gray)}></div>
+                    <div className={"colorPicker" + (selected === green ? " active" : "")} style={{ backgroundColor: green }} onClick={() => this.changeColumnColor(green!)}></div>
+                    <div className={"colorPicker" + (selected === cyan ? " active" : "")} style={{ backgroundColor: cyan }} onClick={() => this.changeColumnColor(cyan!)}></div>
+                    <div className={"colorPicker" + (selected === orange ? " active" : "")} style={{ backgroundColor: orange }} onClick={() => this.changeColumnColor(orange!)}></div>
+                </div>
+            </div>
+        );
+    }
+
     render() {
         let cols = this.props.cols();
         let key = StrCast(this.props.parent.props.Document.sectionFilter);
@@ -262,11 +306,19 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                         `Documents that don't have a ${key} value will go here. This column cannot be removed.` : ""}
                     style={{
                         width: "100%",
-                        background: this.props.headingObject && evContents !== `NO ${key.toUpperCase()} VALUE` ?
-                            this.props.headingObject.color : "lightgrey",
+                        background: evContents !== `NO ${key.toUpperCase()} VALUE` ? this._color : "lightgrey",
                         color: "grey"
                     }}>
                     <EditableView {...headerEditableViewProps} />
+                    {evContents === `NO ${key.toUpperCase()} VALUE` ? (null) :
+                        <div className="collectionStackingView-sectionColor">
+                            <Flyout anchorPoint={anchorPoints.TOP_CENTER} content={this.renderColorPicker()}>
+                                <button className="collectionStackingView-sectionColorButton">
+                                    <FontAwesomeIcon icon="palette" size="sm" />
+                                </button>
+                            </ Flyout >
+                        </div>
+                    }
                     {evContents === `NO ${key.toUpperCase()} VALUE` ?
                         (null) :
                         <button className="collectionStackingView-sectionDelete" onClick={this.deleteColumn}>
