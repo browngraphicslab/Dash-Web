@@ -890,18 +890,6 @@ export class PresentationView extends React.Component<PresViewProps>  {
     }
 
     /**
-     * This function gets triggered on click of the dragger. It opens up the
-     * presentation view, if it was closed beforehand.
-     */
-    togglePresView = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        e.preventDefault();
-        let width = NumCast(this.curPresentation.width);
-        if (width === 0) {
-            this.curPresentation.width = presMinWidth;
-        }
-    }
-    /**
      * This function is a setter that opens up the 
      * presentation mode, by setting it's render flag
      * to true. It also closes the presentation view.
