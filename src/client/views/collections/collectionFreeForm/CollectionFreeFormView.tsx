@@ -65,8 +65,20 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return (this.props as any).ContentScaling && this.fitToBox && !this.isAnnotationOverlay ? (this.props as any).ContentScaling() : 1;
     }
 
+    ComputeContentBounds(boundsList: { x: number, y: number, width: number, height: number }[]) {
+        let bounds = boundsList.reduce((bounds, b) => {
+            var [sptX, sptY] = [b.x, b.y];
+            let [bptX, bptY] = [sptX + b.width, sptY + b.height];
+            return {
+                x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
+                r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)
+            };
+        }, { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: -Number.MAX_VALUE, b: -Number.MAX_VALUE });
+        return bounds;
+    }
+
     @computed get contentBounds() {
-        let bounds = this.fitToBox && !this.isAnnotationOverlay ? Doc.ComputeContentBounds(DocListCast(this.props.Document.data)) : undefined;
+        let bounds = this.fitToBox && !this.isAnnotationOverlay ? this.ComputeContentBounds(this.elements.filter(e => e.bounds).map(e => e.bounds!)) : undefined;
         return {
             panX: bounds ? (bounds.x + bounds.r) / 2 : this.Document.panX || 0,
             panY: bounds ? (bounds.y + bounds.b) / 2 : this.Document.panY || 0,
@@ -446,13 +458,13 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     @computed.struct
-    get views() {
+    get elements() {
         let curPage = FieldValue(this.Document.curPage, -1);
         const initScript = this.Document.arrangeInit;
         const script = this.Document.arrangeScript;
         let state: any = undefined;
         const docs = this.childDocs;
-        let elements: JSX.Element[] = [];
+        let elements: { ele: JSX.Element, bounds?: { x: number, y: number, width: number, height: number } }[] = [];
         if (initScript) {
             const initResult = initScript.script.run({ docs, collection: this.Document });
             if (initResult.success) {
@@ -460,23 +472,26 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 const { state: scriptState, views } = result;
                 state = scriptState;
                 if (Array.isArray(views)) {
-                    elements = views.reduce<JSX.Element[]>((prev, ele) => {
+                    elements = views.reduce((prev, ele) => {
                         const jsx = this.viewDefToJSX(ele);
-                        jsx && prev.push(jsx);
+                        jsx && prev.push({ ele: jsx });
                         return prev;
                     }, elements);
                 }
             }
         }
-        let docviews = docs.reduce((prev, doc) => {
-            if (!(doc instanceof Doc)) return prev;
+        let docviews = docs.filter(doc => doc instanceof Doc).reduce((prev, doc) => {
             var page = NumCast(doc.page, -1);
+            let bounds: { x?: number, y?: number, width?: number, height?: number };
             if ((Math.abs(Math.round(page) - Math.round(curPage)) < 3) || page === -1) {
                 let minim = BoolCast(doc.isMinimized);
                 if (minim === undefined || !minim) {
                     const pos = script ? this.getCalculatedPositions(script, { doc, index: prev.length, collection: this.Document, docs, state }) : {};
                     state = pos.state === undefined ? state : pos.state;
-                    prev.push(<CollectionFreeFormDocumentView key={doc[Id]} x={pos.x} y={pos.y} width={pos.width} height={pos.height} {...this.getChildDocumentViewProps(doc)} />);
+                    prev.push({
+                        ele: <CollectionFreeFormDocumentView key={doc[Id]} x={pos.x} y={pos.y} width={pos.width} height={pos.height} {...this.getChildDocumentViewProps(doc)} />,
+                        bounds: (pos.x !== undefined && pos.y !== undefined && pos.width !== undefined && pos.height !== undefined) ? { x: pos.x, y: pos.y, width: pos.width, height: pos.height } : undefined
+                    });
                 }
             }
             return prev;
@@ -485,6 +500,11 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         setTimeout(() => this._selectOnLoaded = "", 600);// bcz: surely there must be a better way ....
 
         return docviews;
+    }
+
+    @computed.struct
+    get views() {
+        return this.elements.map(ele => ele.ele);
     }
 
     @action
