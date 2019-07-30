@@ -126,6 +126,29 @@ export class Database {
         }
     }
 
+    public async visit(ids: string[], fn: (result: any) => string[], collectionName = "newDocuments") {
+        if (this.db) {
+            const visited = new Set<string>();
+            while (ids.length) {
+                const count = Math.min(ids.length, 1000);
+                const index = ids.length - count;
+                const fetchIds = ids.splice(index, count).filter(id => !visited.has(id));
+                if (!fetchIds.length) {
+                    continue;
+                }
+                const docs = await new Promise<{ [key: string]: any }[]>(res => Database.Instance.getDocuments(fetchIds, res, "newDocuments"));
+                for (const doc of docs) {
+                    const id = doc.id;
+                    visited.add(id);
+                    ids.push(...fn(doc));
+                }
+            }
+
+        } else {
+            this.onConnect.push(() => this.visit(ids, fn, collectionName));
+        }
+    }
+
     public query(query: { [key: string]: any }, projection?: { [key: string]: 0 | 1 }, collectionName = "newDocuments"): Promise<mongodb.Cursor> {
         if (this.db) {
             let cursor = this.db.collection(collectionName).find(query);

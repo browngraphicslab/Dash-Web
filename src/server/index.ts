@@ -177,6 +177,75 @@ function msToTime(duration: number) {
     return hoursS + ":" + minutesS + ":" + secondsS + "." + milliseconds;
 }
 
+app.get("/serializeDoc/:docId", async (req, res) => {
+    const files: { [name: string]: string[] } = {};
+    const docs: { [id: string]: any } = {};
+    const fn = (doc: any): string[] => {
+        const ids: string[] = [];
+        for (const key in doc) {
+            if (!doc.hasOwnProperty(key)) {
+                continue;
+            }
+            const field = doc[key];
+            if (field === undefined || field === null) {
+                continue;
+            }
+
+            if (field.__type === "proxy" || field.__type === "prefetch_proxy") {
+                ids.push(field.fieldId);
+            } else if (field.__type === "list") {
+                ids.push(...fn(field.fields));
+            } else if (typeof field === "string") {
+                const re = /"(?:dataD|d)ocumentId"\s*:\s*"([\w\-]*)"/g;
+                let match: string[] | null;
+                while ((match = re.exec(field)) !== null) {
+                    ids.push(match[1]);
+                }
+            } else if (field.__type === "RichTextField") {
+                const re = /"href"\s*:\s*"(.*?)"/g;
+                let match: string[] | null;
+                while ((match = re.exec(field.Data)) !== null) {
+                    const urlString = match[1];
+                    const split = new URL(urlString).pathname.split("doc/");
+                    if (split.length > 1) {
+                        ids.push(split[split.length - 1]);
+                    }
+                }
+                const re2 = /"src"\s*:\s*"(.*?)"/g;
+                while ((match = re2.exec(field.Data)) !== null) {
+                    const urlString = match[1];
+                    const pathname = new URL(urlString).pathname;
+                    const ext = path.extname(pathname);
+                    const fileName = path.basename(pathname, ext);
+                    let exts = files[fileName];
+                    if (!exts) {
+                        files[fileName] = exts = [];
+                    }
+                    exts.push(ext);
+                }
+            } else if (["audio", "image", "video", "pdf", "web"].includes(field.__type)) {
+                const url = new URL(field.url);
+                const pathname = url.pathname;
+                const ext = path.extname(pathname);
+                const fileName = path.basename(pathname, ext);
+                let exts = files[fileName];
+                if (!exts) {
+                    files[fileName] = exts = [];
+                }
+                exts.push(ext);
+            }
+        }
+
+        docs[doc.id] = doc;
+        return ids;
+    };
+    Database.Instance.visit([req.params.docId], fn);
+});
+
+app.get("/downloadId/:docId", (req, res) => {
+    res.download(`/serializeDoc/${req.params.docId}`, `DocumentExport.zip`);
+});
+
 app.get("/whosOnline", (req, res) => {
     let users: any = { active: {}, inactive: {} };
     const now = Date.now();
