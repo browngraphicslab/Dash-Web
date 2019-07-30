@@ -9,17 +9,14 @@ import { Id } from '../../../new_fields/FieldSymbols';
 import { DocumentType } from '../../documents/Documents';
 import { Cast, StrCast } from '../../../new_fields/Types';
 import * as _ from "lodash";
-import { ToggleBar } from './ToggleBar';
 import { IconBar } from './IconBar';
 import { FieldFilters } from './FieldFilters';
 import { SelectionManager } from '../../util/SelectionManager';
 import { DocumentView } from '../nodes/DocumentView';
 import { CollectionFilters } from './CollectionFilters';
-// import { NaviconButton } from './NaviconButton';
 import * as $ from 'jquery';
 import "./FilterBox.scss";
 import { SearchBox } from './SearchBox';
-import { RequiredWordsFilter } from './RequiredWordsFilters';
 
 library.add(faTimes);
 
@@ -117,12 +114,9 @@ export class FilterBox extends React.Component {
 
     @action.bound
     resetFilters = () => {
-        ToggleBar.Instance.resetToggle();
-        // RequiredWordsFilter.Instance.resetRequiredFieldFilters();
         this._basicWordStatus = true;
         IconBar.Instance.selectAll();
         FieldFilters.Instance.resetFieldFilters();
-        CollectionFilters.Instance.resetCollectionFilters();
     }
 
     basicRequireWords(query: string): string {
@@ -273,10 +267,9 @@ export class FilterBox extends React.Component {
 
     //if true, any keywords can be used. if false, all keywords are required.
     @action.bound
-    handleWordQueryChange = () => { this._basicWordStatus = !this._basicWordStatus; }
-
-    @action.bound
-    getBasicWordStatus() { return this._basicWordStatus; }
+    handleWordQueryChange = () => {
+        this._basicWordStatus = !this._basicWordStatus;
+    }
 
     @action.bound
     updateIcon(newArray: string[]) { this._icons = newArray; }
@@ -293,18 +286,6 @@ export class FilterBox extends React.Component {
     public closeFilter() {
         this._filterOpen = false;
     }
-
-    // @action.bound
-    // toggleFieldOpen() { this._fieldOpen = !this._fieldOpen; }
-
-    // @action.bound
-    // toggleColOpen() { this._colOpen = !this._colOpen; }
-
-    // @action.bound
-    // toggleTypeOpen() { this._typeOpen = !this._typeOpen; }
-
-    // @action.bound
-    // toggleWordStatusOpen() { this._wordStatusOpen = !this._wordStatusOpen; }
 
     @action.bound
     updateAnyKeywordStatus(newStat: boolean) { this._anyKeywordStatus = newStat; }
@@ -361,40 +342,20 @@ export class FilterBox extends React.Component {
                             <div className="filter-div">
                                 <div className="filter-header">
                                     <div className='filter-title words'>Required words</div>
-                                    {/* <div style={{ marginLeft: "auto" }}><NaviconButton onClick={this.toggleWordStatusOpen} /></div> */}
                                 </div>
                                 <div className="filter-panel" >
-                                    <button className="any-filter" onClick={this.getBasicWordStatus}>Include Any Keywords</button>
                                     <button className="all-filter" onClick={this.handleWordQueryChange}>Include All Keywords</button>
-                                    {/* <ToggleBar handleChange={this.handleWordQueryChange} getStatus={this.getBasicWordStatus}
-                                        originalStatus={this._basicWordStatus} optionOne={"Include Any Keywords"} optionTwo={"Include All Keywords"} /> */}
                                 </div>
-                                {/* <div className="filter-panel" >
-                                    <RequiredWordsFilter
-                                        anyKeywordStatus={this._anyKeywordStatus} allKeywordStatus={this._allKeywordStatus}
-                                        updateAnyKeywordStatus={this.updateAnyKeywordStatus} updateAllKeywordStatus={this.updateAllKeywordStatus} />
-                                </div> */}
                             </div>
                             <div className="filter-div">
                                 <div className="filter-header">
                                     <div className="filter-title icon">Filter by type of node</div>
-                                    {/* <div style={{ marginLeft: "auto" }}><NaviconButton onClick={this.toggleTypeOpen} /></div> */}
                                 </div>
                                 <div className="filter-panel"><IconBar /></div>
                             </div>
-                            {/* <div className="filter-div">
-                                <div className="filter-header">
-                                    <div className='filter-title collection'>Search in current collections</div>
-                                    <div style={{ marginLeft: "auto" }}><NaviconButton onClick={this.toggleColOpen} /></div>
-                                </div>
-                                <div className="filter-panel"><CollectionFilters
-                                    updateCollectionStatus={this.updateCollectionStatus} updateParentCollectionStatus={this.updateParentCollectionStatus} updateSelfCollectionStatus={this.updateSelfCollectionStatus}
-                                    collectionStatus={this._collectionStatus} collectionParentStatus={this._collectionParentStatus} collectionSelfStatus={this._collectionSelfStatus} /></div>
-                            </div> */}
                             <div className="filter-div">
                                 <div className="filter-header">
                                     <div className="filter-title field">Filter by Basic Keys</div>
-                                    {/* <div style={{ marginLeft: "auto" }}><NaviconButton onClick={this.toggleFieldOpen} /></div> */}
                                 </div>
                                 <div className="filter-panel"><FieldFilters
                                     titleFieldStatus={this._titleFieldStatus} dataFieldStatus={this._deletedDocsStatus} authorFieldStatus={this._authorFieldStatus}
@@ -402,8 +363,6 @@ export class FilterBox extends React.Component {
                             </div>
                         </div>
                         <div className="filter-buttons" style={{ display: "flex", justifyContent: "space-around" }}>
-                            {/* <button className="minimize-filter" onClick={this.minimizeAll}>Minimize All</button>
-                            <button className="advanced-filter" >Advanced Filters</button> */}
                             <button className="save-filter" >Save Filters</button>
                             <button className="reset-filter" onClick={this.resetFilters}>Reset Filters</button>
                         </div>
