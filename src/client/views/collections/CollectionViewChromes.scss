@@ -37,7 +37,7 @@
             }
 
             .collectionViewBaseChrome-collapse {
-                transition: all .5s opacity 0.2s;
+                transition: all .5s, opacity 0.3s;
                 position: absolute;
                 width: 40px;
                 transform-origin: top left;
