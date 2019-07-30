@@ -4,13 +4,14 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 45px;
+    width: 30px;
     height: 60px;
 
     .type-icon {
-        height: 45px;
-        width: 45px;
+        height: 30px;
+        width: 30px;
         color: $light-color;
+        background-color: rgb(194, 194, 197);
         border-radius: 50%;
         display: flex;
         justify-content: center;
@@ -22,8 +23,8 @@
         font-size: 2em;
 
         .fontawesome-icon {
-            height: 24px;
-            width: 24px;
+            height: 15px;
+            width: 15px
         }
     }
 
@@ -44,7 +45,7 @@
         transform: scale(1.1);
         background-color: $darker-alt-accent;
         opacity: 1;
-    
+
         +.filter-description {
             opacity: 1;
         }
