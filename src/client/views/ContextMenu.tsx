@@ -38,8 +38,12 @@ export class ContextMenu extends React.Component {
         this._items = [];
     }
 
-    findByDescription = (target: string) => {
-        return this._items.find(menuItem => menuItem.description === target);
+    findByDescription = (target: string, toLowerCase = false) => {
+        return this._items.find(menuItem => {
+            let reference = menuItem.description;
+            toLowerCase && (reference = reference.toLowerCase());
+            reference === target;
+        });
     }
 
     @action
