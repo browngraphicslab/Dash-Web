@@ -26,6 +26,9 @@ export interface MovableColumnProps {
 export class MovableColumn extends React.Component<MovableColumnProps> {
     private _header?: React.RefObject<HTMLDivElement> = React.createRef();
     private _colDropDisposer?: DragManager.DragDropDisposer;
+    private _startDragPosition: { x: number, y: number } = { x: 0, y: 0 };
+    private _sensitivity: number = 16;
+    private _dragRef: React.RefObject<HTMLDivElement> = React.createRef();
 
     onPointerEnter = (e: React.PointerEvent): void => {
         if (e.buttons === 1 && SelectionManager.GetIsDragging()) {
@@ -36,6 +39,7 @@ export class MovableColumn extends React.Component<MovableColumnProps> {
     onPointerLeave = (e: React.PointerEvent): void => {
         this._header!.current!.className = "collectionSchema-col-wrapper";
         document.removeEventListener("pointermove", this.onDragMove, true);
+        document.removeEventListener("pointermove", this.onPointerMove);
     }
     onDragMove = (e: PointerEvent): void => {
         let x = this.props.ScreenToLocalTransform().transformPoint(e.clientX, e.clientY);
@@ -68,7 +72,7 @@ export class MovableColumn extends React.Component<MovableColumnProps> {
         return false;
     }
 
-    setupDrag(ref: React.RefObject<HTMLElement>) {
+    onPointerMove = (e: PointerEvent) => {
         let onRowMove = (e: PointerEvent) => {
             e.stopPropagation();
             e.preventDefault();
@@ -76,35 +80,46 @@ export class MovableColumn extends React.Component<MovableColumnProps> {
             document.removeEventListener("pointermove", onRowMove);
             document.removeEventListener('pointerup', onRowUp);
             let dragData = new DragManager.ColumnDragData(this.props.columnValue);
-            DragManager.StartColumnDrag(ref.current!, dragData, e.x, e.y);
+            DragManager.StartColumnDrag(this._dragRef.current!, dragData, e.x, e.y);
+            console.log("SETUP DRAG");
         };
         let onRowUp = (): void => {
             document.removeEventListener("pointermove", onRowMove);
             document.removeEventListener('pointerup', onRowUp);
         };
-        let onItemDown = (e: React.PointerEvent) => {
-            if (e.button === 0) {
+        if (e.buttons === 1) {
+            let [dx, dy] = this.props.ScreenToLocalTransform().transformDirection(e.clientX - this._startDragPosition.x, e.clientY - this._startDragPosition.y);
+            console.log("moving this much", Math.abs(dx), Math.abs(dy));
+            if (Math.abs(dx) + Math.abs(dy) > this._sensitivity) {
+                document.removeEventListener("pointermove", this.onPointerMove);
                 e.stopPropagation();
+
                 document.addEventListener("pointermove", onRowMove);
                 document.addEventListener("pointerup", onRowUp);
             }
-        };
-        return onItemDown;
+        }
     }
 
-    // onColDrag = (e: React.DragEvent, ref: React.RefObject<HTMLDivElement>) => {
-    //     this.setupDrag(reference);
-    // }
+    onPointerUp = (e: React.PointerEvent) => {
+        document.removeEventListener("pointermove", this.onPointerMove);
+    }
+
+    @action
+    onPointerDown = (e: React.PointerEvent, ref: React.RefObject<HTMLDivElement>) => {
+        this._dragRef = ref;
+        let [dx, dy] = this.props.ScreenToLocalTransform().transformDirection(e.clientX, e.clientY);
+        this._startDragPosition = { x: dx, y: dy };
+        document.addEventListener("pointermove", this.onPointerMove);
+    }
 
 
     render() {
         let reference = React.createRef<HTMLDivElement>();
-        let onItemDown = this.setupDrag(reference);
 
         return (
             <div className="collectionSchema-col" ref={this.createColDropTarget}>
                 <div className="collectionSchema-col-wrapper" ref={this._header} onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
-                    <div className="col-dragger" ref={reference} onPointerDown={onItemDown} >
+                    <div className="col-dragger" ref={reference} onPointerDown={e => this.onPointerDown(e, reference)} onPointerUp={this.onPointerUp}>
                         {this.props.columnRenderer}
                     </div>
                 </div>
