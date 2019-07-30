@@ -6,6 +6,8 @@
     right: 0;
     top: 0;
     bottom: 0;
+    letter-spacing: 2px;
+    
 }
 
 .presentationView-item {
@@ -19,13 +21,11 @@
     -ms-user-select: none;
     user-select: none;
     transition: all .1s;
-    //max-height: 250px;
 
     
 
     .documentView-node {
-        // height: auto !important;
-        // width: aut !important;
+        
         position: absolute;
         z-index: 1;
     }
@@ -52,10 +52,11 @@
 
 .presentationView-selected {
     background: gray;
+    color: black;
 }
 
 .presentationView-heading {
-    background: lightseagreen;
+    background: gray;
     padding: 10px;
     display: inline-block;
     width: 100%;
@@ -67,6 +68,8 @@
     font-size: 25px;
     display: inline-block;
     width: calc(100% - 200px);
+    letter-spacing: 2px;
+
 }
 
 .presentation-icon {

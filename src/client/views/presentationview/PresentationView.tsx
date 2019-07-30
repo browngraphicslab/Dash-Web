@@ -881,6 +881,9 @@ export class PresentationView extends React.Component<PresViewProps>  {
             if (presWidth - presMinWidth !== 0) {
                 this.curPresentation.width = 0;
             }
+            if (presWidth === 0) {
+                this.curPresentation.width = presMinWidth;
+            }
         }
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
@@ -992,7 +995,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
                 </div>
                 <div className="mainView-libraryHandle"
                     style={{ cursor: "ew-resize", right: `${width - 10}px`, backgroundColor: "white", opacity: this.opacity, transition: "0.7s opacity ease" }}
-                    onPointerDown={this.onPointerDown} onClick={this.togglePresView}>
+                    onPointerDown={this.onPointerDown}>
                     <span title="library View Dragger" style={{ width: "100%", height: "100%", position: "absolute" }} />
                 </div>
                 {this.renderPresMode()}
