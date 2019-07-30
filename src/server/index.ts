@@ -27,6 +27,7 @@ import { Client } from './Client';
 import { Database } from './database';
 import { MessageStore, Transferable, Types, Diff, Message } from "./Message";
 import { RouteStore } from './RouteStore';
+import v4 = require('uuid/v4');
 const app = express();
 const config = require('../../webpack.config');
 import { createCanvas, loadImage, Canvas } from "canvas";
@@ -39,7 +40,10 @@ import c = require("crypto");
 import { Search } from './Search';
 import { debug } from 'util';
 import _ = require('lodash');
+import * as Archiver from 'archiver';
+import * as AdmZip from 'adm-zip';
 import { Response } from 'express-serve-static-core';
+import { DocComponent } from '../client/views/DocComponent';
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const probe = require("probe-image-size");
@@ -177,16 +181,21 @@ function msToTime(duration: number) {
     return hoursS + ":" + minutesS + ":" + secondsS + "." + milliseconds;
 }
 
-app.get("/serializeDoc/:docId", async (req, res) => {
-    const files: { [name: string]: string[] } = {};
+async function getDocs(id: string) {
+    const files = new Set<string>();
     const docs: { [id: string]: any } = {};
     const fn = (doc: any): string[] => {
+        const id = doc.id;
+        if (typeof id === "string" && id.endsWith("Proto")) {
+            //Skip protos
+            return [];
+        }
         const ids: string[] = [];
-        for (const key in doc) {
-            if (!doc.hasOwnProperty(key)) {
+        for (const key in doc.fields) {
+            if (!doc.fields.hasOwnProperty(key)) {
                 continue;
             }
-            const field = doc[key];
+            const field = doc.fields[key];
             if (field === undefined || field === null) {
                 continue;
             }
@@ -194,7 +203,7 @@ app.get("/serializeDoc/:docId", async (req, res) => {
             if (field.__type === "proxy" || field.__type === "prefetch_proxy") {
                 ids.push(field.fieldId);
             } else if (field.__type === "list") {
-                ids.push(...fn(field.fields));
+                ids.push(...fn(field));
             } else if (typeof field === "string") {
                 const re = /"(?:dataD|d)ocumentId"\s*:\s*"([\w\-]*)"/g;
                 let match: string[] | null;
@@ -215,35 +224,120 @@ app.get("/serializeDoc/:docId", async (req, res) => {
                 while ((match = re2.exec(field.Data)) !== null) {
                     const urlString = match[1];
                     const pathname = new URL(urlString).pathname;
-                    const ext = path.extname(pathname);
-                    const fileName = path.basename(pathname, ext);
-                    let exts = files[fileName];
-                    if (!exts) {
-                        files[fileName] = exts = [];
-                    }
-                    exts.push(ext);
+                    files.add(pathname);
                 }
             } else if (["audio", "image", "video", "pdf", "web"].includes(field.__type)) {
                 const url = new URL(field.url);
                 const pathname = url.pathname;
-                const ext = path.extname(pathname);
-                const fileName = path.basename(pathname, ext);
-                let exts = files[fileName];
-                if (!exts) {
-                    files[fileName] = exts = [];
-                }
-                exts.push(ext);
+                files.add(pathname);
             }
         }
 
-        docs[doc.id] = doc;
+        if (doc.id) {
+            docs[doc.id] = doc;
+        }
         return ids;
     };
-    Database.Instance.visit([req.params.docId], fn);
+    await Database.Instance.visit([id], fn);
+    return { id, docs, files };
+}
+app.get("/serializeDoc/:docId", async (req, res) => {
+    const { docs, files } = await getDocs(req.params.docId);
+    res.send({ docs, files: Array.from(files) });
 });
 
-app.get("/downloadId/:docId", (req, res) => {
-    res.download(`/serializeDoc/${req.params.docId}`, `DocumentExport.zip`);
+app.get("/downloadId/:docId", async (req, res) => {
+    res.set('Content-disposition', `attachment;`);
+    res.set('Content-Type', "application/zip");
+    const { id, docs, files } = await getDocs(req.params.docId);
+    const docString = JSON.stringify({ id, docs });
+    const zip = Archiver('zip');
+    zip.pipe(res);
+    zip.append(docString, { name: "doc.json" });
+    files.forEach(val => {
+        zip.file(__dirname + RouteStore.public + val, { name: val.substring(1) });
+    });
+    zip.finalize();
+});
+
+app.post("/uploadDoc", (req, res) => {
+    let form = new formidable.IncomingForm();
+    form.keepExtensions = true;
+    // let path = req.body.path;
+    const ids: { [id: string]: string } = {};
+    let remap = true;
+    const getId = (id: string): string => {
+        if (!remap) return id;
+        if (id.endsWith("Proto")) return id;
+        if (id in ids) {
+            return ids[id];
+        } else {
+            return ids[id] = v4();
+        }
+    };
+    const mapFn = (doc: any) => {
+        if (doc.id) {
+            doc.id = getId(doc.id);
+        }
+        for (const key in doc.fields) {
+            if (!doc.fields.hasOwnProperty(key)) {
+                continue;
+            }
+            const field = doc.fields[key];
+            if (field === undefined || field === null) {
+                continue;
+            }
+
+            if (field.__type === "proxy" || field.__type === "prefetch_proxy") {
+                field.fieldId = getId(field.fieldId);
+            } else if (field.__type === "list") {
+                mapFn(field);
+            } else if (typeof field === "string") {
+                const re = /("(?:dataD|d)ocumentId"\s*:\s*")([\w\-]*)"/g;
+                doc.fields[key] = (field as any).replace(re, (match: any, p1: string, p2: string) => {
+                    return `${p1}${getId(p2)}"`;
+                });
+            } else if (field.__type === "RichTextField") {
+                const re = /("href"\s*:\s*")(.*?)"/g;
+                field.Data = field.Data.replace(re, (match: any, p1: string, p2: string) => {
+                    return `${p1}${getId(p2)}"`;
+                });
+            }
+        }
+    };
+    form.parse(req, async (err, fields, files) => {
+        remap = fields.remap !== "false";
+        let id: string = "";
+        try {
+            for (const name in files) {
+                const path = files[name].path;
+                const zip = new AdmZip(path);
+                zip.getEntries().forEach(entry => {
+                    if (!entry.name.startsWith("files/")) return;
+                    zip.extractEntryTo(entry.name, __dirname + RouteStore.public, true, false);
+                });
+                const json = zip.getEntry("doc.json");
+                let docs: any;
+                try {
+                    let data = JSON.parse(json.getData().toString("utf8"));
+                    docs = data.docs;
+                    id = data.id;
+                    docs = Object.keys(docs).map(key => docs[key]);
+                    docs.forEach(mapFn);
+                    await Promise.all(docs.map((doc: any) => new Promise(res => Database.Instance.replace(doc.id, doc, (err, r) => {
+                        err && console.log(err);
+                        res();
+                    }, true, "newDocuments"))));
+                } catch (e) { console.log(e); }
+                fs.unlink(path, () => { });
+            }
+            if (id) {
+                res.send(JSON.stringify(getId(id)));
+            } else {
+                res.send(JSON.stringify("error"));
+            }
+        } catch (e) { console.log(e); }
+    });
 });
 
 app.get("/whosOnline", (req, res) => {
