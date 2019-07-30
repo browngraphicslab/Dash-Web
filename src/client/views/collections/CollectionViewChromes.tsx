@@ -142,7 +142,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             `return ${dateRestrictionScript} ${keyRestrictionScript.length ? "&&" : ""} ${keyRestrictionScript}` :
             `return ${keyRestrictionScript} ${dateRestrictionScript.length ? "&&" : ""} ${dateRestrictionScript}` :
             "return true";
-        let compiled = CompileScript(fullScript, { params: { doc: Doc.name } });
+        let compiled = CompileScript(fullScript, { params: { doc: Doc.name }, typecheck: false });
         if (compiled.compiled) {
             this.props.CollectionView.props.Document.viewSpecScript = new ScriptField(compiled);
         }
@@ -189,7 +189,12 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                 <div className="collectionViewChrome">
                     <div className="collectionViewBaseChrome">
                         <button className="collectionViewBaseChrome-collapse"
-                            style={{ marginTop: this._collapsed ? 60 : 0, transform: `rotate(${this._collapsed ? 180 : 0}deg)` }}
+                            style={{
+                                marginTop: this._collapsed ? 60 : 0,
+                                transform: `rotate(${this._collapsed ? 180 : 0}deg) scale(${this._collapsed ? 0.5 : 1}) translate(${this._collapsed ? "-100%, -100%" : "0, 0"})`,
+                                opacity: (this._collapsed && !this.props.CollectionView.props.isSelected()) ? 0 : 0.9,
+                                left: (this._collapsed ? 0 : "unset"),
+                            }}
                             title="Collapse collection chrome" onClick={this.toggleCollapse}>
                             <FontAwesomeIcon icon="caret-up" size="2x" />
                         </button>
