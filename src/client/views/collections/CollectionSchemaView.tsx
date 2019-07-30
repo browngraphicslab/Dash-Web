@@ -612,7 +612,9 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             } else {
                 const index = columns.map(c => c.heading).indexOf(oldKey);
                 if (index > -1) {
-                    columns[index] = new SchemaHeaderField(newKey, columns[index].color);
+                    let column = columns[index];
+                    column.setHeading(newKey);
+                    columns[index] = column;
                     this.columns = columns;
                 }
             }
@@ -643,8 +645,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         let columns = this.columns;
         let index = columns.indexOf(columnField);
         if (index > -1) {
-            // let column = columns[index];
-            columnField.type = NumCast(type);
+            columnField.setType(NumCast(type));
             columns[index] = columnField;
             this.columns = columns;
         }
@@ -664,9 +665,9 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         let columns = this.columns;
         let index = columns.indexOf(columnField);
         if (index > -1) {
-            columnField.color = color;
+            columnField.setColor(color);
             columns[index] = columnField;
-            this.columns = columns;
+            this.columns = columns; // need to set the columns to trigger rerender
         }
     }
 

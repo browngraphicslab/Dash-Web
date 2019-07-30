@@ -277,16 +277,29 @@ button.add-column {
 
 .collectionSchema-header-menuOptions {
     color: black;
-    width: 175px;
+    width: 200px;
     text-align: left;
 
     .collectionSchema-headerMenu-group {
-        margin-bottom: 10px;
+        padding: 7px 0;
+        border-bottom: 1px solid lightgray;
+
+        &:first-child {
+            padding-top : 0;
+        }
+
+        &:last-child {
+            border: none;
+            text-align: center;
+            padding: 12px 0 0 0;
+        }
     }
 
     label {
         color: $main-accent;
         font-weight: normal;
+        letter-spacing: 2px;
+        text-transform: uppercase;
     }
 
     input {
@@ -294,9 +307,43 @@ button.add-column {
         width: 100%;
     }
 
+    .columnMenu-option {
+        cursor: pointer;
+        padding: 3px;
+        background-color: white;
+        transition: background-color 0.2s;
+
+        &:hover {
+            background-color: $light-color-secondary; 
+        }
+
+        &.active {
+            font-weight: bold;
+            border: 2px solid $light-color-secondary;
+        }
+
+        svg {
+            color: gray;
+            margin-right: 5px;
+            width: 10px;
+        }
+    }
+
     .keys-dropdown {
         position: relative;
-        max-width: 175px;
+        // max-width: 175px;
+        width: 100%;
+
+        input {
+            border: 2px solid $light-color-secondary;
+            padding: 3px;
+            height: 28px;
+            font-weight: bold;
+
+            &:focus {
+                font-weight: normal;
+            }
+        }
 
         .keys-options-wrapper {
             width: 100%;
@@ -321,42 +368,10 @@ button.add-column {
         }
     }
 
-    .columnMenu-types {
-        display: flex;
-        justify-content: space-between;
-
-        button {
-            border-radius: 20px;
-            width: 22px;
-            height: 22px;
-            text-align: center;
-            display: flex;
-            justify-content: center;
-            flex-direction: column;
-            padding: 0;
-
-            &.active {
-                border: 2px solid white;
-                box-shadow: 0 0 0 2px lightgray;
-            }
-        }
-    }
-
     .columnMenu-colors {
         display: flex;
         justify-content: space-between;
         flex-wrap: wrap;
-
-        // input[type="radio"] {
-        //     display: none;
-        // }
-
-        // input[type="radio"]:checked + label {
-        //     .columnMenu-colorPicker {
-        //         border: 2px solid white;
-        //         box-shadow: 0 0 0 2px  lightgray;
-        //     }
-        // }
 
         .columnMenu-colorPicker {
             cursor: pointer;

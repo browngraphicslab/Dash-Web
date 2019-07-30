@@ -15,7 +15,7 @@ export const PastelSchemaPalette = new Map<string, string>([
     ["purple2", "#c5a3ff"],
     ["purple3", "#d5aaff"],
     ["purple4", "#ecd4ff"],
-    ["purple5", "#fb34ff"],
+    // ["purple5", "#fb34ff"],
     ["purple6", "#dcd3ff"],
     ["purple7", "#a79aff"],
     ["purple8", "#b5b9ff"],
