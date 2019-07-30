@@ -11,6 +11,7 @@ import { DocumentViewProps } from "./DocumentView";
 import "./DocumentView.scss";
 import { FormattedTextBox } from "./FormattedTextBox";
 import { ImageBox } from "./ImageBox";
+import { ButtonBox } from "./ButtonBox";
 import { IconBox } from "./IconBox";
 import { KeyValueBox } from "./KeyValueBox";
 import { PDFBox } from "./PDFBox";
@@ -98,7 +99,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         if (this.props.renderDepth > 7) return (null);
         if (!this.layout && (this.props.layoutKey !== "overlayLayout" || !this.templates.length)) return (null);
         return <ObserverJsxParser
-            components={{ FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox, YoutubeBox }}
+            components={{ FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, ButtonBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox, YoutubeBox }}
             bindings={this.CreateBindings()}
             jsx={this.finalLayout}
             showWarnings={true}

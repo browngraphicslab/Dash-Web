@@ -1,5 +1,5 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faImage, faFileAudio } from '@fortawesome/free-solid-svg-icons';
+import { faImage, faFileAudio, faPaintBrush, faAsterisk } from '@fortawesome/free-solid-svg-icons';
 import { action, observable, computed, runInAction } from 'mobx';
 import { observer } from "mobx-react";
 import Lightbox from 'react-image-lightbox';
@@ -21,19 +21,23 @@ import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
 import React = require("react");
 import { RouteStore } from '../../../server/RouteStore';
-import { Docs } from '../../documents/Documents';
+import { Docs, DocumentType } from '../../documents/Documents';
 import { DocServer } from '../../DocServer';
 import { Font } from '@react-pdf/renderer';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { CognitiveServices } from '../../cognitive_services/CognitiveServices';
+import { CognitiveServices, Service, Tag, Confidence } from '../../cognitive_services/CognitiveServices';
 import FaceRectangles from './FaceRectangles';
+import { faEye } from '@fortawesome/free-regular-svg-icons';
+import { ComputedField } from '../../../new_fields/ScriptField';
+import { CompileScript } from '../../util/Scripting';
+import { thisExpression } from 'babel-types';
 var requestImageSize = require('../../util/request-image-size');
 var path = require('path');
-const { Howl, Howler } = require('howler');
+const { Howl } = require('howler');
 
 
-library.add(faImage);
-library.add(faFileAudio);
+library.add(faImage, faEye, faPaintBrush);
+library.add(faFileAudio, faAsterisk);
 
 
 export const pageSchema = createSchema({
@@ -84,10 +88,24 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     @computed get extensionDoc() { return Doc.resolvedFieldDataDoc(this.dataDoc, this.props.fieldKey, "Alternates"); }
 
     @undoBatch
+    @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.DocumentDragData) {
             de.data.droppedDocuments.forEach(action((drop: Doc) => {
-                if (de.mods === "AltKey" && /*this.dataDoc !== this.props.Document &&*/ drop.data instanceof ImageField) {
+                if (de.mods === "CtrlKey") {
+                    let temp = Doc.MakeDelegate(drop);
+                    this.props.Document.nativeWidth = Doc.GetProto(this.props.Document).nativeWidth = undefined;
+                    this.props.Document.nativeHeight = Doc.GetProto(this.props.Document).nativeHeight = undefined;
+                    this.props.Document.width = drop.width;
+                    this.props.Document.height = drop.height;
+                    Doc.GetProto(this.props.Document).type = DocumentType.TEMPLATE;
+                    if (this.props.DataDoc && this.props.DataDoc.layout === this.props.Document) {
+                        this.props.DataDoc.layout = temp;
+                    } else {
+                        this.props.Document.layout = temp;
+                    }
+                    e.stopPropagation();
+                } else if (de.mods === "AltKey" && /*this.dataDoc !== this.props.Document &&*/ drop.data instanceof ImageField) {
                     Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new ImageField(drop.data.url);
                     e.stopPropagation();
                 } else if (de.mods === "CtrlKey") {
@@ -103,8 +121,6 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                             e.stopPropagation();
                         }
                     }
-                } else if (!this.props.isSelected()) {
-                    e.stopPropagation();
                 }
             }));
             // de.data.removeDocument()  bcz: need to implement
@@ -175,7 +191,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                 const url = Utils.prepend(files[0]);
                 // upload to server with known URL 
                 let audioDoc = Docs.Create.AudioDocument(url, { title: "audio test", x: NumCast(self.props.Document.x), y: NumCast(self.props.Document.y), width: 200, height: 32 });
-                audioDoc.embed = true;
+                audioDoc.treeViewExpandedView = "layout";
                 let audioAnnos = Cast(self.extensionDoc.audioAnnotations, listSpec(Doc));
                 if (audioAnnos === undefined) {
                     self.extensionDoc.audioAnnotations = new List([audioDoc]);
@@ -193,6 +209,20 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         });
     }
 
+    @undoBatch
+    rotate = action(() => {
+        let proto = Doc.GetProto(this.props.Document);
+        let nw = this.props.Document.nativeWidth;
+        let nh = this.props.Document.nativeHeight;
+        let w = this.props.Document.width;
+        let h = this.props.Document.height;
+        proto.rotation = (NumCast(this.props.Document.rotation) + 90) % 360;
+        proto.nativeWidth = nh;
+        proto.nativeHeight = nw;
+        this.props.Document.width = h;
+        this.props.Document.height = w;
+    });
+
     specificContextMenu = (e: React.MouseEvent): void => {
         let field = Cast(this.Document[this.props.fieldKey], ImageField);
         if (field) {
@@ -200,34 +230,57 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
             let funcs: ContextMenuProps[] = [];
             funcs.push({ description: "Copy path", event: () => Utils.CopyText(url), icon: "expand-arrows-alt" });
             funcs.push({ description: "Record 1sec audio", event: this.recordAudioAnnotation, icon: "expand-arrows-alt" });
-            funcs.push({
-                description: "Rotate", event: action(() => {
-                    let proto = Doc.GetProto(this.props.Document);
-                    let nw = this.props.Document.nativeWidth;
-                    let nh = this.props.Document.nativeHeight;
-                    let w = this.props.Document.width;
-                    let h = this.props.Document.height;
-                    proto.rotation = (NumCast(this.props.Document.rotation) + 90) % 360;
-                    proto.nativeWidth = nh;
-                    proto.nativeHeight = nw;
-                    this.props.Document.width = h;
-                    this.props.Document.height = w;
-                }), icon: "expand-arrows-alt"
-            });
+            funcs.push({ description: "Rotate", event: this.rotate, icon: "expand-arrows-alt" });
 
             let modes: ContextMenuProps[] = [];
-            let dataDoc = Doc.GetProto(this.Document);
-            modes.push({ description: "Generate Tags", event: () => CognitiveServices.Image.generateMetadata(dataDoc), icon: "tag" });
-            modes.push({ description: "Find Faces", event: () => CognitiveServices.Image.extractFaces(dataDoc), icon: "camera" });
+            modes.push({ description: "Generate Tags", event: this.generateMetadata, icon: "tag" });
+            modes.push({ description: "Find Faces", event: this.extractFaces, icon: "camera" });
 
-            ContextMenu.Instance.addItem({ description: "Image Funcs...", subitems: funcs });
-            ContextMenu.Instance.addItem({ description: "Analyze...", subitems: modes });
+            ContextMenu.Instance.addItem({ description: "Image Funcs...", subitems: funcs, icon: "asterisk" });
+            ContextMenu.Instance.addItem({ description: "Analyze...", subitems: modes, icon: "eye" });
         }
+    }
+
+    extractFaces = () => {
+        let converter = (results: any) => {
+            let faceDocs = new List<Doc>();
+            results.map((face: CognitiveServices.Image.Face) => faceDocs.push(Docs.Get.DocumentHierarchyFromJson(face, `Face: ${face.faceId}`)!));
+            return faceDocs;
+        };
+        CognitiveServices.Image.Manager.analyzer(this.extensionDoc, ["faces"], this.url, Service.Face, converter);
+    }
+
+    generateMetadata = (threshold: Confidence = Confidence.Excellent) => {
+        let converter = (results: any) => {
+            let tagDoc = new Doc;
+            let tagsList = new List();
+            results.tags.map((tag: Tag) => {
+                tagsList.push(tag.name);
+                let sanitized = tag.name.replace(" ", "_");
+                let script = `return (${tag.confidence} >= this.confidence) ? ${tag.confidence} : "${ComputedField.undefined}"`;
+                let computed = CompileScript(script, { params: { this: "Doc" } });
+                computed.compiled && (tagDoc[sanitized] = new ComputedField(computed));
+            });
+            this.extensionDoc.generatedTags = tagsList;
+            tagDoc.title = "Generated Tags Doc";
+            tagDoc.confidence = threshold;
+            return tagDoc;
+        };
+        CognitiveServices.Image.Manager.analyzer(this.extensionDoc, ["generatedTagsDoc"], this.url, Service.ComputerVision, converter);
     }
 
     @action
     onDotDown(index: number) {
         this.Document.curPage = index;
+    }
+
+    @computed get fieldExtensionDoc() {
+        return Doc.resolvedFieldDataDoc(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, "true");
+    }
+
+    @computed private get url() {
+        let data = Cast(Doc.GetProto(this.props.Document).data, ImageField);
+        return data ? data.url.href : undefined;
     }
 
     dots(paths: string[]) {
@@ -243,11 +296,15 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
 
     choosePath(url: URL) {
         const lower = url.href.toLowerCase();
-        if (url.protocol === "data" || url.href.indexOf(window.location.origin) === -1 || !(lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg"))) {
+        if (url.protocol === "data") {
             return url.href;
+        } else if (url.href.indexOf(window.location.origin) === -1) {
+            return Utils.CorsProxy(url.href);
+        } else if (!(lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg"))) {
+            return url.href;//Why is this here
         }
         let ext = path.extname(url.href);
-        const suffix = this.props.renderDepth <= 1 ? "_o" : this._curSuffix;
+        const suffix = this.props.renderDepth < 1 ? "_o" : this._curSuffix;
         return url.href.replace(ext, suffix + ext);
     }
 
@@ -273,7 +330,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                 let aspect = size.height / size.width;
                 let rotation = NumCast(this.dataDoc.rotation) % 180;
                 if (rotation === 90 || rotation === 270) aspect = 1 / aspect;
-                if (Math.abs(layoutdoc[HeightSym]() / layoutdoc[WidthSym]() - aspect) > 0.01) {
+                if (Math.abs(NumCast(layoutdoc.height) - size.height) > 1 || Math.abs(NumCast(layoutdoc.width) - size.width) > 1) {
                     setTimeout(action(() => {
                         layoutdoc.height = layoutdoc[WidthSym]() * aspect;
                         layoutdoc.nativeHeight = size.height;
@@ -351,11 +408,11 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         if (field instanceof ImageField) paths = [this.choosePath(field.url)];
         paths.push(...altpaths);
         // }
-        let interactive = InkingControl.Instance.selectedTool ? "" : "-interactive";
+        let interactive = InkingControl.Instance.selectedTool || this.props.Document.isBackground ? "" : "-interactive";
         let rotation = NumCast(this.dataDoc.rotation, 0);
         let aspect = (rotation % 180) ? this.dataDoc[HeightSym]() / this.dataDoc[WidthSym]() : 1;
         let shift = (rotation % 180) ? (nativeHeight - nativeWidth / aspect) / 2 : 0;
-        let srcpath = paths[Math.min(paths.length, this.Document.curPage || 0)];
+        let srcpath = paths[Math.min(paths.length - 1, this.Document.curPage || 0)];
 
         if (!this.props.Document.ignoreAspect && !this.props.leaveNativeSize) this.resize(srcpath, this.props.Document);
 
@@ -380,7 +437,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                         style={{ color: [DocListCast(this.extensionDoc.audioAnnotations).length ? "blue" : "gray", "green", "red"][this._audioState] }} icon={faFileAudio} size="sm" />
                 </div>
                 {/* {this.lightbox(paths)} */}
-                <FaceRectangles document={this.props.Document} color={"#0000FF"} backgroundColor={"#0000FF"} />
+                <FaceRectangles document={this.extensionDoc} color={"#0000FF"} backgroundColor={"#0000FF"} />
             </div>);
     }
 }

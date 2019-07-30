@@ -139,6 +139,7 @@
         "image-size": "^0.7.4",
         "imagesloaded": "^4.1.4",
         "jquery-awesome-cursor": "^0.3.1",
+        "js-datepicker": "^4.6.6",
         "jsonwebtoken": "^8.5.0",
         "jsx-to-string": "^1.4.0",
         "lodash": "^4.17.11",

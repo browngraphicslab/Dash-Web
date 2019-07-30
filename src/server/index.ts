@@ -142,6 +142,16 @@ app.get("/pull", (req, res) =>
         res.redirect("/");
     }));
 
+app.get("/version", (req, res) => {
+    exec('"C:\\Program Files\\Git\\bin\\git.exe" rev-parse HEAD', (err, stdout, stderr) => {
+        if (err) {
+            res.send(err.message);
+            return;
+        }
+        res.send(stdout);
+    });
+});
+
 // SEARCH
 
 // GETTERS
@@ -430,8 +440,22 @@ app.post(RouteStore.forgot, postForgot);
 app.get(RouteStore.reset, getReset);
 app.post(RouteStore.reset, postReset);
 
-app.use(RouteStore.corsProxy, (req, res) =>
-    req.pipe(request(decodeURIComponent(req.url.substring(1)))).pipe(res));
+const headerCharRegex = /[^\t\x20-\x7e\x80-\xff]/;
+app.use(RouteStore.corsProxy, (req, res) => {
+    req.pipe(request(decodeURIComponent(req.url.substring(1)))).on("response", res => {
+        const headers = Object.keys(res.headers);
+        headers.forEach(headerName => {
+            const header = res.headers[headerName];
+            if (Array.isArray(header)) {
+                res.headers[headerName] = header.filter(h => !headerCharRegex.test(h));
+            } else if (header) {
+                if (headerCharRegex.test(header as any)) {
+                    delete res.headers[headerName];
+                }
+            }
+        });
+    }).pipe(res);
+});
 
 app.get(RouteStore.delete, (req, res) => {
     if (release) {

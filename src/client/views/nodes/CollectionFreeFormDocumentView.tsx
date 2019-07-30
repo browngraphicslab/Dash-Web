@@ -35,21 +35,9 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     @computed get zoom(): number { return 1 / FieldValue(this.Document.zoomBasis, 1); }
     @computed get nativeWidth(): number { return FieldValue(this.Document.nativeWidth, 0); }
     @computed get nativeHeight(): number { return FieldValue(this.Document.nativeHeight, 0); }
-
-    set width(w: number) {
-        this.Document.width = w;
-        if (this.nativeWidth && this.nativeHeight) {
-            this.Document.height = this.nativeHeight / this.nativeWidth * w;
-        }
-    }
-    set height(h: number) {
-        this.Document.height = h;
-        if (this.nativeWidth && this.nativeHeight) {
-            this.Document.width = this.nativeWidth / this.nativeHeight * h;
-        }
-    }
     @computed get scaleToOverridingWidth() { return this.width / NumCast(this.props.Document.width, this.width); }
-    contentScaling = () => this.nativeWidth > 0 ? this.width / this.nativeWidth : 1;
+
+    contentScaling = () => this.nativeWidth > 0 && !BoolCast(this.props.Document.ignoreAspect) ? this.width / this.nativeWidth : 1;
     panelWidth = () => this.props.PanelWidth();
     panelHeight = () => this.props.PanelHeight();
     getTransform = (): Transform => this.props.ScreenToLocalTransform()
@@ -82,6 +70,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     }
 
     render() {
+        const hasPosition = this.props.x !== undefined || this.props.y !== undefined;
         return (
             <div className="collectionFreeFormDocumentView-container"
                 style={{
@@ -90,7 +79,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     backgroundColor: "transparent",
                     borderRadius: this.borderRounding(),
                     transform: this.transform,
-                    transition: StrCast(this.props.Document.transition),
+                    transition: hasPosition ? "transform 1s" : StrCast(this.props.Document.transition),
                     width: this.width,
                     height: this.height,
                     zIndex: this.Document.zIndex || 0,

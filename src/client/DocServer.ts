@@ -5,7 +5,6 @@ import { Utils, emptyFunction } from '../Utils';
 import { SerializationHelper } from './util/SerializationHelper';
 import { RefField } from '../new_fields/RefField';
 import { Id, HandleUpdate } from '../new_fields/FieldSymbols';
-import { CurrentUserUtils } from '../server/authentication/models/current_user_utils';
 
 /**
  * This class encapsulates the transfer and cross-client synchronization of
@@ -26,7 +25,6 @@ export namespace DocServer {
     // this client's distinct GUID created at initialization
     let GUID: string;
     // indicates whether or not a document is currently being udpated, and, if so, its id
-    let updatingId: string | undefined;
 
     export function init(protocol: string, hostname: string, port: number, identifier: string) {
         _cache = {};
@@ -317,9 +315,6 @@ export namespace DocServer {
     }
 
     function _UpdateFieldImpl(id: string, diff: any) {
-        if (id === updatingId) {
-            return;
-        }
         Utils.Emit(_socket, MessageStore.UpdateField, { id, diff });
     }
 
@@ -342,11 +337,7 @@ export namespace DocServer {
             // extract this Doc's update handler
             const handler = f[HandleUpdate];
             if (handler) {
-                // set the 'I'm currently updating this Doc' flag
-                updatingId = id;
                 handler.call(f, diff.diff);
-                // reset to indicate no ongoing updates
-                updatingId = undefined;
             }
         };
         // check the cache for the field

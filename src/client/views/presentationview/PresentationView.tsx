@@ -63,6 +63,10 @@ export class PresentationView extends React.Component<PresViewProps>  {
     @observable titleInputElement: HTMLInputElement | undefined;
     @observable PresTitleChangeOpen: boolean = false;
 
+    @observable opacity = 1;
+    @observable persistOpacity = true;
+    @observable labelOpacity = 0;
+
     //initilize class variables
     constructor(props: PresViewProps) {
         super(props);
@@ -167,7 +171,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
 
         //storing the presentation status,ie. whether it was stopped or playing
-        let presStatusBackUp = BoolCast(this.curPresentation.presStatus, null);
+        let presStatusBackUp = BoolCast(this.curPresentation.presStatus);
         runInAction(() => this.presStatus = presStatusBackUp);
     }
 
@@ -811,7 +815,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
         let width = NumCast(this.curPresentation.width);
 
         return (
-            <div className="presentationView-cont" style={{ width: width, overflow: "hidden" }}>
+            <div className="presentationView-cont" onPointerEnter={action(() => !this.persistOpacity && (this.opacity = 1))} onPointerLeave={action(() => !this.persistOpacity && (this.opacity = 0.4))} style={{ width: width, overflow: "hidden", opacity: this.opacity, transition: "0.7s opacity ease" }}>
                 <div className="presentationView-heading">
                     {this.renderSelectOrPresSelection()}
                     <button title="Close Presentation" className='presentation-icon' onClick={this.closePresentation}><FontAwesomeIcon icon={"times"} /></button>
@@ -830,6 +834,18 @@ export class PresentationView extends React.Component<PresViewProps>  {
                     {this.renderPlayPauseButton()}
                     <button title="Next" className="presentation-button" onClick={this.next}><FontAwesomeIcon icon={"arrow-right"} /></button>
                 </div>
+                <input
+                    type="checkbox"
+                    onChange={action((e: React.ChangeEvent<HTMLInputElement>) => {
+                        this.persistOpacity = e.target.checked;
+                        this.opacity = this.persistOpacity ? 1 : 0.4;
+                    })}
+                    checked={this.persistOpacity}
+                    style={{ position: "absolute", bottom: 5, left: 5 }}
+                    onPointerEnter={action(() => this.labelOpacity = 1)}
+                    onPointerLeave={action(() => this.labelOpacity = 0)}
+                />
+                <p style={{ position: "absolute", bottom: 1, left: 22, opacity: this.labelOpacity, transition: "0.7s opacity ease" }}>opacity {this.persistOpacity ? "persistent" : "on focus"}</p>
                 <PresentationViewList
                     mainDocument={this.curPresentation}
                     deleteDocument={this.RemoveDoc}

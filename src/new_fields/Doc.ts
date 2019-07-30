@@ -12,6 +12,7 @@ import { scriptingGlobal } from "../client/util/Scripting";
 import { List } from "./List";
 import { DocumentType } from "../client/documents/Documents";
 import { ComputedField } from "./ScriptField";
+import { PrefetchProxy } from "./Proxy";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -75,8 +76,10 @@ function fetchProto(doc: Doc) {
     }
 }
 
+let updatingFromServer = false;
+
 @scriptingGlobal
-@Deserializable("doc", fetchProto).withFields(["id"])
+@Deserializable("Doc", fetchProto).withFields(["id"])
 export class Doc extends RefField {
     constructor(id?: FieldId, forceSave?: boolean) {
         super(id);
@@ -129,6 +132,9 @@ export class Doc extends RefField {
     private ___fields: any = {};
 
     private [Update] = (diff: any) => {
+        if (updatingFromServer) {
+            return;
+        }
         DocServer.UpdateField(this[Id], diff);
     }
 
@@ -150,7 +156,9 @@ export class Doc extends RefField {
                 }
                 const value = await SerializationHelper.Deserialize(set[key]);
                 const fKey = key.substring(7);
+                updatingFromServer = true;
                 this[fKey] = value;
+                updatingFromServer = false;
             }
         }
         const unset = diff.$unset;
@@ -160,7 +168,9 @@ export class Doc extends RefField {
                     continue;
                 }
                 const fKey = key.substring(7);
+                updatingFromServer = true;
                 delete this[fKey];
+                updatingFromServer = false;
             }
         }
     }
@@ -274,21 +284,28 @@ export namespace Doc {
 
     export function AddDocToList(target: Doc, key: string, doc: Doc, relativeTo?: Doc, before?: boolean, first?: boolean, allowDuplicates?: boolean) {
         if (target[key] === undefined) {
+            console.log("target key undefined");
             Doc.GetProto(target)[key] = new List<Doc>();
         }
         let list = Cast(target[key], listSpec(Doc));
         if (list) {
+            console.log("has list");
             if (allowDuplicates !== true) {
                 let pind = list.reduce((l, d, i) => d instanceof Doc && Doc.AreProtosEqual(d, doc) ? i : l, -1);
                 if (pind !== -1) {
                     list.splice(pind, 1);
                 }
             }
-            if (first) list.splice(0, 0, doc);
+            if (first) {
+                console.log("is first");
+                list.splice(0, 0, doc);
+            }
             else {
+                console.log("not first");
                 let ind = relativeTo ? list.indexOf(relativeTo) : -1;
                 if (ind === -1) list.push(doc);
                 else list.splice(before ? ind : ind + 1, 0, doc);
+                console.log("index", ind);
             }
         }
         return true;
@@ -332,7 +349,7 @@ export namespace Doc {
                 while (proto && !Doc.IsPrototype(proto)) {
                     proto = proto.proto;
                 }
-                (proto ? proto : doc)[fieldKey + "_ext"] = docExtensionForField;
+                (proto ? proto : doc)[fieldKey + "_ext"] = new PrefetchProxy(docExtensionForField);
             }, 0);
         } else if (doc instanceof Doc) { // backward compatibility -- add fields for docs that don't have them already
             docExtensionForField.extendsDoc === undefined && setTimeout(() => docExtensionForField.extendsDoc = doc, 0);
@@ -380,9 +397,20 @@ export namespace Doc {
         }
         if (expandedTemplateLayout === undefined) {
             setTimeout(() =>
-                dataDoc[expandedLayoutFieldKey] = Doc.MakeDelegate(templateLayoutDoc, undefined, templateLayoutDoc.title + ".layout"), 0);
+                dataDoc[expandedLayoutFieldKey] = Doc.MakeDelegate(templateLayoutDoc, undefined, "[" + templateLayoutDoc.title + "]"), 0);
         }
         return templateLayoutDoc; // use the templateLayout when it's not a template or the expandedTemplate is pending.
+    }
+
+    export function GetLayoutDataDocPair(doc: Doc, dataDoc: Doc | undefined, fieldKey: string, childDocLayout: Doc) {
+        let layoutDoc = childDocLayout;
+        let resolvedDataDoc = !doc.isTemplate && dataDoc !== doc ? dataDoc : undefined;
+        if (resolvedDataDoc && Doc.WillExpandTemplateLayout(childDocLayout, resolvedDataDoc)) {
+            Doc.UpdateDocumentExtensionForField(resolvedDataDoc, fieldKey);
+            let fieldExtensionDoc = Doc.resolvedFieldDataDoc(resolvedDataDoc, StrCast(childDocLayout.templateField, StrCast(childDocLayout.title)), "dummy");
+            layoutDoc = Doc.expandTemplateLayout(childDocLayout, fieldExtensionDoc !== resolvedDataDoc ? fieldExtensionDoc : undefined);
+        } else layoutDoc = Doc.expandTemplateLayout(childDocLayout, resolvedDataDoc);
+        return { layout: layoutDoc, data: resolvedDataDoc };
     }
 
     export function MakeCopy(doc: Doc, copyProto: boolean = false): Doc {
@@ -435,7 +463,7 @@ export namespace Doc {
         return otherdoc;
     }
 
-    export function MakeTemplate(fieldTemplate: Doc, metaKey: string, proto: Doc) {
+    export function MakeTemplate(fieldTemplate: Doc, metaKey: string, templateDataDoc: Doc) {
         // move data doc fields to layout doc as needed (nativeWidth/nativeHeight, data, ??)
         let backgroundLayout = StrCast(fieldTemplate.backgroundLayout);
         let fieldLayoutDoc = fieldTemplate;
@@ -444,24 +472,26 @@ export namespace Doc {
         }
         let layout = StrCast(fieldLayoutDoc.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
         if (backgroundLayout) {
-            layout = StrCast(fieldLayoutDoc.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"} fieldExt={"annotations"}`);
             backgroundLayout = backgroundLayout.replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metaKey}"}`);
         }
-        let nw = Cast(fieldTemplate.nativeWidth, "number");
-        let nh = Cast(fieldTemplate.nativeHeight, "number");
 
         let layoutDelegate = fieldTemplate.layout instanceof Doc ? fieldLayoutDoc : fieldTemplate;
         layoutDelegate.layout = layout;
 
-        fieldTemplate.title = metaKey;
         fieldTemplate.templateField = metaKey;
+        fieldTemplate.title = metaKey;
+        fieldTemplate.isTemplate = true;
         fieldTemplate.layout = layoutDelegate !== fieldTemplate ? layoutDelegate : layout;
         fieldTemplate.backgroundLayout = backgroundLayout;
-        fieldTemplate.nativeWidth = nw;
-        fieldTemplate.nativeHeight = nh;
-        fieldTemplate.isTemplate = true;
+        /* move certain layout properties from the original data doc to the template layout to avoid
+           inheriting them from the template's data doc which may also define these fields for its own use.
+        */
+        fieldTemplate.ignoreAspect = BoolCast(fieldTemplate.ignoreAspect);
+        fieldTemplate.singleColumn = BoolCast(fieldTemplate.singleColumn);
+        fieldTemplate.nativeWidth = Cast(fieldTemplate.nativeWidth, "number");
+        fieldTemplate.nativeHeight = Cast(fieldTemplate.nativeHeight, "number");
         fieldTemplate.showTitle = "title";
-        setTimeout(() => fieldTemplate.proto = proto);
+        setTimeout(() => fieldTemplate.proto = templateDataDoc);
     }
 
     export async function ToggleDetailLayout(d: Doc) {

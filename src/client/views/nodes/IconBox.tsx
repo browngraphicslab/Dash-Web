@@ -1,6 +1,6 @@
 import React = require("react");
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faCaretUp, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote } from '@fortawesome/free-solid-svg-icons';
+import { faCaretUp, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faTag, faTextHeight } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
@@ -18,7 +18,7 @@ library.add(faCaretUp);
 library.add(faObjectGroup);
 library.add(faStickyNote);
 library.add(faFilePdf);
-library.add(faFilm);
+library.add(faFilm, faTag, faTextHeight);
 
 @observer
 export class IconBox extends React.Component<FieldViewProps> {
@@ -47,13 +47,15 @@ export class IconBox extends React.Component<FieldViewProps> {
     specificContextMenu = (): void => {
         ContextMenu.Instance.addItem({
             description: BoolCast(this.props.Document.hideLabel) ? "Show label with icon" : "Remove label from icon",
-            event: this.setLabelField
+            event: this.setLabelField,
+            icon: "tag"
         });
         let maxDocs = DocListCast(this.props.Document.maximizedDocs);
         if (maxDocs.length === 1 && !BoolCast(this.props.Document.hideLabel)) {
             ContextMenu.Instance.addItem({
                 description: BoolCast(this.props.Document.useOwnTitle) ? "Use target title for label" : "Use own title label",
-                event: this.setUseOwnTitleField
+                event: this.setUseOwnTitleField,
+                icon: "text-height"
             });
         }
     }
@@ -64,7 +66,7 @@ export class IconBox extends React.Component<FieldViewProps> {
         let hideLabel = BoolCast(this.props.Document.hideLabel);
         let maxDocs = DocListCast(this.props.Document.maximizedDocs);
         let firstDoc = maxDocs.length ? maxDocs[0] : undefined;
-        let label = hideLabel ? "" : (firstDoc && labelField && !BoolCast(this.props.Document.useOwnTitle, false) ? firstDoc[labelField] : this.props.Document.title);
+        let label = hideLabel ? "" : (firstDoc && labelField && !BoolCast(this.props.Document.useOwnTitle) ? firstDoc[labelField] : this.props.Document.title);
         return (
             <div className="iconBox-container" onContextMenu={this.specificContextMenu}>
                 {this.minimizedIcon}
