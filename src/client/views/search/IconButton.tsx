@@ -13,6 +13,7 @@ import { IconBar } from './IconBar';
 import { props } from 'bluebird';
 import { FilterBox } from './FilterBox';
 import { Search } from '../../../server/Search';
+import { gravity } from 'sharp';
 
 library.add(faSearch);
 library.add(faObjectGroup);
@@ -123,11 +124,11 @@ export class IconButton extends React.Component<IconButtonProps>{
 
     selected = {
         opacity: 1,
-        backgroundColor: "#c2c2c5" //$alt-accent
+        backgroundColor: "rgb(128, 128, 128)"
     };
 
     notSelected = {
-        opacity: 0.6,
+        opacity: 0.2,
     };
 
     hoverStyle = {
