@@ -4,10 +4,10 @@ import { faCog, faPlus, faTable, faSortUp, faSortDown } from '@fortawesome/free-
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, trace, untracked } from "mobx";
 import { observer } from "mobx-react";
-import ReactTable, { CellInfo, ComponentPropsGetterR, ReactTableDefaults, TableCellRenderer, Column, RowInfo } from "react-table";
+import ReactTable, { CellInfo, ComponentPropsGetterR, Column, RowInfo, ResizedChangeFunction, Resize } from "react-table";
 import "react-table/react-table.css";
-import { emptyFunction, returnFalse, returnZero, returnOne } from "../../../Utils";
-import { Doc, DocListCast, DocListCastAsync, Field, FieldResult, Opt } from "../../../new_fields/Doc";
+import { emptyFunction, returnOne } from "../../../Utils";
+import { Doc, DocListCast, Field, Opt } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
@@ -17,28 +17,21 @@ import { Gateway } from "../../northstar/manager/Gateway";
 import { SetupDrag, DragManager } from "../../util/DragManager";
 import { CompileScript, ts, Transformer } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
-import { COLLECTION_BORDER_WIDTH, MAX_ROW_HEIGHT } from '../../views/globalCssVariables.scss';
+import { COLLECTION_BORDER_WIDTH } from '../../views/globalCssVariables.scss';
 import { ContextMenu } from "../ContextMenu";
-import { anchorPoints, Flyout } from "../DocumentDecorations";
 import '../DocumentDecorations.scss';
-import { EditableView } from "../EditableView";
 import { DocumentView } from "../nodes/DocumentView";
-import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import { CollectionPDFView } from "./CollectionPDFView";
 import "./CollectionSchemaView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
 import { undoBatch } from "../../util/UndoManager";
-import { timesSeries } from "async";
 import { CollectionSchemaHeader, CollectionSchemaAddColumnHeader } from "./CollectionSchemaHeaders";
 import { CellProps, CollectionSchemaCell, CollectionSchemaNumberCell, CollectionSchemaStringCell, CollectionSchemaBooleanCell, CollectionSchemaCheckboxCell, CollectionSchemaDocCell } from "./CollectionSchemaCells";
 import { MovableColumn, MovableRow } from "./CollectionSchemaMovableTableHOC";
-import { SelectionManager } from "../../util/SelectionManager";
-import { DocumentManager } from "../../util/DocumentManager";
-import { ImageBox } from "../nodes/ImageBox";
 import { ComputedField } from "../../../new_fields/ScriptField";
-import { SchemaHeaderField, RandomPastel } from "../../../new_fields/SchemaHeaderField";
+import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 
 
 library.add(faCog, faPlus, faSortUp, faSortDown);
@@ -312,6 +305,16 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
     set textWrappedRows(textWrappedRows: string[]) {
         this.props.Document.textwrappedSchemaRows = new List<string>(textWrappedRows);
+    }
+
+    @computed get resized(): { "id": string, "value": number }[] {
+        let columns = this.columns;
+        return columns.reduce((resized, shf) => {
+            if (shf.width > -1) {
+                resized.push({ "id": shf.heading, "value": shf.width });
+            }
+            return resized;
+        }, [] as { "id": string, "value": number }[]);
     }
 
     @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }
@@ -658,15 +661,12 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     setColumnColor = (columnField: SchemaHeaderField, color: string): void => {
-        // console.log("setting color", key);
         let columns = this.columns;
         let index = columns.indexOf(columnField);
         if (index > -1) {
-            // let column = columns[index];
             columnField.color = color;
             columns[index] = columnField;
             this.columns = columns;
-            console.log(columnField, this.columns[index]);
         }
     }
 
@@ -730,7 +730,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     get reactTable() {
         let children = this.childDocs;
 
-        let previewWidth = this.previewWidth(); // + 2 * this.borderWidth + this.DIVIDER_WIDTH + 1;
+        // let previewWidth = this.previewWidth(); // + 2 * this.borderWidth + this.DIVIDER_WIDTH + 1;
         let hasCollectionChild = children.reduce((found, doc) => found || doc.type === "collection", false);
         let expandedRowsList = this._openCollections.map(col => children.findIndex(doc => doc[Id] === col).toString());
         let expanded = {};
@@ -751,6 +751,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             TrComponent={MovableRow}
             sorted={Array.from(this._sortedColumns.values())}
             expanded={expanded}
+            resized={this.resized}
+            onResizedChange={this.onResizedChange}
             SubComponent={hasCollectionChild ?
                 row => {
                     if (row.original.type === "collection") {
@@ -760,6 +762,16 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                 : undefined}
 
         />;
+    }
+
+    onResizedChange = (newResized: Resize[], event: any) => {
+        let columns = this.columns;
+        newResized.forEach(resized => {
+            let index = columns.findIndex(c => c.heading === resized.id);
+            let column = columns[index];
+            column.width = resized.value;
+        });
+        this.columns = columns;
     }
 
     onContextMenu = (e: React.MouseEvent): void => {

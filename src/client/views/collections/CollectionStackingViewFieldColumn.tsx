@@ -187,7 +187,6 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
     startDrag = (e: PointerEvent) => {
         let [dx, dy] = this.props.screenToLocalTransform().transformDirection(e.clientX - this._startDragPosition.x, e.clientY - this._startDragPosition.y);
         if (Math.abs(dx) + Math.abs(dy) > this._sensitivity) {
-            console.log("start stack drag");
             let alias = Doc.MakeAlias(this.props.parent.props.Document);
             let key = StrCast(this.props.parent.props.Document.sectionFilter);
             let value = this.getValue(this._heading);

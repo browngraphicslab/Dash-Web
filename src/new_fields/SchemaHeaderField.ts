@@ -49,8 +49,10 @@ export class SchemaHeaderField extends ObjectField {
     color: string;
     @serializable(primitive())
     type: number;
+    @serializable(primitive())
+    width: number;
 
-    constructor(heading: string = "", color: string = RandomPastel(), type?: ColumnType) {
+    constructor(heading: string = "", color: string = RandomPastel(), type?: ColumnType, width?: number) {
         super();
 
         this.heading = heading;
@@ -61,6 +63,7 @@ export class SchemaHeaderField extends ObjectField {
         else {
             this.type = 0;
         }
+        this.width = width ? width : -1;
     }
 
     setHeading(heading: string) {

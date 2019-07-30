@@ -81,7 +81,6 @@ export class MovableColumn extends React.Component<MovableColumnProps> {
             document.removeEventListener('pointerup', onRowUp);
             let dragData = new DragManager.ColumnDragData(this.props.columnValue);
             DragManager.StartColumnDrag(this._dragRef.current!, dragData, e.x, e.y);
-            console.log("SETUP DRAG");
         };
         let onRowUp = (): void => {
             document.removeEventListener("pointermove", onRowMove);
@@ -89,7 +88,6 @@ export class MovableColumn extends React.Component<MovableColumnProps> {
         };
         if (e.buttons === 1) {
             let [dx, dy] = this.props.ScreenToLocalTransform().transformDirection(e.clientX - this._startDragPosition.x, e.clientY - this._startDragPosition.y);
-            console.log("moving this much", Math.abs(dx), Math.abs(dy));
             if (Math.abs(dx) + Math.abs(dy) > this._sensitivity) {
                 document.removeEventListener("pointermove", this.onPointerMove);
                 e.stopPropagation();
