@@ -237,8 +237,6 @@ def parse_document(file_name: str):
         copyfile(dir_path + "/" + image, dir_path +
                  "/" + image.replace(".", "_o.", 1))
         copyfile(dir_path + "/" + image, dir_path +
-                 "/" + image)
-        os.rename(dir_path + "/" + image, dir_path +
                   "/" + image.replace(".", "_m.", 1))
     print(f"extracted {count} images...")
 

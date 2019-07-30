@@ -205,6 +205,10 @@ async function getDocs(id: string) {
 
             if (field.__type === "proxy" || field.__type === "prefetch_proxy") {
                 ids.push(field.fieldId);
+            } else if (field.__type === "script" || field.__type === "computed") {
+                if (field.captures) {
+                    ids.push(field.captures.fieldId);
+                }
             } else if (field.__type === "list") {
                 ids.push(...fn(field));
             } else if (typeof field === "string") {
@@ -293,6 +297,10 @@ app.post("/uploadDoc", (req, res) => {
 
             if (field.__type === "proxy" || field.__type === "prefetch_proxy") {
                 field.fieldId = getId(field.fieldId);
+            } else if (field.__type === "script" || field.__type === "computed") {
+                if (field.captures) {
+                    field.captures.fieldId = getId(field.captures.fieldId);
+                }
             } else if (field.__type === "list") {
                 mapFn(field);
             } else if (typeof field === "string") {
