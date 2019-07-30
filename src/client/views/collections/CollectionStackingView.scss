@@ -74,6 +74,7 @@
         transform-origin: top left;
         grid-column-end: span 1;
         height: 100%;
+        margin: auto;
     }
 
     .collectionStackingView-sectionHeader {
@@ -134,9 +135,9 @@
 
     .collectionStackingView-addDocumentButton,
     .collectionStackingView-addGroupButton {
-        display: inline-block;
-        margin: 0 5px;
+        display: flex;
         overflow: hidden;
+        margin: auto;
         width: 90%;
         color: lightgrey;
         overflow: ellipses;
@@ -145,6 +146,7 @@
         .editableView-container-editing {
             color: grey;
             padding: 10px;
+            width: 100%;
         }
 
         .editableView-input:hover,

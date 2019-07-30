@@ -35,6 +35,7 @@ import "./FormattedTextBox.scss";
 import React = require("react");
 import { DateField } from '../../../new_fields/DateField';
 import { Utils } from '../../../Utils';
+import { MainOverlayTextBox } from '../MainOverlayTextBox';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight);
@@ -328,7 +329,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     fieldExtDoc.annotations = new List<Doc>(targetAnnotations);
                 }
 
-                let link = DocUtils.MakeLink(this.props.Document, region);
+                let link = DocUtils.MakeLink(this.props.Document, region, doc);
                 if (link) {
                     cbe.clipboardData!.setData("dash/linkDoc", link[Id]);
                     linkId = link[Id];
@@ -442,6 +443,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                                 }
                                 if (targetContext) {
                                     DocumentManager.Instance.jumpToDocument(targetContext, ctrlKey, false, document => this.props.addDocTab(document, undefined, location ? location : "inTab"));
+                                } else if (jumpToDoc) {
+                                    DocumentManager.Instance.jumpToDocument(jumpToDoc, ctrlKey, false, document => this.props.addDocTab(document, undefined, location ? location : "inTab"));
+
                                 }
                             }
                         });
@@ -557,7 +561,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             let nh = NumCast(this.dataDoc.nativeHeight, 0);
             let dh = NumCast(this.props.Document.height, 0);
             let sh = scrBounds.height;
-            this.props.Document.height = nh ? dh / nh * sh : sh;
+            const ChromeHeight = MainOverlayTextBox.Instance.ChromeHeight;
+            this.props.Document.height = (nh ? dh / nh * sh : sh) + (ChromeHeight ? ChromeHeight() : 0);
             this.dataDoc.nativeHeight = nh ? sh : undefined;
         }
     }

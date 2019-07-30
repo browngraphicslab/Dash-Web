@@ -239,7 +239,11 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         };
         let headingView = this.props.headingObject ?
             <div key={heading} className="collectionStackingView-sectionHeader" ref={this._headerRef}
-                style={{ width: (style.columnWidth) / (uniqueHeadings.length + (this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'disabled' ? 1 : 0)) }}>
+                style={{
+                    width: (style.columnWidth) /
+                        ((uniqueHeadings.length +
+                            (this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'disabled' ? 1 : 0)) || 1)
+                }}>
                 {/* the default bucket (no key value) has a tooltip that describes what it is.
                     Further, it does not have a color and cannot be deleted. */}
                 <div className="collectionStackingView-sectionHeader-subCont" onPointerDown={this.headerDown}
@@ -261,12 +265,12 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             </div> : (null);
         for (let i = 0; i < cols; i++) templatecols += `${style.columnWidth}px `;
         return (
-            <div key={heading} style={{ width: `${100 / (uniqueHeadings.length + (this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'disabled' ? 1 : 0))}%`, background: this._background }}
+            <div key={heading} style={{ width: `${100 / ((uniqueHeadings.length + (this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'disabled' ? 1 : 0)) || 1)}%`, background: this._background }}
                 ref={this.createColumnDropRef} onPointerEnter={this.pointerEntered} onPointerLeave={this.pointerLeave}>
                 {headingView}
                 <div key={`${heading}-stack`} className={`collectionStackingView-masonry${singleColumn ? "Single" : "Grid"}`}
                     style={{
-                        padding: singleColumn ? `${style.yMargin}px ${5}px ${style.yMargin}px ${5}px` : `${style.yMargin}px ${0}px`,
+                        padding: singleColumn ? `${style.yMargin}px ${0}px ${style.yMargin}px ${0}px` : `${style.yMargin}px ${0}px`,
                         margin: "auto",
                         width: "max-content", //singleColumn ? undefined : `${cols * (style.columnWidth + style.gridGap) + 2 * style.xMargin - style.gridGap}px`,
                         height: 'max-content',

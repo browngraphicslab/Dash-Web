@@ -9,6 +9,8 @@ import { List } from "../../../new_fields/List";
 import PDFMenu from "./PDFMenu";
 import { DocumentManager } from "../../util/DocumentManager";
 import { PresentationView } from "../presentationview/PresentationView";
+import { LinkManager } from "../../util/LinkManager";
+import { CollectionDockingView } from "../collections/CollectionDockingView";
 
 interface IAnnotationProps {
     anno: Doc;
@@ -110,11 +112,15 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
     }
 
     @action
-    onPointerDown = (e: React.PointerEvent) => {
+    onPointerDown = async (e: React.PointerEvent) => {
         if (e.button === 0) {
-            let targetDoc = Cast(this.props.document.target, Doc, null);
+            let targetDoc = await Cast(this.props.document.target, Doc);
             if (targetDoc) {
-                DocumentManager.Instance.jumpToDocument(targetDoc, false);
+                let context = await Cast(targetDoc.targetContext, Doc);
+                if (context) {
+                    DocumentManager.Instance.jumpToDocument(targetDoc, false, undefined,
+                        ((doc) => this.props.parent.props.parent.props.addDocTab(context!, context!.proto, e.ctrlKey ? "onRight" : "inTab")));
+                }
             }
         }
         if (e.button === 2) {

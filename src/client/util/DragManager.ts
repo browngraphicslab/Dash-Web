@@ -216,6 +216,7 @@ export namespace DragManager {
             this.annotationDocument = annotationDoc;
             this.xOffset = this.yOffset = 0;
         }
+        targetContext: Doc | undefined;
         dragDocument: Doc;
         annotationDocument: Doc;
         dropDocument: Doc;

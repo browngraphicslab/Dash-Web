@@ -48,6 +48,8 @@ export interface FieldViewProps {
     PanelHeight: () => number;
     setVideoBox?: (player: VideoBox) => void;
     setPdfBox?: (player: PDFBox) => void;
+    ContentScaling: () => number;
+    ChromeHeight?: () => number;
 }
 
 @observer

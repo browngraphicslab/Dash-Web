@@ -21,6 +21,7 @@ import { ImageField } from "../../../new_fields/URLField";
 import { SelectionManager } from "../../util/SelectionManager";
 import { listSpec } from "../../../new_fields/Schema";
 import { CollectionViewType } from "../collections/CollectionBaseView";
+import { undoBatch } from "../../util/UndoManager";
 
 export type KVPScript = {
     script: CompiledScript;
@@ -90,6 +91,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         return false;
     }
 
+    @undoBatch
     public static SetField(doc: Doc, key: string, value: string) {
         const script = this.CompileKVPScript(value);
         if (!script) return false;

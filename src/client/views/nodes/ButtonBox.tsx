@@ -70,7 +70,7 @@ export class ButtonBox extends DocComponent<FieldViewProps, ButtonDocument>(Butt
     render() {
         return (
             <div className="buttonBox-outerDiv" onContextMenu={this.onContextMenu}>
-                <button className="buttonBox-mainButton" onClick={this.onClick}>{this.Document.text || "Button"}</button>
+                <button className="buttonBox-mainButton" onClick={this.onClick}>{this.Document.text || this.Document.title || "Button"}</button>
             </div>
         );
     }

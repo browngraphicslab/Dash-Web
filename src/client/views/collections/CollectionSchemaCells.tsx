@@ -115,7 +115,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         }
     }
 
-    private dropRef = (ele: HTMLElement) => {
+    private dropRef = (ele: HTMLElement | null) => {
         this._dropDisposer && this._dropDisposer();
         if (ele) {
             this._dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
@@ -154,6 +154,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             PanelHeight: returnZero,
             PanelWidth: returnZero,
             addDocTab: this.props.addDocTab,
+            ContentScaling: returnOne
         };
 
         let field = props.Document[props.fieldKey];
