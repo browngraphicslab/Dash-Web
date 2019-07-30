@@ -7,8 +7,6 @@ import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
 import { NumCast, StrCast } from "../../../new_fields/Types";
 import { Id } from "../../../new_fields/FieldSymbols";
 import PresentationElement, { buttonIndex } from "./PresentationElement";
-import { DragManager } from "../../util/DragManager";
-import { CollectionDockingView } from "../collections/CollectionDockingView";
 import "../../../new_fields/Doc";
 
 

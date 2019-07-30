@@ -16,7 +16,6 @@ import { faArrowRight, faArrowLeft, faPlay, faStop, faPlus, faTimes, faMinus, fa
 import { Docs } from "../../documents/Documents";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import PresentationViewList from "./PresentationList";
-import { ContextMenu } from "../ContextMenu";
 import PresModeMenu from "./PresentationModeMenu";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 
@@ -36,6 +35,7 @@ export interface PresViewProps {
 }
 
 const expandedWidth = 400;
+const presMinWidth = 300;
 
 @observer
 export class PresentationView extends React.Component<PresViewProps>  {
@@ -408,6 +408,10 @@ export class PresentationView extends React.Component<PresViewProps>  {
 
     }
 
+    /**
+     * This function  checks if right option is clicked on a presentation element, if not it does open it as a tab
+     * with help of CollectionDockingView.
+     */
     jumpToTabOrRight = (curDocButtons: boolean[], curDoc: Doc) => {
         if (curDocButtons[buttonIndex.OpenRight]) {
             DocumentManager.Instance.jumpToDocument(curDoc, false);
@@ -460,22 +464,6 @@ export class PresentationView extends React.Component<PresViewProps>  {
                 }
             }
 
-            //removing it from the backUp of selected Buttons
-            // let castedList = Cast(this.presButtonBackUp.selectedButtonDocs, listSpec(Doc));
-            // if (castedList) {
-            //     castedList.forEach(async (doc, indexOfDoc) => {
-            //         let curDoc = await doc;
-            //         let curDocId = StrCast(curDoc.docId);
-            //         if (curDocId === removedDoc[Id]) {
-            //             if (castedList) {
-            //                 castedList.splice(indexOfDoc, 1);
-            //                 return;
-            //             }
-            //         }
-            //     });
-
-            // }
-            //removing it from the backUp of selected Buttons
 
             let castedList = Cast(this.presButtonBackUp.selectedButtonDocs, listSpec(Doc));
             if (castedList) {
@@ -513,13 +501,16 @@ export class PresentationView extends React.Component<PresViewProps>  {
         }
     }
 
+    /**
+     * An alternative remove method that removes a doc from presentation by its actual
+     * reference.
+     */
     public removeDocByRef = (doc: Doc) => {
         let indexOfDoc = this.childrenDocs.indexOf(doc);
         const value = FieldValue(Cast(this.curPresentation.data, listSpec(Doc)));
         if (value) {
             value.splice(indexOfDoc, 1)[0];
         }
-        //this.RemoveDoc(indexOfDoc, true);
         if (indexOfDoc !== - 1) {
             return true;
         }
@@ -618,6 +609,11 @@ export class PresentationView extends React.Component<PresViewProps>  {
         this.curPresentation.presStatus = this.presStatus;
     }
 
+    /**
+     * This method is called to find the start document of presentation. So
+     * that when user presses on play, the correct presentation element will be
+     * selected.
+     */
     findStartDocument = async () => {
         let docAtZero = await this.getDocAtIndex(0);
         if (docAtZero === undefined) {
@@ -848,10 +844,11 @@ export class PresentationView extends React.Component<PresViewProps>  {
         this.curPresentation.title = newTitle;
     }
 
-    addPressElem = (keyDoc: Doc, elem: PresentationElement) => {
-        this.presElementsMappings.set(keyDoc, elem);
-    }
-
+    /**
+     * On pointer down element that is catched on resizer of te
+     * presentation view. Sets up the event listeners to change the size with
+     * mouse move.
+     */
     _downsize = 0;
     onPointerDown = (e: React.PointerEvent) => {
         this._downsize = e.clientX;
@@ -862,16 +859,26 @@ export class PresentationView extends React.Component<PresViewProps>  {
         e.stopPropagation();
         e.preventDefault();
     }
+    /**
+     * Changes the size of the presentation view, with mouse move.
+     * Minimum size is set to 300, so that every button is visible.
+     */
     @action
     onPointerMove = (e: PointerEvent) => {
 
-        this.curPresentation.width = Math.max(window.innerWidth - e.clientX, 300);
+        this.curPresentation.width = Math.max(window.innerWidth - e.clientX, presMinWidth);
     }
+
+    /**
+     * The method that is called on pointer up event. It checks if the button is just
+     * clicked so that presentation view will be closed. The way it's done is to check 
+     * for minimal pixel change like 4, and accept it as it's just a click on top of the dragger.
+     */
     @action
     onPointerUp = (e: PointerEvent) => {
         if (Math.abs(e.clientX - this._downsize) < 4) {
             let presWidth = NumCast(this.curPresentation.width);
-            if (presWidth - 300 !== 0) {
+            if (presWidth - presMinWidth !== 0) {
                 this.curPresentation.width = 0;
             }
         }
@@ -879,14 +886,23 @@ export class PresentationView extends React.Component<PresViewProps>  {
         document.removeEventListener("pointerup", this.onPointerUp);
     }
 
+    /**
+     * This function gets triggered on click of the dragger. It opens up the
+     * presentation view, if it was closed beforehand.
+     */
     togglePresView = (e: React.MouseEvent) => {
         e.stopPropagation();
         e.preventDefault();
         let width = NumCast(this.curPresentation.width);
         if (width === 0) {
-            this.curPresentation.width = 300;
+            this.curPresentation.width = presMinWidth;
         }
     }
+    /**
+     * This function is a setter that opens up the 
+     * presentation mode, by setting it's render flag
+     * to true. It also closes the presentation view.
+     */
     @action
     openPresMode = () => {
         if (!this.presMode) {
@@ -895,15 +911,23 @@ export class PresentationView extends React.Component<PresViewProps>  {
         }
     }
 
+    /**
+     * This function closes the presentation mode by setting its
+     * render flag to false. It also opens up the presentation view.
+     * By setting it to it's minimum size.
+     */
     @action
     closePresMode = () => {
         if (this.presMode) {
             this.presMode = false;
-            this.curPresentation.width = 300;
+            this.curPresentation.width = presMinWidth;
         }
 
     }
 
+    /**
+     * Function that is called to render the presentation mode, depending on its flag.
+     */
     renderPresMode = () => {
         if (this.presMode) {
             return <PresModeMenu next={this.next} back={this.back} startOrResetPres={this.startOrResetPres} presStatus={this.presStatus} closePresMode={this.closePresMode} />;
