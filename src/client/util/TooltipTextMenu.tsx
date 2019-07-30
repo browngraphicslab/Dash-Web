@@ -22,7 +22,7 @@ import { DocumentManager } from "./DocumentManager";
 import { Id } from "../../new_fields/FieldSymbols";
 import { FormattedTextBoxProps, FormattedTextBox } from "../views/nodes/FormattedTextBox";
 import { typeAlias } from "babel-types";
-import React from "react";
+import React, { Children } from "react";
 import ReactDOM from "react-dom";
 import { Utils } from "../../Utils";
 import { LinkManager } from "./LinkManager";
@@ -62,6 +62,8 @@ export class TooltipTextMenu {
 
     private _marksToDoms: Map<Mark, HTMLSpanElement> = new Map();
 
+    private _collapsed: boolean = false;
+
     @observable
     private _storedMarks: Mark<any>[] | null | undefined;
 
@@ -74,8 +76,8 @@ export class TooltipTextMenu {
         this.tooltip = document.createElement("div");
         this.extras = document.createElement("div");
 
-        this.wrapper.appendChild(this.tooltip);
         this.wrapper.appendChild(this.extras);
+        this.wrapper.appendChild(this.tooltip);
 
         this.tooltip.className = "tooltipMenu";
         this.extras.className = "tooltipExtras";
@@ -86,7 +88,7 @@ export class TooltipTextMenu {
         dragger.textContent = ">>>";
         this.extras.appendChild(dragger);
 
-        this.dragElement(dragger, this.wrapper);
+        this.dragElement(dragger);
 
         this._storedMarks = this.view.state.storedMarks;
 
@@ -338,11 +340,12 @@ export class TooltipTextMenu {
         // this.tooltip.appendChild(this.linkEditor);
     }
 
-    dragElement(elmnt: HTMLElement, wrapper: HTMLElement) {
+    dragElement(elmnt: HTMLElement) {
         var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
         if (elmnt) {
             // if present, the header is where you move the DIV from:
             elmnt.onpointerdown = dragMouseDown;
+            elmnt.ondblclick = onClick;
         }
         const self = this;
 
@@ -357,6 +360,17 @@ export class TooltipTextMenu {
             document.onpointermove = elementDrag;
         }
 
+        function onClick(e: MouseEvent) {
+            self._collapsed = !self._collapsed;
+            const children = self.wrapper.childNodes;
+            if (self._collapsed && children.length > 1) {
+                self.wrapper.removeChild(self.tooltip);
+            }
+            else {
+                self.wrapper.appendChild(self.tooltip);
+            }
+        }
+
         function elementDrag(e: PointerEvent) {
             e = e || window.event;
             //e.preventDefault();
@@ -369,8 +383,8 @@ export class TooltipTextMenu {
             // elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
             // elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
 
-            wrapper.style.top = (wrapper.offsetTop - pos2) + "px";
-            wrapper.style.left = (wrapper.offsetLeft - pos1) + "px";
+            self.wrapper.style.top = (self.wrapper.offsetTop - pos2) + "px";
+            self.wrapper.style.left = (self.wrapper.offsetLeft - pos1) + "px";
         }
 
         function closeDragElement() {
@@ -379,7 +393,6 @@ export class TooltipTextMenu {
             document.onpointermove = null;
             //self.highlightSearchTerms(self.state, ["hello"]);
             //FormattedTextBox.Instance.unhighlightSearchTerms();
-            self.deleteLink();
         }
     }
 
@@ -532,6 +545,24 @@ export class TooltipTextMenu {
                 TooltipTextMenu.insertStar(state, dispatch);
             }
 
+        });
+    }
+
+    deleteLinkItem() {
+        const icon = {
+            height: 16, width: 16,
+            path: "M15.898,4.045c-0.271-0.272-0.713-0.272-0.986,0l-4.71,4.711L5.493,4.045c-0.272-0.272-0.714-0.272-0.986,0s-0.272,0.714,0,0.986l4.709,4.711l-4.71,4.711c-0.272,0.271-0.272,0.713,0,0.986c0.136,0.136,0.314,0.203,0.492,0.203c0.179,0,0.357-0.067,0.493-0.203l4.711-4.711l4.71,4.711c0.137,0.136,0.314,0.203,0.494,0.203c0.178,0,0.355-0.067,0.492-0.203c0.273-0.273,0.273-0.715,0-0.986l-4.711-4.711l4.711-4.711C16.172,4.759,16.172,4.317,15.898,4.045z"
+        };
+        return new MenuItem({
+            title: "Delete Link",
+            label: "X",
+            icon: icon,
+            css: "color: red",
+            class: "summarize",
+            execEvent: "",
+            run: (state, dispatch) => {
+                this.deleteLink();
+            }
         });
     }
 
@@ -839,27 +870,32 @@ export class TooltipTextMenu {
     update_mark_doms() {
         this.reset_mark_doms();
         let foundlink = false;
+        let children = this.extras.childNodes;
         this._activeMarks.forEach((mark) => {
             if (this._marksToDoms.has(mark)) {
                 let dom = this._marksToDoms.get(mark);
                 if (dom) dom.style.color = "greenyellow";
             }
-            if (mark.type.name === "link" && !this.view.state.selection.empty) {
-                let del = document.createElement("button");
-                del.textContent = "X";
-                del.style.color = "red";
-                del.onclick = this.deleteLink;
+            if (children.length > 1) {
+                foundlink = true;
+            }
+            if (mark.type.name === "link" && children.length === 1) {
+                // let del = document.createElement("button");
+                // del.textContent = "X";
+                // del.style.color = "red";
+                // del.style.height = "10px";
+                // del.style.width = "10px";
+                // del.style.marginLeft = "5px";
+                // del.onclick = this.deleteLink;
+                // this.extras.appendChild(del);
+                let del = this.deleteLinkItem().render(this.view).dom;
                 this.extras.appendChild(del);
                 foundlink = true;
             }
         });
         if (!foundlink) {
-            let children = this.extras.childNodes;
-            for (let i = 0; i < children.length; i++) {
-                if (i !== 0) {
-                    this.extras.removeChild(children[i]);
-                    i--;
-                }
+            if (children.length > 1) {
+                this.extras.removeChild(children[1]);
             }
         }
 
@@ -940,6 +976,6 @@ export class TooltipTextMenu {
     }
 
     destroy() {
-        this.tooltip.remove();
+        this.wrapper.remove();
     }
 }
