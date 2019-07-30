@@ -3,16 +3,15 @@ import "./Keyframe.scss";
 import "./Timeline.scss";
 import "./../globalCssVariables.scss";
 import { observer, Observer } from "mobx-react";
-import { observable, reaction, action, IReactionDisposer, observe, IObservableArray, computed, toJS, isComputedProp } from "mobx";
+import { observable, reaction, action, IReactionDisposer, observe, IObservableArray, computed, toJS, isComputedProp, runInAction } from "mobx";
 import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
 import { Cast, FieldValue, StrCast, NumCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { createSchema, defaultSpec, makeInterface, listSpec } from "../../../new_fields/Schema";
 import { FlyoutProps } from "./Timeline";
 import { Transform } from "../../util/Transform";
-import { DocumentManager } from "../../util/DocumentManager";
-import { CollectionView } from "../collections/CollectionView";
 import { InkField, StrokeData } from "../../../new_fields/InkField";
+import { number } from "prop-types";
 
 export namespace KeyframeFunc {
     export enum KeyframeType {
@@ -45,16 +44,48 @@ export namespace KeyframeFunc {
         }
     };
 
+    export const calcMinLeft = async (region: Doc, currentBarX: number, ref?: Doc) => { //returns the time of the closet keyframe to the left
+        let leftKf: (Doc | undefined) = undefined;
+        let time: number = 0;
+        let keyframes = await DocListCastAsync(region.keyframes!);
+        keyframes!.forEach((kf) => {
+            let compTime = currentBarX;
+            if (ref) {
+                compTime = NumCast(ref.time);
+            }
+            if (NumCast(kf.time) < compTime && NumCast(kf.time) >= time) {
+                leftKf = kf;
+                time = NumCast(kf.time);
+            }
+        });
+        return leftKf;
+    };
+
+
+    export const calcMinRight = async (region: Doc, currentBarX: number, ref?: Doc) => { //returns the time of the closest keyframe to the right 
+        let rightKf: (Doc | undefined) = undefined;
+        let time: number = Infinity;
+        let keyframes = await DocListCastAsync(region.keyframes!);
+        keyframes!.forEach((kf) => {
+            let compTime = currentBarX;
+            if (ref) {
+                compTime = NumCast(ref.time);
+            }
+            if (NumCast(kf.time) > compTime && NumCast(kf.time) <= NumCast(time)) {
+                rightKf = kf;
+                time = NumCast(kf.time);
+            }
+        });
+        return rightKf;
+    };
+
     export const defaultKeyframe = () => {
         let regiondata = new Doc(); //creating regiondata
         regiondata.duration = 200;
         regiondata.position = 0;
         regiondata.fadeIn = 20;
         regiondata.fadeOut = 20;
-        regiondata.fadeInX = new List([0, 1]); 
-        regiondata.fadeInY = new List([0, 100]); 
-        regiondata.fadeInMaxY = 100; 
-        regiondata.fadeInMinX = 0; 
+        regiondata.functions = new List<Doc>(); 
         return regiondata;
     };
 }
@@ -64,11 +95,8 @@ export const RegionDataSchema = createSchema({
     duration: defaultSpec("number", 0),
     keyframes: listSpec(Doc),
     fadeIn: defaultSpec("number", 0),
-    fadeOut: defaultSpec("number", 0), 
-    fadeInX: listSpec("number"), 
-    fadeInY: listSpec("number"), 
-    fadeInMaxY: defaultSpec("number", 0), 
-    fadeInMinY: defaultSpec("number", 0)
+    fadeOut: defaultSpec("number", 0),
+    functions: listSpec(Doc) 
 });
 export type RegionData = makeInterface<[typeof RegionDataSchema]>;
 export const RegionData = makeInterface(RegionDataSchema);
@@ -76,19 +104,17 @@ export const RegionData = makeInterface(RegionDataSchema);
 interface IProps {
     node: Doc;
     RegionData: Doc;
-    collection:Doc; 
+    collection: Doc;
     changeCurrentBarX: (x: number) => void;
     setFlyout: (props: FlyoutProps) => any;
-    transform: Transform; 
+    transform: Transform;
 }
 
 @observer
 export class Keyframe extends React.Component<IProps> {
 
     @observable private _bar = React.createRef<HTMLDivElement>();
-    @observable private _fadeInContainer = React.createRef<HTMLDivElement>(); 
-    @observable private _fadeOutContainer = React.createRef<HTMLDivElement>(); 
-    @observable private _bodyContainer = React.createRef<HTMLDivElement>(); 
+    @observable private _gain = 5; //default
 
     @computed
     private get regiondata() {
@@ -126,27 +152,30 @@ export class Keyframe extends React.Component<IProps> {
         });
         return last;
     }
+    @computed
+    private get keyframes(){
+        return DocListCast(this.regiondata.keyframes); 
+    }
 
     @computed
-    private get inks(){
-        if (this.props.collection.data_ext){        
-            let data_ext = Cast(this.props.collection.data_ext, Doc) as Doc; 
-            let ink = Cast(data_ext.ink, InkField) as InkField; 
-            if (ink){
-                return ink.inkData; 
+    private get inks() {
+        if (this.props.collection.data_ext) {
+            let data_ext = Cast(this.props.collection.data_ext, Doc) as Doc;
+            let ink = Cast(data_ext.ink, InkField) as InkField;
+            if (ink) {
+                return ink.inkData;
             }
         }
     }
-
 
     async componentWillMount() {
         if (!this.regiondata.keyframes) {
             this.regiondata.keyframes = new List<Doc>();
         }
-        let fadeIn =  await this.makeKeyData(this.regiondata.position + this.regiondata.fadeIn, KeyframeFunc.KeyframeType.fade)!;
-        let fadeOut =  await this.makeKeyData(this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut, KeyframeFunc.KeyframeType.fade)!;
-        let start =  await this.makeKeyData(this.regiondata.position, KeyframeFunc.KeyframeType.fade)!;
-        let finish =  await this.makeKeyData(this.regiondata.position + this.regiondata.duration, KeyframeFunc.KeyframeType.fade)!;
+        let fadeIn = await this.makeKeyData(this.regiondata.position + this.regiondata.fadeIn, KeyframeFunc.KeyframeType.fade)!;
+        let fadeOut = await this.makeKeyData(this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut, KeyframeFunc.KeyframeType.fade)!;
+        let start = await this.makeKeyData(this.regiondata.position, KeyframeFunc.KeyframeType.fade)!;
+        let finish = await this.makeKeyData(this.regiondata.position + this.regiondata.duration, KeyframeFunc.KeyframeType.fade)!;
         (fadeIn.key! as Doc).opacity = 1;
         (fadeOut.key! as Doc).opacity = 1;
         (start.key! as Doc).opacity = 0.1;
@@ -158,35 +187,54 @@ export class Keyframe extends React.Component<IProps> {
                 fadeOut.time = this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut;
                 start.time = this.regiondata.position;
                 finish.time = this.regiondata.position + this.regiondata.duration;
-                let fadeInIndex = this.regiondata.keyframes!.indexOf(fadeIn);
-                let fadeOutIndex = this.regiondata.keyframes!.indexOf(fadeOut);
-                let startIndex = this.regiondata.keyframes!.indexOf(start);
-                let finishIndex = this.regiondata.keyframes!.indexOf(finish);
-                this.regiondata.keyframes![fadeInIndex] = fadeIn;
-                this.regiondata.keyframes![fadeOutIndex] = fadeOut;
-                this.regiondata.keyframes![startIndex] = start;
-                this.regiondata.keyframes![finishIndex] = finish;
+                this.regiondata.keyframes![this.regiondata.keyframes!.indexOf(fadeIn)] = fadeIn;
+                this.regiondata.keyframes![this.regiondata.keyframes!.indexOf(fadeOut)] = fadeOut;
+                this.regiondata.keyframes![this.regiondata.keyframes!.indexOf(start)] = start;
+                this.regiondata.keyframes![this.regiondata.keyframes!.indexOf(finish)] = finish;
                 this.forceUpdate();
             }
         });
+        document.addEventListener("pointerup", this.onReactionListen);
     }
 
     @action
     makeKeyData = async (kfpos: number, type: KeyframeFunc.KeyframeType = KeyframeFunc.KeyframeType.default) => { //Kfpos is mouse offsetX, representing time 
-        let doclist =  await DocListCastAsync(this.regiondata.keyframes);
+        let doclist = (await DocListCastAsync(this.regiondata.keyframes))!;
         let existingkf: (Doc | undefined) = undefined;
-        if (doclist) {
-            (doclist).forEach(TK => {
-                TK = TK as Doc; 
-                if (TK.time === kfpos) existingkf = TK;  
-            });
-        }
+        doclist.forEach(TK => {
+            TK = TK as Doc;
+            if (TK.time === kfpos) existingkf = TK;
+        });
         if (existingkf) return existingkf;
         let TK: Doc = new Doc();
         TK.time = kfpos;
         TK.key = Doc.MakeCopy(this.props.node, true);
-        TK.type = type;
+        TK.type = type;            
         this.regiondata.keyframes!.push(TK);
+
+        let interpolationFunctions = new Doc(); 
+        interpolationFunctions.interpolationX = new List<number>([0, 1]); 
+        interpolationFunctions.interpolationY = new List<number>([0,100]); 
+        interpolationFunctions.pathX = new List<number>(); 
+        interpolationFunctions.pathY = new List<number>(); 
+
+        this.regiondata.functions!.push(interpolationFunctions); 
+        let found:boolean = false; 
+        this.regiondata.keyframes!.forEach(compkf => {
+            compkf = compkf as Doc; 
+            if (kfpos < NumCast(compkf.time) && !found) {
+                runInAction(() => {
+                    this.regiondata.keyframes!.splice(doclist.indexOf(compkf as Doc), 0, TK);
+                    this.regiondata.keyframes!.pop(); 
+                    found = true; 
+                }); 
+                return; 
+            }
+        });
+        
+        let index = this.regiondata.keyframes!.indexOf(TK); 
+        console.log(toJS(this.regiondata.keyframes!)); 
+
         return TK;
     }
 
@@ -312,11 +360,11 @@ export class Keyframe extends React.Component<IProps> {
         if (offset > this.regiondata.fadeIn && offset < this.regiondata.duration - this.regiondata.fadeOut) { //make sure keyframe is not created inbetween fades and ends
             let position = NumCast(this.regiondata.position);
             await this.makeKeyData(Math.round(position + offset));
-            console.log(this.regiondata.keyframes!.length); 
+            console.log(this.regiondata.keyframes!.length);
             this.props.changeCurrentBarX(NumCast(Math.round(position + offset))); //first move the keyframe to the correct location and make a copy so the correct file gets coppied
         }
     }
-    
+
 
     @action
     moveKeyframe = async (e: React.MouseEvent, kf: Doc) => {
@@ -326,12 +374,12 @@ export class Keyframe extends React.Component<IProps> {
     }
 
 
-    @action 
+    @action
     onKeyframeOver = (e: React.PointerEvent) => {
-        e.preventDefault(); 
-        e.stopPropagation(); 
-        this.props.node.backgroundColor = "#000000"; 
-        
+        e.preventDefault();
+        e.stopPropagation();
+        this.props.node.backgroundColor = "#000000";
+
     }
     @action
     private createKeyframeJSX = (kf: Doc, type = KeyframeFunc.KeyframeType.default) => {
@@ -352,72 +400,93 @@ export class Keyframe extends React.Component<IProps> {
         );
     }
 
-    onContainerOver = (e: React.PointerEvent, ref:React.RefObject<HTMLDivElement>) => {
-        e.preventDefault(); 
-        e.stopPropagation(); 
-        let div = ref.current!; 
-        div.style.opacity = "1"; 
+    onContainerOver = (e: React.PointerEvent, ref: React.RefObject<HTMLDivElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        let div = ref.current!;
+        div.style.opacity = "1";
     }
 
     onContainerOut = (e: React.PointerEvent, ref: React.RefObject<HTMLDivElement>) => {
-        e.preventDefault(); 
-        e.stopPropagation(); 
-        let div = ref.current!; 
-        div.style.opacity ="0"; 
+        e.preventDefault();
+        e.stopPropagation();
+        let div = ref.current!;
+        div.style.opacity = "0";
     }
 
-    onContainerDown = (e: React.MouseEvent, ref: React.RefObject<HTMLDivElement>) => {
-        e.preventDefault(); 
-        let reac: (undefined | IReactionDisposer) = undefined; 
-        let plotList: ([string, StrokeData] | undefined) = undefined; 
-        let listener = (e:PointerEvent) => {
-            if (reac){
-                reac(); 
-                let xPlots = new List<number>(); 
-                let yPlots = new List<number>(); 
-                let maxY = 0; 
-                let minY = Infinity; 
-                let pathData = plotList![1].pathData; 
 
-                for (let i = pathData.length - 1; i >= 0; i--) {
-                    let val = pathData[i];  
-                    if(val.y > maxY) {
-                        maxY = val.y; 
-                    } 
-                    if (val.y < minY) {
-                        minY = val.y; 
-                    }
-                    xPlots.push(val.x); 
-                    yPlots.push(val.y); 
-                }
-                this.regiondata.fadeInX = xPlots; 
-                this.regiondata.fadeInY = yPlots; 
-                this.regiondata.fadeInMaxY = maxY; 
-                this.regiondata.fadeInMinY = minY; 
-                this.inks!.delete(plotList![0]); 
-                document.removeEventListener("pointerup", listener); 
-                
-            }
-        }; 
-        let listenerCreated = false; 
-        reac = reaction(() => {
+    private _reac: (undefined | IReactionDisposer) = undefined;
+    private _plotList: ([string, StrokeData] | undefined) = undefined;
+    private _interpolationKeyframe: (Doc | undefined) = undefined; 
+    private _prevBackgroundColor: string = "";
+
+    @action
+    onContainerDown = (e: React.MouseEvent, kf: Doc) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this._reac = reaction(() => {
             return this.inks;
         }, data => {
-            plotList = Array.from(data!)[data!.size - 1]!;  
-            if (!listenerCreated) {
-                e.stopPropagation(); 
-                document.addEventListener("pointerup", listener); 
-                listenerCreated = true; 
-            }
-        }); 
+            let prevColor = StrCast(this.props.collection.backgroundColor); 
+            this._prevBackgroundColor = prevColor;
+            this.props.collection.backgroundColor = "rgb(0,0,0)";
+            this._plotList = Array.from(data!)[data!.size - 1]!;
+            this._interpolationKeyframe = kf; 
+        });
     }
 
+
+
+
+    @action
+    onReactionListen = (e: PointerEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (this._reac && this._plotList) {
+            this.props.collection.backgroundColor = this._prevBackgroundColor;
+            this._reac();
+            let xPlots = new List<number>();
+            let yPlots = new List<number>();
+            let maxY = 0;
+            let minY = Infinity;
+            let pathData = this._plotList![1].pathData;
+            for (let i = 0; i < pathData.length - 1;) {
+                let val = pathData[i];
+                if (val.y > maxY) {
+                    maxY = val.y;
+                }
+                if (val.y < minY) {
+                    minY = val.y;
+                }
+                xPlots.push(val.x);
+                yPlots.push(val.y);
+                let increment = Math.floor(pathData.length / this._gain);
+                if (pathData.length > this._gain) {
+                    if (i + increment < pathData.length) {
+                        i = i + increment;
+                    } else {
+                        i = pathData.length - 1;
+                    }
+                } else {
+                    i++;
+                }
+            }
+            let index = this.keyframes.indexOf(this._interpolationKeyframe!); 
+            (Cast(this.regiondata.functions![index], Doc) as Doc).interpolationX = xPlots;
+            (Cast(this.regiondata.functions![index], Doc) as Doc).interpolationY = xPlots;
+            this.inks!.delete(this._plotList![0]);
+
+            this._reac = undefined; 
+            this._interpolationKeyframe = undefined; 
+            this._plotList = undefined; 
+        }
+    }
 
 
     render() {
         return (
             <div>
-                <div className="bar" ref={this._bar} style={{ transform: `translate(${this.regiondata.position}px)`, width: `${this.regiondata.duration}px`, background: `linear-gradient(90deg, rgba(77, 153, 0, 0) 0%, rgba(77, 153, 0, 1) ${this.regiondata.fadeIn / this.regiondata.duration * 100}%, rgba(77, 153, 0, 1) ${(this.regiondata.duration - this.regiondata.fadeOut)/this.regiondata.duration * 100}%, rgba(77, 153, 0, 0) 100% )` }}
+                <div className="bar" ref={this._bar} style={{ transform: `translate(${this.regiondata.position}px)`, width: `${this.regiondata.duration}px`, background: `linear-gradient(90deg, rgba(77, 153, 0, 0) 0%, rgba(77, 153, 0, 1) ${this.regiondata.fadeIn / this.regiondata.duration * 100}%, rgba(77, 153, 0, 1) ${(this.regiondata.duration - this.regiondata.fadeOut) / this.regiondata.duration * 100}%, rgba(77, 153, 0, 0) 100% )` }}
                     onPointerDown={this.onBarPointerDown}
                     onDoubleClick={this.createKeyframe}
                     onContextMenu={action((e: React.MouseEvent) => {
@@ -432,18 +501,21 @@ export class Keyframe extends React.Component<IProps> {
                     {this.regiondata.keyframes!.map(kf => {
                         return this.createKeyframeJSX(kf as Doc, (kf! as Doc).type as KeyframeFunc.KeyframeType);
                     })}
-                    <div ref={this._fadeOutContainer}className="fadeOut-container" style={{right: `0px`, width: `${this.regiondata.fadeOut}px`}}
-                    onPointerOver={(e) => {this.onContainerOver(e, this._fadeOutContainer); }}
-                    onPointerOut ={(e) => {this.onContainerOut(e, this._fadeOutContainer);}}
-                    onContextMenu={(e) => {this.onContainerDown(e, this._fadeOutContainer); }}> </div> 
-                    <div ref={this._fadeInContainer}className="fadeIn-container" style={{left: "0px", width:`${this.regiondata.fadeIn}px`}}
-                    onPointerOver={(e) => {this.onContainerOver(e, this._fadeInContainer); }}
-                    onPointerOut ={(e) => {this.onContainerOut(e, this._fadeInContainer);}}
-                    onContextMenu={(e) => {this.onContainerDown(e, this._fadeInContainer); }}></div>
-                    <div ref={this._bodyContainer}className="body-container" style={{left: `${this.regiondata.fadeIn}px`, width:`${this.regiondata.duration - this.regiondata.fadeIn - this.regiondata.fadeOut}px`}}
-                    onPointerOver={(e) => {this.onContainerOver(e, this._bodyContainer); }}
-                    onPointerOut ={(e) => {this.onContainerOut(e, this._bodyContainer);}}
-                    onContextMenu={(e) => {this.onContainerDown(e, this._bodyContainer); }}> </div>
+                    {this.keyframes.map( kf => {
+                       if(this.keyframes.indexOf(kf) !== this.keyframes.length - 1) {
+                           
+                            let left = this.keyframes[this.keyframes.indexOf(kf) + 1]; 
+                            let bodyRef = React.createRef<HTMLDivElement>(); 
+                            return (
+                                <div ref={bodyRef}className="body-container" style={{left: `${NumCast(kf.time) - this.regiondata.position}px`, width:`${NumCast(left!.time) - NumCast(kf.time)}px`}}
+                                onPointerOver={(e) => { this.onContainerOver(e, bodyRef); }}
+                                onPointerOut={(e) => { this.onContainerOut(e, bodyRef); }}
+                                onContextMenu={(e) => { this.onContainerDown(e, kf); }}>
+                                </div>
+                            ); 
+                       }  
+                    })}
+
                 </div>
             </div>
         );

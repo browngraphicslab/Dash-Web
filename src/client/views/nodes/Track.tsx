@@ -70,17 +70,17 @@ export class Track extends React.Component<IProps> {
                         kf.key = Doc.MakeCopy(this.props.node, true);
 
                         //for fades
-                        let leftkf: (Doc | undefined) = await this.calcMinLeft(regiondata!, kf); // lef keyframe, if it exists
-                        let rightkf: (Doc | undefined) = await this.calcMinRight(regiondata!, kf); //right keyframe, if it exists
+                        let leftkf: (Doc | undefined) = await KeyframeFunc.calcMinLeft(regiondata!, this.props.currentBarX, kf); // lef keyframe, if it exists
+                        let rightkf: (Doc | undefined) = await KeyframeFunc.calcMinRight(regiondata!, this.props.currentBarX, kf); //right keyframe, if it exists
                         if (leftkf!.type === KeyframeFunc.KeyframeType.fade) { //replicating this keyframe to fades
-                            let edge:(Doc | undefined) = await this.calcMinLeft(regiondata!, leftkf!);
+                            let edge:(Doc | undefined) = await KeyframeFunc.calcMinLeft(regiondata!, this.props.currentBarX, leftkf!);
                             edge!.key = Doc.MakeCopy(kf.key as Doc, true);
                             leftkf!.key = Doc.MakeCopy(kf.key as Doc, true);
                             (Cast(edge!.key, Doc)! as Doc).opacity = 0.1;
                             (Cast(leftkf!.key, Doc)! as Doc).opacity = 1;
                         }
                         if (rightkf!.type === KeyframeFunc.KeyframeType.fade) {
-                            let edge:(Doc | undefined) = await this.calcMinRight(regiondata!, rightkf!);
+                            let edge:(Doc | undefined) = await KeyframeFunc.calcMinRight(regiondata!,this.props.currentBarX, rightkf!);
                             edge!.key = Doc.MakeCopy(kf.key as Doc, true);
                             rightkf!.key = Doc.MakeCopy(kf.key as Doc, true);
                             (Cast(edge!.key, Doc)! as Doc).opacity = 0.1;
@@ -111,8 +111,8 @@ export class Track extends React.Component<IProps> {
     timeChange = async (time: number) => {
         let regiondata = await this.findRegion(Math.round(time)); //finds a region that the scrubber is on
         if (regiondata) {
-            let leftkf: (Doc | undefined) = await this.calcMinLeft(regiondata); // lef keyframe, if it exists
-            let rightkf: (Doc | undefined) = await this.calcMinRight(regiondata); //right keyframe, if it exists            
+            let leftkf: (Doc | undefined) = await KeyframeFunc.calcMinLeft(regiondata, this.props.currentBarX); // lef keyframe, if it exists
+            let rightkf: (Doc | undefined) = await KeyframeFunc.calcMinRight(regiondata, this.props.currentBarX); //right keyframe, if it exists            
             let currentkf: (Doc | undefined) = await this.calcCurrent(regiondata); //if the scrubber is on top of the keyframe
             if (currentkf) {
                 await this.applyKeys(currentkf);
@@ -156,44 +156,6 @@ export class Track extends React.Component<IProps> {
         return currentkf;
     }
 
-
-    @action
-    calcMinLeft =  async (region: Doc, ref?: Doc) => { //returns the time of the closet keyframe to the left
-        let leftKf: (Doc | undefined) = undefined;
-        let time: number = 0;
-        let keyframes = await DocListCastAsync(region.keyframes!); 
-        keyframes!.forEach((kf) => {
-            let compTime = this.props.currentBarX;
-            if (ref) {
-                compTime = NumCast(ref.time);
-            }
-            if (NumCast(kf.time) < compTime && NumCast(kf.time) >= time) {
-                leftKf = kf;
-                time = NumCast(kf.time);
-            }
-        });
-        return leftKf;
-    }
-
-
-    @action
-    calcMinRight = async (region: Doc, ref?: Doc) => { //returns the time of the closest keyframe to the right 
-        let rightKf: (Doc | undefined) = undefined;
-        let time: number = Infinity;
-        let keyframes = await DocListCastAsync(region.keyframes!); 
-        keyframes!.forEach((kf) => {
-            let compTime = this.props.currentBarX;
-            if (ref) {
-                compTime = NumCast(ref.time);
-            }
-            if (NumCast(kf.time) > compTime && NumCast(kf.time) <= NumCast(time)) {
-                rightKf = kf;
-                time = NumCast(kf.time);
-            }
-        });
-        return rightKf;
-    }
-
     @action
     interpolate = (left: Doc, right: Doc, regiondata:Doc) => {
         console.log("interpolating");
@@ -201,15 +163,16 @@ export class Track extends React.Component<IProps> {
         let rightNode = right.key as Doc;
         const dif_time = NumCast(right.time) - NumCast(left.time);
         const timeratio = (this.props.currentBarX - NumCast(left.time)) / dif_time; //linear 
-        let fadeInY:List<number> = regiondata.fadeInY as List<number>;  
-        let realIndex = (fadeInY.length - 1) * timeratio; 
+        let indexLeft = DocListCast(regiondata.keyframes!).indexOf(left); 
+        let interpolationY:List<number> = ((regiondata.functions as List<Doc>)[indexLeft] as Doc).interpolationY as List<number>;  
+        let realIndex = (interpolationY.length - 1) * timeratio; 
         let xIndex = Math.floor(realIndex);  
-        let yValue = fadeInY[xIndex]; 
+        let yValue = interpolationY[xIndex]; 
         let secondYOffset:number = yValue; 
-        let minY = fadeInY[0];  // for now
-        let maxY = fadeInY[fadeInY.length - 1]; //for now 
-        if (fadeInY.length !== 1) {
-            secondYOffset = fadeInY[xIndex] + ((realIndex - xIndex) / 1) * (fadeInY[xIndex + 1] - fadeInY[xIndex]) - minY; 
+        let minY = interpolationY[0];  // for now
+        let maxY = interpolationY[interpolationY.length - 1]; //for now 
+        if (interpolationY.length !== 1) {
+            secondYOffset = interpolationY[xIndex] + ((realIndex - xIndex) / 1) * (interpolationY[xIndex + 1] - interpolationY[xIndex]) - minY; 
         }
         console.log(secondYOffset); 
         console.log(maxY - minY); 
