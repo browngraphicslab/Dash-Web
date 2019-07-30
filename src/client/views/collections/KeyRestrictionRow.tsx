@@ -29,6 +29,7 @@ export default class KeyRestrictionRow extends React.Component<IKeyRestrictionPr
         else {
             this.props.script("");
         }
+
         return (
             <div className="collectionViewBaseChrome-viewSpecsMenu-row">
                 <input className="collectionViewBaseChrome-viewSpecsMenu-rowLeft"
@@ -36,7 +37,7 @@ export default class KeyRestrictionRow extends React.Component<IKeyRestrictionPr
                     onChange={(e) => runInAction(() => this._key = e.target.value)}
                     placeholder="KEY" />
                 <button className="collectionViewBaseChrome-viewSpecsMenu-rowMiddle"
-                    style={{ background: PastelSchemaPalette.get(this._contains ? "green" : "red") }}
+                    style={{ background: this._contains ? "#77dd77" : "#ff6961" }}
                     onClick={() => runInAction(() => this._contains = !this._contains)}>
                     {this._contains ? "CONTAINS" : "DOES NOT CONTAIN"}
                 </button>

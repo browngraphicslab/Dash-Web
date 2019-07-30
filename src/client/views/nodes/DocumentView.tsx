@@ -99,6 +99,7 @@ export interface DocumentViewProps {
     zoomToScale: (scale: number) => void;
     getScale: () => number;
     animateBetweenIcon?: (iconPos: number[], startTime: number, maximizing: boolean) => void;
+    ChromeHeight?: () => number;
 }
 
 const schema = createSchema({
@@ -439,7 +440,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             e.stopPropagation();
             let annotationDoc = de.data.annotationDocument;
             annotationDoc.linkedToDoc = true;
+            de.data.targetContext = this.props.ContainingCollectionView!.props.Document;
             let targetDoc = this.props.Document;
+            targetDoc.targetContext = de.data.targetContext;
             let annotations = await DocListCastAsync(annotationDoc.annotations);
             if (annotations) {
                 annotations.forEach(anno => {
@@ -448,7 +451,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }
             let pdfDoc = await Cast(annotationDoc.pdfDoc, Doc);
             if (pdfDoc) {
-                DocUtils.MakeLink(annotationDoc, targetDoc, undefined, `Annotation from ${StrCast(pdfDoc.title)}`, "", StrCast(pdfDoc.title));
+                DocUtils.MakeLink(annotationDoc, targetDoc, this.props.ContainingCollectionView!.props.Document, `Annotation from ${StrCast(pdfDoc.title)}`, "", StrCast(pdfDoc.title));
             }
         }
         if (de.data instanceof DragManager.LinkDragData) {
@@ -644,11 +647,18 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get nativeHeight() { return this.Document.nativeHeight || 0; }
     @computed get contents() {
         return (<DocumentContentsView {...this.props}
+            ChromeHeight={this.chromeHeight}
             isSelected={this.isSelected} select={this.select}
             selectOnLoad={this.props.selectOnLoad}
             layoutKey={"layout"}
             fitToBox={BoolCast(this.props.Document.fitToBox) ? true : this.props.fitToBox}
             DataDoc={this.dataDoc} />);
+    }
+
+    chromeHeight = () => {
+        let showOverlays = this.props.showOverlays ? this.props.showOverlays(this.layoutDoc) : undefined;
+        let showTitle = showOverlays && "title" in showOverlays ? showOverlays.title : StrCast(this.layoutDoc.showTitle);
+        return showTitle ? 25 : 0;
     }
 
     get layoutDoc() {
@@ -666,8 +676,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         var nativeWidth = this.nativeWidth > 0 && !BoolCast(this.props.Document.ignoreAspect) ? `${this.nativeWidth}px` : "100%";
         var nativeHeight = BoolCast(this.props.Document.ignoreAspect) ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
         let showOverlays = this.props.showOverlays ? this.props.showOverlays(this.layoutDoc) : undefined;
-        let showTitle = showOverlays && showOverlays.title !== "undefined" ? showOverlays.title : StrCast(this.layoutDoc.showTitle);
-        let showCaption = showOverlays && showOverlays.caption !== "undefined" ? showOverlays.caption : StrCast(this.layoutDoc.showCaption);
+        let showTitle = showOverlays && "title" in showOverlays ? showOverlays.title : StrCast(this.layoutDoc.showTitle);
+        let showCaption = showOverlays && "caption" in showOverlays ? showOverlays.caption : StrCast(this.layoutDoc.showCaption);
         let templates = Cast(this.layoutDoc.templates, listSpec("string"));
         if (!showOverlays && templates instanceof List) {
             templates.map(str => {
@@ -716,11 +726,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                                 transformOrigin: "top left", transform: `scale(${1 / this.props.ContentScaling()})`
                             }}>
                                 <EditableView
-                                    contents={this.layoutDoc[showTitle]}
+                                    contents={(this.layoutDoc.isTemplate || !this.dataDoc ? this.layoutDoc : this.dataDoc)[showTitle]}
                                     display={"block"}
                                     height={72}
                                     fontSize={12}
-                                    GetValue={() => StrCast(this.layoutDoc[showTitle!])}
+                                    GetValue={() => StrCast((this.layoutDoc.isTemplate || !this.dataDoc ? this.layoutDoc : this.dataDoc)[showTitle!])}
                                     SetValue={(value: string) => (Doc.GetProto(this.layoutDoc)[showTitle!] = value) ? true : true}
                                 />
                             </div>

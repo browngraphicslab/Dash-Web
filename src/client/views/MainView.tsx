@@ -92,6 +92,8 @@ export class MainView extends React.Component {
 
     componentWillUnMount() {
         window.removeEventListener("keydown", KeyManager.Instance.handle);
+        window.removeEventListener("pointerdown", this.globalPointerDown);
+        window.removeEventListener("pointerup", this.globalPointerUp);
     }
 
     constructor(props: Readonly<{}>) {
@@ -138,18 +140,23 @@ export class MainView extends React.Component {
         this.initAuthenticationRouters();
     }
 
+    globalPointerDown = action((e: PointerEvent) => {
+        this.isPointerDown = true;
+        const targets = document.elementsFromPoint(e.x, e.y);
+        if (targets && targets.length && targets[0].className.toString().indexOf("contextMenu") === -1) {
+            ContextMenu.Instance.closeMenu();
+        }
+    });
+
+    globalPointerUp = () => this.isPointerDown = false;
+
     initEventListeners = () => {
         // window.addEventListener("pointermove", (e) => this.reportLocation(e))
         window.addEventListener("drop", (e) => e.preventDefault(), false); // drop event handler
         window.addEventListener("dragover", (e) => e.preventDefault(), false); // drag event handler
         // click interactions for the context menu
-        document.addEventListener("pointerdown", action((e: PointerEvent) => {
-            this.isPointerDown = true;
-            const targets = document.elementsFromPoint(e.x, e.y);
-            if (targets && targets.length && targets[0].className.toString().indexOf("contextMenu") === -1) {
-                ContextMenu.Instance.closeMenu();
-            }
-        }), true);
+        document.addEventListener("pointerdown", this.globalPointerDown);
+        document.addEventListener("pointerup", this.globalPointerUp);
     }
 
     initAuthenticationRouters = async () => {
@@ -292,7 +299,6 @@ export class MainView extends React.Component {
     }
     @action
     onPointerUp = (e: PointerEvent) => {
-        this.isPointerDown = false;
         if (Math.abs(e.clientX - this._downsize) < 4) {
             if (this.flyoutWidth < 5) this.flyoutWidth = 250;
             else this.flyoutWidth = 0;

@@ -72,7 +72,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @observable private _node: HTMLDivElement | null = null;
     @observable private _focusedTable: Doc = this.props.Document;
 
-    @computed get chromeCollapsed() { return this.props.chromeCollapsed; }
     @computed get previewWidth() { return () => NumCast(this.props.Document.schemaPreviewWidth); }
     @computed get previewHeight() { return () => this.props.PanelHeight() - 2 * this.borderWidth; }
     @computed get tableWidth() { return this.props.PanelWidth() - 2 * this.borderWidth - this.DIVIDER_WIDTH - this.previewWidth(); }
@@ -199,13 +198,13 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     get schemaTable() {
         return (
             <SchemaTable
-                Document={this.props.Document} // child doc
+                Document={this.props.Document}
                 PanelHeight={this.props.PanelHeight}
                 PanelWidth={this.props.PanelWidth}
                 childDocs={this.childDocs}
                 CollectionView={this.props.CollectionView}
                 ContainingCollectionView={this.props.ContainingCollectionView}
-                fieldKey={this.props.fieldKey} // might just be this.
+                fieldKey={this.props.fieldKey}
                 renderDepth={this.props.renderDepth}
                 moveDocument={this.props.moveDocument}
                 ScreenToLocalTransform={this.props.ScreenToLocalTransform}
@@ -234,11 +233,12 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     render() {
+        Doc.UpdateDocumentExtensionForField(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey);
         // if (SelectionManager.SelectedDocuments().length > 0) console.log(StrCast(SelectionManager.SelectedDocuments()[0].Document.title));
         // if (DocumentManager.Instance.getDocumentView(this.props.Document)) console.log(StrCast(this.props.Document.title), SelectionManager.IsSelected(DocumentManager.Instance.getDocumentView(this.props.Document)!))
         return (
-            <div className="collectionSchemaView-container" onPointerDown={this.onPointerDown} onWheel={this.onWheel}
-                onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createTarget}>
+            <div className="collectionSchemaView-container"
+                onPointerDown={this.onPointerDown} onWheel={this.onWheel} onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createTarget}>
                 {this.schemaTable}
                 {this.dividerDragger}
                 {!this.previewWidth() ? (null) : this.previewPanel}
@@ -252,7 +252,7 @@ export interface SchemaTableProps {
     dataDoc?: Doc;
     PanelHeight: () => number;
     PanelWidth: () => number;
-    childDocs: Doc[];
+    childDocs?: Doc[];
     CollectionView: CollectionView | CollectionPDFView | CollectionVideoView;
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
     fieldKey: string;
@@ -287,9 +287,19 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     @computed get previewHeight() { return () => this.props.PanelHeight() - 2 * this.borderWidth; }
     @computed get tableWidth() { return this.props.PanelWidth() - 2 * this.borderWidth - this.DIVIDER_WIDTH - this.previewWidth(); }
     @computed get columns() {
+        console.log("columns");
         return Cast(this.props.Document.schemaColumns, listSpec(SchemaHeaderField), []);
     }
-    @computed get childDocs() { return this.props.childDocs; }
+    @computed get childDocs() {
+        if (this.props.childDocs) return this.props.childDocs;
+
+        let doc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
+        return DocListCast(doc[this.props.fieldKey]);
+    }
+    set childDocs(docs: Doc[]) {
+        let doc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
+        doc[this.props.fieldKey] = new List<Doc>(docs);
+    }
     set columns(columns: SchemaHeaderField[]) { this.props.Document.schemaColumns = new List<SchemaHeaderField>(columns); }
     @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }
     @computed get tableColumns(): Column<Doc>[] {
@@ -406,8 +416,9 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         super(props);
         // convert old schema columns (list of strings) into new schema columns (list of schema header fields)
         let oldSchemaColumns = Cast(this.props.Document.schemaColumns, listSpec("string"), []);
-        if (oldSchemaColumns && oldSchemaColumns.length) {
-            let newSchemaColumns = oldSchemaColumns.map(i => typeof i === "string" ? new SchemaHeaderField(i) : i);
+        if (oldSchemaColumns && oldSchemaColumns.length && typeof oldSchemaColumns[0] !== "object") {
+            console.log("REMAKING COLUMNs");
+            let newSchemaColumns = oldSchemaColumns.map(i => typeof i === "string" ? new SchemaHeaderField(i, "#f1efeb") : i);
             this.props.Document.schemaColumns = new List<SchemaHeaderField>(newSchemaColumns);
         }
     }
@@ -425,11 +436,12 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     tableRemoveDoc = (document: Doc): boolean => {
-        let doc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
-        let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
-        // let children = this.childDocs;
+        // let doc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
+        // let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
+        let children = this.childDocs;
         if (children.indexOf(document) !== -1) {
             children.splice(children.indexOf(document), 1);
+            this.childDocs = children;
             return true;
         }
         return false;
@@ -521,7 +533,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             let direction = e.key === "Tab" ? "tab" : e.which === 39 ? "right" : e.which === 37 ? "left" : e.which === 38 ? "up" : e.which === 40 ? "down" : "";
             this.changeFocusedCellByDirection(direction);
 
-            let doc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
+            // let doc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
             // let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
             let children = this.childDocs;
             const pdoc = FieldValue(children[this._focusedCell.row]);
@@ -531,7 +543,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     @action
     changeFocusedCellByDirection = (direction: string): void => {
-        let doc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
+        // let doc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
         // let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
         let children = this.childDocs;
         switch (direction) {
@@ -563,7 +575,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     @action
     changeFocusedCellByIndex = (row: number, col: number): void => {
-        let doc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
+        // let doc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
         // let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
 
         this._focusedCell = { row: row, col: col };
@@ -574,7 +586,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     createRow = () => {
-        let doc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
+        // let doc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
         // let children = Cast(doc[this.props.fieldKey], listSpec(Doc), []);
         let children = this.childDocs;
 
@@ -582,6 +594,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         let proto = Doc.GetProto(newDoc);
         proto.title = "";
         children.push(newDoc);
+        this.childDocs = children;
     }
 
     @action
@@ -589,20 +602,24 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         let index = 0;
         let found = this.columns.findIndex(col => col.heading.toUpperCase() === "New field".toUpperCase()) > -1;
         if (!found) {
-            this.columns.push(new SchemaHeaderField("New field"));
+            console.log("create column found");
+            this.columns.push(new SchemaHeaderField("New field", "#f1efeb"));
             return;
         }
         while (found) {
             index++;
             found = this.columns.findIndex(col => col.heading.toUpperCase() === ("New field (" + index + ")").toUpperCase()) > -1;
         }
-        this.columns.push(new SchemaHeaderField("New field (" + index + ")"));
+        console.log("create column new");
+        this.columns.push(new SchemaHeaderField("New field (" + index + ")", "#f1efeb"));
     }
 
     @action
     deleteColumn = (key: string) => {
+        console.log("deleting columnnn");
         let list = Cast(this.props.Document.schemaColumns, listSpec(SchemaHeaderField));
         if (list === undefined) {
+            console.log("delete column");
             this.props.Document.schemaColumns = list = new List<SchemaHeaderField>([]);
         } else {
             const index = list.map(c => c.heading).indexOf(key);
@@ -614,16 +631,19 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     @action
     changeColumns = (oldKey: string, newKey: string, addNew: boolean) => {
+        console.log("changingin columnsdfhs");
         let list = Cast(this.props.Document.schemaColumns, listSpec(SchemaHeaderField));
         if (list === undefined) {
-            this.props.Document.schemaColumns = list = new List<SchemaHeaderField>([new SchemaHeaderField(newKey)]);
+            console.log("change columns new");
+            this.props.Document.schemaColumns = list = new List<SchemaHeaderField>([new SchemaHeaderField(newKey, "f1efeb")]);
         } else {
+            console.log("change column");
             if (addNew) {
-                this.columns.push(new SchemaHeaderField(newKey));
+                this.columns.push(new SchemaHeaderField(newKey, "f1efeb"));
             } else {
                 const index = list.map(c => c.heading).indexOf(oldKey);
                 if (index > -1) {
-                    list[index] = new SchemaHeaderField(newKey);
+                    list[index] = new SchemaHeaderField(newKey, "f1efeb");
                 }
             }
         }
@@ -688,8 +708,9 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     get documentKeys() {
-        // const docs = DocListCast(this.props.Document[this.props.fieldKey]);
-        let docs = this.childDocs;
+        const docs = DocListCast(this.props.Document[this.props.fieldKey]);
+
+        // let docs = this.childDocs;
         let keys: { [key: string]: boolean } = {};
         // bcz: ugh.  this is untracked since otherwise a large collection of documents will blast the server for all their fields.
         //  then as each document's fields come back, we update the documents _proxies.  Each time we do this, the whole schema will be
@@ -717,7 +738,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     @computed
     get reactTable() {
 
-        let cdoc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
+        // let cdoc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
         // let children = DocListCast(cdoc[this.props.fieldKey]);
         let children = this.childDocs;
 
@@ -731,7 +752,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
         return <ReactTable
             style={{ position: "relative", float: "left", width: `calc(100% - ${previewWidth}px` }}
-            data={this.childDocs}
+            data={children}
             page={0}
             pageSize={children.length}
             showPagination={false}
@@ -746,7 +767,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                 row => {
                     if (row.original.type === "collection") {
                         // let childDocs = DocListCast(row.original[this.props.fieldKey]);
-                        return <div className="sub"><SchemaTable {...this.props} Document={row.original} /></div>;
+                        return <div className="sub"><SchemaTable {...this.props} Document={row.original} childDocs={undefined} /></div>;
                     }
                 }
                 : undefined}
@@ -765,6 +786,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         let csv: string = this.columns.reduce((val, col) => val + col + ",", "");
         csv = csv.substr(0, csv.length - 1) + "\n";
         let self = this;
+        let cdoc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
+        // let children = DocListCast(cdoc[this.props.fieldKey]);
         this.childDocs.map(doc => {
             csv += self.columns.reduce((val, col) => val + (doc[col.heading] ? doc[col.heading]!.toString() : "0") + ",", "");
             csv = csv.substr(0, csv.length - 1) + "\n";
@@ -785,8 +808,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         // const docs = DocListCast(this.props.Document[this.props.fieldKey]);
 
         let cdoc = this.props.dataDoc ? this.props.dataDoc : this.props.Document;
-        // const docs = DocListCast(cdoc[this.props.fieldKey]);
-        let docs = this.childDocs;
+        const docs = DocListCast(cdoc[this.props.fieldKey]);
+        // let docs = this.childDocs;
 
         row = row % docs.length;
         while (row < 0) row += docs.length;

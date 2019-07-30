@@ -25,9 +25,12 @@ import { Docs, DocumentType } from '../../documents/Documents';
 import { DocServer } from '../../DocServer';
 import { Font } from '@react-pdf/renderer';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { CognitiveServices } from '../../cognitive_services/CognitiveServices';
+import { CognitiveServices, Service, Tag, Confidence } from '../../cognitive_services/CognitiveServices';
 import FaceRectangles from './FaceRectangles';
 import { faEye } from '@fortawesome/free-regular-svg-icons';
+import { ComputedField } from '../../../new_fields/ScriptField';
+import { CompileScript } from '../../util/Scripting';
+import { thisExpression } from 'babel-types';
 var requestImageSize = require('../../util/request-image-size');
 var path = require('path');
 const { Howl } = require('howler');
@@ -96,7 +99,11 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                     this.props.Document.width = drop.width;
                     this.props.Document.height = drop.height;
                     Doc.GetProto(this.props.Document).type = DocumentType.TEMPLATE;
-                    this.props.Document.layout = temp;
+                    if (this.props.DataDoc && this.props.DataDoc.layout === this.props.Document) {
+                        this.props.DataDoc.layout = temp;
+                    } else {
+                        this.props.Document.layout = temp;
+                    }
                     e.stopPropagation();
                 } else if (de.mods === "AltKey" && /*this.dataDoc !== this.props.Document &&*/ drop.data instanceof ImageField) {
                     Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new ImageField(drop.data.url);
@@ -226,18 +233,54 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
             funcs.push({ description: "Rotate", event: this.rotate, icon: "expand-arrows-alt" });
 
             let modes: ContextMenuProps[] = [];
-            let dataDoc = Doc.GetProto(this.props.Document);
-            modes.push({ description: "Generate Tags", event: () => CognitiveServices.Image.generateMetadata(dataDoc), icon: "tag" });
-            modes.push({ description: "Find Faces", event: () => CognitiveServices.Image.extractFaces(dataDoc), icon: "camera" });
+            modes.push({ description: "Generate Tags", event: this.generateMetadata, icon: "tag" });
+            modes.push({ description: "Find Faces", event: this.extractFaces, icon: "camera" });
 
             ContextMenu.Instance.addItem({ description: "Image Funcs...", subitems: funcs, icon: "asterisk" });
             ContextMenu.Instance.addItem({ description: "Analyze...", subitems: modes, icon: "eye" });
         }
     }
 
+    extractFaces = () => {
+        let converter = (results: any) => {
+            let faceDocs = new List<Doc>();
+            results.map((face: CognitiveServices.Image.Face) => faceDocs.push(Docs.Get.DocumentHierarchyFromJson(face, `Face: ${face.faceId}`)!));
+            return faceDocs;
+        };
+        CognitiveServices.Image.Manager.analyzer(this.extensionDoc, ["faces"], this.url, Service.Face, converter);
+    }
+
+    generateMetadata = (threshold: Confidence = Confidence.Excellent) => {
+        let converter = (results: any) => {
+            let tagDoc = new Doc;
+            let tagsList = new List();
+            results.tags.map((tag: Tag) => {
+                tagsList.push(tag.name);
+                let sanitized = tag.name.replace(" ", "_");
+                let script = `return (${tag.confidence} >= this.confidence) ? ${tag.confidence} : "${ComputedField.undefined}"`;
+                let computed = CompileScript(script, { params: { this: "Doc" } });
+                computed.compiled && (tagDoc[sanitized] = new ComputedField(computed));
+            });
+            this.extensionDoc.generatedTags = tagsList;
+            tagDoc.title = "Generated Tags Doc";
+            tagDoc.confidence = threshold;
+            return tagDoc;
+        };
+        CognitiveServices.Image.Manager.analyzer(this.extensionDoc, ["generatedTagsDoc"], this.url, Service.ComputerVision, converter);
+    }
+
     @action
     onDotDown(index: number) {
         this.Document.curPage = index;
+    }
+
+    @computed get fieldExtensionDoc() {
+        return Doc.resolvedFieldDataDoc(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, "true");
+    }
+
+    @computed private get url() {
+        let data = Cast(Doc.GetProto(this.props.Document).data, ImageField);
+        return data ? data.url.href : undefined;
     }
 
     dots(paths: string[]) {
@@ -287,7 +330,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                 let aspect = size.height / size.width;
                 let rotation = NumCast(this.dataDoc.rotation) % 180;
                 if (rotation === 90 || rotation === 270) aspect = 1 / aspect;
-                if (Math.abs(layoutdoc[HeightSym]() / layoutdoc[WidthSym]() - aspect) > 0.01) {
+                if (Math.abs(NumCast(layoutdoc.height) - size.height) > 1 || Math.abs(NumCast(layoutdoc.width) - size.width) > 1) {
                     setTimeout(action(() => {
                         layoutdoc.height = layoutdoc[WidthSym]() * aspect;
                         layoutdoc.nativeHeight = size.height;
@@ -394,7 +437,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                         style={{ color: [DocListCast(this.extensionDoc.audioAnnotations).length ? "blue" : "gray", "green", "red"][this._audioState] }} icon={faFileAudio} size="sm" />
                 </div>
                 {/* {this.lightbox(paths)} */}
-                <FaceRectangles document={this.props.Document} color={"#0000FF"} backgroundColor={"#0000FF"} />
+                <FaceRectangles document={this.extensionDoc} color={"#0000FF"} backgroundColor={"#0000FF"} />
             </div>);
     }
 }

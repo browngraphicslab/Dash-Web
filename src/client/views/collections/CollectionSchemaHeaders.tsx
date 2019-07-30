@@ -129,6 +129,10 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
         }
     }
 
+    changeColumnColor = (color: string): void => {
+
+    }
+
     renderTypes = () => {
         if (this.props.typeConst) return <></>;
         return (
@@ -168,6 +172,40 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
         );
     }
 
+    renderColors = () => {
+        return (
+            <div className="collectionSchema-headerMenu-group">
+                <label>Color:</label>
+                <div className="columnMenu-colors">
+                    <input type="radio" name="column-color" id="pink" value="#FFB4E8" onClick={() => this.changeColumnColor("#FFB4E8")} />
+                    <label htmlFor="pink">
+                        <div className="columnMenu-colorPicker" style={{ backgroundColor: "#FFB4E8" }}></div>
+                    </label>
+                    <input type="radio" name="column-color" id="purple" value="#b28dff" onClick={() => this.changeColumnColor("#b28dff")} />
+                    <label htmlFor="purple">
+                        <div className="columnMenu-colorPicker" style={{ backgroundColor: "#FFB4E8" }}></div>
+                    </label>
+                    <input type="radio" name="column-color" id="blue" value="#afcbff" onClick={() => this.changeColumnColor("#afcbff")} />
+                    <label htmlFor="blue">
+                        <div className="columnMenu-colorPicker" style={{ backgroundColor: "#FFB4E8" }}></div>
+                    </label>
+                    <input type="radio" name="column-color" id="yellow" value="#f3ffe3" onClick={() => this.changeColumnColor("#f3ffe3")} />
+                    <label htmlFor="yellow">
+                        <div className="columnMenu-colorPicker" style={{ backgroundColor: "#FFB4E8" }}></div>
+                    </label>
+                    <input type="radio" name="column-color" id="red" value="#ffc9de" onClick={() => this.changeColumnColor("#ffc9de")} />
+                    <label htmlFor="red">
+                        <div className="columnMenu-colorPicker" style={{ backgroundColor: "#FFB4E8" }}></div>
+                    </label>
+                    <input type="radio" name="column=color" id="none" value="#f1efeb" onClick={() => this.changeColumnColor("#f1efeb")} />
+                    <label htmlFor="none">
+                        <div className="columnMenu-colorPicker" style={{ backgroundColor: "#FFB4E8" }}></div>
+                    </label>
+                </div>
+            </div>
+        );
+    }
+
     renderContent = () => {
         return (
             <div className="collectionSchema-header-menuOptions">
@@ -187,6 +225,7 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
                     <>
                         {this.renderTypes()}
                         {this.renderSorting()}
+                        {this.renderColors()}
                         <div className="collectionSchema-headerMenu-group">
                             <button onClick={() => this.props.deleteColumn(this.props.keyValue)}>Delete Column</button>
                         </div>

@@ -210,8 +210,23 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             docs.push(document);
         }
         let docContentConfig = CollectionDockingView.makeDocumentConfig(document, dataDocument);
-        var newContentItem = stack.layoutManager.createContentItem(docContentConfig, this._goldenLayout);
-        stack.addChild(newContentItem.contentItems[0], undefined);
+        if (stack === undefined) {
+            let stack: any = this._goldenLayout.root;
+            while (!stack.isStack) {
+                if (stack.contentItems.length) {
+                    stack = stack.contentItems[0];
+                } else {
+                    stack.addChild({ type: 'stack', content: [docContentConfig] });
+                    stack = undefined;
+                    break;
+                }
+            }
+            if (stack) {
+                stack.addChild(docContentConfig);
+            }
+        } else {
+            stack.addChild(docContentConfig, undefined);
+        }
         this.layoutChanged();
     }
 
@@ -561,7 +576,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         }
         return Transform.Identity();
     }
-    get previewPanelCenteringOffset() { return this.nativeWidth && !BoolCast(this._document!.ignoreAspect) ? (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2 : 0; }
+    get previewPanelCenteringOffset() { return this.nativeWidth && !BoolCast(this._document!.ignoreAspect) ? (this._panelWidth - this.nativeWidth()) / 2 : 0; }
 
     addDocTab = (doc: Doc, dataDoc: Doc | undefined, location: string) => {
         if (doc.dockingConfig) {
