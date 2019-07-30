@@ -222,7 +222,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     render() {
         Doc.UpdateDocumentExtensionForField(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey);
         return (
-            <div className="collectionSchemaView-container" style={{ height: this.props.chromeCollapsed ? "100%" : "calc(100% - 70px", marginTop: this.props.chromeCollapsed ? "0" : "70px", transition: "all .5s" }}>
+            <div className="collectionSchemaView-container" style={{ height: "100%", marginTop: "0", }}>
                 <div className="collectionSchemaView-tableContainer" onPointerDown={this.onPointerDown} onWheel={this.onWheel} onDrop={(e: React.DragEvent) => this.onDrop(e, {})} ref={this.createTarget}>
                     {this.schemaTable}
                 </div>
