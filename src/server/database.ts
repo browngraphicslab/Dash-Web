@@ -17,7 +17,7 @@ export class Database {
         });
     }
 
-    public update(id: string, value: any, callback: () => void, upsert = true, collectionName = Database.DocumentsCollection) {
+    public update(id: string, value: any, callback: (err: mongodb.MongoError, res: mongodb.UpdateWriteOpResult) => void, upsert = true, collectionName = Database.DocumentsCollection) {
         if (this.db) {
             let collection = this.db.collection(collectionName);
             const prom = this.currentWrites[id];
@@ -30,7 +30,7 @@ export class Database {
                                 delete this.currentWrites[id];
                             }
                             resolve();
-                            callback();
+                            callback(err, res);
                         });
                 });
             };
@@ -38,6 +38,30 @@ export class Database {
             this.currentWrites[id] = newProm;
         } else {
             this.onConnect.push(() => this.update(id, value, callback, upsert, collectionName));
+        }
+    }
+
+    public replace(id: string, value: any, callback: (err: mongodb.MongoError, res: mongodb.UpdateWriteOpResult) => void, upsert = true, collectionName = Database.DocumentsCollection) {
+        if (this.db) {
+            let collection = this.db.collection(collectionName);
+            const prom = this.currentWrites[id];
+            let newProm: Promise<void>;
+            const run = (): Promise<void> => {
+                return new Promise<void>(resolve => {
+                    collection.replaceOne({ _id: id }, value, { upsert }
+                        , (err, res) => {
+                            if (this.currentWrites[id] === newProm) {
+                                delete this.currentWrites[id];
+                            }
+                            resolve();
+                            callback(err, res);
+                        });
+                });
+            };
+            newProm = prom ? prom.then(run) : run();
+            this.currentWrites[id] = newProm;
+        } else {
+            this.onConnect.push(() => this.replace(id, value, callback, upsert, collectionName));
         }
     }
 
@@ -123,6 +147,34 @@ export class Database {
             });
         } else {
             this.onConnect.push(() => this.getDocuments(ids, fn, collectionName));
+        }
+    }
+
+    public async visit(ids: string[], fn: (result: any) => string[], collectionName = "newDocuments"): Promise<void> {
+        if (this.db) {
+            const visited = new Set<string>();
+            while (ids.length) {
+                const count = Math.min(ids.length, 1000);
+                const index = ids.length - count;
+                const fetchIds = ids.splice(index, count).filter(id => !visited.has(id));
+                if (!fetchIds.length) {
+                    continue;
+                }
+                const docs = await new Promise<{ [key: string]: any }[]>(res => Database.Instance.getDocuments(fetchIds, res, "newDocuments"));
+                for (const doc of docs) {
+                    const id = doc.id;
+                    visited.add(id);
+                    ids.push(...fn(doc));
+                }
+            }
+
+        } else {
+            return new Promise(res => {
+                this.onConnect.push(() => {
+                    this.visit(ids, fn, collectionName);
+                    res();
+                });
+            });
         }
     }
 

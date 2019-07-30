@@ -37,9 +37,10 @@
             }
 
             .collectionViewBaseChrome-collapse {
-                transition: all .5s;
+                transition: all .5s, opacity 0.3s;
                 position: absolute;
                 width: 40px;
+                transform-origin: top left;
             }
 
             .collectionViewBaseChrome-viewSpecs {

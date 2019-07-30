@@ -1,6 +1,7 @@
 import { Doc } from "./Doc";
 import { RefField } from "./RefField";
 import { OnUpdate, Parent, Copy, ToScriptString } from "./FieldSymbols";
+import { Scripting } from "../client/util/Scripting";
 
 export abstract class ObjectField {
     protected [OnUpdate](diff?: any) { }
@@ -15,3 +16,5 @@ export namespace ObjectField {
         return field[Copy]();
     }
 }
+
+Scripting.addGlobal(ObjectField);
