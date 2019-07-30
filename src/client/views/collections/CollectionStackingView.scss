@@ -82,7 +82,7 @@
         margin-left: 2px;
         margin-right: 2px;
         margin-top: 10px;
-        overflow: hidden;
+        // overflow: hidden; overflow is visible so the color menu isn't hidden -ftong
 
         .editableView-input {
             color: black;
@@ -122,6 +122,43 @@
                 text-align: center;
                 letter-spacing: 2px;
                 outline-color: black;
+            }
+        }
+
+        .collectionStackingView-sectionColor {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+
+            [class*="css"] {
+                max-width: 102px;
+            }
+
+            .collectionStackingView-sectionColorButton {
+                height: 35px;
+            }
+
+            .collectionStackingView-colorPicker {
+                width: 78px;
+                
+                .colorOptions {
+                    display: flex;
+                    flex-wrap: wrap;
+                }
+
+                .colorPicker {
+                    cursor: pointer;
+                    width: 20px;
+                    height: 20px;
+                    border-radius: 10px;
+                    margin: 3px;
+        
+                    &.active {
+                        border: 2px solid white;
+                        box-shadow: 0 0 0 2px lightgray;
+                    }
+                }
             }
         }
 
