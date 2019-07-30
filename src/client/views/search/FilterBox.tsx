@@ -363,8 +363,8 @@ export class FilterBox extends React.Component {
                                     {/* <div style={{ marginLeft: "auto" }}><NaviconButton onClick={this.toggleWordStatusOpen} /></div> */}
                                 </div>
                                 <div className="filter-panel" >
-                                    <button className="save-filter" onClick={this.getBasicWordStatus}>Include Any Keywords</button>
-                                    <button className="reset-filter" onClick={this.handleWordQueryChange}>Include All Keywords</button>
+                                    <button className="any-filter" onClick={this.getBasicWordStatus}>Include Any Keywords</button>
+                                    <button className="all-filter" onClick={this.handleWordQueryChange}>Include All Keywords</button>
                                     {/* <ToggleBar handleChange={this.handleWordQueryChange} getStatus={this.getBasicWordStatus}
                                         originalStatus={this._basicWordStatus} optionOne={"Include Any Keywords"} optionTwo={"Include All Keywords"} /> */}
                                 </div>

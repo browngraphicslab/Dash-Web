@@ -109,4 +109,15 @@
         border-top-style: solid;
         padding-top: 10px;
     }
+
+    .any-filter,
+    .save-filter,
+    .reset-filter {
+        background-color: rgb(194, 194, 197);
+    }
+
+    .all-filter {
+        background-color: rgb(194, 194, 197);
+        margin-left: 15px;
+    }
 }
