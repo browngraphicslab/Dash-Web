@@ -329,7 +329,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     fieldExtDoc.annotations = new List<Doc>(targetAnnotations);
                 }
 
-                let link = DocUtils.MakeLink(this.props.Document, region);
+                let link = DocUtils.MakeLink(this.props.Document, region, doc);
                 if (link) {
                     cbe.clipboardData!.setData("dash/linkDoc", link[Id]);
                     linkId = link[Id];
@@ -443,6 +443,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                                 }
                                 if (targetContext) {
                                     DocumentManager.Instance.jumpToDocument(targetContext, ctrlKey, false, document => this.props.addDocTab(document, undefined, location ? location : "inTab"));
+                                } else if (jumpToDoc) {
+                                    DocumentManager.Instance.jumpToDocument(jumpToDoc, ctrlKey, false, document => this.props.addDocTab(document, undefined, location ? location : "inTab"));
+
                                 }
                             }
                         });
