@@ -275,7 +275,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     @observable _headerIsEditing: boolean = false;
     @observable _cellIsEditing: boolean = false;
     @observable _focusedCell: { row: number, col: number } = { row: 0, col: 0 };
-    @observable _sortedColumns: Map<string, { id: string, desc: boolean }> = new Map();
     @observable _openCollections: Array<string> = [];
 
     @computed get previewWidth() { return () => NumCast(this.props.Document.schemaPreviewWidth); }
@@ -308,13 +307,21 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     @computed get resized(): { "id": string, "value": number }[] {
-        let columns = this.columns;
-        return columns.reduce((resized, shf) => {
+        return this.columns.reduce((resized, shf) => {
             if (shf.width > -1) {
                 resized.push({ "id": shf.heading, "value": shf.width });
             }
             return resized;
         }, [] as { "id": string, "value": number }[]);
+    }
+
+    @computed get sorted(): { "id": string, "desc": boolean }[] {
+        return this.columns.reduce((sorted, shf) => {
+            if (shf.desc) {
+                sorted.push({ "id": shf.heading, "desc": shf.desc });
+            }
+            return sorted;
+        }, [] as { "id": string, "desc": boolean }[]);
     }
 
     @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }
@@ -358,7 +365,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                 deleteColumn={this.deleteColumn}
                 setColumnType={this.setColumnType}
                 setColumnSort={this.setColumnSort}
-                removeColumnSort={this.removeColumnSort}
                 setColumnColor={this.setColumnColor}
             />;
 
@@ -689,13 +695,13 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     }
 
     @action
-    setColumnSort = (column: string, descending: boolean) => {
-        this._sortedColumns.set(column, { id: column, desc: descending });
-    }
-
-    @action
-    removeColumnSort = (column: string) => {
-        this._sortedColumns.delete(column);
+    setColumnSort = (columnField: SchemaHeaderField, descending: boolean | undefined) => {
+        let columns = this.columns;
+        let index = columns.findIndex(c => c.heading === columnField.heading);
+        let column = columns[index];
+        column.setDesc(descending);
+        columns[index] = column;
+        this.columns = columns;
     }
 
     get documentKeys() {
@@ -750,7 +756,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             getTdProps={this.getTdProps}
             sortable={false}
             TrComponent={MovableRow}
-            sorted={Array.from(this._sortedColumns.values())}
+            sorted={this.sorted}
             expanded={expanded}
             resized={this.resized}
             onResizedChange={this.onResizedChange}
@@ -770,7 +776,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         newResized.forEach(resized => {
             let index = columns.findIndex(c => c.heading === resized.id);
             let column = columns[index];
-            column.width = resized.value;
+            column.setWidth(resized.value);
+            columns[index] = column;
         });
         this.columns = columns;
     }

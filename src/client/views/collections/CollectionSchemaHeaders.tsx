@@ -24,8 +24,7 @@ export interface HeaderProps {
     setIsEditing: (isEditing: boolean) => void;
     deleteColumn: (column: string) => void;
     setColumnType: (column: SchemaHeaderField, type: ColumnType) => void;
-    setColumnSort: (key: string, desc: boolean) => void;
-    removeColumnSort: (key: string) => void;
+    setColumnSort: (column: SchemaHeaderField, desc: boolean | undefined) => void;
     setColumnColor: (column: SchemaHeaderField, color: string) => void;
 
 }
@@ -51,7 +50,6 @@ export class CollectionSchemaHeader extends React.Component<HeaderProps> {
                     onlyShowOptions={false}
                     setColumnType={this.props.setColumnType}
                     setColumnSort={this.props.setColumnSort}
-                    removeColumnSort={this.props.removeColumnSort}
                     setColumnColor={this.props.setColumnColor}
                 />
             </div>
@@ -87,8 +85,7 @@ export interface ColumnMenuProps {
     deleteColumn: (column: string) => void;
     onlyShowOptions: boolean;
     setColumnType: (column: SchemaHeaderField, type: ColumnType) => void;
-    setColumnSort: (key: string, desc: boolean) => void;
-    removeColumnSort: (key: string) => void;
+    setColumnSort: (column: SchemaHeaderField, desc: boolean | undefined) => void;
     anchorPoint?: any;
     setColumnColor: (column: SchemaHeaderField, color: string) => void;
 }
@@ -121,6 +118,10 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
 
     changeColumnType = (type: ColumnType): void => {
         this.props.setColumnType(this.props.columnField, type);
+    }
+
+    changeColumnSort = (desc: boolean | undefined): void => {
+        this.props.setColumnSort(this.props.columnField, desc);
     }
 
     changeColumnColor = (color: string): void => {
@@ -168,19 +169,20 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
     }
 
     renderSorting = () => {
+        let sort = this.props.columnField.desc;
         return (
             <div className="collectionSchema-headerMenu-group">
                 <label>Sort by:</label>
                 <div className="columnMenu-sort">
-                    <div className="columnMenu-option" onClick={() => this.props.setColumnSort(this.props.columnField.heading, true)}>
+                    <div className={"columnMenu-option" + (sort === true ? " active" : "")} onClick={() => this.changeColumnSort(true)}>
                         <FontAwesomeIcon icon="sort-amount-down" size="sm" />
                         Sort descending
                     </div>
-                    <div className="columnMenu-option" onClick={() => this.props.setColumnSort(this.props.columnField.heading, false)}>
+                    <div className={"columnMenu-option" + (sort === false ? " active" : "")} onClick={() => this.changeColumnSort(false)}>
                         <FontAwesomeIcon icon="sort-amount-up" size="sm" />
                         Sort ascending
                     </div>
-                    <div className="columnMenu-option" onClick={() => this.props.removeColumnSort(this.props.columnField.heading)}>
+                    <div className="columnMenu-option" onClick={() => this.changeColumnSort(undefined)}>
                         <FontAwesomeIcon icon="times" size="sm" />
                         Clear sorting
                     </div>

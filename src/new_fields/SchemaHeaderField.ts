@@ -51,19 +51,17 @@ export class SchemaHeaderField extends ObjectField {
     type: number;
     @serializable(primitive())
     width: number;
+    @serializable(primitive())
+    desc: boolean | undefined; // boolean determines sort order, undefined when no sort
 
-    constructor(heading: string = "", color: string = RandomPastel(), type?: ColumnType, width?: number) {
+    constructor(heading: string = "", color: string = RandomPastel(), type?: ColumnType, width?: number, desc?: boolean) {
         super();
 
         this.heading = heading;
         this.color = color;
-        if (type) {
-            this.type = type;
-        }
-        else {
-            this.type = 0;
-        }
+        this.type = type ? type : 0;
         this.width = width ? width : -1;
+        this.desc = desc;
     }
 
     setHeading(heading: string) {
@@ -78,6 +76,16 @@ export class SchemaHeaderField extends ObjectField {
 
     setType(type: ColumnType) {
         this.type = type;
+        this[OnUpdate]();
+    }
+
+    setWidth(width: number) {
+        this.width = width;
+        this[OnUpdate]();
+    }
+
+    setDesc(desc: boolean | undefined) {
+        this.desc = desc;
         this[OnUpdate]();
     }
 
