@@ -13,12 +13,6 @@ type AnalysisApplier = (target: Doc, relevantKeys: string[], ...args: any) => an
 type BodyConverter<D> = (data: D) => string;
 type Converter = (results: any) => Field;
 
-namespace CORE {
-    export interface IWindow extends Window {
-        webkitSpeechRecognition: any;
-    }
-}
-
 export type Tag = { name: string, confidence: number };
 export type Rectangle = { top: number, left: number, width: number, height: number };
 
@@ -214,24 +208,6 @@ export namespace CognitiveServices {
             unit: string;
             strokes: AzureStrokeData[];
         }
-
-    }
-
-    export namespace Transcription {
-
-        export const analyzer = (target: Doc, keys: string[]) => {
-            let { webkitSpeechRecognition }: CORE.IWindow = window as CORE.IWindow;
-            let recognizer = new webkitSpeechRecognition();
-            recognizer.interimResults = true;
-            recognizer.continuous = true;
-
-            recognizer.onresult = (e: any) => {
-                let result = e.results[0][0];
-                target[keys[0]] = result.transcript;
-            };
-
-            recognizer.start();
-        };
 
     }
 

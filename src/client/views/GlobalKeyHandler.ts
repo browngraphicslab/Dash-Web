@@ -5,9 +5,13 @@ import { MainView } from "./MainView";
 import { DragManager } from "../util/DragManager";
 import { action } from "mobx";
 import { Doc } from "../../new_fields/Doc";
+import { CognitiveServices } from "../cognitive_services/CognitiveServices";
+import DictationManager from "../util/DictationManager";
+import { ContextMenu } from "./ContextMenu";
+import { ContextMenuProps } from "./ContextMenuItem";
 
 const modifiers = ["control", "meta", "shift", "alt"];
-type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo;
+type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
 type KeyControlInfo = {
     preventDefault: boolean,
     stopPropagation: boolean
@@ -25,9 +29,10 @@ export default class KeyManager {
         this.router.set(isMac ? "0001" : "0100", this.ctrl);
         this.router.set(isMac ? "0100" : "0010", this.alt);
         this.router.set(isMac ? "1001" : "1100", this.ctrl_shift);
+        this.router.set("1000", this.shift);
     }
 
-    public handle = (e: KeyboardEvent) => {
+    public handle = async (e: KeyboardEvent) => {
         let keyname = e.key.toLowerCase();
         this.handleGreedy(keyname);
 
@@ -43,7 +48,7 @@ export default class KeyManager {
             return;
         }
 
-        let control = handleConstrained(keyname, e);
+        let control = await handleConstrained(keyname, e);
 
         control.stopPropagation && e.stopPropagation();
         control.preventDefault && e.preventDefault();
@@ -94,6 +99,24 @@ export default class KeyManager {
             preventDefault: false
         };
     });
+
+    private shift = async (keyname: string) => {
+        let stopPropagation = true;
+        let preventDefault = true;
+
+        switch (keyname) {
+            case " ":
+                let transcript = await DictationManager.Instance.listen();
+                console.log(`I heard${transcript ? `: ${transcript.toLowerCase()}` : " nothing: I thought I was still listening from an earlier session."}`);
+                let command: ContextMenuProps | undefined;
+                transcript && (command = ContextMenu.Instance.findByDescription(transcript, true)) && "event" in command && command.event();
+        }
+
+        return {
+            stopPropagation: stopPropagation,
+            preventDefault: preventDefault
+        };
+    }
 
     private alt = action((keyname: string) => {
         let stopPropagation = true;
