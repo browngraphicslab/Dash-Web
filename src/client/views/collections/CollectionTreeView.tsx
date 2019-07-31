@@ -70,30 +70,16 @@ class TreeView extends React.Component<TreeViewProps> {
     private _header?: React.RefObject<HTMLDivElement> = React.createRef();
     private _treedropDisposer?: DragManager.DragDropDisposer;
     private _dref = React.createRef<HTMLDivElement>();
-    @computed get treeViewExpandedView() { return StrCast(this.props.document.treeViewExpandedView, "data"); }
+    @computed get treeViewExpandedView() { return StrCast(this.props.document.treeViewExpandedView, this.fieldKey); }
     @computed get MAX_EMBED_HEIGHT() { return NumCast(this.props.document.maxEmbedHeight, 300); }
     @observable _collapsed: boolean = true;
 
     @computed get fieldKey() {
-        let target = this.props.document;
-        let keys = Array.from(Object.keys(target));  // bcz: Argh -- make untracked to avoid this rerunning whenever 'libraryBrush' is set
-        if (target.proto instanceof Doc) {
-            let arr = Array.from(Object.keys(target.proto));// bcz: Argh -- make untracked to avoid this rerunning whenever 'libraryBrush' is set
-            keys.push(...arr);
-            while (keys.indexOf("proto") !== -1) keys.splice(keys.indexOf("proto"), 1);
-        }
-        let keyList: string[] = [];
-        keys.map(key => {
-            let docList = Cast(this.dataDoc[key], listSpec(Doc));
-            if (docList && docList.length > 0) {
-                keyList.push(key);
-            }
-        });
         let layout = StrCast(this.props.document.layout);
-        if (layout.indexOf("fieldKey={\"") !== -1 && layout.indexOf("fieldExt=") === -1) {
+        if (layout.indexOf("fieldKey={\"") !== -1) {
             return layout.split("fieldKey={\"")[1].split("\"")[0];
         }
-        return keyList.length ? keyList[0] : "data";
+        return "data";
     }
 
     @computed get dataDoc() { return this.resolvedDataDoc ? this.resolvedDataDoc : this.props.document; }
@@ -104,7 +90,7 @@ class TreeView extends React.Component<TreeViewProps> {
             // this document as the data document for the layout.
             return this.props.document;
         }
-        return this.props.dataDoc ? this.props.dataDoc : undefined;
+        return this.props.dataDoc;
     }
 
     protected createTreeDropTarget = (ele: HTMLDivElement) => {
@@ -202,8 +188,8 @@ class TreeView extends React.Component<TreeViewProps> {
         let headerElements = (
             <span className="collectionTreeView-keyHeader" key={this.treeViewExpandedView}
                 onPointerDown={action(() => {
-                    this.props.document.treeViewExpandedView = this.treeViewExpandedView === "data" ? "fields" :
-                        this.treeViewExpandedView === "fields" && this.props.document.layout ? "layout" : "data";
+                    this.props.document.treeViewExpandedView = this.treeViewExpandedView === this.fieldKey ? "fields" :
+                        this.treeViewExpandedView === "fields" && this.props.document.layout ? "layout" : this.fieldKey;
                     this._collapsed = false;
                 })}>
                 {this.treeViewExpandedView}
@@ -382,17 +368,20 @@ class TreeView extends React.Component<TreeViewProps> {
 
     render() {
         let contentElement: (JSX.Element | null) = null;
-        let docList = Cast(this.dataDoc[this.fieldKey], listSpec(Doc));
         let remDoc = (doc: Doc) => this.remove(doc, this.fieldKey);
         let addDoc = (doc: Doc, addBefore?: Doc, before?: boolean) => Doc.AddDocToList(this.dataDoc, this.fieldKey, doc, addBefore, before);
 
         if (!this._collapsed) {
-            if (this.treeViewExpandedView === "data") {
-                let doc = Cast(this.props.document[this.fieldKey], Doc);
+            if (this.treeViewExpandedView === this.fieldKey) {
+                let layout = this.props.document.layout as Doc;
+                let childDocs = (this.props.dataDoc ? Cast(this.props.dataDoc[this.fieldKey], listSpec(Doc)) : undefined) ||
+                    (layout ? Cast(layout[this.fieldKey], listSpec(Doc)) : undefined) ||
+                    Cast(this.props.document[this.fieldKey], listSpec(Doc));
                 contentElement = <ul key={this.fieldKey + "more"}>
                     {this.fieldKey === "links" ? this.renderLinks() :
-                        TreeView.GetChildElements(doc instanceof Doc ? [doc] : DocListCast(docList), this.props.treeViewId, this.props.document, this.resolvedDataDoc, this.fieldKey, addDoc, remDoc, this.move,
-                            this.props.dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active, this.props.panelWidth, this.props.renderDepth)}
+                        !childDocs ? (null) :
+                            TreeView.GetChildElements(childDocs as Doc[], this.props.treeViewId, layout, this.resolvedDataDoc, this.fieldKey, addDoc, remDoc, this.move,
+                                this.props.dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active, this.props.panelWidth, this.props.renderDepth)}
                 </ul >;
             } else if (this.treeViewExpandedView === "fields") {
                 contentElement = <ul><div ref={this._dref} style={{ display: "inline-block" }} key={this.props.document[Id] + this.props.document.title}>
@@ -454,6 +443,8 @@ class TreeView extends React.Component<TreeViewProps> {
         let docList = docs.filter(child => !child.excludeFromLibrary);
         let rowWidth = () => panelWidth() - 20;
         return docList.map((child, i) => {
+            let pair = Doc.GetLayoutDataDocPair(containingCollection, dataDoc, key, child);
+
             let indent = i === 0 ? undefined : () => {
                 if (StrCast(docList[i - 1].layout).indexOf("CollectionView") !== -1) {
                     let fieldKeysub = StrCast(docList[i - 1].layout).split("fieldKey")[1];
@@ -470,8 +461,8 @@ class TreeView extends React.Component<TreeViewProps> {
                 return aspect ? Math.min(child[WidthSym](), rowWidth()) / aspect : child[HeightSym]();
             };
             return <TreeView
-                document={child}
-                dataDoc={dataDoc}
+                document={pair.layout}
+                dataDoc={pair.data}
                 containingCollection={containingCollection}
                 treeViewId={treeViewId}
                 key={child[Id]}
@@ -572,6 +563,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
 
 
     render() {
+        console.log("DTITLE + " + this.props.Document.title);
         Doc.UpdateDocumentExtensionForField(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey);
         let dropAction = StrCast(this.props.Document.dropAction) as dropActionType;
         let addDoc = (doc: Doc, relativeTo?: Doc, before?: boolean) => Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, relativeTo, before);
