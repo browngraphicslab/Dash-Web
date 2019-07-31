@@ -152,47 +152,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     set templates(templates: List<string>) { this.props.Document.templates = templates; }
     screenRect = (): ClientRect | DOMRect => this._mainCont.current ? this._mainCont.current.getBoundingClientRect() : new DOMRect();
 
-    constructor(props: DocumentViewProps) {
-        super(props);
-        let fixed = DictationManager.Instance.registerStatic;
-        let dynamic = DictationManager.Instance.registerDynamic;
-        fixed(["Open Fields"], DocumentView.OpenFieldsDictation);
-        fixed(["Clear"], DocumentView.ClearChildren);
-        dynamic(/create (\w+) documents of type (image|nested collection)/g, DocumentView.BuildLayout);
-        dynamic(/view as (freeform|stacking|masonry|schema|tree)/g, DocumentView.SetViewMode);
-    }
-
-    public static ClearChildren = (target: DocumentView) => {
-        Doc.GetProto(target.props.Document).data = new List();
-    }
-
-    public static BuildLayout = (target: DocumentView, matches: RegExpExecArray) => {
-        let count = DictationManager.Instance.interpretNumber(matches[1]);
-        let what = matches[2];
-        if (!("viewType" in target.props.Document)) {
-            return;
-        }
-        let dataDoc = Doc.GetProto(target.props.Document);
-        let fieldKey = "data";
-        for (let i = 0; i < count; i++) {
-            let created: Doc | undefined;
-            switch (what) {
-                case "image":
-                    created = Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg");
-                    break;
-                case "nested collection":
-                    created = Docs.Create.FreeformDocument([], {});
-                    break;
-            }
-            created && Doc.AddDocToList(dataDoc, fieldKey, created);
-        }
-    }
-
-    public static SetViewMode = (target: DocumentView, matches: RegExpExecArray) => {
-        let mode = CollectionViewType.ValueOf(matches[1]);
-        mode && (target.props.Document.viewType = mode);
-    }
-
     _animateToIconDisposer?: IReactionDisposer;
     _reactionDisposer?: IReactionDisposer;
     @action
@@ -454,11 +413,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     fieldsClicked = (): void => {
         let kvp = Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 });
         this.props.addDocTab(kvp, this.dataDoc, "onRight");
-    }
-
-    public static OpenFieldsDictation = (target: DocumentView) => {
-        let kvp = Docs.Create.KVPDocument(target.props.Document, { width: 300, height: 300 });
-        target.props.addDocTab(kvp, target.dataDoc, "onRight");
     }
 
     @undoBatch

@@ -4,6 +4,10 @@ import { SelectionManager } from "./SelectionManager";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { UndoManager } from "./UndoManager";
 import * as converter from "words-to-numbers";
+import { Doc } from "../../new_fields/Doc";
+import { List } from "../../new_fields/List";
+import { Docs } from "../documents/Documents";
+import { CollectionViewType } from "../views/collections/CollectionBaseView";
 
 namespace CORE {
     export interface IWindow extends Window {
@@ -12,14 +16,12 @@ namespace CORE {
 }
 
 const { webkitSpeechRecognition }: CORE.IWindow = window as CORE.IWindow;
-export type Action = (target: DocumentView) => any | Promise<any>;
-export type DynamicAction = (target: DocumentView, matches: RegExpExecArray) => any | Promise<any>;
-export type RegexEntry = { key: RegExp, value: DynamicAction };
+export type IndependentAction = (target: DocumentView) => any | Promise<any>;
+export type DependentAction = (target: DocumentView, matches: RegExpExecArray) => any | Promise<any>;
+export type RegexEntry = { key: RegExp, value: DependentAction };
 
 export default class DictationManager {
     public static Instance = new DictationManager();
-    private registeredCommands = new Map<string, Action>();
-    private registeredRegexes: RegexEntry[] = [];
     private isListening = false;
     private recognizer: any;
 
@@ -60,13 +62,13 @@ export default class DictationManager {
         return title.replace("...", "").toLowerCase().trim();
     }
 
-    public registerStatic = (keys: Array<string>, action: Action, overwrite = false) => {
+    public registerStatic = (keys: Array<string>, action: IndependentAction, overwrite = false) => {
         let success = true;
         keys.forEach(key => {
             key = this.sanitize(key);
-            let existing = this.registeredCommands.get(key);
+            let existing = RegisteredCommands.Independent.get(key);
             if (!existing || overwrite) {
-                this.registeredCommands.set(key, action);
+                RegisteredCommands.Independent.set(key, action);
             } else {
                 success = false;
             }
@@ -86,8 +88,8 @@ export default class DictationManager {
         return typeof converted === "string" ? parseInt(converted) : converted;
     }
 
-    public registerDynamic = (dynamicKey: RegExp, action: DynamicAction) => {
-        this.registeredRegexes.push({
+    public registerDynamic = (dynamicKey: RegExp, action: DependentAction) => {
+        RegisteredCommands.Dependent.push({
             key: dynamicKey,
             value: action
         });
@@ -101,20 +103,20 @@ export default class DictationManager {
         let batch = UndoManager.StartBatch("Dictation Action");
         phrase = this.sanitize(phrase);
 
-        let registeredAction = this.registeredCommands.get(phrase);
-        if (registeredAction) {
-            await registeredAction(target);
+        let independentAction = RegisteredCommands.Independent.get(phrase);
+        if (independentAction) {
+            await independentAction(target);
             return true;
         }
 
         let success = false;
-        for (let entry of this.registeredRegexes) {
+        for (let entry of RegisteredCommands.Dependent) {
             let regex = entry.key;
-            let registeredDynamicAction = entry.value;
+            let dependentAction = entry.value;
             let matches = regex.exec(phrase);
             regex.lastIndex = 0;
             if (matches !== null) {
-                await registeredDynamicAction(target, matches);
+                await dependentAction(target, matches);
                 success = true;
                 break;
             }
@@ -123,5 +125,59 @@ export default class DictationManager {
 
         return success;
     }
+
+}
+
+export namespace RegisteredCommands {
+
+    export const Independent = new Map<string, IndependentAction>([
+
+        ["clear", (target: DocumentView) => {
+            Doc.GetProto(target.props.Document).data = new List();
+        }],
+
+        ["open fields", (target: DocumentView) => {
+            let kvp = Docs.Create.KVPDocument(target.props.Document, { width: 300, height: 300 });
+            target.props.addDocTab(kvp, target.dataDoc, "onRight");
+        }]
+
+    ]);
+
+    export const Dependent = new Array<RegexEntry>(
+
+        {
+            key: /create (\w+) documents of type (image|nested collection)/g,
+            value: (target: DocumentView, matches: RegExpExecArray) => {
+                let count = DictationManager.Instance.interpretNumber(matches[1]);
+                let what = matches[2];
+                if (!("viewType" in target.props.Document)) {
+                    return;
+                }
+                let dataDoc = Doc.GetProto(target.props.Document);
+                let fieldKey = "data";
+                for (let i = 0; i < count; i++) {
+                    let created: Doc | undefined;
+                    switch (what) {
+                        case "image":
+                            created = Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg");
+                            break;
+                        case "nested collection":
+                            created = Docs.Create.FreeformDocument([], {});
+                            break;
+                    }
+                    created && Doc.AddDocToList(dataDoc, fieldKey, created);
+                }
+            }
+        },
+
+        {
+            key: /view as (freeform|stacking|masonry|schema|tree)/g,
+            value: (target: DocumentView, matches: RegExpExecArray) => {
+                let mode = CollectionViewType.ValueOf(matches[1]);
+                mode && (target.props.Document.viewType = mode);
+            }
+        }
+
+    );
 
 }
