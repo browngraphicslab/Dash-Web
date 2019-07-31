@@ -18,6 +18,7 @@ import { PDFBox } from "./PDFBox";
 import { VideoBox } from "./VideoBox";
 import { FieldView } from "./FieldView";
 import { WebBox } from "./WebBox";
+import { YoutubeBox } from "./../../apis/youtube/YoutubeBox";
 import { HistogramBox } from "../../northstar/dash-nodes/HistogramBox";
 import React = require("react");
 import { FieldViewProps } from "./FieldView";
@@ -98,7 +99,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         if (this.props.renderDepth > 7) return (null);
         if (!this.layout && (this.props.layoutKey !== "overlayLayout" || !this.templates.length)) return (null);
         return <ObserverJsxParser
-            components={{ FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, ButtonBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox }}
+            components={{ FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, ButtonBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox, YoutubeBox }}
             bindings={this.CreateBindings()}
             jsx={this.finalLayout}
             showWarnings={true}

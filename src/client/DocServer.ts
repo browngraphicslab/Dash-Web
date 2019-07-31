@@ -1,5 +1,5 @@
 import * as OpenSocket from 'socket.io-client';
-import { MessageStore, Diff } from "./../server/Message";
+import { MessageStore, Diff, YoutubeQueryTypes } from "./../server/Message";
 import { Opt } from '../new_fields/Doc';
 import { Utils, emptyFunction } from '../Utils';
 import { SerializationHelper } from './util/SerializationHelper';
@@ -155,6 +155,20 @@ export namespace DocServer {
     export function GetRefField(id: string): Promise<Opt<RefField>> {
         return _GetRefField(id);
     }
+
+    export async function getYoutubeChannels() {
+        let apiKey = await Utils.EmitCallback(_socket, MessageStore.YoutubeApiQuery, { type: YoutubeQueryTypes.Channels });
+        return apiKey;
+    }
+
+    export function getYoutubeVideos(videoTitle: string, callBack: (videos: any[]) => void) {
+        Utils.EmitCallback(_socket, MessageStore.YoutubeApiQuery, { type: YoutubeQueryTypes.SearchVideo, userInput: videoTitle }, callBack);
+    }
+
+    export function getYoutubeVideoDetails(videoIds: string, callBack: (videoDetails: any[]) => void) {
+        Utils.EmitCallback(_socket, MessageStore.YoutubeApiQuery, { type: YoutubeQueryTypes.VideoDetails, videoIds: videoIds }, callBack);
+    }
+
 
     /**
      * Given a list of Doc GUIDs, this utility function will asynchronously attempt to each id's associated

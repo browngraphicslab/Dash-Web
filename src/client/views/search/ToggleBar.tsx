@@ -59,6 +59,7 @@ export class ToggleBar extends React.Component<ToggleBarProps>{
         this._forwardTimeline.play();
         this._forwardTimeline.reverse();
         this.props.handleChange();
+        console.log(this.props.getStatus())
     }
 
     @action.bound

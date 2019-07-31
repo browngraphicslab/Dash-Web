@@ -1,11 +1,13 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faProjectDiagram, faSignature, faColumns, faSquare, faTh, faImage, faThList, faTree, faEllipsisV, faFingerprint, faLaptopCode } from '@fortawesome/free-solid-svg-icons';
+import { faEye } from '@fortawesome/free-regular-svg-icons';
+import { faColumns, faEllipsisV, faFingerprint, faImage, faProjectDiagram, faSignature, faSquare, faTh, faThList, faTree } from '@fortawesome/free-solid-svg-icons';
+import { action, IReactionDisposer, observable, reaction, runInAction } from 'mobx';
 import { observer } from "mobx-react";
 import * as React from 'react';
-import { Doc, DocListCast, WidthSym, HeightSym } from '../../../new_fields/Doc';
+import { Doc } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
+import { StrCast } from '../../../new_fields/Types';
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
-import { undoBatch } from '../../util/UndoManager';
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
 import { FieldView, FieldViewProps } from '../nodes/FieldView';
@@ -15,11 +17,7 @@ import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormV
 import { CollectionSchemaView } from "./CollectionSchemaView";
 import { CollectionStackingView } from './CollectionStackingView';
 import { CollectionTreeView } from "./CollectionTreeView";
-import { StrCast, PromiseValue } from '../../../new_fields/Types';
-import { DocumentType } from '../../documents/Documents';
-import { CollectionStackingViewChrome, CollectionViewBaseChrome } from './CollectionViewChromes';
-import { observable, action, runInAction, IReactionDisposer, reaction } from 'mobx';
-import { faEye } from '@fortawesome/free-regular-svg-icons';
+import { CollectionViewBaseChrome } from './CollectionViewChromes';
 export const COLLECTION_BORDER_WIDTH = 2;
 
 library.add(faTh);
@@ -45,6 +43,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
         this._reactionDisposer = reaction(() => StrCast(this.props.Document.chromeStatus),
             () => {
                 // chrome status is one of disabled, collapsed, or visible. this determines initial state from document
+                // chrome status may also be view-mode, in reference to stacking view's toggle mode. it is essentially disabled mode, but prevents the toggle button from showing up on the left sidebar.
                 let chromeStatus = this.props.Document.chromeStatus;
                 if (chromeStatus && (chromeStatus === "disabled" || chromeStatus === "collapsed")) {
                     runInAction(() => this._collapsed = true);
@@ -85,7 +84,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
         }
         else {
             return [
-                (<CollectionViewBaseChrome CollectionView={this} type={type} collapse={this.collapse} />),
+                (<CollectionViewBaseChrome CollectionView={this} key="chrome" type={type} collapse={this.collapse} />),
                 this.SubViewHelper(type, renderProps)
             ];
         }

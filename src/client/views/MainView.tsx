@@ -1,5 +1,5 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowDown, faCaretUp, faLongArrowAltRight, faCloudUploadAlt, faArrowUp, faClone, faCheck, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faPortrait, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faThumbtack, faTree, faUndoAlt, faCat, faBolt } from '@fortawesome/free-solid-svg-icons';
+import { faArrowDown, faCloudUploadAlt, faArrowUp, faClone, faCheck, faPlay, faPause, faCaretUp, faLongArrowAltRight, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faPortrait, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faThumbtack, faTree, faUndoAlt, faCat, faBolt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, runInAction, reaction, trace } from 'mobx';
 import { observer } from 'mobx-react';
@@ -52,6 +52,8 @@ export class MainView extends React.Component {
     @observable private dictationSuccessState: boolean | undefined = undefined;
     @observable private dictationDisplayState = false;
     @observable private dictationListeningState = false;
+
+    public overlayTimeout: NodeJS.Timeout | undefined;
 
     @computed private get mainContainer(): Opt<Doc> {
         return FieldValue(Cast(CurrentUserUtils.UserDocument.activeWorkspace, Doc));
@@ -163,6 +165,8 @@ export class MainView extends React.Component {
         library.add(faFilm);
         library.add(faMusic);
         library.add(faTree);
+        library.add(faPlay);
+        library.add(faPause);
         library.add(faClone);
         library.add(faCut);
         library.add(faCommentAlt);
@@ -419,7 +423,7 @@ export class MainView extends React.Component {
         let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
 
         // let addDockingNode = action(() => Docs.Create.StandardCollectionDockingDocument([{ doc: addColNode(), initialWidth: 200 }], { width: 200, height: 200, title: "a nested docking freeform collection" }));
-        let addSchemaNode = action(() => Docs.Create.SchemaDocument([new SchemaHeaderField("title")], [], { width: 200, height: 200, title: "a schema collection" }));
+        let addSchemaNode = action(() => Docs.Create.SchemaDocument([new SchemaHeaderField("title", "#f1efeb")], [], { width: 200, height: 200, title: "a schema collection" }));
         //let addTreeNode = action(() => Docs.TreeDocument([CurrentUserUtils.UserDocument], { width: 250, height: 400, title: "Library:" + CurrentUserUtils.email, dropAction: "alias" }));
         // let addTreeNode = action(() => Docs.TreeDocument(this._northstarSchemas, { width: 250, height: 400, title: "northstar schemas", dropAction: "copy"  }));
         let addColNode = action(() => Docs.Create.FreeformDocument([], { width: this.pwidth * .7, height: this.pheight, title: "a freeform collection" }));
@@ -427,12 +431,15 @@ export class MainView extends React.Component {
         let addImageNode = action(() => Docs.Create.ImageDocument(imgurl, { width: 200, title: "an image of a cat" }));
         let addButtonDocument = action(() => Docs.Create.ButtonDocument({ width: 150, height: 50, title: "Button" }));
         let addImportCollectionNode = action(() => Docs.Create.DirectoryImportDocument({ title: "Directory Import", width: 400, height: 400 }));
+        let youtubeurl = "https://www.youtube.com/embed/TqcApsGRzWw";
+        let addYoutubeSearcher = action(() => Docs.Create.YoutubeDocument(youtubeurl, { width: 600, height: 600, title: "youtube search" }));
 
         let btns: [React.RefObject<HTMLDivElement>, IconName, string, () => Doc][] = [
             [React.createRef<HTMLDivElement>(), "object-group", "Add Collection", addColNode],
             [React.createRef<HTMLDivElement>(), "bolt", "Add Button", addButtonDocument],
             // [React.createRef<HTMLDivElement>(), "clone", "Add Docking Frame", addDockingNode],
             [React.createRef<HTMLDivElement>(), "cloud-upload-alt", "Import Directory", addImportCollectionNode],
+            [React.createRef<HTMLDivElement>(), "play", "Add Youtube Searcher", addYoutubeSearcher]
         ];
         if (!ClientUtils.RELEASE) btns.unshift([React.createRef<HTMLDivElement>(), "cat", "Add Cat Image", addImageNode]);
 
@@ -491,6 +498,7 @@ export class MainView extends React.Component {
     @observable isSearchVisible = false;
     @action
     toggleSearch = () => {
+        // console.log("search toggling")
         this.isSearchVisible = !this.isSearchVisible;
     }
 
@@ -519,7 +527,7 @@ export class MainView extends React.Component {
                 {this.nodesMenu()}
                 {this.miscButtons}
                 <PDFMenu />
-                <MainOverlayTextBox />
+                <MainOverlayTextBox firstinstance={true} />
                 <OverlayView />
             </div >
         );

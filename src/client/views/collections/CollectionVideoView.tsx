@@ -9,6 +9,7 @@ import "./CollectionVideoView.scss";
 import React = require("react");
 import { InkingControl } from "../InkingControl";
 import { InkTool } from "../../../new_fields/InkField";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 
 @observer
@@ -21,18 +22,20 @@ export class CollectionVideoView extends React.Component<FieldViewProps> {
     private get uIButtons() {
         let scaling = Math.min(1.8, this.props.ScreenToLocalTransform().Scale);
         let curTime = NumCast(this.props.Document.curPage);
-        return ([<div className="collectionVideoView-time" key="time" onPointerDown={this.onResetDown} style={{ transform: `scale(${scaling}, ${scaling})` }}>
+        return ([<div className="collectionVideoView-time" key="time" onPointerDown={this.onResetDown} style={{ transform: `scale(${scaling})` }}>
             <span>{"" + Math.round(curTime)}</span>
             <span style={{ fontSize: 8 }}>{" " + Math.round((curTime - Math.trunc(curTime)) * 100)}</span>
         </div>,
+        <div className="collectionVideoView-snapshot" key="time" onPointerDown={this.onSnapshot} style={{ transform: `scale(${scaling})` }}>
+            <FontAwesomeIcon icon="camera" size="lg" />
+        </div>,
         VideoBox._showControls ? (null) : [
-            <div className="collectionVideoView-play" key="play" onPointerDown={this.onPlayDown} style={{ transform: `scale(${scaling}, ${scaling})` }}>
-                {this._videoBox && this._videoBox.Playing ? "\"" : ">"}
+            <div className="collectionVideoView-play" key="play" onPointerDown={this.onPlayDown} style={{ transform: `scale(${scaling})` }}>
+                <FontAwesomeIcon icon={this._videoBox && this._videoBox.Playing ? "pause" : "play"} size="lg" />
             </div>,
-            <div className="collectionVideoView-full" key="full" onPointerDown={this.onFullDown} style={{ transform: `scale(${scaling}, ${scaling})` }}>
+            <div className="collectionVideoView-full" key="full" onPointerDown={this.onFullDown} style={{ transform: `scale(${scaling})` }}>
                 F
-                </div>
-
+            </div>
         ]]);
     }
 
@@ -51,6 +54,15 @@ export class CollectionVideoView extends React.Component<FieldViewProps> {
     onFullDown = (e: React.PointerEvent) => {
         if (this._videoBox) {
             this._videoBox.FullScreen();
+            e.stopPropagation();
+            e.preventDefault();
+        }
+    }
+
+    @action
+    onSnapshot = (e: React.PointerEvent) => {
+        if (this._videoBox) {
+            this._videoBox.Snapshot();
             e.stopPropagation();
             e.preventDefault();
         }

@@ -62,7 +62,8 @@ export default class KeyManager {
     private unmodified = action((keyname: string, e: KeyboardEvent) => {
         switch (keyname) {
             case "escape":
-                if (MainView.Instance.isPointerDown) {
+                let main = MainView.Instance;
+                if (main.isPointerDown) {
                     DragManager.AbortDrag();
                 } else {
                     if (CollectionDockingView.Instance.HasFullScreen()) {
@@ -71,10 +72,12 @@ export default class KeyManager {
                         SelectionManager.DeselectAll();
                     }
                 }
-                MainView.Instance.toggleColorPicker(true);
+                main.toggleColorPicker(true);
                 SelectionManager.DeselectAll();
                 DictationManager.Instance.stop();
-                MainView.Instance.dictationOverlayVisible = false;
+                main.dictationOverlayVisible = false;
+                main.dictationSuccess = undefined;
+                main.overlayTimeout && clearTimeout(main.overlayTimeout);
                 break;
             case "delete":
             case "backspace":
@@ -103,8 +106,8 @@ export default class KeyManager {
     });
 
     private shift = async (keyname: string) => {
-        let stopPropagation = true;
-        let preventDefault = true;
+        let stopPropagation = false;
+        let preventDefault = false;
 
         switch (keyname) {
             case " ":
@@ -120,10 +123,12 @@ export default class KeyManager {
                 command = command.toLowerCase();
                 main.dictatedPhrase = command;
                 main.dictationSuccess = await manager.execute(command);
-                setTimeout(() => {
+                main.overlayTimeout = setTimeout(() => {
                     main.dictationOverlayVisible = false;
                     main.dictationSuccess = undefined;
                 }, 3000);
+                stopPropagation = true;
+                preventDefault = true;
         }
 
         return {

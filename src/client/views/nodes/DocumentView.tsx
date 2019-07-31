@@ -48,6 +48,7 @@ const JsxParser = require('react-jsx-parser').default; //TODO Why does this need
 
 library.add(fa.faTrash);
 library.add(fa.faShare);
+library.add(fa.faDownload);
 library.add(fa.faExpandArrowsAlt);
 library.add(fa.faCompressArrowsAlt);
 library.add(fa.faLayerGroup);
@@ -96,7 +97,7 @@ export interface DocumentViewProps {
     selectOnLoad: boolean;
     parentActive: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
-    bringToFront: (doc: Doc) => void;
+    bringToFront: (doc: Doc, sendToBack?: boolean) => void;
     addDocTab: (doc: Doc, dataDoc: Doc | undefined, where: string) => void;
     collapseToPoint?: (scrpt: number[], expandedDocs: Doc[] | undefined) => void;
     zoomToScale: (scale: number) => void;
@@ -528,7 +529,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     @action
     makeBackground = (): void => {
-        this.props.Document.isBackground = true;
+        this.props.Document.isBackground = !this.props.Document.isBackground;
+        this.props.Document.isBackground && this.props.bringToFront(this.props.Document, true);
     }
 
     @undoBatch
@@ -567,7 +569,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         cm.addItem({ description: BoolCast(this.props.Document.lockedPosition) ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
         cm.addItem({ description: "Transcribe Speech", event: this.listen, icon: "microphone" });
         let makes: ContextMenuProps[] = [];
-        makes.push({ description: "Make Background", event: this.makeBackground, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
+        makes.push({ description: this.props.Document.isBackground ? "Remove Background" : "Make Background", event: this.makeBackground, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
         makes.push({ description: this.props.Document.isButton ? "Remove Button" : "Make Button", event: this.makeBtnClicked, icon: "concierge-bell" });
         makes.push({
             description: "Make Portal", event: () => {
@@ -605,6 +607,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             copies.push({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "fingerprint" });
             cm.addItem({ description: "Copy...", subitems: copies, icon: "copy" });
         }
+        cm.addItem({
+            description: "Download document", icon: "download", event: () => {
+                const a = document.createElement("a");
+                const url = Utils.prepend(`/downloadId/${this.props.Document[Id]}`);
+                a.href = url;
+                a.download = `DocExport-${this.props.Document[Id]}.zip`;
+                a.click();
+            }
+        });
         cm.addItem({ description: "Delete", event: this.deleteClicked, icon: "trash" });
         type User = { email: string, userDocumentId: string };
         let usersMenu: ContextMenuProps[] = [];
@@ -698,7 +709,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
                 style={{
-                    pointerEvents: this.layoutDoc.isBackground ? "none" : "all",
+                    pointerEvents: this.layoutDoc.isBackground && !this.isSelected() ? "none" : "all",
                     color: foregroundColor,
                     outlineColor: "maroon",
                     outlineStyle: "dashed",
