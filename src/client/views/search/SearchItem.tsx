@@ -340,6 +340,8 @@ export class SearchItem extends React.Component<SearchItemProps> {
     }
 
     render() {
+        const doc1 = Cast(this.props.doc.anchor1, Doc);
+        const doc2 = Cast(this.props.doc.anchor2, Doc);
         return (
             <div className="search-overview" onPointerDown={this.pointerDown} onContextMenu={this.onContextMenu}>
                 <div className="search-item" onPointerEnter={this.highlightDoc} onPointerLeave={this.unHighlightDoc} id="result"
@@ -363,8 +365,8 @@ export class SearchItem extends React.Component<SearchItemProps> {
                     </div>
                 </div>
                 <div className="searchBox-instances">
-                    {this.props.doc.type === DocumentType.LINK ? <LinkContextMenu doc1={Cast(this.props.doc.anchor1, Doc, new Doc())} doc2={Cast(this.props.doc.anchor2, Doc, new Doc())} /> :
-                        <SelectorContextMenu {...this.props} />}
+                    {(doc1 instanceof Doc && doc2 instanceof Doc) ? this.props.doc.type === DocumentType.LINK ? <LinkContextMenu doc1={doc1} doc2={doc2} /> :
+                        <SelectorContextMenu {...this.props} /> : null}
                 </div>
             </div>
         );

@@ -10,7 +10,7 @@
  */
 
 const request = require('request');
-// const imageSize = require('image-size');
+const imageSize = require('image-size');
 const HttpError = require('standard-http-error');
 
 module.exports = function requestImageSize(options) {
