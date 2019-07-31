@@ -93,17 +93,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         if (de.data instanceof DragManager.DocumentDragData) {
             de.data.droppedDocuments.forEach(action((drop: Doc) => {
                 if (de.mods === "CtrlKey") {
-                    let temp = Doc.MakeDelegate(drop);
-                    this.props.Document.nativeWidth = Doc.GetProto(this.props.Document).nativeWidth = undefined;
-                    this.props.Document.nativeHeight = Doc.GetProto(this.props.Document).nativeHeight = undefined;
-                    this.props.Document.width = drop.width;
-                    this.props.Document.height = drop.height;
-                    Doc.GetProto(this.props.Document).type = DocumentType.TEMPLATE;
-                    if (this.props.DataDoc && this.props.DataDoc.layout === this.props.Document) {
-                        this.props.DataDoc.layout = temp;
-                    } else {
-                        this.props.Document.layout = temp;
-                    }
+                    Doc.ApplyTemplateTo(drop, this.props.Document, this.props.DataDoc);
                     e.stopPropagation();
                 } else if (de.mods === "AltKey" && /*this.dataDoc !== this.props.Document &&*/ drop.data instanceof ImageField) {
                     Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new ImageField(drop.data.url);

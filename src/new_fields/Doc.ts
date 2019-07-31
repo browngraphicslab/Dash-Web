@@ -462,6 +462,19 @@ export namespace Doc {
         otherdoc.type = DocumentType.TEMPLATE;
         return otherdoc;
     }
+    export function ApplyTemplateTo(templateDoc: Doc, target: Doc, targetData?: Doc) {
+        let temp = Doc.MakeDelegate(templateDoc);
+        target.nativeWidth = Doc.GetProto(target).nativeWidth = undefined;
+        target.nativeHeight = Doc.GetProto(target).nativeHeight = undefined;
+        target.width = templateDoc.width;
+        target.height = templateDoc.height;
+        Doc.GetProto(target).type = DocumentType.TEMPLATE;
+        if (targetData && targetData.layout === target) {
+            targetData.layout = temp;
+        } else {
+            target.layout = temp;
+        }
+    }
 
     export function MakeTemplate(fieldTemplate: Doc, metaKey: string, templateDataDoc: Doc) {
         // move data doc fields to layout doc as needed (nativeWidth/nativeHeight, data, ??)

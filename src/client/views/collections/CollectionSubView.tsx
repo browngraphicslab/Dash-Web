@@ -1,13 +1,15 @@
 import { action, computed } from "mobx";
 import * as rp from 'request-promise';
 import CursorField from "../../../new_fields/CursorField";
-import { Doc, DocListCast, Opt } from "../../../new_fields/Doc";
+import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
+import { ScriptField } from "../../../new_fields/ScriptField";
 import { BoolCast, Cast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { RouteStore } from "../../../server/RouteStore";
+import { Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Docs, DocumentOptions, DocumentType } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
@@ -19,10 +21,6 @@ import { CollectionPDFView } from "./CollectionPDFView";
 import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
 import React = require("react");
-import { MainView } from "../MainView";
-import { Utils } from "../../../Utils";
-import { ScriptField } from "../../../new_fields/ScriptField";
-import { CompileScript } from "../../util/Scripting";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
@@ -115,6 +113,13 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         @action
         protected drop(e: Event, de: DragManager.DropEvent): boolean {
             if (de.data instanceof DragManager.DocumentDragData) {
+                if (de.mods === "AltKey" && de.data.draggedDocuments.length) {
+                    this.childDocs.map(doc =>
+                        Doc.ApplyTemplateTo(de.data.draggedDocuments[0], doc, undefined)
+                    );
+                    e.stopPropagation();
+                    return true;
+                }
                 let added = false;
                 if (de.data.dropAction || de.data.userDropAction) {
                     added = de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
