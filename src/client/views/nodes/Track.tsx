@@ -141,7 +141,7 @@ export class Track extends React.Component<IProps> {
     @action
     private filterKeys = (keys: string[]): string[] => {
         return keys.reduce((acc: string[], key: string) => {
-            if (key !== "regions" && key !== "data" && key !== "creationDate" && key !== "cursors" && key !== "hidden" && key !== "nativeHeight" && key !== "nativeWidth") acc.push(key);
+            if (key !== "regions" && key !== "data" && key !== "creationDate" && key !== "cursors" && key !== "hidden" && key !== "nativeHeight" && key !== "nativeWidth" && key !== "schemaColumns") acc.push(key);
             return acc;
         }, []) as string[];
     }
