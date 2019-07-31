@@ -2,7 +2,7 @@ import { string } from "prop-types";
 import { observable, action, autorun } from "mobx";
 import { SelectionManager } from "./SelectionManager";
 import { DocumentView } from "../views/nodes/DocumentView";
-import { UndoManager } from "./UndoManager";
+import { UndoManager, undoBatch } from "./UndoManager";
 import * as converter from "words-to-numbers";
 import { Doc, Field } from "../../new_fields/Doc";
 import { List } from "../../new_fields/List";
@@ -23,7 +23,7 @@ const { webkitSpeechRecognition }: CORE.IWindow = window as CORE.IWindow;
 export type IndependentAction = (target: DocumentView) => any | Promise<any>;
 export type DependentAction = (target: DocumentView, matches: RegExpExecArray) => any | Promise<any>;
 export type RegexEntry = { key: RegExp, value: DependentAction };
-export type RegistrationUnit<T extends IndependentAction | DependentAction> = { action: T, filter?: Predicate };
+export type RegistrationUnit<T extends IndependentAction | DependentAction> = { action: T, validate?: Predicate };
 
 export default class DictationManager {
     public static Instance = new DictationManager();
@@ -99,6 +99,7 @@ export default class DictationManager {
         });
     }
 
+    @undoBatch
     public execute = async (phrase: string) => {
         let target = SelectionManager.SelectedDocuments()[0];
         if (!target) {
@@ -108,10 +109,8 @@ export default class DictationManager {
 
         let unit = RegisteredCommands.Independent.get(phrase);
         if (unit) {
-            if (!unit.filter || unit.filter(target)) {
-                let batch = UndoManager.StartBatch("Dictation Independent Action");
+            if (!unit.validate || unit.validate(target)) {
                 await unit.action(target);
-                batch.end();
                 return true;
             }
         }
@@ -122,9 +121,7 @@ export default class DictationManager {
             let matches = regex.exec(phrase);
             regex.lastIndex = 0;
             if (matches !== null) {
-                let batch = UndoManager.StartBatch("Dictation Dependent Action");
                 await dependentAction(target, matches);
-                batch.end();
                 return true;
             }
         }
@@ -142,7 +139,7 @@ export namespace RegisteredCommands {
             action: (target: DocumentView) => {
                 Doc.GetProto(target.props.Document).data = new List();
             },
-            filter: Filters.isCollectionView
+            validate: Filters.isCollectionView
         }],
 
         ["open fields", {
@@ -150,7 +147,7 @@ export namespace RegisteredCommands {
                 let kvp = Docs.Create.KVPDocument(target.props.Document, { width: 300, height: 300 });
                 target.props.addDocTab(kvp, target.dataDoc, "onRight");
             },
-            filter: Filters.isImageView
+            validate: Filters.isImageView
         }]
 
     ]);
