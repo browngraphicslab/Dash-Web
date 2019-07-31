@@ -176,6 +176,8 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             />
         </div>;
     }
+
+    @undoBatch
     @action
     setPreviewScript = (script: string) => {
         this.previewScript = script;
@@ -552,6 +554,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         this.props.setFocused(this.props.Document);
     }
 
+    @undoBatch
     createRow = () => {
         let children = this.childDocs;
 
@@ -563,6 +566,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         this.childDocs = children;
     }
 
+    @undoBatch
     @action
     createColumn = () => {
         let index = 0;
@@ -581,6 +585,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         this.columns = columns;
     }
 
+    @undoBatch
     @action
     deleteColumn = (key: string) => {
         let columns = this.columns;
@@ -595,6 +600,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         }
     }
 
+    @undoBatch
     @action
     changeColumns = (oldKey: string, newKey: string, addNew: boolean) => {
         let columns = this.columns;
@@ -634,6 +640,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         return NumCast(typesDoc[column.heading]);
     }
 
+    @undoBatch
     setColumnType = (columnField: SchemaHeaderField, type: ColumnType): void => {
         if (columnTypes.get(columnField.heading)) return;
 
@@ -656,6 +663,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         // }
     }
 
+    @undoBatch
     setColumnColor = (columnField: SchemaHeaderField, color: string): void => {
         let columns = this.columns;
         let index = columns.indexOf(columnField);
@@ -671,6 +679,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         this.columns = columns;
     }
 
+    @undoBatch
     reorderColumns = (toMove: SchemaHeaderField, relativeTo: SchemaHeaderField, before: boolean, columnsValues: SchemaHeaderField[]) => {
         let columns = [...columnsValues];
         let oldIndex = columns.indexOf(toMove);
@@ -683,6 +692,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         this.columns = columns;
     }
 
+    @undoBatch
     @action
     setColumnSort = (columnField: SchemaHeaderField, descending: boolean | undefined) => {
         let columns = this.columns;

@@ -166,15 +166,16 @@
         align-items: center;
         justify-content: center;
 
-    .save-filter,
-    .reset-filter,
-    .all-filter {
-        background-color: gray;
-    }
+        .save-filter,
+        .reset-filter,
+        .all-filter {
+            background-color: gray;
+        }
 
-    .save-filter:hover,
-    .reset-filter:hover,
-    .all-filter:hover {
-        background-color: $darker-alt-accent;
+        .save-filter:hover,
+        .reset-filter:hover,
+        .all-filter:hover {
+            background-color: $darker-alt-accent;
+        }
     }
 }

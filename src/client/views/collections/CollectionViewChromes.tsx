@@ -189,12 +189,12 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
 
     render() {
         return (
-            <div className="collectionViewChrome-cont" style={{ top: this._collapsed ? -100 : 0 }}>
+            <div className="collectionViewChrome-cont" style={{ top: this._collapsed ? -70 : 0 }}>
                 <div className="collectionViewChrome">
                     <div className="collectionViewBaseChrome">
                         <button className="collectionViewBaseChrome-collapse"
                             style={{
-                                marginTop: this._collapsed ? 60 : 0,
+                                top: this._collapsed ? 70 : 10,
                                 transform: `rotate(${this._collapsed ? 180 : 0}deg) scale(${this._collapsed ? 0.5 : 1}) translate(${this._collapsed ? "-100%, -100%" : "0, 0"})`,
                                 opacity: (this._collapsed && !this.props.CollectionView.props.isSelected()) ? 0 : 0.9,
                                 left: (this._collapsed ? 0 : "unset"),
@@ -377,6 +377,7 @@ export class CollectionStackingViewChrome extends React.Component<CollectionView
 export class CollectionSchemaViewChrome extends React.Component<CollectionViewChromeProps> {
     // private _textwrapAllRows: boolean = Cast(this.props.CollectionView.props.Document.textwrappedSchemaRows, listSpec("string"), []).length > 0;
 
+    @undoBatch
     togglePreview = () => {
         let dividerWidth = 4;
         let borderWidth = Number(COLLECTION_BORDER_WIDTH);
@@ -386,6 +387,7 @@ export class CollectionSchemaViewChrome extends React.Component<CollectionViewCh
         this.props.CollectionView.props.Document.schemaPreviewWidth = previewWidth === 0 ? Math.min(tableWidth / 3, 200) : 0;
     }
 
+    @undoBatch
     @action
     toggleTextwrap = async () => {
         let textwrappedRows = Cast(this.props.CollectionView.props.Document.textwrappedSchemaRows, listSpec("string"), []);

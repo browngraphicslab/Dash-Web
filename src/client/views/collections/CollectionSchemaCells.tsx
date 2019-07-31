@@ -26,6 +26,7 @@ import { faExpand } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import { KeyCodes } from "../../northstar/utils/KeyCodes";
+import { undoBatch } from "../../util/UndoManager";
 
 library.add(faExpand);
 
@@ -96,6 +97,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         if (typeof field === "object" && doc) this.props.setPreviewDoc(doc);
     }
 
+    @undoBatch
     applyToDoc = (doc: Doc, row: number, col: number, run: (args?: { [name: string]: any }) => any) => {
         const res = run({ this: doc, $r: row, $c: col, $: (r: number = 0, c: number = 0) => this.props.getField(r + row, c + col) });
         if (!res.success) return false;
