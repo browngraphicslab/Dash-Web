@@ -197,8 +197,12 @@ export namespace Doc {
     }
 
     export function Get(doc: Doc, key: string, ignoreProto: boolean = false): FieldResult {
-        const self = doc[Self];
-        return getField(self, key, ignoreProto);
+        try {
+            const self = doc[Self];
+            return getField(self, key, ignoreProto);
+        } catch  {
+            return doc;
+        }
     }
     export function GetT<T extends Field>(doc: Doc, key: string, ctor: ToConstructor<T>, ignoreProto: boolean = false): FieldResult<T> {
         return Cast(Get(doc, key, ignoreProto), ctor) as FieldResult<T>;

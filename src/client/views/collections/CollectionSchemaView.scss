@@ -56,6 +56,10 @@
         background: gray;
         cursor: col-resize;
     }
+
+    .documentView-node:first-child {
+        background: $light-color;
+    }
 }
 
 .ReactTable {
@@ -169,10 +173,6 @@
     text-align: left;
     transform-origin: center top;
     display: inline-block;
-}
-
-.documentView-node:first-child {
-    background: $light-color;
 }
 
 .collectionSchema-col {
