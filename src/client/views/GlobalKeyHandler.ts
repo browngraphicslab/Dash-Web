@@ -73,6 +73,7 @@ export default class KeyManager {
                 }
                 MainView.Instance.toggleColorPicker(true);
                 SelectionManager.DeselectAll();
+                DictationManager.Instance.stop();
                 break;
             case "delete":
             case "backspace":
@@ -106,10 +107,11 @@ export default class KeyManager {
 
         switch (keyname) {
             case " ":
-                let transcript = await DictationManager.Instance.listen();
+                console.log("Listening...");
+                let analyzer = DictationManager.Instance;
+                let transcript = await analyzer.listen();
                 console.log(`I heard${transcript ? `: ${transcript.toLowerCase()}` : " nothing: I thought I was still listening from an earlier session."}`);
-                let command: ContextMenuProps | undefined;
-                transcript && (command = ContextMenu.Instance.findByDescription(transcript, true)) && "event" in command && command.event();
+                transcript && analyzer.execute(transcript);
         }
 
         return {

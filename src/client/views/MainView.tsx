@@ -39,6 +39,7 @@ import { FilterBox } from './search/FilterBox';
 import { CollectionTreeView } from './collections/CollectionTreeView';
 import { ClientUtils } from '../util/ClientUtils';
 import { SchemaHeaderField, RandomPastel } from '../../new_fields/SchemaHeaderField';
+import DictationManager from '../util/DictationManager';
 
 @observer
 export class MainView extends React.Component {
@@ -459,6 +460,7 @@ export class MainView extends React.Component {
     render() {
         return (
             <div id="main-div">
+                <h1>{DictationManager.Instance.current}</h1>
                 <DocumentDecorations />
                 {this.mainContent}
                 <PreviewCursor />

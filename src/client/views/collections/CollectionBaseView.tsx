@@ -22,6 +22,24 @@ export enum CollectionViewType {
     Masonry
 }
 
+export namespace CollectionViewType {
+
+    const stringMapping = new Map<string, CollectionViewType>([
+        ["invalid", CollectionViewType.Invalid],
+        ["freeform", CollectionViewType.Freeform],
+        ["schema", CollectionViewType.Schema],
+        ["docking", CollectionViewType.Docking],
+        ["tree", CollectionViewType.Tree],
+        ["stacking", CollectionViewType.Stacking],
+        ["masonry", CollectionViewType.Masonry]
+    ]);
+
+    export const ValueOf = (value: string) => {
+        return stringMapping.get(value.toLowerCase());
+    };
+
+}
+
 export interface CollectionRenderProps {
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
     removeDocument: (document: Doc) => boolean;

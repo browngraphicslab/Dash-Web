@@ -20,7 +20,7 @@ import { DocumentContentsView } from "../../nodes/DocumentContentsView";
 import { DocumentViewProps, positionSchema } from "../../nodes/DocumentView";
 import { pageSchema } from "../../nodes/ImageBox";
 import PDFMenu from "../../pdf/PDFMenu";
-import { CollectionSubView } from "../CollectionSubView";
+import { CollectionSubView, SubCollectionViewProps } from "../CollectionSubView";
 import { CollectionFreeFormLinksView } from "./CollectionFreeFormLinksView";
 import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCursors";
 import "./CollectionFreeFormView.scss";
@@ -38,6 +38,7 @@ import { faTable, faPaintBrush, faAsterisk, faExpandArrowsAlt, faCompressArrowsA
 import { undo } from "prosemirror-history";
 import { number } from "prop-types";
 import { ContextMenu } from "../../ContextMenu";
+import DictationManager from "../../../util/DictationManager";
 
 library.add(faEye, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass);
 
@@ -121,10 +122,17 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         });
     }
 
+    constructor(props: SubCollectionViewProps) {
+        super(props);
+        let fixed = DictationManager.Instance.registerStatic;
+        fixed(["Unset Fit To Container", "Set Fit To Container"], this.fitToContainer);
+        fixed(["Arrange contents in grid"], this.arrangeContents);
+        fixed(["Analyze Strokes"], this.analyzeStrokes);
+    }
+
     @computed get fieldExtensionDoc() {
         return Doc.resolvedFieldDataDoc(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, "true");
     }
-
 
     @undoBatch
     @action
@@ -516,50 +524,62 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY));
     }
 
+    fitToContainer = async () => this.props.Document.fitToBox = !this.fitToBox;
+
+    arrangeContents = async () => {
+        const docs = await DocListCastAsync(this.Document[this.props.fieldKey]);
+        UndoManager.RunInBatch(() => {
+            if (docs) {
+                let startX = this.Document.panX || 0;
+                let x = startX;
+                let y = this.Document.panY || 0;
+                let i = 0;
+                const width = Math.max(...docs.map(doc => NumCast(doc.width)));
+                const height = Math.max(...docs.map(doc => NumCast(doc.height)));
+                for (const doc of docs) {
+                    doc.x = x;
+                    doc.y = y;
+                    x += width + 20;
+                    if (++i === 6) {
+                        i = 0;
+                        x = startX;
+                        y += height + 20;
+                    }
+                }
+            }
+        }, "arrange contents");
+    }
+
+    analyzeStrokes = async () => {
+        let data = Cast(this.fieldExtensionDoc[this.inkKey], InkField);
+        if (!data) {
+            return;
+        }
+        let relevantKeys = ["inkAnalysis", "handwriting"];
+        CognitiveServices.Inking.Manager.analyzer(this.fieldExtensionDoc, relevantKeys, data.inkData);
+    }
+
     onContextMenu = () => {
         let layoutItems: ContextMenuProps[] = [];
         layoutItems.push({
             description: `${this.fitToBox ? "Unset" : "Set"} Fit To Container`,
-            event: async () => this.props.Document.fitToBox = !this.fitToBox,
+            event: this.fitToContainer,
             icon: !this.fitToBox ? "expand-arrows-alt" : "compress-arrows-alt"
         });
         layoutItems.push({
             description: "Arrange contents in grid",
-            icon: "table",
-            event: async () => {
-                const docs = await DocListCastAsync(this.Document[this.props.fieldKey]);
-                UndoManager.RunInBatch(() => {
-                    if (docs) {
-                        let startX = this.Document.panX || 0;
-                        let x = startX;
-                        let y = this.Document.panY || 0;
-                        let i = 0;
-                        const width = Math.max(...docs.map(doc => NumCast(doc.width)));
-                        const height = Math.max(...docs.map(doc => NumCast(doc.height)));
-                        for (const doc of docs) {
-                            doc.x = x;
-                            doc.y = y;
-                            x += width + 20;
-                            if (++i === 6) {
-                                i = 0;
-                                x = startX;
-                                y += height + 20;
-                            }
-                        }
-                    }
-                }, "arrange contents");
-            }
+            event: this.arrangeContents,
+            icon: "table"
         });
-        ContextMenu.Instance.addItem({ description: "Layout...", subitems: layoutItems, icon: "compass" });
         ContextMenu.Instance.addItem({
-            description: "Analyze Strokes", event: async () => {
-                let data = Cast(this.fieldExtensionDoc[this.inkKey], InkField);
-                if (!data) {
-                    return;
-                }
-                let relevantKeys = ["inkAnalysis", "handwriting"];
-                CognitiveServices.Inking.Manager.analyzer(this.fieldExtensionDoc, relevantKeys, data.inkData);
-            }, icon: "paint-brush"
+            description: "Layout...",
+            subitems: layoutItems,
+            icon: "compass"
+        });
+        ContextMenu.Instance.addItem({
+            description: "Analyze Strokes",
+            event: this.analyzeStrokes,
+            icon: "paint-brush"
         });
     }
 
