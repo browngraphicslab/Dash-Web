@@ -370,15 +370,25 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         let selRect = this.Bounds;
         let selection: Doc[] = [];
         this.props.activeDocuments().filter(doc => !doc.isBackground).map(doc => {
-            var z = NumCast(doc.zoomBasis, 1);
             var x = NumCast(doc.x);
             var y = NumCast(doc.y);
-            var w = NumCast(doc.width) / z;
-            var h = NumCast(doc.height) / z;
+            var w = NumCast(doc.width);
+            var h = NumCast(doc.height);
             if (this.intersectRect({ left: x, top: y, width: w, height: h }, selRect)) {
                 selection.push(doc);
             }
         });
+        if (!selection.length) {
+            this.props.activeDocuments().map(doc => {
+                var x = NumCast(doc.x);
+                var y = NumCast(doc.y);
+                var w = NumCast(doc.width);
+                var h = NumCast(doc.height);
+                if (this.intersectRect({ left: x, top: y, width: w, height: h }, selRect)) {
+                    selection.push(doc);
+                }
+            });
+        }
         return selection;
     }
 

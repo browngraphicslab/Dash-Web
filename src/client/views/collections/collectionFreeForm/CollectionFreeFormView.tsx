@@ -310,7 +310,11 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     onDragOver = (): void => {
     }
 
-    bringToFront = (doc: Doc) => {
+    bringToFront = (doc: Doc, sendToBack?: boolean) => {
+        if (sendToBack) {
+            doc.zIndex = 0;
+            return;
+        }
         const docs = this.childDocs;
         docs.slice().sort((doc1, doc2) => {
             if (doc1 === doc) return 1;

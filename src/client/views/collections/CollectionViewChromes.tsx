@@ -213,7 +213,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="5">Stacking View</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="6">Masonry View</option>
                         </select>
-                        <div className="collectionViewBaseChrome-viewSpecs">
+                        <div className="collectionViewBaseChrome-viewSpecs" style={{ display: this._collapsed ? "none" : "grid" }}>
                             <input className="collectionViewBaseChrome-viewSpecsInput"
                                 placeholder="FILTER DOCUMENTS"
                                 value={this.filterValue ? this.filterValue.script.originalScript : ""}

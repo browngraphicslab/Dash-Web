@@ -14,6 +14,7 @@
         grid-template-columns: 1fr auto;
         padding-bottom: 10px;
         border-bottom: .5px solid rgb(180, 180, 180);
+        overflow: hidden;
 
         .collectionViewBaseChrome {
             display: flex;
