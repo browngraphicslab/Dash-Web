@@ -324,11 +324,24 @@ app.post("/uploadDoc", (req, res) => {
         let id: string = "";
         try {
             for (const name in files) {
-                const path = files[name].path;
-                const zip = new AdmZip(path);
+                const path_2 = files[name].path;
+                const zip = new AdmZip(path_2);
                 zip.getEntries().forEach(entry => {
-                    if (!entry.name.startsWith("files/")) return;
-                    zip.extractEntryTo(entry.name, __dirname + RouteStore.public, true, false);
+                    if (!entry.entryName.startsWith("files/")) return;
+                    let dirname = path.dirname(entry.entryName) + "/";
+                    let extname = path.extname(entry.entryName);
+                    let basename = path.basename(entry.entryName).split(".")[0];
+                    // zip.extractEntryTo(dirname + basename + "_o" + extname, __dirname + RouteStore.public, true, false);
+                    // zip.extractEntryTo(dirname + basename + "_s" + extname, __dirname + RouteStore.public, true, false);
+                    // zip.extractEntryTo(dirname + basename + "_m" + extname, __dirname + RouteStore.public, true, false);
+                    // zip.extractEntryTo(dirname + basename + "_l" + extname, __dirname + RouteStore.public, true, false);
+                    zip.extractEntryTo(entry.entryName, __dirname + RouteStore.public, true, false);
+                    dirname = "/" + dirname;
+
+                    fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_o" + extname));
+                    fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_s" + extname));
+                    fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_m" + extname));
+                    fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_l" + extname));
                 });
                 const json = zip.getEntry("doc.json");
                 let docs: any;
@@ -343,7 +356,7 @@ app.post("/uploadDoc", (req, res) => {
                         res();
                     }, true, "newDocuments"))));
                 } catch (e) { console.log(e); }
-                fs.unlink(path, () => { });
+                fs.unlink(path_2, () => { });
             }
             if (id) {
                 res.send(JSON.stringify(getId(id)));
