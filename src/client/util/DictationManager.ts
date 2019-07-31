@@ -102,6 +102,7 @@ export default class DictationManager {
         let independentAction = RegisteredCommands.Independent.get(phrase);
         if (independentAction) {
             await independentAction(target);
+            batch.end();
             return true;
         }
 
