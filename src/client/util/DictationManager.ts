@@ -22,8 +22,8 @@ namespace CORE {
 const { webkitSpeechRecognition }: CORE.IWindow = window as CORE.IWindow;
 export type IndependentAction = (target: DocumentView) => any | Promise<any>;
 export type DependentAction = (target: DocumentView, matches: RegExpExecArray) => any | Promise<any>;
-export type RegexEntry = { key: RegExp, value: DependentAction };
-export type RegistrationUnit<T extends IndependentAction | DependentAction> = { action: T, validate?: Predicate };
+export type RegistrationEntry = { action: IndependentAction, validate?: ActionPredicate };
+export type RegexEntry = { expression: RegExp, action: DependentAction, validate?: ActionPredicate };
 
 export default class DictationManager {
     public static Instance = new DictationManager();
@@ -62,7 +62,7 @@ export default class DictationManager {
         return title.replace("...", "").toLowerCase().trim();
     }
 
-    public registerStatic = (keys: Array<string>, action: IndependentAction, filter: Predicate, overwrite = false) => {
+    public registerStatic = (keys: Array<string>, action: IndependentAction, filter: ActionPredicate, overwrite = false) => {
         let success = true;
         keys.forEach(key => {
             key = this.sanitize(key);
@@ -94,8 +94,8 @@ export default class DictationManager {
 
     public registerDynamic = (dynamicKey: RegExp, action: DependentAction) => {
         RegisteredCommands.Dependent.push({
-            key: dynamicKey,
-            value: action
+            expression: dynamicKey,
+            action: action
         });
     }
 
@@ -107,21 +107,18 @@ export default class DictationManager {
         }
         phrase = this.sanitize(phrase);
 
-        let unit = RegisteredCommands.Independent.get(phrase);
-        if (unit) {
-            if (!unit.validate || unit.validate(target)) {
-                await unit.action(target);
-                return true;
-            }
+        let entry = RegisteredCommands.Independent.get(phrase);
+        if (entry && (!entry.validate || entry.validate(target))) {
+            await entry.action(target);
+            return true;
         }
 
         for (let entry of RegisteredCommands.Dependent) {
-            let regex = entry.key;
-            let dependentAction = entry.value;
+            let regex = entry.expression;
             let matches = regex.exec(phrase);
             regex.lastIndex = 0;
-            if (matches !== null) {
-                await dependentAction(target, matches);
+            if (matches !== null && (!entry.validate || entry.validate(target))) {
+                await entry.action(target, matches);
                 return true;
             }
         }
@@ -133,21 +130,20 @@ export default class DictationManager {
 
 export namespace RegisteredCommands {
 
-    export const Independent = new Map<string, RegistrationUnit<IndependentAction>>([
+    export const Independent = new Map<string, RegistrationEntry>([
 
         ["clear", {
             action: (target: DocumentView) => {
                 Doc.GetProto(target.props.Document).data = new List();
             },
-            validate: Filters.isCollectionView
+            validate: Validators.isCollectionView
         }],
 
         ["open fields", {
             action: (target: DocumentView) => {
                 let kvp = Docs.Create.KVPDocument(target.props.Document, { width: 300, height: 300 });
                 target.props.addDocTab(kvp, target.dataDoc, "onRight");
-            },
-            validate: Filters.isImageView
+            }
         }]
 
     ]);
@@ -155,13 +151,10 @@ export namespace RegisteredCommands {
     export const Dependent = new Array<RegexEntry>(
 
         {
-            key: /create (\w+) documents of type (image|nested collection)/g,
-            value: (target: DocumentView, matches: RegExpExecArray) => {
+            expression: /create (\w+) documents of type (image|nested collection)/g,
+            action: (target: DocumentView, matches: RegExpExecArray) => {
                 let count = DictationManager.Instance.interpretNumber(matches[1]);
                 let what = matches[2];
-                if (!("viewType" in target.props.Document)) {
-                    return;
-                }
                 let dataDoc = Doc.GetProto(target.props.Document);
                 let fieldKey = "data";
                 for (let i = 0; i < count; i++) {
@@ -176,29 +169,31 @@ export namespace RegisteredCommands {
                     }
                     created && Doc.AddDocToList(dataDoc, fieldKey, created);
                 }
-            }
+            },
+            validate: Validators.isCollectionView
         },
 
         {
-            key: /view as (freeform|stacking|masonry|schema|tree)/g,
-            value: (target: DocumentView, matches: RegExpExecArray) => {
+            expression: /view as (freeform|stacking|masonry|schema|tree)/g,
+            action: (target: DocumentView, matches: RegExpExecArray) => {
                 let mode = CollectionViewType.ValueOf(matches[1]);
                 mode && (target.props.Document.viewType = mode);
-            }
+            },
+            validate: Validators.isCollectionView
         }
 
     );
 
 }
 
-export type Predicate = (target: DocumentView) => boolean;
+export type ActionPredicate = (target: DocumentView) => boolean;
 
-export namespace Filters {
+export namespace Validators {
 
     const tryCast = <T extends CastCtor>(view: DocumentView, ctor: T) => Cast(Doc.GetProto(view.props.Document).data, ctor);
 
-    export const isCollectionView: Predicate = (target: DocumentView) => tryCast(target, listSpec(Doc)) !== undefined;
+    export const isCollectionView: ActionPredicate = (target: DocumentView) => tryCast(target, listSpec(Doc)) !== undefined;
 
-    export const isImageView: Predicate = (target: DocumentView) => tryCast(target, ImageField) !== undefined;
+    export const isImageView: ActionPredicate = (target: DocumentView) => tryCast(target, ImageField) !== undefined;
 
 }
