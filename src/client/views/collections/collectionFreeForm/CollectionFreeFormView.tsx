@@ -38,6 +38,7 @@ import { faTable, faPaintBrush, faAsterisk, faExpandArrowsAlt, faCompressArrowsA
 import { undo } from "prosemirror-history";
 import { number } from "prop-types";
 import { ContextMenu } from "../../ContextMenu";
+import { SwatchesPicker } from "react-color";
 
 library.add(faEye, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass);
 
@@ -125,7 +126,24 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return Doc.resolvedFieldDataDoc(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, "true");
     }
 
-
+    intersectRect(r1: { left: number, top: number, width: number, height: number },
+        r2: { left: number, top: number, width: number, height: number }) {
+        return !(r2.left > r1.left + r1.width || r2.left + r2.width < r1.left || r2.top > r1.top + r1.height || r2.top + r2.height < r1.top);
+    }
+    bounsdSelect(doc: Doc, doc2: Doc) {
+        var x2 = NumCast(doc2.x) - 25;
+        var y2 = NumCast(doc2.y) - 25;
+        var w2 = NumCast(doc2.width) + 25;
+        var h2 = NumCast(doc2.height) + 25;
+        var x = NumCast(doc.x) - 25;
+        var y = NumCast(doc.y) - 25;
+        var w = NumCast(doc.width) + 25;
+        var h = NumCast(doc.height) + 25;
+        if (this.intersectRect({ left: x, top: y, width: w, height: h }, { left: x2, top: y2, width: w2, height: h2 })) {
+            return true;
+        }
+        return false;
+    }
     @undoBatch
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
@@ -151,6 +169,35 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         }
                         this.bringToFront(d);
                     });
+
+                    let sets: (Doc[])[] = []
+                    this.childDocs.map(c => {
+                        let included = []
+                        for (let i = 0; i < sets.length; i++) {
+                            for (let j = 0; j < sets[i].length; j++) {
+                                if (this.bounsdSelect(c, sets[i][j])) {
+                                    included.push(i);
+                                    break;
+                                }
+                            }
+                        }
+                        if (included.length === 0)
+                            sets.push([c]);
+                        else if (included.length === 1)
+                            sets[included[0]].push(c);
+                        else {
+                            sets[included[0]].push(c);
+                            for (let s = 1; s < included.length; s++) {
+                                sets[included[0]].push(...sets[included[s]]);
+                                sets[included[s]].length = 0;
+                            }
+                        }
+                    });
+                    for (let s = 0; s < sets.length; s++) {
+                        for (let i = 0; i < sets[s].length; i++) {
+                            Doc.GetProto(sets[s][i]).cluster = s;
+                        }
+                    }
                 }
             }
             else if (de.data instanceof DragManager.AnnotationDragData) {
