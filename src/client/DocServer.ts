@@ -215,21 +215,23 @@ export namespace DocServer {
         const deserializeFields = getSerializedFields.then(async fields => {
             const fieldMap: { [id: string]: RefField } = {};
             // const protosToLoad: any = [];
+            const proms: Promise<RefField>[] = [];
             for (const field of fields) {
                 if (field !== undefined) {
                     // deserialize
-                    let deserialized = await SerializationHelper.Deserialize(field, val => {
+                    let prom = SerializationHelper.Deserialize(field, val => {
                         if (val !== undefined) {
                             _cache[field.id] = field;
                         } else {
                             delete _cache[field.id];
                         }
-                    });
-                    fieldMap[field.id] = deserialized;
+                    }).then(deserialized => fieldMap[field.id] = deserialized);
+                    proms.push(prom);
                     // adds to a list of promises that will be awaited asynchronously
                     // protosToLoad.push(deserialized.proto);
                 }
             }
+            await Promise.all(proms);
             // this actually handles the loading of prototypes
             // await Promise.all(protosToLoad);
             return fieldMap;
