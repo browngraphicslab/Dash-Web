@@ -3,7 +3,7 @@ import { SelectionManager } from "../util/SelectionManager";
 import { CollectionDockingView } from "./collections/CollectionDockingView";
 import { MainView } from "./MainView";
 import { DragManager } from "../util/DragManager";
-import { action } from "mobx";
+import { action, runInAction } from "mobx";
 import { Doc } from "../../new_fields/Doc";
 import { CognitiveServices } from "../cognitive_services/CognitiveServices";
 import DictationManager from "../util/DictationManager";
@@ -74,6 +74,7 @@ export default class KeyManager {
                 MainView.Instance.toggleColorPicker(true);
                 SelectionManager.DeselectAll();
                 DictationManager.Instance.stop();
+                MainView.Instance.dictationOverlayVisible = false;
                 break;
             case "delete":
             case "backspace":
@@ -107,11 +108,22 @@ export default class KeyManager {
 
         switch (keyname) {
             case " ":
-                console.log("Listening...");
-                let analyzer = DictationManager.Instance;
-                let transcript = await analyzer.listen();
-                console.log(`I heard${transcript ? `: ${transcript.toLowerCase()}` : " nothing: I thought I was still listening from an earlier session."}`);
-                transcript && analyzer.execute(transcript);
+                let main = MainView.Instance;
+                main.dictationOverlayVisible = true;
+                main.isListening = true;
+                let manager = DictationManager.Instance;
+                let command = await manager.listen();
+                main.isListening = false;
+                if (!command) {
+                    break;
+                }
+                command = command.toLowerCase();
+                main.dictatedPhrase = command;
+                main.dictationSuccess = await manager.execute(command);
+                setTimeout(() => {
+                    main.dictationOverlayVisible = false;
+                    main.dictationSuccess = undefined;
+                }, 3000);
         }
 
         return {

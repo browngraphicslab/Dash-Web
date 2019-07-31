@@ -39,7 +39,6 @@ import { FilterBox } from './search/FilterBox';
 import { CollectionTreeView } from './collections/CollectionTreeView';
 import { ClientUtils } from '../util/ClientUtils';
 import { SchemaHeaderField, RandomPastel } from '../../new_fields/SchemaHeaderField';
-import DictationManager from '../util/DictationManager';
 
 @observer
 export class MainView extends React.Component {
@@ -48,6 +47,12 @@ export class MainView extends React.Component {
     @observable private _workspacesShown: boolean = false;
     @observable public pwidth: number = 0;
     @observable public pheight: number = 0;
+
+    @observable private dictationState = "Listening...";
+    @observable private dictationSuccessState: boolean | undefined = undefined;
+    @observable private dictationDisplayState = false;
+    @observable private dictationListeningState = false;
+
     @computed private get mainContainer(): Opt<Doc> {
         return FieldValue(Cast(CurrentUserUtils.UserDocument.activeWorkspace, Doc));
     }
@@ -63,6 +68,38 @@ export class MainView extends React.Component {
             }
             CurrentUserUtils.UserDocument.activeWorkspace = doc;
         }
+    }
+
+    public get dictatedPhrase() {
+        return this.dictationState;
+    }
+
+    public set dictatedPhrase(value: string) {
+        runInAction(() => this.dictationState = value);
+    }
+
+    public get dictationSuccess() {
+        return this.dictationSuccessState;
+    }
+
+    public set dictationSuccess(value: boolean | undefined) {
+        runInAction(() => this.dictationSuccessState = value);
+    }
+
+    public get dictationOverlayVisible() {
+        return this.dictationDisplayState;
+    }
+
+    public set dictationOverlayVisible(value: boolean) {
+        runInAction(() => this.dictationDisplayState = value);
+    }
+
+    public get isListening() {
+        return this.dictationListeningState;
+    }
+
+    public set isListening(value: boolean) {
+        runInAction(() => this.dictationListeningState = value);
     }
 
     componentWillMount() {
@@ -458,9 +495,23 @@ export class MainView extends React.Component {
     }
 
     render() {
+        let display = this.dictationOverlayVisible;
+        let success = this.dictationSuccess;
+        let result = this.isListening ? "Listening..." : `"${this.dictatedPhrase}"`;
         return (
             <div id="main-div">
-                <h1>{DictationManager.Instance.current}</h1>
+                <div
+                    className={"dictation-prompt"}
+                    style={{
+                        opacity: display ? 1 : 0,
+                        background: success === undefined ? "gainsboro" : success ? "lawngreen" : "red",
+                        borderColor: this.isListening ? "red" : "black",
+                    }}
+                >{result}</div>
+                <div
+                    className={"dictation-prompt-overlay"}
+                    style={{ opacity: display ? 0.4 : 0 }}
+                />
                 <DocumentDecorations />
                 {this.mainContent}
                 <PreviewCursor />

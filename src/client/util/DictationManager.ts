@@ -1,5 +1,5 @@
 import { string } from "prop-types";
-import { observable, action } from "mobx";
+import { observable, action, autorun } from "mobx";
 import { SelectionManager } from "./SelectionManager";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { UndoManager } from "./UndoManager";
@@ -8,6 +8,7 @@ import { Doc } from "../../new_fields/Doc";
 import { List } from "../../new_fields/List";
 import { Docs } from "../documents/Documents";
 import { CollectionViewType } from "../views/collections/CollectionBaseView";
+import { MainView } from "../views/MainView";
 
 namespace CORE {
     export interface IWindow extends Window {
@@ -22,8 +23,8 @@ export type RegexEntry = { key: RegExp, value: DependentAction };
 
 export default class DictationManager {
     public static Instance = new DictationManager();
-    private isListening = false;
     private recognizer: any;
+    private isListening = false;
 
     constructor() {
         this.recognizer = new webkitSpeechRecognition();
@@ -31,18 +32,14 @@ export default class DictationManager {
         this.recognizer.continuous = true;
     }
 
-    @observable public current = "";
-
-    @action
     finish = (handler: any, data: any) => {
-        this.current = data;
         handler(data);
         this.stop();
     }
 
     stop = () => {
-        this.isListening = false;
         this.recognizer.stop();
+        this.isListening = false;
     }
 
     listen = () => {
@@ -55,7 +52,6 @@ export default class DictationManager {
             this.recognizer.onresult = (e: any) => this.finish(resolve, e.results[0][0].transcript);
             this.recognizer.onerror = (e: any) => this.finish(reject, e);
         });
-
     }
 
     private sanitize = (title: string) => {
