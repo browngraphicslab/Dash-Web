@@ -23,7 +23,7 @@ const { webkitSpeechRecognition }: CORE.IWindow = window as CORE.IWindow;
 export type IndependentAction = (target: DocumentView) => any | Promise<any>;
 export type DependentAction = (target: DocumentView, matches: RegExpExecArray) => any | Promise<any>;
 export type RegexEntry = { key: RegExp, value: DependentAction };
-export type RegistrationUnit<T extends IndependentAction | DependentAction> = { filter: Predicate, action: T };
+export type RegistrationUnit<T extends IndependentAction | DependentAction> = { action: T, filter?: Predicate };
 
 export default class DictationManager {
     public static Instance = new DictationManager();
@@ -104,31 +104,32 @@ export default class DictationManager {
         if (!target) {
             return;
         }
-        let batch = UndoManager.StartBatch("Dictation Action");
         phrase = this.sanitize(phrase);
 
         let unit = RegisteredCommands.Independent.get(phrase);
-        if (unit && unit.filter(target)) {
-            await unit.action(target);
-            batch.end();
-            return true;
+        if (unit) {
+            if (!unit.filter || unit.filter(target)) {
+                let batch = UndoManager.StartBatch("Dictation Independent Action");
+                await unit.action(target);
+                batch.end();
+                return true;
+            }
         }
 
-        let success = false;
         for (let entry of RegisteredCommands.Dependent) {
             let regex = entry.key;
             let dependentAction = entry.value;
             let matches = regex.exec(phrase);
             regex.lastIndex = 0;
             if (matches !== null) {
+                let batch = UndoManager.StartBatch("Dictation Dependent Action");
                 await dependentAction(target, matches);
-                success = true;
-                break;
+                batch.end();
+                return true;
             }
         }
-        batch.end();
 
-        return success;
+        return false;
     }
 
 }
@@ -202,6 +203,5 @@ export namespace Filters {
     export const isCollectionView: Predicate = (target: DocumentView) => tryCast(target, listSpec(Doc)) !== undefined;
 
     export const isImageView: Predicate = (target: DocumentView) => tryCast(target, ImageField) !== undefined;
-
 
 }
