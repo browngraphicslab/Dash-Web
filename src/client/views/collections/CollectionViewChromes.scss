@@ -7,8 +7,6 @@
     z-index: 9001;
     transition: top .5s;
     background: lightgrey;
-    transition: margin-top .5s;
-    background: lightgray;
     padding: 10px;
 
     .collectionViewChrome {
@@ -41,6 +39,7 @@
                 position: absolute;
                 width: 40px;
                 transform-origin: top left;
+                // margin-top: 10px;
             }
 
             .collectionViewBaseChrome-viewSpecs {
