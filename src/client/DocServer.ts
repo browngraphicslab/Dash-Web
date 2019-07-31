@@ -124,16 +124,17 @@ export namespace DocServer {
             // future .proto calls on the Doc won't have to go farther than the cache to get their actual value.
             const deserializeField = getSerializedField.then(async fieldJson => {
                 // deserialize
-                const field = await SerializationHelper.Deserialize(fieldJson);
+                const field = await SerializationHelper.Deserialize(fieldJson, val => {
+                    if (val !== undefined) {
+                        _cache[id] = field;
+                    } else {
+                        delete _cache[id];
+                    }
+                });
+                return field;
                 // either way, overwrite or delete any promises cached at this id (that we inserted as flags
                 // to indicate that the field was in the process of being fetched). Now everything
                 // should be an actual value within or entirely absent from the cache.
-                if (field !== undefined) {
-                    _cache[id] = field;
-                } else {
-                    delete _cache[id];
-                }
-                return field;
             });
             // here, indicate that the document associated with this id is currently
             // being retrieved and cached
@@ -217,7 +218,13 @@ export namespace DocServer {
             for (const field of fields) {
                 if (field !== undefined) {
                     // deserialize
-                    let deserialized = await SerializationHelper.Deserialize(field);
+                    let deserialized = await SerializationHelper.Deserialize(field, val => {
+                        if (val !== undefined) {
+                            _cache[field.id] = field;
+                        } else {
+                            delete _cache[field.id];
+                        }
+                    });
                     fieldMap[field.id] = deserialized;
                     // adds to a list of promises that will be awaited asynchronously
                     // protosToLoad.push(deserialized.proto);

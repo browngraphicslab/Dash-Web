@@ -1,6 +1,7 @@
 import { PropSchema, serialize, deserialize, custom, setDefaultModelSchema, getDefaultModelSchema, primitive, SKIP } from "serializr";
 import { Field, Doc } from "../../new_fields/Doc";
 import { ClientUtils } from "./ClientUtils";
+import { emptyFunction } from "../../Utils";
 
 let serializing = 0;
 export function afterDocDeserialize(cb: (err: any, val: any) => void, err: any, newValue: any) {
@@ -33,7 +34,7 @@ export namespace SerializationHelper {
         return json;
     }
 
-    export async function Deserialize(obj: any): Promise<any> {
+    export async function Deserialize(obj: any, cb: (val: any) => void = emptyFunction): Promise<any> {
         if (obj === undefined || obj === null) {
             return undefined;
         }
@@ -56,7 +57,7 @@ export namespace SerializationHelper {
         }
 
         const type = serializationTypes[obj.__type];
-        const value = await new Promise(res => deserialize(type.ctor, obj, (err, result) => res(result)));
+        const value = await new Promise(res => cb(deserialize(type.ctor, obj, (err, result) => res(result))));
         if (type.afterDeserialize) {
             await type.afterDeserialize(value);
         }
