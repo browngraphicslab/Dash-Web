@@ -498,7 +498,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         { x: Cast(doc.x, "number"), y: Cast(doc.y, "number"), width: Cast(doc.width, "number"), height: Cast(doc.height, "number") };
                     state = pos.state === undefined ? state : pos.state;
                     prev.push({
-                        ele: <CollectionFreeFormDocumentView key={doc[Id]} x={pos.x} y={pos.y} width={pos.width} height={pos.height} {...this.getChildDocumentViewProps(doc)} />,
+                        ele: <CollectionFreeFormDocumentView key={doc[Id]}
+                            x={script ? pos.x : undefined} y={script ? pos.y : undefined}
+                            width={script ? pos.width : undefined} height={script ? pos.height : undefined} {...this.getChildDocumentViewProps(doc)} />,
                         bounds: (pos.x !== undefined && pos.y !== undefined && pos.width !== undefined && pos.height !== undefined) ? { x: pos.x, y: pos.y, width: pos.width, height: pos.height } : undefined
                     });
                 }
