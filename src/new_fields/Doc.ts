@@ -471,8 +471,12 @@ export namespace Doc {
         Doc.GetProto(target).type = DocumentType.TEMPLATE;
         if (targetData && targetData.layout === target) {
             targetData.layout = temp;
+            targetData.miniLayout = StrCast(templateDoc.miniLayout);
+            targetData.detailedLayout = targetData.layout;
         } else {
             target.layout = temp;
+            target.miniLayout = StrCast(templateDoc.miniLayout);
+            target.detailedLayout = target.layout;
         }
     }
 
