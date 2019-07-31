@@ -19,10 +19,21 @@ namespace CORE {
     }
 }
 
+export namespace Validators {
+
+    const tryCast = <T extends CastCtor>(view: DocumentView, ctor: T) => Cast(Doc.GetProto(view.props.Document).data, ctor);
+
+    export const isCollectionView: ActionPredicate = (target: DocumentView) => tryCast(target, listSpec(Doc)) !== undefined;
+
+    export const isImageView: ActionPredicate = (target: DocumentView) => tryCast(target, ImageField) !== undefined;
+
+}
+
 const { webkitSpeechRecognition }: CORE.IWindow = window as CORE.IWindow;
 export type IndependentAction = (target: DocumentView) => any | Promise<any>;
 export type DependentAction = (target: DocumentView, matches: RegExpExecArray) => any | Promise<any>;
 export type RegistrationEntry = { action: IndependentAction, validate?: ActionPredicate };
+export type ActionPredicate = (target: DocumentView) => boolean;
 export type RegexEntry = { expression: RegExp, action: DependentAction, validate?: ActionPredicate };
 
 export default class DictationManager {
@@ -62,15 +73,15 @@ export default class DictationManager {
         return title.replace("...", "").toLowerCase().trim();
     }
 
-    public registerStatic = (keys: Array<string>, action: IndependentAction, filter: ActionPredicate, overwrite = false) => {
+    public registerStatic = (keys: Array<string>, action: IndependentAction, filter?: ActionPredicate) => {
         let success = true;
         keys.forEach(key => {
             key = this.sanitize(key);
             let existing = RegisteredCommands.Independent.get(key);
-            if (!existing || overwrite) {
+            if (!existing) {
                 let unit = {
-                    filter: filter,
-                    action: action
+                    action: action,
+                    filter: filter
                 };
                 RegisteredCommands.Independent.set(key, unit);
             } else {
@@ -183,17 +194,5 @@ export namespace RegisteredCommands {
         }
 
     );
-
-}
-
-export type ActionPredicate = (target: DocumentView) => boolean;
-
-export namespace Validators {
-
-    const tryCast = <T extends CastCtor>(view: DocumentView, ctor: T) => Cast(Doc.GetProto(view.props.Document).data, ctor);
-
-    export const isCollectionView: ActionPredicate = (target: DocumentView) => tryCast(target, listSpec(Doc)) !== undefined;
-
-    export const isImageView: ActionPredicate = (target: DocumentView) => tryCast(target, ImageField) !== undefined;
 
 }
