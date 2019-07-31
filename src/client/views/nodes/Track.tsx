@@ -118,7 +118,7 @@ export class Track extends React.Component<IProps> {
                 await this.applyKeys(currentkf);
                 this._keyReaction = this.keyReaction(); //reactivates reaction. 
             } else if (leftkf && rightkf) {
-                this.interpolate(leftkf, rightkf, regiondata);
+                await this.interpolate(leftkf, rightkf, regiondata);
             }
         }
     }
@@ -157,33 +157,58 @@ export class Track extends React.Component<IProps> {
     }
 
     @action
-    interpolate = (left: Doc, right: Doc, regiondata:Doc) => {
+    interpolate = async (left: Doc, right: Doc, regiondata:Doc) => {
         console.log("interpolating");
         let leftNode = left.key as Doc;
         let rightNode = right.key as Doc;
         const dif_time = NumCast(right.time) - NumCast(left.time);
         const timeratio = (this.props.currentBarX - NumCast(left.time)) / dif_time; //linear 
-        let indexLeft = DocListCast(regiondata.keyframes!).indexOf(left); 
-        let interpolationY:List<number> = ((regiondata.functions as List<Doc>)[indexLeft] as Doc).interpolationY as List<number>;  
-        let realIndex = (interpolationY.length - 1) * timeratio; 
+        let keyframes = (await DocListCastAsync(regiondata.keyframes!))!; 
+        let indexLeft = keyframes.indexOf(left); 
+        let interY:List<number> = await ((regiondata.functions as List<Doc>)[indexLeft] as Doc).interpolationY as List<number>;  
+        let realIndex = (interY.length - 1) * timeratio; 
         let xIndex = Math.floor(realIndex);  
-        let yValue = interpolationY[xIndex]; 
+        let yValue = interY[xIndex]; 
         let secondYOffset:number = yValue; 
-        let minY = interpolationY[0];  // for now
-        let maxY = interpolationY[interpolationY.length - 1]; //for now 
-        if (interpolationY.length !== 1) {
-            secondYOffset = interpolationY[xIndex] + ((realIndex - xIndex) / 1) * (interpolationY[xIndex + 1] - interpolationY[xIndex]) - minY; 
-        }
-        console.log(secondYOffset); 
-        console.log(maxY - minY); 
-        console.log(minY); 
+        let minY = interY[0];  // for now
+        let maxY = interY[interY.length - 1]; //for now 
+        if (interY.length !== 1) {
+            secondYOffset = interY[xIndex] + ((realIndex - xIndex) / 1) * (interY[xIndex + 1] - interY[xIndex]) - minY; 
+        }        
         let finalRatio = secondYOffset / (maxY - minY); 
-        console.log(finalRatio); 
+        let pathX:List<number> = await ((regiondata.functions as List<Doc>)[indexLeft] as Doc).pathX as List<number>; 
+        let pathY:List<number> = await ((regiondata.functions as List<Doc>)[indexLeft] as Doc).pathY as List<number>;  
+        let proposedX = 0; 
+        let proposedY = 0; 
+        if (pathX.length !== 0) {
+            let realPathCorrespondingIndex = finalRatio  * (pathX.length - 1); 
+            let pathCorrespondingIndex = Math.floor(realPathCorrespondingIndex); 
+            if (pathCorrespondingIndex >= pathX.length - 1) {
+                proposedX = pathX[pathX.length - 1]; 
+                proposedY = pathY[pathY.length - 1]; 
+            } else if (pathCorrespondingIndex < 0){
+                proposedX = pathX[0]; 
+                proposedY = pathY[0]; 
+            } else {
+                proposedX = pathX[pathCorrespondingIndex] + ((realPathCorrespondingIndex - pathCorrespondingIndex) / 1) * (pathX[pathCorrespondingIndex + 1] - pathX[pathCorrespondingIndex]); 
+                proposedY = pathY[pathCorrespondingIndex] + ((realPathCorrespondingIndex - pathCorrespondingIndex) / 1) * (pathY[pathCorrespondingIndex + 1] - pathY[pathCorrespondingIndex]);
+            }
+           
+        }
+
+        
         this.filterKeys(Doc.allKeys(leftNode)).forEach(key => {
             if (leftNode[key] && rightNode[key] && typeof (leftNode[key]) === "number" && typeof (rightNode[key]) === "number") { //if it is number, interpolate
-                const diff = NumCast(rightNode[key]) - NumCast(leftNode[key]);
-                const adjusted = diff * finalRatio;
-                this.props.node[key] = NumCast(leftNode[key]) + adjusted;
+                if ((key === "x" || key === "y") && pathX.length !== 0){
+                    if (key === "x") this.props.node[key] = proposedX; 
+                    if (key === "y") this.props.node[key] = proposedY; 
+                    console.log(pathX.length); 
+                  
+                } else {
+                    const diff = NumCast(rightNode[key]) - NumCast(leftNode[key]);
+                    const adjusted = diff * finalRatio;
+                    this.props.node[key] = NumCast(leftNode[key]) + adjusted;
+                }
             } else {
                 this.props.node[key] = leftNode[key];
             }

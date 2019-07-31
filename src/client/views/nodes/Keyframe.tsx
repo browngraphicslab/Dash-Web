@@ -114,7 +114,7 @@ interface IProps {
 export class Keyframe extends React.Component<IProps> {
 
     @observable private _bar = React.createRef<HTMLDivElement>();
-    @observable private _gain = 5; //default
+    @observable private _gain = 20; //default
 
     @computed
     private get regiondata() {
@@ -194,7 +194,6 @@ export class Keyframe extends React.Component<IProps> {
                 this.forceUpdate();
             }
         });
-        document.addEventListener("pointerup", this.onReactionListen);
     }
 
     @action
@@ -418,21 +417,33 @@ export class Keyframe extends React.Component<IProps> {
     private _reac: (undefined | IReactionDisposer) = undefined;
     private _plotList: ([string, StrokeData] | undefined) = undefined;
     private _interpolationKeyframe: (Doc | undefined) = undefined; 
-    private _prevBackgroundColor: string = "";
+    private _type: string = ""; 
 
     @action
     onContainerDown = (e: React.MouseEvent, kf: Doc) => {
         e.preventDefault();
         e.stopPropagation();
-        this._reac = reaction(() => {
-            return this.inks;
-        }, data => {
-            let prevColor = StrCast(this.props.collection.backgroundColor); 
-            this._prevBackgroundColor = prevColor;
+        let listenerCreated = false;                 
+        let type = prompt("Type? (interpolate or path)"); 
+        if (type) {
+            if (type !== "interpolate" && type !=="path") {
+                alert("Wrong type. Try again."); 
+                return; 
+            }
+            this._type = type; 
             this.props.collection.backgroundColor = "rgb(0,0,0)";
-            this._plotList = Array.from(data!)[data!.size - 1]!;
-            this._interpolationKeyframe = kf; 
-        });
+            this._reac = reaction(() => {
+                return this.inks;
+            }, data => {
+                if (!listenerCreated) {
+                    this._plotList = Array.from(data!)[data!.size - 1]!;
+                    this._interpolationKeyframe = kf; 
+                    document.addEventListener("pointerup", this.onReactionListen); 
+                    listenerCreated = true; 
+                }
+            });
+        }
+        
     }
 
 
@@ -442,8 +453,18 @@ export class Keyframe extends React.Component<IProps> {
     onReactionListen = (e: PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        if (this._reac && this._plotList) {
-            this.props.collection.backgroundColor = this._prevBackgroundColor;
+        let message = prompt("GRAPHING MODE: Enter gain");      
+        if (message) {
+            let messageContent = parseInt(message, 10); 
+            if (messageContent === NaN) {
+                this._gain = Infinity; 
+            } else {
+                this._gain = messageContent; 
+            }
+        
+        }   
+        if (this._reac && this._plotList && this._interpolationKeyframe) {
+            this.props.collection.backgroundColor = "#FFF";
             this._reac();
             let xPlots = new List<number>();
             let yPlots = new List<number>();
@@ -469,16 +490,22 @@ export class Keyframe extends React.Component<IProps> {
                     }
                 } else {
                     i++;
-                }
+                } 
             }
             let index = this.keyframes.indexOf(this._interpolationKeyframe!); 
-            (Cast(this.regiondata.functions![index], Doc) as Doc).interpolationX = xPlots;
-            (Cast(this.regiondata.functions![index], Doc) as Doc).interpolationY = xPlots;
-            this.inks!.delete(this._plotList![0]);
-
+            if (this._type === "interpolate"){
+                (Cast(this.regiondata.functions![index], Doc) as Doc).interpolationX = xPlots;
+                (Cast(this.regiondata.functions![index], Doc) as Doc).interpolationY = yPlots;
+            } else if (this._type === "path") {
+                (Cast(this.regiondata.functions![index], Doc) as Doc).pathX = xPlots;
+                (Cast(this.regiondata.functions![index], Doc) as Doc).pathY = yPlots;
+            }
+          
             this._reac = undefined; 
             this._interpolationKeyframe = undefined; 
             this._plotList = undefined; 
+            this._type = ""; 
+            document.removeEventListener("pointerup", this.onReactionListen); 
         }
     }
 
