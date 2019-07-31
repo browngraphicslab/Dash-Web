@@ -126,7 +126,7 @@ export namespace DocServer {
                 // deserialize
                 const field = await SerializationHelper.Deserialize(fieldJson, val => {
                     if (val !== undefined) {
-                        _cache[id] = field;
+                        _cache[id] = val;
                     } else {
                         delete _cache[id];
                     }
