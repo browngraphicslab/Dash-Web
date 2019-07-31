@@ -11,6 +11,7 @@ import { emptyFunction } from "../../../Utils";
 import { contains } from "typescript-collections/dist/lib/arrays";
 import { faFile } from "@fortawesome/free-regular-svg-icons";
 import { SchemaHeaderField, RandomPastel, PastelSchemaPalette } from "../../../new_fields/SchemaHeaderField";
+import { undoBatch } from "../../util/UndoManager";
 
 library.add(faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn, faFile, faSortAmountDown, faSortAmountUp, faTimes);
 
@@ -286,6 +287,7 @@ class KeysDropdown extends React.Component<KeysDropdownProps> {
         this.props.setIsEditing(false);
     }
 
+    @undoBatch
     @action
     onKeyDown = (e: React.KeyboardEvent): void => {
         if (e.key === "Enter") {

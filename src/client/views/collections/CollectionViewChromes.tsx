@@ -377,6 +377,7 @@ export class CollectionStackingViewChrome extends React.Component<CollectionView
 export class CollectionSchemaViewChrome extends React.Component<CollectionViewChromeProps> {
     // private _textwrapAllRows: boolean = Cast(this.props.CollectionView.props.Document.textwrappedSchemaRows, listSpec("string"), []).length > 0;
 
+    @undoBatch
     togglePreview = () => {
         let dividerWidth = 4;
         let borderWidth = Number(COLLECTION_BORDER_WIDTH);
@@ -386,6 +387,7 @@ export class CollectionSchemaViewChrome extends React.Component<CollectionViewCh
         this.props.CollectionView.props.Document.schemaPreviewWidth = previewWidth === 0 ? Math.min(tableWidth / 3, 200) : 0;
     }
 
+    @undoBatch
     @action
     toggleTextwrap = async () => {
         let textwrappedRows = Cast(this.props.CollectionView.props.Document.textwrappedSchemaRows, listSpec("string"), []);

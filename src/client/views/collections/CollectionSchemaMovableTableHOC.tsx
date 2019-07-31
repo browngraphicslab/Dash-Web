@@ -13,6 +13,7 @@ import { faGripVertical, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { DocumentManager } from "../../util/DocumentManager";
 import { PastelSchemaPalette, SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
+import { undoBatch } from "../../util/UndoManager";
 
 library.add(faGripVertical, faTrash);
 
@@ -196,6 +197,7 @@ export class MovableRow extends React.Component<MovableRowProps> {
         ContextMenu.Instance.addItem({ description: description, event: () => this.props.textWrapRow(this.props.rowInfo.original), icon: "file-pdf" });
     }
 
+    @undoBatch
     @action
     move: DragManager.MoveFunction = (doc: Doc, target: Doc, addDoc) => {
         let targetView = DocumentManager.Instance.getDocumentView(target);
