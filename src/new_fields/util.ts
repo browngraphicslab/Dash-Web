@@ -88,6 +88,9 @@ export function setter(target: any, prop: string | symbol | number, value: any, 
 }
 
 export function getter(target: any, prop: string | symbol | number, receiver: any): any {
+    if (prop === "then") {//If we're being awaited
+        return undefined;
+    }
     if (typeof prop === "symbol") {
         return target.__fields[prop] || target[prop];
     }
