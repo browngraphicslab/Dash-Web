@@ -4,11 +4,14 @@ import { SelectionManager } from "./SelectionManager";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { UndoManager } from "./UndoManager";
 import * as converter from "words-to-numbers";
-import { Doc } from "../../new_fields/Doc";
+import { Doc, Field } from "../../new_fields/Doc";
 import { List } from "../../new_fields/List";
 import { Docs } from "../documents/Documents";
 import { CollectionViewType } from "../views/collections/CollectionBaseView";
 import { MainView } from "../views/MainView";
+import { listSpec } from "../../new_fields/Schema";
+import { Cast, ToConstructor, ListSpec, CastCtor } from "../../new_fields/Types";
+import { ImageField } from "../../new_fields/URLField";
 
 namespace CORE {
     export interface IWindow extends Window {
@@ -20,6 +23,7 @@ const { webkitSpeechRecognition }: CORE.IWindow = window as CORE.IWindow;
 export type IndependentAction = (target: DocumentView) => any | Promise<any>;
 export type DependentAction = (target: DocumentView, matches: RegExpExecArray) => any | Promise<any>;
 export type RegexEntry = { key: RegExp, value: DependentAction };
+export type RegistrationUnit<T extends IndependentAction | DependentAction> = { filter: Predicate, action: T };
 
 export default class DictationManager {
     public static Instance = new DictationManager();
@@ -58,13 +62,17 @@ export default class DictationManager {
         return title.replace("...", "").toLowerCase().trim();
     }
 
-    public registerStatic = (keys: Array<string>, action: IndependentAction, overwrite = false) => {
+    public registerStatic = (keys: Array<string>, action: IndependentAction, filter: Predicate, overwrite = false) => {
         let success = true;
         keys.forEach(key => {
             key = this.sanitize(key);
             let existing = RegisteredCommands.Independent.get(key);
             if (!existing || overwrite) {
-                RegisteredCommands.Independent.set(key, action);
+                let unit = {
+                    filter: filter,
+                    action: action
+                };
+                RegisteredCommands.Independent.set(key, unit);
             } else {
                 success = false;
             }
@@ -99,9 +107,9 @@ export default class DictationManager {
         let batch = UndoManager.StartBatch("Dictation Action");
         phrase = this.sanitize(phrase);
 
-        let independentAction = RegisteredCommands.Independent.get(phrase);
-        if (independentAction) {
-            await independentAction(target);
+        let unit = RegisteredCommands.Independent.get(phrase);
+        if (unit && unit.filter(target)) {
+            await unit.action(target);
             batch.end();
             return true;
         }
@@ -127,15 +135,21 @@ export default class DictationManager {
 
 export namespace RegisteredCommands {
 
-    export const Independent = new Map<string, IndependentAction>([
+    export const Independent = new Map<string, RegistrationUnit<IndependentAction>>([
 
-        ["clear", (target: DocumentView) => {
-            Doc.GetProto(target.props.Document).data = new List();
+        ["clear", {
+            action: (target: DocumentView) => {
+                Doc.GetProto(target.props.Document).data = new List();
+            },
+            filter: Filters.isCollectionView
         }],
 
-        ["open fields", (target: DocumentView) => {
-            let kvp = Docs.Create.KVPDocument(target.props.Document, { width: 300, height: 300 });
-            target.props.addDocTab(kvp, target.dataDoc, "onRight");
+        ["open fields", {
+            action: (target: DocumentView) => {
+                let kvp = Docs.Create.KVPDocument(target.props.Document, { width: 300, height: 300 });
+                target.props.addDocTab(kvp, target.dataDoc, "onRight");
+            },
+            filter: Filters.isImageView
         }]
 
     ]);
@@ -176,5 +190,18 @@ export namespace RegisteredCommands {
         }
 
     );
+
+}
+
+export type Predicate = (target: DocumentView) => boolean;
+
+export namespace Filters {
+
+    const tryCast = <T extends CastCtor>(view: DocumentView, ctor: T) => Cast(Doc.GetProto(view.props.Document).data, ctor);
+
+    export const isCollectionView: Predicate = (target: DocumentView) => tryCast(target, listSpec(Doc)) !== undefined;
+
+    export const isImageView: Predicate = (target: DocumentView) => tryCast(target, ImageField) !== undefined;
+
 
 }
