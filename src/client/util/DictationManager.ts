@@ -21,11 +21,11 @@ namespace CORE {
 
 export namespace Validators {
 
-    const tryCast = <T extends CastCtor>(view: DocumentView, ctor: T) => Cast(Doc.GetProto(view.props.Document).data, ctor);
+    const tryCast = <T extends CastCtor>(view: DocumentView, ctor: T) => Cast(Doc.GetProto(view.props.Document).data, ctor) !== undefined;
 
-    export const isCollectionView: ActionPredicate = (target: DocumentView) => tryCast(target, listSpec(Doc)) !== undefined;
+    export const isCollectionView: ActionPredicate = (target: DocumentView) => tryCast(target, listSpec(Doc));
 
-    export const isImageView: ActionPredicate = (target: DocumentView) => tryCast(target, ImageField) !== undefined;
+    export const isImageView: ActionPredicate = (target: DocumentView) => tryCast(target, ImageField);
 
 }
 
