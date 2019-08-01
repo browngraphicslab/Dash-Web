@@ -131,15 +131,16 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         r2: { left: number, top: number, width: number, height: number }) {
         return !(r2.left > r1.left + r1.width || r2.left + r2.width < r1.left || r2.top > r1.top + r1.height || r2.top + r2.height < r1.top);
     }
+    _groupingBorder = 150;
     bounsdSelect(doc: Doc, doc2: Doc) {
-        var x2 = NumCast(doc2.x) - 25;
-        var y2 = NumCast(doc2.y) - 25;
-        var w2 = NumCast(doc2.width) + 25;
-        var h2 = NumCast(doc2.height) + 25;
-        var x = NumCast(doc.x) - 25;
-        var y = NumCast(doc.y) - 25;
-        var w = NumCast(doc.width) + 25;
-        var h = NumCast(doc.height) + 25;
+        var x2 = NumCast(doc2.x) - this._groupingBorder;
+        var y2 = NumCast(doc2.y) - this._groupingBorder;
+        var w2 = NumCast(doc2.width) + this._groupingBorder;
+        var h2 = NumCast(doc2.height) + this._groupingBorder;
+        var x = NumCast(doc.x) - this._groupingBorder;
+        var y = NumCast(doc.y) - this._groupingBorder;
+        var w = NumCast(doc.width) + this._groupingBorder;
+        var h = NumCast(doc.height) + this._groupingBorder;
         if (this.intersectRect({ left: x, top: y, width: w, height: h }, { left: x2, top: y2, width: w2, height: h2 })) {
             return true;
         }
@@ -242,6 +243,26 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @action
     onPointerMove = (e: PointerEvent): void => {
         if (!e.cancelBubble) {
+            let probe = this.getTransform().transformPoint(e.clientX, e.clientY);
+            let cluster = this.childDocs.reduce((cluster, cd) => {
+                let cx = NumCast(cd.x) - this._groupingBorder;
+                let cy = NumCast(cd.y) - this._groupingBorder;
+                let cw = NumCast(cd.width) + this._groupingBorder;
+                let ch = NumCast(cd.height) + this._groupingBorder;
+                if (this.intersectRect({ left: cx, top: cy, width: cw, height: ch }, { left: probe[0], top: probe[1], width: 1, height: 1 }))
+                    return NumCast(cd.cluster);
+                return cluster;
+            }, -1);
+            if (cluster !== -1) {
+                let eles = this.childDocs.filter(cd => NumCast(cd.cluster) === cluster);
+                this.selectDocuments(eles);
+                DragManager.StartDocumentDrag(SelectionManager.SelectedDocuments().map(v => v.ContentDiv!), new DragManager.DocumentDragData(eles, eles.map(d => undefined)), e.clientX, e.clientY);
+                e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
+                e.preventDefault();
+                document.removeEventListener("pointermove", this.onPointerMove);
+                document.removeEventListener("pointerup", this.onPointerUp);
+                return;
+            }
             let x = this.Document.panX || 0;
             let y = this.Document.panY || 0;
             let docs = this.childDocs || [];
