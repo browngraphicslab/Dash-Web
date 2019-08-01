@@ -114,15 +114,15 @@ export default class KeyManager {
                 let main = MainView.Instance;
                 main.dictationOverlayVisible = true;
                 main.isListening = true;
-                let manager = DictationManager.Instance;
-                let command = await manager.listen();
+                let dictation = DictationManager.Instance;
+                let command = await dictation.listen();
                 main.isListening = false;
                 if (!command) {
                     break;
                 }
                 command = command.toLowerCase();
                 main.dictatedPhrase = command;
-                main.dictationSuccess = await manager.execute(command);
+                main.dictationSuccess = await dictation.execute(command);
                 main.overlayTimeout = setTimeout(() => {
                     main.dictationOverlayVisible = false;
                     main.dictationSuccess = undefined;
