@@ -4,6 +4,7 @@ import { DocumentView } from "../views/nodes/DocumentView";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 import { NumCast, StrCast } from "../../new_fields/Types";
 import { InkingControl } from "../views/InkingControl";
+import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
 
 export namespace SelectionManager {
 
