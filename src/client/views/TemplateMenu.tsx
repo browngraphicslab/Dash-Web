@@ -39,7 +39,7 @@ export interface TemplateMenuProps {
 @observer
 export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @observable private _hidden: boolean = true;
-    dragRef = React.createRef<HTMLDivElement>();
+    dragRef = React.createRef<HTMLUListElement>();
 
     constructor(props: TemplateMenuProps) {
         super(props);
