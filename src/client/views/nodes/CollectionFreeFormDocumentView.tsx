@@ -77,6 +77,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     transformOrigin: "left top",
                     position: "absolute",
                     backgroundColor: "transparent",
+                    boxShadow: this.props.Document.z ? `#9c9396 ${StrCast(this.props.Document.boxShadow, "10px 10px 0.9vw")}` : undefined,
                     borderRadius: this.borderRounding(),
                     transform: this.transform,
                     transition: hasPosition ? "transform 1s" : StrCast(this.props.Document.transition),

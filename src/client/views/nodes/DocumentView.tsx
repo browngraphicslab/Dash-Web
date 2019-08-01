@@ -1,19 +1,24 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import * as fa from '@fortawesome/free-solid-svg-icons';
-import { action, computed, IReactionDisposer, reaction, trace, observable, runInAction } from "mobx";
+import { action, computed, IReactionDisposer, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, HeightSym, Opt, WidthSym, DocListCastAsync } from "../../../new_fields/Doc";
+import * as rp from "request-promise";
+import { Doc, DocListCast, DocListCastAsync, HeightSym, Opt, WidthSym } from "../../../new_fields/Doc";
+import { Copy, Id } from '../../../new_fields/FieldSymbols';
 import { List } from "../../../new_fields/List";
 import { ObjectField } from "../../../new_fields/ObjectField";
-import { createSchema, makeInterface, listSpec } from "../../../new_fields/Schema";
-import { BoolCast, Cast, FieldValue, StrCast, NumCast, PromiseValue } from "../../../new_fields/Types";
+import { createSchema, listSpec, makeInterface } from "../../../new_fields/Schema";
+import { BoolCast, Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
-import { emptyFunction, Utils, returnFalse, returnTrue } from "../../../Utils";
+import { RouteStore } from '../../../server/RouteStore';
+import { emptyFunction, returnTrue, Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
-import { Docs, DocUtils, DocumentType } from "../../documents/Documents";
+import { Docs, DocUtils } from "../../documents/Documents";
+import { ClientUtils } from '../../util/ClientUtils';
+import DictationManager from '../../util/DictationManager';
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager, dropActionType } from "../../util/DragManager";
-import { SearchUtil } from "../../util/SearchUtil";
+import { LinkManager } from '../../util/LinkManager';
 import { SelectionManager } from "../../util/SelectionManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
@@ -22,29 +27,22 @@ import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";
-import { DocComponent } from "../DocComponent";
-import { PresentationView } from "../presentationview/PresentationView";
-import { Template, Templates } from "./../Templates";
-import { DocumentContentsView } from "./DocumentContentsView";
-import * as rp from "request-promise";
-import "./DocumentView.scss";
-import React = require("react");
-import { Id, Copy } from '../../../new_fields/FieldSymbols';
 import { ContextMenuProps } from '../ContextMenuItem';
-import { list, object, createSimpleSchema } from 'serializr';
-import { LinkManager } from '../../util/LinkManager';
-import { RouteStore } from '../../../server/RouteStore';
-import { FormattedTextBox } from './FormattedTextBox';
-import { OverlayView } from '../OverlayView';
-import { ScriptingRepl } from '../ScriptingRepl';
-import { ClientUtils } from '../../util/ClientUtils';
+import { DocComponent } from "../DocComponent";
 import { EditableView } from '../EditableView';
-import { faHandPointer, faHandPointRight } from '@fortawesome/free-regular-svg-icons';
-import { DocumentDecorations } from '../DocumentDecorations';
+import { OverlayView } from '../OverlayView';
+import { PresentationView } from "../presentationview/PresentationView";
+import { ScriptingRepl } from '../ScriptingRepl';
+import { Template } from "./../Templates";
+import { DocumentContentsView } from "./DocumentContentsView";
+import "./DocumentView.scss";
+import { FormattedTextBox } from './FormattedTextBox';
+import React = require("react");
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(fa.faTrash);
 library.add(fa.faShare);
+library.add(fa.faDownload);
 library.add(fa.faExpandArrowsAlt);
 library.add(fa.faCompressArrowsAlt);
 library.add(fa.faLayerGroup);
@@ -62,7 +60,7 @@ library.add(fa.faCrosshairs);
 library.add(fa.faDesktop);
 library.add(fa.faUnlock);
 library.add(fa.faLock);
-library.add(fa.faLaptopCode, fa.faMale, fa.faCopy, fa.faHandPointRight, fa.faCompass, fa.faSnowflake);
+library.add(fa.faLaptopCode, fa.faMale, fa.faCopy, fa.faHandPointRight, fa.faCompass, fa.faSnowflake, fa.faMicrophone);
 
 // const linkSchema = createSchema({
 //     title: "string",
@@ -93,7 +91,7 @@ export interface DocumentViewProps {
     selectOnLoad: boolean;
     parentActive: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
-    bringToFront: (doc: Doc) => void;
+    bringToFront: (doc: Doc, sendToBack?: boolean) => void;
     addDocTab: (doc: Doc, dataDoc: Doc | undefined, where: string) => void;
     collapseToPoint?: (scrpt: number[], expandedDocs: Doc[] | undefined) => void;
     zoomToScale: (scale: number) => void;
@@ -118,6 +116,7 @@ export const positionSchema = createSchema({
     height: "number",
     x: "number",
     y: "number",
+    z: "number",
 });
 
 export type PositionDocument = makeInterface<[typeof positionSchema]>;
@@ -526,13 +525,19 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     @action
     makeBackground = (): void => {
-        this.props.Document.isBackground = true;
+        this.props.Document.isBackground = !this.props.Document.isBackground;
+        this.props.Document.isBackground && this.props.bringToFront(this.props.Document, true);
     }
 
     @undoBatch
     @action
     toggleLockPosition = (): void => {
         this.props.Document.lockedPosition = BoolCast(this.props.Document.lockedPosition) ? undefined : true;
+    }
+
+    listen = async () => {
+        let transcript = await DictationManager.Instance.listen();
+        transcript && (Doc.GetProto(this.props.Document).transcript = transcript);
     }
 
     @action
@@ -558,8 +563,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         cm.addItem({ description: BoolCast(this.props.Document.ignoreAspect, false) || !this.props.Document.nativeWidth || !this.props.Document.nativeHeight ? "Freeze" : "Unfreeze", event: this.freezeNativeDimensions, icon: "snowflake" });
         cm.addItem({ description: "Pin to Presentation", event: () => PresentationView.Instance.PinDoc(this.props.Document), icon: "map-pin" });
         cm.addItem({ description: BoolCast(this.props.Document.lockedPosition) ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
+        cm.addItem({ description: "Transcribe Speech", event: this.listen, icon: "microphone" });
         let makes: ContextMenuProps[] = [];
-        makes.push({ description: "Make Background", event: this.makeBackground, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
+        makes.push({ description: this.props.Document.isBackground ? "Remove Background" : "Make Background", event: this.makeBackground, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
         makes.push({ description: this.props.Document.isButton ? "Remove Button" : "Make Button", event: this.makeBtnClicked, icon: "concierge-bell" });
         makes.push({
             description: "Make Portal", event: () => {
@@ -576,12 +582,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }, icon: "window-restore"
         });
         cm.addItem({ description: "Make...", subitems: makes, icon: "hand-point-right" });
-        // cm.addItem({
-        //     description: "Find aliases", event: async () => {
-        //         const aliases = await SearchUtil.GetAliasesOfDocument(this.props.Document);
-        //         this.props.addDocTab && this.props.addDocTab(Docs.Create.SchemaDocument(["title"], aliases, {}), undefined, "onRight"); // bcz: dataDoc?
-        //     }, icon: "search"
-        // });
         if (this.props.Document.detailedLayout && !this.props.Document.isTemplate) {
             cm.addItem({ description: "Toggle detail", event: () => Doc.ToggleDetailLayout(this.props.Document), icon: "image" });
         }
@@ -597,6 +597,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             copies.push({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "fingerprint" });
             cm.addItem({ description: "Copy...", subitems: copies, icon: "copy" });
         }
+        cm.addItem({
+            description: "Download document", icon: "download", event: () => {
+                const a = document.createElement("a");
+                const url = Utils.prepend(`/downloadId/${this.props.Document[Id]}`);
+                a.href = url;
+                a.download = `DocExport-${this.props.Document[Id]}.zip`;
+                a.click();
+            }
+        });
         cm.addItem({ description: "Delete", event: this.deleteClicked, icon: "trash" });
         type User = { email: string, userDocumentId: string };
         let usersMenu: ContextMenuProps[] = [];
@@ -690,7 +699,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
                 style={{
-                    pointerEvents: this.layoutDoc.isBackground ? "none" : "all",
+                    pointerEvents: this.layoutDoc.isBackground && !this.isSelected() ? "none" : "all",
                     color: foregroundColor,
                     outlineColor: "maroon",
                     outlineStyle: "dashed",

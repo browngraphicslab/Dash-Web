@@ -16,11 +16,15 @@
         -moz-transition: all 0.2s ease-in-out;
         -o-transition: all 0.2s ease-in-out;
         transition: all 0.2s ease-in-out;
+        color: gray;
+        font-size: 13;
     }
 }
 
 .toggle-bar {
-    height: 50px;
+    // height: 50px;
+    height: 30px;
+    width: 100px;
     background-color: $alt-accent;
     border-radius: 10px;
     padding: 5px;
@@ -28,7 +32,8 @@
     align-items: center;
 
     .toggle-button {
-        width: 275px;
+        // width: 275px;
+        width: 40px;
         height: 100%;
         border-radius: 10px;
         background-color: $light-color;

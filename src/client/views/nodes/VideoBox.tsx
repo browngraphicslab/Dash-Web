@@ -23,6 +23,7 @@ import { faVideo } from "@fortawesome/free-solid-svg-icons";
 import { CompileScript } from "../../util/Scripting";
 import { Doc } from "../../../new_fields/Doc";
 import { ScriptField } from "../../../new_fields/ScriptField";
+var path = require('path');
 
 type VideoDocument = makeInterface<[typeof positionSchema, typeof pageSchema]>;
 const VideoDocument = makeInterface(positionSchema, pageSchema);
@@ -89,6 +90,13 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         this._youtubePlayer && this.props.addDocTab(this.props.Document, this.props.DataDoc, "inTab");
     }
 
+    choosePath(url: string) {
+        if (url.indexOf(window.location.origin) === -1) {
+            return Utils.CorsProxy(url);
+        }
+        return url;
+    }
+
     @action public Snapshot() {
         let width = NumCast(this.props.Document.width);
         let height = NumCast(this.props.Document.height);
@@ -127,7 +135,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
             let filename = encodeURIComponent("snapshot" + this.props.Document.title + "_" + this.props.Document.curPage).replace(/\./g, "");
             VideoBox.convertDataUri(dataUrl, filename).then(returnedFilename => {
                 if (returnedFilename) {
-                    let url = Utils.prepend(returnedFilename);
+                    let url = this.choosePath(Utils.prepend(returnedFilename));
                     let imageSummary = Docs.Create.ImageDocument(url, {
                         x: NumCast(this.props.Document.x) + width, y: NumCast(this.props.Document.y),
                         width: 150, height: height / width * 150, title: "--snapshot" + NumCast(this.props.Document.curPage) + " image-"

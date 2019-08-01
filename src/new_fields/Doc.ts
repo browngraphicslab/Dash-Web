@@ -1,4 +1,4 @@
-import { observable, action } from "mobx";
+import { observable, action, runInAction } from "mobx";
 import { serializable, primitive, map, alias, list, PropSchema, custom } from "serializr";
 import { autoObject, SerializationHelper, Deserializable, afterDocDeserialize } from "../client/util/SerializationHelper";
 import { DocServer } from "../client/DocServer";
@@ -197,8 +197,12 @@ export namespace Doc {
     }
 
     export function Get(doc: Doc, key: string, ignoreProto: boolean = false): FieldResult {
-        const self = doc[Self];
-        return getField(self, key, ignoreProto);
+        try {
+            const self = doc[Self];
+            return getField(self, key, ignoreProto);
+        } catch  {
+            return doc;
+        }
     }
     export function GetT<T extends Field>(doc: Doc, key: string, ctor: ToConstructor<T>, ignoreProto: boolean = false): FieldResult<T> {
         return Cast(Get(doc, key, ignoreProto), ctor) as FieldResult<T>;
@@ -462,6 +466,23 @@ export namespace Doc {
         otherdoc.type = DocumentType.TEMPLATE;
         return otherdoc;
     }
+    export function ApplyTemplateTo(templateDoc: Doc, target: Doc, targetData?: Doc) {
+        let temp = Doc.MakeDelegate(templateDoc);
+        target.nativeWidth = Doc.GetProto(target).nativeWidth = undefined;
+        target.nativeHeight = Doc.GetProto(target).nativeHeight = undefined;
+        target.width = templateDoc.width;
+        target.height = templateDoc.height;
+        Doc.GetProto(target).type = DocumentType.TEMPLATE;
+        if (targetData && targetData.layout === target) {
+            targetData.layout = temp;
+            targetData.miniLayout = StrCast(templateDoc.miniLayout);
+            targetData.detailedLayout = targetData.layout;
+        } else {
+            target.layout = temp;
+            target.miniLayout = StrCast(templateDoc.miniLayout);
+            target.detailedLayout = target.layout;
+        }
+    }
 
     export function MakeTemplate(fieldTemplate: Doc, metaKey: string, templateDataDoc: Doc) {
         // move data doc fields to layout doc as needed (nativeWidth/nativeHeight, data, ??)
@@ -494,18 +515,29 @@ export namespace Doc {
         setTimeout(() => fieldTemplate.proto = templateDataDoc);
     }
 
-    export async function ToggleDetailLayout(d: Doc) {
-        let miniLayout = await PromiseValue(d.miniLayout);
-        let detailLayout = await PromiseValue(d.detailedLayout);
-        d.layout !== miniLayout ? miniLayout && (d.layout = d.miniLayout) : detailLayout && (d.layout = detailLayout);
-        if (d.layout === detailLayout) Doc.GetProto(d).nativeWidth = Doc.GetProto(d).nativeHeight = undefined;
+    export function ToggleDetailLayout(d: Doc) {
+        runInAction(async () => {
+            let miniLayout = await PromiseValue(d.miniLayout);
+            let detailLayout = await PromiseValue(d.detailedLayout);
+            d.layout !== miniLayout ? miniLayout && (d.layout = d.miniLayout) : detailLayout && (d.layout = detailLayout);
+            if (d.layout === detailLayout) Doc.GetProto(d).nativeWidth = Doc.GetProto(d).nativeHeight = undefined;
+        });
     }
-    export async function UseDetailLayout(d: Doc) {
-        let miniLayout = await PromiseValue(d.miniLayout);
-        let detailLayout = await PromiseValue(d.detailedLayout);
-        if (miniLayout && d.layout === miniLayout && detailLayout) {
-            d.layout = detailLayout;
-            d.nativeWidth = d.nativeHeight = undefined;
-        }
+    export function UseDetailLayout(d: Doc) {
+        runInAction(async () => {
+            let detailLayout1 = await PromiseValue(d.detailedLayout);
+            let detailLayout = await PromiseValue(d.detailedLayout);
+            if (detailLayout) {
+                d.layout = detailLayout;
+                d.nativeWidth = d.nativeHeight = undefined;
+                if (detailLayout instanceof Doc) {
+                    let delegDetailLayout = Doc.MakeDelegate(detailLayout) as Doc;
+                    d.layout = delegDetailLayout;
+                    let subDetailLayout1 = await PromiseValue(delegDetailLayout.detailedLayout);
+                    let subDetailLayout = await PromiseValue(delegDetailLayout.detailedLayout);
+                    delegDetailLayout.layout = subDetailLayout;
+                }
+            }
+        });
     }
 }

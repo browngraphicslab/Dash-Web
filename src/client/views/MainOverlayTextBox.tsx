@@ -12,6 +12,7 @@ import "./MainOverlayTextBox.scss";
 import { FormattedTextBox } from './nodes/FormattedTextBox';
 
 interface MainOverlayTextBoxProps {
+    firstinstance?: boolean;
 }
 
 @observer

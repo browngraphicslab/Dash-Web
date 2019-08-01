@@ -1,15 +1,11 @@
 import * as request from "request-promise";
 import { Doc, Field, Opt } from "../../new_fields/Doc";
 import { Cast } from "../../new_fields/Types";
-import { ImageField } from "../../new_fields/URLField";
-import { List } from "../../new_fields/List";
 import { Docs } from "../documents/Documents";
 import { RouteStore } from "../../server/RouteStore";
 import { Utils } from "../../Utils";
-import { CompileScript } from "../util/Scripting";
-import { ComputedField } from "../../new_fields/ScriptField";
 import { InkData } from "../../new_fields/InkField";
-import { undoBatch, UndoManager } from "../util/UndoManager";
+import { UndoManager } from "../util/UndoManager";
 
 type APIManager<D> = { converter: BodyConverter<D>, requester: RequestExecutor, analyzer: AnalysisApplier };
 type RequestExecutor = (apiKey: string, body: string, service: Service) => Promise<string>;
