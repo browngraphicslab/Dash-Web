@@ -525,19 +525,14 @@ export namespace Doc {
     }
     export function UseDetailLayout(d: Doc) {
         runInAction(async () => {
-            const dl1 = d.detailedLayout;
-            let detailLayout1 = await PromiseValue(dl1);
-            const dl2 = d.detailedLayout;
-            let detailLayout = await PromiseValue(dl2);
+            let detailLayout = await d.detailedLayout;
             if (detailLayout) {
                 d.layout = detailLayout;
                 d.nativeWidth = d.nativeHeight = undefined;
                 if (detailLayout instanceof Doc) {
                     let delegDetailLayout = Doc.MakeDelegate(detailLayout) as Doc;
                     d.layout = delegDetailLayout;
-                    let subDetailLayout1 = await PromiseValue(delegDetailLayout.detailedLayout);
-                    let subDetailLayout = await PromiseValue(delegDetailLayout.detailedLayout);
-                    delegDetailLayout.layout = subDetailLayout;
+                    delegDetailLayout.layout = await delegDetailLayout.detailedLayout;
                 }
             }
         });

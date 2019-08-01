@@ -456,7 +456,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             const width = Cast(viewDef.width, "number");
             const height = Cast(viewDef.height, "number");
             const fontSize = Cast(viewDef.fontSize, "number");
-            if ([text, x, y, z, width, height].some(val => val === undefined)) {
+            if ([text, x, y, width, height].some(val => val === undefined)) {
                 return undefined;
             }
 
