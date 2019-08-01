@@ -911,7 +911,11 @@ export class PresentationView extends React.Component<PresViewProps>  {
     closePresMode = () => {
         if (this.presMode) {
             this.presMode = false;
-            this.curPresentation.width = presMinWidth;
+            let curPresWidth = NumCast(this.curPresentation.width);
+            if (curPresWidth === 0) {
+                this.curPresentation.width = presMinWidth;
+
+            }
         }
 
     }
