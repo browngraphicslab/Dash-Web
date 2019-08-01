@@ -555,7 +555,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             return;
         }
         let relevantKeys = ["inkAnalysis", "handwriting"];
-        CognitiveServices.Inking.Manager.analyzer(this.fieldExtensionDoc, relevantKeys, data.inkData);
+        CognitiveServices.Inking.Appliers.ConcatenateHandwriting(this.fieldExtensionDoc, relevantKeys, data.inkData);
     }
 
     onContextMenu = (e: React.MouseEvent) => {
