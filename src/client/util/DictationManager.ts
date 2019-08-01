@@ -6,9 +6,9 @@ import { Doc } from "../../new_fields/Doc";
 import { List } from "../../new_fields/List";
 import { Docs, DocumentType } from "../documents/Documents";
 import { CollectionViewType } from "../views/collections/CollectionBaseView";
-import { listSpec } from "../../new_fields/Schema";
 import { Cast, CastCtor } from "../../new_fields/Types";
-import { ImageField, AudioField } from "../../new_fields/URLField";
+import { listSpec } from "../../new_fields/Schema";
+import { AudioField, ImageField } from "../../new_fields/URLField";
 import { HistogramField } from "../northstar/dash-fields/HistogramField";
 
 namespace CORE {
@@ -17,7 +17,7 @@ namespace CORE {
     }
 }
 
-const Mapping = new Map<DocumentType, CastCtor>([
+const ConstructorMap = new Map<DocumentType, CastCtor>([
     [DocumentType.COL, listSpec(Doc)],
     [DocumentType.AUDIO, AudioField],
     [DocumentType.IMG, ImageField],
@@ -26,7 +26,7 @@ const Mapping = new Map<DocumentType, CastCtor>([
 ]);
 
 const tryCast = (view: DocumentView, type: DocumentType) => {
-    let ctor = Mapping.get(type);
+    let ctor = ConstructorMap.get(type);
     if (!ctor) {
         return false;
     }
@@ -82,28 +82,6 @@ export default class DictationManager {
         });
     }
 
-    private sanitize = (title: string) => {
-        return title.replace("...", "").toLowerCase().trim();
-    }
-
-    public registerStatic = (keys: Array<string>, action: IndependentAction, filter?: ActionPredicate) => {
-        let success = true;
-        keys.forEach(key => {
-            key = this.sanitize(key);
-            let existing = RegisteredCommands.Independent.get(key);
-            if (!existing) {
-                let unit = {
-                    action: action,
-                    filter: filter
-                };
-                RegisteredCommands.Independent.set(key, unit);
-            } else {
-                success = false;
-            }
-        });
-        return success;
-    }
-
     public interpretNumber = (number: string) => {
         let initial = parseInt(number);
         if (!isNaN(initial)) {
@@ -116,34 +94,38 @@ export default class DictationManager {
         return typeof converted === "string" ? parseInt(converted) : converted;
     }
 
-    public registerDynamic = (dynamicKey: RegExp, action: DependentAction) => {
-        RegisteredCommands.Dependent.push({
-            expression: dynamicKey,
-            action: action
-        });
-    }
-
     @undoBatch
     public execute = async (phrase: string) => {
-        let target = SelectionManager.SelectedDocuments()[0];
-        if (!target) {
+        let targets = SelectionManager.SelectedDocuments();
+        if (!targets || !targets.length) {
             return;
         }
-        phrase = this.sanitize(phrase);
 
         let entry = RegisteredCommands.Independent.get(phrase);
-        if (entry && (!entry.restrictTo || validate(target, entry.restrictTo))) {
-            await entry.action(target);
-            return true;
+        if (entry) {
+            let success = false;
+            for (let target of targets) {
+                if (!entry.restrictTo || validate(target, entry.restrictTo)) {
+                    await entry.action(target);
+                    success = true;
+                }
+            }
+            return success;
         }
 
         for (let entry of RegisteredCommands.Dependent) {
             let regex = entry.expression;
             let matches = regex.exec(phrase);
             regex.lastIndex = 0;
-            if (matches !== null && (!entry.restrictTo || validate(target, entry.restrictTo))) {
-                await entry.action(target, matches);
-                return true;
+            if (matches !== null) {
+                let success = false;
+                for (let target of targets) {
+                    if (!entry.restrictTo || validate(target, entry.restrictTo)) {
+                        await entry.action(target, matches);
+                        success = true;
+                    }
+                }
+                return success;
             }
         }
 

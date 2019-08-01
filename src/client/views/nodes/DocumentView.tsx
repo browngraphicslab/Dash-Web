@@ -41,7 +41,6 @@ import { ClientUtils } from '../../util/ClientUtils';
 import { EditableView } from '../EditableView';
 import { faHandPointer, faHandPointRight } from '@fortawesome/free-regular-svg-icons';
 import { DocumentDecorations } from '../DocumentDecorations';
-import { CognitiveServices } from '../../cognitive_services/CognitiveServices';
 import DictationManager from '../../util/DictationManager';
 import { CollectionViewType } from '../collections/CollectionBaseView';
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?

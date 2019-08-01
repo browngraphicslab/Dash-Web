@@ -123,14 +123,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         });
     }
 
-    constructor(props: SubCollectionViewProps) {
-        super(props);
-        let fixed = DictationManager.Instance.registerStatic;
-        fixed(["Unset Fit To Container", "Set Fit To Container"], this.fitToContainer);
-        fixed(["Arrange contents in grid"], this.arrangeContents);
-        fixed(["Analyze Strokes"], this.analyzeStrokes);
-    }
-
     @computed get fieldExtensionDoc() {
         return Doc.resolvedFieldDataDoc(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, "true");
     }
