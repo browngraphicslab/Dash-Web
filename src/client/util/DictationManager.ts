@@ -1,17 +1,15 @@
-import { string } from "prop-types";
-import { observable, action, autorun } from "mobx";
 import { SelectionManager } from "./SelectionManager";
 import { DocumentView } from "../views/nodes/DocumentView";
-import { UndoManager, undoBatch } from "./UndoManager";
+import { undoBatch } from "./UndoManager";
 import * as converter from "words-to-numbers";
-import { Doc, Field } from "../../new_fields/Doc";
+import { Doc } from "../../new_fields/Doc";
 import { List } from "../../new_fields/List";
-import { Docs } from "../documents/Documents";
+import { Docs, DocumentType } from "../documents/Documents";
 import { CollectionViewType } from "../views/collections/CollectionBaseView";
-import { MainView } from "../views/MainView";
 import { listSpec } from "../../new_fields/Schema";
-import { Cast, ToConstructor, ListSpec, CastCtor } from "../../new_fields/Types";
-import { ImageField } from "../../new_fields/URLField";
+import { Cast, CastCtor } from "../../new_fields/Types";
+import { ImageField, AudioField } from "../../new_fields/URLField";
+import { HistogramField } from "../northstar/dash-fields/HistogramField";
 
 namespace CORE {
     export interface IWindow extends Window {
@@ -19,22 +17,37 @@ namespace CORE {
     }
 }
 
-export namespace Validators {
+const Mapping = new Map<DocumentType, CastCtor>([
+    [DocumentType.COL, listSpec(Doc)],
+    [DocumentType.AUDIO, AudioField],
+    [DocumentType.IMG, ImageField],
+    [DocumentType.HIST, HistogramField],
+    [DocumentType.IMPORT, listSpec(Doc)]
+]);
 
-    const tryCast = <T extends CastCtor>(view: DocumentView, ctor: T) => Cast(Doc.GetProto(view.props.Document).data, ctor) !== undefined;
+const tryCast = (view: DocumentView, type: DocumentType) => {
+    let ctor = Mapping.get(type);
+    if (!ctor) {
+        return false;
+    }
+    return Cast(Doc.GetProto(view.props.Document).data, ctor) !== undefined;
+};
 
-    export const isCollectionView: ActionPredicate = (target: DocumentView) => tryCast(target, listSpec(Doc));
-
-    export const isImageView: ActionPredicate = (target: DocumentView) => tryCast(target, ImageField);
-
-}
+const validate = (target: DocumentView, types: DocumentType[]) => {
+    for (let type of types) {
+        if (tryCast(target, type)) {
+            return true;
+        }
+    }
+    return false;
+};
 
 const { webkitSpeechRecognition }: CORE.IWindow = window as CORE.IWindow;
 export type IndependentAction = (target: DocumentView) => any | Promise<any>;
 export type DependentAction = (target: DocumentView, matches: RegExpExecArray) => any | Promise<any>;
-export type RegistrationEntry = { action: IndependentAction, validate?: ActionPredicate };
+export type RegistrationEntry = { action: IndependentAction, valid?: DocumentType[] };
 export type ActionPredicate = (target: DocumentView) => boolean;
-export type RegexEntry = { expression: RegExp, action: DependentAction, validate?: ActionPredicate };
+export type RegexEntry = { expression: RegExp, action: DependentAction, valid?: DocumentType[] };
 
 export default class DictationManager {
     public static Instance = new DictationManager();
@@ -119,7 +132,7 @@ export default class DictationManager {
         phrase = this.sanitize(phrase);
 
         let entry = RegisteredCommands.Independent.get(phrase);
-        if (entry && (!entry.validate || entry.validate(target))) {
+        if (entry && (!entry.valid || validate(target, entry.valid))) {
             await entry.action(target);
             return true;
         }
@@ -128,7 +141,7 @@ export default class DictationManager {
             let regex = entry.expression;
             let matches = regex.exec(phrase);
             regex.lastIndex = 0;
-            if (matches !== null && (!entry.validate || entry.validate(target))) {
+            if (matches !== null && (!entry.valid || validate(target, entry.valid))) {
                 await entry.action(target, matches);
                 return true;
             }
@@ -147,7 +160,7 @@ export namespace RegisteredCommands {
             action: (target: DocumentView) => {
                 Doc.GetProto(target.props.Document).data = new List();
             },
-            validate: Validators.isCollectionView
+            valid: [DocumentType.COL]
         }],
 
         ["open fields", {
@@ -181,7 +194,7 @@ export namespace RegisteredCommands {
                     created && Doc.AddDocToList(dataDoc, fieldKey, created);
                 }
             },
-            validate: Validators.isCollectionView
+            valid: [DocumentType.COL]
         },
 
         {
@@ -190,7 +203,7 @@ export namespace RegisteredCommands {
                 let mode = CollectionViewType.ValueOf(matches[1]);
                 mode && (target.props.Document.viewType = mode);
             },
-            validate: Validators.isCollectionView
+            valid: [DocumentType.COL]
         }
 
     );
