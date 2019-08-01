@@ -1,7 +1,7 @@
 import * as React from "react";
 import "./Keyframe.scss";
 import "./Timeline.scss";
-import "./../globalCssVariables.scss";
+import "../globalCssVariables.scss";
 import { observer, Observer } from "mobx-react";
 import { observable, reaction, action, IReactionDisposer, observe, IObservableArray, computed, toJS, isComputedProp, runInAction } from "mobx";
 import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
@@ -519,6 +519,7 @@ export class Keyframe extends React.Component<IProps> {
                     onContextMenu={action((e: React.MouseEvent) => {
                         e.preventDefault();
                         e.stopPropagation();
+                        console.log("has been clicked!"); 
                         let offsetLeft = this._bar.current!.getBoundingClientRect().left - this._bar.current!.parentElement!.getBoundingClientRect().left;
                         let offsetTop = this._bar.current!.getBoundingClientRect().top; //+ this._bar.current!.parentElement!.getBoundingClientRect().top; 
                         this.props.setFlyout({ x: offsetLeft * this.props.transform.Scale, y: offsetTop * this.props.transform.Scale, display: "block", regiondata: this.regiondata, regions: this.regions });

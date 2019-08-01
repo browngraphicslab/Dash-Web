@@ -1,6 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faEdit, faSmile, faTextHeight } from '@fortawesome/free-solid-svg-icons';
-import { action, IReactionDisposer, observable, reaction, runInAction, computed, trace } from "mobx";
+import { action, IReactionDisposer, observable, reaction, runInAction, computed, trace, toJS } from "mobx";
 import { observer } from "mobx-react";
 import { baseKeymap } from "prosemirror-commands";
 import { history } from "prosemirror-history";
@@ -35,6 +35,7 @@ import "./FormattedTextBox.scss";
 import React = require("react");
 import { DateField } from '../../../new_fields/DateField';
 import { Utils } from '../../../Utils';
+import { toSvgDataURL } from 'html-to-image';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight);
@@ -122,13 +123,14 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (this.props.isOverlay) {
             DragManager.StartDragFunctions.push(() => FormattedTextBox.InputBoxOverlay = undefined);
         }
+        toJS(console.log(this.props.Document)); 
 
         document.addEventListener("paste", this.paste);
     }
 
     @computed get extensionDoc() { return Doc.resolvedFieldDataDoc(this.dataDoc, this.props.fieldKey, "dummy"); }
 
-    @computed get dataDoc() { return BoolCast(this.props.Document.isTemplate) && this.props.DataDoc ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
+    @computed get dataDoc() {return BoolCast(this.props.Document.isTemplate) && this.props.DataDoc ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
 
     paste = (e: ClipboardEvent) => {
         if (e.clipboardData && this._editorView) {
@@ -163,7 +165,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             this._applyingChange = true;
             if (this.extensionDoc) this.extensionDoc.text = state.doc.textBetween(0, state.doc.content.size, "\n\n");
             if (this.extensionDoc) this.extensionDoc.lastModified = new DateField(new Date(Date.now()));
-            this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()));
+            this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()));            
+            this.props.Document.stateData = JSON.stringify(state.toJSON());            
+            this.props.Document.dataDocTest = this.dataDoc[this.props.fieldKey]; 
             this._applyingChange = false;
             let title = StrCast(this.dataDoc.title);
             if (title && title.startsWith("-") && this._editorView && !this.Document.customTitle) {

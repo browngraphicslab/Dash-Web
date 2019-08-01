@@ -13,7 +13,7 @@ import { faPlayCircle, faBackward, faForward, faGripLines, faArrowUp, faArrowDow
 import { ContextMenuProps } from "../ContextMenuItem";
 import { ContextMenu } from "../ContextMenu";
 import { DocumentManager } from "../../util/DocumentManager";
-import { VideoBox } from "./VideoBox";
+import { VideoBox } from "../nodes/VideoBox";
 import { VideoField } from "../../../new_fields/URLField";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { Transform } from "../../util/Transform";

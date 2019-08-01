@@ -11,6 +11,9 @@ import { FlyoutProps } from "./Timeline";
 import { Transform } from "../../util/Transform";
 import { AddComparisonParameters } from "../../northstar/model/idea/idea";
 import { CollectionSchemaBooleanCell } from "../collections/CollectionSchemaCells";
+import { DocumentManager } from "../../util/DocumentManager";
+import { DocumentView } from "../nodes/DocumentView";
+import { RichTextField } from "../../../new_fields/RichTextField";
 
 interface IProps {
     node: Doc;
@@ -60,6 +63,7 @@ export class Track extends React.Component<IProps> {
         return reaction( () => {
             return Doc.allKeys(this.props.node).map(key => FieldValue(this.props.node[key]));
         }, async () => {
+            console.log("rAN"); 
             let regiondata: (Doc | undefined) = await this.findRegion(this.props.currentBarX) ;
             if (regiondata) {
                 let keyframes = await DocListCastAsync((regiondata as Doc).keyframes!); 
@@ -129,6 +133,12 @@ export class Track extends React.Component<IProps> {
         let docFromApply = kfNode; 
         if (this.filterKeys(Doc.allKeys(this.props.node)).length > this.filterKeys(Doc.allKeys(kfNode)).length) docFromApply = this.props.node; 
         this.filterKeys(Doc.allKeys(docFromApply)).forEach(key => {
+            if (key === "type") {
+                if (this.props.node[key] === "text") {
+                    this.props.node.dataDocTest = new RichTextField(StrCast(kfNode.stateData)); 
+                    console.log("updated"); 
+                }
+            }
             if (!kfNode[key]) {
                 this.props.node[key] = undefined; 
             } else {
