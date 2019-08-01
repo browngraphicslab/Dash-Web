@@ -1,5 +1,5 @@
 import * as OpenSocket from 'socket.io-client';
-import { MessageStore, Diff } from "./../server/Message";
+import { MessageStore, Diff, YoutubeQueryTypes } from "./../server/Message";
 import { Opt } from '../new_fields/Doc';
 import { Utils, emptyFunction } from '../Utils';
 import { SerializationHelper } from './util/SerializationHelper';
@@ -124,16 +124,17 @@ export namespace DocServer {
             // future .proto calls on the Doc won't have to go farther than the cache to get their actual value.
             const deserializeField = getSerializedField.then(async fieldJson => {
                 // deserialize
-                const field = await SerializationHelper.Deserialize(fieldJson);
+                const field = await SerializationHelper.Deserialize(fieldJson, val => {
+                    if (val !== undefined) {
+                        _cache[id] = val;
+                    } else {
+                        delete _cache[id];
+                    }
+                });
+                return field;
                 // either way, overwrite or delete any promises cached at this id (that we inserted as flags
                 // to indicate that the field was in the process of being fetched). Now everything
                 // should be an actual value within or entirely absent from the cache.
-                if (field !== undefined) {
-                    _cache[id] = field;
-                } else {
-                    delete _cache[id];
-                }
-                return field;
             });
             // here, indicate that the document associated with this id is currently
             // being retrieved and cached
@@ -155,6 +156,20 @@ export namespace DocServer {
     export function GetRefField(id: string): Promise<Opt<RefField>> {
         return _GetRefField(id);
     }
+
+    export async function getYoutubeChannels() {
+        let apiKey = await Utils.EmitCallback(_socket, MessageStore.YoutubeApiQuery, { type: YoutubeQueryTypes.Channels });
+        return apiKey;
+    }
+
+    export function getYoutubeVideos(videoTitle: string, callBack: (videos: any[]) => void) {
+        Utils.EmitCallback(_socket, MessageStore.YoutubeApiQuery, { type: YoutubeQueryTypes.SearchVideo, userInput: videoTitle }, callBack);
+    }
+
+    export function getYoutubeVideoDetails(videoIds: string, callBack: (videoDetails: any[]) => void) {
+        Utils.EmitCallback(_socket, MessageStore.YoutubeApiQuery, { type: YoutubeQueryTypes.VideoDetails, videoIds: videoIds }, callBack);
+    }
+
 
     /**
      * Given a list of Doc GUIDs, this utility function will asynchronously attempt to each id's associated
@@ -200,15 +215,23 @@ export namespace DocServer {
         const deserializeFields = getSerializedFields.then(async fields => {
             const fieldMap: { [id: string]: RefField } = {};
             // const protosToLoad: any = [];
+            const proms: Promise<RefField>[] = [];
             for (const field of fields) {
                 if (field !== undefined) {
                     // deserialize
-                    let deserialized = await SerializationHelper.Deserialize(field);
-                    fieldMap[field.id] = deserialized;
+                    let prom = SerializationHelper.Deserialize(field, val => {
+                        if (val !== undefined) {
+                            _cache[field.id] = field;
+                        } else {
+                            delete _cache[field.id];
+                        }
+                    }).then(deserialized => fieldMap[field.id] = deserialized);
+                    proms.push(prom);
                     // adds to a list of promises that will be awaited asynchronously
                     // protosToLoad.push(deserialized.proto);
                 }
             }
+            await Promise.all(proms);
             // this actually handles the loading of prototypes
             // await Promise.all(protosToLoad);
             return fieldMap;

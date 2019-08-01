@@ -41,10 +41,13 @@ import { ClientUtils } from '../../util/ClientUtils';
 import { EditableView } from '../EditableView';
 import { faHandPointer, faHandPointRight } from '@fortawesome/free-regular-svg-icons';
 import { DocumentDecorations } from '../DocumentDecorations';
+import { CognitiveServices } from '../../cognitive_services/CognitiveServices';
+import DictationManager from '../../util/DictationManager';
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(fa.faTrash);
 library.add(fa.faShare);
+library.add(fa.faDownload);
 library.add(fa.faExpandArrowsAlt);
 library.add(fa.faCompressArrowsAlt);
 library.add(fa.faLayerGroup);
@@ -62,7 +65,7 @@ library.add(fa.faCrosshairs);
 library.add(fa.faDesktop);
 library.add(fa.faUnlock);
 library.add(fa.faLock);
-library.add(fa.faLaptopCode, fa.faMale, fa.faCopy, fa.faHandPointRight, fa.faCompass, fa.faSnowflake);
+library.add(fa.faLaptopCode, fa.faMale, fa.faCopy, fa.faHandPointRight, fa.faCompass, fa.faSnowflake, fa.faMicrophone);
 
 // const linkSchema = createSchema({
 //     title: "string",
@@ -93,7 +96,7 @@ export interface DocumentViewProps {
     selectOnLoad: boolean;
     parentActive: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
-    bringToFront: (doc: Doc) => void;
+    bringToFront: (doc: Doc, sendToBack?: boolean) => void;
     addDocTab: (doc: Doc, dataDoc: Doc | undefined, where: string) => void;
     collapseToPoint?: (scrpt: number[], expandedDocs: Doc[] | undefined) => void;
     zoomToScale: (scale: number) => void;
@@ -526,13 +529,19 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     @action
     makeBackground = (): void => {
-        this.props.Document.isBackground = true;
+        this.props.Document.isBackground = !this.props.Document.isBackground;
+        this.props.Document.isBackground && this.props.bringToFront(this.props.Document, true);
     }
 
     @undoBatch
     @action
     toggleLockPosition = (): void => {
         this.props.Document.lockedPosition = BoolCast(this.props.Document.lockedPosition) ? undefined : true;
+    }
+
+    listen = async () => {
+        let transcript = await DictationManager.Instance.listen();
+        transcript && (Doc.GetProto(this.props.Document).transcript = transcript);
     }
 
     @action
@@ -558,8 +567,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         cm.addItem({ description: BoolCast(this.props.Document.ignoreAspect, false) || !this.props.Document.nativeWidth || !this.props.Document.nativeHeight ? "Freeze" : "Unfreeze", event: this.freezeNativeDimensions, icon: "snowflake" });
         cm.addItem({ description: "Pin to Presentation", event: () => PresentationView.Instance.PinDoc(this.props.Document), icon: "map-pin" });
         cm.addItem({ description: BoolCast(this.props.Document.lockedPosition) ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
+        cm.addItem({ description: "Transcribe Speech", event: this.listen, icon: "microphone" });
         let makes: ContextMenuProps[] = [];
-        makes.push({ description: "Make Background", event: this.makeBackground, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
+        makes.push({ description: this.props.Document.isBackground ? "Remove Background" : "Make Background", event: this.makeBackground, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
         makes.push({ description: this.props.Document.isButton ? "Remove Button" : "Make Button", event: this.makeBtnClicked, icon: "concierge-bell" });
         makes.push({
             description: "Make Portal", event: () => {
@@ -576,12 +586,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }, icon: "window-restore"
         });
         cm.addItem({ description: "Make...", subitems: makes, icon: "hand-point-right" });
-        // cm.addItem({
-        //     description: "Find aliases", event: async () => {
-        //         const aliases = await SearchUtil.GetAliasesOfDocument(this.props.Document);
-        //         this.props.addDocTab && this.props.addDocTab(Docs.Create.SchemaDocument(["title"], aliases, {}), undefined, "onRight"); // bcz: dataDoc?
-        //     }, icon: "search"
-        // });
         if (this.props.Document.detailedLayout && !this.props.Document.isTemplate) {
             cm.addItem({ description: "Toggle detail", event: () => Doc.ToggleDetailLayout(this.props.Document), icon: "image" });
         }
@@ -597,6 +601,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             copies.push({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "fingerprint" });
             cm.addItem({ description: "Copy...", subitems: copies, icon: "copy" });
         }
+        cm.addItem({
+            description: "Download document", icon: "download", event: () => {
+                const a = document.createElement("a");
+                const url = Utils.prepend(`/downloadId/${this.props.Document[Id]}`);
+                a.href = url;
+                a.download = `DocExport-${this.props.Document[Id]}.zip`;
+                a.click();
+            }
+        });
         cm.addItem({ description: "Delete", event: this.deleteClicked, icon: "trash" });
         type User = { email: string, userDocumentId: string };
         let usersMenu: ContextMenuProps[] = [];
@@ -690,7 +703,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
                 style={{
-                    pointerEvents: this.layoutDoc.isBackground ? "none" : "all",
+                    pointerEvents: this.layoutDoc.isBackground && !this.isSelected() ? "none" : "all",
                     color: foregroundColor,
                     outlineColor: "maroon",
                     outlineStyle: "dashed",

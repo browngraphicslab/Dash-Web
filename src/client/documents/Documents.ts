@@ -22,7 +22,7 @@ import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { IconBox } from "../views/nodes/IconBox";
 import { Field, Doc, Opt } from "../../new_fields/Doc";
 import { OmitKeys, JSONUtils } from "../../Utils";
-import { ImageField, VideoField, AudioField, PdfField, WebField } from "../../new_fields/URLField";
+import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
 import { List } from "../../new_fields/List";
 import { Cast, NumCast, StrCast, ToConstructor, InterfaceValue, FieldValue } from "../../new_fields/Types";
@@ -33,6 +33,7 @@ import { dropActionType } from "../util/DragManager";
 import { DateField } from "../../new_fields/DateField";
 import { UndoManager } from "../util/UndoManager";
 import { RouteStore } from "../../server/RouteStore";
+import { YoutubeBox } from "../apis/youtube/YoutubeBox";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { LinkManager } from "../util/LinkManager";
 import { DocumentManager } from "../util/DocumentManager";
@@ -60,7 +61,8 @@ export enum DocumentType {
     LINKDOC = "linkdoc",
     BUTTON = "button",
     TEMPLATE = "template",
-    EXTENSION = "extension"
+    EXTENSION = "extension",
+    YOUTUBE = "youtube",
 }
 
 export interface DocumentOptions {
@@ -165,6 +167,10 @@ export namespace Docs {
             [DocumentType.LINKDOC, {
                 data: new List<Doc>(),
                 layout: { view: EmptyBox },
+                options: {}
+            }],
+            [DocumentType.YOUTUBE, {
+                layout: { view: YoutubeBox }
             }],
             [DocumentType.BUTTON, {
                 layout: { view: ButtonBox },
@@ -340,6 +346,10 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.VID), new VideoField(new URL(url)), options);
         }
 
+        export function YoutubeDocument(url: string, options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.YOUTUBE), new YoutubeField(new URL(url)), options);
+        }
+
         export function AudioDocument(url: string, options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.AUDIO), new AudioField(new URL(url)), options);
         }
@@ -404,7 +414,7 @@ export namespace Docs {
         }
 
         export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title")]), ...options, viewType: CollectionViewType.Freeform });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, viewType: CollectionViewType.Freeform });
         }
 
         export function SchemaDocument(schemaColumns: SchemaHeaderField[], documents: Array<Doc>, options: DocumentOptions) {
@@ -412,15 +422,15 @@ export namespace Docs {
         }
 
         export function TreeDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title")]), ...options, viewType: CollectionViewType.Tree });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, viewType: CollectionViewType.Tree });
         }
 
         export function StackingDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title")]), ...options, viewType: CollectionViewType.Stacking });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, viewType: CollectionViewType.Stacking });
         }
 
         export function MasonryDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title")]), ...options, viewType: CollectionViewType.Masonry });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, viewType: CollectionViewType.Masonry });
         }
 
         export function ButtonDocument(options?: DocumentOptions) {
@@ -505,7 +515,7 @@ export namespace Docs {
         const convertObject = (object: any, title?: string): Doc => {
             let target = new Doc(), result: Opt<Field>;
             Object.keys(object).map(key => (result = toField(object[key], key)) && (target[key] = result));
-            title && (target.title = title);
+            title && !target.title && (target.title = title);
             return target;
         };
 

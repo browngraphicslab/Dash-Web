@@ -26,6 +26,7 @@ import { faExpand } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import { KeyCodes } from "../../northstar/utils/KeyCodes";
+import { undoBatch } from "../../util/UndoManager";
 
 library.add(faExpand);
 
@@ -71,6 +72,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             document.removeEventListener("keydown", this.onKeyDown);
             this._isEditing = true;
             this.props.setIsEditing(true);
+
         }
     }
 
@@ -87,11 +89,15 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         this.props.changeFocusedCellByIndex(this.props.row, this.props.col);
         this.props.setPreviewDoc(this.props.rowProps.original);
 
+        // this._isEditing = true;
+        // this.props.setIsEditing(true);
+
         let field = this.props.rowProps.original[this.props.rowProps.column.id!];
         let doc = FieldValue(Cast(field, Doc));
         if (typeof field === "object" && doc) this.props.setPreviewDoc(doc);
     }
 
+    @undoBatch
     applyToDoc = (doc: Doc, row: number, col: number, run: (args?: { [name: string]: any }) => any) => {
         const res = run({ this: doc, $r: row, $c: col, $: (r: number = 0, c: number = 0) => this.props.getField(r + row, c + col) });
         if (!res.success) return false;
@@ -108,7 +114,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                 this._document[fieldKey] = de.data.draggedDocuments[0];
             }
             else {
-                let coll = Docs.Create.SchemaDocument([new SchemaHeaderField("title")], de.data.draggedDocuments, {});
+                let coll = Docs.Create.SchemaDocument([new SchemaHeaderField("title", "#f1efeb")], de.data.draggedDocuments, {});
                 this._document[fieldKey] = coll;
             }
             e.stopPropagation();
@@ -122,17 +128,17 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         }
     }
 
-    expandDoc = (e: React.PointerEvent) => {
-        let field = this.props.rowProps.original[this.props.rowProps.column.id as string];
-        let doc = FieldValue(Cast(field, Doc));
+    // expandDoc = (e: React.PointerEvent) => {
+    //     let field = this.props.rowProps.original[this.props.rowProps.column.id as string];
+    //     let doc = FieldValue(Cast(field, Doc));
 
-        console.log("Expanding doc", StrCast(doc!.title));
-        this.props.setPreviewDoc(doc!);
+    //     console.log("Expanding doc", StrCast(doc!.title));
+    //     this.props.setPreviewDoc(doc!);
 
-        // this.props.changeFocusedCellByIndex(this.props.row, this.props.col);
+    //     // this.props.changeFocusedCellByIndex(this.props.row, this.props.col);
 
-        e.stopPropagation();
-    }
+    //     e.stopPropagation();
+    // }
 
     renderCellWithType(type: string | undefined) {
         let dragRef: React.RefObject<HTMLDivElement> = React.createRef();
@@ -285,7 +291,7 @@ export class CollectionSchemaCheckboxCell extends CollectionSchemaCell {
         this._isChecked = e.target.checked;
         let script = CompileScript(e.target.checked.toString(), { requiredType: "boolean", addReturn: true, params: { this: Doc.name } });
         if (script.compiled) {
-            this.applyToDoc(this._document, script.run);
+            this.applyToDoc(this._document, this.props.row, this.props.col, script.run);
         }
     }
 

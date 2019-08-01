@@ -1,25 +1,35 @@
-import { action, computed, trace } from "mobx";
+import { library } from "@fortawesome/fontawesome-svg-core";
+import { faEye } from "@fortawesome/free-regular-svg-icons";
+import { faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faPaintBrush, faTable, faUpload } from "@fortawesome/free-solid-svg-icons";
+import { action, computed } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCastAsync, HeightSym, WidthSym, DocListCast } from "../../../../new_fields/Doc";
+import { Doc, DocListCastAsync, HeightSym, WidthSym } from "../../../../new_fields/Doc";
 import { Id } from "../../../../new_fields/FieldSymbols";
 import { InkField, StrokeData } from "../../../../new_fields/InkField";
 import { createSchema, makeInterface } from "../../../../new_fields/Schema";
+import { ScriptField } from "../../../../new_fields/ScriptField";
 import { BoolCast, Cast, FieldValue, NumCast, StrCast } from "../../../../new_fields/Types";
-import { emptyFunction, returnOne } from "../../../../Utils";
+import { emptyFunction, returnOne, Utils } from "../../../../Utils";
+import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
+import { DocServer } from "../../../DocServer";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { DragManager } from "../../../util/DragManager";
 import { HistoryUtil } from "../../../util/History";
+import { CompileScript } from "../../../util/Scripting";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { Transform } from "../../../util/Transform";
 import { undoBatch, UndoManager } from "../../../util/UndoManager";
 import { COLLECTION_BORDER_WIDTH } from "../../../views/globalCssVariables.scss";
-import { SubmenuProps, ContextMenuProps } from "../../ContextMenuItem";
+import { ContextMenu } from "../../ContextMenu";
+import { ContextMenuProps } from "../../ContextMenuItem";
 import { InkingCanvas } from "../../InkingCanvas";
 import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
 import { DocumentContentsView } from "../../nodes/DocumentContentsView";
 import { DocumentViewProps, positionSchema } from "../../nodes/DocumentView";
 import { pageSchema } from "../../nodes/ImageBox";
+import { OverlayElementOptions, OverlayView } from "../../OverlayView";
 import PDFMenu from "../../pdf/PDFMenu";
+import { ScriptBox } from "../../ScriptBox";
 import { CollectionSubView } from "../CollectionSubView";
 import { CollectionFreeFormLinksView } from "./CollectionFreeFormLinksView";
 import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCursors";
@@ -27,19 +37,8 @@ import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import v5 = require("uuid/v5");
-import { ScriptField } from "../../../../new_fields/ScriptField";
-import { OverlayView, OverlayElementOptions } from "../../OverlayView";
-import { ScriptBox } from "../../ScriptBox";
-import { CompileScript } from "../../../util/Scripting";
-import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
-import { library } from "@fortawesome/fontawesome-svg-core";
-import { faEye } from "@fortawesome/free-regular-svg-icons";
-import { faTable, faPaintBrush, faAsterisk, faExpandArrowsAlt, faCompressArrowsAlt, faCompass } from "@fortawesome/free-solid-svg-icons";
-import { undo } from "prosemirror-history";
-import { number } from "prop-types";
-import { ContextMenu } from "../../ContextMenu";
 
-library.add(faEye, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass);
+library.add(faEye, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload);
 
 export const panZoomSchema = createSchema({
     panX: "number",
@@ -79,11 +78,13 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @computed get contentBounds() {
         let bounds = this.fitToBox && !this.isAnnotationOverlay ? this.ComputeContentBounds(this.elements.filter(e => e.bounds).map(e => e.bounds!)) : undefined;
-        return {
+        let res = {
             panX: bounds ? (bounds.x + bounds.r) / 2 : this.Document.panX || 0,
             panY: bounds ? (bounds.y + bounds.b) / 2 : this.Document.panY || 0,
             scale: (bounds ? Math.min(this.props.PanelHeight() / (bounds.b - bounds.y), this.props.PanelWidth() / (bounds.r - bounds.x)) : this.Document.scale || 1) / this.parentScaling
         };
+        if (res.scale === 0) res.scale = 1;
+        return res;
     }
 
     @computed get fitToBox() { return this.props.fitToBox || this.props.Document.fitToBox; }
@@ -130,10 +131,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         let xf = this.getTransform();
+        let [xp, yp] = xf.transformPoint(de.x, de.y);
         if (super.drop(e, de)) {
             if (de.data instanceof DragManager.DocumentDragData) {
                 if (de.data.droppedDocuments.length) {
-                    let [xp, yp] = xf.transformPoint(de.x, de.y);
                     let x = xp - de.data.xOffset;
                     let y = yp - de.data.yOffset;
                     let dropX = NumCast(de.data.droppedDocuments[0].x);
@@ -156,7 +157,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             else if (de.data instanceof DragManager.AnnotationDragData) {
                 if (de.data.dropDocument) {
                     let dragDoc = de.data.dropDocument;
-                    let [xp, yp] = this.getTransform().transformPoint(de.x, de.y);
                     let x = xp - de.data.xOffset;
                     let y = yp - de.data.yOffset;
                     let dropX = NumCast(de.data.dropDocument.x);
@@ -223,10 +223,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     this._pheight / this.zoomScaling());
                 let panelwidth = panelDim[0];
                 let panelheight = panelDim[1];
-                // if (ranges[0][0] - dx > (this.panX() + panelwidth / 2)) x = ranges[0][1] + panelwidth / 2;
-                // if (ranges[0][1] - dx < (this.panX() - panelwidth / 2)) x = ranges[0][0] - panelwidth / 2;
-                // if (ranges[1][0] - dy > (this.panY() + panelheight / 2)) y = ranges[1][1] + panelheight / 2;
-                // if (ranges[1][1] - dy < (this.panY() - panelheight / 2)) y = ranges[1][0] - panelheight / 2;
+                if (ranges[0][0] - dx > (this.panX() + panelwidth / 2)) x = ranges[0][1] + panelwidth / 2;
+                if (ranges[0][1] - dx < (this.panX() - panelwidth / 2)) x = ranges[0][0] - panelwidth / 2;
+                if (ranges[1][0] - dy > (this.panY() + panelheight / 2)) y = ranges[1][1] + panelheight / 2;
+                if (ranges[1][1] - dy < (this.panY() - panelheight / 2)) y = ranges[1][0] - panelheight / 2;
             }
             this.setPan(x - dx, y - dy);
             this._lastX = e.pageX;
@@ -308,7 +308,11 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     onDragOver = (): void => {
     }
 
-    bringToFront = (doc: Doc) => {
+    bringToFront = (doc: Doc, sendToBack?: boolean) => {
+        if (sendToBack) {
+            doc.zIndex = 0;
+            return;
+        }
         const docs = this.childDocs;
         docs.slice().sort((doc1, doc2) => {
             if (doc1 === doc) return 1;
@@ -486,14 +490,16 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         }
         let docviews = docs.filter(doc => doc instanceof Doc).reduce((prev, doc) => {
             var page = NumCast(doc.page, -1);
-            let bounds: { x?: number, y?: number, width?: number, height?: number };
             if ((Math.abs(Math.round(page) - Math.round(curPage)) < 3) || page === -1) {
                 let minim = BoolCast(doc.isMinimized);
                 if (minim === undefined || !minim) {
-                    const pos = script ? this.getCalculatedPositions(script, { doc, index: prev.length, collection: this.Document, docs, state }) : {};
+                    const pos = script ? this.getCalculatedPositions(script, { doc, index: prev.length, collection: this.Document, docs, state }) :
+                        { x: Cast(doc.x, "number"), y: Cast(doc.y, "number"), width: Cast(doc.width, "number"), height: Cast(doc.height, "number") };
                     state = pos.state === undefined ? state : pos.state;
                     prev.push({
-                        ele: <CollectionFreeFormDocumentView key={doc[Id]} x={pos.x} y={pos.y} width={pos.width} height={pos.height} {...this.getChildDocumentViewProps(doc)} />,
+                        ele: <CollectionFreeFormDocumentView key={doc[Id]}
+                            x={script ? pos.x : undefined} y={script ? pos.y : undefined}
+                            width={script ? pos.width : undefined} height={script ? pos.height : undefined} {...this.getChildDocumentViewProps(doc)} />,
                         bounds: (pos.x !== undefined && pos.y !== undefined && pos.width !== undefined && pos.height !== undefined) ? { x: pos.x, y: pos.y, width: pos.width, height: pos.height } : undefined
                     });
                 }
@@ -516,7 +522,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY));
     }
 
-    onContextMenu = () => {
+    onContextMenu = (e: React.MouseEvent) => {
         let layoutItems: ContextMenuProps[] = [];
         layoutItems.push({
             description: `${this.fitToBox ? "Unset" : "Set"} Fit To Container`,
@@ -560,6 +566,35 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 let relevantKeys = ["inkAnalysis", "handwriting"];
                 CognitiveServices.Inking.Manager.analyzer(this.fieldExtensionDoc, relevantKeys, data.inkData);
             }, icon: "paint-brush"
+        });
+        ContextMenu.Instance.addItem({
+            description: "Import document", icon: "upload", event: () => {
+                const input = document.createElement("input");
+                input.type = "file";
+                input.accept = ".zip";
+                input.onchange = async _e => {
+                    const files = input.files;
+                    if (!files) return;
+                    const file = files[0];
+                    let formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('remap', "true");
+                    const upload = Utils.prepend("/uploadDoc");
+                    const response = await fetch(upload, { method: "POST", body: formData });
+                    const json = await response.json();
+                    if (json === "error") {
+                        return;
+                    }
+                    const doc = await DocServer.GetRefField(json);
+                    if (!doc || !(doc instanceof Doc)) {
+                        return;
+                    }
+                    const [x, y] = this.props.ScreenToLocalTransform().transformPoint(e.pageX, e.pageY);
+                    doc.x = x, doc.y = y;
+                    this.addDocument(doc, false);
+                };
+                input.click();
+            }
         });
     }
 

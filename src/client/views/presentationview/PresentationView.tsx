@@ -375,7 +375,7 @@ export class PresentationView extends React.Component<PresViewProps>  {
                     //awaiting jump so that new scale can be found, since jumping is async
                     await DocumentManager.Instance.jumpToDocument(curDoc, true);
                 } else {
-                    await DocumentManager.Instance.jumpToDocument(curDoc, false, undefined, doc => CollectionDockingView.Instance.AddTab(undefined, doc, undefined));
+                    await DocumentManager.Instance.jumpToDocument(curDoc, true, undefined, doc => CollectionDockingView.Instance.AddTab(undefined, doc, undefined));
                 }
 
                 let newScale = DocumentManager.Instance.getScaleOfDocView(curDoc);
