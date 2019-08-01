@@ -12,7 +12,7 @@ import { scriptingGlobal } from "../client/util/Scripting";
 import { List } from "./List";
 import { DocumentType } from "../client/documents/Documents";
 import { ComputedField } from "./ScriptField";
-import { PrefetchProxy } from "./Proxy";
+import { PrefetchProxy, ProxyField } from "./Proxy";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -420,7 +420,7 @@ export namespace Doc {
     export function MakeCopy(doc: Doc, copyProto: boolean = false): Doc {
         const copy = new Doc;
         Object.keys(doc).forEach(key => {
-            const field = doc[key];
+            const field = ProxyField.WithoutProxy(() => doc[key]);
             if (key === "proto" && copyProto) {
                 if (field instanceof Doc) {
                     copy[key] = Doc.MakeCopy(field);
@@ -431,7 +431,7 @@ export namespace Doc {
                 } else if (field instanceof ObjectField) {
                     copy[key] = ObjectField.MakeCopy(field);
                 } else if (field instanceof Promise) {
-                    field.then(f => (copy[key] === undefined) && (copy[key] = f)); //TODO what should we do here?
+                    debugger; //This shouldn't happend...
                 } else {
                     copy[key] = field;
                 }
@@ -525,8 +525,10 @@ export namespace Doc {
     }
     export function UseDetailLayout(d: Doc) {
         runInAction(async () => {
-            let detailLayout1 = await PromiseValue(d.detailedLayout);
-            let detailLayout = await PromiseValue(d.detailedLayout);
+            const dl1 = d.detailedLayout;
+            let detailLayout1 = await PromiseValue(dl1);
+            const dl2 = d.detailedLayout;
+            let detailLayout = await PromiseValue(dl2);
             if (detailLayout) {
                 d.layout = detailLayout;
                 d.nativeWidth = d.nativeHeight = undefined;
