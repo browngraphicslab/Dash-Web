@@ -2,6 +2,9 @@ const fs = require('fs');
 const readline = require('readline');
 const { google } = require('googleapis');
 const OAuth2 = google.auth.OAuth2;
+var open = require('open');
+
+
 
 
 // If modifying these scopes, delete your previously saved credentials
@@ -73,6 +76,10 @@ function getNewToken(oauth2Client, callback) {
         access_type: 'offline',
         scope: SCOPES
     });
+    // window.open("https://www.google.com/", "_blank");
+    // window.open(authUrl, '_blank');
+    open(authUrl);
+
     console.log('Authorize this app by visiting this url: ', authUrl);
     var rl = readline.createInterface({
         input: process.stdin,
