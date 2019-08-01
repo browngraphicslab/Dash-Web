@@ -1,19 +1,24 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import * as fa from '@fortawesome/free-solid-svg-icons';
-import { action, computed, IReactionDisposer, reaction, trace, observable, runInAction } from "mobx";
+import { action, computed, IReactionDisposer, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, HeightSym, Opt, WidthSym, DocListCastAsync } from "../../../new_fields/Doc";
+import * as rp from "request-promise";
+import { Doc, DocListCast, DocListCastAsync, HeightSym, Opt, WidthSym } from "../../../new_fields/Doc";
+import { Copy, Id } from '../../../new_fields/FieldSymbols';
 import { List } from "../../../new_fields/List";
 import { ObjectField } from "../../../new_fields/ObjectField";
-import { createSchema, makeInterface, listSpec } from "../../../new_fields/Schema";
-import { BoolCast, Cast, FieldValue, StrCast, NumCast, PromiseValue } from "../../../new_fields/Types";
+import { createSchema, listSpec, makeInterface } from "../../../new_fields/Schema";
+import { BoolCast, Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
-import { emptyFunction, Utils, returnFalse, returnTrue } from "../../../Utils";
+import { RouteStore } from '../../../server/RouteStore';
+import { emptyFunction, returnTrue, Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
-import { Docs, DocUtils, DocumentType } from "../../documents/Documents";
+import { Docs, DocUtils } from "../../documents/Documents";
+import { ClientUtils } from '../../util/ClientUtils';
+import DictationManager from '../../util/DictationManager';
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager, dropActionType } from "../../util/DragManager";
-import { SearchUtil } from "../../util/SearchUtil";
+import { LinkManager } from '../../util/LinkManager';
 import { SelectionManager } from "../../util/SelectionManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
@@ -22,27 +27,17 @@ import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";
-import { DocComponent } from "../DocComponent";
-import { PresentationView } from "../presentationview/PresentationView";
-import { Template, Templates } from "./../Templates";
-import { DocumentContentsView } from "./DocumentContentsView";
-import * as rp from "request-promise";
-import "./DocumentView.scss";
-import React = require("react");
-import { Id, Copy } from '../../../new_fields/FieldSymbols';
 import { ContextMenuProps } from '../ContextMenuItem';
-import { list, object, createSimpleSchema } from 'serializr';
-import { LinkManager } from '../../util/LinkManager';
-import { RouteStore } from '../../../server/RouteStore';
-import { FormattedTextBox } from './FormattedTextBox';
-import { OverlayView } from '../OverlayView';
-import { ScriptingRepl } from '../ScriptingRepl';
-import { ClientUtils } from '../../util/ClientUtils';
+import { DocComponent } from "../DocComponent";
 import { EditableView } from '../EditableView';
-import { faHandPointer, faHandPointRight } from '@fortawesome/free-regular-svg-icons';
-import { DocumentDecorations } from '../DocumentDecorations';
-import { CognitiveServices } from '../../cognitive_services/CognitiveServices';
-import DictationManager from '../../util/DictationManager';
+import { OverlayView } from '../OverlayView';
+import { PresentationView } from "../presentationview/PresentationView";
+import { ScriptingRepl } from '../ScriptingRepl';
+import { Template } from "./../Templates";
+import { DocumentContentsView } from "./DocumentContentsView";
+import "./DocumentView.scss";
+import { FormattedTextBox } from './FormattedTextBox';
+import React = require("react");
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(fa.faTrash);
@@ -121,6 +116,7 @@ export const positionSchema = createSchema({
     height: "number",
     x: "number",
     y: "number",
+    z: "number",
 });
 
 export type PositionDocument = makeInterface<[typeof positionSchema]>;

@@ -10,6 +10,7 @@ import { LinkManager } from "./LinkManager";
 import { SelectionManager } from "./SelectionManager";
 import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
 import { DocumentDecorations } from "../views/DocumentDecorations";
+import { NumberLiteralType } from "typescript";
 
 export type dropActionType = "alias" | "copy" | undefined;
 export function SetupDrag(
@@ -140,6 +141,10 @@ export namespace DragManager {
         dragHasStarted?: () => void;
 
         withoutShiftDrag?: boolean;
+
+        offsetX?: number;
+
+        offsetY?: number;
     }
 
     export interface DragDropDisposer {
@@ -423,7 +428,7 @@ export namespace DragManager {
             lastX = e.pageX;
             lastY = e.pageY;
             dragElements.map((dragElement, i) => (dragElement.style.transform =
-                `translate(${(xs[i] += moveX)}px, ${(ys[i] += moveY)}px)  scale(${scaleXs[i]}, ${scaleYs[i]})`)
+                `translate(${(xs[i] += moveX) + (options ? (options.offsetX || 0) : 0)}px, ${(ys[i] += moveY) + (options ? (options.offsetY || 0) : 0)}px)  scale(${scaleXs[i]}, ${scaleYs[i]})`)
             );
         };
 
