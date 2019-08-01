@@ -2,9 +2,7 @@ const fs = require('fs');
 const readline = require('readline');
 const { google } = require('googleapis');
 const OAuth2 = google.auth.OAuth2;
-var open = require('open');
-
-
+const open = require('open');
 
 
 // If modifying these scopes, delete your previously saved credentials
@@ -76,8 +74,7 @@ function getNewToken(oauth2Client, callback) {
         access_type: 'offline',
         scope: SCOPES
     });
-    // window.open("https://www.google.com/", "_blank");
-    // window.open(authUrl, '_blank');
+
     open(authUrl);
 
     console.log('Authorize this app by visiting this url: ', authUrl);
@@ -182,5 +179,16 @@ function getVideoDetails(auth, args) {
         }
         let videoDetails = response.data.items;
         args.callBack(videoDetails);
+    });
+}
+
+module.exports.checkAuthorization = (callBack) => {
+    fs.readFile(TOKEN_PATH, function (err, token) {
+        if (err) {
+            callBack(false);
+        } else {
+            oauth2Client.credentials = JSON.parse(token);
+            callback(oauth2Client, args);
+        }
     });
 }

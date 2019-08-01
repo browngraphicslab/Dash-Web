@@ -38,6 +38,7 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
     @observable videoIds: string | undefined;
     @observable videoDetails: any[] = [];
     @observable curVideoTemplates: VideoTemplate[] = [];
+    @observable renderVerificationInput: boolean = false;
 
 
     public static LayoutString() { return FieldView.LayoutString(YoutubeBox); }
@@ -48,6 +49,7 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
      */
     async componentWillMount() {
         //DocServer.getYoutubeChannels();
+        DocServer.askYoutubeAuthorization(this.authorizeYoutube);
         let castedSearchBackUp = Cast(this.props.Document.cachedSearchResults, Doc);
         let awaitedBackUp = await castedSearchBackUp;
         let castedDetailBackUp = Cast(this.props.Document.cachedDetails, Doc);
@@ -110,6 +112,34 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
         }
     }
 
+    @action
+    authorizeYoutube = (isAuthorized: boolean) => {
+        console.log("I got called!, err val: ", isAuthorized);
+        if (isAuthorized) {
+            this.renderVerificationInput = false;
+        } else {
+            console.log("Input device coming");
+            this.renderVerificationInput = true;
+        }
+    }
+
+    renderLinkInput = () => {
+        if (this.renderVerificationInput) {
+            console.log("I returned input");
+            let inputRef: HTMLInputElement;
+            return <input type="text" placeholder="Paste Verification Url" ref={(e) => inputRef = e!} onKeyDown={(e) => this.onEnterVerification(e, inputRef)} style={{
+                textAlign: "center",
+                position: "relative",
+                top: "50%",
+                left: "35%",
+                padding: 5,
+                border: "1px solid black"
+            }} />;
+        } else {
+            return (null);
+        }
+    }
+
     /**
      * Function that submits the title entered by user on enter press.
      */
@@ -120,6 +150,14 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
             this.YoutubeSearchElement!.blur();
             DocServer.getYoutubeVideos(submittedTitle, this.processesVideoResults);
 
+        }
+    }
+
+    onEnterVerification = (e: React.KeyboardEvent, inputField: HTMLInputElement) => {
+        if (e.keyCode === 13) {
+            let submittedUrl = inputField.value;
+            console.log("Submitted link is this: ", submittedUrl);
+            inputField.blur();
         }
     }
 
@@ -353,10 +391,14 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
         let classname = "webBox-cont" + (this.props.isSelected() && !InkingControl.Instance.selectedTool && !DocumentDecorations.Instance.Interacting ? "-interactive" : "");
         return (
             <>
+
+
                 <div className={classname}  >
                     {content}
+                    {this.renderLinkInput()}
                 </div>
                 {!frozen ? (null) : <div className="webBox-overlay" onWheel={this.onPreWheel} onPointerDown={this.onPrePointer} onPointerMove={this.onPrePointer} onPointerUp={this.onPrePointer} />}
+
             </>);
     }
 }

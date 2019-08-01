@@ -166,6 +166,7 @@
         "passport": "^0.4.0",
         "passport-local": "^1.0.0",
         "pdfjs-dist": "^2.0.943",
+        "popup-tools": "^1.0.2",
         "probe-image-size": "^4.0.0",
         "prosemirror": "^0.11.1",
         "prosemirror-commands": "^1.0.7",

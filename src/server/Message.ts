@@ -25,7 +25,7 @@ export interface Transferable {
 }
 
 export enum YoutubeQueryTypes {
-    Channels, SearchVideo, VideoDetails
+    Channels, SearchVideo, VideoDetails, AskAuthorization
 }
 
 export interface YoutubeQueryInput {
