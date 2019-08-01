@@ -487,7 +487,8 @@ addSecureRoute(
 const ServicesApiKeyMap = new Map<string, string | undefined>([
     ["face", process.env.FACE],
     ["vision", process.env.VISION],
-    ["handwriting", process.env.HANDWRITING]
+    ["handwriting", process.env.HANDWRITING],
+    ["text", process.env.TEXT]
 ]);
 
 addSecureRoute(Method.GET, (user, res, req) => {

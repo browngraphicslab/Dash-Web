@@ -19,7 +19,8 @@ export type Rectangle = { top: number, left: number, width: number, height: numb
 export enum Service {
     ComputerVision = "vision",
     Face = "face",
-    Handwriting = "handwriting"
+    Handwriting = "handwriting",
+    Text = "text"
 }
 
 export enum Confidence {
@@ -209,6 +210,53 @@ export namespace CognitiveServices {
             strokes: AzureStrokeData[];
         }
 
+    }
+
+    export namespace Text {
+        export const Manager: APIManager<string> = {
+            converter: (data: string) => {
+                return JSON.stringify({
+                    documents: [{
+                        id: 1,
+                        language: "en",
+                        text: data
+                    }]
+                });
+            },
+            requester: async (apiKey: string, body: string, service: Service) => {
+                let serverAddress = "https://eastus.api.cognitive.microsoft.com";
+                let endpoint = serverAddress + "/text/analytics/v2.1/keyPhrases";
+                let sampleBody = {
+                    "documents": [
+                        {
+                            "language": "en",
+                            "id": 1,
+                            "text": "Hello world. This is some input text that I love."
+                        }
+                    ]
+                };
+                let actualBody = body;
+                const options = {
+                    uri: endpoint,
+                    body: actualBody,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Ocp-Apim-Subscription-Key': apiKey
+                    }
+
+                };
+                console.log("requested!");
+                return request.post(options);
+            },
+            analyzer: async (target: Doc, keys: string[], data: string, converter: Converter) => {
+                let results = await ExecuteQuery<string, any>(Service.Text, Manager, data);
+                console.log(results);
+                converter(results);
+                //target[keys[0]] = Docs.Get.DocumentHierarchyFromJson(results, "Key Word Analysis");
+                console.log("analyzed!");
+                return null;
+            }
+        };
     }
 
 }

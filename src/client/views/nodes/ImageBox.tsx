@@ -225,6 +225,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
             let modes: ContextMenuProps[] = [];
             modes.push({ description: "Generate Tags", event: this.generateMetadata, icon: "tag" });
             modes.push({ description: "Find Faces", event: this.extractFaces, icon: "camera" });
+            modes.push({ description: "Recommend", event: this.extractText, icon: "brain" });
 
             ContextMenu.Instance.addItem({ description: "Image Funcs...", subitems: funcs, icon: "asterisk" });
             ContextMenu.Instance.addItem({ description: "Analyze...", subitems: modes, icon: "eye" });
@@ -238,6 +239,18 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
             return faceDocs;
         };
         CognitiveServices.Image.Manager.analyzer(this.extensionDoc, ["faces"], this.url, Service.Face, converter);
+    }
+
+    extractText = () => {
+        let data = StrCast(this.dataDoc.title);
+        console.log(data);
+        let converter = (results: any) => {
+            results.documents.forEach((doc: any) => {
+                console.log(doc.keyPhrases);
+            });
+            return new Doc();
+        };
+        CognitiveServices.Text.Manager.analyzer(this.extensionDoc, ["key words", "key word strings"], data, converter);
     }
 
     generateMetadata = (threshold: Confidence = Confidence.Excellent) => {
