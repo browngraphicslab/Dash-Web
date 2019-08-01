@@ -45,9 +45,9 @@ const validate = (target: DocumentView, types: DocumentType[]) => {
 const { webkitSpeechRecognition }: CORE.IWindow = window as CORE.IWindow;
 export type IndependentAction = (target: DocumentView) => any | Promise<any>;
 export type DependentAction = (target: DocumentView, matches: RegExpExecArray) => any | Promise<any>;
-export type RegistrationEntry = { action: IndependentAction, valid?: DocumentType[] };
+export type RegistrationEntry = { action: IndependentAction, restrictTo?: DocumentType[] };
 export type ActionPredicate = (target: DocumentView) => boolean;
-export type RegexEntry = { expression: RegExp, action: DependentAction, valid?: DocumentType[] };
+export type RegexEntry = { expression: RegExp, action: DependentAction, restrictTo?: DocumentType[] };
 
 export default class DictationManager {
     public static Instance = new DictationManager();
@@ -132,7 +132,7 @@ export default class DictationManager {
         phrase = this.sanitize(phrase);
 
         let entry = RegisteredCommands.Independent.get(phrase);
-        if (entry && (!entry.valid || validate(target, entry.valid))) {
+        if (entry && (!entry.restrictTo || validate(target, entry.restrictTo))) {
             await entry.action(target);
             return true;
         }
@@ -141,7 +141,7 @@ export default class DictationManager {
             let regex = entry.expression;
             let matches = regex.exec(phrase);
             regex.lastIndex = 0;
-            if (matches !== null && (!entry.valid || validate(target, entry.valid))) {
+            if (matches !== null && (!entry.restrictTo || validate(target, entry.restrictTo))) {
                 await entry.action(target, matches);
                 return true;
             }
@@ -160,7 +160,7 @@ export namespace RegisteredCommands {
             action: (target: DocumentView) => {
                 Doc.GetProto(target.props.Document).data = new List();
             },
-            valid: [DocumentType.COL]
+            restrictTo: [DocumentType.COL]
         }],
 
         ["open fields", {
@@ -194,7 +194,7 @@ export namespace RegisteredCommands {
                     created && Doc.AddDocToList(dataDoc, fieldKey, created);
                 }
             },
-            valid: [DocumentType.COL]
+            restrictTo: [DocumentType.COL]
         },
 
         {
@@ -203,7 +203,7 @@ export namespace RegisteredCommands {
                 let mode = CollectionViewType.ValueOf(matches[1]);
                 mode && (target.props.Document.viewType = mode);
             },
-            valid: [DocumentType.COL]
+            restrictTo: [DocumentType.COL]
         }
 
     );
