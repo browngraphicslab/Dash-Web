@@ -71,7 +71,7 @@ export class CurrentUserUtils {
             doc.sidebar = sidebar;
         }
         StrCast(doc.title).indexOf("@") !== -1 && (doc.title = StrCast(doc.title).split("@")[0] + "'s Library");
-
+        doc.width = 100;
     }
 
     public static loadCurrentUser() {

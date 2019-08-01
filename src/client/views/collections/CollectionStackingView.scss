@@ -141,7 +141,7 @@
 
             .collectionStackingView-colorPicker {
                 width: 78px;
-                
+
                 .colorOptions {
                     display: flex;
                     flex-wrap: wrap;
@@ -153,7 +153,7 @@
                     height: 20px;
                     border-radius: 10px;
                     margin: 3px;
-        
+
                     &.active {
                         border: 2px solid white;
                         box-shadow: 0 0 0 2px lightgray;
@@ -225,19 +225,20 @@
     .rc-switch {
         position: absolute;
         display: inline-block;
-        bottom: 15px;
-        right: 15px;
-        width: 125px;
-        height: 54px;
+        bottom: 4px;
+        right: 4px;
+        width: 70px;
+        height: 30px;
         border-radius: 40px 40px;
+        background-color: lightslategrey;
     }
 
     .rc-switch:after {
         position: absolute;
-        width: 36px;
-        height: 36px;
-        left: 7px;
-        top: 9px;
+        width: 22px;
+        height: 22px;
+        left: 3px;
+        top: 4px;
         border-radius: 50% 50%;
         background-color: #fff;
         content: " ";
@@ -253,19 +254,19 @@
     }
 
     .rc-switch-checked:after {
-        left: 80px;
+        left: 44px;
     }
 
     .rc-switch-inner {
         color: #fff;
-        font-size: 22px;
+        font-size: 12px;
         position: absolute;
-        left: 50px;
-        top: 14px;
+        left: 28px;
+        top: 8px;
     }
 
     .rc-switch-checked .rc-switch-inner {
-        left: 17px;
+        left: 8px;
     }
 
 

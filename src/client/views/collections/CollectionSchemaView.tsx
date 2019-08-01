@@ -980,6 +980,7 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
                     style={{
                         transform: `translate(${this.centeringOffset}px, 0px)`,
                         borderRadius: this.borderRounding,
+                        display: "inline",
                         height: "100%"
                     }}>
                     <DocumentView

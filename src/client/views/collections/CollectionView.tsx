@@ -111,6 +111,9 @@ export class CollectionView extends React.Component<FieldViewProps> {
             }
             ContextMenu.Instance.addItem({ description: "View Modes...", subitems: subItems, icon: "eye" });
             ContextMenu.Instance.addItem({ description: "Apply Template", event: () => this.props.addDocTab && this.props.addDocTab(Doc.ApplyTemplate(this.props.Document)!, undefined, "onRight"), icon: "project-diagram" });
+            ContextMenu.Instance.addItem({
+                description: this.props.Document.chromeStatus !== "disabled" ? "Hide Chrome" : "Show Chrome", event: () => this.props.Document.chromeStatus = (this.props.Document.chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram"
+            });
         }
     }
 
