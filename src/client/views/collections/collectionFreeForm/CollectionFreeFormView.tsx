@@ -131,10 +131,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         let xf = this.getTransform();
+        let [xp, yp] = xf.transformPoint(de.x, de.y);
         if (super.drop(e, de)) {
             if (de.data instanceof DragManager.DocumentDragData) {
                 if (de.data.droppedDocuments.length) {
-                    let [xp, yp] = xf.transformPoint(de.x, de.y);
                     let x = xp - de.data.xOffset;
                     let y = yp - de.data.yOffset;
                     let dropX = NumCast(de.data.droppedDocuments[0].x);
@@ -157,7 +157,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             else if (de.data instanceof DragManager.AnnotationDragData) {
                 if (de.data.dropDocument) {
                     let dragDoc = de.data.dropDocument;
-                    let [xp, yp] = this.getTransform().transformPoint(de.x, de.y);
                     let x = xp - de.data.xOffset;
                     let y = yp - de.data.yOffset;
                     let dropX = NumCast(de.data.dropDocument.x);
@@ -224,10 +223,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     this._pheight / this.zoomScaling());
                 let panelwidth = panelDim[0];
                 let panelheight = panelDim[1];
-                // if (ranges[0][0] - dx > (this.panX() + panelwidth / 2)) x = ranges[0][1] + panelwidth / 2;
-                // if (ranges[0][1] - dx < (this.panX() - panelwidth / 2)) x = ranges[0][0] - panelwidth / 2;
-                // if (ranges[1][0] - dy > (this.panY() + panelheight / 2)) y = ranges[1][1] + panelheight / 2;
-                // if (ranges[1][1] - dy < (this.panY() - panelheight / 2)) y = ranges[1][0] - panelheight / 2;
+                if (ranges[0][0] - dx > (this.panX() + panelwidth / 2)) x = ranges[0][1] + panelwidth / 2;
+                if (ranges[0][1] - dx < (this.panX() - panelwidth / 2)) x = ranges[0][0] - panelwidth / 2;
+                if (ranges[1][0] - dy > (this.panY() + panelheight / 2)) y = ranges[1][1] + panelheight / 2;
+                if (ranges[1][1] - dy < (this.panY() - panelheight / 2)) y = ranges[1][0] - panelheight / 2;
             }
             this.setPan(x - dx, y - dy);
             this._lastX = e.pageX;

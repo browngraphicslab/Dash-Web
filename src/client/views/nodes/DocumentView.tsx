@@ -586,12 +586,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }, icon: "window-restore"
         });
         cm.addItem({ description: "Make...", subitems: makes, icon: "hand-point-right" });
-        // cm.addItem({
-        //     description: "Find aliases", event: async () => {
-        //         const aliases = await SearchUtil.GetAliasesOfDocument(this.props.Document);
-        //         this.props.addDocTab && this.props.addDocTab(Docs.Create.SchemaDocument(["title"], aliases, {}), undefined, "onRight"); // bcz: dataDoc?
-        //     }, icon: "search"
-        // });
         if (this.props.Document.detailedLayout && !this.props.Document.isTemplate) {
             cm.addItem({ description: "Toggle detail", event: () => Doc.ToggleDetailLayout(this.props.Document), icon: "image" });
         }
