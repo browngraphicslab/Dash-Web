@@ -12,6 +12,8 @@ let TOKEN_DIR = (process.env.HOME || process.env.HOMEPATH ||
     process.env.USERPROFILE) + '/.credentials/';
 let TOKEN_PATH = TOKEN_DIR + 'youtube-nodejs-quickstart.json';
 
+let globalClient;
+
 module.exports.readApiKey = (callback) => {
     fs.readFile('client_secret.json', function processClientSecrets(err, content) {
         if (err) {
@@ -152,7 +154,7 @@ function getVideos(auth, args) {
         part: 'id, snippet',
         type: 'video',
         q: args.userInput,
-        maxResults: 10
+        maxResults: 3
     }, function (err, response) {
         if (err) {
             console.log('The API returned an error: ' + err);
@@ -182,13 +184,38 @@ function getVideoDetails(auth, args) {
     });
 }
 
-module.exports.checkAuthorization = (callBack) => {
+module.exports.checkAuthorization = (apiKey, callBack) => {
+    let credentials = JSON.parse(apiKey);
+    let clientSecret = credentials.installed.client_secret;
+    let clientId = credentials.installed.client_id;
+    let redirectUrl = credentials.installed.redirect_uris[0];
+    let oauth2Client = new OAuth2(clientId, clientSecret, redirectUrl);
+    globalClient = oauth2Client;
+    var authUrl = oauth2Client.generateAuthUrl({
+        access_type: 'offline',
+        scope: SCOPES
+    });
+
     fs.readFile(TOKEN_PATH, function (err, token) {
         if (err) {
             callBack(false);
+            open(authUrl);
         } else {
-            oauth2Client.credentials = JSON.parse(token);
-            callback(oauth2Client, args);
+            callBack(true);
         }
     });
+}
+
+module.exports.authorizeYoutube = (submittedLink, callBack) => {
+    globalClient.getToken(submittedLink, function (err, token) {
+        if (err) {
+            console.log('Error while trying to retrieve access token', err);
+            callBack(false);
+            return;
+        }
+        globalClient.credentials = token;
+        storeToken(token);
+        callBack(true);
+    });
+
 }

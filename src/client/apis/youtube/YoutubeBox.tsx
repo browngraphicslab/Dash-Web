@@ -1,7 +1,7 @@
 import { action, observable, runInAction } from 'mobx';
 import { observer } from "mobx-react";
 import { Doc, DocListCastAsync } from "../../../new_fields/Doc";
-import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { Cast, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
 import { Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Docs } from "../../documents/Documents";
@@ -11,6 +11,7 @@ import { FieldView, FieldViewProps } from "../../views/nodes/FieldView";
 import "../../views/nodes/WebBox.scss";
 import "./YoutubeBox.scss";
 import React = require("react");
+import { SelectionManager } from '../../util/SelectionManager';
 
 interface VideoTemplate {
     thumbnailUrl: string;
@@ -34,7 +35,6 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
     @observable searchResults: any[] = [];
     @observable videoClicked: boolean = false;
     @observable selectedVideoUrl: string = "";
-    @observable lisOfBackUp: JSX.Element[] = [];
     @observable videoIds: string | undefined;
     @observable videoDetails: any[] = [];
     @observable curVideoTemplates: VideoTemplate[] = [];
@@ -49,11 +49,16 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
      */
     async componentWillMount() {
         //DocServer.getYoutubeChannels();
-        DocServer.askYoutubeAuthorization(this.authorizeYoutube);
         let castedSearchBackUp = Cast(this.props.Document.cachedSearchResults, Doc);
         let awaitedBackUp = await castedSearchBackUp;
         let castedDetailBackUp = Cast(this.props.Document.cachedDetails, Doc);
         let awaitedDetails = await castedDetailBackUp;
+        let mountedBefore = BoolCast(this.props.Document.mountedBefore, false);
+
+        if (!mountedBefore) {
+            this.props.Document.mountedBefore = true;
+        }
+        //DocServer.askYoutubeAuthorization(this.authorizeYoutube);
 
 
         if (awaitedBackUp) {
@@ -105,6 +110,7 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
         if (this._ignore !== e.timeStamp) {
             e.stopPropagation();
         }
+
     }
     onPostWheel = (e: React.WheelEvent) => {
         if (this._ignore !== e.timeStamp) {
@@ -114,24 +120,21 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
 
     @action
     authorizeYoutube = (isAuthorized: boolean) => {
-        console.log("I got called!, err val: ", isAuthorized);
         if (isAuthorized) {
             this.renderVerificationInput = false;
         } else {
-            console.log("Input device coming");
             this.renderVerificationInput = true;
         }
     }
 
     renderLinkInput = () => {
         if (this.renderVerificationInput) {
-            console.log("I returned input");
             let inputRef: HTMLInputElement;
             return <input type="text" placeholder="Paste Verification Url" ref={(e) => inputRef = e!} onKeyDown={(e) => this.onEnterVerification(e, inputRef)} style={{
                 textAlign: "center",
                 position: "relative",
                 top: "50%",
-                left: "35%",
+                width: "100%",
                 padding: 5,
                 border: "1px solid black"
             }} />;
@@ -156,8 +159,9 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
     onEnterVerification = (e: React.KeyboardEvent, inputField: HTMLInputElement) => {
         if (e.keyCode === 13) {
             let submittedUrl = inputField.value;
-            console.log("Submitted link is this: ", submittedUrl);
+            inputField.value = "";
             inputField.blur();
+            DocServer.authorizeYoutube(submittedUrl, this.authorizeYoutube);
         }
     }
 
@@ -382,7 +386,7 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
     render() {
         let content =
             <div className="youtubeBox-cont" style={{ width: "100%", height: "100%", position: "absolute" }} onWheel={this.onPostWheel} onPointerDown={this.onPostPointer} onPointerMove={this.onPostPointer} onPointerUp={this.onPostPointer}>
-                <input type="text" placeholder="Search for a video" onKeyDown={this.onEnterKeyDown} style={{ height: 40, width: "100%", border: "1px solid black", padding: 5, textAlign: "center" }} ref={(e) => this.YoutubeSearchElement = e!} />
+                <input type="text" placeholder="Search for a video" onKeyDown={this.onEnterKeyDown} style={{ height: 40, width: "100%", border: "1px solid black", padding: 5, textAlign: "center" }} ref={(e) => this.YoutubeSearchElement = e!} onClick={() => DocServer.askYoutubeAuthorization(this.authorizeYoutube)} />
                 {this.renderSearchResultsOrVideo()}
             </div>;
 
