@@ -41,6 +41,8 @@ import DirectoryImportBox from "../util/Import & Export/DirectoryImportBox";
 import { Scripting } from "../util/Scripting";
 import { ButtonBox } from "../views/nodes/ButtonBox";
 import { SchemaHeaderField, RandomPastel } from "../../new_fields/SchemaHeaderField";
+import { ComputedField } from "../../new_fields/ScriptField";
+import { ProxyField } from "../../new_fields/Proxy";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 
@@ -193,6 +195,8 @@ export namespace Docs {
          * haven't been initialized, the newly initialized prototype document.
          */
         export async function initialize(): Promise<void> {
+            ProxyField.initPlugin();
+            ComputedField.initPlugin();
             // non-guid string ids for each document prototype
             let prototypeIds = Object.values(DocumentType).filter(type => type !== DocumentType.NONE).map(type => type + suffix);
             // fetch the actual prototype documents from the server

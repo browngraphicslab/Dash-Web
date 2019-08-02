@@ -7,6 +7,10 @@ import { DocumentView } from "./nodes/DocumentView";
 import { Template } from "./Templates";
 import React = require("react");
 import { undoBatch } from "../util/UndoManager";
+import { DocumentManager } from "../util/DocumentManager";
+import { NumCast } from "../../new_fields/Types";
+import { DragManager } from "../util/DragManager";
+import { SelectionManager } from "../util/SelectionManager";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -35,9 +39,44 @@ export interface TemplateMenuProps {
 @observer
 export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @observable private _hidden: boolean = true;
+    dragRef = React.createRef<HTMLUListElement>();
 
     constructor(props: TemplateMenuProps) {
         super(props);
+    }
+
+    toggleFloat = (e: React.MouseEvent): void => {
+        SelectionManager.DeselectAll();
+        let topDocView = this.props.docs[0];
+        let topDoc = topDocView.props.Document;
+        let xf = topDocView.props.ScreenToLocalTransform();
+        let ex = e.clientX;
+        let ey = e.clientY;
+        undoBatch(action(() => topDoc.z = topDoc.z ? 0 : 1))();
+        if (!topDoc.z) {
+            setTimeout(() => {
+                let newDocView = DocumentManager.Instance.getDocumentView(topDoc);
+                if (newDocView) {
+                    let de = new DragManager.DocumentDragData([topDoc], [undefined]);
+                    de.moveDocument = topDocView.props.moveDocument;
+                    let xf = newDocView.ContentDiv!.getBoundingClientRect();
+                    console.log("ex = " + ex + " " + xf.left + " " + (ex - xf.left));
+                    DragManager.StartDocumentDrag([newDocView.ContentDiv!], de, ex, ey, {
+                        offsetX: (ex - xf.left), offsetY: (ey - xf.top),
+                        handlers: {
+                            dragComplete: () => { },
+                        },
+                        hideSource: false
+                    });
+                }
+            }, 10);
+        } else if (topDocView.props.ContainingCollectionView) {
+            let collView = topDocView.props.ContainingCollectionView!;
+            let [sx, sy] = xf.inverse().transformPoint(0, 0);
+            let [x, y] = collView.props.ScreenToLocalTransform().transformPoint(sx, sy);
+            topDoc.x = x;
+            topDoc.y = y;
+        }
     }
 
     @undoBatch
@@ -89,9 +128,10 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         return (
             <div className="templating-menu" >
                 <div title="Template Options" className="templating-button" onClick={() => this.toggleTemplateActivity()}>+</div>
-                <ul id="template-list" style={{ display: this._hidden ? "none" : "block" }}>
+                <ul id="template-list" ref={this.dragRef} style={{ display: this._hidden ? "none" : "block" }}>
                     {templateMenu}
-                    <button style={{ display: this._hidden ? "none" : "block" }} onClick={this.clearTemplates}>Clear</button>
+                    <button onClick={this.toggleFloat}>Float</button>
+                    <button onClick={this.clearTemplates}>Clear</button>
                 </ul>
             </div>
         );
