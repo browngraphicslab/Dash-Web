@@ -695,7 +695,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             });
         }
         let showTextTitle = showTitle && StrCast(this.layoutDoc.layout).startsWith("<FormattedTextBox") ? showTitle : undefined;
-        let colors = ["red", "green", "blue", "purple", "orange", "cyan", "black"];
+        let colors = ["#da42429e", "#31ea318c", "#4a7ae2c4", "#d809ff", "#ff7601", "#1dffff", "#000000ad"];
         return (
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
@@ -704,7 +704,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     color: foregroundColor,
                     outlineColor: "maroon",
                     outlineStyle: "dashed",
-                    boxShadow: `${colors[NumCast(this.props.Document.cluster) % colors.length]} ${StrCast(this.props.Document.boxShadow, "0vw 0vw 11vw")}`,
+                    boxShadow: `${colors[NumCast(this.props.Document.cluster) % colors.length]} ${StrCast(this.props.Document.boxShadow, `0vw 0vw ${50 / this.props.ContentScaling()}px`)}`,
                     outlineWidth: BoolCast(this.layoutDoc.libraryBrush) && !StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
                         `${this.props.ScreenToLocalTransform().Scale}px` : "0px",
                     marginLeft: BoolCast(this.layoutDoc.libraryBrush) && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?

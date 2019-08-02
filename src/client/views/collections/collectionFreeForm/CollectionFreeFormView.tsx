@@ -131,7 +131,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         r2: { left: number, top: number, width: number, height: number }) {
         return !(r2.left > r1.left + r1.width || r2.left + r2.width < r1.left || r2.top > r1.top + r1.height || r2.top + r2.height < r1.top);
     }
-    _groupingBorder = 150;
+    _groupingBorder = 100;
     bounsdSelect(doc: Doc, doc2: Doc) {
         var x2 = NumCast(doc2.x) - this._groupingBorder;
         var y2 = NumCast(doc2.y) - this._groupingBorder;
@@ -256,7 +256,21 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             if (cluster !== -1) {
                 let eles = this.childDocs.filter(cd => NumCast(cd.cluster) === cluster);
                 this.selectDocuments(eles);
-                DragManager.StartDocumentDrag(SelectionManager.SelectedDocuments().map(v => v.ContentDiv!), new DragManager.DocumentDragData(eles, eles.map(d => undefined)), e.clientX, e.clientY);
+                let clusterDocs = SelectionManager.SelectedDocuments();
+                SelectionManager.DeselectAll();
+                let de = new DragManager.DocumentDragData(eles, eles.map(d => undefined));
+                de.moveDocument = this.props.moveDocument;
+                const [left, top] = clusterDocs[0].props.ScreenToLocalTransform().scale(clusterDocs[0].props.ContentScaling()).inverse().transformPoint(0, 0);
+                const [xoff, yoff] = this.getTransform().transformDirection(e.x - left, e.y - top);
+                de.dropAction = e.ctrlKey || e.altKey ? "alias" : undefined;
+                de.xOffset = xoff;
+                de.yOffset = yoff;
+                DragManager.StartDocumentDrag(clusterDocs.map(v => v.ContentDiv!), de, e.clientX, e.clientY, {
+                    handlers: {
+                        dragComplete: action(emptyFunction)
+                    },
+                    hideSource: !de.dropAction
+                });
                 e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
                 e.preventDefault();
                 document.removeEventListener("pointermove", this.onPointerMove);
