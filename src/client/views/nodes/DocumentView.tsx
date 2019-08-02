@@ -695,7 +695,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             });
         }
         let showTextTitle = showTitle && StrCast(this.layoutDoc.layout).startsWith("<FormattedTextBox") ? showTitle : undefined;
-        let colors = ["#da42429e", "#31ea318c", "#4a7ae2c4", "#d809ff", "#ff7601", "#1dffff", "#000000ad"];
+        let colors = ["#da42429e", "#31ea318c", "#8c4000", "#4a7ae2c4", "#d809ff", "#ff7601", "#1dffff", "yellow", "#1b8231f2", "#000000ad"];
+        let groupCol = colors[NumCast(this.props.Document.cluster) % colors.length];
         return (
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
@@ -704,7 +705,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     color: foregroundColor,
                     outlineColor: "maroon",
                     outlineStyle: "dashed",
-                    boxShadow: `${colors[NumCast(this.props.Document.cluster) % colors.length]} ${StrCast(this.props.Document.boxShadow, `0vw 0vw ${50 / this.props.ContentScaling()}px`)}`,
+                    boxShadow: this.layoutDoc.isBackground ?
+                        `0px 0px 50px 50px ${groupCol}` :
+                        `${groupCol} ${StrCast(this.props.Document.boxShadow, `0vw 0vw ${50 / this.props.ContentScaling()}px`)}`,
                     outlineWidth: BoolCast(this.layoutDoc.libraryBrush) && !StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
                         `${this.props.ScreenToLocalTransform().Scale}px` : "0px",
                     marginLeft: BoolCast(this.layoutDoc.libraryBrush) && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
@@ -714,7 +717,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     border: BoolCast(this.layoutDoc.libraryBrush) && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
                         `dashed maroon ${this.props.ScreenToLocalTransform().Scale}px` : undefined,
                     borderRadius: "inherit",
-                    background: backgroundColor,
+                    background: this.layoutDoc.isBackground ? groupCol : backgroundColor,
                     width: nativeWidth,
                     height: nativeHeight,
                     transform: `scale(${this.props.ContentScaling()})`,

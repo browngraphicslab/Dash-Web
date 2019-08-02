@@ -108,6 +108,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private addDocument = (newBox: Doc, allowDuplicates: boolean) => {
         this.props.addDocument(newBox, false);
         this.bringToFront(newBox);
+        this.updateClusters();
         return true;
     }
     private selectDocuments = (docs: Doc[]) => {
@@ -175,34 +176,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         this.bringToFront(d);
                     });
 
-                    let sets: (Doc[])[] = []
-                    this.childDocs.map(c => {
-                        let included = []
-                        for (let i = 0; i < sets.length; i++) {
-                            for (let j = 0; j < sets[i].length; j++) {
-                                if (this.bounsdSelect(c, sets[i][j])) {
-                                    included.push(i);
-                                    break;
-                                }
-                            }
-                        }
-                        if (included.length === 0)
-                            sets.push([c]);
-                        else if (included.length === 1)
-                            sets[included[0]].push(c);
-                        else {
-                            sets[included[0]].push(c);
-                            for (let s = 1; s < included.length; s++) {
-                                sets[included[0]].push(...sets[included[s]]);
-                                sets[included[s]].length = 0;
-                            }
-                        }
-                    });
-                    for (let s = 0; s < sets.length; s++) {
-                        for (let i = 0; i < sets[s].length; i++) {
-                            Doc.GetProto(sets[s][i]).cluster = s;
-                        }
-                    }
+                    this.updateClusters();
                 }
             }
             else if (de.data instanceof DragManager.AnnotationDragData) {
@@ -221,6 +195,38 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             }
         }
         return false;
+    }
+
+    @action
+    updateClusters() {
+        let sets: (Doc[])[] = []
+        this.childDocs.map(c => {
+            let included = []
+            for (let i = 0; i < sets.length; i++) {
+                for (let j = 0; j < sets[i].length; j++) {
+                    if (this.bounsdSelect(c, sets[i][j])) {
+                        included.push(i);
+                        break;
+                    }
+                }
+            }
+            if (included.length === 0)
+                sets.push([c]);
+            else if (included.length === 1)
+                sets[included[0]].push(c);
+            else {
+                sets[included[0]].push(c);
+                for (let s = 1; s < included.length; s++) {
+                    sets[included[0]].push(...sets[included[s]]);
+                    sets[included[s]].length = 0;
+                }
+            }
+        });
+        for (let s = 0; s < sets.length; s++) {
+            for (let i = 0; i < sets[s].length; i++) {
+                Doc.GetProto(sets[s][i]).cluster = s;
+            }
+        }
     }
 
     @action
@@ -247,8 +253,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             let cluster = this.childDocs.reduce((cluster, cd) => {
                 let cx = NumCast(cd.x) - this._groupingBorder;
                 let cy = NumCast(cd.y) - this._groupingBorder;
-                let cw = NumCast(cd.width) + this._groupingBorder;
-                let ch = NumCast(cd.height) + this._groupingBorder;
+                let cw = NumCast(cd.width) + 2 * this._groupingBorder;
+                let ch = NumCast(cd.height) + 2 * this._groupingBorder;
                 if (this.intersectRect({ left: cx, top: cy, width: cw, height: ch }, { left: probe[0], top: probe[1], width: 1, height: 1 }))
                     return NumCast(cd.cluster);
                 return cluster;
@@ -392,7 +398,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     bringToFront = (doc: Doc, sendToBack?: boolean) => {
-        if (sendToBack) {
+        if (sendToBack || doc.isBackground) {
             doc.zIndex = 0;
             return;
         }
