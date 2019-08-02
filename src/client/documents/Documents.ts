@@ -599,9 +599,8 @@ export namespace DocUtils {
 
         let linkDoc: Doc | undefined;
         UndoManager.RunInBatch(() => {
-            linkDoc = Docs.Create.TextDocument({ width: 100, height: 30, borderRounding: "100%" });
-            linkDoc.type = DocumentType.LINK;
-            let linkDocProto = Doc.GetProto(linkDoc);
+            let linkDocProto = new Doc();
+            linkDocProto.type = DocumentType.LINK;
 
             linkDocProto.targetContext = targetContext;
             linkDocProto.sourceContext = sourceContext;
@@ -617,7 +616,7 @@ export namespace DocUtils {
             linkDocProto.anchor2Page = target.curPage;
             linkDocProto.anchor2Groups = new List<Doc>([]);
 
-            LinkManager.Instance.addLink(linkDoc);
+            LinkManager.Instance.addLink(linkDocProto);
 
         }, "make link");
         return linkDoc;
