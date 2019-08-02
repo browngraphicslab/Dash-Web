@@ -27,6 +27,7 @@ import "./CollectionTreeView.scss";
 import React = require("react");
 import { ComputedField } from '../../../new_fields/ScriptField';
 import { KeyValueBox } from '../nodes/KeyValueBox';
+import { exportNamedDeclaration } from 'babel-types';
 
 
 export interface TreeViewProps {
@@ -79,10 +80,16 @@ class TreeView extends React.Component<TreeViewProps> {
         return splits.length > 1 ? splits[1].split("\"")[0] : "data";
     }
     @computed get childDocs() {
-        let layout = this.props.document.layout as Doc;
+        let layout = this.props.document.layout instanceof Doc ? this.props.document.layout : undefined;
         return (this.props.dataDoc ? Cast(this.props.dataDoc[this.fieldKey], listSpec(Doc)) : undefined) ||
             (layout ? Cast(layout[this.fieldKey], listSpec(Doc)) : undefined) ||
             Cast(this.props.document[this.fieldKey], listSpec(Doc));
+    }
+    @computed get childLinks() {
+        let layout = this.props.document.layout instanceof Doc ? this.props.document.layout : undefined;
+        return (this.props.dataDoc ? Cast(this.props.dataDoc.links, listSpec(Doc)) : undefined) ||
+            (layout instanceof Doc ? Cast(layout.links, listSpec(Doc)) : undefined) ||
+            Cast(this.props.document.links, listSpec(Doc));
     }
     @computed get resolvedDataDoc() {
         if (this.props.dataDoc === undefined && this.props.document.layout instanceof Doc) {
@@ -276,13 +283,15 @@ class TreeView extends React.Component<TreeViewProps> {
     noOverlays = (doc: Doc) => ({ title: "", caption: "" });
 
     @computed get renderContent() {
-        if (this.treeViewExpandedView === this.fieldKey) {
-            let remDoc = (doc: Doc) => this.remove(doc, this.fieldKey);
-            let addDoc = (doc: Doc, addBefore?: Doc, before?: boolean) => Doc.AddDocToList(this.dataDoc, this.fieldKey, doc, addBefore, before);
-            return <ul key={this.fieldKey + "more"}>
-                {!this.childDocs ? (null) :
-                    TreeView.GetChildElements(this.childDocs as Doc[], this.props.treeViewId, this.props.document.layout as Doc,
-                        this.resolvedDataDoc, this.fieldKey, addDoc, remDoc, this.move,
+        const expandKey = this.treeViewExpandedView === this.fieldKey ? this.fieldKey : this.treeViewExpandedView === "links" ? "links" : undefined;
+        if (expandKey !== undefined) {
+            let remDoc = (doc: Doc) => this.remove(doc, expandKey);
+            let addDoc = (doc: Doc, addBefore?: Doc, before?: boolean) => Doc.AddDocToList(this.dataDoc, expandKey, doc, addBefore, before);
+            let docs = expandKey === "links" ? this.childLinks : this.childDocs;
+            return <ul key={expandKey + "more"}>
+                {!docs ? (null) :
+                    TreeView.GetChildElements(docs as Doc[], this.props.treeViewId, this.props.document.layout as Doc,
+                        this.resolvedDataDoc, expandKey, addDoc, remDoc, this.move,
                         this.props.dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform,
                         this.props.outerXf, this.props.active, this.props.panelWidth, this.props.renderDepth)}
             </ul >;
@@ -334,7 +343,8 @@ class TreeView extends React.Component<TreeViewProps> {
                 onPointerDown={action(() => {
                     this.props.document.treeViewExpandedView = this.treeViewExpandedView === this.fieldKey ? "fields" :
                         this.treeViewExpandedView === "fields" && this.props.document.layout ? "layout" :
-                            this.childDocs ? this.fieldKey : "fields";
+                            this.treeViewExpandedView === "layout" && this.props.document.links ? "links" :
+                                this.childDocs ? this.fieldKey : "fields";
                     this._collapsed = false;
                 })}>
                 {this.treeViewExpandedView}

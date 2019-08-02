@@ -38,7 +38,7 @@ import { CollectionDockingView } from "../views/collections/CollectionDockingVie
 import { LinkManager } from "../util/LinkManager";
 import { DocumentManager } from "../util/DocumentManager";
 import DirectoryImportBox from "../util/Import & Export/DirectoryImportBox";
-import { Scripting } from "../util/Scripting";
+import { Scripting, CompileScript } from "../util/Scripting";
 import { ButtonBox } from "../views/nodes/ButtonBox";
 import { SchemaHeaderField, RandomPastel } from "../../new_fields/SchemaHeaderField";
 import { ComputedField } from "../../new_fields/ScriptField";
@@ -622,6 +622,11 @@ export namespace DocUtils {
             linkDocProto.anchor2Groups = new List<Doc>([]);
 
             LinkManager.Instance.addLink(linkDoc);
+
+            let script = `return links(self)};`;
+            let computed = CompileScript(script, { params: { this: "Doc" }, capturedVariables: { self: source }, typecheck: false });
+            computed.compiled && (Doc.GetProto(source).links = new ComputedField(computed));
+            computed.compiled && (Doc.GetProto(target).links = new ComputedField(computed));
 
         }, "make link");
         return linkDoc;
