@@ -6,7 +6,7 @@ import { action, computed, observable, trace, untracked } from "mobx";
 import { observer } from "mobx-react";
 import ReactTable, { CellInfo, ComponentPropsGetterR, Column, RowInfo, ResizedChangeFunction, Resize } from "react-table";
 import "react-table/react-table.css";
-import { emptyFunction, returnOne } from "../../../Utils";
+import { emptyFunction, returnOne, returnEmptyString } from "../../../Utils";
 import { Doc, DocListCast, Field, Opt } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
@@ -999,6 +999,7 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
                         PanelHeight={this.PanelHeight}
                         ContainingCollectionView={this.props.CollectionView}
                         focus={emptyFunction}
+                        backgroundColor={returnEmptyString}
                         parentActive={this.props.active}
                         whenActiveChanged={this.props.whenActiveChanged}
                         bringToFront={emptyFunction}

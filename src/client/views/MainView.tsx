@@ -15,7 +15,7 @@ import { listSpec } from '../../new_fields/Schema';
 import { Cast, FieldValue, NumCast, BoolCast, StrCast } from '../../new_fields/Types';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { RouteStore } from '../../server/RouteStore';
-import { emptyFunction, returnOne, returnTrue, Utils } from '../../Utils';
+import { emptyFunction, returnOne, returnTrue, Utils, returnEmptyString } from '../../Utils';
 import { DocServer } from '../DocServer';
 import { Docs } from '../documents/Documents';
 import { SetupDrag } from '../util/DragManager';
@@ -270,6 +270,7 @@ export class MainView extends React.Component {
                             PanelWidth={this.getPWidth}
                             PanelHeight={this.getPHeight}
                             renderDepth={0}
+                            backgroundColor={returnEmptyString}
                             selectOnLoad={false}
                             focus={emptyFunction}
                             parentActive={returnTrue}
@@ -334,6 +335,7 @@ export class MainView extends React.Component {
             renderDepth={0}
             selectOnLoad={false}
             focus={emptyFunction}
+            backgroundColor={returnEmptyString}
             parentActive={returnTrue}
             whenActiveChanged={emptyFunction}
             bringToFront={emptyFunction}

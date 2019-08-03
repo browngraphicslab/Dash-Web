@@ -404,7 +404,8 @@ export namespace DragManager {
                 hideSource = options.hideSource();
             }
         }
-        eles.map(ele => (ele.hidden = hideSource));
+        eles.map(ele => (ele.hidden = hideSource) &&
+            (ele.parentElement && ele.parentElement.className.indexOf("collectionFreeFormDocumentView") !== -1 && (ele.parentElement.hidden = hideSource)));
 
         let lastX = downX;
         let lastY = downY;
@@ -434,7 +435,10 @@ export namespace DragManager {
 
         let hideDragElements = () => {
             dragElements.map(dragElement => dragElement.parentNode === dragDiv && dragDiv.removeChild(dragElement));
-            eles.map(ele => (ele.hidden = false));
+            eles.map(ele => {
+                ele.hidden = false;
+                (ele.parentElement && ele.parentElement.className.indexOf("collectionFreeFormDocumentView") !== -1 && (ele.parentElement.hidden = false));
+            });
         };
         let endDrag = () => {
             document.removeEventListener("pointermove", moveHandler, true);

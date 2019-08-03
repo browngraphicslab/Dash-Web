@@ -84,6 +84,7 @@ export interface DocumentOptions {
     templates?: List<string>;
     viewType?: number;
     backgroundColor?: string;
+    defaultBackgroundColor?: string;
     dropAction?: dropActionType;
     backgroundLayout?: string;
     chromeStatus?: string;
@@ -124,7 +125,7 @@ export namespace Docs {
         const TemplateMap: TemplateMap = new Map([
             [DocumentType.TEXT, {
                 layout: { view: FormattedTextBox },
-                options: { height: 150, backgroundColor: "#f1efeb" }
+                options: { height: 150, backgroundColor: "#f1efeb", defaultBackgroundColor: "#f1efeb" }
             }],
             [DocumentType.HIST, {
                 layout: { view: HistogramBox, collectionView: [CollectionView, data] as CollectionViewType },

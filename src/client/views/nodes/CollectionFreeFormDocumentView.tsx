@@ -8,6 +8,7 @@ import { DocumentView, DocumentViewProps, positionSchema } from "./DocumentView"
 import "./DocumentView.scss";
 import React = require("react");
 import { Doc } from "../../../new_fields/Doc";
+import { returnEmptyString } from "../../../Utils";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     x?: number;
@@ -69,6 +70,11 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         return undefined;
     }
 
+    @computed
+    get clusterColor() { return this.props.backgroundColor(this.props.Document); }
+
+    clusterColorFunc = (doc: Doc) => this.clusterColor;
+
     render() {
         const hasPosition = this.props.x !== undefined || this.props.y !== undefined;
         return (
@@ -77,7 +83,10 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     transformOrigin: "left top",
                     position: "absolute",
                     backgroundColor: "transparent",
-                    boxShadow: this.props.Document.z ? `#9c9396 ${StrCast(this.props.Document.boxShadow, "10px 10px 0.9vw")}` : undefined,
+                    boxShadow: this.props.Document.z ? `#9c9396  ${StrCast(this.props.Document.boxShadow, "10px 10px 0.9vw")}` :
+                        this.clusterColor ? (
+                            this.props.Document.isBackground ? `0px 0px 50px 50px ${this.clusterColor}` :
+                                `${this.clusterColor} ${StrCast(this.props.Document.boxShadow, `0vw 0vw ${50 / this.props.ContentScaling()}px`)}`) : undefined,
                     borderRadius: this.borderRounding(),
                     transform: this.transform,
                     transition: hasPosition ? "transform 1s" : StrCast(this.props.Document.transition),
@@ -88,6 +97,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 <DocumentView {...this.props}
                     ContentScaling={this.contentScaling}
                     ScreenToLocalTransform={this.getTransform}
+                    backgroundColor={this.clusterColorFunc}
                     PanelWidth={this.panelWidth}
                     PanelHeight={this.panelHeight}
                     animateBetweenIcon={this.animateBetweenIcon}

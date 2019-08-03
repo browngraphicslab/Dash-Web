@@ -140,6 +140,8 @@ export function returnOne() { return 1; }
 
 export function returnZero() { return 0; }
 
+export function returnEmptyString() { return ""; }
+
 export function emptyFunction() { }
 
 export type Without<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;

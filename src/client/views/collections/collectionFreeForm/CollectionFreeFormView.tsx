@@ -1,7 +1,7 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faEye } from "@fortawesome/free-regular-svg-icons";
 import { faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faPaintBrush, faTable, faUpload } from "@fortawesome/free-solid-svg-icons";
-import { action, computed } from "mobx";
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCastAsync, HeightSym, WidthSym } from "../../../../new_fields/Doc";
 import { Id } from "../../../../new_fields/FieldSymbols";
@@ -9,7 +9,7 @@ import { InkField, StrokeData } from "../../../../new_fields/InkField";
 import { createSchema, makeInterface } from "../../../../new_fields/Schema";
 import { ScriptField } from "../../../../new_fields/ScriptField";
 import { BoolCast, Cast, FieldValue, NumCast, StrCast } from "../../../../new_fields/Types";
-import { emptyFunction, returnOne, Utils } from "../../../../Utils";
+import { emptyFunction, returnOne, Utils, returnFalse, returnEmptyString } from "../../../../Utils";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 import { DocServer } from "../../../DocServer";
 import { DocumentManager } from "../../../util/DocumentManager";
@@ -37,6 +37,8 @@ import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import v5 = require("uuid/v5");
+import { setScheduler } from "bluebird";
+import { DocumentType, Docs } from "../../../documents/Documents";
 
 library.add(faEye, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload);
 
@@ -132,17 +134,17 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         r2: { left: number, top: number, width: number, height: number }) {
         return !(r2.left > r1.left + r1.width || r2.left + r2.width < r1.left || r2.top > r1.top + r1.height || r2.top + r2.height < r1.top);
     }
-    _groupingBorder = 100;
+    _clusterDistance = 75;
     bounsdSelect(doc: Doc, doc2: Doc) {
-        var x2 = NumCast(doc2.x) - this._groupingBorder;
-        var y2 = NumCast(doc2.y) - this._groupingBorder;
-        var w2 = NumCast(doc2.width) + this._groupingBorder;
-        var h2 = NumCast(doc2.height) + this._groupingBorder;
-        var x = NumCast(doc.x) - this._groupingBorder;
-        var y = NumCast(doc.y) - this._groupingBorder;
-        var w = NumCast(doc.width) + this._groupingBorder;
-        var h = NumCast(doc.height) + this._groupingBorder;
-        if (this.intersectRect({ left: x, top: y, width: w, height: h }, { left: x2, top: y2, width: w2, height: h2 })) {
+        var x2 = NumCast(doc2.x) - this._clusterDistance;
+        var y2 = NumCast(doc2.y) - this._clusterDistance;
+        var w2 = NumCast(doc2.width) + this._clusterDistance;
+        var h2 = NumCast(doc2.height) + this._clusterDistance;
+        var x = NumCast(doc.x) - this._clusterDistance;
+        var y = NumCast(doc.y) - this._clusterDistance;
+        var w = NumCast(doc.width) + this._clusterDistance;
+        var h = NumCast(doc.height) + this._clusterDistance;
+        if (doc.z === doc2.z && this.intersectRect({ left: x, top: y, width: w, height: h }, { left: x2, top: y2, width: w2, height: h2 })) {
             return true;
         }
         return false;
@@ -197,36 +199,83 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return false;
     }
 
+    tryDragCluster(e: PointerEvent) {
+        let probe = this.getTransform().transformPoint(e.clientX, e.clientY);
+        let cluster = this.childDocs.reduce((cluster, cd) => {
+            let cx = NumCast(cd.x) - this._clusterDistance;
+            let cy = NumCast(cd.y) - this._clusterDistance;
+            let cw = NumCast(cd.width) + 2 * this._clusterDistance;
+            let ch = NumCast(cd.height) + 2 * this._clusterDistance;
+            if (!cd.z && this.intersectRect({ left: cx, top: cy, width: cw, height: ch }, { left: probe[0], top: probe[1], width: 1, height: 1 }))
+                return NumCast(cd.cluster);
+            return cluster;
+        }, -1);
+        if (cluster !== -1) {
+            let eles = this.childDocs.filter(cd => NumCast(cd.cluster) === cluster);
+            this.selectDocuments(eles);
+            let clusterDocs = SelectionManager.SelectedDocuments();
+            SelectionManager.DeselectAll();
+            let de = new DragManager.DocumentDragData(eles, eles.map(d => undefined));
+            de.moveDocument = this.props.moveDocument;
+            const [left, top] = clusterDocs[0].props.ScreenToLocalTransform().scale(clusterDocs[0].props.ContentScaling()).inverse().transformPoint(0, 0);
+            const [xoff, yoff] = this.getTransform().transformDirection(e.x - left, e.y - top);
+            de.dropAction = e.ctrlKey || e.altKey ? "alias" : undefined;
+            de.xOffset = xoff;
+            de.yOffset = yoff;
+            DragManager.StartDocumentDrag(clusterDocs.map(v => v.ContentDiv!), de, e.clientX, e.clientY, {
+                handlers: { dragComplete: action(emptyFunction) },
+                hideSource: !de.dropAction
+            });
+            return true;
+        }
+
+        return false;
+    }
+    @observable sets: (Doc[])[] = [];
     @action
     updateClusters() {
-        let sets: (Doc[])[] = []
+        this.sets.length = 0;
         this.childDocs.map(c => {
             let included = []
-            for (let i = 0; i < sets.length; i++) {
-                for (let j = 0; j < sets[i].length; j++) {
-                    if (this.bounsdSelect(c, sets[i][j])) {
+            for (let i = 0; i < this.sets.length; i++) {
+                for (let j = 0; j < this.sets[i].length; j++) {
+                    if (this.bounsdSelect(c, this.sets[i][j])) {
                         included.push(i);
                         break;
                     }
                 }
             }
             if (included.length === 0)
-                sets.push([c]);
+                this.sets.push([c]);
             else if (included.length === 1)
-                sets[included[0]].push(c);
+                this.sets[included[0]].push(c);
             else {
-                sets[included[0]].push(c);
+                this.sets[included[0]].push(c);
                 for (let s = 1; s < included.length; s++) {
-                    sets[included[0]].push(...sets[included[s]]);
-                    sets[included[s]].length = 0;
+                    this.sets[included[0]].push(...this.sets[included[s]]);
+                    this.sets[included[s]].length = 0;
                 }
             }
         });
-        for (let s = 0; s < sets.length; s++) {
-            for (let i = 0; i < sets[s].length; i++) {
-                Doc.GetProto(sets[s][i]).cluster = s;
+        for (let s = 0; s < this.sets.length; s++) {
+            for (let i = 0; i < this.sets[s].length; i++) {
+                this.sets[s][i].cluster = s;
             }
         }
+    }
+
+    getClusterColor = (doc: Doc) => {
+        if (this.props.Document.useClusters) {
+            let cluster = NumCast(doc.cluster);
+            let set = this.sets.length > cluster ? this.sets[NumCast(doc.cluster)] : undefined;
+            let colors = ["#da42429e", "#31ea318c", "#8c4000", "#4a7ae2c4", "#d809ff", "#ff7601", "#1dffff", "yellow", "#1b8231f2", "#000000ad"];
+            let clusterColor = colors[cluster % colors.length];
+            for (let i = 0; set && i < set.length; i++) {
+                if (set[i].backgroundColor && set[i].backgroundColor !== set[i].defaultBackgroundColor) clusterColor = StrCast(set[i].backgroundColor);
+            }
+            return clusterColor;
+        }
+        return "";
     }
 
     @action
@@ -249,34 +298,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @action
     onPointerMove = (e: PointerEvent): void => {
         if (!e.cancelBubble) {
-            let probe = this.getTransform().transformPoint(e.clientX, e.clientY);
-            let cluster = this.childDocs.reduce((cluster, cd) => {
-                let cx = NumCast(cd.x) - this._groupingBorder;
-                let cy = NumCast(cd.y) - this._groupingBorder;
-                let cw = NumCast(cd.width) + 2 * this._groupingBorder;
-                let ch = NumCast(cd.height) + 2 * this._groupingBorder;
-                if (this.intersectRect({ left: cx, top: cy, width: cw, height: ch }, { left: probe[0], top: probe[1], width: 1, height: 1 }))
-                    return NumCast(cd.cluster);
-                return cluster;
-            }, -1);
-            if (cluster !== -1) {
-                let eles = this.childDocs.filter(cd => NumCast(cd.cluster) === cluster);
-                this.selectDocuments(eles);
-                let clusterDocs = SelectionManager.SelectedDocuments();
-                SelectionManager.DeselectAll();
-                let de = new DragManager.DocumentDragData(eles, eles.map(d => undefined));
-                de.moveDocument = this.props.moveDocument;
-                const [left, top] = clusterDocs[0].props.ScreenToLocalTransform().scale(clusterDocs[0].props.ContentScaling()).inverse().transformPoint(0, 0);
-                const [xoff, yoff] = this.getTransform().transformDirection(e.x - left, e.y - top);
-                de.dropAction = e.ctrlKey || e.altKey ? "alias" : undefined;
-                de.xOffset = xoff;
-                de.yOffset = yoff;
-                DragManager.StartDocumentDrag(clusterDocs.map(v => v.ContentDiv!), de, e.clientX, e.clientY, {
-                    handlers: {
-                        dragComplete: action(emptyFunction)
-                    },
-                    hideSource: !de.dropAction
-                });
+            if (this.props.Document.useClusters && this.tryDragCluster(e)) {
                 e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
                 e.preventDefault();
                 document.removeEventListener("pointermove", this.onPointerMove);
@@ -493,6 +515,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             ContentScaling: returnOne,
             ContainingCollectionView: this.props.CollectionView,
             focus: this.focusDocument,
+            backgroundColor: this.getClusterColor,
             parentActive: this.props.active,
             whenActiveChanged: this.props.whenActiveChanged,
             bringToFront: this.bringToFront,
@@ -516,6 +539,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             ContentScaling: returnOne,
             ContainingCollectionView: this.props.CollectionView,
             focus: this.focusDocument,
+            backgroundColor: returnEmptyString,
             parentActive: this.props.active,
             whenActiveChanged: this.props.whenActiveChanged,
             bringToFront: this.bringToFront,
@@ -626,6 +650,15 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             icon: !this.fitToBox ? "expand-arrows-alt" : "compress-arrows-alt"
         });
         layoutItems.push({
+            description: `${this.props.Document.useClusters ? "Uncluster" : "Use Clusters"}`,
+            event: async () => {
+                Docs.Prototypes.get(DocumentType.TEXT).defaultBackgroundColor = "#f1efeb";
+                Docs.Prototypes.get(DocumentType.COL).defaultBackgroundColor = "white";
+                this.props.Document.useClusters = !this.props.Document.useClusters;
+            },
+            icon: !this.props.Document.useClusters ? "expand-arrows-alt" : "compress-arrows-alt"
+        });
+        layoutItems.push({
             description: "Arrange contents in grid",
             icon: "table",
             event: async () => {
@@ -700,10 +733,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         ...this.views
     ]
     private overlayChildViews = () => {
-        console.log(this.overlayViews.length);
-        return [
-            ...this.overlayViews
-        ];
+        return [...this.overlayViews];
     }
 
     public static AddCustomLayout(doc: Doc, dataKey: string): () => void {

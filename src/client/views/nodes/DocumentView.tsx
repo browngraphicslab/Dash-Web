@@ -1,6 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import * as fa from '@fortawesome/free-solid-svg-icons';
-import { action, computed, IReactionDisposer, reaction, runInAction } from "mobx";
+import { action, computed, IReactionDisposer, reaction, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from "request-promise";
 import { Doc, DocListCast, DocListCastAsync, HeightSym, Opt, WidthSym } from "../../../new_fields/Doc";
@@ -95,6 +95,7 @@ export interface DocumentViewProps {
     addDocTab: (doc: Doc, dataDoc: Doc | undefined, where: string) => void;
     collapseToPoint?: (scrpt: number[], expandedDocs: Doc[] | undefined) => void;
     zoomToScale: (scale: number) => void;
+    backgroundColor: (doc: Doc) => string;
     getScale: () => number;
     animateBetweenIcon?: (iconPos: number[], startTime: number, maximizing: boolean) => void;
     ChromeHeight?: () => number;
@@ -675,12 +676,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         // to determine the render JSX string, otherwise the layout field should directly contain a JSX layout string.
         return this.props.Document.layout instanceof Doc ? this.props.Document.layout : this.props.Document;
     }
+
     render() {
-        if (this.Document.hidden) {
-            return null;
-        }
-        let self = this;
-        let backgroundColor = StrCast(this.layoutDoc.backgroundColor);
+        let backgroundColor = this.props.backgroundColor(this.props.Document) || StrCast(this.layoutDoc.backgroundColor);
         let foregroundColor = StrCast(this.layoutDoc.color);
         var nativeWidth = this.nativeWidth > 0 && !BoolCast(this.props.Document.ignoreAspect) ? `${this.nativeWidth}px` : "100%";
         var nativeHeight = BoolCast(this.props.Document.ignoreAspect) ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
@@ -695,8 +693,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             });
         }
         let showTextTitle = showTitle && StrCast(this.layoutDoc.layout).startsWith("<FormattedTextBox") ? showTitle : undefined;
-        let colors = ["#da42429e", "#31ea318c", "#8c4000", "#4a7ae2c4", "#d809ff", "#ff7601", "#1dffff", "yellow", "#1b8231f2", "#000000ad"];
-        let groupCol = colors[NumCast(this.props.Document.cluster) % colors.length];
         return (
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
@@ -705,9 +701,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     color: foregroundColor,
                     outlineColor: "maroon",
                     outlineStyle: "dashed",
-                    boxShadow: this.layoutDoc.isBackground ?
-                        `0px 0px 50px 50px ${groupCol}` :
-                        `${groupCol} ${StrCast(this.props.Document.boxShadow, `0vw 0vw ${50 / this.props.ContentScaling()}px`)}`,
                     outlineWidth: BoolCast(this.layoutDoc.libraryBrush) && !StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
                         `${this.props.ScreenToLocalTransform().Scale}px` : "0px",
                     marginLeft: BoolCast(this.layoutDoc.libraryBrush) && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
@@ -717,7 +710,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     border: BoolCast(this.layoutDoc.libraryBrush) && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
                         `dashed maroon ${this.props.ScreenToLocalTransform().Scale}px` : undefined,
                     borderRadius: "inherit",
-                    background: this.layoutDoc.isBackground ? groupCol : backgroundColor,
+                    background: backgroundColor,
                     width: nativeWidth,
                     height: nativeHeight,
                     transform: `scale(${this.props.ContentScaling()})`,

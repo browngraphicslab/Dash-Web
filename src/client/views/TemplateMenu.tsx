@@ -60,12 +60,9 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
                     let de = new DragManager.DocumentDragData([topDoc], [undefined]);
                     de.moveDocument = topDocView.props.moveDocument;
                     let xf = newDocView.ContentDiv!.getBoundingClientRect();
-                    console.log("ex = " + ex + " " + xf.left + " " + (ex - xf.left));
                     DragManager.StartDocumentDrag([newDocView.ContentDiv!], de, ex, ey, {
                         offsetX: (ex - xf.left), offsetY: (ey - xf.top),
-                        handlers: {
-                            dragComplete: () => { },
-                        },
+                        handlers: { dragComplete: () => { }, },
                         hideSource: false
                     });
                 }

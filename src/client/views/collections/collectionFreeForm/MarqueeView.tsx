@@ -278,6 +278,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 panX: 0,
                 panY: 0,
                 backgroundColor: this.props.container.isAnnotationOverlay ? undefined : "white",
+                defaultBackgroundColor: this.props.container.isAnnotationOverlay ? undefined : "white",
                 width: bounds.width,
                 height: bounds.height,
                 title: e.key === "s" || e.key === "S" ? "-summary-" : "a nested collection",
