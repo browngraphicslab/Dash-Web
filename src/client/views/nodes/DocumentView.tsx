@@ -41,7 +41,7 @@ import { ClientUtils } from '../../util/ClientUtils';
 import { EditableView } from '../EditableView';
 import { faHandPointer, faHandPointRight } from '@fortawesome/free-regular-svg-icons';
 import { DocumentDecorations } from '../DocumentDecorations';
-import DictationManager from '../../util/DictationManager';
+import { DictationManager } from '../../util/DictationManager';
 import { CollectionViewType } from '../collections/CollectionBaseView';
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
@@ -539,7 +539,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     listen = async () => {
-        let transcript = await DictationManager.Instance.listen();
+        let transcript = await DictationManager.Controls.listen();
         transcript && (Doc.GetProto(this.props.Document).transcript = transcript);
     }
 

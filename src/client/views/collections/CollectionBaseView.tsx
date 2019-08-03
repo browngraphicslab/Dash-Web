@@ -34,7 +34,7 @@ export namespace CollectionViewType {
         ["masonry", CollectionViewType.Masonry]
     ]);
 
-    export const ValueOf = (value: string) => {
+    export const valueOf = (value: string) => {
         return stringMapping.get(value.toLowerCase());
     };
 

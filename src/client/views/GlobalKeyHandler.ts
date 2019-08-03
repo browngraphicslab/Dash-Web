@@ -5,10 +5,7 @@ import { MainView } from "./MainView";
 import { DragManager } from "../util/DragManager";
 import { action, runInAction } from "mobx";
 import { Doc } from "../../new_fields/Doc";
-import { CognitiveServices } from "../cognitive_services/CognitiveServices";
-import DictationManager from "../util/DictationManager";
-import { ContextMenu } from "./ContextMenu";
-import { ContextMenuProps } from "./ContextMenuItem";
+import { DictationManager } from "../util/DictationManager";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -74,7 +71,7 @@ export default class KeyManager {
                 }
                 main.toggleColorPicker(true);
                 SelectionManager.DeselectAll();
-                DictationManager.Instance.stop();
+                DictationManager.Controls.stop();
                 main.dictationOverlayVisible = false;
                 main.dictationSuccess = undefined;
                 main.overlayTimeout && clearTimeout(main.overlayTimeout);
@@ -114,19 +111,18 @@ export default class KeyManager {
                 let main = MainView.Instance;
                 main.dictationOverlayVisible = true;
                 main.isListening = true;
-                let dictation = DictationManager.Instance;
-                let command = await dictation.listen();
+                let command = await DictationManager.Controls.listen();
                 main.isListening = false;
                 if (!command) {
                     break;
                 }
                 command = command.toLowerCase();
                 main.dictatedPhrase = command;
-                main.dictationSuccess = await dictation.execute(command);
+                main.dictationSuccess = await DictationManager.Commands.execute(command);
                 main.overlayTimeout = setTimeout(() => {
                     main.dictationOverlayVisible = false;
                     main.dictationSuccess = undefined;
-                }, 3000);
+                }, 2000);
                 stopPropagation = true;
                 preventDefault = true;
         }
