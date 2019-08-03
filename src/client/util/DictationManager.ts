@@ -1,7 +1,7 @@
 import { SelectionManager } from "./SelectionManager";
 import { DocumentView } from "../views/nodes/DocumentView";
-import { UndoManager } from "./UndoManager";
-import * as converter from "words-to-numbers";
+import { UndoManager, undoBatch } from "./UndoManager";
+import * as interpreter from "words-to-numbers";
 import { Doc, Opt } from "../../new_fields/Doc";
 import { List } from "../../new_fields/List";
 import { Docs, DocumentType } from "../documents/Documents";
@@ -108,46 +108,46 @@ export namespace DictationManager {
         export const RegisterDependent = (entry: DependentEntry) => Dependent.push(entry);
 
         export const execute = async (phrase: string) => {
-            let targets = SelectionManager.SelectedDocuments();
-            if (!targets || !targets.length) {
-                return;
-            }
-            phrase = phrase.toLowerCase();
-            let entry = Independent.get(phrase);
-            if (entry) {
-                let success = false;
-                let restrictTo = entry.restrictTo;
-                for (let target of targets) {
-                    if (!restrictTo || validate(target, restrictTo)) {
-                        let batch = UndoManager.StartBatch("Independent Command");
-                        await entry.action(target);
-                        batch.end();
-                        success = true;
-                    }
+            return UndoManager.RunInBatch(async () => {
+                let targets = SelectionManager.SelectedDocuments();
+                if (!targets || !targets.length) {
+                    return;
                 }
-                return success;
-            }
 
-            for (let entry of Dependent) {
-                let regex = entry.expression;
-                let matches = regex.exec(phrase);
-                regex.lastIndex = 0;
-                if (matches !== null) {
+                phrase = phrase.toLowerCase();
+                let entry = Independent.get(phrase);
+
+                if (entry) {
                     let success = false;
                     let restrictTo = entry.restrictTo;
                     for (let target of targets) {
                         if (!restrictTo || validate(target, restrictTo)) {
-                            let batch = UndoManager.StartBatch("Dependent Command");
-                            await entry.action(target, matches);
-                            batch.end();
+                            await entry.action(target);
                             success = true;
                         }
                     }
                     return success;
                 }
-            }
 
-            return false;
+                for (let entry of Dependent) {
+                    let regex = entry.expression;
+                    let matches = regex.exec(phrase);
+                    regex.lastIndex = 0;
+                    if (matches !== null) {
+                        let success = false;
+                        let restrictTo = entry.restrictTo;
+                        for (let target of targets) {
+                            if (!restrictTo || validate(target, restrictTo)) {
+                                await entry.action(target, matches);
+                                success = true;
+                            }
+                        }
+                        return success;
+                    }
+                }
+
+                return false;
+            }, "Execute Command");
         };
 
         const ConstructorMap = new Map<DocumentType, CastCtor>([
@@ -180,7 +180,7 @@ export namespace DictationManager {
             if (!isNaN(initial)) {
                 return initial;
             }
-            let converted = converter.wordsToNumbers(number, { fuzzy: true });
+            let converted = interpreter.wordsToNumbers(number, { fuzzy: true });
             if (converted === null) {
                 return NaN;
             }
