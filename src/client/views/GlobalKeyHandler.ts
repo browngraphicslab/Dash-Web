@@ -74,7 +74,7 @@ export default class KeyManager {
                 DictationManager.Controls.stop();
                 main.dictationOverlayVisible = false;
                 main.dictationSuccess = undefined;
-                main.overlayTimeout && clearTimeout(main.overlayTimeout);
+                main.cancelDictationFade();
                 break;
             case "delete":
             case "backspace":
@@ -110,19 +110,19 @@ export default class KeyManager {
             case " ":
                 let main = MainView.Instance;
                 main.dictationOverlayVisible = true;
+
                 main.isListening = true;
                 let command = await DictationManager.Controls.listen((results: any) => console.log(results));
                 main.isListening = false;
+
                 if (!command) {
                     break;
                 }
-                command = command.toLowerCase();
-                main.dictatedPhrase = command;
+
+                main.dictatedPhrase = command = command.toLowerCase();
                 main.dictationSuccess = await DictationManager.Commands.execute(command);
-                main.overlayTimeout = setTimeout(() => {
-                    main.dictationOverlayVisible = false;
-                    main.dictationSuccess = undefined;
-                }, 2000);
+                main.initiateDictationFade();
+
                 stopPropagation = true;
                 preventDefault = true;
         }

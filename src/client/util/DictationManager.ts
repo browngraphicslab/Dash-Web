@@ -1,6 +1,6 @@
 import { SelectionManager } from "./SelectionManager";
 import { DocumentView } from "../views/nodes/DocumentView";
-import { undoBatch } from "./UndoManager";
+import { UndoManager } from "./UndoManager";
 import * as converter from "words-to-numbers";
 import { Doc, Opt } from "../../new_fields/Doc";
 import { List } from "../../new_fields/List";
@@ -11,8 +11,26 @@ import { listSpec } from "../../new_fields/Schema";
 import { AudioField, ImageField } from "../../new_fields/URLField";
 import { HistogramField } from "../northstar/dash-fields/HistogramField";
 
+/**
+ * This namespace provides a singleton instance of a manager that
+ * handles the listening and text-conversion of user speech.
+ * 
+ * The basic manager functionality can be attained by the DictationManager.Controls namespace, which provide
+ * a simple recording operation that returns the interpreted text as a string.
+ * 
+ * Additionally, however, the DictationManager also exposes the ability to execute voice commands within Dash.
+ * It stores a default library of registered commands that can be triggered by listen()'ing for a phrase and then
+ * passing the results into the execute() function.
+ * 
+ * In addition to compile-time default commands, you can invoke DictationManager.Commands.Register(Independent|Dependent)
+ * to add new commands as classes or components are constructed.
+ */
 export namespace DictationManager {
 
+    /**
+     * Some type maneuvering to access Webkit's built-in
+     * speech recognizer.
+     */
     namespace CORE {
         export interface IWindow extends Window {
             webkitSpeechRecognition: any;
@@ -24,6 +42,7 @@ export namespace DictationManager {
     const recognizer = (() => {
         let initialized = new webkitSpeechRecognition();
         initialized.continuous = true;
+        initialized.language = "en-US";
         return initialized;
     })();
 
@@ -77,6 +96,8 @@ export namespace DictationManager {
 
     export namespace Commands {
 
+        export const dictationFadeDuration = 2000;
+
         export type IndependentAction = (target: DocumentView) => any | Promise<any>;
         export type IndependentEntry = { action: IndependentAction, restrictTo?: DocumentType[] };
 
@@ -91,14 +112,16 @@ export namespace DictationManager {
             if (!targets || !targets.length) {
                 return;
             }
-
+            phrase = phrase.toLowerCase();
             let entry = Independent.get(phrase);
             if (entry) {
                 let success = false;
                 let restrictTo = entry.restrictTo;
                 for (let target of targets) {
                     if (!restrictTo || validate(target, restrictTo)) {
+                        let batch = UndoManager.StartBatch("Independent Command");
                         await entry.action(target);
+                        batch.end();
                         success = true;
                     }
                 }
@@ -114,7 +137,9 @@ export namespace DictationManager {
                     let restrictTo = entry.restrictTo;
                     for (let target of targets) {
                         if (!restrictTo || validate(target, restrictTo)) {
+                            let batch = UndoManager.StartBatch("Dependent Command");
                             await entry.action(target, matches);
+                            batch.end();
                             success = true;
                         }
                     }

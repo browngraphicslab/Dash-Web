@@ -39,6 +39,7 @@ import { FilterBox } from './search/FilterBox';
 import { CollectionTreeView } from './collections/CollectionTreeView';
 import { ClientUtils } from '../util/ClientUtils';
 import { SchemaHeaderField, RandomPastel } from '../../new_fields/SchemaHeaderField';
+import { DictationManager } from '../util/DictationManager';
 
 @observer
 export class MainView extends React.Component {
@@ -54,6 +55,21 @@ export class MainView extends React.Component {
     @observable private dictationListeningState = false;
 
     public overlayTimeout: NodeJS.Timeout | undefined;
+
+    public initiateDictationFade = () => {
+        let duration = DictationManager.Commands.dictationFadeDuration;
+        this.overlayTimeout = setTimeout(() => {
+            this.dictationOverlayVisible = false;
+            this.dictationSuccess = undefined;
+        }, duration);
+    }
+
+    public cancelDictationFade = () => {
+        if (this.overlayTimeout) {
+            clearTimeout(this.overlayTimeout);
+            this.overlayTimeout = undefined;
+        }
+    }
 
     @computed private get mainContainer(): Opt<Doc> {
         return FieldValue(Cast(CurrentUserUtils.UserDocument.activeWorkspace, Doc));
