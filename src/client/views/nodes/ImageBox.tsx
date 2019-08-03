@@ -314,14 +314,14 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     resize(srcpath: string, layoutdoc: Doc) {
         requestImageSize(srcpath)
             .then((size: any) => {
-                let aspect = size.height / size.width;
                 let rotation = NumCast(this.dataDoc.rotation) % 180;
-                if (rotation === 90 || rotation === 270) aspect = 1 / aspect;
-                if (Math.abs(NumCast(layoutdoc.height) - size.height) > 1 || Math.abs(NumCast(layoutdoc.width) - size.width) > 1) {
+                let realsize = rotation === 90 || rotation === 270 ? { height: size.width, width: size.height } : size;
+                let aspect = realsize.height / realsize.width;
+                if (Math.abs(NumCast(layoutdoc.height) - realsize.height) > 1 || Math.abs(NumCast(layoutdoc.width) - realsize.width) > 1) {
                     setTimeout(action(() => {
                         layoutdoc.height = layoutdoc[WidthSym]() * aspect;
-                        layoutdoc.nativeHeight = size.height;
-                        layoutdoc.nativeWidth = size.width;
+                        layoutdoc.nativeHeight = realsize.height;
+                        layoutdoc.nativeWidth = realsize.width;
                     }), 0);
                 }
             })

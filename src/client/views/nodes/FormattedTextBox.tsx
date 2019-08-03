@@ -674,7 +674,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         let self = this;
         let style = this.props.isOverlay ? "scroll" : "hidden";
         let rounded = StrCast(this.props.Document.borderRounding) === "100%" ? "-rounded" : "";
-        let interactive = InkingControl.Instance.selectedTool ? "" : "interactive";
+        let interactive: "all" | "none" = InkingControl.Instance.selectedTool || this.props.Document.isBackground ||
+            (this.props.Document.isButton && !this.props.isSelected()) ? "none" : "all";
         Doc.UpdateDocumentExtensionForField(this.dataDoc, this.props.fieldKey);
         return (
             <div className={`formattedTextBox-cont-${style}`} ref={this._ref}
@@ -683,7 +684,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     background: this.props.hideOnLeave ? "rgba(0,0,0,0.4)" : undefined,
                     opacity: this.props.hideOnLeave ? (this._entered || this.props.isSelected() || this.props.Document.libraryBrush ? 1 : 0.1) : 1,
                     color: this.props.color ? this.props.color : this.props.hideOnLeave ? "white" : "inherit",
-                    pointerEvents: interactive ? "all" : "none",
+                    pointerEvents: interactive,
                     fontSize: "13px"
                 }}
                 onKeyDown={this.onKeyPress}
@@ -694,12 +695,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 onPointerUp={this.onPointerUp}
                 onPointerDown={this.onPointerDown}
                 onMouseDown={this.onMouseDown}
-                // tfs: do we need this event handler
                 onWheel={this.onPointerWheel}
                 onPointerEnter={this.onPointerEnter}
                 onPointerLeave={this.onPointerLeave}
             >
-                <div className={`formattedTextBox-inner${rounded}`} ref={this.createDropTarget} style={{ whiteSpace: "pre-wrap", pointerEvents: this.props.Document.isButton && !this.props.isSelected() ? "none" : "all" }} />
+                <div className={`formattedTextBox-inner${rounded}`} ref={this.createDropTarget} style={{ whiteSpace: "pre-wrap" }} />
             </div>
         );
     }

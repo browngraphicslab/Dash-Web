@@ -341,19 +341,24 @@ export namespace Doc {
         return fieldExt && doc[fieldKey + "_ext"] instanceof Doc ? doc[fieldKey + "_ext"] as Doc : doc;
     }
 
+    export function CreateDocumentExtensionForField(doc: Doc, fieldKey: string) {
+        let docExtensionForField = new Doc(doc[Id] + fieldKey, true);
+        docExtensionForField.title = fieldKey + ".ext";
+        docExtensionForField.extendsDoc = doc; // this is used by search to map field matches on the extension doc back to the document it extends.
+        docExtensionForField.type = DocumentType.EXTENSION;
+        let proto: Doc | undefined = doc;
+        while (proto && !Doc.IsPrototype(proto)) {
+            proto = proto.proto;
+        }
+        (proto ? proto : doc)[fieldKey + "_ext"] = new PrefetchProxy(docExtensionForField);
+        return docExtensionForField;
+    }
+
     export function UpdateDocumentExtensionForField(doc: Doc, fieldKey: string) {
         let docExtensionForField = doc[fieldKey + "_ext"] as Doc;
         if (docExtensionForField === undefined) {
             setTimeout(() => {
-                docExtensionForField = new Doc(doc[Id] + fieldKey, true);
-                docExtensionForField.title = fieldKey + ".ext";
-                docExtensionForField.extendsDoc = doc; // this is used by search to map field matches on the extension doc back to the document it extends.
-                docExtensionForField.type = DocumentType.EXTENSION;
-                let proto: Doc | undefined = doc;
-                while (proto && !Doc.IsPrototype(proto)) {
-                    proto = proto.proto;
-                }
-                (proto ? proto : doc)[fieldKey + "_ext"] = new PrefetchProxy(docExtensionForField);
+                CreateDocumentExtensionForField(doc, field);
             }, 0);
         } else if (doc instanceof Doc) { // backward compatibility -- add fields for docs that don't have them already
             docExtensionForField.extendsDoc === undefined && setTimeout(() => docExtensionForField.extendsDoc = doc, 0);
