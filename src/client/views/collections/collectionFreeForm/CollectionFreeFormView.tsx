@@ -135,7 +135,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return !(r2.left > r1.left + r1.width || r2.left + r2.width < r1.left || r2.top > r1.top + r1.height || r2.top + r2.height < r1.top);
     }
     _clusterDistance = 75;
-    bounsdSelect(doc: Doc, doc2: Doc) {
+    boundsOverlap(doc: Doc, doc2: Doc) {
         var x2 = NumCast(doc2.x) - this._clusterDistance;
         var y2 = NumCast(doc2.y) - this._clusterDistance;
         var w2 = NumCast(doc2.width) + this._clusterDistance;
@@ -239,7 +239,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             let included = []
             for (let i = 0; i < this.sets.length; i++) {
                 for (let j = 0; j < this.sets[i].length; j++) {
-                    if (this.bounsdSelect(c, this.sets[i][j])) {
+                    if (this.boundsOverlap(c, this.sets[i][j])) {
                         included.push(i);
                         break;
                     }
