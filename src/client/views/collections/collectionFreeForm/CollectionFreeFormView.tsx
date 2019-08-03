@@ -267,12 +267,17 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     getClusterColor = (doc: Doc) => {
         if (this.props.Document.useClusters) {
             let cluster = NumCast(doc.cluster);
-            let set = this.sets.length > cluster ? this.sets[NumCast(doc.cluster)] : undefined;
+            if (this.sets.length <= cluster) {
+                setTimeout(() => this.updateClusters(), 0);
+                return;
+            }
+            let set = this.sets.length > cluster ? this.sets[cluster] : undefined;
             let colors = ["#da42429e", "#31ea318c", "#8c4000", "#4a7ae2c4", "#d809ff", "#ff7601", "#1dffff", "yellow", "#1b8231f2", "#000000ad"];
             let clusterColor = colors[cluster % colors.length];
-            for (let i = 0; set && i < set.length; i++) {
-                if (set[i].backgroundColor && set[i].backgroundColor !== set[i].defaultBackgroundColor) clusterColor = StrCast(set[i].backgroundColor);
-            }
+            set && set.filter(s => !s.isBackground).map(s =>
+                s.backgroundColor && s.backgroundColor !== s.defaultBackgroundColor && (clusterColor = StrCast(s.backgroundColor)));
+            set && set.filter(s => s.isBackground).map(s =>
+                s.backgroundColor && s.backgroundColor !== s.defaultBackgroundColor && (clusterColor = StrCast(s.backgroundColor)));
             return clusterColor;
         }
         return "";
@@ -652,10 +657,15 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         layoutItems.push({
             description: `${this.props.Document.useClusters ? "Uncluster" : "Use Clusters"}`,
             event: async () => {
-                Docs.Prototypes.get(DocumentType.TEXT).defaultBackgroundColor = "#f1efeb";
+                Docs.Prototypes.get(DocumentType.TEXT).defaultBackgroundColor = "#f1efeb"; // backward compatibility with databases that didn't have a default background color on prototypes
                 Docs.Prototypes.get(DocumentType.COL).defaultBackgroundColor = "white";
                 this.props.Document.useClusters = !this.props.Document.useClusters;
             },
+            icon: !this.props.Document.useClusters ? "expand-arrows-alt" : "compress-arrows-alt"
+        });
+        layoutItems.push({
+            description: `${this.props.Document.clusterOverridesDefaultBackground ? "Use Default Backgrounds" : "Clusters Override Defaults"}`,
+            event: async () => this.props.Document.clusterOverridesDefaultBackground = !this.props.Document.clusterOverridesDefaultBackground,
             icon: !this.props.Document.useClusters ? "expand-arrows-alt" : "compress-arrows-alt"
         });
         layoutItems.push({

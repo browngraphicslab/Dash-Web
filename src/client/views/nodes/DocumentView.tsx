@@ -678,7 +678,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     render() {
-        let backgroundColor = this.props.backgroundColor(this.props.Document) || StrCast(this.layoutDoc.backgroundColor);
+        let backgroundColor = this.layoutDoc.isBackground || (this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document.clusterOverridesDefaultBackground && this.layoutDoc.backgroundColor === this.layoutDoc.defaultBackgroundColor) ?
+            this.props.backgroundColor(this.layoutDoc) || StrCast(this.layoutDoc.backgroundColor) :
+            StrCast(this.layoutDoc.backgroundColor) || this.props.backgroundColor(this.layoutDoc);
         let foregroundColor = StrCast(this.layoutDoc.color);
         var nativeWidth = this.nativeWidth > 0 && !BoolCast(this.props.Document.ignoreAspect) ? `${this.nativeWidth}px` : "100%";
         var nativeHeight = BoolCast(this.props.Document.ignoreAspect) ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
