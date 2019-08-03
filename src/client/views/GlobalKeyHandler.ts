@@ -111,7 +111,7 @@ export default class KeyManager {
                 let main = MainView.Instance;
                 main.dictationOverlayVisible = true;
                 main.isListening = true;
-                let command = await DictationManager.Controls.listen();
+                let command = await DictationManager.Controls.listen((results: any) => console.log(results));
                 main.isListening = false;
                 if (!command) {
                     break;

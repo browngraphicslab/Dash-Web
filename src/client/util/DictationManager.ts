@@ -2,7 +2,7 @@ import { SelectionManager } from "./SelectionManager";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { undoBatch } from "./UndoManager";
 import * as converter from "words-to-numbers";
-import { Doc } from "../../new_fields/Doc";
+import { Doc, Opt } from "../../new_fields/Doc";
 import { List } from "../../new_fields/List";
 import { Docs, DocumentType } from "../documents/Documents";
 import { CollectionViewType } from "../views/collections/CollectionBaseView";
@@ -18,40 +18,59 @@ export namespace DictationManager {
             webkitSpeechRecognition: any;
         }
     }
-
     const { webkitSpeechRecognition }: CORE.IWindow = window as CORE.IWindow;
 
     let isListening = false;
     const recognizer = (() => {
         let initialized = new webkitSpeechRecognition();
-        initialized.interimResults = false;
         initialized.continuous = true;
         return initialized;
     })();
 
     export namespace Controls {
 
-        export const listen = () => {
+        export type InterimResultHandler = (results: any) => any;
+
+        export const listen = (handler: Opt<InterimResultHandler> = undefined) => {
             if (isListening) {
                 return undefined;
             }
             isListening = true;
+
+            recognizer.interimResults = handler !== undefined;
             recognizer.start();
+
             return new Promise<string>((resolve, reject) => {
-                recognizer.onresult = (e: any) => {
-                    resolve(e.results[0][0].transcript);
-                    stop();
-                };
                 recognizer.onerror = (e: any) => {
                     reject(e);
                     stop();
                 };
+                if (handler) {
+                    let newestResult: string;
+                    recognizer.onresult = (e: any) => {
+                        newestResult = e.results[0][0].transcript;
+                        handler(newestResult);
+                    };
+                    recognizer.onend = (e: any) => {
+                        resolve(newestResult);
+                        stop();
+                    };
+                } else {
+                    recognizer.onresult = (e: any) => {
+                        let finalResult = e.results[0][0].transcript;
+                        resolve(finalResult);
+                        stop();
+                    };
+                }
             });
         };
 
         export const stop = () => {
             recognizer.stop();
             isListening = false;
+            recognizer.onresult = undefined;
+            recognizer.onend = undefined;
+            recognizer.onerror = undefined;
         };
 
     }
