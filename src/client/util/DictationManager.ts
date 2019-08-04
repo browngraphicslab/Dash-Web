@@ -149,8 +149,18 @@ export namespace DictationManager {
         };
 
         export const stop = (salvageSession = true) => {
+            if (!isListening) {
+                return;
+            }
             isManuallyStopped = true;
             salvageSession ? recognizer.stop() : recognizer.abort();
+            if (MainView.Instance.dictationOverlayVisible) {
+                MainView.Instance.cancelDictationFade();
+                MainView.Instance.dictationOverlayVisible = false;
+                MainView.Instance.isListening = true;
+                MainView.Instance.dictatedPhrase = "";
+                MainView.Instance.dictationSuccess = undefined;
+            }
         };
 
         const synthesize = (e: SpeechRecognitionEvent, delimiter?: string) => {
