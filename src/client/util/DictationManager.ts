@@ -40,22 +40,27 @@ export namespace DictationManager {
 
     export namespace Controls {
 
-        const defaultDelimiter = "...";
+        const intraSession = ". ";
+        const interSession = " ... ";
+
         let isListening = false;
         let isManuallyStopped = false;
+
+        let current: string | undefined = undefined;
         let sessionResults: string[] = [];
 
         const recognizer: SpeechRecognition = new webkitSpeechRecognition() || new SpeechRecognition();
         recognizer.onstart = () => console.log("initiating speech recognition session...");
 
-        let current: string | undefined = undefined;
         export type InterimResultHandler = (results: any) => any;
         export type ContinuityArgs = { indefinite: boolean } | false;
+        export type DelimiterArgs = { inter: string, intra: string };
+
         export interface ListeningOptions {
             language: string;
             continuous: ContinuityArgs;
+            delimiters: DelimiterArgs;
             interimHandler: InterimResultHandler;
-            delimiter: string;
         }
 
         export const listen = async (options?: Partial<ListeningOptions>) => {
@@ -78,7 +83,8 @@ export namespace DictationManager {
             let continuous = options ? options.continuous : undefined;
             let indefinite = continuous && continuous.indefinite;
             let language = options ? options.language : undefined;
-            let delimiter = options ? options.delimiter : undefined;
+            let intra = options && options.delimiters ? options.delimiters.intra : undefined;
+            let inter = options && options.delimiters ? options.delimiters.inter : undefined;
 
             recognizer.interimResults = handler !== undefined;
             recognizer.continuous = continuous === undefined ? false : continuous !== false;
@@ -90,13 +96,13 @@ export namespace DictationManager {
 
                 recognizer.onerror = (e: SpeechRecognitionError) => {
                     if (!(indefinite && e.error === "no-speech")) {
-                        stop(true);
+                        recognizer.stop();
                         reject(e);
                     }
                 };
 
                 recognizer.onresult = (e: SpeechRecognitionEvent) => {
-                    current = synthesize(e, delimiter);
+                    current = synthesize(e, intra);
                     handler && handler(current);
                     isManuallyStopped && complete();
                 };
@@ -116,7 +122,7 @@ export namespace DictationManager {
                 let complete = () => {
                     if (indefinite) {
                         current && sessionResults.push(current);
-                        resolve(connect(sessionResults, delimiter));
+                        resolve(sessionResults.join(inter || interSession));
                     } else {
                         resolve(current);
                     }
@@ -126,9 +132,18 @@ export namespace DictationManager {
             });
         };
 
-        export const stop = (errorTriggered = false) => {
-            !errorTriggered && (isManuallyStopped = true);
-            recognizer.stop();
+        export const stop = (salvageSession = true) => {
+            isManuallyStopped = true;
+            salvageSession ? recognizer.stop() : recognizer.abort();
+        };
+
+        const synthesize = (e: SpeechRecognitionEvent, delimiter?: string) => {
+            let results = e.results;
+            let transcripts: string[] = [];
+            for (let i = 0; i < results.length; i++) {
+                transcripts.push(results.item(i).item(0).transcript.trim());
+            }
+            return transcripts.join(delimiter || intraSession);
         };
 
         const reset = () => {
@@ -138,19 +153,6 @@ export namespace DictationManager {
             recognizer.onerror = null;
             recognizer.onend = null;
             sessionResults = [];
-        };
-
-        const synthesize = (e: SpeechRecognitionEvent, delimiter?: string) => {
-            let results = e.results;
-            let transcripts: string[] = [];
-            for (let i = 0; i < results.length; i++) {
-                transcripts.push(results.item(i).item(0).transcript.trim());
-            }
-            return transcripts.join(delimiter || defaultDelimiter);
-        };
-
-        const connect = (sessions: string[], delimiter?: string) => {
-            return sessions.map(text => `(${text})`).join(delimiter || defaultDelimiter);
         };
 
     }
