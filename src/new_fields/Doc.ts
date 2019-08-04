@@ -358,7 +358,7 @@ export namespace Doc {
         let docExtensionForField = doc[fieldKey + "_ext"] as Doc;
         if (docExtensionForField === undefined) {
             setTimeout(() => {
-                CreateDocumentExtensionForField(doc, field);
+                CreateDocumentExtensionForField(doc, fieldKey);
             }, 0);
         } else if (doc instanceof Doc) { // backward compatibility -- add fields for docs that don't have them already
             docExtensionForField.extendsDoc === undefined && setTimeout(() => docExtensionForField.extendsDoc = doc, 0);
@@ -535,7 +535,7 @@ export namespace Doc {
                 d.layout = detailLayout;
                 d.nativeWidth = d.nativeHeight = undefined;
                 if (detailLayout instanceof Doc) {
-                    let delegDetailLayout = Doc.MakeDelegate(detailLayout) as Doc;
+                    let delegDetailLayout = Doc.MakeDelegate(detailLayout);
                     d.layout = delegDetailLayout;
                     delegDetailLayout.layout = await delegDetailLayout.detailedLayout;
                 }

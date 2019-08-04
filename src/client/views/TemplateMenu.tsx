@@ -68,7 +68,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
                 }
             }, 10);
         } else if (topDocView.props.ContainingCollectionView) {
-            let collView = topDocView.props.ContainingCollectionView!;
+            let collView = topDocView.props.ContainingCollectionView;
             let [sx, sy] = xf.inverse().transformPoint(0, 0);
             let [x, y] = collView.props.ScreenToLocalTransform().transformPoint(sx, sy);
             topDoc.x = x;

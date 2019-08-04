@@ -40,7 +40,7 @@ import v5 = require("uuid/v5");
 import { setScheduler } from "bluebird";
 import { DocumentType, Docs } from "../../../documents/Documents";
 
-library.add(faEye, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload);
+library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload);
 
 export const panZoomSchema = createSchema({
     panX: "number",
@@ -206,8 +206,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             let cy = NumCast(cd.y) - this._clusterDistance;
             let cw = NumCast(cd.width) + 2 * this._clusterDistance;
             let ch = NumCast(cd.height) + 2 * this._clusterDistance;
-            if (!cd.z && this.intersectRect({ left: cx, top: cy, width: cw, height: ch }, { left: probe[0], top: probe[1], width: 1, height: 1 }))
+            if (!cd.z && this.intersectRect({ left: cx, top: cy, width: cw, height: ch }, { left: probe[0], top: probe[1], width: 1, height: 1 })) {
                 return NumCast(cd.cluster);
+            }
             return cluster;
         }, -1);
         if (cluster !== -1) {
@@ -236,20 +237,20 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     updateClusters() {
         this.sets.length = 0;
         this.childDocs.map(c => {
-            let included = []
+            let included = [];
             for (let i = 0; i < this.sets.length; i++) {
-                for (let j = 0; j < this.sets[i].length; j++) {
-                    if (this.boundsOverlap(c, this.sets[i][j])) {
+                for (let member of this.sets[i]) {
+                    if (this.boundsOverlap(c, member)) {
                         included.push(i);
                         break;
                     }
                 }
             }
-            if (included.length === 0)
+            if (included.length === 0) {
                 this.sets.push([c]);
-            else if (included.length === 1)
+            } else if (included.length === 1) {
                 this.sets[included[0]].push(c);
-            else {
+            } else {
                 this.sets[included[0]].push(c);
                 for (let s = 1; s < included.length; s++) {
                     this.sets[included[0]].push(...this.sets[included[s]]);
@@ -257,11 +258,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 }
             }
         });
-        for (let s = 0; s < this.sets.length; s++) {
-            for (let i = 0; i < this.sets[s].length; i++) {
-                this.sets[s][i].cluster = s;
-            }
-        }
+        this.sets.map((set, i) => set.map(member => member.cluster = i));
     }
 
     getClusterColor = (doc: Doc) => {

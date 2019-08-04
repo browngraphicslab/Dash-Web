@@ -384,7 +384,7 @@ export class FilterBox extends React.Component {
                     <div className="active-icon description">Collection Filters Active</div>
                 </div> : undefined}
             </div>
-        )
+        );
     }
 
     // Useful queries:

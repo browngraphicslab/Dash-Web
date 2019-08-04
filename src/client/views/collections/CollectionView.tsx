@@ -20,16 +20,7 @@ import { CollectionTreeView } from "./CollectionTreeView";
 import { CollectionViewBaseChrome } from './CollectionViewChromes';
 export const COLLECTION_BORDER_WIDTH = 2;
 
-library.add(faTh);
-library.add(faTree);
-library.add(faSquare);
-library.add(faProjectDiagram);
-library.add(faSignature);
-library.add(faThList);
-library.add(faFingerprint);
-library.add(faColumns);
-library.add(faEllipsisV);
-library.add(faImage, faEye);
+library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faEllipsisV, faImage, faEye as any);
 
 @observer
 export class CollectionView extends React.Component<FieldViewProps> {

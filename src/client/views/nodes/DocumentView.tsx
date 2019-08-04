@@ -95,7 +95,7 @@ export interface DocumentViewProps {
     addDocTab: (doc: Doc, dataDoc: Doc | undefined, where: string) => void;
     collapseToPoint?: (scrpt: number[], expandedDocs: Doc[] | undefined) => void;
     zoomToScale: (scale: number) => void;
-    backgroundColor: (doc: Doc) => string;
+    backgroundColor: (doc: Doc) => string | undefined;
     getScale: () => number;
     animateBetweenIcon?: (iconPos: number[], startTime: number, maximizing: boolean) => void;
     ChromeHeight?: () => number;
