@@ -54,7 +54,18 @@ export namespace DictationManager {
             delimiter: string;
         }
 
-        export const listen = (options?: Partial<ListeningOptions>) => {
+        export const listen = async (options?: Partial<ListeningOptions>) => {
+            let results: any;
+            try {
+                results = await listenImpl(options);
+            } catch (e) {
+                results = "Dication Error: ";
+                results += e instanceof SpeechRecognitionError ? e.error : "unknown error";
+            }
+            return results;
+        };
+
+        const listenImpl = (options?: Partial<ListeningOptions>) => {
             if (isListening) {
                 return undefined;
             }
