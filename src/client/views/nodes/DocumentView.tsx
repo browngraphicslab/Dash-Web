@@ -539,7 +539,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     listen = async () => {
-        let transcript = await DictationManager.Controls.listen();
+        let options = { continuous: { indefinite: true }, delimiter: " " };
+        let transcript = await DictationManager.Controls.listen(options);
         transcript && (Doc.GetProto(this.props.Document).transcript = transcript);
     }
 

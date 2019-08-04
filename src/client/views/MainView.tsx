@@ -49,7 +49,7 @@ export class MainView extends React.Component {
     @observable public pwidth: number = 0;
     @observable public pheight: number = 0;
 
-    @observable private dictationState = "Listening...";
+    @observable private dictationState = "";
     @observable private dictationSuccessState: boolean | undefined = undefined;
     @observable private dictationDisplayState = false;
     @observable private dictationListeningState = false;

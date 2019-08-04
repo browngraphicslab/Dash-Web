@@ -112,7 +112,8 @@ export default class KeyManager {
                 main.dictationOverlayVisible = true;
 
                 main.isListening = true;
-                let command = await DictationManager.Controls.listen((results: any) => console.log(results));
+                // let printer = (results: any) => console.log(results);
+                let command = await DictationManager.Controls.listen();
                 main.isListening = false;
 
                 if (!command) {

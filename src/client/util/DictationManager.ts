@@ -39,57 +39,82 @@ export namespace DictationManager {
     const { webkitSpeechRecognition }: CORE.IWindow = window as CORE.IWindow;
 
     let isListening = false;
-    const recognizer = (() => {
-        let initialized = new webkitSpeechRecognition();
-        initialized.continuous = true;
-        initialized.language = "en-US";
-        return initialized;
-    })();
+    let isManuallyStopped = false;
+    const recognizer: SpeechRecognition = new webkitSpeechRecognition();
 
     export namespace Controls {
 
+        let newestResult: string;
         export type InterimResultHandler = (results: any) => any;
+        export type ContinuityArgs = { indefinite: boolean } | false;
+        export interface ListeningOptions {
+            language: string;
+            continuous: ContinuityArgs;
+            interimHandler: InterimResultHandler;
+            delimiter: string;
+        }
 
-        export const listen = (handler: Opt<InterimResultHandler> = undefined) => {
+        export const listen = (options?: Partial<ListeningOptions>) => {
             if (isListening) {
                 return undefined;
             }
             isListening = true;
 
+            let handler = options ? options.interimHandler : undefined;
+            let continuous = options ? options.continuous : undefined;
+            let language = options ? options.language : undefined;
+            let delimiter = options ? options.delimiter : undefined;
+
             recognizer.interimResults = handler !== undefined;
+            recognizer.continuous = continuous === undefined ? false : continuous !== false;
+            recognizer.lang = language === undefined ? "en-US" : language;
+
             recognizer.start();
 
             return new Promise<string>((resolve, reject) => {
+
                 recognizer.onerror = (e: any) => {
                     reject(e);
                     stop();
                 };
-                if (handler) {
-                    let newestResult: string;
-                    recognizer.onresult = (e: any) => {
-                        newestResult = e.results[0][0].transcript;
-                        handler(newestResult);
-                    };
-                    recognizer.onend = (e: any) => {
+
+                recognizer.onresult = (e: SpeechRecognitionEvent) => {
+                    newestResult = synthesize(e, delimiter);
+                    handler && handler(newestResult);
+                };
+
+                recognizer.onend = (e: Event) => {
+                    if (continuous && continuous.indefinite && !isManuallyStopped) {
+                        recognizer.start();
+                    } else {
                         resolve(newestResult);
-                        stop();
-                    };
-                } else {
-                    recognizer.onresult = (e: any) => {
-                        let finalResult = e.results[0][0].transcript;
-                        resolve(finalResult);
-                        stop();
-                    };
-                }
+                        reset();
+                    }
+                };
+
             });
         };
 
-        export const stop = () => {
-            recognizer.stop();
+        export const stop = (saveCumulative = true) => {
+            saveCumulative ? recognizer.stop() : recognizer.abort();
+            reset();
+        };
+
+        const reset = () => {
             isListening = false;
-            recognizer.onresult = undefined;
-            recognizer.onend = undefined;
-            recognizer.onerror = undefined;
+            isManuallyStopped = false;
+            recognizer.onresult = null;
+            recognizer.onend = null;
+            recognizer.onerror = null;
+        };
+
+        const synthesize = (e: SpeechRecognitionEvent, delimiter?: string) => {
+            let results = e.results;
+            let transcripts: string[] = [];
+            for (let i = 0; i < results.length; i++) {
+                transcripts.push(results.item(i).item(0).transcript.trim());
+            }
+            return transcripts.join(delimiter || "...");
         };
 
     }

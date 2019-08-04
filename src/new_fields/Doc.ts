@@ -531,7 +531,7 @@ export namespace Doc {
                 d.layout = detailLayout;
                 d.nativeWidth = d.nativeHeight = undefined;
                 if (detailLayout instanceof Doc) {
-                    let delegDetailLayout = Doc.MakeDelegate(detailLayout) as Doc;
+                    let delegDetailLayout = Doc.MakeDelegate(detailLayout);
                     d.layout = delegDetailLayout;
                     let subDetailLayout1 = await PromiseValue(delegDetailLayout.detailedLayout);
                     let subDetailLayout = await PromiseValue(delegDetailLayout.detailedLayout);
