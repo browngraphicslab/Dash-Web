@@ -49,10 +49,10 @@ export class MainView extends React.Component {
     @observable public pwidth: number = 0;
     @observable public pheight: number = 0;
 
-    @observable private dictationState = "";
+    @observable private dictationState = DictationManager.placeholder;
     @observable private dictationSuccessState: boolean | undefined = undefined;
     @observable private dictationDisplayState = false;
-    @observable private dictationListeningState = false;
+    @observable private dictationListeningState: DictationManager.Controls.ListeningUIStatus = false;
 
     public overlayTimeout: NodeJS.Timeout | undefined;
 
@@ -61,6 +61,7 @@ export class MainView extends React.Component {
         this.overlayTimeout = setTimeout(() => {
             this.dictationOverlayVisible = false;
             this.dictationSuccess = undefined;
+            setTimeout(() => this.dictatedPhrase = DictationManager.placeholder, 500);
         }, duration);
     }
 
@@ -116,7 +117,7 @@ export class MainView extends React.Component {
         return this.dictationListeningState;
     }
 
-    public set isListening(value: boolean) {
+    public set isListening(value: DictationManager.Controls.ListeningUIStatus) {
         runInAction(() => this.dictationListeningState = value);
     }
 
@@ -166,8 +167,6 @@ export class MainView extends React.Component {
                 }
             }
         }
-
-        autorun(() => console.log(`this.isListening = ${this.isListening}`));
 
         library.add(faFont);
         library.add(faExclamation);
@@ -525,7 +524,7 @@ export class MainView extends React.Component {
     render() {
         let display = this.dictationOverlayVisible;
         let success = this.dictationSuccess;
-        let result = this.isListening ? DictationManager.placeholder : `"${this.dictatedPhrase}"`;
+        let result = this.isListening && !this.isListening.interim ? DictationManager.placeholder : `"${this.dictatedPhrase}"`;
         return (
             <div id="main-div">
                 <div

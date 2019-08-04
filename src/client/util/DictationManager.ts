@@ -58,6 +58,7 @@ export namespace DictationManager {
         export type InterimResultHandler = (results: string) => any;
         export type ContinuityArgs = { indefinite: boolean } | false;
         export type DelimiterArgs = { inter: string, intra: string };
+        export type ListeningUIStatus = { interim: boolean } | false;
 
         export interface ListeningOptions {
             language: string;
@@ -69,22 +70,28 @@ export namespace DictationManager {
 
         export const listen = async (options?: Partial<ListeningOptions>) => {
             let results: string | undefined;
-            MainView.Instance.dictationOverlayVisible = true;
-            MainView.Instance.isListening = true;
+            let main = MainView.Instance;
+
+            main.dictationOverlayVisible = true;
+            let interim = options !== undefined && options.interimHandler !== undefined;
+            main.isListening = { interim: interim };
+
             try {
                 results = await listenImpl(options);
                 if (results) {
-                    MainView.Instance.isListening = false;
-                    MainView.Instance.dictatedPhrase = results = results.toLowerCase();
-                    MainView.Instance.dictationSuccess = options && options.tryExecute ? await DictationManager.Commands.execute(results) : true;
+                    main.isListening = false;
+                    main.dictatedPhrase = results;
+                    let execute = options && options.tryExecute;
+                    main.dictationSuccess = execute ? await DictationManager.Commands.execute(results) : true;
                 }
             } catch (e) {
-                MainView.Instance.isListening = false;
-                MainView.Instance.dictatedPhrase = results = `dictation error: ${"error" in e ? e.error : "unknown error"}`;
-                MainView.Instance.dictationSuccess = false;
+                main.isListening = false;
+                main.dictatedPhrase = results = `dictation error: ${"error" in e ? e.error : "unknown error"}`;
+                main.dictationSuccess = false;
             } finally {
-                MainView.Instance.initiateDictationFade();
+                main.initiateDictationFade();
             }
+
             return results;
         };
 
@@ -137,11 +144,10 @@ export namespace DictationManager {
                 let complete = () => {
                     if (indefinite) {
                         current && sessionResults.push(current);
-                        resolve(sessionResults.join(inter || interSession));
+                        sessionResults.length && resolve(sessionResults.join(inter || interSession));
                     } else {
                         resolve(current);
                     }
-                    current = undefined;
                     reset();
                 };
 
@@ -154,12 +160,12 @@ export namespace DictationManager {
             }
             isManuallyStopped = true;
             salvageSession ? recognizer.stop() : recognizer.abort();
-            if (MainView.Instance.dictationOverlayVisible) {
-                MainView.Instance.cancelDictationFade();
-                MainView.Instance.dictationOverlayVisible = false;
-                MainView.Instance.isListening = true;
-                MainView.Instance.dictatedPhrase = "";
-                MainView.Instance.dictationSuccess = undefined;
+            let main = MainView.Instance;
+            if (main.dictationOverlayVisible) {
+                main.cancelDictationFade();
+                main.dictationOverlayVisible = false;
+                main.dictationSuccess = undefined;
+                setTimeout(() => main.dictatedPhrase = placeholder, 500);
             }
         };
 
@@ -173,12 +179,13 @@ export namespace DictationManager {
         };
 
         const reset = () => {
+            current = undefined;
+            sessionResults = [];
             isListening = false;
             isManuallyStopped = false;
             recognizer.onresult = null;
             recognizer.onerror = null;
             recognizer.onend = null;
-            sessionResults = [];
         };
 
     }

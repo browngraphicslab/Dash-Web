@@ -536,19 +536,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this.props.Document.lockedPosition = BoolCast(this.props.Document.lockedPosition) ? undefined : true;
     }
 
-    listen = async () => {
-        let dataDoc = Doc.GetProto(this.props.Document);
-        let handler = (results: string) => {
-            MainView.Instance.isListening = false;
-            MainView.Instance.dictationSuccess = true;
-            MainView.Instance.dictatedPhrase = results;
-        };
-        let final = await DictationManager.Controls.listen({
+    listen = async () =>
+        Doc.GetProto(this.props.Document).transcript = await DictationManager.Controls.listen({
             continuous: { indefinite: true },
-            interimHandler: handler
-        });
-        final && (dataDoc.transcript = final);
-    }
+            interimHandler: (results: string) => {
+                MainView.Instance.isListening = { interim: true };
+                MainView.Instance.dictationSuccess = true;
+                MainView.Instance.dictatedPhrase = results;
+            }
+        })
 
     @action
     onContextMenu = async (e: React.MouseEvent): Promise<void> => {
