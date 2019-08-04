@@ -602,9 +602,8 @@ export namespace DocUtils {
         if (sv && sv.props.ContainingCollectionView && sv.props.ContainingCollectionView.props.Document === target) return;
         if (target === CurrentUserUtils.UserDocument) return undefined;
 
-        let linkDoc: Doc | undefined;
+        let linkDocProto = new Doc();
         UndoManager.RunInBatch(() => {
-            let linkDocProto = new Doc();
             linkDocProto.type = DocumentType.LINK;
 
             linkDocProto.targetContext = targetContext;
@@ -628,7 +627,7 @@ export namespace DocUtils {
             computed.compiled && (Doc.GetProto(source).links = new ComputedField(computed));
             computed.compiled && (Doc.GetProto(target).links = new ComputedField(computed));
         }, "make link");
-        return linkDoc;
+        return linkDocProto;
     }
 
 }
