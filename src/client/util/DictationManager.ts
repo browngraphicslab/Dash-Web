@@ -73,15 +73,14 @@ export namespace DictationManager {
             let main = MainView.Instance;
 
             main.dictationOverlayVisible = true;
-            let interim = options !== undefined && options.interimHandler !== undefined;
-            main.isListening = { interim: interim };
+            main.isListening = { interim: false };
 
             try {
                 results = await listenImpl(options);
                 if (results) {
                     main.isListening = false;
-                    main.dictatedPhrase = results;
                     let execute = options && options.tryExecute;
+                    main.dictatedPhrase = execute ? results.toLowerCase() : results;
                     main.dictationSuccess = execute ? await DictationManager.Commands.execute(results) : true;
                 }
             } catch (e) {

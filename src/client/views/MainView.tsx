@@ -89,7 +89,7 @@ export class MainView extends React.Component {
         }
     }
 
-    public get dictatedPhrase() {
+    @computed public get dictatedPhrase() {
         return this.dictationState;
     }
 
@@ -97,7 +97,7 @@ export class MainView extends React.Component {
         runInAction(() => this.dictationState = value);
     }
 
-    public get dictationSuccess() {
+    @computed public get dictationSuccess() {
         return this.dictationSuccessState;
     }
 
@@ -105,7 +105,7 @@ export class MainView extends React.Component {
         runInAction(() => this.dictationSuccessState = value);
     }
 
-    public get dictationOverlayVisible() {
+    @computed public get dictationOverlayVisible() {
         return this.dictationDisplayState;
     }
 
@@ -113,7 +113,7 @@ export class MainView extends React.Component {
         runInAction(() => this.dictationDisplayState = value);
     }
 
-    public get isListening() {
+    @computed public get isListening() {
         return this.dictationListeningState;
     }
 
