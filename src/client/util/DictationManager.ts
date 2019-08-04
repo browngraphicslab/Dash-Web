@@ -38,14 +38,17 @@ export namespace DictationManager {
     }
     const { webkitSpeechRecognition }: CORE.IWindow = window as CORE.IWindow;
 
-    let isListening = false;
-    let isManuallyStopped = false;
-    const results: string[] = [];
-    const recognizer: SpeechRecognition = new webkitSpeechRecognition();
-
     export namespace Controls {
 
-        let newestResult: string;
+        const defaultDelimiter = "...";
+        let isListening = false;
+        let isManuallyStopped = false;
+        let sessionResults: string[] = [];
+
+        const recognizer: SpeechRecognition = new webkitSpeechRecognition() || new SpeechRecognition();
+        recognizer.onstart = () => console.log("initiating speech recognition session...");
+
+        let current: string | undefined = undefined;
         export type InterimResultHandler = (results: any) => any;
         export type ContinuityArgs = { indefinite: boolean } | false;
         export interface ListeningOptions {
@@ -60,8 +63,7 @@ export namespace DictationManager {
             try {
                 results = await listenImpl(options);
             } catch (e) {
-                results = "Dictation Error: ";
-                results += "error" in e ? e.error : "unknown error";
+                results = `Dictation Error: ${"error" in e ? e.error : "unknown error"}`;
             }
             return results;
         };
@@ -74,6 +76,7 @@ export namespace DictationManager {
 
             let handler = options ? options.interimHandler : undefined;
             let continuous = options ? options.continuous : undefined;
+            let indefinite = continuous && continuous.indefinite;
             let language = options ? options.language : undefined;
             let delimiter = options ? options.delimiter : undefined;
 
@@ -85,41 +88,56 @@ export namespace DictationManager {
 
             return new Promise<string>((resolve, reject) => {
 
-                recognizer.onerror = (e: any) => {
-                    reject(e);
-                    stop();
+                recognizer.onerror = (e: SpeechRecognitionError) => {
+                    if (!(indefinite && e.error === "no-speech")) {
+                        stop(true);
+                        reject(e);
+                    }
                 };
 
                 recognizer.onresult = (e: SpeechRecognitionEvent) => {
-                    newestResult = synthesize(e, delimiter);
-                    continuous && continuous.indefinite && results.push(newestResult);
-                    handler && handler(newestResult);
+                    current = synthesize(e, delimiter);
+                    handler && handler(current);
+                    isManuallyStopped && complete();
                 };
 
                 recognizer.onend = (e: Event) => {
-                    let indefinite = continuous && continuous.indefinite;
-                    if (indefinite && !isManuallyStopped) {
-                        recognizer.start();
-                    } else {
-                        resolve(indefinite ? newestResult : results.join(delimiter));
-                        reset();
+                    if (!indefinite || isManuallyStopped) {
+                        return complete();
                     }
+
+                    if (current) {
+                        sessionResults.push(current);
+                        current = undefined;
+                    }
+                    recognizer.start();
+                };
+
+                let complete = () => {
+                    if (indefinite) {
+                        current && sessionResults.push(current);
+                        resolve(connect(sessionResults, delimiter));
+                    } else {
+                        resolve(current);
+                    }
+                    reset();
                 };
 
             });
         };
 
-        export const stop = (saveCumulative = true) => {
-            saveCumulative ? recognizer.stop() : recognizer.abort();
-            reset();
+        export const stop = (errorTriggered = false) => {
+            !errorTriggered && (isManuallyStopped = true);
+            recognizer.stop();
         };
 
         const reset = () => {
             isListening = false;
             isManuallyStopped = false;
-            recognizer.onerror = null;
             recognizer.onresult = null;
+            recognizer.onerror = null;
             recognizer.onend = null;
+            sessionResults = [];
         };
 
         const synthesize = (e: SpeechRecognitionEvent, delimiter?: string) => {
@@ -128,7 +146,11 @@ export namespace DictationManager {
             for (let i = 0; i < results.length; i++) {
                 transcripts.push(results.item(i).item(0).transcript.trim());
             }
-            return transcripts.join(delimiter || "...");
+            return transcripts.join(delimiter || defaultDelimiter);
+        };
+
+        const connect = (sessions: string[], delimiter?: string) => {
+            return sessions.map(text => `(${text})`).join(delimiter || defaultDelimiter);
         };
 
     }

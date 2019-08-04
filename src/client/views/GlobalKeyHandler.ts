@@ -72,9 +72,11 @@ export default class KeyManager {
                 main.toggleColorPicker(true);
                 SelectionManager.DeselectAll();
                 DictationManager.Controls.stop();
-                main.dictationOverlayVisible = false;
-                main.dictationSuccess = undefined;
-                main.cancelDictationFade();
+                if (main.dictationOverlayVisible) {
+                    main.dictationOverlayVisible = false;
+                    main.dictationSuccess = undefined;
+                    main.cancelDictationFade();
+                }
                 break;
             case "delete":
             case "backspace":
