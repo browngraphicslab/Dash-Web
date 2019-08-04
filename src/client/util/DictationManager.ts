@@ -10,6 +10,7 @@ import { Cast, CastCtor } from "../../new_fields/Types";
 import { listSpec } from "../../new_fields/Schema";
 import { AudioField, ImageField } from "../../new_fields/URLField";
 import { HistogramField } from "../northstar/dash-fields/HistogramField";
+import { MainView } from "../views/MainView";
 
 /**
  * This namespace provides a singleton instance of a manager that
@@ -37,9 +38,11 @@ export namespace DictationManager {
         }
     }
     const { webkitSpeechRecognition }: CORE.IWindow = window as CORE.IWindow;
+    export const placeholder = "Listening...";
 
     export namespace Controls {
 
+        const infringe = "unable to process: dictation manager still involved in previous session";
         const intraSession = ". ";
         const interSession = " ... ";
 
@@ -52,7 +55,7 @@ export namespace DictationManager {
         const recognizer: SpeechRecognition = new webkitSpeechRecognition() || new SpeechRecognition();
         recognizer.onstart = () => console.log("initiating speech recognition session...");
 
-        export type InterimResultHandler = (results: any) => any;
+        export type InterimResultHandler = (results: string) => any;
         export type ContinuityArgs = { indefinite: boolean } | false;
         export type DelimiterArgs = { inter: string, intra: string };
 
@@ -61,21 +64,33 @@ export namespace DictationManager {
             continuous: ContinuityArgs;
             delimiters: DelimiterArgs;
             interimHandler: InterimResultHandler;
+            tryExecute: boolean;
         }
 
         export const listen = async (options?: Partial<ListeningOptions>) => {
-            let results: any;
+            let results: string | undefined;
+            MainView.Instance.dictationOverlayVisible = true;
+            MainView.Instance.isListening = true;
             try {
                 results = await listenImpl(options);
+                if (results) {
+                    MainView.Instance.isListening = false;
+                    MainView.Instance.dictatedPhrase = results = results.toLowerCase();
+                    MainView.Instance.dictationSuccess = options && options.tryExecute ? await DictationManager.Commands.execute(results) : true;
+                }
             } catch (e) {
-                results = `Dictation Error: ${"error" in e ? e.error : "unknown error"}`;
+                MainView.Instance.isListening = false;
+                MainView.Instance.dictatedPhrase = results = `dictation error: ${"error" in e ? e.error : "unknown error"}`;
+                MainView.Instance.dictationSuccess = false;
+            } finally {
+                MainView.Instance.initiateDictationFade();
             }
             return results;
         };
 
         const listenImpl = (options?: Partial<ListeningOptions>) => {
             if (isListening) {
-                return undefined;
+                return infringe;
             }
             isListening = true;
 
@@ -126,6 +141,7 @@ export namespace DictationManager {
                     } else {
                         resolve(current);
                     }
+                    current = undefined;
                     reset();
                 };
 

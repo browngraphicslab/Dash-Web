@@ -38,6 +38,7 @@ import "./DocumentView.scss";
 import { FormattedTextBox } from './FormattedTextBox';
 import React = require("react");
 import { DictationManager } from '../../util/DictationManager';
+import { MainView } from '../MainView';
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(fa.faTrash);
@@ -536,9 +537,18 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     listen = async () => {
-        let options = { continuous: { indefinite: true }, delimiter: " " };
-        let transcript = await DictationManager.Controls.listen(options);
-        transcript && (Doc.GetProto(this.props.Document).transcript = transcript);
+        let dataDoc = Doc.GetProto(this.props.Document);
+        let options = {
+            continuous: { indefinite: true },
+            delimiter: " ",
+            interimHandler: (results: string) => {
+                MainView.Instance.isListening = false;
+                MainView.Instance.dictationSuccess = true;
+                MainView.Instance.dictatedPhrase = results;
+            }
+        };
+        let final = await DictationManager.Controls.listen(options);
+        final && (dataDoc.transcript = final);
     }
 
     @action

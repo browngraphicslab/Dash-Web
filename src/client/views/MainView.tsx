@@ -1,7 +1,7 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
 import { faArrowDown, faCloudUploadAlt, faArrowUp, faClone, faCheck, faPlay, faPause, faCaretUp, faLongArrowAltRight, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faPortrait, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faThumbtack, faTree, faUndoAlt, faCat, faBolt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, configure, observable, runInAction, reaction, trace } from 'mobx';
+import { action, computed, configure, observable, runInAction, reaction, trace, autorun } from 'mobx';
 import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
@@ -166,6 +166,8 @@ export class MainView extends React.Component {
                 }
             }
         }
+
+        autorun(() => console.log(`this.isListening = ${this.isListening}`));
 
         library.add(faFont);
         library.add(faExclamation);
@@ -523,7 +525,7 @@ export class MainView extends React.Component {
     render() {
         let display = this.dictationOverlayVisible;
         let success = this.dictationSuccess;
-        let result = this.isListening ? "Listening..." : `"${this.dictatedPhrase}"`;
+        let result = this.isListening ? DictationManager.placeholder : `"${this.dictatedPhrase}"`;
         return (
             <div id="main-div">
                 <div
@@ -536,7 +538,10 @@ export class MainView extends React.Component {
                 >{result}</div>
                 <div
                     className={"dictation-prompt-overlay"}
-                    style={{ opacity: display ? 0.4 : 0 }}
+                    style={{
+                        opacity: display ? 0.4 : 0,
+                        backgroundColor: this.isListening ? "red" : "darkslategrey"
+                    }}
                 />
                 <DocumentDecorations />
                 {this.mainContent}

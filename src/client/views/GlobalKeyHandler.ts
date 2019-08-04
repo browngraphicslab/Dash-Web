@@ -73,9 +73,11 @@ export default class KeyManager {
                 SelectionManager.DeselectAll();
                 DictationManager.Controls.stop();
                 if (main.dictationOverlayVisible) {
-                    main.dictationOverlayVisible = false;
-                    main.dictationSuccess = undefined;
                     main.cancelDictationFade();
+                    main.dictationOverlayVisible = false;
+                    main.isListening = true;
+                    main.dictatedPhrase = "";
+                    main.dictationSuccess = undefined;
                 }
                 break;
             case "delete":
@@ -110,22 +112,7 @@ export default class KeyManager {
 
         switch (keyname) {
             case " ":
-                let main = MainView.Instance;
-                main.dictationOverlayVisible = true;
-
-                main.isListening = true;
-                // let printer = (results: any) => console.log(results);
-                let command = await DictationManager.Controls.listen();
-                main.isListening = false;
-
-                if (!command) {
-                    break;
-                }
-
-                main.dictatedPhrase = command = command.toLowerCase();
-                main.dictationSuccess = await DictationManager.Commands.execute(command);
-                main.initiateDictationFade();
-
+                DictationManager.Controls.listen({ tryExecute: true });
                 stopPropagation = true;
                 preventDefault = true;
         }
