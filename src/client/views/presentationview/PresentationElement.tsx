@@ -9,7 +9,7 @@ import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { Utils, returnFalse, emptyFunction, returnOne } from "../../../Utils";
+import { Utils, returnFalse, emptyFunction, returnOne, returnEmptyString } from "../../../Utils";
 import { DragManager, dropActionType, SetupDrag } from "../../util/DragManager";
 import { SelectionManager } from "../../util/SelectionManager";
 import { ContextMenu } from "../ContextMenu";
@@ -843,6 +843,7 @@ export default class PresentationElement extends React.Component<PresentationEle
                     PanelWidth={() => 350}
                     PanelHeight={() => 90}
                     focus={emptyFunction}
+                    backgroundColor={returnEmptyString}
                     selectOnLoad={false}
                     parentActive={returnFalse}
                     whenActiveChanged={returnFalse}

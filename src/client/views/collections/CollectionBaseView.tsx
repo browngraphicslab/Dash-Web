@@ -165,7 +165,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
             <div id="collectionBaseView"
                 style={{
                     pointerEvents: this.props.Document.isBackground ? "none" : "all",
-                    boxShadow: `#9c9396 ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}`
+                    boxShadow: this.props.Document.isBackground ? undefined : `#9c9396 ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}`
                 }}
                 className={this.props.className || "collectionView-cont"}
                 onContextMenu={this.props.onContextMenu} ref={this.props.contentRef}>

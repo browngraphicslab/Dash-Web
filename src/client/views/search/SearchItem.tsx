@@ -7,7 +7,7 @@ import { observer } from "mobx-react";
 import { Doc, DocListCast, HeightSym, WidthSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { emptyFunction, returnFalse, returnOne, Utils } from "../../../Utils";
+import { emptyFunction, returnFalse, returnOne, Utils, returnEmptyString } from "../../../Utils";
 import { DocumentType } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
 import { SetupDrag, DragManager } from "../../util/DragManager";
@@ -223,6 +223,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
                     PanelWidth={returnXDimension}
                     PanelHeight={returnYDimension}
                     focus={emptyFunction}
+                    backgroundColor={returnEmptyString}
                     selectOnLoad={false}
                     parentActive={returnFalse}
                     whenActiveChanged={returnFalse}

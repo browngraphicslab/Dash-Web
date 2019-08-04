@@ -16,7 +16,7 @@ import './ButtonBox.scss';
 import { observer } from 'mobx-react';
 import { DocumentIconContainer } from './DocumentIcon';
 
-library.add(faEdit);
+library.add(faEdit as any);
 
 const ButtonSchema = createSchema({
     onClick: ScriptField,

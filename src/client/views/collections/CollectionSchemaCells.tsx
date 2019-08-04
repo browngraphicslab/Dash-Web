@@ -175,11 +175,11 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         };
         let onPointerEnter = (e: React.PointerEvent): void => {
             if (e.buttons === 1 && SelectionManager.GetIsDragging() && (type === "document" || type === undefined)) {
-                dragRef!.current!.className = "collectionSchemaView-cellContainer doc-drag-over";
+                dragRef.current!.className = "collectionSchemaView-cellContainer doc-drag-over";
             }
         };
         let onPointerLeave = (e: React.PointerEvent): void => {
-            dragRef!.current!.className = "collectionSchemaView-cellContainer";
+            dragRef.current!.className = "collectionSchemaView-cellContainer";
         };
 
         let contents: any = "incorrect type";

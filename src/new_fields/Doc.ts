@@ -12,7 +12,7 @@ import { scriptingGlobal } from "../client/util/Scripting";
 import { List } from "./List";
 import { DocumentType } from "../client/documents/Documents";
 import { ComputedField } from "./ScriptField";
-import { PrefetchProxy } from "./Proxy";
+import { PrefetchProxy, ProxyField } from "./Proxy";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -341,19 +341,24 @@ export namespace Doc {
         return fieldExt && doc[fieldKey + "_ext"] instanceof Doc ? doc[fieldKey + "_ext"] as Doc : doc;
     }
 
+    export function CreateDocumentExtensionForField(doc: Doc, fieldKey: string) {
+        let docExtensionForField = new Doc(doc[Id] + fieldKey, true);
+        docExtensionForField.title = fieldKey + ".ext";
+        docExtensionForField.extendsDoc = doc; // this is used by search to map field matches on the extension doc back to the document it extends.
+        docExtensionForField.type = DocumentType.EXTENSION;
+        let proto: Doc | undefined = doc;
+        while (proto && !Doc.IsPrototype(proto)) {
+            proto = proto.proto;
+        }
+        (proto ? proto : doc)[fieldKey + "_ext"] = new PrefetchProxy(docExtensionForField);
+        return docExtensionForField;
+    }
+
     export function UpdateDocumentExtensionForField(doc: Doc, fieldKey: string) {
         let docExtensionForField = doc[fieldKey + "_ext"] as Doc;
         if (docExtensionForField === undefined) {
             setTimeout(() => {
-                docExtensionForField = new Doc(doc[Id] + fieldKey, true);
-                docExtensionForField.title = fieldKey + ".ext";
-                docExtensionForField.extendsDoc = doc; // this is used by search to map field matches on the extension doc back to the document it extends.
-                docExtensionForField.type = DocumentType.EXTENSION;
-                let proto: Doc | undefined = doc;
-                while (proto && !Doc.IsPrototype(proto)) {
-                    proto = proto.proto;
-                }
-                (proto ? proto : doc)[fieldKey + "_ext"] = new PrefetchProxy(docExtensionForField);
+                CreateDocumentExtensionForField(doc, fieldKey);
             }, 0);
         } else if (doc instanceof Doc) { // backward compatibility -- add fields for docs that don't have them already
             docExtensionForField.extendsDoc === undefined && setTimeout(() => docExtensionForField.extendsDoc = doc, 0);
@@ -420,7 +425,7 @@ export namespace Doc {
     export function MakeCopy(doc: Doc, copyProto: boolean = false): Doc {
         const copy = new Doc;
         Object.keys(doc).forEach(key => {
-            const field = doc[key];
+            const field = ProxyField.WithoutProxy(() => doc[key]);
             if (key === "proto" && copyProto) {
                 if (field instanceof Doc) {
                     copy[key] = Doc.MakeCopy(field);
@@ -431,7 +436,7 @@ export namespace Doc {
                 } else if (field instanceof ObjectField) {
                     copy[key] = ObjectField.MakeCopy(field);
                 } else if (field instanceof Promise) {
-                    field.then(f => (copy[key] === undefined) && (copy[key] = f)); //TODO what should we do here?
+                    debugger; //This shouldn't happend...
                 } else {
                     copy[key] = field;
                 }
@@ -525,17 +530,14 @@ export namespace Doc {
     }
     export function UseDetailLayout(d: Doc) {
         runInAction(async () => {
-            let detailLayout1 = await PromiseValue(d.detailedLayout);
-            let detailLayout = await PromiseValue(d.detailedLayout);
+            let detailLayout = await d.detailedLayout;
             if (detailLayout) {
                 d.layout = detailLayout;
                 d.nativeWidth = d.nativeHeight = undefined;
                 if (detailLayout instanceof Doc) {
                     let delegDetailLayout = Doc.MakeDelegate(detailLayout);
                     d.layout = delegDetailLayout;
-                    let subDetailLayout1 = await PromiseValue(delegDetailLayout.detailedLayout);
-                    let subDetailLayout = await PromiseValue(delegDetailLayout.detailedLayout);
-                    delegDetailLayout.layout = subDetailLayout;
+                    delegDetailLayout.layout = await delegDetailLayout.detailedLayout;
                 }
             }
         });

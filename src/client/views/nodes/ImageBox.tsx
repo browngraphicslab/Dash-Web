@@ -1,42 +1,39 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faImage, faFileAudio, faPaintBrush, faAsterisk } from '@fortawesome/free-solid-svg-icons';
-import { action, observable, computed, runInAction } from 'mobx';
+import { faEye } from '@fortawesome/free-regular-svg-icons';
+import { faAsterisk, faFileAudio, faImage, faPaintBrush } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { action, computed, observable, runInAction } from 'mobx';
 import { observer } from "mobx-react";
 import Lightbox from 'react-image-lightbox';
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
-import { Doc, HeightSym, WidthSym, DocListCast } from '../../../new_fields/Doc';
+import { Doc, DocListCast, HeightSym, WidthSym } from '../../../new_fields/Doc';
 import { List } from '../../../new_fields/List';
 import { createSchema, listSpec, makeInterface } from '../../../new_fields/Schema';
-import { Cast, FieldValue, NumCast, StrCast, BoolCast } from '../../../new_fields/Types';
-import { ImageField, AudioField } from '../../../new_fields/URLField';
+import { ComputedField } from '../../../new_fields/ScriptField';
+import { BoolCast, Cast, FieldValue, NumCast, StrCast } from '../../../new_fields/Types';
+import { AudioField, ImageField } from '../../../new_fields/URLField';
+import { RouteStore } from '../../../server/RouteStore';
 import { Utils } from '../../../Utils';
+import { CognitiveServices, Confidence, Service, Tag } from '../../cognitive_services/CognitiveServices';
+import { Docs } from '../../documents/Documents';
 import { DragManager } from '../../util/DragManager';
+import { CompileScript } from '../../util/Scripting';
 import { undoBatch } from '../../util/UndoManager';
 import { ContextMenu } from "../../views/ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
 import { DocComponent } from '../DocComponent';
 import { InkingControl } from '../InkingControl';
 import { positionSchema } from './DocumentView';
+import FaceRectangles from './FaceRectangles';
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
 import React = require("react");
-import { RouteStore } from '../../../server/RouteStore';
-import { Docs, DocumentType } from '../../documents/Documents';
-import { DocServer } from '../../DocServer';
-import { Font } from '@react-pdf/renderer';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { CognitiveServices, Service, Tag, Confidence } from '../../cognitive_services/CognitiveServices';
-import FaceRectangles from './FaceRectangles';
-import { faEye } from '@fortawesome/free-regular-svg-icons';
-import { ComputedField } from '../../../new_fields/ScriptField';
-import { CompileScript } from '../../util/Scripting';
-import { thisExpression } from 'babel-types';
 var requestImageSize = require('../../util/request-image-size');
 var path = require('path');
 const { Howl } = require('howler');
 
 
-library.add(faImage, faEye, faPaintBrush);
+library.add(faImage, faEye as any, faPaintBrush);
 library.add(faFileAudio, faAsterisk);
 
 
@@ -321,14 +318,14 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     resize(srcpath: string, layoutdoc: Doc) {
         requestImageSize(srcpath)
             .then((size: any) => {
-                let aspect = size.height / size.width;
                 let rotation = NumCast(this.dataDoc.rotation) % 180;
-                if (rotation === 90 || rotation === 270) aspect = 1 / aspect;
-                if (Math.abs(NumCast(layoutdoc.height) - size.height) > 1 || Math.abs(NumCast(layoutdoc.width) - size.width) > 1) {
+                let realsize = rotation === 90 || rotation === 270 ? { height: size.width, width: size.height } : size;
+                let aspect = realsize.height / realsize.width;
+                if (Math.abs(NumCast(layoutdoc.height) - realsize.height) > 1 || Math.abs(NumCast(layoutdoc.width) - realsize.width) > 1) {
                     setTimeout(action(() => {
                         layoutdoc.height = layoutdoc[WidthSym]() * aspect;
-                        layoutdoc.nativeHeight = size.height;
-                        layoutdoc.nativeWidth = size.width;
+                        layoutdoc.nativeHeight = realsize.height;
+                        layoutdoc.nativeWidth = realsize.width;
                     }), 0);
                 }
             })

@@ -152,9 +152,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     }
 
     scrollTo(y: number) {
-        if (this._mainCont.current) {
-            this._mainCont.current.scrollTo({ top: Math.max(y - (this._mainCont.current!.offsetHeight / 2), 0), behavior: "auto" });
-        }
+        this._mainCont.current && this._mainCont.current.scrollTo({ top: Math.max(y - (this._mainCont.current.offsetHeight / 2), 0), behavior: "auto" });
     }
 
     settingsPanel() {

@@ -541,7 +541,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 if (fixedAspect && (!nwidth || !nheight)) {
                     proto.nativeWidth = nwidth = doc.width || 0;
                     proto.nativeHeight = nheight = doc.height || 0;
-                    proto.ignoreAspect = true;
                 }
                 if (nwidth > 0 && nheight > 0 && !BoolCast(proto.ignoreAspect)) {
                     if (Math.abs(dW) > Math.abs(dH)) {
