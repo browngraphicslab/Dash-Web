@@ -40,6 +40,7 @@ export namespace DictationManager {
 
     let isListening = false;
     let isManuallyStopped = false;
+    const results: string[] = [];
     const recognizer: SpeechRecognition = new webkitSpeechRecognition();
 
     export namespace Controls {
@@ -59,8 +60,8 @@ export namespace DictationManager {
             try {
                 results = await listenImpl(options);
             } catch (e) {
-                results = "Dication Error: ";
-                results += e instanceof SpeechRecognitionError ? e.error : "unknown error";
+                results = "Dictation Error: ";
+                results += "error" in e ? e.error : "unknown error";
             }
             return results;
         };
@@ -91,14 +92,16 @@ export namespace DictationManager {
 
                 recognizer.onresult = (e: SpeechRecognitionEvent) => {
                     newestResult = synthesize(e, delimiter);
+                    continuous && continuous.indefinite && results.push(newestResult);
                     handler && handler(newestResult);
                 };
 
                 recognizer.onend = (e: Event) => {
-                    if (continuous && continuous.indefinite && !isManuallyStopped) {
+                    let indefinite = continuous && continuous.indefinite;
+                    if (indefinite && !isManuallyStopped) {
                         recognizer.start();
                     } else {
-                        resolve(newestResult);
+                        resolve(indefinite ? newestResult : results.join(delimiter));
                         reset();
                     }
                 };
