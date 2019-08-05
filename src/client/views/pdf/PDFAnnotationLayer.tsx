@@ -1,5 +1,6 @@
 import React = require("react");
 import { observer } from "mobx-react";
+import "./PDFAnnotationLayer.scss";
 
 interface IAnnotationProps {
 
@@ -15,10 +16,6 @@ export class PDFAnnotationLayer extends React.Component {
     }
 
     render() {
-        return (
-            <div className="pdfAnnotationLayer-cont" style={{ width: "100%", height: "100%", position: "relative", top: "-200%" }} onPointerDown={this.onPointerDown}>
-
-            </div>
-        );
+        return <div className="pdfAnnotationLayer-cont" onPointerDown={this.onPointerDown} />;
     }
 }
