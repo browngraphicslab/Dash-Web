@@ -69,7 +69,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     ComputeContentBounds(boundsList: { x: number, y: number, width: number, height: number }[]) {
         let bounds = boundsList.reduce((bounds, b) => {
             var [sptX, sptY] = [b.x, b.y];
-            let [bptX, bptY] = [sptX + b.width, sptY + b.height];
+            let [bptX, bptY] = [sptX + NumCast(b.width, 1), sptY + NumCast(b.height, 1)];
             return {
                 x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
                 r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)
@@ -617,7 +617,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         ele: <CollectionFreeFormDocumentView key={doc[Id]}
                             x={script ? pos.x : undefined} y={script ? pos.y : undefined}
                             width={script ? pos.width : undefined} height={script ? pos.height : undefined} {...this.getChildDocumentViewProps(doc)} />,
-                        bounds: (pos.x !== undefined && pos.y !== undefined && pos.width !== undefined && pos.height !== undefined) ? { x: pos.x, y: pos.y, z: pos.z, width: pos.width, height: pos.height } : undefined
+                        bounds: (pos.x !== undefined && pos.y !== undefined) ? { x: pos.x, y: pos.y, z: pos.z, width: NumCast(pos.width), height: NumCast(pos.height) } : undefined
                     });
                 }
             }
