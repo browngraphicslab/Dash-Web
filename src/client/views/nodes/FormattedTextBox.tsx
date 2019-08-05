@@ -166,8 +166,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             if (this.extensionDoc) this.extensionDoc.text = state.doc.textBetween(0, state.doc.content.size, "\n\n");
             if (this.extensionDoc) this.extensionDoc.lastModified = new DateField(new Date(Date.now()));
             this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()));            
-            this.props.Document.stateData = JSON.stringify(state.toJSON());            
-            this.props.Document.dataDocTest = this.dataDoc[this.props.fieldKey]; 
             this._applyingChange = false;
             let title = StrCast(this.dataDoc.title);
             if (title && title.startsWith("-") && this._editorView && !this.Document.customTitle) {

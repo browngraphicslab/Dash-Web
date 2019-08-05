@@ -573,7 +573,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             addOverlay("arrangeScript", { x: 400, y: 500, width: 400, height: 300, title: "Layout Script" }, { doc: "Doc", index: "number", collection: "Doc", state: "any", docs: "Doc[]" }, "{x: number, y: number, width?: number, height?: number}");
         };
     }
-
+    private _timeline = <Timeline {...this.props}/>; 
+    se = () => {
+    }
     render() {
         const easing = () => this.props.Document.panTransformType === "Ease";
         Doc.UpdateDocumentExtensionForField(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey);

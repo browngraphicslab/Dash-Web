@@ -1,6 +1,6 @@
-
 import * as React from "react";
-
+import {observable, action, runInAction} from "mobx"; 
+import {observer} from "mobx-react"; 
 
 /**
  * TimelineMenu: 
@@ -27,8 +27,16 @@ import * as React from "react";
  *  - duration region 
  *  - 
  */
+
+@observer
 export class TimelineMenu extends React.Component {
     public static Instance:TimelineMenu; 
+
+    @observable private _opacity = 1; 
+    @observable private _x = 0; 
+    @observable private _y = 0; 
+    @observable private _type: "timeline" | "keyframe" | "region" | "" = ""; 
+
 
     constructor (props:Readonly<{}>){
         super(props); 

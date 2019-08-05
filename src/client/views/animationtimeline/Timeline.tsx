@@ -34,6 +34,9 @@ export interface FlyoutProps {
 
 @observer
 export class Timeline extends CollectionSubView(Document) {
+    static Instance:Timeline; 
+   
+
     private readonly DEFAULT_CONTAINER_HEIGHT: number = 300;
     private readonly DEFAULT_TICK_SPACING: number = 50;
     private readonly MIN_CONTAINER_HEIGHT: number = 205;

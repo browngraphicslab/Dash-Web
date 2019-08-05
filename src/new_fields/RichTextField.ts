@@ -15,6 +15,7 @@ export class RichTextField extends ObjectField {
         this.Data = data;
     }
 
+  
     [Copy]() {
         return new RichTextField(this.Data);
     }
