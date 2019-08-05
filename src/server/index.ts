@@ -45,11 +45,17 @@ import * as AdmZip from 'adm-zip';
 import * as YoutubeApi from './youtubeApi/youtubeApiSample.js';
 import { Response } from 'express-serve-static-core';
 import { DocComponent } from '../client/views/DocComponent';
+import { Recommender } from "./Recommender";
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const probe = require("probe-image-size");
 var SolrNode = require('solr-node');
 var shell = require('shelljs');
+
+let recommender = new Recommender();
+recommender.loadModel().then(() => {
+    recommender.testModel();
+});
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
 let youtubeApiKey: string;
