@@ -245,12 +245,14 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         let data = StrCast(this.dataDoc.title);
         console.log(data);
         let converter = (results: any) => {
+            let keyterms = new List<string>();
             results.documents.forEach((doc: any) => {
-                console.log(doc.keyPhrases);
+                let keyPhrases = doc.keyPhrases;
+                keyPhrases.map((kp: string) => keyterms.push(kp));
             });
-            return new Doc();
+            return keyterms;
         };
-        CognitiveServices.Text.Manager.analyzer(this.extensionDoc, ["key words", "key word strings"], data, converter);
+        CognitiveServices.Text.Manager.analyzer(this.extensionDoc, ["key words"], data, converter);
     }
 
     generateMetadata = (threshold: Confidence = Confidence.Excellent) => {

@@ -251,8 +251,9 @@ export namespace CognitiveServices {
             analyzer: async (target: Doc, keys: string[], data: string, converter: Converter) => {
                 let results = await ExecuteQuery<string, any>(Service.Text, Manager, data);
                 console.log(results);
-                converter(results);
+                let keyterms = converter(results);
                 //target[keys[0]] = Docs.Get.DocumentHierarchyFromJson(results, "Key Word Analysis");
+                target[keys[0]] = keyterms;
                 console.log("analyzed!");
                 return null;
             }
