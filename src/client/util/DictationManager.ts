@@ -11,6 +11,7 @@ import { listSpec } from "../../new_fields/Schema";
 import { AudioField, ImageField } from "../../new_fields/URLField";
 import { HistogramField } from "../northstar/dash-fields/HistogramField";
 import { MainView } from "../views/MainView";
+import { Clipboard } from "ts-clipboard";
 
 /**
  * This namespace provides a singleton instance of a manager that
@@ -78,6 +79,7 @@ export namespace DictationManager {
             try {
                 results = await listenImpl(options);
                 if (results) {
+                    Clipboard.copy(results);
                     main.isListening = false;
                     let execute = options && options.tryExecute;
                     main.dictatedPhrase = execute ? results.toLowerCase() : results;
@@ -250,7 +252,8 @@ export namespace DictationManager {
             [DocumentType.AUDIO, AudioField],
             [DocumentType.IMG, ImageField],
             [DocumentType.HIST, HistogramField],
-            [DocumentType.IMPORT, listSpec(Doc)]
+            [DocumentType.IMPORT, listSpec(Doc)],
+            [DocumentType.TEXT, "string"]
         ]);
 
         const tryCast = (view: DocumentView, type: DocumentType) => {
@@ -294,6 +297,13 @@ export namespace DictationManager {
                     let kvp = Docs.Create.KVPDocument(target.props.Document, { width: 300, height: 300 });
                     target.props.addDocTab(kvp, target.dataDoc, "onRight");
                 }
+            }],
+
+            ["promote", {
+                action: (target: DocumentView) => {
+                    console.log(target);
+                },
+                restrictTo: [DocumentType.TEXT]
             }]
 
         ]);
