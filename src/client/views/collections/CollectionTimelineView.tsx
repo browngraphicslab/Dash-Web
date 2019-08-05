@@ -180,10 +180,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         return markerUnit.element;
     }
 
-    componentDidMount() {
-        runInAction(() => this.countingfriend++);
-    }
-
 
     componentWillUnmount() {
         document.removeEventListener("keydown", (e) => this.onKeyPress_Selector(e));
@@ -272,24 +268,13 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @observable _visible: boolean = false;
     _commandExecuted = false;
 
-    @action
-    cleanupInteractions = (all: boolean = false) => {
-        if (all) {
-            document.removeEventListener("pointerup", this.onPointerUp, true);
-            document.removeEventListener("pointermove", this.onPointerMove_LeftBound, true);
-        }
-        this._visible = false;
-    }
 
 
     private markers: MarkerUnit[] = [];
 
-    @observable
-    private countingfriend = 0;
 
-    @computed
-    get markerrender() {
-        console.log(this.countingfriend);
+    @action
+    markerrender() {
         this.markers.forEach(element => {
             if (element.ref !== undefined) {
                 let oldstyle = element.ref!;
@@ -337,45 +322,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     //private observabletest: MarkerUnit[] = [];
     @action
     onPointerDown_Selector = (e: React.PointerEvent): void => {
-        if (e.ctrlKey) {
-
-            let leftval = (e.pageX - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98);
-            let ting: MarkerUnit = {
-                ref: undefined,
-                document: new Doc(),
-                element: <div ref={(el) => el ? ting.ref = el : null} id={"marker" + String(this.markers.length)} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, ting.ref, String(ting.document.annotation), ting)}
-                    style={{
-                        top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid" + this.selectedColor,
-                        width: "10px", height: "30px", backgroundColor: this.selectedColor, opacity: "0.25", position: "absolute", left: leftval
-                    }}>
-                </div>,
-                mapref: undefined,
-                map: (<div className="ugh" ref={(el) => el ? ting.mapref = el : null}
-                    style={{
-                        position: "absolute",
-                        background: this.selectedColor,
-                        zIndex: "1",
-                        top: this.previewHeight(this.selectedColor),
-                        left: ((((e.pageX - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98) / this.barref.current.clientWidth)) * (this.barwidth - this.xmovement2 - this.xmovement)) + this.xmovement,
-
-                        width: 10, border: "3px solid" + this.selectedColor
-                    }}></div>),
-            };
-
-            let d = ting.document;
-            d.initialLeft = (leftval / (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement))) + (this.xmovement);
-            d.initialWidth = (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement));
-            d.annotation = "Edit me!";
-            d.color = this.selectedColor;
-            this.markerDocs.push(d);
-            this.currentmarker = ting;
-
-
-
-
-        }
-
-
         if (e.altKey) {
             e.preventDefault;
             let leftval = (e.pageX - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98);
@@ -411,11 +357,11 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
 
             this.markers.push(ting);
+            //console.log(this.markers);
             this.currentmarker = ting;
 
             document.addEventListener("pointermove", this.onPointerMove_Selector, true);
             document.addEventListener("pointerup", this.onPointerUp_Selector, true);
-            this.countingfriend += 1;
         }
 
         else {
@@ -471,13 +417,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         return "80%";
     }
 
-
+    private refguy: HTMLDivElement | undefined;
 
     @action
     onPointerMove_Selector = (e: PointerEvent): void => {
-
-
-
         if (e.pageY > document.body.clientHeight * 0.61) {
             if (e.pageY < document.body.clientHeight * 0.79) {
                 this._lastY = e.pageY;
@@ -496,32 +439,25 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
 
         if (e.altKey) {
-            //let newX= this._lastX- document.body.clientWidth  + this.screenref.current!.clientWidth/0.98;
+            if (this.markers[this.markers.length - 1].ref) {
+                this.refguy = this.markers[this.markers.length - 1].ref;
+            }
             if (e.movementX >= 0) {
-                console.log(e.movementX);
-                let newX = parseInt(this.markers[this.markers.length - 1].ref.style.width);
-                let newX2 = parseInt(this.markers[this.markers.length - 1].mapref.style.width);
+                let newX = parseInt(this.refguy.style.width);
+                //let newX2 = parseInt(this.markers[this.markers.length - 1].mapref.style.width);
                 newX += e.movementX;
-                newX2 += e.movementX / (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement));
-
-                console.log(newX);
-                console.log(this.markers[this.markers.length - 1]);
-                this.markers[this.markers.length - 1].ref.style.width = String(newX);
-                this.markers[this.markers.length - 1].mapref.style.width = String(newX2);
+                //newX2 += e.movementX / (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement));
+                this.refguy.style.width = String(newX);
+                // this.markers[this.markers.length - 1].mapref.style.width = String(newX2);
+                //console.log(this.markers[this.markers.length - 1].ref.style.width);
 
             }
-            this.countingfriend++;
-            e.stopPropagation();
 
 
         }
 
-
-        else {
-            this.marqueeSelect();
-
-        }
         if (!e.altKey) {
+            this.marqueeSelect();
             if (!e.cancelBubble) {
                 if (Math.abs(this._lastX - this._downX) > Utils.DRAG_THRESHOLD ||
                     Math.abs(this._lastY - this._downY) > Utils.DRAG_THRESHOLD) {
@@ -546,8 +482,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 SelectionManager.DeselectAll(undefined);
             }
         }
-        this.cleanupInteractions(true);
-        this.countingfriend++;
+        this._visible = false;
         for (let i = 0; i < this.newselect.length; i++) {
             if (!this.selections.includes(this.newselect[i])) {
                 this.selections.push(this.newselect[i]);
@@ -977,11 +912,11 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @action
     onKeyPress_Selector = (e: React.KeyboardEvent) => {
         //make textbox and add it to this collection
-        //e.preventDefault();
+        e.preventDefault;
         if (e.altKey) {
             let min = 9999999;
             let max = -999999;
-
+            console.log("yeet sir")
             for (let i = 0; i < this.selections.length; i++) {
                 min = this.selections[i].getBoundingClientRect().left < min ? this.selections[i].getBoundingClientRect().left : min;
                 max = this.selections[i].getBoundingClientRect().right > max ? this.selections[i].getBoundingClientRect().right : max;
@@ -1010,30 +945,34 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
             d.initialWidth = (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement));
             d.annotation = "Edit me!";
+            d.color = this.selectedColor;
+
+            this.markerDocs.push(d);
 
 
 
 
-            this.currentmarker ? this.currentmarker.ref!.style.opacity = "0.25" : null;
-            this.currentmarker ? this.currentmarker.ref!.style.border = "0px solid black" : null;
+            // this.currentmarker.ref ? this.currentmarker.ref!.style.opacity = "0.25" : null;
+            // this.currentmarker.ref ? this.currentmarker.ref!.style.border = "0px solid black" : null;
             this.markers.push(ting);
-            this.currentmarker ? this.currentmarker.ref!.style.border = "0px" : null;
-            this.currentmarker = ting;
+            // this.currentmarker.ref ? this.currentmarker.ref!.style.border = "0px" : null;
+            // this.currentmarker = ting;
             d.color = this.selectedColor;
 
 
 
-            this.countingfriend++;
 
 
         }
-        this.countingfriend++;
         if (this.currentmarker !== undefined) {
             this.currentmarker.ref ? this.currentmarker.ref.style.border = "1px solid black" : null;
             this.currentmarker.ref ? this.currentcolor = this.currentmarker.ref.style.backgroundColor : null;
             this.currentmarker.ref ? this.currentmarker.ref.style.borderStyle = "dashed" : null;
         }
     }
+
+
+
 
 
     private getContainerTransform = (): Transform => this.props.ScreenToLocalTransform().translate(0, 0);
@@ -1126,7 +1065,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         );
     }
 
-
     documentpreview3(d: Doc) {
         return (
             <div>
@@ -1179,9 +1117,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         );
     }
 
-
-
-
     @observable
     private barwidth = (this.barref.current ? this.barref.current.clientWidth : (952));
 
@@ -1197,8 +1132,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     updateWidth() {
         this.barwidth = (this.barref.current ? this.barref.current.clientWidth : (952));
     }
-
-
 
     editMarkers = action((newValue: MarkerUnit[]) => {
         this.markers = newValue;
@@ -1286,7 +1219,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         selectedColor={this.selectedColor}
                         selectedColorSet={this.selectedColorSet}
                         barref={this.barref}
-                        barWidthSet={this.barwidthSet}>
+                        barwidthSet={this.barwidthSet}
+                        screenref={this.screenref}>
                     </BottomUI>
                     <Measure onResize={() => this.updateWidth()}>
                         {({ measureRef }) => <div ref={measureRef}> </div>}
@@ -1298,10 +1232,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         </div>}
                     </div>
                     <div style={{ top: "65%", position: "absolute", bottom: "25%" }}>{this.buttons.map(item => item.button)}{this.buttons.map(item => item.header)}</div>
-
-
-                    {this.markerrender}
-
+                    {this.markerrender()}
                 </div>
             </div >
         );
@@ -1359,9 +1290,6 @@ export class CollectionTimelinePreview extends React.Component<CollectionTimelin
         </div>);
     }
 }
-
-
-
 
 
 export class BottomUI extends React.Component<BottomUIProps> {
@@ -1474,8 +1402,6 @@ export class BottomUI extends React.Component<BottomUIProps> {
     @action
     onPointerDown_OnBar = (e: React.PointerEvent): void => {
         document.body.style.cursor = "grabbing";
-        //this.countingfriend++;
-
         document.addEventListener("pointermove", this.onPointerMove_OnBar);
         e.stopPropagation();
         e.preventDefault();
@@ -1486,17 +1412,24 @@ export class BottomUI extends React.Component<BottomUIProps> {
     onPointerMove_OnBar = (e: PointerEvent): void => {
         e.stopPropagation();
         e.preventDefault();
-        this.props.xmovement2Set(this.props.xmovement2 - e.movementX);
-        this.props.xmovementSet(this.props.xmovement + e.movementX);
 
+        let newx2 = this.props.xmovement2 - e.movementX;
+        let newx = this.props.xmovement + e.movementX;
 
-        if (this.props.xmovement2 < 0) {
+        if (newx2 < 0) {
             this.props.xmovement2Set(0);
+            this.props.xmovement2Set(0 - e.movementX);
+        }
+        else {
             this.props.xmovement2Set(this.props.xmovement2 - e.movementX);
         }
-        if (this.props.xmovement < 0) {
+        if (newx < 0) {
             this.props.xmovementSet(0);
-            this.props.xmovement2Set(this.props.xmovement2 + e.movementX);
+            this.props.xmovement2Set(newx2 + e.movementX);
+        }
+        else {
+            this.props.xmovementSet(this.props.xmovement + e.movementX);
+
         }
 
         document.addEventListener("pointerup", this.onPointerUp);
@@ -1548,8 +1481,6 @@ export class BottomUI extends React.Component<BottomUIProps> {
     @action
     onPointerDown_LeftBound = (e: React.PointerEvent): void => {
         document.addEventListener("pointermove", this.onPointerMove_LeftBound);
-        //this.countingfriend++;
-
         e.stopPropagation();
         e.preventDefault();
     }
@@ -1557,8 +1488,6 @@ export class BottomUI extends React.Component<BottomUIProps> {
     @action
     onPointerDown2_RightBound = (e: React.PointerEvent): void => {
         document.addEventListener("pointermove", this.onPointerMove_RightBound);
-        //this.countingfriend++;
-
         e.stopPropagation();
         e.preventDefault();
     }
@@ -1567,16 +1496,18 @@ export class BottomUI extends React.Component<BottomUIProps> {
 
     @action
     onPointerDown_OffBar = (e: React.PointerEvent): void => {
-        //this.countingfriend++;
-
         let temp = this.props.barwidth - this.props.xmovement2 - this.props.xmovement;
-        this.props.xmovementSet(e.pageX - document.body.clientWidth + this.props.screenref.current!.clientWidth / 0.98);
+        let newx = e.pageX - document.body.clientWidth + this.props.screenref.current!.clientWidth / 0.98;
+        this.props.xmovementSet(newx);
         if (this.props.xmovement < 0) {
             this.props.xmovementSet(0);
+            newx = 0;
         }
-        this.props.xmovement2Set(this.props.barwidth - temp - this.props.xmovement);
-        if (this.props.xmovement2 < 0) {
-            this.props.xmovementSet(this.props.xmovement + this.props.xmovement2);
+
+        let newx2 = this.props.barwidth - temp - newx;
+        this.props.xmovement2Set(newx2);
+        if (newx2 < 0) {
+            this.props.xmovementSet(newx + newx2);
             this.props.xmovement2Set(0);
         }
         e.stopPropagation();
@@ -1652,4 +1583,5 @@ export interface BottomUIProps {
     selectedColorSet: (color: string) => void;
     barref: React.RefObject<HTMLDivElement>;
     barwidthSet: (number: number) => void;
+    screenref: React.RefObject<HTMLDivElement>;
 }

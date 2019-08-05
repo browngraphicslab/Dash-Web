@@ -52,27 +52,27 @@ export let postSignup = (req: Request, res: Response, next: NextFunction) => {
     const email = req.body.email;
     const password = req.body.password;
 
-    const user = new User({
-        email,
-        password,
-        userDocumentId: Utils.GenerateGuid()
-    });
+    // const user = new User({
+    //     email,
+    //     password,
+    //     userDocumentId: Utils.GenerateGuid()
+    // });
 
-    User.findOne({ email }, (err, existingUser) => {
-        if (err) { return next(err); }
-        if (existingUser) {
-            return res.redirect(RouteStore.login);
-        }
-        user.save((err) => {
-            if (err) { return next(err); }
-            req.logIn(user, (err) => {
-                if (err) {
-                    return next(err);
-                }
-                res.redirect(RouteStore.home);
-            });
-        });
-    });
+    // User.findOne({ email }, (err, existingUser) => {
+    //     if (err) { return next(err); }
+    //     if (existingUser) {
+    //         return res.redirect(RouteStore.login);
+    //     }
+    //     user.save((err: any) => {
+    //         if (err) { return next(err); }
+    //         req.logIn(user, (err) => {
+    //             if (err) {
+    //                 return next(err);
+    //             }
+    //             res.redirect(RouteStore.home);
+    //         });
+    //     });
+    // });
 
 };
 

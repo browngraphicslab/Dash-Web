@@ -7,6 +7,10 @@
         {
             "type": "chrome",
             "request": "launch",
+            "runtimeArgs": [
+                "--enable-logging",
+                "--v=1"
+            ],
             "name": "Launch Chrome against localhost",
             "sourceMaps": true,
             "breakOnLoad": true,
@@ -25,6 +29,10 @@
         {
             "type": "chrome",
             "request": "launch",
+            "runtimeArgs": [
+                "--enable-logging",
+                "--v=1"
+            ],
             "name": "Launch Chrome against Dash server",
             "sourceMaps": true,
             "breakOnLoad": true,
@@ -38,7 +46,7 @@
             "protocol": "inspector",
             "port": 9229,
             "localRoot": "${workspaceFolder}",
-            "remoteRoot": "."
+            "remoteRoot": "${workspaceFolder}"
         },
         {
             "type": "node",
