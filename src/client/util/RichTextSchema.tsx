@@ -110,6 +110,33 @@ export const nodes: { [index: string]: NodeSpec } = {
         //     }
         // }]
     },
+
+    // TODO
+    checkbox: {
+        inline: true,
+        attrs: {
+            visibility: { default: false },
+            // text: { default: undefined },
+            // textslice: { default: undefined },
+            // textlen: { default: 0 }
+
+        },
+        group: "inline",
+        toDOM(node) {
+            const attrs = { style: `width: 40px` };
+            return ["span", { ...node.attrs, ...attrs }];
+        },
+        // parseDOM: [{
+        //     tag: "star", getAttrs(dom: any) {
+        //         return {
+        //             visibility: dom.getAttribute("visibility"),
+        //             oldtext: dom.getAttribute("oldtext"),
+        //             oldtextlen: dom.getAttribute("oldtextlen"),
+        //         }
+        //     }
+        // }]
+    },
+
     // :: NodeSpec An inline image (`<img>`) node. Supports `src`,
     // `alt`, and `href` attributes. The latter two default to the empty
     // string.
@@ -520,6 +547,49 @@ export class ImageResizeView {
 
         this._handle.style.display = "none";
     }
+}
+
+export class CheckboxView {
+    _view: any;
+    _collapsed: HTMLElement;
+
+    constructor(node: any, view: any, getPos: any) {
+        this._collapsed = document.createElement("span");
+        this._collapsed.textContent = node.attrs.visibility ? "⬛" : "⬜";
+        this._collapsed.style.position = "relative";
+        // this._collapsed.style.width = "80px";
+        this._collapsed.style.height = "20px";
+        let self = this;
+        this._view = view;
+        const js = node.toJSON;
+        node.toJSON = function () {
+
+            return js.apply(this, arguments);
+        };
+        this._collapsed.onpointerdown = function (e: any) {
+            console.log(node.attrs.visibility)
+            if (node.attrs.visibility) {
+                let y = getPos();
+                const attrs = { ...node.attrs };
+                attrs.visibility = !attrs.visibility;
+                view.dispatch(view.state.tr.setNodeMarkup(y, undefined, attrs));
+                self._collapsed.textContent = "⬜";
+            } else {
+                let y = getPos();
+                const attrs = { ...node.attrs };
+                attrs.visibility = !attrs.visibility;
+                console.log(attrs.visibility)
+                view.dispatch(view.state.tr.setNodeMarkup(y, undefined, attrs));
+                self._collapsed.textContent = "⬛";
+            }
+            e.preventDefault();
+            e.stopPropagation();
+            console.log(node.attrs.visibility)
+
+        };
+        (this as any).dom = this._collapsed;
+    }
+
 }
 
 export class SummarizedView {

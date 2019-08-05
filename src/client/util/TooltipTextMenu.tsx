@@ -177,6 +177,7 @@ export class TooltipTextMenu {
         this.listTypeToIcon = new Map();
         this.listTypeToIcon.set(schema.nodes.bullet_list, ":");
         this.listTypeToIcon.set(schema.nodes.ordered_list, "1)");
+        // this.listTypeToIcon.set(schema.nodes.checklist, "⬜");
         this.listTypes = Array.from(this.listTypeToIcon.keys());
 
         //custom tools
@@ -186,6 +187,7 @@ export class TooltipTextMenu {
         this.tooltip.appendChild(this._brushdom);
         this.tooltip.appendChild(this.createLink().render(this.view).dom);
         this.tooltip.appendChild(this.createStar().render(this.view).dom);
+        this.tooltip.appendChild(this.createCheckbox().render(this.view).dom)
 
         this.updateListItemDropdown(":", this.listTypeBtnDom);
 
@@ -439,6 +441,16 @@ export class TooltipTextMenu {
         return true;
     }
 
+    public static insertCheckbox(state: EditorState<any>, dispatch: any) {
+        let newNode = schema.nodes.checkbox.create({ visibility: false });
+        if (dispatch) {
+            //console.log(newNode.attrs.text.toString());
+            dispatch(state.tr.replaceSelectionWith(newNode));
+            wrapInList(nodeType)(state, dispatch);
+        }
+        return true;
+    }
+
     //will display a remove-list-type button if selection is in list, otherwise will show list type dropdown
     updateListItemDropdown(label: string, listTypeBtn: any) {
         //remove old btn
@@ -546,6 +558,20 @@ export class TooltipTextMenu {
             }
 
         });
+    }
+
+    createCheckbox() {
+        return new MenuItem({
+            title: "Checkbox",
+            label: "Checkbox",
+            icon: icons.code,
+            css: "color:white",
+            class: "checkbox",
+            execEvent: "",
+            run: (state, dispatch) => {
+                TooltipTextMenu.insertCheckbox(state, dispatch);
+            }
+        })
     }
 
     deleteLinkItem() {

@@ -8,7 +8,7 @@ import { keymap } from "prosemirror-keymap";
 import { Node as ProsNode } from "prosemirror-model";
 import { EditorState, Plugin, Transaction, Selection } from "prosemirror-state";
 import { NodeType, Slice, Node, Fragment } from 'prosemirror-model';
-import { EditorView } from "prosemirror-view";
+import { EditorView, NodeView } from "prosemirror-view";
 import { Doc, Opt, DocListCast } from "../../../new_fields/Doc";
 import { Id, Copy } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
@@ -21,7 +21,7 @@ import { DocumentManager } from '../../util/DocumentManager';
 import { DragManager } from "../../util/DragManager";
 import buildKeymap from "../../util/ProsemirrorExampleTransfer";
 import { inpRules } from "../../util/RichTextRules";
-import { ImageResizeView, schema, SummarizedView } from "../../util/RichTextSchema";
+import { ImageResizeView, schema, SummarizedView, CheckboxView } from "../../util/RichTextSchema";
 import { SelectionManager } from "../../util/SelectionManager";
 import { TooltipLinkingMenu } from "../../util/TooltipLinkingMenu";
 import { TooltipTextMenu } from "../../util/TooltipTextMenu";
@@ -38,6 +38,7 @@ import { For } from 'babel-types';
 import { DateField } from '../../../new_fields/DateField';
 import { Utils } from '../../../Utils';
 import { MainOverlayTextBox } from '../MainOverlayTextBox';
+import { CheckBox } from '../search/CheckBox';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight);
@@ -469,7 +470,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 dispatchTransaction: this.dispatchTransaction,
                 nodeViews: {
                     image(node, view, getPos) { return new ImageResizeView(node, view, getPos); },
-                    star(node, view, getPos) { return new SummarizedView(node, view, getPos); }
+                    star(node, view, getPos) { return new SummarizedView(node, view, getPos); },
+                    checkbox(node, view, getPos) { return new CheckboxView(node, view, getPos) as NodeView<any>; }
                 },
                 clipboardTextSerializer: this.clipboardTextSerializer,
                 handlePaste: this.handlePaste,
