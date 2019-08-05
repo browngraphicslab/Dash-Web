@@ -1,6 +1,6 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faEye } from "@fortawesome/free-regular-svg-icons";
-import { faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faPaintBrush, faTable, faUpload } from "@fortawesome/free-solid-svg-icons";
+import { faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faPaintBrush, faTable, faUpload, faChalkboard, faBraille } from "@fortawesome/free-solid-svg-icons";
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCastAsync, HeightSym, WidthSym } from "../../../../new_fields/Doc";
@@ -36,11 +36,9 @@ import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCurso
 import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
-import v5 = require("uuid/v5");
-import { setScheduler } from "bluebird";
 import { DocumentType, Docs } from "../../../documents/Documents";
 
-library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload);
+library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard);
 
 export const panZoomSchema = createSchema({
     panX: "number",
@@ -652,18 +650,24 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             icon: !this.fitToBox ? "expand-arrows-alt" : "compress-arrows-alt"
         });
         layoutItems.push({
+            description: "reset view", event: () => {
+                this.props.Document.panX = this.props.Document.panY = 0;
+                this.props.Document.scale = 1;
+            }, icon: "compress-arrows-alt"
+        });
+        layoutItems.push({
             description: `${this.props.Document.useClusters ? "Uncluster" : "Use Clusters"}`,
             event: async () => {
                 Docs.Prototypes.get(DocumentType.TEXT).defaultBackgroundColor = "#f1efeb"; // backward compatibility with databases that didn't have a default background color on prototypes
                 Docs.Prototypes.get(DocumentType.COL).defaultBackgroundColor = "white";
                 this.props.Document.useClusters = !this.props.Document.useClusters;
             },
-            icon: !this.props.Document.useClusters ? "expand-arrows-alt" : "compress-arrows-alt"
+            icon: !this.props.Document.useClusters ? "braille" : "braille"
         });
         layoutItems.push({
             description: `${this.props.Document.clusterOverridesDefaultBackground ? "Use Default Backgrounds" : "Clusters Override Defaults"}`,
             event: async () => this.props.Document.clusterOverridesDefaultBackground = !this.props.Document.clusterOverridesDefaultBackground,
-            icon: !this.props.Document.useClusters ? "expand-arrows-alt" : "compress-arrows-alt"
+            icon: !this.props.Document.useClusters ? "chalkboard" : "chalkboard"
         });
         layoutItems.push({
             description: "Arrange contents in grid",
