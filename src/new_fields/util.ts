@@ -58,7 +58,12 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
         if (permissions === Permissions.READ) {
             return true;
         }
-        if (!permissions || permissions !== Permissions.WRITE) {
+        else if (permissions === Permissions.ADDONLY) {
+            if (receiver[prop]) {
+                return true;
+            }
+        }
+        else if (permissions !== Permissions.WRITE) {
             throw new PermissionsError("Permission denied");
         }
     }

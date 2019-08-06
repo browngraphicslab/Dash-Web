@@ -624,9 +624,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                         const data = await Cast(notifDoc.data, listSpec(Doc));
                         const sharedDoc = Doc.MakeAlias(this.props.Document);
                         if (sharedDoc.proto) {
-                            sharedDoc.proto[SetAcls](userDocumentId, Permissions.READ);
+                            sharedDoc.proto[SetAcls](userDocumentId, Permissions.ADDONLY);
                         }
-                        sharedDoc[SetAcls](userDocumentId, Permissions.WRITE);
+                        sharedDoc[SetAcls](userDocumentId, Permissions.ADDONLY);
                         if (data) {
                             data.push(sharedDoc);
                         } else {
