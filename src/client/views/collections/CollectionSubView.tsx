@@ -1,13 +1,15 @@
 import { action, computed } from "mobx";
 import * as rp from 'request-promise';
 import CursorField from "../../../new_fields/CursorField";
-import { Doc, DocListCast, Opt } from "../../../new_fields/Doc";
+import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
-import { BoolCast, Cast, PromiseValue } from "../../../new_fields/Types";
+import { ScriptField } from "../../../new_fields/ScriptField";
+import { BoolCast, Cast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { RouteStore } from "../../../server/RouteStore";
+import { Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Docs, DocumentOptions, DocumentType } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
@@ -18,10 +20,7 @@ import { CollectionPDFView } from "./CollectionPDFView";
 import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
 import React = require("react");
-import { MainView } from "../MainView";
-import { Utils } from "../../../Utils";
 import { DocComponent } from "../DocComponent";
-import { ScriptField } from "../../../new_fields/ScriptField";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
@@ -36,7 +35,7 @@ export interface SubCollectionViewProps extends CollectionViewProps {
     CollectionView: CollectionView | CollectionPDFView | CollectionVideoView;
 }
 
-export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
+export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) { 
     class CollectionSubView extends DocComponent<SubCollectionViewProps, T>(schemaCtor) {
         private dropDisposer?: DragManager.DragDropDisposer;
         protected createDropTarget = (ele: HTMLDivElement) => {
@@ -64,6 +63,9 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     let res = script.run({ doc: d });
                     if (res.success) {
                         return res.result;
+                    }
+                    else {
+                        console.log(res.error);
                     }
                 });
             }
@@ -111,10 +113,12 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         @action
         protected drop(e: Event, de: DragManager.DropEvent): boolean {
             if (de.data instanceof DragManager.DocumentDragData) {
-                if (de.data.dropAction || de.data.userDropAction) {
-                    ["width", "height", "curPage"].map(key =>
-                        de.data.draggedDocuments.map((draggedDocument: Doc, i: number) =>
-                            PromiseValue(Cast(draggedDocument[key], "number")).then(f => f && (de.data.droppedDocuments[i][key] = f))));
+                if (de.mods === "AltKey" && de.data.draggedDocuments.length) {
+                    this.childDocs.map(doc =>
+                        Doc.ApplyTemplateTo(de.data.draggedDocuments[0], doc, undefined)
+                    );
+                    e.stopPropagation();
+                    return true;
                 }
                 let added = false;
                 if (de.data.dropAction || de.data.userDropAction) {

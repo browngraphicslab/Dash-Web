@@ -5,6 +5,7 @@ import { observable, action, runInAction, trace } from 'mobx';
 import { KeyValueBox } from './nodes/KeyValueBox';
 import { Doc, Field } from '../../new_fields/Doc';
 import * as Autosuggest from 'react-autosuggest';
+import { undoBatch } from '../util/UndoManager';
 
 export type DocLike = Doc | Doc[] | Promise<Doc> | Promise<Doc[]>;
 export interface MetadataEntryProps {
@@ -74,6 +75,7 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
         this.userModified = e.target.value.trim() !== "";
     }
 
+    @undoBatch
     @action
     onValueKeyDown = async (e: React.KeyboardEvent) => {
         if (e.key === "Enter") {

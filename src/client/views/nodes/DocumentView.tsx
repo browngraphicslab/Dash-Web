@@ -1,19 +1,24 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import * as fa from '@fortawesome/free-solid-svg-icons';
-import { action, computed, IReactionDisposer, reaction, trace, observable, runInAction } from "mobx";
+import { action, computed, IReactionDisposer, reaction, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, HeightSym, Opt, WidthSym, DocListCastAsync } from "../../../new_fields/Doc";
+import * as rp from "request-promise";
+import { Doc, DocListCast, DocListCastAsync, HeightSym, Opt, WidthSym } from "../../../new_fields/Doc";
+import { Copy, Id } from '../../../new_fields/FieldSymbols';
 import { List } from "../../../new_fields/List";
 import { ObjectField } from "../../../new_fields/ObjectField";
-import { createSchema, makeInterface, listSpec } from "../../../new_fields/Schema";
-import { BoolCast, Cast, FieldValue, StrCast, NumCast, PromiseValue } from "../../../new_fields/Types";
+import { createSchema, listSpec, makeInterface } from "../../../new_fields/Schema";
+import { BoolCast, Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
-import { emptyFunction, Utils, returnFalse, returnTrue } from "../../../Utils";
+import { RouteStore } from '../../../server/RouteStore';
+import { emptyFunction, returnTrue, Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
-import { Docs, DocUtils, DocumentType } from "../../documents/Documents";
+import { Docs, DocUtils } from "../../documents/Documents";
+import { ClientUtils } from '../../util/ClientUtils';
+import DictationManager from '../../util/DictationManager';
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager, dropActionType } from "../../util/DragManager";
-import { SearchUtil } from "../../util/SearchUtil";
+import { LinkManager } from '../../util/LinkManager';
 import { SelectionManager } from "../../util/SelectionManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
@@ -22,29 +27,22 @@ import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";
-import { DocComponent } from "../DocComponent";
-import { PresentationView } from "../presentationview/PresentationView";
-import { Template, Templates } from "./../Templates";
-import { DocumentContentsView } from "./DocumentContentsView";
-import * as rp from "request-promise";
-import "./DocumentView.scss";
-import React = require("react");
-import { Id, Copy } from '../../../new_fields/FieldSymbols';
 import { ContextMenuProps } from '../ContextMenuItem';
-import { list, object, createSimpleSchema } from 'serializr';
-import { LinkManager } from '../../util/LinkManager';
-import { RouteStore } from '../../../server/RouteStore';
-import { FormattedTextBox } from './FormattedTextBox';
-import { OverlayView } from '../OverlayView';
-import { ScriptingRepl } from '../ScriptingRepl';
-import { ClientUtils } from '../../util/ClientUtils';
+import { DocComponent } from "../DocComponent";
 import { EditableView } from '../EditableView';
-import { faHandPointer, faHandPointRight } from '@fortawesome/free-regular-svg-icons';
-import { DocumentDecorations } from '../DocumentDecorations';
+import { OverlayView } from '../OverlayView';
+import { PresentationView } from "../presentationview/PresentationView";
+import { ScriptingRepl } from '../ScriptingRepl';
+import { Template } from "./../Templates";
+import { DocumentContentsView } from "./DocumentContentsView";
+import "./DocumentView.scss";
+import { FormattedTextBox } from './FormattedTextBox';
+import React = require("react");
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(fa.faTrash);
 library.add(fa.faShare);
+library.add(fa.faDownload);
 library.add(fa.faExpandArrowsAlt);
 library.add(fa.faCompressArrowsAlt);
 library.add(fa.faLayerGroup);
@@ -62,7 +60,7 @@ library.add(fa.faCrosshairs);
 library.add(fa.faDesktop);
 library.add(fa.faUnlock);
 library.add(fa.faLock);
-library.add(fa.faLaptopCode, fa.faMale, fa.faCopy, fa.faHandPointRight, fa.faCompass, fa.faSnowflake);
+library.add(fa.faLaptopCode, fa.faMale, fa.faCopy, fa.faHandPointRight, fa.faCompass, fa.faSnowflake, fa.faMicrophone);
 
 // const linkSchema = createSchema({
 //     title: "string",
@@ -93,12 +91,14 @@ export interface DocumentViewProps {
     selectOnLoad: boolean;
     parentActive: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
-    bringToFront: (doc: Doc) => void;
+    bringToFront: (doc: Doc, sendToBack?: boolean) => void;
     addDocTab: (doc: Doc, dataDoc: Doc | undefined, where: string) => void;
     collapseToPoint?: (scrpt: number[], expandedDocs: Doc[] | undefined) => void;
     zoomToScale: (scale: number) => void;
+    backgroundColor: (doc: Doc) => string | undefined;
     getScale: () => number;
     animateBetweenIcon?: (iconPos: number[], startTime: number, maximizing: boolean) => void;
+    ChromeHeight?: () => number;
 }
 
 const schema = createSchema({
@@ -117,6 +117,7 @@ export const positionSchema = createSchema({
     height: "number",
     x: "number",
     y: "number",
+    z: "number",
 });
 
 export type PositionDocument = makeInterface<[typeof positionSchema]>;
@@ -439,7 +440,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             e.stopPropagation();
             let annotationDoc = de.data.annotationDocument;
             annotationDoc.linkedToDoc = true;
+            de.data.targetContext = this.props.ContainingCollectionView!.props.Document;
             let targetDoc = this.props.Document;
+            targetDoc.targetContext = de.data.targetContext;
             let annotations = await DocListCastAsync(annotationDoc.annotations);
             if (annotations) {
                 annotations.forEach(anno => {
@@ -448,7 +451,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }
             let pdfDoc = await Cast(annotationDoc.pdfDoc, Doc);
             if (pdfDoc) {
-                DocUtils.MakeLink(annotationDoc, targetDoc, undefined, `Annotation from ${StrCast(pdfDoc.title)}`, "", StrCast(pdfDoc.title));
+                DocUtils.MakeLink(annotationDoc, targetDoc, this.props.ContainingCollectionView!.props.Document, `Annotation from ${StrCast(pdfDoc.title)}`, "", StrCast(pdfDoc.title));
             }
         }
         if (de.data instanceof DragManager.LinkDragData) {
@@ -523,13 +526,19 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     @action
     makeBackground = (): void => {
-        this.props.Document.isBackground = true;
+        this.props.Document.isBackground = !this.props.Document.isBackground;
+        this.props.Document.isBackground && this.props.bringToFront(this.props.Document, true);
     }
 
     @undoBatch
     @action
     toggleLockPosition = (): void => {
         this.props.Document.lockedPosition = BoolCast(this.props.Document.lockedPosition) ? undefined : true;
+    }
+
+    listen = async () => {
+        let transcript = await DictationManager.Instance.listen();
+        transcript && (Doc.GetProto(this.props.Document).transcript = transcript);
     }
 
     @action
@@ -555,8 +564,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         cm.addItem({ description: BoolCast(this.props.Document.ignoreAspect, false) || !this.props.Document.nativeWidth || !this.props.Document.nativeHeight ? "Freeze" : "Unfreeze", event: this.freezeNativeDimensions, icon: "snowflake" });
         cm.addItem({ description: "Pin to Presentation", event: () => PresentationView.Instance.PinDoc(this.props.Document), icon: "map-pin" });
         cm.addItem({ description: BoolCast(this.props.Document.lockedPosition) ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
+        cm.addItem({ description: "Transcribe Speech", event: this.listen, icon: "microphone" });
         let makes: ContextMenuProps[] = [];
-        makes.push({ description: "Make Background", event: this.makeBackground, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
+        makes.push({ description: this.props.Document.isBackground ? "Remove Background" : "Make Background", event: this.makeBackground, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
         makes.push({ description: this.props.Document.isButton ? "Remove Button" : "Make Button", event: this.makeBtnClicked, icon: "concierge-bell" });
         makes.push({
             description: "Make Portal", event: () => {
@@ -573,12 +583,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }, icon: "window-restore"
         });
         cm.addItem({ description: "Make...", subitems: makes, icon: "hand-point-right" });
-        // cm.addItem({
-        //     description: "Find aliases", event: async () => {
-        //         const aliases = await SearchUtil.GetAliasesOfDocument(this.props.Document);
-        //         this.props.addDocTab && this.props.addDocTab(Docs.Create.SchemaDocument(["title"], aliases, {}), undefined, "onRight"); // bcz: dataDoc?
-        //     }, icon: "search"
-        // });
         if (this.props.Document.detailedLayout && !this.props.Document.isTemplate) {
             cm.addItem({ description: "Toggle detail", event: () => Doc.ToggleDetailLayout(this.props.Document), icon: "image" });
         }
@@ -594,6 +598,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             copies.push({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "fingerprint" });
             cm.addItem({ description: "Copy...", subitems: copies, icon: "copy" });
         }
+        cm.addItem({
+            description: "Download document", icon: "download", event: () => {
+                const a = document.createElement("a");
+                const url = Utils.prepend(`/downloadId/${this.props.Document[Id]}`);
+                a.href = url;
+                a.download = `DocExport-${this.props.Document[Id]}.zip`;
+                a.click();
+            }
+        });
         cm.addItem({ description: "Delete", event: this.deleteClicked, icon: "trash" });
         type User = { email: string, userDocumentId: string };
         let usersMenu: ContextMenuProps[] = [];
@@ -644,6 +657,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get nativeHeight() { return this.Document.nativeHeight || 0; }
     @computed get contents() {
         return (<DocumentContentsView {...this.props}
+            ChromeHeight={this.chromeHeight}
             isSelected={this.isSelected} select={this.select}
             selectOnLoad={this.props.selectOnLoad}
             layoutKey={"layout"}
@@ -651,28 +665,33 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             DataDoc={this.dataDoc} />);
     }
 
+    chromeHeight = () => {
+        let showOverlays = this.props.showOverlays ? this.props.showOverlays(this.layoutDoc) : undefined;
+        let showTitle = showOverlays && "title" in showOverlays ? showOverlays.title : StrCast(this.layoutDoc.showTitle);
+        return showTitle ? 25 : 0;
+    }
+
     get layoutDoc() {
         // if this document's layout field contains a document (ie, a rendering template), then we will use that
         // to determine the render JSX string, otherwise the layout field should directly contain a JSX layout string.
         return this.props.Document.layout instanceof Doc ? this.props.Document.layout : this.props.Document;
     }
+
     render() {
-        if (this.Document.hidden) {
-            return null;
-        }
-        let self = this;
-        let backgroundColor = StrCast(this.layoutDoc.backgroundColor);
+        let backgroundColor = this.layoutDoc.isBackground || (this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document.clusterOverridesDefaultBackground && this.layoutDoc.backgroundColor === this.layoutDoc.defaultBackgroundColor) ?
+            this.props.backgroundColor(this.layoutDoc) || StrCast(this.layoutDoc.backgroundColor) :
+            StrCast(this.layoutDoc.backgroundColor) || this.props.backgroundColor(this.layoutDoc);
         let foregroundColor = StrCast(this.layoutDoc.color);
         var nativeWidth = this.nativeWidth > 0 && !BoolCast(this.props.Document.ignoreAspect) ? `${this.nativeWidth}px` : "100%";
         var nativeHeight = BoolCast(this.props.Document.ignoreAspect) ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
         let showOverlays = this.props.showOverlays ? this.props.showOverlays(this.layoutDoc) : undefined;
-        let showTitle = showOverlays && showOverlays.title !== "undefined" ? showOverlays.title : StrCast(this.layoutDoc.showTitle);
-        let showCaption = showOverlays && showOverlays.caption !== "undefined" ? showOverlays.caption : StrCast(this.layoutDoc.showCaption);
+        let showTitle = showOverlays && "title" in showOverlays ? showOverlays.title : StrCast(this.layoutDoc.showTitle);
+        let showCaption = showOverlays && "caption" in showOverlays ? showOverlays.caption : StrCast(this.layoutDoc.showCaption);
         let templates = Cast(this.layoutDoc.templates, listSpec("string"));
         if (!showOverlays && templates instanceof List) {
             templates.map(str => {
-                if (str.indexOf("{props.Document.title}") !== -1) showTitle = "title";
-                if (str.indexOf("fieldKey={\"caption\"}") !== -1) showCaption = "caption";
+                if (!showTitle && str.indexOf("{props.Document.title}") !== -1) showTitle = "title";
+                if (!showCaption && str.indexOf("fieldKey={\"caption\"}") !== -1) showCaption = "caption";
             });
         }
         let showTextTitle = showTitle && StrCast(this.layoutDoc.layout).startsWith("<FormattedTextBox") ? showTitle : undefined;
@@ -680,7 +699,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
                 style={{
-                    pointerEvents: this.layoutDoc.isBackground ? "none" : "all",
+                    pointerEvents: this.layoutDoc.isBackground && !this.isSelected() ? "none" : "all",
                     color: foregroundColor,
                     outlineColor: "maroon",
                     outlineStyle: "dashed",
@@ -716,11 +735,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                                 transformOrigin: "top left", transform: `scale(${1 / this.props.ContentScaling()})`
                             }}>
                                 <EditableView
-                                    contents={this.layoutDoc[showTitle]}
+                                    contents={(this.layoutDoc.isTemplate || !this.dataDoc ? this.layoutDoc : this.dataDoc)[showTitle]}
                                     display={"block"}
                                     height={72}
                                     fontSize={12}
-                                    GetValue={() => StrCast(this.layoutDoc[showTitle!])}
+                                    GetValue={() => StrCast((this.layoutDoc.isTemplate || !this.dataDoc ? this.layoutDoc : this.dataDoc)[showTitle!])}
                                     SetValue={(value: string) => (Doc.GetProto(this.layoutDoc)[showTitle!] = value) ? true : true}
                                 />
                             </div>

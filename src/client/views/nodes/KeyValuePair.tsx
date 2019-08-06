@@ -1,21 +1,19 @@
 import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
-import { emptyFunction, returnFalse, returnZero, returnTrue } from '../../../Utils';
-import { CompileScript, CompiledScript, ScriptOptions } from "../../util/Scripting";
+import { Doc, Field } from '../../../new_fields/Doc';
+import { emptyFunction, returnFalse, returnOne, returnZero } from '../../../Utils';
+import { Docs } from '../../documents/Documents';
 import { Transform } from '../../util/Transform';
+import { undoBatch } from '../../util/UndoManager';
+import { CollectionDockingView } from '../collections/CollectionDockingView';
+import { ContextMenu } from '../ContextMenu';
 import { EditableView } from "../EditableView";
 import { FieldView, FieldViewProps } from './FieldView';
+import { KeyValueBox } from './KeyValueBox';
 import "./KeyValueBox.scss";
 import "./KeyValuePair.scss";
 import React = require("react");
-import { Doc, Opt, Field } from '../../../new_fields/Doc';
-import { FieldValue } from '../../../new_fields/Types';
-import { KeyValueBox } from './KeyValueBox';
-import { DragManager, SetupDrag } from '../../util/DragManager';
-import { ContextMenu } from '../ContextMenu';
-import { Docs } from '../../documents/Documents';
-import { CollectionDockingView } from '../collections/CollectionDockingView';
 
 // Represents one row in a key value plane
 
@@ -70,6 +68,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             PanelWidth: returnZero,
             PanelHeight: returnZero,
             addDocTab: returnZero,
+            ContentScaling: returnOne
         };
         let contents = <FieldView {...props} />;
         // let fieldKey = Object.keys(props.Document).indexOf(props.fieldKey) !== -1 ? props.fieldKey : "(" + props.fieldKey + ")";
@@ -91,12 +90,12 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             <tr className={this.props.rowStyle} onPointerEnter={action(() => this.isPointerOver = true)} onPointerLeave={action(() => this.isPointerOver = false)}>
                 <td className="keyValuePair-td-key" style={{ width: `${this.props.keyWidth}%` }}>
                     <div className="keyValuePair-td-key-container">
-                        <button style={hover} className="keyValuePair-td-key-delete" onClick={() => {
+                        <button style={hover} className="keyValuePair-td-key-delete" onClick={undoBatch(() => {
                             if (Object.keys(props.Document).indexOf(props.fieldKey) !== -1) {
                                 props.Document[props.fieldKey] = undefined;
                             }
                             else props.Document.proto![props.fieldKey] = undefined;
-                        }}>
+                        })}>
                             X
                         </button>
                         <input

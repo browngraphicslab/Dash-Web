@@ -2,6 +2,7 @@ import * as React from "react";
 import { observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { PastelSchemaPalette } from "../../../new_fields/SchemaHeaderField";
+import { Doc } from "../../../new_fields/Doc";
 
 interface IKeyRestrictionProps {
     contains: boolean;
@@ -23,12 +24,16 @@ export default class KeyRestrictionRow extends React.Component<IKeyRestrictionPr
                 parsedValue = parsed;
                 type = "number";
             }
-            let scriptText = `${this._contains ? "" : "!"}((doc.${this._key} as ${type})${type === "string" ? ".includes" : "<="}(${parsedValue}))`;
+            let scriptText = `${this._contains ? "" : "!"}(((doc.${this._key} && (doc.${this._key} as ${type})${type === "string" ? ".includes" : "<="}(${parsedValue}))) ||
+                ((doc.data_ext && doc.data_ext.${this._key}) && (doc.data_ext.${this._key} as ${type})${type === "string" ? ".includes" : "<="}(${parsedValue}))))`;
+            // let doc = new Doc();
+            // ((doc.data_ext && doc.data_ext!.text) && (doc.data_ext!.text as string).includes("hello"));
             this.props.script(scriptText);
         }
         else {
             this.props.script("");
         }
+
         return (
             <div className="collectionViewBaseChrome-viewSpecsMenu-row">
                 <input className="collectionViewBaseChrome-viewSpecsMenu-rowLeft"
@@ -36,7 +41,7 @@ export default class KeyRestrictionRow extends React.Component<IKeyRestrictionPr
                     onChange={(e) => runInAction(() => this._key = e.target.value)}
                     placeholder="KEY" />
                 <button className="collectionViewBaseChrome-viewSpecsMenu-rowMiddle"
-                    style={{ background: PastelSchemaPalette.get(this._contains ? "green" : "red") }}
+                    style={{ background: this._contains ? "#77dd77" : "#ff6961" }}
                     onClick={() => runInAction(() => this._contains = !this._contains)}>
                     {this._contains ? "CONTAINS" : "DOES NOT CONTAIN"}
                 </button>

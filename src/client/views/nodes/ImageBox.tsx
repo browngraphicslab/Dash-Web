@@ -1,39 +1,39 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faImage, faFileAudio, faPaintBrush, faAsterisk } from '@fortawesome/free-solid-svg-icons';
-import { action, observable, computed, runInAction } from 'mobx';
+import { faEye } from '@fortawesome/free-regular-svg-icons';
+import { faAsterisk, faFileAudio, faImage, faPaintBrush } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { action, computed, observable, runInAction } from 'mobx';
 import { observer } from "mobx-react";
 import Lightbox from 'react-image-lightbox';
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
-import { Doc, HeightSym, WidthSym, DocListCast } from '../../../new_fields/Doc';
+import { Doc, DocListCast, HeightSym, WidthSym } from '../../../new_fields/Doc';
 import { List } from '../../../new_fields/List';
 import { createSchema, listSpec, makeInterface } from '../../../new_fields/Schema';
-import { Cast, FieldValue, NumCast, StrCast, BoolCast } from '../../../new_fields/Types';
-import { ImageField, AudioField } from '../../../new_fields/URLField';
+import { ComputedField } from '../../../new_fields/ScriptField';
+import { BoolCast, Cast, FieldValue, NumCast, StrCast } from '../../../new_fields/Types';
+import { AudioField, ImageField } from '../../../new_fields/URLField';
+import { RouteStore } from '../../../server/RouteStore';
 import { Utils } from '../../../Utils';
+import { CognitiveServices, Confidence, Service, Tag } from '../../cognitive_services/CognitiveServices';
+import { Docs } from '../../documents/Documents';
 import { DragManager } from '../../util/DragManager';
+import { CompileScript } from '../../util/Scripting';
 import { undoBatch } from '../../util/UndoManager';
 import { ContextMenu } from "../../views/ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
 import { DocComponent } from '../DocComponent';
 import { InkingControl } from '../InkingControl';
 import { positionSchema } from './DocumentView';
+import FaceRectangles from './FaceRectangles';
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
 import React = require("react");
-import { RouteStore } from '../../../server/RouteStore';
-import { Docs, DocumentType } from '../../documents/Documents';
-import { DocServer } from '../../DocServer';
-import { Font } from '@react-pdf/renderer';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { CognitiveServices } from '../../cognitive_services/CognitiveServices';
-import FaceRectangles from './FaceRectangles';
-import { faEye } from '@fortawesome/free-regular-svg-icons';
 var requestImageSize = require('../../util/request-image-size');
 var path = require('path');
 const { Howl } = require('howler');
 
 
-library.add(faImage, faEye, faPaintBrush);
+library.add(faImage, faEye as any, faPaintBrush);
 library.add(faFileAudio, faAsterisk);
 
 
@@ -65,7 +65,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     private dropDisposer?: DragManager.DragDropDisposer;
 
 
-    @computed get dataDoc() { return BoolCast(this.props.Document.isTemplate) && this.props.DataDoc ? this.props.DataDoc : this.props.Document; }
+    @computed get dataDoc() { return this.props.DataDoc && (BoolCast(this.props.Document.isTemplate) || BoolCast(this.props.DataDoc.isTemplate) || this.props.DataDoc.layout === this.props.Document) ? this.props.DataDoc : this.props.Document; }
 
 
     protected createDropTarget = (ele: HTMLDivElement) => {
@@ -90,13 +90,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         if (de.data instanceof DragManager.DocumentDragData) {
             de.data.droppedDocuments.forEach(action((drop: Doc) => {
                 if (de.mods === "CtrlKey") {
-                    let temp = Doc.MakeDelegate(drop);
-                    this.props.Document.nativeWidth = Doc.GetProto(this.props.Document).nativeWidth = undefined;
-                    this.props.Document.nativeHeight = Doc.GetProto(this.props.Document).nativeHeight = undefined;
-                    this.props.Document.width = drop.width;
-                    this.props.Document.height = drop.height;
-                    Doc.GetProto(this.props.Document).type = DocumentType.TEMPLATE;
-                    this.props.Document.layout = temp;
+                    Doc.ApplyTemplateTo(drop, this.props.Document, this.props.DataDoc);
                     e.stopPropagation();
                 } else if (de.mods === "AltKey" && /*this.dataDoc !== this.props.Document &&*/ drop.data instanceof ImageField) {
                     Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new ImageField(drop.data.url);
@@ -226,18 +220,54 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
             funcs.push({ description: "Rotate", event: this.rotate, icon: "expand-arrows-alt" });
 
             let modes: ContextMenuProps[] = [];
-            let dataDoc = Doc.GetProto(this.props.Document);
-            modes.push({ description: "Generate Tags", event: () => CognitiveServices.Image.generateMetadata(dataDoc), icon: "tag" });
-            modes.push({ description: "Find Faces", event: () => CognitiveServices.Image.extractFaces(dataDoc), icon: "camera" });
+            modes.push({ description: "Generate Tags", event: this.generateMetadata, icon: "tag" });
+            modes.push({ description: "Find Faces", event: this.extractFaces, icon: "camera" });
 
             ContextMenu.Instance.addItem({ description: "Image Funcs...", subitems: funcs, icon: "asterisk" });
             ContextMenu.Instance.addItem({ description: "Analyze...", subitems: modes, icon: "eye" });
         }
     }
 
+    extractFaces = () => {
+        let converter = (results: any) => {
+            let faceDocs = new List<Doc>();
+            results.map((face: CognitiveServices.Image.Face) => faceDocs.push(Docs.Get.DocumentHierarchyFromJson(face, `Face: ${face.faceId}`)!));
+            return faceDocs;
+        };
+        CognitiveServices.Image.Manager.analyzer(this.extensionDoc, ["faces"], this.url, Service.Face, converter);
+    }
+
+    generateMetadata = (threshold: Confidence = Confidence.Excellent) => {
+        let converter = (results: any) => {
+            let tagDoc = new Doc;
+            let tagsList = new List();
+            results.tags.map((tag: Tag) => {
+                tagsList.push(tag.name);
+                let sanitized = tag.name.replace(" ", "_");
+                let script = `return (${tag.confidence} >= this.confidence) ? ${tag.confidence} : "${ComputedField.undefined}"`;
+                let computed = CompileScript(script, { params: { this: "Doc" } });
+                computed.compiled && (tagDoc[sanitized] = new ComputedField(computed));
+            });
+            this.extensionDoc.generatedTags = tagsList;
+            tagDoc.title = "Generated Tags Doc";
+            tagDoc.confidence = threshold;
+            return tagDoc;
+        };
+        CognitiveServices.Image.Manager.analyzer(this.extensionDoc, ["generatedTagsDoc"], this.url, Service.ComputerVision, converter);
+    }
+
     @action
     onDotDown(index: number) {
         this.Document.curPage = index;
+    }
+
+    @computed get fieldExtensionDoc() {
+        return Doc.resolvedFieldDataDoc(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, "true");
+    }
+
+    @computed private get url() {
+        let data = Cast(Doc.GetProto(this.props.Document).data, ImageField);
+        return data ? data.url.href : undefined;
     }
 
     dots(paths: string[]) {
@@ -284,14 +314,14 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     resize(srcpath: string, layoutdoc: Doc) {
         requestImageSize(srcpath)
             .then((size: any) => {
-                let aspect = size.height / size.width;
                 let rotation = NumCast(this.dataDoc.rotation) % 180;
-                if (rotation === 90 || rotation === 270) aspect = 1 / aspect;
-                if (Math.abs(layoutdoc[HeightSym]() / layoutdoc[WidthSym]() - aspect) > 0.01) {
+                let realsize = rotation === 90 || rotation === 270 ? { height: size.width, width: size.height } : size;
+                let aspect = realsize.height / realsize.width;
+                if (Math.abs(NumCast(layoutdoc.height) - realsize.height) > 1 || Math.abs(NumCast(layoutdoc.width) - realsize.width) > 1) {
                     setTimeout(action(() => {
                         layoutdoc.height = layoutdoc[WidthSym]() * aspect;
-                        layoutdoc.nativeHeight = size.height;
-                        layoutdoc.nativeWidth = size.width;
+                        layoutdoc.nativeHeight = realsize.height;
+                        layoutdoc.nativeWidth = realsize.width;
                     }), 0);
                 }
             })
@@ -394,7 +424,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                         style={{ color: [DocListCast(this.extensionDoc.audioAnnotations).length ? "blue" : "gray", "green", "red"][this._audioState] }} icon={faFileAudio} size="sm" />
                 </div>
                 {/* {this.lightbox(paths)} */}
-                <FaceRectangles document={this.props.Document} color={"#0000FF"} backgroundColor={"#0000FF"} />
+                <FaceRectangles document={this.extensionDoc} color={"#0000FF"} backgroundColor={"#0000FF"} />
             </div>);
     }
 }

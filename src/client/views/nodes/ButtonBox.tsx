@@ -16,7 +16,7 @@ import './ButtonBox.scss';
 import { observer } from 'mobx-react';
 import { DocumentIconContainer } from './DocumentIcon';
 
-library.add(faEdit);
+library.add(faEdit as any);
 
 const ButtonSchema = createSchema({
     onClick: ScriptField,
@@ -70,7 +70,7 @@ export class ButtonBox extends DocComponent<FieldViewProps, ButtonDocument>(Butt
     render() {
         return (
             <div className="buttonBox-outerDiv" onContextMenu={this.onContextMenu}>
-                <button className="buttonBox-mainButton" onClick={this.onClick}>{this.Document.text || "Button"}</button>
+                <button className="buttonBox-mainButton" onClick={this.onClick}>{this.Document.text || this.Document.title || "Button"}</button>
             </div>
         );
     }

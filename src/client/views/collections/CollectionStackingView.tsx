@@ -1,25 +1,25 @@
 import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, IReactionDisposer, reaction, untracked, observable, runInAction } from "mobx";
+import { CursorProperty } from "csstype";
+import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, HeightSym, WidthSym, DocListCast } from "../../../new_fields/Doc";
+import Switch from 'rc-switch';
+import { Doc, HeightSym, WidthSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
-import { BoolCast, NumCast, Cast, StrCast } from "../../../new_fields/Types";
-import { emptyFunction, Utils, returnTrue } from "../../../Utils";
+import { List } from "../../../new_fields/List";
+import { listSpec } from "../../../new_fields/Schema";
+import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
+import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { emptyFunction } from "../../../Utils";
+import { DocumentType } from "../../documents/Documents";
+import { DragManager } from "../../util/DragManager";
+import { Transform } from "../../util/Transform";
+import { undoBatch } from "../../util/UndoManager";
+import { EditableView } from "../EditableView";
 import { CollectionSchemaPreview } from "./CollectionSchemaView";
 import "./CollectionStackingView.scss";
-import { CollectionSubView, SubCollectionViewProps } from "./CollectionSubView";
-import { undoBatch } from "../../util/UndoManager";
-import { DragManager } from "../../util/DragManager";
-import { DocumentType } from "../../documents/Documents";
-import { Transform } from "../../util/Transform";
-import { CursorProperty } from "csstype";
 import { CollectionStackingViewFieldColumn } from "./CollectionStackingViewFieldColumn";
-import { listSpec } from "../../../new_fields/Schema";
-import { SchemaHeaderField, RandomPastel } from "../../../new_fields/SchemaHeaderField";
-import { List } from "../../../new_fields/List";
-import { EditableView } from "../EditableView";
-import { CollectionViewProps } from "./CollectionBaseView";
+import { CollectionSubView } from "./CollectionSubView";
 
 @observer
 export class CollectionStackingView extends CollectionSubView(doc => doc) {
@@ -31,13 +31,13 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     _columnStart: number = 0;
     @observable private cursor: CursorProperty = "grab";
     get sectionHeaders() { return Cast(this.props.Document.sectionHeaders, listSpec(SchemaHeaderField)); }
-    @computed get chromeCollapsed() { return this.props.chromeCollapsed; }
     @computed get xMargin() { return NumCast(this.props.Document.xMargin, 2 * this.gridGap); }
     @computed get yMargin() { return NumCast(this.props.Document.yMargin, 2 * this.gridGap); }
     @computed get gridGap() { return NumCast(this.props.Document.gridGap, 10); }
     @computed get singleColumn() { return BoolCast(this.props.Document.singleColumn, true); }
     @computed get columnWidth() { return this.singleColumn ? (this.props.PanelWidth() / (this.props as any).ContentScaling() - 2 * this.xMargin) : Math.min(this.props.PanelWidth() - 2 * this.xMargin, NumCast(this.props.Document.columnWidth, 250)); }
     @computed get filteredChildren() { return this.childDocs.filter(d => !d.isMinimized); }
+    @computed get sectionFilter() { return this.singleColumn ? StrCast(this.props.Document.sectionFilter) : ""; }
 
     get layoutDoc() {
         // if this document's layout field contains a document (ie, a rendering template), then we will use that
@@ -45,35 +45,32 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         return this.props.Document.layout instanceof Doc ? this.props.Document.layout : this.props.Document;
     }
 
-    get Sections() {
-        let sectionFilter = StrCast(this.props.Document.sectionFilter);
-        let sectionHeaders = this.sectionHeaders;
-        if (!sectionHeaders) {
-            this.props.Document.sectionHeaders = sectionHeaders = new List();
-        }
-        let fields = new Map<SchemaHeaderField, Doc[]>(sectionHeaders.map(sh => [sh, []]));
-        if (sectionFilter) {
-            this.filteredChildren.map(d => {
-                let sectionValue = (d[sectionFilter] ? d[sectionFilter] : `NO ${sectionFilter.toUpperCase()} VALUE`) as object;
-                // the next five lines ensures that floating point rounding errors don't create more than one section -syip
-                let parsed = parseInt(sectionValue.toString());
-                let castedSectionValue: any = sectionValue;
-                if (!isNaN(parsed)) {
-                    castedSectionValue = parsed;
-                }
 
-                // look for if header exists already
-                let existingHeader = sectionHeaders!.find(sh => sh.heading === (castedSectionValue ? castedSectionValue.toString() : `NO ${sectionFilter.toUpperCase()} VALUE`));
-                if (existingHeader) {
-                    fields.get(existingHeader)!.push(d);
-                }
-                else {
-                    let newSchemaHeader = new SchemaHeaderField(castedSectionValue ? castedSectionValue.toString() : `NO ${sectionFilter.toUpperCase()} VALUE`);
-                    fields.set(newSchemaHeader, [d]);
-                    sectionHeaders!.push(newSchemaHeader);
-                }
-            });
+    get Sections() {
+        if (!this.sectionFilter) return new Map<SchemaHeaderField, Doc[]>();
+
+        if (this.sectionHeaders === undefined) {
+            this.props.Document.sectionHeaders = new List<SchemaHeaderField>();
         }
+        const sectionHeaders = this.sectionHeaders!;
+        let fields = new Map<SchemaHeaderField, Doc[]>(sectionHeaders.map(sh => [sh, []] as [SchemaHeaderField, []]));
+        this.filteredChildren.map(d => {
+            let sectionValue = (d[this.sectionFilter] ? d[this.sectionFilter] : `NO ${this.sectionFilter.toUpperCase()} VALUE`) as object;
+            // the next five lines ensures that floating point rounding errors don't create more than one section -syip
+            let parsed = parseInt(sectionValue.toString());
+            let castedSectionValue = !isNaN(parsed) ? parsed : sectionValue;
+
+            // look for if header exists already
+            let existingHeader = sectionHeaders.find(sh => sh.heading === (castedSectionValue ? castedSectionValue.toString() : `NO ${this.sectionFilter.toUpperCase()} VALUE`));
+            if (existingHeader) {
+                fields.get(existingHeader)!.push(d);
+            }
+            else {
+                let newSchemaHeader = new SchemaHeaderField(castedSectionValue ? castedSectionValue.toString() : `NO ${this.sectionFilter.toUpperCase()} VALUE`);
+                fields.set(newSchemaHeader, [d]);
+                sectionHeaders.push(newSchemaHeader);
+            }
+        });
         return fields;
     }
 
@@ -93,10 +90,8 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
 
         // reset section headers when a new filter is inputted
         this._sectionFilterDisposer = reaction(
-            () => StrCast(this.props.Document.sectionFilter),
-            () => {
-                this.props.Document.sectionHeaders = new List();
-            }
+            () => this.sectionFilter,
+            () => this.props.Document.sectionHeaders = new List()
         );
     }
     componentWillUnmount() {
@@ -183,8 +178,8 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     @undoBatch
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
-        let targInd = -1;
         let where = [de.x, de.y];
+        let targInd = -1;
         if (de.data instanceof DragManager.DocumentDragData) {
             this._docXfs.map((cd, i) => {
                 let pos = cd.dxf().inverse().transformPoint(-2 * this.gridGap, -2 * this.gridGap);
@@ -230,8 +225,9 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             }
         });
     }
+    headings = () => Array.from(this.Sections.keys());
     section = (heading: SchemaHeaderField | undefined, docList: Doc[]) => {
-        let key = StrCast(this.props.Document.sectionFilter);
+        let key = this.sectionFilter;
         let type: "string" | "number" | "bigint" | "boolean" | "symbol" | "undefined" | "object" | "function" | undefined = undefined;
         let types = docList.length ? docList.map(d => typeof d[key]) : this.childDocs.map(d => typeof d[key]);
         if (types.map((i, idx) => types.indexOf(i) === idx).length === 1) {
@@ -242,22 +238,22 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         return <CollectionStackingViewFieldColumn
             key={heading ? heading.heading : ""}
             cols={cols}
-            headings={() => Array.from(this.Sections.keys())}
+            headings={this.headings}
             heading={heading ? heading.heading : ""}
             headingObject={heading}
             docList={docList}
             parent={this}
             type={type}
-            createDropTarget={this.createDropTarget} />;
+            createDropTarget={this.createDropTarget}
+            screenToLocalTransform={this.props.ScreenToLocalTransform}
+        />;
     }
 
     @action
     addGroup = (value: string) => {
-        if (value) {
-            if (this.sectionHeaders) {
-                this.sectionHeaders.push(new SchemaHeaderField(value));
-                return true;
-            }
+        if (value && this.sectionHeaders) {
+            this.sectionHeaders.push(new SchemaHeaderField(value));
+            return true;
         }
         return false;
     }
@@ -269,6 +265,10 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         return firstEntry[0].heading > secondEntry[0].heading ? 1 : -1;
     }
 
+    onToggle = (checked: Boolean) => {
+        this.props.CollectionView.props.Document.chromeSatus = checked ? "collapsed" : "view-mode";
+    }
+
     render() {
         let headings = Array.from(this.Sections.keys());
         let editableViewProps = {
@@ -276,22 +276,27 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             SetValue: this.addGroup,
             contents: "+ ADD A GROUP"
         };
+        Doc.UpdateDocumentExtensionForField(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey);
+
         // let uniqueHeadings = headings.map((i, idx) => headings.indexOf(i) === idx);
         return (
-            <div className="collectionStackingView" style={{ top: this.chromeCollapsed ? 0 : 100 }}
+            <div className="collectionStackingView"
                 ref={this.createRef} onDrop={this.onDrop.bind(this)} onWheel={(e: React.WheelEvent) => e.stopPropagation()} >
-                {/* {sectionFilter as boolean ? [
-                    ["width > height", this.filteredChildren.filter(f => f[WidthSym]() >= 1 + f[HeightSym]())],
-                    ["width = height", this.filteredChildren.filter(f => Math.abs(f[WidthSym]() - f[HeightSym]()) < 1)],
-                    ["height > width", this.filteredChildren.filter(f => f[WidthSym]() + 1 <= f[HeightSym]())]]. */}
-                {this.props.Document.sectionFilter ? Array.from(this.Sections.entries()).sort(this.sortFunc).
-                    map(section => this.section(section[0], section[1])) :
+                {this.sectionFilter ? Array.from(this.Sections.entries()).sort(this.sortFunc).
+                    map((section: [SchemaHeaderField, Doc[]]) => this.section(section[0], section[1])) :
                     this.section(undefined, this.filteredChildren)}
-                {this.props.Document.sectionFilter ?
+                {(this.sectionFilter && (this.props.CollectionView.props.Document.chromeStatus !== 'view-mode' && this.props.CollectionView.props.Document.chromeStatus !== 'disabled')) ?
                     <div key={`${this.props.Document[Id]}-addGroup`} className="collectionStackingView-addGroupButton"
-                        style={{ width: (this.columnWidth / (headings.length + 1)) - 10, marginTop: 10 }}>
+                        style={{ width: (this.columnWidth / (headings.length + ((this.props.CollectionView.props.Document.chromeStatus !== 'view-mode' && this.props.CollectionView.props.Document.chromeStatus !== 'disabled') ? 1 : 0))) - 10, marginTop: 10 }}>
                         <EditableView {...editableViewProps} />
                     </div> : null}
+                {this.props.CollectionView.props.Document.chromeStatus !== 'disabled' ? <Switch
+                    onChange={this.onToggle}
+                    onClick={this.onToggle}
+                    defaultChecked={this.props.CollectionView.props.Document.chromeStatus !== 'view-mode'}
+                    checkedChildren="edit"
+                    unCheckedChildren="view"
+                /> : null}
             </div>
         );
     }

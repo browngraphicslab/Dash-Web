@@ -296,19 +296,19 @@ export class Viewer extends React.Component<IViewerProps> {
     }
 
     drop = async (e: Event, de: DragManager.DropEvent) => {
-        if (de.data instanceof DragManager.LinkDragData) {
-            let sourceDoc = de.data.linkSourceDocument;
-            let destDoc = this.makeAnnotationDocument(sourceDoc, 1, "red");
-            de.data.droppedDocuments.push(destDoc);
-            let targetAnnotations = DocListCast(this.props.parent.fieldExtensionDoc.annotations);
-            if (targetAnnotations) {
-                targetAnnotations.push(destDoc);
-            }
-            else {
-                this.props.parent.fieldExtensionDoc.annotations = new List<Doc>([destDoc]);
-            }
-            e.stopPropagation();
-        }
+        // if (de.data instanceof DragManager.LinkDragData) {
+        //     let sourceDoc = de.data.linkSourceDocument;
+        //     let destDoc = this.makeAnnotationDocument(sourceDoc, 1, "red");
+        //     de.data.droppedDocuments.push(destDoc);
+        //     let targetAnnotations = DocListCast(this.props.parent.fieldExtensionDoc.annotations);
+        //     if (targetAnnotations) {
+        //         targetAnnotations.push(destDoc);
+        //     }
+        //     else {
+        //         this.props.parent.fieldExtensionDoc.annotations = new List<Doc>([destDoc]);
+        //     }
+        //     e.stopPropagation();
+        // }
     }
     /**
      * Called by the Page class when it gets rendered, initializes the lists and
@@ -652,16 +652,12 @@ export class Viewer extends React.Component<IViewerProps> {
     render() {
         let compiled = this._script;
         return (
-            <div ref={this._mainCont} style={{ pointerEvents: "all" }} onPointerDown={this.pointerDown}>
+            <div className="pdfViewer-viewer" ref={this._mainCont} onPointerDown={this.pointerDown}>
                 <div className="viewer" style={this._searching ? { position: "absolute", top: 0 } : {}}>
                     {this._visibleElements}
                 </div>
-                <div className="pdfViewer-text" ref={this._viewer} onCopy={() => console.log("gello world")} style={{ transform: "scale(1.5)", transformOrigin: "top left" }} />
-                <div className="pdfViewer-annotationLayer"
-                    style={{
-                        height: this.props.parent.Document.nativeHeight, width: `100%`,
-                        pointerEvents: this.props.parent.props.active() ? "none" : "all"
-                    }}>
+                <div className="pdfViewer-text" ref={this._viewer} />
+                <div className="pdfViewer-annotationLayer" style={{ height: this.props.parent.Document.nativeHeight }}>
                     <div className="pdfViewer-annotationLayer-subCont" ref={this._annotationLayer}>
                         {this._annotations.filter(anno => {
                             if (compiled && compiled.compiled) {
@@ -731,20 +727,12 @@ class SimpleLinkService {
 
     cachePageRef() { }
 
-    get pagesCount() {
-        return this.pdf ? this.pdf.numPages : 0;
-    }
+    get pagesCount() { return this.pdf ? this.pdf.numPages : 0; }
 
-    get page() {
-        return 0;
-    }
+    get page() { return 0; }
 
-    setPdf(pdf: any) {
-        this.pdf = pdf;
-    }
+    setPdf(pdf: any) { this.pdf = pdf; }
 
-    get rotation() {
-        return 0;
-    }
+    get rotation() { return 0; }
     set rotation(value: any) { }
 }

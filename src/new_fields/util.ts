@@ -14,7 +14,7 @@ function _readOnlySetter(): never {
 
 export interface GetterResult {
     value: FieldResult;
-    shouldReturn: boolean;
+    shouldReturn?: boolean;
 }
 export type GetterPlugin = (receiver: any, prop: string | number, currentValue: any) => GetterResult | undefined;
 const getterPlugins: GetterPlugin[] = [];
@@ -88,6 +88,9 @@ export function setter(target: any, prop: string | symbol | number, value: any, 
 }
 
 export function getter(target: any, prop: string | symbol | number, receiver: any): any {
+    if (prop === "then") {//If we're being awaited
+        return undefined;
+    }
     if (typeof prop === "symbol") {
         return target.__fields[prop] || target[prop];
     }
@@ -100,9 +103,6 @@ export function getter(target: any, prop: string | symbol | number, receiver: an
 function getFieldImpl(target: any, prop: string | number, receiver: any, ignoreProto: boolean = false): any {
     receiver = receiver || target[SelfProxy];
     let field = target.__fields[prop];
-    if (field instanceof ProxyField) {
-        return field.value();
-    }
     for (const plugin of getterPlugins) {
         const res = plugin(receiver, prop, field);
         if (res === undefined) continue;

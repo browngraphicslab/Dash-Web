@@ -1,6 +1,7 @@
 import { PropSchema, serialize, deserialize, custom, setDefaultModelSchema, getDefaultModelSchema, primitive, SKIP } from "serializr";
 import { Field, Doc } from "../../new_fields/Doc";
 import { ClientUtils } from "./ClientUtils";
+import { emptyFunction } from "../../Utils";
 
 let serializing = 0;
 export function afterDocDeserialize(cb: (err: any, val: any) => void, err: any, newValue: any) {

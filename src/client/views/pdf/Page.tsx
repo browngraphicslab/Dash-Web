@@ -5,7 +5,7 @@ import "pdfjs-dist/web/pdf_viewer.css";
 import { Doc, DocListCastAsync, Opt, WidthSym } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
-import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { Cast, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { PDFBox } from "../nodes/PDFBox";
@@ -159,6 +159,7 @@ export default class Page extends React.Component<IPageProps> {
         let targetDoc = Docs.Create.TextDocument({ width: 200, height: 200, title: "New Annotation" });
         targetDoc.targetPage = this.props.page;
         let annotationDoc = this.highlight(undefined, "red");
+        Doc.GetProto(annotationDoc).annotationOn = thisDoc;
         annotationDoc.linkedToDoc = false;
         // create dragData and star tdrag
         let dragData = new DragManager.AnnotationDragData(thisDoc, annotationDoc, targetDoc);
@@ -166,16 +167,12 @@ export default class Page extends React.Component<IPageProps> {
             DragManager.StartAnnotationDrag([ele], dragData, e.pageX, e.pageY, {
                 handlers: {
                     dragComplete: async () => {
-                        if (!(await annotationDoc.linkedToDoc)) {
+                        if (!BoolCast(annotationDoc.linkedToDoc)) {
                             let annotations = await DocListCastAsync(annotationDoc.annotations);
-                            if (annotations) {
-                                annotations.forEach(anno => {
-                                    anno.target = targetDoc;
-                                });
-                            }
+                            annotations && annotations.forEach(anno => anno.target = targetDoc);
                             let pdfDoc = await Cast(annotationDoc.pdfDoc, Doc);
                             if (pdfDoc) {
-                                DocUtils.MakeLink(annotationDoc, targetDoc, undefined, `Annotation from ${StrCast(pdfDoc.title)}`, "", StrCast(pdfDoc.title));
+                                DocUtils.MakeLink(annotationDoc, targetDoc, dragData.targetContext, `Annotation from ${StrCast(pdfDoc.title)}`, "", StrCast(pdfDoc.title));
                             }
                         }
                     }
