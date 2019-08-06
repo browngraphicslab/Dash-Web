@@ -705,8 +705,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let templates = Cast(this.layoutDoc.templates, listSpec("string"));
         if (!showOverlays && templates instanceof List) {
             templates.map(str => {
-                if (str.indexOf("{props.Document.title}") !== -1) showTitle = "title";
-                if (str.indexOf("fieldKey={\"caption\"}") !== -1) showCaption = "caption";
+                if (!showTitle && str.indexOf("{props.Document.title}") !== -1) showTitle = "title";
+                if (!showCaption && str.indexOf("fieldKey={\"caption\"}") !== -1) showCaption = "caption";
             });
         }
         let showTextTitle = showTitle && StrCast(this.layoutDoc.layout).startsWith("<FormattedTextBox") ? showTitle : undefined;

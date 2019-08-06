@@ -1,6 +1,6 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faEye } from "@fortawesome/free-regular-svg-icons";
-import { faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faPaintBrush, faTable, faUpload } from "@fortawesome/free-solid-svg-icons";
+import { faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faPaintBrush, faTable, faUpload, faChalkboard, faBraille } from "@fortawesome/free-solid-svg-icons";
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCastAsync, HeightSym, WidthSym } from "../../../../new_fields/Doc";
@@ -38,7 +38,7 @@ import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import { DocumentType, Docs } from "../../../documents/Documents";
 
-library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload);
+library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard);
 
 export const panZoomSchema = createSchema({
     panX: "number",
@@ -67,7 +67,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     ComputeContentBounds(boundsList: { x: number, y: number, width: number, height: number }[]) {
         let bounds = boundsList.reduce((bounds, b) => {
             var [sptX, sptY] = [b.x, b.y];
-            let [bptX, bptY] = [sptX + b.width, sptY + b.height];
+            let [bptX, bptY] = [sptX + NumCast(b.width, 1), sptY + NumCast(b.height, 1)];
             return {
                 x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
                 r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)
@@ -615,7 +615,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         ele: <CollectionFreeFormDocumentView key={doc[Id]}
                             x={script ? pos.x : undefined} y={script ? pos.y : undefined}
                             width={script ? pos.width : undefined} height={script ? pos.height : undefined} {...this.getChildDocumentViewProps(doc)} />,
-                        bounds: (pos.x !== undefined && pos.y !== undefined && pos.width !== undefined && pos.height !== undefined) ? { x: pos.x, y: pos.y, z: pos.z, width: pos.width, height: pos.height } : undefined
+                        bounds: (pos.x !== undefined && pos.y !== undefined) ? { x: pos.x, y: pos.y, z: pos.z, width: NumCast(pos.width), height: NumCast(pos.height) } : undefined
                     });
                 }
             }
@@ -685,18 +685,24 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             icon: !this.fitToBox ? "expand-arrows-alt" : "compress-arrows-alt"
         });
         layoutItems.push({
+            description: "reset view", event: () => {
+                this.props.Document.panX = this.props.Document.panY = 0;
+                this.props.Document.scale = 1;
+            }, icon: "compress-arrows-alt"
+        });
+        layoutItems.push({
             description: `${this.props.Document.useClusters ? "Uncluster" : "Use Clusters"}`,
             event: async () => {
                 Docs.Prototypes.get(DocumentType.TEXT).defaultBackgroundColor = "#f1efeb"; // backward compatibility with databases that didn't have a default background color on prototypes
                 Docs.Prototypes.get(DocumentType.COL).defaultBackgroundColor = "white";
                 this.props.Document.useClusters = !this.props.Document.useClusters;
             },
-            icon: !this.props.Document.useClusters ? "expand-arrows-alt" : "compress-arrows-alt"
+            icon: !this.props.Document.useClusters ? "braille" : "braille"
         });
         layoutItems.push({
             description: `${this.props.Document.clusterOverridesDefaultBackground ? "Use Default Backgrounds" : "Clusters Override Defaults"}`,
             event: async () => this.props.Document.clusterOverridesDefaultBackground = !this.props.Document.clusterOverridesDefaultBackground,
-            icon: !this.props.Document.useClusters ? "expand-arrows-alt" : "compress-arrows-alt"
+            icon: !this.props.Document.useClusters ? "chalkboard" : "chalkboard"
         });
         layoutItems.push({
             description: "Arrange contents in grid",

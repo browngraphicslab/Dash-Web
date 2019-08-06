@@ -180,14 +180,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             }
             this._applyingChange = true;
             const fieldkey = "preview";
-            if (Object.keys(this.dataDoc).indexOf(fieldkey) !== -1) {
-                this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()));
-                this.dataDoc[this.props.fieldKey + "_text"] = state.doc.textBetween(0, state.doc.content.size, "\n\n");
-            }
-            else {
-                Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()));
-                Doc.GetProto(this.dataDoc)[this.props.fieldKey + "_text"] = state.doc.textBetween(0, state.doc.content.size, "\n\n");
-            }
             if (this.extensionDoc) this.extensionDoc.text = state.doc.textBetween(0, state.doc.content.size, "\n\n");
             if (this.extensionDoc) this.extensionDoc.lastModified = new DateField(new Date(Date.now()));
             this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()));

@@ -27,9 +27,12 @@
     // position: absolute;
     // top: 0;
 }
-
+.pdfViewere-viewer {
+    pointer-events:inherit;
+}
 .pdfViewer-text {
-
+    transform: scale(1.5);
+    transform-origin: top left;
     .page {
         .canvasWrapper {
             display: none;
@@ -120,6 +123,8 @@
 .pdfViewer-annotationLayer {
     position: absolute;
     top: 0;
+         width: 100%;
+        pointer-events: none;
 }
 
 
