@@ -6,6 +6,8 @@ import { RouteStore } from "../../server/RouteStore";
 import { Utils } from "../../Utils";
 import { InkData } from "../../new_fields/InkField";
 import { UndoManager } from "../util/UndoManager";
+import requestPromise = require("request-promise");
+import { List } from "../../new_fields/List";
 
 type APIManager<D> = { converter: BodyConverter<D>, requester: RequestExecutor, analyzer: AnalysisApplier };
 type RequestExecutor = (apiKey: string, body: string, service: Service) => Promise<string>;
@@ -255,9 +257,23 @@ export namespace CognitiveServices {
                 //target[keys[0]] = Docs.Get.DocumentHierarchyFromJson(results, "Key Word Analysis");
                 target[keys[0]] = keyterms;
                 console.log("analyzed!");
+                vectorize(keyterms);
                 return null;
-            }
+            },
+
+
         };
+        function vectorize(keyterms: any) {
+            console.log("vectorizing...");
+            keyterms = ["father", "king"];
+            let args = { method: 'POST', uri: Utils.prepend("/recommender"), body: { keyphrases: keyterms }, json: true };
+            requestPromise.post(args).then((value) => {
+                value.forEach((wordvec: any) => {
+                    console.log(wordvec.word);
+                });
+            });
+        }
+
     }
 
 }

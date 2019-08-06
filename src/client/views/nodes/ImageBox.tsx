@@ -1,5 +1,5 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faImage, faFileAudio, faPaintBrush, faAsterisk } from '@fortawesome/free-solid-svg-icons';
+import { faImage, faFileAudio, faPaintBrush, faAsterisk, faBrain } from '@fortawesome/free-solid-svg-icons';
 import { action, observable, computed, runInAction } from 'mobx';
 import { observer } from "mobx-react";
 import Lightbox from 'react-image-lightbox';
@@ -31,12 +31,14 @@ import { faEye } from '@fortawesome/free-regular-svg-icons';
 import { ComputedField } from '../../../new_fields/ScriptField';
 import { CompileScript } from '../../util/Scripting';
 import { thisExpression } from 'babel-types';
+import { Recommender } from '../../../server/Recommender';
+import requestPromise = require('request-promise');
 var requestImageSize = require('../../util/request-image-size');
 var path = require('path');
 const { Howl } = require('howler');
 
 
-library.add(faImage, faEye, faPaintBrush);
+library.add(faImage, faEye, faPaintBrush, faBrain);
 library.add(faFileAudio, faAsterisk);
 
 
@@ -253,6 +255,8 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
             return keyterms;
         };
         CognitiveServices.Text.Manager.analyzer(this.extensionDoc, ["key words"], data, converter);
+        // request recommender 
+        //fetch(Utils.prepend("/recommender"), { body: body, method: "POST", headers: { "content-type": "application/json" } }).then((value) => console.log(value));
     }
 
     generateMetadata = (threshold: Confidence = Confidence.Excellent) => {

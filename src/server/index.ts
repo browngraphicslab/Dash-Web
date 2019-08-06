@@ -52,11 +52,6 @@ const probe = require("probe-image-size");
 var SolrNode = require('solr-node');
 var shell = require('shelljs');
 
-let recommender = new Recommender();
-recommender.loadModel().then(() => {
-    recommender.testModel();
-});
-
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
 let youtubeApiKey: string;
 YoutubeApi.readApiKey((apiKey: string) => youtubeApiKey = apiKey);
@@ -650,6 +645,20 @@ app.use(RouteStore.corsProxy, (req, res) => {
         });
     }).pipe(res);
 });
+
+////
+
+let recommender = new Recommender();
+recommender.testModel();
+
+app.post("/recommender", async (req, res) => {
+    let keyphrases = req.body.keyphrases;
+    let wordvecs = await recommender.vectorize(keyphrases);
+    res.send(wordvecs);
+});
+
+
+/////
 
 app.get(RouteStore.delete, (req, res) => {
     if (release) {

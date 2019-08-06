@@ -3,6 +3,12 @@
     "version": "1.0.0",
     "description": "",
     "main": "index.js",
+    "browser": {
+        "child_process": false
+    },
+    "node": {
+        "child_process": "empty"
+    },
     "scripts": {
         "start": "cross-env NODE_OPTIONS=--max_old_space_size=4096 ts-node-dev -- src/server/index.ts",
         "debug": "cross-env NODE_OPTIONS=--max_old_space_size=8192 ts-node-dev --inspect -- src/server/index.ts",
