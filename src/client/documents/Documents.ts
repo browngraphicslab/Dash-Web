@@ -20,7 +20,7 @@ import { AttributeTransformationModel } from "../northstar/core/attribute/Attrib
 import { AggregateFunction } from "../northstar/model/idea/idea";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { IconBox } from "../views/nodes/IconBox";
-import { Field, Doc, Opt } from "../../new_fields/Doc";
+import { Field, Doc, Opt, Permissions } from "../../new_fields/Doc";
 import { OmitKeys, JSONUtils } from "../../Utils";
 import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
@@ -43,6 +43,7 @@ import { ButtonBox } from "../views/nodes/ButtonBox";
 import { SchemaHeaderField, RandomPastel } from "../../new_fields/SchemaHeaderField";
 import { ComputedField } from "../../new_fields/ScriptField";
 import { ProxyField } from "../../new_fields/Proxy";
+import { Id, Acls } from "../../new_fields/FieldSymbols";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 
@@ -181,7 +182,9 @@ export namespace Docs {
         ]);
 
         // All document prototypes are initialized with at least these values
-        const defaultOptions: DocumentOptions = { x: 0, y: 0, width: 300 };
+        const defaultOptions: DocumentOptions = {
+            x: 0, y: 0, width: 300
+        };
         const suffix = "Proto";
 
         /**
@@ -263,7 +266,8 @@ export namespace Docs {
             } else {
                 options.layout = primary;
             }
-            return Doc.assign(new Doc(prototypeId, true), { ...options, baseLayout: primary });
+            let doc = new Doc(prototypeId, true);
+            return Doc.assign(doc, { ...options, baseLayout: primary });
         }
 
     }
@@ -364,7 +368,9 @@ export namespace Docs {
         }
 
         export function TextDocument(options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.TEXT), "", options);
+            return InstanceFromProto(Prototypes.get(DocumentType.TEXT), "", {
+                ...options
+            });
         }
 
         export function IconDocument(icon: string, options: DocumentOptions = {}) {
@@ -419,7 +425,9 @@ export namespace Docs {
         }
 
         export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, viewType: CollectionViewType.Freeform });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), {
+                chromeStatus: "collapsed", ...options
+            });
         }
 
         export function SchemaDocument(schemaColumns: SchemaHeaderField[], documents: Array<Doc>, options: DocumentOptions) {

@@ -74,7 +74,12 @@ export class CurrentUserUtils {
         doc.width = 100;
     }
 
-    public static loadCurrentUser() {
+    public static async loadCurrentUser() {
+        await rp.get(Utils.prepend(RouteStore.getUserDocumentId)).then(id => {
+            if (id) {
+                this.curr_id = id;
+            }
+        });
         return rp.get(Utils.prepend(RouteStore.getCurrUser)).then(response => {
             if (response) {
                 const result: { id: string, email: string } = JSON.parse(response);
@@ -86,7 +91,6 @@ export class CurrentUserUtils {
     }
 
     public static async loadUserDocument({ id, email }: { id: string, email: string }) {
-        this.curr_id = id;
         this.curr_email = email;
         await rp.get(Utils.prepend(RouteStore.getUserDocumentId)).then(id => {
             if (id) {

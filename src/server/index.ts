@@ -45,6 +45,7 @@ import * as AdmZip from 'adm-zip';
 import * as YoutubeApi from './youtubeApi/youtubeApiSample.js';
 import { Response } from 'express-serve-static-core';
 import { DocComponent } from '../client/views/DocComponent';
+import { SerializationHelper } from '../client/util/SerializationHelper';
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const probe = require("probe-image-size");
@@ -744,8 +745,17 @@ function setField(socket: Socket, newValue: Transferable) {
     }
 }
 
-function GetRefField([id, callback]: [string, (result?: Transferable) => void]) {
-    Database.Instance.getDocument(id, callback, "newDocuments");
+function GetRefField([id, callback]: [string, (result: any) => void]) {
+    Database.Instance.getDocument(id, (result) => {
+        // if (result) {
+        // let acls = result.acls;
+        // if (acls) {
+        // }
+        // else {
+        callback(result);
+        // }
+        // }
+    }, "newDocuments");
 }
 
 function GetRefFields([ids, callback]: [string[], (result?: Transferable[]) => void]) {

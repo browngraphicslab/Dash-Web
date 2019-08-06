@@ -116,7 +116,7 @@ export class Database {
         }
     }
 
-    public getDocument(id: string, fn: (result?: Transferable) => void, collectionName = Database.DocumentsCollection) {
+    public getDocument(id: string, fn: (result: any) => void, collectionName = Database.DocumentsCollection) {
         if (this.db) {
             this.db.collection(collectionName).findOne({ _id: id }, (err, result) => {
                 if (result) {

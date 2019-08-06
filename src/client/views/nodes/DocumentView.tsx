@@ -3,8 +3,8 @@ import * as fa from '@fortawesome/free-solid-svg-icons';
 import { action, computed, IReactionDisposer, reaction, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from "request-promise";
-import { Doc, DocListCast, DocListCastAsync, HeightSym, Opt, WidthSym } from "../../../new_fields/Doc";
-import { Copy, Id } from '../../../new_fields/FieldSymbols';
+import { Doc, DocListCast, DocListCastAsync, HeightSym, Opt, WidthSym, Permissions } from "../../../new_fields/Doc";
+import { Copy, Id, SetAcls } from '../../../new_fields/FieldSymbols';
 import { List } from "../../../new_fields/List";
 import { ObjectField } from "../../../new_fields/ObjectField";
 import { createSchema, listSpec, makeInterface } from "../../../new_fields/Schema";
@@ -623,6 +623,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     if (notifDoc instanceof Doc) {
                         const data = await Cast(notifDoc.data, listSpec(Doc));
                         const sharedDoc = Doc.MakeAlias(this.props.Document);
+                        if (sharedDoc.proto) {
+                            sharedDoc.proto[SetAcls](userDocumentId, Permissions.READ);
+                        }
+                        sharedDoc[SetAcls](userDocumentId, Permissions.WRITE);
                         if (data) {
                             data.push(sharedDoc);
                         } else {

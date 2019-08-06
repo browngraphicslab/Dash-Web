@@ -1,5 +1,5 @@
 import { observable, action, runInAction } from "mobx";
-import { serializable, primitive, map, alias, list, PropSchema, custom } from "serializr";
+import { serializable, primitive, map, alias, list, PropSchema, custom, createSimpleSchema, object, serialize } from "serializr";
 import { autoObject, SerializationHelper, Deserializable, afterDocDeserialize } from "../client/util/SerializationHelper";
 import { DocServer } from "../client/DocServer";
 import { setter, getter, getField, updateFunction, deleteProperty, makeEditable, makeReadOnly } from "./util";
@@ -7,12 +7,14 @@ import { Cast, ToConstructor, PromiseValue, FieldValue, NumCast, BoolCast, StrCa
 import { listSpec } from "./Schema";
 import { ObjectField } from "./ObjectField";
 import { RefField, FieldId } from "./RefField";
-import { ToScriptString, SelfProxy, Parent, OnUpdate, Self, HandleUpdate, Update, Id } from "./FieldSymbols";
+import { ToScriptString, SelfProxy, Parent, OnUpdate, Self, HandleUpdate, Update, Id, SetAcls, GetAcls } from "./FieldSymbols";
 import { scriptingGlobal } from "../client/util/Scripting";
 import { List } from "./List";
 import { DocumentType } from "../client/documents/Documents";
 import { ComputedField } from "./ScriptField";
 import { PrefetchProxy, ProxyField } from "./Proxy";
+import { AccessControlLocks } from "./PermissionsField";
+import { CurrentUserUtils } from "../server/authentication/models/current_user_utils";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -76,11 +78,31 @@ function fetchProto(doc: Doc) {
     }
 }
 
+export enum Permissions {
+    READ, WRITE, ADDONLY
+}
+
 let updatingFromServer = false;
 
 @scriptingGlobal
 @Deserializable("Doc", fetchProto).withFields(["id"])
 export class Doc extends RefField {
+    @serializable(map(primitive()))
+    public get acls() {
+        return this._acls;
+    }
+
+    public [SetAcls] = (id: string, permission: Permissions) => {
+        this._acls[id] = permission;
+        DocServer.UpdateField(this[Id], { "$set": { "acls": this._acls } });
+    }
+
+    public [GetAcls] = () => this._acls;
+
+    @observable
+    // { [id: string]: Permission }
+    private _acls: any = {};
+
     constructor(id?: FieldId, forceSave?: boolean) {
         super(id);
         const doc = new Proxy<this>(this, {
@@ -105,6 +127,11 @@ export class Doc extends RefField {
         this[SelfProxy] = doc;
         if (!id || forceSave) {
             DocServer.CreateField(doc);
+            let perm = Permissions.WRITE;
+            if (this.proto && this.proto.acls[CurrentUserUtils.id]) {
+                perm = this.proto.acls[CurrentUserUtils.id];
+            }
+            this[SetAcls](CurrentUserUtils.id, perm);
         }
         return doc;
     }
@@ -343,6 +370,7 @@ export namespace Doc {
 
     export function CreateDocumentExtensionForField(doc: Doc, fieldKey: string) {
         let docExtensionForField = new Doc(doc[Id] + fieldKey, true);
+        docExtensionForField[SetAcls](CurrentUserUtils.id, doc[GetAcls]()[CurrentUserUtils.id]);
         docExtensionForField.title = fieldKey + ".ext";
         docExtensionForField.extendsDoc = doc; // this is used by search to map field matches on the extension doc back to the document it extends.
         docExtensionForField.type = DocumentType.EXTENSION;

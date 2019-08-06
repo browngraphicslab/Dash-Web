@@ -1,12 +1,14 @@
 import { UndoManager } from "../client/util/UndoManager";
-import { Doc, Field, FieldResult } from "./Doc";
+import { Doc, Field, FieldResult, Permissions } from "./Doc";
 import { SerializationHelper } from "../client/util/SerializationHelper";
 import { ProxyField } from "./Proxy";
 import { RefField } from "./RefField";
 import { ObjectField } from "./ObjectField";
 import { action } from "mobx";
-import { Parent, OnUpdate, Update, Id, SelfProxy, Self } from "./FieldSymbols";
+import { Parent, OnUpdate, Update, Id, SelfProxy, Self, Acls, SetAcls, GetAcls } from "./FieldSymbols";
 import { ComputedField } from "./ScriptField";
+import { CurrentUserUtils } from "../server/authentication/models/current_user_utils";
+import { StrCast } from "./Types";
 
 function _readOnlySetter(): never {
     throw new Error("Documents can't be modified in read-only mode");
@@ -25,6 +27,12 @@ export namespace Plugins {
     }
 }
 
+export class PermissionsError extends Error {
+    constructor(message: string) {
+        super(message);
+    }
+}
+
 const _setterImpl = action(function (target: any, prop: string | symbol | number, value: any, receiver: any): boolean {
     //console.log("-set " + target[SelfProxy].title + "(" + target[SelfProxy][prop] + ")." + prop.toString() + " = " + value);
     if (SerializationHelper.IsSerializing()) {
@@ -37,6 +45,22 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
     }
     if (value !== undefined) {
         value = value[SelfProxy] || value;
+    }
+    if (prop === "acls") {
+        Object.entries(value).forEach((value: [string, any]) => {
+            target[SetAcls](value[0], value[1]);
+        })
+        return true;
+    }
+    let acls = receiver[GetAcls]();
+    if (acls && CurrentUserUtils.id) {
+        let permissions = acls[CurrentUserUtils.id];
+        if (permissions === Permissions.READ) {
+            return true;
+        }
+        if (!permissions || permissions !== Permissions.WRITE) {
+            throw new PermissionsError("Permission denied");
+        }
     }
     const curValue = target.__fields[prop];
     if (curValue === value || (curValue instanceof ProxyField && value instanceof RefField && curValue.fieldId === value[Id])) {
