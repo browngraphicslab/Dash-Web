@@ -1,18 +1,19 @@
 import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
-import { emptyFunction, returnFalse, returnZero, returnTrue } from '../../../Utils';
-import { CompileScript, CompiledScript, ScriptOptions } from "../../util/Scripting";
+import { Doc, Field } from '../../../new_fields/Doc';
+import { emptyFunction, returnFalse, returnOne, returnZero } from '../../../Utils';
+import { Docs } from '../../documents/Documents';
 import { Transform } from '../../util/Transform';
+import { undoBatch } from '../../util/UndoManager';
+import { CollectionDockingView } from '../collections/CollectionDockingView';
+import { ContextMenu } from '../ContextMenu';
 import { EditableView } from "../EditableView";
 import { FieldView, FieldViewProps } from './FieldView';
+import { KeyValueBox } from './KeyValueBox';
 import "./KeyValueBox.scss";
 import "./KeyValuePair.scss";
 import React = require("react");
-import { Doc, Opt, Field } from '../../../new_fields/Doc';
-import { FieldValue } from '../../../new_fields/Types';
-import { KeyValueBox } from './KeyValueBox';
-import { DragManager, SetupDrag } from '../../util/DragManager';
 
 // Represents one row in a key value plane
 
@@ -39,6 +40,16 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
         this.isChecked = false;
     }
 
+    onContextMenu = (e: React.MouseEvent) => {
+        const value = this.props.doc[this.props.keyName];
+        if (value instanceof Doc) {
+            e.stopPropagation();
+            e.preventDefault();
+            ContextMenu.Instance.addItem({ description: "Open Fields", event: () => { let kvp = Docs.Create.KVPDocument(value, { width: 300, height: 300 }); CollectionDockingView.Instance.AddRightSplit(kvp, undefined); }, icon: "layer-group" });
+            ContextMenu.Instance.displayMenu(e.clientX, e.clientY);
+        }
+    }
+
     render() {
         let props: FieldViewProps = {
             Document: this.props.doc,
@@ -57,10 +68,21 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             PanelWidth: returnZero,
             PanelHeight: returnZero,
             addDocTab: returnZero,
+            ContentScaling: returnOne
         };
         let contents = <FieldView {...props} />;
         // let fieldKey = Object.keys(props.Document).indexOf(props.fieldKey) !== -1 ? props.fieldKey : "(" + props.fieldKey + ")";
-        let keyStyle = Object.keys(props.Document).indexOf(props.fieldKey) !== -1 ? "black" : "blue";
+        let protoCount = 0;
+        let doc: Doc | undefined = props.Document;
+        while (doc) {
+            if (Object.keys(doc).includes(props.fieldKey)) {
+                break;
+            }
+            protoCount++;
+            doc = doc.proto;
+        }
+        const parenCount = Math.max(0, protoCount - 1);
+        let keyStyle = protoCount === 0 ? "black" : "blue";
 
         let hover = { transition: "0.3s ease opacity", opacity: this.isPointerOver || this.isChecked ? 1 : 0 };
 
@@ -68,12 +90,12 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             <tr className={this.props.rowStyle} onPointerEnter={action(() => this.isPointerOver = true)} onPointerLeave={action(() => this.isPointerOver = false)}>
                 <td className="keyValuePair-td-key" style={{ width: `${this.props.keyWidth}%` }}>
                     <div className="keyValuePair-td-key-container">
-                        <button style={hover} className="keyValuePair-td-key-delete" onClick={() => {
+                        <button style={hover} className="keyValuePair-td-key-delete" onClick={undoBatch(() => {
                             if (Object.keys(props.Document).indexOf(props.fieldKey) !== -1) {
                                 props.Document[props.fieldKey] = undefined;
                             }
                             else props.Document.proto![props.fieldKey] = undefined;
-                        }}>
+                        })}>
                             X
                         </button>
                         <input
@@ -83,10 +105,10 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
                             onChange={this.handleCheck}
                             ref={this.checkbox}
                         />
-                        <div className="keyValuePair-keyField" style={{ color: keyStyle }}>{props.fieldKey}</div>
+                        <div className="keyValuePair-keyField" style={{ color: keyStyle }}>{"(".repeat(parenCount)}{props.fieldKey}{")".repeat(parenCount)}</div>
                     </div>
                 </td>
-                <td className="keyValuePair-td-value" style={{ width: `${100 - this.props.keyWidth}%` }}>
+                <td className="keyValuePair-td-value" style={{ width: `${100 - this.props.keyWidth}%` }} onContextMenu={this.onContextMenu}>
                     <div className="keyValuePair-td-value-container">
                         <EditableView
                             contents={contents}

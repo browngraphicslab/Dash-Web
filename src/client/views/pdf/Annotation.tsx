@@ -1,14 +1,15 @@
 import React = require("react");
-import { Doc, DocListCast, WidthSym, HeightSym } from "../../../new_fields/Doc";
-import { AnnotationTypes, Viewer, scale } from "./PDFViewer";
+import { action, IReactionDisposer, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
-import { observable, IReactionDisposer, reaction, action } from "mobx";
-import { BoolCast, NumCast, FieldValue, Cast, StrCast } from "../../../new_fields/Types";
+import { Doc, DocListCast, HeightSym, WidthSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
-import PDFMenu from "./PDFMenu";
+import { BoolCast, Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
 import { DocumentManager } from "../../util/DocumentManager";
 import { PresentationView } from "../presentationview/PresentationView";
+import PDFMenu from "./PDFMenu";
+import "./Annotation.scss";
+import { AnnotationTypes, scale, Viewer } from "./PDFViewer";
 
 interface IAnnotationProps {
     anno: Doc;
@@ -110,11 +111,16 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
     }
 
     @action
-    onPointerDown = (e: React.PointerEvent) => {
+    onPointerDown = async (e: React.PointerEvent) => {
         if (e.button === 0) {
-            let targetDoc = Cast(this.props.document.target, Doc, null);
+            let targetDoc = await Cast(this.props.document.target, Doc);
             if (targetDoc) {
-                DocumentManager.Instance.jumpToDocument(targetDoc, false);
+                let context = await Cast(targetDoc.targetContext, Doc);
+                if (context) {
+                    DocumentManager.Instance.jumpToDocument(targetDoc, false, false,
+                        ((doc) => this.props.parent.props.parent.props.addDocTab(targetDoc!, undefined, e.ctrlKey ? "onRight" : "inTab")),
+                        undefined, undefined);
+                }
             }
         }
         if (e.button === 2) {
@@ -145,7 +151,6 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
                     left: this.props.x * scale,
                     width: this.props.width * scale,
                     height: this.props.height * scale,
-                    pointerEvents: "all",
                     backgroundColor: this.props.parent.Index === this.props.index ? "green" : StrCast(this.props.document.color)
                 }}></div>
         );

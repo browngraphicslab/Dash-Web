@@ -1,4 +1,5 @@
 import os
+from shutil import copyfile
 import docx2txt
 from docx import Document
 from docx.opc.constants import RELATIONSHIP_TYPE as RT
@@ -15,7 +16,9 @@ source = "./source"
 dist = "../../server/public/files"
 
 db = MongoClient("localhost", 27017)["Dash"]
+target_collection = db.newDocuments
 schema_guids = []
+common_proto_id = ""
 
 
 def extract_links(fileName):
@@ -84,7 +87,7 @@ def write_schema(parse_results, display_fields, storage_key):
             "height": 600,
             "panX": 0,
             "panY": 0,
-            "zoomBasis": 0.5,
+            "zoomBasis": 1,
             "zIndex": 2,
             "libraryBrush": False,
             "viewType": 2
@@ -92,7 +95,7 @@ def write_schema(parse_results, display_fields, storage_key):
         "__type": "Doc"
     }
 
-    fields["proto"] = protofy("collectionProto")
+    fields["proto"] = protofy(common_proto_id)
     fields[storage_key] = listify(proxify_guids(view_guids))
     fields["schemaColumns"] = listify(display_fields)
     fields["backgroundColor"] = "white"
@@ -106,8 +109,8 @@ def write_schema(parse_results, display_fields, storage_key):
     fields["isPrototype"] = True
     fields["page"] = -1
 
-    db.newDocuments.insert_one(data_doc)
-    db.newDocuments.insert_one(view_doc)
+    target_collection.insert_one(data_doc)
+    target_collection.insert_one(view_doc)
 
     data_doc_guid = data_doc["_id"]
     print(f"inserted view document ({view_doc_guid})")
@@ -158,8 +161,8 @@ def write_text_doc(content):
         "__type": "Doc"
     }
 
-    db.newDocuments.insert_one(view_doc)
-    db.newDocuments.insert_one(data_doc)
+    target_collection.insert_one(view_doc)
+    target_collection.insert_one(data_doc)
 
     return view_doc_guid
 
@@ -209,8 +212,8 @@ def write_image(folder, name):
         "__type": "Doc"
     }
 
-    db.newDocuments.insert_one(view_doc)
-    db.newDocuments.insert_one(data_doc)
+    target_collection.insert_one(view_doc)
+    target_collection.insert_one(data_doc)
 
     return view_doc_guid
 
@@ -231,7 +234,9 @@ def parse_document(file_name: str):
     for image in os.listdir(dir_path):
         count += 1
         view_guids.append(write_image(pure_name, image))
-        os.rename(dir_path + "/" + image, dir_path +
+        copyfile(dir_path + "/" + image, dir_path +
+                 "/" + image.replace(".", "_o.", 1))
+        copyfile(dir_path + "/" + image, dir_path +
                   "/" + image.replace(".", "_m.", 1))
     print(f"extracted {count} images...")
 
@@ -347,12 +352,30 @@ def proxify_guids(guids):
     return list(map(lambda guid: {"fieldId": guid, "__type": "proxy"}, guids))
 
 
+def write_common_proto():
+    id = guid()
+    common_proto = {
+        "_id": id,
+        "fields": {
+            "proto": protofy("collectionProto"),
+            "title": "Common Import Proto",
+        },
+        "__type": "Doc"
+    }
+
+    target_collection.insert_one(common_proto)
+
+    return id
+
+
 if os.path.exists(dist):
     shutil.rmtree(dist)
 while os.path.exists(dist):
     pass
 os.mkdir(dist)
 mkdir_if_absent(source)
+
+common_proto_id = write_common_proto()
 
 candidates = 0
 for file_name in os.listdir(source):
@@ -372,7 +395,7 @@ parent_guid = write_schema({
 }, ["title", "short_description", "original_price"], "data")
 
 print("appending parent schema to main workspace...\n")
-db.newDocuments.update_one(
+target_collection.update_one(
     {"fields.title": "WS collection 1"},
     {"$push": {"fields.data.fields": {"fieldId": parent_guid, "__type": "proxy"}}}
 )

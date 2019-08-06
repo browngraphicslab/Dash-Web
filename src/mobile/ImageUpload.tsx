@@ -11,6 +11,7 @@ import { listSpec } from '../new_fields/Schema';
 import { List } from '../new_fields/List';
 import { observer } from 'mobx-react';
 import { observable } from 'mobx';
+import { Utils } from '../Utils';
 
 
 
@@ -57,7 +58,7 @@ class Uploader extends React.Component {
 
                         this.status = "getting user document";
 
-                        const res = await rp.get(DocServer.prepend(RouteStore.getUserDocumentId));
+                        const res = await rp.get(Utils.prepend(RouteStore.getUserDocumentId));
                         if (!res) {
                             throw new Error("No user id returned");
                         }
@@ -103,6 +104,8 @@ class Uploader extends React.Component {
 
 }
 
+
+DocServer.init(window.location.protocol, window.location.hostname, 4321, "image upload");
 
 ReactDOM.render((
     <Uploader />

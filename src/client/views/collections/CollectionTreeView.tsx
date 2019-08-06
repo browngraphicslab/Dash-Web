@@ -1,9 +1,9 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faAngleRight, faCamera, faExpand, faTrash, faBell, faCaretDown, faCaretRight, faCaretSquareDown, faCaretSquareRight, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
+import { faAngleRight, faCamera, faExpand, faTrash, faBell, faCaretDown, faCaretRight, faArrowsAltH, faCaretSquareDown, faCaretSquareRight, faTrashAlt, faPlus, faMinus } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, trace, untracked } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, HeightSym, WidthSym, Opt } from '../../../new_fields/Doc';
+import { Doc, DocListCast, HeightSym, WidthSym, Opt, Field } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
 import { Document, listSpec } from '../../../new_fields/Schema';
@@ -25,7 +25,9 @@ import { CollectionSchemaPreview } from './CollectionSchemaView';
 import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTreeView.scss";
 import React = require("react");
-import { LinkManager } from '../../util/LinkManager';
+import { ComputedField } from '../../../new_fields/ScriptField';
+import { KeyValueBox } from '../nodes/KeyValueBox';
+import { exportNamedDeclaration } from 'babel-types';
 
 
 export interface TreeViewProps {
@@ -58,52 +60,70 @@ library.add(faCaretDown);
 library.add(faCaretRight);
 library.add(faCaretSquareDown);
 library.add(faCaretSquareRight);
-
+library.add(faArrowsAltH);
+library.add(faPlus, faMinus);
 @observer
 /**
  * Component that takes in a document prop and a boolean whether it's collapsed or not.
  */
 class TreeView extends React.Component<TreeViewProps> {
+    static loadId = "";
     private _header?: React.RefObject<HTMLDivElement> = React.createRef();
     private _treedropDisposer?: DragManager.DragDropDisposer;
     private _dref = React.createRef<HTMLDivElement>();
-    @observable __chosenKey: string = "";
-    @computed get _chosenKey() { return this.__chosenKey ? this.__chosenKey : this.fieldKey; }
-    @computed get MAX_EMBED_HEIGHT() { return NumCast(this.props.document.maxEmbedHeight, 300); }
     @observable _collapsed: boolean = true;
-
+    @computed get treeViewExpandedView() { return StrCast(this.props.document.treeViewExpandedView, "fields"); }
+    @computed get MAX_EMBED_HEIGHT() { return NumCast(this.props.document.maxEmbedHeight, 300); }
+    @computed get dataDoc() { return this.resolvedDataDoc ? this.resolvedDataDoc : this.props.document; }
     @computed get fieldKey() {
-        let keys = Array.from(Object.keys(this.resolvedDataDoc));  // bcz: Argh -- make untracked to avoid this rerunning whenever 'libraryBrush' is set
-        if (this.resolvedDataDoc.proto instanceof Doc) {
-            let arr = Array.from(Object.keys(this.resolvedDataDoc.proto));// bcz: Argh -- make untracked to avoid this rerunning whenever 'libraryBrush' is set
-            keys.push(...arr);
-            while (keys.indexOf("proto") !== -1) keys.splice(keys.indexOf("proto"), 1);
+        let splits = StrCast(this.props.document.layout).split("fieldKey={\"");
+        return splits.length > 1 ? splits[1].split("\"")[0] : "data";
+    }
+    @computed get childDocs() {
+        let layout = this.props.document.layout instanceof Doc ? this.props.document.layout : undefined;
+        return (this.props.dataDoc ? Cast(this.props.dataDoc[this.fieldKey], listSpec(Doc)) : undefined) ||
+            (layout ? Cast(layout[this.fieldKey], listSpec(Doc)) : undefined) ||
+            Cast(this.props.document[this.fieldKey], listSpec(Doc));
+    }
+    @computed get childLinks() {
+        let layout = this.props.document.layout instanceof Doc ? this.props.document.layout : undefined;
+        return (this.props.dataDoc ? Cast(this.props.dataDoc.links, listSpec(Doc)) : undefined) ||
+            (layout instanceof Doc ? Cast(layout.links, listSpec(Doc)) : undefined) ||
+            Cast(this.props.document.links, listSpec(Doc));
+    }
+    @computed get resolvedDataDoc() {
+        if (this.props.dataDoc === undefined && this.props.document.layout instanceof Doc) {
+            // if there is no dataDoc (ie, we're not rendering a template layout), but this document
+            // has a template layout document, then we will render the template layout but use 
+            // this document as the data document for the layout.
+            return this.props.document;
         }
-        let keyList: string[] = [];
-        keys.map(key => {
-            let docList = Cast(this.resolvedDataDoc[key], listSpec(Doc));
-            if (docList && docList.length > 0) {
-                keyList.push(key);
-            }
-        });
-        let layout = StrCast(this.props.document.layout);
-        if (layout.indexOf("fieldKey={\"") !== -1) {
-            return layout.split("fieldKey={\"")[1].split("\"")[0];
-        }
-        return keyList.length ? keyList[0] : "data";
+        return this.props.dataDoc;
+    }
+    @computed get boundsOfCollectionDocument() {
+        return StrCast(this.props.document.type).indexOf(DocumentType.COL) === -1 ? undefined :
+            Doc.ComputeContentBounds(DocListCast(this.props.document.data));
     }
 
-    @computed get resolvedDataDoc() { return BoolCast(this.props.document.isTemplate) && this.props.dataDoc ? this.props.dataDoc : this.props.document; }
+    @undoBatch delete = () => this.props.deleteDoc(this.dataDoc);
+    @undoBatch openRight = () => this.props.addDocTab(this.props.document, undefined, "onRight");
+    @undoBatch indent = () => this.props.addDocument(this.props.document) && this.delete();
+    @undoBatch move = (doc: Doc, target: Doc, addDoc: (doc: Doc) => boolean) => {
+        return this.props.document !== target && this.props.deleteDoc(doc) && addDoc(doc);
+    }
+    @undoBatch @action remove = (document: Document, key: string): boolean => {
+        let children = Cast(this.dataDoc[key], listSpec(Doc), []);
+        if (children.indexOf(document) !== -1) {
+            children.splice(children.indexOf(document), 1);
+            return true;
+        }
+        return false;
+    }
 
     protected createTreeDropTarget = (ele: HTMLDivElement) => {
         this._treedropDisposer && this._treedropDisposer();
-        if (ele) {
-            this._treedropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.treeDrop.bind(this) } });
-        }
+        ele && (this._treedropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.treeDrop.bind(this) } }));
     }
-
-    @undoBatch delete = () => this.props.deleteDoc(this.resolvedDataDoc);
-    @undoBatch openRight = async () => this.props.addDocTab(this.props.document, undefined, "onRight");
 
     onPointerDown = (e: React.PointerEvent) => e.stopPropagation();
     onPointerEnter = (e: React.PointerEvent): void => {
@@ -114,12 +134,12 @@ class TreeView extends React.Component<TreeViewProps> {
         }
     }
     onPointerLeave = (e: React.PointerEvent): void => {
-        this.props.document.libraryBrush = undefined;
+        this.props.document.libraryBrush = false;
         this._header!.current!.className = "treeViewItem-header";
         document.removeEventListener("pointermove", this.onDragMove, true);
     }
     onDragMove = (e: PointerEvent): void => {
-        this.props.document.libraryBrush = undefined;
+        this.props.document.libraryBrush = false;
         let x = this.props.ScreenToLocalTransform().transformPoint(e.clientX, e.clientY);
         let rect = this._header!.current!.getBoundingClientRect();
         let bounds = this.props.ScreenToLocalTransform().transformPoint(rect.left, rect.top + rect.height / 2);
@@ -132,121 +152,38 @@ class TreeView extends React.Component<TreeViewProps> {
         e.stopPropagation();
     }
 
-    @action
-    remove = (document: Document, key: string): boolean => {
-        let children = Cast(this.resolvedDataDoc[key], listSpec(Doc), []);
-        if (children.indexOf(document) !== -1) {
-            children.splice(children.indexOf(document), 1);
-            return true;
-        }
-        return false;
-    }
-
-    @action
-    move: DragManager.MoveFunction = (doc: Doc, target: Doc, addDoc) => {
-        return this.props.document !== target && this.props.deleteDoc(doc) && addDoc(doc);
-    }
-    @action
-    indent = () => this.props.addDocument(this.props.document) && this.delete()
-
-    renderBullet() {
-        let docList = Cast(this.resolvedDataDoc[this.fieldKey], listSpec(Doc));
-        let doc = Cast(this.resolvedDataDoc[this.fieldKey], Doc);
-        let isDoc = doc instanceof Doc || docList;
-        let c;
-        return <div className="bullet" onClick={action(() => this._collapsed = !this._collapsed)} style={{ color: StrCast(this.props.document.color, "black"), opacity: 0.4 }}>
-            {<FontAwesomeIcon icon={this._collapsed ? (isDoc ? "caret-square-right" : "caret-right") : (isDoc ? "caret-square-down" : "caret-down")} />}
-        </div>;
-    }
-
-    static loadId = "";
     editableView = (key: string, style?: string) => (<EditableView
         oneLine={true}
         display={"inline"}
-        editing={this.resolvedDataDoc[Id] === TreeView.loadId}
+        editing={this.dataDoc[Id] === TreeView.loadId}
         contents={StrCast(this.props.document[key])}
         height={36}
         fontStyle={style}
         fontSize={12}
         GetValue={() => StrCast(this.props.document[key])}
-        SetValue={(value: string) => (Doc.GetProto(this.resolvedDataDoc)[key] = value) ? true : true}
+        SetValue={(value: string) => (Doc.GetProto(this.dataDoc)[key] = value) ? true : true}
         OnFillDown={(value: string) => {
-            Doc.GetProto(this.resolvedDataDoc)[key] = value;
-            let doc = Docs.Create.FreeformDocument([], { title: "", x: 0, y: 0, width: 100, height: 25, templates: new List<string>([Templates.Title.Layout]) });
+            Doc.GetProto(this.dataDoc)[key] = value;
+            let doc = this.props.document.detailedLayout instanceof Doc ? Doc.ApplyTemplate(Doc.GetProto(this.props.document.detailedLayout)) : undefined;
+            if (!doc) doc = Docs.Create.FreeformDocument([], { title: "", x: 0, y: 0, width: 100, height: 25, templates: new List<string>([Templates.Title.Layout]) });
             TreeView.loadId = doc[Id];
             return this.props.addDocument(doc);
         }}
         OnTab={() => this.props.indentDocument && this.props.indentDocument()}
     />)
 
-    @computed get keyList() {
-        let keys = Array.from(Object.keys(this.resolvedDataDoc));
-        if (this.resolvedDataDoc.proto instanceof Doc) {
-            keys.push(...Array.from(Object.keys(this.resolvedDataDoc.proto)));
-        }
-        let keyList: string[] = keys.reduce((l, key) => {
-            let listspec = DocListCast(this.resolvedDataDoc[key]);
-            if (listspec && listspec.length) return [...l, key];
-            return l;
-        }, [] as string[]);
-        keys.map(key => Cast(this.resolvedDataDoc[key], Doc) instanceof Doc && keyList.push(key));
-        if (LinkManager.Instance.getAllRelatedLinks(this.props.document).length > 0) keyList.push("links");
-        if (keyList.indexOf(this.fieldKey) !== -1) {
-            keyList.splice(keyList.indexOf(this.fieldKey), 1);
-        }
-        keyList.splice(0, 0, this.fieldKey);
-        return keyList.filter((item, index) => keyList.indexOf(item) >= index);
-    }
-    /**
-     * Renders the EditableView title element for placement into the tree.
-     */
-    renderTitle() {
-        let reference = React.createRef<HTMLDivElement>();
-        let onItemDown = SetupDrag(reference, () => this.resolvedDataDoc, this.move, this.props.dropAction, this.props.treeViewId, true);
-
-        let headerElements = (
-            <span className="collectionTreeView-keyHeader" key={this._chosenKey + "chosen"}
-                onPointerDown={action(() => {
-                    let ind = this.keyList.indexOf(this._chosenKey);
-                    ind = (ind + 1) % this.keyList.length;
-                    this.__chosenKey = this.keyList[ind];
-                })} >
-                {this._chosenKey}
-            </span>);
-        let dataDocs = CollectionDockingView.Instance ? Cast(CollectionDockingView.Instance.props.Document[this.fieldKey], listSpec(Doc), []) : [];
-        let openRight = dataDocs && dataDocs.indexOf(this.resolvedDataDoc) !== -1 ? (null) : (
-            <div className="treeViewItem-openRight" onPointerDown={this.onPointerDown} onClick={this.openRight}>
-                <FontAwesomeIcon icon="angle-right" size="lg" />
-            </div>);
-        return <>
-            <div className="docContainer" id={`docContainer-${this.props.parentKey}`} ref={reference} onPointerDown={onItemDown}
-                style={{
-                    background: BoolCast(this.props.document.libraryBrush) ? "#06121212" : "0",
-                    outline: BoolCast(this.props.document.workspaceBrush) ? "dashed 1px #06123232" : undefined,
-                    pointerEvents: this.props.active() || SelectionManager.GetIsDragging() ? "all" : "none"
-                }}
-            >
-                {this.editableView("title")}
-                {/* {<div className="delete-button" onClick={this.delete}><FontAwesomeIcon icon="trash-alt" size="xs" /></div>} */}
-            </div >
-            {headerElements}
-            {openRight}
-        </>;
-    }
-
     onWorkspaceContextMenu = (e: React.MouseEvent): void => {
         if (!e.isPropagationStopped()) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
-            ContextMenu.Instance.addItem({ description: (BoolCast(this.props.document.embed) ? "Collapse" : "Expand") + " inline", event: () => this.props.document.embed = !BoolCast(this.props.document.embed), icon: "expand" });
             if (NumCast(this.props.document.viewType) !== CollectionViewType.Docking) {
                 ContextMenu.Instance.addItem({ description: "Open Tab", event: () => this.props.addDocTab(this.props.document, this.resolvedDataDoc, "inTab"), icon: "folder" });
                 ContextMenu.Instance.addItem({ description: "Open Right", event: () => this.props.addDocTab(this.props.document, this.resolvedDataDoc, "onRight"), icon: "caret-square-right" });
-                if (DocumentManager.Instance.getDocumentViews(this.resolvedDataDoc).length) {
-                    ContextMenu.Instance.addItem({ description: "Focus", event: () => DocumentManager.Instance.getDocumentViews(this.resolvedDataDoc).map(view => view.props.focus(this.props.document, true)), icon: "camera" });
+                if (DocumentManager.Instance.getDocumentViews(this.dataDoc).length) {
+                    ContextMenu.Instance.addItem({ description: "Focus", event: () => DocumentManager.Instance.getDocumentViews(this.dataDoc).map(view => view.props.focus(this.props.document, true)), icon: "camera" });
                 }
-                ContextMenu.Instance.addItem({ description: "Delete Item", event: undoBatch(() => this.props.deleteDoc(this.props.document)), icon: "trash-alt" });
+                ContextMenu.Instance.addItem({ description: "Delete Item", event: () => this.props.deleteDoc(this.props.document), icon: "trash-alt" });
             } else {
-                ContextMenu.Instance.addItem({ description: "Open as Workspace", event: undoBatch(() => MainView.Instance.openWorkspace(this.resolvedDataDoc)), icon: "caret-square-right" });
-                ContextMenu.Instance.addItem({ description: "Delete Workspace", event: undoBatch(() => this.props.deleteDoc(this.props.document)), icon: "trash-alt" });
+                ContextMenu.Instance.addItem({ description: "Open as Workspace", event: () => MainView.Instance.openWorkspace(this.dataDoc), icon: "caret-square-right" });
+                ContextMenu.Instance.addItem({ description: "Delete Workspace", event: () => this.props.deleteDoc(this.props.document), icon: "trash-alt" });
             }
             ContextMenu.Instance.addItem({ description: "Open Fields", event: () => { let kvp = Docs.Create.KVPDocument(this.props.document, { width: 300, height: 300 }); this.props.addDocTab(kvp, this.props.dataDoc ? this.props.dataDoc : kvp, "onRight"); }, icon: "layer-group" });
             ContextMenu.Instance.displayMenu(e.pageX > 156 ? e.pageX - 156 : 0, e.pageY - 15);
@@ -273,7 +210,7 @@ class TreeView extends React.Component<TreeViewProps> {
             if (de.data.draggedDocuments[0] === this.props.document) return true;
             let addDoc = (doc: Doc) => this.props.addDocument(doc, this.resolvedDataDoc, before);
             if (inside) {
-                let docList = Cast(this.resolvedDataDoc.data, listSpec(Doc));
+                let docList = Cast(this.dataDoc.data, listSpec(Doc));
                 if (docList !== undefined) {
                     addDoc = (doc: Doc) => { docList && docList.push(doc); return true; };
                 }
@@ -295,39 +232,6 @@ class TreeView extends React.Component<TreeViewProps> {
         let finalXf = this.props.ScreenToLocalTransform().translate(offset[0], offset[1]);
         return finalXf;
     }
-
-    renderLinks = () => {
-        let ele: JSX.Element[] = [];
-        let remDoc = (doc: Doc) => this.remove(doc, this._chosenKey);
-        let addDoc = (doc: Doc, addBefore?: Doc, before?: boolean) => Doc.AddDocToList(this.props.document, this._chosenKey, doc, addBefore, before);
-        let groups = LinkManager.Instance.getRelatedGroupedLinks(this.props.document);
-        groups.forEach((groupLinkDocs, groupType) => {
-            // let destLinks = groupLinkDocs.map(d => LinkManager.Instance.getOppositeAnchor(d, this.props.document));
-            let destLinks: Doc[] = [];
-            groupLinkDocs.forEach((doc) => {
-                let opp = LinkManager.Instance.getOppositeAnchor(doc, this.props.document);
-                if (opp) {
-                    destLinks.push(opp);
-                }
-            });
-            ele.push(
-                <div key={"treeviewlink-" + groupType + "subtitle"}>
-                    <div className="collectionTreeView-subtitle">{groupType}:</div>
-                    {
-                        TreeView.GetChildElements(destLinks, this.props.treeViewId, this.props.document, this.props.dataDoc, "treeviewlink-" + groupType, addDoc, remDoc, this.move,
-                            this.props.dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active, this.props.panelWidth, this.props.renderDepth)
-                    }
-                </div>
-            );
-        });
-        return ele;
-    }
-
-    @computed get boundsOfCollectionDocument() {
-        if (StrCast(this.props.document.type).indexOf(DocumentType.COL) === -1) return undefined;
-        let layoutDoc = Doc.expandTemplateLayout(this.props.document, this.props.dataDoc);
-        return Doc.ComputeContentBounds(DocListCast(layoutDoc.data));
-    }
     docWidth = () => {
         let aspect = NumCast(this.props.document.nativeHeight) / NumCast(this.props.document.nativeWidth);
         if (aspect) return Math.min(this.props.document[WidthSym](), Math.min(this.MAX_EMBED_HEIGHT / aspect, this.props.panelWidth() - 5));
@@ -343,51 +247,136 @@ class TreeView extends React.Component<TreeViewProps> {
         })());
     }
 
-    render() {
-        let contentElement: (JSX.Element | null) = null;
-        let docList = Cast(this.resolvedDataDoc[this._chosenKey], listSpec(Doc));
-        let remDoc = (doc: Doc) => this.remove(doc, this._chosenKey);
-        let addDoc = (doc: Doc, addBefore?: Doc, before?: boolean) => Doc.AddDocToList(this.resolvedDataDoc, this._chosenKey, doc, addBefore, before);
-        let doc = Cast(this.resolvedDataDoc[this._chosenKey], Doc);
+    expandedField = (doc: Doc) => {
+        let ids: { [key: string]: string } = {};
+        doc && Object.keys(doc).forEach(key => !(key in ids) && doc[key] !== ComputedField.undefined && (ids[key] = key));
 
-        if (!this._collapsed) {
-            if (!this.props.document.embed) {
-                contentElement = <ul key={this._chosenKey + "more"}>
-                    {this._chosenKey === "links" ? this.renderLinks() :
-                        TreeView.GetChildElements(doc instanceof Doc ? [doc] : DocListCast(docList), this.props.treeViewId, this.props.document, this.props.dataDoc, this._chosenKey, addDoc, remDoc, this.move,
-                            this.props.dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active, this.props.panelWidth, this.props.renderDepth)}
-                </ul >;
+        let rows: JSX.Element[] = [];
+        for (let key of Object.keys(ids).sort()) {
+            let contents = doc[key];
+            let contentElement: JSX.Element[] | JSX.Element = [];
+
+            if (contents instanceof Doc || Cast(contents, listSpec(Doc))) {
+                let remDoc = (doc: Doc) => this.remove(doc, key);
+                let addDoc = (doc: Doc, addBefore?: Doc, before?: boolean) => Doc.AddDocToList(this.dataDoc, key, doc, addBefore, before);
+                contentElement = TreeView.GetChildElements(contents instanceof Doc ? [contents] :
+                    DocListCast(contents), this.props.treeViewId, doc, undefined, key, addDoc, remDoc, this.move,
+                    this.props.dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active, this.props.panelWidth, this.props.renderDepth);
             } else {
-                let layoutDoc = Doc.expandTemplateLayout(this.props.document, this.props.dataDoc);
-                contentElement = <div ref={this._dref} style={{ display: "inline-block", height: this.docHeight() }} key={this.props.document[Id] + this.props.document.title}>
-                    <CollectionSchemaPreview
-                        Document={layoutDoc}
-                        DataDocument={this.resolvedDataDoc}
-                        renderDepth={this.props.renderDepth}
-                        fitToBox={this.boundsOfCollectionDocument !== undefined}
-                        width={this.docWidth}
-                        height={this.docHeight}
-                        getTransform={this.docTransform}
-                        CollectionView={undefined}
-                        addDocument={emptyFunction as any}
-                        moveDocument={this.props.moveDocument}
-                        removeDocument={emptyFunction as any}
-                        active={this.props.active}
-                        whenActiveChanged={emptyFunction as any}
-                        addDocTab={this.props.addDocTab}
-                        setPreviewScript={emptyFunction}>
-                    </CollectionSchemaPreview>
-                </div>;
+                contentElement = <EditableView
+                    key="editableView"
+                    contents={contents !== undefined ? contents.toString() : "null"}
+                    height={13}
+                    fontSize={12}
+                    GetValue={() => Field.toKeyValueString(doc, key)}
+                    SetValue={(value: string) => KeyValueBox.SetField(doc, key, value)} />;
             }
+            rows.push(<div style={{ display: "flex" }} key={key}>
+                <span style={{ fontWeight: "bold" }}>{key + ":"}</span>
+                &nbsp;
+                {contentElement}
+            </div>);
         }
+        return rows;
+    }
+
+    noOverlays = (doc: Doc) => ({ title: "", caption: "" });
+
+    @computed get renderContent() {
+        const expandKey = this.treeViewExpandedView === this.fieldKey ? this.fieldKey : this.treeViewExpandedView === "links" ? "links" : undefined;
+        if (expandKey !== undefined) {
+            let remDoc = (doc: Doc) => this.remove(doc, expandKey);
+            let addDoc = (doc: Doc, addBefore?: Doc, before?: boolean) => Doc.AddDocToList(this.dataDoc, expandKey, doc, addBefore, before);
+            let docs = expandKey === "links" ? this.childLinks : this.childDocs;
+            return <ul key={expandKey + "more"}>
+                {!docs ? (null) :
+                    TreeView.GetChildElements(docs as Doc[], this.props.treeViewId, this.props.document.layout as Doc,
+                        this.resolvedDataDoc, expandKey, addDoc, remDoc, this.move,
+                        this.props.dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform,
+                        this.props.outerXf, this.props.active, this.props.panelWidth, this.props.renderDepth)}
+            </ul >;
+        } else if (this.treeViewExpandedView === "fields") {
+            return <ul><div ref={this._dref} style={{ display: "inline-block" }} key={this.props.document[Id] + this.props.document.title}>
+                {this.dataDoc ? this.expandedField(this.dataDoc) : (null)}
+            </div></ul>;
+        } else {
+            let layoutDoc = this.props.document;
+            return <div ref={this._dref} style={{ display: "inline-block", height: this.docHeight() }} key={this.props.document[Id] + this.props.document.title}>
+                <CollectionSchemaPreview
+                    Document={layoutDoc}
+                    DataDocument={this.resolvedDataDoc}
+                    renderDepth={this.props.renderDepth}
+                    showOverlays={this.noOverlays}
+                    fitToBox={this.boundsOfCollectionDocument !== undefined}
+                    width={this.docWidth}
+                    height={this.docHeight}
+                    getTransform={this.docTransform}
+                    CollectionView={undefined}
+                    addDocument={emptyFunction as any}
+                    moveDocument={this.props.moveDocument}
+                    removeDocument={emptyFunction as any}
+                    active={this.props.active}
+                    whenActiveChanged={emptyFunction as any}
+                    addDocTab={this.props.addDocTab}
+                    setPreviewScript={emptyFunction}>
+                </CollectionSchemaPreview>
+            </div>;
+        }
+    }
+
+    @computed
+    get renderBullet() {
+        return <div className="bullet" onClick={action(() => this._collapsed = !this._collapsed)} style={{ color: StrCast(this.props.document.color, "black"), opacity: 0.4 }}>
+            {<FontAwesomeIcon icon={this._collapsed ? (this.childDocs ? "caret-square-right" : "caret-right") : (this.childDocs ? "caret-square-down" : "caret-down")} />}
+        </div>;
+    }
+    /**
+     * Renders the EditableView title element for placement into the tree.
+     */
+    @computed
+    get renderTitle() {
+        let reference = React.createRef<HTMLDivElement>();
+        let onItemDown = SetupDrag(reference, () => this.dataDoc, this.move, this.props.dropAction, this.props.treeViewId, true);
+
+        let headerElements = (
+            <span className="collectionTreeView-keyHeader" key={this.treeViewExpandedView}
+                onPointerDown={action(() => {
+                    this.props.document.treeViewExpandedView = this.treeViewExpandedView === this.fieldKey ? "fields" :
+                        this.treeViewExpandedView === "fields" && this.props.document.layout ? "layout" :
+                            this.treeViewExpandedView === "layout" && this.props.document.links ? "links" :
+                                this.childDocs ? this.fieldKey : "fields";
+                    this._collapsed = false;
+                })}>
+                {this.treeViewExpandedView}
+            </span>);
+        let dataDocs = CollectionDockingView.Instance ? Cast(CollectionDockingView.Instance.props.Document[this.fieldKey], listSpec(Doc), []) : [];
+        let openRight = dataDocs && dataDocs.indexOf(this.dataDoc) !== -1 ? (null) : (
+            <div className="treeViewItem-openRight" onPointerDown={this.onPointerDown} onClick={this.openRight}>
+                <FontAwesomeIcon icon="angle-right" size="lg" />
+            </div>);
+        return <>
+            <div className="docContainer" id={`docContainer-${this.props.parentKey}`} ref={reference} onPointerDown={onItemDown}
+                style={{
+                    background: BoolCast(this.props.document.libraryBrush) ? "#06121212" : "0",
+                    outline: BoolCast(this.props.document.workspaceBrush) ? "dashed 1px #06123232" : undefined,
+                    pointerEvents: this.props.active() || SelectionManager.GetIsDragging() ? "all" : "none"
+                }} >
+                {this.editableView("title")}
+            </div >
+            {headerElements}
+            {openRight}
+        </>;
+    }
+
+    render() {
         return <div className="treeViewItem-container" ref={this.createTreeDropTarget} onContextMenu={this.onWorkspaceContextMenu}>
             <li className="collection-child">
                 <div className="treeViewItem-header" ref={this._header} onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
-                    {this.renderBullet()}
-                    {this.renderTitle()}
+                    {this.renderBullet}
+                    {this.renderTitle}
                 </div>
                 <div className="treeViewItem-border">
-                    {contentElement}
+                    {this._collapsed ? (null) : this.renderContent}
                 </div>
             </li>
         </div>;
@@ -412,6 +401,8 @@ class TreeView extends React.Component<TreeViewProps> {
         let docList = docs.filter(child => !child.excludeFromLibrary);
         let rowWidth = () => panelWidth() - 20;
         return docList.map((child, i) => {
+            let pair = Doc.GetLayoutDataDocPair(containingCollection, dataDoc, key, child);
+
             let indent = i === 0 ? undefined : () => {
                 if (StrCast(docList[i - 1].layout).indexOf("CollectionView") !== -1) {
                     let fieldKeysub = StrCast(docList[i - 1].layout).split("fieldKey")[1];
@@ -428,11 +419,11 @@ class TreeView extends React.Component<TreeViewProps> {
                 return aspect ? Math.min(child[WidthSym](), rowWidth()) / aspect : child[HeightSym]();
             };
             return <TreeView
-                document={child}
-                dataDoc={dataDoc}
+                document={pair.layout}
+                dataDoc={pair.data}
                 containingCollection={containingCollection}
                 treeViewId={treeViewId}
-                key={child[Id] + "child " + i}
+                key={child[Id]}
                 indentDocument={indent}
                 renderDepth={renderDepth}
                 deleteDoc={remove}
@@ -454,6 +445,10 @@ class TreeView extends React.Component<TreeViewProps> {
 export class CollectionTreeView extends CollectionSubView(Document) {
     private treedropDisposer?: DragManager.DragDropDisposer;
     private _mainEle?: HTMLDivElement;
+
+    @observable static NotifsCol: Opt<Doc>;
+
+    @computed get resolvedDataDoc() { return BoolCast(this.props.Document.isTemplate) && this.props.DataDoc ? this.props.DataDoc : this.props.Document; }
 
     protected createTreeDropTarget = (ele: HTMLDivElement) => {
         this.treedropDisposer && this.treedropDisposer();
@@ -478,28 +473,22 @@ export class CollectionTreeView extends CollectionSubView(Document) {
     onContextMenu = (e: React.MouseEvent): void => {
         // need to test if propagation has stopped because GoldenLayout forces a parallel react hierarchy to be created for its top-level layout
         if (!e.isPropagationStopped() && this.props.Document.workspaceLibrary) { // excludeFromLibrary means this is the user document
-            ContextMenu.Instance.addItem({ description: "Create Workspace", event: undoBatch(() => MainView.Instance.createNewWorkspace()) });
-            ContextMenu.Instance.addItem({ description: "Delete Workspace", event: undoBatch(() => this.remove(this.props.Document)) });
+            ContextMenu.Instance.addItem({ description: "Create Workspace", event: () => MainView.Instance.createNewWorkspace(), icon: "plus" });
+            ContextMenu.Instance.addItem({ description: "Delete Workspace", event: () => this.remove(this.props.Document), icon: "minus" });
             e.stopPropagation();
             e.preventDefault();
             ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
         }
     }
-
-    @computed get resolvedDataDoc() { return BoolCast(this.props.Document.isTemplate) && this.props.DataDoc ? this.props.DataDoc : this.props.Document; }
-
     outerXf = () => Utils.GetScreenTransform(this._mainEle!);
     onTreeDrop = (e: React.DragEvent) => this.onDrop(e, {});
-
-
-    @observable static NotifsCol: Opt<Doc>;
-
     openNotifsCol = () => {
         if (CollectionTreeView.NotifsCol && CollectionDockingView.Instance) {
             CollectionDockingView.Instance.AddRightSplit(CollectionTreeView.NotifsCol, undefined);
         }
     }
-    @computed get notifsButton() {
+
+    @computed get renderNotifsButton() {
         const length = CollectionTreeView.NotifsCol ? DocListCast(CollectionTreeView.NotifsCol.data).length : 0;
         const notifsRef = React.createRef<HTMLDivElement>();
         const dragNotifs = action(() => CollectionTreeView.NotifsCol!);
@@ -515,19 +504,17 @@ export class CollectionTreeView extends CollectionSubView(Document) {
             </div>
         </div >;
     }
-    @computed get clearButton() {
+    @computed get renderClearButton() {
         return <div id="toolbar" key="toolbar">
-            <div >
-                <button className="toolbar-button round-button" title="Notifs"
-                    onClick={undoBatch(action(() => Doc.GetProto(this.props.Document)[this.props.fieldKey] = undefined))}>
-                    <FontAwesomeIcon icon={faTrash} size="sm" />
-                </button>
-            </div>
+            <button className="toolbar-button round-button" title="Notifs"
+                onClick={undoBatch(action(() => Doc.GetProto(this.props.Document)[this.props.fieldKey] = undefined))}>
+                <FontAwesomeIcon icon={faTrash} size="sm" />
+            </button>
         </div >;
     }
 
-
     render() {
+        Doc.UpdateDocumentExtensionForField(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey);
         let dropAction = StrCast(this.props.Document.dropAction) as dropActionType;
         let addDoc = (doc: Doc, relativeTo?: Doc, before?: boolean) => Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, relativeTo, before);
         let moveDoc = (d: Doc, target: Doc, addDoc: (doc: Doc) => boolean) => this.props.moveDocument(d, target, addDoc);
@@ -546,12 +533,13 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                     SetValue={(value: string) => (Doc.GetProto(this.resolvedDataDoc).title = value) ? true : true}
                     OnFillDown={(value: string) => {
                         Doc.GetProto(this.props.Document).title = value;
-                        let doc = Docs.Create.FreeformDocument([], { title: "", x: 0, y: 0, width: 100, height: 25, templates: new List<string>([Templates.Title.Layout]) });
+                        let doc = this.props.Document.detailedLayout instanceof Doc ? Doc.ApplyTemplate(Doc.GetProto(this.props.Document.detailedLayout)) : undefined;
+                        if (!doc) doc = Docs.Create.FreeformDocument([], { title: "", x: 0, y: 0, width: 100, height: 25, templates: new List<string>([Templates.Title.Layout]) });
                         TreeView.loadId = doc[Id];
                         Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, this.childDocs.length ? this.childDocs[0] : undefined, true);
                     }} />
-                {this.props.Document.workspaceLibrary ? this.notifsButton : (null)}
-                {this.props.Document.allowClear ? this.clearButton : (null)}
+                {this.props.Document.workspaceLibrary ? this.renderNotifsButton : (null)}
+                {this.props.Document.allowClear ? this.renderClearButton : (null)}
                 <ul className="no-indent" style={{ width: "max-content" }} >
                     {
                         TreeView.GetChildElements(this.childDocs, this.props.Document[Id], this.props.Document, this.props.DataDoc, this.props.fieldKey, addDoc, this.remove,

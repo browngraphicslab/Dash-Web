@@ -11,6 +11,7 @@ import { faArrowLeft, faEllipsisV, faTable, faTrash, faCog, faExchangeAlt, faTim
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { SetupDrag } from "../../util/DragManager";
+import { SchemaHeaderField, RandomPastel } from "../../../new_fields/SchemaHeaderField";
 
 library.add(faArrowLeft, faEllipsisV, faTable, faTrash, faCog, faExchangeAlt, faTimes, faPlus);
 
@@ -289,7 +290,7 @@ export class LinkGroupEditor extends React.Component<LinkGroupEditorProps> {
         let keys = LinkManager.Instance.getMetadataKeysInGroup(groupType);
         let index = keys.indexOf("");
         if (index > -1) keys.splice(index, 1);
-        let cols = ["anchor1", "anchor2", ...[...keys]];
+        let cols = ["anchor1", "anchor2", ...[...keys]].map(c => new SchemaHeaderField(c, "#f1efeb"));
         let docs: Doc[] = LinkManager.Instance.getAllMetadataDocsInGroup(groupType);
         let createTable = action(() => Docs.Create.SchemaDocument(cols, docs, { width: 500, height: 300, title: groupType + " table" }));
         let ref = React.createRef<HTMLDivElement>();

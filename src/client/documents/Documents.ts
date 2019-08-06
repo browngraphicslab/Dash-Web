@@ -21,8 +21,8 @@ import { AggregateFunction } from "../northstar/model/idea/idea";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { IconBox } from "../views/nodes/IconBox";
 import { Field, Doc, Opt } from "../../new_fields/Doc";
-import { OmitKeys } from "../../Utils";
-import { ImageField, VideoField, AudioField, PdfField, WebField } from "../../new_fields/URLField";
+import { OmitKeys, JSONUtils } from "../../Utils";
+import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
 import { List } from "../../new_fields/List";
 import { Cast, NumCast, StrCast, ToConstructor, InterfaceValue, FieldValue } from "../../new_fields/Types";
@@ -33,11 +33,16 @@ import { dropActionType } from "../util/DragManager";
 import { DateField } from "../../new_fields/DateField";
 import { UndoManager } from "../util/UndoManager";
 import { RouteStore } from "../../server/RouteStore";
+import { YoutubeBox } from "../apis/youtube/YoutubeBox";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { LinkManager } from "../util/LinkManager";
 import { DocumentManager } from "../util/DocumentManager";
 import DirectoryImportBox from "../util/Import & Export/DirectoryImportBox";
-import { Scripting } from "../util/Scripting";
+import { Scripting, CompileScript } from "../util/Scripting";
+import { ButtonBox } from "../views/nodes/ButtonBox";
+import { SchemaHeaderField, RandomPastel } from "../../new_fields/SchemaHeaderField";
+import { ComputedField } from "../../new_fields/ScriptField";
+import { ProxyField } from "../../new_fields/Proxy";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 
@@ -55,7 +60,11 @@ export enum DocumentType {
     ICON = "icon",
     IMPORT = "import",
     LINK = "link",
-    LINKDOC = "linkdoc"
+    LINKDOC = "linkdoc",
+    BUTTON = "button",
+    TEMPLATE = "template",
+    EXTENSION = "extension",
+    YOUTUBE = "youtube",
 }
 
 export interface DocumentOptions {
@@ -75,12 +84,14 @@ export interface DocumentOptions {
     templates?: List<string>;
     viewType?: number;
     backgroundColor?: string;
+    defaultBackgroundColor?: string;
     dropAction?: dropActionType;
     backgroundLayout?: string;
+    chromeStatus?: string;
     curPage?: number;
     documentText?: string;
     borderRounding?: string;
-    schemaColumns?: List<string>;
+    schemaColumns?: List<SchemaHeaderField>;
     dockingConfig?: string;
     dbDoc?: Doc;
     // [key: string]: Opt<Field>;
@@ -114,7 +125,7 @@ export namespace Docs {
         const TemplateMap: TemplateMap = new Map([
             [DocumentType.TEXT, {
                 layout: { view: FormattedTextBox },
-                options: { height: 150, backgroundColor: "#f1efeb" }
+                options: { height: 150, backgroundColor: "#f1efeb", defaultBackgroundColor: "#f1efeb" }
             }],
             [DocumentType.HIST, {
                 layout: { view: HistogramBox, collectionView: [CollectionView, data] as CollectionViewType },
@@ -160,6 +171,12 @@ export namespace Docs {
                 data: new List<Doc>(),
                 layout: { view: EmptyBox },
                 options: {}
+            }],
+            [DocumentType.YOUTUBE, {
+                layout: { view: YoutubeBox }
+            }],
+            [DocumentType.BUTTON, {
+                layout: { view: ButtonBox },
             }]
         ]);
 
@@ -179,6 +196,8 @@ export namespace Docs {
          * haven't been initialized, the newly initialized prototype document.
          */
         export async function initialize(): Promise<void> {
+            ProxyField.initPlugin();
+            ComputedField.initPlugin();
             // non-guid string ids for each document prototype
             let prototypeIds = Object.values(DocumentType).filter(type => type !== DocumentType.NONE).map(type => type + suffix);
             // fetch the actual prototype documents from the server
@@ -275,7 +294,7 @@ export namespace Docs {
          * only when creating a DockDocument from the current user's already existing
          * main document.
          */
-        export function InstanceFromProto(proto: Doc, data: Field, options: DocumentOptions, delegId?: string) {
+        export function InstanceFromProto(proto: Doc, data: Field | undefined, options: DocumentOptions, delegId?: string) {
             const { omit: protoProps, extract: delegateProps } = OmitKeys(options, delegateKeys);
 
             if (!("author" in protoProps)) {
@@ -304,15 +323,18 @@ export namespace Docs {
          * @param options initial values to apply to this new delegate
          * @param value the data to store in this new delegate
          */
-        function MakeDataDelegate<D extends Field>(proto: Doc, options: DocumentOptions, value: D) {
+        function MakeDataDelegate<D extends Field>(proto: Doc, options: DocumentOptions, value?: D) {
             const deleg = Doc.MakeDelegate(proto);
-            deleg.data = value;
+            if (value !== undefined) {
+                deleg.data = value;
+            }
             return Doc.assign(deleg, options);
         }
 
         export function ImageDocument(url: string, options: DocumentOptions = {}) {
-            let inst = InstanceFromProto(Prototypes.get(DocumentType.IMG), new ImageField(new URL(url)), { title: path.basename(url), ...options });
-            requestImageSize(window.origin + RouteStore.corsProxy + "/" + url)
+            let imgField = new ImageField(new URL(url));
+            let inst = InstanceFromProto(Prototypes.get(DocumentType.IMG), imgField, { title: path.basename(url), ...options });
+            requestImageSize(imgField.url.href)
                 .then((size: any) => {
                     let aspect = size.height / size.width;
                     if (!inst.proto!.nativeWidth) {
@@ -327,6 +349,10 @@ export namespace Docs {
 
         export function VideoDocument(url: string, options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.VID), new VideoField(new URL(url)), options);
+        }
+
+        export function YoutubeDocument(url: string, options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.YOUTUBE), new YoutubeField(new URL(url)), options);
         }
 
         export function AudioDocument(url: string, options: DocumentOptions = {}) {
@@ -393,19 +419,27 @@ export namespace Docs {
         }
 
         export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Freeform });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, viewType: CollectionViewType.Freeform });
         }
 
-        export function SchemaDocument(schemaColumns: string[], documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaColumns: new List(schemaColumns), ...options, viewType: CollectionViewType.Schema });
+        export function SchemaDocument(schemaColumns: SchemaHeaderField[], documents: Array<Doc>, options: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List(schemaColumns), ...options, viewType: CollectionViewType.Schema });
         }
 
         export function TreeDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Tree });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, viewType: CollectionViewType.Tree });
         }
 
         export function StackingDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { schemaColumns: new List(["title"]), ...options, viewType: CollectionViewType.Stacking });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, viewType: CollectionViewType.Stacking });
+        }
+
+        export function MasonryDocument(documents: Array<Doc>, options: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, viewType: CollectionViewType.Masonry });
+        }
+
+        export function ButtonDocument(options?: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.BUTTON), undefined, { ...(options || {}) });
         }
 
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
@@ -437,6 +471,85 @@ export namespace Docs {
     }
 
     export namespace Get {
+
+        const primitives = ["string", "number", "boolean"];
+
+        /**
+         * This function takes any valid JSON(-like) data, i.e. parsed or unparsed, and at arbitrarily
+         * deep levels of nesting, converts the data and structure into nested documents with the appropriate fields.
+         * 
+         * After building a hierarchy within / below a top-level document, it then returns that top-level parent.
+         * 
+         * If we've received a string, treat it like valid JSON and try to parse it into an object. If this fails, the
+         * string is invalid JSON, so we should assume that the input is the result of a JSON.parse()
+         * call that returned a regular string value to be stored as a Field.
+         * 
+         * If we've received something other than a string, since the caller might also pass in the results of a
+         * JSON.parse() call, valid input might be an object, an array (still typeof object), a boolean or a number.
+         * Anything else (like a function, etc. passed in naively as any) is meaningless for this operation.
+         * 
+         * All TS/JS objects get converted directly to documents, directly preserving the key value structure. Everything else,
+         * lacking the key value structure, gets stored as a field in a wrapper document.
+         * 
+         * @param input for convenience and flexibility, either a valid JSON string to be parsed,
+         * or the result of any JSON.parse() call.
+         * @param title an optional title to give to the highest parent document in the hierarchy
+         */
+        export function DocumentHierarchyFromJson(input: any, title?: string): Opt<Doc> {
+            if (input === null || ![...primitives, "object"].includes(typeof input)) {
+                return undefined;
+            }
+            let parsed: any = typeof input === "string" ? JSONUtils.tryParse(input) : input;
+            let converted: Doc;
+            if (typeof parsed === "object" && !(parsed instanceof Array)) {
+                converted = convertObject(parsed, title);
+            } else {
+                (converted = new Doc).json = toField(parsed);
+            }
+            title && (converted.title = title);
+            return converted;
+        }
+
+        /**
+         * For each value of the object, recursively convert it to its appropriate field value
+         * and store the field at the appropriate key in the document if it is not undefined
+         * @param object the object to convert
+         * @returns the object mapped from JSON to field values, where each mapping 
+         * might involve arbitrary recursion (since toField might itself call convertObject)
+         */
+        const convertObject = (object: any, title?: string): Doc => {
+            let target = new Doc(), result: Opt<Field>;
+            Object.keys(object).map(key => (result = toField(object[key], key)) && (target[key] = result));
+            title && !target.title && (target.title = title);
+            return target;
+        };
+
+        /**
+         * For each element in the list, recursively convert it to a document or other field 
+         * and push the field to the list if it is not undefined
+         * @param list the list to convert
+         * @returns the list mapped from JSON to field values, where each mapping 
+         * might involve arbitrary recursion (since toField might itself call convertList)
+         */
+        const convertList = (list: Array<any>): List<Field> => {
+            let target = new List(), result: Opt<Field>;
+            list.map(item => (result = toField(item)) && target.push(result));
+            return target;
+        };
+
+
+        const toField = (data: any, title?: string): Opt<Field> => {
+            if (data === null || data === undefined) {
+                return undefined;
+            }
+            if (primitives.includes(typeof data)) {
+                return data;
+            }
+            if (typeof data === "object") {
+                return data instanceof Array ? convertList(data) : convertObject(data, title);
+            }
+            throw new Error(`How did ${data} of type ${typeof data} end up in JSON?`);
+        };
 
         export async function DocumentFromType(type: string, path: string, options: DocumentOptions): Promise<Opt<Doc>> {
             let ctor: ((path: string, options: DocumentOptions) => (Doc | Promise<Doc | undefined>)) | undefined = undefined;
@@ -484,16 +597,14 @@ export namespace Docs {
 export namespace DocUtils {
 
     export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", tags: string = "Default", sourceContext?: Doc) {
-        if (LinkManager.Instance.doesLinkExist(source, target)) return;
+        if (LinkManager.Instance.doesLinkExist(source, target)) return undefined;
         let sv = DocumentManager.Instance.getDocumentView(source);
         if (sv && sv.props.ContainingCollectionView && sv.props.ContainingCollectionView.props.Document === target) return;
-        if (target === CurrentUserUtils.UserDocument) return;
+        if (target === CurrentUserUtils.UserDocument) return undefined;
 
-        let linkDoc;
+        let linkDocProto = new Doc();
         UndoManager.RunInBatch(() => {
-            linkDoc = Docs.Create.TextDocument({ width: 100, height: 30, borderRounding: "100%" });
-            linkDoc.type = DocumentType.LINK;
-            let linkDocProto = Doc.GetProto(linkDoc);
+            linkDocProto.type = DocumentType.LINK;
 
             linkDocProto.targetContext = targetContext;
             linkDocProto.sourceContext = sourceContext;
@@ -509,10 +620,14 @@ export namespace DocUtils {
             linkDocProto.anchor2Page = target.curPage;
             linkDocProto.anchor2Groups = new List<Doc>([]);
 
-            LinkManager.Instance.addLink(linkDoc);
+            LinkManager.Instance.addLink(linkDocProto);
 
+            let script = `return links(this)};`;
+            let computed = CompileScript(script, { params: { this: "Doc" }, typecheck: false });
+            computed.compiled && (Doc.GetProto(source).links = new ComputedField(computed));
+            computed.compiled && (Doc.GetProto(target).links = new ComputedField(computed));
         }, "make link");
-        return linkDoc;
+        return linkDocProto;
     }
 
 }

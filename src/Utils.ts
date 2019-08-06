@@ -2,6 +2,7 @@ import v4 = require('uuid/v4');
 import v5 = require("uuid/v5");
 import { Socket } from 'socket.io';
 import { Message } from './server/Message';
+import { RouteStore } from './server/RouteStore';
 
 export class Utils {
 
@@ -25,6 +26,18 @@ export class Utils {
         const translateY = rect.top;
 
         return { scale, translateX, translateY };
+    }
+
+    /**
+     * A convenience method. Prepends the full path (i.e. http://localhost:1050) to the
+     * requested extension
+     * @param extension the specified sub-path to append to the window origin
+     */
+    public static prepend(extension: string): string {
+        return window.location.origin + extension;
+    }
+    public static CorsProxy(url: string): string {
+        return this.prepend(RouteStore.corsProxy + "/") + encodeURIComponent(url);
     }
 
     public static CopyText(text: string) {
@@ -127,13 +140,15 @@ export function returnOne() { return 1; }
 
 export function returnZero() { return 0; }
 
+export function returnEmptyString() { return ""; }
+
 export function emptyFunction() { }
 
 export type Without<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
 
 export type Predicate<K, V> = (entry: [K, V]) => boolean;
 
-export function deepCopy<K, V>(source: Map<K, V>, predicate?: Predicate<K, V>) {
+export function DeepCopy<K, V>(source: Map<K, V>, predicate?: Predicate<K, V>) {
     let deepCopy = new Map<K, V>();
     let entries = source.entries(), next = entries.next();
     while (!next.done) {
@@ -144,4 +159,18 @@ export function deepCopy<K, V>(source: Map<K, V>, predicate?: Predicate<K, V>) {
         next = entries.next();
     }
     return deepCopy;
+}
+
+export namespace JSONUtils {
+
+    export function tryParse(source: string) {
+        let results: any;
+        try {
+            results = JSON.parse(source);
+        } catch (e) {
+            results = source;
+        }
+        return results;
+    }
+
 }

@@ -1,5 +1,5 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowDown, faCloudUploadAlt, faArrowUp, faClone, faCheck, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faPortrait, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faThumbtack, faTree, faUndoAlt, faCat } from '@fortawesome/free-solid-svg-icons';
+import { faArrowDown, faCloudUploadAlt, faArrowUp, faClone, faCheck, faPlay, faPause, faCaretUp, faLongArrowAltRight, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faPortrait, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faThumbtack, faTree, faUndoAlt, faCat, faBolt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, runInAction, reaction, trace } from 'mobx';
 import { observer } from 'mobx-react';
@@ -7,7 +7,6 @@ import "normalize.css";
 import * as React from 'react';
 import { SketchPicker } from 'react-color';
 import Measure from 'react-measure';
-import * as request from 'request';
 import { Doc, DocListCast, Opt, HeightSym } from '../../new_fields/Doc';
 import { Id } from '../../new_fields/FieldSymbols';
 import { InkTool } from '../../new_fields/InkField';
@@ -16,7 +15,7 @@ import { listSpec } from '../../new_fields/Schema';
 import { Cast, FieldValue, NumCast, BoolCast, StrCast } from '../../new_fields/Types';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { RouteStore } from '../../server/RouteStore';
-import { emptyFunction, returnOne, returnTrue } from '../../Utils';
+import { emptyFunction, returnOne, returnTrue, Utils, returnEmptyString } from '../../Utils';
 import { DocServer } from '../DocServer';
 import { Docs } from '../documents/Documents';
 import { SetupDrag } from '../util/DragManager';
@@ -40,7 +39,7 @@ import { FilterBox } from './search/FilterBox';
 import { CollectionTreeView } from './collections/CollectionTreeView';
 import { ClientUtils } from '../util/ClientUtils';
 import { SearchBox } from './search/SearchBox';
-
+import { SchemaHeaderField, RandomPastel } from '../../new_fields/SchemaHeaderField';
 
 @observer
 export class MainView extends React.Component {
@@ -94,6 +93,8 @@ export class MainView extends React.Component {
 
     componentWillUnMount() {
         window.removeEventListener("keydown", KeyManager.Instance.handle);
+        window.removeEventListener("pointerdown", this.globalPointerDown);
+        window.removeEventListener("pointerup", this.globalPointerUp);
     }
 
     constructor(props: Readonly<{}>) {
@@ -125,30 +126,40 @@ export class MainView extends React.Component {
         library.add(faFilm);
         library.add(faMusic);
         library.add(faTree);
+        library.add(faPlay);
+        library.add(faPause);
         library.add(faClone);
         library.add(faCut);
         library.add(faCommentAlt);
         library.add(faThumbtack);
+        library.add(faLongArrowAltRight);
         library.add(faCheck);
+        library.add(faCaretUp);
         library.add(faArrowDown);
         library.add(faArrowUp);
         library.add(faCloudUploadAlt);
+        library.add(faBolt);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
+
+    globalPointerDown = action((e: PointerEvent) => {
+        this.isPointerDown = true;
+        const targets = document.elementsFromPoint(e.x, e.y);
+        if (targets && targets.length && targets[0].className.toString().indexOf("contextMenu") === -1) {
+            ContextMenu.Instance.closeMenu();
+        }
+    });
+
+    globalPointerUp = () => this.isPointerDown = false;
 
     initEventListeners = () => {
         // window.addEventListener("pointermove", (e) => this.reportLocation(e))
         window.addEventListener("drop", (e) => e.preventDefault(), false); // drop event handler
         window.addEventListener("dragover", (e) => e.preventDefault(), false); // drag event handler
         // click interactions for the context menu
-        document.addEventListener("pointerdown", action((e: PointerEvent) => {
-            this.isPointerDown = true;
-            const targets = document.elementsFromPoint(e.x, e.y);
-            if (targets && targets.length && targets[0].className.toString().indexOf("contextMenu") === -1) {
-                ContextMenu.Instance.closeMenu();
-            }
-        }), true);
+        document.addEventListener("pointerdown", this.globalPointerDown);
+        document.addEventListener("pointerup", this.globalPointerUp);
     }
 
     initAuthenticationRouters = async () => {
@@ -260,6 +271,7 @@ export class MainView extends React.Component {
                             PanelWidth={this.getPWidth}
                             PanelHeight={this.getPHeight}
                             renderDepth={0}
+                            backgroundColor={returnEmptyString}
                             selectOnLoad={false}
                             focus={emptyFunction}
                             parentActive={returnTrue}
@@ -291,7 +303,6 @@ export class MainView extends React.Component {
     }
     @action
     onPointerUp = (e: PointerEvent) => {
-        this.isPointerDown = false;
         if (Math.abs(e.clientX - this._downsize) < 4) {
             if (this.flyoutWidth < 5) this.flyoutWidth = 250;
             else this.flyoutWidth = 0;
@@ -325,6 +336,7 @@ export class MainView extends React.Component {
             renderDepth={0}
             selectOnLoad={false}
             focus={emptyFunction}
+            backgroundColor={returnEmptyString}
             parentActive={returnTrue}
             whenActiveChanged={emptyFunction}
             bringToFront={emptyFunction}
@@ -374,28 +386,34 @@ export class MainView extends React.Component {
         let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
 
         // let addDockingNode = action(() => Docs.Create.StandardCollectionDockingDocument([{ doc: addColNode(), initialWidth: 200 }], { width: 200, height: 200, title: "a nested docking freeform collection" }));
-        let addSchemaNode = action(() => Docs.Create.SchemaDocument(["title"], [], { width: 200, height: 200, title: "a schema collection" }));
+        let addSchemaNode = action(() => Docs.Create.SchemaDocument([new SchemaHeaderField("title", "#f1efeb")], [], { width: 200, height: 200, title: "a schema collection" }));
         //let addTreeNode = action(() => Docs.TreeDocument([CurrentUserUtils.UserDocument], { width: 250, height: 400, title: "Library:" + CurrentUserUtils.email, dropAction: "alias" }));
         // let addTreeNode = action(() => Docs.TreeDocument(this._northstarSchemas, { width: 250, height: 400, title: "northstar schemas", dropAction: "copy"  }));
         let addColNode = action(() => Docs.Create.FreeformDocument([], { width: this.pwidth * .7, height: this.pheight, title: "a freeform collection" }));
         let addTreeNode = action(() => CurrentUserUtils.UserDocument);
         let addImageNode = action(() => Docs.Create.ImageDocument(imgurl, { width: 200, title: "an image of a cat" }));
+        let addButtonDocument = action(() => Docs.Create.ButtonDocument({ width: 150, height: 50, title: "Button" }));
         let addImportCollectionNode = action(() => Docs.Create.DirectoryImportDocument({ title: "Directory Import", width: 400, height: 400 }));
+        let youtubeurl = "https://www.youtube.com/embed/TqcApsGRzWw";
+        let addYoutubeSearcher = action(() => Docs.Create.YoutubeDocument(youtubeurl, { width: 600, height: 600, title: "youtube search" }));
 
         let btns: [React.RefObject<HTMLDivElement>, IconName, string, () => Doc][] = [
             [React.createRef<HTMLDivElement>(), "object-group", "Add Collection", addColNode],
+            [React.createRef<HTMLDivElement>(), "bolt", "Add Button", addButtonDocument],
             // [React.createRef<HTMLDivElement>(), "clone", "Add Docking Frame", addDockingNode],
             [React.createRef<HTMLDivElement>(), "cloud-upload-alt", "Import Directory", addImportCollectionNode],
+            [React.createRef<HTMLDivElement>(), "play", "Add Youtube Searcher", addYoutubeSearcher]
         ];
         if (!ClientUtils.RELEASE) btns.unshift([React.createRef<HTMLDivElement>(), "cat", "Add Cat Image", addImageNode]);
 
-        return < div id="add-nodes-menu" style={{ left: this.flyoutWidth + 5 }} >
+        return < div id="add-nodes-menu" style={{ left: this.flyoutWidth + 20, bottom: 20 }} >
             <input type="checkbox" id="add-menu-toggle" ref={this.addMenuToggle} />
             <label htmlFor="add-menu-toggle" style={{ marginTop: 2 }} title="Add Node"><p>+</p></label>
 
             <div id="add-options-content">
                 <ul id="add-options-list">
                     <li key="search"><button className="add-button round-button" title="Search" onClick={this.toggleSearch}><FontAwesomeIcon icon="search" size="sm" /></button></li>
+                    <li key="presentation"><button className="add-button round-button" title="Open Presentation View" onClick={() => PresentationView.Instance.toggle(undefined)}><FontAwesomeIcon icon="table" size="sm" /></button></li>
                     <li key="undo"><button className="add-button round-button" title="Undo" style={{ opacity: UndoManager.CanUndo() ? 1 : 0.5, transition: "0.4s ease all" }} onClick={() => UndoManager.Undo()}><FontAwesomeIcon icon="undo-alt" size="sm" /></button></li>
                     <li key="redo"><button className="add-button round-button" title="Redo" style={{ opacity: UndoManager.CanRedo() ? 1 : 0.5, transition: "0.4s ease all" }} onClick={() => UndoManager.Redo()}><FontAwesomeIcon icon="redo-alt" size="sm" /></button></li>
                     {btns.map(btn =>
@@ -405,7 +423,7 @@ export class MainView extends React.Component {
                             </button>
                         </div></li>)}
                     <li key="undoTest"><button className="add-button round-button" title="Click if undo isn't working" onClick={() => UndoManager.TraceOpenBatches()}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>
-                    <li key="color"><button className="add-button round-button" title="Select Color" onClick={() => this.toggleColorPicker()}><div className="toolbar-color-button" style={{ backgroundColor: InkingControl.Instance.selectedColor }} >
+                    <li key="color"><button className="add-button round-button" title="Select Color" style={{ zIndex: 1000 }} onClick={() => this.toggleColorPicker()}><div className="toolbar-color-button" style={{ backgroundColor: InkingControl.Instance.selectedColor }} >
                         <div className="toolbar-color-picker" onClick={this.onColorClick} style={this._colorPickerDisplay ? { color: "black", display: "block" } : { color: "black", display: "none" }}>
                             <SketchPicker color={InkingControl.Instance.selectedColor} onChange={InkingControl.Instance.switchColor} />
                         </div>
@@ -435,7 +453,7 @@ export class MainView extends React.Component {
         return [
             this.isSearchVisible ? <div className="main-searchDiv" key="search" style={{ top: '34px', right: '1px', position: 'absolute' }} > <FilterBox /> </div> : null,
             <div className="main-buttonDiv" key="logout" style={{ bottom: '0px', right: '1px', position: 'absolute' }} ref={logoutRef}>
-                <button onClick={() => window.location.assign(DocServer.prepend(RouteStore.logout))}>Log Out</button></div>
+                <button onClick={() => window.location.assign(Utils.prepend(RouteStore.logout))}>Log Out</button></div>
         ];
 
     }
@@ -443,6 +461,7 @@ export class MainView extends React.Component {
     @observable isSearchVisible = false;
     @action.bound
     toggleSearch = () => {
+        // console.log("search toggling")
         this.isSearchVisible = !this.isSearchVisible;
     }
 
@@ -456,7 +475,7 @@ export class MainView extends React.Component {
                 {this.nodesMenu()}
                 {this.miscButtons}
                 <PDFMenu />
-                <MainOverlayTextBox />
+                <MainOverlayTextBox firstinstance={true} />
                 <OverlayView />
             </div >
         );

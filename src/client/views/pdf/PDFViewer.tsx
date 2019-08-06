@@ -4,27 +4,23 @@ import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
 import * as rp from "request-promise";
 import { Dictionary } from "typescript-collections";
-import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../new_fields/Doc";
+import { Doc, DocListCast, Opt } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
-import { BoolCast, Cast, NumCast, StrCast, FieldValue } from "../../../new_fields/Types";
-import { emptyFunction } from "../../../Utils";
-import { DocServer } from "../../DocServer";
-import { Docs, DocUtils, DocumentOptions } from "../../documents/Documents";
-import { DocumentManager } from "../../util/DocumentManager";
+import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { emptyFunction, Utils } from "../../../Utils";
+import { Docs, DocUtils } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
-import { DocumentView } from "../nodes/DocumentView";
-import { PDFBox, handleBackspace } from "../nodes/PDFBox";
+import { PDFBox } from "../nodes/PDFBox";
 import Page from "./Page";
 import "./PDFViewer.scss";
 import React = require("react");
-import PDFMenu from "./PDFMenu";
-import { UndoManager } from "../../util/UndoManager";
-import { CompileScript, CompiledScript, CompileResult } from "../../util/Scripting";
+import { CompileScript, CompileResult } from "../../util/Scripting";
 import { ScriptField } from "../../../new_fields/ScriptField";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Annotation from "./Annotation";
 import { KeyCodes } from "../../northstar/utils/KeyCodes";
+import { DocServer } from "../../DocServer";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 
 export const scale = 2;
@@ -90,16 +86,13 @@ export class Viewer extends React.Component<IViewerProps> {
     private _annotationReactionDisposer?: IReactionDisposer;
     private _dropDisposer?: DragManager.DragDropDisposer;
     private _filterReactionDisposer?: IReactionDisposer;
-    private _activeReactionDisposer?: IReactionDisposer;
     private _viewer: React.RefObject<HTMLDivElement>;
     private _mainCont: React.RefObject<HTMLDivElement>;
     private _pdfViewer: any;
     // private _textContent: Pdfjs.TextContent[] = [];
     private _pdfFindController: any;
     private _searchString: string = "";
-    private _rendered: boolean = false;
-    private _pageIndex: number = -1;
-    private _matchIndex: number = 0;
+    private _selectionText: string = "";
 
     constructor(props: IViewerProps) {
         super(props);
@@ -108,6 +101,10 @@ export class Viewer extends React.Component<IViewerProps> {
         this._script = scriptfield ? scriptfield.script : CompileScript("return true");
         this._viewer = React.createRef();
         this._mainCont = React.createRef();
+    }
+
+    setSelectionText = (text: string) => {
+        this._selectionText = text;
     }
 
     componentDidUpdate = (prevProps: IViewerProps) => {
@@ -135,23 +132,6 @@ export class Viewer extends React.Component<IViewerProps> {
             },
             { fireImmediately: true });
 
-        this._activeReactionDisposer = reaction(
-            () => this.props.parent.props.active(),
-            () => {
-                runInAction(() => {
-                    if (!this.props.parent.props.active()) {
-                        this._searching = false;
-                        this._pdfFindController = null;
-                        if (this._viewer.current) {
-                            let cns = this._viewer.current.childNodes;
-                            for (let i = cns.length - 1; i >= 0; i--) {
-                                cns.item(i).remove();
-                            }
-                        }
-                    }
-                });
-            }
-        );
 
         if (this.props.parent.props.ContainingCollectionView) {
             this._filterReactionDisposer = reaction(
@@ -182,6 +162,9 @@ export class Viewer extends React.Component<IViewerProps> {
         if (this._mainCont.current) {
             this._dropDisposer = this._mainCont.current && DragManager.MakeDropTarget(this._mainCont.current, { handlers: { drop: this.drop.bind(this) } });
         }
+
+        document.removeEventListener("copy", this.copy);
+        document.addEventListener("copy", this.copy);
     }
 
     componentWillUnmount = () => {
@@ -189,11 +172,47 @@ export class Viewer extends React.Component<IViewerProps> {
         this._annotationReactionDisposer && this._annotationReactionDisposer();
         this._filterReactionDisposer && this._filterReactionDisposer();
         this._dropDisposer && this._dropDisposer();
+        document.removeEventListener("copy", this.copy);
+    }
+
+    private copy = (e: ClipboardEvent) => {
+        if (this.props.parent.props.active()) {
+            let text = this._selectionText;
+            if (e.clipboardData) {
+                e.clipboardData.setData("text/plain", text);
+                e.clipboardData.setData("dash/pdfOrigin", this.props.parent.props.Document[Id]);
+                let annoDoc = this.makeAnnotationDocument(undefined, 0, "#0390fc");
+                e.clipboardData.setData("dash/pdfRegion", annoDoc[Id]);
+                e.preventDefault();
+            }
+        }
+        // let targetAnnotations = DocListCast(this.props.parent.fieldExtensionDoc.annotations);
+        // if (targetAnnotations) {
+        //     targetAnnotations.push(destDoc);
+        // }
+    }
+
+    paste = (e: ClipboardEvent) => {
+        if (e.clipboardData) {
+            if (e.clipboardData.getData("dash/pdfOrigin") === this.props.parent.props.Document[Id]) {
+                let linkDocId = e.clipboardData.getData("dash/linkDoc");
+                if (linkDocId) {
+                    DocServer.GetRefField(linkDocId).then(async (link) => {
+                        if (!(link instanceof Doc)) {
+                            return;
+                        }
+                        let proto = Doc.GetProto(link);
+                        let source = await Cast(proto.anchor1, Doc);
+                        proto.anchor2 = this.makeAnnotationDocument(source, 0, "#0390fc", false);
+                    });
+                }
+            }
+        }
     }
 
     scrollTo(y: number) {
         if (this.props.mainCont.current) {
-            this.props.parent.scrollTo(y - this.props.mainCont.current.clientHeight);
+            this.props.parent.scrollTo(y);
         }
     }
 
@@ -239,7 +258,7 @@ export class Viewer extends React.Component<IViewerProps> {
     }
 
     @action
-    makeAnnotationDocument = (sourceDoc: Doc | undefined, s: number, color: string): Doc => {
+    makeAnnotationDocument = (sourceDoc: Doc | undefined, s: number, color: string, createLink: boolean = true): Doc => {
         let annoDocs: Doc[] = [];
         let mainAnnoDoc = Docs.Create.InstanceFromProto(new Doc(), "", {});
 
@@ -268,7 +287,7 @@ export class Viewer extends React.Component<IViewerProps> {
 
         mainAnnoDoc.y = Math.max(minY, 0);
         mainAnnoDoc.annotations = new List<Doc>(annoDocs);
-        if (sourceDoc) {
+        if (sourceDoc && createLink) {
             DocUtils.MakeLink(sourceDoc, mainAnnoDoc, undefined, `Annotation from ${StrCast(this.props.parent.Document.title)}`, "", StrCast(this.props.parent.Document.title));
         }
         this._savedAnnotations.clear();
@@ -277,20 +296,19 @@ export class Viewer extends React.Component<IViewerProps> {
     }
 
     drop = async (e: Event, de: DragManager.DropEvent) => {
-        if (de.data instanceof DragManager.LinkDragData) {
-            let sourceDoc = de.data.linkSourceDocument;
-            let destDoc = this.makeAnnotationDocument(sourceDoc, 1, "red");
-            de.data.droppedDocuments.push(destDoc);
-            let targetAnnotations = DocListCast(this.props.parent.fieldExtensionDoc.annotations);
-            if (targetAnnotations) {
-                targetAnnotations.push(destDoc);
-                this.props.parent.fieldExtensionDoc.annotations = new List<Doc>(targetAnnotations);
-            }
-            else {
-                this.props.parent.fieldExtensionDoc.annotations = new List<Doc>([destDoc]);
-            }
-            e.stopPropagation();
-        }
+        // if (de.data instanceof DragManager.LinkDragData) {
+        //     let sourceDoc = de.data.linkSourceDocument;
+        //     let destDoc = this.makeAnnotationDocument(sourceDoc, 1, "red");
+        //     de.data.droppedDocuments.push(destDoc);
+        //     let targetAnnotations = DocListCast(this.props.parent.fieldExtensionDoc.annotations);
+        //     if (targetAnnotations) {
+        //         targetAnnotations.push(destDoc);
+        //     }
+        //     else {
+        //         this.props.parent.fieldExtensionDoc.annotations = new List<Doc>([destDoc]);
+        //     }
+        //     e.stopPropagation();
+        // }
     }
     /**
      * Called by the Page class when it gets rendered, initializes the lists and
@@ -318,6 +336,7 @@ export class Viewer extends React.Component<IViewerProps> {
             this._isPage[page] = "page";
             this._visibleElements[page] = (
                 <Page
+                    setSelectionText={this.setSelectionText}
                     size={this._pageSizes[page]}
                     pdf={this.props.pdf}
                     page={page}
@@ -346,7 +365,7 @@ export class Viewer extends React.Component<IViewerProps> {
             this._isPage[page] = "image";
             const address = this.props.url;
             try {
-                let res = JSON.parse(await rp.get(DocServer.prepend(`/thumbnail${address.substring("files/".length, address.length - ".pdf".length)}-${page + 1}.PNG`)));
+                let res = JSON.parse(await rp.get(Utils.prepend(`/thumbnail${address.substring("files/".length, address.length - ".pdf".length)}-${page + 1}.PNG`)));
                 runInAction(() => this._visibleElements[page] =
                     <img key={res.path} src={res.path} onError={handleError}
                         style={{ width: `${parseInt(res.width) * scale}px`, height: `${parseInt(res.height) * scale}px` }} />);
@@ -476,7 +495,6 @@ export class Viewer extends React.Component<IViewerProps> {
                             phraseSearch: true,
                             query: searchString
                         });
-                    this._rendered = true;
                 });
                 container.addEventListener("pagerendered", () => {
                     console.log("rendered");
@@ -488,7 +506,6 @@ export class Viewer extends React.Component<IViewerProps> {
                             phraseSearch: true,
                             query: searchString
                         });
-                    this._rendered = true;
                 });
             }
         }
@@ -563,7 +580,6 @@ export class Viewer extends React.Component<IViewerProps> {
                     });
                     container.addEventListener("pagerendered", () => {
                         console.log("rendered");
-                        this._rendered = true;
                     });
                     this._pdfViewer.setDocument(this.props.pdf);
                     this._pdfFindController = new PDFJSViewer.PDFFindController(this._pdfViewer);
@@ -636,16 +652,12 @@ export class Viewer extends React.Component<IViewerProps> {
     render() {
         let compiled = this._script;
         return (
-            <div ref={this._mainCont} style={{ pointerEvents: "all" }} onPointerDown={this.pointerDown}>
+            <div className="pdfViewer-viewer" ref={this._mainCont} onPointerDown={this.pointerDown}>
                 <div className="viewer" style={this._searching ? { position: "absolute", top: 0 } : {}}>
                     {this._visibleElements}
                 </div>
-                <div className="pdfViewer-text" ref={this._viewer} style={{ transform: "scale(1.5)", transformOrigin: "top left" }} />
-                <div className="pdfViewer-annotationLayer"
-                    style={{
-                        height: this.props.parent.Document.nativeHeight, width: `100%`,
-                        pointerEvents: this.props.parent.props.active() ? "none" : "all"
-                    }}>
+                <div className="pdfViewer-text" ref={this._viewer} />
+                <div className="pdfViewer-annotationLayer" style={{ height: this.props.parent.Document.nativeHeight }}>
                     <div className="pdfViewer-annotationLayer-subCont" ref={this._annotationLayer}>
                         {this._annotations.filter(anno => {
                             if (compiled && compiled.compiled) {
@@ -703,32 +715,24 @@ class SimpleLinkService {
     externalLinkRel: any = null;
     pdf: any = null;
 
-    navigateTo(dest: any) { }
+    navigateTo() { }
 
-    getDestinationHash(dest: any) { return "#"; }
+    getDestinationHash() { return "#"; }
 
-    getAnchorUrl(hash: any) { return "#"; }
+    getAnchorUrl() { return "#"; }
 
-    setHash(hash: any) { }
+    setHash() { }
 
-    executeNamedAction(action: any) { }
+    executeNamedAction() { }
 
-    cachePageRef(pageNum: any, pageRef: any) { }
+    cachePageRef() { }
 
-    get pagesCount() {
-        return this.pdf ? this.pdf.numPages : 0;
-    }
+    get pagesCount() { return this.pdf ? this.pdf.numPages : 0; }
 
-    get page() {
-        return 0;
-    }
+    get page() { return 0; }
 
-    setPdf(pdf: any) {
-        this.pdf = pdf;
-    }
+    setPdf(pdf: any) { this.pdf = pdf; }
 
-    get rotation() {
-        return 0;
-    }
+    get rotation() { return 0; }
     set rotation(value: any) { }
 }

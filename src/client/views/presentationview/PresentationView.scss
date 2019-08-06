@@ -1,11 +1,13 @@
 .presentationView-cont {
     position: absolute;
     background: white;
-    z-index: 1;
+    z-index: 2;
     box-shadow: #AAAAAA .2vw .2vw .4vw;
     right: 0;
     top: 0;
     bottom: 0;
+    letter-spacing: 2px;
+    
 }
 
 .presentationView-item {
@@ -19,6 +21,23 @@
     -ms-user-select: none;
     user-select: none;
     transition: all .1s;
+
+    
+
+    .documentView-node {
+        
+        position: absolute;
+        z-index: 1;
+    }
+
+}
+
+.presentationView-item-above {
+    border-top: black 2px solid;
+}
+
+.presentationView-item-below {
+    border-bottom: black 2px solid;
 }
 
 .presentationView-listCont {
@@ -33,10 +52,11 @@
 
 .presentationView-selected {
     background: gray;
+    color: black;
 }
 
 .presentationView-heading {
-    background: lightseagreen;
+    background: gray;
     padding: 10px;
     display: inline-block;
     width: 100%;
@@ -47,7 +67,9 @@
     padding-bottom: 3px;
     font-size: 25px;
     display: inline-block;
-    width: calc(100% - 160px);
+    width: calc(100% - 200px);
+    letter-spacing: 2px;
+
 }
 
 .presentation-icon {

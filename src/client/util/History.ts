@@ -129,7 +129,7 @@ export namespace HistoryUtil {
 
     function addStringifier(type: string, keys: string[], customStringifier?: (state: ParsedUrl, current: string) => string) {
         stringifiers[type] = state => {
-            let path = DocServer.prepend(`/${type}`);
+            let path = Utils.prepend(`/${type}`);
             if (customStringifier) {
                 path = customStringifier(state, path);
             }

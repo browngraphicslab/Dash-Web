@@ -19,6 +19,11 @@
     transform-origin: left top;
 }
 
+.collectionFreeform-customText {
+    position: absolute;
+    text-align: center;
+}
+
 .collectionfreeformview-container {
     .collectionfreeformview>.jsx-parser {
         position: inherit;
@@ -41,6 +46,7 @@
     border-radius: inherit;
     box-sizing: border-box;
     position: absolute;
+    overflow: hidden;
 
     .marqueeView {
         overflow: hidden;

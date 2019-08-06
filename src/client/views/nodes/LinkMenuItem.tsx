@@ -7,11 +7,12 @@ import { undoBatch } from "../../util/UndoManager";
 import './LinkMenu.scss';
 import React = require("react");
 import { Doc } from '../../../new_fields/Doc';
-import { StrCast, Cast, BoolCast, FieldValue, NumCast } from '../../../new_fields/Types';
+import { StrCast, Cast, FieldValue, NumCast } from '../../../new_fields/Types';
 import { observable, action } from 'mobx';
 import { LinkManager } from '../../util/LinkManager';
 import { DragLinkAsDocument } from '../../util/DragManager';
 import { CollectionDockingView } from '../collections/CollectionDockingView';
+import { SelectionManager } from '../../util/SelectionManager';
 library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp);
 
 
@@ -21,6 +22,7 @@ interface LinkMenuItemProps {
     sourceDoc: Doc;
     destinationDoc: Doc;
     showEditor: (linkDoc: Doc) => void;
+    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
 }
 
 @observer
@@ -42,18 +44,24 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         let targetContext = await Cast(proto.targetContext, Doc);
         let sourceContext = await Cast(proto.sourceContext, Doc);
         let self = this;
-        if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
+
+
+        let dockingFunc = (document: Doc) => { this.props.addDocTab(document, undefined, "inTab"); SelectionManager.DeselectAll(); };
+        if (e.ctrlKey) {
+            dockingFunc = (document: Doc) => CollectionDockingView.Instance.AddRightSplit(document, undefined);
+        }
+
+        if (this.props.destinationDoc === self.props.linkDoc.anchor2 && targetContext) {
+            DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, document => dockingFunc(targetContext!));
+        }
+        else if (this.props.destinationDoc === self.props.linkDoc.anchor1 && sourceContext) {
+            DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, document => dockingFunc(sourceContext!));
+        }
+        else if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
             DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, undefined, undefined, NumCast((this.props.destinationDoc === self.props.linkDoc.anchor2 ? self.props.linkDoc.anchor2Page : self.props.linkDoc.anchor1Page)));
         }
-        else if (!((this.props.destinationDoc === self.props.linkDoc.anchor2 && targetContext) || (this.props.destinationDoc === self.props.linkDoc.anchor1 && sourceContext))) {
-            DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, document => CollectionDockingView.Instance.AddRightSplit(document, undefined));
-        } else {
-            if (this.props.destinationDoc === self.props.linkDoc.anchor2 && targetContext) {
-                DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, document => CollectionDockingView.Instance.AddRightSplit(targetContext!, undefined));
-            }
-            else if (this.props.destinationDoc === self.props.linkDoc.anchor1 && sourceContext) {
-                DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, document => CllectionDockingView.Instance.AddRightSplit(sourceContext!, undefined));
-            }
+        else {
+            DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, dockingFunc);
         }
     }
 

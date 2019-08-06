@@ -7,6 +7,9 @@
     border-radius: inherit;
     box-sizing: border-box;
     height: 100%;
+    width:100%;
+    position: absolute;
+    top:0;
     padding-top: 20px;
     padding-left: 10px;
     padding-right: 0px;
@@ -31,6 +34,7 @@
         margin-top: 4px;
         transform: scale(1.3, 1.3);
     }
+
     .editableView-container {
         font-weight: bold;
     }
@@ -43,18 +47,20 @@
         display: inline;
     }
 
-    .editableView-input, .editableView-container-editing {
+    .editableView-input,
+    .editableView-container-editing {
         display: block;
         text-overflow: ellipsis;
         font-size: 24px;
         white-space: nowrap;
     }
 }
+
 .collectionTreeView-keyHeader {
     font-style: italic;
     font-size: 8pt;
     margin-left: 3px;
-    display:none;
+    display: none;
     background: lightgray;
 }
 
@@ -72,28 +78,31 @@
     // width:100%;//width: max-content;
 
 }
+
 .treeViewItem-openRight {
     display: none;
 }
 
 .treeViewItem-border {
-    display:inherit;
+    display: inherit;
     border-left: dashed 1px #00000042;
 }
 
 .treeViewItem-header:hover {
     .collectionTreeView-keyHeader {
-        display:inherit;
+        display: inherit;
     }
+
     .treeViewItem-openRight {
         display: inline-block;
-        height:13px;
-        margin-top:2px;
+        height: 13px;
+        margin-top: 2px;
         margin-left: 5px;
+
         // display: inline;
         svg {
-            display:block;
-            padding:0px;
+            display: block;
+            padding: 0px;
             margin: 0px;
         }
     }
@@ -101,14 +110,17 @@
 
 .treeViewItem-header {
     border: transparent 1px solid;
-    display:flex;
+    display: flex;
 }
+
 .treeViewItem-header-above {
     border-top: black 1px solid;
 }
+
 .treeViewItem-header-below {
     border-bottom: black 1px solid;
 }
+
 .treeViewItem-header-inside {
     border: black 1px solid;
 }

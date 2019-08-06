@@ -1,11 +1,10 @@
 import * as OpenSocket from 'socket.io-client';
-import { MessageStore, Diff } from "./../server/Message";
+import { MessageStore, Diff, YoutubeQueryTypes } from "./../server/Message";
 import { Opt } from '../new_fields/Doc';
 import { Utils, emptyFunction } from '../Utils';
 import { SerializationHelper } from './util/SerializationHelper';
 import { RefField } from '../new_fields/RefField';
 import { Id, HandleUpdate } from '../new_fields/FieldSymbols';
-import { CurrentUserUtils } from '../server/authentication/models/current_user_utils';
 
 /**
  * This class encapsulates the transfer and cross-client synchronization of
@@ -26,7 +25,6 @@ export namespace DocServer {
     // this client's distinct GUID created at initialization
     let GUID: string;
     // indicates whether or not a document is currently being udpated, and, if so, its id
-    let updatingId: string | undefined;
 
     export function init(protocol: string, hostname: string, port: number, identifier: string) {
         _cache = {};
@@ -46,14 +44,6 @@ export namespace DocServer {
         Utils.AddServerHandler(_socket, MessageStore.UpdateField, respondToUpdate);
         Utils.AddServerHandler(_socket, MessageStore.DeleteField, respondToDelete);
         Utils.AddServerHandler(_socket, MessageStore.DeleteFields, respondToDelete);
-    }
-    /**
-     * A convenience method. Prepends the full path (i.e. http://localhost:1050) to the
-     * requested extension
-     * @param extension the specified sub-path to append to the window origin
-     */
-    export function prepend(extension: string): string {
-        return window.location.origin + extension;
     }
 
     function errorFunc(): never {
@@ -134,17 +124,16 @@ export namespace DocServer {
             // future .proto calls on the Doc won't have to go farther than the cache to get their actual value.
             const deserializeField = getSerializedField.then(async fieldJson => {
                 // deserialize
-                const field = SerializationHelper.Deserialize(fieldJson);
-                // either way, overwrite or delete any promises cached at this id (that we inserted as flags
-                // to indicate that the field was in the process of being fetched). Now everything
-                // should be an actual value within or entirely absent from the cache.
+                const field = await SerializationHelper.Deserialize(fieldJson);
                 if (field !== undefined) {
-                    await field.proto;
                     _cache[id] = field;
                 } else {
                     delete _cache[id];
                 }
                 return field;
+                // either way, overwrite or delete any promises cached at this id (that we inserted as flags
+                // to indicate that the field was in the process of being fetched). Now everything
+                // should be an actual value within or entirely absent from the cache.
             });
             // here, indicate that the document associated with this id is currently
             // being retrieved and cached
@@ -166,6 +155,20 @@ export namespace DocServer {
     export function GetRefField(id: string): Promise<Opt<RefField>> {
         return _GetRefField(id);
     }
+
+    export async function getYoutubeChannels() {
+        let apiKey = await Utils.EmitCallback(_socket, MessageStore.YoutubeApiQuery, { type: YoutubeQueryTypes.Channels });
+        return apiKey;
+    }
+
+    export function getYoutubeVideos(videoTitle: string, callBack: (videos: any[]) => void) {
+        Utils.EmitCallback(_socket, MessageStore.YoutubeApiQuery, { type: YoutubeQueryTypes.SearchVideo, userInput: videoTitle }, callBack);
+    }
+
+    export function getYoutubeVideoDetails(videoIds: string, callBack: (videoDetails: any[]) => void) {
+        Utils.EmitCallback(_socket, MessageStore.YoutubeApiQuery, { type: YoutubeQueryTypes.VideoDetails, videoIds: videoIds }, callBack);
+    }
+
 
     /**
      * Given a list of Doc GUIDs, this utility function will asynchronously attempt to each id's associated
@@ -210,27 +213,36 @@ export namespace DocServer {
         // future .proto calls on the Doc won't have to go farther than the cache to get their actual value.
         const deserializeFields = getSerializedFields.then(async fields => {
             const fieldMap: { [id: string]: RefField } = {};
-            const protosToLoad: any = [];
+            const proms: Promise<void>[] = [];
             for (const field of fields) {
                 if (field !== undefined) {
                     // deserialize
-                    let deserialized: any = SerializationHelper.Deserialize(field);
-                    fieldMap[field.id] = deserialized;
+                    let prom = SerializationHelper.Deserialize(field).then(deserialized => {
+                        fieldMap[field.id] = deserialized;
+
+                        //overwrite or delete any promises (that we inserted as flags
+                        // to indicate that the field was in the process of being fetched). Now everything
+                        // should be an actual value within or entirely absent from the cache.
+                        if (deserialized !== undefined) {
+                            _cache[field.id] = deserialized;
+                        } else {
+                            delete _cache[field.id];
+                        }
+                        return deserialized;
+                    });
+                    // 4) here, for each of the documents we've requested *ourselves* (i.e. weren't promises or found in the cache)
+                    // we set the value at the field's id to a promise that will resolve to the field. 
+                    // When we find that promises exist at keys in the cache, THIS is where they were set, just by some other caller (method).
+                    // The mapping in the .then call ensures that when other callers await these promises, they'll
+                    // get the resolved field
+                    _cache[field.id] = prom;
                     // adds to a list of promises that will be awaited asynchronously
-                    protosToLoad.push(deserialized.proto);
+                    proms.push(prom);
                 }
             }
-            // this actually handles the loading of prototypes
-            await Promise.all(protosToLoad);
+            await Promise.all(proms);
             return fieldMap;
         });
-
-        // 4) here, for each of the documents we've requested *ourselves* (i.e. weren't promises or found in the cache)
-        // we set the value at the field's id to a promise that will resolve to the field. 
-        // When we find that promises exist at keys in the cache, THIS is where they were set, just by some other caller (method).
-        // The mapping in the .then call ensures that when other callers await these promises, they'll
-        // get the resolved field
-        requestedIds.forEach(id => _cache[id] = deserializeFields.then(fields => fields[id]));
 
         // 5) at this point, all fields have a) been returned from the server and b) been deserialized into actual Field objects whose
         // prototype documents, if any, have also been fetched and cached.
@@ -241,14 +253,6 @@ export namespace DocServer {
         // id to the soon-to-be-returned field mapping.
         requestedIds.forEach(id => {
             const field = fields[id];
-            // either way, overwrite or delete any promises (that we inserted as flags
-            // to indicate that the field was in the process of being fetched). Now everything
-            // should be an actual value within or entirely absent from the cache.
-            if (field !== undefined) {
-                _cache[id] = field;
-            } else {
-                delete _cache[id];
-            }
             map[id] = field;
         });
 
@@ -312,9 +316,6 @@ export namespace DocServer {
     }
 
     function _UpdateFieldImpl(id: string, diff: any) {
-        if (id === updatingId) {
-            return;
-        }
         Utils.Emit(_socket, MessageStore.UpdateField, { id, diff });
     }
 
@@ -337,11 +338,7 @@ export namespace DocServer {
             // extract this Doc's update handler
             const handler = f[HandleUpdate];
             if (handler) {
-                // set the 'I'm currently updating this Doc' flag
-                updatingId = id;
                 handler.call(f, diff.diff);
-                // reset to indicate no ongoing updates
-                updatingId = undefined;
             }
         };
         // check the cache for the field

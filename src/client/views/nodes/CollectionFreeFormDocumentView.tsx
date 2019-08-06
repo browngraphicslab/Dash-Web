@@ -8,6 +8,7 @@ import { DocumentView, DocumentViewProps, positionSchema } from "./DocumentView"
 import "./DocumentView.scss";
 import React = require("react");
 import { Doc } from "../../../new_fields/Doc";
+import { returnEmptyString } from "../../../Utils";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     x?: number;
@@ -35,21 +36,9 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     @computed get zoom(): number { return 1 / FieldValue(this.Document.zoomBasis, 1); }
     @computed get nativeWidth(): number { return FieldValue(this.Document.nativeWidth, 0); }
     @computed get nativeHeight(): number { return FieldValue(this.Document.nativeHeight, 0); }
-
-    set width(w: number) {
-        this.Document.width = w;
-        if (this.nativeWidth && this.nativeHeight) {
-            this.Document.height = this.nativeHeight / this.nativeWidth * w;
-        }
-    }
-    set height(h: number) {
-        this.Document.height = h;
-        if (this.nativeWidth && this.nativeHeight) {
-            this.Document.width = this.nativeWidth / this.nativeHeight * h;
-        }
-    }
     @computed get scaleToOverridingWidth() { return this.width / NumCast(this.props.Document.width, this.width); }
-    contentScaling = () => this.nativeWidth > 0 ? this.width / this.nativeWidth : 1;
+
+    contentScaling = () => this.nativeWidth > 0 && !BoolCast(this.props.Document.ignoreAspect) ? this.width / this.nativeWidth : 1;
     panelWidth = () => this.props.PanelWidth();
     panelHeight = () => this.props.PanelHeight();
     getTransform = (): Transform => this.props.ScreenToLocalTransform()
@@ -81,16 +70,26 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         return undefined;
     }
 
+    @computed
+    get clusterColor() { return this.props.backgroundColor(this.props.Document); }
+
+    clusterColorFunc = (doc: Doc) => this.clusterColor;
+
     render() {
+        const hasPosition = this.props.x !== undefined || this.props.y !== undefined;
         return (
             <div className="collectionFreeFormDocumentView-container"
                 style={{
                     transformOrigin: "left top",
                     position: "absolute",
                     backgroundColor: "transparent",
+                    boxShadow: this.props.Document.z ? `#9c9396  ${StrCast(this.props.Document.boxShadow, "10px 10px 0.9vw")}` :
+                        this.clusterColor ? (
+                            this.props.Document.isBackground ? `0px 0px 50px 50px ${this.clusterColor}` :
+                                `${this.clusterColor} ${StrCast(this.props.Document.boxShadow, `0vw 0vw ${50 / this.props.ContentScaling()}px`)}`) : undefined,
                     borderRadius: this.borderRounding(),
                     transform: this.transform,
-                    transition: StrCast(this.props.Document.transition),
+                    transition: hasPosition ? "transform 1s" : StrCast(this.props.Document.transition),
                     width: this.width,
                     height: this.height,
                     zIndex: this.Document.zIndex || 0,
@@ -98,6 +97,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 <DocumentView {...this.props}
                     ContentScaling={this.contentScaling}
                     ScreenToLocalTransform={this.getTransform}
+                    backgroundColor={this.clusterColorFunc}
                     PanelWidth={this.panelWidth}
                     PanelHeight={this.panelHeight}
                     animateBetweenIcon={this.animateBetweenIcon}

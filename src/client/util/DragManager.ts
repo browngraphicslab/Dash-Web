@@ -1,6 +1,6 @@
 import { action, runInAction } from "mobx";
 import { Doc } from "../../new_fields/Doc";
-import { Cast } from "../../new_fields/Types";
+import { Cast, StrCast } from "../../new_fields/Types";
 import { URLField } from "../../new_fields/URLField";
 import { emptyFunction } from "../../Utils";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
@@ -8,6 +8,9 @@ import * as globalCssVariables from "../views/globalCssVariables.scss";
 import { DocumentManager } from "./DocumentManager";
 import { LinkManager } from "./LinkManager";
 import { SelectionManager } from "./SelectionManager";
+import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
+import { DocumentDecorations } from "../views/DocumentDecorations";
+import { NumberLiteralType } from "typescript";
 
 export type dropActionType = "alias" | "copy" | undefined;
 export function SetupDrag(
@@ -138,6 +141,10 @@ export namespace DragManager {
         dragHasStarted?: () => void;
 
         withoutShiftDrag?: boolean;
+
+        offsetX?: number;
+
+        offsetY?: number;
     }
 
     export interface DragDropDisposer {
@@ -214,6 +221,7 @@ export namespace DragManager {
             this.annotationDocument = annotationDoc;
             this.xOffset = this.yOffset = 0;
         }
+        targetContext: Doc | undefined;
         dragDocument: Doc;
         annotationDocument: Doc;
         dropDocument: Doc;
@@ -288,11 +296,24 @@ export namespace DragManager {
         [id: string]: any;
     }
 
+    // for column dragging in schema view
+    export class ColumnDragData {
+        constructor(colKey: SchemaHeaderField) {
+            this.colKey = colKey;
+        }
+        colKey: SchemaHeaderField;
+        [id: string]: any;
+    }
+
     export function StartLinkDrag(ele: HTMLElement, dragData: LinkDragData, downX: number, downY: number, options?: DragOptions) {
         StartDrag([ele], dragData, downX, downY, options);
     }
 
     export function StartEmbedDrag(ele: HTMLElement, dragData: EmbedDragData, downX: number, downY: number, options?: DragOptions) {
+        StartDrag([ele], dragData, downX, downY, options);
+    }
+
+    export function StartColumnDrag(ele: HTMLElement, dragData: ColumnDragData, downX: number, downY: number, options?: DragOptions) {
         StartDrag([ele], dragData, downX, downY, options);
     }
 
@@ -383,7 +404,8 @@ export namespace DragManager {
                 hideSource = options.hideSource();
             }
         }
-        eles.map(ele => (ele.hidden = hideSource));
+        eles.map(ele => (ele.hidden = hideSource) &&
+            (ele.parentElement && ele.parentElement.className.indexOf("collectionFreeFormDocumentView") !== -1 && (ele.parentElement.hidden = hideSource)));
 
         let lastX = downX;
         let lastY = downY;
@@ -407,14 +429,16 @@ export namespace DragManager {
             lastX = e.pageX;
             lastY = e.pageY;
             dragElements.map((dragElement, i) => (dragElement.style.transform =
-                `translate(${(xs[i] += moveX)}px, ${(ys[i] += moveY)}px)  scale(${scaleXs[i]}, ${scaleYs[i]})`)
+                `translate(${(xs[i] += moveX) + (options ? (options.offsetX || 0) : 0)}px, ${(ys[i] += moveY) + (options ? (options.offsetY || 0) : 0)}px)  scale(${scaleXs[i]}, ${scaleYs[i]})`)
             );
         };
 
         let hideDragElements = () => {
-            SelectionManager.SetIsDragging(false);
             dragElements.map(dragElement => dragElement.parentNode === dragDiv && dragDiv.removeChild(dragElement));
-            eles.map(ele => (ele.hidden = false));
+            eles.map(ele => {
+                ele.hidden = false;
+                (ele.parentElement && ele.parentElement.className.indexOf("collectionFreeFormDocumentView") !== -1 && (ele.parentElement.hidden = false));
+            });
         };
         let endDrag = () => {
             document.removeEventListener("pointermove", moveHandler, true);
@@ -426,11 +450,13 @@ export namespace DragManager {
 
         AbortDrag = () => {
             hideDragElements();
+            SelectionManager.SetIsDragging(false);
             endDrag();
         };
         const upHandler = (e: PointerEvent) => {
             hideDragElements();
             dispatchDrag(eles, e, dragData, options, finishDrag);
+            SelectionManager.SetIsDragging(false);
             endDrag();
         };
         document.addEventListener("pointermove", moveHandler, true);

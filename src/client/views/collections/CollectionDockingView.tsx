@@ -10,7 +10,7 @@ import { Id } from '../../../new_fields/FieldSymbols';
 import { FieldId } from "../../../new_fields/RefField";
 import { listSpec } from "../../../new_fields/Schema";
 import { Cast, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
-import { emptyFunction, returnTrue, Utils, returnOne } from "../../../Utils";
+import { emptyFunction, returnTrue, Utils, returnOne, returnEmptyString } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { DocumentManager } from '../../util/DocumentManager';
 import { DragLinksAsDocuments, DragManager } from "../../util/DragManager";
@@ -210,8 +210,23 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             docs.push(document);
         }
         let docContentConfig = CollectionDockingView.makeDocumentConfig(document, dataDocument);
-        var newContentItem = stack.layoutManager.createContentItem(docContentConfig, this._goldenLayout);
-        stack.addChild(newContentItem.contentItems[0], undefined);
+        if (stack === undefined) {
+            let stack: any = this._goldenLayout.root;
+            while (!stack.isStack) {
+                if (stack.contentItems.length) {
+                    stack = stack.contentItems[0];
+                } else {
+                    stack.addChild({ type: 'stack', content: [docContentConfig] });
+                    stack = undefined;
+                    break;
+                }
+            }
+            if (stack) {
+                stack.addChild(docContentConfig);
+            }
+        } else {
+            stack.addChild(docContentConfig, undefined);
+        }
         this.layoutChanged();
     }
 
@@ -465,7 +480,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             .off('click') //unbind the current click handler
             .click(action(function () {
                 stack.config.fixed = !stack.config.fixed;
-                // var url = DocServer.prepend("/doc/" + stack.contentItems[0].tab.contentItem.config.props.documentId);
+                // var url = Utils.prepend("/doc/" + stack.contentItems[0].tab.contentItem.config.props.documentId);
                 // let win = window.open(url, stack.contentItems[0].tab.title, "width=300,height=400");
             }));
     }
@@ -539,17 +554,17 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         }
     }
 
+    panelWidth = () => Math.min(this._panelWidth, Math.max(NumCast(this._document!.width), this.nativeWidth()));
+    panelHeight = () => Math.min(this._panelHeight, Math.max(NumCast(this._document!.height), NumCast(this._document!.nativeHeight, this._panelHeight)));
 
-    nativeWidth = () => NumCast(this._document!.nativeWidth, this._panelWidth);
-    nativeHeight = () => {
-        let nh = NumCast(this._document!.nativeHeight, this._panelHeight);
-        let res = BoolCast(this._document!.ignoreAspect) ? this._panelHeight : nh;
-        return res;
-    }
+    nativeWidth = () => !BoolCast(this._document!.ignoreAspect) ? NumCast(this._document!.nativeWidth, this._panelWidth) : 0;
+    nativeHeight = () => !BoolCast(this._document!.ignoreAspect) ? NumCast(this._document!.nativeHeight, this._panelHeight) : 0;
+
     contentScaling = () => {
         const nativeH = this.nativeHeight();
         const nativeW = this.nativeWidth();
-        let wscale = this._panelWidth / nativeW;
+        if (!nativeW || !nativeH) return 1;
+        let wscale = this.panelWidth() / nativeW;
         return wscale * nativeH > this._panelHeight ? this._panelHeight / nativeH : wscale;
     }
 
@@ -561,18 +576,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         }
         return Transform.Identity();
     }
-    get scaleToFitMultiplier() {
-        let docWidth = NumCast(this._document!.width);
-        let docHeight = NumCast(this._document!.height);
-        if (NumCast(this._document!.nativeWidth) || !docWidth || !this._panelWidth || !this._panelHeight) return 1;
-        if (StrCast(this._document!.layout).indexOf("Collection") === -1 ||
-            !BoolCast(this._document!.fitToContents, false) ||
-            NumCast(this._document!.viewType) !== CollectionViewType.Freeform) return 1;
-        let scaling = Math.max(1, this._panelWidth / docWidth * docHeight > this._panelHeight ?
-            this._panelHeight / docHeight : this._panelWidth / docWidth);
-        return scaling;
-    }
-    get previewPanelCenteringOffset() { return (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2; }
+    get previewPanelCenteringOffset() { return this.nativeWidth && !BoolCast(this._document!.ignoreAspect) ? (this._panelWidth - this.nativeWidth()) / 2 : 0; }
 
     addDocTab = (doc: Doc, dataDoc: Doc | undefined, location: string) => {
         if (doc.dockingConfig) {
@@ -595,14 +599,15 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             addDocument={undefined}
             removeDocument={undefined}
             ContentScaling={this.contentScaling}
-            PanelWidth={this.nativeWidth}
-            PanelHeight={this.nativeHeight}
+            PanelWidth={this.panelWidth}
+            PanelHeight={this.panelHeight}
             ScreenToLocalTransform={this.ScreenToLocalTransform}
             renderDepth={0}
             selectOnLoad={false}
             parentActive={returnTrue}
             whenActiveChanged={emptyFunction}
             focus={emptyFunction}
+            backgroundColor={returnEmptyString}
             addDocTab={this.addDocTab}
             ContainingCollectionView={undefined}
             zoomToScale={emptyFunction}
@@ -610,18 +615,15 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
 
     @computed get content() {
-        if (!this._document) {
-            return (null);
-        }
         return (
             <div className="collectionDockingView-content" ref={this._mainCont}
-                style={{ transform: `translate(${this.previewPanelCenteringOffset}px, 0px) scale(${this.scaleToFitMultiplier})` }}>
+                style={{ transform: `translate(${this.previewPanelCenteringOffset}px, 0px)` }}>
                 {this.docView}
             </div >);
     }
 
     render() {
-        if (!this._isActive) return null;
+        if (!this._isActive || !this._document) return null;
         let theContent = this.content;
         return !this._document ? (null) :
             <Measure offset onResize={action((r: any) => { this._panelWidth = r.offset.width; this._panelHeight = r.offset.height; })}>

@@ -4,7 +4,7 @@ import "normalize.css";
 import * as React from 'react';
 import { Doc } from '../../new_fields/Doc';
 import { BoolCast } from '../../new_fields/Types';
-import { emptyFunction, returnTrue, returnZero, Utils } from '../../Utils';
+import { emptyFunction, returnTrue, returnZero, Utils, returnOne } from '../../Utils';
 import { DragManager } from '../util/DragManager';
 import { Transform } from '../util/Transform';
 import { CollectionDockingView } from './collections/CollectionDockingView';
@@ -12,6 +12,7 @@ import "./MainOverlayTextBox.scss";
 import { FormattedTextBox } from './nodes/FormattedTextBox';
 
 interface MainOverlayTextBoxProps {
+    firstinstance?: boolean;
 }
 
 @observer
@@ -29,6 +30,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
     private _outerdiv: HTMLElement | null = null;
     private _textBox: FormattedTextBox | undefined;
     private _tooltip?: HTMLElement;
+    ChromeHeight?: () => number;
     @observable public TextDoc?: Doc;
     @observable public TextDataDoc?: Doc;
 
@@ -49,6 +51,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
             (box?: FormattedTextBox) => {
                 this._textBox = box;
                 if (box) {
+                    this.ChromeHeight = box.props.ChromeHeight;
                     this.TextDoc = box.props.Document;
                     this.TextDataDoc = box.props.DataDoc;
                     let xf = () => {
@@ -140,7 +143,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
                                 Document={FormattedTextBox.InputBoxOverlay.props.Document}
                                 DataDoc={FormattedTextBox.InputBoxOverlay.props.DataDoc}
                                 isSelected={returnTrue} select={emptyFunction} renderDepth={0} selectOnLoad={true}
-                                ContainingCollectionView={undefined} whenActiveChanged={emptyFunction} active={returnTrue}
+                                ContainingCollectionView={undefined} whenActiveChanged={emptyFunction} active={returnTrue} ContentScaling={returnOne}
                                 ScreenToLocalTransform={this._textXf} PanelWidth={returnZero} PanelHeight={returnZero} focus={emptyFunction} addDocTab={this.addDocTab} outer_div={(tooltip: HTMLElement) => { this._tooltip = tooltip; this.updateTooltip(); }} />
                         </div>
                     </div>

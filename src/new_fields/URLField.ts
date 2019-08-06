@@ -43,3 +43,4 @@ export abstract class URLField extends ObjectField {
 @scriptingGlobal @Deserializable("video") export class VideoField extends URLField { }
 @scriptingGlobal @Deserializable("pdf") export class PdfField extends URLField { }
 @scriptingGlobal @Deserializable("web") export class WebField extends URLField { }
+@scriptingGlobal @Deserializable("youtube") export class YoutubeField extends URLField { }

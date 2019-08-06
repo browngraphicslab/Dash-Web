@@ -2,8 +2,11 @@ import { ObjectField } from "./ObjectField";
 import { CompiledScript, CompileScript, scriptingGlobal } from "../client/util/Scripting";
 import { Copy, ToScriptString, Parent, SelfProxy } from "./FieldSymbols";
 import { serializable, createSimpleSchema, map, primitive, object, deserialize, PropSchema, custom, SKIP } from "serializr";
-import { Deserializable } from "../client/util/SerializationHelper";
+import { Deserializable, autoObject } from "../client/util/SerializationHelper";
 import { Doc } from "../new_fields/Doc";
+import { Plugins } from "./util";
+import { computedFn } from "mobx-utils";
+import { ProxyField } from "./Proxy";
 
 function optional(propSchema: PropSchema) {
     return custom(value => {
@@ -23,6 +26,7 @@ const optionsSchema = createSimpleSchema({
     requiredType: true,
     addReturn: true,
     typecheck: true,
+    editable: true,
     readonly: true,
     params: optional(map(primitive()))
 });
@@ -32,7 +36,16 @@ const scriptSchema = createSimpleSchema({
     originalScript: true
 });
 
-function deserializeScript(script: ScriptField) {
+async function deserializeScript(script: ScriptField) {
+    const captures: ProxyField<Doc> = (script as any).captures;
+    if (captures) {
+        const doc = (await captures.value())!;
+        const captured: any = {};
+        const keys = Object.keys(doc);
+        const vals = await Promise.all(keys.map(key => doc[key]) as any);
+        keys.forEach((key, i) => captured[key] = vals[i]);
+        (script.script.options as any).capturedVariables = captured;
+    }
     const comp = CompileScript(script.script.originalScript, script.script.options);
     if (!comp.compiled) {
         throw new Error("Couldn't compile loaded script");
@@ -46,8 +59,16 @@ export class ScriptField extends ObjectField {
     @serializable(object(scriptSchema))
     readonly script: CompiledScript;
 
+    @serializable(autoObject())
+    private captures?: ProxyField<Doc>;
+
     constructor(script: CompiledScript) {
         super();
+
+        if (script && script.options.capturedVariables) {
+            const doc = Doc.assign(new Doc, script.options.capturedVariables);
+            this.captures = new ProxyField(doc);
+        }
 
         this.script = script;
     }
@@ -86,11 +107,41 @@ export class ScriptField extends ObjectField {
 @Deserializable("computed", deserializeScript)
 export class ComputedField extends ScriptField {
     //TODO maybe add an observable cache based on what is passed in for doc, considering there shouldn't really be that many possible values for doc
-    value(doc: Doc) {
+    value = computedFn((doc: Doc) => {
         const val = this.script.run({ this: doc });
         if (val.success) {
             return val.result;
         }
         return undefined;
+    });
+}
+
+export namespace ComputedField {
+    let useComputed = true;
+    export function DisableComputedFields() {
+        useComputed = false;
+    }
+
+    export function EnableComputedFields() {
+        useComputed = true;
+    }
+
+    export const undefined = "__undefined";
+
+    export function WithoutComputed<T>(fn: () => T) {
+        DisableComputedFields();
+        try {
+            return fn();
+        } finally {
+            EnableComputedFields();
+        }
+    }
+
+    export function initPlugin() {
+        Plugins.addGetterPlugin((doc, _, value) => {
+            if (useComputed && value instanceof ComputedField) {
+                return { value: value.value(doc), shouldReturn: true };
+            }
+        });
     }
 }
