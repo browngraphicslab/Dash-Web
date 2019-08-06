@@ -39,6 +39,7 @@ import { FormattedTextBox } from './FormattedTextBox';
 import React = require("react");
 import { DictationManager } from '../../util/DictationManager';
 import { MainView } from '../MainView';
+import requestPromise = require('request-promise');
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(fa.faTrash);

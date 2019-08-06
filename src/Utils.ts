@@ -3,6 +3,7 @@ import v5 = require("uuid/v5");
 import { Socket } from 'socket.io';
 import { Message } from './server/Message';
 import { RouteStore } from './server/RouteStore';
+import requestPromise = require('request-promise');
 
 export class Utils {
 
@@ -173,4 +174,14 @@ export namespace JSONUtils {
         return results;
     }
 
+}
+
+export function PostToServer(relativeRoute: string, body: any) {
+    let options = {
+        method: "POST",
+        uri: Utils.prepend(relativeRoute),
+        json: true,
+        body: body
+    };
+    return requestPromise.post(options);
 }
