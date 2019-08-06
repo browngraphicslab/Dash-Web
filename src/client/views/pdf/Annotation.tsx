@@ -130,7 +130,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
 
     render() {
         return (
-            <div className="pdfViewer-annotationBox" onPointerDown={this.onPointerDown} ref={this._mainCont}
+            <div className="pdfAnnotation" onPointerDown={this.onPointerDown} ref={this._mainCont}
                 style={{
                     top: this.props.y * scale,
                     left: this.props.x * scale,

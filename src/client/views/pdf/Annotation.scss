@@ -1,4 +1,7 @@
-.pdfViewer-annotationBox {
+.pdfAnnotation {
     pointer-events: all;
     user-select: none;
+    position: absolute;
+    background-color: pink;
+    opacity: 0.1;
 }

@@ -8,7 +8,7 @@ import { Docs, DocUtils } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import PDFMenu from "./PDFMenu";
 import { scale } from "./PDFViewer";
-import "./PDFViewer.scss";
+import "./Page.scss";
 import React = require("react");
 
 
@@ -43,7 +43,6 @@ export default class Page extends React.Component<IPageProps> {
 
     private _canvas: React.RefObject<HTMLCanvasElement> = React.createRef();
     private _textLayer: React.RefObject<HTMLDivElement> = React.createRef();
-    private _annotationLayer: React.RefObject<HTMLDivElement> = React.createRef();
     private _marquee: React.RefObject<HTMLDivElement> = React.createRef();
     private _marqueeing: boolean = false;
     private _reactionDisposer?: IReactionDisposer;
@@ -95,7 +94,7 @@ export default class Page extends React.Component<IPageProps> {
     }
 
     @action
-    highlight = (targetDoc?: Doc, color: string = "red") => {
+    highlight = (targetDoc: Doc | undefined, color: string) => {
         // creates annotation documents for current highlights
         let annotationDoc = this.props.makeAnnotationDocuments(targetDoc, scale, color, false);
         Doc.GetProto(annotationDoc).annotationOn = this.props.Document;
@@ -114,7 +113,7 @@ export default class Page extends React.Component<IPageProps> {
         if (this._textLayer.current) {
             let targetDoc = Docs.Create.TextDocument({ width: 200, height: 200, title: "New Annotation" });
             targetDoc.targetPage = this.props.page;
-            let annotationDoc = this.highlight(undefined, "red");
+            let annotationDoc = this.highlight(undefined, "pink");
             annotationDoc.linkedToDoc = false;
             let dragData = new DragManager.AnnotationDragData(this.props.Document, annotationDoc, targetDoc);
             DragManager.StartAnnotationDrag([ele], dragData, e.pageX, e.pageY, {
@@ -196,7 +195,6 @@ export default class Page extends React.Component<IPageProps> {
             this._marqueeX = Math.min(this._startX, this._startX + this._marqueeWidth);
             this._marqueeY = Math.min(this._startY, this._startY + this._marqueeHeight);
             this._marqueeWidth = Math.abs(this._marqueeWidth);
-            this._marquee.current && (this._marquee.current.style.background = "red");
             e.stopPropagation();
             e.preventDefault();
         }
@@ -219,10 +217,9 @@ export default class Page extends React.Component<IPageProps> {
                 copy.style.height = style.height;
 
                 // apply the appropriate background, opacity, and transform
-                copy.style.background = "red";
                 copy.style.border = style.border;
                 copy.style.opacity = style.opacity;
-                copy.className = this._marquee.current.className;
+                copy.className = "pdfPage-annotationBox";
                 this.props.createAnnotation(copy, this.props.page);
                 this._marquee.current.style.opacity = "0";
             }
@@ -266,7 +263,7 @@ export default class Page extends React.Component<IPageProps> {
                 let rect = clientRects.item(i);
                 if (rect && rect.width !== this._textLayer.current.getBoundingClientRect().width && rect.height !== this._textLayer.current.getBoundingClientRect().height) {
                     let annoBox = document.createElement("div");
-                    annoBox.className = "pdfViewer-annotationBox";
+                    annoBox.className = "pdfPage-annotationBox";
                     // transforms the positions from screen onto the pdf div
                     annoBox.style.top = ((rect.top - boundingRect.top) * (this._textLayer.current.offsetHeight / boundingRect.height)).toString();
                     annoBox.style.left = ((rect.left - boundingRect.left) * (this._textLayer.current.offsetWidth / boundingRect.width)).toString();
@@ -295,16 +292,23 @@ export default class Page extends React.Component<IPageProps> {
 
     render() {
         return (
-            <div onPointerDown={this.onPointerDown} onDoubleClick={this.doubleClick} className={"page-cont"} style={{ "width": this._width, "height": this._height }}>
-                <div className="canvasContainer">
+            <div className={"pdfPage-cont"} onPointerDown={this.onPointerDown} onDoubleClick={this.doubleClick} style={{ "width": this._width, "height": this._height }}>
+                <div className="PdfPage-canvasContainer">
                     <canvas ref={this._canvas} />
                 </div>
-                <div className="pdfInkingLayer-cont" ref={this._annotationLayer} style={{ width: "100%", height: "100%", position: "relative", top: "-100%" }}>
-                    <div className="pdfViewer-annotationBox" ref={this._marquee}
-                        style={{ left: `${this._marqueeX}px`, top: `${this._marqueeY}px`, width: `${this._marqueeWidth}px`, height: `${this._marqueeHeight}px`, background: "red", border: `${this._marqueeWidth === 0 ? "" : "10px dashed black"}` }}>
+                <div className="pdfPage-annotationLayer">
+                    <div className="pdfPage-dragAnnotationBox" ref={this._marquee}
+                        style={{
+                            left: `${this._marqueeX}px`, top: `${this._marqueeY}px`,
+                            width: `${this._marqueeWidth}px`, height: `${this._marqueeHeight}px`,
+                            border: `${this._marqueeWidth === 0 ? "" : "10px dashed black"}`
+                        }}>
                     </div>
                 </div>
-                <div className="textlayer" ref={this._textLayer} style={{ "position": "relative", "top": `-${2 * this._height}px`, "height": `${this._height}px` }} />
+                <div className="pdfPage-textlayer"
+                    ref={this._textLayer}
+                    style={{ top: `-${2 * this._height}px`, height: `${this._height}px` }}
+                />
             </div>
         );
     }

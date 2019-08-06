@@ -427,14 +427,13 @@ export class PDFViewer extends React.Component<IViewerProps> {
 
         if (this._searching) {
             let container = this._mainCont.current;
-            let viewer = this._viewer.current;
 
             if (!this._pdfFindController) {
-                if (container && viewer) {
+                if (container && this._viewer.current) {
                     let simpleLinkService = new SimpleLinkService();
                     this._pdfViewer = new PDFJSViewer.PDFViewer({
                         container: container,
-                        viewer: viewer,
+                        viewer: this._viewer.current,
                         linkService: simpleLinkService
                     });
                     simpleLinkService.setPdf(this.props.pdf);
@@ -483,25 +482,23 @@ export class PDFViewer extends React.Component<IViewerProps> {
     render() {
         return (
             <div className="pdfViewer-viewer" ref={this._mainCont} >
-                <div className="viewer" style={this._searching ? { position: "absolute", top: 0 } : {}}>
+                <div className="pdfViewer-visibleElements" style={this._searching ? { position: "absolute", top: 0 } : {}}>
                     {this._visibleElements}
                 </div>
                 <div className="pdfViewer-text" ref={this._viewer} />
-                <div className="pdfViewer-annotationLayer" style={{ height: NumCast(this.props.Document.nativeHeight) }}>
-                    <div className="pdfViewer-annotationLayer-subCont" ref={this._annotationLayer}>
-                        {this._annotations.filter(anno => {
-                            if (this._script && this._script.compiled) {
-                                let run = this._script.run({ this: anno });
-                                if (run.success) {
-                                    return run.result;
-                                }
+                <div className="pdfViewer-annotationLayer" style={{ height: NumCast(this.props.Document.nativeHeight) }} ref={this._annotationLayer}>
+                    {this._annotations.filter(anno => {
+                        if (this._script && this._script.compiled) {
+                            let run = this._script.run({ this: anno });
+                            if (run.success) {
+                                return run.result;
                             }
-                            return true;
-                        }).sort((a: Doc, b: Doc) => NumCast(a.y) - NumCast(b.y))
-                            .map((anno: Doc, index: number) =>
-                                <Annotation anno={anno} scrollTo={this.props.scrollTo} fieldExtensionDoc={this.props.fieldExtensionDoc} ParentIndex={this.getIndex} addDocTab={this.props.addDocTab} index={index} key={`${anno[Id]}-annotation`} />
-                            )}
-                    </div>
+                        }
+                        return true;
+                    }).sort((a: Doc, b: Doc) => NumCast(a.y) - NumCast(b.y))
+                        .map((anno: Doc, index: number) =>
+                            <Annotation anno={anno} scrollTo={this.props.scrollTo} fieldExtensionDoc={this.props.fieldExtensionDoc} ParentIndex={this.getIndex} addDocTab={this.props.addDocTab} index={index} key={`${anno[Id]}-annotation`} />
+                        )}
                 </div>
                 <div className="pdfViewer-overlayCont" onPointerDown={(e) => e.stopPropagation()}
                     style={{
@@ -509,9 +506,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
                         left: `${this._searching ? 0 : 100}%`
                     }}>
                     <button className="pdfViewer-overlayButton" title="Open Search Bar"></button>
-                    {/* <button title="Previous Result" onClick={() => this.search(this._searchString)}><FontAwesomeIcon icon="arrow-up" size="3x" color="white" /></button>
-                    <button title="Next Result" onClick={this.nextResult}><FontAwesomeIcon icon="arrow-down" size="3x" color="white" /></button> */}
-                    <input onKeyDown={(e: React.KeyboardEvent) => e.keyCode === KeyCodes.ENTER ? this.search(this._searchString) : e.keyCode === KeyCodes.BACKSPACE ? e.stopPropagation() : true} placeholder="Search" className="pdfViewer-overlaySearchBar" onChange={this.searchStringChanged} />
+                    <input className="pdfViewer-overlaySearchBar" onKeyDown={(e: React.KeyboardEvent) => e.keyCode === KeyCodes.ENTER ? this.search(this._searchString) : e.keyCode === KeyCodes.BACKSPACE ? e.stopPropagation() : true} placeholder="Search" onChange={this.searchStringChanged} />
                     <button title="Search" onClick={() => this.search(this._searchString)}><FontAwesomeIcon icon="search" size="3x" color="white" /></button>
                 </div>
                 <button className="pdfViewer-overlayButton" onClick={this.prevAnnotation} title="Previous Annotation"

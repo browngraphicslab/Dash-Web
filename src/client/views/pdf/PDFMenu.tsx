@@ -32,7 +32,7 @@ export default class PDFMenu extends React.Component {
     @observable public Pinned: boolean = false;
 
     public StartDrag: (e: PointerEvent, ele: HTMLElement) => void = emptyFunction;
-    public Highlight: (d: Doc | undefined, color: string | undefined) => void = emptyFunction;
+    public Highlight: (d: Doc | undefined, color: string) => void = emptyFunction;
     public Delete: () => void = emptyFunction;
     public Snippet: (marquee: { left: number, top: number, width: number, height: number }) => void = emptyFunction;
     public AddTag: (key: string, value: string) => boolean = returnFalse;
