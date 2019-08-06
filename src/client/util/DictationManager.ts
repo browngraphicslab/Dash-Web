@@ -11,7 +11,7 @@ import { listSpec } from "../../new_fields/Schema";
 import { AudioField, ImageField } from "../../new_fields/URLField";
 import { HistogramField } from "../northstar/dash-fields/HistogramField";
 import { MainView } from "../views/MainView";
-import { Clipboard } from "ts-clipboard";
+import { Utils } from "../../Utils";
 
 /**
  * This namespace provides a singleton instance of a manager that
@@ -79,7 +79,7 @@ export namespace DictationManager {
             try {
                 results = await listenImpl(options);
                 if (results) {
-                    Clipboard.copy(results);
+                    Utils.CopyText(results);
                     main.isListening = false;
                     let execute = options && options.tryExecute;
                     main.dictatedPhrase = execute ? results.toLowerCase() : results;

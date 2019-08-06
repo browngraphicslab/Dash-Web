@@ -602,6 +602,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (!ClientUtils.RELEASE) {
             let copies: ContextMenuProps[] = [];
             copies.push({ description: "Copy URL", event: () => Utils.CopyText(Utils.prepend("/doc/" + this.props.Document[Id])), icon: "link" });
+            copies.push({
+                description: "Copy Context", event: () => {
+                    let parent = this.props.ContainingCollectionView;
+                    if (parent) {
+                        Utils.CopyText(Utils.prepend("/doc/" + parent.props.Document[Id]));
+                    }
+                }, icon: "link"
+            });
             copies.push({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "fingerprint" });
             cm.addItem({ description: "Copy...", subitems: copies, icon: "copy" });
         }
