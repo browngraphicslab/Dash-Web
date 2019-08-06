@@ -39,6 +39,7 @@ import { FilterBox } from './search/FilterBox';
 import { CollectionTreeView } from './collections/CollectionTreeView';
 import { ClientUtils } from '../util/ClientUtils';
 import { SchemaHeaderField, RandomPastel } from '../../new_fields/SchemaHeaderField';
+import { TimelineMenu } from './animationtimeline/TimelineMenu';
 
 @observer
 export class MainView extends React.Component {
@@ -148,6 +149,9 @@ export class MainView extends React.Component {
             const targets = document.elementsFromPoint(e.x, e.y);
             if (targets && targets.length && targets[0].className.toString().indexOf("contextMenu") === -1) {
                 ContextMenu.Instance.closeMenu();
+            } 
+            if (targets && targets.length && targets[0].className.toString().indexOf("timeline-menu-container") === -1){
+                TimelineMenu.Instance.closeMenu(); 
             }
         }), true);
     }
@@ -461,6 +465,7 @@ export class MainView extends React.Component {
                 {this.nodesMenu()}
                 {this.miscButtons}
                 <PDFMenu />
+                <TimelineMenu/>
                 <MainOverlayTextBox />
                 <OverlayView />
             </div >

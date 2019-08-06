@@ -12,6 +12,7 @@ import { FlyoutProps } from "./Timeline";
 import { Transform } from "../../util/Transform";
 import { InkField, StrokeData } from "../../../new_fields/InkField";
 import { number } from "prop-types";
+import { TimelineMenu } from "./TimelineMenu";
 
 export namespace KeyframeFunc {
     export enum KeyframeType {
@@ -389,6 +390,7 @@ export class Keyframe extends React.Component<IProps> {
                     <div className="keyframeCircle" onPointerDown={(e) => { this.moveKeyframe(e, kf as Doc); }} onContextMenu={(e: React.MouseEvent) => {
                         e.preventDefault();
                         e.stopPropagation();
+                        TimelineMenu.Instance.openMenu("keyframe", e.clientX, e.clientY); 
                     }}></div>
                 </div>);
         }
@@ -538,7 +540,7 @@ export class Keyframe extends React.Component<IProps> {
                                 <div ref={bodyRef}className="body-container" style={{left: `${NumCast(kf.time) - this.regiondata.position}px`, width:`${NumCast(left!.time) - NumCast(kf.time)}px`}}
                                 onPointerOver={(e) => { this.onContainerOver(e, bodyRef); }}
                                 onPointerOut={(e) => { this.onContainerOut(e, bodyRef); }}
-                                onContextMenu={(e) => { this.onContainerDown(e, kf); }}>
+                                onContextMenu={(e) => {TimelineMenu.Instance.openMenu("region", e.clientX, e.clientY);}}>
                                 </div>
                             ); 
                        }  
