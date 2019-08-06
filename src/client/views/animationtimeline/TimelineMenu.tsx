@@ -95,20 +95,20 @@ export class TimelineMenu extends React.Component {
         switch(this._type){
             case "keyframe": 
                 menu = [ 
-                    <button> Show Schema</button>,  
-                    <button> Delete Keyframe</button>,
-                    <input placeholder="Move Keyframe"/> 
+                    <button className="timeline-menu-button"> Show Schema</button>,  
+                    <button className="timeline-menu-button"> Delete Keyframe</button>,
+                    <input className="timeline-menu-input"placeholder="Move Keyframe"/> 
                    
                 ]; 
                 break; 
             case "region" :
                 menu = [
-                    <button onClick={this.addEase}>Add Ease</button>,
-                    <button onClick={this.addPath}>Add Path</button>,
-                    <input placeholder="fadeIn"/>,
-                    <input placeholder="fadeOut"/>,
-                    <input placeholder="position"/>,
-                    <input placeholder="duration"/>,
+                    <button className="timeline-menu-button" onClick={this.addEase}>Add Ease</button>,
+                    <button className="timeline-menu-button"onClick={this.addPath}>Add Path</button>,
+                    <input className="timeline-menu-input"placeholder="fadeIn"/>,
+                    <input className="timeline-menu-input"placeholder="fadeOut"/>,
+                    <input className="timeline-menu-input"placeholder="position"/>,
+                    <input className="timeline-menu-input"placeholder="duration"/>,
                 ]; 
                 break; 
             case "timeline":

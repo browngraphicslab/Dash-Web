@@ -425,12 +425,13 @@ export namespace Doc {
     export function MakeCopy(doc: Doc, copyProto: boolean = false): Doc {
         const copy = new Doc;
         Object.keys(doc).forEach(key => {
-            const field = ProxyField.WithoutProxy(() => doc[key]);
             if (key === "proto" && copyProto) {
+                const field = doc[key];
                 if (field instanceof Doc) {
                     copy[key] = Doc.MakeCopy(field);
                 }
             } else {
+                const field = ProxyField.WithoutProxy(() => doc[key]);
                 if (field instanceof RefField) {
                     copy[key] = field;
                 } else if (field instanceof ObjectField) {

@@ -231,10 +231,6 @@ export class Keyframe extends React.Component<IProps> {
                 return; 
             }
         });
-        
-        let index = this.regiondata.keyframes!.indexOf(TK); 
-        console.log(toJS(this.regiondata.keyframes!)); 
-
         return TK;
     }
 

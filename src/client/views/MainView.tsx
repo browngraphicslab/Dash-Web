@@ -149,6 +149,9 @@ export class MainView extends React.Component {
         if (targets && targets.length && targets[0].className.toString().indexOf("contextMenu") === -1) {
             ContextMenu.Instance.closeMenu();
         }
+        if (targets && targets.length && targets[0].className.toString().indexOf("timeline-menu-container") === -1) {
+            TimelineMenu.Instance.closeMenu();
+        }   
     });
 
     globalPointerUp = () => this.isPointerDown = false;

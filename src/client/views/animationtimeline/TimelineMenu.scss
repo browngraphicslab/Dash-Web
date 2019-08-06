@@ -1,7 +1,16 @@
 .timeline-menu-container{
     position: absolute;
     z-index: 10000;
-    width: 500px; 
-    height: 500px; 
+    width: 150px; 
+    height: auto; 
     background-color: black;
+    .timeline-menu-button{
+        width:100%; 
+        height: 30px; 
+
+    }
+    .timeline-menu-input{
+        width:100%; 
+        height: 30px; 
+    }
 }

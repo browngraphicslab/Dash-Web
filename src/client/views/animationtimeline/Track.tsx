@@ -128,8 +128,10 @@ export class Track extends React.Component<IProps> {
     private applyKeys = async (kf: Doc) => {
         let kfNode = await Cast(kf.key, Doc) as Doc; 
         let docFromApply = kfNode; 
+        console.log(Doc.allKeys(docFromApply)); 
         if (this.filterKeys(Doc.allKeys(this.props.node)).length > this.filterKeys(Doc.allKeys(kfNode)).length) docFromApply = this.props.node; 
         this.filterKeys(Doc.allKeys(docFromApply)).forEach(key => {
+            console.log(key);
             if (!kfNode[key]) {
                 this.props.node[key] = undefined; 
             } else {
