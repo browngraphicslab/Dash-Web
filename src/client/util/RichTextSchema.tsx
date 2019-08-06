@@ -193,6 +193,12 @@ export const nodes: { [index: string]: NodeSpec } = {
         }
     },
 
+    checkbox_list2: {
+        inline: false,
+        // content: 'list_item+',
+        group: 'block'
+    },
+
     // :: NodeSpec A hard line break, represented in the DOM as `<br>`.
     hard_break: {
         inline: true,
@@ -214,6 +220,15 @@ export const nodes: { [index: string]: NodeSpec } = {
         group: 'block',
         // parseDOM: [{ tag: "ul" }, { style: 'list-style-type=disc' }],
         // toDOM() { return ulDOM }
+    },
+    checkbox_list: {
+        ...bulletList,
+        content: 'list_item+',
+        group: 'block',
+        // style: 'list-style-type:none'
+        itemContent: "+",
+        // parseDOM: [{ tag: "ul" }, { style: 'list-style-type=square' }],
+        // toDOM() { return ulDOM; }
     },
     //bullet_list: {
     //  content: 'list_item+',

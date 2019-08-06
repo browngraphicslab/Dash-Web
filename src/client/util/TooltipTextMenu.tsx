@@ -10,7 +10,7 @@ import { Node as ProsNode } from "prosemirror-model";
 import "./TooltipTextMenu.scss";
 const { toggleMark, setBlockType } = require("prosemirror-commands");
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { wrapInList, liftListItem, } from 'prosemirror-schema-list';
+import { wrapInList, liftListItem, bulletList, } from 'prosemirror-schema-list';
 import { faListUl } from '@fortawesome/free-solid-svg-icons';
 import { FieldViewProps } from "../views/nodes/FieldView";
 const { openPrompt, TextField } = require("./ProsemirrorCopy/prompt.js");
@@ -177,7 +177,7 @@ export class TooltipTextMenu {
         this.listTypeToIcon = new Map();
         this.listTypeToIcon.set(schema.nodes.bullet_list, ":");
         this.listTypeToIcon.set(schema.nodes.ordered_list, "1)");
-        // this.listTypeToIcon.set(schema.nodes.checklist, "⬜");
+        // this.listTypeToIcon.set(schema.nodes.bullet_list, "⬜");
         this.listTypes = Array.from(this.listTypeToIcon.keys());
 
         //custom tools
@@ -187,7 +187,7 @@ export class TooltipTextMenu {
         this.tooltip.appendChild(this._brushdom);
         this.tooltip.appendChild(this.createLink().render(this.view).dom);
         this.tooltip.appendChild(this.createStar().render(this.view).dom);
-        this.tooltip.appendChild(this.createCheckbox().render(this.view).dom)
+        this.tooltip.appendChild(this.createCheckbox().render(this.view).dom);
 
         this.updateListItemDropdown(":", this.listTypeBtnDom);
 
@@ -441,12 +441,13 @@ export class TooltipTextMenu {
         return true;
     }
 
+    // this needs to change so it makes it into a bulleted list
     public static insertCheckbox(state: EditorState<any>, dispatch: any) {
         let newNode = schema.nodes.checkbox.create({ visibility: false });
         if (dispatch) {
             //console.log(newNode.attrs.text.toString());
             dispatch(state.tr.replaceSelectionWith(newNode));
-            wrapInList(nodeType)(state, dispatch);
+            wrapInList(newNode.type)(state, dispatch);
         }
         return true;
     }
@@ -460,9 +461,11 @@ export class TooltipTextMenu {
         let toAdd: MenuItem[] = [];
         this.listTypeToIcon.forEach((icon, type) => {
             toAdd.push(this.dropdownNodeBtn(icon, "color: black; width: 40px;", type, this.view, this.listTypes, this.changeToNodeType));
+            console.log(type.name)
         });
         //option to remove the list formatting
         toAdd.push(this.dropdownNodeBtn("X", "color: black; width: 40px;", undefined, this.view, this.listTypes, this.changeToNodeType));
+        toAdd.push(this.dropdownNodeBtn("⬜", "color:black; width:40px;", schema.nodes.checkbox_list, this.view, this.listTypes, this.changeToNodeType))
 
         listTypeBtn = (new Dropdown(toAdd, {
             label: label,
