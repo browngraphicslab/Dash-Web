@@ -186,8 +186,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     }
 
-
-
     sortdate(a: Doc, b: Doc) {
         var adate: DateField = a.creationDate;
         var bdate: DateField = b.creationDate;
@@ -318,8 +316,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     }
 
-
-    //private observabletest: MarkerUnit[] = [];
     @action
     onPointerDown_Selector = (e: React.PointerEvent): void => {
         if (e.altKey) {
@@ -402,22 +398,15 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     previewHeight(color: string) {
-        if (color === "#ffff80") {
-            return "80%";
-        }
-        if (color === "#bfff80") {
-            return "65%";
-        }
-        if (color === "#ff8080") {
-            return "50%";
-        }
-        if (color === "#80dfff") {
-            return "35%";
-        }
+        if (color === "#ffff80") {return "80%";}
+        if (color === "#bfff80") {return "65%";}
+        if (color === "#ff8080") {return "50%";}
+        if (color === "#80dfff") {return "35%";}
         return "80%";
     }
 
     private refguy: HTMLDivElement | undefined;
+    private maprefguy: HTMLDivElement | undefined;
 
     @action
     onPointerMove_Selector = (e: PointerEvent): void => {
@@ -433,27 +422,20 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         else {
             this._lastY = document.body.clientHeight * 0.61;
         }
-
-
         this._lastX = e.pageX;
-
-
         if (e.altKey) {
             if (this.markers[this.markers.length - 1].ref) {
                 this.refguy = this.markers[this.markers.length - 1].ref;
+                this.maprefguy = this.markers[this.markers.length - 1].mapref;
             }
             if (e.movementX >= 0) {
                 let newX = parseInt(this.refguy.style.width);
-                //let newX2 = parseInt(this.markers[this.markers.length - 1].mapref.style.width);
+                let newX2 = parseInt(this.maprefguy.style.width);
                 newX += e.movementX;
-                //newX2 += e.movementX / (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement));
+                newX2 += e.movementX / (this.barwidth / (this.barwidth - this.xmovement2 - this.xmovement));
                 this.refguy.style.width = String(newX);
-                // this.markers[this.markers.length - 1].mapref.style.width = String(newX2);
-                //console.log(this.markers[this.markers.length - 1].ref.style.width);
-
+                this.maprefguy.style.width = String(newX2);
             }
-
-
         }
 
         if (!e.altKey) {
@@ -469,9 +451,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 }
             }
         }
-
-
-
     }
 
     @action
@@ -501,8 +480,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             e.stopPropagation();
         }
     }
-
-
 
     private newselect: (HTMLDivElement | undefined)[] = [];
 
@@ -568,7 +545,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         return <div ref={this.marqueeref} className="marquee" style={{ width: `${Math.abs(v[0])}`, height: `${Math.abs(v[1])}`, zIndex: 2000 }} >
         </div>;
     }
-
 
 
     @action
@@ -638,9 +614,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 this.selections.push(button);
             }
         }
-
         this.show(d);
-
     }
 
     @action
@@ -654,7 +628,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             this.preview4 = d[this.sortstate];
         }
     }
-
 
 
     private _values: CompoundValue[] = [];
@@ -703,7 +676,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         return buttons;
     }
 
-
     @action
     checkDataString = (): string[] => {
         let field: string[] = [];
@@ -717,8 +689,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
         return field;
     }
-
-
 
     buttonloop() {
         this._range = 1;
@@ -851,7 +821,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.buttons = this.filterDocs(this.buttons);
     }
 
-
     private fields: JSX.Element[] = [];
 
     sortmenu() {
@@ -907,11 +876,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @observable
     private selectedColor: string = "ffff80";
 
-
-
     @action
     onKeyPress_Selector = (e: React.KeyboardEvent) => {
-        //make textbox and add it to this collection
         e.preventDefault;
         if (e.altKey) {
             let min = 9999999;
@@ -949,19 +915,12 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
             this.markerDocs.push(d);
 
-
-
-
             // this.currentmarker.ref ? this.currentmarker.ref!.style.opacity = "0.25" : null;
             // this.currentmarker.ref ? this.currentmarker.ref!.style.border = "0px solid black" : null;
             this.markers.push(ting);
             // this.currentmarker.ref ? this.currentmarker.ref!.style.border = "0px" : null;
             // this.currentmarker = ting;
             d.color = this.selectedColor;
-
-
-
-
 
         }
         if (this.currentmarker !== undefined) {
@@ -971,14 +930,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
     }
 
-
-
-
-
     private getContainerTransform = (): Transform => this.props.ScreenToLocalTransform().translate(0, 0);
-
-
-
 
     @action
     checkData = (document: Doc): IconProp => {
@@ -1007,9 +959,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         return faBell;
     }
 
-
-
-
     documentpreview(d: Doc) {
         return (
             <div>
@@ -1031,11 +980,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         addDocTab={this.props.addDocTab}
                     />
                 </div>
-
-            </div >
-
-
-
+            </div>
         );
     }
 
@@ -1057,11 +1002,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         addDocTab={this.props.addDocTab}
                     />
                 </div>
-
-            </div >
-
-
-
+            </div>
         );
     }
 
@@ -1083,11 +1024,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         addDocTab={this.props.addDocTab}
                     />
                 </div>
-
-            </div >
-
-
-
+            </div>
         );
     }
 
@@ -1158,13 +1095,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.sortmenu();
         this.buttonloop();
         let p: [number, number] = this._visible ? this.getContainerTransform().transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
-
-        // interface ButtonLoopProps {
-        //     editMarkers: (value: MarkerUnit[]) => void;
-        // }
-        //<ButtonLoop {...this.props} editMarkers={this.editMarkers}></ButtonLoop>*
         return (
-
             < div className="collectionTimelineView" id="yeet" style={{ marginLeft: "1%", width: "98%", height: "100%" }
             }
                 onWheel={(e: React.WheelEvent) => e.stopPropagation()
@@ -1207,7 +1138,14 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     </div>
 
 
-                    <BottomUI xmovement={this.xmovement}
+                    <BottomUI 
+                        markermap={
+
+                        }
+                        buttonmap={
+
+                        }
+                        xmovement={this.xmovement}
                         xmovement2={this.xmovement2}
                         xmovementSet={this.xmovementSet}
                         xmovement2Set={this.xmovement2Set}
@@ -1412,10 +1350,8 @@ export class BottomUI extends React.Component<BottomUIProps> {
     onPointerMove_OnBar = (e: PointerEvent): void => {
         e.stopPropagation();
         e.preventDefault();
-
         let newx2 = this.props.xmovement2 - e.movementX;
         let newx = this.props.xmovement + e.movementX;
-
         if (newx2 < 0) {
             this.props.xmovement2Set(0);
             this.props.xmovement2Set(0 - e.movementX);
@@ -1428,12 +1364,8 @@ export class BottomUI extends React.Component<BottomUIProps> {
             this.props.xmovement2Set(newx2 + e.movementX);
         }
         else {
-            this.props.xmovementSet(this.props.xmovement + e.movementX);
-
-        }
-
+            this.props.xmovementSet(this.props.xmovement + e.movementX);}
         document.addEventListener("pointerup", this.onPointerUp);
-
     }
 
     onPointerUp = (e: PointerEvent): void => {
@@ -1458,8 +1390,6 @@ export class BottomUI extends React.Component<BottomUIProps> {
             this.props.xmovementSet(this.props.barwidth - this.props.xmovement2 - 4);
         }
         document.addEventListener("pointerup", this.onPointerUp);
-
-
     }
 
     @action
@@ -1492,8 +1422,6 @@ export class BottomUI extends React.Component<BottomUIProps> {
         e.preventDefault();
     }
 
-
-
     @action
     onPointerDown_OffBar = (e: React.PointerEvent): void => {
         let temp = this.props.barwidth - this.props.xmovement2 - this.props.xmovement;
@@ -1513,13 +1441,6 @@ export class BottomUI extends React.Component<BottomUIProps> {
         e.stopPropagation();
         e.preventDefault();
     }
-
-
-
-    //                {this.buttons.map(item => item.map)}
-    //{this.markers.map(item => item.map)}
-    //
-
 
     render() {
         return (
@@ -1541,28 +1462,14 @@ export class BottomUI extends React.Component<BottomUIProps> {
                         <input value={this.searchString} onChange={this.onChange} onKeyPress={this.enter} type="text" placeholder={String(((this.props.barwidth - this.props.xmovement2) * this.props._range / this.props.barwidth) + this.props._values)}
                             className="searchBox-barChild searchBox-input" />
                     </div>
-
-
                 </div>
-
-
-
                 <div id="bar" ref={this.props.barref} className="backdropscroll" onPointerDown={this.onPointerDown_OffBar} style={{ zIndex: 1, top: "80%", width: "100%", bottom: "15%", position: "absolute", }}>
-
-                    <div className="v1" onPointerDown={this.onPointerDown_LeftBound} style={{ cursor: "ew-resize", position: "absolute", zIndex: 3, left: this.props.xmovement, height: "100%" }}>
-                    </div>
-                    <div className="v2" onPointerDown={this.onPointerDown2_RightBound} style={{
-                        cursor: "ew-resize",
-                        position: "absolute", right: this.props.xmovement2,
-                        height: "100%",
-                        zIndex: 3
-                    }}>
-                    </div>
+                                    {this.props.buttonmap}
+                                    {this.props.markermap}
+                    <div className="v1" onPointerDown={this.onPointerDown_LeftBound} style={{ cursor: "ew-resize", position: "absolute", zIndex: 3, left: this.props.xmovement, height: "100%" }}></div>
+                    <div className="v2" onPointerDown={this.onPointerDown2_RightBound} style={{ cursor: "ew-resize", position: "absolute", right: this.props.xmovement2, height: "100%", zIndex: 3}}></div>
                     <div className="bar" onPointerDown={this.onPointerDown_OnBar} style={{ zIndex: 2, left: this.props.xmovement, width: this.props.barwidth - this.props.xmovement2 - this.props.xmovement, height: "100%", position: "absolute" }}>
                     </div>
-
-
-
                 </div>
             </div>
         );
@@ -1570,6 +1477,8 @@ export class BottomUI extends React.Component<BottomUIProps> {
 }
 
 export interface BottomUIProps {
+    buttonmap:
+    markermap:
     xmovement: number;
     xmovement2: number;
     xmovementSet: (number: number) => void;
