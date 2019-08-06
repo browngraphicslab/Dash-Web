@@ -23,12 +23,13 @@
 .textLayer {
     user-select: auto;
 }
-.viewer {
-    // position: absolute;
-    // top: 0;
-}
-.pdfViewere-viewer {
+.pdfViewer-viewer {
     pointer-events:inherit;
+    width: 100%;
+}
+
+.pdfviewer-placeholder {
+    content: "HELLO WORLD"
 }
 .pdfViewer-text {
     transform: scale(1.5);
@@ -43,9 +44,6 @@
             user-select: none;
         }
     }
-}
-.pdfViewer-viewerCont {
-    width:100%;
 }
 
 .page-cont {
