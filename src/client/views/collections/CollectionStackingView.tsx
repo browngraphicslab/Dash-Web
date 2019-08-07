@@ -266,7 +266,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
 
     onToggle = (checked: Boolean) => {
-        this.props.CollectionView.props.Document.chromeSatus = checked ? "collapsed" : "view-mode";
+        this.props.CollectionView.props.Document.chromeStatus = checked ? "collapsed" : "view-mode";
     }
 
     render() {

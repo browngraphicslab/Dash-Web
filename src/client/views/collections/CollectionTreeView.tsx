@@ -398,9 +398,11 @@ class TreeView extends React.Component<TreeViewProps> {
         panelWidth: () => number,
         renderDepth: number
     ) {
+
         let viewSpecScript = Cast(containingCollection.viewSpecScript, ScriptField);
         if (viewSpecScript) {
             let script = viewSpecScript.script;
+            console.log(viewSpecScript, script);
             docs = docs.filter(d => {
                 let res = script.run({ doc: d });
                 if (res.success) {
@@ -411,6 +413,17 @@ class TreeView extends React.Component<TreeViewProps> {
                 }
             });
         }
+
+        // sort children here
+
+        // schemaheaderfield should b just the thing we're sorting by
+        // sortFunc = (a: [SchemaHeaderField, Doc[]], b: [SchemaHeaderField, Doc[]]): 1 | -1 => {
+        //     let descending = BoolCast(this.props.document.stackingHeadersSortDescending);
+        //     let firstEntry = descending ? b : a;
+        //     let secondEntry = descending ? a : b;
+        //     return firstEntry[0].heading > secondEntry[0].heading ? 1 : -1;
+        // }
+
         let rowWidth = () => panelWidth() - 20;
         return docs.map((child, i) => {
             let pair = Doc.GetLayoutDataDocPair(containingCollection, dataDoc, key, child);
