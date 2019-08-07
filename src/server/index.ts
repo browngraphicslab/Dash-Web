@@ -1,6 +1,6 @@
 require('dotenv').config();
 import * as bodyParser from 'body-parser';
-import { exec } from 'child_process';
+import { exec, ExecOptions } from 'child_process';
 import * as cookieParser from 'cookie-parser';
 import * as express from 'express';
 import * as session from 'express-session';
@@ -149,31 +149,39 @@ app.get("/pull", (req, res) =>
     }));
 
 app.get("/buxton", (req, res) => {
-    let buxton_scraping = path.join(__dirname, '../scraping/buxton');
-    exec('python scraper.py', { cwd: buxton_scraping }, (err, stdout, sterr) => {
-        if (err) {
-            res.send(err.message);
-            return;
-        }
-        console.log(stdout);
-        res.redirect("/");
-    });
+    let cwd = '../scraping/buxton';
+
+    let onResolved = (stdout: string) => { console.log(stdout); res.redirect("/"); };
+    let onRejected = (err: any) => { console.error(err.message); res.send(err); };
+    let tryPython3 = () => command_line('python3 scraper.py', cwd).then(onResolved, onRejected);
+
+    command_line('python scraper.py', cwd).then(onResolved, tryPython3);
 });
 
+const command_line = (command: string, fromDirectory?: string) => {
+    return new Promise<string>((resolve, reject) => {
+        let options: ExecOptions = {};
+        if (fromDirectory) {
+            options.cwd = path.join(__dirname, fromDirectory);
+        }
+        exec(command, options, (err, stdout) => err ? reject(err) : resolve(stdout));
+    });
+};
+
+const read_text_file = (relativePath: string) => {
+    let target = path.join(__dirname, relativePath);
+    return new Promise<string>((resolve, reject) => {
+        fs.readFile(target, (err, data) => err ? reject(err) : resolve(data.toString()));
+    });
+};
+
 app.get('/layoutscripts', (req, res) => {
-    let scripts: string[] = [];
-    let handler = (err: NodeJS.ErrnoException | null, data: Buffer) => {
-        if (err) {
-            console.log(err.message);
-            return;
-        }
-        scripts.push(data.toString());
-        if (scripts.length === 2) {
-            res.send(JSON.stringify(scripts));
-        }
-    };
-    fs.readFile(path.join(__dirname, '../scraping/buxton/scripts/initialization.txt'), handler);
-    fs.readFile(path.join(__dirname, '../scraping/buxton/scripts/layout.txt'), handler);
+    let prefix = '../scraping/buxton/scripts/';
+    read_text_file(prefix + 'initialization.txt').then(arrangeInit => {
+        read_text_file(prefix + 'layout.txt').then(arrangeScript => {
+            res.send(JSON.stringify({ arrangeInit, arrangeScript }));
+        });
+    });
 });
 
 app.get("/version", (req, res) => {

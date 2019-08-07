@@ -51,14 +51,10 @@ export const panZoomSchema = createSchema({
 
 export namespace PivotView {
 
-    export let arrangeInit: string;
-    export let arrangeScript: string;
+    export let scripts: { arrangeInit: string, arrangeScript: string };
 
     export async function loadLayouts() {
-        let response = await fetch(Utils.prepend("/layoutscripts"));
-        let scripts = JSON.parse(await response.text());
-        arrangeInit = scripts[0];
-        arrangeScript = scripts[1];
+        scripts = JSON.parse(await (await fetch(Utils.prepend("/layoutscripts"))).text());
     }
 
 }
@@ -815,8 +811,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             }
             target[key] = new ScriptField(script);
         };
-        setSpecifiedLayoutField(PivotView.arrangeInit, "arrangeInit", { collection: "Doc", docs: "Doc[]" }, undefined);
-        setSpecifiedLayoutField(PivotView.arrangeScript, "arrangeScript", { doc: "Doc", index: "number", collection: "Doc", state: "any", docs: "Doc[]" }, "{x: number, y: number, width?: number, height?: number}");
+        setSpecifiedLayoutField(PivotView.scripts.arrangeInit, "arrangeInit", { collection: "Doc", docs: "Doc[]" }, undefined);
+        setSpecifiedLayoutField(PivotView.scripts.arrangeScript, "arrangeScript", { doc: "Doc", index: "number", collection: "Doc", state: "any", docs: "Doc[]" }, "{x: number, y: number, width?: number, height?: number}");
     }
 
     render() {
