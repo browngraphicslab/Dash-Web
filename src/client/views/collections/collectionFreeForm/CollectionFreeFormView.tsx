@@ -1,6 +1,6 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faEye } from "@fortawesome/free-regular-svg-icons";
-import { faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faPaintBrush, faTable, faUpload } from "@fortawesome/free-solid-svg-icons";
+import { faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faPaintBrush, faTable, faUpload, faBrain } from "@fortawesome/free-solid-svg-icons";
 import { action, computed } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCastAsync, HeightSym, WidthSym } from "../../../../new_fields/Doc";
@@ -37,8 +37,9 @@ import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import v5 = require("uuid/v5");
+import { ClientRecommender } from "../../../ClientRecommender";
 
-library.add(faEye, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload);
+library.add(faEye, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBrain);
 
 export const panZoomSchema = createSchema({
     panX: "number",
@@ -595,6 +596,20 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 };
                 input.click();
             }
+        });
+        ContextMenu.Instance.addItem({
+            description: "Recommender System",
+            event: async () => {
+                new ClientRecommender();
+                let activedocs = this.getActiveDocuments();
+                await Promise.all(activedocs.map((doc: Doc) => {
+                    console.log(StrCast(doc.title));
+                    const extdoc = doc.data_ext as Doc;
+                    return ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc);
+                }));
+                console.log(ClientRecommender.Instance.createDistanceMatrix());
+            },
+            icon: "brain"
         });
     }
 

@@ -39,6 +39,7 @@ import { FilterBox } from './search/FilterBox';
 import { CollectionTreeView } from './collections/CollectionTreeView';
 import { ClientUtils } from '../util/ClientUtils';
 import { SchemaHeaderField, RandomPastel } from '../../new_fields/SchemaHeaderField';
+//import { DocumentManager } from '../util/DocumentManager';
 
 @observer
 export class MainView extends React.Component {
@@ -434,6 +435,12 @@ export class MainView extends React.Component {
             </div>
         </div >;
     }
+
+    // clusterDocuments = () => {
+    //     DocumentManager.Instance.DocumentViews();
+    // }
+
+
 
 
 

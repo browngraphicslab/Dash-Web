@@ -31,7 +31,7 @@ import { faEye } from '@fortawesome/free-regular-svg-icons';
 import { ComputedField } from '../../../new_fields/ScriptField';
 import { CompileScript } from '../../util/Scripting';
 import { thisExpression } from 'babel-types';
-import { Recommender } from '../../../server/Recommender';
+//import { Recommender } from '../../../server/Recommender';
 import requestPromise = require('request-promise');
 var requestImageSize = require('../../util/request-image-size');
 var path = require('path');
@@ -244,17 +244,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     }
 
     extractText = () => {
-        let data = StrCast(this.dataDoc.title);
-        console.log(data);
-        let converter = (results: any) => {
-            let keyterms = new List<string>();
-            results.documents.forEach((doc: any) => {
-                let keyPhrases = doc.keyPhrases;
-                keyPhrases.map((kp: string) => keyterms.push(kp));
-            });
-            return keyterms;
-        };
-        CognitiveServices.Text.Manager.analyzer(this.extensionDoc, ["key words"], data, converter);
+        //Recommender.Instance.extractText(this.dataDoc, this.extensionDoc);
         // request recommender 
         //fetch(Utils.prepend("/recommender"), { body: body, method: "POST", headers: { "content-type": "application/json" } }).then((value) => console.log(value));
     }
