@@ -198,16 +198,13 @@ export default class Page extends React.Component<IPageProps> {
     onSelectEnd = (e: PointerEvent): void => {
         if (this._marqueeing) {
             this._marqueeing = false;
-            if (this._marquee.current) {
+            if (this._marquee.current) { // make a copy of the marquee
                 let copy = document.createElement("div");
-                // make a copy of the marquee
                 let style = this._marquee.current.style;
                 copy.style.left = style.left;
                 copy.style.top = style.top;
                 copy.style.width = style.width;
                 copy.style.height = style.height;
-
-                // apply the appropriate background, opacity, and transform
                 copy.style.border = style.border;
                 copy.style.opacity = style.opacity;
                 copy.className = "pdfPage-annotationBox";
@@ -293,7 +290,6 @@ export default class Page extends React.Component<IPageProps> {
                     }}>
                 </div>
                 <div className="pdfPage-textlayer" ref={this._textLayer} />
-            </div>
-        );
+            </div>);
     }
 }
