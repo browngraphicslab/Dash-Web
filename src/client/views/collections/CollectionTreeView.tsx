@@ -27,7 +27,6 @@ import "./CollectionTreeView.scss";
 import React = require("react");
 import { ComputedField } from '../../../new_fields/ScriptField';
 import { KeyValueBox } from '../nodes/KeyValueBox';
-import { exportNamedDeclaration } from 'babel-types';
 
 
 export interface TreeViewProps {
@@ -71,8 +70,9 @@ class TreeView extends React.Component<TreeViewProps> {
     private _header?: React.RefObject<HTMLDivElement> = React.createRef();
     private _treedropDisposer?: DragManager.DragDropDisposer;
     private _dref = React.createRef<HTMLDivElement>();
+    get defaultExpandedView() { return this.childDocs ? this.fieldKey : "fields"; }
     @observable _collapsed: boolean = true;
-    @computed get treeViewExpandedView() { return StrCast(this.props.document.treeViewExpandedView, "fields"); }
+    @computed get treeViewExpandedView() { return StrCast(this.props.document.treeViewExpandedView, this.defaultExpandedView); }
     @computed get MAX_EMBED_HEIGHT() { return NumCast(this.props.document.maxEmbedHeight, 300); }
     @computed get dataDoc() { return this.resolvedDataDoc ? this.resolvedDataDoc : this.props.document; }
     @computed get fieldKey() {
@@ -341,10 +341,12 @@ class TreeView extends React.Component<TreeViewProps> {
         let headerElements = (
             <span className="collectionTreeView-keyHeader" key={this.treeViewExpandedView}
                 onPointerDown={action(() => {
-                    this.props.document.treeViewExpandedView = this.treeViewExpandedView === this.fieldKey ? "fields" :
-                        this.treeViewExpandedView === "fields" && this.props.document.layout ? "layout" :
-                            this.treeViewExpandedView === "layout" && this.props.document.links ? "links" :
-                                this.childDocs ? this.fieldKey : "fields";
+                    if (!this._collapsed) {
+                        this.props.document.treeViewExpandedView = this.treeViewExpandedView === this.fieldKey ? "fields" :
+                            this.treeViewExpandedView === "fields" && this.props.document.layout ? "layout" :
+                                this.treeViewExpandedView === "layout" && this.props.document.links ? "links" :
+                                    this.childDocs ? this.fieldKey : "fields";
+                    }
                     this._collapsed = false;
                 })}>
                 {this.treeViewExpandedView}
