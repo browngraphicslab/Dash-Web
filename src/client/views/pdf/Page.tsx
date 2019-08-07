@@ -88,7 +88,6 @@ export default class Page extends React.Component<IPageProps> {
     highlight = (targetDoc: Doc | undefined, color: string) => {
         // creates annotation documents for current highlights
         let annotationDoc = this.props.makeAnnotationDocuments(targetDoc, scale, color, false);
-        Doc.GetProto(annotationDoc).annotationOn = this.props.Document;
         Doc.AddDocToList(this.props.fieldExtensionDoc, "annotations", annotationDoc);
         return annotationDoc;
     }

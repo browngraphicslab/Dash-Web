@@ -187,12 +187,14 @@ export class PDFViewer extends React.Component<IViewerProps> {
             (annoDoc.y !== undefined) && (minY = Math.min(NumCast(annoDoc.y), minY));
         }));
 
-        mainAnnoDoc.title = "Annotation on " + StrCast(this.props.Document.title);
-        mainAnnoDoc.pdfDoc = this.props.Document;
-        mainAnnoDoc.y = Math.max(minY, 0);
-        mainAnnoDoc.annotations = new List<Doc>(annoDocs);
+        let mainAnnoDocProto = Doc.GetProto(mainAnnoDoc);
+        mainAnnoDocProto.title = "Annotation on " + StrCast(this.props.Document.title);
+        mainAnnoDocProto.pdfDoc = this.props.Document;
+        mainAnnoDocProto.annotationOn = this.props.Document;
+        mainAnnoDocProto.y = Math.max(minY, 0);
+        mainAnnoDocProto.annotations = new List<Doc>(annoDocs);
         if (sourceDoc && createLink) {
-            DocUtils.MakeLink(sourceDoc, mainAnnoDoc, undefined, `Annotation from ${StrCast(this.props.Document.title)}`, "", StrCast(this.props.Document.title));
+            DocUtils.MakeLink(sourceDoc, mainAnnoDocProto, undefined, `Annotation from ${StrCast(this.props.Document.title)}`, "", StrCast(this.props.Document.title));
         }
         this._savedAnnotations.clear();
         this.Index = -1;
@@ -433,30 +435,28 @@ export class PDFViewer extends React.Component<IViewerProps> {
                     <Annotation {...this.props} ParentIndex={this.getIndex} anno={anno} index={index} key={`${anno[Id]}-annotation`} />)}
             </div>
             <div className="pdfViewer-overlayCont" onPointerDown={(e) => e.stopPropagation()}
-                style={{ nbottom: -this.props.scrollY, left: `${this._searching ? 0 : 100}%` }}>
+                style={{ bottom: -this.props.scrollY, left: `${this._searching ? 0 : 100}%` }}>
                 <button className="pdfViewer-overlayButton" title="Open Search Bar" />
                 <input className="pdfViewer-overlaySearchBar" placeholder="Search" onChange={this.searchStringChanged}
                     onKeyDown={(e: React.KeyboardEvent) => e.keyCode === KeyCodes.ENTER ? this.search(this._searchString) : e.keyCode === KeyCodes.BACKSPACE ? e.stopPropagation() : true} />
-                <button title="Search" onClick={() => this.search(this._searchString)}><FontAwesomeIcon icon="search" size="3x" color="white" /></button>
+                <button title="Search" onClick={() => this.search(this._searchString)}>
+                    <FontAwesomeIcon icon="search" size="3x" color="white" /></button>
             </div>
             <button className="pdfViewer-overlayButton" onClick={this.prevAnnotation} title="Previous Annotation"
                 style={{ bottom: -this.props.scrollY + 280, right: 10, display: this.props.active() ? "flex" : "none" }}>
                 <div className="pdfViewer-overlayButton-iconCont" onPointerDown={(e) => e.stopPropagation()}>
-                    <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-up"} size="3x" />
-                </div>
+                    <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-up"} size="3x" /></div>
             </button>
             <button className="pdfViewer-overlayButton" onClick={this.nextAnnotation} title="Next Annotation"
                 style={{ bottom: -this.props.scrollY + 200, right: 10, display: this.props.active() ? "flex" : "none" }}>
                 <div className="pdfViewer-overlayButton-iconCont" onPointerDown={(e) => e.stopPropagation()}>
-                    <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-down"} size="3x" />
-                </div>
+                    <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-down"} size="3x" /></div>
             </button>
             <button className="pdfViewer-overlayButton" onClick={this.toggleSearch} title="Open Search Bar"
                 style={{ bottom: -this.props.scrollY + 10, right: 0, display: this.props.active() ? "flex" : "none" }}>
                 <div className="pdfViewer-overlayButton-arrow" onPointerDown={(e) => e.stopPropagation()}></div>
                 <div className="pdfViewer-overlayButton-iconCont" onPointerDown={(e) => e.stopPropagation()}>
-                    <FontAwesomeIcon style={{ color: "white" }} icon={this._searching ? "times" : "search"} size="3x" />
-                </div>
+                    <FontAwesomeIcon style={{ color: "white" }} icon={this._searching ? "times" : "search"} size="3x" /></div>
             </button>
         </div >);
     }
