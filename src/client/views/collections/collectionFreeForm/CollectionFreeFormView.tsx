@@ -352,12 +352,11 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @action
     onPointerWheel = (e: React.WheelEvent): void => {
         if (BoolCast(this.props.Document.lockedPosition)) return;
-        // if (!this.props.active()) {
-        //     return;
-        // }
-        if (this.props.Document.type === "pdf") {
+        if (!e.ctrlKey && this.props.Document.scrollY !== undefined) {
+            e.stopPropagation();
             return;
         }
+
         let childSelected = this.childDocs.some(doc => {
             var dv = DocumentManager.Instance.getDocumentView(doc);
             return dv && SelectionManager.IsSelected(dv) ? true : false;
@@ -366,21 +365,20 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             return;
         }
         e.stopPropagation();
-        const coefficient = 1000;
 
-        if (e.ctrlKey) {
-            let deltaScale = (1 - (e.deltaY / coefficient));
-            let nw = this.nativeWidth * deltaScale;
-            let nh = this.nativeHeight * deltaScale;
-            if (nw && nh) {
-                this.props.Document.nativeWidth = nw;
-                this.props.Document.nativeHeight = nh;
-            }
-            e.stopPropagation();
-            e.preventDefault();
-        } else {
-            // if (modes[e.deltaMode] === 'pixels') coefficient = 50;
-            // else if (modes[e.deltaMode] === 'lines') coefficient = 1000; // This should correspond to line-height??
+        // bcz: this changes the nativewidth/height, but ImageBox will just revert it back to its defaults.  need more logic to fix.
+        // if (e.ctrlKey && this.props.Document.scrollY === undefined) {
+        //     let deltaScale = (1 - (e.deltaY / coefficient));
+        //     let nw = this.nativeWidth * deltaScale;
+        //     let nh = this.nativeHeight * deltaScale;
+        //     if (nw && nh) {
+        //         this.props.Document.nativeWidth = nw;
+        //         this.props.Document.nativeHeight = nh;
+        //     }
+        //     e.preventDefault();
+        // } 
+        // else 
+        {
             let deltaScale = e.deltaY > 0 ? (1 / 1.1) : 1.1;
             if (deltaScale * this.zoomScaling() < 1 && this.isAnnotationOverlay) {
                 deltaScale = 1 / this.zoomScaling();
@@ -392,21 +390,21 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             let safeScale = Math.min(Math.max(0.15, localTransform.Scale), 40);
             this.props.Document.scale = Math.abs(safeScale);
             this.setPan(-localTransform.TranslateX / safeScale, -localTransform.TranslateY / safeScale);
-            e.stopPropagation();
+            e.preventDefault();
         }
     }
 
     @action
     setPan(panX: number, panY: number) {
-        if (BoolCast(this.props.Document.lockedPosition)) return;
-        this.props.Document.panTransformType = "None";
-        var scale = this.getLocalTransform().inverse().Scale;
-        const newPanX = Math.min((1 - 1 / scale) * this.nativeWidth, Math.max(0, panX));
-        const newPanY = Math.min((1 - 1 / scale) * this.nativeHeight, Math.max(0, panY));
-        this.props.Document.panX = this.isAnnotationOverlay ? newPanX : panX;
-        this.props.Document.panY = this.isAnnotationOverlay && StrCast(this.props.Document.backgroundLayout).indexOf("PDFBox") === -1 ? newPanY : panY;
-        if (this.props.Document.scrollY) {
-            this.props.Document.scrollY = panY - scale * this.props.Document[HeightSym]();
+        if (!BoolCast(this.props.Document.lockedPosition)) {
+            this.props.Document.panTransformType = "None";
+            var scale = this.getLocalTransform().inverse().Scale;
+            const newPanX = Math.min((1 - 1 / scale) * this.nativeWidth, Math.max(0, panX));
+            const newPanY = Math.min((this.props.Document.scrollHeight !== undefined ? NumCast(this.props.Document.scrollHeight) : (1 - 1 / scale) * this.nativeHeight), Math.max(0, panY));
+            this.props.Document.panX = this.isAnnotationOverlay ? newPanX : panX;
+            this.props.Document.panY = this.isAnnotationOverlay ? newPanY : panY;
+            if (this.props.Document.scrollHeight !== undefined) this.props.Document.scrollY = this.isAnnotationOverlay ? newPanY : panY;
+            else this.props.Document.panY = this.isAnnotationOverlay ? newPanY : panY;
         }
     }
 
@@ -490,12 +488,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         this.Document.scale = scale;
     }
 
-    getScale = () => {
-        if (this.Document.scale) {
-            return this.Document.scale;
-        }
-        return 1;
-    }
+    getScale = () => this.Document.scale ? this.Document.scale : 1;
 
 
     getChildDocumentViewProps(childDocLayout: Doc): DocumentViewProps {

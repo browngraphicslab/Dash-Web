@@ -143,6 +143,7 @@ export default class Page extends React.Component<IPageProps> {
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         // if alt+left click, drag and annotate
+        if (this.props.Document.scale !== 1) return;
         if (e.altKey && e.button === 0) {
             e.stopPropagation();
         }
@@ -197,21 +198,21 @@ export default class Page extends React.Component<IPageProps> {
     onSelectEnd = (e: PointerEvent): void => {
         if (this._marqueeing) {
             this._marqueeing = false;
-            if (this._marquee.current) { // make a copy of the marquee
-                let copy = document.createElement("div");
-                let style = this._marquee.current.style;
-                copy.style.left = style.left;
-                copy.style.top = style.top;
-                copy.style.width = style.width;
-                copy.style.height = style.height;
-                copy.style.border = style.border;
-                copy.style.opacity = style.opacity;
-                copy.className = "pdfPage-annotationBox";
-                this.props.createAnnotation(copy, this.props.page);
-                this._marquee.current.style.opacity = "0";
-            }
-
             if (this._marqueeWidth > 10 || this._marqueeHeight > 10) {
+                if (this._marquee.current) { // make a copy of the marquee
+                    let copy = document.createElement("div");
+                    let style = this._marquee.current.style;
+                    copy.style.left = style.left;
+                    copy.style.top = style.top;
+                    copy.style.width = style.width;
+                    copy.style.height = style.height;
+                    copy.style.border = style.border;
+                    copy.style.opacity = style.opacity;
+                    copy.className = "pdfPage-annotationBox";
+                    this.props.createAnnotation(copy, this.props.page);
+                    this._marquee.current.style.opacity = "0";
+                }
+
                 if (!e.ctrlKey) {
                     PDFMenu.Instance.Status = "snippet";
                     PDFMenu.Instance.Marquee = { left: this._marqueeX, top: this._marqueeY, width: this._marqueeWidth, height: this._marqueeHeight };

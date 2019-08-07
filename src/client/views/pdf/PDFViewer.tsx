@@ -160,7 +160,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
                 }))));
             this.props.loaded(Math.max(...this._pageSizes.map(i => i.width)), this._pageSizes[0].height, this.props.pdf.numPages);
 
-            let startY = NumCast(this.props.Document.startY);
+            let startY = NumCast(this.props.Document.startY, NumCast(this.props.Document.scrollY));
             this.props.setPanY && this.props.setPanY(startY);
             this.props.Document.scrollY = startY + 1;
         }
