@@ -28,6 +28,7 @@ import React = require("react");
 import { ComputedField, ScriptField } from '../../../new_fields/ScriptField';
 import { KeyValueBox } from '../nodes/KeyValueBox';
 import { exportNamedDeclaration } from 'babel-types';
+import { number } from 'prop-types';
 
 
 export interface TreeViewProps {
@@ -398,11 +399,9 @@ class TreeView extends React.Component<TreeViewProps> {
         panelWidth: () => number,
         renderDepth: number
     ) {
-
         let viewSpecScript = Cast(containingCollection.viewSpecScript, ScriptField);
         if (viewSpecScript) {
             let script = viewSpecScript.script;
-            console.log(viewSpecScript, script);
             docs = docs.filter(d => {
                 let res = script.run({ doc: d });
                 if (res.success) {
@@ -414,15 +413,27 @@ class TreeView extends React.Component<TreeViewProps> {
             });
         }
 
-        // sort children here
-
-        // schemaheaderfield should b just the thing we're sorting by
-        // sortFunc = (a: [SchemaHeaderField, Doc[]], b: [SchemaHeaderField, Doc[]]): 1 | -1 => {
-        //     let descending = BoolCast(this.props.document.stackingHeadersSortDescending);
-        //     let firstEntry = descending ? b : a;
-        //     let secondEntry = descending ? a : b;
-        //     return firstEntry[0].heading > secondEntry[0].heading ? 1 : -1;
-        // }
+        let descending = BoolCast(containingCollection.stackingHeadersSortDescending);
+        docs.sort(function (a, b): 1 | -1 {
+            let descA = descending ? b : a;
+            let descB = descending ? a : b;
+            let first = descA[String(containingCollection.sectionFilter)];
+            let second = descB[String(containingCollection.sectionFilter)];
+            // TODO find better way to sort how to sort..................
+            if (typeof first === 'number' && typeof second === 'number') {
+                return (first - second) > 0 ? 1 : -1;
+            }
+            if (typeof first === 'string' && typeof second === 'string') {
+                return first > second ? 1 : -1;
+            }
+            if (typeof first === 'boolean' && typeof second === 'boolean') {
+                // if (first === second) { // bugfixing?: otherwise, the list "flickers" because the list is resorted during every load
+                //     return Number(descA.x) > Number(descB.y) ? 1 : -1;
+                // }
+                return first > second ? 1 : -1;
+            }
+            return descending ? 1 : -1;
+        });
 
         let rowWidth = () => panelWidth() - 20;
         return docs.map((child, i) => {
@@ -567,6 +578,10 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                 {this.props.Document.allowClear ? this.renderClearButton : (null)}
                 <ul className="no-indent" style={{ width: "max-content" }} >
                     {
+                        // this.props.Document.sectionFilter ?
+                        //     TreeView.GetChildElements(this.childDocs, this.props.Document[Id], this.props.Document, this.props.DataDoc, this.props.fieldKey, addDoc, this.remove,
+                        //         moveDoc, dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.outerXf, this.props.active, this.props.PanelWidth, this.props.renderDepth)
+                        //     :
                         TreeView.GetChildElements(this.childDocs, this.props.Document[Id], this.props.Document, this.props.DataDoc, this.props.fieldKey, addDoc, this.remove,
                             moveDoc, dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.outerXf, this.props.active, this.props.PanelWidth, this.props.renderDepth)
                     }
