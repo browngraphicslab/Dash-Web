@@ -49,30 +49,21 @@ export default class Page extends React.Component<IPageProps> {
     private _startY: number = 0;
     private _startX: number = 0;
 
-    componentDidMount = (): void => {
-        this.loadPage(this.props.pdf);
-    }
+    componentDidMount = (): void => this.loadPage(this.props.pdf);
 
-    componentDidUpdate = (): void => {
-        this.loadPage(this.props.pdf);
-    }
+    componentDidUpdate = (): void => this.loadPage(this.props.pdf);
 
-    componentWillUnmount = (): void => {
-        this._reactionDisposer && this._reactionDisposer();
-    }
+    componentWillUnmount = (): void => this._reactionDisposer && this._reactionDisposer();
 
-    private loadPage = (pdf: Pdfjs.PDFDocumentProxy): void => {
-        this._state !== "rendering" && !this._page && pdf.getPage(this._currPage).then(
-            (page: Pdfjs.PDFPageProxy): void => {
-                this._state = "rendering";
-                this.renderPage(page);
-            });
+    loadPage = (pdf: Pdfjs.PDFDocumentProxy): void => {
+        pdf.getPage(this._currPage).then(page => this.renderPage(page));
     }
 
     @action
-    private renderPage = (page: Pdfjs.PDFPageProxy): void => {
+    renderPage = (page: Pdfjs.PDFPageProxy): void => {
         // lower scale = easier to read at small sizes, higher scale = easier to read at large sizes
-        if (this._canvas.current && this._textLayer.current) {
+        if (this._state !== "rendering" && !this._page && this._canvas.current && this._textLayer.current) {
+            this._state = "rendering";
             let viewport = page.getViewport(scale);
             this._canvas.current.width = this._width = viewport.width;
             this._canvas.current.height = this._height = viewport.height;
@@ -113,7 +104,7 @@ export default class Page extends React.Component<IPageProps> {
         if (this._textLayer.current) {
             let targetDoc = Docs.Create.TextDocument({ width: 200, height: 200, title: "New Annotation" });
             targetDoc.targetPage = this.props.page;
-            let annotationDoc = this.highlight(undefined, "pink");
+            let annotationDoc = this.highlight(undefined, "red");
             annotationDoc.linkedToDoc = false;
             let dragData = new DragManager.AnnotationDragData(this.props.Document, annotationDoc, targetDoc);
             DragManager.StartAnnotationDrag([ele], dragData, e.pageX, e.pageY, {
@@ -293,22 +284,15 @@ export default class Page extends React.Component<IPageProps> {
     render() {
         return (
             <div className={"pdfPage-cont"} onPointerDown={this.onPointerDown} onDoubleClick={this.doubleClick} style={{ "width": this._width, "height": this._height }}>
-                <div className="PdfPage-canvasContainer">
-                    <canvas ref={this._canvas} />
+                <canvas className="PdfPage-canvasContainer" ref={this._canvas} />
+                <div className="pdfPage-dragAnnotationBox" ref={this._marquee}
+                    style={{
+                        left: `${this._marqueeX}px`, top: `${this._marqueeY}px`,
+                        width: `${this._marqueeWidth}px`, height: `${this._marqueeHeight}px`,
+                        border: `${this._marqueeWidth === 0 ? "" : "10px dashed black"}`
+                    }}>
                 </div>
-                <div className="pdfPage-annotationLayer">
-                    <div className="pdfPage-dragAnnotationBox" ref={this._marquee}
-                        style={{
-                            left: `${this._marqueeX}px`, top: `${this._marqueeY}px`,
-                            width: `${this._marqueeWidth}px`, height: `${this._marqueeHeight}px`,
-                            border: `${this._marqueeWidth === 0 ? "" : "10px dashed black"}`
-                        }}>
-                    </div>
-                </div>
-                <div className="pdfPage-textlayer"
-                    ref={this._textLayer}
-                    style={{ top: `-${2 * this._height}px`, height: `${this._height}px` }}
-                />
+                <div className="pdfPage-textlayer" ref={this._textLayer} />
             </div>
         );
     }
