@@ -386,7 +386,7 @@ export class Keyframe extends React.Component<IProps> {
                     <div className="keyframeCircle" onPointerDown={(e) => { this.moveKeyframe(e, kf as Doc); }} onContextMenu={(e: React.MouseEvent) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        TimelineMenu.Instance.openMenu("keyframe", e.clientX, e.clientY); 
+                        TimelineMenu.Instance.openMenu(e.clientX, e.clientY); 
                     }}></div>
                 </div>);
         }
@@ -418,29 +418,21 @@ export class Keyframe extends React.Component<IProps> {
     private _type: string = ""; 
 
     @action
-    onContainerDown = (e: React.MouseEvent, kf: Doc) => {
-        e.preventDefault();
-        e.stopPropagation();
+    onContainerDown = (kf: Doc, type: string) => {
         let listenerCreated = false;                 
-        let type = prompt("Type? (interpolate or path)"); 
-        if (type) {
-            if (type !== "interpolate" && type !=="path") {
-                alert("Wrong type. Try again."); 
-                return; 
+        this._type = type; 
+        this.props.collection.backgroundColor = "rgb(0,0,0)";
+        this._reac = reaction(() => {
+            return this.inks;
+        }, data => {
+            if (!listenerCreated) {
+                this._plotList = Array.from(data!)[data!.size - 1]!;
+                this._interpolationKeyframe = kf; 
+                document.addEventListener("pointerup", this.onReactionListen); 
+                listenerCreated = true; 
             }
-            this._type = type; 
-            this.props.collection.backgroundColor = "rgb(0,0,0)";
-            this._reac = reaction(() => {
-                return this.inks;
-            }, data => {
-                if (!listenerCreated) {
-                    this._plotList = Array.from(data!)[data!.size - 1]!;
-                    this._interpolationKeyframe = kf; 
-                    document.addEventListener("pointerup", this.onReactionListen); 
-                    listenerCreated = true; 
-                }
-            });
-        }
+        });
+        
         
     }
 
@@ -508,20 +500,26 @@ export class Keyframe extends React.Component<IProps> {
     }
 
 
+
+    /**
+     * 
+     * 
+     * TEMPORARY
+     * let items = [
+                                        TimelineMenu.Instance.addItem("button", "Show Data", () => {console.log(toJS(this.props.node));}), 
+                                        TimelineMenu.Instance.addItem("button", "Delete", () => {}), 
+                                        TimelineMenu.Instance.addItem("input", "Move", (val) => {console.log(val);})  
+                                    ]; 
+                                    TimelineMenu.Instance.addMenu("Keyframe", items); 
+                                    TimelineMenu.Instance.openMenu(e.clientX, e.clientY);
+     * 
+     */
     render() {
         return (
             <div>
                 <div className="bar" ref={this._bar} style={{ transform: `translate(${this.regiondata.position}px)`, width: `${this.regiondata.duration}px`, background: `linear-gradient(90deg, rgba(77, 153, 0, 0) 0%, rgba(77, 153, 0, 1) ${this.regiondata.fadeIn / this.regiondata.duration * 100}%, rgba(77, 153, 0, 1) ${(this.regiondata.duration - this.regiondata.fadeOut) / this.regiondata.duration * 100}%, rgba(77, 153, 0, 0) 100% )` }}
                     onPointerDown={this.onBarPointerDown}
-                    onDoubleClick={this.createKeyframe}
-                    onContextMenu={action((e: React.MouseEvent) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        console.log("has been clicked!"); 
-                        let offsetLeft = this._bar.current!.getBoundingClientRect().left - this._bar.current!.parentElement!.getBoundingClientRect().left;
-                        let offsetTop = this._bar.current!.getBoundingClientRect().top; //+ this._bar.current!.parentElement!.getBoundingClientRect().top; 
-                        this.props.setFlyout({ x: offsetLeft * this.props.transform.Scale, y: offsetTop * this.props.transform.Scale, display: "block", regiondata: this.regiondata, regions: this.regions });
-                    })}>
+                    onDoubleClick={this.createKeyframe}>
                     <div className="leftResize" onPointerDown={this.onResizeLeft} ></div>
                     <div className="rightResize" onPointerDown={this.onResizeRight}></div>
                     {this.regiondata.keyframes!.map(kf => {
@@ -536,7 +534,18 @@ export class Keyframe extends React.Component<IProps> {
                                 <div ref={bodyRef}className="body-container" style={{left: `${NumCast(kf.time) - this.regiondata.position}px`, width:`${NumCast(left!.time) - NumCast(kf.time)}px`}}
                                 onPointerOver={(e) => { this.onContainerOver(e, bodyRef); }}
                                 onPointerOut={(e) => { this.onContainerOut(e, bodyRef); }}
-                                onContextMenu={(e) => {TimelineMenu.Instance.openMenu("region", e.clientX, e.clientY);}}>
+                                onContextMenu={(e) => {
+                                    let items = [
+                                        TimelineMenu.Instance.addItem("button", "Add Ease", () => {this.onContainerDown(kf, "interpolate");}),
+                                        TimelineMenu.Instance.addItem("button", "Add Path", () => {this.onContainerDown(kf, "path");}), 
+                                        TimelineMenu.Instance.addItem("input", "fadeIn", (val) => {this.regiondata.fadeIn = parseInt(val, 10);}), 
+                                        TimelineMenu.Instance.addItem("input", "fadeOut", (val) => {this.regiondata.fadeOut = parseInt(val, 10);}),
+                                        TimelineMenu.Instance.addItem("input", "position", (val) => {this.regiondata.position = parseInt(val, 10);}),
+                                        TimelineMenu.Instance.addItem("input", "duration", (val) => {this.regiondata.duration = parseInt(val, 10);}),
+                                    ]; 
+                                    TimelineMenu.Instance.addMenu("Region", items); 
+                                    TimelineMenu.Instance.openMenu(e.clientX, e.clientY); 
+                                }}>
                                 </div>
                             ); 
                        }  
