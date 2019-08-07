@@ -37,6 +37,7 @@ import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import { DocumentType, Docs } from "../../../documents/Documents";
+import { RouteStore } from "../../../../server/RouteStore";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard);
 
@@ -47,6 +48,20 @@ export const panZoomSchema = createSchema({
     arrangeScript: ScriptField,
     arrangeInit: ScriptField,
 });
+
+export namespace PivotView {
+
+    export let arrangeInit: string;
+    export let arrangeScript: string;
+
+    export async function loadLayouts() {
+        let response = await fetch(Utils.prepend("/layoutscripts"));
+        let scripts = JSON.parse(await response.text());
+        arrangeInit = scripts[0];
+        arrangeScript = scripts[1];
+    }
+
+}
 
 type PanZoomDocument = makeInterface<[typeof panZoomSchema, typeof positionSchema, typeof pageSchema]>;
 const PanZoomDocument = makeInterface(panZoomSchema, positionSchema, pageSchema);
@@ -785,6 +800,23 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             addOverlay("arrangeInit", { x: 400, y: 100, width: 400, height: 300, title: "Layout Initialization" }, { collection: "Doc", docs: "Doc[]" }, undefined);
             addOverlay("arrangeScript", { x: 400, y: 500, width: 400, height: 300, title: "Layout Script" }, { doc: "Doc", index: "number", collection: "Doc", state: "any", docs: "Doc[]" }, "{x: number, y: number, width?: number, height?: number}");
         };
+    }
+
+    public static SetPivotLayout = (target: Doc) => {
+        let setSpecifiedLayoutField = (originalText: string, key: string, params: Record<string, string>, requiredType?: string) => {
+            const script = CompileScript(originalText, {
+                params,
+                requiredType,
+                typecheck: false
+            });
+            if (!script.compiled) {
+                console.log(script.errors.map(error => error.messageText).join("\n"));
+                return;
+            }
+            target[key] = new ScriptField(script);
+        };
+        setSpecifiedLayoutField(PivotView.arrangeInit, "arrangeInit", { collection: "Doc", docs: "Doc[]" }, undefined);
+        setSpecifiedLayoutField(PivotView.arrangeScript, "arrangeScript", { doc: "Doc", index: "number", collection: "Doc", state: "any", docs: "Doc[]" }, "{x: number, y: number, width?: number, height?: number}");
     }
 
     render() {

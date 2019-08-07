@@ -148,24 +148,33 @@ app.get("/pull", (req, res) =>
         res.redirect("/");
     }));
 
-app.get("/buxton/:clear", (req, res) => {
-    if (req.params.clear === "true") {
-        deleteFields().then(() => upload_buxton_docs(res));
-    } else {
-        upload_buxton_docs(res);
-    }
-});
-
-let upload_buxton_docs = (res: Response) => {
+app.get("/buxton", (req, res) => {
     let buxton_scraping = path.join(__dirname, '../scraping/buxton');
     exec('python scraper.py', { cwd: buxton_scraping }, (err, stdout, sterr) => {
         if (err) {
             res.send(err.message);
             return;
         }
+        console.log(stdout);
         res.redirect("/");
     });
-};
+});
+
+app.get('/layoutscripts', (req, res) => {
+    let scripts: string[] = [];
+    let handler = (err: NodeJS.ErrnoException | null, data: Buffer) => {
+        if (err) {
+            console.log(err.message);
+            return;
+        }
+        scripts.push(data.toString());
+        if (scripts.length === 2) {
+            res.send(JSON.stringify(scripts));
+        }
+    };
+    fs.readFile(path.join(__dirname, '../scraping/buxton/scripts/initialization.txt'), handler);
+    fs.readFile(path.join(__dirname, '../scraping/buxton/scripts/layout.txt'), handler);
+});
 
 app.get("/version", (req, res) => {
     exec('"C:\\Program Files\\Git\\bin\\git.exe" rev-parse HEAD', (err, stdout, stderr) => {

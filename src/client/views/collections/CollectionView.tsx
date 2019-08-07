@@ -97,6 +97,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
             switch (this.props.Document.viewType) {
                 case CollectionViewType.Freeform: {
                     subItems.push({ description: "Custom", icon: "fingerprint", event: CollectionFreeFormView.AddCustomLayout(this.props.Document, this.props.fieldKey) });
+                    subItems.push({ description: "Pivot", icon: "fingerprint", event: () => CollectionFreeFormView.SetPivotLayout(this.props.Document) });
                     break;
                 }
             }

@@ -1,0 +1,46 @@
+const field = collection.pivotField || "title";
+const width = collection.pivotWidth || 200;
+
+const groups = new Map;
+
+for (const doc of docs) {
+    const val = doc[field];
+    if (val === undefined) continue;
+
+    const l = groups.get(val);
+    if (l) {
+        l.push(doc);
+    } else {
+        groups.set(val, [doc]);
+    }
+
+}
+
+let minSize = Infinity;
+
+groups.forEach((val, key) => {
+    minSize = Math.min(minSize, val.length);
+});
+
+const numCols = collection.pivotNumColumns || Math.ceil(Math.sqrt(minSize));
+
+const docMap = new Map;
+const groupNames = [];
+
+let x = 0;
+groups.forEach((val, key) => {
+    let y = 0;
+    let xCount = 0;
+    groupNames.push({type:"text", text:String(key), x, y:width + 50, width: width * 1.25 * numCols, height:100, fontSize:collection.pivotFontSize});
+    for (const doc of val) {
+        docMap.set(doc, {x: x + xCount * width * 1.25, y:-y, width, height:width});
+        xCount++;
+        if (xCount >= numCols) {
+            xCount = 0;
+            y += width * 1.25;
+        }
+    }
+    x += width * 1.25 * (numCols + 1);
+});
+
+return {state:{ map: docMap}, views:groupNames };
