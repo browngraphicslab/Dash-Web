@@ -84,6 +84,7 @@ export interface DocumentOptions {
     templates?: List<string>;
     viewType?: number;
     backgroundColor?: string;
+    opacity?: number;
     defaultBackgroundColor?: string;
     dropAction?: dropActionType;
     backgroundLayout?: string;

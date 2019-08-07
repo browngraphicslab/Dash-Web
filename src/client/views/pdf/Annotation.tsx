@@ -120,10 +120,10 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
     render() {
         return (<div className="pdfAnnotation" onPointerDown={this.onPointerDown} ref={this._mainCont}
             style={{
-                top: this.props.y * scale,
-                left: this.props.x * scale,
-                width: this.props.width * scale,
-                height: this.props.height * scale,
+                top: this.props.y,
+                left: this.props.x,
+                width: this.props.width,
+                height: this.props.height,
                 backgroundColor: this.props.ParentIndex() === this.props.index ? "green" : StrCast(this.props.document.color)
             }} />);
     }
