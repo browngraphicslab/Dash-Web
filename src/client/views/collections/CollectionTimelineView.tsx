@@ -95,16 +95,16 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 style={{
                     position: "absolute",
                     background: String(markerUnit.document.color),
-                    zIndex: "1",
+                    zIndex: 1,
                     top: this.previewHeight(String(markerUnit.document.color)),
-                    left: doc.initialMapLeft,
-                    width: doc.initialMapWidth,
+                    left: NumCast(doc.initialMapLeft),
+                    width: NumCast(doc.initialMapWidth),
                     border: "3px solid" + String(markerUnit.document.color)
                 }}></div>;
         }
     }
 
-    createmarker = (doc: Doc | Promise<Doc>): JSX.Element => {
+    createmarker = (doc: Doc): JSX.Element => {
         let markerUnit = { document: doc, ref: undefined, mapref: undefined } as MarkerUnit;
         markerUnit.element = (< div ref={(el) => el ? markerUnit.ref = el : null} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, String(markerUnit.document.annotation), markerUnit)}
             style={{
@@ -114,7 +114,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         return markerUnit.element;
     }
 
-    createmap = (doc: Doc | Promise<Doc>): JSX.Element => {
+    createmap = (doc: Doc): JSX.Element => {
         let map = <div
             style={{
                 position: "absolute",
@@ -748,7 +748,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 <div style={{ left: "70%", top: "30%", height: "30%", position: "absolute", border: "1px solid", width: "30%" }}>
                     {this.annotationPanel()}
                 </div>
-                {this.markerDocs.map(d => this.createmarker(d))}
+                {DocListCast(this.props.Document.markers).map(d => this.createmarker(d))}
                 {this.markerDocs.map(d => this.createmap(d))}
                 <BottomUI
                     buttonmap={this.buttons.map(item => item.map)}
