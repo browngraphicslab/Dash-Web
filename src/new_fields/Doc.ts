@@ -79,7 +79,7 @@ function fetchProto(doc: Doc) {
 }
 
 export enum Permissions {
-    READ, WRITE, ADDONLY
+    READ, WRITE, ADDONLY, NONE
 }
 
 let updatingFromServer = false;

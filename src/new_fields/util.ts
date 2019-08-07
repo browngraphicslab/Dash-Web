@@ -5,7 +5,7 @@ import { ProxyField } from "./Proxy";
 import { RefField } from "./RefField";
 import { ObjectField } from "./ObjectField";
 import { action } from "mobx";
-import { Parent, OnUpdate, Update, Id, SelfProxy, Self, Acls, SetAcls, GetAcls } from "./FieldSymbols";
+import { Parent, OnUpdate, Update, Id, SelfProxy, Self, SetAcls, GetAcls } from "./FieldSymbols";
 import { ComputedField } from "./ScriptField";
 import { CurrentUserUtils } from "../server/authentication/models/current_user_utils";
 import { StrCast } from "./Types";

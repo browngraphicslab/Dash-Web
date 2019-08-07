@@ -745,16 +745,26 @@ function setField(socket: Socket, newValue: Transferable) {
     }
 }
 
-function GetRefField([id, callback]: [string, (result: any) => void]) {
+function GetRefField([[id, userId], callback]: [[string, string], (result: any) => void]) {
     Database.Instance.getDocument(id, (result) => {
-        // if (result) {
-        // let acls = result.acls;
-        // if (acls) {
-        // }
-        // else {
-        callback(result);
-        // }
-        // }
+        let acls = result ? result.acls : undefined;
+        // if there are acls on this document and the requesting user id doesn't have permission, return undefined
+        // allow a bypass if the document has system read or write access (0 or 1)
+        if (acls && !(acls["system"] < 2) && (!acls[userId] || acls[userId] === 3)) {
+            let clone: any = {};
+            Object.assign(clone, result);
+            clone.fields = {
+                layout: "<FormattedTextBox {...props} fieldKey={\"data\"} fieldExt={\"\"} />",
+                data: '=new RichTextField("{"doc":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Permission denied"}]}]},"selection":{"type":"text","anchor":9,"head":9}}")',
+                title: "Permission Denied",
+                text: "Permission Denied"
+            }
+            clone.acls[userId] = 0;
+            callback(clone);
+        }
+        else {
+            callback(result);
+        }
     }, "newDocuments");
 }
 

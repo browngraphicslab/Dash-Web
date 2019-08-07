@@ -5,6 +5,7 @@ import { Utils, emptyFunction } from '../Utils';
 import { SerializationHelper } from './util/SerializationHelper';
 import { RefField } from '../new_fields/RefField';
 import { Id, HandleUpdate } from '../new_fields/FieldSymbols';
+import { CurrentUserUtils } from '../server/authentication/models/current_user_utils';
 
 /**
  * This class encapsulates the transfer and cross-client synchronization of
@@ -117,7 +118,7 @@ export namespace DocServer {
             // synchronously, we emit a single callback to the server requesting the serialized (i.e. represented by a string)
             // field for the given ids. This returns a promise, which, when resolved, indicates the the JSON serialized version of
             // the field has been returned from the server
-            const getSerializedField = Utils.EmitCallback(_socket, MessageStore.GetRefField, id);
+            const getSerializedField = Utils.EmitCallback(_socket, MessageStore.GetRefField, [id, CurrentUserUtils.id]);
 
             // when the serialized RefField has been received, go head and begin deserializing it into an object.
             // Here, once deserialized, we also invoke .proto to 'load' the document's prototype, which ensures that all

@@ -43,7 +43,7 @@ import { ButtonBox } from "../views/nodes/ButtonBox";
 import { SchemaHeaderField, RandomPastel } from "../../new_fields/SchemaHeaderField";
 import { ComputedField } from "../../new_fields/ScriptField";
 import { ProxyField } from "../../new_fields/Proxy";
-import { Id, Acls } from "../../new_fields/FieldSymbols";
+import { Id } from "../../new_fields/FieldSymbols";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 

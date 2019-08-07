@@ -626,7 +626,16 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                         if (sharedDoc.proto) {
                             sharedDoc.proto[SetAcls](userDocumentId, Permissions.ADDONLY);
                         }
-                        sharedDoc[SetAcls](userDocumentId, Permissions.ADDONLY);
+                        sharedDoc[SetAcls](userDocumentId, Permissions.WRITE);
+                        // let sharedDocData = await DocListCast(sharedDoc.data);
+                        // if (sharedDocData && sharedDocData.length) {
+                        //     sharedDocData.forEach(d => {
+                        //         if (d.proto) {
+                        //             d.proto[SetAcls](userDocumentId, Permissions.ADDONLY);
+                        //         }
+                        //         d[SetAcls](userDocumentId, Permissions.ADDONLY);
+                        //     })
+                        // }
                         if (data) {
                             data.push(sharedDoc);
                         } else {

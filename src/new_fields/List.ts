@@ -1,13 +1,16 @@
 import { Deserializable, autoObject, afterDocDeserialize } from "../client/util/SerializationHelper";
-import { Field } from "./Doc";
+import { Field, Permissions, Doc, DocListCast } from "./Doc";
 import { setter, getter, deleteProperty, updateFunction } from "./util";
-import { serializable, alias, list } from "serializr";
+import { serializable, alias, list, map, primitive } from "serializr";
 import { observable, action } from "mobx";
 import { ObjectField } from "./ObjectField";
 import { RefField } from "./RefField";
 import { ProxyField } from "./Proxy";
-import { Self, Update, Parent, OnUpdate, SelfProxy, ToScriptString, Copy } from "./FieldSymbols";
+import { Self, Update, Parent, OnUpdate, SelfProxy, ToScriptString, Copy, GetAcls, SetAcls } from "./FieldSymbols";
 import { Scripting } from "../client/util/Scripting";
+import { CurrentUserUtils } from "../server/authentication/models/current_user_utils";
+import { Cast, FieldValue } from "./Types";
+import { listSpec } from "./Schema";
 
 const listHandlers: any = {
     /// Mutator methods
@@ -227,6 +230,21 @@ type StoredType<T extends Field> = T extends RefField ? ProxyField<T> : T;
 
 @Deserializable("list")
 class ListImpl<T extends Field> extends ObjectField {
+    @serializable(map(primitive()))
+    public get acls() {
+        return this._acls;
+    }
+
+    public [SetAcls] = (id: string, permission: Permissions) => {
+        this._acls[id] = permission;
+        this[OnUpdate]({ "$set": { "acls": this._acls } });
+    }
+
+    public [GetAcls] = () => this._acls;
+
+    @observable
+    // { [id: string]: Permission }
+    private _acls: any = {};
     constructor(fields?: T[]) {
         super();
         const list = new Proxy<this>(this, {
@@ -248,6 +266,12 @@ class ListImpl<T extends Field> extends ObjectField {
         this[SelfProxy] = list;
         if (fields) {
             (list as any).push(...fields);
+            let perm = Permissions.WRITE;
+            let parent = this[Parent];
+            if (parent instanceof Doc && parent.acls[CurrentUserUtils.id]) {
+                perm = parent.acls[CurrentUserUtils.id]
+            }
+            this[SetAcls](CurrentUserUtils.id, perm);
         }
         return list;
     }

@@ -7,12 +7,13 @@ import { Attribute, AttributeGroup, Catalog, Schema } from "../../../client/nort
 import { ArrayUtil } from "../../../client/northstar/utils/ArrayUtil";
 import { CollectionViewType } from "../../../client/views/collections/CollectionBaseView";
 import { CollectionView } from "../../../client/views/collections/CollectionView";
-import { Doc } from "../../../new_fields/Doc";
+import { Doc, Permissions } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { Cast, FieldValue, StrCast } from "../../../new_fields/Types";
 import { RouteStore } from "../../RouteStore";
 import { Utils } from "../../../Utils";
+import { SetAcls } from "../../../new_fields/FieldSymbols";
 
 export class CurrentUserUtils {
     private static curr_email: string;
@@ -29,6 +30,7 @@ export class CurrentUserUtils {
 
     private static createUserDocument(id: string): Doc {
         let doc = new Doc(id, true);
+        doc[SetAcls]("system", Permissions.WRITE);
         doc.viewType = CollectionViewType.Tree;
         doc.dropAction = "alias";
         doc.layout = CollectionView.LayoutString();
@@ -40,7 +42,10 @@ export class CurrentUserUtils {
         doc.yMargin = 5;
         doc.boxShadow = "0 0";
         doc.excludeFromLibrary = true;
-        doc.optionalRightCollection = Docs.Create.StackingDocument([], { title: "New mobile uploads" });
+        const rightColl = Docs.Create.StackingDocument([], { title: "New mobile uploads" });
+        rightColl[SetAcls]("system", 1);
+        rightColl.proto![SetAcls]("system", 1);
+        doc.optionalRightCollection = rightColl;
         // doc.library = Docs.Create.TreeDocument([doc], { title: `Library: ${CurrentUserUtils.email}` });
         // (doc.library as Doc).excludeFromLibrary = true;
         return doc;
