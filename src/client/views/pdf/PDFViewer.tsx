@@ -31,7 +31,7 @@ interface IViewerProps {
     fieldExtensionDoc: Doc;
     fieldKey: string;
     loaded: (nw: number, nh: number, np: number) => void;
-    scrollY: number;
+    panY: number;
     scrollTo: (y: number) => void;
     active: () => boolean;
     setPanY?: (n: number) => void;
@@ -64,14 +64,14 @@ export class PDFViewer extends React.Component<IViewerProps> {
     private _searchString: string = "";
     private _selectionText: string = "";
 
-    @computed get scrollY(): number { return this.props.scrollY; }
+    @computed get panY(): number { return this.props.panY; }
 
     // startIndex: where to start rendering pages
-    @computed get startIndex(): number { return Math.max(0, this.getPageFromScroll(this.scrollY) - this._pageBuffer); }
+    @computed get startIndex(): number { return Math.max(0, this.getPageFromScroll(this.panY) - this._pageBuffer); }
 
     // endIndex: where to end rendering pages
     @computed get endIndex(): number {
-        return Math.min(this.props.pdf.numPages - 1, this.getPageFromScroll(this.scrollY + (this._pageSizes[0] ? this._pageSizes[0].height : 0)) + this._pageBuffer);
+        return Math.min(this.props.pdf.numPages - 1, this.getPageFromScroll(this.panY + (this._pageSizes[0] ? this._pageSizes[0].height : 0)) + this._pageBuffer);
     }
 
     @computed get filteredAnnotations() {
@@ -81,7 +81,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
         });
     }
 
-    componentDidUpdate = (prevProps: IViewerProps) => this.scrollY !== prevProps.scrollY && this.renderPages();
+    componentDidUpdate = (prevProps: IViewerProps) => this.panY !== prevProps.panY && this.renderPages();
 
     componentDidMount = async () => {
         await this.initialLoad();
@@ -160,9 +160,8 @@ export class PDFViewer extends React.Component<IViewerProps> {
                 }))));
             this.props.loaded(Math.max(...this._pageSizes.map(i => i.width)), this._pageSizes[0].height, this.props.pdf.numPages);
 
-            let startY = NumCast(this.props.Document.startY, NumCast(this.props.Document.scrollY));
+            let startY = NumCast(this.props.Document.startY, NumCast(this.props.Document.panY));
             this.props.setPanY && this.props.setPanY(startY);
-            this.props.Document.scrollY = startY + 1;
         }
     }
 
@@ -435,7 +434,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
                     <Annotation {...this.props} ParentIndex={this.getIndex} anno={anno} index={index} key={`${anno[Id]}-annotation`} />)}
             </div>
             <div className="pdfViewer-overlayCont" onPointerDown={(e) => e.stopPropagation()}
-                style={{ bottom: -this.props.scrollY, left: `${this._searching ? 0 : 100}%` }}>
+                style={{ bottom: -this.props.panY, left: `${this._searching ? 0 : 100}%` }}>
                 <button className="pdfViewer-overlayButton" title="Open Search Bar" />
                 <input className="pdfViewer-overlaySearchBar" placeholder="Search" onChange={this.searchStringChanged}
                     onKeyDown={(e: React.KeyboardEvent) => e.keyCode === KeyCodes.ENTER ? this.search(this._searchString) : e.keyCode === KeyCodes.BACKSPACE ? e.stopPropagation() : true} />
@@ -443,17 +442,17 @@ export class PDFViewer extends React.Component<IViewerProps> {
                     <FontAwesomeIcon icon="search" size="3x" color="white" /></button>
             </div>
             <button className="pdfViewer-overlayButton" onClick={this.prevAnnotation} title="Previous Annotation"
-                style={{ bottom: -this.props.scrollY + 280, right: 10, display: this.props.active() ? "flex" : "none" }}>
+                style={{ bottom: -this.props.panY + 280, right: 10, display: this.props.active() ? "flex" : "none" }}>
                 <div className="pdfViewer-overlayButton-iconCont" onPointerDown={(e) => e.stopPropagation()}>
                     <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-up"} size="3x" /></div>
             </button>
             <button className="pdfViewer-overlayButton" onClick={this.nextAnnotation} title="Next Annotation"
-                style={{ bottom: -this.props.scrollY + 200, right: 10, display: this.props.active() ? "flex" : "none" }}>
+                style={{ bottom: -this.props.panY + 200, right: 10, display: this.props.active() ? "flex" : "none" }}>
                 <div className="pdfViewer-overlayButton-iconCont" onPointerDown={(e) => e.stopPropagation()}>
                     <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-down"} size="3x" /></div>
             </button>
             <button className="pdfViewer-overlayButton" onClick={this.toggleSearch} title="Open Search Bar"
-                style={{ bottom: -this.props.scrollY + 10, right: 0, display: this.props.active() ? "flex" : "none" }}>
+                style={{ bottom: -this.props.panY + 10, right: 0, display: this.props.active() ? "flex" : "none" }}>
                 <div className="pdfViewer-overlayButton-arrow" onPointerDown={(e) => e.stopPropagation()}></div>
                 <div className="pdfViewer-overlayButton-iconCont" onPointerDown={(e) => e.stopPropagation()}>
                     <FontAwesomeIcon style={{ color: "white" }} icon={this._searching ? "times" : "search"} size="3x" /></div>

@@ -352,7 +352,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @action
     onPointerWheel = (e: React.WheelEvent): void => {
         if (BoolCast(this.props.Document.lockedPosition)) return;
-        if (!e.ctrlKey && this.props.Document.scrollY !== undefined) {
+        if (!e.ctrlKey && this.props.Document.scrollHeight !== undefined) { // things that can scroll vertically should do that instead of zooming
             e.stopPropagation();
             return;
         }
@@ -367,7 +367,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         e.stopPropagation();
 
         // bcz: this changes the nativewidth/height, but ImageBox will just revert it back to its defaults.  need more logic to fix.
-        // if (e.ctrlKey && this.props.Document.scrollY === undefined) {
+        // if (e.ctrlKey && this.props.Document.scrollHeight === undefined) {
         //     let deltaScale = (1 - (e.deltaY / coefficient));
         //     let nw = this.nativeWidth * deltaScale;
         //     let nh = this.nativeHeight * deltaScale;
@@ -403,8 +403,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             const newPanY = Math.min((this.props.Document.scrollHeight !== undefined ? NumCast(this.props.Document.scrollHeight) : (1 - 1 / scale) * this.nativeHeight), Math.max(0, panY));
             this.props.Document.panX = this.isAnnotationOverlay ? newPanX : panX;
             this.props.Document.panY = this.isAnnotationOverlay ? newPanY : panY;
-            if (this.props.Document.scrollHeight !== undefined) this.props.Document.scrollY = this.isAnnotationOverlay ? newPanY : panY;
-            else this.props.Document.panY = this.isAnnotationOverlay ? newPanY : panY;
         }
     }
 

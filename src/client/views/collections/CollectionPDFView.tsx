@@ -1,7 +1,6 @@
-import { action, IReactionDisposer, observable, reaction, computed } from "mobx";
+import { computed } from "mobx";
 import { observer } from "mobx-react";
 import { Id } from "../../../new_fields/FieldSymbols";
-import { NumCast } from "../../../new_fields/Types";
 import { emptyFunction } from "../../../Utils";
 import { ContextMenu } from "../ContextMenu";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
@@ -19,20 +18,7 @@ export class CollectionPDFView extends React.Component<FieldViewProps> {
     }
 
     private _pdfBox?: PDFBox;
-    private _reactionDisposer?: IReactionDisposer;
     private _buttonTray: React.RefObject<HTMLDivElement> = React.createRef();
-
-    componentDidMount() {
-        this._reactionDisposer = reaction(
-            () => NumCast(this.props.Document.scrollY),
-            () => this.props.Document.panY = NumCast(this.props.Document.scrollY),
-            { fireImmediately: true }
-        );
-    }
-
-    componentWillUnmount() {
-        this._reactionDisposer && this._reactionDisposer();
-    }
 
     @computed
     get uIButtons() {

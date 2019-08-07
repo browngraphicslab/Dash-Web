@@ -53,8 +53,8 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
             Pdfjs.getDocument(pdfUrl.url.pathname).promise.then(pdf => runInAction(() => this._pdf = pdf));
         }
         this._reactionDisposer = reaction(
-            () => this.props.Document.scrollY,
-            () => this._mainCont.current && this._mainCont.current.scrollTo({ top: NumCast(this.Document.scrollY), behavior: "auto" })
+            () => this.props.Document.panY,
+            () => this._mainCont.current && this._mainCont.current.scrollTo({ top: NumCast(this.Document.panY), behavior: "auto" })
         );
     }
 
@@ -63,16 +63,16 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     }
 
     public GetPage() {
-        return Math.floor(NumCast(this.props.Document.scrollY) / NumCast(this.dataDoc.nativeHeight)) + 1;
+        return Math.floor(NumCast(this.props.Document.panY) / NumCast(this.dataDoc.nativeHeight)) + 1;
     }
 
     @action
     public BackPage() {
-        let cp = Math.ceil(NumCast(this.props.Document.scrollY) / NumCast(this.dataDoc.nativeHeight)) + 1;
+        let cp = Math.ceil(NumCast(this.props.Document.panY) / NumCast(this.dataDoc.nativeHeight)) + 1;
         cp = cp - 1;
         if (cp > 0) {
             this.props.Document.curPage = cp;
-            this.props.Document.scrollY = (cp - 1) * NumCast(this.dataDoc.nativeHeight);
+            this.props.Document.panY = (cp - 1) * NumCast(this.dataDoc.nativeHeight);
         }
     }
 
@@ -80,7 +80,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     public GotoPage(p: number) {
         if (p > 0 && p <= NumCast(this.props.Document.numPages)) {
             this.props.Document.curPage = p;
-            this.props.Document.scrollY = (p - 1) * NumCast(this.dataDoc.nativeHeight);
+            this.props.Document.panY = (p - 1) * NumCast(this.dataDoc.nativeHeight);
         }
     }
 
@@ -89,7 +89,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
         let cp = this.GetPage() + 1;
         if (cp <= NumCast(this.props.Document.numPages)) {
             this.props.Document.curPage = cp;
-            this.props.Document.scrollY = (cp - 1) * NumCast(this.dataDoc.nativeHeight);
+            this.props.Document.panY = (cp - 1) * NumCast(this.dataDoc.nativeHeight);
         }
     }
 
@@ -181,7 +181,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
     onScroll = (e: React.UIEvent<HTMLDivElement>) => {
         if (e.currentTarget && this.containingCollectionDocument) {
             this.containingCollectionDocument.panTransformType = "None";
-            this.containingCollectionDocument.scrollY = e.currentTarget.scrollTop;
+            this.containingCollectionDocument.panY = e.currentTarget.scrollTop;
         }
     }
 
@@ -195,7 +195,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
                 style={{ marginTop: `${this.containingCollectionDocument ? NumCast(this.containingCollectionDocument.panY) : 0}px` }}
                 ref={this._mainCont}>
                 <div className="pdfBox-scrollHack" style={{ height: NumCast(this.props.Document.scrollHeight) + (NumCast(this.props.Document.nativeHeight) - NumCast(this.props.Document.nativeHeight) / NumCast(this.props.Document.scale)), width: "100%" }} />
-                <PDFViewer pdf={this._pdf} url={pdfUrl.url.pathname} active={this.props.active} scrollTo={this.scrollTo} loaded={this.loaded} scrollY={NumCast(this.props.Document.scrollY)}
+                <PDFViewer pdf={this._pdf} url={pdfUrl.url.pathname} active={this.props.active} scrollTo={this.scrollTo} loaded={this.loaded} panY={NumCast(this.props.Document.panY)}
                     Document={this.props.Document} DataDoc={this.props.DataDoc}
                     addDocTab={this.props.addDocTab} setPanY={this.setPanY}
                     fieldKey={this.props.fieldKey} fieldExtensionDoc={this.fieldExtensionDoc} />
