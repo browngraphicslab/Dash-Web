@@ -7,6 +7,8 @@ import { ObjectField } from "./ObjectField";
 import { action } from "mobx";
 import { Parent, OnUpdate, Update, Id, SelfProxy, Self } from "./FieldSymbols";
 import { ComputedField } from "./ScriptField";
+import { DocServer } from "../client/DocServer";
+import { CurrentUserUtils } from "../server/authentication/models/current_user_utils";
 
 function _readOnlySetter(): never {
     throw new Error("Documents can't be modified in read-only mode");
@@ -63,9 +65,14 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
     } else {
         target.__fields[prop] = value;
     }
-    if (value === undefined) target[Update]({ '$unset': { ["fields." + prop]: "" } });
+    const writeMode = DocServer.getFieldWriteMode(prop as string);
     if (typeof value === "object" && !(value instanceof ObjectField)) debugger;
-    else target[Update]({ '$set': { ["fields." + prop]: value instanceof ObjectField ? SerializationHelper.Serialize(value) : (value === undefined ? null : value) } });
+    if (!writeMode || (writeMode === DocServer.WriteMode.SameUser && receiver.author === CurrentUserUtils.email)) {
+        if (value === undefined) target[Update]({ '$unset': { ["fields." + prop]: "" } });
+        else target[Update]({ '$set': { ["fields." + prop]: value instanceof ObjectField ? SerializationHelper.Serialize(value) : (value === undefined ? null : value) } });
+    } else {
+        DocServer.registerDocWithCachedUpdate(receiver, prop as string);
+    }
     UndoManager.AddEvent({
         redo: () => receiver[prop] = value,
         undo: () => receiver[prop] = curValue

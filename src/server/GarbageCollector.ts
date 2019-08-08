@@ -13,7 +13,7 @@ function addDoc(doc: any, ids: string[], files: { [name: string]: string[] }) {
         if (field === undefined || field === null) {
             continue;
         }
-        if (field.__type === "proxy") {
+        if (field.__type === "proxy" || field.__type === "prefetch_proxy") {
             ids.push(field.fieldId);
         } else if (field.__type === "list") {
             addDoc(field.fields, ids, files);
