@@ -1,5 +1,5 @@
 import { action, computed, observable } from 'mobx';
-import { Doc } from '../../new_fields/Doc';
+import { Doc, DocListCastAsync } from '../../new_fields/Doc';
 import { Id } from '../../new_fields/FieldSymbols';
 import { Cast, NumCast } from '../../new_fields/Types';
 import { CollectionDockingView } from '../views/collections/CollectionDockingView';
@@ -140,13 +140,15 @@ export class DocumentManager {
         if (!forceDockFunc && (docView = DocumentManager.Instance.getDocumentView(doc))) {
             Doc.BrushDoc(docView.props.Document);
             if (linkPage !== undefined) docView.props.Document.curPage = linkPage;
-            UndoManager.RunInBatch(() => {
-                docView!.props.focus(docView!.props.Document, willZoom);
-            }, "focus");
+            UndoManager.RunInBatch(() => docView!.props.focus(docView!.props.Document, willZoom), "focus");
         } else {
             if (!contextDoc) {
-                if (docContext) {
+                let docs = docContext ? await DocListCastAsync(docContext.data) : undefined;
+                let found = false;
+                docs && docs.map(d => found = found || Doc.AreProtosEqual(d, docDelegate));
+                if (docContext && found) {
                     let targetContextView: DocumentView | null;
+
                     if (!forceDockFunc && docContext && (targetContextView = DocumentManager.Instance.getDocumentView(docContext))) {
                         docContext.panTransformType = "Ease";
                         targetContextView.props.focus(docDelegate, willZoom);

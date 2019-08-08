@@ -8,7 +8,7 @@ import { Copy, Id } from '../../../new_fields/FieldSymbols';
 import { List } from "../../../new_fields/List";
 import { ObjectField } from "../../../new_fields/ObjectField";
 import { createSchema, listSpec, makeInterface } from "../../../new_fields/Schema";
-import { BoolCast, Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
+import { BoolCast, Cast, FieldValue, NumCast, StrCast, PromiseValue } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { RouteStore } from '../../../server/RouteStore';
 import { emptyFunction, returnTrue, Utils } from "../../../Utils";
@@ -359,12 +359,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     if (!linkedFwdDocs.some(l => l instanceof Promise)) {
                         let maxLocation = StrCast(linkedFwdDocs[0].maximizeLocation, "inTab");
                         let targetContext = !Doc.AreProtosEqual(linkedFwdContextDocs[altKey ? 1 : 0], this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document) ? linkedFwdContextDocs[altKey ? 1 : 0] : undefined;
-                        DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0], ctrlKey, false, document => {
-                            this.props.focus(this.props.Document, true, 1);
-                            setTimeout(() =>
-                                this.props.addDocTab(document, undefined, maxLocation), 1000);
-                        }
-                            , linkedFwdPage[altKey ? 1 : 0], targetContext);
+                        DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0], ctrlKey, false,
+                            document => {  // open up target if it's not already in view ...
+                                this.props.focus(this.props.Document, true, 1);  // by zooming into the button document first
+                                setTimeout(() => this.props.addDocTab(document, undefined, maxLocation), 1000); // then after the 1sec animation, open up the target in a new tab
+                            },
+                            linkedFwdPage[altKey ? 1 : 0], targetContext);
                     }
                 }
             }
@@ -445,13 +445,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             let targetDoc = this.props.Document;
             targetDoc.targetContext = de.data.targetContext;
             let annotations = await DocListCastAsync(annotationDoc.annotations);
-            if (annotations) {
-                annotations.forEach(anno => anno.target = targetDoc);
-            }
-            let annotDoc = await Cast(annotationDoc.annotationOn, Doc);
-            if (annotDoc) {
-                DocUtils.MakeLink(annotationDoc, targetDoc, this.props.ContainingCollectionView!.props.Document, `Annotation from ${StrCast(annotDoc.title)}`, "", StrCast(annotDoc.title));
-            }
+            annotations && annotations.forEach(anno => anno.target = targetDoc);
+
+            DocUtils.MakeLink(annotationDoc, targetDoc, this.props.ContainingCollectionView!.props.Document, `Link from ${StrCast(annotationDoc.title)}`);
         }
         if (de.data instanceof DragManager.LinkDragData) {
             let sourceDoc = de.data.linkSourceDocument;

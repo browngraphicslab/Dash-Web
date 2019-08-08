@@ -112,8 +112,7 @@ export default class Page extends React.Component<IPageProps> {
                         if (!BoolCast(annotationDoc.linkedToDoc)) {
                             let annotations = await DocListCastAsync(annotationDoc.annotations);
                             annotations && annotations.forEach(anno => anno.target = targetDoc);
-                            let parentDoc = await Cast(annotationDoc.annotationOn, Doc);
-                            parentDoc && DocUtils.MakeLink(annotationDoc, targetDoc, dragData.targetContext, `Annotation from ${StrCast(parentDoc.title)}`, "", StrCast(parentDoc.title))
+                            DocUtils.MakeLink(annotationDoc, targetDoc, dragData.targetContext, `Annotation from ${StrCast(this.props.Document.title)}`)
                         }
                     }
                 },

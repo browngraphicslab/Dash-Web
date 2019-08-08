@@ -211,7 +211,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
         mainAnnoDocProto.title = "Annotation on " + StrCast(this.props.Document.title);
         mainAnnoDocProto.annotationOn = this.props.Document;
         if (sourceDoc && createLink) {
-            DocUtils.MakeLink(sourceDoc, mainAnnoDocProto, undefined, `Annotation from ${StrCast(this.props.Document.title)}`, "", StrCast(this.props.Document.title));
+            DocUtils.MakeLink(sourceDoc, mainAnnoDocProto, undefined, `Annotation from ${StrCast(this.props.Document.title)}`);
         }
         this._savedAnnotations.clear();
         this.Index = -1;
