@@ -70,7 +70,7 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
         if (value === undefined) target[Update]({ '$unset': { ["fields." + prop]: "" } });
         else target[Update]({ '$set': { ["fields." + prop]: value instanceof ObjectField ? SerializationHelper.Serialize(value) : (value === undefined ? null : value) } });
     } else {
-        DocServer.registerDocWithCachedUpdate(receiver, prop as string);
+        DocServer.registerDocWithCachedUpdate(receiver, prop as string, curValue);
     }
     UndoManager.AddEvent({
         redo: () => receiver[prop] = value,

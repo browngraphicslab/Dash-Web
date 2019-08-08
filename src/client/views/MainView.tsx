@@ -435,6 +435,7 @@ export class MainView extends React.Component {
     }
 
 
+    private mode: DocServer.WriteMode = DocServer.WriteMode.Always;
     @observable private _colorPickerDisplay = false;
     /* for the expandable add nodes menu. Not included with the miscbuttons because once it expands it expands the whole div with it, making canvas interactions limited. */
     nodesMenu() {
@@ -479,15 +480,13 @@ export class MainView extends React.Component {
                             </button>
                         </div></li>)}
                     <li key="undoTest"><button className="add-button round-button" title="Click if undo isn't working" onClick={() => UndoManager.TraceOpenBatches()}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>
-                    <li key="test"><button className="add-button round-button" title="asdf" onClick={(() => {
-                        let state = DocServer.WriteMode.Always;
-                        return () => {
-                            state++;
-                            state = state % 3;
-                            DocServer.setFieldWriteMode("x", state);
-                            DocServer.setFieldWriteMode("y", state);
-                        };
-                    })()}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>
+                    <li key="test"><button className="add-button round-button" title="asdf" onClick={() => {
+                        this.mode++;
+                        this.mode = this.mode % 3;
+                        console.log(DocServer.WriteMode[this.mode]);
+                        DocServer.setFieldWriteMode("x", this.mode);
+                        DocServer.setFieldWriteMode("y", this.mode);
+                    }}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>
                     <li key="color"><button className="add-button round-button" title="Select Color" style={{ zIndex: 1000 }} onClick={() => this.toggleColorPicker()}><div className="toolbar-color-button" style={{ backgroundColor: InkingControl.Instance.selectedColor }} >
                         <div className="toolbar-color-picker" onClick={this.onColorClick} style={this._colorPickerDisplay ? { color: "black", display: "block" } : { color: "black", display: "none" }}>
                             <SketchPicker color={InkingControl.Instance.selectedColor} onChange={InkingControl.Instance.switchColor} />

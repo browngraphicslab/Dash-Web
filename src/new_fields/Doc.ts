@@ -148,7 +148,7 @@ export class Doc extends RefField {
         return "invalid";
     }
 
-    private [CachedUpdates]: { [key: string]: () => Promise<any> } = {};
+    private [CachedUpdates]: { [key: string]: () => void | Promise<any> } = {};
 
     public async [HandleUpdate](diff: any) {
         const set = diff.$set;
@@ -178,7 +178,7 @@ export class Doc extends RefField {
                     continue;
                 }
                 const fKey = key.substring(7);
-                const fn = async () => {
+                const fn = () => {
                     updatingFromServer = true;
                     delete this[fKey];
                     updatingFromServer = false;
@@ -210,6 +210,14 @@ export namespace Doc {
             update();
             delete doc[CachedUpdates][field];
         }
+    }
+    export function AddCachedUpdate(doc: Doc, field: string, oldValue: any) {
+        const val = oldValue;
+        doc[CachedUpdates][field] = () => {
+            updatingFromServer = true;
+            doc[field] = val;
+            updatingFromServer = false;
+        };
     }
     export function MakeReadOnly(): { end(): void } {
         makeReadOnly();
