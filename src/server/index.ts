@@ -175,15 +175,6 @@ const read_text_file = (relativePath: string) => {
     });
 };
 
-app.get('/layoutscripts', (req, res) => {
-    let prefix = '../scraping/buxton/scripts/';
-    read_text_file(prefix + 'initialization.txt').then(arrangeInit => {
-        read_text_file(prefix + 'layout.txt').then(arrangeScript => {
-            res.send(JSON.stringify({ arrangeInit, arrangeScript }));
-        });
-    });
-});
-
 app.get("/version", (req, res) => {
     exec('"C:\\Program Files\\Git\\bin\\git.exe" rev-parse HEAD', (err, stdout, stderr) => {
         if (err) {

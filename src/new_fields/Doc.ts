@@ -68,6 +68,7 @@ export function DocListCast(field: FieldResult): Doc[] {
 
 export const WidthSym = Symbol("Width");
 export const HeightSym = Symbol("Height");
+const CachedUpdates = Symbol("Cached updates");
 
 function fetchProto(doc: Doc) {
     const proto = doc.proto;
@@ -147,6 +148,8 @@ export class Doc extends RefField {
         return "invalid";
     }
 
+    private [CachedUpdates]: { [key: string]: () => Promise<any> } = {};
+
     public async [HandleUpdate](diff: any) {
         const set = diff.$set;
         if (set) {
@@ -154,11 +157,18 @@ export class Doc extends RefField {
                 if (!key.startsWith("fields.")) {
                     continue;
                 }
-                const value = await SerializationHelper.Deserialize(set[key]);
                 const fKey = key.substring(7);
-                updatingFromServer = true;
-                this[fKey] = value;
-                updatingFromServer = false;
+                const fn = async () => {
+                    const value = await SerializationHelper.Deserialize(set[key]);
+                    updatingFromServer = true;
+                    this[fKey] = value;
+                    updatingFromServer = false;
+                };
+                if (DocServer.getFieldWriteMode(fKey)) {
+                    this[CachedUpdates][fKey] = fn;
+                } else {
+                    await fn();
+                }
             }
         }
         const unset = diff.$unset;
@@ -168,9 +178,16 @@ export class Doc extends RefField {
                     continue;
                 }
                 const fKey = key.substring(7);
-                updatingFromServer = true;
-                delete this[fKey];
-                updatingFromServer = false;
+                const fn = async () => {
+                    updatingFromServer = true;
+                    delete this[fKey];
+                    updatingFromServer = false;
+                };
+                if (DocServer.getFieldWriteMode(fKey)) {
+                    this[CachedUpdates][fKey] = fn;
+                } else {
+                    await fn();
+                }
             }
         }
     }
@@ -187,6 +204,13 @@ export namespace Doc {
     //         return Cast(field, ctor);
     //     });
     // }
+    export function RunCachedUpdate(doc: Doc, field: string) {
+        const update = doc[CachedUpdates][field];
+        if (update) {
+            update();
+            delete doc[CachedUpdates][field];
+        }
+    }
     export function MakeReadOnly(): { end(): void } {
         makeReadOnly();
         return {
@@ -541,5 +565,23 @@ export namespace Doc {
                 }
             }
         });
+    }
+
+    export class DocBrush {
+        @observable BrushedDoc: Doc[] = [];
+    }
+    const manager = new DocBrush();
+    export function IsBrushed(doc: Doc) {
+        return manager.BrushedDoc.some(d => Doc.AreProtosEqual(d, doc));
+    }
+    export function IsBrushedDegree(doc: Doc) {
+        return manager.BrushedDoc.some(d => d === doc) ? 2 : Doc.IsBrushed(doc) ? 1 : 0;
+    }
+    export function BrushDoc(doc: Doc) {
+        if (manager.BrushedDoc.indexOf(doc) === -1) runInAction(() => manager.BrushedDoc.push(doc));
+    }
+    export function UnBrushDoc(doc: Doc) {
+        let index = manager.BrushedDoc.indexOf(doc);
+        if (index !== -1) runInAction(() => manager.BrushedDoc.splice(index, 1));
     }
 }

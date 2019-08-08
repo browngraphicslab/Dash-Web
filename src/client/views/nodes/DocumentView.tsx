@@ -301,7 +301,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             fullScreenAlias.showCaption = true;
             this.props.addDocTab(fullScreenAlias, this.dataDoc, "inTab");
             SelectionManager.DeselectAll();
-            this.props.Document.libraryBrush = false;
+            Doc.UnBrushDoc(this.props.Document);
         }
         else if (CurrentUserUtils.MainDocId !== this.props.Document[Id] &&
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
@@ -446,13 +446,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             targetDoc.targetContext = de.data.targetContext;
             let annotations = await DocListCastAsync(annotationDoc.annotations);
             if (annotations) {
-                annotations.forEach(anno => {
-                    anno.target = targetDoc;
-                });
+                annotations.forEach(anno => anno.target = targetDoc);
             }
-            let pdfDoc = await Cast(annotationDoc.pdfDoc, Doc);
-            if (pdfDoc) {
-                DocUtils.MakeLink(annotationDoc, targetDoc, this.props.ContainingCollectionView!.props.Document, `Annotation from ${StrCast(pdfDoc.title)}`, "", StrCast(pdfDoc.title));
+            let annotDoc = await Cast(annotationDoc.annotationOn, Doc);
+            if (annotDoc) {
+                DocUtils.MakeLink(annotationDoc, targetDoc, this.props.ContainingCollectionView!.props.Document, `Annotation from ${StrCast(annotDoc.title)}`, "", StrCast(annotDoc.title));
             }
         }
         if (de.data instanceof DragManager.LinkDragData) {
@@ -603,14 +601,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (!ClientUtils.RELEASE) {
             let copies: ContextMenuProps[] = [];
             copies.push({ description: "Copy URL", event: () => Utils.CopyText(Utils.prepend("/doc/" + this.props.Document[Id])), icon: "link" });
-            copies.push({
-                description: "Copy Context", event: () => {
-                    let parent = this.props.ContainingCollectionView;
-                    if (parent) {
-                        Utils.CopyText(Utils.prepend("/doc/" + parent.props.Document[Id]));
-                    }
-                }, icon: "link"
-            });
             copies.push({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "fingerprint" });
             cm.addItem({ description: "Copy...", subitems: copies, icon: "copy" });
         }
@@ -663,8 +653,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         });
     }
 
-    onPointerEnter = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = true; };
-    onPointerLeave = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = false; };
+    onPointerEnter = (e: React.PointerEvent): void => { Doc.BrushDoc(this.props.Document); };
+    onPointerLeave = (e: React.PointerEvent): void => { Doc.UnBrushDoc(this.props.Document); };
 
     isSelected = () => SelectionManager.IsSelected(this);
     @action select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); };
@@ -711,22 +701,23 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             });
         }
         let showTextTitle = showTitle && StrCast(this.layoutDoc.layout).startsWith("<FormattedTextBox") ? showTitle : undefined;
+        let brushDegree = Doc.IsBrushedDegree(this.layoutDoc);
         return (
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
                 style={{
                     pointerEvents: this.layoutDoc.isBackground && !this.isSelected() ? "none" : "all",
                     color: foregroundColor,
-                    outlineColor: "maroon",
-                    outlineStyle: "dashed",
-                    outlineWidth: BoolCast(this.layoutDoc.libraryBrush) && !StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
-                        `${this.props.ScreenToLocalTransform().Scale}px` : "0px",
-                    marginLeft: BoolCast(this.layoutDoc.libraryBrush) && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
-                        `${-1 * this.props.ScreenToLocalTransform().Scale}px` : undefined,
-                    marginTop: BoolCast(this.layoutDoc.libraryBrush) && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
-                        `${-1 * this.props.ScreenToLocalTransform().Scale}px` : undefined,
-                    border: BoolCast(this.layoutDoc.libraryBrush) && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
-                        `dashed maroon ${this.props.ScreenToLocalTransform().Scale}px` : undefined,
+                    outlineColor: ["transparent", "maroon", "maroon"][brushDegree],
+                    outlineStyle: ["none", "dashed", "solid"][brushDegree],
+                    outlineWidth: brushDegree && !StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
+                        `${brushDegree * this.props.ScreenToLocalTransform().Scale}px` : "0px",
+                    marginLeft: brushDegree && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
+                        `${-brushDegree * this.props.ScreenToLocalTransform().Scale}px` : undefined,
+                    marginTop: brushDegree && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
+                        `${-brushDegree * this.props.ScreenToLocalTransform().Scale}px` : undefined,
+                    border: brushDegree && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
+                        `${["none", "dashed", "solid"][brushDegree]} ${["transparent", "maroon", "maroon"][brushDegree]} ${this.props.ScreenToLocalTransform().Scale}px` : undefined,
                     borderRadius: "inherit",
                     background: backgroundColor,
                     width: nativeWidth,

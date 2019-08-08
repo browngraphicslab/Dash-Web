@@ -199,7 +199,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
         this.document.pivotField = value;
     }
 
-    @observable private pivotKeyDisplay = "";
+    @observable private pivotKeyDisplay = this.pivotKey;
     getPivotInput = () => {
         if (!this.document.usePivotLayout) {
             return (null);

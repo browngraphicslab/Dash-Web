@@ -131,8 +131,7 @@ def write_text_doc(content):
             "x": 10,
             "y": 10,
             "width": 400,
-            "zIndex": 2,
-            "libraryBrush": False
+            "zIndex": 2
         },
         "__type": "Doc"
     }
@@ -184,8 +183,7 @@ def write_image(folder, name):
             "x": 10,
             "y": 10,
             "width": min(800, native_width),
-            "zIndex": 2,
-            "libraryBrush": False
+            "zIndex": 2
         },
         "__type": "Doc"
     }

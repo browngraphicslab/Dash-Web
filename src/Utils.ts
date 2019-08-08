@@ -133,6 +133,8 @@ export function WithKeys(obj: any, keys: string[], addKeyFunc?: (dup: any) => vo
     return dup;
 }
 
+export function numberRange(num: number) { return Array.from(Array(num)).map((v, i) => i); }
+
 export function returnTrue() { return true; }
 
 export function returnFalse() { return false; }
