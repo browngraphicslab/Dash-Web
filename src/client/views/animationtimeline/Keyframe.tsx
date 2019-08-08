@@ -13,6 +13,9 @@ import { Transform } from "../../util/Transform";
 import { InkField, StrokeData } from "../../../new_fields/InkField";
 import { number } from "prop-types";
 import { TimelineMenu } from "./TimelineMenu";
+import { Docs } from "../../documents/Documents";
+import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
+import { CollectionDockingView } from "../collections/CollectionDockingView";
 
 export namespace KeyframeFunc {
     export enum KeyframeType {
@@ -310,7 +313,6 @@ export class Keyframe extends React.Component<IProps> {
             let dif = this.regiondata.position - (leftRegion.position + leftRegion.duration);
             this.regiondata.position = leftRegion.position + leftRegion.duration;
             this.regiondata.duration += dif;
-
         } else {
             this.regiondata.duration -= offset;
             this.regiondata.position += offset;
@@ -386,6 +388,15 @@ export class Keyframe extends React.Component<IProps> {
                     <div className="keyframeCircle" onPointerDown={(e) => { this.moveKeyframe(e, kf as Doc); }} onContextMenu={(e: React.MouseEvent) => {
                         e.preventDefault();
                         e.stopPropagation();
+                        let items = [
+                            TimelineMenu.Instance.addItem("button", "Show Data", () => {
+                            runInAction(() => {let kvp = Docs.Create.KVPDocument(Cast(kf.key, Doc) as Doc, { width: 300, height: 300 }); 
+                            CollectionDockingView.Instance.AddRightSplit(kvp, (kf.key as Doc).data as Doc); });
+                           }), 
+                            TimelineMenu.Instance.addItem("button", "Delete", () => {}), 
+                            TimelineMenu.Instance.addItem("input", "Move", (val) => {kf.time = parseInt(val, 10);})  
+                        ]; 
+                        TimelineMenu.Instance.addMenu("Keyframe", items); 
                         TimelineMenu.Instance.openMenu(e.clientX, e.clientY); 
                     }}></div>
                 </div>);
@@ -527,7 +538,6 @@ export class Keyframe extends React.Component<IProps> {
                     })}
                     {this.keyframes.map( kf => {
                        if(this.keyframes.indexOf(kf) !== this.keyframes.length - 1) {
-                           
                             let left = this.keyframes[this.keyframes.indexOf(kf) + 1]; 
                             let bodyRef = React.createRef<HTMLDivElement>(); 
                             return (
