@@ -6,7 +6,7 @@ import React = require("react");
 import { observer } from "mobx-react";
 import { observable, action, computed, reaction } from "mobx";
 var assert = require('assert');
-import Table from 'react-bootstrap/Table';
+import "./ClientRecommender.scss";
 
 export interface RecommenderProps {
     title: string;
@@ -17,37 +17,53 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
 
     static Instance: ClientRecommender;
     private docVectors: Set<number[]>;
-    private corr_matrix = observable([[0, 0], [0, 0]]);
-    @observable private firstnum = 0;
-    //@observable private corr_matrix: number[][] = [[0, 0], [0, 0]];
+    @observable private corr_matrix = [[0, 0], [0, 0]];
 
     constructor(props: RecommenderProps) {
         //console.log("creating client recommender...");
         super(props);
-        ClientRecommender.Instance = this;
+        if (!ClientRecommender.Instance) ClientRecommender.Instance = this;
         this.docVectors = new Set<number[]>();
         //this.corr_matrix = [[0, 0], [0, 0]];
     }
 
+    @action
+    public reset_docs() {
+        this.docVectors = new Set();
+        this.corr_matrix = [[0, 0], [0, 0]];
+    }
 
     /***
      * Computes the cosine similarity between two vectors in Euclidean space. 
      */
 
-    private distance(vector1: number[], vector2: number[]) {
+    private distance(vector1: number[], vector2: number[], metric: string = "cosine") {
         assert(vector1.length === vector2.length, "Vectors are not the same length");
-        var dotproduct = 0;
-        var mA = 0;
-        var mB = 0;
-        for (let i = 0; i < vector1.length; i++) { // here you missed the i++
-            dotproduct += (vector1[i] * vector2[i]);
-            mA += (vector1[i] * vector1[i]);
-            mB += (vector2[i] * vector2[i]);
+        let similarity: number;
+        switch (metric) {
+            case "cosine":
+                var dotproduct = 0;
+                var mA = 0;
+                var mB = 0;
+                for (let i = 0; i < vector1.length; i++) { // here you missed the i++
+                    dotproduct += (vector1[i] * vector2[i]);
+                    mA += (vector1[i] * vector1[i]);
+                    mB += (vector2[i] * vector2[i]);
+                }
+                mA = Math.sqrt(mA);
+                mB = Math.sqrt(mB);
+                similarity = (dotproduct) / ((mA) * (mB)); // here you needed extra brackets
+                return similarity;
+            case "euclidian":
+                var sum = 0;
+                for (let i = 0; i < vector1.length; i++) {
+                    sum += Math.pow(vector1[i] - vector2[i], 2);
+                }
+                similarity = Math.sqrt(sum);
+                return similarity;
+            default:
+                return 0;
         }
-        mA = Math.sqrt(mA);
-        mB = Math.sqrt(mB);
-        var similarity = (dotproduct) / ((mA) * (mB)); // here you needed extra brackets
-        return similarity;
     }
 
     /***
@@ -98,8 +114,6 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
 
     @action
     public createDistanceMatrix(documents: Set<number[]> = this.docVectors) {
-        //this.corr_matrix[0][0] = 500;
-        this.firstnum = 500;
         const documents_list = Array.from(documents);
         const n = documents_list.length;
         var matrix = new Array<number>(n).fill(0).map(() => new Array<number>(n).fill(0));
@@ -107,39 +121,47 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
             var doc1 = documents_list[i];
             for (let j = 0; j < n; j++) {
                 var doc2 = documents_list[j];
-                matrix[i][j] = this.distance(doc1, doc2);
+                matrix[i][j] = this.distance(doc1, doc2, "euclidian");
             }
         }
-        //this.corr_matrix = matrix;
-
+        this.corr_matrix = matrix;
         return matrix;
     }
 
-    @computed get first_num() {
-        return this.firstnum;
-    }
-
-    dumb_reaction = reaction(
-        () => this.first_num,
-        number => {
-            console.log("number has changed", number);
-            this.forceUpdate();
+    @computed
+    private get generateRows() {
+        const n = this.corr_matrix.length;
+        let rows: React.ReactElement[] = [];
+        for (let i = 0; i < n; i++) {
+            let children: React.ReactElement[] = [];
+            for (let j = 0; j < n; j++) {
+                let cell = React.createElement("td", this.corr_matrix[i][j]);
+                children.push(cell);
+            }
+            let row = React.createElement("tr", { children: children });
+            rows.push(row);
         }
-    );
+        return rows;
+    }
 
     render() {
         return (<div>
             <h3>{this.props.title ? this.props.title : "hello"}</h3>
+            {/* <table className="space" >
+                <tbody>
+                    <tr key="1">
+                        <td key="1">{this.corr_matrix[0][0].toFixed(4)}</td>
+                        <td key="2">{this.corr_matrix[0][1].toFixed(4)}</td>
+                    </tr>
+                    <tr key="2">
+                        <td key="1">{this.corr_matrix[1][0].toFixed(4)}</td>
+                        <td key="2">{this.corr_matrix[1][1].toFixed(4)}</td>
+                    </tr>
+                </tbody>
+            </table> */}
             <table>
                 <tbody>
-                    <tr>
-                        <td>{this.first_num}</td>
-                        <td>{this.corr_matrix[0][1]}</td>
-                    </tr>
-                    <tr>
-                        <td>{this.corr_matrix[1][0]}</td>
-                        <td>{this.corr_matrix[1][1]}</td>
-                    </tr>
+                    {this.generateRows}
                 </tbody>
             </table>
         </div>);
