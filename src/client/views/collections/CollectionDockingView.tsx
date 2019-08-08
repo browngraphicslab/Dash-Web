@@ -548,6 +548,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     private onActiveContentItemChanged() {
         if (this.props.glContainer.tab) {
             this._isActive = this.props.glContainer.tab.isActive;
+            !this._isActive && this._document && Doc.UnBrushDoc(this._document); // bcz: bad -- trying to simulate a pointer leave event when a new tab is opened up on top of an existing one.
         }
     }
 
