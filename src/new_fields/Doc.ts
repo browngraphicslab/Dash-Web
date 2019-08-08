@@ -8,10 +8,10 @@ import { listSpec } from "./Schema";
 import { ObjectField } from "./ObjectField";
 import { RefField, FieldId } from "./RefField";
 import { ToScriptString, SelfProxy, Parent, OnUpdate, Self, HandleUpdate, Update, Id } from "./FieldSymbols";
-import { scriptingGlobal } from "../client/util/Scripting";
+import { scriptingGlobal, CompileScript, Scripting } from "../client/util/Scripting";
 import { List } from "./List";
 import { DocumentType } from "../client/documents/Documents";
-import { ComputedField } from "./ScriptField";
+import { ComputedField, ScriptField } from "./ScriptField";
 import { PrefetchProxy, ProxyField } from "./Proxy";
 
 export namespace Field {
@@ -390,10 +390,14 @@ export namespace Doc {
         }
     }
     export function MakeAlias(doc: Doc) {
-        if (!GetT(doc, "isPrototype", "boolean", true)) {
-            return Doc.MakeCopy(doc);
+        let alias = !GetT(doc, "isPrototype", "boolean", true) ? Doc.MakeCopy(doc) : Doc.MakeDelegate(doc);
+        let aliasNumber = Doc.GetProto(doc).aliasNumber = NumCast(Doc.GetProto(doc).aliasNumber) + 1;
+        let script = `return renameAlias(self, ${aliasNumber})`;
+        let compiled = CompileScript(script, { params: { this: "Doc" }, capturedVariables: { self: doc }, typecheck: false });
+        if (compiled.compiled) {
+            alias.title = new ComputedField(compiled);
         }
-        return Doc.MakeDelegate(doc); // bcz?
+        return alias;
     }
 
     //
