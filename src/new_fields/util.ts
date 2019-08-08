@@ -6,7 +6,6 @@ import { RefField } from "./RefField";
 import { ObjectField } from "./ObjectField";
 import { action } from "mobx";
 import { Parent, OnUpdate, Update, Id, SelfProxy, Self } from "./FieldSymbols";
-import { ComputedField } from "./ScriptField";
 import { DocServer } from "../client/DocServer";
 import { CurrentUserUtils } from "../server/authentication/models/current_user_utils";
 

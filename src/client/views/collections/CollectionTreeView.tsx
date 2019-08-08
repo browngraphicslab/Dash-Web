@@ -127,19 +127,19 @@ class TreeView extends React.Component<TreeViewProps> {
 
     onPointerDown = (e: React.PointerEvent) => e.stopPropagation();
     onPointerEnter = (e: React.PointerEvent): void => {
-        this.props.active() && (this.props.document.libraryBrush = true);
+        this.props.active() && Doc.BrushDoc(this.dataDoc);
         if (e.buttons === 1 && SelectionManager.GetIsDragging()) {
             this._header!.current!.className = "treeViewItem-header";
             document.addEventListener("pointermove", this.onDragMove, true);
         }
     }
     onPointerLeave = (e: React.PointerEvent): void => {
-        this.props.document.libraryBrush = false;
+        Doc.UnBrushDoc(this.dataDoc);
         this._header!.current!.className = "treeViewItem-header";
         document.removeEventListener("pointermove", this.onDragMove, true);
     }
     onDragMove = (e: PointerEvent): void => {
-        this.props.document.libraryBrush = false;
+        Doc.UnBrushDoc(this.dataDoc);
         let x = this.props.ScreenToLocalTransform().transformPoint(e.clientX, e.clientY);
         let rect = this._header!.current!.getBoundingClientRect();
         let bounds = this.props.ScreenToLocalTransform().transformPoint(rect.left, rect.top + rect.height / 2);
@@ -359,7 +359,7 @@ class TreeView extends React.Component<TreeViewProps> {
         return <>
             <div className="docContainer" id={`docContainer-${this.props.parentKey}`} ref={reference} onPointerDown={onItemDown}
                 style={{
-                    background: BoolCast(this.props.document.libraryBrush) ? "#06121212" : "0",
+                    background: Doc.IsBrushed(this.props.document) ? "#06121212" : "0",
                     outline: BoolCast(this.props.document.workspaceBrush) ? "dashed 1px #06123232" : undefined,
                     pointerEvents: this.props.active() || SelectionManager.GetIsDragging() ? "all" : "none"
                 }} >

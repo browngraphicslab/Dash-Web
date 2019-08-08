@@ -405,15 +405,12 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                             handlers: { dragComplete: emptyFunction },
                             hideSource: false
                         });
-                    }}><FontAwesomeIcon icon="file" size="lg" /></span>, dragSpan);
+                    }}><FontAwesomeIcon icon="file" color={["white", "maroon", "blue"][Doc.IsBrushedDegree(doc)]} size="lg" /></span>, dragSpan);
                 ReactDOM.render(<ParentDocSelector Document={doc} addDocTab={doc => CollectionDockingView.Instance.AddTab(stack, doc, dataDoc)} />, upDiv);
                 tab.reactComponents = [dragSpan, upDiv];
                 tab.element.append(dragSpan);
                 tab.element.append(upDiv);
-                tab.reactionDisposer = reaction(() => [doc.title],
-                    () => {
-                        tab.titleElement[0].textContent = doc.title;
-                    }, { fireImmediately: true });
+                tab.reactionDisposer = reaction(() => [doc.title], () => tab.titleElement[0].textContent = doc.title, { fireImmediately: true });
                 //TODO why can't this just be doc instead of the id?
                 tab.titleElement[0].DashDocId = tab.contentItem.config.props.documentId;
             }

@@ -36,6 +36,7 @@ interface IViewerProps {
     active: () => boolean;
     setPanY?: (n: number) => void;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
+    addDocument?: (doc: Doc, allowDuplicates?: boolean) => boolean;
 }
 
 /**
@@ -124,7 +125,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
         if (this.props.active() && e.clipboardData) {
             e.clipboardData.setData("text/plain", this._selectionText);
             e.clipboardData.setData("dash/pdfOrigin", this.props.Document[Id]);
-            e.clipboardData.setData("dash/pdfRegion", this.makeAnnotationDocument(undefined, 0, "#0390fc")[Id]);
+            e.clipboardData.setData("dash/pdfRegion", this.makeAnnotationDocument(undefined, "#0390fc")[Id]);
             e.preventDefault();
         }
     }
@@ -133,7 +134,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
         if (e.clipboardData && e.clipboardData.getData("dash/pdfOrigin") === this.props.Document[Id]) {
             let linkDocId = e.clipboardData.getData("dash/linkDoc");
             linkDocId && DocServer.GetRefField(linkDocId).then(async (link) =>
-                (link instanceof Doc) && (Doc.GetProto(link).anchor2 = this.makeAnnotationDocument(await Cast(Doc.GetProto(link), Doc), 0, "#0390fc", false)));
+                (link instanceof Doc) && (Doc.GetProto(link).anchor2 = this.makeAnnotationDocument(await Cast(Doc.GetProto(link), Doc), "#0390fc", false)));
         }
     }
 
@@ -166,32 +167,49 @@ export class PDFViewer extends React.Component<IViewerProps> {
     }
 
     @action
-    makeAnnotationDocument = (sourceDoc: Doc | undefined, s: number, color: string, createLink: boolean = true): Doc => {
+    makeAnnotationDocument = (sourceDoc: Doc | undefined, color: string, createLink: boolean = true): Doc => {
         let mainAnnoDoc = Docs.Create.InstanceFromProto(new Doc(), "", {});
+        let mainAnnoDocProto = Doc.GetProto(mainAnnoDoc);
         let annoDocs: Doc[] = [];
         let minY = Number.MAX_VALUE;
-        this._savedAnnotations.forEach((key: number, value: HTMLDivElement[]) => value.map(anno => {
-            let annoDoc = new Doc();
-            if (anno.style.left) annoDoc.x = parseInt(anno.style.left) / scale;
-            if (anno.style.top) annoDoc.y = parseInt(anno.style.top) / scale;
-            if (anno.style.height) annoDoc.height = parseInt(anno.style.height) / scale;
-            if (anno.style.width) annoDoc.width = parseInt(anno.style.width) / scale;
-            annoDoc.page = key;
+        if (this._savedAnnotations.size() === 1 && this._savedAnnotations.values()[0].length === 1 && !createLink) {
+            let anno = this._savedAnnotations.values()[0][0];
+            let annoDoc = Docs.Create.FreeformDocument([], { backgroundColor: "rgba(255, 0, 0, 0.1)", title: "Annotation on " + StrCast(this.props.Document.title) });
+            if (anno.style.left) annoDoc.x = parseInt(anno.style.left);
+            if (anno.style.top) annoDoc.y = parseInt(anno.style.top);
+            if (anno.style.height) annoDoc.height = parseInt(anno.style.height);
+            if (anno.style.width) annoDoc.width = parseInt(anno.style.width);
             annoDoc.target = sourceDoc;
             annoDoc.group = mainAnnoDoc;
             annoDoc.color = color;
             annoDoc.type = AnnotationTypes.Region;
             annoDocs.push(annoDoc);
+            annoDoc.isButton = true;
             anno.remove();
-            (annoDoc.y !== undefined) && (minY = Math.min(NumCast(annoDoc.y), minY));
-        }));
+            this.props.addDocument && this.props.addDocument(annoDoc, false);
+            mainAnnoDoc = annoDoc;
+            mainAnnoDocProto = Doc.GetProto(annoDoc);
+        } else {
+            this._savedAnnotations.forEach((key: number, value: HTMLDivElement[]) => value.map(anno => {
+                let annoDoc = new Doc();
+                if (anno.style.left) annoDoc.x = parseInt(anno.style.left);
+                if (anno.style.top) annoDoc.y = parseInt(anno.style.top);
+                if (anno.style.height) annoDoc.height = parseInt(anno.style.height);
+                if (anno.style.width) annoDoc.width = parseInt(anno.style.width);
+                annoDoc.target = sourceDoc;
+                annoDoc.group = mainAnnoDoc;
+                annoDoc.color = color;
+                annoDoc.type = AnnotationTypes.Region;
+                annoDocs.push(annoDoc);
+                anno.remove();
+                (annoDoc.y !== undefined) && (minY = Math.min(NumCast(annoDoc.y), minY));
+            }));
 
-        let mainAnnoDocProto = Doc.GetProto(mainAnnoDoc);
+            mainAnnoDocProto.y = Math.max(minY, 0);
+            mainAnnoDocProto.annotations = new List<Doc>(annoDocs);
+        }
         mainAnnoDocProto.title = "Annotation on " + StrCast(this.props.Document.title);
-        mainAnnoDocProto.pdfDoc = this.props.Document;
         mainAnnoDocProto.annotationOn = this.props.Document;
-        mainAnnoDocProto.y = Math.max(minY, 0);
-        mainAnnoDocProto.annotations = new List<Doc>(annoDocs);
         if (sourceDoc && createLink) {
             DocUtils.MakeLink(sourceDoc, mainAnnoDocProto, undefined, `Annotation from ${StrCast(this.props.Document.title)}`, "", StrCast(this.props.Document.title));
         }
@@ -346,48 +364,6 @@ export class PDFViewer extends React.Component<IViewerProps> {
             this._mainCont.current.addEventListener("pagesloaded", executeFind);
             this._mainCont.current.addEventListener("pagerendered", executeFind);
         }
-
-        // let viewer = this._viewer.current;
-
-        // if (!this._pdfFindController) {
-        //     if (container && viewer) {
-        //         let simpleLinkService = new SimpleLinkService();
-        //         let pdfViewer = new PDFJSViewer.PDFViewer({
-        //             container: container,
-        //             viewer: viewer,
-        //             linkService: simpleLinkService
-        //         });
-        //         simpleLinkService.setPdf(this.props.pdf);
-        //         container.addEventListener("pagesinit", () => {
-        //             pdfViewer.currentScaleValue = 1;
-        //         });
-        //         container.addEventListener("pagerendered", () => {
-        //             console.log("rendered");
-        //             this._pdfFindController.executeCommand('find',
-        //                 {
-        //                     caseSensitive: false,
-        //                     findPrevious: undefined,
-        //                     highlightAll: true,
-        //                     phraseSearch: true,
-        //                     query: searchString
-        //                 });
-        //         });
-        //         pdfViewer.setDocument(this.props.pdf);
-        //         this._pdfFindController = new PDFJSViewer.PDFFindController(pdfViewer);
-        //         // this._pdfFindController._linkService = pdfLinkService;
-        //         pdfViewer.findController = this._pdfFindController;
-        //     }
-        // }
-        // else {
-        //     this._pdfFindController.executeCommand('find',
-        //         {
-        //             caseSensitive: false,
-        //             findPrevious: undefined,
-        //             highlightAll: true,
-        //             phraseSearch: true,
-        //             query: searchString
-        //         });
-        // }
     }
 
 
