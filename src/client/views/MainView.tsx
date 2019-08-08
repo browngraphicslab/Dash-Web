@@ -446,7 +446,7 @@ export class MainView extends React.Component {
         //let addTreeNode = action(() => Docs.TreeDocument([CurrentUserUtils.UserDocument], { width: 250, height: 400, title: "Library:" + CurrentUserUtils.email, dropAction: "alias" }));
         // let addTreeNode = action(() => Docs.TreeDocument(this._northstarSchemas, { width: 250, height: 400, title: "northstar schemas", dropAction: "copy"  }));
         let addColNode = action(() => Docs.Create.FreeformDocument([], { width: this.pwidth * .7, height: this.pheight, title: "a freeform collection" }));
-        let addTreeNode = action(() => CurrentUserUtils.UserDocument);
+        let addDragboxNode = action(() => Docs.Create.DragboxDocument({ width: 40, height: 40, title: "drag collection" }));
         let addImageNode = action(() => Docs.Create.ImageDocument(imgurl, { width: 200, title: "an image of a cat" }));
         let addButtonDocument = action(() => Docs.Create.ButtonDocument({ width: 150, height: 50, title: "Button" }));
         let addImportCollectionNode = action(() => Docs.Create.DirectoryImportDocument({ title: "Directory Import", width: 400, height: 400 }));
@@ -458,7 +458,8 @@ export class MainView extends React.Component {
             [React.createRef<HTMLDivElement>(), "bolt", "Add Button", addButtonDocument],
             // [React.createRef<HTMLDivElement>(), "clone", "Add Docking Frame", addDockingNode],
             [React.createRef<HTMLDivElement>(), "cloud-upload-alt", "Import Directory", addImportCollectionNode],
-            [React.createRef<HTMLDivElement>(), "play", "Add Youtube Searcher", addYoutubeSearcher]
+            [React.createRef<HTMLDivElement>(), "play", "Add Youtube Searcher", addYoutubeSearcher],
+            [React.createRef<HTMLDivElement>(), "bolt", "Add Document Dragger", addDragboxNode]
         ];
         if (!ClientUtils.RELEASE) btns.unshift([React.createRef<HTMLDivElement>(), "cat", "Add Cat Image", addImageNode]);
 
