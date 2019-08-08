@@ -27,13 +27,27 @@ const DragSchema = createSchema({
 
 type DragDocument = makeInterface<[typeof DragSchema]>;
 const DragDocument = makeInterface(DragSchema);
-
 @observer
 export class DragBox extends DocComponent<FieldViewProps, DragDocument>(DragDocument) {
+    _downX: number = 0;
+    _downY: number = 0;
     public static LayoutString() { return FieldView.LayoutString(DragBox); }
     _mainCont = React.createRef<HTMLDivElement>();
     onDragStart = (e: React.PointerEvent) => {
-        if (!e.ctrlKey && !e.altKey && !e.shiftKey && !this.props.isSelected()) {
+        if (!e.ctrlKey && !e.altKey && !e.shiftKey && !this.props.isSelected() && e.button === 0) {
+            document.removeEventListener("pointermove", this.onDragMove);
+            document.addEventListener("pointermove", this.onDragMove);
+            document.removeEventListener("pointerup", this.onDragUp);
+            document.addEventListener("pointerup", this.onDragUp);
+            e.stopPropagation();
+            e.preventDefault();
+        }
+    }
+
+    onDragMove = (e: MouseEvent) => {
+        if (!e.cancelBubble && !this.props.Document.excludeFromLibrary && (Math.abs(this._downX - e.clientX) > 5 || Math.abs(this._downY - e.clientY) > 5)) {
+            document.removeEventListener("pointermove", this.onDragMove);
+            document.removeEventListener("pointerup", this.onDragUp);
             const onDragStart = this.Document.onDragStart;
             e.stopPropagation();
             e.preventDefault();
@@ -43,6 +57,13 @@ export class DragBox extends DocComponent<FieldViewProps, DragDocument>(DragDocu
                 Docs.Create.FreeformDocument([], { nativeWidth: undefined, nativeHeight: undefined, width: 150, height: 100, title: "freeform" });
             doc && DragManager.StartDocumentDrag([this._mainCont.current!], new DragManager.DocumentDragData([doc], [undefined]), e.clientX, e.clientY);
         }
+        e.stopPropagation();
+        e.preventDefault();
+    }
+
+    onDragUp = (e: MouseEvent) => {
+        document.removeEventListener("pointermove", this.onDragMove);
+        document.removeEventListener("pointerup", this.onDragUp);
     }
 
     onContextMenu = () => {
