@@ -3,7 +3,7 @@ import { CollectionView } from "./CollectionView";
 import "./CollectionViewChromes.scss";
 import { CollectionViewType } from "./CollectionBaseView";
 import { undoBatch } from "../../util/UndoManager";
-import { action, observable, runInAction, computed, IObservable, IObservableValue } from "mobx";
+import { action, observable, runInAction, computed, IObservable, IObservableValue, reaction, autorun } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { DocLike } from "../MetadataEntryMenu";
@@ -187,6 +187,36 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
         }
     }
 
+    private get document() {
+        return this.props.CollectionView.props.Document;
+    }
+
+    private get pivotKey() {
+        return StrCast(this.document.pivotField);
+    }
+
+    private set pivotKey(value: string) {
+        this.document.pivotField = value;
+    }
+
+    @observable private pivotKeyDisplay = "";
+    getPivotInput = () => {
+        if (!this.document.usePivotLayout) {
+            return (null);
+        }
+        return (<input className="collectionViewBaseChrome-viewSpecsInput"
+            placeholder="PIVOT ON..."
+            value={this.pivotKeyDisplay}
+            onChange={action((e: React.ChangeEvent<HTMLInputElement>) => this.pivotKeyDisplay = e.currentTarget.value)}
+            onKeyPress={action((e: React.KeyboardEvent<HTMLInputElement>) => {
+                let value = e.currentTarget.value;
+                if (e.which === 13) {
+                    this.pivotKey = value;
+                    this.pivotKeyDisplay = "";
+                }
+            })} />);
+    }
+
     render() {
         return (
             <div className="collectionViewChrome-cont" style={{ top: this._collapsed ? -70 : 0 }}>
@@ -219,6 +249,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                                 value={this.filterValue ? this.filterValue.script.originalScript : ""}
                                 onChange={(e) => { }}
                                 onPointerDown={this.openViewSpecs} />
+                            {this.getPivotInput()}
                             <div className="collectionViewBaseChrome-viewSpecsMenu"
                                 onPointerDown={this.openViewSpecs}
                                 style={{

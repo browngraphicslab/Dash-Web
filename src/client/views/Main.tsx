@@ -34,7 +34,7 @@ let swapDocs = async () => {
     DocServer.init(window.location.protocol, window.location.hostname, 4321, info.email);
     await Docs.Prototypes.initialize();
     await CurrentUserUtils.loadUserDocument(info);
-    await PivotView.loadLayouts();
+    // await PivotView.loadLayouts();
     // updates old user documents to prevent chrome on tree view.
     (await Cast(CurrentUserUtils.UserDocument.workspaces, Doc))!.chromeStatus = "disabled";
     (await Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc))!.chromeStatus = "disabled";

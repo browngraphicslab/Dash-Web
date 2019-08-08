@@ -3,7 +3,7 @@ import { faEye } from "@fortawesome/free-regular-svg-icons";
 import { faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faPaintBrush, faTable, faUpload, faChalkboard, faBraille } from "@fortawesome/free-solid-svg-icons";
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCastAsync, HeightSym, WidthSym } from "../../../../new_fields/Doc";
+import { Doc, DocListCastAsync, HeightSym, WidthSym, DocListCast, FieldResult, Field, Opt } from "../../../../new_fields/Doc";
 import { Id } from "../../../../new_fields/FieldSymbols";
 import { InkField, StrokeData } from "../../../../new_fields/InkField";
 import { createSchema, makeInterface } from "../../../../new_fields/Schema";
@@ -38,6 +38,7 @@ import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import { DocumentType, Docs } from "../../../documents/Documents";
 import { RouteStore } from "../../../../server/RouteStore";
+import { string, number, elementType } from "prop-types";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard);
 
@@ -49,13 +50,142 @@ export const panZoomSchema = createSchema({
     arrangeInit: ScriptField,
 });
 
+export interface ViewDefBounds {
+    x: number;
+    y: number;
+    z?: number;
+    width: number;
+    height: number;
+}
+
+export interface ViewDefResult {
+    ele: JSX.Element;
+    bounds?: ViewDefBounds;
+}
+
 export namespace PivotView {
 
-    export let scripts: { arrangeInit: string, arrangeScript: string };
+    // export let scripts: { arrangeInit: string, arrangeScript: string };
 
-    export async function loadLayouts() {
-        scripts = JSON.parse(await (await fetch(Utils.prepend("/layoutscripts"))).text());
+    // export async function loadLayouts() {
+    //     scripts = JSON.parse(await (await fetch(Utils.prepend("/layoutscripts"))).text());
+    // }
+
+    export interface PivotData {
+        type: string;
+        text: string;
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+        fontSize: number;
     }
+
+    export const elements = (target: CollectionFreeFormView) => {
+        let collection = target.Document;
+        const field = StrCast(collection.pivotField) || "title";
+        const width = NumCast(collection.pivotWidth) || 200;
+
+        const groups = new Map<FieldResult<Field>, Doc[]>();
+
+        for (const doc of target.childDocs) {
+            const val = doc[field];
+            if (val === undefined) continue;
+
+            const l = groups.get(val);
+            if (l) {
+                l.push(doc);
+            } else {
+                groups.set(val, [doc]);
+            }
+
+        }
+
+        let minSize = Infinity;
+
+        groups.forEach((val, key) => {
+            minSize = Math.min(minSize, val.length);
+        });
+
+        const numCols = NumCast(collection.pivotNumColumns) || Math.ceil(Math.sqrt(minSize));
+        const fontSize = NumCast(collection.pivotFontSize);
+
+        const docMap = new Map<Doc, ViewDefBounds>();
+        const groupNames: PivotData[] = [];
+
+        let x = 0;
+        groups.forEach((val, key) => {
+            let y = 0;
+            let xCount = 0;
+            groupNames.push({
+                type: "text",
+                text: String(key),
+                x,
+                y: width + 50,
+                width: width * 1.25 * numCols,
+                height: 100, fontSize: fontSize
+            });
+            for (const doc of val) {
+                docMap.set(doc, {
+                    x: x + xCount * width * 1.25,
+                    y: -y,
+                    width,
+                    height: width
+                });
+                xCount++;
+                if (xCount >= numCols) {
+                    xCount = 0;
+                    y += width * 1.25;
+                }
+            }
+            x += width * 1.25 * (numCols + 1);
+        });
+
+        let elements = target.viewDefsToJSX(groupNames);
+        let curPage = FieldValue(target.Document.curPage, -1);
+
+        let docViews = target.childDocs.filter(doc => doc instanceof Doc).reduce((prev, doc) => {
+            var page = NumCast(doc.page, -1);
+            if ((Math.abs(Math.round(page) - Math.round(curPage)) < 3) || page === -1) {
+                let minim = BoolCast(doc.isMinimized);
+                if (minim === undefined || !minim) {
+                    let defaultPosition = (): ViewDefBounds => {
+                        return {
+                            x: NumCast(doc.x),
+                            y: NumCast(doc.y),
+                            z: NumCast(doc.z),
+                            width: NumCast(doc.width),
+                            height: NumCast(doc.height)
+                        };
+                    };
+                    const pos = docMap.get(doc) || defaultPosition();
+                    prev.push({
+                        ele: (
+                            <CollectionFreeFormDocumentView
+                                key={doc[Id]}
+                                x={pos.x}
+                                y={pos.y}
+                                width={pos.width}
+                                height={pos.height}
+                                {...target.getChildDocumentViewProps(doc)}
+                            />),
+                        bounds: {
+                            x: pos.x,
+                            y: pos.y,
+                            z: pos.z,
+                            width: NumCast(pos.width),
+                            height: NumCast(pos.height)
+                        }
+                    });
+                }
+            }
+            return prev;
+        }, elements);
+
+        target.resetSelectOnLoaded();
+
+        return docViews;
+    };
 
 }
 
@@ -508,9 +638,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return 1;
     }
 
-
     getChildDocumentViewProps(childDocLayout: Doc): DocumentViewProps {
-        let self = this;
         let pair = Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, this.props.fieldKey, childDocLayout);
         return {
             DataDoc: pair.data,
@@ -569,7 +697,19 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return result.result === undefined ? { x: Cast(doc.x, "number"), y: Cast(doc.y, "number"), z: Cast(doc.z, "number"), width: Cast(doc.width, "number"), height: Cast(doc.height, "number") } : result.result;
     }
 
-    private viewDefToJSX(viewDef: any): { ele: JSX.Element, bounds?: { x: number, y: number, z?: number, width: number, height: number } } | undefined {
+    viewDefsToJSX = (views: any[]) => {
+        let elements: ViewDefResult[] = [];
+        if (Array.isArray(views)) {
+            elements = views.reduce<typeof elements>((prev, ele) => {
+                const jsx = this.viewDefToJSX(ele);
+                jsx && prev.push(jsx);
+                return prev;
+            }, elements);
+        }
+        return elements;
+    }
+
+    private viewDefToJSX(viewDef: any): Opt<ViewDefResult> {
         if (viewDef.type === "text") {
             const text = Cast(viewDef.text, "string");
             const x = Cast(viewDef.x, "number");
@@ -598,20 +738,14 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         const script = this.Document.arrangeScript;
         let state: any = undefined;
         const docs = this.childDocs;
-        let elements: { ele: JSX.Element, bounds?: { x: number, y: number, z?: number, width: number, height: number } }[] = [];
+        let elements: ViewDefResult[] = [];
         if (initScript) {
             const initResult = initScript.script.run({ docs, collection: this.Document });
             if (initResult.success) {
                 const result = initResult.result;
                 const { state: scriptState, views } = result;
                 state = scriptState;
-                if (Array.isArray(views)) {
-                    elements = views.reduce<typeof elements>((prev, ele) => {
-                        const jsx = this.viewDefToJSX(ele);
-                        jsx && prev.push(jsx);
-                        return prev;
-                    }, elements);
-                }
+                elements = this.viewDefsToJSX(views);
             }
         }
         let docviews = docs.filter(doc => doc instanceof Doc).reduce((prev, doc) => {
@@ -633,14 +767,17 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             return prev;
         }, elements);
 
-        setTimeout(() => this._selectOnLoaded = "", 600);// bcz: surely there must be a better way ....
+        this.resetSelectOnLoaded();
 
         return docviews;
     }
 
+    resetSelectOnLoaded = () => setTimeout(() => this._selectOnLoaded = "", 600);// bcz: surely there must be a better way ....
+
     @computed.struct
     get views() {
-        return this.elements.filter(ele => ele.bounds && !ele.bounds.z).map(ele => ele.ele);
+        let source = this.Document.usePivotLayout === true ? PivotView.elements(this) : this.elements;
+        return source.filter(ele => ele.bounds && !ele.bounds.z).map(ele => ele.ele);
     }
     @computed.struct
     get overlayViews() {
@@ -798,22 +935,22 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         };
     }
 
-    public static SetPivotLayout = (target: Doc) => {
-        let setSpecifiedLayoutField = (originalText: string, key: string, params: Record<string, string>, requiredType?: string) => {
-            const script = CompileScript(originalText, {
-                params,
-                requiredType,
-                typecheck: false
-            });
-            if (!script.compiled) {
-                console.log(script.errors.map(error => error.messageText).join("\n"));
-                return;
-            }
-            target[key] = new ScriptField(script);
-        };
-        setSpecifiedLayoutField(PivotView.scripts.arrangeInit, "arrangeInit", { collection: "Doc", docs: "Doc[]" }, undefined);
-        setSpecifiedLayoutField(PivotView.scripts.arrangeScript, "arrangeScript", { doc: "Doc", index: "number", collection: "Doc", state: "any", docs: "Doc[]" }, "{x: number, y: number, width?: number, height?: number}");
-    }
+    // public static SetPivotLayout = (target: Doc) => {
+    //     let setSpecifiedLayoutField = (originalText: string, key: string, params: Record<string, string>, requiredType?: string) => {
+    //         const script = CompileScript(originalText, {
+    //             params,
+    //             requiredType,
+    //             typecheck: false
+    //         });
+    //         if (!script.compiled) {
+    //             console.log(script.errors.map(error => error.messageText).join("\n"));
+    //             return;
+    //         }
+    //         target[key] = new ScriptField(script);
+    //     };
+    //     setSpecifiedLayoutField(PivotView.scripts.arrangeInit, "arrangeInit", { collection: "Doc", docs: "Doc[]" }, undefined);
+    //     setSpecifiedLayoutField(PivotView.scripts.arrangeScript, "arrangeScript", { doc: "Doc", index: "number", collection: "Doc", state: "any", docs: "Doc[]" }, "{x: number, y: number, width?: number, height?: number}");
+    // }
 
     render() {
         const easing = () => this.props.Document.panTransformType === "Ease";

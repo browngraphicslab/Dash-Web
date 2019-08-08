@@ -89,8 +89,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
             subItems.push({
                 description: "Freeform", event: () => {
                     this.props.Document.viewType = CollectionViewType.Freeform;
-                    delete this.props.Document.arrangeInit;
-                    delete this.props.Document.arrangeScript;
+                    delete this.props.Document.usePivotLayout;
                 }, icon: "signature"
             });
             if (CollectionBaseView.InSafeMode()) {
@@ -103,7 +102,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
             switch (this.props.Document.viewType) {
                 case CollectionViewType.Freeform: {
                     subItems.push({ description: "Custom", icon: "fingerprint", event: CollectionFreeFormView.AddCustomLayout(this.props.Document, this.props.fieldKey) });
-                    subItems.push({ description: "Pivot", icon: "copy", event: () => CollectionFreeFormView.SetPivotLayout(this.props.Document) });
+                    subItems.push({ description: "Pivot", icon: "copy", event: () => this.props.Document.usePivotLayout = true });
                     break;
                 }
             }
