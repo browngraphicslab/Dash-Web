@@ -184,7 +184,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
             annoDoc.color = color;
             annoDoc.type = AnnotationTypes.Region;
             annoDocs.push(annoDoc);
-            annoDoc.isBackground = true;
+            annoDoc.isButton = true;
             anno.remove();
             this.props.addDocument && this.props.addDocument(annoDoc, false);
             mainAnnoDoc = annoDoc;
@@ -208,7 +208,6 @@ export class PDFViewer extends React.Component<IViewerProps> {
             mainAnnoDocProto.y = Math.max(minY, 0);
             mainAnnoDocProto.annotations = new List<Doc>(annoDocs);
         }
-        mainAnnoDocProto.pdfDoc = this.props.Document;
         mainAnnoDocProto.title = "Annotation on " + StrCast(this.props.Document.title);
         mainAnnoDocProto.annotationOn = this.props.Document;
         if (sourceDoc && createLink) {

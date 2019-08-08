@@ -112,8 +112,8 @@ export default class Page extends React.Component<IPageProps> {
                         if (!BoolCast(annotationDoc.linkedToDoc)) {
                             let annotations = await DocListCastAsync(annotationDoc.annotations);
                             annotations && annotations.forEach(anno => anno.target = targetDoc);
-                            let pdfDoc = await Cast(annotationDoc.pdfDoc, Doc);
-                            pdfDoc && DocUtils.MakeLink(annotationDoc, targetDoc, dragData.targetContext, `Annotation from ${StrCast(pdfDoc.title)}`, "", StrCast(pdfDoc.title))
+                            let parentDoc = await Cast(annotationDoc.annotationOn, Doc);
+                            parentDoc && DocUtils.MakeLink(annotationDoc, targetDoc, dragData.targetContext, `Annotation from ${StrCast(parentDoc.title)}`, "", StrCast(parentDoc.title))
                         }
                     }
                 },
@@ -144,10 +144,7 @@ export default class Page extends React.Component<IPageProps> {
     onPointerDown = (e: React.PointerEvent): void => {
         // if alt+left click, drag and annotate
         if (NumCast(this.props.Document.scale, 1) !== 1) return;
-        if (e.altKey && e.button === 0) {
-            e.stopPropagation();
-        }
-        else if (e.button === 0) {
+        if (!e.altKey && e.button === 0) {
             PDFMenu.Instance.StartDrag = this.startDrag;
             PDFMenu.Instance.Highlight = this.highlight;
             PDFMenu.Instance.Snippet = this.createSnippet;

@@ -6,7 +6,6 @@ import { RefField } from "./RefField";
 import { ObjectField } from "./ObjectField";
 import { action } from "mobx";
 import { Parent, OnUpdate, Update, Id, SelfProxy, Self } from "./FieldSymbols";
-import { ComputedField } from "./ScriptField";
 
 function _readOnlySetter(): never {
     throw new Error("Documents can't be modified in read-only mode");

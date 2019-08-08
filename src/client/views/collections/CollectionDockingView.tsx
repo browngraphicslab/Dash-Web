@@ -405,7 +405,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                             handlers: { dragComplete: emptyFunction },
                             hideSource: false
                         });
-                    }}><FontAwesomeIcon icon="file" size="lg" /></span>, dragSpan);
+                    }}><FontAwesomeIcon icon="file" color={["white", "maroon", "blue"][Doc.IsBrushedDegree(doc)]} size="lg" /></span>, dragSpan);
                 ReactDOM.render(<ParentDocSelector Document={doc} addDocTab={doc => CollectionDockingView.Instance.AddTab(stack, doc, dataDoc)} />, upDiv);
                 tab.reactComponents = [dragSpan, upDiv];
                 tab.element.append(dragSpan);

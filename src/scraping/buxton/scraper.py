@@ -88,8 +88,7 @@ def write_schema(parse_results, display_fields, storage_key):
             "panX": 0,
             "panY": 0,
             "zoomBasis": 1,
-            "zIndex": 2,
-            "libraryBrush": False,
+            "zIndex": 2
             "viewType": 2
         },
         "__type": "Doc"
@@ -130,8 +129,7 @@ def write_text_doc(content):
             "x": 10,
             "y": 10,
             "width": 400,
-            "zIndex": 2,
-            "libraryBrush": False
+            "zIndex": 2
         },
         "__type": "Doc"
     }
@@ -183,8 +181,7 @@ def write_image(folder, name):
             "x": 10,
             "y": 10,
             "width": min(800, native_width),
-            "zIndex": 2,
-            "libraryBrush": False
+            "zIndex": 2
         },
         "__type": "Doc"
     }
