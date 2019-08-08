@@ -1,7 +1,7 @@
 import { action, computed, observable } from 'mobx';
 import { Doc } from '../../new_fields/Doc';
 import { Id } from '../../new_fields/FieldSymbols';
-import { BoolCast, Cast, NumCast } from '../../new_fields/Types';
+import { Cast, NumCast } from '../../new_fields/Types';
 import { CollectionDockingView } from '../views/collections/CollectionDockingView';
 import { CollectionPDFView } from '../views/collections/CollectionPDFView';
 import { CollectionVideoView } from '../views/collections/CollectionVideoView';
@@ -104,7 +104,7 @@ export class DocumentManager {
 
     @computed
     public get LinkedDocumentViews() {
-        let pairs = DocumentManager.Instance.DocumentViews.filter(dv => dv.isSelected() || BoolCast(dv.props.Document.libraryBrush)).reduce((pairs, dv) => {
+        let pairs = DocumentManager.Instance.DocumentViews.filter(dv => dv.isSelected() || Doc.IsBrushed(dv.props.Document)).reduce((pairs, dv) => {
             let linksList = LinkManager.Instance.getAllRelatedLinks(dv.props.Document);
             pairs.push(...linksList.reduce((pairs, link) => {
                 if (link) {
@@ -138,7 +138,7 @@ export class DocumentManager {
         let docView: DocumentView | null;
         // using forceDockFunc as a flag for splitting linked to doc to the right...can change later if needed
         if (!forceDockFunc && (docView = DocumentManager.Instance.getDocumentView(doc))) {
-            docView.props.Document.libraryBrush = true;
+            Doc.BrushDoc(docView.props.Document);
             if (linkPage !== undefined) docView.props.Document.curPage = linkPage;
             UndoManager.RunInBatch(() => {
                 docView!.props.focus(docView!.props.Document, willZoom);
@@ -158,13 +158,13 @@ export class DocumentManager {
                     }
                 } else {
                     const actualDoc = Doc.MakeAlias(docDelegate);
-                    actualDoc.libraryBrush = true;
+                    Doc.BrushDoc(actualDoc);
                     if (linkPage !== undefined) actualDoc.curPage = linkPage;
                     (dockFunc || CollectionDockingView.Instance.AddRightSplit)(actualDoc, undefined);
                 }
             } else {
                 let contextView: DocumentView | null;
-                docDelegate.libraryBrush = true;
+                Doc.BrushDoc(docDelegate);
                 if (!forceDockFunc && (contextView = DocumentManager.Instance.getDocumentView(contextDoc))) {
                     contextDoc.panTransformType = "Ease";
                     contextView.props.focus(docDelegate, willZoom);
