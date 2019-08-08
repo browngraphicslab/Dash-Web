@@ -10,6 +10,7 @@ export class Recommender {
 
     private _model: any;
     static Instance: Recommender;
+    private dimension: number = 0;
 
     constructor() {
         console.log("creating recommender...");
@@ -25,6 +26,7 @@ export class Recommender {
         return new Promise(res => {
             w2v.loadModel("./node_modules/word2vec/vectors.txt", function (err: any, model: any) {
                 self._model = model;
+                self.dimension = model.size;
                 res(model);
             });
         });

@@ -523,6 +523,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY));
     }
 
+    @action
     onContextMenu = (e: React.MouseEvent) => {
         let layoutItems: ContextMenuProps[] = [];
         layoutItems.push({
@@ -600,7 +601,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         ContextMenu.Instance.addItem({
             description: "Recommender System",
             event: async () => {
-                new ClientRecommender();
+                // if (!ClientRecommender.Instance) new ClientRecommender({ title: "Client Recommender" });
                 let activedocs = this.getActiveDocuments();
                 await Promise.all(activedocs.map((doc: Doc) => {
                     console.log(StrCast(doc.title));
@@ -715,6 +716,7 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
         const zoom = this.props.zoomScaling();// needs to be a variable outside of the <Measure> otherwise, reactions won't fire
         return <div className={freeformclass} style={{ borderRadius: "inherit", transform: `translate(${cenx}px, ${ceny}px) scale(${zoom}, ${zoom}) translate(${panx}px, ${pany}px)` }}>
             {this.props.children}
+            <ClientRecommender title="Correlation Matrix" />
         </div>;
     }
 }

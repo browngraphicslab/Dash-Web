@@ -2,19 +2,31 @@ import { Doc } from "../new_fields/Doc";
 import { StrCast } from "../new_fields/Types";
 import { List } from "../new_fields/List";
 import { CognitiveServices } from "./cognitive_services/CognitiveServices";
-
-
+import React = require("react");
+import { observer } from "mobx-react";
+import { observable, action, computed, reaction } from "mobx";
 var assert = require('assert');
+import Table from 'react-bootstrap/Table';
 
-export class ClientRecommender {
+export interface RecommenderProps {
+    title: string;
+}
+
+@observer
+export class ClientRecommender extends React.Component<RecommenderProps> {
 
     static Instance: ClientRecommender;
     private docVectors: Set<number[]>;
+    private corr_matrix = observable([[0, 0], [0, 0]]);
+    @observable private firstnum = 0;
+    //@observable private corr_matrix: number[][] = [[0, 0], [0, 0]];
 
-    constructor() {
+    constructor(props: RecommenderProps) {
         //console.log("creating client recommender...");
+        super(props);
         ClientRecommender.Instance = this;
         this.docVectors = new Set<number[]>();
+        //this.corr_matrix = [[0, 0], [0, 0]];
     }
 
 
@@ -84,10 +96,13 @@ export class ClientRecommender {
      * Creates distance matrix for all Documents analyzed
      */
 
+    @action
     public createDistanceMatrix(documents: Set<number[]> = this.docVectors) {
+        //this.corr_matrix[0][0] = 500;
+        this.firstnum = 500;
         const documents_list = Array.from(documents);
         const n = documents_list.length;
-        var matrix = new Array(n).fill(0).map(() => new Array(n).fill(0));
+        var matrix = new Array<number>(n).fill(0).map(() => new Array<number>(n).fill(0));
         for (let i = 0; i < n; i++) {
             var doc1 = documents_list[i];
             for (let j = 0; j < n; j++) {
@@ -95,7 +110,39 @@ export class ClientRecommender {
                 matrix[i][j] = this.distance(doc1, doc2);
             }
         }
+        //this.corr_matrix = matrix;
+
         return matrix;
+    }
+
+    @computed get first_num() {
+        return this.firstnum;
+    }
+
+    dumb_reaction = reaction(
+        () => this.first_num,
+        number => {
+            console.log("number has changed", number);
+            this.forceUpdate();
+        }
+    );
+
+    render() {
+        return (<div>
+            <h3>{this.props.title ? this.props.title : "hello"}</h3>
+            <table>
+                <tbody>
+                    <tr>
+                        <td>{this.first_num}</td>
+                        <td>{this.corr_matrix[0][1]}</td>
+                    </tr>
+                    <tr>
+                        <td>{this.corr_matrix[1][0]}</td>
+                        <td>{this.corr_matrix[1][1]}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>);
     }
 
 }
