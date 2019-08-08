@@ -1,3 +1,24 @@
+export enum DocumentType {
+    NONE = "none",
+    TEXT = "text",
+    HIST = "histogram",
+    IMG = "image",
+    WEB = "web",
+    COL = "collection",
+    KVP = "kvp",
+    VID = "video",
+    AUDIO = "audio",
+    PDF = "pdf",
+    ICON = "icon",
+    IMPORT = "import",
+    LINK = "link",
+    LINKDOC = "linkdoc",
+    BUTTON = "button",
+    TEMPLATE = "template",
+    EXTENSION = "extension",
+    YOUTUBE = "youtube",
+}
+
 import { HistogramField } from "../northstar/dash-fields/HistogramField";
 import { HistogramBox } from "../northstar/dash-nodes/HistogramBox";
 import { HistogramOperation } from "../northstar/operations/HistogramOperation";
@@ -25,14 +46,13 @@ import { OmitKeys, JSONUtils } from "../../Utils";
 import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
 import { List } from "../../new_fields/List";
-import { Cast, NumCast, StrCast, ToConstructor, InterfaceValue, FieldValue } from "../../new_fields/Types";
+import { Cast, NumCast } from "../../new_fields/Types";
 import { IconField } from "../../new_fields/IconField";
 import { listSpec } from "../../new_fields/Schema";
 import { DocServer } from "../DocServer";
 import { dropActionType } from "../util/DragManager";
 import { DateField } from "../../new_fields/DateField";
 import { UndoManager } from "../util/UndoManager";
-import { RouteStore } from "../../server/RouteStore";
 import { YoutubeBox } from "../apis/youtube/YoutubeBox";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { LinkManager } from "../util/LinkManager";
@@ -45,27 +65,6 @@ import { ComputedField } from "../../new_fields/ScriptField";
 import { ProxyField } from "../../new_fields/Proxy";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
-
-export enum DocumentType {
-    NONE = "none",
-    TEXT = "text",
-    HIST = "histogram",
-    IMG = "image",
-    WEB = "web",
-    COL = "collection",
-    KVP = "kvp",
-    VID = "video",
-    AUDIO = "audio",
-    PDF = "pdf",
-    ICON = "icon",
-    IMPORT = "import",
-    LINK = "link",
-    LINKDOC = "linkdoc",
-    BUTTON = "button",
-    TEMPLATE = "template",
-    EXTENSION = "extension",
-    YOUTUBE = "youtube",
-}
 
 export interface DocumentOptions {
     x?: number;

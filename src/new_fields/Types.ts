@@ -48,9 +48,11 @@ export interface Interface {
 }
 export type WithoutRefField<T extends Field> = T extends RefField ? never : T;
 
-export function Cast<T extends ToConstructor<Field> | ListSpec<Field>>(field: FieldResult, ctor: T): FieldResult<ToType<T>>;
-export function Cast<T extends ToConstructor<Field> | ListSpec<Field>>(field: FieldResult, ctor: T, defaultVal: WithoutList<WithoutRefField<ToType<T>>> | null): WithoutList<ToType<T>>;
-export function Cast<T extends ToConstructor<Field> | ListSpec<Field>>(field: FieldResult, ctor: T, defaultVal?: ToType<T> | null): FieldResult<ToType<T>> | undefined {
+export type CastCtor = ToConstructor<Field> | ListSpec<Field>;
+
+export function Cast<T extends CastCtor>(field: FieldResult, ctor: T): FieldResult<ToType<T>>;
+export function Cast<T extends CastCtor>(field: FieldResult, ctor: T, defaultVal: WithoutList<WithoutRefField<ToType<T>>> | null): WithoutList<ToType<T>>;
+export function Cast<T extends CastCtor>(field: FieldResult, ctor: T, defaultVal?: ToType<T> | null): FieldResult<ToType<T>> | undefined {
     if (field instanceof Promise) {
         return defaultVal === undefined ? field.then(f => Cast(f, ctor) as any) as any : defaultVal === null ? undefined : defaultVal;
     }
