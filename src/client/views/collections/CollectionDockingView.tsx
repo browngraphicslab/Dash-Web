@@ -18,7 +18,6 @@ import { SelectionManager } from '../../util/SelectionManager';
 import { Transform } from '../../util/Transform';
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocumentView } from "../nodes/DocumentView";
-import { CollectionViewType } from './CollectionBaseView';
 import "./CollectionDockingView.scss";
 import { SubCollectionViewProps } from "./CollectionSubView";
 import { ParentDocSelector } from './ParentDocumentSelector';
@@ -509,7 +508,7 @@ interface DockedFrameProps {
 }
 @observer
 export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
-    _mainCont = React.createRef<HTMLDivElement>();
+    _mainCont: HTMLDivElement | undefined = undefined;
     @observable private _panelWidth = 0;
     @observable private _panelHeight = 0;
     @observable private _document: Opt<Doc>;
@@ -567,9 +566,9 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
 
     ScreenToLocalTransform = () => {
-        if (this._mainCont.current && this._mainCont.current.children) {
-            let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.current.children[0].firstChild as HTMLElement);
-            scale = Utils.GetScreenTransform(this._mainCont.current).scale;
+        if (this._mainCont && this._mainCont!.children) {
+            let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.children[0].firstChild as HTMLElement);
+            scale = Utils.GetScreenTransform(this._mainCont).scale;
             return CollectionDockingView.Instance.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(1 / this.contentScaling() / scale);
         }
         return Transform.Identity();
@@ -614,7 +613,13 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
 
     @computed get content() {
         return (
-            <div className="collectionDockingView-content" ref={this._mainCont}
+            <div className="collectionDockingView-content" ref={action((ref: HTMLDivElement) => {
+                this._mainCont = ref;
+                if (ref) {
+                    this._panelWidth = Number(getComputedStyle(ref).width!.replace("px", ""));
+                    this._panelHeight = Number(getComputedStyle(ref).height!.replace("px", ""));
+                }
+            })}
                 style={{ transform: `translate(${this.previewPanelCenteringOffset}px, 0px)` }}>
                 {this.docView}
             </div >);

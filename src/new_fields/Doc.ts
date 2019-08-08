@@ -393,6 +393,7 @@ export namespace Doc {
         let alias = !GetT(doc, "isPrototype", "boolean", true) ? Doc.MakeCopy(doc) : Doc.MakeDelegate(doc);
         let aliasNumber = Doc.GetProto(doc).aliasNumber = NumCast(Doc.GetProto(doc).aliasNumber) + 1;
         let script = `return renameAlias(self, ${aliasNumber})`;
+        //let script = "StrCast(self.title).replace(/\\([0-9]*\\)/, \"\") + `(${n})`";
         let compiled = CompileScript(script, { params: { this: "Doc" }, capturedVariables: { self: doc }, typecheck: false });
         if (compiled.compiled) {
             alias.title = new ComputedField(compiled);
@@ -589,3 +590,6 @@ export namespace Doc {
         if (index !== -1) runInAction(() => manager.BrushedDoc.splice(index, 1));
     }
 }
+Scripting.addGlobal(function renameAlias(doc: any, n: any) {
+    return StrCast(doc.title).replace(/\([0-9]*\)/, "") + `(${n})`;
+});

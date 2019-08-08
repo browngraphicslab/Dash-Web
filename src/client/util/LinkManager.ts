@@ -253,6 +253,3 @@ Scripting.addGlobal(function links(doc: any) {
     return new List(LinkManager.Instance.getAllRelatedLinks(doc));
 });
 
-Scripting.addGlobal(function renameAlias(doc: any, n: any) {
-    return doc.title;// StrCast(doc.title).replace(/\\([0-9]*\\)/, "") + `(${n})`;
-});
