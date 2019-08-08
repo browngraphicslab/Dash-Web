@@ -428,6 +428,7 @@ export class MainView extends React.Component {
                             state++;
                             state = state % 3;
                             DocServer.setFieldWriteMode("x", state);
+                            DocServer.setFieldWriteMode("y", state);
                         };
                     })()}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>
                     <li key="color"><button className="add-button round-button" title="Select Color" style={{ zIndex: 1000 }} onClick={() => this.toggleColorPicker()}><div className="toolbar-color-button" style={{ backgroundColor: InkingControl.Instance.selectedColor }} >
