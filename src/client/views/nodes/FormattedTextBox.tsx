@@ -181,14 +181,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             }
             this._applyingChange = true;
             const fieldkey = "preview";
-            if (Object.keys(this.dataDoc).indexOf(fieldkey) !== -1) {
-                this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()));
-                this.dataDoc[this.props.fieldKey + "_text"] = state.doc.textBetween(0, state.doc.content.size, "\n\n");
-            }
-            else {
-                Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()));
-                Doc.GetProto(this.dataDoc)[this.props.fieldKey + "_text"] = state.doc.textBetween(0, state.doc.content.size, "\n\n");
-            }
             if (this.extensionDoc) this.extensionDoc.text = state.doc.textBetween(0, state.doc.content.size, "\n\n");
             if (this.extensionDoc) this.extensionDoc.lastModified = new DateField(new Date(Date.now()));
             this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()));
@@ -676,16 +668,17 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         let self = this;
         let style = this.props.isOverlay ? "scroll" : "hidden";
         let rounded = StrCast(this.props.Document.borderRounding) === "100%" ? "-rounded" : "";
-        let interactive = InkingControl.Instance.selectedTool ? "" : "interactive";
+        let interactive: "all" | "none" = InkingControl.Instance.selectedTool || this.props.Document.isBackground ||
+            (this.props.Document.isButton && !this.props.isSelected()) ? "none" : "all";
         Doc.UpdateDocumentExtensionForField(this.dataDoc, this.props.fieldKey);
         return (
             <div className={`formattedTextBox-cont-${style}`} ref={this._ref}
                 style={{
                     height: this.props.height ? this.props.height : undefined,
                     background: this.props.hideOnLeave ? "rgba(0,0,0,0.4)" : undefined,
-                    opacity: this.props.hideOnLeave ? (this._entered || this.props.isSelected() || this.props.Document.libraryBrush ? 1 : 0.1) : 1,
+                    opacity: this.props.hideOnLeave ? (this._entered || this.props.isSelected() || Doc.IsBrushed(this.props.Document) ? 1 : 0.1) : 1,
                     color: this.props.color ? this.props.color : this.props.hideOnLeave ? "white" : "inherit",
-                    pointerEvents: interactive ? "all" : "none",
+                    pointerEvents: interactive,
                     fontSize: "13px"
                 }}
                 onKeyDown={this.onKeyPress}
@@ -696,12 +689,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 onPointerUp={this.onPointerUp}
                 onPointerDown={this.onPointerDown}
                 onMouseDown={this.onMouseDown}
-                // tfs: do we need this event handler
                 onWheel={this.onPointerWheel}
                 onPointerEnter={this.onPointerEnter}
                 onPointerLeave={this.onPointerLeave}
             >
-                <div className={`formattedTextBox-inner${rounded}`} ref={this.createDropTarget} style={{ whiteSpace: "pre-wrap", pointerEvents: this.props.Document.isButton && !this.props.isSelected() ? "none" : "all" }} />
+                <div className={`formattedTextBox-inner${rounded}`} ref={this.createDropTarget} style={{ whiteSpace: "pre-wrap" }} />
             </div>
         );
     }

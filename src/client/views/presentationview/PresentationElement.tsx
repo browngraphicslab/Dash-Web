@@ -9,7 +9,7 @@ import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { Utils, returnFalse, emptyFunction, returnOne } from "../../../Utils";
+import { Utils, returnFalse, emptyFunction, returnOne, returnEmptyString } from "../../../Utils";
 import { DragManager, dropActionType, SetupDrag } from "../../util/DragManager";
 import { SelectionManager } from "../../util/SelectionManager";
 import { ContextMenu } from "../ContextMenu";
@@ -706,7 +706,7 @@ export default class PresentationElement extends React.Component<PresentationEle
      * It makes it possible to show dropping lines on drop targets.
      */
     onDragMove = (e: PointerEvent): void => {
-        this.props.document.libraryBrush = false;
+        Doc.UnBrushDoc(this.props.document);
         let x = this.ScreenToLocalListTransform(e.clientX, e.clientY);
         let rect = this.header!.getBoundingClientRect();
         let bounds = this.ScreenToLocalListTransform(rect.left, rect.top + rect.height / 2);
@@ -843,6 +843,7 @@ export default class PresentationElement extends React.Component<PresentationEle
                     PanelWidth={() => 350}
                     PanelHeight={() => 90}
                     focus={emptyFunction}
+                    backgroundColor={returnEmptyString}
                     selectOnLoad={false}
                     parentActive={returnFalse}
                     whenActiveChanged={returnFalse}
@@ -888,7 +889,7 @@ export default class PresentationElement extends React.Component<PresentationEle
                 style={{
                     outlineColor: "maroon",
                     outlineStyle: "dashed",
-                    outlineWidth: BoolCast(p.document.libraryBrush) ? `1px` : "0px",
+                    outlineWidth: Doc.IsBrushed(p.document) ? `1px` : "0px",
                 }}
                 onClick={e => { p.gotoDocument(p.index, NumCast(this.props.mainDocument.selectedDoc)); e.stopPropagation(); }}>
                 <strong className="presentationView-name">

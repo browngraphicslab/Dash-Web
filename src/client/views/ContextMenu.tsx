@@ -42,7 +42,7 @@ export class ContextMenu extends React.Component {
         return this._items.find(menuItem => {
             let reference = menuItem.description;
             toLowerCase && (reference = reference.toLowerCase());
-            reference === target;
+            return reference === target;
         });
     }
 

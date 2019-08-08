@@ -6,7 +6,7 @@ import { action, computed, observable, trace, untracked } from "mobx";
 import { observer } from "mobx-react";
 import ReactTable, { CellInfo, ComponentPropsGetterR, Column, RowInfo, ResizedChangeFunction, Resize } from "react-table";
 import "react-table/react-table.css";
-import { emptyFunction, returnOne } from "../../../Utils";
+import { emptyFunction, returnOne, returnEmptyString } from "../../../Utils";
 import { Doc, DocListCast, Field, Opt } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
@@ -50,7 +50,7 @@ const columnTypes: Map<string, ColumnType> = new Map([
     ["title", ColumnType.String],
     ["x", ColumnType.Number], ["y", ColumnType.Number], ["width", ColumnType.Number], ["height", ColumnType.Number],
     ["nativeWidth", ColumnType.Number], ["nativeHeight", ColumnType.Number], ["isPrototype", ColumnType.Boolean],
-    ["page", ColumnType.Number], ["curPage", ColumnType.Number], ["libraryBrush", ColumnType.Boolean], ["zIndex", ColumnType.Number]
+    ["page", ColumnType.Number], ["curPage", ColumnType.Number], ["zIndex", ColumnType.Number]
 ]);
 
 @observer
@@ -303,14 +303,13 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             return resized;
         }, [] as { "id": string, "value": number }[]);
     }
-
-    @computed get sorted(): { "id": string, "desc": boolean }[] {
+    @computed get sorted(): { "id": string, "desc"?: true }[] {
         return this.columns.reduce((sorted, shf) => {
             if (shf.desc) {
                 sorted.push({ "id": shf.heading, "desc": shf.desc });
             }
             return sorted;
-        }, [] as { "id": string, "desc": boolean }[]);
+        }, [] as { "id": string, "desc"?: true }[]);
     }
 
     @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }
@@ -974,14 +973,16 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
         let input = this.props.previewScript === undefined ? (null) :
             <div ref={this.createTarget}><input className="collectionSchemaView-input" value={this.props.previewScript} onChange={this.onPreviewScriptChange}
                 style={{ left: `calc(50% - ${Math.min(75, (this.props.Document ? this.PanelWidth() / 2 : 75))}px)` }} /></div>;
-        return (<div className="collectionSchemaView-previewRegion" style={{ width: this.props.width(), height: "100%" }}>
+        return (<div className="collectionSchemaView-previewRegion"
+            style={{ width: this.props.width(), height: this.props.height() }}>
             {!this.props.Document || !this.props.width ? (null) : (
                 <div className="collectionSchemaView-previewDoc"
                     style={{
                         transform: `translate(${this.centeringOffset}px, 0px)`,
                         borderRadius: this.borderRounding,
                         display: "inline",
-                        height: "100%"
+                        height: this.props.height(),
+                        width: this.props.width()
                     }}>
                     <DocumentView
                         DataDoc={this.props.DataDocument}
@@ -999,6 +1000,7 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
                         PanelHeight={this.PanelHeight}
                         ContainingCollectionView={this.props.CollectionView}
                         focus={emptyFunction}
+                        backgroundColor={returnEmptyString}
                         parentActive={this.props.active}
                         whenActiveChanged={this.props.whenActiveChanged}
                         bringToFront={emptyFunction}

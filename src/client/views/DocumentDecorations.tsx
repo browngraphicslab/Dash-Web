@@ -29,6 +29,7 @@ import { LinkManager } from '../util/LinkManager';
 import { ObjectField } from '../../new_fields/ObjectField';
 import { MetadataEntryMenu } from './MetadataEntryMenu';
 import { ImageBox } from './nodes/ImageBox';
+import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -144,7 +145,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @computed
     get Bounds(): { x: number, y: number, b: number, r: number } {
         return SelectionManager.SelectedDocuments().reduce((bounds, documentView) => {
-            if (documentView.props.renderDepth === 0) {
+            if (documentView.props.renderDepth === 0 ||
+                Doc.AreProtosEqual(documentView.props.Document, CurrentUserUtils.UserDocument)) {
                 return bounds;
             }
             let transform = (documentView.props.ScreenToLocalTransform().scale(documentView.props.ContentScaling())).inverse();
@@ -539,7 +541,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 if (fixedAspect && (!nwidth || !nheight)) {
                     proto.nativeWidth = nwidth = doc.width || 0;
                     proto.nativeHeight = nheight = doc.height || 0;
-                    proto.ignoreAspect = true;
                 }
                 if (nwidth > 0 && nheight > 0 && !BoolCast(proto.ignoreAspect)) {
                     if (Math.abs(dW) > Math.abs(dH)) {
