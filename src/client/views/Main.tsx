@@ -41,7 +41,7 @@ let swapDocs = async () => {
     await swapDocs();
     document.getElementById('root')!.addEventListener('wheel', event => {
         if (event.ctrlKey) {
-            event.preventDefault()
+            event.preventDefault();
         }
     }, true);
     ReactDOM.render(<MainView />, document.getElementById('root'));

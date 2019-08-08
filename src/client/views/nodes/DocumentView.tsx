@@ -15,7 +15,6 @@ import { emptyFunction, returnTrue, Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { ClientUtils } from '../../util/ClientUtils';
-import DictationManager from '../../util/DictationManager';
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager, dropActionType } from "../../util/DragManager";
 import { LinkManager } from '../../util/LinkManager';
@@ -38,6 +37,9 @@ import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import { FormattedTextBox } from './FormattedTextBox';
 import React = require("react");
+import { DictationManager } from '../../util/DictationManager';
+import { MainView } from '../MainView';
+import requestPromise = require('request-promise');
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(fa.faTrash);
@@ -148,10 +150,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     set templates(templates: List<string>) { this.props.Document.templates = templates; }
     screenRect = (): ClientRect | DOMRect => this._mainCont.current ? this._mainCont.current.getBoundingClientRect() : new DOMRect();
-
-    constructor(props: DocumentViewProps) {
-        super(props);
-    }
 
     _animateToIconDisposer?: IReactionDisposer;
     _reactionDisposer?: IReactionDisposer;
@@ -411,7 +409,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     deleteClicked = (): void => { SelectionManager.DeselectAll(); this.props.removeDocument && this.props.removeDocument(this.props.Document); }
 
     @undoBatch
-    fieldsClicked = (): void => { let kvp = Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }); this.props.addDocTab(kvp, this.dataDoc, "onRight"); }
+    fieldsClicked = (): void => {
+        let kvp = Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 });
+        this.props.addDocTab(kvp, this.dataDoc, "onRight");
+    }
 
     @undoBatch
     makeBtnClicked = (): void => {
@@ -535,8 +536,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     listen = async () => {
-        let transcript = await DictationManager.Instance.listen();
-        transcript && (Doc.GetProto(this.props.Document).transcript = transcript);
+        Doc.GetProto(this.props.Document).transcript = await DictationManager.Controls.listen({
+            continuous: { indefinite: true },
+            interimHandler: (results: string) => {
+                let main = MainView.Instance;
+                main.dictationSuccess = true;
+                main.dictatedPhrase = results;
+                main.isListening = { interim: true };
+            }
+        });
     }
 
     @action
