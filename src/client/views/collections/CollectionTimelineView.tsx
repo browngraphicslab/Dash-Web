@@ -46,6 +46,7 @@ type Node = {
     mapref: HTMLDivElement | undefined,
     data: any;
     doc: Doc;
+    leftval: number;
 };
 
 @observer
@@ -120,7 +121,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             style={{
                 position: "absolute",
                 background: String(doc.color),
-                zIndex: 2,
+                zIndex: 90,
                 top: this.previewHeight(String(doc.color)),
                 left: NumCast(doc.initialMapLeft),
                 width: NumCast(doc.initialMapWidth),
@@ -178,12 +179,14 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         let markers = DocListCast(this.markerDocs);
         markers.forEach(doc => {
             let newscale = (this.barwidth / (this.barwidth - this.rightbound - this.leftbound));
-            doc.initialLeft = (NumCast(doc.initialLeft) * newscale / NumCast(doc.initialScale) - (this.leftbound - NumCast(doc.initialX)));
+            doc.initialLeft = (NumCast(doc.initialLeft) * newscale / NumCast(doc.initialScale)) - newscale * (this.leftbound - NumCast(doc.initialX));
             doc.initialX = this.leftbound;
             doc.initialWidth = (NumCast(doc.initialWidth) * newscale / NumCast(doc.initialScale));
             doc.initialScale = newscale;
         });
     }
+
+
 
     @action
     onPointerDown_DeleteMarker = (e: React.PointerEvent, annotation: string, markerUnit: MarkerUnit): void => {
@@ -211,6 +214,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             let leftval = (e.pageX - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98);
             let d = new Doc;
             d.initialLeft = leftval;
+            d.firstLeft = leftval;
             d.initialScale = (this.barwidth / (this.barwidth - this.rightbound - this.leftbound));
             d.initialX = this.leftbound;
             d.initialWidth = 10;
@@ -243,10 +247,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     previewHeight(color: string) {
-        if (color === "#ffff80") { return "81%"; }
-        if (color === "#bfff80") { return "82%"; }
-        if (color === "#ff8080") { return "83%"; }
-        if (color === "#80dfff") { return "84%"; }
+        if (color === "#ffff80") { return "10%"; }
+        if (color === "#bfff80") { return "35%"; }
+        if (color === "#ff8080") { return "60%"; }
+        if (color === "#80dfff") { return "85%"; }
         return "80%";
     }
 
@@ -380,19 +384,14 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
         else {
             this.selections = [];
-            if (!button!.classList.contains("selected")) {
-                this.focus(button, header);
-                this.selections.push(button);
-            }
-            for (let select of this.selections) {
-                select!.classList.toggle("selected", false);
-                select!.classList.toggle("unselected", true);
-            }
             for (let buttons of this.buttons) {
                 buttons.headerref!.classList.toggle("selection", false);
                 buttons.headerref!.classList.toggle("unselection", true);
             }
-
+            if (!button!.classList.contains("selected")) {
+                this.focus(button, header);
+                this.selections.push(button);
+            }
         }
         this.preview = d;
     }
@@ -462,61 +461,23 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
 
 
-
-
         this._values = values;
         let leftval = "0";
-        let overlaps = [];
         this.buttons = [];
-
         for (let i = 0; i < backup.length; i++) {
             leftval = (((values[i] - values[0]) * this.barwidth * 0.97 / this._range) * (this.barwidth / (this.barwidth - this.rightbound - this.leftbound)) - (this.leftbound * (this.barwidth) / (this.barwidth - this.rightbound - this.leftbound))) + "px";
-            let display = (e: React.MouseEvent<HTMLDivElement>, b: HTMLDivElement | undefined) => { this.select(e, keyvalue[i].doc, b); };
-            let overlap = false;
-            let thingies = [];
-            for (let j = 0; j < backup.length; j++) {
-                if (j !== i) {
-                    if (values[i] === values[j]) {
-                        overlap = true;
-                        thingies.push(
-                            <button className="toolbar-button round-button" title="Notifs"
-                                onClick={() => this.preview = docs[j]}
-                                style={{
-                                    background: "$dark-color",
-                                }}>
-                                <FontAwesomeIcon icon={this.checkData(docs[j])} size="sm" />
-                            </button>
-                        );
-                    }
-                }
-            }
-            overlaps.push(thingies);
-
             //Creating the node
-            let newbutton = undefined;
-            if (overlap === false) {
-                newbutton =
-                    <div onClick={(e) => display(e, newNode.buttonref)} style={{ position: "absolute", left: leftval, width: "100px", height: "100px" }}>
-                        <div ref={(el) => el ? newNode.buttonref = el : null} className="unselected" style={{ position: "absolute", width: "100px", height: "100px", pointerEvents: "all" }}>
-                            <FontAwesomeIcon icon={this.checkData(docs[i])} size="sm" style={{ position: "absolute" }} />
-                            <div className="window" style={{ pointerEvents: "none", zIndex: 10, width: "94px", height: "94px", position: "absolute" }}>
-                                <div className="window" style={{ background: "white", pointerEvents: "none", zIndex: -1, position: "absolute", width: "94px", height: "94px" }}>
-                                    {this.documentDisplay(docs[i], 94, 94)}
-                                </div>
+            let newNode: Node = {
+                button: (<div onClick={(e) => this.select(e, keyvalue[i].doc, newNode.buttonref)} style={{ position: "absolute", left: leftval, width: "100px", height: "100px" }}>
+                    <div ref={(el) => el ? newNode.buttonref = el : null} className="unselected" style={{ position: "absolute", width: "100px", height: "100px", pointerEvents: "all" }}>
+                        <FontAwesomeIcon icon={this.checkData(docs[i])} size="sm" style={{ position: "absolute" }} />
+                        <div className="window" style={{ pointerEvents: "none", zIndex: 10, width: "94px", height: "94px", position: "absolute" }}>
+                            <div className="window" style={{ background: "white", pointerEvents: "none", zIndex: -1, position: "absolute", width: "94px", height: "94px" }}>
+                                {this.documentDisplay(docs[i], 94, 94)}
                             </div>
                         </div>
-                    </div>;
-            }
-            else {
-                newbutton =
-                    <div ref={(el) => el ? newNode.buttonref = el : null} onClick={(e) => display(e, newNode.buttonref)} style={{ position: "absolute", left: leftval, width: "100px", height: "100px" }}>
-                        <div className="unselected" style={{ position: "absolute", overflow: "scroll", background: "grey", width: "100px", height: "100px", zIndex: 0 }}>
-                            {thingies}
-                        </div>
-                    </div>;
-            }
-            let newNode: Node = {
-                button: newbutton,
+                    </div>
+                </div>),
                 buttonref: undefined,
                 header: (
                     <div ref={(el) => el ? newNode.headerref = el : null} className="unselection" onPointerDown={this.onPointerDown_Selector} style={{
@@ -533,73 +494,71 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         style={{
                             position: "absolute",
                             background: "black",
-                            zIndex: 1,
+                            zIndex: 90,
                             top: "25%", left: ((values[i] - values[0]) * this.barwidth / this._range) * 0.97 + "px", width: "5px", border: "3px solid"
                         }}>
                     </div>),
                 mapref: undefined,
                 data: docs[i].data,
+                leftval: parseFloat(leftval),
             };
             this.buttons.push(newNode);
         }
 
         let bool = true;
-        while (bool = true) {
+        while (bool === true) {
             bool = this.checkoverlaps();
-            this.buttons.filter();
-        }
-        this.buttons = this.filterDocs(this.buttons);
+            for (let buttons of this.buttons) {
+                for (let overlaps of this.overlaps) {
+                    if (buttons === overlaps) {
+                        this.buttons.splice(this.buttons.indexOf(overlaps), 1);
+                    }
 
-    }
-
-    checkoverlaps() {
-
-        for (let i = 0; i < this.buttons.length; i++) {
-            let overlaps = []
-            for (let j = 0; j < this.buttons.length; j++) {
-                if (this.buttons[i].buttonref!.style.left === this.buttons[j].buttonref!.style.left) {
-                    overlaps.push(this.buttons[j]);
                 }
             }
-            if (overlaps.length > 0) {
-                let things: JSX.Element[] = [];
+        }
+        this.buttons = this.filterDocs(this.buttons);
+    }
 
-                overlaps.forEach(element => {
+    private overlaps: Node[] = [];
+
+    checkoverlaps() {
+        for (let firstbutton of this.buttons) {
+            this.overlaps = [];
+            for (let secondbutton of this.buttons) {
+                if (firstbutton.leftval === secondbutton.leftval && firstbutton !== secondbutton) {
+                    this.overlaps.push(secondbutton);
+                }
+            }
+            if (this.overlaps.length > 0) {
+                let things: JSX.Element[] = [];
+                this.overlaps.forEach(element => {
+                    let display = () => runInAction(() => { this.preview = element.doc; });
                     things.push(
                         <button className="toolbar-button round-button" title="Notifs"
-                            onClick={() => this.preview = element.doc}
+                            onClick={display}
                             style={{
                                 background: "$dark-color",
                             }}>
                             <FontAwesomeIcon icon={this.checkData(element.doc)} size="sm" />
                         </button>
                     );
-
                 });
-
+                let display = () => runInAction(() => { this.preview = firstbutton.doc; });
                 things.push(
                     <button className="toolbar-button round-button" title="Notifs"
-                        onClick={() => this.preview = this.buttons[i].doc}
+                        onClick={display}
                         style={{
                             background: "$dark-color",
                         }}>
-                        <FontAwesomeIcon icon={this.checkData(this.buttons[i].doc)} size="sm" />
+                        <FontAwesomeIcon icon={this.checkData(firstbutton.doc)} size="sm" />
                     </button>
                 );
-
-                this.buttons[i].button = (<div ref={(el) => el ? this.buttons[i].buttonref = el : null} onClick={(e) => (e: React.MouseEvent<HTMLDivElement>,
-                    b: HTMLDivElement | undefined) => { this.select(e, this.buttons[i].doc, b); }} style={{
-                        position: "absolute", left: this.buttons[i].buttonref!.style.left,
-                        width: "100px", height: "100px"
-                    }}>
-                    <div className="unselected" style={{ position: "absolute", overflow: "scroll", background: "grey", width: "100px", height: "100px", zIndex: 0 }}>
+                firstbutton.button = (
+                    <div ref={(el) => el ? firstbutton.buttonref = el : null} className="unselected" style={{ left: firstbutton.leftval, position: "absolute", overflow: "scroll", background: "grey", width: "100px", height: "100px", zIndex: 0 }}>
                         {things}
                     </div>
-                </div>);
-
-
-
-
+                );
                 return true;
             }
         }
@@ -648,11 +607,12 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 max = selection!.getBoundingClientRect().right > max ? selection!.getBoundingClientRect().right : max;
             }
             let d = new Doc;
-            d.initialLeft = ((min - 3 - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98) / (this.barwidth / (this.barwidth - this.rightbound - this.leftbound))) + (this.leftbound);
+            d.initialLeft = ((min - 3 - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98));
+            d.firstLeft = ((min - 3 - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98));
             d.initialScale = (this.barwidth / (this.barwidth - this.rightbound - this.leftbound));
             d.initialWidth = Math.abs(max - min);
             d.initialX = this.leftbound;
-            d.initilMapLeft = ((((min - 3 - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98) / this.barref.current!.clientWidth)) * (this.barwidth - this.rightbound - this.leftbound)) + this.leftbound;
+            d.initialMapLeft = (((min - 3 - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98) / this.barref.current!.clientWidth) * (this.barwidth - this.rightbound - this.leftbound)) + this.leftbound;
             d.initialMapWidth = (Math.abs(max - min));
             d.annotation = "Edit me!";
             d.color = this.selectedColor;
@@ -786,9 +746,9 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     {this.annotationPanel()}
                 </div>
                 {DocListCast(this.props.Document.markers).map(d => this.createmarker(d))}
-                {DocListCast(this.props.Document.markers).map(d => this.createmap(d))}
                 <BottomUI
                     buttonmap={this.buttons.map(item => item.map)}
+                    markermap={DocListCast(this.props.Document.markers).map(d => this.createmap(d))}
                     leftbound={this.leftbound}
                     rightbound={this.rightbound}
                     leftboundSet={this.leftboundSet}
