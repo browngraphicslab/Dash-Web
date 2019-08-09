@@ -247,7 +247,6 @@ export class MainView extends React.Component {
     @computed get dockingContent() {
         let flyoutWidth = this.flyoutWidth;
         let mainCont = this.mainContainer;
-        let castRes = mainCont ? FieldValue(Cast(mainCont.presentationView, listSpec(Doc))) : undefined;
         return <Measure offset onResize={this.onResize}>
             {({ measureRef }) =>
                 <div ref={measureRef} id="mainContent-div" style={{ width: `calc(100% - ${flyoutWidth}px`, transform: `translate(${flyoutWidth}px, 0px)` }} onDrop={this.onDrop}>
@@ -271,7 +270,7 @@ export class MainView extends React.Component {
                             zoomToScale={emptyFunction}
                             getScale={returnOne}
                         />}
-                    {castRes ? <PresentationView Documents={castRes} key="presentation" /> : null}
+                    {/* {presentationDoc ? <PresentationView Documents={Cast(presentationDoc.data, listSpec(Doc))!} key="presentation" /> : null} */}
                 </div>
             }
         </Measure>;
@@ -385,13 +384,11 @@ export class MainView extends React.Component {
         let addButtonDocument = action(() => Docs.Create.ButtonDocument({ width: 150, height: 50, title: "Button" }));
         let addImportCollectionNode = action(() => Docs.Create.DirectoryImportDocument({ title: "Directory Import", width: 400, height: 400 }));
 
-        let addPresentationNode = action(() => Docs.Create.PresDocument(new List<Doc>([Docs.Create.TreeDocument([], { title: "Presentation" })])));
-
         let btns: [React.RefObject<HTMLDivElement>, IconName, string, () => Doc][] = [
             [React.createRef<HTMLDivElement>(), "object-group", "Add Collection", addColNode],
             [React.createRef<HTMLDivElement>(), "bolt", "Add Button", addButtonDocument],
             // [React.createRef<HTMLDivElement>(), "clone", "Add Docking Frame", addDockingNode],
-            [React.createRef<HTMLDivElement>(), "cloud-upload-alt", "Import Directory", addPresentationNode], //remove at some point in favor of addImportCollectionNode
+            [React.createRef<HTMLDivElement>(), "cloud-upload-alt", "Import Directory", addImportCollectionNode], //remove at some point in favor of addImportCollectionNode
         ];
         if (!ClientUtils.RELEASE) btns.unshift([React.createRef<HTMLDivElement>(), "cat", "Add Cat Image", addImageNode]);
 
@@ -402,7 +399,7 @@ export class MainView extends React.Component {
             <div id="add-options-content">
                 <ul id="add-options-list">
                     <li key="search"><button className="add-button round-button" title="Search" onClick={this.toggleSearch}><FontAwesomeIcon icon="search" size="sm" /></button></li>
-                    <li key="presentation"><button className="add-button round-button" title="Open Presentation View" onClick={() => PresentationView.Instance.toggle(undefined)}><FontAwesomeIcon icon="table" size="sm" /></button></li>
+                    <li key="presentation"><button className="add-button round-button" title="Open Presentation View" onClick={this.togglePresentationView}><FontAwesomeIcon icon="table" size="sm" /></button></li>
                     <li key="undo"><button className="add-button round-button" title="Undo" style={{ opacity: UndoManager.CanUndo() ? 1 : 0.5, transition: "0.4s ease all" }} onClick={() => UndoManager.Undo()}><FontAwesomeIcon icon="undo-alt" size="sm" /></button></li>
                     <li key="redo"><button className="add-button round-button" title="Redo" style={{ opacity: UndoManager.CanRedo() ? 1 : 0.5, transition: "0.4s ease all" }} onClick={() => UndoManager.Redo()}><FontAwesomeIcon icon="redo-alt" size="sm" /></button></li>
                     {btns.map(btn =>
@@ -451,6 +448,24 @@ export class MainView extends React.Component {
     @action
     toggleSearch = () => {
         this.isSearchVisible = !this.isSearchVisible;
+    }
+
+    togglePresentationView = () => {
+        let presDoc = this.presentationDoc;
+        if (!presDoc) {
+            return;
+        }
+        let isOpen = CollectionDockingView.Instance.Has(presDoc);
+        if (isOpen) {
+            CollectionDockingView.Instance.CloseRightSplit(presDoc);
+        } else {
+            CollectionDockingView.Instance.AddRightSplit(presDoc, undefined);
+        }
+    }
+
+    private get presentationDoc() {
+        let mainCont = this.mainContainer;
+        return mainCont ? FieldValue(Cast(mainCont.presentationView, Doc)) : undefined;
     }
 
     render() {

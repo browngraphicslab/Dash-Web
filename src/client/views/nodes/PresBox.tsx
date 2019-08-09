@@ -32,7 +32,7 @@ export interface PresViewProps {
     Documents: List<Doc>;
 }
 
-const expandedWidth = 400;
+const expandedWidth = 450;
 
 @observer
 export class PresBox extends React.Component<FieldViewProps> { //FieldViewProps?
@@ -825,10 +825,11 @@ export class PresBox extends React.Component<FieldViewProps> { //FieldViewProps?
 
     render() {
 
-        let width = NumCast(this.curPresentation.width);
+        let width = "100%"; //NumCast(this.curPresentation.width)
+        console.log("The width is: " + width);
 
         return (
-            <div className="presentationView-cont" onPointerEnter={action(() => !this.persistOpacity && (this.opacity = 1))} onPointerLeave={action(() => !this.persistOpacity && (this.opacity = 0.4))} style={{ width: width, overflow: "hidden", opacity: this.opacity, transition: "0.7s opacity ease" }}>
+            <div className="presentationView-cont" onPointerEnter={action(() => !this.persistOpacity && (this.opacity = 1))} onPointerLeave={action(() => !this.persistOpacity && (this.opacity = 0.4))} style={{ width: width, overflow: "hidden", opacity: this.opacity, transition: "0.7s opacity ease", pointerEvents: "all" }}>
                 <div className="presentationView-heading">
                     {this.renderSelectOrPresSelection()}
                     <button title="Close Presentation" className='presentation-icon' onClick={this.closePresentation}><FontAwesomeIcon icon={"times"} /></button> {/**this.closePresentation  CLICK does not work?! Also without the*/}

@@ -41,6 +41,7 @@ import { ClientUtils } from '../../util/ClientUtils';
 import { EditableView } from '../EditableView';
 import { faHandPointer, faHandPointRight } from '@fortawesome/free-regular-svg-icons';
 import { DocumentDecorations } from '../DocumentDecorations';
+import { PresBox } from './PresBox';
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(fa.faTrash);
@@ -553,7 +554,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         subitems.push({ description: "Open Fields", event: this.fieldsClicked, icon: "layer-group" });
         cm.addItem({ description: "Open...", subitems: subitems, icon: "external-link-alt" });
         cm.addItem({ description: BoolCast(this.props.Document.ignoreAspect, false) || !this.props.Document.nativeWidth || !this.props.Document.nativeHeight ? "Freeze" : "Unfreeze", event: this.freezeNativeDimensions, icon: "snowflake" });
-        cm.addItem({ description: "Pin to Presentation", event: () => PresentationView.Instance.PinDoc(this.props.Document), icon: "map-pin" }); //change this to
+        cm.addItem({ description: "Pin to Presentation", event: () => PresBox.Instance.PinDoc(this.props.Document), icon: "map-pin" }); //this should work, and it does! A miracle!
         cm.addItem({ description: BoolCast(this.props.Document.lockedPosition) ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
         let makes: ContextMenuProps[] = [];
         makes.push({ description: "Make Background", event: this.makeBackground, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });

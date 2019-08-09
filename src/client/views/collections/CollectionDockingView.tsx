@@ -162,6 +162,14 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         this.stateChanged();
     }
 
+    public Has = (document: Doc) => {
+        let docs = Cast(this.props.Document.data, listSpec(Doc));
+        if (!docs) {
+            return false;
+        }
+        return docs.includes(document);
+    }
+
     //
     //  Creates a vertical split on the right side of the docking view, and then adds the Document to that split
     //
@@ -525,6 +533,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         this.props.glContainer.layoutManager.on("activeContentItemChanged", this.onActiveContentItemChanged);
         this.props.glContainer.on("tab", this.onActiveContentItemChanged);
         this.onActiveContentItemChanged();
+        // setTimeout(() => MainView.Instance.openPresentationView(), 2000);
     }
 
     componentWillUnmount() {
