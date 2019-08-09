@@ -33,6 +33,8 @@ let stopPropagation = (e: React.SyntheticEvent) => e.stopPropagation();
 
 @observer
 export class CollectionViewBaseChrome extends React.Component<CollectionViewChromeProps> {
+    //.*?doc\.(\w+).*?\("(\w+)
+
     @observable private _viewSpecsOpen: boolean = false;
     @observable private _dateWithinValue: string = "";
     @observable private _dateValue: Date | string = "";

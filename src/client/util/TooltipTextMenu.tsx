@@ -441,13 +441,10 @@ export class TooltipTextMenu {
         return true;
     }
 
-    // this needs to change so it makes it into a bulleted list
     public static insertCheckbox(state: EditorState<any>, dispatch: any) {
         let newNode = schema.nodes.checkbox.create({ visibility: false });
         if (dispatch) {
-            //console.log(newNode.attrs.text.toString());
             dispatch(state.tr.replaceSelectionWith(newNode));
-            wrapInList(newNode.type)(state, dispatch);
         }
         return true;
     }
@@ -461,7 +458,6 @@ export class TooltipTextMenu {
         let toAdd: MenuItem[] = [];
         this.listTypeToIcon.forEach((icon, type) => {
             toAdd.push(this.dropdownNodeBtn(icon, "color: black; width: 40px;", type, this.view, this.listTypes, this.changeToNodeType));
-            console.log(type.name)
         });
         //option to remove the list formatting
         toAdd.push(this.dropdownNodeBtn("X", "color: black; width: 40px;", undefined, this.view, this.listTypes, this.changeToNodeType));
@@ -529,6 +525,11 @@ export class TooltipTextMenu {
         liftListItem(schema.nodes.list_item)(view.state, view.dispatch);
         if (nodeType) { //add new
             wrapInList(nodeType)(view.state, view.dispatch);
+            // console.log(nodeType === schema.nodes.checkbox_list)
+            // if (nodeType === schema.nodes.checkbox_list) {
+            //     TooltipTextMenu.insertCheckbox(view.state, view.dispatch)
+            // }
+
         }
     }
 

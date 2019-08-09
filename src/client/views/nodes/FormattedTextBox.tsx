@@ -177,6 +177,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             this._editorView.updateState(state);
             if (state.selection.empty && FormattedTextBox._toolTipTextMenu) {
                 const marks = tx.storedMarks;
+                console.log(marks)
                 if (marks) { FormattedTextBox._toolTipTextMenu.mark_key_pressed(marks); }
             }
             this._applyingChange = true;

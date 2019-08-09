@@ -6,6 +6,7 @@ import { orderedList, bulletList, listItem, } from 'prosemirror-schema-list';
 import { EditorState, Transaction, NodeSelection, TextSelection, Selection, } from "prosemirror-state";
 import { EditorView, } from "prosemirror-view";
 import { View } from '@react-pdf/renderer';
+import { TooltipTextMenu } from './TooltipTextMenu';
 
 const pDOM: DOMOutputSpecArray = ["p", 0], blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
@@ -111,30 +112,16 @@ export const nodes: { [index: string]: NodeSpec } = {
         // }]
     },
 
-    // TODO
     checkbox: {
         inline: true,
         attrs: {
-            visibility: { default: false },
-            // text: { default: undefined },
-            // textslice: { default: undefined },
-            // textlen: { default: 0 }
-
+            visibility: { default: false }
         },
         group: "inline",
         toDOM(node) {
             const attrs = { style: `width: 40px` };
             return ["span", { ...node.attrs, ...attrs }];
         },
-        // parseDOM: [{
-        //     tag: "star", getAttrs(dom: any) {
-        //         return {
-        //             visibility: dom.getAttribute("visibility"),
-        //             oldtext: dom.getAttribute("oldtext"),
-        //             oldtextlen: dom.getAttribute("oldtextlen"),
-        //         }
-        //     }
-        // }]
     },
 
     // :: NodeSpec An inline image (`<img>`) node. Supports `src`,
@@ -193,12 +180,6 @@ export const nodes: { [index: string]: NodeSpec } = {
         }
     },
 
-    checkbox_list2: {
-        inline: false,
-        // content: 'list_item+',
-        group: 'block'
-    },
-
     // :: NodeSpec A hard line break, represented in the DOM as `<br>`.
     hard_break: {
         inline: true,
@@ -221,15 +202,20 @@ export const nodes: { [index: string]: NodeSpec } = {
         // parseDOM: [{ tag: "ul" }, { style: 'list-style-type=disc' }],
         // toDOM() { return ulDOM }
     },
+
     checkbox_list: {
-        ...bulletList,
-        content: 'list_item+',
+        content: 'checklist_item+',
+        marks: '_',
         group: 'block',
-        // style: 'list-style-type:none'
-        itemContent: "+",
-        // parseDOM: [{ tag: "ul" }, { style: 'list-style-type=square' }],
-        // toDOM() { return ulDOM; }
+        // inline: true,
+        parseDOM: [
+            { tag: "ul" }
+        ],
+        toDOM() {
+            return ["ul", { style: 'list-style: none' }, 0];
+        },
     },
+
     //bullet_list: {
     //  content: 'list_item+',
     // group: 'block',
@@ -241,6 +227,18 @@ export const nodes: { [index: string]: NodeSpec } = {
     list_item: {
         ...listItem,
         content: 'paragraph block*'
+    },
+
+    checklist_item: {
+        content: 'paragraph block*',
+        parseDOM: [{ tag: "li" }],
+        // toDOM() {
+        //     return ["li", { style: 'content: checkbox' }, 0];
+        // },
+        toDOM() {
+            return ["li", 0];
+        },
+        defining: true
     }
 };
 
