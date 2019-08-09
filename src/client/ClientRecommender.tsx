@@ -7,6 +7,7 @@ import { observer } from "mobx-react";
 import { observable, action, computed, reaction } from "mobx";
 var assert = require('assert');
 import "./ClientRecommender.scss";
+import { JSXElement } from "babel-types";
 
 export interface RecommenderProps {
     title: string;
@@ -131,22 +132,24 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
     @computed
     private get generateRows() {
         const n = this.corr_matrix.length;
-        let rows: React.ReactElement[] = [];
+        let rows: JSX.Element[] = [];
         for (let i = 0; i < n; i++) {
-            let children: React.ReactElement[] = [];
+            let children: JSX.Element[] = [];
             for (let j = 0; j < n; j++) {
-                let cell = React.createElement("td", this.corr_matrix[i][j]);
+                //let cell = React.createElement("td", this.corr_matrix[i][j]);
+                let cell = <td>{this.corr_matrix[i][j].toFixed(4)}</td>;
                 children.push(cell);
             }
-            let row = React.createElement("tr", { children: children });
+            //let row = React.createElement("tr", { children: children, key: i });
+            let row = <tr>{children}</tr>;
             rows.push(row);
         }
         return rows;
     }
 
     render() {
-        return (<div>
-            <h3>{this.props.title ? this.props.title : "hello"}</h3>
+        return (<div className="wrapper">
+            <h3 >{this.props.title ? this.props.title : "hello"}</h3>
             {/* <table className="space" >
                 <tbody>
                     <tr key="1">
@@ -159,7 +162,7 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
                     </tr>
                 </tbody>
             </table> */}
-            <table>
+            <table className="space">
                 <tbody>
                     {this.generateRows}
                 </tbody>

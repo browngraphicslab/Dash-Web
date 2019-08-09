@@ -38,6 +38,8 @@ import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import v5 = require("uuid/v5");
 import { ClientRecommender } from "../../../ClientRecommender";
+import { SearchUtil } from "../../../util/SearchUtil";
+import { SearchBox } from "../../SearchBox";
 
 library.add(faEye, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBrain);
 
@@ -603,9 +605,11 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             event: async () => {
                 // if (!ClientRecommender.Instance) new ClientRecommender({ title: "Client Recommender" });
                 let activedocs = this.getActiveDocuments();
+                let allDocs = await SearchUtil.GetAllDocs();
+                allDocs.forEach(doc => console.log(doc.title));
                 ClientRecommender.Instance.reset_docs();
                 await Promise.all(activedocs.map((doc: Doc) => {
-                    console.log(StrCast(doc.title));
+                    //console.log(StrCast(doc.title));
                     const extdoc = doc.data_ext as Doc;
                     return ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc);
                 }));
