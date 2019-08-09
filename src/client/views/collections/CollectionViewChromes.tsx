@@ -534,20 +534,20 @@ export class CollectionTreeViewChrome extends React.Component<CollectionViewChro
 
     render() {
         return (
-            <div className="collectionStackingViewChrome-cont">
-                <button className="collectionStackingViewChrome-sort" onClick={this.toggleSort}>
-                    <div className="collectionStackingViewChrome-sortLabel">
+            <div className="collectionTreeViewChrome-cont">
+                <button className="collectionTreeViewChrome-sort" onClick={this.toggleSort}>
+                    <div className="collectionTreeViewChrome-sortLabel">
                         Sort
                         </div>
-                    <div className="collectionStackingViewChrome-sortIcon" style={{ transform: `rotate(${this.descending ? "180" : "0"}deg)` }}>
+                    <div className="collectionTreeViewChrome-sortIcon" style={{ transform: `rotate(${this.descending ? "180" : "0"}deg)` }}>
                         <FontAwesomeIcon icon="caret-up" size="2x" color="white" />
                     </div>
                 </button>
-                <div className="collectionStackingViewChrome-sectionFilter-cont">
-                    <div className="collectionStackingViewChrome-sectionFilter-label">
+                <div className="collectionTreeViewChrome-sectionFilter-cont">
+                    <div className="collectionTreeViewChrome-sectionFilter-label">
                         GROUP ITEMS BY:
                         </div>
-                    <div className="collectionStackingViewChrome-sectionFilter">
+                    <div className="collectionTreeViewChrome-sectionFilter">
                         <EditableView
                             GetValue={() => this.sectionFilter}
                             autosuggestProps={

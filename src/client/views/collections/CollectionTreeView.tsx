@@ -27,6 +27,7 @@ import "./CollectionTreeView.scss";
 import React = require("react");
 import { ComputedField, ScriptField } from '../../../new_fields/ScriptField';
 import { KeyValueBox } from '../nodes/KeyValueBox';
+import { exportNamedDeclaration } from 'babel-types';
 
 
 export interface TreeViewProps {
@@ -428,9 +429,9 @@ class TreeView extends React.Component<TreeViewProps> {
                 return first > second ? 1 : -1;
             }
             if (typeof first === 'boolean' && typeof second === 'boolean') {
-                // if (first === second) { // bugfixing?: otherwise, the list "flickers" because the list is resorted during every load
-                //     return Number(descA.x) > Number(descB.y) ? 1 : -1;
-                // }
+                if (first === second) { // bugfixing?: otherwise, the list "flickers" because the list is resorted during every load
+                    return Number(descA.x) > Number(descB.x) ? 1 : -1;
+                }
                 return first > second ? 1 : -1;
             }
             return descending ? 1 : -1;
@@ -579,10 +580,6 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                 {this.props.Document.allowClear ? this.renderClearButton : (null)}
                 <ul className="no-indent" style={{ width: "max-content" }} >
                     {
-                        // this.props.Document.sectionFilter ?
-                        //     TreeView.GetChildElements(this.childDocs, this.props.Document[Id], this.props.Document, this.props.DataDoc, this.props.fieldKey, addDoc, this.remove,
-                        //         moveDoc, dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.outerXf, this.props.active, this.props.PanelWidth, this.props.renderDepth)
-                        //     :
                         TreeView.GetChildElements(this.childDocs, this.props.Document[Id], this.props.Document, this.props.DataDoc, this.props.fieldKey, addDoc, this.remove,
                             moveDoc, dropAction, this.props.addDocTab, this.props.ScreenToLocalTransform, this.outerXf, this.props.active, this.props.PanelWidth, this.props.renderDepth)
                     }

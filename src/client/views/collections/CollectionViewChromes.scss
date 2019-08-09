@@ -221,3 +221,61 @@
         }
     }
 }
+
+.collectionTreeViewChrome-cont {
+    display: flex;
+    justify-content: space-between;
+}
+
+.collectionTreeViewChrome-sort {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    .collectionTreeViewChrome-sortIcon {
+        transition: transform .5s;
+        margin-left: 10px;
+    }
+}
+
+.collectionTreeViewChrome-sectionFilter-cont {
+    justify-self: right;
+    display: flex;
+    font-size: 75%;
+    letter-spacing: 2px;
+
+    .collectionTreeViewChrome-sectionFilter-label {
+        vertical-align: center;
+        padding: 10px;
+    }
+
+    .collectionTreeViewChrome-sectionFilter {
+        color: white;
+        width: 100px;
+        text-align: center;
+        background: rgb(238, 238, 238);
+
+        .editable-view-input,
+        input,
+        .editableView-container-editing-oneLine,
+        .editableView-container-editing {
+            padding: 12px 10px 11px 10px;
+            border: 0px;
+            color: grey;
+            text-align: center;
+            letter-spacing: 2px;
+            outline-color: black;
+            height: 100%;
+        }
+
+        .react-autosuggest__container {
+            margin: 0;
+            color: grey;
+            padding: 0px;
+        }
+    }
+}
+
+.collectionTreeViewChrome-sectionFilter:hover {
+    cursor: text;
+}
