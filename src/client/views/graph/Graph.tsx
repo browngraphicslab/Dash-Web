@@ -20,8 +20,11 @@ export class Graph extends CollectionSubView(Document) {
 
 
     render() {
+        let collection = <CollectionFreeFormView {...this.props}/>; 
+ 
         return (
-            <CollectionFreeFormView {...this.props}/>
+            <div>
+            </div>
             
         ); 
     }

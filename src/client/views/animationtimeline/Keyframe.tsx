@@ -11,7 +11,6 @@ import { createSchema, defaultSpec, makeInterface, listSpec } from "../../../new
 import { FlyoutProps } from "./Timeline";
 import { Transform } from "../../util/Transform";
 import { InkField, StrokeData } from "../../../new_fields/InkField";
-import { number } from "prop-types";
 import { TimelineMenu } from "./TimelineMenu";
 import { Docs } from "../../documents/Documents";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
@@ -509,22 +508,6 @@ export class Keyframe extends React.Component<IProps> {
             document.removeEventListener("pointerup", this.onReactionListen); 
         }
     }
-
-
-
-    /**
-     * 
-     * 
-     * TEMPORARY
-     * let items = [
-                                        TimelineMenu.Instance.addItem("button", "Show Data", () => {console.log(toJS(this.props.node));}), 
-                                        TimelineMenu.Instance.addItem("button", "Delete", () => {}), 
-                                        TimelineMenu.Instance.addItem("input", "Move", (val) => {console.log(val);})  
-                                    ]; 
-                                    TimelineMenu.Instance.addMenu("Keyframe", items); 
-                                    TimelineMenu.Instance.openMenu(e.clientX, e.clientY);
-     * 
-     */
     render() {
         return (
             <div>
@@ -537,13 +520,14 @@ export class Keyframe extends React.Component<IProps> {
                         return this.createKeyframeJSX(kf as Doc, (kf! as Doc).type as KeyframeFunc.KeyframeType);
                     })}
                     {this.keyframes.map( kf => {
-                       if(this.keyframes.indexOf(kf) !== this.keyframes.length - 1) {
+                       if(this.keyframes.indexOf(kf ) !== this.keyframes.length - 1) {
                             let left = this.keyframes[this.keyframes.indexOf(kf) + 1]; 
                             let bodyRef = React.createRef<HTMLDivElement>(); 
                             return (
                                 <div ref={bodyRef}className="body-container" style={{left: `${NumCast(kf.time) - this.regiondata.position}px`, width:`${NumCast(left!.time) - NumCast(kf.time)}px`}}
                                 onPointerOver={(e) => { this.onContainerOver(e, bodyRef); }}
                                 onPointerOut={(e) => { this.onContainerOut(e, bodyRef); }}
+                                onPointerDown={(e) => { this.props.changeCurrentBarX(NumCast(kf.time) + (e.clientX - bodyRef.current!.getBoundingClientRect().left) * this.props.transform.Scale);}}
                                 onContextMenu={(e) => {
                                     let items = [
                                         TimelineMenu.Instance.addItem("button", "Add Ease", () => {this.onContainerDown(kf, "interpolate");}),

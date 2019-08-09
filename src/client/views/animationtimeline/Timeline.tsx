@@ -350,7 +350,6 @@ export class Timeline extends CollectionSubView(Document) {
             <div style={{ left: "0px", top: "0px", position: "absolute", width: "100%", transform: "translate(0px, 0px)" }} ref={this._timelineWrapper}>
                 <button className="minimize" onClick={this.minimize}>Minimize</button>
                 <div className="timeline-container" style={{ height: `${this._containerHeight}px`, left: "0px", top: "30px" }} ref={this._timelineContainer} onPointerDown={this.onTimelineDown} onContextMenu={this.timelineContextMenu}>
-                    <TimelineFlyout flyoutInfo={this.flyoutInfo} tickSpacing={this._tickSpacing}/>
                     <div className="toolbox">
                         <div onClick={this.windBackward}> <FontAwesomeIcon icon={faBackward} size="2x" /> </div>
                         <div onClick={this.onPlay}> <FontAwesomeIcon icon={this._playButton} size="2x" /> </div>
@@ -383,12 +382,6 @@ export class Timeline extends CollectionSubView(Document) {
 }
 
 
-interface TimelineFlyoutProps {
-    flyoutInfo: FlyoutProps;
-    tickSpacing: number;
-
-}
-
 interface TimelineOverviewProps {
     currentBarX: number;
 }
@@ -412,116 +405,9 @@ class TimelineOverview extends React.Component<TimelineOverviewProps>{
     }
 }
 
-class TimelineFlyout extends React.Component<TimelineFlyoutProps>{
-
-    @observable private _timeInput = React.createRef<HTMLInputElement>();
-    @observable private _durationInput = React.createRef<HTMLInputElement>();
-    @observable private _fadeInInput = React.createRef<HTMLInputElement>();
-    @observable private _fadeOutInput = React.createRef<HTMLInputElement>();
-    @observable private  _data: FlyoutProps = { x: 0, y: 0, display: "none", regiondata: new Doc(), regions: new List<Doc>() };
-
-    private block = false;
-
-    componentDidMount() {
-        
-        document.addEventListener("pointerdown", this.closeFlyout);
-    }
-
-
-    componentWillUnmount() {
-        document.removeEventListener("pointerdown", this.closeFlyout);
-    }
-
-   
-    @action
-    changeTime = (e: React.KeyboardEvent) => {
-        let time = this._timeInput.current!;
-        if (e.keyCode === 13) {
-            if (!Number.isNaN(Number(time.value))) {
-                this.props.flyoutInfo.regiondata!.position = Number(time.value) / 1000 * this.props.tickSpacing;
-                time.placeholder = time.value + "ms";
-                time.value = "";
-            }
-        }
-    }
-    @action
-    onFlyoutDown = (e: React.PointerEvent) => {
-        this._data.display = "block";
-        this.block = true;
-    }
-
-    @action
-    closeFlyout = (e: PointerEvent) => {
-        if (this.block) {
-            this.block = false;
-            return;
-        }
-        this._data.display = "none";
-    }
-
-    @action
-    changeDuration = (e: React.KeyboardEvent) => {
-        let duration = this._durationInput.current!;
-        if (e.keyCode === 13) {
-            if (!Number.isNaN(Number(duration.value))) {
-                this.props.flyoutInfo.regiondata!.duration = Number(duration.value) / 1000 * this.props.tickSpacing;
-                duration.placeholder = duration.value + "ms";
-                duration.value = "";
-            }
-        }
-    }
-
-    @action
-    changeFadeIn = (e: React.KeyboardEvent) => {
-        let fadeIn = this._fadeInInput.current!;
-        if (e.keyCode === 13) {
-            if (!Number.isNaN(Number(fadeIn.value))) {
-                this.props.flyoutInfo.regiondata!.fadeIn = Number(fadeIn.value);
-                fadeIn.placeholder = fadeIn.value + "ms";
-                fadeIn.value = "";
-            }
-        }
-    }
-
-    @action
-    changeFadeOut = (e: React.KeyboardEvent) => {
-        let fadeOut = this._fadeOutInput.current!;
-        if (e.keyCode === 13) {
-            if (!Number.isNaN(Number(fadeOut.value))) {
-                this.props.flyoutInfo.regiondata!.fadeOut = Number(fadeOut.value);
-                fadeOut.placeholder = fadeOut.value + "ms";
-                fadeOut.value = "";
-            }
-        }
-    }
-
-    render() {
-        return (
-            <div>
-                <div className="flyout-container" style={{ left: `${this._data.x}px`, top: `${this._data.y}px`, display: `${this._data.display!}` }} onPointerDown={this.onFlyoutDown}>
-                    <FontAwesomeIcon className="flyout" icon="comment-alt" color="grey" />
-                    <div className="text-container">
-                        <p>Time:</p>
-                        <p>Duration:</p>
-                        <p>Fade-in</p>
-                        <p>Fade-out</p>
-                    </div>
-                    <div className="input-container">
-                        <input ref={this._timeInput} type="text" placeholder={`${Math.round(NumCast(this.props.flyoutInfo.regiondata!.position) / this.props.tickSpacing * 1000)}ms`} onKeyDown={this.changeTime} />
-                        <input ref={this._durationInput} type="text" placeholder={`${Math.round(NumCast(this.props.flyoutInfo.regiondata!.duration) / this.props.tickSpacing * 1000)}ms`} onKeyDown={this.changeDuration} />
-                        <input ref={this._fadeInInput} type="text" placeholder={`${Math.round(NumCast(this.props.flyoutInfo.regiondata!.fadeIn))}ms`} onKeyDown={this.changeFadeIn} />
-                        <input ref={this._fadeOutInput} type="text" placeholder={`${Math.round(NumCast(this.props.flyoutInfo.regiondata!.fadeOut))}ms`} onKeyDown={this.changeFadeOut} />
-                    </div>
-                    <button onClick={action((e: React.MouseEvent) => { this.props.flyoutInfo.regions!.splice(this.props.flyoutInfo.regions!.indexOf(this.props.flyoutInfo.regiondata!), 1); this.props.flyoutInfo.display = "none"; })}>delete</button>
-                </div>
-            </div>
-        );
-    }
-}
 
 class TimelineZoom extends React.Component {
     componentDidMount() {
-
     }
     render() {
         return (

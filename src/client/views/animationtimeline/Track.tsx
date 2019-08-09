@@ -61,8 +61,7 @@ export class Track extends React.Component<IProps> {
         let keyframes:List<Doc> = (Cast(regiondata.keyframes, listSpec(Doc)) as List<Doc>); 
         let kfIndex:number = keyframes.indexOf(ref); 
         let kf = keyframes[kfIndex] as Doc; 
-        if (kf.type === KeyframeFunc.KeyframeType.default) { // only save for fades
-            console.log("full keychange triggered"); 
+        if (kf.type === KeyframeFunc.KeyframeType.default) { // only save for non-fades
             kf.key = Doc.MakeCopy(this.props.node, true);
             let leftkf: (Doc | undefined) = await KeyframeFunc.calcMinLeft(regiondata!, this.props.currentBarX, kf); // lef keyframe, if it exists
             let rightkf: (Doc | undefined) = await KeyframeFunc.calcMinRight(regiondata!, this.props.currentBarX, kf); //right keyframe, if it exists
@@ -104,7 +103,6 @@ export class Track extends React.Component<IProps> {
     @action
     timeChange = async (time: number) => {
         if (this._isOnKeyframe && this._onKeyframe && this._onRegionData) { 
-            console.log("saving"); 
             await this.saveKeyframe(this._onKeyframe, this._onRegionData); 
         }
         let regiondata = await this.findRegion(Math.round(time)); //finds a region that the scrubber is on
@@ -169,9 +167,9 @@ export class Track extends React.Component<IProps> {
         return currentkf;
     }
 
+    
     @action
     interpolate = async (left: Doc, right: Doc, regiondata:Doc) => {
-        console.log("interpolating");
         let leftNode = left.key as Doc;
         let rightNode = right.key as Doc;
         const dif_time = NumCast(right.time) - NumCast(left.time);
@@ -226,8 +224,7 @@ export class Track extends React.Component<IProps> {
                         if (nodeData !== currentNodeData) {
                             this.props.node[key] = new RichTextField(nodeData); 
                         }
-                    }
-                    
+                    }    
                 } else if (key === "creationDate") {
 
                 } else {
