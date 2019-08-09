@@ -30,6 +30,10 @@ export class CollectionView extends React.Component<FieldViewProps> {
 
     public static LayoutString(fieldStr: string = "data", fieldExt: string = "") { return FieldView.LayoutString(CollectionView, fieldStr, fieldExt); }
 
+    constructor(props:any) {
+        super(props);
+    }
+
     componentDidMount = () => {
         this._reactionDisposer = reaction(() => StrCast(this.props.Document.chromeStatus),
             () => {

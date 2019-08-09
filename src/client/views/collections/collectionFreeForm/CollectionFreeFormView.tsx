@@ -37,8 +37,6 @@ import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import { DocumentType, Docs } from "../../../documents/Documents";
-import { RouteStore } from "../../../../server/RouteStore";
-import { string, number, elementType } from "prop-types";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard);
 
@@ -194,6 +192,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private get _pwidth() { return this.props.PanelWidth(); }
     private get _pheight() { return this.props.PanelHeight(); }
     private inkKey = "ink";
+
+    constructor(props: any) {
+        super(props);
+    }
 
     get parentScaling() {
         return (this.props as any).ContentScaling && this.fitToBox && !this.isAnnotationOverlay ? (this.props as any).ContentScaling() : 1;
@@ -631,6 +633,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             addDocument: this.props.addDocument,
             removeDocument: this.props.removeDocument,
             moveDocument: this.props.moveDocument,
+            onClick: this.props.onClick,
             ScreenToLocalTransform: pair.layout.z ? this.getTransformOverlay : this.getTransform,
             renderDepth: this.props.renderDepth + 1,
             selectOnLoad: pair.layout[Id] === this._selectOnLoaded,
@@ -655,6 +658,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             addDocument: this.props.addDocument,
             removeDocument: this.props.removeDocument,
             moveDocument: this.props.moveDocument,
+            onClick: this.props.onClick,
             ScreenToLocalTransform: this.getTransform,
             renderDepth: this.props.renderDepth,
             selectOnLoad: layoutDoc[Id] === this._selectOnLoaded,

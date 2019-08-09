@@ -28,7 +28,7 @@ import { Cast, StrCast, NumCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { Doc } from "../../../new_fields/Doc";
 import DirectoryImportBox from "../../util/Import & Export/DirectoryImportBox";
-import { CollectionViewType } from "../collections/CollectionBaseView";
+import { ScriptField } from "../../../new_fields/ScriptField";
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 type BindingProps = Without<FieldViewProps, 'fieldKey'>;
@@ -49,6 +49,7 @@ const ObserverJsxParser: typeof JsxParser = ObserverJsxParser1 as any;
 export class DocumentContentsView extends React.Component<DocumentViewProps & {
     isSelected: () => boolean,
     select: (ctrl: boolean) => void,
+    onClick?: ScriptField,
     layoutKey: string,
     hideOnLeave?: boolean
 }> {
@@ -81,7 +82,13 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     }
 
     CreateBindings(): JsxBindings {
-        return { props: { ...OmitKeys(this.props, ['parentActive'], (obj: any) => obj.active = this.props.parentActive).omit, Document: this.layoutDoc, DataDoc: this.dataDoc } };
+        let list = {
+            ...OmitKeys(this.props, ['parentActive'], (obj: any) => obj.active = this.props.parentActive).omit,
+            Document: this.layoutDoc,
+            DataDoc: this.dataDoc,
+            onClick: this.props.onClick
+        };
+        return { props: list };
     }
 
     @computed get templates(): List<string> {
@@ -100,10 +107,12 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         if (this.props.renderDepth > 7) return (null);
         if (!this.layout && (this.props.layoutKey !== "overlayLayout" || !this.templates.length)) return (null);
         return <ObserverJsxParser
+            blacklistedAttrs={[]}
             components={{ FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, DragBox, ButtonBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox, YoutubeBox }}
             bindings={this.CreateBindings()}
             jsx={this.finalLayout}
             showWarnings={true}
+
             onError={(test: any) => { console.log(test); }}
         />;
     }

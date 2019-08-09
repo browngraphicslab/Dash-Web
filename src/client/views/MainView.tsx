@@ -321,6 +321,7 @@ export class MainView extends React.Component {
                             DataDoc={undefined}
                             addDocument={undefined}
                             addDocTab={emptyFunction}
+                            onClick={emptyFunction}
                             removeDocument={undefined}
                             ScreenToLocalTransform={Transform.Identity}
                             ContentScaling={returnOne}
@@ -385,6 +386,7 @@ export class MainView extends React.Component {
             addDocument={undefined}
             addDocTab={this.addDocTabFunc}
             removeDocument={undefined}
+            onClick={emptyFunction}
             ScreenToLocalTransform={Transform.Identity}
             ContentScaling={returnOne}
             PanelWidth={this.flyoutWidthFunc}

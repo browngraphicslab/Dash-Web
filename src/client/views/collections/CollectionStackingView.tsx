@@ -121,6 +121,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             showOverlays={this.overlays}
             renderDepth={this.props.renderDepth}
             fitToBox={this.props.fitToBox}
+            onClick={this.props.onClick}
             width={width}
             height={height}
             getTransform={finalDxf}

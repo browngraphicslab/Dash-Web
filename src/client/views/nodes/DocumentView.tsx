@@ -39,7 +39,6 @@ import { FormattedTextBox } from './FormattedTextBox';
 import React = require("react");
 import { DictationManager } from '../../util/DictationManager';
 import { MainView } from '../MainView';
-import requestPromise = require('request-promise');
 import { ScriptBox } from '../ScriptBox';
 import { CompileScript } from '../../util/Scripting';
 import { DocumentIconContainer } from './DocumentIcon';
@@ -84,6 +83,7 @@ export interface DocumentViewProps {
     Document: Doc;
     DataDoc?: Doc;
     fitToBox?: boolean;
+    onClick?: ScriptField;
     addDocument?: (doc: Doc, allowDuplicates?: boolean) => boolean;
     removeDocument?: (doc: Doc) => boolean;
     moveDocument?: (doc: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
@@ -297,8 +297,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     onClick = async (e: React.MouseEvent) => {
         if (e.nativeEvent.cancelBubble) return; // needed because EditableView may stopPropagation which won't apparently stop this event from firing.
         e.stopPropagation();
-        if (this.Document.onClick) {
-            this.Document.onClick.script.run({ this: this.props.Document });
+        if (this.onClickHandler) {
+            this.onClickHandler.script.run({ this: this.props.Document });
             e.preventDefault();
             return;
         }
@@ -687,14 +687,16 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     onPointerLeave = (e: React.PointerEvent): void => { Doc.UnBrushDoc(this.props.Document); };
 
     isSelected = () => SelectionManager.IsSelected(this);
-    @action select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); };
-
+    @action select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); }
     @computed get nativeWidth() { return this.Document.nativeWidth || 0; }
     @computed get nativeHeight() { return this.Document.nativeHeight || 0; }
+    @computed get onClickHandler() { return this.props.onClick ? this.props.onClick : this.Document.onClick; }
     @computed get contents() {
         return (<DocumentContentsView {...this.props}
             ChromeHeight={this.chromeHeight}
-            isSelected={this.isSelected} select={this.select}
+            isSelected={this.isSelected}
+            select={this.select}
+            onClick={this.onClickHandler}
             selectOnLoad={this.props.selectOnLoad}
             layoutKey={"layout"}
             fitToBox={BoolCast(this.props.Document.fitToBox) ? true : this.props.fitToBox}
@@ -783,7 +785,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                         }
                         {!showCaption ? (null) :
                             <div style={{ position: "absolute", bottom: 0, transformOrigin: "bottom left", width: `${100 * this.props.ContentScaling()}%`, transform: `scale(${1 / this.props.ContentScaling()})` }}>
-                                <FormattedTextBox {...this.props} DataDoc={this.dataDoc} active={returnTrue} isSelected={this.isSelected} focus={emptyFunction} select={this.select} selectOnLoad={this.props.selectOnLoad} fieldExt={""} hideOnLeave={true} fieldKey={showCaption} />
+                                <FormattedTextBox {...this.props} onClick={this.onClickHandler} DataDoc={this.dataDoc} active={returnTrue} isSelected={this.isSelected} focus={emptyFunction} select={this.select} selectOnLoad={this.props.selectOnLoad} fieldExt={""} hideOnLeave={true} fieldKey={showCaption} />
                             </div>
                         }
                     </div>
