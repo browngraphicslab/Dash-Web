@@ -40,6 +40,10 @@ import React = require("react");
 import { DictationManager } from '../../util/DictationManager';
 import { MainView } from '../MainView';
 import requestPromise = require('request-promise');
+import { ScriptBox } from '../ScriptBox';
+import { CompileScript } from '../../util/Scripting';
+import { DocumentIconContainer } from './DocumentIcon';
+import { ScriptField } from '../../../new_fields/ScriptField';
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(fa.faTrash);
@@ -109,7 +113,8 @@ const schema = createSchema({
     nativeHeight: "number",
     backgroundColor: "string",
     opacity: "number",
-    hidden: "boolean"
+    hidden: "boolean",
+    onClick: ScriptField,
 });
 
 export const positionSchema = createSchema({
@@ -292,6 +297,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     onClick = async (e: React.MouseEvent) => {
         if (e.nativeEvent.cancelBubble) return; // needed because EditableView may stopPropagation which won't apparently stop this event from firing.
         e.stopPropagation();
+        if (this.Document.onClick) {
+            this.Document.onClick.script.run({ this: this.props.Document });
+            e.preventDefault();
+            return;
+        }
         let altKey = e.altKey;
         let ctrlKey = e.ctrlKey;
         if (this._doubleTap && this.props.renderDepth) {
@@ -567,6 +577,30 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         cm.addItem({ description: "Pin to Presentation", event: () => PresentationView.Instance.PinDoc(this.props.Document), icon: "map-pin" });
         cm.addItem({ description: BoolCast(this.props.Document.lockedPosition) ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
         cm.addItem({ description: "Transcribe Speech", event: this.listen, icon: "microphone" });
+        cm.addItem({
+            description: "Edit OnClick script", icon: "edit", event: () => {
+                let overlayDisposer: () => void = emptyFunction;
+                const script = this.Document.onClick;
+                let originalText: string | undefined = undefined;
+                if (script) originalText = script.script.originalScript;
+                // tslint:disable-next-line: no-unnecessary-callback-wrapper
+                let scriptingBox = <ScriptBox initialText={originalText} onCancel={() => overlayDisposer()} onSave={(text, onError) => {
+                    const script = CompileScript(text, {
+                        params: { this: Doc.name },
+                        typecheck: false,
+                        editable: true,
+                        transformer: DocumentIconContainer.getTransformer()
+                    });
+                    if (!script.compiled) {
+                        onError(script.errors.map(error => error.messageText).join("\n"));
+                        return;
+                    }
+                    this.Document.onClick = new ScriptField(script);
+                    overlayDisposer();
+                }} showDocumentIcons />;
+                overlayDisposer = OverlayView.Instance.addWindow(scriptingBox, { x: 400, y: 200, width: 500, height: 400, title: `${this.Document.title || ""} OnClick` });
+            }
+        });
         let makes: ContextMenuProps[] = [];
         makes.push({ description: this.props.Document.isBackground ? "Remove Background" : "Make Background", event: this.makeBackground, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
         makes.push({ description: this.props.Document.isButton ? "Remove Button" : "Make Button", event: this.makeBtnClicked, icon: "concierge-bell" });

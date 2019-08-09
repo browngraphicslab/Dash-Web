@@ -131,7 +131,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     @computed get extensionDoc() { return Doc.resolvedFieldDataDoc(this.dataDoc, this.props.fieldKey, "dummy"); }
 
-    @computed get dataDoc() { return this.props.DataDoc && (BoolCast(this.props.Document.isTemplate) || BoolCast(this.props.DataDoc.isTemplate) || this.props.DataDoc.layout === this.props.Document) ? Doc.GetDataDoc(this.props.DataDoc) : Doc.GetProto(this.props.Document); }
+    @computed get dataDoc() { return this.props.DataDoc && (BoolCast(this.props.Document.isTemplate) || BoolCast(this.props.DataDoc.isTemplate) || this.props.DataDoc.layout === this.props.Document) ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
 
 
     paste = (e: ClipboardEvent) => {
@@ -624,7 +624,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             let self = this;
             let xf = this._ref.current!.getBoundingClientRect();
             let scrBounds = this.props.ScreenToLocalTransform().transformBounds(0, 0, xf.width, xf.height);
-            let nh = NumCast(this.dataDoc.nativeHeight, 0);
+            let nh = this.props.Document.isTemplate ? 0 : NumCast(this.dataDoc.nativeHeight, 0);
             let dh = NumCast(this.props.Document.height, 0);
             let sh = scrBounds.height;
             const ChromeHeight = MainOverlayTextBox.Instance.ChromeHeight;

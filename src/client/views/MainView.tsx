@@ -459,7 +459,7 @@ export class MainView extends React.Component {
             // [React.createRef<HTMLDivElement>(), "clone", "Add Docking Frame", addDockingNode],
             [React.createRef<HTMLDivElement>(), "cloud-upload-alt", "Import Directory", addImportCollectionNode],
             [React.createRef<HTMLDivElement>(), "play", "Add Youtube Searcher", addYoutubeSearcher],
-            [React.createRef<HTMLDivElement>(), "bolt", "Add Document Dragger", addDragboxNode]
+            [React.createRef<HTMLDivElement>(), "file", "Add Document Dragger", addDragboxNode]
         ];
         if (!ClientUtils.RELEASE) btns.unshift([React.createRef<HTMLDivElement>(), "cat", "Add Cat Image", addImageNode]);
 

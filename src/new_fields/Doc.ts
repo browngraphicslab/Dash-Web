@@ -446,7 +446,7 @@ export namespace Doc {
 
     export function GetLayoutDataDocPair(doc: Doc, dataDoc: Doc | undefined, fieldKey: string, childDocLayout: Doc) {
         let layoutDoc = childDocLayout;
-        let resolvedDataDoc = !doc.isTemplate && dataDoc !== doc ? dataDoc : undefined;
+        let resolvedDataDoc = !doc.isTemplate && dataDoc !== doc && dataDoc ? Doc.GetDataDoc(dataDoc) : undefined;
         if (resolvedDataDoc && Doc.WillExpandTemplateLayout(childDocLayout, resolvedDataDoc)) {
             Doc.UpdateDocumentExtensionForField(resolvedDataDoc, fieldKey);
             let fieldExtensionDoc = Doc.resolvedFieldDataDoc(resolvedDataDoc, StrCast(childDocLayout.templateField, StrCast(childDocLayout.title)), "dummy");
