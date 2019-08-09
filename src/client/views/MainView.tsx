@@ -58,7 +58,8 @@ export class MainView extends React.Component {
     private set mainContainer(doc: Opt<Doc>) {
         if (doc) {
             if (!("presentationView" in doc)) {
-                doc.presentationView = new List<Doc>([Docs.Create.TreeDocument([], { title: "Presentation" })]);
+                let initialDoc = Docs.Create.TreeDocument([], { title: "Presentation" });
+                doc.presentationView = Docs.Create.PresDocument(new List<Doc>([initialDoc]));
             }
             CurrentUserUtils.UserDocument.activeWorkspace = doc;
         }
@@ -384,11 +385,13 @@ export class MainView extends React.Component {
         let addButtonDocument = action(() => Docs.Create.ButtonDocument({ width: 150, height: 50, title: "Button" }));
         let addImportCollectionNode = action(() => Docs.Create.DirectoryImportDocument({ title: "Directory Import", width: 400, height: 400 }));
 
+        let addPresentationNode = action(() => Docs.Create.PresDocument(new List<Doc>([Docs.Create.TreeDocument([], { title: "Presentation" })])));
+
         let btns: [React.RefObject<HTMLDivElement>, IconName, string, () => Doc][] = [
             [React.createRef<HTMLDivElement>(), "object-group", "Add Collection", addColNode],
             [React.createRef<HTMLDivElement>(), "bolt", "Add Button", addButtonDocument],
             // [React.createRef<HTMLDivElement>(), "clone", "Add Docking Frame", addDockingNode],
-            [React.createRef<HTMLDivElement>(), "cloud-upload-alt", "Import Directory", addImportCollectionNode],
+            [React.createRef<HTMLDivElement>(), "cloud-upload-alt", "Import Directory", addPresentationNode], //remove at some point in favor of addImportCollectionNode
         ];
         if (!ClientUtils.RELEASE) btns.unshift([React.createRef<HTMLDivElement>(), "cat", "Add Cat Image", addImageNode]);
 

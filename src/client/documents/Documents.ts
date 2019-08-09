@@ -40,6 +40,9 @@ import DirectoryImportBox from "../util/Import & Export/DirectoryImportBox";
 import { Scripting } from "../util/Scripting";
 import { ButtonBox } from "../views/nodes/ButtonBox";
 import { SchemaHeaderField, RandomPastel } from "../../new_fields/SchemaHeaderField";
+import { PresBox } from "../views/nodes/PresBox";
+//import { PresBox } from "../views/nodes/PresBox";
+//import { PresField } from "../../new_fields/PresField";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 
@@ -60,7 +63,8 @@ export enum DocumentType {
     LINKDOC = "linkdoc",
     BUTTON = "button",
     TEMPLATE = "template",
-    EXTENSION = "extension"
+    EXTENSION = "extension",
+    PRES = "presentation"
 }
 
 export interface DocumentOptions {
@@ -168,6 +172,10 @@ export namespace Docs {
             }],
             [DocumentType.BUTTON, {
                 layout: { view: ButtonBox },
+            }],
+            [DocumentType.PRES, {
+                layout: { view: PresBox },
+                options: {}
             }]
         ]);
 
@@ -334,6 +342,9 @@ export namespace Docs {
                 })
                 .catch((err: any) => console.log(err));
             return inst;
+        }
+        export function PresDocument(initial: List<Doc> = new List(), options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.PRES), initial, options);
         }
 
         export function VideoDocument(url: string, options: DocumentOptions = {}) {

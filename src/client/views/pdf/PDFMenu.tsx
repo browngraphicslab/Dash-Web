@@ -250,7 +250,7 @@ export default class PDFMenu extends React.Component {
             </button>
         ] : [
                 <button key="4" className="pdfMenu-button" title="Delete Anchor" onPointerDown={this.deleteClicked}><FontAwesomeIcon icon="trash-alt" size="lg" key="1" /></button>,
-                <button key="5" className="pdfMenu-button" title="Pin to Presentation" onPointerDown={this.PinToPres}><FontAwesomeIcon icon="map-pin" size="lg" key="2" /></button>,
+                <button key="5" className="pdfMenu-button" title="Pin to Presentation" onPointerDown={this.PinToPres}><FontAwesomeIcon icon="map-pin" size="lg" key="2" /></button>, //change this to pin to 'new' presentation
                 <div className="pdfMenu-addTag" key="3">
                     <input onKeyDown={handleBackspace} onChange={this.keyChanged} placeholder="Key" style={{ gridColumn: 1 }} />
                     <input onKeyDown={handleBackspace} onChange={this.valueChanged} placeholder="Value" style={{ gridColumn: 3 }} />

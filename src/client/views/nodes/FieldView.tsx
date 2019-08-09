@@ -18,6 +18,7 @@ import { ImageBox } from "./ImageBox";
 import { PDFBox } from "./PDFBox";
 import { VideoBox } from "./VideoBox";
 import { Id } from "../../../new_fields/FieldSymbols";
+import { PresBox } from "./PresBox";
 
 //
 // these properties get assigned through the render() method of the DocumentView when it creates this node.
@@ -54,6 +55,7 @@ export interface FieldViewProps {
 export class FieldView extends React.Component<FieldViewProps> {
     public static LayoutString(fieldType: { name: string }, fieldStr: string = "data", fieldExt: string = "") {
         return `<${fieldType.name} {...props} fieldKey={"${fieldStr}"} fieldExt={"${fieldExt}"} />`;
+        //"<ImageBox {...props} />"
     }
 
     @computed
@@ -75,6 +77,9 @@ export class FieldView extends React.Component<FieldViewProps> {
         else if (field instanceof ImageField) {
             return <ImageBox {...this.props} leaveNativeSize={true} />;
         }
+        // else if (field instaceof PresBox) {
+        //    return <PresBox {...this.props} />;
+        // }
         else if (field instanceof IconField) {
             return <IconBox {...this.props} />;
         }
