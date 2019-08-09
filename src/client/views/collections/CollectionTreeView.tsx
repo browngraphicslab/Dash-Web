@@ -27,7 +27,6 @@ import "./CollectionTreeView.scss";
 import React = require("react");
 import { ComputedField, ScriptField } from '../../../new_fields/ScriptField';
 import { KeyValueBox } from '../nodes/KeyValueBox';
-import { exportNamedDeclaration } from 'babel-types';
 
 
 export interface TreeViewProps {
