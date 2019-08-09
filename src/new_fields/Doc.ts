@@ -13,6 +13,7 @@ import { List } from "./List";
 import { DocumentType } from "../client/documents/Documents";
 import { ComputedField, ScriptField } from "./ScriptField";
 import { PrefetchProxy, ProxyField } from "./Proxy";
+import { CurrentUserUtils } from "../server/authentication/models/current_user_utils";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -68,6 +69,7 @@ export function DocListCast(field: FieldResult): Doc[] {
 
 export const WidthSym = Symbol("Width");
 export const HeightSym = Symbol("Height");
+export const UpdatingFromServer = Symbol("UpdatingFromServer");
 const CachedUpdates = Symbol("Cached updates");
 
 function fetchProto(doc: Doc) {
@@ -76,8 +78,6 @@ function fetchProto(doc: Doc) {
         return proto;
     }
 }
-
-let updatingFromServer = false;
 
 @scriptingGlobal
 @Deserializable("Doc", fetchProto).withFields(["id"])
@@ -132,8 +132,10 @@ export class Doc extends RefField {
     //{ [key: string]: Field | FieldWaiting | undefined }
     private ___fields: any = {};
 
+    private [UpdatingFromServer]: boolean = false;
+
     private [Update] = (diff: any) => {
-        if (updatingFromServer) {
+        if (this[UpdatingFromServer]) {
             return;
         }
         DocServer.UpdateField(this[Id], diff);
@@ -152,6 +154,7 @@ export class Doc extends RefField {
 
     public async [HandleUpdate](diff: any) {
         const set = diff.$set;
+        const sameAuthor = this.author === CurrentUserUtils.email;
         if (set) {
             for (const key in set) {
                 if (!key.startsWith("fields.")) {
@@ -160,14 +163,15 @@ export class Doc extends RefField {
                 const fKey = key.substring(7);
                 const fn = async () => {
                     const value = await SerializationHelper.Deserialize(set[key]);
-                    updatingFromServer = true;
+                    this[UpdatingFromServer] = true;
                     this[fKey] = value;
-                    updatingFromServer = false;
+                    this[UpdatingFromServer] = false;
                 };
-                if (DocServer.getFieldWriteMode(fKey)) {
-                    this[CachedUpdates][fKey] = fn;
-                } else {
+                if (sameAuthor || DocServer.getFieldWriteMode(fKey) !== DocServer.WriteMode.Playground) {
+                    delete this[CachedUpdates][fKey];
                     await fn();
+                } else {
+                    this[CachedUpdates][fKey] = fn;
                 }
             }
         }
@@ -179,14 +183,15 @@ export class Doc extends RefField {
                 }
                 const fKey = key.substring(7);
                 const fn = () => {
-                    updatingFromServer = true;
+                    this[UpdatingFromServer] = true;
                     delete this[fKey];
-                    updatingFromServer = false;
+                    this[UpdatingFromServer] = false;
                 };
-                if (DocServer.getFieldWriteMode(fKey)) {
-                    this[CachedUpdates][fKey] = fn;
-                } else {
+                if (sameAuthor || DocServer.getFieldWriteMode(fKey) !== DocServer.WriteMode.Playground) {
+                    delete this[CachedUpdates][fKey];
                     await fn();
+                } else {
+                    this[CachedUpdates][fKey] = fn;
                 }
             }
         }
@@ -214,9 +219,9 @@ export namespace Doc {
     export function AddCachedUpdate(doc: Doc, field: string, oldValue: any) {
         const val = oldValue;
         doc[CachedUpdates][field] = () => {
-            updatingFromServer = true;
+            doc[UpdatingFromServer] = true;
             doc[field] = val;
-            updatingFromServer = false;
+            doc[UpdatingFromServer] = false;
         };
     }
     export function MakeReadOnly(): { end(): void } {

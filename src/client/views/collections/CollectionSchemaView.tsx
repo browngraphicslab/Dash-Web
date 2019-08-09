@@ -303,13 +303,13 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             return resized;
         }, [] as { "id": string, "value": number }[]);
     }
-    @computed get sorted(): { "id": string, "desc"?: true }[] {
+    @computed get sorted(): { id: string, desc: boolean }[] {
         return this.columns.reduce((sorted, shf) => {
             if (shf.desc) {
                 sorted.push({ "id": shf.heading, "desc": shf.desc });
             }
             return sorted;
-        }, [] as { "id": string, "desc"?: true }[]);
+        }, [] as { id: string, desc: boolean }[]);
     }
 
     @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }

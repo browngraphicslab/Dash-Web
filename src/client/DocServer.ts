@@ -27,9 +27,10 @@ export namespace DocServer {
     // indicates whether or not a document is currently being udpated, and, if so, its id
 
     export enum WriteMode {
-        Always = 0,
-        None = 1,
-        SameUser = 2,
+        Default = 0, //Anything goes
+        Playground = 1,
+        LiveReadonly = 2,
+        LivePlayground = 3,
     }
 
     const fieldWriteModes: { [field: string]: WriteMode } = {};
@@ -37,7 +38,7 @@ export namespace DocServer {
 
     export function setFieldWriteMode(field: string, writeMode: WriteMode) {
         fieldWriteModes[field] = writeMode;
-        if (writeMode === WriteMode.Always) {
+        if (writeMode !== WriteMode.Playground) {
             const docs = docsWithUpdates[field];
             if (docs) {
                 docs.forEach(doc => Doc.RunCachedUpdate(doc, field));
@@ -47,7 +48,7 @@ export namespace DocServer {
     }
 
     export function getFieldWriteMode(field: string) {
-        return fieldWriteModes[field];
+        return fieldWriteModes[field] || WriteMode.Default;
     }
 
     export function registerDocWithCachedUpdate(doc: Doc, field: string, oldValue: any) {
