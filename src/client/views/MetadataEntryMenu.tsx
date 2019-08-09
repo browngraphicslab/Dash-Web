@@ -169,6 +169,8 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
                     ref={this.autosuggestRef} />
                 Value:
                 <input className="metadataEntry-input" value={this._currentValue} onChange={this.onValueChange} onKeyDown={this.onValueKeyDown} />
+                Spread to children:
+                <input type="checkbox"></input>
             </div>
         );
     }
