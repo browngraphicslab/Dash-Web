@@ -22,6 +22,24 @@ export enum CollectionViewType {
     Masonry
 }
 
+export namespace CollectionViewType {
+
+    const stringMapping = new Map<string, CollectionViewType>([
+        ["invalid", CollectionViewType.Invalid],
+        ["freeform", CollectionViewType.Freeform],
+        ["schema", CollectionViewType.Schema],
+        ["docking", CollectionViewType.Docking],
+        ["tree", CollectionViewType.Tree],
+        ["stacking", CollectionViewType.Stacking],
+        ["masonry", CollectionViewType.Masonry]
+    ]);
+
+    export const valueOf = (value: string) => {
+        return stringMapping.get(value.toLowerCase());
+    };
+
+}
+
 export interface CollectionRenderProps {
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
     removeDocument: (document: Doc) => boolean;
@@ -81,7 +99,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
     addDocument(doc: Doc, allowDuplicates: boolean = false): boolean {
         var curPage = NumCast(this.props.Document.curPage, -1);
         Doc.GetProto(doc).page = curPage;
-        if (curPage >= 0) {
+        if (this.props.fieldExt) { // bcz: fieldExt !== undefined means this is an overlay layer
             Doc.GetProto(doc).annotationOn = this.props.Document;
         }
         allowDuplicates = true;
@@ -108,8 +126,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         let value = Cast(targetDataDoc[targetField], listSpec(Doc), []);
         let index = value.reduce((p, v, i) => (v instanceof Doc && v[Id] === doc[Id]) ? i : p, -1);
         PromiseValue(Cast(doc.annotationOn, Doc)).then(annotationOn =>
-            annotationOn === this.dataDoc.Document && (doc.annotationOn = undefined)
-        );
+            annotationOn === this.dataDoc.Document && (doc.annotationOn = undefined));
 
         if (index !== -1) {
             value.splice(index, 1);

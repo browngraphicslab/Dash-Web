@@ -105,23 +105,11 @@ export interface LinkMenuProps {
 @observer
 export class LinkContextMenu extends React.Component<LinkMenuProps> {
 
-    highlightDoc = (doc: Doc) => {
-        return () => {
-            doc.libraryBrush = true;
-        };
-    }
+    highlightDoc = (doc: Doc) => () => Doc.BrushDoc(doc);
 
-    unHighlightDoc = (doc: Doc) => {
-        return () => {
-            doc.libraryBrush = false;
-        };
-    }
+    unHighlightDoc = (doc: Doc) => () => Doc.UnBrushDoc(doc);
 
-    getOnClick(col: Doc) {
-        return () => {
-            CollectionDockingView.Instance.AddRightSplit(col, undefined);
-        };
-    }
+    getOnClick = (col: Doc) => () => CollectionDockingView.Instance.AddRightSplit(col, undefined);
 
     render() {
         return (
@@ -286,14 +274,12 @@ export class SearchItem extends React.Component<SearchItemProps> {
 
                 let doc1 = Cast(this.props.doc.anchor1, Doc, null);
                 let doc2 = Cast(this.props.doc.anchor2, Doc, null);
-                doc1 && (doc1.libraryBrush = true);
-                doc2 && (doc2.libraryBrush = true);
+                Doc.BrushDoc(doc1);
+                Doc.BrushDoc(doc2);
             }
         } else {
-            let docViews: DocumentView[] = DocumentManager.Instance.getAllDocumentViews(this.props.doc);
-            docViews.forEach(element => {
-                element.props.Document.libraryBrush = true;
-            });
+            DocumentManager.Instance.getAllDocumentViews(this.props.doc).forEach(element =>
+                Doc.BrushDoc(element.props.Document));
         }
     }
 
@@ -303,14 +289,12 @@ export class SearchItem extends React.Component<SearchItemProps> {
 
                 let doc1 = Cast(this.props.doc.anchor1, Doc, null);
                 let doc2 = Cast(this.props.doc.anchor2, Doc, null);
-                doc1 && (doc1.libraryBrush = false);
-                doc2 && (doc2.libraryBrush = false);
+                Doc.UnBrushDoc(doc1);
+                Doc.UnBrushDoc(doc2);
             }
         } else {
-            let docViews: DocumentView[] = DocumentManager.Instance.getAllDocumentViews(this.props.doc);
-            docViews.forEach(element => {
-                element.props.Document.libraryBrush = false;
-            });
+            DocumentManager.Instance.getAllDocumentViews(this.props.doc).
+                forEach(element => Doc.UnBrushDoc(element.props.Document));
         }
     }
 

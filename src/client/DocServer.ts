@@ -1,6 +1,6 @@
 import * as OpenSocket from 'socket.io-client';
 import { MessageStore, Diff, YoutubeQueryTypes } from "./../server/Message";
-import { Opt } from '../new_fields/Doc';
+import { Opt, Doc } from '../new_fields/Doc';
 import { Utils, emptyFunction } from '../Utils';
 import { SerializationHelper } from './util/SerializationHelper';
 import { RefField } from '../new_fields/RefField';
@@ -25,6 +25,41 @@ export namespace DocServer {
     // this client's distinct GUID created at initialization
     let GUID: string;
     // indicates whether or not a document is currently being udpated, and, if so, its id
+
+    export enum WriteMode {
+        Always = 0,
+        None = 1,
+        SameUser = 2,
+    }
+
+    const fieldWriteModes: { [field: string]: WriteMode } = {};
+    const docsWithUpdates: { [field: string]: Set<Doc> } = {};
+
+    export function setFieldWriteMode(field: string, writeMode: WriteMode) {
+        fieldWriteModes[field] = writeMode;
+        if (writeMode === WriteMode.Always) {
+            const docs = docsWithUpdates[field];
+            if (docs) {
+                docs.forEach(doc => Doc.RunCachedUpdate(doc, field));
+                delete docsWithUpdates[field];
+            }
+        }
+    }
+
+    export function getFieldWriteMode(field: string) {
+        return fieldWriteModes[field];
+    }
+
+    export function registerDocWithCachedUpdate(doc: Doc, field: string, oldValue: any) {
+        let list = docsWithUpdates[field];
+        if (!list) {
+            list = docsWithUpdates[field] = new Set;
+        }
+        if (!list.has(doc)) {
+            Doc.AddCachedUpdate(doc, field, oldValue);
+            list.add(doc);
+        }
+    }
 
     export function init(protocol: string, hostname: string, port: number, identifier: string) {
         _cache = {};

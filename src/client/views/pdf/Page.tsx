@@ -24,7 +24,7 @@ interface IPageProps {
     renderAnnotations: (annotations: Doc[], removeOld: boolean) => void;
     sendAnnotations: (annotations: HTMLDivElement[], page: number) => void;
     createAnnotation: (div: HTMLDivElement, page: number) => void;
-    makeAnnotationDocuments: (doc: Doc | undefined, scale: number, color: string, linkTo: boolean) => Doc;
+    makeAnnotationDocuments: (doc: Doc | undefined, color: string, linkTo: boolean) => Doc;
     getScrollFromPage: (page: number) => number;
     setSelectionText: (text: string) => void;
 }
@@ -87,7 +87,7 @@ export default class Page extends React.Component<IPageProps> {
     @action
     highlight = (targetDoc: Doc | undefined, color: string) => {
         // creates annotation documents for current highlights
-        let annotationDoc = this.props.makeAnnotationDocuments(targetDoc, scale, color, false);
+        let annotationDoc = this.props.makeAnnotationDocuments(targetDoc, color, false);
         Doc.AddDocToList(this.props.fieldExtensionDoc, "annotations", annotationDoc);
         return annotationDoc;
     }
@@ -112,8 +112,7 @@ export default class Page extends React.Component<IPageProps> {
                         if (!BoolCast(annotationDoc.linkedToDoc)) {
                             let annotations = await DocListCastAsync(annotationDoc.annotations);
                             annotations && annotations.forEach(anno => anno.target = targetDoc);
-                            let pdfDoc = await Cast(annotationDoc.pdfDoc, Doc);
-                            pdfDoc && DocUtils.MakeLink(annotationDoc, targetDoc, dragData.targetContext, `Annotation from ${StrCast(pdfDoc.title)}`, "", StrCast(pdfDoc.title))
+                            DocUtils.MakeLink(annotationDoc, targetDoc, dragData.targetContext, `Annotation from ${StrCast(this.props.Document.title)}`)
                         }
                     }
                 },
@@ -143,11 +142,8 @@ export default class Page extends React.Component<IPageProps> {
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         // if alt+left click, drag and annotate
-        if (this.props.Document.scale !== 1) return;
-        if (e.altKey && e.button === 0) {
-            e.stopPropagation();
-        }
-        else if (e.button === 0) {
+        if (NumCast(this.props.Document.scale, 1) !== 1) return;
+        if (!e.altKey && e.button === 0) {
             PDFMenu.Instance.StartDrag = this.startDrag;
             PDFMenu.Instance.Highlight = this.highlight;
             PDFMenu.Instance.Snippet = this.createSnippet;

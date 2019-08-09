@@ -234,7 +234,9 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
             results.map((face: CognitiveServices.Image.Face) => faceDocs.push(Docs.Get.DocumentHierarchyFromJson(face, `Face: ${face.faceId}`)!));
             return faceDocs;
         };
-        CognitiveServices.Image.Manager.analyzer(this.extensionDoc, ["faces"], this.url, Service.Face, converter);
+        if (this.url) {
+            CognitiveServices.Image.Appliers.ProcessImage(this.extensionDoc, ["faces"], this.url, Service.Face, converter);
+        }
     }
 
     generateMetadata = (threshold: Confidence = Confidence.Excellent) => {
@@ -253,7 +255,9 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
             tagDoc.confidence = threshold;
             return tagDoc;
         };
-        CognitiveServices.Image.Manager.analyzer(this.extensionDoc, ["generatedTagsDoc"], this.url, Service.ComputerVision, converter);
+        if (this.url) {
+            CognitiveServices.Image.Appliers.ProcessImage(this.extensionDoc, ["generatedTagsDoc"], this.url, Service.ComputerVision, converter);
+        }
     }
 
     @action
