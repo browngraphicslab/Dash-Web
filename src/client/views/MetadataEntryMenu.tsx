@@ -20,6 +20,7 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
     @observable private _currentValue: string = "";
     @observable private suggestions: string[] = [];
     private userModified = false;
+    private _addChildren = false;
 
     private autosuggestRef = React.createRef<Autosuggest>();
 
@@ -82,6 +83,9 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
             e.stopPropagation();
             const script = KeyValueBox.CompileKVPScript(this._currentValue);
             if (!script) return;
+            // add optional adding here
+            let docs = Array<Doc>();
+
             let doc = this.props.docs;
             if (typeof doc === "function") {
                 doc = doc();
@@ -155,6 +159,11 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
         this.suggestions = [];
     }
 
+    onClick = (e: React.ChangeEvent<HTMLInputElement>) => {
+        this._addChildren = !this._addChildren;
+        console.log(this._addChildren);
+    }
+
     render() {
         return (
             <div className="metadataEntry-outerDiv">
@@ -170,7 +179,7 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
                 Value:
                 <input className="metadataEntry-input" value={this._currentValue} onChange={this.onValueChange} onKeyDown={this.onValueKeyDown} />
                 Spread to children:
-                <input type="checkbox"></input>
+                <input type="checkbox" onChange={this.onClick} checked={this._addChildren}></input>
             </div>
         );
     }
