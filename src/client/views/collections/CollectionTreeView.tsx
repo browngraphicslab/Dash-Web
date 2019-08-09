@@ -428,9 +428,9 @@ class TreeView extends React.Component<TreeViewProps> {
                 return first > second ? 1 : -1;
             }
             if (typeof first === 'boolean' && typeof second === 'boolean') {
-                if (first === second) { // bugfixing?: otherwise, the list "flickers" because the list is resorted during every load
-                    return Number(descA.x) > Number(descB.x) ? 1 : -1;
-                }
+                // if (first === second) { // bugfixing?: otherwise, the list "flickers" because the list is resorted during every load
+                //     return Number(descA.x) > Number(descB.x) ? 1 : -1;
+                // }
                 return first > second ? 1 : -1;
             }
             return descending ? 1 : -1;
