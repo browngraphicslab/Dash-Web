@@ -144,7 +144,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
                                 DataDoc={FormattedTextBox.InputBoxOverlay.props.DataDoc}
                                 isSelected={returnTrue} select={emptyFunction} renderDepth={0} selectOnLoad={true}
                                 ContainingCollectionView={undefined} whenActiveChanged={emptyFunction} active={returnTrue} ContentScaling={returnOne}
-                                ScreenToLocalTransform={this._textXf} PanelWidth={returnZero} PanelHeight={returnZero} focus={emptyFunction} addDocTab={this.addDocTab} outer_div={(tooltip: HTMLElement) => { this._tooltip = tooltip; this.updateTooltip(); }} />
+                                ScreenToLocalTransform={this._textXf} PanelWidth={returnZero} PanelHeight={returnZero} focus={emptyFunction} addDocTab={this.addDocTab} />
                         </div>
                     </div>
                 </div>

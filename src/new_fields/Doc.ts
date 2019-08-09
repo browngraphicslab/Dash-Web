@@ -297,6 +297,10 @@ export namespace Doc {
     export function GetProto(doc: Doc) {
         return Doc.GetT(doc, "isPrototype", "boolean", true) ? doc : (doc.proto || doc);
     }
+    export function GetDataDoc(doc: Doc): Doc {
+        let proto = Doc.GetProto(doc);
+        return proto === doc ? proto : Doc.GetDataDoc(proto);
+    }
 
     export function allKeys(doc: Doc): string[] {
         const results: Set<string> = new Set;
@@ -371,7 +375,7 @@ export namespace Doc {
         docExtensionForField.extendsDoc = doc; // this is used by search to map field matches on the extension doc back to the document it extends.
         docExtensionForField.type = DocumentType.EXTENSION;
         let proto: Doc | undefined = doc;
-        while (proto && !Doc.IsPrototype(proto)) {
+        while (proto && !Doc.IsPrototype(proto) && proto.proto) {
             proto = proto.proto;
         }
         (proto ? proto : doc)[fieldKey + "_ext"] = new PrefetchProxy(docExtensionForField);
@@ -490,7 +494,8 @@ export namespace Doc {
     let _applyCount: number = 0;
     export function ApplyTemplate(templateDoc: Doc) {
         if (!templateDoc) return undefined;
-        let otherdoc = new Doc();
+        let datadoc = new Doc();
+        let otherdoc = Doc.MakeDelegate(datadoc);
         otherdoc.width = templateDoc[WidthSym]();
         otherdoc.height = templateDoc[HeightSym]();
         otherdoc.title = templateDoc.title + "(..." + _applyCount++ + ")";

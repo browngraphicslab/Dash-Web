@@ -190,12 +190,6 @@ export class TooltipTextMenu {
         this.updateListItemDropdown(":", this.listTypeBtnDom);
 
         this.update(view, undefined);
-
-        //view.dom.parentNode!.parentNode!.insertBefore(this.tooltip, view.dom.parentNode);
-
-        // add tooltip to outerdiv to circumvent scaling problem
-        const outer_div = this.editorProps.outer_div;
-        outer_div && outer_div(this.wrapper);
     }
 
     //label of dropdown will change to given label
