@@ -43,8 +43,8 @@ export class CurrentUserUtils {
         doc.boxShadow = "0 0";
         doc.excludeFromLibrary = true;
         const rightColl = Docs.Create.StackingDocument([], { title: "New mobile uploads" });
-        rightColl[SetAcls]("system", 1);
-        rightColl.proto![SetAcls]("system", 1);
+        rightColl[SetAcls]("system", Permissions.WRITE);
+        rightColl.proto![SetAcls]("system", Permissions.WRITE);
         doc.optionalRightCollection = rightColl;
         // doc.library = Docs.Create.TreeDocument([doc], { title: `Library: ${CurrentUserUtils.email}` });
         // (doc.library as Doc).excludeFromLibrary = true;

@@ -64,7 +64,7 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
             }
         }
         else if (permissions !== Permissions.WRITE) {
-            throw new PermissionsError("Permission denied");
+            return true;
         }
     }
     const curValue = target.__fields[prop];

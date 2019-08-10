@@ -775,7 +775,7 @@ export function HasAdd(doc: any, user: string, key?: string): boolean { return H
  */
 export function HasNone(doc: any, user: string, key?: string): boolean { return HasPermission(doc, user, 3, key); }
 
-function HasPermission(doc: any, user: string, permission: number, key?: string) {
+function HasPermission(doc: any, user: string, permission: ServerPermissions, key?: string) {
     let acls = doc ? doc.acls : undefined;
     if (acls) {
         if (!key) {
@@ -788,6 +788,10 @@ function HasPermission(doc: any, user: string, permission: number, key?: string)
     return false;
 }
 
+export enum ServerPermissions {
+    READ, WRITE, ADDONLY, NONE
+}
+
 /** Returns true if the user id has read or write permission on the document (or the field, if specified) */
 export function HasReadOrWrite(doc: any, user: string, key?: string): boolean { return HasRead(doc, user, key) || HasWrite(doc, user, key); }
 
@@ -796,21 +800,35 @@ export function GetFillerDocument(id: string, options: {}) {
 }
 
 function GetRefField([[id, userId], callback]: [[string, string], (result: any) => void]) {
-    Database.Instance.getDocument(id, (result) => {
-        if (HasReadOrWrite(result, "system") || HasReadOrWrite(result, userId)) {
-            callback(result);
+    Database.Instance.getDocument(id, async (result) => {
+        let doc = await result;
+        if (HasReadOrWrite(doc, "system") || HasReadOrWrite(doc, userId)) {
+            callback(doc);
+        }
+        else if (!doc) {
+            callback(doc);
         }
         else {
             let clone: any = {};
-            Object.assign(clone, result);
-            clone.fields = {
-                layout: "<FormattedTextBox {...props} fieldKey={\"data\"} fieldExt={\"\"} />",
-                data: '=new RichTextField("{"doc":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Permission denied"}]}]},"selection":{"type":"text","anchor":9,"head":9}}")',
-                title: "Permission Denied",
-                text: "Permission Denied"
+            Object.assign(clone, doc);
+            if (doc.fields.type === "extension") {
+                clone.fields = {
+                    ...doc.fields,
+                    text: "Permission Denied"
+                }
+            }
+            else {
+                clone.fields = {
+                    layout: "<FormattedTextBox {...props} fieldKey={\"data\"} fieldExt={\"\"} />",
+                    data: '=new RichTextField("{"doc":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Permission denied"}]}]},"selection":{"type":"text","anchor":9,"head":9}}")',
+                    title: "Permission Denied",
+                    text: "Permission Denied",
+                    proto: doc.fields.proto,
+                    data_ext: doc.fields.data_ext
+                }
             }
             clone.acls = {};
-            clone.acls[userId] = 0;
+            clone.acls[userId] = ServerPermissions.READ;
             callback(clone);
         }
     }, "newDocuments");
