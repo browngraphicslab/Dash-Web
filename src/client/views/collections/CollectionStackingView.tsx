@@ -76,7 +76,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
 
     componentDidMount() {
         // is there any reason this needs to exist? -syip
-        this._heightDisposer = reaction(() => [this.yMargin, this.props.Document[WidthSym](), this.gridGap, this.columnWidth, this.childDocs.map(d => [d.height, d.width, d.zoomBasis, d.nativeHeight, d.nativeWidth, d.isMinimized])],
+        this._heightDisposer = reaction(() => [this.props.Document.autoHeight, this.yMargin, this.props.Document[WidthSym](), this.gridGap, this.columnWidth, this.childDocs.map(d => [d.height, d.width, d.zoomBasis, d.nativeHeight, d.nativeWidth, d.isMinimized])],
             () => {
                 if (this.singleColumn && BoolCast(this.props.Document.autoHeight)) {
                     let hgt = this.Sections.size * 50 + this.filteredChildren.reduce((height, d, i) => {

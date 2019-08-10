@@ -44,7 +44,6 @@ import * as Archiver from 'archiver';
 import * as AdmZip from 'adm-zip';
 import * as YoutubeApi from './youtubeApi/youtubeApiSample.js';
 import { Response } from 'express-serve-static-core';
-import { DocComponent } from '../client/views/DocComponent';
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const probe = require("probe-image-size");
