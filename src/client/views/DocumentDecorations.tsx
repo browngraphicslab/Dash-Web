@@ -562,7 +562,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 } else {
                     dW && (doc.width = actualdW);
                     dH && (doc.height = actualdH);
-                    dH && Doc.SetInPlace(element.props.Document, "autoHeight", undefined, true);
+                    dH && element.props.Document.autoHeight && Doc.SetInPlace(element.props.Document, "autoHeight", false, true);
                 }
             }
         });
