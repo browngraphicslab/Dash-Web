@@ -335,6 +335,10 @@ export namespace Docs {
             return Doc.assign(deleg, options);
         }
 
+        export function PermissionDeniedDocument(id: string, options: DocumentOptions) {
+
+        }
+
         export function ImageDocument(url: string, options: DocumentOptions = {}) {
             let imgField = new ImageField(new URL(url));
             let inst = InstanceFromProto(Prototypes.get(DocumentType.IMG), imgField, { title: path.basename(url), ...options });

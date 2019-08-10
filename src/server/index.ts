@@ -38,14 +38,11 @@ import expressFlash = require('express-flash');
 import flash = require('connect-flash');
 import c = require("crypto");
 import { Search } from './Search';
-import { debug } from 'util';
 import _ = require('lodash');
 import * as Archiver from 'archiver';
 import * as AdmZip from 'adm-zip';
 import * as YoutubeApi from './youtubeApi/youtubeApiSample.js';
 import { Response } from 'express-serve-static-core';
-import { DocComponent } from '../client/views/DocComponent';
-import { SerializationHelper } from '../client/util/SerializationHelper';
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const probe = require("probe-image-size");
@@ -745,12 +742,65 @@ function setField(socket: Socket, newValue: Transferable) {
     }
 }
 
+/**
+ * 
+ * Returns true if the user id has permission to read the document (or the field, if specified)
+ * @param doc - Document to check
+ * @param user - User to check
+ * @param key - Key to check
+ */
+export function HasRead(doc: any, user: string, key?: string): boolean { return HasPermission(doc, user, 0, key); }
+/**
+ * 
+ * Returns true if the user id has permission to write to the document (or the field, if specified)
+ * @param doc - Document to check
+ * @param user - User to check
+ * @param key - Key to check
+ */
+export function HasWrite(doc: any, user: string, key?: string): boolean { return HasPermission(doc, user, 1, key); }
+/**
+ * 
+ * Returns true if the user id has permission to add to the document (or the field, if specified)
+ * @param doc - Document to check
+ * @param user - User to check
+ * @param key - Key to check
+ */
+export function HasAdd(doc: any, user: string, key?: string): boolean { return HasPermission(doc, user, 2, key); }
+/**
+ * 
+ * Returns true if the user id has no permissions to the document (or the field, if specified)
+ * @param doc - Document to check
+ * @param user - User to check
+ * @param key - Key to check
+ */
+export function HasNone(doc: any, user: string, key?: string): boolean { return HasPermission(doc, user, 3, key); }
+
+function HasPermission(doc: any, user: string, permission: number, key?: string) {
+    let acls = doc ? doc.acls : undefined;
+    if (acls) {
+        if (!key) {
+            return (acls[user] && acls[user] === permission);
+        }
+        else {
+            return true;
+        }
+    }
+    return false;
+}
+
+/** Returns true if the user id has read or write permission on the document (or the field, if specified) */
+export function HasReadOrWrite(doc: any, user: string, key?: string): boolean { return HasRead(doc, user, key) || HasWrite(doc, user, key); }
+
+export function GetFillerDocument(id: string, options: {}) {
+
+}
+
 function GetRefField([[id, userId], callback]: [[string, string], (result: any) => void]) {
     Database.Instance.getDocument(id, (result) => {
-        let acls = result ? result.acls : undefined;
-        // if there are acls on this document and the requesting user id doesn't have permission, return undefined
-        // allow a bypass if the document has system read or write access (0 or 1)
-        if (acls && !(acls["system"] < 2) && (!acls[userId] || acls[userId] === 3)) {
+        if (HasReadOrWrite(result, "system") || HasReadOrWrite(result, userId)) {
+            callback(result);
+        }
+        else {
             let clone: any = {};
             Object.assign(clone, result);
             clone.fields = {
@@ -759,11 +809,9 @@ function GetRefField([[id, userId], callback]: [[string, string], (result: any) 
                 title: "Permission Denied",
                 text: "Permission Denied"
             }
+            clone.acls = {};
             clone.acls[userId] = 0;
             callback(clone);
-        }
-        else {
-            callback(result);
         }
     }, "newDocuments");
 }
