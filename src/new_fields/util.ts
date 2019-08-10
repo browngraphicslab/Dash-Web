@@ -1,5 +1,5 @@
 import { UndoManager } from "../client/util/UndoManager";
-import { Doc, Field, FieldResult } from "./Doc";
+import { Doc, Field, FieldResult, UpdatingFromServer } from "./Doc";
 import { SerializationHelper } from "../client/util/SerializationHelper";
 import { ProxyField } from "./Proxy";
 import { RefField } from "./RefField";
@@ -59,23 +59,29 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
         delete curValue[Parent];
         delete curValue[OnUpdate];
     }
-    if (value === undefined) {
-        delete target.__fields[prop];
-    } else {
-        target.__fields[prop] = value;
-    }
     const writeMode = DocServer.getFieldWriteMode(prop as string);
-    if (typeof value === "object" && !(value instanceof ObjectField)) debugger;
-    if (!writeMode || (writeMode === DocServer.WriteMode.SameUser && receiver.author === CurrentUserUtils.email)) {
-        if (value === undefined) target[Update]({ '$unset': { ["fields." + prop]: "" } });
-        else target[Update]({ '$set': { ["fields." + prop]: value instanceof ObjectField ? SerializationHelper.Serialize(value) : (value === undefined ? null : value) } });
-    } else {
-        DocServer.registerDocWithCachedUpdate(receiver, prop as string, curValue);
+    const fromServer = target[UpdatingFromServer];
+    const sameAuthor = fromServer || (receiver.author === CurrentUserUtils.email);
+    const writeToDoc = sameAuthor || (writeMode !== DocServer.WriteMode.LiveReadonly);
+    const writeToServer = sameAuthor || (writeMode === DocServer.WriteMode.Default);
+    if (writeToDoc) {
+        if (value === undefined) {
+            delete target.__fields[prop];
+        } else {
+            target.__fields[prop] = value;
+        }
+        if (typeof value === "object" && !(value instanceof ObjectField)) debugger;
+        if (writeToServer) {
+            if (value === undefined) target[Update]({ '$unset': { ["fields." + prop]: "" } });
+            else target[Update]({ '$set': { ["fields." + prop]: value instanceof ObjectField ? SerializationHelper.Serialize(value) : (value === undefined ? null : value) } });
+        } else {
+            DocServer.registerDocWithCachedUpdate(receiver, prop as string, curValue);
+        }
+        UndoManager.AddEvent({
+            redo: () => receiver[prop] = value,
+            undo: () => receiver[prop] = curValue
+        });
     }
-    UndoManager.AddEvent({
-        redo: () => receiver[prop] = value,
-        undo: () => receiver[prop] = curValue
-    });
     return true;
 });
 
