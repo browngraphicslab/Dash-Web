@@ -8,11 +8,12 @@ import { listSpec } from "./Schema";
 import { ObjectField } from "./ObjectField";
 import { RefField, FieldId } from "./RefField";
 import { ToScriptString, SelfProxy, Parent, OnUpdate, Self, HandleUpdate, Update, Id } from "./FieldSymbols";
-import { scriptingGlobal } from "../client/util/Scripting";
+import { scriptingGlobal, CompileScript, Scripting } from "../client/util/Scripting";
 import { List } from "./List";
 import { DocumentType } from "../client/documents/Documents";
-import { ComputedField } from "./ScriptField";
+import { ComputedField, ScriptField } from "./ScriptField";
 import { PrefetchProxy, ProxyField } from "./Proxy";
+import { CurrentUserUtils } from "../server/authentication/models/current_user_utils";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -68,6 +69,8 @@ export function DocListCast(field: FieldResult): Doc[] {
 
 export const WidthSym = Symbol("Width");
 export const HeightSym = Symbol("Height");
+export const UpdatingFromServer = Symbol("UpdatingFromServer");
+const CachedUpdates = Symbol("Cached updates");
 
 function fetchProto(doc: Doc) {
     const proto = doc.proto;
@@ -75,8 +78,6 @@ function fetchProto(doc: Doc) {
         return proto;
     }
 }
-
-let updatingFromServer = false;
 
 @scriptingGlobal
 @Deserializable("Doc", fetchProto).withFields(["id"])
@@ -131,8 +132,10 @@ export class Doc extends RefField {
     //{ [key: string]: Field | FieldWaiting | undefined }
     private ___fields: any = {};
 
+    private [UpdatingFromServer]: boolean = false;
+
     private [Update] = (diff: any) => {
-        if (updatingFromServer) {
+        if (this[UpdatingFromServer]) {
             return;
         }
         DocServer.UpdateField(this[Id], diff);
@@ -147,18 +150,29 @@ export class Doc extends RefField {
         return "invalid";
     }
 
+    private [CachedUpdates]: { [key: string]: () => void | Promise<any> } = {};
+
     public async [HandleUpdate](diff: any) {
         const set = diff.$set;
+        const sameAuthor = this.author === CurrentUserUtils.email;
         if (set) {
             for (const key in set) {
                 if (!key.startsWith("fields.")) {
                     continue;
                 }
-                const value = await SerializationHelper.Deserialize(set[key]);
                 const fKey = key.substring(7);
-                updatingFromServer = true;
-                this[fKey] = value;
-                updatingFromServer = false;
+                const fn = async () => {
+                    const value = await SerializationHelper.Deserialize(set[key]);
+                    this[UpdatingFromServer] = true;
+                    this[fKey] = value;
+                    this[UpdatingFromServer] = false;
+                };
+                if (sameAuthor || DocServer.getFieldWriteMode(fKey) !== DocServer.WriteMode.Playground) {
+                    delete this[CachedUpdates][fKey];
+                    await fn();
+                } else {
+                    this[CachedUpdates][fKey] = fn;
+                }
             }
         }
         const unset = diff.$unset;
@@ -168,9 +182,17 @@ export class Doc extends RefField {
                     continue;
                 }
                 const fKey = key.substring(7);
-                updatingFromServer = true;
-                delete this[fKey];
-                updatingFromServer = false;
+                const fn = () => {
+                    this[UpdatingFromServer] = true;
+                    delete this[fKey];
+                    this[UpdatingFromServer] = false;
+                };
+                if (sameAuthor || DocServer.getFieldWriteMode(fKey) !== DocServer.WriteMode.Playground) {
+                    delete this[CachedUpdates][fKey];
+                    await fn();
+                } else {
+                    this[CachedUpdates][fKey] = fn;
+                }
             }
         }
     }
@@ -187,6 +209,21 @@ export namespace Doc {
     //         return Cast(field, ctor);
     //     });
     // }
+    export function RunCachedUpdate(doc: Doc, field: string) {
+        const update = doc[CachedUpdates][field];
+        if (update) {
+            update();
+            delete doc[CachedUpdates][field];
+        }
+    }
+    export function AddCachedUpdate(doc: Doc, field: string, oldValue: any) {
+        const val = oldValue;
+        doc[CachedUpdates][field] = () => {
+            doc[UpdatingFromServer] = true;
+            doc[field] = val;
+            doc[UpdatingFromServer] = false;
+        };
+    }
     export function MakeReadOnly(): { end(): void } {
         makeReadOnly();
         return {
@@ -366,10 +403,15 @@ export namespace Doc {
         }
     }
     export function MakeAlias(doc: Doc) {
-        if (!GetT(doc, "isPrototype", "boolean", true)) {
-            return Doc.MakeCopy(doc);
+        let alias = !GetT(doc, "isPrototype", "boolean", true) ? Doc.MakeCopy(doc) : Doc.MakeDelegate(doc);
+        let aliasNumber = Doc.GetProto(doc).aliasNumber = NumCast(Doc.GetProto(doc).aliasNumber) + 1;
+        let script = `return renameAlias(self, ${aliasNumber})`;
+        //let script = "StrCast(self.title).replace(/\\([0-9]*\\)/, \"\") + `(${n})`";
+        let compiled = CompileScript(script, { params: { this: "Doc" }, capturedVariables: { self: doc }, typecheck: false });
+        if (compiled.compiled) {
+            alias.title = new ComputedField(compiled);
         }
-        return Doc.MakeDelegate(doc); // bcz?
+        return alias;
     }
 
     //
@@ -543,4 +585,25 @@ export namespace Doc {
             }
         });
     }
+
+    export class DocBrush {
+        @observable BrushedDoc: Doc[] = [];
+    }
+    const manager = new DocBrush();
+    export function IsBrushed(doc: Doc) {
+        return manager.BrushedDoc.some(d => Doc.AreProtosEqual(d, doc));
+    }
+    export function IsBrushedDegree(doc: Doc) {
+        return manager.BrushedDoc.some(d => d === doc) ? 2 : Doc.IsBrushed(doc) ? 1 : 0;
+    }
+    export function BrushDoc(doc: Doc) {
+        if (manager.BrushedDoc.indexOf(doc) === -1) runInAction(() => manager.BrushedDoc.push(doc));
+    }
+    export function UnBrushDoc(doc: Doc) {
+        let index = manager.BrushedDoc.indexOf(doc);
+        if (index !== -1) runInAction(() => manager.BrushedDoc.splice(index, 1));
+    }
 }
+Scripting.addGlobal(function renameAlias(doc: any, n: any) {
+    return StrCast(doc.title).replace(/\([0-9]*\)/, "") + `(${n})`;
+});

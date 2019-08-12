@@ -8,14 +8,13 @@ import { Copy, Id } from '../../../new_fields/FieldSymbols';
 import { List } from "../../../new_fields/List";
 import { ObjectField } from "../../../new_fields/ObjectField";
 import { createSchema, listSpec, makeInterface } from "../../../new_fields/Schema";
-import { BoolCast, Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
+import { BoolCast, Cast, FieldValue, NumCast, StrCast, PromiseValue } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { RouteStore } from '../../../server/RouteStore';
 import { emptyFunction, returnTrue, Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { ClientUtils } from '../../util/ClientUtils';
-import DictationManager from '../../util/DictationManager';
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager, dropActionType } from "../../util/DragManager";
 import { LinkManager } from '../../util/LinkManager';
@@ -38,6 +37,9 @@ import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import { FormattedTextBox } from './FormattedTextBox';
 import React = require("react");
+import { DictationManager } from '../../util/DictationManager';
+import { MainView } from '../MainView';
+import requestPromise = require('request-promise');
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(fa.faTrash);
@@ -148,10 +150,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     set templates(templates: List<string>) { this.props.Document.templates = templates; }
     screenRect = (): ClientRect | DOMRect => this._mainCont.current ? this._mainCont.current.getBoundingClientRect() : new DOMRect();
-
-    constructor(props: DocumentViewProps) {
-        super(props);
-    }
 
     _animateToIconDisposer?: IReactionDisposer;
     _reactionDisposer?: IReactionDisposer;
@@ -303,7 +301,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             fullScreenAlias.showCaption = true;
             this.props.addDocTab(fullScreenAlias, this.dataDoc, "inTab");
             SelectionManager.DeselectAll();
-            this.props.Document.libraryBrush = false;
+            Doc.UnBrushDoc(this.props.Document);
         }
         else if (CurrentUserUtils.MainDocId !== this.props.Document[Id] &&
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
@@ -361,12 +359,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     if (!linkedFwdDocs.some(l => l instanceof Promise)) {
                         let maxLocation = StrCast(linkedFwdDocs[0].maximizeLocation, "inTab");
                         let targetContext = !Doc.AreProtosEqual(linkedFwdContextDocs[altKey ? 1 : 0], this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document) ? linkedFwdContextDocs[altKey ? 1 : 0] : undefined;
-                        DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0], ctrlKey, false, document => {
-                            this.props.focus(this.props.Document, true, 1);
-                            setTimeout(() =>
-                                this.props.addDocTab(document, undefined, maxLocation), 1000);
-                        }
-                            , linkedFwdPage[altKey ? 1 : 0], targetContext);
+                        DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0], ctrlKey, false,
+                            document => {  // open up target if it's not already in view ...
+                                this.props.focus(this.props.Document, true, 1);  // by zooming into the button document first
+                                setTimeout(() => this.props.addDocTab(document, undefined, maxLocation), 1000); // then after the 1sec animation, open up the target in a new tab
+                            },
+                            linkedFwdPage[altKey ? 1 : 0], targetContext);
                     }
                 }
             }
@@ -411,7 +409,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     deleteClicked = (): void => { SelectionManager.DeselectAll(); this.props.removeDocument && this.props.removeDocument(this.props.Document); }
 
     @undoBatch
-    fieldsClicked = (): void => { let kvp = Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }); this.props.addDocTab(kvp, this.dataDoc, "onRight"); }
+    fieldsClicked = (): void => {
+        let kvp = Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 });
+        this.props.addDocTab(kvp, this.dataDoc, "onRight");
+    }
 
     @undoBatch
     makeBtnClicked = (): void => {
@@ -444,15 +445,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             let targetDoc = this.props.Document;
             targetDoc.targetContext = de.data.targetContext;
             let annotations = await DocListCastAsync(annotationDoc.annotations);
-            if (annotations) {
-                annotations.forEach(anno => {
-                    anno.target = targetDoc;
-                });
-            }
-            let pdfDoc = await Cast(annotationDoc.pdfDoc, Doc);
-            if (pdfDoc) {
-                DocUtils.MakeLink(annotationDoc, targetDoc, this.props.ContainingCollectionView!.props.Document, `Annotation from ${StrCast(pdfDoc.title)}`, "", StrCast(pdfDoc.title));
-            }
+            annotations && annotations.forEach(anno => anno.target = targetDoc);
+
+            DocUtils.MakeLink(annotationDoc, targetDoc, this.props.ContainingCollectionView!.props.Document, `Link from ${StrCast(annotationDoc.title)}`);
         }
         if (de.data instanceof DragManager.LinkDragData) {
             let sourceDoc = de.data.linkSourceDocument;
@@ -537,8 +532,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     listen = async () => {
-        let transcript = await DictationManager.Instance.listen();
-        transcript && (Doc.GetProto(this.props.Document).transcript = transcript);
+        Doc.GetProto(this.props.Document).transcript = await DictationManager.Controls.listen({
+            continuous: { indefinite: true },
+            interimHandler: (results: string) => {
+                let main = MainView.Instance;
+                main.dictationSuccess = true;
+                main.dictatedPhrase = results;
+                main.isListening = { interim: true };
+            }
+        });
     }
 
     @action
@@ -648,8 +650,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         });
     }
 
-    onPointerEnter = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = true; };
-    onPointerLeave = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = false; };
+    onPointerEnter = (e: React.PointerEvent): void => { Doc.BrushDoc(this.props.Document); };
+    onPointerLeave = (e: React.PointerEvent): void => { Doc.UnBrushDoc(this.props.Document); };
 
     isSelected = () => SelectionManager.IsSelected(this);
     @action select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); };
@@ -696,22 +698,23 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             });
         }
         let showTextTitle = showTitle && StrCast(this.layoutDoc.layout).startsWith("<FormattedTextBox") ? showTitle : undefined;
+        let brushDegree = Doc.IsBrushedDegree(this.layoutDoc);
         return (
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
                 style={{
                     pointerEvents: this.layoutDoc.isBackground && !this.isSelected() ? "none" : "all",
                     color: foregroundColor,
-                    outlineColor: "maroon",
-                    outlineStyle: "dashed",
-                    outlineWidth: BoolCast(this.layoutDoc.libraryBrush) && !StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
-                        `${this.props.ScreenToLocalTransform().Scale}px` : "0px",
-                    marginLeft: BoolCast(this.layoutDoc.libraryBrush) && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
-                        `${-1 * this.props.ScreenToLocalTransform().Scale}px` : undefined,
-                    marginTop: BoolCast(this.layoutDoc.libraryBrush) && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
-                        `${-1 * this.props.ScreenToLocalTransform().Scale}px` : undefined,
-                    border: BoolCast(this.layoutDoc.libraryBrush) && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
-                        `dashed maroon ${this.props.ScreenToLocalTransform().Scale}px` : undefined,
+                    outlineColor: ["transparent", "maroon", "maroon"][brushDegree],
+                    outlineStyle: ["none", "dashed", "solid"][brushDegree],
+                    outlineWidth: brushDegree && !StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
+                        `${brushDegree * this.props.ScreenToLocalTransform().Scale}px` : "0px",
+                    marginLeft: brushDegree && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
+                        `${-brushDegree * this.props.ScreenToLocalTransform().Scale}px` : undefined,
+                    marginTop: brushDegree && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
+                        `${-brushDegree * this.props.ScreenToLocalTransform().Scale}px` : undefined,
+                    border: brushDegree && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
+                        `${["none", "dashed", "solid"][brushDegree]} ${["transparent", "maroon", "maroon"][brushDegree]} ${this.props.ScreenToLocalTransform().Scale}px` : undefined,
                     borderRadius: "inherit",
                     background: backgroundColor,
                     width: nativeWidth,
