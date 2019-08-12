@@ -258,32 +258,38 @@ export namespace CognitiveServices {
                 };
                 console.log("requested!");
                 return request.post(options);
-            },
-            analyzer: async (target: Doc, keys: string[], data: string, converter: Converter) => {
-                let results = await ExecuteQuery<string, any>(Service.Text, Manager, data);
+            }
+        };
+
+        export namespace Appliers {
+
+            export async function vectorize(keyterms: any) {
+                console.log("vectorizing...");
+                //keyterms = ["father", "king"];
+                let args = { method: 'POST', uri: Utils.prepend("/recommender"), body: { keyphrases: keyterms }, json: true };
+                await requestPromise.post(args).then(async (wordvecs) => {
+                    var vectorValues = new Set<number[]>();
+                    wordvecs.forEach((wordvec: any) => {
+                        //console.log(wordvec.word);
+                        vectorValues.add(wordvec.values as number[]);
+                    });
+                    ClientRecommender.Instance.mean(vectorValues);
+                    //console.log(vectorValues.size);
+                });
+            }
+
+            export const analyzer = async (target: Doc, keys: string[], data: string, converter: Converter) => {
+                let results = await ExecuteQuery(Service.Text, Manager, data);
                 console.log(results);
                 let keyterms = converter(results);
                 //target[keys[0]] = Docs.Get.DocumentHierarchyFromJson(results, "Key Word Analysis");
                 target[keys[0]] = keyterms;
                 console.log("analyzed!");
                 await vectorize(keyterms);
-            }
-        };
-        async function vectorize(keyterms: any) {
-            console.log("vectorizing...");
-            //keyterms = ["father", "king"];
-            let args = { method: 'POST', uri: Utils.prepend("/recommender"), body: { keyphrases: keyterms }, json: true };
-            await requestPromise.post(args).then(async (wordvecs) => {
-                var vectorValues = new Set<number[]>();
-                wordvecs.forEach((wordvec: any) => {
-                    //console.log(wordvec.word);
-                    vectorValues.add(wordvec.values as number[]);
-                });
-                ClientRecommender.Instance.mean(vectorValues);
-                //console.log(vectorValues.size);
-            });
+            };
         }
 
     }
+
 
 }

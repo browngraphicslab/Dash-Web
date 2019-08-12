@@ -894,6 +894,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 let activedocs = this.getActiveDocuments();
                 let allDocs = await SearchUtil.GetAllDocs();
                 allDocs.forEach(doc => console.log(doc.title));
+                // clears internal representation of documents as vectors
                 ClientRecommender.Instance.reset_docs();
                 await Promise.all(activedocs.map((doc: Doc) => {
                     //console.log(StrCast(doc.title));

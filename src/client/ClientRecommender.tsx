@@ -75,13 +75,15 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
         const n = 200;
         const num_words = paragraph.size;
         let meanVector = new Array<number>(n).fill(0); // mean vector
-        paragraph.forEach((wordvec: number[]) => {
-            for (let i = 0; i < n; i++) {
-                meanVector[i] += wordvec[i];
-            }
-        });
-        meanVector = meanVector.map(x => x / num_words);
-        this.addToDocSet(meanVector);
+        if (num_words > 0) { // check to see if paragraph actually was vectorized
+            paragraph.forEach((wordvec: number[]) => {
+                for (let i = 0; i < n; i++) {
+                    meanVector[i] += wordvec[i];
+                }
+            });
+            meanVector = meanVector.map(x => x / num_words);
+            this.addToDocSet(meanVector);
+        }
         return meanVector;
     }
 
@@ -106,7 +108,7 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
             });
             return keyterms;
         };
-        await CognitiveServices.Text.Manager.analyzer(extDoc, ["key words"], data, converter);
+        await CognitiveServices.Text.Appliers.analyzer(extDoc, ["key words"], data, converter);
     }
 
     /***

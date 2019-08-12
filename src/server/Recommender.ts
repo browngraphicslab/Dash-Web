@@ -70,6 +70,7 @@ export class Recommender {
         }
         if (this._model) {
             let word_vecs = this._model.getVectors(text);
+
             return word_vecs;
         }
     }

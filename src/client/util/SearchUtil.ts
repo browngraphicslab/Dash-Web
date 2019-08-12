@@ -82,18 +82,21 @@ export namespace SearchUtil {
         const query = "*";
         let response = await rp.get(Utils.prepend('/search'), {
             qs: {
-                query
+                q: query
             }
         });
-        let res: string[] = JSON.parse(response);
-        const fields = await DocServer.GetRefFields(res);
+        let result: IdSearchResult = JSON.parse(response);
+        const { ids, numFound, highlighting } = result;
+        const docMap = await DocServer.GetRefFields(ids);
         const docs: Doc[] = [];
-        for (const id of res) {
-            const field = fields[id];
+        for (const id of ids) {
+            const field = docMap[id];
             if (field instanceof Doc) {
                 docs.push(field);
             }
         }
         return docs;
+        // const docs = ids.map((id: string) => docMap[id]).filter((doc: any) => doc instanceof Doc);
+        // return docs as Doc[];
     }
 }
