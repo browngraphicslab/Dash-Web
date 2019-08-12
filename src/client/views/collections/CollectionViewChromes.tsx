@@ -5,7 +5,7 @@ import { CollectionViewType } from "./CollectionBaseView";
 import { undoBatch } from "../../util/UndoManager";
 import { action, observable, runInAction, computed, IObservable, IObservableValue, reaction, autorun } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast } from "../../../new_fields/Doc";
+import { Doc, DocListCast, FieldResult } from "../../../new_fields/Doc";
 import { DocLike } from "../MetadataEntryMenu";
 import * as Autosuggest from 'react-autosuggest';
 import { EditableView } from "../EditableView";
@@ -22,6 +22,7 @@ import { List } from "../../../new_fields/List";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { threadId } from "worker_threads";
 const datepicker = require('js-datepicker');
+import * as $ from 'jquery';
 
 interface CollectionViewChromeProps {
     CollectionView: CollectionView;
@@ -33,7 +34,7 @@ let stopPropagation = (e: React.SyntheticEvent) => e.stopPropagation();
 
 @observer
 export class CollectionViewBaseChrome extends React.Component<CollectionViewChromeProps> {
-    //.*?doc\.(\w+).*?\("(\w+)
+    //(!)?\(\(\(doc.(\w+) && \(doc.\w+ as \w+\).includes\(\"(\w+)\"\)
 
     @observable private _viewSpecsOpen: boolean = false;
     @observable private _dateWithinValue: string = "";
@@ -41,6 +42,8 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     @observable private _keyRestrictions: [JSX.Element, string][] = [];
     @observable private _collapsed: boolean = false;
     @computed private get filterValue() { return Cast(this.props.CollectionView.props.Document.viewSpecScript, ScriptField); }
+    // private _fullScript: string = "return true";
+    // @observable private keys: Object = new Object();
 
     private _picker: any;
     private _datePickerElGuid = Utils.GenerateGuid();
@@ -51,6 +54,17 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             onSelect: (instance: any, date: Date) => runInAction(() => this._dateValue = date),
             dateSelected: new Date()
         }), 1000);
+
+        // let reg: RegExp = new RegExp('(!)?\(\(\(doc\.(\w+)\s+&&\s+\(doc\.\w+\s+as\s+\w+\)\.includes\(\"(\w+)\"\)');
+        let re: any = /(!)?\(\(\(doc\.(\w+)\s+&&\s+\(doc\.\w+\s+as\s+\w+\)\.includes\(\"(\w+)\"\)/;
+        let arr: any[] = [];
+        if (this.filterValue) {
+            console.log("filter exists!")
+            arr = re.exec(this.filterValue.script.originalScript)
+            console.log(arr)
+        }
+
+        // let matches: RegExpExecArray = [];
 
         runInAction(() => {
             this._keyRestrictions.push([<KeyRestrictionRow key={Utils.GenerateGuid()} contains={true} script={(value: string) => runInAction(() => this._keyRestrictions[0][1] = value)} />, ""]);
@@ -122,10 +136,10 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
 
     @action
     applyFilter = (e: React.MouseEvent) => {
+
         this.openViewSpecs(e);
 
-        let keyRestrictionScript = `${this._keyRestrictions.map(i => i[1])
-            .reduce((acc: string, value: string, i: number) => value ? `${acc} && ${value}` : acc)}`;
+        let keyRestrictionScript = this._keyRestrictions.map(i => i[1]).filter(i => i.length > 0).join(" && ");
         let yearOffset = this._dateWithinValue[1] === 'y' ? 1 : 0;
         let monthOffset = this._dateWithinValue[1] === 'm' ? parseInt(this._dateWithinValue[0]) : 0;
         let weekOffset = this._dateWithinValue[1] === 'w' ? parseInt(this._dateWithinValue[0]) : 0;
@@ -145,9 +159,10 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             }
         }
         let fullScript = dateRestrictionScript.length || keyRestrictionScript.length ? dateRestrictionScript.length ?
-            `return ${dateRestrictionScript} ${keyRestrictionScript.length ? "&&" : ""} ${keyRestrictionScript}` :
-            `return ${keyRestrictionScript} ${dateRestrictionScript.length ? "&&" : ""} ${dateRestrictionScript}` :
+            `return ${dateRestrictionScript} ${keyRestrictionScript.length ? "&&" : ""} (${keyRestrictionScript})` :
+            `return (${keyRestrictionScript}) ${dateRestrictionScript.length ? "&&" : ""} ${dateRestrictionScript}` :
             "return true";
+
         let compiled = CompileScript(fullScript, { params: { doc: Doc.name }, typecheck: false });
         if (compiled.compiled) {
             this.props.CollectionView.props.Document.viewSpecScript = new ScriptField(compiled);
@@ -219,6 +234,13 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             })} />);
     }
 
+    clearFilter = () => {
+        let compiled = CompileScript("return true", { params: { doc: Doc.name }, typecheck: false });
+        if (compiled.compiled) {
+            this.props.CollectionView.props.Document.viewSpecScript = new ScriptField(compiled);
+        }
+    }
+
     render() {
         return (
             <div className="collectionViewChrome-cont" style={{ top: this._collapsed ? -70 : 0 }}>
@@ -248,9 +270,10 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                         <div className="collectionViewBaseChrome-viewSpecs" style={{ display: this._collapsed ? "none" : "grid" }}>
                             <input className="collectionViewBaseChrome-viewSpecsInput"
                                 placeholder="FILTER DOCUMENTS"
-                                value={this.filterValue ? this.filterValue.script.originalScript : ""}
+                                value={this.filterValue ? this.filterValue.script.originalScript === "return true" ? "" : this.filterValue.script.originalScript : ""}
                                 onChange={(e) => { }}
-                                onPointerDown={this.openViewSpecs} />
+                                onPointerDown={this.openViewSpecs}
+                                id="viewSpecsInput" />
                             {this.getPivotInput()}
                             <div className="collectionViewBaseChrome-viewSpecsMenu"
                                 onPointerDown={this.openViewSpecs}
@@ -289,6 +312,9 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                             </button>
                                     <button className="collectonViewBaseChrome-viewSpecsMenu-lastRowButton" onClick={this.applyFilter}>
                                         APPLY FILTER
+                            </button>
+                                    <button className="collectonViewBaseChrome-viewSpecsMenu-lastRowButton" onClick={this.clearFilter}>
+                                        CLEAR
                             </button>
                                 </div>
                             </div>
