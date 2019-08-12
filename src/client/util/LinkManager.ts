@@ -6,6 +6,7 @@ import { List } from "../../new_fields/List";
 import { Id } from "../../new_fields/FieldSymbols";
 import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
 import { Docs } from "../documents/Documents";
+import { Scripting } from "./Scripting";
 
 
 /* 
@@ -42,7 +43,12 @@ export class LinkManager {
     }
 
     public getAllLinks(): Doc[] {
-        return LinkManager.Instance.LinkManagerDoc ? LinkManager.Instance.LinkManagerDoc.allLinks ? DocListCast(LinkManager.Instance.LinkManagerDoc.allLinks) : [] : [];
+        let ldoc = LinkManager.Instance.LinkManagerDoc;
+        if (ldoc) {
+            let docs = DocListCast(ldoc.allLinks);
+            return docs;
+        }
+        return [];
     }
 
     public addLink(linkDoc: Doc): boolean {
@@ -243,3 +249,7 @@ export class LinkManager {
         }
     }
 }
+Scripting.addGlobal(function links(doc: any) {
+    return new List(LinkManager.Instance.getAllRelatedLinks(doc));
+});
+

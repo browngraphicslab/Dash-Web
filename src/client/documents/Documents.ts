@@ -1,3 +1,24 @@
+export enum DocumentType {
+    NONE = "none",
+    TEXT = "text",
+    HIST = "histogram",
+    IMG = "image",
+    WEB = "web",
+    COL = "collection",
+    KVP = "kvp",
+    VID = "video",
+    AUDIO = "audio",
+    PDF = "pdf",
+    ICON = "icon",
+    IMPORT = "import",
+    LINK = "link",
+    LINKDOC = "linkdoc",
+    BUTTON = "button",
+    TEMPLATE = "template",
+    EXTENSION = "extension",
+    YOUTUBE = "youtube",
+}
+
 import { HistogramField } from "../northstar/dash-fields/HistogramField";
 import { HistogramBox } from "../northstar/dash-nodes/HistogramBox";
 import { HistogramOperation } from "../northstar/operations/HistogramOperation";
@@ -25,45 +46,25 @@ import { OmitKeys, JSONUtils } from "../../Utils";
 import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
 import { List } from "../../new_fields/List";
-import { Cast, NumCast, StrCast, ToConstructor, InterfaceValue, FieldValue } from "../../new_fields/Types";
+import { Cast, NumCast } from "../../new_fields/Types";
 import { IconField } from "../../new_fields/IconField";
 import { listSpec } from "../../new_fields/Schema";
 import { DocServer } from "../DocServer";
 import { dropActionType } from "../util/DragManager";
 import { DateField } from "../../new_fields/DateField";
 import { UndoManager } from "../util/UndoManager";
-import { RouteStore } from "../../server/RouteStore";
 import { YoutubeBox } from "../apis/youtube/YoutubeBox";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { LinkManager } from "../util/LinkManager";
 import { DocumentManager } from "../util/DocumentManager";
 import DirectoryImportBox from "../util/Import & Export/DirectoryImportBox";
-import { Scripting } from "../util/Scripting";
+import { Scripting, CompileScript } from "../util/Scripting";
 import { ButtonBox } from "../views/nodes/ButtonBox";
 import { SchemaHeaderField, RandomPastel } from "../../new_fields/SchemaHeaderField";
+import { ComputedField } from "../../new_fields/ScriptField";
+import { ProxyField } from "../../new_fields/Proxy";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
-
-export enum DocumentType {
-    NONE = "none",
-    TEXT = "text",
-    HIST = "histogram",
-    IMG = "image",
-    WEB = "web",
-    COL = "collection",
-    KVP = "kvp",
-    VID = "video",
-    AUDIO = "audio",
-    PDF = "pdf",
-    ICON = "icon",
-    IMPORT = "import",
-    LINK = "link",
-    LINKDOC = "linkdoc",
-    BUTTON = "button",
-    TEMPLATE = "template",
-    EXTENSION = "extension",
-    YOUTUBE = "youtube",
-}
 
 export interface DocumentOptions {
     x?: number;
@@ -82,6 +83,8 @@ export interface DocumentOptions {
     templates?: List<string>;
     viewType?: number;
     backgroundColor?: string;
+    opacity?: number;
+    defaultBackgroundColor?: string;
     dropAction?: dropActionType;
     backgroundLayout?: string;
     chromeStatus?: string;
@@ -122,7 +125,7 @@ export namespace Docs {
         const TemplateMap: TemplateMap = new Map([
             [DocumentType.TEXT, {
                 layout: { view: FormattedTextBox },
-                options: { height: 150, backgroundColor: "#f1efeb" }
+                options: { height: 150, backgroundColor: "#f1efeb", defaultBackgroundColor: "#f1efeb" }
             }],
             [DocumentType.HIST, {
                 layout: { view: HistogramBox, collectionView: [CollectionView, data] as CollectionViewType },
@@ -193,6 +196,8 @@ export namespace Docs {
          * haven't been initialized, the newly initialized prototype document.
          */
         export async function initialize(): Promise<void> {
+            ProxyField.initPlugin();
+            ComputedField.initPlugin();
             // non-guid string ids for each document prototype
             let prototypeIds = Object.values(DocumentType).filter(type => type !== DocumentType.NONE).map(type => type + suffix);
             // fetch the actual prototype documents from the server
@@ -591,23 +596,20 @@ export namespace Docs {
 
 export namespace DocUtils {
 
-    export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", tags: string = "Default", sourceContext?: Doc) {
+    export function MakeLink(source: Doc, target: Doc, targetContext?: Doc, title: string = "", description: string = "", sourceContext?: Doc) {
         if (LinkManager.Instance.doesLinkExist(source, target)) return undefined;
         let sv = DocumentManager.Instance.getDocumentView(source);
         if (sv && sv.props.ContainingCollectionView && sv.props.ContainingCollectionView.props.Document === target) return;
         if (target === CurrentUserUtils.UserDocument) return undefined;
 
-        let linkDoc: Doc | undefined;
+        let linkDocProto = new Doc();
         UndoManager.RunInBatch(() => {
-            linkDoc = Docs.Create.TextDocument({ width: 100, height: 30, borderRounding: "100%" });
-            linkDoc.type = DocumentType.LINK;
-            let linkDocProto = Doc.GetProto(linkDoc);
+            linkDocProto.type = DocumentType.LINK;
 
             linkDocProto.targetContext = targetContext;
             linkDocProto.sourceContext = sourceContext;
             linkDocProto.title = title === "" ? source.title + " to " + target.title : title;
             linkDocProto.linkDescription = description;
-            linkDocProto.linkTags = tags;
             linkDocProto.type = DocumentType.LINK;
 
             linkDocProto.anchor1 = source;
@@ -617,10 +619,14 @@ export namespace DocUtils {
             linkDocProto.anchor2Page = target.curPage;
             linkDocProto.anchor2Groups = new List<Doc>([]);
 
-            LinkManager.Instance.addLink(linkDoc);
+            LinkManager.Instance.addLink(linkDocProto);
 
+            let script = `return links(this);`;
+            let computed = CompileScript(script, { params: { this: "Doc" }, typecheck: false });
+            computed.compiled && (Doc.GetProto(source).links = new ComputedField(computed));
+            computed.compiled && (Doc.GetProto(target).links = new ComputedField(computed));
         }, "make link");
-        return linkDoc;
+        return linkDocProto;
     }
 
 }

@@ -1,6 +1,6 @@
 import * as OpenSocket from 'socket.io-client';
 import { MessageStore, Diff, YoutubeQueryTypes } from "./../server/Message";
-import { Opt } from '../new_fields/Doc';
+import { Opt, Doc } from '../new_fields/Doc';
 import { Utils, emptyFunction } from '../Utils';
 import { SerializationHelper } from './util/SerializationHelper';
 import { RefField } from '../new_fields/RefField';
@@ -25,6 +25,42 @@ export namespace DocServer {
     // this client's distinct GUID created at initialization
     let GUID: string;
     // indicates whether or not a document is currently being udpated, and, if so, its id
+
+    export enum WriteMode {
+        Default = 0, //Anything goes
+        Playground = 1,
+        LiveReadonly = 2,
+        LivePlayground = 3,
+    }
+
+    const fieldWriteModes: { [field: string]: WriteMode } = {};
+    const docsWithUpdates: { [field: string]: Set<Doc> } = {};
+
+    export function setFieldWriteMode(field: string, writeMode: WriteMode) {
+        fieldWriteModes[field] = writeMode;
+        if (writeMode !== WriteMode.Playground) {
+            const docs = docsWithUpdates[field];
+            if (docs) {
+                docs.forEach(doc => Doc.RunCachedUpdate(doc, field));
+                delete docsWithUpdates[field];
+            }
+        }
+    }
+
+    export function getFieldWriteMode(field: string) {
+        return fieldWriteModes[field] || WriteMode.Default;
+    }
+
+    export function registerDocWithCachedUpdate(doc: Doc, field: string, oldValue: any) {
+        let list = docsWithUpdates[field];
+        if (!list) {
+            list = docsWithUpdates[field] = new Set;
+        }
+        if (!list.has(doc)) {
+            Doc.AddCachedUpdate(doc, field, oldValue);
+            list.add(doc);
+        }
+    }
 
     export function init(protocol: string, hostname: string, port: number, identifier: string) {
         _cache = {};
@@ -124,13 +160,12 @@ export namespace DocServer {
             // future .proto calls on the Doc won't have to go farther than the cache to get their actual value.
             const deserializeField = getSerializedField.then(async fieldJson => {
                 // deserialize
-                const field = await SerializationHelper.Deserialize(fieldJson, val => {
-                    if (val !== undefined) {
-                        _cache[id] = val;
-                    } else {
-                        delete _cache[id];
-                    }
-                });
+                const field = await SerializationHelper.Deserialize(fieldJson);
+                if (field !== undefined) {
+                    _cache[id] = field;
+                } else {
+                    delete _cache[id];
+                }
                 return field;
                 // either way, overwrite or delete any promises cached at this id (that we inserted as flags
                 // to indicate that the field was in the process of being fetched). Now everything
@@ -214,35 +249,36 @@ export namespace DocServer {
         // future .proto calls on the Doc won't have to go farther than the cache to get their actual value.
         const deserializeFields = getSerializedFields.then(async fields => {
             const fieldMap: { [id: string]: RefField } = {};
-            // const protosToLoad: any = [];
-            const proms: Promise<RefField>[] = [];
+            const proms: Promise<void>[] = [];
             for (const field of fields) {
                 if (field !== undefined) {
                     // deserialize
-                    let prom = SerializationHelper.Deserialize(field, val => {
-                        if (val !== undefined) {
-                            _cache[field.id] = field;
+                    let prom = SerializationHelper.Deserialize(field).then(deserialized => {
+                        fieldMap[field.id] = deserialized;
+
+                        //overwrite or delete any promises (that we inserted as flags
+                        // to indicate that the field was in the process of being fetched). Now everything
+                        // should be an actual value within or entirely absent from the cache.
+                        if (deserialized !== undefined) {
+                            _cache[field.id] = deserialized;
                         } else {
                             delete _cache[field.id];
                         }
-                    }).then(deserialized => fieldMap[field.id] = deserialized);
-                    proms.push(prom);
+                        return deserialized;
+                    });
+                    // 4) here, for each of the documents we've requested *ourselves* (i.e. weren't promises or found in the cache)
+                    // we set the value at the field's id to a promise that will resolve to the field. 
+                    // When we find that promises exist at keys in the cache, THIS is where they were set, just by some other caller (method).
+                    // The mapping in the .then call ensures that when other callers await these promises, they'll
+                    // get the resolved field
+                    _cache[field.id] = prom;
                     // adds to a list of promises that will be awaited asynchronously
-                    // protosToLoad.push(deserialized.proto);
+                    proms.push(prom);
                 }
             }
             await Promise.all(proms);
-            // this actually handles the loading of prototypes
-            // await Promise.all(protosToLoad);
             return fieldMap;
         });
-
-        // 4) here, for each of the documents we've requested *ourselves* (i.e. weren't promises or found in the cache)
-        // we set the value at the field's id to a promise that will resolve to the field. 
-        // When we find that promises exist at keys in the cache, THIS is where they were set, just by some other caller (method).
-        // The mapping in the .then call ensures that when other callers await these promises, they'll
-        // get the resolved field
-        requestedIds.forEach(id => _cache[id] = deserializeFields.then(fields => fields[id]));
 
         // 5) at this point, all fields have a) been returned from the server and b) been deserialized into actual Field objects whose
         // prototype documents, if any, have also been fetched and cached.
@@ -253,14 +289,6 @@ export namespace DocServer {
         // id to the soon-to-be-returned field mapping.
         requestedIds.forEach(id => {
             const field = fields[id];
-            // either way, overwrite or delete any promises (that we inserted as flags
-            // to indicate that the field was in the process of being fetched). Now everything
-            // should be an actual value within or entirely absent from the cache.
-            if (field !== undefined) {
-                _cache[id] = field;
-            } else {
-                delete _cache[id];
-            }
             map[id] = field;
         });
 

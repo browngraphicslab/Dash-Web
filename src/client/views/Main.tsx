@@ -39,5 +39,10 @@ let swapDocs = async () => {
     (await Cast(CurrentUserUtils.UserDocument.sidebar, Doc))!.chromeStatus = "disabled";
     CurrentUserUtils.UserDocument.chromeStatus = "disabled";
     await swapDocs();
+    document.getElementById('root')!.addEventListener('wheel', event => {
+        if (event.ctrlKey) {
+            event.preventDefault();
+        }
+    }, true);
     ReactDOM.render(<MainView />, document.getElementById('root'));
 })();

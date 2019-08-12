@@ -57,7 +57,7 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
         if (awaitedBackUp) {
 
 
-            let jsonList = await DocListCastAsync(awaitedBackUp!.json);
+            let jsonList = await DocListCastAsync(awaitedBackUp.json);
             let jsonDetailList = await DocListCastAsync(awaitedDetails!.json);
 
             if (jsonList!.length !== 0) {
@@ -76,8 +76,8 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
                     let videoDescription = StrCast(snippet!.description);
                     let pusblishDate = (this.roundPublishTime(StrCast(snippet!.publishedAt)))!;
                     let channelTitle = StrCast(snippet!.channelTitle);
-                    let duration: string;
-                    let viewCount: string;
+                    let duration: string = "";
+                    let viewCount: string = "";
                     if (jsonDetailList!.length !== 0) {
                         let contentDetails = await Cast(jsonDetailList![index].contentDetails, Doc);
                         let statistics = await Cast(jsonDetailList![index].statistics, Doc);
@@ -85,7 +85,7 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
                         viewCount = this.abbreviateViewCount(parseInt(StrCast(statistics!.viewCount)))!;
                     }
                     index = index + 1;
-                    let newTemplate: VideoTemplate = { videoId: id, videoTitle: videoTitle, thumbnailUrl: thumbnailUrl, publishDate: pusblishDate, channelTitle: channelTitle, videoDescription: videoDescription, duration: duration!, viewCount: viewCount! };
+                    let newTemplate: VideoTemplate = { videoId: id, videoTitle: videoTitle, thumbnailUrl: thumbnailUrl, publishDate: pusblishDate, channelTitle: channelTitle, videoDescription: videoDescription, duration: duration, viewCount: viewCount };
                     runInAction(() => this.curVideoTemplates.push(newTemplate));
                 }
             }

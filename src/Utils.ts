@@ -3,6 +3,7 @@ import v5 = require("uuid/v5");
 import { Socket } from 'socket.io';
 import { Message } from './server/Message';
 import { RouteStore } from './server/RouteStore';
+import requestPromise = require('request-promise');
 
 export class Utils {
 
@@ -132,6 +133,8 @@ export function WithKeys(obj: any, keys: string[], addKeyFunc?: (dup: any) => vo
     return dup;
 }
 
+export function numberRange(num: number) { return Array.from(Array(num)).map((v, i) => i); }
+
 export function returnTrue() { return true; }
 
 export function returnFalse() { return false; }
@@ -139,6 +142,8 @@ export function returnFalse() { return false; }
 export function returnOne() { return 1; }
 
 export function returnZero() { return 0; }
+
+export function returnEmptyString() { return ""; }
 
 export function emptyFunction() { }
 
@@ -171,4 +176,14 @@ export namespace JSONUtils {
         return results;
     }
 
+}
+
+export function PostToServer(relativeRoute: string, body: any) {
+    let options = {
+        method: "POST",
+        uri: Utils.prepend(relativeRoute),
+        json: true,
+        body: body
+    };
+    return requestPromise.post(options);
 }

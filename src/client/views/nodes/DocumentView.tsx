@@ -1,19 +1,23 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import * as fa from '@fortawesome/free-solid-svg-icons';
-import { action, computed, IReactionDisposer, reaction, trace, observable, runInAction } from "mobx";
+import { action, computed, IReactionDisposer, reaction, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, HeightSym, Opt, WidthSym, DocListCastAsync } from "../../../new_fields/Doc";
+import * as rp from "request-promise";
+import { Doc, DocListCast, DocListCastAsync, HeightSym, Opt, WidthSym } from "../../../new_fields/Doc";
+import { Copy, Id } from '../../../new_fields/FieldSymbols';
 import { List } from "../../../new_fields/List";
 import { ObjectField } from "../../../new_fields/ObjectField";
-import { createSchema, makeInterface, listSpec } from "../../../new_fields/Schema";
-import { BoolCast, Cast, FieldValue, StrCast, NumCast, PromiseValue } from "../../../new_fields/Types";
+import { createSchema, listSpec, makeInterface } from "../../../new_fields/Schema";
+import { BoolCast, Cast, FieldValue, NumCast, StrCast, PromiseValue } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
-import { emptyFunction, Utils, returnFalse, returnTrue } from "../../../Utils";
+import { RouteStore } from '../../../server/RouteStore';
+import { emptyFunction, returnTrue, Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
-import { Docs, DocUtils, DocumentType } from "../../documents/Documents";
+import { Docs, DocUtils } from "../../documents/Documents";
+import { ClientUtils } from '../../util/ClientUtils';
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager, dropActionType } from "../../util/DragManager";
-import { SearchUtil } from "../../util/SearchUtil";
+import { LinkManager } from '../../util/LinkManager';
 import { SelectionManager } from "../../util/SelectionManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
@@ -22,27 +26,20 @@ import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
 import { CollectionView } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";
-import { DocComponent } from "../DocComponent";
-import { PresentationView } from "../presentationview/PresentationView";
-import { Template, Templates } from "./../Templates";
-import { DocumentContentsView } from "./DocumentContentsView";
-import * as rp from "request-promise";
-import "./DocumentView.scss";
-import React = require("react");
-import { Id, Copy } from '../../../new_fields/FieldSymbols';
 import { ContextMenuProps } from '../ContextMenuItem';
-import { list, object, createSimpleSchema } from 'serializr';
-import { LinkManager } from '../../util/LinkManager';
-import { RouteStore } from '../../../server/RouteStore';
-import { FormattedTextBox } from './FormattedTextBox';
-import { OverlayView } from '../OverlayView';
-import { ScriptingRepl } from '../ScriptingRepl';
-import { ClientUtils } from '../../util/ClientUtils';
+import { DocComponent } from "../DocComponent";
 import { EditableView } from '../EditableView';
-import { faHandPointer, faHandPointRight } from '@fortawesome/free-regular-svg-icons';
-import { DocumentDecorations } from '../DocumentDecorations';
-import { CognitiveServices } from '../../cognitive_services/CognitiveServices';
-import DictationManager from '../../util/DictationManager';
+import { OverlayView } from '../OverlayView';
+import { PresentationView } from "../presentationview/PresentationView";
+import { ScriptingRepl } from '../ScriptingRepl';
+import { Template } from "./../Templates";
+import { DocumentContentsView } from "./DocumentContentsView";
+import "./DocumentView.scss";
+import { FormattedTextBox } from './FormattedTextBox';
+import React = require("react");
+import { DictationManager } from '../../util/DictationManager';
+import { MainView } from '../MainView';
+import requestPromise = require('request-promise');
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(fa.faTrash);
@@ -100,6 +97,7 @@ export interface DocumentViewProps {
     addDocTab: (doc: Doc, dataDoc: Doc | undefined, where: string) => void;
     collapseToPoint?: (scrpt: number[], expandedDocs: Doc[] | undefined) => void;
     zoomToScale: (scale: number) => void;
+    backgroundColor: (doc: Doc) => string | undefined;
     getScale: () => number;
     animateBetweenIcon?: (iconPos: number[], startTime: number, maximizing: boolean) => void;
     ChromeHeight?: () => number;
@@ -121,6 +119,7 @@ export const positionSchema = createSchema({
     height: "number",
     x: "number",
     y: "number",
+    z: "number",
 });
 
 export type PositionDocument = makeInterface<[typeof positionSchema]>;
@@ -151,10 +150,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     set templates(templates: List<string>) { this.props.Document.templates = templates; }
     screenRect = (): ClientRect | DOMRect => this._mainCont.current ? this._mainCont.current.getBoundingClientRect() : new DOMRect();
-
-    constructor(props: DocumentViewProps) {
-        super(props);
-    }
 
     _animateToIconDisposer?: IReactionDisposer;
     _reactionDisposer?: IReactionDisposer;
@@ -306,7 +301,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             fullScreenAlias.showCaption = true;
             this.props.addDocTab(fullScreenAlias, this.dataDoc, "inTab");
             SelectionManager.DeselectAll();
-            this.props.Document.libraryBrush = false;
+            Doc.UnBrushDoc(this.props.Document);
         }
         else if (CurrentUserUtils.MainDocId !== this.props.Document[Id] &&
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
@@ -364,12 +359,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     if (!linkedFwdDocs.some(l => l instanceof Promise)) {
                         let maxLocation = StrCast(linkedFwdDocs[0].maximizeLocation, "inTab");
                         let targetContext = !Doc.AreProtosEqual(linkedFwdContextDocs[altKey ? 1 : 0], this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document) ? linkedFwdContextDocs[altKey ? 1 : 0] : undefined;
-                        DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0], ctrlKey, false, document => {
-                            this.props.focus(this.props.Document, true, 1);
-                            setTimeout(() =>
-                                this.props.addDocTab(document, undefined, maxLocation), 1000);
-                        }
-                            , linkedFwdPage[altKey ? 1 : 0], targetContext);
+                        DocumentManager.Instance.jumpToDocument(linkedFwdDocs[altKey ? 1 : 0], ctrlKey, false,
+                            document => {  // open up target if it's not already in view ...
+                                this.props.focus(this.props.Document, true, 1);  // by zooming into the button document first
+                                setTimeout(() => this.props.addDocTab(document, undefined, maxLocation), 1000); // then after the 1sec animation, open up the target in a new tab
+                            },
+                            linkedFwdPage[altKey ? 1 : 0], targetContext);
                     }
                 }
             }
@@ -414,7 +409,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     deleteClicked = (): void => { SelectionManager.DeselectAll(); this.props.removeDocument && this.props.removeDocument(this.props.Document); }
 
     @undoBatch
-    fieldsClicked = (): void => { let kvp = Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }); this.props.addDocTab(kvp, this.dataDoc, "onRight"); }
+    fieldsClicked = (): void => {
+        let kvp = Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 });
+        this.props.addDocTab(kvp, this.dataDoc, "onRight");
+    }
 
     @undoBatch
     makeBtnClicked = (): void => {
@@ -447,15 +445,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             let targetDoc = this.props.Document;
             targetDoc.targetContext = de.data.targetContext;
             let annotations = await DocListCastAsync(annotationDoc.annotations);
-            if (annotations) {
-                annotations.forEach(anno => {
-                    anno.target = targetDoc;
-                });
-            }
-            let pdfDoc = await Cast(annotationDoc.pdfDoc, Doc);
-            if (pdfDoc) {
-                DocUtils.MakeLink(annotationDoc, targetDoc, this.props.ContainingCollectionView!.props.Document, `Annotation from ${StrCast(pdfDoc.title)}`, "", StrCast(pdfDoc.title));
-            }
+            annotations && annotations.forEach(anno => anno.target = targetDoc);
+
+            DocUtils.MakeLink(annotationDoc, targetDoc, this.props.ContainingCollectionView!.props.Document, `Link from ${StrCast(annotationDoc.title)}`);
         }
         if (de.data instanceof DragManager.LinkDragData) {
             let sourceDoc = de.data.linkSourceDocument;
@@ -540,8 +532,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     listen = async () => {
-        let transcript = await DictationManager.Instance.listen();
-        transcript && (Doc.GetProto(this.props.Document).transcript = transcript);
+        Doc.GetProto(this.props.Document).transcript = await DictationManager.Controls.listen({
+            continuous: { indefinite: true },
+            interimHandler: (results: string) => {
+                let main = MainView.Instance;
+                main.dictationSuccess = true;
+                main.dictatedPhrase = results;
+                main.isListening = { interim: true };
+            }
+        });
     }
 
     @action
@@ -650,8 +649,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         });
     }
 
-    onPointerEnter = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = true; };
-    onPointerLeave = (e: React.PointerEvent): void => { this.props.Document.libraryBrush = false; };
+    onPointerEnter = (e: React.PointerEvent): void => { Doc.BrushDoc(this.props.Document); };
+    onPointerLeave = (e: React.PointerEvent): void => { Doc.UnBrushDoc(this.props.Document); };
 
     isSelected = () => SelectionManager.IsSelected(this);
     @action select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); };
@@ -679,12 +678,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         // to determine the render JSX string, otherwise the layout field should directly contain a JSX layout string.
         return this.props.Document.layout instanceof Doc ? this.props.Document.layout : this.props.Document;
     }
+
     render() {
-        if (this.Document.hidden) {
-            return null;
-        }
-        let self = this;
-        let backgroundColor = StrCast(this.layoutDoc.backgroundColor);
+        let backgroundColor = this.layoutDoc.isBackground || (this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document.clusterOverridesDefaultBackground && this.layoutDoc.backgroundColor === this.layoutDoc.defaultBackgroundColor) ?
+            this.props.backgroundColor(this.layoutDoc) || StrCast(this.layoutDoc.backgroundColor) :
+            StrCast(this.layoutDoc.backgroundColor) || this.props.backgroundColor(this.layoutDoc);
         let foregroundColor = StrCast(this.layoutDoc.color);
         var nativeWidth = this.nativeWidth > 0 && !BoolCast(this.props.Document.ignoreAspect) ? `${this.nativeWidth}px` : "100%";
         var nativeHeight = BoolCast(this.props.Document.ignoreAspect) ? this.props.PanelHeight() / this.props.ContentScaling() : this.nativeHeight > 0 ? `${this.nativeHeight}px` : "100%";
@@ -694,27 +692,28 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let templates = Cast(this.layoutDoc.templates, listSpec("string"));
         if (!showOverlays && templates instanceof List) {
             templates.map(str => {
-                if (str.indexOf("{props.Document.title}") !== -1) showTitle = "title";
-                if (str.indexOf("fieldKey={\"caption\"}") !== -1) showCaption = "caption";
+                if (!showTitle && str.indexOf("{props.Document.title}") !== -1) showTitle = "title";
+                if (!showCaption && str.indexOf("fieldKey={\"caption\"}") !== -1) showCaption = "caption";
             });
         }
         let showTextTitle = showTitle && StrCast(this.layoutDoc.layout).startsWith("<FormattedTextBox") ? showTitle : undefined;
+        let brushDegree = Doc.IsBrushedDegree(this.layoutDoc);
         return (
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
                 style={{
                     pointerEvents: this.layoutDoc.isBackground && !this.isSelected() ? "none" : "all",
                     color: foregroundColor,
-                    outlineColor: "maroon",
-                    outlineStyle: "dashed",
-                    outlineWidth: BoolCast(this.layoutDoc.libraryBrush) && !StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
-                        `${this.props.ScreenToLocalTransform().Scale}px` : "0px",
-                    marginLeft: BoolCast(this.layoutDoc.libraryBrush) && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
-                        `${-1 * this.props.ScreenToLocalTransform().Scale}px` : undefined,
-                    marginTop: BoolCast(this.layoutDoc.libraryBrush) && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
-                        `${-1 * this.props.ScreenToLocalTransform().Scale}px` : undefined,
-                    border: BoolCast(this.layoutDoc.libraryBrush) && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
-                        `dashed maroon ${this.props.ScreenToLocalTransform().Scale}px` : undefined,
+                    outlineColor: ["transparent", "maroon", "maroon"][brushDegree],
+                    outlineStyle: ["none", "dashed", "solid"][brushDegree],
+                    outlineWidth: brushDegree && !StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
+                        `${brushDegree * this.props.ScreenToLocalTransform().Scale}px` : "0px",
+                    marginLeft: brushDegree && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
+                        `${-brushDegree * this.props.ScreenToLocalTransform().Scale}px` : undefined,
+                    marginTop: brushDegree && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
+                        `${-brushDegree * this.props.ScreenToLocalTransform().Scale}px` : undefined,
+                    border: brushDegree && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
+                        `${["none", "dashed", "solid"][brushDegree]} ${["transparent", "maroon", "maroon"][brushDegree]} ${this.props.ScreenToLocalTransform().Scale}px` : undefined,
                     borderRadius: "inherit",
                     background: backgroundColor,
                     width: nativeWidth,

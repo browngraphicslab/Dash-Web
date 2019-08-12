@@ -1,12 +1,13 @@
 import { UndoManager } from "../client/util/UndoManager";
-import { Doc, Field, FieldResult } from "./Doc";
+import { Doc, Field, FieldResult, UpdatingFromServer } from "./Doc";
 import { SerializationHelper } from "../client/util/SerializationHelper";
 import { ProxyField } from "./Proxy";
 import { RefField } from "./RefField";
 import { ObjectField } from "./ObjectField";
 import { action } from "mobx";
 import { Parent, OnUpdate, Update, Id, SelfProxy, Self } from "./FieldSymbols";
-import { ComputedField } from "./ScriptField";
+import { DocServer } from "../client/DocServer";
+import { CurrentUserUtils } from "../server/authentication/models/current_user_utils";
 
 function _readOnlySetter(): never {
     throw new Error("Documents can't be modified in read-only mode");
@@ -14,7 +15,7 @@ function _readOnlySetter(): never {
 
 export interface GetterResult {
     value: FieldResult;
-    shouldReturn: boolean;
+    shouldReturn?: boolean;
 }
 export type GetterPlugin = (receiver: any, prop: string | number, currentValue: any) => GetterResult | undefined;
 const getterPlugins: GetterPlugin[] = [];
@@ -58,18 +59,29 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
         delete curValue[Parent];
         delete curValue[OnUpdate];
     }
-    if (value === undefined) {
-        delete target.__fields[prop];
-    } else {
-        target.__fields[prop] = value;
+    const writeMode = DocServer.getFieldWriteMode(prop as string);
+    const fromServer = target[UpdatingFromServer];
+    const sameAuthor = fromServer || (receiver.author === CurrentUserUtils.email);
+    const writeToDoc = sameAuthor || (writeMode !== DocServer.WriteMode.LiveReadonly);
+    const writeToServer = sameAuthor || (writeMode === DocServer.WriteMode.Default);
+    if (writeToDoc) {
+        if (value === undefined) {
+            delete target.__fields[prop];
+        } else {
+            target.__fields[prop] = value;
+        }
+        if (typeof value === "object" && !(value instanceof ObjectField)) debugger;
+        if (writeToServer) {
+            if (value === undefined) target[Update]({ '$unset': { ["fields." + prop]: "" } });
+            else target[Update]({ '$set': { ["fields." + prop]: value instanceof ObjectField ? SerializationHelper.Serialize(value) : (value === undefined ? null : value) } });
+        } else {
+            DocServer.registerDocWithCachedUpdate(receiver, prop as string, curValue);
+        }
+        UndoManager.AddEvent({
+            redo: () => receiver[prop] = value,
+            undo: () => receiver[prop] = curValue
+        });
     }
-    if (value === undefined) target[Update]({ '$unset': { ["fields." + prop]: "" } });
-    if (typeof value === "object" && !(value instanceof ObjectField)) debugger;
-    else target[Update]({ '$set': { ["fields." + prop]: value instanceof ObjectField ? SerializationHelper.Serialize(value) : (value === undefined ? null : value) } });
-    UndoManager.AddEvent({
-        redo: () => receiver[prop] = value,
-        undo: () => receiver[prop] = curValue
-    });
     return true;
 });
 
@@ -103,9 +115,6 @@ export function getter(target: any, prop: string | symbol | number, receiver: an
 function getFieldImpl(target: any, prop: string | number, receiver: any, ignoreProto: boolean = false): any {
     receiver = receiver || target[SelfProxy];
     let field = target.__fields[prop];
-    if (field instanceof ProxyField) {
-        return field.value();
-    }
     for (const plugin of getterPlugins) {
         const res = plugin(receiver, prop, field);
         if (res === undefined) continue;

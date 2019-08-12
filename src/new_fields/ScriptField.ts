@@ -137,9 +137,11 @@ export namespace ComputedField {
         }
     }
 
-    Plugins.addGetterPlugin((doc, _, value) => {
-        if (useComputed && value instanceof ComputedField) {
-            return { value: value.value(doc), shouldReturn: true };
-        }
-    });
+    export function initPlugin() {
+        Plugins.addGetterPlugin((doc, _, value) => {
+            if (useComputed && value instanceof ComputedField) {
+                return { value: value.value(doc), shouldReturn: true };
+            }
+        });
+    }
 }

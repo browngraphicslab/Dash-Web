@@ -1,6 +1,6 @@
 require('dotenv').config();
 import * as bodyParser from 'body-parser';
-import { exec } from 'child_process';
+import { exec, ExecOptions } from 'child_process';
 import * as cookieParser from 'cookie-parser';
 import * as express from 'express';
 import * as session from 'express-session';
@@ -148,6 +148,33 @@ app.get("/pull", (req, res) =>
         }
         res.redirect("/");
     }));
+
+app.get("/buxton", (req, res) => {
+    let cwd = '../scraping/buxton';
+
+    let onResolved = (stdout: string) => { console.log(stdout); res.redirect("/"); };
+    let onRejected = (err: any) => { console.error(err.message); res.send(err); };
+    let tryPython3 = () => command_line('python3 scraper.py', cwd).then(onResolved, onRejected);
+
+    command_line('python scraper.py', cwd).then(onResolved, tryPython3);
+});
+
+const command_line = (command: string, fromDirectory?: string) => {
+    return new Promise<string>((resolve, reject) => {
+        let options: ExecOptions = {};
+        if (fromDirectory) {
+            options.cwd = path.join(__dirname, fromDirectory);
+        }
+        exec(command, options, (err, stdout) => err ? reject(err) : resolve(stdout));
+    });
+};
+
+const read_text_file = (relativePath: string) => {
+    let target = path.join(__dirname, relativePath);
+    return new Promise<string>((resolve, reject) => {
+        fs.readFile(target, (err, data) => err ? reject(err) : resolve(data.toString()));
+    });
+};
 
 app.get("/version", (req, res) => {
     exec('"C:\\Program Files\\Git\\bin\\git.exe" rev-parse HEAD', (err, stdout, stderr) => {

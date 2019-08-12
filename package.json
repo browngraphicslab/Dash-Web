@@ -166,7 +166,7 @@
         "nodemailer": "^5.1.1",
         "nodemon": "^1.18.10",
         "normalize.css": "^8.0.1",
-        "npm": "^6.10.2",
+        "npm": "^6.10.3",
         "p-limit": "^2.2.0",
         "passport": "^0.4.0",
         "passport-local": "^1.0.0",
@@ -221,6 +221,7 @@
         "url-loader": "^1.1.2",
         "uuid": "^3.3.2",
         "word2vec": "^1.1.4",
+        "words-to-numbers": "^1.5.1",
         "xoauth2": "^1.2.0",
         "youtube": "^0.1.0"
     }

@@ -1,7 +1,7 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
 import { faArrowDown, faCloudUploadAlt, faArrowUp, faClone, faCheck, faPlay, faPause, faCaretUp, faLongArrowAltRight, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faPortrait, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faThumbtack, faTree, faUndoAlt, faCat, faBolt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, configure, observable, runInAction, reaction, trace } from 'mobx';
+import { action, computed, configure, observable, runInAction, reaction, trace, autorun } from 'mobx';
 import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
@@ -15,7 +15,7 @@ import { listSpec } from '../../new_fields/Schema';
 import { Cast, FieldValue, NumCast, BoolCast, StrCast } from '../../new_fields/Types';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { RouteStore } from '../../server/RouteStore';
-import { emptyFunction, returnOne, returnTrue, Utils } from '../../Utils';
+import { emptyFunction, returnOne, returnTrue, Utils, returnEmptyString } from '../../Utils';
 import { DocServer } from '../DocServer';
 import { Docs } from '../documents/Documents';
 import { SetupDrag } from '../util/DragManager';
@@ -40,6 +40,7 @@ import { CollectionTreeView } from './collections/CollectionTreeView';
 import { ClientUtils } from '../util/ClientUtils';
 import { SchemaHeaderField, RandomPastel } from '../../new_fields/SchemaHeaderField';
 //import { DocumentManager } from '../util/DocumentManager';
+import { DictationManager } from '../util/DictationManager';
 
 @observer
 export class MainView extends React.Component {
@@ -48,6 +49,30 @@ export class MainView extends React.Component {
     @observable private _workspacesShown: boolean = false;
     @observable public pwidth: number = 0;
     @observable public pheight: number = 0;
+
+    @observable private dictationState = DictationManager.placeholder;
+    @observable private dictationSuccessState: boolean | undefined = undefined;
+    @observable private dictationDisplayState = false;
+    @observable private dictationListeningState: DictationManager.Controls.ListeningUIStatus = false;
+
+    public overlayTimeout: NodeJS.Timeout | undefined;
+
+    public initiateDictationFade = () => {
+        let duration = DictationManager.Commands.dictationFadeDuration;
+        this.overlayTimeout = setTimeout(() => {
+            this.dictationOverlayVisible = false;
+            this.dictationSuccess = undefined;
+            setTimeout(() => this.dictatedPhrase = DictationManager.placeholder, 500);
+        }, duration);
+    }
+
+    public cancelDictationFade = () => {
+        if (this.overlayTimeout) {
+            clearTimeout(this.overlayTimeout);
+            this.overlayTimeout = undefined;
+        }
+    }
+
     @computed private get mainContainer(): Opt<Doc> {
         return FieldValue(Cast(CurrentUserUtils.UserDocument.activeWorkspace, Doc));
     }
@@ -63,6 +88,38 @@ export class MainView extends React.Component {
             }
             CurrentUserUtils.UserDocument.activeWorkspace = doc;
         }
+    }
+
+    @computed public get dictatedPhrase() {
+        return this.dictationState;
+    }
+
+    public set dictatedPhrase(value: string) {
+        runInAction(() => this.dictationState = value);
+    }
+
+    @computed public get dictationSuccess() {
+        return this.dictationSuccessState;
+    }
+
+    public set dictationSuccess(value: boolean | undefined) {
+        runInAction(() => this.dictationSuccessState = value);
+    }
+
+    @computed public get dictationOverlayVisible() {
+        return this.dictationDisplayState;
+    }
+
+    public set dictationOverlayVisible(value: boolean) {
+        runInAction(() => this.dictationDisplayState = value);
+    }
+
+    @computed public get isListening() {
+        return this.dictationListeningState;
+    }
+
+    public set isListening(value: DictationManager.Controls.ListeningUIStatus) {
+        runInAction(() => this.dictationListeningState = value);
     }
 
     componentWillMount() {
@@ -271,6 +328,7 @@ export class MainView extends React.Component {
                             PanelWidth={this.getPWidth}
                             PanelHeight={this.getPHeight}
                             renderDepth={0}
+                            backgroundColor={returnEmptyString}
                             selectOnLoad={false}
                             focus={emptyFunction}
                             parentActive={returnTrue}
@@ -335,6 +393,7 @@ export class MainView extends React.Component {
             renderDepth={0}
             selectOnLoad={false}
             focus={emptyFunction}
+            backgroundColor={returnEmptyString}
             parentActive={returnTrue}
             whenActiveChanged={emptyFunction}
             bringToFront={emptyFunction}
@@ -404,6 +463,20 @@ export class MainView extends React.Component {
         ];
         if (!ClientUtils.RELEASE) btns.unshift([React.createRef<HTMLDivElement>(), "cat", "Add Cat Image", addImageNode]);
 
+        const setWriteMode = (mode: DocServer.WriteMode) => {
+            console.log(DocServer.WriteMode[mode]);
+            const mode1 = mode;
+            const mode2 = mode === DocServer.WriteMode.Default ? mode : DocServer.WriteMode.Playground;
+            DocServer.setFieldWriteMode("x", mode1);
+            DocServer.setFieldWriteMode("y", mode1);
+            DocServer.setFieldWriteMode("width", mode1);
+            DocServer.setFieldWriteMode("height", mode1);
+
+            DocServer.setFieldWriteMode("panX", mode2);
+            DocServer.setFieldWriteMode("panY", mode2);
+            DocServer.setFieldWriteMode("scale", mode2);
+            DocServer.setFieldWriteMode("viewType", mode2);
+        };
         return < div id="add-nodes-menu" style={{ left: this.flyoutWidth + 20, bottom: 20 }} >
             <input type="checkbox" id="add-menu-toggle" ref={this.addMenuToggle} />
             <label htmlFor="add-menu-toggle" style={{ marginTop: 2 }} title="Add Node"><p>+</p></label>
@@ -421,6 +494,12 @@ export class MainView extends React.Component {
                             </button>
                         </div></li>)}
                     <li key="undoTest"><button className="add-button round-button" title="Click if undo isn't working" onClick={() => UndoManager.TraceOpenBatches()}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>
+                    {ClientUtils.RELEASE ? [] : [
+                        <li key="test"><button className="add-button round-button" title="Default" onClick={() => setWriteMode(DocServer.WriteMode.Default)}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>,
+                        <li key="test1"><button className="add-button round-button" title="Playground" onClick={() => setWriteMode(DocServer.WriteMode.Playground)}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>,
+                        <li key="test2"><button className="add-button round-button" title="Live Playground" onClick={() => setWriteMode(DocServer.WriteMode.LivePlayground)}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>,
+                        <li key="test3"><button className="add-button round-button" title="Live Readonly" onClick={() => setWriteMode(DocServer.WriteMode.LiveReadonly)}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>
+                    ]}
                     <li key="color"><button className="add-button round-button" title="Select Color" style={{ zIndex: 1000 }} onClick={() => this.toggleColorPicker()}><div className="toolbar-color-button" style={{ backgroundColor: InkingControl.Instance.selectedColor }} >
                         <div className="toolbar-color-picker" onClick={this.onColorClick} style={this._colorPickerDisplay ? { color: "black", display: "block" } : { color: "black", display: "none" }}>
                             <SketchPicker color={InkingControl.Instance.selectedColor} onChange={InkingControl.Instance.switchColor} />
@@ -469,9 +548,35 @@ export class MainView extends React.Component {
         this.isSearchVisible = !this.isSearchVisible;
     }
 
+    private get dictationOverlay() {
+        let display = this.dictationOverlayVisible;
+        let success = this.dictationSuccess;
+        let result = this.isListening && !this.isListening.interim ? DictationManager.placeholder : `"${this.dictatedPhrase}"`;
+        return (
+            <div>
+                <div
+                    className={"dictation-prompt"}
+                    style={{
+                        opacity: display ? 1 : 0,
+                        background: success === undefined ? "gainsboro" : success ? "lawngreen" : "red",
+                        borderColor: this.isListening ? "red" : "black",
+                    }}
+                >{result}</div>
+                <div
+                    className={"dictation-prompt-overlay"}
+                    style={{
+                        opacity: display ? 0.4 : 0,
+                        backgroundColor: this.isListening ? "red" : "darkslategrey"
+                    }}
+                />
+            </div>
+        );
+    }
+
     render() {
         return (
             <div id="main-div">
+                {this.dictationOverlay}
                 <DocumentDecorations />
                 {this.mainContent}
                 <PreviewCursor />
