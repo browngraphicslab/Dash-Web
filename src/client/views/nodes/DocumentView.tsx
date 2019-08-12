@@ -107,7 +107,7 @@ const schema = createSchema({
     nativeHeight: "number",
     backgroundColor: "string",
     opacity: "number",
-    hidden: "boolean"
+    hidden: "boolean", 
 });
 
 export const positionSchema = createSchema({
@@ -565,6 +565,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         cm.addItem({ description: "Pin to Presentation", event: () => PresentationView.Instance.PinDoc(this.props.Document), icon: "map-pin" });
         cm.addItem({ description: BoolCast(this.props.Document.lockedPosition) ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
         cm.addItem({ description: "Transcribe Speech", event: this.listen, icon: "microphone" });
+        cm.addItem({ description: BoolCast(this.props.Document.isAnimating) ? "Enter Play Mode" : "Enter Authoring Mode", event: () => {BoolCast(this.props.Document.isAnimating) ? this.props.Document.isAnimating = false : this.props.Document.isAnimating = true;}, icon:BoolCast(this.props.Document.isAnimating) ? "play" : "edit"}); 
         let makes: ContextMenuProps[] = [];
         makes.push({ description: this.props.Document.isBackground ? "Remove Background" : "Make Background", event: this.makeBackground, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
         makes.push({ description: this.props.Document.isButton ? "Remove Button" : "Make Button", event: this.makeBtnClicked, icon: "concierge-bell" });
