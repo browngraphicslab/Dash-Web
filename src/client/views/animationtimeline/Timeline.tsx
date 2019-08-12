@@ -21,6 +21,7 @@ import { faGrinTongueSquint } from "@fortawesome/free-regular-svg-icons";
 import { InkField } from "../../../new_fields/InkField";
 import { AddComparisonParameters } from "../../northstar/model/idea/idea";
 import { keepAlive } from "mobx-utils";
+import { TimelineOverview } from "./TimelineOverview";
 
 
 export interface FlyoutProps {
@@ -102,24 +103,17 @@ export class Timeline extends CollectionSubView(Document) {
         }
         runInAction(() => {
             reaction(() => {
-                return this.props.Document.isAnimating; 
-            }, async isAnimating => {
-               if (isAnimating){
-                   this._ticks = [];
-                    for (let i = 0; i < this._time;) {
-                        this._ticks.push(i);
-                        i += this._tickIncrement;
-                    }
-                    observe(this._trackbox, change => {if (change.type === "update"){
-                        if (this.props.Document.isAnimating){
-                             let trackbox = this._trackbox.current!;
-                            this._boxLength = this._tickIncrement / 1000 * this._tickSpacing * this._ticks.length;
-                            trackbox.style.width = `${this._boxLength}`;
-                            this._scrubberbox.current!.style.width = `${this._boxLength}`;
-                        }
-                    }}); 
-               }
-                    
+                return this._time; 
+            }, () => {
+                this._ticks = [];
+                for (let i = 0; i < this._time;) {
+                    this._ticks.push(i);
+                    i += this._tickIncrement;
+                }
+                let trackbox = this._trackbox.current!;
+                this._boxLength = this._tickIncrement / 1000 * this._tickSpacing * this._ticks.length;
+                trackbox.style.width = `${this._boxLength}`;
+                this._scrubberbox.current!.style.width = `${this._boxLength}`;
             });
         });
     }
@@ -343,47 +337,45 @@ export class Timeline extends CollectionSubView(Document) {
     }
 
     render() {
-        let timeline:JSX.Element[] = []; 
-        BoolCast(this.props.Document.isAnimating) ? timeline = [
-            <div key="timeline_wrapper" style={{ left: "0px", top: "0px", position: "absolute", width: "100%", transform: "translate(0px, 0px)" }} ref={this._timelineWrapper}>
-                <button key="timeline_minimize" className="minimize" onClick={this.minimize}>Minimize</button>
-                <div key="timeline_container" className="timeline-container" style={{ height: `${this._containerHeight}px`, left: "0px", top: "30px" }} ref={this._timelineContainer} onPointerDown={this.onTimelineDown} onContextMenu={this.timelineContextMenu}>
-                    <div key ="timeline_toolbox" className="timeline-toolbox">
-                        <div key ="timeline_windBack" onClick={this.windBackward}> <FontAwesomeIcon icon={faBackward} size="2x" /> </div>
-                        <div key ="timeline_play" onClick={this.onPlay}> <FontAwesomeIcon icon={this._playButton} size="2x" /> </div>
-                        <div key = "timeline_windForward" onClick={this.windForward}> <FontAwesomeIcon icon={faForward} size="2x" /> </div>
-                    </div>
-                    <div key ="timeline_info"className="info-container" ref={this._infoContainer}>
-                        <div key="timeline_scrubberbox" className="scrubberbox" ref={this._scrubberbox} onClick={this.onScrubberClick}>
-                            {this._ticks.map(element => {
-                                return <div className="tick" style={{ transform: `translate(${element / 1000 * this._tickSpacing}px)`, position: "absolute", pointerEvents: "none" }}> <p>{this.toTime(element)}</p></div>;
-                            })}
-                        </div>
-                        <div key="timeline_scrubber" className="scrubber" ref={this._scrubber} onPointerDown={this.onScrubberDown} style={{ transform: `translate(${this._currentBarX}px)` }}>
-                            <div key="timeline_scrubberhead" className="scrubberhead"></div>
-                        </div>
-                        <div key="timeline_trackbox" className="trackbox" ref={this._trackbox} onPointerDown={this.onPanDown}>
-                            {DocListCast(this.children).map(doc => <Track node={doc} currentBarX={this._currentBarX} changeCurrentBarX={this.changeCurrentBarX} setFlyout={this.getFlyout} transform={this.props.ScreenToLocalTransform()} collection = {this.props.Document}/>)}
-                        </div>
-                    </div>
-                    <div key="timeline_title"className="title-container" ref={this._titleContainer}>
-                        {DocListCast(this.children).map(doc => <div className="datapane"><p>{doc.title}</p></div>)}
-                    </div>
-                    <div key="timeline_resize" onPointerDown={this.onResizeDown}>
-                        <FontAwesomeIcon className="resize" icon={faGripLines} />
-                    </div>
-                </div>
-            </div>
-         ] : timeline = [
-            <div key="timeline_toolbox" className="timeline-toolbox">
-                <div key="timeline_windBack" onClick={this.windBackward}> <FontAwesomeIcon icon={faBackward} size="2x" /> </div>
-                <div key =" timeline_play" onClick={this.onPlay}> <FontAwesomeIcon icon={this._playButton} size="2x" /> </div>
-                <div key="timeline_windForward" onClick={this.windForward}> <FontAwesomeIcon icon={faForward} size="2x" /> </div>
-            </div>];
+           
 
         return (
             <div>
-                {timeline}
+                <div key="timeline_wrapper" style={{visibility: BoolCast(this.props.Document.isAnimating) ? "visible" :"hidden", left: "0px", top: "0px", position: "absolute", width: "100%", transform: "translate(0px, 0px)"}} ref={this._timelineWrapper}>
+                    <button key="timeline_minimize" className="minimize" onClick={this.minimize}>Minimize</button>
+                    <div key="timeline_container" className="timeline-container" style={{ height: `${this._containerHeight}px`, left: "0px", top: "30px" }} ref={this._timelineContainer} onPointerDown={this.onTimelineDown} onContextMenu={this.timelineContextMenu}>
+                        <div key ="timeline_toolbox" className="timeline-toolbox">
+                            <div key ="timeline_windBack" onClick={this.windBackward}> <FontAwesomeIcon icon={faBackward} size="4x" /> </div>
+                            <div key ="timeline_play" onClick={this.onPlay}> <FontAwesomeIcon icon={this._playButton} size="4x" /> </div>
+                            <div key = "timeline_windForward" onClick={this.windForward}> <FontAwesomeIcon icon={faForward} size="4x" /> </div>
+                        </div>
+                        <div key ="timeline_info"className="info-container" ref={this._infoContainer}>
+                            <div key="timeline_scrubberbox" className="scrubberbox" ref={this._scrubberbox} onClick={this.onScrubberClick}>
+                                {this._ticks.map(element => {
+                                    return <div className="tick" style={{ transform: `translate(${element / 1000 * this._tickSpacing}px)`, position: "absolute", pointerEvents: "none" }}> <p>{this.toTime(element)}</p></div>;
+                                })}
+                            </div>
+                            <div key="timeline_scrubber" className="scrubber" ref={this._scrubber} onPointerDown={this.onScrubberDown} style={{ transform: `translate(${this._currentBarX}px)` }}>
+                                <div key="timeline_scrubberhead" className="scrubberhead"></div>
+                            </div>
+                            <div key="timeline_trackbox" className="trackbox" ref={this._trackbox} onPointerDown={this.onPanDown}>
+                                {DocListCast(this.children).map(doc => <Track node={doc} currentBarX={this._currentBarX} changeCurrentBarX={this.changeCurrentBarX} setFlyout={this.getFlyout} transform={this.props.ScreenToLocalTransform()} collection = {this.props.Document}/>)}
+                            </div>
+                        </div>
+                        <div key="timeline_title"className="title-container" ref={this._titleContainer}>
+                            {DocListCast(this.children).map(doc => <div className="datapane"><p>{doc.title}</p></div>)}
+                        </div>
+                        <div key="timeline_resize" onPointerDown={this.onResizeDown}>
+                            <FontAwesomeIcon className="resize" icon={faGripLines} />
+                        </div>
+                    </div>
+                </div>
+                <div key="timeline_toolbox" className="timeline-toolbox" style={{visibility: BoolCast(this.props.Document.isAnimating) ? "hidden" :"visible"}}>
+                    <div key="timeline_windBack" onClick={this.windBackward}> <FontAwesomeIcon icon={faBackward} size="4x" /> </div>
+                    <div key =" timeline_play" onClick={this.onPlay}> <FontAwesomeIcon icon={this._playButton} size="4x" /> </div>
+                    <div key="timeline_windForward" onClick={this.windForward}> <FontAwesomeIcon icon={faForward} size="4x" /> </div>
+                    <TimelineOverview totalLength={this._time} visibleLength={20} visibleStart={0} changeCurrentBarX={this.changeCurrentBarX}/>
+                </div>
             </div>
         );
     }
