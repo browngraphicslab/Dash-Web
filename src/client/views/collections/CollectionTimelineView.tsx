@@ -1,7 +1,7 @@
 import React = require("react");
 import { action, computed, observable, untracked, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast } from "../../../new_fields/Doc";
+import { Doc, DocListCast, Field } from "../../../new_fields/Doc";
 import { NumCast, Cast, StrCast, } from "../../../new_fields/Types";
 import { emptyFunction, Utils } from "../../../Utils";
 import { SelectionManager } from "../../util/SelectionManager";
@@ -12,7 +12,6 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { DateField } from "../../../new_fields/DateField";
 import { List } from "../../../new_fields/List";
 import { Transform } from "../../util/Transform";
-import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faBell } from '@fortawesome/free-solid-svg-icons';
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { ImageField, VideoField, AudioField, PdfField, WebField } from "../../../new_fields/URLField";
@@ -38,8 +37,8 @@ type MarkerUnit = {
 };
 
 type Node = {
-    button: JSX.Element,
-    buttonref: HTMLDivElement | undefined,
+    thumbnail: JSX.Element,
+    thumbnailref: HTMLDivElement | undefined,
     header: JSX.Element,
     headerref: HTMLDivElement | undefined,
     map: JSX.Element,
@@ -79,6 +78,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             }
         });
         this.initializeMarkers();
+
         document.addEventListener("keydown", this.onKeyPress_Selector);
     }
     @action
@@ -138,18 +138,46 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     toggleKey = (key: string, num: number, button: React.RefObject<HTMLInputElement>) => {
         this.sortstate = key;
         this.sortButtonState[num] = button.current!.checked;
+        this.resetSelections();
     }
 
-    private newdudes: JSX.Element[] = [];
+    @action
+    resetSelections() {
+        this.selections = [];
+        for (let thumbnail of this.thumbnails) {
+            this.unfocus(thumbnail.thumbnailref, thumbnail.headerref);
+        }
+    }
+
+    private filterbuttons: JSX.Element[] = [];
 
     filtermenu() {
-        let dudess = ["Audio", "Pdf", "Text", "Image", "Video", "Web", "Misc"];
-        this.newdudes = [];
+        let childDocs = DocListCast(this.props.Document.data);
+        let types = new Set<string>();
+        childDocs.map(doc => {
+            let data = doc.data;
+            if (!data) {
+                return;
+            }
+            let type: string | undefined;
+            if (data instanceof Promise) {
+                data.then(field => {
+                    field && (type = this.inferType(field)) && types.add(type);
+                });
+            } else {
+                (type = this.inferType(data)) && types.add(type);
+            }
 
-        for (let i = 0; i < dudess.length; i++) {
-            let doc = dudess[i];
+
+        });
+
+        let existingTypes = Array.from(types);
+        this.filterbuttons = [];
+
+        for (let i = 0; i < existingTypes.length; i++) {
+            let doc = existingTypes[i];
             let button = React.createRef<HTMLInputElement>();
-            this.newdudes.push(
+            this.filterbuttons.push(
                 <div><input ref={button} type="checkbox" checked={this.types[i]} onChange={() => this.toggleFilter(doc, i, button)} />{doc}</div>);
         }
     }
@@ -163,6 +191,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             this.filtered.push(key);
         }
         this.types[i] = button.current!.checked;
+        this.resetSelections();
     }
 
     @observable private filtered: String[] = ["Audio", "Pdf", "Text", "Image", "Video", "Web", "Misc"];
@@ -229,13 +258,13 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 this._downX = this._lastX = e.pageX;
                 this._downY = this._lastY = e.pageY;
                 if (!e.ctrlKey) {
-                    for (let button of this.buttons) {
-                        if (button.buttonref !== undefined) {
-                            let buttonref = button.buttonref;
-                            buttonref!.classList.toggle("selected", false);
-                            buttonref!.classList.toggle("unselected", true);
-                            button.headerref!.classList.toggle("selection", false);
-                            button.headerref!.classList.toggle("unselection", true);
+                    for (let thumbnail of this.thumbnails) {
+                        if (thumbnail.thumbnailref !== undefined) {
+                            let thumbnailref = thumbnail.thumbnailref;
+                            thumbnailref!.classList.toggle("selected", false);
+                            thumbnailref!.classList.toggle("unselected", true);
+                            thumbnail.headerref!.classList.toggle("selection", false);
+                            thumbnail.headerref!.classList.toggle("unselection", true);
                         }
                     }
                     this.selections = [];
@@ -313,21 +342,21 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         let newselect = [];
         if (this.marqueeref.current !== null) {
             let posInfo = this.marqueeref.current.getBoundingClientRect();
-            for (let buttons of this.buttons) {
-                if (buttons.buttonref !== undefined) {
-                    let button = buttons.buttonref;
-                    let buttoninfo = button!.getBoundingClientRect();
-                    let header = buttons.headerref;
-                    if ((buttoninfo.left > posInfo.left && buttoninfo.left < posInfo.right) || (buttoninfo.right > posInfo.left && buttoninfo.right < posInfo.right)) {
-                        this.focus(button, header);
-                        newselect.push(button);
+            for (let thumbnails of this.thumbnails) {
+                if (thumbnails.thumbnailref !== undefined) {
+                    let thumbnail = thumbnails.thumbnailref;
+                    let thumbnailinfo = thumbnail!.getBoundingClientRect();
+                    let header = thumbnails.headerref;
+                    if ((thumbnailinfo.left > posInfo.left && thumbnailinfo.left < posInfo.right) || (thumbnailinfo.right > posInfo.left && thumbnailinfo.right < posInfo.right)) {
+                        this.focus(thumbnail, header);
+                        newselect.push(thumbnail);
                     }
                     else {
-                        this.unfocus(button, header);
+                        this.unfocus(thumbnail, header);
                     }
                     for (let select of this.selections) {
-                        if (select === button) {
-                            this.focus(button, header);
+                        if (select === thumbnail) {
+                            this.focus(thumbnail, header);
                         }
                     }
                 }
@@ -344,53 +373,53 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     }
 
-    focus(button: HTMLDivElement | undefined, header: HTMLDivElement | undefined) {
-        button!.classList.toggle("selected", true);
-        button!.classList.toggle("unselected", false);
+    focus(thumbnail: HTMLDivElement | undefined, header: HTMLDivElement | undefined) {
+        thumbnail!.classList.toggle("selected", true);
+        thumbnail!.classList.toggle("unselected", false);
         header!.classList.toggle("selection", true);
         header!.classList.toggle("unselection", false);
     }
 
-    unfocus(button: HTMLDivElement | undefined, header: HTMLDivElement | undefined) {
-        button!.classList.toggle("selected", false);
-        button!.classList.toggle("unselected", true);
+    unfocus(thumbnail: HTMLDivElement | undefined, header: HTMLDivElement | undefined) {
+        thumbnail!.classList.toggle("selected", false);
+        thumbnail!.classList.toggle("unselected", true);
         header!.classList.toggle("selection", false);
         header!.classList.toggle("unselection", true);
     }
 
     @action
     select(e: React.MouseEvent<HTMLDivElement>, d: Doc, b: HTMLDivElement | undefined) {
-        var button = undefined;
+        var thumbnail = undefined;
         var header = undefined;
-        for (let buttons of this.buttons) {
-            if (buttons.buttonref === b) {
-                button = (buttons.buttonref);
-                header = buttons.headerref;
+        for (let thumbnails of this.thumbnails) {
+            if (thumbnails.thumbnailref === b) {
+                thumbnail = (thumbnails.thumbnailref);
+                header = thumbnails.headerref;
             }
         }
         if (e.ctrlKey) {
-            if (button!.classList.contains("selected")) {
-                this.unfocus(button, header);
+            if (thumbnail!.classList.contains("selected")) {
+                this.unfocus(thumbnail, header);
                 for (let i = 0; i < this.selections.length; i++) {
-                    if (this.selections[i] === button) {
+                    if (this.selections[i] === thumbnail) {
                         this.selections.splice(i, 1);
                     }
                 }
             }
             else {
-                this.focus(button, header);
-                this.selections.push(button);
+                this.focus(thumbnail, header);
+                this.selections.push(thumbnail);
             }
         }
         else {
             this.selections = [];
-            for (let buttons of this.buttons) {
-                buttons.headerref!.classList.toggle("selection", false);
-                buttons.headerref!.classList.toggle("unselection", true);
+            for (let thumbnails of this.thumbnails) {
+                thumbnails.headerref!.classList.toggle("selection", false);
+                thumbnails.headerref!.classList.toggle("unselection", true);
             }
-            if (!button!.classList.contains("selected")) {
-                this.focus(button, header);
-                this.selections.push(button);
+            if (!thumbnail!.classList.contains("selected")) {
+                this.focus(thumbnail, header);
+                this.selections.push(thumbnail);
             }
         }
         this.preview = d;
@@ -398,23 +427,38 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     private _values: number[] = [];
     private ticks: JSX.Element[] = [];
-    private buttons: Node[] = [];
+    private thumbnails: Node[] = [];
 
-    private filterDocs = (oldbuttons: Node[]): Node[] => {
-        let buttons = [];
-        for (let oldButton of oldbuttons) {
-            if (this.filtered.includes("Image")) { if (oldButton.data instanceof ImageField) { buttons.push(oldButton); } }
-            if (this.filtered.includes("Audio")) { if (oldButton.data instanceof AudioField) { buttons.push(oldButton); } }
-            if (this.filtered.includes("Pdf")) { if (oldButton.data instanceof PdfField) { buttons.push(oldButton); } }
-            if (this.filtered.includes("Text")) { if (oldButton.data instanceof RichTextField) { buttons.push(oldButton); } }
-            if (this.filtered.includes("Video")) { if (oldButton.data instanceof VideoField) { buttons.push(oldButton); } }
-            if (this.filtered.includes("Web")) { if (oldButton.data instanceof WebField) { buttons.push(oldButton); } }
-            else if (this.filtered.includes("Misc")) { buttons.push(oldButton); }
+    private filterDocs = (thumbnail: Node[]): Node[] => {
+        let thumbnails = [];
+        for (let oldthumbnail of thumbnail) {
+            if (this.filtered.includes("Image")) { if (oldthumbnail.data instanceof ImageField) { thumbnails.push(oldthumbnail); } }
+            if (this.filtered.includes("Audio")) { if (oldthumbnail.data instanceof AudioField) { thumbnails.push(oldthumbnail); } }
+            if (this.filtered.includes("Pdf")) { if (oldthumbnail.data instanceof PdfField) { thumbnails.push(oldthumbnail); } }
+            if (this.filtered.includes("Text")) { if (oldthumbnail.data instanceof RichTextField) { thumbnails.push(oldthumbnail); } }
+            if (this.filtered.includes("Video")) { if (oldthumbnail.data instanceof VideoField) { thumbnails.push(oldthumbnail); } }
+            if (this.filtered.includes("Web")) { if (oldthumbnail.data instanceof WebField) { thumbnails.push(oldthumbnail); } }
+            else if (this.filtered.includes("Misc")) { thumbnails.push(oldthumbnail); }
         }
-        return buttons;
+        return thumbnails;
     }
 
-    buttonloop() {
+    private inferType = (data: Field) => {
+        switch (data.constructor) {
+            case ImageField: return "Image";
+            case AudioField: return "Audio";
+            case PdfField: return "PDF";
+            case RichTextField: return "Text";
+            case VideoField: return "Video";
+            case WebField: return "Image";
+            case DateField: return "Date";
+            case List: return "Collection";
+            default:
+                return undefined;
+        }
+    }
+
+    thumbnailloop() {
         this._range = 1;
         let arr: Doc[] = [];
         //Build an array of all nodes in dash document.
@@ -463,13 +507,13 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
         this._values = values;
         let leftval = "0";
-        this.buttons = [];
+        this.thumbnails = [];
         for (let i = 0; i < backup.length; i++) {
             leftval = (((values[i] - values[0]) * this.barwidth * 0.97 / this._range) * (this.barwidth / (this.barwidth - this.rightbound - this.leftbound)) - (this.leftbound * (this.barwidth) / (this.barwidth - this.rightbound - this.leftbound))) + "px";
             //Creating the node
             let newNode: Node = {
-                button: (<div onClick={(e) => this.select(e, keyvalue[i].doc, newNode.buttonref)} style={{ position: "absolute", left: leftval, width: "100px", height: "100px" }}>
-                    <div ref={(el) => el ? newNode.buttonref = el : null} className="unselected" style={{ position: "absolute", width: "100px", height: "100px", pointerEvents: "all" }}>
+                thumbnail: (<div onClick={(e) => this.select(e, keyvalue[i].doc, newNode.thumbnailref)} style={{ position: "absolute", left: leftval, width: "100px", height: "100px" }}>
+                    <div ref={(el) => el ? newNode.thumbnailref = el : null} className="unselected" style={{ position: "absolute", width: "100px", height: "100px", pointerEvents: "all" }}>
                         <FontAwesomeIcon icon={this.checkData(docs[i])} size="sm" style={{ position: "absolute" }} />
                         <div className="window" style={{ pointerEvents: "none", zIndex: 10, width: "94px", height: "94px", position: "absolute" }}>
                             <div className="window" style={{ background: "white", pointerEvents: "none", zIndex: -1, position: "absolute", width: "94px", height: "94px" }}>
@@ -478,7 +522,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         </div>
                     </div>
                 </div>),
-                buttonref: undefined,
+                thumbnailref: undefined,
                 header: (
                     <div ref={(el) => el ? newNode.headerref = el : null} className="unselection" onPointerDown={this.onPointerDown_Selector} style={{
                         whiteSpace: "nowrap", borderRadius: "5px 5px 0px 0px", border: "1px",
@@ -502,39 +546,39 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 data: docs[i].data,
                 leftval: parseFloat(leftval),
             };
-            this.buttons.push(newNode);
+            this.thumbnails.push(newNode);
         }
 
         let bool = true;
         while (bool === true) {
             bool = this.checkoverlaps();
-            for (let buttons of this.buttons) {
+            for (let thumbnails of this.thumbnails) {
                 for (let overlaps of this.overlaps) {
-                    if (buttons === overlaps) {
-                        this.buttons.splice(this.buttons.indexOf(overlaps), 1);
+                    if (thumbnails === overlaps) {
+                        this.thumbnails.splice(this.thumbnails.indexOf(overlaps), 1);
                     }
 
                 }
             }
         }
-        this.buttons = this.filterDocs(this.buttons);
+        this.thumbnails = this.filterDocs(this.thumbnails);
     }
 
     private overlaps: Node[] = [];
 
     checkoverlaps() {
-        for (let firstbutton of this.buttons) {
+        for (let firstthumbnail of this.thumbnails) {
             this.overlaps = [];
-            for (let secondbutton of this.buttons) {
-                if (firstbutton.leftval === secondbutton.leftval && firstbutton !== secondbutton) {
-                    this.overlaps.push(secondbutton);
+            for (let secondthumbnail of this.thumbnails) {
+                if (firstthumbnail.leftval === secondthumbnail.leftval && firstthumbnail !== secondthumbnail) {
+                    this.overlaps.push(secondthumbnail);
                 }
             }
             if (this.overlaps.length > 0) {
-                let things: JSX.Element[] = [];
+                let overlapicons: JSX.Element[] = [];
                 this.overlaps.forEach(element => {
                     let display = () => runInAction(() => { this.preview = element.doc; });
-                    things.push(
+                    overlapicons.push(
                         <button className="toolbar-button round-button" title="Notifs"
                             onClick={display}
                             style={{
@@ -544,19 +588,19 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         </button>
                     );
                 });
-                let display = () => runInAction(() => { this.preview = firstbutton.doc; });
-                things.push(
+                let display = () => runInAction(() => { this.preview = firstthumbnail.doc; });
+                overlapicons.push(
                     <button className="toolbar-button round-button" title="Notifs"
                         onClick={display}
                         style={{
                             background: "$dark-color",
                         }}>
-                        <FontAwesomeIcon icon={this.checkData(firstbutton.doc)} size="sm" />
+                        <FontAwesomeIcon icon={this.checkData(firstthumbnail.doc)} size="sm" />
                     </button>
                 );
-                firstbutton.button = (
-                    <div ref={(el) => el ? firstbutton.buttonref = el : null} className="unselected" style={{ left: firstbutton.leftval, position: "absolute", overflow: "scroll", background: "grey", width: "100px", height: "100px", zIndex: 0 }}>
-                        {things}
+                firstthumbnail.thumbnail = (
+                    <div ref={(el) => el ? firstthumbnail.thumbnailref = el : null} className="unselected" style={{ left: firstthumbnail.leftval, position: "absolute", overflow: "scroll", background: "grey", width: "100px", height: "100px", zIndex: 0 }}>
+                        {overlapicons}
                     </div>
                 );
                 return true;
@@ -720,7 +764,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.createticks();
         this.filtermenu();
         this.sortmenu();
-        this.buttonloop();
+        this.thumbnailloop();
 
         let p: [number, number] = this._visible ? this.props.ScreenToLocalTransform().translate(0, 0).transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
         return (
@@ -731,7 +775,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 </div>
                 <div style={{ position: "absolute", top: "30%", height: "30%", width: "10%", overflow: "scroll", border: "1px solid", zIndex: 900 }}>
                     <h5><b>Filter</b></h5>
-                    {this.newdudes}
+                    {this.filterbuttons}
                 </div>
                 <div className="timeline" style={{ position: "absolute", height: "25px", width: "100%", top: String(document.body.clientHeight * 0.65 + 72) + "px", zIndex: -9999 }}>
                     {this.ticks}
@@ -747,7 +791,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 </div>
                 {DocListCast(this.props.Document.markers).map(d => this.createmarker(d))}
                 <BottomUI
-                    buttonmap={this.buttons.map(item => item.map)}
+                    thumbnailmap={this.thumbnails.map(item => item.map)}
                     markermap={DocListCast(this.props.Document.markers).map(d => this.createmap(d))}
                     leftbound={this.leftbound}
                     rightbound={this.rightbound}
@@ -773,7 +817,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         {this._visible ? this.marqueeDiv : null}
                     </div>}
                 </div>
-                <div style={{ top: "65%", position: "absolute", bottom: "25%" }}>{this.buttons.map(item => item.button)}{this.buttons.map(item => item.header)}</div>
+                <div style={{ top: "65%", position: "absolute", bottom: "25%" }}>{this.thumbnails.map(item => item.thumbnail)}{this.thumbnails.map(item => item.header)}</div>
             </div>
         );
     }
