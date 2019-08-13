@@ -23,11 +23,18 @@ import { Id } from "../../../new_fields/FieldSymbols";
 import { threadId } from "worker_threads";
 const datepicker = require('js-datepicker');
 import * as $ from 'jquery';
+import { firebasedynamiclinks } from "googleapis/build/src/apis/firebasedynamiclinks";
 
 interface CollectionViewChromeProps {
     CollectionView: CollectionView;
     type: CollectionViewType;
     collapse?: (value: boolean) => any;
+}
+
+interface Filter {
+    key: string;
+    value: string;
+    contains: boolean;
 }
 
 let stopPropagation = (e: React.SyntheticEvent) => e.stopPropagation();
@@ -42,11 +49,46 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     @observable private _keyRestrictions: [JSX.Element, string][] = [];
     @observable private _collapsed: boolean = false;
     @computed private get filterValue() { return Cast(this.props.CollectionView.props.Document.viewSpecScript, ScriptField); }
-    // private _fullScript: string = "return true";
-    // @observable private keys: Object = new Object();
 
     private _picker: any;
     private _datePickerElGuid = Utils.GenerateGuid();
+
+    getFilters = (script: string) => {
+        let re: any = /(!)?\(\(\(doc\.(\w+)\s+&&\s+\(doc\.\w+\s+as\s+\w+\)\.includes\(\"(\w+)\"\)/g;
+        let arr: any[] = re.exec(script);
+        let toReturn: Filter[] = [];
+        if (arr !== null) {
+            let filter: Filter = {
+                key: arr[2],
+                value: arr[3],
+                contains: (arr[1] === "!") ? false : true,
+            };
+            toReturn.push(filter);
+            script = script.replace(arr[0], "");
+            if (re.exec(script) !== null) {
+                toReturn.push(...this.getFilters(script));
+            }
+            else { return toReturn; }
+        }
+        return toReturn;
+    }
+
+    addKeyRestrictions = (fields: Filter[]) => {
+
+        if (fields.length !== 0) {
+            for (let i = 0; i < fields.length; i++) {
+                this._keyRestrictions.push([<KeyRestrictionRow field={fields[i].key} value={fields[i].value} key={Utils.GenerateGuid()} contains={fields[i].contains} script={(value: string) => runInAction(() => this._keyRestrictions[i][1] = value)} />, ""]);
+
+            }
+            if (this._keyRestrictions.length === 1) {
+                this._keyRestrictions.push([<KeyRestrictionRow field="" value="" key={Utils.GenerateGuid()} contains={true} script={(value: string) => runInAction(() => this._keyRestrictions[1][1] = value)} />, ""]);
+            }
+        }
+        else {
+            this._keyRestrictions.push([<KeyRestrictionRow field="" value="" key={Utils.GenerateGuid()} contains={true} script={(value: string) => runInAction(() => this._keyRestrictions[0][1] = value)} />, ""]);
+            this._keyRestrictions.push([<KeyRestrictionRow field="" value="" key={Utils.GenerateGuid()} contains={false} script={(value: string) => runInAction(() => this._keyRestrictions[1][1] = value)} />, ""]);
+        }
+    }
 
     componentDidMount = () => {
         setTimeout(() => this._picker = datepicker("#" + this._datePickerElGuid, {
@@ -55,21 +97,14 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             dateSelected: new Date()
         }), 1000);
 
-        // let reg: RegExp = new RegExp('(!)?\(\(\(doc\.(\w+)\s+&&\s+\(doc\.\w+\s+as\s+\w+\)\.includes\(\"(\w+)\"\)');
-        let re: any = /(!)?\(\(\(doc\.(\w+)\s+&&\s+\(doc\.\w+\s+as\s+\w+\)\.includes\(\"(\w+)\"\)/;
-        let arr: any[] = [];
+        let fields: Filter[] = [];
         if (this.filterValue) {
-            console.log("filter exists!")
-            arr = re.exec(this.filterValue.script.originalScript)
-            console.log(arr)
+            let string = this.filterValue.script.originalScript;
+            fields = this.getFilters(string);
         }
 
-        // let matches: RegExpExecArray = [];
-
         runInAction(() => {
-            this._keyRestrictions.push([<KeyRestrictionRow key={Utils.GenerateGuid()} contains={true} script={(value: string) => runInAction(() => this._keyRestrictions[0][1] = value)} />, ""]);
-            this._keyRestrictions.push([<KeyRestrictionRow key={Utils.GenerateGuid()} contains={false} script={(value: string) => runInAction(() => this._keyRestrictions[1][1] = value)} />, ""]);
-
+            this.addKeyRestrictions(fields);
             // chrome status is one of disabled, collapsed, or visible. this determines initial state from document
             let chromeStatus = this.props.CollectionView.props.Document.chromeStatus;
             if (chromeStatus) {
@@ -129,17 +164,19 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     @action
     addKeyRestriction = (e: React.MouseEvent) => {
         let index = this._keyRestrictions.length;
-        this._keyRestrictions.push([<KeyRestrictionRow key={Utils.GenerateGuid()} contains={true} script={(value: string) => runInAction(() => this._keyRestrictions[index][1] = value)} />, ""]);
+        this._keyRestrictions.push([<KeyRestrictionRow field="" value="" key={Utils.GenerateGuid()} contains={true} script={(value: string) => runInAction(() => this._keyRestrictions[index][1] = value)} />, ""]);
 
         this.openViewSpecs(e);
     }
 
-    @action
+    @action.bound
     applyFilter = (e: React.MouseEvent) => {
 
         this.openViewSpecs(e);
 
-        let keyRestrictionScript = this._keyRestrictions.map(i => i[1]).filter(i => i.length > 0).join(" && ");
+        console.log(this._keyRestrictions)
+
+        let keyRestrictionScript = "(" + this._keyRestrictions.map(i => i[1]).filter(i => i.length > 0).join(" && ") + ")";
         let yearOffset = this._dateWithinValue[1] === 'y' ? 1 : 0;
         let monthOffset = this._dateWithinValue[1] === 'm' ? parseInt(this._dateWithinValue[0]) : 0;
         let weekOffset = this._dateWithinValue[1] === 'w' ? parseInt(this._dateWithinValue[0]) : 0;
@@ -234,11 +271,15 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             })} />);
     }
 
+    @action.bound
     clearFilter = () => {
         let compiled = CompileScript("return true", { params: { doc: Doc.name }, typecheck: false });
         if (compiled.compiled) {
             this.props.CollectionView.props.Document.viewSpecScript = new ScriptField(compiled);
         }
+
+        this._keyRestrictions = [];
+        this.addKeyRestrictions([]);
     }
 
     render() {
