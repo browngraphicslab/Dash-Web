@@ -110,9 +110,14 @@ export namespace GoogleApiClientUtils {
             }
         };
 
-        export const Read = async (documentId: string, removeNewlines = false): Promise<Opt<string>> => {
-            return Retrieve(documentId).then(schema => {
-                return schema ? Utils.extractText(schema, removeNewlines) : undefined;
+        export interface ReadOptions {
+            documentId: string;
+            removeNewlines?: boolean;
+        }
+
+        export const Read = async (options: ReadOptions): Promise<Opt<string>> => {
+            return Retrieve(options.documentId).then(schema => {
+                return schema ? Utils.extractText(schema, options.removeNewlines) : undefined;
             });
         };
 

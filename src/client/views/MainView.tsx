@@ -156,9 +156,9 @@ export class MainView extends React.Component {
 
     componentDidMount() {
         reaction(() => this.mainContainer, () => {
-            let main = this.mainContainer, googleDocId;
-            if (main && (googleDocId = StrCast(main.googleDocId))) {
-                GoogleApiClientUtils.Docs.Read(googleDocId, true).then(text => {
+            let main = this.mainContainer, documentId;
+            if (main && (documentId = StrCast(main.googleDocId))) {
+                GoogleApiClientUtils.Docs.Read({ documentId }).then(text => {
                     text && Utils.CopyText(text);
                     console.log(text);
                 });
