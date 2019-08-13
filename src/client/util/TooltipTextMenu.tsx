@@ -963,7 +963,7 @@ export class TooltipTextMenu {
                 });
             }
         }
-        if (!ref_node.isLeaf) {
+        if (!ref_node.isLeaf && ref_node.childCount > 0) {
             ref_node = ref_node.child(0);
         }
         return ref_node;

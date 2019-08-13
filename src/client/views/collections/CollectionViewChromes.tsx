@@ -37,7 +37,6 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     @observable private _dateWithinValue: string = "";
     @observable private _dateValue: Date | string = "";
     @observable private _keyRestrictions: [JSX.Element, string][] = [];
-    @observable private _collapsed: boolean = false;
     @computed private get filterValue() { return Cast(this.props.CollectionView.props.Document.viewSpecScript, ScriptField); }
 
     private _picker: any;
@@ -61,7 +60,6 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                     throw new Error("how did you get here, if chrome status is 'disabled' on a collection, a chrome shouldn't even be instantiated!");
                 }
                 else if (chromeStatus === "collapsed") {
-                    this._collapsed = true;
                     if (this.props.collapse) {
                         this.props.collapse(true);
                     }
@@ -163,9 +161,9 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
 
     @action
     toggleCollapse = () => {
-        this._collapsed = !this._collapsed;
+        this.props.CollectionView.props.Document.chromeStatus = this.props.CollectionView.props.Document.chromeStatus === "enabled" ? "collapsed" : "enabled";
         if (this.props.collapse) {
-            this.props.collapse(this._collapsed);
+            this.props.collapse(this.props.CollectionView.props.Document.chromeStatus !== "enabled");
         }
     }
 
@@ -218,16 +216,17 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     }
 
     render() {
+        let collapsed = this.props.CollectionView.props.Document.chromeStatus !== "enabled";
         return (
-            <div className="collectionViewChrome-cont" style={{ top: this._collapsed ? -70 : 0 }}>
+            <div className="collectionViewChrome-cont" style={{ top: collapsed ? -70 : 0 }}>
                 <div className="collectionViewChrome">
                     <div className="collectionViewBaseChrome">
                         <button className="collectionViewBaseChrome-collapse"
                             style={{
-                                top: this._collapsed ? 70 : 10,
-                                transform: `rotate(${this._collapsed ? 180 : 0}deg) scale(${this._collapsed ? 0.5 : 1}) translate(${this._collapsed ? "-100%, -100%" : "0, 0"})`,
-                                opacity: (this._collapsed && !this.props.CollectionView.props.isSelected()) ? 0 : 0.9,
-                                left: (this._collapsed ? 0 : "unset"),
+                                top: collapsed ? 70 : 10,
+                                transform: `rotate(${collapsed ? 180 : 0}deg) scale(${collapsed ? 0.5 : 1}) translate(${collapsed ? "-100%, -100%" : "0, 0"})`,
+                                opacity: (collapsed && !this.props.CollectionView.props.isSelected()) ? 0 : 0.9,
+                                left: (collapsed ? 0 : "unset"),
                             }}
                             title="Collapse collection chrome" onClick={this.toggleCollapse}>
                             <FontAwesomeIcon icon="caret-up" size="2x" />
@@ -243,7 +242,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="5">Stacking View</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="6">Masonry View</option>
                         </select>
-                        <div className="collectionViewBaseChrome-viewSpecs" style={{ display: this._collapsed ? "none" : "grid" }}>
+                        <div className="collectionViewBaseChrome-viewSpecs" style={{ display: collapsed ? "none" : "grid" }}>
                             <input className="collectionViewBaseChrome-viewSpecsInput"
                                 placeholder="FILTER DOCUMENTS"
                                 value={this.filterValue ? this.filterValue.script.originalScript : ""}

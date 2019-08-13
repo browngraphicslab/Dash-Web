@@ -30,7 +30,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
 
     public static LayoutString(fieldStr: string = "data", fieldExt: string = "") { return FieldView.LayoutString(CollectionView, fieldStr, fieldExt); }
 
-    constructor(props:any) {
+    constructor(props: any) {
         super(props);
     }
 
@@ -69,7 +69,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
     @action
     private collapse = (value: boolean) => {
         this._collapsed = value;
-        this.props.Document.chromeStatus = value ? "collapsed" : "visible";
+        this.props.Document.chromeStatus = value ? "collapsed" : "enabled";
     }
 
     private SubView = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
@@ -90,12 +90,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
     onContextMenu = (e: React.MouseEvent): void => {
         if (!this.isAnnotationOverlay && !e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
             let subItems: ContextMenuProps[] = [];
-            subItems.push({
-                description: "Freeform", event: () => {
-                    this.props.Document.viewType = CollectionViewType.Freeform;
-                    delete this.props.Document.usePivotLayout;
-                }, icon: "signature"
-            });
+            subItems.push({ description: "Freeform", event: () => { this.props.Document.viewType = CollectionViewType.Freeform; delete this.props.Document.usePivotLayout; }, icon: "signature" });
             if (CollectionBaseView.InSafeMode()) {
                 ContextMenu.Instance.addItem({ description: "Test Freeform", event: () => this.props.Document.viewType = CollectionViewType.Invalid, icon: "project-diagram" });
             }
@@ -111,10 +106,10 @@ export class CollectionView extends React.Component<FieldViewProps> {
                 }
             }
             ContextMenu.Instance.addItem({ description: "View Modes...", subitems: subItems, icon: "eye" });
-            ContextMenu.Instance.addItem({ description: "Apply Template", event: () => this.props.addDocTab && this.props.addDocTab(Doc.ApplyTemplate(this.props.Document)!, undefined, "onRight"), icon: "project-diagram" });
-            ContextMenu.Instance.addItem({
-                description: this.props.Document.chromeStatus !== "disabled" ? "Hide Chrome" : "Show Chrome", event: () => this.props.Document.chromeStatus = (this.props.Document.chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram"
-            });
+            let existing = ContextMenu.Instance.findByDescription("Layout...");
+            let layoutItems: ContextMenuProps[] = existing && "subitems" in existing ? existing.subitems : [];
+            layoutItems.push({ description: "Create Layout Instance", event: () => this.props.addDocTab && this.props.addDocTab(Doc.ApplyTemplate(this.props.Document)!, undefined, "onRight"), icon: "project-diagram" });
+            !existing && ContextMenu.Instance.addItem({ description: "Layout...", subitems: layoutItems, icon: "hand-point-right" });
         }
     }
 

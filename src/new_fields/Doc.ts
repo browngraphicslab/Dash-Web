@@ -516,6 +516,8 @@ export namespace Doc {
         otherdoc.miniLayout = StrCast(templateDoc.miniLayout);
         otherdoc.detailedLayout = otherdoc.layout;
         otherdoc.type = DocumentType.TEMPLATE;
+        !templateDoc.nativeWidth && (otherdoc.nativeWidth = 0);
+        !templateDoc.nativeHeight && (otherdoc.nativeHeight = 0);
         return otherdoc;
     }
     export function ApplyTemplateTo(templateDoc: Doc, target: Doc, targetData?: Doc) {
@@ -534,6 +536,8 @@ export namespace Doc {
             target.miniLayout = StrCast(templateDoc.miniLayout);
             target.detailedLayout = target.layout;
         }
+        !templateDoc.nativeWidth && (target.nativeWidth = 0);
+        !templateDoc.nativeHeight && (target.nativeHeight = 0);
     }
 
     export function MakeTemplate(fieldTemplate: Doc, metaKey: string, templateDataDoc: Doc) {
@@ -610,4 +614,7 @@ export namespace Doc {
 }
 Scripting.addGlobal(function renameAlias(doc: any, n: any) {
     return StrCast(doc.title).replace(/\([0-9]*\)/, "") + `(${n})`;
+});
+Scripting.addGlobal(function getProto(doc: any) {
+    return Doc.GetProto(doc);
 });

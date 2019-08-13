@@ -165,14 +165,18 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
             }
             return paths;
         }, [] as JSX.Element[]);
-        return [<svg className={`inkingCanvas-paths-ink`} key="Pens"
-            style={{ left: `${this.inkMidX - this.maxCanvasDim}px`, top: `${this.inkMidY - this.maxCanvasDim}px` }} >
-            {paths.filter(path => path.props.tool !== InkTool.Highlighter)}
-        </svg>,
-        <svg className={`inkingCanvas-paths-markers`} key="Markers"
-            style={{ left: `${this.inkMidX - this.maxCanvasDim}px`, top: `${this.inkMidY - this.maxCanvasDim}px` }}>
-            {paths.filter(path => path.props.tool === InkTool.Highlighter)}
-        </svg>];
+        let markerPaths = paths.filter(path => path.props.tool === InkTool.Highlighter);
+        let penPaths = paths.filter(path => path.props.tool !== InkTool.Highlighter);
+        return [!penPaths.length ? (null) :
+            <svg className={`inkingCanvas-paths-ink`} key="Pens"
+                style={{ left: `${this.inkMidX - this.maxCanvasDim}px`, top: `${this.inkMidY - this.maxCanvasDim}px` }} >
+                {}
+            </svg>,
+        !markerPaths.length ? (null) :
+            <svg className={`inkingCanvas-paths-markers`} key="Markers"
+                style={{ left: `${this.inkMidX - this.maxCanvasDim}px`, top: `${this.inkMidY - this.maxCanvasDim}px` }}>
+                {}
+            </svg>];
     }
 
     render() {

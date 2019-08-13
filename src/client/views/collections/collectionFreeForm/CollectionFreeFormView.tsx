@@ -816,17 +816,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     onContextMenu = (e: React.MouseEvent) => {
         let layoutItems: ContextMenuProps[] = [];
-        layoutItems.push({
-            description: `${this.fitToBox ? "Unset" : "Set"} Fit To Container`,
-            event: this.fitToContainer,
-            icon: !this.fitToBox ? "expand-arrows-alt" : "compress-arrows-alt"
-        });
-        layoutItems.push({
-            description: "reset view", event: () => {
-                this.props.Document.panX = this.props.Document.panY = 0;
-                this.props.Document.scale = 1;
-            }, icon: "compress-arrows-alt"
-        });
+        layoutItems.push({ description: `${this.fitToBox ? "Unset" : "Set"} Fit To Container`, event: this.fitToContainer, icon: !this.fitToBox ? "expand-arrows-alt" : "compress-arrows-alt" });
+        layoutItems.push({ description: "reset view", event: () => { this.props.Document.panX = this.props.Document.panY = 0; this.props.Document.scale = 1; }, icon: "compress-arrows-alt" });
         layoutItems.push({
             description: `${this.props.Document.useClusters ? "Uncluster" : "Use Clusters"}`,
             event: async () => {
@@ -841,50 +832,13 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             event: async () => this.props.Document.clusterOverridesDefaultBackground = !this.props.Document.clusterOverridesDefaultBackground,
             icon: !this.props.Document.useClusters ? "chalkboard" : "chalkboard"
         });
-        layoutItems.push({
-            description: "Arrange contents in grid",
-            event: this.arrangeContents,
-            icon: "table"
-        });
-        ContextMenu.Instance.addItem({
-            description: "Layout...",
-            subitems: layoutItems,
-            icon: "compass"
-        });
-        ContextMenu.Instance.addItem({
-            description: "Analyze Strokes",
-            event: this.analyzeStrokes,
-            icon: "paint-brush"
-        });
-        ContextMenu.Instance.addItem({
-            description: "Import document", icon: "upload", event: () => {
-                const input = document.createElement("input");
-                input.type = "file";
-                input.accept = ".zip";
-                input.onchange = async _e => {
-                    const files = input.files;
-                    if (!files) return;
-                    const file = files[0];
-                    let formData = new FormData();
-                    formData.append('file', file);
-                    formData.append('remap', "true");
-                    const upload = Utils.prepend("/uploadDoc");
-                    const response = await fetch(upload, { method: "POST", body: formData });
-                    const json = await response.json();
-                    if (json === "error") {
-                        return;
-                    }
-                    const doc = await DocServer.GetRefField(json);
-                    if (!doc || !(doc instanceof Doc)) {
-                        return;
-                    }
-                    const [x, y] = this.props.ScreenToLocalTransform().transformPoint(e.pageX, e.pageY);
-                    doc.x = x, doc.y = y;
-                    this.addDocument(doc, false);
-                };
-                input.click();
-            }
-        });
+        layoutItems.push({ description: "Arrange contents in grid", event: this.arrangeContents, icon: "table" });
+        ContextMenu.Instance.addItem({ description: "Layout...", subitems: layoutItems, icon: "compass" });
+
+        let existingAnalyze = ContextMenu.Instance.findByDescription("Analyzers...");
+        let analyzers: ContextMenuProps[] = existingAnalyze && "subitems" in existingAnalyze ? existingAnalyze.subitems : [];
+        analyzers.push({ description: "Analyze Strokes", event: this.analyzeStrokes, icon: "paint-brush" });
+        !existingAnalyze && ContextMenu.Instance.addItem({ description: "Analyzers...", subitems: analyzers, icon: "hand-point-right" });
     }
 
 

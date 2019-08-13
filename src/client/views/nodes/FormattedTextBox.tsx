@@ -475,6 +475,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
+        if (this.onClick && e.button === 0) {
+            e.preventDefault();
+        }
         if (e.button === 0 && this.props.isSelected() && !e.altKey && !e.ctrlKey && !e.metaKey) {
             e.stopPropagation();
             if (FormattedTextBox._toolTipTextMenu && FormattedTextBox._toolTipTextMenu.tooltip) {
@@ -643,12 +646,12 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     specificContextMenu = (e: React.MouseEvent): void => {
-        let subitems: ContextMenuProps[] = [];
-        subitems.push({
-            description: BoolCast(this.props.Document.autoHeight) ? "Manual Height" : "Auto Height",
-            event: action(() => Doc.GetProto(this.props.Document).autoHeight = !BoolCast(this.props.Document.autoHeight)), icon: "expand-arrows-alt"
-        });
-        ContextMenu.Instance.addItem({ description: "Text Funcs...", subitems: subitems, icon: "text-height" });
+        // let subitems: ContextMenuProps[] = [];
+        // subitems.push({
+        //     description: BoolCast(this.props.Document.autoHeight) ? "Manual Height" : "Auto Height",
+        //     event: action(() => Doc.GetProto(this.props.Document).autoHeight = !BoolCast(this.props.Document.autoHeight)), icon: "expand-arrows-alt"
+        // });
+        // ContextMenu.Instance.addItem({ description: "Text Funcs...", subitems: subitems, icon: "text-height" });
     }
     render() {
         let self = this;

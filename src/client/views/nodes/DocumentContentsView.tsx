@@ -85,8 +85,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         let list = {
             ...OmitKeys(this.props, ['parentActive'], (obj: any) => obj.active = this.props.parentActive).omit,
             Document: this.layoutDoc,
-            DataDoc: this.dataDoc,
-            onClick: this.props.onClick
+            DataDoc: this.dataDoc
         };
         return { props: list };
     }
