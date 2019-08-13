@@ -5,9 +5,33 @@
     margin-left: 20px;  
     background: white; 
     border: 1px solid black; 
+    padding: 0px; 
+    display:inline-block; 
     .timeline-overview-visible{
         height: 100%; 
         background: green; 
         border: 1px solid black; 
+        margin: 0px; 
+    }
+    .timeline-overview-scrubber-container{
+        height: 100%;
+        margin-top: -40px;  
+        margin-left: 0px; 
+        width: 2px; 
+        z-index: 1001;
+        background-color:black; 
+        display: inline-block; 
+        .timeline-overview-scrubber-head{
+            position:absolute; 
+            height: 30px; 
+            width: 30px;
+            background-color:transparent; 
+            border-radius: 50%; 
+            border: 5px solid black; 
+            margin-left: -15px; 
+            top: -15px; 
+
+        }
+        
     }
 }

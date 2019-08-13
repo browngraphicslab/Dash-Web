@@ -1,6 +1,6 @@
 import * as React from "react";
 import "./Timeline.scss";
-import { CollectionSubView } from "../collections/CollectionSubView";
+import { CollectionSubView, SubCollectionViewProps } from "../collections/CollectionSubView";
 import { Document, listSpec } from "../../../new_fields/Schema";
 import { observer } from "mobx-react";
 import { Track } from "./Track";
@@ -35,8 +35,6 @@ export interface FlyoutProps {
 
 @observer
 export class Timeline extends CollectionSubView(Document) {
-    static Instance:Timeline; 
-   
 
     private readonly DEFAULT_CONTAINER_HEIGHT: number = 300;
     private readonly DEFAULT_TICK_SPACING: number = 50;
@@ -53,16 +51,16 @@ export class Timeline extends CollectionSubView(Document) {
     @observable private _trackbox = React.createRef<HTMLDivElement>();
     @observable private _titleContainer = React.createRef<HTMLDivElement>();
     @observable private _timelineContainer = React.createRef<HTMLDivElement>();
-
     @observable private _timelineWrapper = React.createRef<HTMLDivElement>();
     @observable private _infoContainer = React.createRef<HTMLDivElement>();
-
 
     @observable private _currentBarX: number = 0;
     @observable private _windSpeed: number = 1;
     @observable private _isPlaying: boolean = false; //scrubber playing
     @observable private _isFrozen: boolean = false; //timeline freeze
-    @observable private _boxLength: number = 0;
+    @observable private _totalLength: number = 0;
+    @observable private _visibleLength: number = 0; 
+    @observable private _visibleStart: number = 0; 
     @observable private _containerHeight: number = this.DEFAULT_CONTAINER_HEIGHT;
     @observable private _time = 100000; //DEFAULT
     @observable private _ticks: number[] = [];
@@ -83,8 +81,10 @@ export class Timeline extends CollectionSubView(Document) {
         return Cast(this.props.Document[this.props.fieldKey], listSpec(Doc)) as List<Doc>;
     }
 
+
     componentWillMount() {
         this.props.Document.isAnimating ? this.props.Document.isAnimating = true : this.props.Document.isAnimating = false; 
+        console.log(this._currentBarX); 
     }
 
     componentDidMount() {
@@ -99,11 +99,10 @@ export class Timeline extends CollectionSubView(Document) {
                     this.changeCurrentBarX(curPage * this._tickIncrement / this._tickSpacing);
                 });
             }
-
         }
         runInAction(() => {
             reaction(() => {
-                return this._time; 
+                return this._time;  
             }, () => {
                 this._ticks = [];
                 for (let i = 0; i < this._time;) {
@@ -111,17 +110,22 @@ export class Timeline extends CollectionSubView(Document) {
                     i += this._tickIncrement;
                 }
                 let trackbox = this._trackbox.current!;
-                this._boxLength = this._tickIncrement / 1000 * this._tickSpacing * this._ticks.length;
-                trackbox.style.width = `${this._boxLength}`;
-                this._scrubberbox.current!.style.width = `${this._boxLength}`;
-            });
+                this._totalLength = this._tickSpacing * this._ticks.length;
+                trackbox.style.width = `${this._totalLength}`;
+                this._scrubberbox.current!.style.width = `${this._totalLength}`;
+            }, {fireImmediately:true}); 
+            this._visibleLength = this._infoContainer.current!.getBoundingClientRect().width; 
+            this._visibleStart = this._infoContainer.current!.scrollLeft; 
         });
+       
     }
+
+    
    
 
     @action
-    changeCurrentBarX = (x: number) => {
-        this._currentBarX = x;
+    changeCurrentBarX = (pixel: number) => {
+        this._currentBarX = pixel;
     }
 
     //for playing
@@ -139,10 +143,10 @@ export class Timeline extends CollectionSubView(Document) {
 
     @action
     changeCurrentX = () => {
-        if (this._currentBarX === this._boxLength && this._isPlaying) {
+        if (this._currentBarX === this._totalLength && this._isPlaying) {
             this._currentBarX = 0;
         }
-        if (this._currentBarX <= this._boxLength && this._isPlaying) {
+        if (this._currentBarX <= this._totalLength && this._isPlaying) {
             this._currentBarX = this._currentBarX + this._windSpeed;
             setTimeout(this.changeCurrentX, 15);
         }
@@ -208,12 +212,17 @@ export class Timeline extends CollectionSubView(Document) {
     onPanMove = (e: PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        let infoContainer = this._infoContainer.current!;
         let trackbox = this._trackbox.current!;
         let titleContainer = this._titleContainer.current!;
-        infoContainer.scrollLeft = infoContainer.scrollLeft - e.movementX;
+        this.movePanX(this._visibleStart - e.movementX);
         trackbox.scrollTop = trackbox.scrollTop - e.movementY;
         titleContainer.scrollTop = titleContainer.scrollTop - e.movementY;
+    }
+    @action 
+    movePanX = (pixel:number) => {
+        let infoContainer = this._infoContainer.current!;
+        infoContainer.scrollLeft = pixel; 
+        this._visibleStart = infoContainer.scrollLeft;
     }
 
 
@@ -276,7 +285,7 @@ export class Timeline extends CollectionSubView(Document) {
     }
 
     @action
-    toTime = (time: number): string => {
+    toReadTime = (time: number): string => {
         const inSeconds = time / 1000;
         let min: (string | number) = Math.floor(inSeconds / 60);
         let sec: (string | number) = inSeconds % 60;
@@ -285,6 +294,23 @@ export class Timeline extends CollectionSubView(Document) {
             sec = "0" + sec;
         }
         return `${min}:${sec}`;
+    }
+
+
+    convertPixelTime = (pos: number, unit: "mili" | "sec" | "min" | "hr", dir: "pixel" | "time") => {
+        let time = dir === "pixel" ?  pos / this._tickSpacing * this._tickIncrement : pos * this._tickSpacing / this._tickIncrement; 
+        switch (unit) {
+            case "mili":
+                return time; 
+            case "sec":
+                return dir === "pixel" ? time / 1000 : time * 1000; 
+            case "min":
+                return dir === "pixel" ? time / 60000 : time * 60000; 
+            case "hr":
+                return dir === "pixel" ? time / 3600000 : time * 3600000; 
+            default: 
+                return time; 
+        }
     }
 
 
@@ -337,22 +363,21 @@ export class Timeline extends CollectionSubView(Document) {
     }
 
     render() {
-           
-
         return (
             <div>
                 <div key="timeline_wrapper" style={{visibility: BoolCast(this.props.Document.isAnimating) ? "visible" :"hidden", left: "0px", top: "0px", position: "absolute", width: "100%", transform: "translate(0px, 0px)"}} ref={this._timelineWrapper}>
                     <button key="timeline_minimize" className="minimize" onClick={this.minimize}>Minimize</button>
                     <div key="timeline_container" className="timeline-container" style={{ height: `${this._containerHeight}px`, left: "0px", top: "30px" }} ref={this._timelineContainer} onPointerDown={this.onTimelineDown} onContextMenu={this.timelineContextMenu}>
                         <div key ="timeline_toolbox" className="timeline-toolbox">
-                            <div key ="timeline_windBack" onClick={this.windBackward}> <FontAwesomeIcon icon={faBackward} size="4x" /> </div>
-                            <div key ="timeline_play" onClick={this.onPlay}> <FontAwesomeIcon icon={this._playButton} size="4x" /> </div>
-                            <div key = "timeline_windForward" onClick={this.windForward}> <FontAwesomeIcon icon={faForward} size="4x" /> </div>
+                            <div key ="timeline_windBack" onClick={this.windBackward}> <FontAwesomeIcon icon={faBackward} size="2x" /> </div>
+                            <div key ="timeline_play" onClick={this.onPlay}> <FontAwesomeIcon icon={this._playButton} size="2x" /> </div>
+                            <div key = "timeline_windForward" onClick={this.windForward}> <FontAwesomeIcon icon={faForward} size="2x" /> </div>
+                            <TimelineOverview currentBarX = { this._currentBarX} totalLength={this._totalLength} visibleLength={this._visibleLength} visibleStart={this._visibleStart} changeCurrentBarX={this.changeCurrentBarX} movePanX={this.movePanX}/> 
                         </div>
                         <div key ="timeline_info"className="info-container" ref={this._infoContainer}>
                             <div key="timeline_scrubberbox" className="scrubberbox" ref={this._scrubberbox} onClick={this.onScrubberClick}>
                                 {this._ticks.map(element => {
-                                    return <div className="tick" style={{ transform: `translate(${element / 1000 * this._tickSpacing}px)`, position: "absolute", pointerEvents: "none" }}> <p>{this.toTime(element)}</p></div>;
+                                    return <div className="tick" style={{ transform: `translate(${element / 1000 * this._tickSpacing}px)`, position: "absolute", pointerEvents: "none" }}> <p>{this.toReadTime(element)}</p></div>;
                                 })}
                             </div>
                             <div key="timeline_scrubber" className="scrubber" ref={this._scrubber} onPointerDown={this.onScrubberDown} style={{ transform: `translate(${this._currentBarX}px)` }}>
@@ -374,7 +399,7 @@ export class Timeline extends CollectionSubView(Document) {
                     <div key="timeline_windBack" onClick={this.windBackward}> <FontAwesomeIcon icon={faBackward} size="4x" /> </div>
                     <div key =" timeline_play" onClick={this.onPlay}> <FontAwesomeIcon icon={this._playButton} size="4x" /> </div>
                     <div key="timeline_windForward" onClick={this.windForward}> <FontAwesomeIcon icon={faForward} size="4x" /> </div>
-                    <TimelineOverview totalLength={this._time} visibleLength={20} visibleStart={0} changeCurrentBarX={this.changeCurrentBarX}/>
+                    <TimelineOverview currentBarX={this._currentBarX} totalLength={this._totalLength} visibleLength={this._visibleLength} visibleStart={this._visibleStart} changeCurrentBarX={this.changeCurrentBarX} movePanX={this.movePanX}/> 
                 </div>
             </div>
         );
