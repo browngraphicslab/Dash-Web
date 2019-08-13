@@ -326,7 +326,7 @@ app.post("/uploadDoc", (req, res) => {
             for (const name in files) {
                 const path_2 = files[name].path;
                 const zip = new AdmZip(path_2);
-                zip.getEntries().forEach(entry => {
+                zip.getEntries().forEach((entry: any) => {
                     if (!entry.entryName.startsWith("files/")) return;
                     let dirname = path.dirname(entry.entryName) + "/";
                     let extname = path.extname(entry.entryName);
