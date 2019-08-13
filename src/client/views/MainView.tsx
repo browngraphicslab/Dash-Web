@@ -87,6 +87,11 @@ export class MainView extends React.Component {
             if (!("presentationView" in doc)) {
                 doc.presentationView = new List<Doc>([Docs.Create.TreeDocument([], { title: "Presentation" })]);
             }
+            if (!("googleDocId" in doc)) {
+                GoogleApiClientUtils.Docs.Create().then(id => {
+                    id && (doc.googleDocId = id);
+                });
+            }
             CurrentUserUtils.UserDocument.activeWorkspace = doc;
         }
     }
@@ -132,8 +137,6 @@ export class MainView extends React.Component {
         window.removeEventListener("keydown", KeyManager.Instance.handle);
         window.addEventListener("keydown", KeyManager.Instance.handle);
 
-        GoogleApiClientUtils.Docs.Create().then(id => console.log(id));
-
         reaction(() => {
             let workspaces = CurrentUserUtils.UserDocument.workspaces;
             let recent = CurrentUserUtils.UserDocument.recentlyClosed;
@@ -149,6 +152,18 @@ export class MainView extends React.Component {
             }
             (Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc) as Doc).allowClear = true;
         }, { fireImmediately: true });
+    }
+
+    componentDidMount() {
+        reaction(() => this.mainContainer, () => {
+            let main = this.mainContainer, googleDocId;
+            if (main && (googleDocId = StrCast(main.googleDocId))) {
+                GoogleApiClientUtils.Docs.Read(googleDocId, true).then(text => {
+                    text && Utils.CopyText(text);
+                    console.log(text);
+                });
+            }
+        });
     }
 
     componentWillUnMount() {
@@ -573,11 +588,6 @@ export class MainView extends React.Component {
     render() {
         return (
             <div id="main-div">
-                <input style={{ position: "absolute", zIndex: 100000 }} onKeyPress={e => {
-                    if (e.which === 13) {
-                        GoogleApiClientUtils.Docs.Retrieve(e.currentTarget.value.trim()).then((res: any) => console.log(res));
-                    }
-                }} />
                 {this.dictationOverlay}
                 <DocumentDecorations />
                 {this.mainContent}

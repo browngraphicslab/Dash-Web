@@ -791,7 +791,6 @@ const token = path.join(__dirname, "./credentials/google_docs_token.json");
 
 app.post(RouteStore.googleDocs + ":action", (req, res) => {
     let parameters = req.body;
-    console.log(parameters, req.params.action);
 
     GoogleApiServerUtils.Docs.GetEndpoint({ credentials, token }).then(endpoint => {
         let results: Promise<any> | undefined;

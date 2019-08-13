@@ -1,6 +1,7 @@
 import { docs_v1 } from "googleapis";
 import { PostToServer } from "../../../Utils";
 import { RouteStore } from "../../../server/RouteStore";
+import { Opt } from "../../../new_fields/Doc";
 
 export namespace GoogleApiClientUtils {
 
@@ -11,10 +12,28 @@ export namespace GoogleApiClientUtils {
             Retrieve = "retrieve"
         }
 
-        export namespace Helpers {
+        export namespace Utils {
 
             export const fromRgb = (red: number, green: number, blue: number) => {
                 return { color: { rgbColor: { red, green, blue } } };
+            };
+
+            export const extractText = (document: docs_v1.Schema$Document, removeNewlines = false) => {
+                let fragments: string[] = [];
+                if (document.body && document.body.content) {
+                    for (let element of document.body.content) {
+                        if (element.paragraph && element.paragraph.elements) {
+                            for (let inner of element.paragraph.elements) {
+                                if (inner && inner.textRun) {
+                                    let fragment = inner.textRun.content;
+                                    fragment && fragments.push(fragment);
+                                }
+                            }
+                        }
+                    }
+                }
+                let text = fragments.join("");
+                return removeNewlines ? text.ReplaceAll("\n", "") : text;
             };
 
         }
@@ -24,20 +43,45 @@ export namespace GoogleApiClientUtils {
             body: {
                 content: [
                     {
+                        endIndex: 1,
+                        sectionBreak: {
+                            sectionStyle: {
+                                columnSeparatorStyle: "NONE",
+                                contentDirection: "LEFT_TO_RIGHT"
+                            }
+                        }
+                    },
+                    {
                         paragraph: {
                             elements: [
                                 {
                                     textRun: {
-                                        content: "And this is its bold, blue text!!!",
+                                        content: "And this is its bold, blue text!!!\n",
                                         textStyle: {
                                             bold: true,
-                                            backgroundColor: Helpers.fromRgb(0, 0, 1)
+                                            backgroundColor: Utils.fromRgb(0, 0, 1)
                                         }
                                     }
                                 }
                             ]
                         }
-                    }
+                    },
+                    {
+                        paragraph: {
+                            elements: [
+                                {
+                                    textRun: {
+                                        content: "And this is its bold, blue text!!!\n",
+                                        textStyle: {
+                                            bold: true,
+                                            backgroundColor: Utils.fromRgb(0, 0, 1)
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+
                 ] as docs_v1.Schema$StructuralElement[]
             }
         } as docs_v1.Schema$Document;
@@ -66,19 +110,26 @@ export namespace GoogleApiClientUtils {
             }
         };
 
-        let path = RouteStore.googleDocs + Actions.Retrieve;
-        export const Retrieve = async (documentId: string): Promise<any> => {
+        export const Read = async (documentId: string, removeNewlines = false): Promise<Opt<string>> => {
+            return Retrieve(documentId).then(schema => {
+                return schema ? Utils.extractText(schema, removeNewlines) : undefined;
+            });
+        };
+
+        export const Retrieve = async (documentId: string): Promise<Opt<docs_v1.Schema$Document>> => {
+            let path = RouteStore.googleDocs + Actions.Retrieve;
             let parameters = { documentId };
-            let documentContents: any;
+            let schema: Opt<docs_v1.Schema$Document>;
             try {
-                documentContents = await PostToServer(path, parameters);
+                schema = await PostToServer(path, parameters);
             } catch (e) {
                 console.error(e);
-                documentContents = undefined;
+                schema = undefined;
             } finally {
-                return documentContents;
+                return schema;
             }
         };
+
 
     }
 
