@@ -14,7 +14,7 @@ import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormV
 import { CollectionSchemaView } from "./CollectionSchemaView";
 import { CollectionStackingView } from './CollectionStackingView';
 import { CollectionTreeView } from "./CollectionTreeView";
-import { CollectionTimelineView } from "./CollectionTimelineView";
+import { CollectionTimelineView } from './CollectionTimelineView';
 
 export const COLLECTION_BORDER_WIDTH = 2;
 
