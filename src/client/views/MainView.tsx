@@ -41,6 +41,7 @@ import { ClientUtils } from '../util/ClientUtils';
 import { SchemaHeaderField, RandomPastel } from '../../new_fields/SchemaHeaderField';
 //import { DocumentManager } from '../util/DocumentManager';
 import { DictationManager } from '../util/DictationManager';
+import { Recommendations } from './Recommendations';
 
 @observer
 export class MainView extends React.Component {
@@ -581,6 +582,7 @@ export class MainView extends React.Component {
                 {this.mainContent}
                 <PreviewCursor />
                 <ContextMenu />
+                <Recommendations />
                 {this.nodesMenu()}
                 {this.miscButtons}
                 <PDFMenu />

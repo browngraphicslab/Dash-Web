@@ -81,12 +81,13 @@ export namespace SearchUtil {
     export async function GetAllDocs() {
         const query = "*";
         let response = await rp.get(Utils.prepend('/search'), {
-            qs: {
-                q: query
-            }
+            qs:
+                { start: 0, rows: 10000, q: query },
+
         });
         let result: IdSearchResult = JSON.parse(response);
         const { ids, numFound, highlighting } = result;
+        console.log(ids.length);
         const docMap = await DocServer.GetRefFields(ids);
         const docs: Doc[] = [];
         for (const id of ids) {

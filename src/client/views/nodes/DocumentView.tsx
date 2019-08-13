@@ -40,9 +40,13 @@ import React = require("react");
 import { DictationManager } from '../../util/DictationManager';
 import { MainView } from '../MainView';
 import requestPromise = require('request-promise');
-import { Recommendations } from '../../../Recommendations';
+import { Recommendations } from '../Recommendations';
+import { SearchUtil } from '../../util/SearchUtil';
+import { ClientRecommender } from '../../ClientRecommender';
+import { DocumentType } from '../../documents/Documents';
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
+library.add(fa.faBrain);
 library.add(fa.faTrash);
 library.add(fa.faShare);
 library.add(fa.faDownload);
@@ -610,6 +614,33 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 a.click();
             }
         });
+        cm.addItem({
+            description: "Recommender System",
+            event: async () => {
+                if (!ClientRecommender.Instance) new ClientRecommender({ title: "Client Recommender" });
+                let documents: Doc[] = [];
+                let allDocs = await SearchUtil.GetAllDocs();
+                allDocs.forEach(doc => console.log(doc.title));
+                // clears internal representation of documents as vectors
+                ClientRecommender.Instance.reset_docs();
+                await Promise.all(allDocs.map((doc: Doc) => {
+                    if (doc.type === DocumentType.IMG) {
+                        console.log(StrCast(doc.title));
+                        documents.push(doc);
+                        const extdoc = doc.data_ext as Doc;
+                        return ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc);
+                    }
+                }));
+                console.log(ClientRecommender.Instance.createDistanceMatrix());
+                let recDocs: { preview: Doc, score: number }[] = [];
+                for (let i = 0; i < documents.length; i++) {
+                    recDocs.push({ preview: documents[i], score: i });
+                }
+                Recommendations.Instance.addDocuments(recDocs);
+                Recommendations.Instance.displayRecommendations(e.pageX + 100, e.pageY);
+            },
+            icon: "brain"
+        });
         cm.addItem({ description: "Delete", event: this.deleteClicked, icon: "trash" });
         type User = { email: string, userDocumentId: string };
         let usersMenu: ContextMenuProps[] = [];
@@ -758,7 +789,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                         </div>
                     }
                 </div>
-                <Recommendations documents={documents} node={this.props.Document}></Recommendations>
             </div>
         );
     }

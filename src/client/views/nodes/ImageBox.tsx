@@ -28,6 +28,9 @@ import FaceRectangles from './FaceRectangles';
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
 import React = require("react");
+import { SearchUtil } from '../../util/SearchUtil';
+import { ClientRecommender } from '../../ClientRecommender';
+import { DocumentType } from '../../documents/Documents';
 var requestImageSize = require('../../util/request-image-size');
 var path = require('path');
 const { Howl } = require('howler');
@@ -240,10 +243,20 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         }
     }
 
-    extractText = () => {
-        //Recommender.Instance.extractText(this.dataDoc, this.extensionDoc);
-        // request recommender 
-        //fetch(Utils.prepend("/recommender"), { body: body, method: "POST", headers: { "content-type": "application/json" } }).then((value) => console.log(value));
+    extractText = async () => {
+        //let activedocs = this.getActiveDocuments();
+        let allDocs = await SearchUtil.GetAllDocs();
+        allDocs.forEach(doc => console.log(doc.title));
+        // clears internal representation of documents as vectors
+        ClientRecommender.Instance.reset_docs();
+        await Promise.all(allDocs.map((doc: Doc) => {
+            //console.log(StrCast(doc.title));
+            if (doc.type === DocumentType.IMG) {
+                const extdoc = doc.data_ext as Doc;
+                return ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc);
+            }
+        }));
+        console.log(ClientRecommender.Instance.createDistanceMatrix());
     }
 
     generateMetadata = (threshold: Confidence = Confidence.Excellent) => {

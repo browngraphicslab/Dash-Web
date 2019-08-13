@@ -896,10 +896,13 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 allDocs.forEach(doc => console.log(doc.title));
                 // clears internal representation of documents as vectors
                 ClientRecommender.Instance.reset_docs();
-                await Promise.all(activedocs.map((doc: Doc) => {
-                    //console.log(StrCast(doc.title));
-                    const extdoc = doc.data_ext as Doc;
-                    return ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc);
+                await Promise.all(allDocs.map((doc: Doc) => {
+                    console.log(StrCast(doc.title));
+                    if (doc.type === DocumentType.IMG) {
+                        console.log(doc.title);
+                        const extdoc = doc.data_ext as Doc;
+                        return ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc);
+                    }
                 }));
                 console.log(ClientRecommender.Instance.createDistanceMatrix());
             },
@@ -1013,7 +1016,7 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
         const zoom = this.props.zoomScaling();// needs to be a variable outside of the <Measure> otherwise, reactions won't fire
         return <div className={freeformclass} style={{ borderRadius: "inherit", transform: `translate(${cenx}px, ${ceny}px) scale(${zoom}, ${zoom}) translate(${panx}px, ${pany}px)` }}>
             {this.props.children}
-            <ClientRecommender title="Distance Matrix" />
+            {/* <ClientRecommender title="Distance Matrix" /> */}
         </div>;
     }
 }
