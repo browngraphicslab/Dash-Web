@@ -552,8 +552,8 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         }
     }
 
-    panelWidth = () => Math.min(this._panelWidth, Math.max(NumCast(this._document!.width), this.nativeWidth()));
-    panelHeight = () => Math.min(this._panelHeight, Math.max(NumCast(this._document!.height), NumCast(this._document!.nativeHeight, this._panelHeight)));
+    panelWidth = () => this._document!.ignoreAspect ? this._panelWidth : Math.min(this._panelWidth, Math.max(NumCast(this._document!.width), this.nativeWidth()));
+    panelHeight = () => this._document!.ignoreAspect ? this._panelHeight : Math.min(this._panelHeight, Math.max(NumCast(this._document!.height), NumCast(this._document!.nativeHeight, this._panelHeight)));
 
     nativeWidth = () => !BoolCast(this._document!.ignoreAspect) ? NumCast(this._document!.nativeWidth, this._panelWidth) : 0;
     nativeHeight = () => !BoolCast(this._document!.ignoreAspect) ? NumCast(this._document!.nativeHeight, this._panelHeight) : 0;
