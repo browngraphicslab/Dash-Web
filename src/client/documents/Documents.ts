@@ -17,6 +17,7 @@ export enum DocumentType {
     TEMPLATE = "template",
     EXTENSION = "extension",
     YOUTUBE = "youtube",
+    DRAGBOX = "dragbox",
 }
 
 import { HistogramField } from "../northstar/dash-fields/HistogramField";
@@ -60,6 +61,7 @@ import { DocumentManager } from "../util/DocumentManager";
 import DirectoryImportBox from "../util/Import & Export/DirectoryImportBox";
 import { Scripting, CompileScript } from "../util/Scripting";
 import { ButtonBox } from "../views/nodes/ButtonBox";
+import { DragBox } from "../views/nodes/DragBox";
 import { SchemaHeaderField, RandomPastel } from "../../new_fields/SchemaHeaderField";
 import { ComputedField } from "../../new_fields/ScriptField";
 import { ProxyField } from "../../new_fields/Proxy";
@@ -177,6 +179,10 @@ export namespace Docs {
             }],
             [DocumentType.BUTTON, {
                 layout: { view: ButtonBox },
+            }],
+            [DocumentType.DRAGBOX, {
+                layout: { view: DragBox },
+                options: { width: 40, height: 40 },
             }]
         ]);
 
@@ -440,6 +446,11 @@ export namespace Docs {
 
         export function ButtonDocument(options?: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.BUTTON), undefined, { ...(options || {}) });
+        }
+
+
+        export function DragboxDocument(options?: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.DRAGBOX), undefined, { ...(options || {}) });
         }
 
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {

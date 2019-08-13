@@ -310,6 +310,10 @@ export namespace Doc {
     export function GetProto(doc: Doc) {
         return Doc.GetT(doc, "isPrototype", "boolean", true) ? doc : (doc.proto || doc);
     }
+    export function GetDataDoc(doc: Doc): Doc {
+        let proto = Doc.GetProto(doc);
+        return proto === doc ? proto : Doc.GetDataDoc(proto);
+    }
 
     export function allKeys(doc: Doc): string[] {
         const results: Set<string> = new Set;
@@ -384,7 +388,7 @@ export namespace Doc {
         docExtensionForField.extendsDoc = doc; // this is used by search to map field matches on the extension doc back to the document it extends.
         docExtensionForField.type = DocumentType.EXTENSION;
         let proto: Doc | undefined = doc;
-        while (proto && !Doc.IsPrototype(proto)) {
+        while (proto && !Doc.IsPrototype(proto) && proto.proto) {
             proto = proto.proto;
         }
         (proto ? proto : doc)[fieldKey + "_ext"] = new PrefetchProxy(docExtensionForField);
@@ -455,7 +459,7 @@ export namespace Doc {
 
     export function GetLayoutDataDocPair(doc: Doc, dataDoc: Doc | undefined, fieldKey: string, childDocLayout: Doc) {
         let layoutDoc = childDocLayout;
-        let resolvedDataDoc = !doc.isTemplate && dataDoc !== doc ? dataDoc : undefined;
+        let resolvedDataDoc = !doc.isTemplate && dataDoc !== doc && dataDoc ? Doc.GetDataDoc(dataDoc) : undefined;
         if (resolvedDataDoc && Doc.WillExpandTemplateLayout(childDocLayout, resolvedDataDoc)) {
             Doc.UpdateDocumentExtensionForField(resolvedDataDoc, fieldKey);
             let fieldExtensionDoc = Doc.resolvedFieldDataDoc(resolvedDataDoc, StrCast(childDocLayout.templateField, StrCast(childDocLayout.title)), "dummy");
@@ -503,7 +507,8 @@ export namespace Doc {
     let _applyCount: number = 0;
     export function ApplyTemplate(templateDoc: Doc) {
         if (!templateDoc) return undefined;
-        let otherdoc = new Doc();
+        let datadoc = new Doc();
+        let otherdoc = Doc.MakeDelegate(datadoc);
         otherdoc.width = templateDoc[WidthSym]();
         otherdoc.height = templateDoc[HeightSym]();
         otherdoc.title = templateDoc.title + "(..." + _applyCount++ + ")";
@@ -511,6 +516,8 @@ export namespace Doc {
         otherdoc.miniLayout = StrCast(templateDoc.miniLayout);
         otherdoc.detailedLayout = otherdoc.layout;
         otherdoc.type = DocumentType.TEMPLATE;
+        !templateDoc.nativeWidth && (otherdoc.nativeWidth = 0);
+        !templateDoc.nativeHeight && (otherdoc.nativeHeight = 0);
         return otherdoc;
     }
     export function ApplyTemplateTo(templateDoc: Doc, target: Doc, targetData?: Doc) {
@@ -529,6 +536,8 @@ export namespace Doc {
             target.miniLayout = StrCast(templateDoc.miniLayout);
             target.detailedLayout = target.layout;
         }
+        !templateDoc.nativeWidth && (target.nativeWidth = 0);
+        !templateDoc.nativeHeight && (target.nativeHeight = 0);
     }
 
     export function MakeTemplate(fieldTemplate: Doc, metaKey: string, templateDataDoc: Doc) {
@@ -605,4 +614,7 @@ export namespace Doc {
 }
 Scripting.addGlobal(function renameAlias(doc: any, n: any) {
     return StrCast(doc.title).replace(/\([0-9]*\)/, "") + `(${n})`;
+});
+Scripting.addGlobal(function getProto(doc: any) {
+    return Doc.GetProto(doc);
 });

@@ -2,6 +2,7 @@ import { Field, Opt, FieldResult, Doc } from "./Doc";
 import { List } from "./List";
 import { RefField } from "./RefField";
 import { DateField } from "./DateField";
+import { ScriptField } from "./ScriptField";
 
 export type ToType<T extends InterfaceValue> =
     T extends "string" ? string :
@@ -85,6 +86,9 @@ export function BoolCast(field: FieldResult, defaultVal: boolean | null = false)
 }
 export function DateCast(field: FieldResult) {
     return Cast(field, DateField, null);
+}
+export function ScriptCast(field: FieldResult) {
+    return Cast(field, ScriptField, null);
 }
 
 type WithoutList<T extends Field> = T extends List<infer R> ? (R extends RefField ? (R | Promise<R>)[] : R[]) : T;

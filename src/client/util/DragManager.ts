@@ -490,7 +490,7 @@ export namespace DragManager {
                         x: e.x,
                         y: e.y,
                         data: dragData,
-                        mods: e.altKey ? "AltKey" : e.ctrlKey ? "CtrlKey" : ""
+                        mods: e.altKey ? "AltKey" : e.ctrlKey ? "CtrlKey" : e.metaKey ? "MetaKey" : ""
                     }
                 })
             );

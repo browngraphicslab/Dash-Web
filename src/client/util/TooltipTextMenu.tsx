@@ -192,12 +192,6 @@ export class TooltipTextMenu {
         this.updateListItemDropdown(":", this.listTypeBtnDom);
 
         this.update(view, undefined);
-
-        //view.dom.parentNode!.parentNode!.insertBefore(this.tooltip, view.dom.parentNode);
-
-        // add tooltip to outerdiv to circumvent scaling problem
-        const outer_div = this.editorProps.outer_div;
-        outer_div && outer_div(this.wrapper);
     }
 
     //label of dropdown will change to given label
@@ -999,7 +993,7 @@ export class TooltipTextMenu {
                 });
             }
         }
-        if (!ref_node.isLeaf) {
+        if (!ref_node.isLeaf && ref_node.childCount > 0) {
             ref_node = ref_node.child(0);
         }
         return ref_node;
