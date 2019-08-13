@@ -899,7 +899,7 @@ interface CollectionSchemaPreviewProps {
     height: () => number;
     showOverlays?: (doc: Doc) => { title?: string, caption?: string };
     CollectionView?: CollectionView | CollectionPDFView | CollectionVideoView;
-    onClick?: () => void | ScriptField;
+    onClick?: ScriptField;
     getTransform: () => Transform;
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
     moveDocument: (document: Doc, target: Doc, addDoc: ((doc: Doc) => boolean)) => boolean;
