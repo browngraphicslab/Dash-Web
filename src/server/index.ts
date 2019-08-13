@@ -14,7 +14,6 @@ import * as mobileDetect from 'mobile-detect';
 import * as passport from 'passport';
 import * as path from 'path';
 import * as request from 'request';
-import * as rp from 'request-promise';
 import * as io from 'socket.io';
 import { Socket } from 'socket.io';
 import * as webpack from 'webpack';
@@ -36,19 +35,16 @@ const port = 1050; // default port to listen
 const serverPort = 4321;
 import expressFlash = require('express-flash');
 import flash = require('connect-flash');
-import c = require("crypto");
 import { Search } from './Search';
-import { debug } from 'util';
 import _ = require('lodash');
 import * as Archiver from 'archiver';
-import * as AdmZip from 'adm-zip';
-import * as YoutubeApi from './youtubeApi/youtubeApiSample.js';
+import AdmZip from 'adm-zip';
+import * as YoutubeApi from "./apis/youtube/youtubeApiSample";
 import { Response } from 'express-serve-static-core';
+import { GoogleApiServerUtils } from "./apis/google/GoogleApiServerUtils";
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const probe = require("probe-image-size");
-var SolrNode = require('solr-node');
-var shell = require('shelljs');
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
 let youtubeApiKey: string;
@@ -789,6 +785,29 @@ function HandleYoutubeQuery([query, callback]: [YoutubeQueryInput, (result?: any
             YoutubeApi.authorizedGetVideoDetails(youtubeApiKey, query.videoIds, callback);
     }
 }
+
+const credentials = path.join(__dirname, "./credentials/google_docs_credentials.json");
+const token = path.join(__dirname, "./credentials/google_docs_token.json");
+
+app.post(RouteStore.googleDocs + ":action", (req, res) => {
+    let parameters = req.body;
+    console.log(parameters, req.params.action);
+
+    GoogleApiServerUtils.Docs.GetEndpoint({ credentials, token }).then(endpoint => {
+        let results: Promise<any> | undefined;
+        switch (req.params.action) {
+            case "create":
+                results = endpoint.documents.create(parameters).then(generated => generated.data.documentId);
+                break;
+            case "retrieve":
+                results = endpoint.documents.get(parameters).then(response => response.data);
+                break;
+            default:
+                results = undefined;
+        }
+        results && results.then(final => res.send(final));
+    });
+});
 
 const suffixMap: { [type: string]: (string | [string, string | ((json: any) => any)]) } = {
     "number": "_n",

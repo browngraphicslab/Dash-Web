@@ -15,7 +15,7 @@ import { listSpec } from '../../new_fields/Schema';
 import { Cast, FieldValue, NumCast, BoolCast, StrCast } from '../../new_fields/Types';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { RouteStore } from '../../server/RouteStore';
-import { emptyFunction, returnOne, returnTrue, Utils, returnEmptyString } from '../../Utils';
+import { emptyFunction, returnOne, returnTrue, Utils, returnEmptyString, PostToServer } from '../../Utils';
 import { DocServer } from '../DocServer';
 import { Docs } from '../documents/Documents';
 import { SetupDrag } from '../util/DragManager';
@@ -40,6 +40,8 @@ import { CollectionTreeView } from './collections/CollectionTreeView';
 import { ClientUtils } from '../util/ClientUtils';
 import { SchemaHeaderField, RandomPastel } from '../../new_fields/SchemaHeaderField';
 import { DictationManager } from '../util/DictationManager';
+import { docs_v1 } from 'googleapis';
+import { GoogleApiClientUtils } from '../apis/google_docs/GoogleApiClientUtils';
 
 @observer
 export class MainView extends React.Component {
@@ -129,6 +131,8 @@ export class MainView extends React.Component {
         firstScriptTag.parentNode!.insertBefore(tag, firstScriptTag);
         window.removeEventListener("keydown", KeyManager.Instance.handle);
         window.addEventListener("keydown", KeyManager.Instance.handle);
+
+        GoogleApiClientUtils.Docs.Create().then(id => console.log(id));
 
         reaction(() => {
             let workspaces = CurrentUserUtils.UserDocument.workspaces;
@@ -569,6 +573,11 @@ export class MainView extends React.Component {
     render() {
         return (
             <div id="main-div">
+                <input style={{ position: "absolute", zIndex: 100000 }} onKeyPress={e => {
+                    if (e.which === 13) {
+                        GoogleApiClientUtils.Docs.Retrieve(e.currentTarget.value.trim()).then((res: any) => console.log(res));
+                    }
+                }} />
                 {this.dictationOverlay}
                 <DocumentDecorations />
                 {this.mainContent}
