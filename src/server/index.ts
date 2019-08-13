@@ -1,6 +1,6 @@
 require('dotenv').config();
 import * as bodyParser from 'body-parser';
-import { exec } from 'child_process';
+import { exec, ExecOptions } from 'child_process';
 import * as cookieParser from 'cookie-parser';
 import * as express from 'express';
 import * as session from 'express-session';
@@ -45,6 +45,7 @@ import * as AdmZip from 'adm-zip';
 import * as YoutubeApi from './youtubeApi/youtubeApiSample.js';
 import { Response } from 'express-serve-static-core';
 import { DocComponent } from '../client/views/DocComponent';
+import { Recommender } from "./Recommender";
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const probe = require("probe-image-size");
@@ -147,6 +148,33 @@ app.get("/pull", (req, res) =>
         }
         res.redirect("/");
     }));
+
+app.get("/buxton", (req, res) => {
+    let cwd = '../scraping/buxton';
+
+    let onResolved = (stdout: string) => { console.log(stdout); res.redirect("/"); };
+    let onRejected = (err: any) => { console.error(err.message); res.send(err); };
+    let tryPython3 = () => command_line('python3 scraper.py', cwd).then(onResolved, onRejected);
+
+    command_line('python scraper.py', cwd).then(onResolved, tryPython3);
+});
+
+const command_line = (command: string, fromDirectory?: string) => {
+    return new Promise<string>((resolve, reject) => {
+        let options: ExecOptions = {};
+        if (fromDirectory) {
+            options.cwd = path.join(__dirname, fromDirectory);
+        }
+        exec(command, options, (err, stdout) => err ? reject(err) : resolve(stdout));
+    });
+};
+
+const read_text_file = (relativePath: string) => {
+    let target = path.join(__dirname, relativePath);
+    return new Promise<string>((resolve, reject) => {
+        fs.readFile(target, (err, data) => err ? reject(err) : resolve(data.toString()));
+    });
+};
 
 app.get("/version", (req, res) => {
     exec('"C:\\Program Files\\Git\\bin\\git.exe" rev-parse HEAD', (err, stdout, stderr) => {
@@ -644,6 +672,20 @@ app.use(RouteStore.corsProxy, (req, res) => {
         });
     }).pipe(res);
 });
+
+////
+
+let recommender = new Recommender();
+recommender.testModel();
+
+app.post("/recommender", async (req, res) => {
+    let keyphrases = req.body.keyphrases;
+    let wordvecs = await recommender.vectorize(keyphrases);
+    res.send(wordvecs);
+});
+
+
+/////
 
 app.get(RouteStore.delete, (req, res) => {
     if (release) {

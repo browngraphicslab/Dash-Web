@@ -1,22 +1,19 @@
 import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
-import { emptyFunction, returnFalse, returnZero, returnTrue, returnOne } from '../../../Utils';
-import { CompileScript, CompiledScript, ScriptOptions } from "../../util/Scripting";
+import { Doc, Field } from '../../../new_fields/Doc';
+import { emptyFunction, returnFalse, returnOne, returnZero } from '../../../Utils';
+import { Docs } from '../../documents/Documents';
 import { Transform } from '../../util/Transform';
+import { undoBatch } from '../../util/UndoManager';
+import { CollectionDockingView } from '../collections/CollectionDockingView';
+import { ContextMenu } from '../ContextMenu';
 import { EditableView } from "../EditableView";
 import { FieldView, FieldViewProps } from './FieldView';
+import { KeyValueBox } from './KeyValueBox';
 import "./KeyValueBox.scss";
 import "./KeyValuePair.scss";
 import React = require("react");
-import { Doc, Opt, Field } from '../../../new_fields/Doc';
-import { FieldValue } from '../../../new_fields/Types';
-import { KeyValueBox } from './KeyValueBox';
-import { DragManager, SetupDrag } from '../../util/DragManager';
-import { ContextMenu } from '../ContextMenu';
-import { Docs } from '../../documents/Documents';
-import { CollectionDockingView } from '../collections/CollectionDockingView';
-import { undoBatch } from '../../util/UndoManager';
 
 // Represents one row in a key value plane
 

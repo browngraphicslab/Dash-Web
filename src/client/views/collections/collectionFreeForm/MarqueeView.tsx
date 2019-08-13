@@ -226,15 +226,17 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     }
 
     get ink() {
-        let container = this.props.container.Document;
+        let container = this.props.container.props.Document;
         let containerKey = this.props.container.props.fieldKey;
-        return Cast(container[containerKey + "_ink"], InkField);
+        let extensionDoc = Doc.resolvedFieldDataDoc(container, containerKey, "true");
+        return Cast(extensionDoc.ink, InkField);
     }
 
     set ink(value: InkField | undefined) {
-        let container = Doc.GetProto(this.props.container.Document);
+        let container = Doc.GetProto(this.props.container.props.Document);
         let containerKey = this.props.container.props.fieldKey;
-        container[containerKey + "_ink"] = value;
+        let extensionDoc = Doc.resolvedFieldDataDoc(container, containerKey, "true");
+        extensionDoc.ink = value;
     }
 
     @undoBatch
@@ -247,7 +249,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             this._commandExecuted = true;
             e.stopPropagation();
             (e as any).propagationIsStopped = true;
-            this.marqueeSelect().map(d => this.props.removeDocument(d));
+            this.marqueeSelect(false).map(d => this.props.removeDocument(d));
             if (this.ink) {
                 this.marqueeInkDelete(this.ink.inkData);
             }
@@ -261,7 +263,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             e.preventDefault();
             (e as any).propagationIsStopped = true;
             let bounds = this.Bounds;
-            let selected = this.marqueeSelect();
+            let selected = this.marqueeSelect(false);
             if (e.key === "c") {
                 selected.map(d => {
                     this.props.removeDocument(d);
@@ -278,11 +280,13 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 panX: 0,
                 panY: 0,
                 backgroundColor: this.props.container.isAnnotationOverlay ? undefined : "white",
+                defaultBackgroundColor: this.props.container.isAnnotationOverlay ? undefined : "white",
                 width: bounds.width,
                 height: bounds.height,
                 title: e.key === "s" || e.key === "S" ? "-summary-" : "a nested collection",
             });
-            newCollection.data_ink = inkData ? new InkField(this.marqueeInkSelect(inkData)) : undefined;
+            let dataExtensionField = Doc.CreateDocumentExtensionForField(newCollection, "data");
+            dataExtensionField.ink = inkData ? new InkField(this.marqueeInkSelect(inkData)) : undefined;
             this.marqueeInkDelete(inkData);
 
             if (e.key === "s") {
@@ -366,7 +370,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
         }
     }
 
-    marqueeSelect() {
+    marqueeSelect(selectBackgrounds: boolean = true) {
         let selRect = this.Bounds;
         let selection: Doc[] = [];
         this.props.activeDocuments().filter(doc => !doc.isBackground).map(doc => {
@@ -378,7 +382,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 selection.push(doc);
             }
         });
-        if (!selection.length) {
+        if (!selection.length && selectBackgrounds) {
             this.props.activeDocuments().map(doc => {
                 var x = NumCast(doc.x);
                 var y = NumCast(doc.y);

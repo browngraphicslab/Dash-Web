@@ -77,4 +77,26 @@ export namespace SearchUtil {
         aliasContexts.forEach(result => contexts.aliasContexts.push(...result.ids));
         return contexts;
     }
+
+    export async function GetAllDocs() {
+        const query = "*";
+        let response = await rp.get(Utils.prepend('/search'), {
+            qs: {
+                q: query
+            }
+        });
+        let result: IdSearchResult = JSON.parse(response);
+        const { ids, numFound, highlighting } = result;
+        const docMap = await DocServer.GetRefFields(ids);
+        const docs: Doc[] = [];
+        for (const id of ids) {
+            const field = docMap[id];
+            if (field instanceof Doc) {
+                docs.push(field);
+            }
+        }
+        return docs;
+        // const docs = ids.map((id: string) => docMap[id]).filter((doc: any) => doc instanceof Doc);
+        // return docs as Doc[];
+    }
 }

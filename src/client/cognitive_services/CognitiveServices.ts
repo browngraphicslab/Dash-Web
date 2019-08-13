@@ -6,10 +6,13 @@ import { RouteStore } from "../../server/RouteStore";
 import { Utils } from "../../Utils";
 import { InkData } from "../../new_fields/InkField";
 import { UndoManager } from "../util/UndoManager";
+import requestPromise = require("request-promise");
+import { List } from "../../new_fields/List";
+import { ClientRecommender } from "../ClientRecommender";
 
-type APIManager<D> = { converter: BodyConverter<D>, requester: RequestExecutor, analyzer: AnalysisApplier };
+type APIManager<D> = { converter: BodyConverter<D>, requester: RequestExecutor };
 type RequestExecutor = (apiKey: string, body: string, service: Service) => Promise<string>;
-type AnalysisApplier = (target: Doc, relevantKeys: string[], ...args: any) => any;
+type AnalysisApplier<D> = (target: Doc, relevantKeys: string[], data: D, ...args: any) => any;
 type BodyConverter<D> = (data: D) => string;
 type Converter = (results: any) => Field;
 
@@ -39,7 +42,7 @@ export enum Confidence {
  */
 export namespace CognitiveServices {
 
-    const ExecuteQuery = async <D, R>(service: Service, manager: APIManager<D>, data: D): Promise<Opt<R>> => {
+    const ExecuteQuery = async <D>(service: Service, manager: APIManager<D>, data: D): Promise<any> => {
         return fetch(Utils.prepend(`${RouteStore.cognitiveServices}/${service}`)).then(async response => {
             let apiKey = await response.text();
             if (!apiKey) {
@@ -47,7 +50,7 @@ export namespace CognitiveServices {
                 return undefined;
             }
 
-            let results: Opt<R>;
+            let results: any;
             try {
                 results = await manager.requester(apiKey, manager.converter(data), service).then(json => JSON.parse(json));
             } catch {
@@ -100,7 +103,11 @@ export namespace CognitiveServices {
                 return request.post(options);
             },
 
-            analyzer: async (target: Doc, keys: string[], url: string, service: Service, converter: Converter) => {
+        };
+
+        export namespace Appliers {
+
+            export const ProcessImage: AnalysisApplier<string> = async (target: Doc, keys: string[], url: string, service: Service, converter: Converter) => {
                 let batch = UndoManager.StartBatch("Image Analysis");
 
                 let storageKey = keys[0];
@@ -108,7 +115,7 @@ export namespace CognitiveServices {
                     return;
                 }
                 let toStore: any;
-                let results = await ExecuteQuery<string, any>(service, Manager, url);
+                let results = await ExecuteQuery(service, Manager, url);
                 if (!results) {
                     toStore = "Cognitive Services could not process the given image URL.";
                 } else {
@@ -121,9 +128,9 @@ export namespace CognitiveServices {
                 target[storageKey] = toStore;
 
                 batch.end();
-            }
+            };
 
-        };
+        }
 
         export type Face = { faceAttributes: any, faceId: string, faceRectangle: Rectangle };
 
@@ -180,10 +187,14 @@ export namespace CognitiveServices {
                 return new Promise<any>(promisified);
             },
 
-            analyzer: async (target: Doc, keys: string[], inkData: InkData) => {
+        };
+
+        export namespace Appliers {
+
+            export const ConcatenateHandwriting: AnalysisApplier<InkData> = async (target: Doc, keys: string[], inkData: InkData) => {
                 let batch = UndoManager.StartBatch("Ink Analysis");
 
-                let results = await ExecuteQuery<InkData, any>(Service.Handwriting, Manager, inkData);
+                let results = await ExecuteQuery(Service.Handwriting, Manager, inkData);
                 if (results) {
                     results.recognitionUnits && (results = results.recognitionUnits);
                     target[keys[0]] = Docs.Get.DocumentHierarchyFromJson(results, "Ink Analysis");
@@ -193,9 +204,9 @@ export namespace CognitiveServices {
                 }
 
                 batch.end();
-            }
+            };
 
-        };
+        }
 
         export interface AzureStrokeData {
             id: number;
@@ -247,16 +258,38 @@ export namespace CognitiveServices {
                 };
                 console.log("requested!");
                 return request.post(options);
-            },
-            analyzer: async (target: Doc, keys: string[], data: string, converter: Converter) => {
-                let results = await ExecuteQuery<string, any>(Service.Text, Manager, data);
-                console.log(results);
-                converter(results);
-                //target[keys[0]] = Docs.Get.DocumentHierarchyFromJson(results, "Key Word Analysis");
-                console.log("analyzed!");
-                return null;
             }
         };
+
+        export namespace Appliers {
+
+            export async function vectorize(keyterms: any) {
+                console.log("vectorizing...");
+                //keyterms = ["father", "king"];
+                let args = { method: 'POST', uri: Utils.prepend("/recommender"), body: { keyphrases: keyterms }, json: true };
+                await requestPromise.post(args).then(async (wordvecs) => {
+                    var vectorValues = new Set<number[]>();
+                    wordvecs.forEach((wordvec: any) => {
+                        //console.log(wordvec.word);
+                        vectorValues.add(wordvec.values as number[]);
+                    });
+                    ClientRecommender.Instance.mean(vectorValues);
+                    //console.log(vectorValues.size);
+                });
+            }
+
+            export const analyzer = async (target: Doc, keys: string[], data: string, converter: Converter) => {
+                let results = await ExecuteQuery(Service.Text, Manager, data);
+                console.log(results);
+                let keyterms = converter(results);
+                //target[keys[0]] = Docs.Get.DocumentHierarchyFromJson(results, "Key Word Analysis");
+                target[keys[0]] = keyterms;
+                console.log("analyzed!");
+                await vectorize(keyterms);
+            };
+        }
+
     }
+
 
 }

@@ -39,13 +39,13 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
 
     handleEvent = async (e: React.MouseEvent<HTMLDivElement>) => {
         if ("event" in this.props) {
+            this.props.closeMenu && this.props.closeMenu();
             let batch: UndoManager.Batch | undefined;
             if (this.props.undoable !== false) {
                 batch = UndoManager.StartBatch(`Context menu event: ${this.props.description}`);
             }
             await this.props.event();
             batch && batch.end();
-            this.props.closeMenu && this.props.closeMenu();
         }
     }
 

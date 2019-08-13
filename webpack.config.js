@@ -93,5 +93,8 @@ module.exports = {
             warnings: true,
             errors: true
         }
-    }
+    },
+    externals: [
+        'child_process'
+    ]
 };

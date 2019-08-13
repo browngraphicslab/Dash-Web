@@ -13,7 +13,7 @@ import { faFile } from "@fortawesome/free-regular-svg-icons";
 import { SchemaHeaderField, RandomPastel, PastelSchemaPalette } from "../../../new_fields/SchemaHeaderField";
 import { undoBatch } from "../../util/UndoManager";
 
-library.add(faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn, faFile, faSortAmountDown, faSortAmountUp, faTimes);
+library.add(faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn, faFile as any, faSortAmountDown, faSortAmountUp, faTimes);
 
 export interface HeaderProps {
     keyValue: SchemaHeaderField;

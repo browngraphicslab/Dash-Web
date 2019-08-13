@@ -7,6 +7,7 @@ import { RefField } from "./RefField";
 import { ObjectField } from "./ObjectField";
 import { Id, Copy, ToScriptString } from "./FieldSymbols";
 import { scriptingGlobal } from "../client/util/Scripting";
+import { Plugins } from "./util";
 
 @Deserializable("proxy")
 export class ProxyField<T extends RefField> extends ObjectField {
@@ -65,6 +66,34 @@ export class ProxyField<T extends RefField> extends ObjectField {
             }));
         }
         return this.promise as any;
+    }
+}
+
+export namespace ProxyField {
+    let useProxy = true;
+    export function DisableProxyFields() {
+        useProxy = false;
+    }
+
+    export function EnableProxyFields() {
+        useProxy = true;
+    }
+
+    export function WithoutProxy<T>(fn: () => T) {
+        DisableProxyFields();
+        try {
+            return fn();
+        } finally {
+            EnableProxyFields();
+        }
+    }
+
+    export function initPlugin() {
+        Plugins.addGetterPlugin((doc, _, value) => {
+            if (useProxy && value instanceof ProxyField) {
+                return { value: value.value() };
+            }
+        });
     }
 }
 

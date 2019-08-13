@@ -9,6 +9,10 @@
     overflow-y: auto;
     flex-wrap: wrap;
     transition: top .5s;
+    .collectionSchemaView-previewDoc {
+        height: 100%;
+        position: absolute;
+    }
 
     .collectionStackingView-docView-container {
         width: 45%;
