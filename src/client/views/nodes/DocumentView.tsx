@@ -40,6 +40,7 @@ import React = require("react");
 import { DictationManager } from '../../util/DictationManager';
 import { MainView } from '../MainView';
 import requestPromise = require('request-promise');
+import { Recommendations } from '../../../Recommendations';
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(fa.faTrash);
@@ -680,6 +681,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     render() {
+        let documents = [{ preview: "hi", similarity: 0 }];
         let backgroundColor = this.layoutDoc.isBackground || (this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document.clusterOverridesDefaultBackground && this.layoutDoc.backgroundColor === this.layoutDoc.defaultBackgroundColor) ?
             this.props.backgroundColor(this.layoutDoc) || StrCast(this.layoutDoc.backgroundColor) :
             StrCast(this.layoutDoc.backgroundColor) || this.props.backgroundColor(this.layoutDoc);
@@ -699,61 +701,64 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let showTextTitle = showTitle && StrCast(this.layoutDoc.layout).startsWith("<FormattedTextBox") ? showTitle : undefined;
         let brushDegree = Doc.IsBrushedDegree(this.layoutDoc);
         return (
-            <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
-                ref={this._mainCont}
-                style={{
-                    pointerEvents: this.layoutDoc.isBackground && !this.isSelected() ? "none" : "all",
-                    color: foregroundColor,
-                    outlineColor: ["transparent", "maroon", "maroon"][brushDegree],
-                    outlineStyle: ["none", "dashed", "solid"][brushDegree],
-                    outlineWidth: brushDegree && !StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
-                        `${brushDegree * this.props.ScreenToLocalTransform().Scale}px` : "0px",
-                    marginLeft: brushDegree && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
-                        `${-brushDegree * this.props.ScreenToLocalTransform().Scale}px` : undefined,
-                    marginTop: brushDegree && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
-                        `${-brushDegree * this.props.ScreenToLocalTransform().Scale}px` : undefined,
-                    border: brushDegree && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
-                        `${["none", "dashed", "solid"][brushDegree]} ${["transparent", "maroon", "maroon"][brushDegree]} ${this.props.ScreenToLocalTransform().Scale}px` : undefined,
-                    borderRadius: "inherit",
-                    background: backgroundColor,
-                    width: nativeWidth,
-                    height: nativeHeight,
-                    transform: `scale(${this.props.ContentScaling()})`,
-                    opacity: this.Document.opacity
-                }}
-                onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
-                onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}
-            >
-                {!showTitle && !showCaption ? this.contents :
-                    <div style={{ position: "absolute", display: "inline-block", width: "100%", height: "100%", pointerEvents: "none" }}>
+            <div>
+                <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
+                    ref={this._mainCont}
+                    style={{
+                        pointerEvents: this.layoutDoc.isBackground && !this.isSelected() ? "none" : "all",
+                        color: foregroundColor,
+                        outlineColor: ["transparent", "maroon", "maroon"][brushDegree],
+                        outlineStyle: ["none", "dashed", "solid"][brushDegree],
+                        outlineWidth: brushDegree && !StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
+                            `${brushDegree * this.props.ScreenToLocalTransform().Scale}px` : "0px",
+                        marginLeft: brushDegree && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
+                            `${-brushDegree * this.props.ScreenToLocalTransform().Scale}px` : undefined,
+                        marginTop: brushDegree && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
+                            `${-brushDegree * this.props.ScreenToLocalTransform().Scale}px` : undefined,
+                        border: brushDegree && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
+                            `${["none", "dashed", "solid"][brushDegree]} ${["transparent", "maroon", "maroon"][brushDegree]} ${this.props.ScreenToLocalTransform().Scale}px` : undefined,
+                        borderRadius: "inherit",
+                        background: backgroundColor,
+                        width: nativeWidth,
+                        height: nativeHeight,
+                        transform: `scale(${this.props.ContentScaling()})`,
+                        opacity: this.Document.opacity
+                    }}
+                    onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
+                    onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}
+                >
+                    {!showTitle && !showCaption ? this.contents :
+                        <div style={{ position: "absolute", display: "inline-block", width: "100%", height: "100%", pointerEvents: "none" }}>
 
-                        <div style={{ width: "100%", height: showTextTitle ? "calc(100% - 33px)" : "100%", display: "inline-block", position: "absolute", top: showTextTitle ? "29px" : undefined }}>
-                            {this.contents}
+                            <div style={{ width: "100%", height: showTextTitle ? "calc(100% - 33px)" : "100%", display: "inline-block", position: "absolute", top: showTextTitle ? "29px" : undefined }}>
+                                {this.contents}
+                            </div>
+                            {!showTitle ? (null) :
+                                <div style={{
+                                    position: showTextTitle ? "relative" : "absolute", top: 0, padding: "4px", textAlign: "center", textOverflow: "ellipsis", whiteSpace: "pre",
+                                    pointerEvents: SelectionManager.GetIsDragging() ? "none" : "all",
+                                    overflow: "hidden", width: `${100 * this.props.ContentScaling()}%`, height: 25, background: "rgba(0, 0, 0, .4)", color: "white",
+                                    transformOrigin: "top left", transform: `scale(${1 / this.props.ContentScaling()})`
+                                }}>
+                                    <EditableView
+                                        contents={(this.layoutDoc.isTemplate || !this.dataDoc ? this.layoutDoc : this.dataDoc)[showTitle]}
+                                        display={"block"}
+                                        height={72}
+                                        fontSize={12}
+                                        GetValue={() => StrCast((this.layoutDoc.isTemplate || !this.dataDoc ? this.layoutDoc : this.dataDoc)[showTitle!])}
+                                        SetValue={(value: string) => (Doc.GetProto(this.layoutDoc)[showTitle!] = value) ? true : true}
+                                    />
+                                </div>
+                            }
+                            {!showCaption ? (null) :
+                                <div style={{ position: "absolute", bottom: 0, transformOrigin: "bottom left", width: `${100 * this.props.ContentScaling()}%`, transform: `scale(${1 / this.props.ContentScaling()})` }}>
+                                    <FormattedTextBox {...this.props} DataDoc={this.dataDoc} active={returnTrue} isSelected={this.isSelected} focus={emptyFunction} select={this.select} selectOnLoad={this.props.selectOnLoad} fieldExt={""} hideOnLeave={true} fieldKey={showCaption} />
+                                </div>
+                            }
                         </div>
-                        {!showTitle ? (null) :
-                            <div style={{
-                                position: showTextTitle ? "relative" : "absolute", top: 0, padding: "4px", textAlign: "center", textOverflow: "ellipsis", whiteSpace: "pre",
-                                pointerEvents: SelectionManager.GetIsDragging() ? "none" : "all",
-                                overflow: "hidden", width: `${100 * this.props.ContentScaling()}%`, height: 25, background: "rgba(0, 0, 0, .4)", color: "white",
-                                transformOrigin: "top left", transform: `scale(${1 / this.props.ContentScaling()})`
-                            }}>
-                                <EditableView
-                                    contents={(this.layoutDoc.isTemplate || !this.dataDoc ? this.layoutDoc : this.dataDoc)[showTitle]}
-                                    display={"block"}
-                                    height={72}
-                                    fontSize={12}
-                                    GetValue={() => StrCast((this.layoutDoc.isTemplate || !this.dataDoc ? this.layoutDoc : this.dataDoc)[showTitle!])}
-                                    SetValue={(value: string) => (Doc.GetProto(this.layoutDoc)[showTitle!] = value) ? true : true}
-                                />
-                            </div>
-                        }
-                        {!showCaption ? (null) :
-                            <div style={{ position: "absolute", bottom: 0, transformOrigin: "bottom left", width: `${100 * this.props.ContentScaling()}%`, transform: `scale(${1 / this.props.ContentScaling()})` }}>
-                                <FormattedTextBox {...this.props} DataDoc={this.dataDoc} active={returnTrue} isSelected={this.isSelected} focus={emptyFunction} select={this.select} selectOnLoad={this.props.selectOnLoad} fieldExt={""} hideOnLeave={true} fieldKey={showCaption} />
-                            </div>
-                        }
-                    </div>
-                }
+                    }
+                </div>
+                <Recommendations documents={documents} node={this.props.Document}></Recommendations>
             </div>
         );
     }
