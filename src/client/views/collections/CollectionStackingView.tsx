@@ -139,9 +139,9 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     getDocHeight(d: Doc, columnScale: number = 1) {
         let nw = NumCast(d.nativeWidth);
         let nh = NumCast(d.nativeHeight);
-        if (!BoolCast(d.ignoreAspect) && nw && nh) {
+        if (!d.ignoreAspect && nw && nh) {
             let aspect = nw && nh ? nh / nw : 1;
-            let wid = Math.min(d[WidthSym](), this.columnWidth / columnScale);
+            let wid = this.props.Document.fillColumn ? this.columnWidth / columnScale : Math.min(d[WidthSym](), this.columnWidth / columnScale);
             return wid * aspect;
         }
         return d[HeightSym]();
