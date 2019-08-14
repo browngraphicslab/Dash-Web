@@ -154,7 +154,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         let nh = NumCast(d.nativeHeight);
         if (!d.ignoreAspect && nw && nh) {
             let aspect = nw && nh ? nh / nw : 1;
-            let wid = this.props.Document.fillColumn ? this.columnWidth / columnScale : Math.min(Math.min(d[WidthSym](), NumCast(d.nativeWidth)), this.columnWidth / columnScale);
+            let wid = d.nativeWidth && !d.ignoreAspect && this.props.Document.fillColumn ? this.columnWidth / columnScale : Math.min(d[WidthSym](), this.columnWidth / columnScale);
             return wid * aspect;
         }
         return d[HeightSym]();
@@ -276,7 +276,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         this._docXfs.length = 0;
         return docs.map((d, i) => {
             let layoutDoc = Doc.expandTemplateLayout(d, this.props.DataDoc);
-            let width = () => (d.nativeWidth && !d.ignoreAspect && !this.props.Document.fillColumn ? Math.min(Math.min(d[WidthSym](), NumCast(d.nativeWidth)), this.columnWidth) : this.columnWidth);/// (uniqueHeadings.length + 1);
+            let width = () => (d.nativeWidth && !d.ignoreAspect && !this.props.Document.fillColumn ? Math.min(d[WidthSym](), this.columnWidth) : this.columnWidth);/// (uniqueHeadings.length + 1);
             let height = () => this.getDocHeight(layoutDoc);
             let dref = React.createRef<HTMLDivElement>();
             let dxf = () => this.getDocTransform(layoutDoc, dref.current!);

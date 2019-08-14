@@ -84,7 +84,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             let headings = this.props.headings();
             let uniqueHeadings = headings.map((i, idx) => headings.indexOf(i) === idx);
             let pair = Doc.GetLayoutDataDocPair(parent.props.Document, parent.props.DataDoc, parent.props.fieldKey, d);
-            let width = () => (d.nativeWidth && !d.ignoreAspect && !parent.props.Document.fillColumn ? Math.min(Math.min(d[WidthSym](), NumCast(d.nativeWidth)), parent.columnWidth / (uniqueHeadings.length + 1)) : parent.columnWidth / (uniqueHeadings.length + 1));/// (uniqueHeadings.length + 1);
+            let width = () => (d.nativeWidth && !d.ignoreAspect && !parent.props.Document.fillColumn ? Math.min(d[WidthSym](), parent.columnWidth / (uniqueHeadings.length + 1)) : parent.columnWidth / (uniqueHeadings.length + 1));/// (uniqueHeadings.length + 1);
             let height = () => parent.getDocHeight(pair.layout, uniqueHeadings.length + 1);// / (d.nativeWidth && !BoolCast(d.ignoreAspect) ? uniqueHeadings.length + 1 : 1);
             let dref = React.createRef<HTMLDivElement>();
             // if (uniqueHeadings.length > 0) {
