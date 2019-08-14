@@ -109,6 +109,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
             let existing = ContextMenu.Instance.findByDescription("Layout...");
             let layoutItems: ContextMenuProps[] = existing && "subitems" in existing ? existing.subitems : [];
             layoutItems.push({ description: "Create Layout Instance", event: () => this.props.addDocTab && this.props.addDocTab(Doc.ApplyTemplate(this.props.Document)!, undefined, "onRight"), icon: "project-diagram" });
+            layoutItems.push({ description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" });
             !existing && ContextMenu.Instance.addItem({ description: "Layout...", subitems: layoutItems, icon: "hand-point-right" });
         }
     }
