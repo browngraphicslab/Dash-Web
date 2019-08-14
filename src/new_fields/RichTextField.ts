@@ -33,6 +33,6 @@ export class RichTextField extends ObjectField {
             considering = considering.substring(matches.index + matches[0].length);
             this.Extractor.lastIndex = 0;
         }
-        return contents.length ? contents : undefined;
+        return contents;
     }
 }

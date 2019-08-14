@@ -149,18 +149,6 @@ export class MainView extends React.Component {
         }, { fireImmediately: true });
     }
 
-    componentDidMount() {
-        reaction(() => this.mainContainer, () => {
-            let main = this.mainContainer, documentId;
-            if (main && (documentId = StrCast(main.googleDocId))) {
-                let options = { documentId, removeNewlines: true };
-                GoogleApiClientUtils.Docs.ReadLines(options).then(lines => {
-                    console.log(lines);
-                });
-            }
-        });
-    }
-
     componentWillUnMount() {
         window.removeEventListener("keydown", KeyManager.Instance.handle);
         window.removeEventListener("pointerdown", this.globalPointerDown);

@@ -17,32 +17,32 @@ export namespace GoogleApiClientUtils {
         export namespace Utils {
 
             export const extractText = (document: docs_v1.Schema$Document, removeNewlines = false) => {
-                let fragments: string[] = [];
+                const fragments: string[] = [];
                 if (document.body && document.body.content) {
-                    for (let element of document.body.content) {
+                    for (const element of document.body.content) {
                         if (element.paragraph && element.paragraph.elements) {
-                            for (let inner of element.paragraph.elements) {
+                            for (const inner of element.paragraph.elements) {
                                 if (inner && inner.textRun) {
-                                    let fragment = inner.textRun.content;
+                                    const fragment = inner.textRun.content;
                                     fragment && fragments.push(fragment);
                                 }
                             }
                         }
                     }
                 }
-                let text = fragments.join("");
+                const text = fragments.join("");
                 return removeNewlines ? text.ReplaceAll("\n", "") : text;
             };
 
             export const EndOf = (schema: docs_v1.Schema$Document): Opt<number> => {
                 if (schema.body && schema.body.content) {
-                    let paragraphs = schema.body.content.filter(el => el.paragraph);
+                    const paragraphs = schema.body.content.filter(el => el.paragraph);
                     if (paragraphs.length) {
-                        let target = paragraphs[paragraphs.length - 1];
+                        const target = paragraphs[paragraphs.length - 1];
                         if (target.paragraph && target.paragraph.elements) {
                             length = target.paragraph.elements.length;
                             if (length) {
-                                let final = target.paragraph.elements[length - 1];
+                                const final = target.paragraph.elements[length - 1];
                                 return final.endIndex ? final.endIndex - 1 : undefined;
                             }
                         }
@@ -52,17 +52,25 @@ export namespace GoogleApiClientUtils {
 
         }
 
+        export type IdHandler = (id: DocumentId) => any;
+        export interface CreateOptions {
+            handler: IdHandler;
+            // if excluded, will use a default title annotated with the current date
+            title?: string;
+        }
+
         export interface ReadOptions {
             documentId: string;
+            // if exluded, will preserve newlines
             removeNewlines?: boolean;
         }
 
+        export type DocumentId = string;
         export interface WriteOptions {
-            documentId?: string;
-            title?: string;
             content: string | string[];
+            reference: DocumentId | CreateOptions;
+            // if excluded, will compute the last index of the document and append the content there
             index?: number;
-            store?: { receiver: Doc, key: string };
         }
 
         /**
@@ -70,33 +78,36 @@ export namespace GoogleApiClientUtils {
          * and grants the appropriate permissions, this function programmatically creates an arbitrary Google Doc which
          * should appear in the user's Google Doc library instantaneously.
          * 
-         * @param schema whatever subset of a docs_v1.Schema$Document is required to properly initialize your
-         * Google Doc. This schema defines all aspects of a Google Doc, from the title to headers / footers to the
-         * actual document body and its styling!
+         * @param options the title to assign to the new document, and the information necessary
+         * to store the new documentId returned from the creation process
          * @returns the documentId of the newly generated document, or undefined if the creation process fails.
          */
-        const Create = async (title?: string): Promise<string | undefined> => {
-            let path = RouteStore.googleDocs + Actions.Create;
-            let parameters = {
+        const Create = async (options: CreateOptions): Promise<string | undefined> => {
+            const path = RouteStore.googleDocs + Actions.Create;
+            const parameters = {
                 requestBody: {
-                    title: title || `Dash Export (${new Date().toDateString()})`
+                    title: options.title || `Dash Export (${new Date().toDateString()})`
                 }
             };
             try {
-                let schema: docs_v1.Schema$Document = await PostToServer(path, parameters);
-                return schema.documentId;
+                const schema: docs_v1.Schema$Document = await PostToServer(path, parameters);
+                const generatedId = schema.documentId;
+                if (generatedId) {
+                    options.handler(generatedId);
+                    return generatedId;
+                }
             } catch {
                 return undefined;
             }
         };
 
         const Retrieve = async (documentId: string): Promise<docs_v1.Schema$Document | undefined> => {
-            let path = RouteStore.googleDocs + Actions.Retrieve;
-            let parameters = {
+            const path = RouteStore.googleDocs + Actions.Retrieve;
+            const parameters = {
                 documentId
             };
             try {
-                let schema: docs_v1.Schema$Document = await PostToServer(path, parameters);
+                const schema: docs_v1.Schema$Document = await PostToServer(path, parameters);
                 return schema;
             } catch {
                 return undefined;
@@ -104,16 +115,15 @@ export namespace GoogleApiClientUtils {
         };
 
         const Update = async (documentId: string, requests: docs_v1.Schema$Request[]): Promise<docs_v1.Schema$BatchUpdateDocumentResponse | undefined> => {
-            let path = RouteStore.googleDocs + Actions.Update;
-            let parameters = {
+            const path = RouteStore.googleDocs + Actions.Update;
+            const parameters = {
                 documentId,
                 requestBody: {
                     requests
                 }
             };
             try {
-                let replies: docs_v1.Schema$BatchUpdateDocumentResponse = await PostToServer(path, parameters);
-                console.log(replies);
+                const replies: docs_v1.Schema$BatchUpdateDocumentResponse = await PostToServer(path, parameters);
                 return replies;
             } catch {
                 return undefined;
@@ -131,38 +141,32 @@ export namespace GoogleApiClientUtils {
                 if (!schema) {
                     return undefined;
                 }
-                let lines = Utils.extractText(schema).split("\n");
+                const lines = Utils.extractText(schema).split("\n");
                 return options.removeNewlines ? lines.filter(line => line.length) : lines;
             });
         };
 
         export const Write = async (options: WriteOptions): Promise<docs_v1.Schema$BatchUpdateDocumentResponse | undefined> => {
-            let target = options.documentId;
-            if (!target) {
-                if (!(target = await Create(options.title))) {
-                    return undefined;
-                }
+            let documentId: string | undefined;
+            const ref = options.reference;
+            if (!(documentId = typeof ref === "string" ? ref : await Create(ref))) {
+                return undefined;
             }
             let index = options.index;
             if (!index) {
-                let schema = await Retrieve(target);
+                let schema = await Retrieve(documentId);
                 if (!schema || !(index = Utils.EndOf(schema))) {
                     return undefined;
                 }
             }
-            let text = options.content;
-            let request = {
+            const text = options.content;
+            const request = {
                 insertText: {
                     text: isArray(text) ? text.join("\n") : text,
                     location: { index }
                 }
             };
-            return Update(target, [request]).then(res => {
-                if (res && options.store) {
-                    options.store.receiver[options.store.key] = res.documentId;
-                }
-                return res;
-            });
+            return Update(documentId, [request]);
         };
 
     }

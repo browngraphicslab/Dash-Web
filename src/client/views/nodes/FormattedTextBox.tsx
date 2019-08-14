@@ -670,16 +670,18 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     exportToGoogleDoc = () => {
-        let dataDoc = Doc.GetProto(this.props.Document);
-        let data = Cast(dataDoc.data, RichTextField);
-        let content: string | undefined;
-        if (data && (content = data.plainText())) {
-            GoogleApiClientUtils.Docs.Write({
-                title: StrCast(dataDoc.title),
-                store: { receiver: dataDoc, key: googleDocKey },
-                content
-            });
+        const dataDoc = Doc.GetProto(this.props.Document);
+        const data = Cast(dataDoc.data, RichTextField);
+        if (!data) {
+            return;
         }
+        GoogleApiClientUtils.Docs.Write({
+            reference: {
+                title: StrCast(dataDoc.title),
+                handler: id => dataDoc[googleDocKey] = id
+            },
+            content: data.plainText()
+        });
     }
 
     render() {
