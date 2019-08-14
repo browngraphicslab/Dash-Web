@@ -30,7 +30,7 @@ let swapDocs = async () => {
 
 (async () => {
     const info = await CurrentUserUtils.loadCurrentUser();
-    DocServer.init(window.location.protocol, window.location.hostname, 4321, info.email);
+    DocServer.init(window.location.protocol, window.location.hostname, 4321, info.email, info.id2);
     await Docs.Prototypes.initialize();
     await CurrentUserUtils.loadUserDocument(info);
     // updates old user documents to prevent chrome on tree view.

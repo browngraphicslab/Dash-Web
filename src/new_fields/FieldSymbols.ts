@@ -3,6 +3,7 @@ export const Update = Symbol("Update");
 export const Self = Symbol("Self");
 export const SetAcls = Symbol("SetAcls");
 export const GetAcls = Symbol("GetAcls");
+export const CloneAcls = Symbol("CloneAcls");
 export const SelfProxy = Symbol("SelfProxy");
 export const HandleUpdate = Symbol("HandleUpdate");
 export const Id = Symbol("Id");

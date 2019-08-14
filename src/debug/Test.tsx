@@ -33,7 +33,7 @@ class Test extends React.Component {
     }
 }
 
-DocServer.init(window.location.protocol, window.location.hostname, 4321, "test");
+DocServer.init(window.location.protocol, window.location.hostname, 4321, "test", "system");
 ReactDOM.render(
     <Test />,
     document.getElementById('root')

@@ -65,6 +65,7 @@ class Repl extends React.Component {
 }
 
 (async function () {
-    DocServer.init(window.location.protocol, window.location.hostname, 4321, "repl");
+    // currently the repl is given system privileges (which allows write on everything)
+    DocServer.init(window.location.protocol, window.location.hostname, 4321, "repl", "system");
     ReactDOM.render(<Repl />, document.getElementById("root"));
 })();

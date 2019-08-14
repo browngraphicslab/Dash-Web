@@ -24,12 +24,14 @@ export namespace DocServer {
     let _cache: { [id: string]: RefField | Promise<Opt<RefField>> } = {};
     let _socket: SocketIOClient.Socket;
     // this client's distinct GUID created at initialization
-    let GUID: string;
+    let USERNAME: string;
+    let USERID: string;
     // indicates whether or not a document is currently being udpated, and, if so, its id
 
-    export function init(protocol: string, hostname: string, port: number, identifier: string) {
+    export function init(protocol: string, hostname: string, port: number, identifier: string, userId: string) {
         _cache = {};
-        GUID = identifier;
+        USERNAME = identifier;
+        USERID = userId;
         _socket = OpenSocket(`${protocol}//${hostname}:${port}`);
 
         _GetRefField = _GetRefFieldImpl;
@@ -84,7 +86,7 @@ export namespace DocServer {
      * indicating that this client has connected
      */
     function onConnection() {
-        _socket.emit(MessageStore.Bar.Message, GUID);
+        _socket.emit(MessageStore.Bar.Message, { username: USERNAME, id: USERID });
     }
 
     export namespace Util {
@@ -118,7 +120,7 @@ export namespace DocServer {
             // synchronously, we emit a single callback to the server requesting the serialized (i.e. represented by a string)
             // field for the given ids. This returns a promise, which, when resolved, indicates the the JSON serialized version of
             // the field has been returned from the server
-            const getSerializedField = Utils.EmitCallback(_socket, MessageStore.GetRefField, [id, CurrentUserUtils.id]);
+            const getSerializedField = Utils.EmitCallback(_socket, MessageStore.GetRefField, id);
 
             // when the serialized RefField has been received, go head and begin deserializing it into an object.
             // Here, once deserialized, we also invoke .proto to 'load' the document's prototype, which ensures that all

@@ -7,7 +7,7 @@ import { Cast, ToConstructor, PromiseValue, FieldValue, NumCast, BoolCast, StrCa
 import { listSpec } from "./Schema";
 import { ObjectField } from "./ObjectField";
 import { RefField, FieldId } from "./RefField";
-import { ToScriptString, SelfProxy, Parent, OnUpdate, Self, HandleUpdate, Update, Id, SetAcls, GetAcls } from "./FieldSymbols";
+import { ToScriptString, SelfProxy, Parent, OnUpdate, Self, HandleUpdate, Update, Id, SetAcls, GetAcls, CloneAcls } from "./FieldSymbols";
 import { scriptingGlobal } from "../client/util/Scripting";
 import { List } from "./List";
 import { DocumentType } from "../client/documents/Documents";
@@ -87,20 +87,36 @@ let updatingFromServer = false;
 @scriptingGlobal
 @Deserializable("Doc", fetchProto).withFields(["id"])
 export class Doc extends RefField {
-    @serializable(map(primitive()))
+    @serializable(map(map(primitive())))
     public get acls() {
         return this._acls;
     }
 
-    public [SetAcls] = (id: string, permission: Permissions) => {
-        this._acls[id] = permission;
+    public [CloneAcls] = (id: string, acls: { [key: string]: Permissions }) => {
+        this._acls[id] = acls;
+        DocServer.UpdateField(this[Id], { "$set": { "acls": this._acls } });
+    }
+
+    public [SetAcls] = (id: string, permission: Permissions, keys?: string[]) => {
+        if (!this._acls[id]) {
+            this._acls[id] = {};
+        }
+
+        if (keys) {
+            keys.forEach(k => {
+                this._acls[id][k] = permission;
+            });
+        }
+        else {
+            this._acls[id]["*"] = permission;
+        }
         DocServer.UpdateField(this[Id], { "$set": { "acls": this._acls } });
     }
 
     public [GetAcls] = () => this._acls;
 
     @observable
-    // { [id: string]: Permission }
+    // { [id: string]: { [key: string]: Permission } }
     private _acls: any = {};
 
     constructor(id?: FieldId, forceSave?: boolean) {
@@ -370,7 +386,7 @@ export namespace Doc {
 
     export function CreateDocumentExtensionForField(doc: Doc, fieldKey: string) {
         let docExtensionForField = new Doc(doc[Id] + fieldKey, true);
-        docExtensionForField[SetAcls](CurrentUserUtils.id, doc[GetAcls]()[CurrentUserUtils.id]);
+        docExtensionForField[CloneAcls](CurrentUserUtils.id, doc[GetAcls]()[CurrentUserUtils.id]);
         docExtensionForField.title = fieldKey + ".ext";
         docExtensionForField.extendsDoc = doc; // this is used by search to map field matches on the extension doc back to the document it extends.
         docExtensionForField.type = DocumentType.EXTENSION;

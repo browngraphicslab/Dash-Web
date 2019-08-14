@@ -57,7 +57,12 @@ export namespace SerializationHelper {
         }
 
         const type = serializationTypes[obj.__type];
-        const value = await new Promise(res => deserialize(type.ctor, obj, (err, result) => res(result)));
+        const value = await new Promise(res => deserialize(type.ctor, obj, (err, result) => {
+            if (err) {
+                console.log(err);
+            }
+            res(result);
+        }));
         if (type.afterDeserialize) {
             await type.afterDeserialize(value);
         }

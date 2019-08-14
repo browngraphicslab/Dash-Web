@@ -105,7 +105,8 @@ class Uploader extends React.Component {
 }
 
 
-DocServer.init(window.location.protocol, window.location.hostname, 4321, "image upload");
+//currently, this is given system privileges (universal read/write), is this okay? -syip
+DocServer.init(window.location.protocol, window.location.hostname, 4321, "image upload", "system");
 
 ReactDOM.render((
     <Uploader />

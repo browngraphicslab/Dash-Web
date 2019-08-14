@@ -672,21 +672,21 @@ interface Map {
 }
 let clients: Map = {};
 
-let socketMap = new Map<SocketIO.Socket, string>();
+let socketMap = new Map<SocketIO.Socket, { username: string, id: string }>();
 let timeMap: { [id: string]: number } = {};
 
 server.on("connection", function (socket: Socket) {
     socket.use((packet, next) => {
         let id = socketMap.get(socket);
         if (id) {
-            timeMap[id] = Date.now();
+            timeMap[id.username] = Date.now();
         }
         next();
     });
 
     Utils.Emit(socket, MessageStore.Foo, "handshooken");
 
-    Utils.AddServerHandler(socket, MessageStore.Bar, guid => barReceived(socket, guid));
+    Utils.AddServerHandler(socket, MessageStore.Bar, (args) => barReceived(socket, args));
     Utils.AddServerHandler(socket, MessageStore.SetField, (args) => setField(socket, args));
     Utils.AddServerHandlerCallback(socket, MessageStore.GetField, getField);
     Utils.AddServerHandlerCallback(socket, MessageStore.GetFields, getFields);
@@ -699,7 +699,7 @@ server.on("connection", function (socket: Socket) {
     Utils.AddServerHandler(socket, MessageStore.UpdateField, diff => UpdateField(socket, diff));
     Utils.AddServerHandler(socket, MessageStore.DeleteField, id => DeleteField(socket, id));
     Utils.AddServerHandler(socket, MessageStore.DeleteFields, ids => DeleteFields(socket, ids));
-    Utils.AddServerHandlerCallback(socket, MessageStore.GetRefField, GetRefField);
+    Utils.AddServerHandlerCallback(socket, MessageStore.GetRefField, args => GetRefField(socket, args));
     Utils.AddServerHandlerCallback(socket, MessageStore.GetRefFields, GetRefFields);
 });
 
@@ -717,10 +717,10 @@ async function deleteAll() {
     await Search.Instance.clear();
 }
 
-function barReceived(socket: SocketIO.Socket, guid: string) {
-    clients[guid] = new Client(guid.toString());
-    console.log(`User ${guid} has connected`);
-    socketMap.set(socket, guid);
+function barReceived(socket: SocketIO.Socket, args: { username: string, id: string }) {
+    clients[args.username] = new Client(args.username.toString());
+    console.log(`User ${args.username} has connected`);
+    socketMap.set(socket, args);
 }
 
 function getField([id, callback]: [string, (result?: Transferable) => void]) {
@@ -779,7 +779,7 @@ function HasPermission(doc: any, user: string, permission: ServerPermissions, ke
     let acls = doc ? doc.acls : undefined;
     if (acls) {
         if (!key) {
-            return (acls[user] && acls[user] === permission);
+            return (acls[user] && acls[user]["*"] === permission);
         }
         else {
             return true;
@@ -799,37 +799,40 @@ export function GetFillerDocument(id: string, options: {}) {
 
 }
 
-function GetRefField([[id, userId], callback]: [[string, string], (result: any) => void]) {
-    Database.Instance.getDocument(id, async (result) => {
-        let doc = await result;
-        if (HasReadOrWrite(doc, "system") || HasReadOrWrite(doc, userId)) {
-            callback(doc);
-        }
-        else if (!doc) {
-            callback(doc);
-        }
-        else {
-            let clone: any = {};
-            Object.assign(clone, doc);
-            if (doc.fields.type === "extension") {
-                clone.fields = {
-                    ...doc.fields,
-                    text: "Permission Denied"
-                }
+function GetRefField(socket: Socket, [id, callback]: [string, (result: any) => void]) {
+    Database.Instance.getDocument(id, (result) => {
+        let info = socketMap.get(socket);
+        if (info) {
+            if (HasReadOrWrite(result, "system") || HasReadOrWrite(result, info.id)) {
+                callback(result);
+            }
+            else if (!result) {
+                callback(result);
             }
             else {
-                clone.fields = {
-                    layout: "<FormattedTextBox {...props} fieldKey={\"data\"} fieldExt={\"\"} />",
-                    data: '=new RichTextField("{"doc":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Permission denied"}]}]},"selection":{"type":"text","anchor":9,"head":9}}")',
-                    title: "Permission Denied",
-                    text: "Permission Denied",
-                    proto: doc.fields.proto,
-                    data_ext: doc.fields.data_ext
+                let clone: any = {};
+                Object.assign(clone, result);
+                if (result.fields.type === "extension") {
+                    clone.fields = {
+                        ...result.fields,
+                        text: "Permission Denied"
+                    };
                 }
+                else {
+                    clone.fields = {
+                        layout: "<FormattedTextBox {...props} fieldKey={\"data\"} fieldExt={\"\"} />",
+                        data: '=new RichTextField("{"doc":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Permission denied"}]}]},"selection":{"type":"text","anchor":9,"head":9}}")',
+                        title: "Permission Denied",
+                        text: "Permission Denied",
+                        proto: result.fields.proto,
+                        data_ext: result.fields.data_ext
+                    }
+                }
+                clone.acls = {};
+                clone.acls[info.id] = {};
+                clone.acls[info.id]["*"] = ServerPermissions.READ;
+                callback(clone);
             }
-            clone.acls = {};
-            clone.acls[userId] = ServerPermissions.READ;
-            callback(clone);
         }
     }, "newDocuments");
 }

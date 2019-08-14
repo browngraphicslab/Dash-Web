@@ -48,13 +48,17 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
     }
     if (prop === "acls") {
         Object.entries(value).forEach((value: [string, any]) => {
-            target[SetAcls](value[0], value[1]);
-        })
+            let permissions = value[1];
+            let keys = Object.keys(permissions);
+            keys.forEach(k => {
+                target[SetAcls](value[0], value[1][k], [k]);
+            });
+        });
         return true;
     }
     let acls = receiver[GetAcls]();
     if (acls && CurrentUserUtils.id) {
-        let permissions = acls[CurrentUserUtils.id];
+        let permissions = acls[CurrentUserUtils.id]["*"];
         if (permissions === Permissions.READ) {
             return true;
         }

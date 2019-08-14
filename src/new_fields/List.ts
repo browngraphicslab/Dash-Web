@@ -6,7 +6,7 @@ import { observable, action } from "mobx";
 import { ObjectField } from "./ObjectField";
 import { RefField } from "./RefField";
 import { ProxyField } from "./Proxy";
-import { Self, Update, Parent, OnUpdate, SelfProxy, ToScriptString, Copy, GetAcls, SetAcls } from "./FieldSymbols";
+import { Self, Update, Parent, OnUpdate, SelfProxy, ToScriptString, Copy, GetAcls, SetAcls, CloneAcls } from "./FieldSymbols";
 import { Scripting } from "../client/util/Scripting";
 import { CurrentUserUtils } from "../server/authentication/models/current_user_utils";
 import { Cast, FieldValue } from "./Types";
@@ -230,13 +230,29 @@ type StoredType<T extends Field> = T extends RefField ? ProxyField<T> : T;
 
 @Deserializable("list")
 class ListImpl<T extends Field> extends ObjectField {
-    @serializable(map(primitive()))
+    @serializable(map(map(primitive())))
     public get acls() {
         return this._acls;
     }
 
-    public [SetAcls] = (id: string, permission: Permissions) => {
-        this._acls[id] = permission;
+    public [CloneAcls] = (id: string, acls: { [key: string]: Permissions }) => {
+        this._acls[id] = acls;
+        this[OnUpdate]({ "$set": { "acls": this._acls } });
+    }
+
+    public [SetAcls] = (id: string, permission: Permissions, keys?: string[]) => {
+        if (!this._acls[id]) {
+            this._acls[id] = {};
+        }
+
+        if (keys) {
+            keys.forEach(k => {
+                this._acls[id][k] = permission;
+            });
+        }
+        else {
+            this._acls[id]["*"] = permission;
+        }
         this[OnUpdate]({ "$set": { "acls": this._acls } });
     }
 

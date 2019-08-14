@@ -44,14 +44,14 @@ export interface Diff extends Reference {
 
 export namespace MessageStore {
     export const Foo = new Message<string>("Foo");
-    export const Bar = new Message<string>("Bar");
+    export const Bar = new Message<{ username: string, id: string }>("Bar");
     export const SetField = new Message<Transferable>("Set Field"); // send Transferable (no reply)
     export const GetField = new Message<string>("Get Field"); // send string 'id' get Transferable back
     export const GetFields = new Message<string[]>("Get Fields"); // send string[] of 'id' get Transferable[] back
     export const GetDocument = new Message<string>("Get Document");
     export const DeleteAll = new Message<any>("Delete All");
 
-    export const GetRefField = new Message<[string, string]>("Get Ref Field");
+    export const GetRefField = new Message<string>("Get Ref Field");
     export const GetRefFields = new Message<string[]>("Get Ref Fields");
     export const UpdateField = new Message<Diff>("Update Ref Field");
     export const CreateField = new Message<Reference>("Create Ref Field");

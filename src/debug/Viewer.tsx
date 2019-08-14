@@ -182,7 +182,7 @@ class Viewer extends React.Component {
 }
 
 (async function () {
-    await DocServer.init(window.location.protocol, window.location.hostname, 4321, "viewer");
+    await DocServer.init(window.location.protocol, window.location.hostname, 4321, "viewer", "system");
     ReactDOM.render((
         <div style={{ position: "absolute", width: "100%", height: "100%" }}>
             <Viewer />

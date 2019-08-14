@@ -87,7 +87,9 @@ export class CurrentUserUtils {
         });
         return rp.get(Utils.prepend(RouteStore.getCurrUser)).then(response => {
             if (response) {
-                const result: { id: string, email: string } = JSON.parse(response);
+                const result: { id: string, email: string, id2: string } = JSON.parse(response);
+                // WHY DO WE HAVE TWO USER IDS??? -syip
+                result.id2 = this.curr_id;
                 return result;
             } else {
                 throw new Error("There should be a user! Why does Dash think there isn't one?");
