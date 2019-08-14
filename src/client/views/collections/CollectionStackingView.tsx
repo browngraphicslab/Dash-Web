@@ -291,24 +291,28 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         });
     }
 
+    @observable _headingsHack: number = 1;
     sectionMasonry(heading: SchemaHeaderField | undefined, docList: Doc[]) {
         let cols = Math.max(1, Math.min(docList.length,
             Math.floor((this.props.PanelWidth() - 2 * this.xMargin) / (this.columnWidth + this.gridGap))));
         return <div key={heading ? heading.heading : "empty"} className="collectionStackingView-masonrySection">
             {!heading ? (null) :
-                <div key={`${heading.heading}`} className="collectionStackingView-sectionHeader" style={{ background: heading.color }}>
+                <div key={`${heading.heading}`} className="collectionStackingView-sectionHeader" style={{ background: heading.color }}
+                    onClick={action(() => this._headingsHack++ && heading.setCollapsed(!heading.collapsed))} >
                     {heading.heading}
                 </div>}
-            <div key={`${heading}-stack`} className={`collectionStackingView-masonryGrid`}
-                style={{
-                    padding: `${this.yMargin}px ${this.xMargin}px`,
-                    width: `${cols * (this.columnWidth + this.gridGap) + 2 * this.xMargin - this.gridGap}px`,
-                    gridGap: this.gridGap,
-                    gridTemplateColumns: numberRange(cols).reduce((list, i) => list + ` ${this.columnWidth}px`, ""),
-                }}>
-                {this.masonryChildren(docList)}
-                {this.columnDragger}
-            </div>
+            {this._headingsHack && heading && heading.collapsed ? (null) :
+                <div key={`${heading}-stack`} className={`collectionStackingView-masonryGrid`}
+                    style={{
+                        padding: `${this.yMargin}px ${this.xMargin}px`,
+                        width: `${cols * (this.columnWidth + this.gridGap) + 2 * this.xMargin - this.gridGap}px`,
+                        gridGap: this.gridGap,
+                        gridTemplateColumns: numberRange(cols).reduce((list, i) => list + ` ${this.columnWidth}px`, ""),
+                    }}>
+                    {this.masonryChildren(docList)}
+                    {this.columnDragger}
+                </div>
+            }
         </div>;
     }
 
