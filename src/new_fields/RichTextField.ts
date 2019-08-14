@@ -9,7 +9,7 @@ import { scriptingGlobal } from "../client/util/Scripting";
 export class RichTextField extends ObjectField {
     @serializable(true)
     readonly Data: string;
-    private Extractor = /,\"text\":\"([^\"\}]*)\"\}/g;
+    private Extractor = /,\"text\":\"([^\}]*)\"\}/g;
 
     constructor(data: string) {
         super();
@@ -33,6 +33,6 @@ export class RichTextField extends ObjectField {
             considering = considering.substring(matches.index + matches[0].length);
             this.Extractor.lastIndex = 0;
         }
-        return contents;
+        return contents.ReplaceAll("\\", "");
     }
 }

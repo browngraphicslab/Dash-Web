@@ -43,6 +43,8 @@ import * as YoutubeApi from "./apis/youtube/youtubeApiSample";
 import { Response } from 'express-serve-static-core';
 import { GoogleApiServerUtils } from "./apis/google/GoogleApiServerUtils";
 import { GaxiosResponse } from 'gaxios';
+import { Opt } from '../new_fields/Doc';
+import { docs_v1 } from 'googleapis';
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const probe = require("probe-image-size");
@@ -797,23 +799,28 @@ function HandleYoutubeQuery([query, callback]: [YoutubeQueryInput, (result?: any
 const credentials = path.join(__dirname, "./credentials/google_docs_credentials.json");
 const token = path.join(__dirname, "./credentials/google_docs_token.json");
 
+type ApiResponse = Promise<GaxiosResponse>;
+type ApiHandler = (endpoint: docs_v1.Resource$Documents, parameters: any) => ApiResponse;
+type Action = "create" | "retrieve" | "update";
+
+const EndpointHandlerMap = new Map<Action, ApiHandler>([
+    ["create", (api, params) => api.create(params)],
+    ["retrieve", (api, params) => api.get(params)],
+    ["update", (api, params) => api.batchUpdate(params)],
+]);
+
 app.post(RouteStore.googleDocs + ":action", (req, res) => {
     GoogleApiServerUtils.Docs.GetEndpoint({ credentials, token }).then(endpoint => {
-        let results: Promise<GaxiosResponse> | undefined;
-        let documents = endpoint.documents;
-        let parameters = req.body;
-        switch (req.params.action) {
-            case "create":
-                results = documents.create(parameters);
-                break;
-            case "retrieve":
-                results = documents.get(parameters);
-                break;
-            case "update":
-                results = documents.batchUpdate(parameters);
-                break;
+        let handler = EndpointHandlerMap.get(req.params.action);
+        if (handler) {
+            let execute = handler(endpoint.documents, req.body).then(
+                response => res.send(response.data),
+                rejection => res.send(rejection)
+            );
+            execute.catch(exception => res.send(exception));
+            return;
         }
-        !results ? res.send(undefined) : results.then(response => res.send(response.data));
+        res.send(undefined);
     });
 });
 

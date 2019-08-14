@@ -288,6 +288,19 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
+    componentWillMount() {
+        this.pollExportedCounterpart();
+    }
+
+    pollExportedCounterpart = async () => {
+        let dataDoc = Doc.GetProto(this.props.Document);
+        let documentId = StrCast(dataDoc[googleDocKey]);
+        if (documentId) {
+            let contents = await GoogleApiClientUtils.Docs.read({ documentId });
+            contents ? console.log(contents) : delete dataDoc[googleDocKey];
+        }
+    }
+
     componentDidMount() {
         const config = {
             schema,
@@ -675,7 +688,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (!data) {
             return;
         }
-        GoogleApiClientUtils.Docs.Write({
+        GoogleApiClientUtils.Docs.write({
             reference: {
                 title: StrCast(dataDoc.title),
                 handler: id => dataDoc[googleDocKey] = id
