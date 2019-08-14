@@ -170,12 +170,12 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
         return [!penPaths.length ? (null) :
             <svg className={`inkingCanvas-paths-ink`} key="Pens"
                 style={{ left: `${this.inkMidX - this.maxCanvasDim}px`, top: `${this.inkMidY - this.maxCanvasDim}px` }} >
-                {}
+                {penPaths}
             </svg>,
         !markerPaths.length ? (null) :
             <svg className={`inkingCanvas-paths-markers`} key="Markers"
                 style={{ left: `${this.inkMidX - this.maxCanvasDim}px`, top: `${this.inkMidY - this.maxCanvasDim}px` }}>
-                {}
+                {markerPaths}
             </svg>];
     }
 

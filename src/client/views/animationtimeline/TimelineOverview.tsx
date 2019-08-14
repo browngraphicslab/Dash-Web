@@ -25,6 +25,8 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
 
     @action
     onPointerDown = (e:React.PointerEvent) => {
+        e.stopPropagation(); 
+        e.preventDefault(); 
         document.removeEventListener("pointermove", this.onPanX); 
         document.removeEventListener("pointerup", this.onPointerUp); 
         document.addEventListener("pointermove", this.onPanX); 
@@ -33,12 +35,16 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
 
     @action
     onPanX = (e: PointerEvent) => {
+        e.stopPropagation(); 
+        e.preventDefault(); 
         let movX = (this.props.visibleStart / this.props.totalLength)* (this.DEFAULT_WIDTH * this.props.scale) + e.movementX; 
         this.props.movePanX((movX / (this.DEFAULT_WIDTH * this.props.scale)) * this.props.totalLength); 
     }
 
     @action
     onPointerUp = (e: PointerEvent) => {
+        e.stopPropagation(); 
+        e.preventDefault(); 
         document.removeEventListener("pointermove", this.onPanX); 
         document.removeEventListener("pointerup", this.onPointerUp); 
     }
