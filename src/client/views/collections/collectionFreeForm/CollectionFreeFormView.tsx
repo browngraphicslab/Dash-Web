@@ -40,8 +40,6 @@ import v5 = require("uuid/v5");
 import { Timeline } from "../../animationtimeline/Timeline";
 import { number } from "prop-types";
 import { DocumentType, Docs } from "../../../documents/Documents";
-import { RouteStore } from "../../../../server/RouteStore";
-import { string, number, elementType } from "prop-types";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard);
 
@@ -197,6 +195,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private get _pwidth() { return this.props.PanelWidth(); }
     private get _pheight() { return this.props.PanelHeight(); }
     private inkKey = "ink";
+
+    constructor(props: any) {
+        super(props);
+    }
 
     get parentScaling() {
         return (this.props as any).ContentScaling && this.fitToBox && !this.isAnnotationOverlay ? (this.props as any).ContentScaling() : 1;
@@ -634,6 +636,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             addDocument: this.props.addDocument,
             removeDocument: this.props.removeDocument,
             moveDocument: this.props.moveDocument,
+            onClick: this.props.onClick,
             ScreenToLocalTransform: pair.layout.z ? this.getTransformOverlay : this.getTransform,
             renderDepth: this.props.renderDepth + 1,
             selectOnLoad: pair.layout[Id] === this._selectOnLoaded,
@@ -658,6 +661,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             addDocument: this.props.addDocument,
             removeDocument: this.props.removeDocument,
             moveDocument: this.props.moveDocument,
+            onClick: this.props.onClick,
             ScreenToLocalTransform: this.getTransform,
             renderDepth: this.props.renderDepth,
             selectOnLoad: layoutDoc[Id] === this._selectOnLoaded,
@@ -815,17 +819,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     onContextMenu = (e: React.MouseEvent) => {
         let layoutItems: ContextMenuProps[] = [];
-        layoutItems.push({
-            description: `${this.fitToBox ? "Unset" : "Set"} Fit To Container`,
-            event: this.fitToContainer,
-            icon: !this.fitToBox ? "expand-arrows-alt" : "compress-arrows-alt"
-        });
-        layoutItems.push({
-            description: "reset view", event: () => {
-                this.props.Document.panX = this.props.Document.panY = 0;
-                this.props.Document.scale = 1;
-            }, icon: "compress-arrows-alt"
-        });
+        layoutItems.push({ description: `${this.fitToBox ? "Unset" : "Set"} Fit To Container`, event: this.fitToContainer, icon: !this.fitToBox ? "expand-arrows-alt" : "compress-arrows-alt" });
+        layoutItems.push({ description: "reset view", event: () => { this.props.Document.panX = this.props.Document.panY = 0; this.props.Document.scale = 1; }, icon: "compress-arrows-alt" });
         layoutItems.push({
             description: `${this.props.Document.useClusters ? "Uncluster" : "Use Clusters"}`,
             event: async () => {
@@ -840,50 +835,13 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             event: async () => this.props.Document.clusterOverridesDefaultBackground = !this.props.Document.clusterOverridesDefaultBackground,
             icon: !this.props.Document.useClusters ? "chalkboard" : "chalkboard"
         });
-        layoutItems.push({
-            description: "Arrange contents in grid",
-            event: this.arrangeContents,
-            icon: "table"
-        });
-        ContextMenu.Instance.addItem({
-            description: "Layout...",
-            subitems: layoutItems,
-            icon: "compass"
-        });
-        ContextMenu.Instance.addItem({
-            description: "Analyze Strokes",
-            event: this.analyzeStrokes,
-            icon: "paint-brush"
-        });
-        ContextMenu.Instance.addItem({
-            description: "Import document", icon: "upload", event: () => {
-                const input = document.createElement("input");
-                input.type = "file";
-                input.accept = ".zip";
-                input.onchange = async _e => {
-                    const files = input.files;
-                    if (!files) return;
-                    const file = files[0];
-                    let formData = new FormData();
-                    formData.append('file', file);
-                    formData.append('remap', "true");
-                    const upload = Utils.prepend("/uploadDoc");
-                    const response = await fetch(upload, { method: "POST", body: formData });
-                    const json = await response.json();
-                    if (json === "error") {
-                        return;
-                    }
-                    const doc = await DocServer.GetRefField(json);
-                    if (!doc || !(doc instanceof Doc)) {
-                        return;
-                    }
-                    const [x, y] = this.props.ScreenToLocalTransform().transformPoint(e.pageX, e.pageY);
-                    doc.x = x, doc.y = y;
-                    this.addDocument(doc, false);
-                };
-                input.click();
-            }
-        });
+        layoutItems.push({ description: "Arrange contents in grid", event: this.arrangeContents, icon: "table" });
+        ContextMenu.Instance.addItem({ description: "Layout...", subitems: layoutItems, icon: "compass" });
+
+        let existingAnalyze = ContextMenu.Instance.findByDescription("Analyzers...");
+        let analyzers: ContextMenuProps[] = existingAnalyze && "subitems" in existingAnalyze ? existingAnalyze.subitems : [];
+        analyzers.push({ description: "Analyze Strokes", event: this.analyzeStrokes, icon: "paint-brush" });
+        !existingAnalyze && ContextMenu.Instance.addItem({ description: "Analyzers...", subitems: analyzers, icon: "hand-point-right" });
     }
 
 

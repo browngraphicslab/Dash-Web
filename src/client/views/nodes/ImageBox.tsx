@@ -65,7 +65,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     private dropDisposer?: DragManager.DragDropDisposer;
 
 
-    @computed get dataDoc() { return this.props.DataDoc && (BoolCast(this.props.Document.isTemplate) || BoolCast(this.props.DataDoc.isTemplate) || this.props.DataDoc.layout === this.props.Document) ? this.props.DataDoc : this.props.Document; }
+    @computed get dataDoc() { return this.props.DataDoc && (BoolCast(this.props.Document.isTemplate) || BoolCast(this.props.DataDoc.isTemplate) || this.props.DataDoc.layout === this.props.Document) ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
 
 
     protected createDropTarget = (ele: HTMLDivElement) => {
@@ -95,7 +95,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                 } else if (de.mods === "AltKey" && /*this.dataDoc !== this.props.Document &&*/ drop.data instanceof ImageField) {
                     Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new ImageField(drop.data.url);
                     e.stopPropagation();
-                } else if (de.mods === "CtrlKey") {
+                } else if (de.mods === "MetaKey") {
                     if (this.extensionDoc !== this.dataDoc) {
                         let layout = StrCast(drop.backgroundLayout);
                         if (layout.indexOf(ImageBox.name) !== -1) {
@@ -404,6 +404,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         let aspect = (rotation % 180) ? this.dataDoc[HeightSym]() / this.dataDoc[WidthSym]() : 1;
         let shift = (rotation % 180) ? (nativeHeight - nativeWidth / aspect) / 2 : 0;
         let srcpath = paths[Math.min(paths.length - 1, this.Document.curPage || 0)];
+        let fadepath = paths[Math.min(paths.length - 1, 1)];
 
         if (!this.props.Document.ignoreAspect && !this.props.leaveNativeSize) this.resize(srcpath, this.props.Document);
 
@@ -411,13 +412,22 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
             <div id={id} className={`imageBox-cont${interactive}`} style={{ background: "transparent" }}
                 onPointerDown={this.onPointerDown}
                 onDrop={this.onDrop} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
-                <img id={id}
-                    key={this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
-                    src={srcpath}
-                    style={{ transform: `translate(0px, ${shift}px) rotate(${rotation}deg) scale(${aspect})` }}
-                    width={nativeWidth}
-                    ref={this._imgRef}
-                    onError={this.onError} />
+                <div id="cf">
+                    <img id={id}
+                        key={this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
+                        src={srcpath}
+                        style={{ transform: `translate(0px, ${shift}px) rotate(${rotation}deg) scale(${aspect})` }}
+                        width={nativeWidth}
+                        ref={this._imgRef}
+                        onError={this.onError} />
+                    {fadepath === srcpath ? (null) : <img id="fadeaway" className="fadeaway"
+                        key={"fadeaway" + this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
+                        src={fadepath}
+                        style={{ transform: `translate(0px, ${shift}px) rotate(${rotation}deg) scale(${aspect})` }}
+                        width={nativeWidth}
+                        ref={this._imgRef}
+                        onError={this.onError} />}
+                </div>
                 {paths.length > 1 ? this.dots(paths) : (null)}
                 <div className="imageBox-audioBackground"
                     onPointerDown={this.audioDown}

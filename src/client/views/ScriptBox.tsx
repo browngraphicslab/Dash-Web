@@ -5,7 +5,11 @@ import { observable, action } from "mobx";
 import "./ScriptBox.scss";
 import { OverlayView } from "./OverlayView";
 import { DocumentIconContainer } from "./nodes/DocumentIcon";
-import { Opt } from "../../new_fields/Doc";
+import { Opt, Doc } from "../../new_fields/Doc";
+import { emptyFunction } from "../../Utils";
+import { ScriptCast } from "../../new_fields/Types";
+import { CompileScript } from "../util/Scripting";
+import { ScriptField } from "../../new_fields/ScriptField";
 
 export interface ScriptBoxProps {
     onSave: (text: string, onError: (error: string) => void) => void;
@@ -61,5 +65,27 @@ export class ScriptBox extends React.Component<ScriptBoxProps> {
                 <textarea className="scriptBox-textarea" onChange={this.onChange} value={this._scriptText} onFocus={onFocus} onBlur={onBlur}></textarea>
             </div>
         );
+    }
+    public static EditClickScript(doc: Doc, fieldKey: string) {
+        let overlayDisposer: () => void = emptyFunction;
+        const script = ScriptCast(doc[fieldKey]);
+        let originalText: string | undefined = undefined;
+        if (script) originalText = script.script.originalScript;
+        // tslint:disable-next-line: no-unnecessary-callback-wrapper
+        let scriptingBox = <ScriptBox initialText={originalText} onCancel={() => overlayDisposer()} onSave={(text, onError) => {
+            const script = CompileScript(text, {
+                params: { this: Doc.name },
+                typecheck: false,
+                editable: true,
+                transformer: DocumentIconContainer.getTransformer()
+            });
+            if (!script.compiled) {
+                onError(script.errors.map(error => error.messageText).join("\n"));
+                return;
+            }
+            doc[fieldKey] = new ScriptField(script);
+            overlayDisposer();
+        }} showDocumentIcons />;
+        overlayDisposer = OverlayView.Instance.addWindow(scriptingBox, { x: 400, y: 200, width: 500, height: 400, title: `${doc.title || ""} OnClick` });
     }
 }

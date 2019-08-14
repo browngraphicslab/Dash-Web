@@ -1,4 +1,4 @@
-import { observable, action, runInAction } from "mobx";
+import { observable, action, runInAction, ObservableMap } from "mobx";
 import { serializable, primitive, map, alias, list, PropSchema, custom } from "serializr";
 import { autoObject, SerializationHelper, Deserializable, afterDocDeserialize } from "../client/util/SerializationHelper";
 import { DocServer } from "../client/DocServer";
@@ -310,6 +310,10 @@ export namespace Doc {
     export function GetProto(doc: Doc) {
         return Doc.GetT(doc, "isPrototype", "boolean", true) ? doc : (doc.proto || doc);
     }
+    export function GetDataDoc(doc: Doc): Doc {
+        let proto = Doc.GetProto(doc);
+        return proto === doc ? proto : Doc.GetDataDoc(proto);
+    }
 
     export function allKeys(doc: Doc): string[] {
         const results: Set<string> = new Set;
@@ -384,7 +388,7 @@ export namespace Doc {
         docExtensionForField.extendsDoc = doc; // this is used by search to map field matches on the extension doc back to the document it extends.
         docExtensionForField.type = DocumentType.EXTENSION;
         let proto: Doc | undefined = doc;
-        while (proto && !Doc.IsPrototype(proto)) {
+        while (proto && !Doc.IsPrototype(proto) && proto.proto) {
             proto = proto.proto;
         }
         (proto ? proto : doc)[fieldKey + "_ext"] = new PrefetchProxy(docExtensionForField);
@@ -455,7 +459,7 @@ export namespace Doc {
 
     export function GetLayoutDataDocPair(doc: Doc, dataDoc: Doc | undefined, fieldKey: string, childDocLayout: Doc) {
         let layoutDoc = childDocLayout;
-        let resolvedDataDoc = !doc.isTemplate && dataDoc !== doc ? dataDoc : undefined;
+        let resolvedDataDoc = !doc.isTemplate && dataDoc !== doc && dataDoc ? Doc.GetDataDoc(dataDoc) : undefined;
         if (resolvedDataDoc && Doc.WillExpandTemplateLayout(childDocLayout, resolvedDataDoc)) {
             Doc.UpdateDocumentExtensionForField(resolvedDataDoc, fieldKey);
             let fieldExtensionDoc = Doc.resolvedFieldDataDoc(resolvedDataDoc, StrCast(childDocLayout.templateField, StrCast(childDocLayout.title)), "dummy");
@@ -504,7 +508,8 @@ export namespace Doc {
     let _applyCount: number = 0;
     export function ApplyTemplate(templateDoc: Doc) {
         if (!templateDoc) return undefined;
-        let otherdoc = new Doc();
+        let datadoc = new Doc();
+        let otherdoc = Doc.MakeDelegate(datadoc);
         otherdoc.width = templateDoc[WidthSym]();
         otherdoc.height = templateDoc[HeightSym]();
         otherdoc.title = templateDoc.title + "(..." + _applyCount++ + ")";
@@ -512,6 +517,8 @@ export namespace Doc {
         otherdoc.miniLayout = StrCast(templateDoc.miniLayout);
         otherdoc.detailedLayout = otherdoc.layout;
         otherdoc.type = DocumentType.TEMPLATE;
+        !templateDoc.nativeWidth && (otherdoc.nativeWidth = 0);
+        !templateDoc.nativeHeight && (otherdoc.nativeHeight = 0);
         return otherdoc;
     }
     export function ApplyTemplateTo(templateDoc: Doc, target: Doc, targetData?: Doc) {
@@ -530,6 +537,8 @@ export namespace Doc {
             target.miniLayout = StrCast(templateDoc.miniLayout);
             target.detailedLayout = target.layout;
         }
+        !templateDoc.nativeWidth && (target.nativeWidth = 0);
+        !templateDoc.nativeHeight && (target.nativeHeight = 0);
     }
 
     export function MakeTemplate(fieldTemplate: Doc, metaKey: string, templateDataDoc: Doc) {
@@ -587,23 +596,23 @@ export namespace Doc {
     }
 
     export class DocBrush {
-        @observable BrushedDoc: Doc[] = [];
+        @observable BrushedDoc: ObservableMap<Doc, boolean> = new ObservableMap();
     }
     const manager = new DocBrush();
     export function IsBrushed(doc: Doc) {
-        return manager.BrushedDoc.some(d => Doc.AreProtosEqual(d, doc));
+        return manager.BrushedDoc.has(doc) || manager.BrushedDoc.has(Doc.GetDataDoc(doc));
     }
     export function IsBrushedDegree(doc: Doc) {
-        return manager.BrushedDoc.some(d => d === doc) ? 2 : Doc.IsBrushed(doc) ? 1 : 0;
+        return manager.BrushedDoc.has(Doc.GetDataDoc(doc)) ? 2 : manager.BrushedDoc.has(doc) ? 1 : 0;
     }
     export function BrushDoc(doc: Doc) {
-        if (manager.BrushedDoc.indexOf(doc) === -1) runInAction(() => manager.BrushedDoc.push(doc));
+        manager.BrushedDoc.set(doc, true);
+        manager.BrushedDoc.set(Doc.GetDataDoc(doc), true);
     }
     export function UnBrushDoc(doc: Doc) {
-        let index = manager.BrushedDoc.indexOf(doc);
-        if (index !== -1) runInAction(() => manager.BrushedDoc.splice(index, 1));
+        manager.BrushedDoc.delete(doc);
+        manager.BrushedDoc.delete(Doc.GetDataDoc(doc));
     }
 }
-Scripting.addGlobal(function renameAlias(doc: any, n: any) {
-    return StrCast(doc.title).replace(/\([0-9]*\)/, "") + `(${n})`;
-});
+Scripting.addGlobal(function renameAlias(doc: any, n: any) { return StrCast(doc.title).replace(/\([0-9]*\)/, "") + `(${n})`; });
+Scripting.addGlobal(function getProto(doc: any) { return Doc.GetProto(doc); });
