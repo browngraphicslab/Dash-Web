@@ -296,3 +296,14 @@ ul#add-options-list {
     transition: 0.5s all ease;
     pointer-events: none;
 }
+
+.webpage-input {
+    display: none;
+    height: 60px;
+    width: 600px;
+    position: absolute;
+
+    .url-input {
+        width: 80%;
+    }
+}

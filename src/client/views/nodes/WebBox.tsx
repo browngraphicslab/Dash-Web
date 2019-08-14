@@ -7,13 +7,23 @@ import { FieldView, FieldViewProps } from './FieldView';
 import "./WebBox.scss";
 import React = require("react");
 import { InkTool } from "../../../new_fields/InkField";
-import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
+import { Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
 import { Utils } from "../../../Utils";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { observable, action, computed } from "mobx";
+import { listSpec } from "../../../new_fields/Schema";
+import { Field, FieldResult } from "../../../new_fields/Doc";
+import { RefField } from "../../../new_fields/RefField";
+import { ObjectField } from "../../../new_fields/ObjectField";
+import { updateSourceFile } from "typescript";
+import { KeyValueBox } from "./KeyValueBox";
 
 @observer
 export class WebBox extends React.Component<FieldViewProps> {
 
     public static LayoutString() { return FieldView.LayoutString(WebBox); }
+    @observable private collapsed: boolean = true;
+    @observable private url: string = "";
 
     componentWillMount() {
 
@@ -28,6 +38,76 @@ export class WebBox extends React.Component<FieldViewProps> {
                 this.props.Document.height = NumCast(this.props.Document.width) / youtubeaspect;
             }
         }
+    }
+
+    @action
+    onURLChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        this.url = e.target.value;
+    }
+
+    @action
+    submitURL = () => {
+        const script = KeyValueBox.CompileKVPScript(`new WebField("${this.url}")`);
+        if (!script) return;
+        KeyValueBox.ApplyKVPScript(this.props.Document, "data", script);
+        let mod = document.getElementById("webpage-input");
+        if (mod) mod.style.display = "none";
+    }
+
+    @computed
+    get getURL() {
+        let urlField: FieldResult<WebField> = Cast(this.props.Document.data, WebField)
+        if (urlField) return urlField.url.toString();
+        return "";
+    }
+
+    onValueKeyDown = async (e: React.KeyboardEvent) => {
+        if (e.key === "Enter") {
+            e.stopPropagation();
+            this.submitURL();
+        }
+    }
+
+    urlEditor() {
+        return (
+            <div className="webView-urlEditor" style={{ top: this.collapsed ? -70 : 0 }}>
+                <div className="urlEditor">
+                    <div className="collectionViewBaseChrome">
+                        <button className="collectionViewBaseChrome-collapse"
+                            style={{
+                                top: this.collapsed ? 70 : 10,
+                                transform: `rotate(${this.collapsed ? 180 : 0}deg) scale(${this.collapsed ? 0.5 : 1}) translate(${this.collapsed ? "-100%, -100%" : "0, 0"})`,
+                                opacity: (this.collapsed && !this.props.isSelected()) ? 0 : 0.9,
+                                left: (this.collapsed ? 0 : "unset"),
+                            }}
+                            title="Collapse Url Editor" onClick={this.toggleCollapse}>
+                            <FontAwesomeIcon icon="caret-up" size="2x" />
+                        </button>
+                        <div style={{ marginLeft: 54, width: "100%", display: this.collapsed ? "none" : "flex" }}>
+                            <input className="webpage-urlInput"
+                                placeholder="ENTER URL"
+                                value={this.getURL}
+                                onChange={this.onURLChange}
+                                onKeyDown={this.onValueKeyDown}
+                            // onPointerDown={this.openViewSpecs}
+                            />
+                            <button className="submitUrl" onClick={this.submitURL}>
+                                SUBMIT URL
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    @action
+    toggleCollapse = () => {
+        // this.props.CollectionView.props.Document.chromeStatus = this.props.CollectionView.props.Document.chromeStatus === "enabled" ? "this.collapsed" : "enabled";
+        // if (this.props.collapse) {
+        //     this.props.collapse(this.props.CollectionView.props.Document.chromeStatus !== "enabled");
+        // }
+        this.collapsed = !this.collapsed;
     }
 
     _ignore = 0;
@@ -53,12 +133,13 @@ export class WebBox extends React.Component<FieldViewProps> {
         if (field instanceof HtmlField) {
             view = <span id="webBox-htmlSpan" dangerouslySetInnerHTML={{ __html: field.html }} />;
         } else if (field instanceof WebField) {
-            view = <iframe src={Utils.CorsProxy(field.url.href)} style={{ position: "absolute", width: "100%", height: "100%" }} />;
+            view = <iframe src={Utils.CorsProxy(field.url.href)} style={{ position: "absolute", width: "100%", height: "100%", top: 0 }} />;
         } else {
-            view = <iframe src={"https://crossorigin.me/https://cs.brown.edu"} style={{ position: "absolute", width: "100%", height: "100%" }} />;
+            view = <iframe src={"https://crossorigin.me/https://cs.brown.edu"} style={{ position: "absolute", width: "100%", height: "100%", top: 0 }} />;
         }
         let content =
             <div style={{ width: "100%", height: "100%", position: "absolute" }} onWheel={this.onPostWheel} onPointerDown={this.onPostPointer} onPointerMove={this.onPostPointer} onPointerUp={this.onPostPointer}>
+                {this.urlEditor()}
                 {view}
             </div>;
 

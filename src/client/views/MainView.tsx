@@ -41,6 +41,7 @@ import { ClientUtils } from '../util/ClientUtils';
 import { SchemaHeaderField, RandomPastel } from '../../new_fields/SchemaHeaderField';
 import { DictationManager } from '../util/DictationManager';
 import * as $ from 'jquery';
+import { KeyValueBox } from './nodes/KeyValueBox';
 
 @observer
 export class MainView extends React.Component {
@@ -437,41 +438,6 @@ export class MainView extends React.Component {
         }
     }
 
-    // @computed
-    // get webURL() {
-    //     let URL: string = "";
-
-    //     return URL;
-    // }
-    @observable private webpageURL: string = "";
-
-    @action
-    onURLChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        this.webpageURL = e.target.value;
-    }
-
-    @observable webDoc: Doc | undefined = undefined;
-
-    @action
-    onURLSubmit = () => {
-        this.webDoc = Docs.Create.WebDocument(this.webpageURL, { width: this.pwidth * .7, height: this.pheight, title: this.webpageURL });
-    }
-
-    @action
-    makeWebDocument() {
-        let mod = document.getElementById("webpage-input");
-        if (mod) mod.style.display = "flex";
-        while (true) {
-            if (this.webDoc !== undefined) {
-                if (mod) mod.style.display = "none";
-                console.log(this.webpageURL)
-                console.log(this.webDoc)
-                return this.webDoc;
-            }
-        }
-    }
-
-
     @observable private _colorPickerDisplay = false;
     /* for the expandable add nodes menu. Not included with the miscbuttons because once it expands it expands the whole div with it, making canvas interactions limited. */
     nodesMenu() {
@@ -483,7 +449,7 @@ export class MainView extends React.Component {
         //let addTreeNode = action(() => Docs.TreeDocument([CurrentUserUtils.UserDocument], { width: 250, height: 400, title: "Library:" + CurrentUserUtils.email, dropAction: "alias" }));
         // let addTreeNode = action(() => Docs.TreeDocument(this._northstarSchemas, { width: 250, height: 400, title: "northstar schemas", dropAction: "copy"  }));
         let addColNode = action(() => Docs.Create.FreeformDocument([], { width: this.pwidth * .7, height: this.pheight, title: "a freeform collection" }));
-        let addWebNode = action(() => this.makeWebDocument());
+        let addWebNode = action(() => Docs.Create.WebDocument("https://en.wikipedia.org/wiki/Hedgehog", { width: 300, height: 300, title: "New Webpage" }));
         let addDragboxNode = action(() => Docs.Create.DragboxDocument({ width: 40, height: 40, title: "drag collection" }));
         let addImageNode = action(() => Docs.Create.ImageDocument(imgurl, { width: 200, title: "an image of a cat" }));
         let addButtonDocument = action(() => Docs.Create.ButtonDocument({ width: 150, height: 50, title: "Button" }));
@@ -517,10 +483,6 @@ export class MainView extends React.Component {
             DocServer.setFieldWriteMode("viewType", mode2);
         };
         return < div id="add-nodes-menu" style={{ left: this.flyoutWidth + 20, bottom: 20 }} >
-            <div className="webpage-input" id="webpage-input" style={{ width: "400px", height: "150px", display: "none", }}>
-                <input className="url-input" placeholder="Enter webpage URL" onChange={(this.onURLChange)} />
-                <button onClick={this.onURLSubmit}>Submit URL</button>
-            </div>
 
             <input type="checkbox" id="add-menu-toggle" ref={this.addMenuToggle} />
             <label htmlFor="add-menu-toggle" style={{ marginTop: 2 }} title="Close Menu"><p>+</p></label>
