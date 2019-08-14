@@ -57,8 +57,8 @@ export class RichTextField extends ObjectField {
         });
         parsed.selection = {
             type: "text",
-            anchor: 0,
-            head: 0
+            anchor: plainText.length,
+            head: plainText.length
         };
         this.Data = JSON.stringify(parsed);
     }
