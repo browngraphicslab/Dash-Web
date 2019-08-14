@@ -729,7 +729,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
 
     render() {
-        trace();
+        // trace();
         let backgroundColor = this.layoutDoc.isBackground || (this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document.clusterOverridesDefaultBackground && this.layoutDoc.backgroundColor === this.layoutDoc.defaultBackgroundColor) ?
             this.props.backgroundColor(this.layoutDoc) || StrCast(this.layoutDoc.backgroundColor) :
             StrCast(this.layoutDoc.backgroundColor) || this.props.backgroundColor(this.layoutDoc);

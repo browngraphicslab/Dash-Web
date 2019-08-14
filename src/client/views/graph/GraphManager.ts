@@ -32,7 +32,7 @@ export class GraphManager {
 
     
     defaultGraphs = ()  => {
-        this.GraphData.linear = ; 
+        
     }
 
 

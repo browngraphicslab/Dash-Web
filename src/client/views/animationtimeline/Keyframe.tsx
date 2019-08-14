@@ -2,10 +2,10 @@ import * as React from "react";
 import "./Keyframe.scss";
 import "./Timeline.scss";
 import "../globalCssVariables.scss";
-import { observer, Observer } from "mobx-react";
-import { observable, reaction, action, IReactionDisposer, observe, IObservableArray, computed, toJS, isComputedProp, runInAction } from "mobx";
+import { observer} from "mobx-react";
+import { observable, reaction, action, IReactionDisposer, observe, computed, runInAction } from "mobx";
 import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
-import { Cast, FieldValue, StrCast, NumCast } from "../../../new_fields/Types";
+import { Cast, NumCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { createSchema, defaultSpec, makeInterface, listSpec } from "../../../new_fields/Schema";
 import { FlyoutProps } from "./Timeline";
@@ -13,7 +13,6 @@ import { Transform } from "../../util/Transform";
 import { InkField, StrokeData } from "../../../new_fields/InkField";
 import { TimelineMenu } from "./TimelineMenu";
 import { Docs } from "../../documents/Documents";
-import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 
 export namespace KeyframeFunc {
@@ -111,7 +110,6 @@ interface IProps {
     RegionData: Doc;
     collection: Doc;
     changeCurrentBarX: (x: number) => void;
-    setFlyout: (props: FlyoutProps) => any;
     transform: Transform;
 }
 
@@ -183,8 +181,8 @@ export class Keyframe extends React.Component<IProps> {
         let finish = await this.makeKeyData(this.regiondata.position + this.regiondata.duration, KeyframeFunc.KeyframeType.fade)!;
         (fadeIn.key! as Doc).opacity = 1;
         (fadeOut.key! as Doc).opacity = 1;
-        (start.key! as Doc).opacity = 0;
-        (finish.key! as Doc).opacity = 0;
+        (start.key! as Doc).opacity = 0.1;
+        (finish.key! as Doc).opacity = 0.1;
 
         observe(this.regiondata, change => {
             if (change.type === "update") {
@@ -238,14 +236,32 @@ export class Keyframe extends React.Component<IProps> {
         return TK;
     }
 
+    @observable private _mouseToggled = false; 
+    @observable private _doubleClickEnabled = false; 
     @action
     onBarPointerDown = (e: React.PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        document.addEventListener("pointermove", this.onBarPointerMove);
-        document.addEventListener("pointerup", (e: PointerEvent) => {
+       
+        let clientX = e.clientX;  
+        if (this._doubleClickEnabled){
+            this.createKeyframe(clientX); 
+            this._doubleClickEnabled = false; 
+        } else {
+            setTimeout(() => {if(!this._mouseToggled && this._doubleClickEnabled)this.props.changeCurrentBarX(this.regiondata.position + (clientX - this._bar.current!.getBoundingClientRect().left) * this.props.transform.Scale); 
+                this._mouseToggled = false;            
+                this._doubleClickEnabled = false; }, 200); 
+            this._doubleClickEnabled = true; 
+            document.addEventListener("pointermove", this.onBarPointerMove);
+            document.addEventListener("pointerup", (e: PointerEvent) => {
             document.removeEventListener("pointermove", this.onBarPointerMove);
         });
+        
+        }
+        
+        
+
+        
     }
 
 
@@ -253,6 +269,9 @@ export class Keyframe extends React.Component<IProps> {
     onBarPointerMove = (e: PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
+        if (e.movementX !== 0) {
+            this._mouseToggled = true; 
+        }
         let left = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.left, this.regiondata, this.regions)!;
         let right = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.right, this.regiondata, this.regions!);
         let prevX = this.regiondata.position;
@@ -351,11 +370,10 @@ export class Keyframe extends React.Component<IProps> {
     }
 
     @action
-    createKeyframe = async (e: React.MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
+    createKeyframe = async (clientX:number) => {
+        this._mouseToggled = true; 
         let bar = this._bar.current!;
-        let offset = Math.round((e.clientX - bar.getBoundingClientRect().left) * this.props.transform.Scale);
+        let offset = Math.round((clientX - bar.getBoundingClientRect().left) * this.props.transform.Scale);
         if (offset > this.regiondata.fadeIn && offset < this.regiondata.duration - this.regiondata.fadeOut) { //make sure keyframe is not created inbetween fades and ends
             let position = NumCast(this.regiondata.position);
             await this.makeKeyData(Math.round(position + offset));
@@ -514,8 +532,7 @@ export class Keyframe extends React.Component<IProps> {
         return (
             <div>
                 <div className="bar" ref={this._bar} style={{ transform: `translate(${this.regiondata.position}px)`, width: `${this.regiondata.duration}px`, background: `linear-gradient(90deg, rgba(77, 153, 0, 0) 0%, rgba(77, 153, 0, 1) ${this.regiondata.fadeIn / this.regiondata.duration * 100}%, rgba(77, 153, 0, 1) ${(this.regiondata.duration - this.regiondata.fadeOut) / this.regiondata.duration * 100}%, rgba(77, 153, 0, 0) 100% )` }}
-                    onPointerDown={this.onBarPointerDown}
-                    onDoubleClick={this.createKeyframe}>
+                    onPointerDown={this.onBarPointerDown}>
                     <div className="leftResize" onPointerDown={this.onResizeLeft} ></div>
                     <div className="rightResize" onPointerDown={this.onResizeRight}></div>
                     {this.regiondata.keyframes!.map(kf => {
@@ -529,8 +546,10 @@ export class Keyframe extends React.Component<IProps> {
                                 <div ref={bodyRef}className="body-container" style={{left: `${NumCast(kf.time) - this.regiondata.position}px`, width:`${NumCast(left!.time) - NumCast(kf.time)}px`}}
                                 onPointerOver={(e) => { this.onContainerOver(e, bodyRef); }}
                                 onPointerOut={(e) => { this.onContainerOut(e, bodyRef); }}
-                                onPointerDown={(e) => { this.props.changeCurrentBarX(NumCast(kf.time) + (e.clientX - bodyRef.current!.getBoundingClientRect().left) * this.props.transform.Scale);}}
                                 onContextMenu={(e) => {
+                                    e.preventDefault(); 
+                                    e.stopPropagation(); 
+                                    this._mouseToggled = true; 
                                     let items = [
                                         TimelineMenu.Instance.addItem("button", "Add Ease", () => {this.onContainerDown(kf, "interpolate");}),
                                         TimelineMenu.Instance.addItem("button", "Add Path", () => {this.onContainerDown(kf, "path");}), 

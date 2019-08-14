@@ -17,7 +17,6 @@ interface IProps {
     transform: Transform;
     collection: Doc; 
     changeCurrentBarX: (x: number) => void;
-    setFlyout: (props: FlyoutProps) => any;
 }
 
 @observer
@@ -177,7 +176,7 @@ export class Track extends React.Component<IProps> {
         const timeratio = (this.props.currentBarX - NumCast(left.time)) / dif_time; //linear 
         let keyframes = (await DocListCastAsync(regiondata.keyframes!))!; 
         let indexLeft = keyframes.indexOf(left); 
-        let interY:List<number> = await ((regiondata.functions as List<Doc>)[indexLeft] as Doc).interpolationY as List<number>;  
+        let interY:List<number> = (await ((regiondata.functions as List<Doc>)[indexLeft] as Doc).interpolationY as List<number>)!;  
         let realIndex = (interY.length - 1) * timeratio; 
         let xIndex = Math.floor(realIndex);  
         let yValue = interY[xIndex]; 
@@ -276,7 +275,7 @@ export class Track extends React.Component<IProps> {
                 <div className="track">
                     <div className="inner" ref={this._inner} onDoubleClick={this.onInnerDoubleClick}>
                         {DocListCast(this.regions).map((region) => {
-                            return <Keyframe node={this.props.node} RegionData={region} changeCurrentBarX={this.props.changeCurrentBarX} setFlyout={this.props.setFlyout} transform={this.props.transform} collection={this.props.collection}/>;
+                            return <Keyframe node={this.props.node} RegionData={region} changeCurrentBarX={this.props.changeCurrentBarX} transform={this.props.transform} collection={this.props.collection}/>;
                         })}
                     </div>
                 </div>

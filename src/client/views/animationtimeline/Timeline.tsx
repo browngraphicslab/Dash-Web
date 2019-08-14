@@ -1,26 +1,17 @@
 import * as React from "react";
 import "./Timeline.scss";
-import { CollectionSubView, SubCollectionViewProps } from "../collections/CollectionSubView";
+import { CollectionSubView } from "../collections/CollectionSubView";
 import { Document, listSpec } from "../../../new_fields/Schema";
 import { observer } from "mobx-react";
 import { Track } from "./Track";
-import { observable, reaction, action, IReactionDisposer, observe, IObservableArray, computed, toJS, Reaction, IObservableObject, trace, autorun, runInAction } from "mobx";
-import { Cast, NumCast, FieldValue, StrCast, BoolCast } from "../../../new_fields/Types";
+import { observable, reaction, action, IReactionDisposer, computed, runInAction } from "mobx";
+import { Cast, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlayCircle, faBackward, faForward, faGripLines, faArrowUp, faArrowDown, faClock, faPauseCircle } from "@fortawesome/free-solid-svg-icons";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { ContextMenu } from "../ContextMenu";
-import { DocumentManager } from "../../util/DocumentManager";
-import { VideoBox } from "../nodes/VideoBox";
-import { VideoField } from "../../../new_fields/URLField";
-import { CollectionVideoView } from "../collections/CollectionVideoView";
-import { Transform } from "../../util/Transform";
-import { faGrinTongueSquint } from "@fortawesome/free-regular-svg-icons";
-import { InkField } from "../../../new_fields/InkField";
-import { AddComparisonParameters } from "../../northstar/model/idea/idea";
-import { keepAlive } from "mobx-utils";
 import { TimelineOverview } from "./TimelineOverview";
 
 
@@ -57,7 +48,7 @@ export class Timeline extends CollectionSubView(Document) {
     @observable private _currentBarX: number = 0;
     @observable private _windSpeed: number = 1;
     @observable private _isPlaying: boolean = false; //scrubber playing
-    @observable private _isFrozen: boolean = false; //timeline freeze
+    @observable private _isFrozen: boolean = true; //timeline freeze
     @observable private _totalLength: number = 0;
     @observable private _visibleLength: number = 0; 
     @observable private _visibleStart: number = 0; 
@@ -65,7 +56,6 @@ export class Timeline extends CollectionSubView(Document) {
     @observable private _time = 100000; //DEFAULT
     @observable private _ticks: number[] = [];
     @observable private _playButton = faPlayCircle; 
-    @observable private flyoutInfo: FlyoutProps = { x: 0, y: 0, display: "none", regiondata: new Doc(), regions: new List<Doc>() };
 
     @computed
     private get children(): List<Doc> {
@@ -130,30 +120,33 @@ export class Timeline extends CollectionSubView(Document) {
 
     //for playing
     @action
-    onPlay = async (e: React.MouseEvent) => {
+    onPlay = (e: React.MouseEvent) => {
+        e.preventDefault(); 
+        e.stopPropagation(); 
         if (this._isPlaying) {
             this._isPlaying = false;
             this._playButton = faPlayCircle; 
         } else {
             this._isPlaying = true;
             this._playButton = faPauseCircle; 
-            this.changeCurrentX();
-        }
-    }
-
-    @action
-    changeCurrentX = () => {
-        if (this._currentBarX === this._totalLength && this._isPlaying) {
-            this._currentBarX = 0;
-        }
-        if (this._currentBarX <= this._totalLength && this._isPlaying) {
-            this._currentBarX = this._currentBarX + this._windSpeed;
-            setTimeout(this.changeCurrentX, 15);
+            const playTimeline = () => {
+                if (this._isPlaying){
+                    if (this._currentBarX >= this._totalLength) {
+                        this.changeCurrentBarX(0); 
+                    } else {
+                        this.changeCurrentBarX(this._currentBarX + this._windSpeed);
+                        setTimeout(playTimeline, 15);  
+                    }
+                }
+            }; 
+            playTimeline(); 
         }
     }
 
     @action
     windForward = (e: React.MouseEvent) => {
+        e.preventDefault(); 
+        e.stopPropagation(); 
         if (this._windSpeed < 64) { //max speed is 32
             this._windSpeed = this._windSpeed * 2;
         }
@@ -161,6 +154,8 @@ export class Timeline extends CollectionSubView(Document) {
 
     @action
     windBackward = (e: React.MouseEvent) => {
+        e.preventDefault(); 
+        e.stopPropagation(); 
         if (this._windSpeed > 1 / 16) { // min speed is 1/8
             this._windSpeed = this._windSpeed / 2;
         }
@@ -313,16 +308,12 @@ export class Timeline extends CollectionSubView(Document) {
         }
     }
 
-
-    private _freezeText = "Freeze Timeline";
-
     timelineContextMenu = (e: React.MouseEvent): void => {
         let subitems: ContextMenuProps[] = [];
         let timelineContainer = this._timelineWrapper.current!;
         subitems.push({
             description: "Pin to Top", event: action(() => {
                 if (!this._isFrozen) {
-                    timelineContainer.style.transition = "top 1000ms ease-in, left 1000ms ease-in";  //?????
                     timelineContainer.style.left = "0px";
                     timelineContainer.style.top = "0px";
                     timelineContainer.style.transition = "none";
@@ -330,22 +321,11 @@ export class Timeline extends CollectionSubView(Document) {
             }), icon: faArrowUp
         });
         subitems.push({
-            description: "Pin to Bottom", event: action(() => {
-                console.log(this.props.Document.y);
-
-                if (!this._isFrozen) {
-                    timelineContainer.style.transform = `translate(0px, ${e.pageY - this._containerHeight}px)`;
-                }
-            }), icon: faArrowDown
-        });
-        subitems.push({
-            description: this._freezeText, event: action(() => {
+            description: this._isFrozen ? "Unfreeze Timeline" : "Freeze Timeline", event: action(() => {
                 if (this._isFrozen) {
                     this._isFrozen = false;
-                    this._freezeText = "Freeze Timeline";
                 } else {
                     this._isFrozen = true;
-                    this._freezeText = "Unfreeze Timeline";
                 }
             }), icon: "thumbtack"
         });
@@ -353,27 +333,24 @@ export class Timeline extends CollectionSubView(Document) {
     }
 
 
-
-    @action
-    getFlyout = (props: FlyoutProps) => {
-        for (const [k, v] of Object.entries(props)) {
-            (this.flyoutInfo as any)[k] = v;
-        }
-        console.log(this.flyoutInfo); 
+    private timelineToolBox = (scale:number) => {
+        let size = 50 * scale; //50 is default
+        return (
+        <div key="timeline_toolbox" className="timeline-toolbox" style={{height:`${size}px`}}>
+                <div key="timeline_windBack" onClick={this.windBackward}> <FontAwesomeIcon icon={faBackward} style={{height:`${size}px`, width: `${size}px`}} /> </div>
+                <div key =" timeline_play" onClick={this.onPlay}> <FontAwesomeIcon icon={this._playButton} style={{height:`${size}px`, width: `${size}px`}}  /> </div>
+                <div key="timeline_windForward" onClick={this.windForward}> <FontAwesomeIcon icon={faForward} style={{height:`${size}px`, width: `${size}px`}}  /> </div>
+                <TimelineOverview scale={scale} currentBarX={this._currentBarX} totalLength={this._totalLength} visibleLength={this._visibleLength} visibleStart={this._visibleStart} changeCurrentBarX={this.changeCurrentBarX} movePanX={this.movePanX}/> 
+        </div>
+        );
     }
-
     render() {
         return (
             <div>
                 <div key="timeline_wrapper" style={{visibility: BoolCast(this.props.Document.isAnimating) ? "visible" :"hidden", left: "0px", top: "0px", position: "absolute", width: "100%", transform: "translate(0px, 0px)"}} ref={this._timelineWrapper}>
                     <button key="timeline_minimize" className="minimize" onClick={this.minimize}>Minimize</button>
                     <div key="timeline_container" className="timeline-container" style={{ height: `${this._containerHeight}px`, left: "0px", top: "30px" }} ref={this._timelineContainer} onPointerDown={this.onTimelineDown} onContextMenu={this.timelineContextMenu}>
-                        <div key ="timeline_toolbox" className="timeline-toolbox">
-                            <div key ="timeline_windBack" onClick={this.windBackward}> <FontAwesomeIcon icon={faBackward} size="2x" /> </div>
-                            <div key ="timeline_play" onClick={this.onPlay}> <FontAwesomeIcon icon={this._playButton} size="2x" /> </div>
-                            <div key = "timeline_windForward" onClick={this.windForward}> <FontAwesomeIcon icon={faForward} size="2x" /> </div>
-                            <TimelineOverview currentBarX = { this._currentBarX} totalLength={this._totalLength} visibleLength={this._visibleLength} visibleStart={this._visibleStart} changeCurrentBarX={this.changeCurrentBarX} movePanX={this.movePanX}/> 
-                        </div>
+                        {this.timelineToolBox(0.5)}
                         <div key ="timeline_info"className="info-container" ref={this._infoContainer}>
                             <div key="timeline_scrubberbox" className="scrubberbox" ref={this._scrubberbox} onClick={this.onScrubberClick}>
                                 {this._ticks.map(element => {
@@ -384,7 +361,7 @@ export class Timeline extends CollectionSubView(Document) {
                                 <div key="timeline_scrubberhead" className="scrubberhead"></div>
                             </div>
                             <div key="timeline_trackbox" className="trackbox" ref={this._trackbox} onPointerDown={this.onPanDown}>
-                                {DocListCast(this.children).map(doc => <Track node={doc} currentBarX={this._currentBarX} changeCurrentBarX={this.changeCurrentBarX} setFlyout={this.getFlyout} transform={this.props.ScreenToLocalTransform()} collection = {this.props.Document}/>)}
+                                {DocListCast(this.children).map(doc => <Track node={doc} currentBarX={this._currentBarX} changeCurrentBarX={this.changeCurrentBarX} transform={this.props.ScreenToLocalTransform()} collection = {this.props.Document}/>)}
                             </div>
                         </div>
                         <div key="timeline_title"className="title-container" ref={this._titleContainer}>
@@ -395,12 +372,7 @@ export class Timeline extends CollectionSubView(Document) {
                         </div>
                     </div>
                 </div>
-                <div key="timeline_toolbox" className="timeline-toolbox" style={{visibility: BoolCast(this.props.Document.isAnimating) ? "hidden" :"visible"}}>
-                    <div key="timeline_windBack" onClick={this.windBackward}> <FontAwesomeIcon icon={faBackward} size="4x" /> </div>
-                    <div key =" timeline_play" onClick={this.onPlay}> <FontAwesomeIcon icon={this._playButton} size="4x" /> </div>
-                    <div key="timeline_windForward" onClick={this.windForward}> <FontAwesomeIcon icon={faForward} size="4x" /> </div>
-                    <TimelineOverview currentBarX={this._currentBarX} totalLength={this._totalLength} visibleLength={this._visibleLength} visibleStart={this._visibleStart} changeCurrentBarX={this.changeCurrentBarX} movePanX={this.movePanX}/> 
-                </div>
+                {BoolCast(this.props.Document.isAnimating) ? <div></div>: this.timelineToolBox(1) }
             </div>
         );
     }

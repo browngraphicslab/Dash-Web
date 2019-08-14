@@ -6,6 +6,7 @@ import "./TimelineOverview.scss";
 
 
 interface TimelineOverviewProps{
+    scale: number; 
     totalLength: number; 
     visibleLength:number; 
     visibleStart:number;
@@ -19,7 +20,9 @@ interface TimelineOverviewProps{
 export class TimelineOverview extends React.Component<TimelineOverviewProps>{
     @observable private _visibleRef = React.createRef<HTMLDivElement>(); 
     @observable private _scrubberRef = React.createRef<HTMLDivElement>(); 
-    
+    private readonly DEFAULT_HEIGHT = 50; 
+    private readonly DEFAULT_WIDTH = 300; 
+
     @action
     onPointerDown = (e:React.PointerEvent) => {
         document.removeEventListener("pointermove", this.onPanX); 
@@ -30,8 +33,8 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
 
     @action
     onPanX = (e: PointerEvent) => {
-        let movX = (this.props.visibleStart / this.props.totalLength)* 300 + e.movementX; 
-        this.props.movePanX((movX / 300) * this.props.totalLength); 
+        let movX = (this.props.visibleStart / this.props.totalLength)* (this.DEFAULT_WIDTH * this.props.scale) + e.movementX; 
+        this.props.movePanX((movX / (this.DEFAULT_WIDTH * this.props.scale)) * this.props.totalLength); 
     }
 
     @action
@@ -57,7 +60,7 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
         let scrubberRef = this._scrubberRef.current!; 
         let left = scrubberRef.getBoundingClientRect().left; 
         let offsetX = Math.round(e.clientX - left); 
-        this.props.changeCurrentBarX(((offsetX / 300) * this.props.totalLength) + this.props.currentBarX); 
+        this.props.changeCurrentBarX(((offsetX / (this.DEFAULT_WIDTH * this.props.scale)) * this.props.totalLength) + this.props.currentBarX); 
     }
 
     @action
@@ -70,10 +73,10 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
 
     render(){
         return(
-            <div key="timeline-overview-container" className="timeline-overview-container">
-                <div ref={this._visibleRef} key="timeline-overview-visible" className="timeline-overview-visible" style={{marginLeft:`${(this.props.visibleStart / this.props.totalLength)* 300}px`, width:`${(this.props.visibleLength / this.props.totalLength) * 300}px`}} onPointerDown={this.onPointerDown}></div>
-                <div ref={this._scrubberRef} key="timeline-overview-scrubber-container" className="timeline-overview-scrubber-container" style={{marginLeft:`${(this.props.currentBarX / this.props.totalLength) * 300}px`}} onPointerDown={this.onScrubberDown}>
-                    <div key="timeline-overview-scrubber-head" className="timeline-overview-scrubber-head"></div>
+            <div key="timeline-overview-container" className="timeline-overview-container" style={{height: `${this.DEFAULT_HEIGHT * this.props.scale * 0.8}px` ,width:`${this.DEFAULT_WIDTH * this.props.scale}`}}>
+                <div ref={this._visibleRef} key="timeline-overview-visible" className="timeline-overview-visible" style={{marginLeft:`${(this.props.visibleStart / this.props.totalLength)* this.DEFAULT_WIDTH * this.props.scale}px`, width:`${(this.props.visibleLength / this.props.totalLength) * this.DEFAULT_WIDTH * this.props.scale}px`}} onPointerDown={this.onPointerDown}></div>
+                <div ref={this._scrubberRef} key="timeline-overview-scrubber-container" className="timeline-overview-scrubber-container" style={{marginLeft:`${(this.props.currentBarX / this.props.totalLength) * this.DEFAULT_WIDTH * this.props.scale}px`, marginTop: `${-this.DEFAULT_HEIGHT * this.props.scale * 0.8}px`}} onPointerDown={this.onScrubberDown}>
+                    <div key="timeline-overview-scrubber-head" className="timeline-overview-scrubber-head" style={{}}></div>
                 </div>
             </div>
         ); 
