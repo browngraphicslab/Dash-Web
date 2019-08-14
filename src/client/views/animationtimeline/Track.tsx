@@ -94,8 +94,8 @@ export class Track extends React.Component<IProps> {
                 this.props.node.hidden = false;
                 await this.timeChange(this.props.currentBarX);
             } else {
-                console.log("heuulloo"); 
-                this.props.node.hidden = true;
+                  this.props.node.hidden = true;
+                  this.props.node.opacity = 0; 
             }
         }, { fireImmediately: true });
     }

@@ -125,7 +125,7 @@ export class Timeline extends CollectionSubView(Document) {
 
     @action
     changeCurrentBarX = (pixel: number) => {
-        this._currentBarX = pixel;
+        pixel <= 0 ? this._currentBarX = 0 : pixel >= this._totalLength ? this._currentBarX = this._totalLength : this._currentBarX = pixel;
     }
 
     //for playing
@@ -184,7 +184,7 @@ export class Timeline extends CollectionSubView(Document) {
         let scrubberbox = this._scrubberbox.current!;
         let left = scrubberbox.getBoundingClientRect().left;
         let offsetX = Math.round(e.clientX - left) * this.props.ScreenToLocalTransform().Scale;
-        this._currentBarX = offsetX;
+        this.changeCurrentBarX(offsetX); 
     }
 
     @action
@@ -192,8 +192,8 @@ export class Timeline extends CollectionSubView(Document) {
         e.preventDefault();
         e.stopPropagation();
         let scrubberbox = this._scrubberbox.current!;
-        let offset = (e.clientX - scrubberbox.getBoundingClientRect().left) * this.props.ScreenToLocalTransform().Scale;
-        this._currentBarX = offset;
+        let offsetX = (e.clientX - scrubberbox.getBoundingClientRect().left) * this.props.ScreenToLocalTransform().Scale;
+        this.changeCurrentBarX(offsetX); 
     }
 
 

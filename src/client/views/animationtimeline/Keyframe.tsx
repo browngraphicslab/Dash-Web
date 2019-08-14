@@ -183,8 +183,8 @@ export class Keyframe extends React.Component<IProps> {
         let finish = await this.makeKeyData(this.regiondata.position + this.regiondata.duration, KeyframeFunc.KeyframeType.fade)!;
         (fadeIn.key! as Doc).opacity = 1;
         (fadeOut.key! as Doc).opacity = 1;
-        (start.key! as Doc).opacity = 0.1;
-        (finish.key! as Doc).opacity = 0.1;
+        (start.key! as Doc).opacity = 0;
+        (finish.key! as Doc).opacity = 0;
 
         observe(this.regiondata, change => {
             if (change.type === "update") {
