@@ -1,5 +1,5 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faEdit, faSmile, faTextHeight } from '@fortawesome/free-solid-svg-icons';
+import { faEdit, faSmile, faTextHeight, faUpload } from '@fortawesome/free-solid-svg-icons';
 import { action, IReactionDisposer, observable, reaction, runInAction, computed, Lambda, trace } from "mobx";
 import { observer } from "mobx-react";
 import { baseKeymap } from "prosemirror-commands";
@@ -38,9 +38,10 @@ import { For } from 'babel-types';
 import { DateField } from '../../../new_fields/DateField';
 import { Utils } from '../../../Utils';
 import { MainOverlayTextBox } from '../MainOverlayTextBox';
+import { GoogleApiClientUtils } from '../../apis/google_docs/GoogleApiClientUtils';
 
 library.add(faEdit);
-library.add(faSmile, faTextHeight);
+library.add(faSmile, faTextHeight, faUpload);
 
 // FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document
 //
@@ -57,6 +58,8 @@ export interface FormattedTextBoxProps {
 const richTextSchema = createSchema({
     documentText: "string"
 });
+
+const googleDocKey = "googleDocId";
 
 type RichTextDocument = makeInterface<[typeof richTextSchema]>;
 const RichTextDocument = makeInterface(richTextSchema);
@@ -661,7 +664,24 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             event: action(() => Doc.GetProto(this.props.Document).autoHeight = !BoolCast(this.props.Document.autoHeight)), icon: "expand-arrows-alt"
         });
         ContextMenu.Instance.addItem({ description: "Text Funcs...", subitems: subitems, icon: "text-height" });
+        if (!(googleDocKey in Doc.GetProto(this.props.Document))) {
+            ContextMenu.Instance.addItem({ description: "Export to Google Doc...", event: this.exportToGoogleDoc, icon: "upload" });
+        }
     }
+
+    exportToGoogleDoc = () => {
+        let dataDoc = Doc.GetProto(this.props.Document);
+        let data = Cast(dataDoc.data, RichTextField);
+        let content: string | undefined;
+        if (data && (content = data.plainText())) {
+            GoogleApiClientUtils.Docs.Write({
+                title: StrCast(dataDoc.title),
+                store: { receiver: dataDoc, key: googleDocKey },
+                content
+            });
+        }
+    }
+
     render() {
         let self = this;
         let style = this.props.isOverlay ? "scroll" : "hidden";

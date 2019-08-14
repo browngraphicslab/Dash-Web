@@ -87,11 +87,6 @@ export class MainView extends React.Component {
             if (!("presentationView" in doc)) {
                 doc.presentationView = new List<Doc>([Docs.Create.TreeDocument([], { title: "Presentation" })]);
             }
-            if (!("googleDocId" in doc)) {
-                GoogleApiClientUtils.Docs.Create().then(id => {
-                    id && (doc.googleDocId = id);
-                });
-            }
             CurrentUserUtils.UserDocument.activeWorkspace = doc;
         }
     }
@@ -158,9 +153,9 @@ export class MainView extends React.Component {
         reaction(() => this.mainContainer, () => {
             let main = this.mainContainer, documentId;
             if (main && (documentId = StrCast(main.googleDocId))) {
-                GoogleApiClientUtils.Docs.Read({ documentId }).then(text => {
-                    text && Utils.CopyText(text);
-                    console.log(text);
+                let options = { documentId, removeNewlines: true };
+                GoogleApiClientUtils.Docs.ReadLines(options).then(lines => {
+                    console.log(lines);
                 });
             }
         });

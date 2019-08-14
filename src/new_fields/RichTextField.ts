@@ -9,6 +9,7 @@ import { scriptingGlobal } from "../client/util/Scripting";
 export class RichTextField extends ObjectField {
     @serializable(true)
     readonly Data: string;
+    private Extractor = /,\"text\":\"([^\"\}]*)\"\}/g;
 
     constructor(data: string) {
         super();
@@ -21,5 +22,17 @@ export class RichTextField extends ObjectField {
 
     [ToScriptString]() {
         return `new RichTextField("${this.Data}")`;
+    }
+
+    plainText = () => {
+        let contents = "";
+        let matches: RegExpExecArray | null;
+        let considering = this.Data;
+        while ((matches = this.Extractor.exec(considering)) !== null) {
+            contents += matches[1];
+            considering = considering.substring(matches.index + matches[0].length);
+            this.Extractor.lastIndex = 0;
+        }
+        return contents.length ? contents : undefined;
     }
 }

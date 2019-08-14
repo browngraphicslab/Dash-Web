@@ -1,7 +1,8 @@
 import { docs_v1 } from "googleapis";
 import { PostToServer } from "../../../Utils";
 import { RouteStore } from "../../../server/RouteStore";
-import { Opt } from "../../../new_fields/Doc";
+import { Opt, Doc } from "../../../new_fields/Doc";
+import { isArray } from "util";
 
 export namespace GoogleApiClientUtils {
 
@@ -9,14 +10,11 @@ export namespace GoogleApiClientUtils {
 
         export enum Actions {
             Create = "create",
-            Retrieve = "retrieve"
+            Retrieve = "retrieve",
+            Update = "update"
         }
 
         export namespace Utils {
-
-            export const fromRgb = (red: number, green: number, blue: number) => {
-                return { color: { rgbColor: { red, green, blue } } };
-            };
 
             export const extractText = (document: docs_v1.Schema$Document, removeNewlines = false) => {
                 let fragments: string[] = [];
@@ -36,55 +34,36 @@ export namespace GoogleApiClientUtils {
                 return removeNewlines ? text.ReplaceAll("\n", "") : text;
             };
 
-        }
-
-        export const ExampleDocumentSchema = {
-            title: "This is a Google Doc Created From Dash Web",
-            body: {
-                content: [
-                    {
-                        endIndex: 1,
-                        sectionBreak: {
-                            sectionStyle: {
-                                columnSeparatorStyle: "NONE",
-                                contentDirection: "LEFT_TO_RIGHT"
+            export const EndOf = (schema: docs_v1.Schema$Document): Opt<number> => {
+                if (schema.body && schema.body.content) {
+                    let paragraphs = schema.body.content.filter(el => el.paragraph);
+                    if (paragraphs.length) {
+                        let target = paragraphs[paragraphs.length - 1];
+                        if (target.paragraph && target.paragraph.elements) {
+                            length = target.paragraph.elements.length;
+                            if (length) {
+                                let final = target.paragraph.elements[length - 1];
+                                return final.endIndex ? final.endIndex - 1 : undefined;
                             }
                         }
-                    },
-                    {
-                        paragraph: {
-                            elements: [
-                                {
-                                    textRun: {
-                                        content: "And this is its bold, blue text!!!\n",
-                                        textStyle: {
-                                            bold: true,
-                                            backgroundColor: Utils.fromRgb(0, 0, 1)
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    {
-                        paragraph: {
-                            elements: [
-                                {
-                                    textRun: {
-                                        content: "And this is its bold, blue text!!!\n",
-                                        textStyle: {
-                                            bold: true,
-                                            backgroundColor: Utils.fromRgb(0, 0, 1)
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
+                    }
+                }
+            };
 
-                ] as docs_v1.Schema$StructuralElement[]
-            }
-        } as docs_v1.Schema$Document;
+        }
+
+        export interface ReadOptions {
+            documentId: string;
+            removeNewlines?: boolean;
+        }
+
+        export interface WriteOptions {
+            documentId?: string;
+            title?: string;
+            content: string | string[];
+            index?: number;
+            store?: { receiver: Doc, key: string };
+        }
 
         /**
          * After following the authentication routine, which connects this API call to the current signed in account
@@ -96,45 +75,95 @@ export namespace GoogleApiClientUtils {
          * actual document body and its styling!
          * @returns the documentId of the newly generated document, or undefined if the creation process fails.
          */
-        export const Create = async (schema?: docs_v1.Schema$Document): Promise<string | undefined> => {
+        const Create = async (title?: string): Promise<string | undefined> => {
             let path = RouteStore.googleDocs + Actions.Create;
-            let parameters = { requestBody: schema || ExampleDocumentSchema };
-            let generatedId: string | undefined;
+            let parameters = {
+                requestBody: {
+                    title: title || `Dash Export (${new Date().toDateString()})`
+                }
+            };
             try {
-                generatedId = await PostToServer(path, parameters);
-            } catch (e) {
-                console.error(e);
-                generatedId = undefined;
-            } finally {
-                return generatedId;
+                let schema: docs_v1.Schema$Document = await PostToServer(path, parameters);
+                return schema.documentId;
+            } catch {
+                return undefined;
             }
         };
 
-        export interface ReadOptions {
-            documentId: string;
-            removeNewlines?: boolean;
-        }
+        const Retrieve = async (documentId: string): Promise<docs_v1.Schema$Document | undefined> => {
+            let path = RouteStore.googleDocs + Actions.Retrieve;
+            let parameters = {
+                documentId
+            };
+            try {
+                let schema: docs_v1.Schema$Document = await PostToServer(path, parameters);
+                return schema;
+            } catch {
+                return undefined;
+            }
+        };
 
-        export const Read = async (options: ReadOptions): Promise<Opt<string>> => {
+        const Update = async (documentId: string, requests: docs_v1.Schema$Request[]): Promise<docs_v1.Schema$BatchUpdateDocumentResponse | undefined> => {
+            let path = RouteStore.googleDocs + Actions.Update;
+            let parameters = {
+                documentId,
+                requestBody: {
+                    requests
+                }
+            };
+            try {
+                let replies: docs_v1.Schema$BatchUpdateDocumentResponse = await PostToServer(path, parameters);
+                console.log(replies);
+                return replies;
+            } catch {
+                return undefined;
+            }
+        };
+
+        export const Read = async (options: ReadOptions): Promise<string | undefined> => {
             return Retrieve(options.documentId).then(schema => {
                 return schema ? Utils.extractText(schema, options.removeNewlines) : undefined;
             });
         };
 
-        export const Retrieve = async (documentId: string): Promise<Opt<docs_v1.Schema$Document>> => {
-            let path = RouteStore.googleDocs + Actions.Retrieve;
-            let parameters = { documentId };
-            let schema: Opt<docs_v1.Schema$Document>;
-            try {
-                schema = await PostToServer(path, parameters);
-            } catch (e) {
-                console.error(e);
-                schema = undefined;
-            } finally {
-                return schema;
-            }
+        export const ReadLines = async (options: ReadOptions) => {
+            return Retrieve(options.documentId).then(schema => {
+                if (!schema) {
+                    return undefined;
+                }
+                let lines = Utils.extractText(schema).split("\n");
+                return options.removeNewlines ? lines.filter(line => line.length) : lines;
+            });
         };
 
+        export const Write = async (options: WriteOptions): Promise<docs_v1.Schema$BatchUpdateDocumentResponse | undefined> => {
+            let target = options.documentId;
+            if (!target) {
+                if (!(target = await Create(options.title))) {
+                    return undefined;
+                }
+            }
+            let index = options.index;
+            if (!index) {
+                let schema = await Retrieve(target);
+                if (!schema || !(index = Utils.EndOf(schema))) {
+                    return undefined;
+                }
+            }
+            let text = options.content;
+            let request = {
+                insertText: {
+                    text: isArray(text) ? text.join("\n") : text,
+                    location: { index }
+                }
+            };
+            return Update(target, [request]).then(res => {
+                if (res && options.store) {
+                    options.store.receiver[options.store.key] = res.documentId;
+                }
+                return res;
+            });
+        };
 
     }
 

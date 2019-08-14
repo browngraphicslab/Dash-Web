@@ -42,6 +42,7 @@ import AdmZip from 'adm-zip';
 import * as YoutubeApi from "./apis/youtube/youtubeApiSample";
 import { Response } from 'express-serve-static-core';
 import { GoogleApiServerUtils } from "./apis/google/GoogleApiServerUtils";
+import { GaxiosResponse } from 'gaxios';
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const probe = require("probe-image-size");
@@ -167,6 +168,13 @@ const read_text_file = (relativePath: string) => {
     let target = path.join(__dirname, relativePath);
     return new Promise<string>((resolve, reject) => {
         fs.readFile(target, (err, data) => err ? reject(err) : resolve(data.toString()));
+    });
+};
+
+const write_text_file = (relativePath: string, contents: any) => {
+    let target = path.join(__dirname, relativePath);
+    return new Promise<void>((resolve, reject) => {
+        fs.writeFile(target, contents, (err) => err ? reject(err) : resolve());
     });
 };
 
@@ -790,21 +798,22 @@ const credentials = path.join(__dirname, "./credentials/google_docs_credentials.
 const token = path.join(__dirname, "./credentials/google_docs_token.json");
 
 app.post(RouteStore.googleDocs + ":action", (req, res) => {
-    let parameters = req.body;
-
     GoogleApiServerUtils.Docs.GetEndpoint({ credentials, token }).then(endpoint => {
-        let results: Promise<any> | undefined;
+        let results: Promise<GaxiosResponse> | undefined;
+        let documents = endpoint.documents;
+        let parameters = req.body;
         switch (req.params.action) {
             case "create":
-                results = endpoint.documents.create(parameters).then(generated => generated.data.documentId);
+                results = documents.create(parameters);
                 break;
             case "retrieve":
-                results = endpoint.documents.get(parameters).then(response => response.data);
+                results = documents.get(parameters);
                 break;
-            default:
-                results = undefined;
+            case "update":
+                results = documents.batchUpdate(parameters);
+                break;
         }
-        results && results.then(final => res.send(final));
+        !results ? res.send(undefined) : results.then(response => res.send(response.data));
     });
 });
 
