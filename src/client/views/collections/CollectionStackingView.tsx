@@ -293,7 +293,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             Math.floor((this.props.PanelWidth() - 2 * this.xMargin) / (this.columnWidth + this.gridGap))));
         let templatecols = "";
         for (let i = 0; i < cols; i++) templatecols += `${this.columnWidth}px `;
-        return <div key={heading.heading} className="collectionStackingView-masonrySection">
+        return <div key={heading ? heading.heading : "empty"} className="collectionStackingView-masonrySection">
             {!heading ? (null) :
                 <div key={`${heading.heading}`} className="collectionStackingView-sectionHeader" style={{ background: heading.color }}>
                     {heading.heading}
