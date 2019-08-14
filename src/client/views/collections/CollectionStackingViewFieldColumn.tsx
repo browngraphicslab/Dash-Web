@@ -1,28 +1,25 @@
 import React = require("react");
-import { observer } from "mobx-react";
-import { number } from "prop-types";
-import { Doc, WidthSym } from "../../../new_fields/Doc";
-import { CollectionStackingView } from "./CollectionStackingView";
-import { Id } from "../../../new_fields/FieldSymbols";
-import { Utils } from "../../../Utils";
-import { NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
-import { EditableView } from "../EditableView";
-import { action, observable, computed } from "mobx";
-import { undoBatch } from "../../util/UndoManager";
-import { DragManager } from "../../util/DragManager";
-import { DocumentManager } from "../../util/DocumentManager";
-import { SelectionManager } from "../../util/SelectionManager";
-import "./CollectionStackingView.scss";
-import { Docs } from "../../documents/Documents";
-import { SchemaHeaderField, PastelSchemaPalette } from "../../../new_fields/SchemaHeaderField";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { ScriptField } from "../../../new_fields/ScriptField";
-import { CompileScript } from "../../util/Scripting";
-import { RichTextField } from "../../../new_fields/RichTextField";
-import { Transform } from "../../util/Transform";
-import { Flyout, anchorPoints } from "../DocumentDecorations";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faPalette } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { action, observable } from "mobx";
+import { observer } from "mobx-react";
+import { Doc, WidthSym } from "../../../new_fields/Doc";
+import { Id } from "../../../new_fields/FieldSymbols";
+import { PastelSchemaPalette, SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
+import { ScriptField } from "../../../new_fields/ScriptField";
+import { NumCast, StrCast } from "../../../new_fields/Types";
+import { Utils } from "../../../Utils";
+import { Docs } from "../../documents/Documents";
+import { DragManager } from "../../util/DragManager";
+import { CompileScript } from "../../util/Scripting";
+import { SelectionManager } from "../../util/SelectionManager";
+import { Transform } from "../../util/Transform";
+import { undoBatch } from "../../util/UndoManager";
+import { anchorPoints, Flyout } from "../DocumentDecorations";
+import { EditableView } from "../EditableView";
+import { CollectionStackingView } from "./CollectionStackingView";
+import "./CollectionStackingView.scss";
 
 library.add(faPalette);
 
@@ -81,38 +78,17 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         let parent = this.props.parent;
         parent._docXfs.length = 0;
         return docs.map((d, i) => {
-            let headings = this.props.headings();
-            let uniqueHeadings = headings.map((i, idx) => headings.indexOf(i) === idx);
             let pair = Doc.GetLayoutDataDocPair(parent.props.Document, parent.props.DataDoc, parent.props.fieldKey, d);
-            let width = () => (d.nativeWidth && !d.ignoreAspect && !parent.props.Document.fillColumn ? Math.min(d[WidthSym](), parent.columnWidth / (uniqueHeadings.length + 1)) : parent.columnWidth / (uniqueHeadings.length + 1));/// (uniqueHeadings.length + 1);
-            let height = () => parent.getDocHeight(pair.layout, uniqueHeadings.length + 1);// / (d.nativeWidth && !BoolCast(d.ignoreAspect) ? uniqueHeadings.length + 1 : 1);
+            let width = () => Math.min(d.nativeWidth && !d.ignoreAspect && !parent.props.Document.fillColumn ? d[WidthSym]() : Number.MAX_VALUE, parent.columnWidth / parent.numGroupColumns);
+            let height = () => parent.getDocHeight(pair.layout);
             let dref = React.createRef<HTMLDivElement>();
-            // if (uniqueHeadings.length > 0) {
             let dxf = () => this.getDocTransform(pair.layout, dref.current!);
             this.props.parent._docXfs.push({ dxf: dxf, width: width, height: height });
-            // }
-            // else {
-            //     //have to add the height of all previous single column sections or the doc decorations will be in the wrong place.
-            //     let dxf = () => this.getDocTransform(layoutDoc, i, width());
-            //     this.props.parent._docXfs.push({ dxf: dxf, width: width, height: height });
-            // }
-            let rowHgtPcnt = height();
             let rowSpan = Math.ceil((height() + parent.gridGap) / parent.gridGap);
-            let style = parent.singleColumn ? { width: width(), margin: "auto", marginTop: i === 0 ? 0 : parent.gridGap, height: `${rowHgtPcnt}` } : { gridRowEnd: `span ${rowSpan}` };
-            return <div className={`collectionStackingView-${parent.singleColumn ? "columnDoc" : "masonryDoc"}`} key={d[Id]} ref={dref} style={style} >
+            let style = parent.isStackingView ? { width: width(), margin: "auto", marginTop: i === 0 ? 0 : parent.gridGap, height: height() } : { gridRowEnd: `span ${rowSpan}` };
+            return <div className={`collectionStackingView-${parent.isStackingView ? "columnDoc" : "masonryDoc"}`} key={d[Id]} ref={dref} style={style} >
                 {this.props.parent.getDisplayDoc(pair.layout, pair.data, dxf, width)}
             </div>;
-            // } else {
-            // let dref = React.createRef<HTMLDivElement>();
-            // let dxf = () => this.getDocTransform(layoutDoc, dref.current!);
-            // this.props.parent._docXfs.push({ dxf: dxf, width: width, height: height });
-            // let rowHgtPcnt = height();
-            // let rowSpan = Math.ceil((height() + parent.gridGap) / parent.gridGap);
-            // let divStyle = parent.singleColumn ? { width: width(), marginTop: i === 0 ? 0 : parent.gridGap, height: `${rowHgtPcnt}` } : { gridRowEnd: `span ${rowSpan}` };
-            // return <div className="collectionStackingView-masonryDoc" key={d[Id]} ref={dref} style={divStyle} >
-            //     {this.props.parent.getDisplayDoc(layoutDoc, d, dxf, width)}
-            // </div>;
-            // }
         });
     }
 
@@ -278,7 +254,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         let headings = this.props.headings();
         let heading = this._heading;
         let style = this.props.parent;
-        let singleColumn = style.singleColumn;
+        let singleColumn = style.isStackingView;
         let uniqueHeadings = headings.map((i, idx) => headings.indexOf(i) === idx);
         let evContents = heading ? heading : this.props.type && this.props.type === "number" ? "0" : `NO ${key.toUpperCase()} VALUE`;
         let headerEditableViewProps = {
@@ -326,7 +302,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                         </button>}
                 </div>
             </div> : (null);
-        for (let i = 0; i < cols; i++) templatecols += `${style.columnWidth}px `;
+        for (let i = 0; i < cols; i++) templatecols += `${style.columnWidth / style.numGroupColumns}px `;
         return (
             <div className="collectionStackingViewFieldColumn" key={heading} style={{ width: `${100 / ((uniqueHeadings.length + ((this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'view-mode' && this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'disabled') ? 1 : 0)) || 1)}%`, background: this._background }}
                 ref={this.createColumnDropRef} onPointerEnter={this.pointerEntered} onPointerLeave={this.pointerLeave}>
@@ -348,7 +324,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                 </div>
                 {(this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'view-mode' && this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'disabled') ?
                     <div key={`${heading}-add-document`} className="collectionStackingView-addDocumentButton"
-                        style={{ width: style.columnWidth / (uniqueHeadings.length + 1) }}>
+                        style={{ width: style.columnWidth / style.numGroupColumns }}>
                         <EditableView {...newEditableViewProps} />
                     </div> : null}
             </div>
