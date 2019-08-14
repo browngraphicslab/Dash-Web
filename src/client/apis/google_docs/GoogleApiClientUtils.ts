@@ -178,7 +178,7 @@ export namespace GoogleApiClientUtils {
                 }
             }
             if (mode === WriteMode.Replace) {
-                requests.push({
+                index > 1 && requests.push({
                     deleteContentRange: {
                         range: {
                             startIndex: 1,
@@ -189,14 +189,21 @@ export namespace GoogleApiClientUtils {
                 index = 1;
             }
             const text = options.content;
-            requests.push({
+            text.length && requests.push({
                 insertText: {
                     text: isArray(text) ? text.join("\n") : text,
                     location: { index }
                 }
             });
-            let replies = await update({ documentId, requests });
-            console.log(replies);
+            if (!requests.length) {
+                return undefined;
+            }
+            let replies: any = await update({ documentId, requests });
+            let errors = "errors";
+            if (errors in replies) {
+                console.log("Write operation failed:");
+                console.log(replies[errors].map((error: any) => error.message));
+            }
             return replies;
         };
 

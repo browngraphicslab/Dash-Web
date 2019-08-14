@@ -36,7 +36,7 @@ export class RichTextField extends ObjectField {
             if (paragraph.content) {
                 output += paragraph.content.map((block: any) => block.text).join("");
             } else {
-                output += "\n";
+                output += i === 0 ? "" : "\n";
             }
             addNewLine && (output += "\n");
         }
@@ -47,7 +47,6 @@ export class RichTextField extends ObjectField {
         let elements = plainText.split("\n");
         !elements[elements.length - 1].length && elements.pop();
         let parsed = JSON.parse(this.Data);
-        let blankCount = 0;
         parsed.doc.content = elements.map(text => {
             let paragraph: any = { type: "paragraph" };
             if (text.length) {
@@ -56,16 +55,13 @@ export class RichTextField extends ObjectField {
                     marks: [],
                     text
                 }];
-            } else {
-                blankCount++;
             }
             return paragraph;
         });
-        let selection = plainText.length + 2 * blankCount;
         parsed.selection = {
             type: "text",
-            anchor: selection,
-            head: selection
+            anchor: 1,
+            head: 1
         };
         return JSON.stringify(parsed);
     }
