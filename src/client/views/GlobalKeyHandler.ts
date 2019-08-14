@@ -181,6 +181,8 @@ export default class KeyManager {
                 break;
             case "a":
             case "v":
+                this.printClipboard();
+                break;
             case "x":
             case "c":
                 stopPropagation = false;
@@ -193,6 +195,12 @@ export default class KeyManager {
             preventDefault: preventDefault
         };
     });
+
+    async printClipboard() {
+        let text: string = await navigator.clipboard.readText();
+        console.log(text)
+        console.log(document.activeElement)
+    }
 
     private ctrl_shift = action((keyname: string) => {
         let stopPropagation = true;
