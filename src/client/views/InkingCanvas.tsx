@@ -170,7 +170,6 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
         }, [] as JSX.Element[]);
         let markerPaths = paths.filter(path => path.props.tool === InkTool.Highlighter);
         let penPaths = paths.filter(path => path.props.tool !== InkTool.Highlighter);
-        console.log(paths);
         return [!penPaths.length ? (null) :
             <svg className={`inkingCanvas-paths-ink`} key="Pens"
                 style={{ left: `${this.inkMidX - this.maxCanvasDim}px`, top: `${this.inkMidY - this.maxCanvasDim}px` }} >
