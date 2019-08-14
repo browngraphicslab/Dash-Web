@@ -475,7 +475,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
-        if (this.onClick && e.button === 0) {
+        if (this.props.onClick && e.button === 0) {
             e.preventDefault();
         }
         if (e.button === 0 && this.props.isSelected() && !e.altKey && !e.ctrlKey && !e.metaKey) {

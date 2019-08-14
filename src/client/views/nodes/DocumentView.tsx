@@ -378,6 +378,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
     onPointerDown = (e: React.PointerEvent): void => {
+        if (e.nativeEvent.cancelBubble) return;
         this._downX = e.clientX;
         this._downY = e.clientY;
         this._hitExpander = DocListCast(this.props.Document.subBulletDocs).length > 0;
@@ -728,7 +729,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
 
     render() {
-        trace();
         let backgroundColor = this.layoutDoc.isBackground || (this.props.ContainingCollectionView && this.props.ContainingCollectionView.props.Document.clusterOverridesDefaultBackground && this.layoutDoc.backgroundColor === this.layoutDoc.defaultBackgroundColor) ?
             this.props.backgroundColor(this.layoutDoc) || StrCast(this.layoutDoc.backgroundColor) :
             StrCast(this.layoutDoc.backgroundColor) || this.props.backgroundColor(this.layoutDoc);
