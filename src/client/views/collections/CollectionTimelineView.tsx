@@ -1,7 +1,7 @@
 import React = require("react");
-import { action, computed, observable, untracked, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, Field, FieldResult } from "../../../new_fields/Doc";
+import { action, computed, observable, untracked, runInAction } from "mobx";
+import { Doc, DocListCast, Field, FieldResult, DocListCastAsync } from "../../../new_fields/Doc";
 import { NumCast, Cast, StrCast, } from "../../../new_fields/Types";
 import { emptyFunction, Utils } from "../../../Utils";
 import { SelectionManager } from "../../util/SelectionManager";
@@ -58,7 +58,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     private barref = React.createRef<HTMLDivElement>();
     private marqueeref = React.createRef<HTMLDivElement>();
     @observable private types: boolean[] = [];
-    @observable private sortButtonState: boolean[] = [];
 
     @computed
     private get markerDocs() {
@@ -82,7 +81,40 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.initializeMarkers();
 
         document.addEventListener("keydown", this.onKeyDown_Selector);
+
+        this.initializeSortMenu();
     }
+
+    initializeSortMenu = async () => {
+        const docs = await DocListCastAsync(this.props.Document[this.props.fieldKey]);
+        if (!docs) {
+            console.log("No docs!");
+            return;
+        }
+        console.log(`Working with ${docs.length} docs.`);
+        let allKeys: Set<string> = new Set<string>();
+
+        docs.map(doc => Doc.GetAllPrototypes(doc).map(proto => Object.keys(proto).forEach(key => allKeys.add(key))));
+
+        console.log("POPULATED: ", allKeys.size);
+
+        for (let key of Array.from(allKeys)) {
+            for (let doc1 of docs) {
+                for (let doc2 of docs) {
+                    let firstType = this.inferType(doc1[key]);
+                    let secondType = this.inferType(doc2[key]);
+                    console.log(`Comparing ${firstType} to ${secondType}`);
+                    if (firstType === secondType) {
+                        console.log("ADDING VALID KEY: ", key);
+                        runInAction(() => this.keysToRender.add(key));
+                    } else {
+                        console.log(key, " rejected!");
+                    }
+                }
+            }
+        }
+    }
+
     @action
     initializeMarkers = async () => {
         let markers = this.markerDocs;
@@ -136,12 +168,12 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         document.removeEventListener("keydown", (e) => this.onKeyDown_Selector(e));
     }
 
-    @action
-    toggleKey = (key: string, num: number, button: React.RefObject<HTMLInputElement>) => {
-        this.sortstate = key;
-        this.sortButtonState[num] = button.current!.checked;
-        this.resetSelections();
-    }
+    // @action
+    // toggleKey = (key: string, num: number, button: React.RefObject<HTMLInputElement>) => {
+    //     this.sortstate = key;
+    //     this.sortButtonState[num] = button.current!.checked;
+    //     this.resetSelections();
+    // }
 
     @action
     resetSelections() {
@@ -634,29 +666,23 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     }
 
 
-    @observable keys: { [key: string]: boolean } = {};
-    //@observable keys2: Set<string>;
-    @action
+    keysToRender: Set<String> = new Set<String>();
     sortmenu() {
-        const docs = DocListCast(this.props.Document[this.props.fieldKey]);
-        untracked(() => docs.map(doc => Doc.GetAllPrototypes(doc).map(proto => Object.keys(proto).forEach(key => this.keys[key] = false))));
-        for (let key of Object.keys(this.keys)) {
-            for (let doc1 of docs) {
-                for (let doc2 of docs) {
-                    if (this.inferType(doc1[key]) !== this.inferType(doc2[key])) {
-                        delete this.keys[key];
-                        break;
-                    }
-                    else {
-                        //this.keys2.push(key);
-                    }
-                }
-            }
-        }
-
-        this.sortButtonState.length === 0 ? this.sortButtonState = Object.keys(this.keys).map(item => item === this.sortstate ? true : false) : null;
+        let array = Array.from(this.keysToRender);
+        console.log(array.length);
+        return array.map((unit) => {
+            let radioref = React.createRef<HTMLInputElement>();
+            <div>
+                <input
+                    type="radio"
+                    ref={radioref}
+                //checked={unit.checked}
+                // onChange={() => this.toggleKey(unit.key, index, radioref)}
+                />
+                {unit}
+            </div>;
+        });
     }
-
 
     createticks() {
         //Creates the array of tick marks.
@@ -805,10 +831,12 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         top2 -= e.movementY;
         top3 += e.movementY;
         top4 += e.movementY;
-        this.KVPRef.current!.style.height = String(top4);
-        this.annRef.current!.style.height = String(top2);
-        this.annRef.current!.style.top = String(top3);
-        this.rightHRef.current!.style.top = String(top);
+        if (top > document.body.clientHeight * 0.1 && top < document.body.clientHeight * 0.5) {
+            this.KVPRef.current!.style.height = String(top4);
+            this.annRef.current!.style.height = String(top2);
+            this.annRef.current!.style.top = String(top3);
+            this.rightHRef.current!.style.top = String(top);
+        }
         addEventListener("pointerup", this.onPointerUp_RightH);
     }
 
@@ -829,10 +857,12 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         top2 -= e.movementY;
         top3 += e.movementY;
         top4 += e.movementY;
-        this.sortRef.current!.style.height = String(top4);
-        this.filterRef.current!.style.height = String(top2);
-        this.filterRef.current!.style.top = String(top3);
-        this.leftHRef.current!.style.top = String(top);
+        if (top > document.body.clientHeight * 0.1 && top < document.body.clientHeight * 0.5) {
+            this.sortRef.current!.style.height = String(top4);
+            this.filterRef.current!.style.height = String(top2);
+            this.filterRef.current!.style.top = String(top3);
+            this.leftHRef.current!.style.top = String(top);
+        }
         addEventListener("pointerup", this.onPointerUp_LeftH);
     }
 
@@ -865,25 +895,15 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.createticks();
         this.filtermenu();
         this.thumbnailloop();
-        this.sortmenu();
+
         let p: [number, number] = this._visible ? this.props.ScreenToLocalTransform().translate(0, 0).transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
         return (
             <div className="collectionTimelineView" ref={this.screenref} style={{ marginLeft: "1%", width: "98%", height: "100%" }} onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
                 <div ref={this.sortRef} style={{ position: "absolute", height: document.body.clientHeight * 0.29, width: "10%", overflow: "scroll", border: "1px solid", zIndex: 900 }}>
-                    <h5><b>Sor123213123123312123123t</b></h5>
-                    {/* <div>{this.keys2}</div> */}
-
-                    {/*
-                        let item = key;
-                        let index = this.keys2.indexOf(key);
-                        let radioref = React.createRef<HTMLInputElement>();
-                        <div>
-                            <input type="radio" ref={radioref} checked={this.sortButtonState[index]} onChange={() => this.toggleKey(item, index, radioref)} />
-                            {key}
-                    </div>;
-                    })}</div>*/}
+                    <h5><b>Sort</b></h5>
+                    {<div>{Array.from(this.keysToRender)}</div>}
                 </div>
-                <div ref={this.leftHRef} style={{ cursor: "ns-resize", top: document.body.clientHeight * 0.29, width: "10%", border: "3px solid", position: "absolute", zIndex: 1001 }} onPointerDown={this.onPointerDown_LeftH}></div>
+                <div ref={this.leftHRef} style={{ cursor: "ns-resize", top: document.body.clientHeight * 0.29, width: "10%", border: "1px solid", position: "absolute", zIndex: 1001 }} onPointerDown={this.onPointerDown_LeftH}></div>
                 <div ref={this.filterRef} style={{ position: "absolute", top: document.body.clientHeight * 0.29, height: document.body.clientHeight * 0.29, width: "10%", overflow: "scroll", border: "1px solid", zIndex: 900 }}>
                     <h5><b>Filter</b></h5>
                     {this.filterbuttons}
@@ -897,7 +917,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 <div ref={this.KVPRef} style={{ left: "70%", height: document.body.clientHeight * 0.29, pointerEvents: "none", background: "white", position: "absolute", border: "1px solid", width: "30%" }}>
                     {this.preview ? this.documentDisplay(Docs.KVPDocument(this.preview, {}), this.barwidth * 0.29, document.body.clientHeight * 0.59) : (null)}
                 </div>
-                <div ref={this.rightHRef} style={{ cursor: "ns-resize", top: document.body.clientHeight * 0.29, left: "70%", width: "30%", border: "3px solid", position: "absolute", zIndex: 1001 }} onPointerDown={this.onPointerDown_RightH}></div>
+                <div ref={this.rightHRef} style={{ cursor: "ns-resize", top: document.body.clientHeight * 0.29, left: "70%", width: "30%", border: "1px solid", position: "absolute", zIndex: 1001 }} onPointerDown={this.onPointerDown_RightH}></div>
                 <div ref={this.annRef} style={{ left: "70%", top: document.body.clientHeight * 0.29, height: document.body.clientHeight * 0.29, position: "absolute", border: "1px solid", width: "30%" }}>
                     {this.annotationPanel()}
                 </div>
