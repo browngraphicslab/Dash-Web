@@ -4,12 +4,14 @@ import { Deserializable } from "../client/util/SerializationHelper";
 import { Copy, ToScriptString } from "./FieldSymbols";
 import { scriptingGlobal } from "../client/util/Scripting";
 
+export const ToPlainText = Symbol("PlainText");
+export const FromPlainText = Symbol("PlainText");
+
 @scriptingGlobal
 @Deserializable("RichTextField")
 export class RichTextField extends ObjectField {
     @serializable(true)
-    readonly Data: string;
-    private Extractor = /,\"text\":\"([^\}]*)\"\}/g;
+    Data: string;
 
     constructor(data: string) {
         super();
@@ -24,15 +26,41 @@ export class RichTextField extends ObjectField {
         return `new RichTextField("${this.Data}")`;
     }
 
-    plainText = () => {
-        let contents = "";
-        let matches: RegExpExecArray | null;
-        let considering = this.Data;
-        while ((matches = this.Extractor.exec(considering)) !== null) {
-            contents += matches[1];
-            considering = considering.substring(matches.index + matches[0].length);
-            this.Extractor.lastIndex = 0;
+    [ToPlainText]() {
+        let content = JSON.parse(this.Data).doc.content;
+        let paragraphs = content.filter((item: any) => item.type === "paragraph");
+        let output = "";
+        for (let i = 0; i < paragraphs.length; i++) {
+            let paragraph = paragraphs[i];
+            if (paragraph.content) {
+                output += paragraph.content.map((block: any) => block.text).join("");
+            } else {
+                output += i > 0 && paragraphs[i - 1].content ? "\n\n" : "\n";
+            }
         }
-        return contents.ReplaceAll("\\", "");
+        return output;
     }
+
+    [FromPlainText](plainText: string) {
+        let elements = plainText.split("\n");
+        let parsed = JSON.parse(this.Data);
+        parsed.doc.content = elements.map(text => {
+            let paragraph: any = { type: "paragraph" };
+            if (text.length) {
+                paragraph.content = [{
+                    type: "text",
+                    marks: [],
+                    text
+                }];
+            }
+            return paragraph;
+        });
+        parsed.selection = {
+            type: "text",
+            anchor: 0,
+            head: 0
+        };
+        this.Data = JSON.stringify(parsed);
+    }
+
 }

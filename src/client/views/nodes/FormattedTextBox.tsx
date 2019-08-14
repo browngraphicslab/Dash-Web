@@ -12,7 +12,7 @@ import { EditorView } from "prosemirror-view";
 import { Doc, Opt, DocListCast } from "../../../new_fields/Doc";
 import { Id, Copy } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
-import { RichTextField } from "../../../new_fields/RichTextField";
+import { RichTextField, ToPlainText, FromPlainText } from "../../../new_fields/RichTextField";
 import { createSchema, listSpec, makeInterface } from "../../../new_fields/Schema";
 import { BoolCast, Cast, NumCast, StrCast, DateCast } from "../../../new_fields/Types";
 import { DocServer } from "../../DocServer";
@@ -296,8 +296,13 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         let dataDoc = Doc.GetProto(this.props.Document);
         let documentId = StrCast(dataDoc[googleDocKey]);
         if (documentId) {
-            let contents = await GoogleApiClientUtils.Docs.read({ documentId });
-            contents ? console.log(contents) : delete dataDoc[googleDocKey];
+            let exportState = await GoogleApiClientUtils.Docs.read({ documentId });
+            if (exportState) {
+                let data = Cast(dataDoc.data, RichTextField);
+                data && data[FromPlainText](exportState);
+            } else {
+                delete dataDoc[googleDocKey];
+            }
         }
     }
 
@@ -693,7 +698,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 title: StrCast(dataDoc.title),
                 handler: id => dataDoc[googleDocKey] = id
             },
-            content: data.plainText()
+            content: data[ToPlainText]()
         });
     }
 
