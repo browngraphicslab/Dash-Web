@@ -389,7 +389,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 const stack = tab.contentItem.parent;
                 // shifts the focus to this tab when another tab is dragged over it
                 tab.element[0].onmouseenter = (e: any) => {
-                    if (!this._isPointerDown) return;
+                    if (!this._isPointerDown || !SelectionManager.GetIsDragging()) return;
                     var activeContentItem = tab.header.parent.getActiveContentItem();
                     if (tab.contentItem !== activeContentItem) {
                         tab.header.parent.setActiveContentItem(tab.contentItem);
