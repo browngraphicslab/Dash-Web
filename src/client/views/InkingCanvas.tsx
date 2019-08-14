@@ -68,6 +68,7 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         if (e.button !== 0 || e.altKey || e.ctrlKey || InkingControl.Instance.selectedTool === InkTool.None) {
+            console.log("RETURNING!");
             return;
         }
 
@@ -77,6 +78,8 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
         e.preventDefault();
 
         this.previousState = new Map(this.inkData);
+
+        console.log("POINTER DOWN");
 
         if (InkingControl.Instance.selectedTool !== InkTool.Eraser) {
             // start the new line, saves a uuid to represent the field of the stroke
@@ -167,15 +170,16 @@ export class InkingCanvas extends React.Component<InkCanvasProps> {
         }, [] as JSX.Element[]);
         let markerPaths = paths.filter(path => path.props.tool === InkTool.Highlighter);
         let penPaths = paths.filter(path => path.props.tool !== InkTool.Highlighter);
+        console.log(paths);
         return [!penPaths.length ? (null) :
             <svg className={`inkingCanvas-paths-ink`} key="Pens"
                 style={{ left: `${this.inkMidX - this.maxCanvasDim}px`, top: `${this.inkMidY - this.maxCanvasDim}px` }} >
-                {}
+                {penPaths}
             </svg>,
         !markerPaths.length ? (null) :
             <svg className={`inkingCanvas-paths-markers`} key="Markers"
                 style={{ left: `${this.inkMidX - this.maxCanvasDim}px`, top: `${this.inkMidY - this.maxCanvasDim}px` }}>
-                {}
+                {markerPaths}
             </svg>];
     }
 
