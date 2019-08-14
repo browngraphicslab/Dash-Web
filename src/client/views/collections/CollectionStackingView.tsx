@@ -81,11 +81,22 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         // is there any reason this needs to exist? -syip
         this._heightDisposer = reaction(() => {
             if (this.singleColumn && BoolCast(this.props.Document.autoHeight)) {
-                let hgt = this.Sections.size * 50 + this.filteredChildren.reduce((height, d, i) => {
-                    let pair = Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, this.props.fieldKey, d);
-                    return height + this.getDocHeight(pair.layout) + (i === this.filteredChildren.length - 1 ? this.yMargin : this.gridGap);
-                }, this.yMargin);
-                return hgt * this.props.ContentScaling();
+                let maxHght = 0;
+                Array.from(this.Sections.values()).map(s => {
+                    let hgt = 50 + s.reduce((height, d, i) => {
+                        let pair = Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, this.props.fieldKey, d);
+                        return height + this.getDocHeight(pair.layout, this.Sections.size) + (i === this.filteredChildren.length - 1 ? this.yMargin : this.gridGap);
+                    }, this.yMargin);
+                    maxHght = Math.max(hgt, maxHght);
+                })
+                if (!maxHght) {
+                    let hgt = this.Sections.size * 50 + this.filteredChildren.reduce((height, d, i) => {
+                        let pair = Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, this.props.fieldKey, d);
+                        return height + this.getDocHeight(pair.layout) + (i === this.filteredChildren.length - 1 ? this.yMargin : this.gridGap);
+                    }, this.yMargin);
+                    maxHght = hgt * this.props.ContentScaling();
+                }
+                return maxHght * this.props.ContentScaling();
             }
             return -1;
         },
@@ -126,7 +137,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     @computed get onClickHandler() { return this.props.onClick ? this.props.onClick : ScriptCast(this.Document.onChildClick); }
 
     getDisplayDoc(layoutDoc: Doc, dataDoc: Doc | undefined, dxf: () => Transform, width: () => number) {
-        let height = () => this.getDocHeight(layoutDoc);
+        let height = () => this.getDocHeight(layoutDoc, this.singleColumn ? this.Sections.size : 1);
         let finalDxf = () => dxf().scale(this.columnWidth / layoutDoc[WidthSym]());
         return <CollectionSchemaPreview
             Document={layoutDoc}
@@ -288,7 +299,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         });
     }
 
-    sectionMasonry(heading: SchemaHeaderField, docList: Doc[]) {
+    sectionMasonry(heading: SchemaHeaderField | undefined, docList: Doc[]) {
         let cols = Math.max(1, Math.min(docList.length,
             Math.floor((this.props.PanelWidth() - 2 * this.xMargin) / (this.columnWidth + this.gridGap))));
         let templatecols = "";
