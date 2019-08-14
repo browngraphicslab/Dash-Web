@@ -14,6 +14,11 @@ export namespace GoogleApiClientUtils {
             Update = "update"
         }
 
+        export enum WriteMode {
+            Insert,
+            Replace
+        }
+
         export type DocumentId = string;
         export type Reference = DocumentId | CreateOptions;
         export type TextContent = string | string[];
@@ -37,6 +42,7 @@ export namespace GoogleApiClientUtils {
         export type ReadOptions = RetrieveOptions & { removeNewlines?: boolean };
 
         export interface WriteOptions {
+            mode: WriteMode;
             content: TextContent;
             reference: Reference;
             index?: number; // if excluded, will compute the last index of the document and append the content there
@@ -158,28 +164,40 @@ export namespace GoogleApiClientUtils {
         };
 
         export const write = async (options: WriteOptions): Promise<UpdateResult> => {
+            const requests: docs_v1.Schema$Request[] = [];
             const documentId = await Utils.initialize(options.reference);
             if (!documentId) {
                 return undefined;
             }
             let index = options.index;
-            if (!index) {
+            const mode = options.mode;
+            if (!(index && mode === WriteMode.Insert)) {
                 let schema = await retrieve({ documentId });
                 if (!schema || !(index = Utils.endOf(schema))) {
                     return undefined;
                 }
             }
-            const text = options.content;
-            const updateOptions = {
-                documentId,
-                requests: [{
-                    insertText: {
-                        text: isArray(text) ? text.join("\n") : text,
-                        location: { index }
+            if (mode === WriteMode.Replace) {
+                requests.push({
+                    deleteContentRange: {
+                        range: {
+                            startIndex: 1,
+                            endIndex: index
+                        }
                     }
-                }]
-            };
-            return update(updateOptions);
+                });
+                index = 1;
+            }
+            const text = options.content;
+            requests.push({
+                insertText: {
+                    text: isArray(text) ? text.join("\n") : text,
+                    location: { index }
+                }
+            });
+            let replies = await update({ documentId, requests });
+            console.log(replies);
+            return replies;
         };
 
     }

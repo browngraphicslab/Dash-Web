@@ -12,7 +12,7 @@ import { EditorView } from "prosemirror-view";
 import { Doc, Opt, DocListCast } from "../../../new_fields/Doc";
 import { Id, Copy } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
-import { RichTextField, ToPlainText, FromPlainText } from "../../../new_fields/RichTextField";
+import { RichTextField, ToGoogleDocText, FromGoogleDocText } from "../../../new_fields/RichTextField";
 import { createSchema, listSpec, makeInterface } from "../../../new_fields/Schema";
 import { BoolCast, Cast, NumCast, StrCast, DateCast } from "../../../new_fields/Types";
 import { DocServer } from "../../DocServer";
@@ -39,6 +39,7 @@ import { DateField } from '../../../new_fields/DateField';
 import { Utils } from '../../../Utils';
 import { MainOverlayTextBox } from '../MainOverlayTextBox';
 import { GoogleApiClientUtils } from '../../apis/google_docs/GoogleApiClientUtils';
+import * as diff from "diff";
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -299,7 +300,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             let exportState = await GoogleApiClientUtils.Docs.read({ documentId });
             if (exportState) {
                 let data = Cast(dataDoc.data, RichTextField);
-                data && data[FromPlainText](exportState);
+                if (data) {
+                    dataDoc.data = new RichTextField(data[FromGoogleDocText](exportState));
+                }
             } else {
                 delete dataDoc[googleDocKey];
             }
@@ -629,6 +632,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             this._undoTyping.end();
             this._undoTyping = undefined;
         }
+        this.updateGoogleDoc();
     }
     public _undoTyping?: UndoManager.Batch;
     onKeyPress = (e: React.KeyboardEvent) => {
@@ -683,23 +687,33 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         });
         ContextMenu.Instance.addItem({ description: "Text Funcs...", subitems: subitems, icon: "text-height" });
         if (!(googleDocKey in Doc.GetProto(this.props.Document))) {
-            ContextMenu.Instance.addItem({ description: "Export to Google Doc...", event: this.exportToGoogleDoc, icon: "upload" });
+            ContextMenu.Instance.addItem({
+                description: "Export to Google Doc...",
+                event: this.updateGoogleDoc,
+                icon: "upload"
+            });
         }
     }
 
-    exportToGoogleDoc = () => {
-        const dataDoc = Doc.GetProto(this.props.Document);
-        const data = Cast(dataDoc.data, RichTextField);
-        if (!data) {
-            return;
+    updateGoogleDoc = () => {
+        let modes = GoogleApiClientUtils.Docs.WriteMode;
+        let mode = modes.Replace;
+        let reference: Opt<GoogleApiClientUtils.Docs.Reference> = Cast(this.dataDoc[googleDocKey], "string");
+        if (!reference) {
+            mode = modes.Insert;
+            reference = {
+                title: StrCast(this.dataDoc.title),
+                handler: id => this.dataDoc[googleDocKey] = id
+            };
         }
-        GoogleApiClientUtils.Docs.write({
-            reference: {
-                title: StrCast(dataDoc.title),
-                handler: id => dataDoc[googleDocKey] = id
-            },
-            content: data[ToPlainText]()
-        });
+        const data = Cast(this.dataDoc.data, RichTextField);
+        if (data) {
+            GoogleApiClientUtils.Docs.write({
+                mode,
+                content: data[ToGoogleDocText](),
+                reference
+            });
+        }
     }
 
     render() {
