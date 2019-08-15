@@ -17,6 +17,7 @@ import { RefField } from "../../../new_fields/RefField";
 import { ObjectField } from "../../../new_fields/ObjectField";
 import { updateSourceFile } from "typescript";
 import { KeyValueBox } from "./KeyValueBox";
+import { setReactionScheduler } from "mobx/lib/internal";
 
 @observer
 export class WebBox extends React.Component<FieldViewProps> {
@@ -38,6 +39,8 @@ export class WebBox extends React.Component<FieldViewProps> {
                 this.props.Document.height = NumCast(this.props.Document.width) / youtubeaspect;
             }
         }
+
+        this.setURL();
     }
 
     @action
@@ -50,15 +53,13 @@ export class WebBox extends React.Component<FieldViewProps> {
         const script = KeyValueBox.CompileKVPScript(`new WebField("${this.url}")`);
         if (!script) return;
         KeyValueBox.ApplyKVPScript(this.props.Document, "data", script);
-        let mod = document.getElementById("webpage-input");
-        if (mod) mod.style.display = "none";
     }
 
-    @computed
-    get getURL() {
+    @action
+    setURL() {
         let urlField: FieldResult<WebField> = Cast(this.props.Document.data, WebField)
-        if (urlField) return urlField.url.toString();
-        return "";
+        if (urlField) this.url = urlField.url.toString();
+        else this.url = "";
     }
 
     onValueKeyDown = async (e: React.KeyboardEvent) => {
@@ -86,10 +87,9 @@ export class WebBox extends React.Component<FieldViewProps> {
                         <div style={{ marginLeft: 54, width: "100%", display: this.collapsed ? "none" : "flex" }}>
                             <input className="webpage-urlInput"
                                 placeholder="ENTER URL"
-                                value={this.getURL}
+                                value={this.url}
                                 onChange={this.onURLChange}
                                 onKeyDown={this.onValueKeyDown}
-                            // onPointerDown={this.openViewSpecs}
                             />
                             <button className="submitUrl" onClick={this.submitURL}>
                                 SUBMIT URL
@@ -103,10 +103,6 @@ export class WebBox extends React.Component<FieldViewProps> {
 
     @action
     toggleCollapse = () => {
-        // this.props.CollectionView.props.Document.chromeStatus = this.props.CollectionView.props.Document.chromeStatus === "enabled" ? "this.collapsed" : "enabled";
-        // if (this.props.collapse) {
-        //     this.props.collapse(this.props.CollectionView.props.Document.chromeStatus !== "enabled");
-        // }
         this.collapsed = !this.collapsed;
     }
 
