@@ -1,42 +1,38 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faEdit, faSmile, faTextHeight } from '@fortawesome/free-solid-svg-icons';
-import { action, IReactionDisposer, observable, reaction, runInAction, computed, Lambda, trace } from "mobx";
+import { action, computed, IReactionDisposer, Lambda, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { baseKeymap } from "prosemirror-commands";
 import { history } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
-import { Node as ProsNode } from "prosemirror-model";
-import { EditorState, Plugin, Transaction, Selection } from "prosemirror-state";
-import { NodeType, Slice, Node, Fragment } from 'prosemirror-model';
-import { EditorView, NodeView } from "prosemirror-view";
-import { Doc, Opt, DocListCast } from "../../../new_fields/Doc";
-import { Id, Copy } from '../../../new_fields/FieldSymbols';
+import { Fragment, Node, Node as ProsNode, NodeType, Slice } from "prosemirror-model";
+import { EditorState, Plugin, Transaction } from "prosemirror-state";
+import { EditorView } from "prosemirror-view";
+import { DateField } from '../../../new_fields/DateField';
+import { Doc, DocListCast, Opt, WidthSym } from "../../../new_fields/Doc";
+import { Copy, Id } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
 import { RichTextField } from "../../../new_fields/RichTextField";
-import { createSchema, listSpec, makeInterface } from "../../../new_fields/Schema";
-import { BoolCast, Cast, NumCast, StrCast, DateCast } from "../../../new_fields/Types";
+import { createSchema, makeInterface } from "../../../new_fields/Schema";
+import { BoolCast, Cast, DateCast, NumCast, StrCast } from "../../../new_fields/Types";
+import { Utils } from '../../../Utils';
 import { DocServer } from "../../DocServer";
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentManager } from '../../util/DocumentManager';
 import { DragManager } from "../../util/DragManager";
 import buildKeymap from "../../util/ProsemirrorExampleTransfer";
 import { inpRules } from "../../util/RichTextRules";
-import { ImageResizeView, schema, SummarizedView, CheckboxView } from "../../util/RichTextSchema";
+import { ImageResizeView, schema, SummarizedView } from "../../util/RichTextSchema";
 import { SelectionManager } from "../../util/SelectionManager";
 import { TooltipLinkingMenu } from "../../util/TooltipLinkingMenu";
 import { TooltipTextMenu } from "../../util/TooltipTextMenu";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
-import { ContextMenu } from "../../views/ContextMenu";
-import { ContextMenuProps } from '../ContextMenuItem';
 import { DocComponent } from "../DocComponent";
 import { InkingControl } from "../InkingControl";
+import { MainOverlayTextBox } from '../MainOverlayTextBox';
 import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import React = require("react");
-import { DateField } from '../../../new_fields/DateField';
-import { Utils } from '../../../Utils';
-import { MainOverlayTextBox } from '../MainOverlayTextBox';
-import { CheckBox } from '../search/CheckBox';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight);
@@ -49,6 +45,7 @@ export interface FormattedTextBoxProps {
     hideOnLeave?: boolean;
     height?: string;
     color?: string;
+    outer_div?: (domminus: HTMLElement) => void;
     firstinstance?: boolean;
 }
 
@@ -74,6 +71,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     private _reactionDisposer: Opt<IReactionDisposer>;
     private _searchReactionDisposer?: Lambda;
     private _textReactionDisposer: Opt<IReactionDisposer>;
+    private _heightReactionDisposer: Opt<IReactionDisposer>;
     private _proxyReactionDisposer: Opt<IReactionDisposer>;
     private dropDisposer?: DragManager.DragDropDisposer;
     public get CurrentDiv(): HTMLDivElement { return this._ref.current!; }
@@ -164,7 +162,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     dispatchTransaction = (tx: Transaction) => {
         if (this._editorView) {
             const state = this._editorView.state.apply(tx);
+            FormattedTextBox._toolTipTextMenu && (FormattedTextBox._toolTipTextMenu.HackToFixTextSelectionGlitch = true);
             this._editorView.updateState(state);
+            FormattedTextBox._toolTipTextMenu && (FormattedTextBox._toolTipTextMenu.HackToFixTextSelectionGlitch = false);
             if (state.selection.empty && FormattedTextBox._toolTipTextMenu) {
                 const marks = tx.storedMarks;
                 console.log(marks)
@@ -251,25 +251,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 this.props.Document.layout = de.data.draggedDocuments[0];
                 de.data.draggedDocuments[0].isTemplate = true;
                 e.stopPropagation();
-                // let ldocs = Cast(this.dataDoc.subBulletDocs, listSpec(Doc));
-                // if (!ldocs) {
-                //     this.dataDoc.subBulletDocs = new List<Doc>([]);
-                // }
-                // ldocs = Cast(this.dataDoc.subBulletDocs, listSpec(Doc));
-                // if (!ldocs) return;
-                // if (!ldocs || !ldocs[0] || ldocs[0] instanceof Promise || StrCast((ldocs[0] as Doc).layout).indexOf("CollectionView") === -1) {
-                //     ldocs.splice(0, 0, Docs.StackingDocument([], { title: StrCast(this.dataDoc.title) + "-subBullets", x: NumCast(this.props.Document.x), y: NumCast(this.props.Document.y) + NumCast(this.props.Document.height), width: 300, height: 300 }));
-                //     this.props.addDocument && this.props.addDocument(ldocs[0] as Doc);
-                //     this.props.Document.templates = new List<string>([Templates.Bullet.Layout]);
-                //     this.props.Document.isBullet = true;
-                // }
-                // let stackDoc = (ldocs[0] as Doc);
-                // if (de.data.moveDocument) {
-                //     de.data.moveDocument(de.data.draggedDocuments[0], stackDoc, (doc) => {
-                //         Cast(stackDoc.data, listSpec(Doc))!.push(doc);
-                //         return true;
-                //     });
-                // }
             }
         }
     }
@@ -311,11 +292,14 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 const field = this.dataDoc ? Cast(this.dataDoc[this.props.fieldKey], RichTextField) : undefined;
                 return field ? field.Data : `{"doc":{"type":"doc","content":[]},"selection":{"type":"text","anchor":0,"head":0}}`;
             },
-            field2 => {
-                this._editorView && !this._applyingChange &&
-                    this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field2)));
-            }
+            field2 => this._editorView && !this._applyingChange &&
+                this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field2)))
         );
+
+        this.props.isOverlay && (this._heightReactionDisposer = reaction(
+            () => this.props.Document[WidthSym](),
+            () => this.tryUpdateHeight()
+        ));
 
         this._textReactionDisposer = reaction(
             () => this.extensionDoc,
@@ -451,7 +435,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 nodeViews: {
                     image(node, view, getPos) { return new ImageResizeView(node, view, getPos); },
                     star(node, view, getPos) { return new SummarizedView(node, view, getPos); },
-                    checkbox(node, view, getPos) { return new CheckboxView(node, view, getPos) as NodeView<any>; }
                 },
                 clipboardTextSerializer: this.clipboardTextSerializer,
                 handlePaste: this.handlePaste,
@@ -474,11 +457,12 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         this._reactionDisposer && this._reactionDisposer();
         this._proxyReactionDisposer && this._proxyReactionDisposer();
         this._textReactionDisposer && this._textReactionDisposer();
+        this._heightReactionDisposer && this._heightReactionDisposer();
         this._searchReactionDisposer && this._searchReactionDisposer();
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
-        if (this.onClick && e.button === 0) {
+        if (this.props.onClick && e.button === 0) {
             e.preventDefault();
         }
         if (e.button === 0 && this.props.isSelected() && !e.altKey && !e.ctrlKey && !e.metaKey) {
@@ -626,8 +610,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     @action
     tryUpdateHeight() {
-        if (this.props.isOverlay && this.props.Document.autoHeight) {
-            let self = this;
+        if (this.props.Document.autoHeight && this.props.isOverlay) {
             let xf = this._ref.current!.getBoundingClientRect();
             let scrBounds = this.props.ScreenToLocalTransform().transformBounds(0, 0, xf.width, xf.height);
             let nh = this.props.Document.isTemplate ? 0 : NumCast(this.dataDoc.nativeHeight, 0);
@@ -666,8 +649,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         return (
             <div className={`formattedTextBox-cont-${style}`} ref={this._ref}
                 style={{
+                    overflowY: this.props.Document.autoHeight ? "hidden" : "auto",
                     height: this.props.height ? this.props.height : undefined,
-                    background: this.props.hideOnLeave ? "rgba(0,0,0,0.4)" : undefined,
+                    background: this.props.hideOnLeave ? "rgba(0,0,0 ,0.4)" : undefined,
                     opacity: this.props.hideOnLeave ? (this._entered || this.props.isSelected() || Doc.IsBrushed(this.props.Document) ? 1 : 0.1) : 1,
                     color: this.props.color ? this.props.color : this.props.hideOnLeave ? "white" : "inherit",
                     pointerEvents: interactive,

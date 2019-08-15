@@ -1,4 +1,4 @@
-import { observable, action, runInAction } from "mobx";
+import { observable, action, runInAction, ObservableMap } from "mobx";
 import { serializable, primitive, map, alias, list, PropSchema, custom } from "serializr";
 import { autoObject, SerializationHelper, Deserializable, afterDocDeserialize } from "../client/util/SerializationHelper";
 import { DocServer } from "../client/DocServer";
@@ -7,7 +7,7 @@ import { Cast, ToConstructor, PromiseValue, FieldValue, NumCast, BoolCast, StrCa
 import { listSpec } from "./Schema";
 import { ObjectField } from "./ObjectField";
 import { RefField, FieldId } from "./RefField";
-import { ToScriptString, SelfProxy, Parent, OnUpdate, Self, HandleUpdate, Update, Id } from "./FieldSymbols";
+import { ToScriptString, SelfProxy, Parent, OnUpdate, Self, HandleUpdate, Update, Id, Copy } from "./FieldSymbols";
 import { scriptingGlobal, CompileScript, Scripting } from "../client/util/Scripting";
 import { List } from "./List";
 import { DocumentType } from "../client/documents/Documents";
@@ -526,6 +526,7 @@ export namespace Doc {
         target.nativeHeight = Doc.GetProto(target).nativeHeight = undefined;
         target.width = templateDoc.width;
         target.height = templateDoc.height;
+        target.onClick = templateDoc.onClick instanceof ObjectField && templateDoc.onClick[Copy]();
         Doc.GetProto(target).type = DocumentType.TEMPLATE;
         if (targetData && targetData.layout === target) {
             targetData.layout = temp;
@@ -595,26 +596,23 @@ export namespace Doc {
     }
 
     export class DocBrush {
-        @observable BrushedDoc: Doc[] = [];
+        @observable BrushedDoc: ObservableMap<Doc, boolean> = new ObservableMap();
     }
     const manager = new DocBrush();
     export function IsBrushed(doc: Doc) {
-        return manager.BrushedDoc.some(d => Doc.AreProtosEqual(d, doc));
+        return manager.BrushedDoc.has(doc) || manager.BrushedDoc.has(Doc.GetDataDoc(doc));
     }
     export function IsBrushedDegree(doc: Doc) {
-        return manager.BrushedDoc.some(d => d === doc) ? 2 : Doc.IsBrushed(doc) ? 1 : 0;
+        return manager.BrushedDoc.has(Doc.GetDataDoc(doc)) ? 2 : manager.BrushedDoc.has(doc) ? 1 : 0;
     }
     export function BrushDoc(doc: Doc) {
-        if (manager.BrushedDoc.indexOf(doc) === -1) runInAction(() => manager.BrushedDoc.push(doc));
+        manager.BrushedDoc.set(doc, true);
+        manager.BrushedDoc.set(Doc.GetDataDoc(doc), true);
     }
     export function UnBrushDoc(doc: Doc) {
-        let index = manager.BrushedDoc.indexOf(doc);
-        if (index !== -1) runInAction(() => manager.BrushedDoc.splice(index, 1));
+        manager.BrushedDoc.delete(doc);
+        manager.BrushedDoc.delete(Doc.GetDataDoc(doc));
     }
 }
-Scripting.addGlobal(function renameAlias(doc: any, n: any) {
-    return StrCast(doc.title).replace(/\([0-9]*\)/, "") + `(${n})`;
-});
-Scripting.addGlobal(function getProto(doc: any) {
-    return Doc.GetProto(doc);
-});
+Scripting.addGlobal(function renameAlias(doc: any, n: any) { return StrCast(doc.title).replace(/\([0-9]*\)/, "") + `(${n})`; });
+Scripting.addGlobal(function getProto(doc: any) { return Doc.GetProto(doc); });
