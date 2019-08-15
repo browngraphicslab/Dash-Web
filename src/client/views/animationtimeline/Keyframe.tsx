@@ -242,7 +242,6 @@ export class Keyframe extends React.Component<IProps> {
     onBarPointerDown = (e: React.PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
-       
         let clientX = e.clientX;  
         if (this._doubleClickEnabled){
             this.createKeyframe(clientX); 
@@ -254,14 +253,9 @@ export class Keyframe extends React.Component<IProps> {
             this._doubleClickEnabled = true; 
             document.addEventListener("pointermove", this.onBarPointerMove);
             document.addEventListener("pointerup", (e: PointerEvent) => {
-            document.removeEventListener("pointermove", this.onBarPointerMove);
+                document.removeEventListener("pointermove", this.onBarPointerMove);
         });
-        
         }
-        
-        
-
-        
     }
 
 

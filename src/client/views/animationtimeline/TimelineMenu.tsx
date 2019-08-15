@@ -19,28 +19,6 @@ export class TimelineMenu extends React.Component {
         super(props); 
         TimelineMenu.Instance = this; 
     }
-
-    @action
-    pointerDown = (e: React.PointerEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        document.removeEventListener("pointerup", this.pointerUp); 
-        document.addEventListener("pointerup", this.pointerUp); 
-        document.removeEventListener("pointermove", this.pointerMove); 
-        document.addEventListener("pointermove", this.pointerMove);     
-    }
-
-    @action
-    pointerMove = (e: PointerEvent) => {
-        e.preventDefault(); 
-        e.stopPropagation(); 
-    }
-
-    @action
-    pointerUp = (e: PointerEvent) => {
-        document.removeEventListener("pointermove", this.pointerMove); 
-        document.removeEventListener("pointerup", this.pointerUp); 
-    }
     
     @action
     openMenu = (x?:number, y?:number) => {
@@ -52,16 +30,20 @@ export class TimelineMenu extends React.Component {
     @action
     closeMenu = () => {
         this._opacity = 0; 
+        this._currentMenu = []; 
     }
 
     addItem = (type: "input" | "button", title: string, event: (e:any) => void) => {
         if (type === "input"){
             let ref = React.createRef<HTMLInputElement>(); 
-            let text = ""; 
-            return <div className="timeline-menu-item"><FontAwesomeIcon icon={faClipboard} size="lg"/><input className="timeline-menu-input" ref = {ref} placeholder={title} onChange={(e) => {text = e.target.value;}} onKeyDown={(e:React.KeyboardEvent) => {
-                if(e.keyCode === 13){
-                    event(text); 
-                }}}/></div>; 
+            return <div className="timeline-menu-item"><FontAwesomeIcon icon={faClipboard} size="lg"/><input className="timeline-menu-input" ref = {ref} placeholder={title} onChange={(e) => {
+                let text = e.target.value;
+                document.addEventListener("keypress", (e:KeyboardEvent) => {
+                    if (e.keyCode === 13) {
+                        event(text); 
+                    }
+                });
+            }}/></div>; 
         } else if (type === "button") {
             let ref = React.createRef<HTMLDivElement>(); 
             return <div className="timeline-menu-item"><FontAwesomeIcon icon={faChartLine}size="lg"/><p className="timeline-menu-desc" onClick={event}>{title}</p></div>; 
@@ -72,7 +54,8 @@ export class TimelineMenu extends React.Component {
     @action 
     addMenu = (title:string, items: JSX.Element[]) => {
         items.unshift(<div className="timeline-menu-header"><p className="timeline-menu-header-desc">{title}</p></div>); 
-        this._currentMenu = items;  
+        this._currentMenu = items;
+    
     }
 
     render() {

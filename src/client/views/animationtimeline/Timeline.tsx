@@ -135,8 +135,8 @@ export class Timeline extends CollectionSubView(Document) {
                         this.changeCurrentBarX(0); 
                     } else {
                         this.changeCurrentBarX(this._currentBarX + this._windSpeed);
-                        setTimeout(playTimeline, 15);  
-                    }
+                    }                        
+                    setTimeout(playTimeline, 15);  
                 }
             }; 
             playTimeline(); 
@@ -193,20 +193,38 @@ export class Timeline extends CollectionSubView(Document) {
 
 
 
+    @observable private _mouseToggled = false; 
+    @observable private _doubleClickEnabled = false; 
     @action
     onPanDown = (e: React.PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        document.addEventListener("pointermove", this.onPanMove);
-        document.addEventListener("pointerup", () => {
-            document.removeEventListener("pointermove", this.onPanMove);
-        });
+        let clientX = e.clientX; 
+        if (this._doubleClickEnabled){
+            this._doubleClickEnabled = false; 
+        } else {
+            setTimeout(() => {if(!this._mouseToggled && this._doubleClickEnabled) this.changeCurrentBarX(this._trackbox.current!.scrollLeft + clientX -  this._trackbox.current!.getBoundingClientRect().left); 
+                this._mouseToggled = false;
+                this._doubleClickEnabled = false;}, 200); 
+            this._doubleClickEnabled = true; 
+            document.addEventListener("pointermove", this.onPanMove);
+            document.addEventListener("pointerup", () => {
+                document.removeEventListener("pointermove", this.onPanMove);
+                if (!this._doubleClickEnabled) {
+                    this._mouseToggled = false; 
+                }
+            });
+
+        }
     }
 
     @action
     onPanMove = (e: PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
+        if (e.movementX !== 0 || e.movementY !== 0) {
+            this._mouseToggled = true; 
+        }
         let trackbox = this._trackbox.current!;
         let titleContainer = this._titleContainer.current!;
         this.movePanX(this._visibleStart - e.movementX);
