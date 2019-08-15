@@ -73,8 +73,8 @@ export class WebBox extends React.Component<FieldViewProps> {
         return (
             <div className="webView-urlEditor" style={{ top: this.collapsed ? -70 : 0 }}>
                 <div className="urlEditor">
-                    <div className="collectionViewBaseChrome">
-                        <button className="collectionViewBaseChrome-collapse"
+                    <div className="editorBase">
+                        <button className="editor-collapse"
                             style={{
                                 top: this.collapsed ? 70 : 10,
                                 transform: `rotate(${this.collapsed ? 180 : 0}deg) scale(${this.collapsed ? 0.5 : 1}) translate(${this.collapsed ? "-100%, -100%" : "0, 0"})`,

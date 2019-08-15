@@ -52,90 +52,19 @@
         padding-bottom: 10px;
         overflow: hidden;
 
-        .collectionViewBaseChrome {
+        .editorBase {
             display: flex;
 
-            .collectionViewBaseChrome-viewPicker {
-                font-size: 75%;
-                text-transform: uppercase;
-                letter-spacing: 2px;
-                background: rgb(238, 238, 238);
-                color: grey;
-                outline-color: black;
-                border: none;
-                padding: 12px 10px 11px 10px;
-                margin-left: 50px;
-            }
-
-            .collectionViewBaseChrome-viewPicker:active {
-                outline-color: black;
-            }
-
-            .collectionViewBaseChrome-collapse {
+            .editor-collapse {
                 transition: all .5s, opacity 0.3s;
                 position: absolute;
                 width: 40px;
                 transform-origin: top left;
-                // margin-top: 10px;
-            }
-
-            .collectionViewBaseChrome-viewSpecs {
-                margin-left: 10px;
-                display: grid;
-
-
-
-                .collectionViewBaseChrome-viewSpecsMenu {
-                    overflow: hidden;
-                    transition: height .5s, display .5s;
-                    position: absolute;
-                    top: 60px;
-                    z-index: 100;
-                    display: flex;
-                    flex-direction: column;
-                    background: rgb(238, 238, 238);
-                    box-shadow: grey 2px 2px 4px;
-
-                    .qs-datepicker {
-                        left: unset;
-                        right: 0;
-                    }
-
-                    .collectionViewBaseChrome-viewSpecsMenu-row {
-                        display: grid;
-                        grid-template-columns: 150px 200px 150px;
-                        margin-top: 10px;
-                        margin-right: 10px;
-
-                        .collectionViewBaseChrome-viewSpecsMenu-rowLeft,
-                        .collectionViewBaseChrome-viewSpecsMenu-rowMiddle,
-                        .collectionViewBaseChrome-viewSpecsMenu-rowRight {
-                            font-size: 75%;
-                            letter-spacing: 2px;
-                            color: grey;
-                            margin-left: 10px;
-                            padding: 5px;
-                            border: none;
-                            outline-color: black;
-                        }
-                    }
-
-                    .collectionViewBaseChrome-viewSpecsMenu-lastRow {
-                        display: grid;
-                        grid-template-columns: 1fr 1fr 1fr;
-                        grid-gap: 10px;
-                        margin: 10px;
-                    }
-                }
             }
         }
 
         button:hover {
             transform: scale(1);
-        }
-
-        .collectionStackingViewChrome-sectionFilter:hover {
-            cursor: text;
         }
     }
 }

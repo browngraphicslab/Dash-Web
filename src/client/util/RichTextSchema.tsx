@@ -526,49 +526,6 @@ export class ImageResizeView {
     }
 }
 
-export class CheckboxView {
-    _view: any;
-    _collapsed: HTMLElement;
-
-    constructor(node: any, view: any, getPos: any) {
-        this._collapsed = document.createElement("span");
-        this._collapsed.textContent = node.attrs.visibility ? "⬛" : "⬜";
-        this._collapsed.style.position = "relative";
-        // this._collapsed.style.width = "80px";
-        this._collapsed.style.height = "20px";
-        let self = this;
-        this._view = view;
-        const js = node.toJSON;
-        node.toJSON = function () {
-
-            return js.apply(this, arguments);
-        };
-        this._collapsed.onpointerdown = function (e: any) {
-            console.log(node.attrs.visibility)
-            if (node.attrs.visibility) {
-                let y = getPos();
-                const attrs = { ...node.attrs };
-                attrs.visibility = !attrs.visibility;
-                view.dispatch(view.state.tr.setNodeMarkup(y, undefined, attrs));
-                self._collapsed.textContent = "⬜";
-            } else {
-                let y = getPos();
-                const attrs = { ...node.attrs };
-                attrs.visibility = !attrs.visibility;
-                console.log(attrs.visibility)
-                view.dispatch(view.state.tr.setNodeMarkup(y, undefined, attrs));
-                self._collapsed.textContent = "⬛";
-            }
-            e.preventDefault();
-            e.stopPropagation();
-            console.log(node.attrs.visibility)
-
-        };
-        (this as any).dom = this._collapsed;
-    }
-
-}
-
 export class SummarizedView {
     // TODO: highlight text that is summarized. to find end of region, walk along mark
     _collapsed: HTMLElement;

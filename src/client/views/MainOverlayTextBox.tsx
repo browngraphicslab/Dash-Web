@@ -60,20 +60,17 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
                         return new Transform(-sxf.translateX, -sxf.translateY, 1 / sxf.scale);
                     };
                     this.setTextDoc(box.props.fieldKey, box.CurrentDiv, xf, BoolCast(box.props.Document.autoHeight, false) || box.props.height === "min-content");
-                    console.log("makin text doc?")
                 }
                 else {
                     this.TextDoc = undefined;
                     this.TextDataDoc = undefined;
                     this.setTextDoc();
-                    console.log("deletin text doc?")
                 }
             });
     }
 
     @action
     private setTextDoc(textFieldKey?: string, div?: HTMLDivElement, tx?: () => Transform, autoHeight?: boolean) {
-        console.log("what is going on")
         if (this._textTargetDiv) {
             this._textTargetDiv.style.color = this._textColor;
         }
