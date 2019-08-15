@@ -65,13 +65,6 @@ export class WebBox extends React.Component<FieldViewProps> {
         else this.url = "";
     }
 
-    @computed
-    get getURL() {
-        let urlField: FieldResult<WebField> = Cast(this.props.Document.data, WebField)
-        if (urlField) return urlField.url.toString();
-        return "";
-    }
-
     onValueKeyDown = async (e: React.KeyboardEvent) => {
         if (e.key === "Enter") {
             e.stopPropagation();
