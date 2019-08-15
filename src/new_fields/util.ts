@@ -47,11 +47,11 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
         value = value[SelfProxy] || value;
     }
     if (prop === "acls") {
-        Object.entries(value).forEach((value: [string, any]) => {
-            let permissions = value[1];
+        Object.entries(value).forEach((val: [string, any]) => {
+            let permissions = val[1];
             let keys = Object.keys(permissions);
             keys.forEach(k => {
-                target[SetAcls](value[0], value[1][k], [k]);
+                target[SetAcls](val[0], val[1][k], [k]);
             });
         });
         return true;
@@ -126,6 +126,9 @@ export function getter(target: any, prop: string | symbol | number, receiver: an
     }
     if (typeof prop === "symbol") {
         return target.__fields[prop] || target[prop];
+    }
+    if (prop === "acls") {
+        console.log("HELLOOOO");
     }
     if (SerializationHelper.IsSerializing()) {
         return target[prop];
