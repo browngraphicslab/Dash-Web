@@ -17,6 +17,7 @@ import { RefField } from "../../../new_fields/RefField";
 import { ObjectField } from "../../../new_fields/ObjectField";
 import { updateSourceFile } from "typescript";
 import { KeyValueBox } from "./KeyValueBox";
+import { setReactionScheduler } from "mobx/lib/internal";
 
 @observer
 export class WebBox extends React.Component<FieldViewProps> {
@@ -38,11 +39,16 @@ export class WebBox extends React.Component<FieldViewProps> {
                 this.props.Document.height = NumCast(this.props.Document.width) / youtubeaspect;
             }
         }
+
+        this.setURL();
     }
 
     @action
     onURLChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        console.log("changing")
+        console.log(e.target.value)
         this.url = e.target.value;
+        console.log(this.url)
     }
 
     @action
@@ -50,8 +56,13 @@ export class WebBox extends React.Component<FieldViewProps> {
         const script = KeyValueBox.CompileKVPScript(`new WebField("${this.url}")`);
         if (!script) return;
         KeyValueBox.ApplyKVPScript(this.props.Document, "data", script);
-        let mod = document.getElementById("webpage-input");
-        if (mod) mod.style.display = "none";
+    }
+
+    @action
+    setURL() {
+        let urlField: FieldResult<WebField> = Cast(this.props.Document.data, WebField)
+        if (urlField) this.url = urlField.url.toString();
+        else this.url = "";
     }
 
     @computed
@@ -86,7 +97,7 @@ export class WebBox extends React.Component<FieldViewProps> {
                         <div style={{ marginLeft: 54, width: "100%", display: this.collapsed ? "none" : "flex" }}>
                             <input className="webpage-urlInput"
                                 placeholder="ENTER URL"
-                                value={this.getURL}
+                                value={this.url}
                                 onChange={this.onURLChange}
                                 onKeyDown={this.onValueKeyDown}
                             // onPointerDown={this.openViewSpecs}
