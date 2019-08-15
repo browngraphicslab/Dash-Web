@@ -22,30 +22,6 @@
         overflow: scroll;
     }
 
-    .collectionSchemaView-previewRegion {
-        position: relative;
-        background: $light-color;
-        height: 100%;
-
-        .collectionSchemaView-previewDoc {
-            height: 100%;
-            width: 100%;
-            position: absolute;
-        }
-
-        .collectionSchemaView-input {
-            position: absolute;
-            max-width: 150px;
-            width: 100%;
-            bottom: 0px;
-        }
-
-        .documentView-node:first-child {
-            position: relative;
-            background: $light-color;
-        }
-    }
-
     .collectionSchemaView-dividerDragger {
         position: relative;
         height: 100%;
@@ -58,6 +34,30 @@
     }
 
     .documentView-node:first-child {
+        background: $light-color;
+    }
+}
+
+.collectionSchemaView-previewRegion {
+    position: relative;
+    background: $light-color;
+    height: auto !important;
+
+    .collectionSchemaView-previewDoc {
+        height: 100%;
+        width: 100%;
+        position: absolute;
+    }
+
+    .collectionSchemaView-input {
+        position: absolute;
+        max-width: 150px;
+        width: 100%;
+        bottom: 0px;
+    }
+
+    .documentView-node:first-child {
+        position: relative;
         background: $light-color;
     }
 }

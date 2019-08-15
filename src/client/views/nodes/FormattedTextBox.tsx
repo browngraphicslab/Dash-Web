@@ -30,11 +30,9 @@ import { ContextMenu } from "../../views/ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
 import { DocComponent } from "../DocComponent";
 import { InkingControl } from "../InkingControl";
-import { Templates } from '../Templates';
 import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import React = require("react");
-import { For } from 'babel-types';
 import { DateField } from '../../../new_fields/DateField';
 import { Utils } from '../../../Utils';
 import { MainOverlayTextBox } from '../MainOverlayTextBox';
@@ -68,11 +66,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
     public static Instance: FormattedTextBox;
     private _ref: React.RefObject<HTMLDivElement>;
-    private _outerdiv?: (dominus: HTMLElement) => void;
     private _proseRef?: HTMLDivElement;
     private _editorView: Opt<EditorView>;
     private static _toolTipTextMenu: TooltipTextMenu | undefined = undefined;
     private _applyingChange: boolean = false;
+    private _outerdiv?: (dominus: HTMLElement) => void;
     private _linkClicked = "";
     private _reactionDisposer: Opt<IReactionDisposer>;
     private _searchReactionDisposer?: Lambda;
@@ -124,16 +122,14 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     constructor(props: FieldViewProps) {
         super(props);
-        //if (this.props.firstinstance) {
         FormattedTextBox.Instance = this;
-        //}
-        if (this.props.outer_div) {
-            this._outerdiv = this.props.outer_div;
-        }
-
         this._ref = React.createRef();
         if (this.props.isOverlay) {
             DragManager.StartDragFunctions.push(() => FormattedTextBox.InputBoxOverlay = undefined);
+        }
+
+        if (this.props.outer_div) {
+            this._outerdiv = this.props.outer_div;
         }
 
         document.addEventListener("paste", this.paste);
@@ -173,7 +169,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     dispatchTransaction = (tx: Transaction) => {
         if (this._editorView) {
             const state = this._editorView.state.apply(tx);
+            FormattedTextBox._toolTipTextMenu && (FormattedTextBox._toolTipTextMenu.HackToFixTextSelectionGlitch = true);
             this._editorView.updateState(state);
+            FormattedTextBox._toolTipTextMenu && (FormattedTextBox._toolTipTextMenu.HackToFixTextSelectionGlitch = false);
             if (state.selection.empty && FormattedTextBox._toolTipTextMenu) {
                 const marks = tx.storedMarks;
                 if (marks) { FormattedTextBox._toolTipTextMenu.mark_key_pressed(marks); }
@@ -206,9 +204,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     tokens.forEach((word) => {
                         if (terms.includes(word) && this._editorView) {
                             this._editorView.dispatch(this._editorView.state.tr.addMark(start, start + word.length, mark).removeStoredMark(mark));
-                            // else {
-                            //     this._editorView.state.tr.addMark(start, start + word.length, mark).removeStoredMark(mark);
-                            // }
                         }
                         start += word.length + 1;
                     });
@@ -484,9 +479,13 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         this._reactionDisposer && this._reactionDisposer();
         this._proxyReactionDisposer && this._proxyReactionDisposer();
         this._textReactionDisposer && this._textReactionDisposer();
+        this._searchReactionDisposer && this._searchReactionDisposer();
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
+        if (this.props.onClick && e.button === 0) {
+            e.preventDefault();
+        }
         if (e.button === 0 && this.props.isSelected() && !e.altKey && !e.ctrlKey && !e.metaKey) {
             e.stopPropagation();
             if (FormattedTextBox._toolTipTextMenu && FormattedTextBox._toolTipTextMenu.tooltip) {
@@ -636,7 +635,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             let self = this;
             let xf = this._ref.current!.getBoundingClientRect();
             let scrBounds = this.props.ScreenToLocalTransform().transformBounds(0, 0, xf.width, xf.height);
-            let nh = NumCast(this.dataDoc.nativeHeight, 0);
+            let nh = this.props.Document.isTemplate ? 0 : NumCast(this.dataDoc.nativeHeight, 0);
             let dh = NumCast(this.props.Document.height, 0);
             let sh = scrBounds.height;
             const ChromeHeight = MainOverlayTextBox.Instance.ChromeHeight;
@@ -655,12 +654,12 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     specificContextMenu = (e: React.MouseEvent): void => {
-        let subitems: ContextMenuProps[] = [];
-        subitems.push({
-            description: BoolCast(this.props.Document.autoHeight) ? "Manual Height" : "Auto Height",
-            event: action(() => Doc.GetProto(this.props.Document).autoHeight = !BoolCast(this.props.Document.autoHeight)), icon: "expand-arrows-alt"
-        });
-        ContextMenu.Instance.addItem({ description: "Text Funcs...", subitems: subitems, icon: "text-height" });
+        // let subitems: ContextMenuProps[] = [];
+        // subitems.push({
+        //     description: BoolCast(this.props.Document.autoHeight) ? "Manual Height" : "Auto Height",
+        //     event: action(() => Doc.GetProto(this.props.Document).autoHeight = !BoolCast(this.props.Document.autoHeight)), icon: "expand-arrows-alt"
+        // });
+        // ContextMenu.Instance.addItem({ description: "Text Funcs...", subitems: subitems, icon: "text-height" });
     }
     render() {
         let self = this;

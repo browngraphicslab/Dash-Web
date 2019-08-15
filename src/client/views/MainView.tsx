@@ -321,6 +321,7 @@ export class MainView extends React.Component {
                             DataDoc={undefined}
                             addDocument={undefined}
                             addDocTab={emptyFunction}
+                            onClick={undefined}
                             removeDocument={undefined}
                             ScreenToLocalTransform={Transform.Identity}
                             ContentScaling={returnOne}
@@ -385,6 +386,7 @@ export class MainView extends React.Component {
             addDocument={undefined}
             addDocTab={this.addDocTabFunc}
             removeDocument={undefined}
+            onClick={undefined}
             ScreenToLocalTransform={Transform.Identity}
             ContentScaling={returnOne}
             PanelWidth={this.flyoutWidthFunc}
@@ -435,7 +437,6 @@ export class MainView extends React.Component {
     }
 
 
-    private mode: DocServer.WriteMode = DocServer.WriteMode.Always;
     @observable private _colorPickerDisplay = false;
     /* for the expandable add nodes menu. Not included with the miscbuttons because once it expands it expands the whole div with it, making canvas interactions limited. */
     nodesMenu() {
@@ -447,7 +448,7 @@ export class MainView extends React.Component {
         //let addTreeNode = action(() => Docs.TreeDocument([CurrentUserUtils.UserDocument], { width: 250, height: 400, title: "Library:" + CurrentUserUtils.email, dropAction: "alias" }));
         // let addTreeNode = action(() => Docs.TreeDocument(this._northstarSchemas, { width: 250, height: 400, title: "northstar schemas", dropAction: "copy"  }));
         let addColNode = action(() => Docs.Create.FreeformDocument([], { width: this.pwidth * .7, height: this.pheight, title: "a freeform collection" }));
-        let addTreeNode = action(() => CurrentUserUtils.UserDocument);
+        let addDragboxNode = action(() => Docs.Create.DragboxDocument({ width: 40, height: 40, title: "drag collection" }));
         let addImageNode = action(() => Docs.Create.ImageDocument(imgurl, { width: 200, title: "an image of a cat" }));
         let addButtonDocument = action(() => Docs.Create.ButtonDocument({ width: 150, height: 50, title: "Button" }));
         let addImportCollectionNode = action(() => Docs.Create.DirectoryImportDocument({ title: "Directory Import", width: 400, height: 400 }));
@@ -459,10 +460,25 @@ export class MainView extends React.Component {
             [React.createRef<HTMLDivElement>(), "bolt", "Add Button", addButtonDocument],
             // [React.createRef<HTMLDivElement>(), "clone", "Add Docking Frame", addDockingNode],
             [React.createRef<HTMLDivElement>(), "cloud-upload-alt", "Import Directory", addImportCollectionNode],
-            [React.createRef<HTMLDivElement>(), "play", "Add Youtube Searcher", addYoutubeSearcher]
+            [React.createRef<HTMLDivElement>(), "play", "Add Youtube Searcher", addYoutubeSearcher],
+            [React.createRef<HTMLDivElement>(), "file", "Add Document Dragger", addDragboxNode]
         ];
         if (!ClientUtils.RELEASE) btns.unshift([React.createRef<HTMLDivElement>(), "cat", "Add Cat Image", addImageNode]);
 
+        const setWriteMode = (mode: DocServer.WriteMode) => {
+            console.log(DocServer.WriteMode[mode]);
+            const mode1 = mode;
+            const mode2 = mode === DocServer.WriteMode.Default ? mode : DocServer.WriteMode.Playground;
+            DocServer.setFieldWriteMode("x", mode1);
+            DocServer.setFieldWriteMode("y", mode1);
+            DocServer.setFieldWriteMode("width", mode1);
+            DocServer.setFieldWriteMode("height", mode1);
+
+            DocServer.setFieldWriteMode("panX", mode2);
+            DocServer.setFieldWriteMode("panY", mode2);
+            DocServer.setFieldWriteMode("scale", mode2);
+            DocServer.setFieldWriteMode("viewType", mode2);
+        };
         return < div id="add-nodes-menu" style={{ left: this.flyoutWidth + 20, bottom: 20 }} >
             <input type="checkbox" id="add-menu-toggle" ref={this.addMenuToggle} />
             <label htmlFor="add-menu-toggle" style={{ marginTop: 2 }} title="Add Node"><p>+</p></label>
@@ -480,13 +496,12 @@ export class MainView extends React.Component {
                             </button>
                         </div></li>)}
                     <li key="undoTest"><button className="add-button round-button" title="Click if undo isn't working" onClick={() => UndoManager.TraceOpenBatches()}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>
-                    <li key="test"><button className="add-button round-button" title="asdf" onClick={() => {
-                        this.mode++;
-                        this.mode = this.mode % 3;
-                        console.log(DocServer.WriteMode[this.mode]);
-                        DocServer.setFieldWriteMode("x", this.mode);
-                        DocServer.setFieldWriteMode("y", this.mode);
-                    }}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>
+                    {ClientUtils.RELEASE ? [] : [
+                        <li key="test"><button className="add-button round-button" title="Default" onClick={() => setWriteMode(DocServer.WriteMode.Default)}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>,
+                        <li key="test1"><button className="add-button round-button" title="Playground" onClick={() => setWriteMode(DocServer.WriteMode.Playground)}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>,
+                        <li key="test2"><button className="add-button round-button" title="Live Playground" onClick={() => setWriteMode(DocServer.WriteMode.LivePlayground)}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>,
+                        <li key="test3"><button className="add-button round-button" title="Live Readonly" onClick={() => setWriteMode(DocServer.WriteMode.LiveReadonly)}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>
+                    ]}
                     <li key="color"><button className="add-button round-button" title="Select Color" style={{ zIndex: 1000 }} onClick={() => this.toggleColorPicker()}><div className="toolbar-color-button" style={{ backgroundColor: InkingControl.Instance.selectedColor }} >
                         <div className="toolbar-color-picker" onClick={this.onColorClick} style={this._colorPickerDisplay ? { color: "black", display: "block" } : { color: "black", display: "none" }}>
                             <SketchPicker color={InkingControl.Instance.selectedColor} onChange={InkingControl.Instance.switchColor} />

@@ -537,12 +537,12 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 doc.x = (doc.x || 0) + dX * (actualdW - width);
                 doc.y = (doc.y || 0) + dY * (actualdH - height);
                 let proto = doc.isTemplate ? doc : Doc.GetProto(element.props.Document); // bcz: 'doc' didn't work here...
-                let fixedAspect = e.ctrlKey || (!BoolCast(proto.ignoreAspect) && nwidth && nheight);
+                let fixedAspect = e.ctrlKey || (!BoolCast(doc.ignoreAspect) && nwidth && nheight);
                 if (fixedAspect && (!nwidth || !nheight)) {
                     proto.nativeWidth = nwidth = doc.width || 0;
                     proto.nativeHeight = nheight = doc.height || 0;
                 }
-                if (nwidth > 0 && nheight > 0 && !BoolCast(proto.ignoreAspect)) {
+                if (nwidth > 0 && nheight > 0 && !BoolCast(doc.ignoreAspect)) {
                     if (Math.abs(dW) > Math.abs(dH)) {
                         if (!fixedAspect) {
                             Doc.SetInPlace(element.props.Document, "nativeWidth", actualdW / (doc.width || 1) * (doc.nativeWidth || 0), true);
@@ -562,7 +562,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 } else {
                     dW && (doc.width = actualdW);
                     dH && (doc.height = actualdH);
-                    dH && Doc.SetInPlace(element.props.Document, "autoHeight", undefined, true);
+                    dH && element.props.Document.autoHeight && Doc.SetInPlace(element.props.Document, "autoHeight", false, true);
                 }
             }
         });
