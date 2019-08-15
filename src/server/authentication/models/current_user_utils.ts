@@ -10,8 +10,9 @@ import { CollectionView } from "../../../client/views/collections/CollectionView
 import { Doc } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
-import { Cast } from "../../../new_fields/Types";
+import { Cast, FieldValue, StrCast } from "../../../new_fields/Types";
 import { RouteStore } from "../../RouteStore";
+import { Utils } from "../../../Utils";
 
 export class CurrentUserUtils {
     private static curr_email: string;
@@ -32,28 +33,71 @@ export class CurrentUserUtils {
         doc.dropAction = "alias";
         doc.layout = CollectionView.LayoutString();
         doc.title = this.email;
+        this.updateUserDocument(doc);
         doc.data = new List<Doc>();
+        doc.gridGap = 5;
+        doc.xMargin = 5;
+        doc.yMargin = 5;
+        doc.boxShadow = "0 0";
         doc.excludeFromLibrary = true;
-        doc.optionalRightCollection = Docs.StackingDocument([], { title: "New mobile uploads" });
-        // doc.library = Docs.TreeDocument([doc], { title: `Library: ${CurrentUserUtils.email}` });
+        doc.optionalRightCollection = Docs.Create.StackingDocument([], { title: "New mobile uploads" });
+        // doc.library = Docs.Create.TreeDocument([doc], { title: `Library: ${CurrentUserUtils.email}` });
         // (doc.library as Doc).excludeFromLibrary = true;
         return doc;
     }
 
-    public static async loadCurrentUser(): Promise<any> {
-        let userPromise = rp.get(DocServer.prepend(RouteStore.getCurrUser)).then(response => {
+    static updateUserDocument(doc: Doc) {
+        if (doc.workspaces === undefined) {
+            const workspaces = Docs.Create.TreeDocument([], { title: "Workspaces", height: 100 });
+            workspaces.excludeFromLibrary = true;
+            workspaces.workspaceLibrary = true;
+            workspaces.boxShadow = "0 0";
+            doc.workspaces = workspaces;
+        }
+        if (doc.recentlyClosed === undefined) {
+            const recentlyClosed = Docs.Create.TreeDocument([], { title: "Recently Closed", height: 75 });
+            recentlyClosed.excludeFromLibrary = true;
+            recentlyClosed.boxShadow = "0 0";
+            doc.recentlyClosed = recentlyClosed;
+        }
+        if (doc.sidebar === undefined) {
+            const sidebar = Docs.Create.StackingDocument([doc.workspaces as Doc, doc, doc.recentlyClosed as Doc], { title: "Sidebar" });
+            sidebar.excludeFromLibrary = true;
+            sidebar.gridGap = 5;
+            sidebar.xMargin = 5;
+            sidebar.yMargin = 5;
+            Doc.GetProto(sidebar).backgroundColor = "#aca3a6";
+            sidebar.boxShadow = "1 1 3";
+            doc.sidebar = sidebar;
+        }
+        StrCast(doc.title).indexOf("@") !== -1 && (doc.title = StrCast(doc.title).split("@")[0] + "'s Library");
+        doc.width = 100;
+    }
+
+    public static loadCurrentUser() {
+        return rp.get(Utils.prepend(RouteStore.getCurrUser)).then(response => {
             if (response) {
-                let obj = JSON.parse(response);
-                CurrentUserUtils.curr_id = obj.id as string;
-                CurrentUserUtils.curr_email = obj.email as string;
+                const result: { id: string, email: string } = JSON.parse(response);
+                return result;
             } else {
                 throw new Error("There should be a user! Why does Dash think there isn't one?");
             }
         });
-        let userDocPromise = await rp.get(DocServer.prepend(RouteStore.getUserDocumentId)).then(id => {
+    }
+
+    public static async loadUserDocument({ id, email }: { id: string, email: string }) {
+        this.curr_id = id;
+        this.curr_email = email;
+        await rp.get(Utils.prepend(RouteStore.getUserDocumentId)).then(id => {
             if (id) {
-                return DocServer.GetRefField(id).then(field =>
-                    runInAction(() => this.user_document = field instanceof Doc ? field : this.createUserDocument(id)));
+                return DocServer.GetRefField(id).then(async field => {
+                    if (field instanceof Doc) {
+                        await this.updateUserDocument(field);
+                        runInAction(() => this.user_document = field);
+                    } else {
+                        runInAction(() => this.user_document = this.createUserDocument(id));
+                    }
+                });
             } else {
                 throw new Error("There should be a user id! Why does Dash think there isn't one?");
             }
@@ -69,7 +113,6 @@ export class CurrentUserUtils {
         } catch (e) {
 
         }
-        return Promise.all([userPromise, userDocPromise]);
     }
 
     /* Northstar catalog ... really just for testing so this should eventually go away */
@@ -95,12 +138,12 @@ export class CurrentUserUtils {
         //                         new AttributeTransformationModel(atmod, AggregateFunction.None),
         //                         new AttributeTransformationModel(atmod, AggregateFunction.Count),
         //                         new AttributeTransformationModel(atmod, AggregateFunction.Count));
-        //                     schemaDocuments.push(Docs.HistogramDocument(histoOp, { width: 200, height: 200, title: attr.displayName! }));
+        //                     schemaDocuments.push(Docs.Create.HistogramDocument(histoOp, { width: 200, height: 200, title: attr.displayName! }));
         //                 }
         //             })));
         //             return promises;
         //         }, [] as Promise<void>[]));
-        //         return CurrentUserUtils._northstarSchemas.push(Docs.TreeDocument(schemaDocuments, { width: 50, height: 100, title: schema.displayName! }));
+        //         return CurrentUserUtils._northstarSchemas.push(Docs.Create.TreeDocument(schemaDocuments, { width: 50, height: 100, title: schema.displayName! }));
         //     });
         // }
     }

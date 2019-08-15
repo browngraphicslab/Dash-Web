@@ -91,12 +91,12 @@ $header-height: 30px;
     width: 4px;
     float: left; 
     height: 30px;
-    width: 10px;
+    width: 5px;
     z-index: 20;
     right: 0;
     top: 0;
-    border-radius: 10px;
-    background: gray;
+    border-radius: 0;
+    background: black;
     pointer-events: all;
 }
 .keyValueBox-dividerDragger{

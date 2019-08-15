@@ -1,14 +1,14 @@
-import { computed, observable } from 'mobx';
-import { DocumentView } from '../views/nodes/DocumentView';
-import { Doc, DocListCast, Opt } from '../../new_fields/Doc';
-import { FieldValue, Cast, NumCast, BoolCast } from '../../new_fields/Types';
-import { listSpec } from '../../new_fields/Schema';
-import { undoBatch } from './UndoManager';
+import { action, computed, observable } from 'mobx';
+import { Doc, DocListCastAsync } from '../../new_fields/Doc';
+import { Id } from '../../new_fields/FieldSymbols';
+import { Cast, NumCast } from '../../new_fields/Types';
 import { CollectionDockingView } from '../views/collections/CollectionDockingView';
-import { CollectionView } from '../views/collections/CollectionView';
 import { CollectionPDFView } from '../views/collections/CollectionPDFView';
 import { CollectionVideoView } from '../views/collections/CollectionVideoView';
-import { Id } from '../../new_fields/FieldSymbols';
+import { CollectionView } from '../views/collections/CollectionView';
+import { DocumentView } from '../views/nodes/DocumentView';
+import { LinkManager } from './LinkManager';
+import { undoBatch, UndoManager } from './UndoManager';
 
 
 export class DocumentManager {
@@ -30,14 +30,37 @@ export class DocumentManager {
         // this.DocumentViews = new Array<DocumentView>();
     }
 
+    //gets all views
+    public getDocumentViewsById(id: string) {
+        let toReturn: DocumentView[] = [];
+        DocumentManager.Instance.DocumentViews.map(view => {
+            if (view.props.Document[Id] === id) {
+                toReturn.push(view);
+            }
+        });
+        if (toReturn.length === 0) {
+            DocumentManager.Instance.DocumentViews.map(view => {
+                let doc = view.props.Document.proto;
+                if (doc && doc[Id]) {
+                    if (doc[Id] === id) { toReturn.push(view); }
+                }
+            });
+        }
+        return toReturn;
+    }
+
+    public getAllDocumentViews(doc: Doc) {
+        return this.getDocumentViewsById(doc[Id]);
+    }
+
     public getDocumentViewById(id: string, preferredCollection?: CollectionView | CollectionPDFView | CollectionVideoView): DocumentView | null {
 
         let toReturn: DocumentView | null = null;
         let passes = preferredCollection ? [preferredCollection, undefined] : [undefined];
 
-        for (let i = 0; i < passes.length; i++) {
+        for (let pass of passes) {
             DocumentManager.Instance.DocumentViews.map(view => {
-                if (view.props.Document[Id] === id && (!passes[i] || view.props.ContainingCollectionView === preferredCollection)) {
+                if (view.props.Document[Id] === id && (!pass || view.props.ContainingCollectionView === preferredCollection)) {
                     toReturn = view;
                     return;
                 }
@@ -45,7 +68,7 @@ export class DocumentManager {
             if (!toReturn) {
                 DocumentManager.Instance.DocumentViews.map(view => {
                     let doc = view.props.Document.proto;
-                    if (doc && doc[Id] === id && (!passes[i] || view.props.ContainingCollectionView === preferredCollection)) {
+                    if (doc && doc[Id] === id && (!pass || view.props.ContainingCollectionView === preferredCollection)) {
                         toReturn = view;
                     }
                 });
@@ -66,13 +89,11 @@ export class DocumentManager {
         //gets document view that is in a freeform canvas collection
         DocumentManager.Instance.DocumentViews.map(view => {
             let doc = view.props.Document;
-            // if (view.props.ContainingCollectionView instanceof CollectionFreeFormView) {
 
             if (doc === toFind) {
                 toReturn.push(view);
             } else {
-                let docSrc = FieldValue(doc.proto);
-                if (docSrc && Object.is(docSrc, toFind)) {
+                if (Doc.AreProtosEqual(doc, toFind)) {
                     toReturn.push(view);
                 }
             }
@@ -83,39 +104,29 @@ export class DocumentManager {
 
     @computed
     public get LinkedDocumentViews() {
-        return DocumentManager.Instance.DocumentViews.filter(dv => dv.isSelected() || BoolCast(dv.props.Document.libraryBrush, false)).reduce((pairs, dv) => {
-            let linksList = DocListCast(dv.props.Document.linkedToDocs);
-            if (linksList && linksList.length) {
-                pairs.push(...linksList.reduce((pairs, link) => {
-                    if (link) {
-                        let linkToDoc = FieldValue(Cast(link.linkedTo, Doc));
-                        if (linkToDoc) {
-                            DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 =>
-                                pairs.push({ a: dv, b: docView1, l: link }));
-                        }
+        let pairs = DocumentManager.Instance.DocumentViews.filter(dv => dv.isSelected() || Doc.IsBrushed(dv.props.Document)).reduce((pairs, dv) => {
+            let linksList = LinkManager.Instance.getAllRelatedLinks(dv.props.Document);
+            pairs.push(...linksList.reduce((pairs, link) => {
+                if (link) {
+                    let linkToDoc = LinkManager.Instance.getOppositeAnchor(link, dv.props.Document);
+                    if (linkToDoc) {
+                        DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 => {
+                            pairs.push({ a: dv, b: docView1, l: link });
+                        });
                     }
-                    return pairs;
-                }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]));
-            }
-            linksList = DocListCast(dv.props.Document.linkedFromDocs);
-            if (linksList && linksList.length) {
-                pairs.push(...linksList.reduce((pairs, link) => {
-                    if (link) {
-                        let linkFromDoc = FieldValue(Cast(link.linkedFrom, Doc));
-                        if (linkFromDoc) {
-                            DocumentManager.Instance.getDocumentViews(linkFromDoc).map(docView1 =>
-                                pairs.push({ a: dv, b: docView1, l: link }));
-                        }
-                    }
-                    return pairs;
-                }, pairs));
-            }
+                }
+                return pairs;
+            }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]));
+            // }
             return pairs;
         }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]);
+
+        return pairs;
     }
 
+
     @undoBatch
-    public jumpToDocument = async (docDelegate: Doc, forceDockFunc: boolean = false, dockFunc?: (doc: Doc) => void, linkPage?: number, docContext?: Doc): Promise<void> => {
+    public jumpToDocument = async (docDelegate: Doc, willZoom: boolean, forceDockFunc: boolean = false, dockFunc?: (doc: Doc) => void, linkPage?: number, docContext?: Doc): Promise<void> => {
         let doc = Doc.GetProto(docDelegate);
         const contextDoc = await Cast(doc.annotationOn, Doc);
         if (contextDoc) {
@@ -127,41 +138,68 @@ export class DocumentManager {
         let docView: DocumentView | null;
         // using forceDockFunc as a flag for splitting linked to doc to the right...can change later if needed
         if (!forceDockFunc && (docView = DocumentManager.Instance.getDocumentView(doc))) {
-            docView.props.Document.libraryBrush = true;
+            Doc.BrushDoc(docView.props.Document);
             if (linkPage !== undefined) docView.props.Document.curPage = linkPage;
-            docView.props.focus(docView.props.Document);
+            UndoManager.RunInBatch(() => docView!.props.focus(docView!.props.Document, willZoom), "focus");
         } else {
             if (!contextDoc) {
-                if (docContext) {
+                let docs = docContext ? await DocListCastAsync(docContext.data) : undefined;
+                let found = false;
+                docs && docs.map(d => found = found || Doc.AreProtosEqual(d, docDelegate));
+                if (docContext && found) {
                     let targetContextView: DocumentView | null;
+
                     if (!forceDockFunc && docContext && (targetContextView = DocumentManager.Instance.getDocumentView(docContext))) {
                         docContext.panTransformType = "Ease";
-                        targetContextView.props.focus(docDelegate);
+                        targetContextView.props.focus(docDelegate, willZoom);
                     } else {
-                        (dockFunc || CollectionDockingView.Instance.AddRightSplit)(docContext);
+                        (dockFunc || CollectionDockingView.Instance.AddRightSplit)(docContext, undefined);
                         setTimeout(() => {
-                            this.jumpToDocument(docDelegate, forceDockFunc, dockFunc, linkPage);
+                            this.jumpToDocument(docDelegate, willZoom, forceDockFunc, dockFunc, linkPage);
                         }, 10);
                     }
                 } else {
                     const actualDoc = Doc.MakeAlias(docDelegate);
-                    actualDoc.libraryBrush = true;
+                    Doc.BrushDoc(actualDoc);
                     if (linkPage !== undefined) actualDoc.curPage = linkPage;
-                    (dockFunc || CollectionDockingView.Instance.AddRightSplit)(actualDoc);
+                    (dockFunc || CollectionDockingView.Instance.AddRightSplit)(actualDoc, undefined);
                 }
             } else {
                 let contextView: DocumentView | null;
-                docDelegate.libraryBrush = true;
+                Doc.BrushDoc(docDelegate);
                 if (!forceDockFunc && (contextView = DocumentManager.Instance.getDocumentView(contextDoc))) {
                     contextDoc.panTransformType = "Ease";
-                    contextView.props.focus(docDelegate);
+                    contextView.props.focus(docDelegate, willZoom);
                 } else {
-                    (dockFunc || CollectionDockingView.Instance.AddRightSplit)(contextDoc);
+                    (dockFunc || CollectionDockingView.Instance.AddRightSplit)(contextDoc, undefined);
                     setTimeout(() => {
-                        this.jumpToDocument(docDelegate, forceDockFunc, dockFunc, linkPage);
+                        this.jumpToDocument(docDelegate, willZoom, forceDockFunc, dockFunc, linkPage);
                     }, 10);
                 }
             }
+        }
+    }
+
+    @action
+    zoomIntoScale = (docDelegate: Doc, scale: number) => {
+        let doc = Doc.GetProto(docDelegate);
+
+        let docView: DocumentView | null;
+        docView = DocumentManager.Instance.getDocumentView(doc);
+        if (docView) {
+            docView.props.zoomToScale(scale);
+        }
+    }
+
+    getScaleOfDocView = (docDelegate: Doc) => {
+        let doc = Doc.GetProto(docDelegate);
+
+        let docView: DocumentView | null;
+        docView = DocumentManager.Instance.getDocumentView(doc);
+        if (docView) {
+            return docView.props.getScale();
+        } else {
+            return 1;
         }
     }
 }

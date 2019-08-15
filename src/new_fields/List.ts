@@ -1,4 +1,4 @@
-import { Deserializable, autoObject } from "../client/util/SerializationHelper";
+import { Deserializable, autoObject, afterDocDeserialize } from "../client/util/SerializationHelper";
 import { Field } from "./Doc";
 import { setter, getter, deleteProperty, updateFunction } from "./util";
 import { serializable, alias, list } from "serializr";
@@ -7,6 +7,7 @@ import { ObjectField } from "./ObjectField";
 import { RefField } from "./RefField";
 import { ProxyField } from "./Proxy";
 import { Self, Update, Parent, OnUpdate, SelfProxy, ToScriptString, Copy } from "./FieldSymbols";
+import { Scripting } from "../client/util/Scripting";
 
 const listHandlers: any = {
     /// Mutator methods
@@ -253,7 +254,7 @@ class ListImpl<T extends Field> extends ObjectField {
 
     [key: number]: T | (T extends RefField ? Promise<T> : never);
 
-    @serializable(alias("fields", list(autoObject())))
+    @serializable(alias("fields", list(autoObject(), { afterDeserialize: afterDocDeserialize })))
     private get __fields() {
         return this.___fields;
     }
@@ -295,3 +296,5 @@ class ListImpl<T extends Field> extends ObjectField {
 }
 export type List<T extends Field> = ListImpl<T> & (T | (T extends RefField ? Promise<T> : never))[];
 export const List: { new <T extends Field>(fields?: T[]): List<T> } = ListImpl as any;
+
+Scripting.addGlobal("List", List);

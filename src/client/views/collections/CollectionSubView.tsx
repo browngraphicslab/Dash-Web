@@ -1,24 +1,26 @@
-import { action } from "mobx";
+import { action, computed } from "mobx";
 import * as rp from 'request-promise';
 import CursorField from "../../../new_fields/CursorField";
-import { Doc, DocListCast, Opt } from "../../../new_fields/Doc";
+import { Doc, DocListCast } from "../../../new_fields/Doc";
+import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
-import { Cast, PromiseValue } from "../../../new_fields/Types";
+import { ScriptField } from "../../../new_fields/ScriptField";
+import { BoolCast, Cast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { RouteStore } from "../../../server/RouteStore";
+import { Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
-import { Docs, DocumentOptions } from "../../documents/Documents";
+import { Docs, DocumentOptions, DocumentType } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocComponent } from "../DocComponent";
 import { FieldViewProps } from "../nodes/FieldView";
+import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { CollectionPDFView } from "./CollectionPDFView";
 import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
 import React = require("react");
-import { FormattedTextBox } from "../nodes/FormattedTextBox";
-import { Id } from "../../../new_fields/FieldSymbols";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
@@ -26,6 +28,7 @@ export interface CollectionViewProps extends FieldViewProps {
     moveDocument: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     PanelWidth: () => number;
     PanelHeight: () => number;
+    chromeCollapsed: boolean;
 }
 
 export interface SubCollectionViewProps extends CollectionViewProps {
@@ -36,9 +39,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
     class CollectionSubView extends DocComponent<SubCollectionViewProps, T>(schemaCtor) {
         private dropDisposer?: DragManager.DragDropDisposer;
         protected createDropTarget = (ele: HTMLDivElement) => {
-            if (this.dropDisposer) {
-                this.dropDisposer();
-            }
+            this.dropDisposer && this.dropDisposer();
             if (ele) {
                 this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
             }
@@ -47,10 +48,33 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             this.createDropTarget(ele);
         }
 
+        @computed get extensionDoc() { return Doc.resolvedFieldDataDoc(BoolCast(this.props.Document.isTemplate) && this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey, this.props.fieldExt); }
+
+
         get childDocs() {
+            let self = this;
             //TODO tfs: This might not be what we want?
             //This linter error can't be fixed because of how js arguments work, so don't switch this to filter(FieldValue)
-            return DocListCast(this.props.Document[this.props.fieldKey]);
+            let docs = DocListCast(this.extensionDoc[this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey]);
+            let viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
+            if (viewSpecScript) {
+                let script = viewSpecScript.script;
+                docs = docs.filter(d => {
+                    let res = script.run({ doc: d });
+                    if (res.success) {
+                        return res.result;
+                    }
+                    else {
+                        console.log(res.error);
+                    }
+                });
+            }
+            return docs;
+        }
+        get childDocList() {
+            //TODO tfs: This might not be what we want?
+            //This linter error can't be fixed because of how js arguments work, so don't switch this to filter(FieldValue)
+            return Cast(this.extensionDoc[this.props.fieldExt ? this.props.fieldExt : this.props.fieldKey], listSpec(Doc));
         }
 
         @action
@@ -61,9 +85,16 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             let email = CurrentUserUtils.email;
             let pos = { x: position[0], y: position[1] };
             if (id && email) {
-                const proto = await doc.proto;
+                const proto = Doc.GetProto(doc);
                 if (!proto) {
                     return;
+                }
+                // The following conditional detects a recurring bug we've seen on the server
+                if (proto[Id] === Docs.Prototypes.get(DocumentType.COL)[Id]) {
+                    alert("COLLECTION PROTO CURSOR ISSUE DETECTED! Check console for more info...");
+                    console.log(doc);
+                    console.log(proto);
+                    throw new Error(`AHA! You were trying to set a cursor on a collection's proto, which is the original collection proto! Look at the two previously printed lines for document values!`);
                 }
                 let cursors = Cast(proto.cursors, listSpec(CursorField));
                 if (!cursors) {
@@ -82,6 +113,13 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         @action
         protected drop(e: Event, de: DragManager.DropEvent): boolean {
             if (de.data instanceof DragManager.DocumentDragData) {
+                if (de.mods === "AltKey" && de.data.draggedDocuments.length) {
+                    this.childDocs.map(doc =>
+                        Doc.ApplyTemplateTo(de.data.draggedDocuments[0], doc, undefined)
+                    );
+                    e.stopPropagation();
+                    return true;
+                }
                 let added = false;
                 if (de.data.dropAction || de.data.userDropAction) {
                     added = de.data.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
@@ -95,53 +133,16 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 e.stopPropagation();
                 return added;
             }
+            else if (de.data instanceof DragManager.AnnotationDragData) {
+                e.stopPropagation();
+                return this.props.addDocument(de.data.dropDocument);
+            }
             return false;
-        }
-
-        protected async getDocumentFromType(type: string, path: string, options: DocumentOptions): Promise<Opt<Doc>> {
-            let ctor: ((path: string, options: DocumentOptions) => (Doc | Promise<Doc | undefined>)) | undefined = undefined;
-            if (type.indexOf("image") !== -1) {
-                ctor = Docs.ImageDocument;
-            }
-            if (type.indexOf("video") !== -1) {
-                ctor = Docs.VideoDocument;
-            }
-            if (type.indexOf("audio") !== -1) {
-                ctor = Docs.AudioDocument;
-            }
-            if (type.indexOf("pdf") !== -1) {
-                ctor = Docs.PdfDocument;
-                options.nativeWidth = 1200;
-            }
-            if (type.indexOf("excel") !== -1) {
-                ctor = Docs.DBDocument;
-                options.dropAction = "copy";
-            }
-            if (type.indexOf("html") !== -1) {
-                if (path.includes(window.location.hostname)) {
-                    let s = path.split('/');
-                    let id = s[s.length - 1];
-                    DocServer.GetRefField(id).then(field => {
-                        if (field instanceof Doc) {
-                            let alias = Doc.MakeAlias(field);
-                            alias.x = options.x || 0;
-                            alias.y = options.y || 0;
-                            alias.width = options.width || 300;
-                            alias.height = options.height || options.width || 300;
-                            this.props.addDocument(alias, false);
-                        }
-                    });
-                    return undefined;
-                }
-                ctor = Docs.WebDocument;
-                options = { height: options.width, ...options, title: path, nativeWidth: undefined };
-            }
-            return ctor ? ctor(path, options) : undefined;
         }
 
         @undoBatch
         @action
-        protected onDrop(e: React.DragEvent, options: DocumentOptions): void {
+        protected onDrop(e: React.DragEvent, options: DocumentOptions, completed?: () => void) {
             if (e.ctrlKey) {
                 e.stopPropagation(); // bcz: this is a hack to stop propagation when dropping an image on a text document with shift+ctrl
                 return;
@@ -167,21 +168,42 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                             }
                         });
                     } else {
-                        this.props.addDocument && this.props.addDocument(Docs.WebDocument(href, options));
+                        this.props.addDocument && this.props.addDocument(Docs.Create.WebDocument(href, options));
                     }
                 } else if (text) {
-                    this.props.addDocument && this.props.addDocument(Docs.TextDocument({ ...options, width: 100, height: 25, documentText: "@@@" + text }), false);
+                    this.props.addDocument && this.props.addDocument(Docs.Create.TextDocument({ ...options, width: 100, height: 25, documentText: "@@@" + text }), false);
                 }
                 return;
             }
-            if (html && html.indexOf("<img") !== 0 && !html.startsWith("<a")) {
-                let htmlDoc = Docs.HtmlDocument(html, { ...options, width: 300, height: 300, documentText: text });
-                this.props.addDocument(htmlDoc, false);
-                return;
+            if (html && !html.startsWith("<a")) {
+                let tags = html.split("<");
+                if (tags[0] === "") tags.splice(0, 1);
+                let img = tags[0].startsWith("img") ? tags[0] : tags.length > 1 && tags[1].startsWith("img") ? tags[1] : "";
+                if (img) {
+                    let split = img.split("src=\"")[1].split("\"")[0];
+                    let doc = Docs.Create.ImageDocument(split, { ...options, width: 300 });
+                    this.props.addDocument(doc, false);
+                    return;
+                } else {
+                    let path = window.location.origin + "/doc/";
+                    if (text.startsWith(path)) {
+                        let docid = text.replace(Utils.prepend("/doc/"), "").split("?")[0];
+                        DocServer.GetRefField(docid).then(f => {
+                            if (f instanceof Doc) {
+                                if (options.x || options.y) { f.x = options.x; f.y = options.y; } // should be in CollectionFreeFormView
+                                (f instanceof Doc) && this.props.addDocument(f, false);
+                            }
+                        });
+                    } else {
+                        let htmlDoc = Docs.Create.HtmlDocument(html, { ...options, width: 300, height: 300, documentText: text });
+                        this.props.addDocument(htmlDoc, false);
+                    }
+                    return;
+                }
             }
             if (text && text.indexOf("www.youtube.com/watch") !== -1) {
                 const url = text.replace("youtube.com/watch?v=", "youtube.com/embed/");
-                this.props.addDocument(Docs.WebDocument(url, { ...options, width: 300, height: 300 }));
+                this.props.addDocument(Docs.Create.VideoDocument(url, { ...options, title: url, width: 400, height: 315, nativeWidth: 600, nativeHeight: 472.5 }));
                 return;
             }
 
@@ -194,11 +216,11 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 if (item.kind === "string" && item.type.indexOf("uri") !== -1) {
                     let str: string;
                     let prom = new Promise<string>(resolve => e.dataTransfer.items[i].getAsString(resolve))
-                        .then(action((s: string) => rp.head(DocServer.prepend(RouteStore.corsProxy + "/" + (str = s)))))
+                        .then(action((s: string) => rp.head(Utils.CorsProxy(str = s))))
                         .then(result => {
                             let type = result["content-type"];
                             if (type) {
-                                this.getDocumentFromType(type, str, { ...options, width: 300, nativeWidth: 300 })
+                                Docs.Get.DocumentFromType(type, str, { ...options, width: 300, nativeWidth: type.indexOf("video") !== -1 ? 600 : 300 })
                                     .then(doc => doc && this.props.addDocument(doc, false));
                             }
                         });
@@ -219,10 +241,9 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                         body: formData
                     }).then(async (res: Response) => {
                         (await res.json()).map(action((file: any) => {
-                            let path = window.location.origin + file;
-                            let docPromise = this.getDocumentFromType(type, path, { ...options, nativeWidth: 300, width: 300, title: dropFileName });
-
-                            docPromise.then(doc => doc && this.props.addDocument(doc));
+                            let full = { ...options, nativeWidth: type.indexOf("video") !== -1 ? 600 : 300, width: 300, title: dropFileName };
+                            let path = Utils.prepend(file);
+                            Docs.Get.DocumentFromType(type, path, full).then(doc => doc && this.props.addDocument(doc));
                         }));
                     });
                     promises.push(prom);
@@ -230,7 +251,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             }
 
             if (promises.length) {
-                Promise.all(promises).finally(() => batch.end());
+                Promise.all(promises).finally(() => { completed && completed(); batch.end(); });
             } else {
                 batch.end();
             }

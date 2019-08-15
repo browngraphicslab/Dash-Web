@@ -6,21 +6,25 @@
     z-index: $contextMenu-zindex;
     box-shadow: $intermediate-color 0.2vw 0.2vw 0.4vw;
     flex-direction: column;
+    background: whitesmoke;
+    padding-bottom: 10px;
+    border-radius: 15px;
+    border: solid #BBBBBBBB 1px;
 }
 
-.contextMenu-item:first-child {
-    background: $intermediate-color;
-    color: $light-color;
-}
+// .contextMenu-item:first-child {
+//     background: $intermediate-color;
+//     color: $light-color;
+// }
 
-.contextMenu-item:first-child::placeholder {
-    color: $light-color;
-}
+// .contextMenu-item:first-child::placeholder {
+//     color: $light-color;
+// }
 
-.contextMenu-item:first-child:hover {
-    background: $intermediate-color;
-    color: $light-color;
-}
+// .contextMenu-item:first-child:hover {
+//     background: $intermediate-color;
+//     color: $light-color;
+// }
 
 .contextMenu-subMenu-cont {
     position: absolute;
@@ -28,12 +32,54 @@
     z-index: 1000;
     box-shadow: #AAAAAA .2vw .2vw .4vw;
     flex-direction: column;
+    border: 1px solid #BBBBBBBB;
+    border-radius: 15px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    background: whitesmoke;
 }
 
 .contextMenu-item {
     // width: 11vw; //10vw
     height: 30px; //2vh
-    background: #DDDDDD;
+    background: whitesmoke;
+    display: flex; //comment out to allow search icon to be inline with search text
+    justify-content: left;
+    align-items: center;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    transition: all .1s;
+    border-style: none;
+    // padding: 10px 0px 10px 0px;
+    white-space: nowrap;
+    font-size: 13px;
+    color: grey;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding-right: 30px;
+}
+
+.contextMenu-item:hover {
+    border-width: .11px;
+    border-style: none;
+    border-color: $intermediate-color; //  rgb(187, 186, 186);
+    border-bottom-style: solid;
+    border-top-style: solid;
+}
+
+.contextMenu-itemSelected {
+    background: lightgoldenrodyellow;
+    border-style: none;
+}
+
+.contextMenu-group {
+    // width: 11vw; //10vw
+    height: 30px; //2vh
+    background: lightgray;
     display: flex; //comment out to allow search icon to be inline with search text
     justify-content: left;
     align-items: center;
@@ -47,27 +93,41 @@
     border-width: .11px;
     border-style: none;
     border-color: $intermediate-color; //  rgb(187, 186, 186);
-    border-bottom-style: solid;
     // padding: 10px 0px 10px 0px;
     white-space: nowrap;
-    font-size: 20px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    padding-left: 5px;
 }
 
 .contextMenu-item:hover {
-    transition: all 0.1s;
+    transition: all 0.1s ease;
     background: $lighter-alt-accent;
 }
 
 .contextMenu-description {
-    font-size: 20px;
+    margin-left: 5px;
     text-align: left;
     display: inline; //need this?
 }
 
+.search-icon {
+    margin: 10px;
+}
+
+.search {
+    margin-left: 10px;
+    padding-left: 10px;
+    border: solid black 1px;
+    border-radius: 5px;
+}
+
 .icon-background {
     pointer-events: none;
-    background-color: #DDDDDD;
+    background-color: transparent;
     width: 35px;
     text-align: center;
-    font-size: 22px;
+    font-size: 20px;
+    margin-left: 5px;
 }

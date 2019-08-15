@@ -1,42 +1,145 @@
 @import "../globalCssVariables";
-.edit-container {
+
+.linkEditor {
     width: 100%;
     height: auto;
+    font-size: 12px; // TODO
+}
+
+.linkEditor-back {
+    margin-bottom: 6px;
+}
+
+.linkEditor-info {
+    border-bottom: 0.5px solid $light-color-secondary; 
+    padding-bottom: 6px;
+    margin-bottom: 6px;
     display: flex;
-    flex-direction: column;
+    justify-content: space-between;
+
+    .linkEditor-linkedTo {
+        width: calc(100% - 26px);
+    }
 }
 
-.name-input {
-    margin-bottom: 10px;
-    padding: 5px;
+.linkEditor-button {
+    width: 20px;
+    height: 20px;
+    margin-left: 6px;
+    padding: 0;
+    // font-size: 12px;
+    border-radius: 10px;
+
+    &:disabled {
+        background-color: gray;
+    }
+}
+
+.linkEditor-groupsLabel {
+    display: flex;
+    justify-content: space-between;
+}
+
+.linkEditor-group {
+    background-color: $light-color-secondary; 
+    padding: 6px;
+    margin: 3px 0;
+    border-radius: 3px;
+
+    .linkEditor-group-row {
+        display: flex;
+        margin-bottom: 3px;
+
+        .linkEditor-group-row-label {
+            margin-right: 6px;
+        }
+    }
+
+    .linkEditor-metadata-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 6px;
+
+        .linkEditor-error {
+            border-color: red;
+        }
+
+        input {
+            width: calc(50% - 16px);
+            height: 20px;
+        }
+
+        button {
+            width: 20px;
+            height: 20px;
+            margin-left: 3px;
+            padding: 0;
+            font-size: 10px;
+        }
+    }
+}
+
+
+.linkEditor-dropdown {
+    width: 100%;
+    position: relative;
+    z-index: 999;
+
+    input {
+        width: 100%;
+    }
+
+    .linkEditor-options-wrapper {
+        width: 100%;
+        position: absolute;
+        top: 19px;
+        left: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .linkEditor-option {
+        background-color: $light-color-secondary;
+        border: 1px solid $intermediate-color;
+        border-top: 0;
+        padding: 3px;
+        cursor: pointer;
+
+        &:hover {
+            background-color: lightgray;
+        }
+
+        &.onDown {
+            background-color: gray;
+        }
+    }
+}
+
+.linkEditor-typeButton {
+    background-color: transparent;
+    color: $dark-color;
+    width: 100%;
+    height: 20px;
+    padding: 0 3px;
+    padding-bottom: 2px;
+    text-align: left;
+    text-transform: none;
+    letter-spacing: normal;
     font-size: 12px;
-    border: 1px solid #bababa;
+    font-weight: bold;
+
+    &:hover {
+        background-color: $light-color;
+    }
 }
 
-.description-input {
-    font-size: 11px;
-    padding: 5px;
-    margin-bottom: 10px;
-    border: 1px solid #bababa;
-}
+.linkEditor-group-buttons {
+    height: 20px;
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 5px;
 
-.save-button {
-    width: 50px;
-    height: 22px;
-    pointer-events: auto;
-    background-color: $dark-color;
-    color: $light-color;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    padding: 2px;
-    font-size: 10px;
-    margin: 0 auto;
-    transition: transform 0.2s;
-    text-align: center;
-    line-height: 20px;
-}
-
-.save-button:hover {
-    background: $main-accent;
-    cursor: pointer;
+    .linkEditor-button {
+        margin-left: 6px;
+    }
 }

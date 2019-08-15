@@ -17,7 +17,7 @@ export class Database {
         });
     }
 
-    public update(id: string, value: any, callback: () => void, upsert = true, collectionName = Database.DocumentsCollection) {
+    public update(id: string, value: any, callback: (err: mongodb.MongoError, res: mongodb.UpdateWriteOpResult) => void, upsert = true, collectionName = Database.DocumentsCollection) {
         if (this.db) {
             let collection = this.db.collection(collectionName);
             const prom = this.currentWrites[id];
@@ -30,7 +30,7 @@ export class Database {
                                 delete this.currentWrites[id];
                             }
                             resolve();
-                            callback();
+                            callback(err, res);
                         });
                 });
             };
@@ -41,11 +41,41 @@ export class Database {
         }
     }
 
-    public delete(id: string, collectionName = Database.DocumentsCollection) {
+    public replace(id: string, value: any, callback: (err: mongodb.MongoError, res: mongodb.UpdateWriteOpResult) => void, upsert = true, collectionName = Database.DocumentsCollection) {
         if (this.db) {
-            this.db.collection(collectionName).remove({ id: id });
+            let collection = this.db.collection(collectionName);
+            const prom = this.currentWrites[id];
+            let newProm: Promise<void>;
+            const run = (): Promise<void> => {
+                return new Promise<void>(resolve => {
+                    collection.replaceOne({ _id: id }, value, { upsert }
+                        , (err, res) => {
+                            if (this.currentWrites[id] === newProm) {
+                                delete this.currentWrites[id];
+                            }
+                            resolve();
+                            callback(err, res);
+                        });
+                });
+            };
+            newProm = prom ? prom.then(run) : run();
+            this.currentWrites[id] = newProm;
         } else {
-            this.onConnect.push(() => this.delete(id, collectionName));
+            this.onConnect.push(() => this.replace(id, value, callback, upsert, collectionName));
+        }
+    }
+
+    public delete(query: any, collectionName?: string): Promise<mongodb.DeleteWriteOpResultObject>;
+    public delete(id: string, collectionName?: string): Promise<mongodb.DeleteWriteOpResultObject>;
+    public delete(id: any, collectionName = Database.DocumentsCollection) {
+        if (typeof id === "string") {
+            id = { _id: id };
+        }
+        if (this.db) {
+            const db = this.db;
+            return new Promise(res => db.collection(collectionName).deleteMany(id, (err, result) => res(result)));
+        } else {
+            return new Promise(res => this.onConnect.push(() => res(this.delete(id, collectionName))));
         }
     }
 
@@ -120,12 +150,55 @@ export class Database {
         }
     }
 
-    public query(query: any): Promise<mongodb.Cursor> {
+    public async visit(ids: string[], fn: (result: any) => string[], collectionName = "newDocuments"): Promise<void> {
         if (this.db) {
-            return Promise.resolve<mongodb.Cursor>(this.db.collection('newDocuments').find(query));
+            const visited = new Set<string>();
+            while (ids.length) {
+                const count = Math.min(ids.length, 1000);
+                const index = ids.length - count;
+                const fetchIds = ids.splice(index, count).filter(id => !visited.has(id));
+                if (!fetchIds.length) {
+                    continue;
+                }
+                const docs = await new Promise<{ [key: string]: any }[]>(res => Database.Instance.getDocuments(fetchIds, res, "newDocuments"));
+                for (const doc of docs) {
+                    const id = doc.id;
+                    visited.add(id);
+                    ids.push(...fn(doc));
+                }
+            }
+
+        } else {
+            return new Promise(res => {
+                this.onConnect.push(() => {
+                    this.visit(ids, fn, collectionName);
+                    res();
+                });
+            });
+        }
+    }
+
+    public query(query: { [key: string]: any }, projection?: { [key: string]: 0 | 1 }, collectionName = "newDocuments"): Promise<mongodb.Cursor> {
+        if (this.db) {
+            let cursor = this.db.collection(collectionName).find(query);
+            if (projection) {
+                cursor = cursor.project(projection);
+            }
+            return Promise.resolve<mongodb.Cursor>(cursor);
         } else {
             return new Promise<mongodb.Cursor>(res => {
-                this.onConnect.push(() => res(this.query(query)));
+                this.onConnect.push(() => res(this.query(query, projection, collectionName)));
+            });
+        }
+    }
+
+    public updateMany(query: any, update: any, collectionName = "newDocuments") {
+        if (this.db) {
+            const db = this.db;
+            return new Promise<mongodb.WriteOpResult>(res => db.collection(collectionName).update(query, update, (_, result) => res(result)));
+        } else {
+            return new Promise<mongodb.WriteOpResult>(res => {
+                this.onConnect.push(() => this.updateMany(query, update, collectionName).then(res));
             });
         }
     }

@@ -11,18 +11,24 @@ import { DocumentViewProps } from "./DocumentView";
 import "./DocumentView.scss";
 import { FormattedTextBox } from "./FormattedTextBox";
 import { ImageBox } from "./ImageBox";
+import { DragBox } from "./DragBox";
+import { ButtonBox } from "./ButtonBox";
 import { IconBox } from "./IconBox";
 import { KeyValueBox } from "./KeyValueBox";
 import { PDFBox } from "./PDFBox";
 import { VideoBox } from "./VideoBox";
 import { FieldView } from "./FieldView";
 import { WebBox } from "./WebBox";
+import { YoutubeBox } from "./../../apis/youtube/YoutubeBox";
 import { HistogramBox } from "../../northstar/dash-nodes/HistogramBox";
 import React = require("react");
 import { FieldViewProps } from "./FieldView";
 import { Without, OmitKeys } from "../../../Utils";
 import { Cast, StrCast, NumCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
+import { Doc } from "../../../new_fields/Doc";
+import DirectoryImportBox from "../../util/Import & Export/DirectoryImportBox";
+import { ScriptField } from "../../../new_fields/ScriptField";
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 type BindingProps = Without<FieldViewProps, 'fieldKey'>;
@@ -43,15 +49,16 @@ const ObserverJsxParser: typeof JsxParser = ObserverJsxParser1 as any;
 export class DocumentContentsView extends React.Component<DocumentViewProps & {
     isSelected: () => boolean,
     select: (ctrl: boolean) => void,
+    onClick?: ScriptField,
     layoutKey: string,
     hideOnLeave?: boolean
 }> {
     @computed get layout(): string {
-        const layout = Cast(this.props.Document[this.props.layoutKey], "string");
+        const layout = Cast(this.layoutDoc[this.props.layoutKey], "string");
         if (layout === undefined) {
             return this.props.Document.data ?
                 "<FieldView {...props} fieldKey='data' />" :
-                KeyValueBox.LayoutString(this.props.Document.proto ? "proto" : "");
+                KeyValueBox.LayoutString(this.layoutDoc.proto ? "proto" : "");
         } else if (typeof layout === "string") {
             return layout;
         } else {
@@ -59,8 +66,28 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         }
     }
 
+    get dataDoc() {
+        if (this.props.DataDoc === undefined && this.props.Document.layout instanceof Doc) {
+            // if there is no dataDoc (ie, we're not rendering a template layout), but this document
+            // has a template layout document, then we will render the template layout but use 
+            // this document as the data document for the layout.
+            return this.props.Document;
+        }
+        return this.props.DataDoc;
+    }
+    get layoutDoc() {
+        // if this document's layout field contains a document (ie, a rendering template), then we will use that
+        // to determine the render JSX string, otherwise the layout field should directly contain a JSX layout string.
+        return this.props.Document.layout instanceof Doc ? this.props.Document.layout : this.props.Document;
+    }
+
     CreateBindings(): JsxBindings {
-        return { props: OmitKeys(this.props, ['parentActive'], (obj: any) => obj.active = this.props.parentActive).omit };
+        let list = {
+            ...OmitKeys(this.props, ['parentActive'], (obj: any) => obj.active = this.props.parentActive).omit,
+            Document: this.layoutDoc,
+            DataDoc: this.dataDoc
+        };
+        return { props: list };
     }
 
     @computed get templates(): List<string> {
@@ -71,42 +98,20 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         return new List<string>();
     }
     @computed get finalLayout() {
-        const baseLayout = this.props.layoutKey === "overlayLayout" ? "<div/>" : this.layout;
-        let base = baseLayout;
-        let layout = baseLayout;
-
-        // bcz: templates are intended only for a document's primary layout or overlay (not background).  However, 
-        // a DocumentContentsView is used to render  annotation overlays, so we detect that here 
-        // by checking the layoutKey.  This should probably be moved into
-        // a prop so that the overlay can explicitly turn off templates.
-        if ((this.props.layoutKey === "overlayLayout" && StrCast(this.props.Document.layout).indexOf("CollectionView") !== -1) ||
-            (this.props.layoutKey === "layout" && StrCast(this.props.Document.layout).indexOf("CollectionView") === -1)) {
-            this.templates.forEach(template => {
-                let self = this;
-                // this scales constants in the markup by the scaling applied to the document, but caps the constants to be smaller
-                // than the width/height of the containing document
-                function convertConstantsToNative(match: string, offset: number, x: string) {
-                    let px = Number(match.replace("px", ""));
-                    return `${Math.min(NumCast(self.props.Document.height, 0),
-                        Math.min(NumCast(self.props.Document.width, 0),
-                            px * self.props.ScreenToLocalTransform().Scale))}px`;
-                }
-                // let nativizedTemplate = template.replace(/([0-9]+)px/g, convertConstantsToNative);
-                // layout = nativizedTemplate.replace("{layout}", base);
-                layout = template.replace("{layout}", base);
-                base = layout;
-            });
-        }
-        return layout;
+        return this.props.layoutKey === "overlayLayout" ? "<div/>" : this.layout;
     }
 
     render() {
+        let self = this;
+        if (this.props.renderDepth > 7) return (null);
         if (!this.layout && (this.props.layoutKey !== "overlayLayout" || !this.templates.length)) return (null);
         return <ObserverJsxParser
-            components={{ FormattedTextBox, ImageBox, IconBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox }}
+            blacklistedAttrs={[]}
+            components={{ FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, DragBox, ButtonBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox, YoutubeBox }}
             bindings={this.CreateBindings()}
             jsx={this.finalLayout}
             showWarnings={true}
+
             onError={(test: any) => { console.log(test); }}
         />;
     }

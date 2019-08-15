@@ -24,6 +24,16 @@ export interface Transferable {
     readonly data?: any;
 }
 
+export enum YoutubeQueryTypes {
+    Channels, SearchVideo, VideoDetails
+}
+
+export interface YoutubeQueryInput {
+    readonly type: YoutubeQueryTypes;
+    readonly userInput?: string;
+    readonly videoIds?: string;
+}
+
 export interface Reference {
     readonly id: string;
 }
@@ -45,4 +55,7 @@ export namespace MessageStore {
     export const GetRefFields = new Message<string[]>("Get Ref Fields");
     export const UpdateField = new Message<Diff>("Update Ref Field");
     export const CreateField = new Message<Reference>("Create Ref Field");
+    export const YoutubeApiQuery = new Message<YoutubeQueryInput>("Youtube Api Query");
+    export const DeleteField = new Message<string>("Delete field");
+    export const DeleteFields = new Message<string[]>("Delete fields");
 }

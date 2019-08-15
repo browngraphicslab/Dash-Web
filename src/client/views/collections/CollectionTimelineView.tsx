@@ -3,7 +3,7 @@ import { observer } from "mobx-react";
 import { action, computed, observable, untracked, runInAction } from "mobx";
 import { Doc, DocListCast, Field, FieldResult, DocListCastAsync } from "../../../new_fields/Doc";
 import { NumCast, Cast, StrCast, } from "../../../new_fields/Types";
-import { emptyFunction, Utils } from "../../../Utils";
+import { emptyFunction, Utils, returnOne, returnEmptyString } from "../../../Utils";
 import { SelectionManager } from "../../util/SelectionManager";
 import { DocumentView } from "../nodes/DocumentView";
 import "./CollectionTimelineView.scss";
@@ -661,7 +661,9 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         let centeringOffset = () => (width - nativeWidth * contentScaling()) / 2;
         return (
             <div className="collectionSchemaView-previewDoc" style={{ transform: `translate(${centeringOffset}px, 0px)`, width: width, height: "100%" }}>
-                <DocumentView Document={d} isTopMost={false} selectOnLoad={false}
+                <DocumentView
+                    Document={d}
+                    selectOnLoad={false}
                     ScreenToLocalTransform={getTransform}
                     addDocument={this.props.addDocument} moveDocument={this.props.moveDocument}
                     ContentScaling={contentScaling}
@@ -672,6 +674,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     whenActiveChanged={this.props.whenActiveChanged}
                     bringToFront={emptyFunction}
                     addDocTab={this.props.addDocTab}
+                    renderDepth={0}
+                    zoomToScale={emptyFunction}
+                    getScale={returnOne}
+                    backgroundColor={returnEmptyString}
                 />
             </div>);
     }

@@ -16,6 +16,7 @@ export enum RouteStore {
 
     // USER AND WORKSPACES
     getCurrUser = "/getCurrentUser",
+    getUsers = "/getUsers",
     getUserDocumentId = "/getUserDocumentId",
     updateCursor = "/updateCursor",
 
@@ -27,5 +28,8 @@ export enum RouteStore {
     logout = "/logout",
     forgot = "/forgotpassword",
     reset = "/reset/:token",
+
+    // APIS
+    cognitiveServices = "/cognitiveservices"
 
 }

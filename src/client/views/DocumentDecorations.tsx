@@ -1,18 +1,18 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faLink } from '@fortawesome/free-solid-svg-icons';
+import { faLink, faTag } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc } from "../../new_fields/Doc";
 import { List } from "../../new_fields/List";
-import { listSpec } from "../../new_fields/Schema";
-import { Cast, NumCast, StrCast, BoolCast } from "../../new_fields/Types";
+import { BoolCast, Cast, NumCast, StrCast } from "../../new_fields/Types";
+import { URLField } from '../../new_fields/URLField';
 import { emptyFunction, Utils } from "../../Utils";
 import { Docs } from "../documents/Documents";
 import { DocumentManager } from "../util/DocumentManager";
 import { DragLinksAsDocuments, DragManager } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
-import { undoBatch } from "../util/UndoManager";
+import { undoBatch, UndoManager } from "../util/UndoManager";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { CollectionView } from "./collections/CollectionView";
 import './DocumentDecorations.scss';
@@ -24,11 +24,18 @@ import { LinkMenu } from "./nodes/LinkMenu";
 import { TemplateMenu } from "./TemplateMenu";
 import { Template, Templates } from "./Templates";
 import React = require("react");
+import { RichTextField } from '../../new_fields/RichTextField';
+import { LinkManager } from '../util/LinkManager';
+import { ObjectField } from '../../new_fields/ObjectField';
+import { MetadataEntryMenu } from './MetadataEntryMenu';
+import { ImageBox } from './nodes/ImageBox';
+import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
 
 library.add(faLink);
+library.add(faTag);
 
 @observer
 export class DocumentDecorations extends React.Component<{}, { value: string }> {
@@ -41,9 +48,14 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     private _titleHeight = 20;
     private _linkButton = React.createRef<HTMLDivElement>();
     private _linkerButton = React.createRef<HTMLDivElement>();
+    private _embedButton = React.createRef<HTMLDivElement>();
+    private _tooltipoff = React.createRef<HTMLDivElement>();
+    private _textDoc?: Doc;
     private _downX = 0;
     private _downY = 0;
     private _iconDoc?: Doc = undefined;
+    private _resizeUndo?: UndoManager.Batch;
+    private _linkDrag?: UndoManager.Batch;
     @observable private _minimizedX = 0;
     @observable private _minimizedY = 0;
     @observable private _title: string = "";
@@ -71,9 +83,22 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             if (text[0] === '#') {
                 this._fieldKey = text.slice(1, text.length);
                 this._title = this.selectionTitle;
+            } else if (text.startsWith(">")) {
+                let fieldTemplateView = SelectionManager.SelectedDocuments()[0];
+                SelectionManager.DeselectAll();
+                let fieldTemplate = fieldTemplateView.props.Document;
+                let docTemplate = fieldTemplateView.props.ContainingCollectionView!.props.Document;
+                let metaKey = text.startsWith(">>") ? text.slice(2, text.length) : text.slice(1, text.length);
+                let proto = Doc.GetProto(docTemplate);
+                Doc.MakeTemplate(fieldTemplate, metaKey, proto);
+                if (text.startsWith(">>")) {
+                    proto.detailedLayout = proto.layout;
+                    proto.miniLayout = ImageBox.LayoutString(metaKey);
+                }
             }
             else {
                 if (SelectionManager.SelectedDocuments().length > 0) {
+                    SelectionManager.SelectedDocuments()[0].props.Document.customTitle = true;
                     let field = SelectionManager.SelectedDocuments()[0].props.Document[this._fieldKey];
                     if (typeof field === "number") {
                         SelectionManager.SelectedDocuments().forEach(d => {
@@ -120,7 +145,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @computed
     get Bounds(): { x: number, y: number, b: number, r: number } {
         return SelectionManager.SelectedDocuments().reduce((bounds, documentView) => {
-            if (documentView.props.isTopMost) {
+            if (documentView.props.renderDepth === 0 ||
+                Doc.AreProtosEqual(documentView.props.Document, CurrentUserUtils.UserDocument)) {
                 return bounds;
             }
             let transform = (documentView.props.ScreenToLocalTransform().scale(documentView.props.ContentScaling())).inverse();
@@ -139,7 +165,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         document.addEventListener("pointermove", this.onBackgroundMove);
         document.addEventListener("pointerup", this.onBackgroundUp);
         e.stopPropagation();
-        e.preventDefault();
     }
 
     @action
@@ -147,7 +172,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let dragDocView = SelectionManager.SelectedDocuments()[0];
         const [left, top] = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).inverse().transformPoint(0, 0);
         const [xoff, yoff] = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).transformDirection(e.x - left, e.y - top);
-        let dragData = new DragManager.DocumentDragData(SelectionManager.SelectedDocuments().map(dv => dv.props.Document));
+        let dragData = new DragManager.DocumentDragData(SelectionManager.SelectedDocuments().map(dv => dv.props.Document), SelectionManager.SelectedDocuments().map(dv => dv.props.DataDoc ? dv.props.DataDoc : dv.props.Document));
         dragData.xOffset = xoff;
         dragData.yOffset = yoff;
         dragData.moveDocument = SelectionManager.SelectedDocuments()[0].props.moveDocument;
@@ -273,7 +298,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @undoBatch
     @action createIcon = (selected: DocumentView[], layoutString: string): Doc => {
         let doc = selected[0].props.Document;
-        let iconDoc = Docs.IconDocument(layoutString);
+        let iconDoc = Docs.Create.IconDocument(layoutString);
         iconDoc.isButton = true;
         iconDoc.proto!.title = selected.length > 1 ? "-multiple-.icon" : StrCast(doc.title) + ".icon";
         iconDoc.labelField = selected.length > 1 ? undefined : this._fieldKey;
@@ -283,7 +308,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         iconDoc.height = Number(MINIMIZED_ICON_SIZE);
         iconDoc.x = NumCast(doc.x);
         iconDoc.y = NumCast(doc.y) - 24;
-        iconDoc.maximizedDocs = new List<Doc>(selected.map(s => s.props.Document.proto!));
+        iconDoc.maximizedDocs = new List<Doc>(selected.map(s => s.props.Document));
         selected.length === 1 && (doc.minimizedDoc = iconDoc);
         selected[0].props.addDocument && selected[0].props.addDocument(iconDoc, false);
         return iconDoc;
@@ -308,6 +333,38 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         iconDoc.y = where[1] + NumCast(selView.props.Document.y);
     }
 
+    _radiusDown = [0, 0];
+    @action
+    onRadiusDown = (e: React.PointerEvent): void => {
+        e.stopPropagation();
+        if (e.button === 0) {
+            this._radiusDown = [e.clientX, e.clientY];
+            this._isPointerDown = true;
+            this._resizeUndo = UndoManager.StartBatch("DocDecs set radius");
+            document.removeEventListener("pointermove", this.onRadiusMove);
+            document.removeEventListener("pointerup", this.onRadiusUp);
+            document.addEventListener("pointermove", this.onRadiusMove);
+            document.addEventListener("pointerup", this.onRadiusUp);
+        }
+    }
+
+    onRadiusMove = (e: PointerEvent): void => {
+        let dist = Math.sqrt((e.clientX - this._radiusDown[0]) * (e.clientX - this._radiusDown[0]) + (e.clientY - this._radiusDown[1]) * (e.clientY - this._radiusDown[1]));
+        SelectionManager.SelectedDocuments().map(dv => dv.props.Document.layout instanceof Doc ? dv.props.Document.layout : dv.props.Document.isTemplate ? dv.props.Document : Doc.GetProto(dv.props.Document)).
+            map(d => d.borderRounding = `${Math.min(100, dist)}%`);
+        e.stopPropagation();
+        e.preventDefault();
+    }
+
+    onRadiusUp = (e: PointerEvent): void => {
+        e.stopPropagation();
+        e.preventDefault();
+        this._isPointerDown = false;
+        this._resizeUndo && this._resizeUndo.end();
+        document.removeEventListener("pointermove", this.onRadiusMove);
+        document.removeEventListener("pointerup", this.onRadiusUp);
+    }
+
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         e.stopPropagation();
@@ -315,6 +372,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             this._isPointerDown = true;
             this._resizing = e.currentTarget.id;
             this.Interacting = true;
+            this._resizeUndo = UndoManager.StartBatch("DocDecs resize");
             document.removeEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
@@ -329,9 +387,24 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         document.removeEventListener("pointerup", this.onLinkerButtonUp);
         document.addEventListener("pointerup", this.onLinkerButtonUp);
     }
+
+    onEmbedButtonDown = (e: React.PointerEvent): void => {
+        e.stopPropagation();
+        document.removeEventListener("pointermove", this.onEmbedButtonMoved);
+        document.addEventListener("pointermove", this.onEmbedButtonMoved);
+        document.removeEventListener("pointerup", this.onEmbedButtonUp);
+        document.addEventListener("pointerup", this.onEmbedButtonUp);
+    }
+
     onLinkerButtonUp = (e: PointerEvent): void => {
         document.removeEventListener("pointermove", this.onLinkerButtonMoved);
         document.removeEventListener("pointerup", this.onLinkerButtonUp);
+        e.stopPropagation();
+    }
+
+    onEmbedButtonUp = (e: PointerEvent): void => {
+        document.removeEventListener("pointermove", this.onEmbedButtonMoved);
+        document.removeEventListener("pointerup", this.onEmbedButtonUp);
         e.stopPropagation();
     }
 
@@ -344,7 +417,32 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             let container = selDoc.props.ContainingCollectionView ? selDoc.props.ContainingCollectionView.props.Document.proto : undefined;
             let dragData = new DragManager.LinkDragData(selDoc.props.Document, container ? [container] : []);
             FormattedTextBox.InputBoxOverlay = undefined;
+            this._linkDrag = UndoManager.StartBatch("Drag Link");
             DragManager.StartLinkDrag(this._linkerButton.current, dragData, e.pageX, e.pageY, {
+                handlers: {
+                    dragComplete: () => {
+                        if (this._linkDrag) {
+                            this._linkDrag.end();
+                            this._linkDrag = undefined;
+                        }
+                    },
+                },
+                hideSource: false
+            });
+        }
+        e.stopPropagation();
+    }
+
+    @action
+    onEmbedButtonMoved = (e: PointerEvent): void => {
+        if (this._embedButton.current !== null) {
+            document.removeEventListener("pointermove", this.onEmbedButtonMoved);
+            document.removeEventListener("pointerup", this.onEmbedButtonUp);
+
+            let dragDocView = SelectionManager.SelectedDocuments()[0];
+            let dragData = new DragManager.EmbedDragData(dragDocView.props.Document);
+
+            DragManager.StartEmbedDrag(dragDocView.ContentDiv!, dragData, e.x, e.y, {
                 handlers: {
                     dragComplete: action(emptyFunction),
                 },
@@ -372,7 +470,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (this._linkButton.current !== null && (e.movementX > 1 || e.movementY > 1)) {
             document.removeEventListener("pointermove", this.onLinkButtonMoved);
             document.removeEventListener("pointerup", this.onLinkButtonUp);
-
             DragLinksAsDocuments(this._linkButton.current, e.x, e.y, SelectionManager.SelectedDocuments()[0].props.Document);
         }
         e.stopPropagation();
@@ -426,50 +523,46 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 break;
         }
 
-        runInAction(() => FormattedTextBox.InputBoxOverlay = undefined);
+        if (!this._resizing) runInAction(() => FormattedTextBox.InputBoxOverlay = undefined);
         SelectionManager.SelectedDocuments().forEach(element => {
-            const rect = element.ContentDiv ? element.ContentDiv.getBoundingClientRect() : new DOMRect();
-
-            if (rect.width !== 0 && (dX != 0 || dY != 0 || dW != 0 || dH != 0)) {
+            if (dX !== 0 || dY !== 0 || dW !== 0 || dH !== 0) {
                 let doc = PositionDocument(element.props.Document);
                 let nwidth = doc.nativeWidth || 0;
                 let nheight = doc.nativeHeight || 0;
-                let zoomBasis = NumCast(doc.zoomBasis, 1);
-                let width = (doc.width || 0) / zoomBasis;
-                let height = (doc.height || (nheight / nwidth * width)) / zoomBasis;
-                let scale = width / rect.width;
+                let width = (doc.width || 0);
+                let height = (doc.height || (nheight / nwidth * width));
+                let scale = element.props.ScreenToLocalTransform().Scale * element.props.ContentScaling();
                 let actualdW = Math.max(width + (dW * scale), 20);
                 let actualdH = Math.max(height + (dH * scale), 20);
                 doc.x = (doc.x || 0) + dX * (actualdW - width);
                 doc.y = (doc.y || 0) + dY * (actualdH - height);
-                let proto = Doc.GetProto(element.props.Document);
-                let fixedAspect = e.ctrlKey || (!BoolCast(proto.ignoreAspect, false) && nwidth && nheight);
+                let proto = doc.isTemplate ? doc : Doc.GetProto(element.props.Document); // bcz: 'doc' didn't work here...
+                let fixedAspect = e.ctrlKey || (!BoolCast(doc.ignoreAspect) && nwidth && nheight);
                 if (fixedAspect && (!nwidth || !nheight)) {
                     proto.nativeWidth = nwidth = doc.width || 0;
                     proto.nativeHeight = nheight = doc.height || 0;
-                    proto.ignoreAspect = true;
                 }
-                if (nwidth > 0 && nheight > 0) {
+                if (nwidth > 0 && nheight > 0 && !BoolCast(doc.ignoreAspect)) {
                     if (Math.abs(dW) > Math.abs(dH)) {
-                        if (!fixedAspect) proto.nativeWidth = zoomBasis * actualdW / (doc.width || 1) * NumCast(proto.nativeWidth);
-                        doc.width = zoomBasis * actualdW;
-                        // doc.zoomBasis = zoomBasis * width / actualdW;
+                        if (!fixedAspect) {
+                            Doc.SetInPlace(element.props.Document, "nativeWidth", actualdW / (doc.width || 1) * (doc.nativeWidth || 0), true);
+                        }
+                        doc.width = actualdW;
                         if (fixedAspect) doc.height = nheight / nwidth * doc.width;
-                        else doc.height = zoomBasis * actualdH;
-                        proto.nativeHeight = (doc.height || 0) / doc.width * NumCast(proto.nativeWidth);
+                        else doc.height = actualdH;
                     }
                     else {
-                        if (!fixedAspect) proto.nativeHeight = zoomBasis * actualdH / (doc.height || 1) * NumCast(proto.nativeHeight);
-                        doc.height = zoomBasis * actualdH;
-                        //doc.zoomBasis = zoomBasis * height / actualdH;
+                        if (!fixedAspect) {
+                            Doc.SetInPlace(element.props.Document, "nativeHeight", actualdH / (doc.height || 1) * (doc.nativeHeight || 0), true);
+                        }
+                        doc.height = actualdH;
                         if (fixedAspect) doc.width = nwidth / nheight * doc.height;
-                        else doc.width = zoomBasis * actualdW;
-                        proto.nativeWidth = (doc.width || 0) / doc.height * NumCast(proto.nativeHeight);
+                        else doc.width = actualdW;
                     }
                 } else {
-                    doc.width = zoomBasis * actualdW;
-                    doc.height = zoomBasis * actualdH;
-                    proto.autoHeight = undefined;
+                    dW && (doc.width = actualdW);
+                    dH && (doc.height = actualdH);
+                    dH && element.props.Document.autoHeight && Doc.SetInPlace(element.props.Document, "autoHeight", false, true);
                 }
             }
         });
@@ -483,6 +576,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (e.button === 0) {
             e.preventDefault();
             this._isPointerDown = false;
+            this._resizeUndo && this._resizeUndo.end();
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
         }
@@ -511,6 +605,60 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     //     e.stopPropagation();
     // }
 
+    considerEmbed = () => {
+        let thisDoc = SelectionManager.SelectedDocuments()[0].props.Document;
+        let canEmbed = thisDoc.data && thisDoc.data instanceof URLField;
+        if (!canEmbed) return (null);
+        return (
+            <div className="linkButtonWrapper">
+                <div title="Drag Embed" className="linkButton-linker" ref={this._embedButton} onPointerDown={this.onEmbedButtonDown}>
+                    <FontAwesomeIcon className="documentdecorations-icon" icon="image" size="sm" />
+                </div>
+            </div>
+        );
+    }
+
+    considerTooltip = () => {
+        let thisDoc = SelectionManager.SelectedDocuments()[0].props.Document;
+        let isTextDoc = thisDoc.data && thisDoc.data instanceof RichTextField;
+        if (!isTextDoc) return null;
+        this._textDoc = thisDoc;
+        return (
+            <div className="tooltipwrapper">
+                <div title="Hide Tooltip" className="linkButton-linker" ref={this._tooltipoff} onPointerDown={this.onTooltipOff}>
+                    {/* <FontAwesomeIcon className="fa-image" icon="image" size="sm" /> */}
+                </div>
+            </div>
+
+        );
+    }
+
+    onTooltipOff = (e: React.PointerEvent): void => {
+        e.stopPropagation();
+        if (this._textDoc) {
+            if (this._tooltipoff.current) {
+                if (this._tooltipoff.current.title === "Hide Tooltip") {
+                    this._tooltipoff.current.title = "Show Tooltip";
+                    this._textDoc.tooltip = "hi";
+                }
+                else {
+                    this._tooltipoff.current.title = "Hide Tooltip";
+                }
+            }
+        }
+    }
+
+    get metadataMenu() {
+        return (
+            <div className="linkButtonWrapper">
+                <Flyout anchorPoint={anchorPoints.TOP_LEFT}
+                    content={<MetadataEntryMenu docs={() => SelectionManager.SelectedDocuments().map(dv => dv.props.Document)} suggestWithFunction />}>{/* tfs: @bcz This might need to be the data document? */}
+                    <div className="docDecs-tagButton" title="Add fields"><FontAwesomeIcon className="documentdecorations-icon" icon="tag" size="sm" /></div>
+                </Flyout>
+            </div>
+        );
+    }
+
     render() {
         var bounds = this.Bounds;
         let seldoc = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
@@ -525,12 +673,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let linkButton = null;
         if (SelectionManager.SelectedDocuments().length > 0) {
             let selFirst = SelectionManager.SelectedDocuments()[0];
-            let linkToSize = Cast(selFirst.props.Document.linkedToDocs, listSpec(Doc), []).length;
-            let linkFromSize = Cast(selFirst.props.Document.linkedFromDocs, listSpec(Doc), []).length;
-            let linkCount = linkToSize + linkFromSize;
+            let linkCount = LinkManager.Instance.getAllRelatedLinks(selFirst.props.Document).length;
             linkButton = (<Flyout
                 anchorPoint={anchorPoints.RIGHT_TOP}
                 content={<LinkMenu docView={selFirst}
+                    addDocTab={selFirst.props.addDocTab}
                     changeFlyout={this.changeFlyoutContent} />}>
                 <div className={"linkButton-" + (linkCount ? "nonempty" : "empty")} onPointerDown={this.onLinkButtonDown} >{linkCount}</div>
             </Flyout >);
@@ -563,6 +710,17 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             templates.set(template, checked);
         });
 
+        bounds.x = Math.max(0, bounds.x - this._resizeBorderWidth / 2) + this._resizeBorderWidth / 2;
+        bounds.y = Math.max(0, bounds.y - this._resizeBorderWidth / 2 - this._titleHeight) + this._resizeBorderWidth / 2 + this._titleHeight;
+        const borderRadiusDraggerWidth = 15;
+        bounds.r = Math.min(window.innerWidth, bounds.r + borderRadiusDraggerWidth + this._resizeBorderWidth / 2) - this._resizeBorderWidth / 2 - borderRadiusDraggerWidth;
+        bounds.b = Math.min(window.innerHeight, bounds.b + this._resizeBorderWidth / 2 + this._linkBoxHeight) - this._resizeBorderWidth / 2 - this._linkBoxHeight;
+        if (bounds.x > bounds.r) {
+            bounds.x = bounds.r - this._resizeBorderWidth;
+        }
+        if (bounds.y > bounds.b) {
+            bounds.y = bounds.b - (this._resizeBorderWidth + this._linkBoxHeight + this._titleHeight);
+        }
         return (<div className="documentDecorations">
             <div className="documentDecorations-background" style={{
                 width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",
@@ -570,7 +728,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 left: bounds.x - this._resizeBorderWidth / 2,
                 top: bounds.y - this._resizeBorderWidth / 2,
                 pointerEvents: this.Interacting ? "none" : "all",
-                zIndex: SelectionManager.SelectedDocuments().length > 1 ? 1000 : 0,
+                zIndex: SelectionManager.SelectedDocuments().length > 1 ? 900 : 0,
             }} onPointerDown={this.onBackgroundDown} onContextMenu={(e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); }} >
             </div>
             <div className="documentDecorations-container" style={{
@@ -585,7 +743,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 {this._edtingTitle ?
                     <input ref={this.keyinput} className="title" type="text" name="dynbox" value={this._title} onBlur={this.titleBlur} onChange={this.titleChanged} onKeyPress={this.titleEntered} /> :
                     <div className="title" onPointerDown={this.onTitleDown} ><span>{`${this.selectionTitle}`}</span></div>}
-                <div className="documentDecorations-closeButton" onPointerDown={this.onCloseDown}>X</div>
+                <div className="documentDecorations-closeButton" title="Close Document" onPointerDown={this.onCloseDown}>X</div>
                 <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-topResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-topRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
@@ -595,16 +753,22 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 <div id="documentDecorations-bottomLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-bottomResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                <div id="documentDecorations-borderRadius" className="documentDecorations-radius" onPointerDown={this.onRadiusDown} onContextMenu={(e) => e.preventDefault()}><span className="borderRadiusTooltip" title="Drag Corner Radius"></span></div>
                 <div className="link-button-container">
                     <div className="linkButtonWrapper">
                         <div title="View Links" className="linkFlyout" ref={this._linkButton}> {linkButton}  </div>
                     </div>
                     <div className="linkButtonWrapper">
                         <div title="Drag Link" className="linkButton-linker" ref={this._linkerButton} onPointerDown={this.onLinkerButtonDown}>
-                            <FontAwesomeIcon className="fa-icon-link" icon="link" size="sm" />
+                            <FontAwesomeIcon className="documentdecorations-icon" icon="link" size="sm" />
                         </div>
                     </div>
-                    <TemplateMenu docs={SelectionManager.ViewsSortedVertically()} templates={templates} />
+                    <div className="linkButtonWrapper">
+                        <TemplateMenu docs={SelectionManager.ViewsSortedVertically()} templates={templates} />
+                    </div>
+                    {this.metadataMenu}
+                    {this.considerEmbed()}
+                    {/* {this.considerTooltip()} */}
                 </div>
             </div >
         </div>

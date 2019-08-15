@@ -2,11 +2,14 @@ import { Database } from "./database";
 import { Search } from "./Search";
 import * as path from 'path';
 
+//npx ts-node src/server/remapUrl.ts
+
 const suffixMap: { [type: string]: true } = {
     "video": true,
     "pdf": true,
     "audio": true,
-    "web": true
+    "web": true,
+    "image": true
 };
 
 async function update() {
@@ -30,10 +33,10 @@ async function update() {
             const value = fields[key];
             if (value && value.__type && suffixMap[value.__type]) {
                 const url = new URL(value.url);
-                if (url.href.includes("azure")) {
+                if (url.href.includes("localhost") && url.href.includes("Bill")) {
                     dynfield = true;
 
-                    update.$set = { ["fields." + key + ".url"]: `${url.protocol}//localhost:1050${url.pathname}` };
+                    update.$set = { ["fields." + key + ".url"]: `${url.protocol}//dash-web.eastus2.cloudapp.azure.com:1050${url.pathname}` };
                 }
             }
         }

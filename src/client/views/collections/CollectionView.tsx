@@ -1,10 +1,13 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faProjectDiagram, faSignature, faSquare, faTh, faThList, faTree } from '@fortawesome/free-solid-svg-icons';
+import { faEye } from '@fortawesome/free-regular-svg-icons';
+import { faColumns, faEllipsisV, faFingerprint, faImage, faProjectDiagram, faSignature, faSquare, faTh, faThList, faTree, faCopy } from '@fortawesome/free-solid-svg-icons';
+import { action, IReactionDisposer, observable, reaction, runInAction } from 'mobx';
 import { observer } from "mobx-react";
 import * as React from 'react';
+import { Doc } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
+import { StrCast } from '../../../new_fields/Types';
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
-import { undoBatch } from '../../util/UndoManager';
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
 import { FieldView, FieldViewProps } from '../nodes/FieldView';
@@ -14,50 +17,100 @@ import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormV
 import { CollectionSchemaView } from "./CollectionSchemaView";
 import { CollectionStackingView } from './CollectionStackingView';
 import { CollectionTreeView } from "./CollectionTreeView";
-import { CollectionTimelineView } from './CollectionTimelineView';
-
+import { CollectionViewBaseChrome } from './CollectionViewChromes';
 export const COLLECTION_BORDER_WIDTH = 2;
 
-library.add(faTh);
-library.add(faTree);
-library.add(faSquare);
-library.add(faProjectDiagram);
-library.add(faSignature);
-library.add(faThList);
+library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faEllipsisV, faImage, faEye as any, faCopy);
 
 @observer
 export class CollectionView extends React.Component<FieldViewProps> {
-    public static LayoutString(fieldStr: string = "data") { return FieldView.LayoutString(CollectionView, fieldStr); }
+    @observable private _collapsed = true;
 
-    private SubView = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
+    private _reactionDisposer: IReactionDisposer | undefined;
+
+    public static LayoutString(fieldStr: string = "data", fieldExt: string = "") { return FieldView.LayoutString(CollectionView, fieldStr, fieldExt); }
+
+    constructor(props: any) {
+        super(props);
+    }
+
+    componentDidMount = () => {
+        this._reactionDisposer = reaction(() => StrCast(this.props.Document.chromeStatus),
+            () => {
+                // chrome status is one of disabled, collapsed, or visible. this determines initial state from document
+                // chrome status may also be view-mode, in reference to stacking view's toggle mode. it is essentially disabled mode, but prevents the toggle button from showing up on the left sidebar.
+                let chromeStatus = this.props.Document.chromeStatus;
+                if (chromeStatus && (chromeStatus === "disabled" || chromeStatus === "collapsed")) {
+                    runInAction(() => this._collapsed = true);
+                }
+            });
+    }
+
+    componentWillUnmount = () => {
+        this._reactionDisposer && this._reactionDisposer();
+    }
+
+    private SubViewHelper = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
         let props = { ...this.props, ...renderProps };
-        switch (type) {
-            case CollectionViewType.Schema: return (<CollectionSchemaView {...props} CollectionView={this} />);
-            case CollectionViewType.Docking: return (<CollectionDockingView {...props} CollectionView={this} />);
-            case CollectionViewType.Tree: return (<CollectionTreeView {...props} CollectionView={this} />);
-            case CollectionViewType.Stacking: return (<CollectionStackingView {...props} CollectionView={this} />);
-            case CollectionViewType.Timeline: return (<CollectionTimelineView {...props} CollectionView={this} />);
+        switch (this.isAnnotationOverlay ? CollectionViewType.Freeform : type) {
+            case CollectionViewType.Schema: return (<CollectionSchemaView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />);
+            // currently cant think of a reason for collection docking view to have a chrome. mind may change if we ever have nested docking views -syip
+            case CollectionViewType.Docking: return (<CollectionDockingView chromeCollapsed={true} key="collview" {...props} CollectionView={this} />);
+            case CollectionViewType.Tree: return (<CollectionTreeView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />);
+            case CollectionViewType.Stacking: { this.props.Document.singleColumn = true; return (<CollectionStackingView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />); }
+            case CollectionViewType.Masonry: { this.props.Document.singleColumn = false; return (<CollectionStackingView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />); }
             case CollectionViewType.Freeform:
             default:
-                return (<CollectionFreeFormView {...props} CollectionView={this} />);
+                return (<CollectionFreeFormView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />);
         }
         return (null);
     }
 
-    get isAnnotationOverlay() { return this.props.fieldKey && this.props.fieldKey === "annotations"; } // bcz: ? Why do we need to compare Id's?
+    @action
+    private collapse = (value: boolean) => {
+        this._collapsed = value;
+        this.props.Document.chromeStatus = value ? "collapsed" : "enabled";
+    }
+
+    private SubView = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
+        // currently cant think of a reason for collection docking view to have a chrome. mind may change if we ever have nested docking views -syip
+        if (this.isAnnotationOverlay || this.props.Document.chromeStatus === "disabled" || type === CollectionViewType.Docking) {
+            return [(null), this.SubViewHelper(type, renderProps)];
+        }
+        else {
+            return [
+                (<CollectionViewBaseChrome CollectionView={this} key="chrome" type={type} collapse={this.collapse} />),
+                this.SubViewHelper(type, renderProps)
+            ];
+        }
+    }
+
+    get isAnnotationOverlay() { return this.props.fieldExt ? true : false; }
 
     onContextMenu = (e: React.MouseEvent): void => {
         if (!this.isAnnotationOverlay && !e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
             let subItems: ContextMenuProps[] = [];
-            subItems.push({ description: "Freeform", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Freeform), icon: "signature" });
+            subItems.push({ description: "Freeform", event: () => { this.props.Document.viewType = CollectionViewType.Freeform; delete this.props.Document.usePivotLayout; }, icon: "signature" });
             if (CollectionBaseView.InSafeMode()) {
-                ContextMenu.Instance.addItem({ description: "Test Freeform", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Invalid), icon: "project-diagram" });
+                ContextMenu.Instance.addItem({ description: "Test Freeform", event: () => this.props.Document.viewType = CollectionViewType.Invalid, icon: "project-diagram" });
             }
-            subItems.push({ description: "Schema", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Schema), icon: "th-list" });
-            subItems.push({ description: "Treeview", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Tree), icon: "tree" });
-            subItems.push({ description: "Stacking", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Stacking), icon: "th-list" });
-            subItems.push({ description: "Timeline", event: undoBatch(() => this.props.Document.viewType = CollectionViewType.Timeline), icon: "tree" });
-            ContextMenu.Instance.addItem({ description: "View Modes...", subitems: subItems });
+            subItems.push({ description: "Schema", event: () => this.props.Document.viewType = CollectionViewType.Schema, icon: "th-list" });
+            subItems.push({ description: "Treeview", event: () => this.props.Document.viewType = CollectionViewType.Tree, icon: "tree" });
+            subItems.push({ description: "Stacking", event: () => this.props.Document.viewType = CollectionViewType.Stacking, icon: "ellipsis-v" });
+            subItems.push({ description: "Masonry", event: () => this.props.Document.viewType = CollectionViewType.Masonry, icon: "columns" });
+            switch (this.props.Document.viewType) {
+                case CollectionViewType.Freeform: {
+                    subItems.push({ description: "Custom", icon: "fingerprint", event: CollectionFreeFormView.AddCustomLayout(this.props.Document, this.props.fieldKey) });
+                    subItems.push({ description: "Pivot", icon: "copy", event: () => this.props.Document.usePivotLayout = true });
+                    break;
+                }
+            }
+            ContextMenu.Instance.addItem({ description: "View Modes...", subitems: subItems, icon: "eye" });
+            let existing = ContextMenu.Instance.findByDescription("Layout...");
+            let layoutItems: ContextMenuProps[] = existing && "subitems" in existing ? existing.subitems : [];
+            layoutItems.push({ description: "Create Layout Instance", event: () => this.props.addDocTab && this.props.addDocTab(Doc.ApplyTemplate(this.props.Document)!, undefined, "onRight"), icon: "project-diagram" });
+            layoutItems.push({ description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" });
+            !existing && ContextMenu.Instance.addItem({ description: "Layout...", subitems: layoutItems, icon: "hand-point-right" });
         }
     }
 

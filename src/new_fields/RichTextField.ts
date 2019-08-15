@@ -2,7 +2,9 @@ import { ObjectField } from "./ObjectField";
 import { serializable } from "serializr";
 import { Deserializable } from "../client/util/SerializationHelper";
 import { Copy, ToScriptString } from "./FieldSymbols";
+import { scriptingGlobal } from "../client/util/Scripting";
 
+@scriptingGlobal
 @Deserializable("RichTextField")
 export class RichTextField extends ObjectField {
     @serializable(true)
@@ -18,6 +20,6 @@ export class RichTextField extends ObjectField {
     }
 
     [ToScriptString]() {
-        return "invalid";
+        return `new RichTextField("${this.Data}")`;
     }
 }

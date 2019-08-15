@@ -36,7 +36,7 @@ export class HistogramBox extends React.Component<FieldViewProps> {
     @computed public get HistogramResult(): HistogramResult { return this.HistoOp.Result as HistogramResult; }
     @observable public SizeConverter: SizeConverter = new SizeConverter();
 
-    @computed get createOperationParamsCache() { trace(); return this.HistoOp.CreateOperationParameters(); }
+    @computed get createOperationParamsCache() { return this.HistoOp.CreateOperationParameters(); }
     @computed get BinRanges() { return this.HistogramResult ? this.HistogramResult.binRanges : undefined; }
     @computed get ChartType() {
         return !this.BinRanges ? ChartType.SinglePoint : this.BinRanges[0] instanceof AggregateBinRange ?
@@ -125,8 +125,7 @@ export class HistogramBox extends React.Component<FieldViewProps> {
                                 let mapped = brushingDocs.map((brush, i) => {
                                     brush.backgroundColor = StyleConstants.BRUSH_COLORS[i % StyleConstants.BRUSH_COLORS.length];
                                     let brushed = DocListCast(brush.brushingDocs);
-                                    if (!brushed.length)
-                                        return null;
+                                    if (!brushed.length) return null;
                                     return { l: brush, b: brushed[0][Id] === proto[Id] ? brushed[1] : brushed[0] };
                                 });
                                 runInAction(() => this.HistoOp.BrushLinks.splice(0, this.HistoOp.BrushLinks.length, ...mapped.filter(m => m) as { l: Doc, b: Doc }[]));

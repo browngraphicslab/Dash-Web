@@ -20,7 +20,7 @@ library.add(faFilm);
 export class SearchItem extends React.Component<SearchProps> {
 
     onClick = () => {
-        DocumentManager.Instance.jumpToDocument(this.props.doc);
+        DocumentManager.Instance.jumpToDocument(this.props.doc, false);
     }
 
     //needs help
@@ -37,12 +37,10 @@ export class SearchItem extends React.Component<SearchProps> {
         return <FontAwesomeIcon icon={button} className="documentView-minimizedIcon" />;
     }
     onPointerEnter = (e: React.PointerEvent) => {
-        this.props.doc.libraryBrush = true;
-        Doc.SetOnPrototype(this.props.doc, "protoBrush", true);
+        Doc.BrushDoc(this.props.doc);
     }
     onPointerLeave = (e: React.PointerEvent) => {
-        this.props.doc.libraryBrush = false;
-        Doc.SetOnPrototype(this.props.doc, "protoBrush", false);
+        Doc.UnBrushDoc(this.props.doc);
     }
 
     collectionRef = React.createRef<HTMLDivElement>();

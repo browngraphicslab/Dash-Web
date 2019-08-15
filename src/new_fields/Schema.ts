@@ -2,6 +2,7 @@ import { Interface, ToInterface, Cast, ToConstructor, HasTail, Head, Tail, ListS
 import { Doc, Field } from "./Doc";
 import { ObjectField } from "./ObjectField";
 import { RefField } from "./RefField";
+import { SelfProxy } from "./FieldSymbols";
 
 type AllToInterface<T extends Interface[]> = {
     1: ToInterface<Head<T>> & AllToInterface<Tail<T>>,
@@ -56,9 +57,10 @@ export function makeInterface<T extends Interface[]>(...schemas: T): InterfaceFu
         }
     });
     const fn = (doc: Doc) => {
-        if (!(doc instanceof Doc)) {
-            throw new Error("Currently wrapping a schema in another schema isn't supported");
-        }
+        doc = doc[SelfProxy];
+        // if (!(doc instanceof Doc)) {
+        //     throw new Error("Currently wrapping a schema in another schema isn't supported");
+        // }
         const obj = Object.create(proto, { doc: { value: doc, writable: false } });
         return obj;
     };
@@ -102,7 +104,7 @@ export function makeStrictInterface<T extends Interface>(schema: T): (doc: Doc) 
 }
 
 export function createSchema<T extends Interface>(schema: T): T & { proto: ToConstructor<Doc> } {
-    schema.proto = Doc;
+    (schema as any).proto = Doc;
     return schema as any;
 }
 

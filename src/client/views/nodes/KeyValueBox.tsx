@@ -2,18 +2,38 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import 'react-image-lightbox/style.css'; // This only needs to be imported once in your app
-import { CompileScript, ScriptOptions } from "../../util/Scripting";
+import { CompileScript, ScriptOptions, CompiledScript } from "../../util/Scripting";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./KeyValueBox.scss";
 import { KeyValuePair } from "./KeyValuePair";
 import React = require("react");
-import { NumCast, Cast, FieldValue } from "../../../new_fields/Types";
-import { Doc, Field } from "../../../new_fields/Doc";
-import { ComputedField } from "../../../fields/ScriptField";
+import { NumCast, Cast, FieldValue, StrCast } from "../../../new_fields/Types";
+import { Doc, Field, FieldResult, DocListCastAsync } from "../../../new_fields/Doc";
+import { ComputedField, ScriptField } from "../../../new_fields/ScriptField";
+import { SetupDrag } from "../../util/DragManager";
+import { Docs } from "../../documents/Documents";
+import { RawDataOperationParameters } from "../../northstar/model/idea/idea";
+import { Templates } from "../Templates";
+import { List } from "../../../new_fields/List";
+import { TextField } from "../../util/ProsemirrorCopy/prompt";
+import { RichTextField } from "../../../new_fields/RichTextField";
+import { ImageField } from "../../../new_fields/URLField";
+import { SelectionManager } from "../../util/SelectionManager";
+import { listSpec } from "../../../new_fields/Schema";
+import { CollectionViewType } from "../collections/CollectionBaseView";
+import { undoBatch } from "../../util/UndoManager";
+
+export type KVPScript = {
+    script: CompiledScript;
+    type: "computed" | "script" | false;
+    onDelegate: boolean;
+};
 
 @observer
 export class KeyValueBox extends React.Component<FieldViewProps> {
     private _mainCont = React.createRef<HTMLDivElement>();
+    private _keyHeader = React.createRef<HTMLTableHeaderCellElement>();
+    @observable private rows: KeyValuePair[] = [];
 
     public static LayoutString(fieldStr: string = "data") { return FieldView.LayoutString(KeyValueBox, fieldStr); }
     @observable private _keyInput: string = "";
@@ -28,6 +48,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     @action
     onEnterKey = (e: React.KeyboardEvent): void => {
         if (e.key === 'Enter') {
+            e.stopPropagation();
             if (this._keyInput && this._valueInput && this.fieldDocToLayout) {
                 if (KeyValueBox.SetField(this.fieldDocToLayout, this._keyInput, this._valueInput)) {
                     this._keyInput = "";
@@ -36,29 +57,46 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
             }
         }
     }
-    public static SetField(doc: Doc, key: string, value: string) {
+    public static CompileKVPScript(value: string): KVPScript | undefined {
         let eq = value.startsWith("=");
         value = eq ? value.substr(1) : value;
-        let dubEq = value.startsWith(":=");
+        const dubEq = value.startsWith(":=") ? "computed" : value.startsWith(";=") ? "script" : false;
         value = dubEq ? value.substr(2) : value;
-        let options: ScriptOptions = { addReturn: true };
+        let options: ScriptOptions = { addReturn: true, params: { this: "Doc" } };
         if (dubEq) options.typecheck = false;
         let script = CompileScript(value, options);
         if (!script.compiled) {
-            return false;
+            return undefined;
         }
-        let field = new ComputedField(script);
-        if (!dubEq) {
-            let res = script.run();
+        return { script, type: dubEq, onDelegate: eq };
+    }
+
+    public static ApplyKVPScript(doc: Doc, key: string, kvpScript: KVPScript): boolean {
+        const { script, type, onDelegate } = kvpScript;
+        //const target = onDelegate ? (doc.layout instanceof Doc ? doc.layout : doc) : Doc.GetProto(doc); // bcz: need to be able to set fields on layout templates
+        const target = onDelegate ? doc : Doc.GetProto(doc);
+        let field: Field;
+        if (type === "computed") {
+            field = new ComputedField(script);
+        } else if (type === "script") {
+            field = new ScriptField(script);
+        } else {
+            let res = script.run({ this: target });
             if (!res.success) return false;
             field = res.result;
         }
         if (Field.IsField(field, true)) {
-            let target = !eq ? doc : Doc.GetProto(doc);
             target[key] = field;
             return true;
         }
         return false;
+    }
+
+    @undoBatch
+    public static SetField(doc: Doc, key: string, value: string) {
+        const script = this.CompileKVPScript(value);
+        if (!script) return false;
+        return this.ApplyKVPScript(doc, key, script);
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
@@ -81,7 +119,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         let protos = Doc.GetAllPrototypes(doc);
         for (const proto of protos) {
             Object.keys(proto).forEach(key => {
-                if (!(key in ids)) {
+                if (!(key in ids) && realDoc[key] !== ComputedField.undefined) {
                     ids[key] = key;
                 }
             });
@@ -89,8 +127,16 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
 
         let rows: JSX.Element[] = [];
         let i = 0;
+        const self = this;
         for (let key of Object.keys(ids).sort()) {
-            rows.push(<KeyValuePair doc={realDoc} keyWidth={100 - this.splitPercentage} rowStyle={"keyValueBox-" + (i++ % 2 ? "oddRow" : "evenRow")} key={key} keyName={key} />);
+            rows.push(<KeyValuePair doc={realDoc} ref={(function () {
+                let oldEl: KeyValuePair | undefined;
+                return (el: KeyValuePair) => {
+                    if (oldEl) self.rows.splice(self.rows.indexOf(oldEl), 1);
+                    oldEl = el;
+                    if (el) self.rows.push(el);
+                };
+            })()} keyWidth={100 - this.splitPercentage} rowStyle={"keyValueBox-" + (i++ % 2 ? "oddRow" : "evenRow")} key={key} keyName={key} />);
         }
         return rows;
     }
@@ -112,7 +158,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
                     <input style={{ width: "100%" }} type="text" value={this._keyInput} placeholder="Key" onChange={this.keyChanged} />
                 </td>
                 <td className="keyValueBox-td-value" style={{ width: `${this.splitPercentage}%` }}>
-                    <input style={{ width: "100%" }} type="text" value={this._valueInput} placeholder="Value" onChange={this.valueChanged} onKeyPress={this.onEnterKey} />
+                    <input style={{ width: "100%" }} type="text" value={this._valueInput} placeholder="Value" onChange={this.valueChanged} onKeyDown={this.onEnterKey} />
                 </td>
             </tr>
         )
@@ -134,6 +180,62 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         document.addEventListener('pointerup', this.onDividerUp);
     }
 
+    getTemplate = async () => {
+        let parent = Docs.Create.StackingDocument([], { width: 800, height: 800, title: "Template" });
+        parent.singleColumn = false;
+        parent.columnWidth = 100;
+        for (let row of this.rows.filter(row => row.isChecked)) {
+            await this.createTemplateField(parent, row);
+            row.uncheck();
+        }
+        return parent;
+    }
+
+    createTemplateField = async (parentStackingDoc: Doc, row: KeyValuePair) => {
+        let metaKey = row.props.keyName;
+        let sourceDoc = await Cast(this.props.Document.data, Doc);
+        if (!sourceDoc) {
+            return;
+        }
+
+        let fieldTemplate = await this.inferType(sourceDoc[metaKey], metaKey);
+        if (!fieldTemplate) {
+            return;
+        }
+        let previousViewType = fieldTemplate.viewType;
+        Doc.MakeTemplate(fieldTemplate, metaKey, Doc.GetProto(parentStackingDoc));
+        previousViewType && (fieldTemplate.viewType = previousViewType);
+
+        Cast(parentStackingDoc.data, listSpec(Doc))!.push(fieldTemplate);
+    }
+
+    inferType = async (data: FieldResult, metaKey: string) => {
+        let options = { width: 300, height: 300, title: metaKey };
+        if (data instanceof RichTextField || typeof data === "string" || typeof data === "number") {
+            return Docs.Create.TextDocument(options);
+        } else if (data instanceof List) {
+            if (data.length === 0) {
+                return Docs.Create.StackingDocument([], options);
+            }
+            let first = await Cast(data[0], Doc);
+            if (!first || !first.data) {
+                return Docs.Create.StackingDocument([], options);
+            }
+            switch (first.data.constructor) {
+                case RichTextField:
+                    return Docs.Create.TreeDocument([], options);
+                case ImageField:
+                    return Docs.Create.MasonryDocument([], options);
+                default:
+                    console.log(`Template for ${first.data.constructor} not supported!`);
+                    return undefined;
+            }
+        } else if (data instanceof ImageField) {
+            return Docs.Create.ImageDocument("https://image.flaticon.com/icons/png/512/23/23765.png", options);
+        }
+        return new Doc;
+    }
+
     render() {
         let dividerDragger = this.splitPercentage === 0 ? (null) :
             <div className="keyValueBox-dividerDragger" style={{ transform: `translate(calc(${100 - this.splitPercentage}% - 5px), 0px)` }}>
@@ -144,7 +246,9 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
             <table className="keyValueBox-table">
                 <tbody className="keyValueBox-tbody">
                     <tr className="keyValueBox-header">
-                        <th className="keyValueBox-key" style={{ width: `${100 - this.splitPercentage}%` }}>Key</th>
+                        <th className="keyValueBox-key" style={{ width: `${100 - this.splitPercentage}%` }} ref={this._keyHeader}
+                            onPointerDown={SetupDrag(this._keyHeader, this.getTemplate)}
+                        >Key</th>
                         <th className="keyValueBox-fields" style={{ width: `${this.splitPercentage}%` }}>Fields</th>
                     </tr>
                     {this.createTable()}

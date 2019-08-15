@@ -16,7 +16,7 @@ mongoose.connection.on('disconnected', function () {
     console.log('connection closed');
 });
 export type DashUserModel = mongoose.Document & {
-    email: string,
+    email: String,
     password: string,
     passwordResetToken?: string,
     passwordResetExpires?: Date,

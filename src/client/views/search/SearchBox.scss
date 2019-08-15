@@ -1,0 +1,69 @@
+@import "../globalCssVariables";
+@import "./NaviconButton.scss";
+
+.searchBox-bar {
+    height: 32px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding-left: 2px;
+    padding-right: 2px;
+
+    .searchBox-barChild {
+
+        &.searchBox-collection {
+            flex: 0 1 auto;
+            margin-left: 2px;
+            margin-right: 2px
+        }
+
+        &.searchBox-input {
+            display: block;
+            width: 130px;
+            -webkit-transition: width 0.4s;
+            transition: width 0.4s;
+            align-self: stretch;
+            margin-left: 2px;
+            margin-right: 2px
+        }
+
+        .searchBox-input:focus {
+            width: 500px;
+            outline: 3px solid lightblue;
+        }
+
+        &.searchBox-filter {
+            align-self: stretch;
+            margin-left: 2px;
+            margin-right: 2px
+        }
+    }
+}
+
+.searchBox-results {
+    margin-right: 136px;
+    top: 300px;
+    display: flex;
+    flex-direction: column;
+    margin-right: 72px;
+    // height: 560px;
+    height: 100%;
+    // overflow: hidden;
+    // overflow-y: auto;
+    max-height: 560px;
+    overflow: hidden;
+    overflow-y: auto;
+
+    .no-result {
+        width: 500px;
+        background: $light-color-secondary;
+        border-color: $intermediate-color;
+        border-bottom-style: solid;
+        padding: 10px;
+        height: 50px;
+        text-transform: uppercase;
+        text-align: left;
+        font-weight: bold;
+        margin-left: 28px;
+    }
+}
