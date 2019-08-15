@@ -23,6 +23,8 @@ import { EditableView } from "../EditableView";
 import { listSpec } from "../../../new_fields/Schema";
 import { BottomUI } from "./CollectionTimeLineViewBottomUI";
 import { throwStatement, TSParenthesizedType } from "babel-types";
+import { anchorPoints, Flyout } from "../DocumentDecorations";
+
 
 type DocTuple = {
     doc: Doc,
@@ -667,12 +669,13 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
 
     keysToRender: Set<String> = new Set<String>();
+    private keys: JSX.Element[] = [];
     sortmenu() {
         let array = Array.from(this.keysToRender);
         console.log(array.length);
         return array.map((unit) => {
             let radioref = React.createRef<HTMLInputElement>();
-            <div>
+            this.keys.push(< div >
                 <input
                     type="radio"
                     ref={radioref}
@@ -680,7 +683,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 // onChange={() => this.toggleKey(unit.key, index, radioref)}
                 />
                 {unit}
-            </div>;
+            </div>);
         });
     }
 
@@ -885,6 +888,20 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.barwidth = (this.barref.current ? this.barref.current.clientWidth : (952));
     }
 
+    // {<div>{Array.from(this.keysToRender).map((unit) => {
+    //     //let radioref = React.createRef<HTMLInputElement>();
+
+    //     {/* <input
+    //             type="radio"
+    //         //ref={radioref}
+    //         //checked={unit.checked}
+    //         // onChange={() => this.toggleKey(unit.key, index, radioref)}
+    //         /> */}
+    //     unit;
+
+    // })}</div>}
+
+
     leftboundSet = (number: number) => { this.leftbound = number; this.markerrender(); };
     rightboundSet = (number: number) => { this.rightbound = number; this.markerrender(); };
     selectedColorSet = (color: string) => { this.selectedColor = color; };
@@ -895,32 +912,40 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.createticks();
         this.filtermenu();
         this.thumbnailloop();
-
+        this.sortmenu();
+        console.log(Array.from(this.keysToRender).length);
         let p: [number, number] = this._visible ? this.props.ScreenToLocalTransform().translate(0, 0).transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
         return (
             <div className="collectionTimelineView" ref={this.screenref} style={{ marginLeft: "1%", width: "98%", height: "100%" }} onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
-                <div ref={this.sortRef} style={{ position: "absolute", height: document.body.clientHeight * 0.29, width: "10%", overflow: "scroll", border: "1px solid", zIndex: 900 }}>
-                    <h5><b>Sort</b></h5>
-                    {<div>{Array.from(this.keysToRender)}</div>}
-                </div>
-                <div ref={this.leftHRef} style={{ cursor: "ns-resize", top: document.body.clientHeight * 0.29, width: "10%", border: "1px solid", position: "absolute", zIndex: 1001 }} onPointerDown={this.onPointerDown_LeftH}></div>
-                <div ref={this.filterRef} style={{ position: "absolute", top: document.body.clientHeight * 0.29, height: document.body.clientHeight * 0.29, width: "10%", overflow: "scroll", border: "1px solid", zIndex: 900 }}>
-                    <h5><b>Filter</b></h5>
-                    {this.filterbuttons}
-                </div>
+                <Flyout
+                    anchorPoint={anchorPoints.RIGHT_TOP}
+                    content={<div>
+                        <div ref={this.sortRef} style={{ position: "absolute", height: document.body.clientHeight * 0.29, width: "10%", overflow: "scroll", border: "1px solid", zIndex: 900 }}>
+                            <h5><b>Sort</b></h5>
+                            {this.keys}
+
+                        </div>
+                        <div ref={this.leftHRef} style={{ cursor: "ns-resize", top: document.body.clientHeight * 0.29, width: "10%", border: "1px solid", position: "absolute", zIndex: 1001 }} onPointerDown={this.onPointerDown_LeftH}></div>
+                        <div ref={this.filterRef} style={{ position: "absolute", top: document.body.clientHeight * 0.29, height: document.body.clientHeight * 0.29, width: "10%", overflow: "scroll", border: "1px solid", zIndex: 900 }}>
+                            <h5><b>Filter</b></h5>
+                            {this.filterbuttons}
+                        </div></div>
+                    }>
+                    <button id="schemaOptionsMenuBtn" ><FontAwesomeIcon style={{ color: "white" }} icon="cog" size="sm" /></button>
+                </Flyout>
                 <div className="timeline" style={{ position: "absolute", height: "25px", width: "100%", top: String(document.body.clientHeight * 0.65 + 72) + "px", zIndex: -9999 }}>
                     {this.ticks}
                 </div>
-                <div style={{ left: "10%", width: "60%", height: document.body.clientHeight * 0.58, background: "white", pointerEvents: "none", position: "absolute", border: "1px solid" }}>
+                {/* <div style={{ left: "10%", width: "60%", height: document.body.clientHeight * 0.58, background: "white", pointerEvents: "none", position: "absolute", border: "1px solid" }}>
                     {this.preview ? this.documentDisplay(this.preview, this.barwidth / 2, 500) : (null)}
                 </div>
                 <div ref={this.KVPRef} style={{ left: "70%", height: document.body.clientHeight * 0.29, pointerEvents: "none", background: "white", position: "absolute", border: "1px solid", width: "30%" }}>
                     {this.preview ? this.documentDisplay(Docs.KVPDocument(this.preview, {}), this.barwidth * 0.29, document.body.clientHeight * 0.59) : (null)}
-                </div>
-                <div ref={this.rightHRef} style={{ cursor: "ns-resize", top: document.body.clientHeight * 0.29, left: "70%", width: "30%", border: "1px solid", position: "absolute", zIndex: 1001 }} onPointerDown={this.onPointerDown_RightH}></div>
+                </div> */}
+                {/* <div ref={this.rightHRef} style={{ cursor: "ns-resize", top: document.body.clientHeight * 0.29, left: "70%", width: "30%", border: "1px solid", position: "absolute", zIndex: 1001 }} onPointerDown={this.onPointerDown_RightH}></div>
                 <div ref={this.annRef} style={{ left: "70%", top: document.body.clientHeight * 0.29, height: document.body.clientHeight * 0.29, position: "absolute", border: "1px solid", width: "30%" }}>
                     {this.annotationPanel()}
-                </div>
+                </div> */}
                 {DocListCast(this.props.Document.markers).map(d => this.createmarker(d))}
                 <BottomUI
                     thumbnailmap={this.thumbnails.map(item => item.map)}
