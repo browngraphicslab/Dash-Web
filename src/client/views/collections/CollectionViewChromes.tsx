@@ -21,6 +21,7 @@ import { listSpec } from "../../../new_fields/Schema";
 import { List } from "../../../new_fields/List";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { threadId } from "worker_threads";
+import { DragManager } from "../../util/DragManager";
 const datepicker = require('js-datepicker');
 
 interface CollectionViewChromeProps {
@@ -221,6 +222,27 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             })} />);
     }
 
+    private dropDisposer?: DragManager.DragDropDisposer;
+    protected createDropTarget = (ele: HTMLDivElement) => {
+        this.dropDisposer && this.dropDisposer();
+        if (ele) {
+            this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
+        }
+    }
+
+    @undoBatch
+    @action
+    protected drop(e: Event, de: DragManager.DropEvent): boolean {
+        if (de.data instanceof DragManager.DocumentDragData) {
+            if (de.data.draggedDocuments.length) {
+                this.props.CollectionView.props.Document.childLayout = de.data.draggedDocuments[0];
+                e.stopPropagation();
+                return true;
+            }
+        }
+        return true;
+    }
+
     render() {
         let collapsed = this.props.CollectionView.props.Document.chromeStatus !== "enabled";
         return (
@@ -296,7 +318,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                                 </div>
                             </div>
                         </div>
-                        <div className="collectionViewBaseChrome-template" style={{}}>
+                        <div className="collectionViewBaseChrome-template" ref={this.createDropTarget} style={{}}>
                             TEMPLATE
                         </div>
                     </div>

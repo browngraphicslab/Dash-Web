@@ -59,7 +59,8 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         if (!this.sectionFilter || this.sectionHeaders instanceof Promise) return new Map<SchemaHeaderField, Doc[]>();
 
         if (this.sectionHeaders === undefined) {
-            this.props.Document.sectionHeaders = new List<SchemaHeaderField>();
+            setTimeout(() => this.props.Document.sectionHeaders = new List<SchemaHeaderField>(), 0);
+            return new Map<SchemaHeaderField, Doc[]>();
         }
         const sectionHeaders = this.sectionHeaders!;
         let fields = new Map<SchemaHeaderField, Doc[]>(sectionHeaders.map(sh => [sh, []] as [SchemaHeaderField, []]));
@@ -83,7 +84,19 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         return fields;
     }
 
+    childLayoutDisposer?: IReactionDisposer;
     componentDidMount() {
+        this.childLayoutDisposer = reaction(() => this.props.Document.childLayout,
+            async () => {
+                let chidlLayout = Cast(this.props.Document.childLayout, Doc);
+                if (chidlLayout instanceof Doc) {
+                    const childLayout = chidlLayout;
+                    let list = await this.childDocList;
+                    list && list.map(async doc => {
+                        !Doc.AreProtosEqual(childLayout, (await doc).layout as Doc) && Doc.ApplyTemplateTo(childLayout, (await doc), undefined);
+                    });
+                }
+            });
         // is there any reason this needs to exist? -syip.  yes, it handles autoHeight for stacking views (masonry isn't yet supported).
         this._heightDisposer = reaction(() => {
             if (this.isStackingView && BoolCast(this.props.Document.autoHeight)) {
@@ -108,6 +121,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         );
     }
     componentWillUnmount() {
+        this.childLayoutDisposer && this.childLayoutDisposer();
         this._heightDisposer && this._heightDisposer();
         this._sectionFilterDisposer && this._sectionFilterDisposer();
     }
