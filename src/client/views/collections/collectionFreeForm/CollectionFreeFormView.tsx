@@ -742,7 +742,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         }
         let docviews = docs.filter(doc => doc instanceof Doc).reduce((prev, doc) => {
             var page = NumCast(doc.page, -1);
-            if ((Math.abs(Math.round(page) - Math.round(curPage)) < 3) || page === -1) {
+          //  if ((Math.abs(Math.round(page) - Math.round(curPage)) < 3) || page === -1) {
                 let minim = BoolCast(doc.isMinimized);
                 if (minim === undefined || !minim) {
                     const pos = script ? this.getCalculatedPositions(script, { doc, index: prev.length, collection: this.Document, docs, state }) :
@@ -755,7 +755,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         bounds: (pos.x !== undefined && pos.y !== undefined) ? { x: pos.x, y: pos.y, z: pos.z, width: NumCast(pos.width), height: NumCast(pos.height) } : undefined
                     });
                 }
-            }
+           // }
             return prev;
         }, elements);
 
@@ -902,7 +902,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         <CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" />
                     </CollectionFreeFormViewPannableContents>
                 </MarqueeView>
-                <Timeline {...this.props} />
+                <Timeline {...this.props}/>
                 {this.overlayChildViews()}
                 <CollectionFreeFormOverlayView  {...this.props} {...this.getDocumentViewProps(this.props.Document)} />
             </div>

@@ -4,15 +4,18 @@ import { CollectionSubView } from "../collections/CollectionSubView";
 import { Document, listSpec } from "../../../new_fields/Schema";
 import { observer } from "mobx-react";
 import { Track } from "./Track";
-import { observable, reaction, action, IReactionDisposer, computed, runInAction } from "mobx";
+import { observable, reaction, action, IReactionDisposer, computed, runInAction, observe } from "mobx";
 import { Cast, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlayCircle, faBackward, faForward, faGripLines, faArrowUp, faArrowDown, faClock, faPauseCircle } from "@fortawesome/free-solid-svg-icons";
+import { faPlayCircle, faBackward, faForward, faGripLines, faArrowUp, faArrowDown, faClock, faPauseCircle, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { ContextMenu } from "../ContextMenu";
 import { TimelineOverview } from "./TimelineOverview";
+import { playcustomapp } from "googleapis/build/src/apis/playcustomapp";
+import { FieldView, FieldViewProps } from "../nodes/FieldView";
+
 
 
 export interface FlyoutProps {
@@ -25,7 +28,7 @@ export interface FlyoutProps {
 
 
 @observer
-export class Timeline extends CollectionSubView(Document) {
+export class Timeline extends React.Component<FieldViewProps> {
 
     private readonly DEFAULT_CONTAINER_HEIGHT: number = 300;
     private readonly DEFAULT_TICK_SPACING: number = 50;
@@ -56,6 +59,7 @@ export class Timeline extends CollectionSubView(Document) {
     @observable private _time = 100000; //DEFAULT
     @observable private _ticks: number[] = [];
     @observable private _playButton = faPlayCircle; 
+    @observable private _timelineVisible = false; 
 
     @computed
     private get children(): List<Doc> {
@@ -74,6 +78,7 @@ export class Timeline extends CollectionSubView(Document) {
 
     componentWillMount() {
         this.props.Document.isAnimating ? this.props.Document.isAnimating = true : this.props.Document.isAnimating = false; 
+        document.addEventListener("contextmenu", (e) => {this.timelineContextMenu(e);});
         console.log(this._currentBarX); 
     }
 
@@ -86,7 +91,12 @@ export class Timeline extends CollectionSubView(Document) {
                 reaction(() => {
                     return NumCast(this.props.Document.curPage);
                 }, curPage => {
-                    this.changeCurrentBarX(curPage * this._tickIncrement / this._tickSpacing);
+                    if (!this._isPlaying) {
+                        this.changeCurrentBarX(curPage * this._tickIncrement / this._tickSpacing);
+                        this.props.Document.curPage = this._currentBarX; 
+                        this.play(); 
+                    }
+                   
                 });
             }
         }
@@ -123,6 +133,10 @@ export class Timeline extends CollectionSubView(Document) {
     onPlay = (e: React.MouseEvent) => {
         e.preventDefault(); 
         e.stopPropagation(); 
+        this.play(); 
+    }
+
+    play = () => {
         if (this._isPlaying) {
             this._isPlaying = false;
             this._playButton = faPlayCircle; 
@@ -142,6 +156,8 @@ export class Timeline extends CollectionSubView(Document) {
             playTimeline(); 
         }
     }
+
+
 
     @action
     windForward = (e: React.MouseEvent) => {
@@ -326,7 +342,7 @@ export class Timeline extends CollectionSubView(Document) {
         }
     }
 
-    timelineContextMenu = (e: React.MouseEvent): void => {
+    timelineContextMenu = (e:MouseEvent): void => {
         let subitems: ContextMenuProps[] = [];
         let timelineContainer = this._timelineWrapper.current!;
         subitems.push({
@@ -340,13 +356,17 @@ export class Timeline extends CollectionSubView(Document) {
         });
         subitems.push({
             description: this._isFrozen ? "Unfreeze Timeline" : "Freeze Timeline", event: action(() => {
-                if (this._isFrozen) {
-                    this._isFrozen = false;
-                } else {
-                    this._isFrozen = true;
-                }
+                this._isFrozen = !this._isFrozen; 
             }), icon: "thumbtack"
         });
+        subitems.push({
+            description: this._timelineVisible ? "Hide Timeline" : "Show Timeline", event: action(() => {
+                this._timelineVisible = !this._timelineVisible; 
+            }), icon: this._timelineVisible ? faEyeSlash : "eye"
+        }); 
+        subitems.push({ description: BoolCast(this.props.Document.isAnimating) ? "Enter Play Mode" : "Enter Authoring Mode", event: () => {
+            BoolCast(this.props.Document.isAnimating) ? this.props.Document.isAnimating = false : this.props.Document.isAnimating = true;}
+            , icon:BoolCast(this.props.Document.isAnimating) ? "play" : "edit"}); 
         ContextMenu.Instance.addItem({ description: "Timeline Funcs...", subitems: subitems, icon: faClock });
     }
 
@@ -364,10 +384,10 @@ export class Timeline extends CollectionSubView(Document) {
     }
     render() {
         return (
-            <div>
-                <div key="timeline_wrapper" style={{visibility: BoolCast(this.props.Document.isAnimating) ? "visible" :"hidden", left: "0px", top: "0px", position: "absolute", width: "100%", transform: "translate(0px, 0px)"}} ref={this._timelineWrapper}>
+            <div style={{visibility: this._timelineVisible ? "visible" : "hidden"}}>
+                <div key="timeline_wrapper" style={{visibility: BoolCast(this.props.Document.isAnimating && this._timelineVisible) ? "visible" :"hidden", left: "0px", top: "0px", position: "absolute", width: "100%", transform: "translate(0px, 0px)"}} ref={this._timelineWrapper}>
                     <button key="timeline_minimize" className="minimize" onClick={this.minimize}>Minimize</button>
-                    <div key="timeline_container" className="timeline-container" style={{ height: `${this._containerHeight}px`, left: "0px", top: "30px" }} ref={this._timelineContainer} onPointerDown={this.onTimelineDown} onContextMenu={this.timelineContextMenu}>
+                    <div key="timeline_container" className="timeline-container" style={{ height: `${this._containerHeight}px`, left: "0px", top: "30px" }} ref={this._timelineContainer} onPointerDown={this.onTimelineDown}>
                         {this.timelineToolBox(0.5)}
                         <div key ="timeline_info"className="info-container" ref={this._infoContainer}>
                             <div key="timeline_scrubberbox" className="scrubberbox" ref={this._scrubberbox} onClick={this.onScrubberClick}>

@@ -570,7 +570,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         subitems.push({ description: "Open Right Alias", event: () => this.props.addDocTab && this.props.addDocTab(Doc.MakeAlias(this.props.Document), this.dataDoc, "onRight"), icon: "caret-square-right" });
         subitems.push({ description: "Open Fields", event: this.fieldsClicked, icon: "layer-group" });
         cm.addItem({ description: "Open...", subitems: subitems, icon: "external-link-alt" });
-        cm.addItem({ description: BoolCast(this.props.Document.isAnimating) ? "Enter Play Mode" : "Enter Authoring Mode", event: () => {BoolCast(this.props.Document.isAnimating) ? this.props.Document.isAnimating = false : this.props.Document.isAnimating = true;}, icon:BoolCast(this.props.Document.isAnimating) ? "play" : "edit"}); 
         let existingMake = ContextMenu.Instance.findByDescription("Make...");
         let makes: ContextMenuProps[] = existingMake && "subitems" in existingMake ? existingMake.subitems : [];
         makes.push({ description: this.props.Document.isBackground ? "Remove Background" : "Make Background", event: this.makeBackground, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
