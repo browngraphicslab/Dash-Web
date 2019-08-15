@@ -134,28 +134,31 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
 
     paste = (e: ClipboardEvent) => {
+        //this is throwing a ton of erros so i had to comment it out
         if (e.clipboardData && this._editorView) {
-            let pdfPasteText = `${Utils.GenerateDeterministicGuid("pdf paste")}`;
-            for (let i = 0; i < e.clipboardData.items.length; i++) {
-                let item = e.clipboardData.items.item(i);
-                if (item.type === "text/plain") {
-                    item.getAsString((text) => {
-                        let pdfPasteIndex = text.indexOf(pdfPasteText);
-                        if (pdfPasteIndex > -1) {
-                            let insertText = text.substr(0, pdfPasteIndex);
-                            const tx = this._editorView!.state.tr.insertText(insertText);
-                            // tx.setSelection(new Selection(tx.))
-                            const state = this._editorView!.state;
-                            this._editorView!.dispatch(tx);
-                            if (FormattedTextBox._toolTipTextMenu) {
-                                // this._toolTipTextMenu.makeLinkWithState(state)
-                            }
-                            e.stopPropagation();
-                            e.preventDefault();
-                        }
-                    });
-                }
-            }
+            // let pdfPasteText = `${Utils.GenerateDeterministicGuid("pdf paste")}`;
+            // for (let i = 0; i < e.clipboardData.items.length; i++) {
+            //     let item = e.clipboardData.items.item(i);
+            //     console.log(item)
+            //     if (item.type === "text/plain") {
+            //         console.log("plain")
+            //         item.getAsString((text) => {
+            //             let pdfPasteIndex = text.indexOf(pdfPasteText);
+            //             if (pdfPasteIndex > -1) {
+            //                 let insertText = text.substr(0, pdfPasteIndex);
+            //                 const tx = this._editorView!.state.tr.insertText(insertText);
+            //                 // tx.setSelection(new Selection(tx.))
+            //                 const state = this._editorView!.state;
+            //                 this._editorView!.dispatch(tx);
+            //                 if (FormattedTextBox._toolTipTextMenu) {
+            //                     // this._toolTipTextMenu.makeLinkWithState(state)
+            //                 }
+            //                 e.stopPropagation();
+            //                 e.preventDefault();
+            //             }
+            //         });
+            //     }
+            // }
         }
     }
 
@@ -167,7 +170,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             FormattedTextBox._toolTipTextMenu && (FormattedTextBox._toolTipTextMenu.HackToFixTextSelectionGlitch = false);
             if (state.selection.empty && FormattedTextBox._toolTipTextMenu) {
                 const marks = tx.storedMarks;
-                console.log(marks)
                 if (marks) { FormattedTextBox._toolTipTextMenu.mark_key_pressed(marks); }
             }
             this._applyingChange = true;

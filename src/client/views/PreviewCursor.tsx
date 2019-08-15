@@ -4,13 +4,15 @@ import "normalize.css";
 import * as React from 'react';
 import "./PreviewCursor.scss";
 import { Docs } from '../documents/Documents';
-import { Transform } from 'prosemirror-transform';
+// import { Transform } from 'prosemirror-transform';
 import { Doc } from '../../new_fields/Doc';
+import { Transform } from "../util/Transform";
 
 @observer
 export class PreviewCursor extends React.Component<{}> {
     private _prompt = React.createRef<HTMLDivElement>();
     static _onKeyPress?: (e: KeyboardEvent) => void;
+    static _getTransform: () => Transform;
     static _addLiveTextDoc: (doc: Doc) => void;
     @observable static _clickPoint = [0, 0];
     @observable public static Visible = false;
@@ -26,22 +28,28 @@ export class PreviewCursor extends React.Component<{}> {
     }
 
     paste = (e: ClipboardEvent) => {
-        console.log("pasting")
         if (PreviewCursor.Visible) {
-            console.log("preview is visible")
             if (e.clipboardData) {
-                //what needs to be done with this?
-                console.log(e.clipboardData.getData("text/html"));
+                //keeping these just to hold onto types of pastes
+                //what needs to be done with html?
+                // console.log(e.clipboardData.getData("text/html"));
                 // console.log(e.clipboardData.getData("text/csv"));
-                console.log(e.clipboardData.getData("text/plain"));
-                console.log(e.clipboardData.getData("image/png"));
-                console.log(e.clipboardData.getData("image/jpg"));
-                console.log(e.clipboardData.getData("image/jpeg"));
+                // console.log(e.clipboardData.getData("text/plain"));
+                // console.log(e.clipboardData.getData("image/png"));
+                // console.log(e.clipboardData.getData("image/jpg"));
+                // console.log(e.clipboardData.getData("image/jpeg"));
 
                 // pasting in text
                 if (e.clipboardData.getData("text/plain") !== "") {
                     let text = e.clipboardData.getData("text/plain");
-                    let newBox = Docs.Create.TextDocument({ width: 200, height: 100, x: PreviewCursor._clickPoint[0], y: PreviewCursor._clickPoint[1], title: "-typed text-" });
+                    let newPoint = PreviewCursor._getTransform().transformPoint(PreviewCursor._clickPoint[0], PreviewCursor._clickPoint[1]);
+                    let newBox = Docs.Create.TextDocument({
+                        width: 200, height: 100,
+                        x: newPoint[0],
+                        y: newPoint[1],
+                        title: "-typed text-"
+                    });
+
                     newBox.proto!.autoHeight = true;
                     PreviewCursor._addLiveTextDoc(newBox);
                 }
@@ -69,10 +77,11 @@ export class PreviewCursor extends React.Component<{}> {
         }
     }
     @action
-    public static Show(x: number, y: number, onKeyPress: (e: KeyboardEvent) => void, addLiveText: (doc: Doc) => void) {
+    public static Show(x: number, y: number, onKeyPress: (e: KeyboardEvent) => void, addLiveText: (doc: Doc) => void, getTransform: () => Transform) {
         this._clickPoint = [x, y];
         this._onKeyPress = onKeyPress;
         this._addLiveTextDoc = addLiveText;
+        this._getTransform = getTransform;
         setTimeout(action(() => this.Visible = true), (1));
     }
     render() {

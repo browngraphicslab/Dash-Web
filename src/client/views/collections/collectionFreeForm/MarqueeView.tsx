@@ -203,7 +203,8 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     onClick = (e: React.MouseEvent): void => {
         if (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
             Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD) {
-            PreviewCursor.Show(e.clientX, e.clientY, this.onKeyPress, this.props.addLiveTextDocument);
+            //this is probably the wrong transform
+            PreviewCursor.Show(e.clientX, e.clientY, this.onKeyPress, this.props.addLiveTextDocument, this.props.getTransform);
             // let the DocumentView stopPropagation of this event when it selects this document
         } else {  // why do we get a click event when the cursor have moved a big distance?
             // let's cut it off here so no one else has to deal with it.
