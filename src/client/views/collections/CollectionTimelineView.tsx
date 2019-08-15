@@ -747,7 +747,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.thumbnailloop();
         let p: [number, number] = this._visible ? this.props.ScreenToLocalTransform().translate(0, 0).transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
         return (
-            <div className="collectionTimelineView" ref={this.screenref} style={{ marginLeft: "1%", width: "98%", height: "100%" }} onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
+            <div className="collectionTimelineView" ref={this.screenref} style={{ width: "100%", height: "100%" }} onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
                 <Flyout
                     anchorPoint={anchorPoints.RIGHT_TOP}
                     content={<div>
@@ -755,7 +755,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         {this.filterbuttons}
                     </div>
                     }>
-                    <button id="schemaOptionsMenuBtn" ><FontAwesomeIcon style={{ color: "white" }} icon="cog" size="sm" /></button>
+                    <button id="schemaOptionsMenuBtn" style={{ position: "fixed" }}><FontAwesomeIcon style={{ color: "white" }} icon="cog" size="sm" /></button>
                 </Flyout>
                 <div className="timeline" style={{ position: "absolute", height: "25px", width: "100%", top: String(document.body.clientHeight * 0.55 + 72) + "px", zIndex: -9999 }}>
                     {this.ticks}

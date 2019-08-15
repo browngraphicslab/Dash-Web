@@ -32,7 +32,8 @@ export namespace CollectionViewType {
         ["docking", CollectionViewType.Docking],
         ["tree", CollectionViewType.Tree],
         ["stacking", CollectionViewType.Stacking],
-        ["masonry", CollectionViewType.Masonry]
+        ["masonry", CollectionViewType.Masonry],
+        ["timeline", CollectionViewType.Timeline]
     ]);
 
     export const valueOf = (value: string) => {

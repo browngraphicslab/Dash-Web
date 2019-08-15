@@ -72,7 +72,7 @@
     .rt-table {
         height: 100%;
         display: -webkit-inline-box;
-        direction: ltr; 
+        direction: ltr;
         overflow: visible;
     }
 
@@ -171,7 +171,6 @@
 
 .documentView-node-topmost {
     text-align: left;
-    transform-origin: center top;
     display: inline-block;
 }
 
@@ -225,7 +224,7 @@ button.add-column {
         border-bottom: 1px solid lightgray;
 
         &:first-child {
-            padding-top : 0;
+            padding-top: 0;
         }
 
         &:last-child {
@@ -254,7 +253,7 @@ button.add-column {
         transition: background-color 0.2s;
 
         &:hover {
-            background-color: $light-color-secondary; 
+            background-color: $light-color-secondary;
         }
 
         &.active {
@@ -290,7 +289,7 @@ button.add-column {
             overflow-y: scroll;
             position: absolute;
             top: 28px;
-            box-shadow: 0 10px 16px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 16px rgba(0, 0, 0, 0.1);
 
             .key-option {
                 background-color: $light-color;
@@ -403,6 +402,7 @@ button.add-column {
 
     &.editing {
         padding: 0;
+
         input {
             outline: 0;
             border: none;

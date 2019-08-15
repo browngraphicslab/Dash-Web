@@ -212,6 +212,9 @@ export class BottomUI extends React.Component<BottomUIProps> {
         return (
             <div>
                 <div className="collectionTimelineViewBottomUI-grid">
+                    <div>
+                        <input type="text" />
+                    </div>
                     <div className="min"> Min:
                     <input value={this.searchString2} onChange={this.onChange} onKeyPress={this.enter2} type="text" placeholder={String((this.props.leftbound * this.props._range / this.props.barwidth) + this.props.minvalue)}
                             className="searchBox-barChild searchBox-input" />
@@ -228,7 +231,7 @@ export class BottomUI extends React.Component<BottomUIProps> {
                             className="searchBox-barChild searchBox-input" />
                     </div>
                 </div>
-                <div ref={this.props.barref} className="backdropscroll" onPointerDown={this.onPointerDown_OffBar} style={{ zIndex: 1, top: "3%", width: "100%", bottom: "90%", position: "absolute", }}>
+                <div ref={this.props.barref} className="backdropscroll" onPointerDown={this.onPointerDown_OffBar} style={{ zIndex: 1, top: "3%", width: "100%", bottom: "90%", position: "fixed", }}>
                     {this.props.thumbnailmap}
                     {this.props.markermap}
                     <div className="v1" onPointerDown={this.onPointerDown_LeftBound} style={{ cursor: "ew-resize", position: "absolute", zIndex: 100, left: this.props.leftbound, height: "100%" }}></div>

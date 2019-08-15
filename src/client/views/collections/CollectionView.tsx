@@ -18,6 +18,7 @@ import { CollectionSchemaView } from "./CollectionSchemaView";
 import { CollectionStackingView } from './CollectionStackingView';
 import { CollectionTreeView } from "./CollectionTreeView";
 import { CollectionViewBaseChrome } from './CollectionViewChromes';
+import { CollectionTimelineView } from './CollectionTimelineView';
 export const COLLECTION_BORDER_WIDTH = 2;
 
 library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faEllipsisV, faImage, faEye as any, faCopy);
@@ -59,6 +60,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
             case CollectionViewType.Tree: return (<CollectionTreeView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />);
             case CollectionViewType.Stacking: { this.props.Document.singleColumn = true; return (<CollectionStackingView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />); }
             case CollectionViewType.Masonry: { this.props.Document.singleColumn = false; return (<CollectionStackingView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />); }
+            case CollectionViewType.Timeline: return <CollectionTimelineView CollectionView={this} chromeCollapsed={true} {...props} />;
             case CollectionViewType.Freeform:
             default:
                 return (<CollectionFreeFormView chromeCollapsed={this._collapsed} key="collview" {...props} CollectionView={this} />);
@@ -98,6 +100,7 @@ export class CollectionView extends React.Component<FieldViewProps> {
             subItems.push({ description: "Treeview", event: () => this.props.Document.viewType = CollectionViewType.Tree, icon: "tree" });
             subItems.push({ description: "Stacking", event: () => this.props.Document.viewType = CollectionViewType.Stacking, icon: "ellipsis-v" });
             subItems.push({ description: "Masonry", event: () => this.props.Document.viewType = CollectionViewType.Masonry, icon: "columns" });
+            subItems.push({ description: "Timeline", event: () => this.props.Document.viewType = CollectionViewType.Timeline, icon: "columns" });
             switch (this.props.Document.viewType) {
                 case CollectionViewType.Freeform: {
                     subItems.push({ description: "Custom", icon: "fingerprint", event: CollectionFreeFormView.AddCustomLayout(this.props.Document, this.props.fieldKey) });
