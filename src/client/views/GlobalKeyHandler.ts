@@ -181,7 +181,9 @@ export default class KeyManager {
                 break;
             case "a":
             case "v":
-                this.printClipboard();
+                // this.printClipboard();
+                stopPropagation = false;
+                preventDefault = false;
                 break;
             case "x":
             case "c":

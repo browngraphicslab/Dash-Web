@@ -3,11 +3,15 @@ import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
 import "./PreviewCursor.scss";
+import { Docs } from '../documents/Documents';
+import { Transform } from 'prosemirror-transform';
+import { Doc } from '../../new_fields/Doc';
 
 @observer
 export class PreviewCursor extends React.Component<{}> {
     private _prompt = React.createRef<HTMLDivElement>();
     static _onKeyPress?: (e: KeyboardEvent) => void;
+    static _addLiveTextDoc: (doc: Doc) => void;
     @observable static _clickPoint = [0, 0];
     @observable public static Visible = false;
     //when focus is lost, this will remove the preview cursor
@@ -20,13 +24,29 @@ export class PreviewCursor extends React.Component<{}> {
         document.addEventListener("keydown", this.onKeyPress);
         document.addEventListener("paste", this.paste);
     }
+
     paste = (e: ClipboardEvent) => {
         console.log(e.clipboardData);
         if (e.clipboardData) {
+            //what needs to be done with this?
             console.log(e.clipboardData.getData("text/html"));
-            console.log(e.clipboardData.getData("text/csv"));
+            // console.log(e.clipboardData.getData("text/csv"));
             console.log(e.clipboardData.getData("text/plain"));
+            console.log(e.clipboardData.getData("image/png"));
+            console.log(e.clipboardData.getData("image/jpg"));
+            console.log(e.clipboardData.getData("image/jpeg"));
+
+            if (e.clipboardData.getData("text/plain") !== "") {
+                let text = e.clipboardData.getData("text/plain");
+                let newBox = Docs.Create.TextDocument({ width: 200, height: 100, x: PreviewCursor._clickPoint[0], y: PreviewCursor._clickPoint[1], title: "-typed text-" });
+                newBox.proto!.autoHeight = true;
+                PreviewCursor._addLiveTextDoc(newBox);
+            }
         }
+
+        // let newBox = Docs.Create.TextDocument({ width: 200, height: 100, x: x, y: y, title: "-typed text-" });
+        //     newBox.proto!.autoHeight = true;
+        //     this.props.addLiveTextDocument(newBox);
     }
 
     @action
@@ -49,9 +69,11 @@ export class PreviewCursor extends React.Component<{}> {
         }
     }
     @action
-    public static Show(x: number, y: number, onKeyPress: (e: KeyboardEvent) => void) {
+    public static Show(x: number, y: number, onKeyPress: (e: KeyboardEvent) => void, addLiveText: (doc: Doc) => void) {
+        console.log("clickpoint setting")
         this._clickPoint = [x, y];
         this._onKeyPress = onKeyPress;
+        this._addLiveTextDoc = addLiveText;
         setTimeout(action(() => this.Visible = true), (1));
     }
     render() {
