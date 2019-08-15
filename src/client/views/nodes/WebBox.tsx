@@ -57,7 +57,7 @@ export class WebBox extends React.Component<FieldViewProps> {
 
     @action
     setURL() {
-        let urlField: FieldResult<WebField> = Cast(this.props.Document.data, WebField)
+        let urlField: FieldResult<WebField> = Cast(this.props.Document.data, WebField);
         if (urlField) this.url = urlField.url.toString();
         else this.url = "";
     }
