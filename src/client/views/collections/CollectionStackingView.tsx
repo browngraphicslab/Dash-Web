@@ -29,6 +29,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     _masonryGridRef: HTMLDivElement | null = null;
     _draggerRef = React.createRef<HTMLDivElement>();
     _heightDisposer?: IReactionDisposer;
+    _childLayoutDisposer?: IReactionDisposer;
     _sectionFilterDisposer?: IReactionDisposer;
     _docXfs: any[] = [];
     _columnStart: number = 0;
@@ -84,19 +85,11 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         return fields;
     }
 
-    childLayoutDisposer?: IReactionDisposer;
     componentDidMount() {
-        this.childLayoutDisposer = reaction(() => this.props.Document.childLayout,
-            async () => {
-                let chidlLayout = Cast(this.props.Document.childLayout, Doc);
-                if (chidlLayout instanceof Doc) {
-                    const childLayout = chidlLayout;
-                    let list = await this.childDocList;
-                    list && list.map(async doc => {
-                        !Doc.AreProtosEqual(childLayout, (await doc).layout as Doc) && Doc.ApplyTemplateTo(childLayout, (await doc), undefined);
-                    });
-                }
-            });
+        this._childLayoutDisposer = reaction(() => [this.childDocs, Cast(this.props.Document.childLayout, Doc)],
+            async (args) => args[1] instanceof Doc &&
+                this.childDocs.map(async doc => !Doc.AreProtosEqual(args[1] as Doc, (await doc).layout as Doc) && Doc.ApplyTemplateTo(args[1] as Doc, (await doc), undefined)));
+
         // is there any reason this needs to exist? -syip.  yes, it handles autoHeight for stacking views (masonry isn't yet supported).
         this._heightDisposer = reaction(() => {
             if (this.isStackingView && BoolCast(this.props.Document.autoHeight)) {
@@ -121,7 +114,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         );
     }
     componentWillUnmount() {
-        this.childLayoutDisposer && this.childLayoutDisposer();
+        this._childLayoutDisposer && this._childLayoutDisposer();
         this._heightDisposer && this._heightDisposer();
         this._sectionFilterDisposer && this._sectionFilterDisposer();
     }
