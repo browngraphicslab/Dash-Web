@@ -180,6 +180,12 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                     CollectionView={this.props.CollectionView}
                     type={this.props.type}
                 />);
+            case CollectionViewType.Tree: return (
+                <CollectionTreeViewChrome
+                    key="collchrome"
+                    CollectionView={this.props.CollectionView}
+                    type={this.props.type}
+                />);
             default:
                 return null;
         }
@@ -468,3 +474,108 @@ export class CollectionSchemaViewChrome extends React.Component<CollectionViewCh
         );
     }
 }
+
+@observer
+export class CollectionTreeViewChrome extends React.Component<CollectionViewChromeProps> {
+    @observable private _currentKey: string = "";
+    @observable private suggestions: string[] = [];
+
+    @computed private get descending() { return BoolCast(this.props.CollectionView.props.Document.stackingHeadersSortDescending); }
+    @computed get sectionFilter() { return StrCast(this.props.CollectionView.props.Document.sectionFilter); }
+
+    getKeySuggestions = async (value: string): Promise<string[]> => {
+        value = value.toLowerCase();
+        let docs: Doc | Doc[] | Promise<Doc> | Promise<Doc[]> | (() => DocLike)
+            = () => DocListCast(this.props.CollectionView.props.Document[this.props.CollectionView.props.fieldExt ? this.props.CollectionView.props.fieldExt : this.props.CollectionView.props.fieldKey]);
+        if (typeof docs === "function") {
+            docs = docs();
+        }
+        docs = await docs;
+        if (docs instanceof Doc) {
+            return Object.keys(docs).filter(key => key.toLowerCase().startsWith(value));
+        } else {
+            const keys = new Set<string>();
+            docs.forEach(doc => Doc.allKeys(doc).forEach(key => keys.add(key)));
+            return Array.from(keys).filter(key => key.toLowerCase().startsWith(value));
+        }
+    }
+
+    @action
+    onKeyChange = (e: React.ChangeEvent, { newValue }: { newValue: string }) => {
+        this._currentKey = newValue;
+    }
+
+    getSuggestionValue = (suggestion: string) => suggestion;
+
+    renderSuggestion = (suggestion: string) => {
+        return <p>{suggestion}</p>;
+    }
+
+    onSuggestionFetch = async ({ value }: { value: string }) => {
+        const sugg = await this.getKeySuggestions(value);
+        runInAction(() => {
+            this.suggestions = sugg;
+        });
+    }
+
+    @action
+    onSuggestionClear = () => {
+        this.suggestions = [];
+    }
+
+    setValue = (value: string) => {
+        this.props.CollectionView.props.Document.sectionFilter = value;
+        return true;
+    }
+
+    @action toggleSort = () => { this.props.CollectionView.props.Document.stackingHeadersSortDescending = !this.props.CollectionView.props.Document.stackingHeadersSortDescending; };
+    @action resetValue = () => { this._currentKey = this.sectionFilter; };
+
+    render() {
+        return (
+            <div className="collectionTreeViewChrome-cont">
+                <button className="collectionTreeViewChrome-sort" onClick={this.toggleSort}>
+                    <div className="collectionTreeViewChrome-sortLabel">
+                        Sort
+                        </div>
+                    <div className="collectionTreeViewChrome-sortIcon" style={{ transform: `rotate(${this.descending ? "180" : "0"}deg)` }}>
+                        <FontAwesomeIcon icon="caret-up" size="2x" color="white" />
+                    </div>
+                </button>
+                <div className="collectionTreeViewChrome-sectionFilter-cont">
+                    <div className="collectionTreeViewChrome-sectionFilter-label">
+                        GROUP ITEMS BY:
+                        </div>
+                    <div className="collectionTreeViewChrome-sectionFilter">
+                        <EditableView
+                            GetValue={() => this.sectionFilter}
+                            autosuggestProps={
+                                {
+                                    resetValue: this.resetValue,
+                                    value: this._currentKey,
+                                    onChange: this.onKeyChange,
+                                    autosuggestProps: {
+                                        inputProps:
+                                        {
+                                            value: this._currentKey,
+                                            onChange: this.onKeyChange
+                                        },
+                                        getSuggestionValue: this.getSuggestionValue,
+                                        suggestions: this.suggestions,
+                                        alwaysRenderSuggestions: true,
+                                        renderSuggestion: this.renderSuggestion,
+                                        onSuggestionsFetchRequested: this.onSuggestionFetch,
+                                        onSuggestionsClearRequested: this.onSuggestionClear
+                                    }
+                                }}
+                            oneLine
+                            SetValue={this.setValue}
+                            contents={this.sectionFilter ? this.sectionFilter : "N/A"}
+                        />
+                    </div>
+                </div>
+            </div>
+        );
+    }
+}
+
