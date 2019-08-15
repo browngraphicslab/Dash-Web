@@ -112,18 +112,6 @@ export const nodes: { [index: string]: NodeSpec } = {
         // }]
     },
 
-    checkbox: {
-        inline: true,
-        attrs: {
-            visibility: { default: false }
-        },
-        group: "inline",
-        toDOM(node) {
-            const attrs = { style: `width: 40px` };
-            return ["span", { ...node.attrs, ...attrs }];
-        },
-    },
-
     // :: NodeSpec An inline image (`<img>`) node. Supports `src`,
     // `alt`, and `href` attributes. The latter two default to the empty
     // string.
@@ -203,19 +191,6 @@ export const nodes: { [index: string]: NodeSpec } = {
         // toDOM() { return ulDOM }
     },
 
-    checkbox_list: {
-        content: 'checklist_item+',
-        marks: '_',
-        group: 'block',
-        // inline: true,
-        parseDOM: [
-            { tag: "ul" }
-        ],
-        toDOM() {
-            return ["ul", { style: 'list-style: none' }, 0];
-        },
-    },
-
     //bullet_list: {
     //  content: 'list_item+',
     // group: 'block',
@@ -229,17 +204,6 @@ export const nodes: { [index: string]: NodeSpec } = {
         content: 'paragraph block*'
     },
 
-    checklist_item: {
-        content: 'paragraph block*',
-        parseDOM: [{ tag: "li" }],
-        // toDOM() {
-        //     return ["li", { style: 'content: checkbox' }, 0];
-        // },
-        toDOM() {
-            return ["li", 0];
-        },
-        defining: true
-    }
 };
 
 const emDOM: DOMOutputSpecArray = ["em", 0];
