@@ -45,10 +45,7 @@ export class WebBox extends React.Component<FieldViewProps> {
 
     @action
     onURLChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        console.log("changing")
-        console.log(e.target.value)
         this.url = e.target.value;
-        console.log(this.url)
     }
 
     @action
@@ -93,7 +90,6 @@ export class WebBox extends React.Component<FieldViewProps> {
                                 value={this.url}
                                 onChange={this.onURLChange}
                                 onKeyDown={this.onValueKeyDown}
-                            // onPointerDown={this.openViewSpecs}
                             />
                             <button className="submitUrl" onClick={this.submitURL}>
                                 SUBMIT URL
@@ -107,10 +103,6 @@ export class WebBox extends React.Component<FieldViewProps> {
 
     @action
     toggleCollapse = () => {
-        // this.props.CollectionView.props.Document.chromeStatus = this.props.CollectionView.props.Document.chromeStatus === "enabled" ? "this.collapsed" : "enabled";
-        // if (this.props.collapse) {
-        //     this.props.collapse(this.props.CollectionView.props.Document.chromeStatus !== "enabled");
-        // }
         this.collapsed = !this.collapsed;
     }
 
