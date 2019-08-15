@@ -48,6 +48,7 @@ export interface FormattedTextBoxProps {
     hideOnLeave?: boolean;
     height?: string;
     color?: string;
+    outer_div?: (domminus: HTMLElement) => void;
     firstinstance?: boolean;
 }
 
@@ -69,6 +70,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     private _editorView: Opt<EditorView>;
     private static _toolTipTextMenu: TooltipTextMenu | undefined = undefined;
     private _applyingChange: boolean = false;
+    private _outerdiv?: (dominus: HTMLElement) => void;
     private _linkClicked = "";
     private _reactionDisposer: Opt<IReactionDisposer>;
     private _searchReactionDisposer?: Lambda;
@@ -126,6 +128,10 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             DragManager.StartDragFunctions.push(() => FormattedTextBox.InputBoxOverlay = undefined);
         }
 
+        if (this.props.outer_div) {
+            this._outerdiv = this.props.outer_div;
+        }
+
         document.addEventListener("paste", this.paste);
     }
 
@@ -163,7 +169,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     dispatchTransaction = (tx: Transaction) => {
         if (this._editorView) {
             const state = this._editorView.state.apply(tx);
+            FormattedTextBox._toolTipTextMenu && (FormattedTextBox._toolTipTextMenu.HackToFixTextSelectionGlitch = true);
             this._editorView.updateState(state);
+            FormattedTextBox._toolTipTextMenu && (FormattedTextBox._toolTipTextMenu.HackToFixTextSelectionGlitch = false);
             if (state.selection.empty && FormattedTextBox._toolTipTextMenu) {
                 const marks = tx.storedMarks;
                 if (marks) { FormattedTextBox._toolTipTextMenu.mark_key_pressed(marks); }

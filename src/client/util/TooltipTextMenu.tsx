@@ -67,6 +67,8 @@ export class TooltipTextMenu {
     @observable
     private _storedMarks: Mark<any>[] | null | undefined;
 
+    public HackToFixTextSelectionGlitch: boolean = false;
+
 
     constructor(view: EditorView, editorProps: FieldViewProps & FormattedTextBoxProps) {
         this.view = view;
@@ -190,6 +192,10 @@ export class TooltipTextMenu {
         this.updateListItemDropdown(":", this.listTypeBtnDom);
 
         this.update(view, undefined);
+
+        // add tooltip to outerdiv to circumvent scaling problem
+        const outer_div = this.editorProps.outer_div;
+        outer_div && outer_div(this.wrapper);
     }
 
     //label of dropdown will change to given label
@@ -849,7 +855,8 @@ export class TooltipTextMenu {
                 this.updateFontSizeDropdown("Various");
             }
         }
-        this.view.dispatch(this.view.state.tr.setStoredMarks(this._activeMarks));
+        !this.HackToFixTextSelectionGlitch &&
+            this.view.dispatch(this.view.state.tr.setStoredMarks(this._activeMarks)); // bcz: what's the purpose of this line?  It messes up text selection without the Hack.
 
         this.update_mark_doms();
     }
