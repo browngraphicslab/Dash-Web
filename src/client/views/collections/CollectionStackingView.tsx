@@ -56,7 +56,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
 
     get Sections() {
-        if (!this.sectionFilter) return new Map<SchemaHeaderField, Doc[]>();
+        if (!this.sectionFilter || this.sectionHeaders instanceof Promise) return new Map<SchemaHeaderField, Doc[]>();
 
         if (this.sectionHeaders === undefined) {
             this.props.Document.sectionHeaders = new List<SchemaHeaderField>();

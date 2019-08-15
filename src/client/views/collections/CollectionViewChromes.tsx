@@ -296,6 +296,9 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                                 </div>
                             </div>
                         </div>
+                        <div className="collectionViewBaseChrome-template" style={{}}>
+                            TEMPLATE
+                        </div>
                     </div>
                     {this.subChrome()}
                 </div>
