@@ -27,6 +27,9 @@ export class RichTextField extends ObjectField {
     }
 
     [ToGoogleDocText]() {
+        let state = JSON.parse(this.Data);
+        let text = state.doc.textBetween(0, state.doc.content.size, "\n\n");
+        console.log(text);
         let content = JSON.parse(this.Data).doc.content;
         let paragraphs = content.filter((item: any) => item.type === "paragraph");
         let output = "";
