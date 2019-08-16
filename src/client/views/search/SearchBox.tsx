@@ -4,6 +4,8 @@ import { observable, action, runInAction, flow, computed } from 'mobx';
 import "./SearchBox.scss";
 import "./FilterBox.scss";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTimes } from '@fortawesome/free-solid-svg-icons';
+import { library } from '@fortawesome/fontawesome-svg-core';
 import { SetupDrag } from '../../util/DragManager';
 import { Docs } from '../../documents/Documents';
 import { NumCast, Cast } from '../../../new_fields/Types';
@@ -14,8 +16,12 @@ import { Id } from '../../../new_fields/FieldSymbols';
 import { SearchUtil } from '../../util/SearchUtil';
 import { RouteStore } from '../../../server/RouteStore';
 import { FilterBox } from './FilterBox';
+import { ReadStream } from 'fs';
+import * as $ from 'jquery';
+import { MainView } from '../MainView';
 import { Utils } from '../../../Utils';
 
+library.add(faTimes);
 
 @observer
 export class SearchBox extends React.Component {
@@ -29,6 +35,7 @@ export class SearchBox extends React.Component {
     @observable private _visibleElements: JSX.Element[] = [];
 
     private resultsRef = React.createRef<HTMLDivElement>();
+    public inputRef = React.createRef<HTMLInputElement>();
 
     private _isSearch: ("search" | "placeholder" | undefined)[] = [];
     private _numTotalResults = -1;
@@ -44,6 +51,15 @@ export class SearchBox extends React.Component {
 
         SearchBox.Instance = this;
         this.resultsScrolled = this.resultsScrolled.bind(this);
+    }
+
+    componentDidMount = () => {
+        if (this.inputRef.current) {
+            this.inputRef.current.focus();
+            runInAction(() => {
+                this._searchbarOpen = true;
+            });
+        }
     }
 
     @action
@@ -229,6 +245,7 @@ export class SearchBox extends React.Component {
 
     @action.bound
     closeSearch = () => {
+        console.log("closing search")
         FilterBox.Instance.closeFilter();
         this.closeResults();
         this._searchbarOpen = false;
@@ -321,11 +338,12 @@ export class SearchBox extends React.Component {
                     <span className="searchBox-barChild searchBox-collection" onPointerDown={SetupDrag(this.collectionRef, this.startDragCollection)} ref={this.collectionRef} title="Drag Results as Collection">
                         <FontAwesomeIcon icon="object-group" size="lg" />
                     </span>
-                    <input value={this._searchString} onChange={this.onChange} type="text" placeholder="Search..."
+                    <input value={this._searchString} onChange={this.onChange} type="text" placeholder="Search..." id="search-input" ref={this.inputRef}
                         className="searchBox-barChild searchBox-input" onPointerDown={this.openSearch} onKeyPress={this.enter}
                         style={{ width: this._searchbarOpen ? "500px" : "100px" }} />
                     <button className="searchBox-barChild searchBox-submit" onClick={this.submitSearch} onPointerDown={FilterBox.Instance.stopProp}>Submit</button>
                     <button className="searchBox-barChild searchBox-filter" onClick={FilterBox.Instance.openFilter} onPointerDown={FilterBox.Instance.stopProp}>Filter</button>
+                    <button className="searchBox-barChild searchBox-close" title={"Close Search Bar"} onPointerDown={MainView.Instance.toggleSearch}><FontAwesomeIcon icon={faTimes} size="lg" /></button>
                 </div>
                 <div className="searchBox-results" onScroll={this.resultsScrolled} style={{
                     display: this._resultsOpen ? "flex" : "none",
@@ -336,5 +354,4 @@ export class SearchBox extends React.Component {
             </div>
         );
     }
-
 }
