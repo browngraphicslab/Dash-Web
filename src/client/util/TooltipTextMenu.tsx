@@ -1,32 +1,25 @@
-import { action, observable, observe } from "mobx";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTag, faPlus, faCloudUploadAlt } from '@fortawesome/free-solid-svg-icons';
-import { Dropdown, MenuItem, icons, } from "prosemirror-menu"; //no import css
-import { EditorState, NodeSelection, TextSelection, Transaction } from "prosemirror-state";
-import { EditorView } from "prosemirror-view";
-import { schema } from "./RichTextSchema";
-import { Schema, NodeType, MarkType, Mark, ResolvedPos } from "prosemirror-model";
-import { Node as ProsNode } from "prosemirror-model";
-import "./TooltipTextMenu.scss";
-const { toggleMark, setBlockType } = require("prosemirror-commands");
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { wrapInList, liftListItem, bulletList, } from 'prosemirror-schema-list';
 import { faListUl } from '@fortawesome/free-solid-svg-icons';
-import { FieldViewProps } from "../views/nodes/FieldView";
-const { openPrompt, TextField } = require("./ProsemirrorCopy/prompt.js");
-import { DragManager } from "./DragManager";
-import { Doc, Opt, Field } from "../../new_fields/Doc";
+import { action, observable } from "mobx";
+import { Dropdown, icons, MenuItem } from "prosemirror-menu"; //no import css
+import { Mark, MarkType, Node as ProsNode, NodeType, ResolvedPos, Schema } from "prosemirror-model";
+import { liftListItem, wrapInList } from 'prosemirror-schema-list';
+import { EditorState, NodeSelection, TextSelection } from "prosemirror-state";
+import { EditorView } from "prosemirror-view";
+import { Doc, Field, Opt } from "../../new_fields/Doc";
+import { Id } from "../../new_fields/FieldSymbols";
+import { Utils } from "../../Utils";
 import { DocServer } from "../DocServer";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
+import { FieldViewProps } from "../views/nodes/FieldView";
+import { FormattedTextBoxProps } from "../views/nodes/FormattedTextBox";
 import { DocumentManager } from "./DocumentManager";
-import { Id } from "../../new_fields/FieldSymbols";
-import { FormattedTextBoxProps, FormattedTextBox } from "../views/nodes/FormattedTextBox";
-import { typeAlias } from "babel-types";
-import React, { Children } from "react";
-import ReactDOM from "react-dom";
-import { Utils } from "../../Utils";
+import { DragManager } from "./DragManager";
 import { LinkManager } from "./LinkManager";
-import { bool } from "prop-types";
+import { schema } from "./RichTextSchema";
+import "./TooltipTextMenu.scss";
+const { toggleMark, setBlockType } = require("prosemirror-commands");
+const { openPrompt, TextField } = require("./ProsemirrorCopy/prompt.js");
 
 //appears above a selection of text in a RichTextBox to give user options such as Bold, Italics, etc.
 export class TooltipTextMenu {
