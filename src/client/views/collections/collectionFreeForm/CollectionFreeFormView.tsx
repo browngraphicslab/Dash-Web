@@ -77,7 +77,6 @@ export namespace PivotView {
         let collection = target.Document;
         const field = StrCast(collection.pivotField) || "title";
         const width = NumCast(collection.pivotWidth) || 200;
-
         const groups = new Map<FieldResult<Field>, Doc[]>();
 
         for (const doc of target.childDocs) {
@@ -90,14 +89,11 @@ export namespace PivotView {
             } else {
                 groups.set(val, [doc]);
             }
-
         }
 
         let minSize = Infinity;
 
-        groups.forEach((val, key) => {
-            minSize = Math.min(minSize, val.length);
-        });
+        groups.forEach((val, key) => minSize = Math.min(minSize, val.length));
 
         const numCols = NumCast(collection.pivotNumColumns) || Math.ceil(Math.sqrt(minSize));
         const fontSize = NumCast(collection.pivotFontSize);
@@ -134,42 +130,36 @@ export namespace PivotView {
         });
 
         let elements = target.viewDefsToJSX(groupNames);
-        let curPage = FieldValue(target.Document.curPage, -1);
-
-        let docViews = target.childDocs.filter(doc => doc instanceof Doc).reduce((prev, doc) => {
-            var page = NumCast(doc.page, -1);
-            if ((Math.abs(Math.round(page) - Math.round(curPage)) < 3) || page === -1) {
-                let minim = BoolCast(doc.isMinimized);
-                if (minim === undefined || !minim) {
-                    let defaultPosition = (): ViewDefBounds => {
-                        return {
-                            x: NumCast(doc.x),
-                            y: NumCast(doc.y),
-                            z: NumCast(doc.z),
-                            width: NumCast(doc.width),
-                            height: NumCast(doc.height)
-                        };
+        let docViews = target.childDocs.reduce((prev, doc) => {
+            let minim = BoolCast(doc.isMinimized);
+            if (minim === undefined || !minim) {
+                let defaultPosition = (): ViewDefBounds => {
+                    return {
+                        x: NumCast(doc.x),
+                        y: NumCast(doc.y),
+                        z: NumCast(doc.z),
+                        width: NumCast(doc.width),
+                        height: NumCast(doc.height)
                     };
-                    const pos = docMap.get(doc) || defaultPosition();
-                    prev.push({
-                        ele: (
-                            <CollectionFreeFormDocumentView
-                                key={doc[Id]}
-                                x={pos.x}
-                                y={pos.y}
-                                width={pos.width}
-                                height={pos.height}
-                                {...target.getChildDocumentViewProps(doc)}
-                            />),
-                        bounds: {
-                            x: pos.x,
-                            y: pos.y,
-                            z: pos.z,
-                            width: NumCast(pos.width),
-                            height: NumCast(pos.height)
-                        }
-                    });
-                }
+                };
+                const pos = docMap.get(doc) || defaultPosition();
+                prev.push({
+                    ele: <CollectionFreeFormDocumentView
+                        key={doc[Id]}
+                        x={pos.x}
+                        y={pos.y}
+                        width={pos.width}
+                        height={pos.height}
+                        {...target.getChildDocumentViewProps(doc)}
+                    />,
+                    bounds: {
+                        x: pos.x,
+                        y: pos.y,
+                        z: pos.z,
+                        width: NumCast(pos.width),
+                        height: NumCast(pos.height)
+                    }
+                });
             }
             return prev;
         }, elements);
@@ -728,6 +718,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @computed.struct
     get elements() {
+        if (this.Document.usePivotLayout) return PivotView.elements(this);
         let curPage = FieldValue(this.Document.curPage, -1);
         const initScript = this.Document.arrangeInit;
         const script = this.Document.arrangeScript;
@@ -771,7 +762,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @computed.struct
     get views() {
-        let source = this.Document.usePivotLayout === true ? PivotView.elements(this) : this.elements;
+        let source = this.elements;
         return source.filter(ele => ele.bounds && !ele.bounds.z).map(ele => ele.ele);
     }
     @computed.struct
