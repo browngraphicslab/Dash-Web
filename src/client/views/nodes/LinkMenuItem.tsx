@@ -6,7 +6,7 @@ import { DocumentManager } from "../../util/DocumentManager";
 import { undoBatch } from "../../util/UndoManager";
 import './LinkMenu.scss';
 import React = require("react");
-import { Doc } from '../../../new_fields/Doc';
+import { Doc, DocListCastAsync } from '../../../new_fields/Doc';
 import { StrCast, Cast, FieldValue, NumCast } from '../../../new_fields/Types';
 import { observable, action } from 'mobx';
 import { LinkManager } from '../../util/LinkManager';
@@ -52,7 +52,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         }
 
         if (this.props.destinationDoc === self.props.linkDoc.anchor2 && targetContext) {
-            DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, document => dockingFunc(targetContext!));
+            DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, async document => dockingFunc(document), undefined, targetContext!);
         }
         else if (this.props.destinationDoc === self.props.linkDoc.anchor1 && sourceContext) {
             DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, document => dockingFunc(sourceContext!));

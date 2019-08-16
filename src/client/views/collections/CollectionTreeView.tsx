@@ -25,9 +25,8 @@ import { CollectionSchemaPreview } from './CollectionSchemaView';
 import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTreeView.scss";
 import React = require("react");
-import { ComputedField } from '../../../new_fields/ScriptField';
+import { ComputedField, ScriptField } from '../../../new_fields/ScriptField';
 import { KeyValueBox } from '../nodes/KeyValueBox';
-import { exportNamedDeclaration } from 'babel-types';
 
 
 export interface TreeViewProps {
@@ -71,8 +70,9 @@ class TreeView extends React.Component<TreeViewProps> {
     private _header?: React.RefObject<HTMLDivElement> = React.createRef();
     private _treedropDisposer?: DragManager.DragDropDisposer;
     private _dref = React.createRef<HTMLDivElement>();
+    get defaultExpandedView() { return this.childDocs ? this.fieldKey : "fields"; }
     @observable _collapsed: boolean = true;
-    @computed get treeViewExpandedView() { return StrCast(this.props.document.treeViewExpandedView, "fields"); }
+    @computed get treeViewExpandedView() { return StrCast(this.props.document.treeViewExpandedView, this.defaultExpandedView); }
     @computed get MAX_EMBED_HEIGHT() { return NumCast(this.props.document.maxEmbedHeight, 300); }
     @computed get dataDoc() { return this.resolvedDataDoc ? this.resolvedDataDoc : this.props.document; }
     @computed get fieldKey() {
@@ -127,19 +127,19 @@ class TreeView extends React.Component<TreeViewProps> {
 
     onPointerDown = (e: React.PointerEvent) => e.stopPropagation();
     onPointerEnter = (e: React.PointerEvent): void => {
-        this.props.active() && (this.props.document.libraryBrush = true);
+        this.props.active() && Doc.BrushDoc(this.dataDoc);
         if (e.buttons === 1 && SelectionManager.GetIsDragging()) {
             this._header!.current!.className = "treeViewItem-header";
             document.addEventListener("pointermove", this.onDragMove, true);
         }
     }
     onPointerLeave = (e: React.PointerEvent): void => {
-        this.props.document.libraryBrush = false;
+        Doc.UnBrushDoc(this.dataDoc);
         this._header!.current!.className = "treeViewItem-header";
         document.removeEventListener("pointermove", this.onDragMove, true);
     }
     onDragMove = (e: PointerEvent): void => {
-        this.props.document.libraryBrush = false;
+        Doc.UnBrushDoc(this.dataDoc);
         let x = this.props.ScreenToLocalTransform().transformPoint(e.clientX, e.clientY);
         let rect = this._header!.current!.getBoundingClientRect();
         let bounds = this.props.ScreenToLocalTransform().transformPoint(rect.left, rect.top + rect.height / 2);
@@ -341,10 +341,12 @@ class TreeView extends React.Component<TreeViewProps> {
         let headerElements = (
             <span className="collectionTreeView-keyHeader" key={this.treeViewExpandedView}
                 onPointerDown={action(() => {
-                    this.props.document.treeViewExpandedView = this.treeViewExpandedView === this.fieldKey ? "fields" :
-                        this.treeViewExpandedView === "fields" && this.props.document.layout ? "layout" :
-                            this.treeViewExpandedView === "layout" && this.props.document.links ? "links" :
-                                this.childDocs ? this.fieldKey : "fields";
+                    if (!this._collapsed) {
+                        this.props.document.treeViewExpandedView = this.treeViewExpandedView === this.fieldKey ? "fields" :
+                            this.treeViewExpandedView === "fields" && this.props.document.layout ? "layout" :
+                                this.treeViewExpandedView === "layout" && this.props.document.links ? "links" :
+                                    this.childDocs ? this.fieldKey : "fields";
+                    }
                     this._collapsed = false;
                 })}>
                 {this.treeViewExpandedView}
@@ -357,7 +359,7 @@ class TreeView extends React.Component<TreeViewProps> {
         return <>
             <div className="docContainer" id={`docContainer-${this.props.parentKey}`} ref={reference} onPointerDown={onItemDown}
                 style={{
-                    background: BoolCast(this.props.document.libraryBrush) ? "#06121212" : "0",
+                    background: Doc.IsBrushed(this.props.document) ? "#06121212" : "0",
                     outline: BoolCast(this.props.document.workspaceBrush) ? "dashed 1px #06123232" : undefined,
                     pointerEvents: this.props.active() || SelectionManager.GetIsDragging() ? "all" : "none"
                 }} >
@@ -398,21 +400,56 @@ class TreeView extends React.Component<TreeViewProps> {
         panelWidth: () => number,
         renderDepth: number
     ) {
-        let docList = docs.filter(child => !child.excludeFromLibrary);
+        let viewSpecScript = Cast(containingCollection.viewSpecScript, ScriptField);
+        if (viewSpecScript) {
+            let script = viewSpecScript.script;
+            docs = docs.filter(d => {
+                let res = script.run({ doc: d });
+                if (res.success) {
+                    return res.result;
+                }
+                else {
+                    console.log(res.error);
+                }
+            });
+        }
+
+        let descending = BoolCast(containingCollection.stackingHeadersSortDescending);
+        docs.sort(function (a, b): 1 | -1 {
+            let descA = descending ? b : a;
+            let descB = descending ? a : b;
+            let first = descA[String(containingCollection.sectionFilter)];
+            let second = descB[String(containingCollection.sectionFilter)];
+            // TODO find better way to sort how to sort..................
+            if (typeof first === 'number' && typeof second === 'number') {
+                return (first - second) > 0 ? 1 : -1;
+            }
+            if (typeof first === 'string' && typeof second === 'string') {
+                return first > second ? 1 : -1;
+            }
+            if (typeof first === 'boolean' && typeof second === 'boolean') {
+                // if (first === second) { // bugfixing?: otherwise, the list "flickers" because the list is resorted during every load
+                //     return Number(descA.x) > Number(descB.x) ? 1 : -1;
+                // }
+                return first > second ? 1 : -1;
+            }
+            return descending ? 1 : -1;
+        });
+
         let rowWidth = () => panelWidth() - 20;
-        return docList.map((child, i) => {
+        return docs.map((child, i) => {
             let pair = Doc.GetLayoutDataDocPair(containingCollection, dataDoc, key, child);
 
             let indent = i === 0 ? undefined : () => {
-                if (StrCast(docList[i - 1].layout).indexOf("CollectionView") !== -1) {
-                    let fieldKeysub = StrCast(docList[i - 1].layout).split("fieldKey")[1];
+                if (StrCast(docs[i - 1].layout).indexOf("CollectionView") !== -1) {
+                    let fieldKeysub = StrCast(docs[i - 1].layout).split("fieldKey")[1];
                     let fieldKey = fieldKeysub.split("\"")[1];
-                    Doc.AddDocToList(docList[i - 1], fieldKey, child);
+                    Doc.AddDocToList(docs[i - 1], fieldKey, child);
                     remove(child);
                 }
             };
             let addDocument = (doc: Doc, relativeTo?: Doc, before?: boolean) => {
-                return add(doc, relativeTo ? relativeTo : docList[i], before !== undefined ? before : false);
+                return add(doc, relativeTo ? relativeTo : docs[i], before !== undefined ? before : false);
             };
             let rowHeight = () => {
                 let aspect = NumCast(child.nativeWidth, 0) / NumCast(child.nativeHeight, 0);

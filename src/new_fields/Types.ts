@@ -2,6 +2,7 @@ import { Field, Opt, FieldResult, Doc } from "./Doc";
 import { List } from "./List";
 import { RefField } from "./RefField";
 import { DateField } from "./DateField";
+import { ScriptField } from "./ScriptField";
 
 export type ToType<T extends InterfaceValue> =
     T extends "string" ? string :
@@ -48,9 +49,11 @@ export interface Interface {
 }
 export type WithoutRefField<T extends Field> = T extends RefField ? never : T;
 
-export function Cast<T extends ToConstructor<Field> | ListSpec<Field>>(field: FieldResult, ctor: T): FieldResult<ToType<T>>;
-export function Cast<T extends ToConstructor<Field> | ListSpec<Field>>(field: FieldResult, ctor: T, defaultVal: WithoutList<WithoutRefField<ToType<T>>> | null): WithoutList<ToType<T>>;
-export function Cast<T extends ToConstructor<Field> | ListSpec<Field>>(field: FieldResult, ctor: T, defaultVal?: ToType<T> | null): FieldResult<ToType<T>> | undefined {
+export type CastCtor = ToConstructor<Field> | ListSpec<Field>;
+
+export function Cast<T extends CastCtor>(field: FieldResult, ctor: T): FieldResult<ToType<T>>;
+export function Cast<T extends CastCtor>(field: FieldResult, ctor: T, defaultVal: WithoutList<WithoutRefField<ToType<T>>> | null): WithoutList<ToType<T>>;
+export function Cast<T extends CastCtor>(field: FieldResult, ctor: T, defaultVal?: ToType<T> | null): FieldResult<ToType<T>> | undefined {
     if (field instanceof Promise) {
         return defaultVal === undefined ? field.then(f => Cast(f, ctor) as any) as any : defaultVal === null ? undefined : defaultVal;
     }
@@ -83,6 +86,9 @@ export function BoolCast(field: FieldResult, defaultVal: boolean | null = false)
 }
 export function DateCast(field: FieldResult) {
     return Cast(field, DateField, null);
+}
+export function ScriptCast(field: FieldResult) {
+    return Cast(field, ScriptField, null);
 }
 
 type WithoutList<T extends Field> = T extends List<infer R> ? (R extends RefField ? (R | Promise<R>)[] : R[]) : T;

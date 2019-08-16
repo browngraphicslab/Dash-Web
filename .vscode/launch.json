@@ -12,6 +12,9 @@
             "breakOnLoad": true,
             "url": "http://localhost:1050/login",
             "webRoot": "${workspaceFolder}",
+            "runtimeArgs": [
+                "--experimental-modules"
+            ]
         },
         {
             "type": "firefox",

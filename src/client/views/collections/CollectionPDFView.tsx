@@ -1,66 +1,31 @@
-import { action, IReactionDisposer, observable, reaction } from "mobx";
+import { computed } from "mobx";
 import { observer } from "mobx-react";
-import { WidthSym, HeightSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
-import { NumCast } from "../../../new_fields/Types";
 import { emptyFunction } from "../../../Utils";
 import { ContextMenu } from "../ContextMenu";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
+import { PDFBox } from "../nodes/PDFBox";
 import { CollectionBaseView, CollectionRenderProps, CollectionViewType } from "./CollectionBaseView";
 import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";
 import "./CollectionPDFView.scss";
 import React = require("react");
-import { PDFBox } from "../nodes/PDFBox";
 
 
 @observer
 export class CollectionPDFView extends React.Component<FieldViewProps> {
-    private _pdfBox?: PDFBox;
-    private _reactionDisposer?: IReactionDisposer;
-    private _buttonTray: React.RefObject<HTMLDivElement>;
-
-    constructor(props: FieldViewProps) {
-        super(props);
-
-        this._buttonTray = React.createRef();
-    }
-
-    componentDidMount() {
-        this._reactionDisposer = reaction(
-            () => NumCast(this.props.Document.scrollY),
-            () => {
-                this.props.Document.panY = NumCast(this.props.Document.scrollY);
-            },
-            { fireImmediately: true }
-        );
-    }
-
-    componentWillUnmount() {
-        this._reactionDisposer && this._reactionDisposer();
-    }
-
     public static LayoutString(fieldKey: string = "data", fieldExt: string = "annotations") {
         return FieldView.LayoutString(CollectionPDFView, fieldKey, fieldExt);
     }
-    @observable _inThumb = false;
 
-    private set curPage(value: number) { this._pdfBox && this._pdfBox.GotoPage(value); }
-    private get curPage() { return NumCast(this.props.Document.curPage, -1); }
-    private get numPages() { return NumCast(this.props.Document.numPages); }
-    @action onPageBack = () => this._pdfBox && this._pdfBox.BackPage();
-    @action onPageForward = () => this._pdfBox && this._pdfBox.ForwardPage();
+    private _pdfBox?: PDFBox;
+    private _buttonTray: React.RefObject<HTMLDivElement> = React.createRef();
 
-    nativeWidth = () => NumCast(this.props.Document.nativeWidth);
-    nativeHeight = () => NumCast(this.props.Document.nativeHeight);
-    private get uIButtons() {
-        let ratio = (this.curPage - 1) / this.numPages * 100;
+    @computed
+    get uIButtons() {
         return (
             <div className="collectionPdfView-buttonTray" ref={this._buttonTray} key="tray" style={{ height: "100%" }}>
-                <button className="collectionPdfView-backward" onClick={this.onPageBack}>{"<"}</button>
-                <button className="collectionPdfView-forward" onClick={this.onPageForward}>{">"}</button>
-                {/* <div className="collectionPdfView-slider" onPointerDown={this.onThumbDown} style={{ top: 60, left: -20, width: 50, height: `calc(100% - 80px)` }} >
-                    <div className="collectionPdfView-thumb" onPointerDown={this.onThumbDown} style={{ top: `${ratio}%`, width: 50, height: 50 }} />
-                </div> */}
+                <button className="collectionPdfView-backward" onClick={() => this._pdfBox && this._pdfBox.BackPage()}>{"<"}</button>
+                <button className="collectionPdfView-forward" onClick={() => this._pdfBox && this._pdfBox.ForwardPage()}>{">"}</button>
             </div>
         );
     }
@@ -73,20 +38,16 @@ export class CollectionPDFView extends React.Component<FieldViewProps> {
 
     setPdfBox = (pdfBox: PDFBox) => { this._pdfBox = pdfBox; };
 
-
-    private subView = (_type: CollectionViewType, renderProps: CollectionRenderProps) => {
-        let props = { ...this.props, ...renderProps };
-        return (
-            <>
-                <CollectionFreeFormView {...props} setPdfBox={this.setPdfBox} CollectionView={this} chromeCollapsed={true} />
-                {renderProps.active() ? this.uIButtons : (null)}
-            </>
-        );
+    subView = (_type: CollectionViewType, renderProps: CollectionRenderProps) => {
+        return (<>
+            <CollectionFreeFormView {...this.props} {...renderProps} setPdfBox={this.setPdfBox} CollectionView={this} chromeCollapsed={true} />
+            {renderProps.active() ? this.uIButtons : (null)}
+        </>);
     }
 
     render() {
         return (
-            <CollectionBaseView {...this.props} className={`collectionPdfView-cont${this._inThumb ? "-dragging" : ""}`} onContextMenu={this.onContextMenu}>
+            <CollectionBaseView {...this.props} className={"collectionPdfView-cont"} onContextMenu={this.onContextMenu}>
                 {this.subView}
             </CollectionBaseView>
         );

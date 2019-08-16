@@ -8,6 +8,7 @@ import "./WebBox.scss";
 import React = require("react");
 import { InkTool } from "../../../new_fields/InkField";
 import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
+import { Utils } from "../../../Utils";
 
 @observer
 export class WebBox extends React.Component<FieldViewProps> {
@@ -52,7 +53,7 @@ export class WebBox extends React.Component<FieldViewProps> {
         if (field instanceof HtmlField) {
             view = <span id="webBox-htmlSpan" dangerouslySetInnerHTML={{ __html: field.html }} />;
         } else if (field instanceof WebField) {
-            view = <iframe src={field.url.href} style={{ position: "absolute", width: "100%", height: "100%" }} />;
+            view = <iframe src={Utils.CorsProxy(field.url.href)} style={{ position: "absolute", width: "100%", height: "100%" }} />;
         } else {
             view = <iframe src={"https://crossorigin.me/https://cs.brown.edu"} style={{ position: "absolute", width: "100%", height: "100%" }} />;
         }

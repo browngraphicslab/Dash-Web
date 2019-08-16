@@ -30,7 +30,7 @@ import { undoBatch } from "../../util/UndoManager";
 import { CollectionSchemaHeader, CollectionSchemaAddColumnHeader } from "./CollectionSchemaHeaders";
 import { CellProps, CollectionSchemaCell, CollectionSchemaNumberCell, CollectionSchemaStringCell, CollectionSchemaBooleanCell, CollectionSchemaCheckboxCell, CollectionSchemaDocCell } from "./CollectionSchemaCells";
 import { MovableColumn, MovableRow } from "./CollectionSchemaMovableTableHOC";
-import { ComputedField } from "../../../new_fields/ScriptField";
+import { ComputedField, ScriptField } from "../../../new_fields/ScriptField";
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 
 
@@ -50,7 +50,7 @@ const columnTypes: Map<string, ColumnType> = new Map([
     ["title", ColumnType.String],
     ["x", ColumnType.Number], ["y", ColumnType.Number], ["width", ColumnType.Number], ["height", ColumnType.Number],
     ["nativeWidth", ColumnType.Number], ["nativeHeight", ColumnType.Number], ["isPrototype", ColumnType.Boolean],
-    ["page", ColumnType.Number], ["curPage", ColumnType.Number], ["libraryBrush", ColumnType.Boolean], ["zIndex", ColumnType.Number]
+    ["page", ColumnType.Number], ["curPage", ColumnType.Number], ["zIndex", ColumnType.Number]
 ]);
 
 @observer
@@ -303,13 +303,13 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             return resized;
         }, [] as { "id": string, "value": number }[]);
     }
-    @computed get sorted(): { "id": string, "desc"?: true }[] {
+    @computed get sorted(): { id: string, desc: boolean }[] {
         return this.columns.reduce((sorted, shf) => {
             if (shf.desc) {
                 sorted.push({ "id": shf.heading, "desc": shf.desc });
             }
             return sorted;
-        }, [] as { "id": string, "desc"?: true }[]);
+        }, [] as { id: string, desc: boolean }[]);
     }
 
     @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }
@@ -899,6 +899,7 @@ interface CollectionSchemaPreviewProps {
     height: () => number;
     showOverlays?: (doc: Doc) => { title?: string, caption?: string };
     CollectionView?: CollectionView | CollectionPDFView | CollectionVideoView;
+    onClick?: ScriptField;
     getTransform: () => Transform;
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
     moveDocument: (document: Doc, target: Doc, addDoc: ((doc: Doc) => boolean)) => boolean;
@@ -988,23 +989,24 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
                         DataDoc={this.props.DataDocument}
                         Document={this.props.Document}
                         fitToBox={this.props.fitToBox}
-                        renderDepth={this.props.renderDepth + 1}
-                        selectOnLoad={false}
+                        onClick={this.props.onClick}
                         showOverlays={this.props.showOverlays}
                         addDocument={this.props.addDocument}
                         removeDocument={this.props.removeDocument}
                         moveDocument={this.props.moveDocument}
+                        whenActiveChanged={this.props.whenActiveChanged}
+                        ContainingCollectionView={this.props.CollectionView}
+                        addDocTab={this.props.addDocTab}
+                        parentActive={this.props.active}
                         ScreenToLocalTransform={this.getTransform}
+                        renderDepth={this.props.renderDepth + 1}
+                        selectOnLoad={false}
                         ContentScaling={this.contentScaling}
                         PanelWidth={this.PanelWidth}
                         PanelHeight={this.PanelHeight}
-                        ContainingCollectionView={this.props.CollectionView}
                         focus={emptyFunction}
                         backgroundColor={returnEmptyString}
-                        parentActive={this.props.active}
-                        whenActiveChanged={this.props.whenActiveChanged}
                         bringToFront={emptyFunction}
-                        addDocTab={this.props.addDocTab}
                         zoomToScale={emptyFunction}
                         getScale={returnOne}
                     />
