@@ -349,7 +349,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             document.addEventListener("pointerup", this.onRadiusUp);
         }
         if (!this._isMoving) {
-            SelectionManager.SelectedDocuments().map(dv => dv.props.Document.borderRounding = Doc.GetProto(dv.props.Document).borderRounding = `0%`);
+            SelectionManager.SelectedDocuments().map(dv => dv.props.Document.layout instanceof Doc ? dv.props.Document.layout : dv.props.Document.isTemplate ? dv.props.Document : Doc.GetProto(dv.props.Document)).
+                map(d => d.borderRounding = "0%");
         }
     }
 

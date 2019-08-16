@@ -616,7 +616,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             let dh = NumCast(this.props.Document.height, 0);
             let sh = scrBounds.height;
             const ChromeHeight = MainOverlayTextBox.Instance.ChromeHeight;
-            this.props.Document.height = (nh ? dh / nh * sh : sh) + (ChromeHeight ? ChromeHeight() : 0);
+            this.props.Document.height = Math.max(10, (nh ? dh / nh * sh : sh) + (ChromeHeight ? ChromeHeight() : 0));
             this.dataDoc.nativeHeight = nh ? sh : undefined;
         }
     }
