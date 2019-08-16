@@ -420,13 +420,13 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                         width={nativeWidth}
                         ref={this._imgRef}
                         onError={this.onError} />
-                    {fadepath === srcpath ? (null) : <img id="fadeaway" className="fadeaway"
+                    {fadepath === srcpath ? (null) : <div className="imageBox-fadeBlocker"> <img className="imageBox-fadeaway"
                         key={"fadeaway" + this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
                         src={fadepath}
                         style={{ transform: `translate(0px, ${shift}px) rotate(${rotation}deg) scale(${aspect})` }}
                         width={nativeWidth}
                         ref={this._imgRef}
-                        onError={this.onError} />}
+                        onError={this.onError} /></div>}
                 </div>
                 {paths.length > 1 ? this.dots(paths) : (null)}
                 <div className="imageBox-audioBackground"

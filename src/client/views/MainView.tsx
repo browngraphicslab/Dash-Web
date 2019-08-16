@@ -38,6 +38,7 @@ import { PreviewCursor } from './PreviewCursor';
 import { FilterBox } from './search/FilterBox';
 import { CollectionTreeView } from './collections/CollectionTreeView';
 import { ClientUtils } from '../util/ClientUtils';
+import { SearchBox } from './search/SearchBox';
 import { SchemaHeaderField, RandomPastel } from '../../new_fields/SchemaHeaderField';
 import { DictationManager } from '../util/DictationManager';
 import * as $ from 'jquery';
@@ -542,7 +543,7 @@ export class MainView extends React.Component {
     }
 
     @observable isSearchVisible = false;
-    @action
+    @action.bound
     toggleSearch = () => {
         // console.log("search toggling")
         this.isSearchVisible = !this.isSearchVisible;
