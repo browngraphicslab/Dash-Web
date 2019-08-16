@@ -734,8 +734,14 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.barwidth = (this.barref.current ? this.barref.current.clientWidth : (952));
     }
 
-
-    leftboundSet = (number: number) => { this.leftbound = number; this.markerrender(); };
+    @action
+    leftboundSet = (number: number) => {
+        console.log(this.leftbound);
+        runInAction(() => this.leftbound = number);
+        console.log(this.leftbound);
+        this.markerrender();
+    };
+    @action
     rightboundSet = (number: number) => { this.rightbound = number; this.markerrender(); };
     selectedColorSet = (color: string) => { this.selectedColor = color; };
     barwidthSet = (color: number) => { this.barwidth = color; this.markerrender(); };

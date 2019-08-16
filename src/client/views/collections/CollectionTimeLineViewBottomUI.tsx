@@ -5,14 +5,9 @@ import "./CollectionTimelineViewBottomUI.scss";
 
 
 export class BottomUI extends React.Component<BottomUIProps> {
-    @observable searchString!: string;
-    @observable searchString2!: string;
+    @observable searchString: string | undefined;
+    @observable searchString2: string | undefined;
 
-    // constructor(props: BottomUIProps) {
-    //     super(props);
-
-    //     this.searchString2 = "";
-    // }
     @action.bound
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
         this.searchString = e.target.value;
@@ -21,12 +16,11 @@ export class BottomUI extends React.Component<BottomUIProps> {
     @action.bound
     onChange2(e: React.ChangeEvent<HTMLInputElement>) {
         this.searchString2 = e.target.value;
-        console.log(this.searchString2);
     }
 
 
 
-    @action
+    @action.bound
     enter = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Enter") {
             var thing = (parseFloat(this.searchString!) - this.props.minvalue) * this.props.barwidth / this.props._range;
@@ -34,14 +28,45 @@ export class BottomUI extends React.Component<BottomUIProps> {
                 if (thing > this.props.barwidth) {
                     this.props.rightboundSet(0);
                 }
-                else if (this.props.barwidth - thing <= this.props.leftbound) {
+                else if
+                    (this.props.leftbound + thing >= this.props.barwidth) {
                     this.props.rightboundSet(this.props.barwidth - this.props.leftbound - 1);
                 }
                 else {
                     this.props.rightboundSet(this.props.barwidth - thing);
                 }
-                this.searchString = "";
+
+
             }
+
+            this.searchref.current ? this.searchref.current.reset() : null;
+            this.searchString = undefined;
+            this.searchString2 = undefined;
+        }
+        if (e.keyCode === 9) {
+            e.preventDefault;
+            e.stopPropagation();
+        }
+    }
+
+    @action.bound
+    enter2 = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") {
+            var thing = (parseFloat(this.searchString2!) - this.props.minvalue) * this.props.barwidth / this.props._range;
+            if (!isNaN(thing)) {
+                if (thing < 0) {
+                    this.props.leftboundSet(0);
+                }
+                else if (thing >= this.props.barwidth - this.props.rightbound) {
+                    this.props.leftboundSet(this.props.barwidth - this.props.rightbound - 1);
+                }
+                else {
+                    this.props.leftboundSet(thing);
+                }
+            }
+            this.searchString2 = undefined;
+            this.searchString = undefined;
+            this.searchref.current!.reset();
         }
         if (e.keyCode === 9) {
             e.preventDefault;
@@ -50,7 +75,7 @@ export class BottomUI extends React.Component<BottomUIProps> {
     }
 
     @action
-    enter2 = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    enter3 = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Enter") {
             var thing = (parseFloat(this.searchString2!) - this.props.minvalue) * this.props.barwidth / this.props._range;
             if (!isNaN(thing)) {
@@ -106,7 +131,8 @@ export class BottomUI extends React.Component<BottomUIProps> {
     private colorrefGreen = React.createRef<HTMLDivElement>();
     private colorrefRed = React.createRef<HTMLDivElement>();
     private colorrefBlue = React.createRef<HTMLDivElement>();
-
+    private searchref = React.createRef<HTMLFormElement>();
+    private searchref2 = React.createRef<HTMLFormElement>();
 
     @action
     onPointerDown_OnBar = (e: React.PointerEvent): void => {
@@ -212,24 +238,27 @@ export class BottomUI extends React.Component<BottomUIProps> {
         return (
             <div>
                 <div className="collectionTimelineViewBottomUI-grid">
-                    <div>
-                        <input type="text" />
-                    </div>
-                    <div className="min"> Min:
-                    <input value={this.searchString2} onChange={this.onChange} onKeyPress={this.enter2} type="text" placeholder={String((this.props.leftbound * this.props._range / this.props.barwidth) + this.props.minvalue)}
-                            className="searchBox-barChild searchBox-input" />
-                    </div>
-                    <div className="reset"> <button onClick={() => runInAction(() => { this.props.leftboundSet(0); this.props.rightboundSet(0); })}>Reset Range</button></div>
+                    {/* <div>
+                        <input type="text" placeholder={this.props.sortstate} onKeyPress={this.enter3} />
+                    </div> */}
+                    <form ref={this.searchref}>
+                        <div className="max"> Max:
+                        <input value={this.searchString ? this.searchString : undefined} onChange={this.onChange} onFocus={() => this.searchString = ""} onKeyPress={this.enter} type="text" placeholder={String(((this.props.barwidth - this.props.rightbound) * this.props._range / this.props.barwidth) + this.props.minvalue)}
+                                className="searchBox-barChild searchBox-input" />
+                        </div>
+                        <div className="min">
+                            Min:
+                        <input value={this.searchString2} onChange={this.onChange2} onKeyPress={this.enter2} type="text" placeholder={String((this.props.leftbound * this.props._range / this.props.barwidth) + this.props.minvalue)}
+                                className="searchBox-barChild searchBox-input" />
+                        </div>
+                    </form>
+                    <div className="reset"> <button onClick={() => runInAction(() => { this.props.leftboundSet(0); this.props.rightboundSet(0); (this.searchref.current ? this.searchref.current.reset() : null); })}>Reset Range</button></div>
                     <div ref={this.colorrefYellow} onClick={(e) => this.toggleColor(e, "#ffff80")} className="color1" style={{ position: "relative", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#ffff80", border: "2px solid black" }}></div>
                     <div ref={this.colorrefGreen} onClick={(e) => this.toggleColor(e, "#bfff80")} className="color2" style={{ position: "relative", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#bfff80", border: "2px solid #9c9396" }}></div>
                     <div ref={this.colorrefRed} onClick={(e) => this.toggleColor(e, "#ff8080")} className="color3" style={{ position: "relative", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#ff8080", border: "2px solid #9c9396" }}></div>
                     <div ref={this.colorrefBlue} onClick={(e) => this.toggleColor(e, "#80dfff")} className="color4" style={{ position: "relative", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#80dfff", border: "2px solid #9c9396" }}></div>
                     <div className="val">{this.props.sortstate + ":" + this.props.selectedvalue}</div>
-                    <div className="max">
-                        Max:
-                        <input value={this.searchString} onChange={this.onChange2} onKeyPress={this.enter} type="text" placeholder={String(((this.props.barwidth - this.props.rightbound) * this.props._range / this.props.barwidth) + this.props.minvalue)}
-                            className="searchBox-barChild searchBox-input" />
-                    </div>
+
                 </div>
                 <div ref={this.props.barref} className="backdropscroll" onPointerDown={this.onPointerDown_OffBar} style={{ zIndex: 1, top: "3%", width: "100%", bottom: "90%", position: "fixed", }}>
                     {this.props.thumbnailmap}
