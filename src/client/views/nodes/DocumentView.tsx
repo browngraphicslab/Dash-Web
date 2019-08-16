@@ -774,9 +774,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}
             >
                 {!showTitle && !showCaption ? this.contents :
-                    <div style={{ position: "absolute", display: "inline-block", width: "100%", height: "100%", pointerEvents: "none" }}>
+                    <div className="documentView-overlays" >
 
-                        <div style={{ width: "100%", height: showTextTitle ? "calc(100% - 33px)" : "100%", display: "inline-block", position: "absolute", top: showTextTitle ? "29px" : undefined }}>
+                        <div className="documentView-textOverlay" style={{ height: showTextTitle ? "calc(100% - 33px)" : "100%", top: showTextTitle ? "29px" : undefined }}>
                             {this.contents}
                         </div>
                         {!showTitle ? (null) :
