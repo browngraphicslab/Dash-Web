@@ -29,6 +29,7 @@ export class CurrentUserUtils {
     public static set MainDocId(id: string | undefined) { this.mainDocId = id; }
 
     @observable public static GuestTarget: Doc | undefined;
+    @observable public static GuestWorkspace: Doc | undefined;
 
     private static createUserDocument(id: string): Doc {
         let doc = new Doc(id, true);

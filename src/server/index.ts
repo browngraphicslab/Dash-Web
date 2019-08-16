@@ -101,7 +101,7 @@ enum Method {
     POST
 }
 
-const Guest = new User({ email: "guest@dash.edu" } as Partial<DashUserModel>);
+const guest_id = Utils.GenerateGuid();
 
 /**
  * Please invoke this function when adding a new route to Dash's server.
@@ -118,14 +118,21 @@ function addSecureRoute(method: Method,
     ...subscribers: string[]
 ) {
     let abstracted = (req: express.Request, res: express.Response) => {
-        let readonly = qs.parse(qs.extract(req.originalUrl), { sort: false }).readonly !== undefined;
-        req.session!.readonly = readonly;
-        if (readonly && !req.user) {
-            req.session!.guest = Guest;
-        }
-        let validated = req.user || req.session!.guest;
-        if (validated) {
-            handler(validated, res, req);
+        let readonly = qs.parse(qs.extract(req.originalUrl), { sort: false }).readonly === "true";
+        readonly = readonly && req.originalUrl.startsWith("/doc/");
+        // if (readonly) {
+        //     if (!req.user) {
+        //         req.session!.guest = guest_id;
+        //     }
+        // } else {
+        //     if (req.session!.guest) {
+        //         req.session!.guest = undefined;
+        //         res.redirect(RouteStore.login);
+        //         return;
+        //     }
+        // }
+        if (req.user || readonly) {
+            handler(req.user, res, req);
         } else {
             req.session!.target = req.originalUrl;
             onRejection(res, req);
@@ -496,33 +503,32 @@ addSecureRoute(
 addSecureRoute(
     Method.GET,
     (user, res, req) => {
-        if (!req.session!.readonly) {
-            res.redirect(RouteStore.login);
-            return;
-        }
-        req.session!.readonly = false;
         let detector = new mobileDetect(req.headers['user-agent'] || "");
         let filename = detector.mobile() !== null ? 'mobile/image.html' : 'index.html';
         res.sendFile(path.join(__dirname, '../../deploy/' + filename));
     },
     undefined,
-    RouteStore.home,
-    RouteStore.openDocumentWithId
+    RouteStore.home, RouteStore.openDocumentWithId
 );
 
 addSecureRoute(
     Method.GET,
-    (user, res, req) => res.send(user.userDocumentId || (req.session!.guest ? "guest" : "")),
-    undefined,
+    (user, res) => res.send(user.userDocumentId),
+    (res) => res.send(undefined),
     RouteStore.getUserDocumentId,
 );
 
 addSecureRoute(
     Method.GET,
     (user, res) => { res.send(JSON.stringify({ id: user.id, email: user.email })); },
-    undefined,
+    (res) => res.send(JSON.stringify({ id: "__guest__", email: "" })),
     RouteStore.getCurrUser
 );
+
+// app.get(RouteStore.getCurrUser, (req, res) => {
+//     let user = req.user;
+//     res.send(JSON.stringify({ id: user.id, email: user.email }));
+// });
 
 const ServicesApiKeyMap = new Map<string, string | undefined>([
     ["face", process.env.FACE],
@@ -684,21 +690,31 @@ app.use(RouteStore.corsProxy, (req, res) => {
     }).pipe(res);
 });
 
-app.get(RouteStore.delete, (req, res) => {
-    if (release) {
-        res.send("no");
-        return;
-    }
-    deleteFields().then(() => res.redirect(RouteStore.home));
-});
+addSecureRoute(
+    Method.GET,
+    (user, res, req) => {
+        if (release) {
+            res.send("no");
+            return;
+        }
+        deleteFields().then(() => res.redirect(RouteStore.home));
+    },
+    undefined,
+    RouteStore.delete
+);
 
-app.get(RouteStore.deleteAll, (req, res) => {
-    if (release) {
-        res.send("no");
-        return;
-    }
-    deleteAll().then(() => res.redirect(RouteStore.home));
-});
+addSecureRoute(
+    Method.GET,
+    (user, res, req) => {
+        if (release) {
+            res.send("no");
+            return;
+        }
+        deleteAll().then(() => res.redirect(RouteStore.home));
+    },
+    undefined,
+    RouteStore.deleteAll
+);
 
 app.use(wdm(compiler, { publicPath: config.output.publicPath }));
 

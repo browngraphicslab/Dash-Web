@@ -40,6 +40,7 @@ import { CollectionTreeView } from './collections/CollectionTreeView';
 import { ClientUtils } from '../util/ClientUtils';
 import { SchemaHeaderField, RandomPastel } from '../../new_fields/SchemaHeaderField';
 import { DictationManager } from '../util/DictationManager';
+import { list } from 'serializr';
 
 @observer
 export class MainView extends React.Component {
@@ -77,7 +78,7 @@ export class MainView extends React.Component {
     }
 
     @computed private get mainContainer(): Opt<Doc> {
-        return this.userDoc ? FieldValue(Cast(this.userDoc.activeWorkspace, Doc)) : CurrentUserUtils.GuestTarget;
+        return this.userDoc ? FieldValue(Cast(this.userDoc.activeWorkspace, Doc)) : CurrentUserUtils.GuestWorkspace;
     }
     @computed get mainFreeform(): Opt<Doc> {
         let docs = DocListCast(this.mainContainer!.data);
@@ -89,7 +90,7 @@ export class MainView extends React.Component {
             if (!("presentationView" in doc)) {
                 doc.presentationView = new List<Doc>([Docs.Create.TreeDocument([], { title: "Presentation" })]);
             }
-            this.userDoc && (this.userDoc.activeWorkspace = doc);
+            this.userDoc ? (this.userDoc.activeWorkspace = doc) : (CurrentUserUtils.GuestWorkspace = doc);
         }
     }
 
@@ -240,9 +241,9 @@ export class MainView extends React.Component {
                 this.createNewWorkspace();
             }
         } else {
-            DocServer.GetRefField(CurrentUserUtils.MainDocId).then(field =>
-                field instanceof Doc ? this.openWorkspace(field) :
-                    this.createNewWorkspace(CurrentUserUtils.MainDocId));
+            reaction(() => CurrentUserUtils.GuestTarget, target => {
+                target && NumCast(target.viewType) !== 3 && this.createNewWorkspace();
+            }, { fireImmediately: true });
         }
     }
 
@@ -250,13 +251,15 @@ export class MainView extends React.Component {
     @action
     createNewWorkspace = async (id?: string) => {
         let freeformOptions: DocumentOptions = { x: 0, y: 400, width: this.pwidth * .7, height: this.pheight };
+        let workspaceTitle = "Workspace 1";
         if (CurrentUserUtils.GuestTarget) {
             freeformOptions.title = StrCast(CurrentUserUtils.GuestTarget.title);
+            workspaceTitle = `Guest View of ${freeformOptions.title}`;
         }
         let workspaces: FieldResult<Doc>;
-        let freeformDoc = Docs.Create.FreeformDocument([], freeformOptions);
+        let freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
         var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc, freeformDoc, 600)] }] };
-        let mainDoc = Docs.Create.DockDocument([this.userDoc, freeformDoc], JSON.stringify(dockingLayout), { title: `Workspace 1` }, id);
+        let mainDoc = Docs.Create.DockDocument([this.userDoc, freeformDoc], JSON.stringify(dockingLayout), { title: workspaceTitle }, id);
         if (this.userDoc && ((workspaces = Cast(this.userDoc.workspaces, Doc)) instanceof Doc)) {
             const list = Cast((workspaces).data, listSpec(Doc));
             if (list) {
