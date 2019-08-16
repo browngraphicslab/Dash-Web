@@ -205,7 +205,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     }
     @action
     public AddTab = (stack: any, document: Doc, dataDocument: Doc | undefined) => {
-        document.lastOpened = new DateField;
+        Doc.GetProto(document).lastOpened = new DateField;
         let docs = Cast(this.props.Document.data, listSpec(Doc));
         if (docs) {
             docs.push(document);
