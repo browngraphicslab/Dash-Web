@@ -747,6 +747,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
         let showTextTitle = showTitle && StrCast(this.layoutDoc.layout).startsWith("<FormattedTextBox") ? showTitle : undefined;
         let brushDegree = Doc.IsBrushedDegree(this.props.Document);
+        let borderRounding = StrCast(Doc.GetProto(this.props.Document).borderRounding);
+        let localScale = this.props.ScreenToLocalTransform().Scale;
         return (
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
@@ -755,14 +757,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     color: foregroundColor,
                     outlineColor: ["transparent", "maroon", "maroon"][brushDegree],
                     outlineStyle: ["none", "dashed", "solid"][brushDegree],
-                    outlineWidth: brushDegree && !StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
-                        `${brushDegree * this.props.ScreenToLocalTransform().Scale}px` : "0px",
-                    marginLeft: brushDegree && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
-                        `${-brushDegree * this.props.ScreenToLocalTransform().Scale}px` : undefined,
-                    marginTop: brushDegree && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
-                        `${-brushDegree * this.props.ScreenToLocalTransform().Scale}px` : undefined,
-                    border: brushDegree && StrCast(Doc.GetProto(this.props.Document).borderRounding) ?
-                        `${["none", "dashed", "solid"][brushDegree]} ${["transparent", "maroon", "maroon"][brushDegree]} ${this.props.ScreenToLocalTransform().Scale}px` : undefined,
+                    outlineWidth: brushDegree && !borderRounding ? `${brushDegree * localScale}px` : "0px",
+                    marginLeft: brushDegree && borderRounding ? `${-brushDegree * localScale}px` : undefined,
+                    marginTop: brushDegree && borderRounding ? `${-brushDegree * localScale}px` : undefined,
+                    border: brushDegree && borderRounding ?
+                        `${["none", "dashed", "solid"][brushDegree]} ${["transparent", "maroon", "maroon"][brushDegree]} ${localScale}px` : undefined,
                     borderRadius: "inherit",
                     background: backgroundColor,
                     width: nativeWidth,
