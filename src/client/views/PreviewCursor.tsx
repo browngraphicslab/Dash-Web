@@ -1,4 +1,4 @@
-import { action, observable } from 'mobx';
+import { action, observable, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
@@ -14,6 +14,7 @@ export class PreviewCursor extends React.Component<{}> {
     static _onKeyPress?: (e: KeyboardEvent) => void;
     static _getTransform: () => Transform;
     static _addLiveTextDoc: (doc: Doc) => void;
+    static _addDocument: (doc: Doc, allowDuplicates: false) => boolean;
     @observable static _clickPoint = [0, 0];
     @observable public static Visible = false;
     //when focus is lost, this will remove the preview cursor
@@ -30,6 +31,8 @@ export class PreviewCursor extends React.Component<{}> {
     paste = (e: ClipboardEvent) => {
         if (PreviewCursor.Visible) {
             if (e.clipboardData) {
+                let newPoint = PreviewCursor._getTransform().transformPoint(PreviewCursor._clickPoint[0], PreviewCursor._clickPoint[1]);
+
                 //keeping these just to hold onto types of pastes
                 //what needs to be done with html?
                 // console.log(e.clipboardData.getData("text/html"));
@@ -39,10 +42,10 @@ export class PreviewCursor extends React.Component<{}> {
                 // console.log(e.clipboardData.getData("image/jpg"));
                 // console.log(e.clipboardData.getData("image/jpeg"));
 
+                // console.log(e.clipboardData.types)
+
                 // pasting in text
                 if (e.clipboardData.getData("text/plain") !== "") {
-                    let text = e.clipboardData.getData("text/plain");
-                    let newPoint = PreviewCursor._getTransform().transformPoint(PreviewCursor._clickPoint[0], PreviewCursor._clickPoint[1]);
                     let newBox = Docs.Create.TextDocument({
                         width: 200, height: 100,
                         x: newPoint[0],
@@ -53,6 +56,21 @@ export class PreviewCursor extends React.Component<{}> {
                     newBox.proto!.autoHeight = true;
                     PreviewCursor._addLiveTextDoc(newBox);
                 }
+                //pasting in images
+                else if (e.clipboardData.getData("text/html") !== "" && e.clipboardData.getData("text/html").includes("<img src=")) {
+                    let re: any = /<img src="(.*?)"/g;
+                    let arr: any[] = re.exec(e.clipboardData.getData("text/html"));
+
+                    let img: Doc = Docs.Create.ImageDocument(
+                        arr[1], {
+                            width: 200, title: "an image of a cat",
+                            x: newPoint[0],
+                            y: newPoint[1],
+                        });
+                    PreviewCursor._addDocument(img, false);
+                    runInAction(() => { PreviewCursor.Visible = false; });
+                }
+
             }
         }
     }
@@ -77,11 +95,16 @@ export class PreviewCursor extends React.Component<{}> {
         }
     }
     @action
-    public static Show(x: number, y: number, onKeyPress: (e: KeyboardEvent) => void, addLiveText: (doc: Doc) => void, getTransform: () => Transform) {
+    public static Show(x: number, y: number,
+        onKeyPress: (e: KeyboardEvent) => void,
+        addLiveText: (doc: Doc) => void,
+        getTransform: () => Transform,
+        addDocument: (doc: Doc, allowDuplicates: false) => boolean) {
         this._clickPoint = [x, y];
         this._onKeyPress = onKeyPress;
         this._addLiveTextDoc = addLiveText;
         this._getTransform = getTransform;
+        this._addDocument = addDocument;
         setTimeout(action(() => this.Visible = true), (1));
     }
     render() {
