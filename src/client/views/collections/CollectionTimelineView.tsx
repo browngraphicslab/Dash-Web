@@ -742,9 +742,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.markerrender();
     };
     @action
-    rightboundSet = (number: number) => { this.rightbound = number; this.markerrender(); };
+    rightboundSet = (number: number) => { this.rightbound = number; this.markerrender(); }
     selectedColorSet = (color: string) => { this.selectedColor = color; };
     barwidthSet = (color: number) => { this.barwidth = color; this.markerrender(); };
+    setsortsate = (string: string) => { this.sortstate = string; };
 
     render() {
         this.updateWidth();
@@ -784,7 +785,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     barref={this.barref}
                     barwidthSet={this.barwidthSet}
                     screenref={this.screenref}
-                    markerrender={this.markerrender}>
+                    markerrender={this.markerrender}
+                    setsortstate={this.setsortsate}>
                 </BottomUI>
                 <Measure onResize={() => this.updateWidth()}>
                     {({ measureRef }) => <div ref={measureRef}> </div>}
