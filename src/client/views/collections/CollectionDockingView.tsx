@@ -28,6 +28,7 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 import { faFile, faUnlockAlt } from '@fortawesome/free-solid-svg-icons';
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
 import { Docs } from '../../documents/Documents';
+import { DateField } from '../../../new_fields/DateField';
 library.add(faFile);
 
 @observer
@@ -204,6 +205,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     }
     @action
     public AddTab = (stack: any, document: Doc, dataDocument: Doc | undefined) => {
+        document.lastOpened = new DateField;
         let docs = Cast(this.props.Document.data, listSpec(Doc));
         if (docs) {
             docs.push(document);
