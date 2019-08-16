@@ -110,7 +110,7 @@ export class Timeline extends React.Component<FieldViewProps> {
                     this._ticks.push(i);
                     i += 1000;
                 }
-                this._totalLength = this._tickSpacing * (this._ticks.length/ this._tickIncrement); 
+                this._totalLength = this._tickSpacing * (this._time/ this._tickIncrement); 
             }, {fireImmediately:true}); 
             this._totalLength = this._tickSpacing * (this._ticks.length/ this._tickIncrement); 
             this._visibleLength = this._infoContainer.current!.getBoundingClientRect().width; 
@@ -322,22 +322,6 @@ export class Timeline extends React.Component<FieldViewProps> {
     }
 
 
-    convertPixelTime = (pos: number, unit: "mili" | "sec" | "min" | "hr", dir: "pixel" | "time") => {
-        let time = dir === "pixel" ?  pos / this._tickSpacing * this._tickIncrement : pos * this._tickSpacing / this._tickIncrement; 
-        switch (unit) {
-            case "mili":
-                return time; 
-            case "sec":
-                return dir === "pixel" ? time / 1000 : time * 1000; 
-            case "min":
-                return dir === "pixel" ? time / 60000 : time * 60000; 
-            case "hr":
-                return dir === "pixel" ? time / 3600000 : time * 3600000; 
-            default: 
-                return time; 
-        }
-    }
-
     timelineContextMenu = (e:MouseEvent): void => {
         let subitems: ContextMenuProps[] = [];
         let timelineContainer = this._timelineWrapper.current!;
@@ -380,20 +364,21 @@ export class Timeline extends React.Component<FieldViewProps> {
                 if (this._tickSpacing >= 100) {
                     this._tickIncrement /= 2; 
                     this._tickSpacing = 50; 
-                    this._totalLength = this._tickSpacing * (this._ticks.length/ this._tickIncrement); //CONSIDER THIS MUST CHANGE
                 } else {
                     this._tickSpacing += 10; 
                 }
             } 
         } else {
-            if (this._tickSpacing <= 50) {
-                this._tickSpacing = 100; 
-                this._tickIncrement *= 2; 
-                this._totalLength = this._tickSpacing * (this._ticks.length/ this._tickIncrement); //CONSIDER THIS MUST CHANGE
-            } else {
-                this._tickSpacing -= 10; 
+            if (this._totalLength >= this._infoContainer.current!.getBoundingClientRect().width){
+                if (this._tickSpacing <= 50) {
+                    this._tickSpacing = 100; 
+                    this._tickIncrement *= 2; 
+                } else {
+                    this._tickSpacing -= 10; 
+                }
             }
         }
+        this._totalLength = this._tickSpacing * (this._time/ this._tickIncrement); 
     }
 
     private timelineToolBox = (scale:number) => {
@@ -424,7 +409,7 @@ export class Timeline extends React.Component<FieldViewProps> {
                                 <div key="timeline_scrubberhead" className="scrubberhead"></div>
                             </div>
                             <div key="timeline_trackbox" className="trackbox" ref={this._trackbox} onPointerDown={this.onPanDown} style={{width: `${this._totalLength}px`}}>
-                                {DocListCast(this.children).map(doc => <Track node={doc} currentBarX={this._currentBarX} changeCurrentBarX={this.changeCurrentBarX} transform={this.props.ScreenToLocalTransform()} collection = {this.props.Document}/>)}
+                                {DocListCast(this.children).map(doc => <Track node={doc} currentBarX={this._currentBarX} changeCurrentBarX={this.changeCurrentBarX} transform={this.props.ScreenToLocalTransform()} time={this._time} tickSpacing = {this._tickSpacing} tickIncrement ={this._tickIncrement} collection = {this.props.Document}/>)}
                             </div>
                         </div>
                         <div key="timeline_title"className="title-container" ref={this._titleContainer}>
