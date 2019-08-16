@@ -166,6 +166,8 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
                 this.Document.height = FieldValue(this.Document.width, 0) / youtubeaspect;
             }
         }
+        
+        this.player && (this.player.style.transform = ""); 
     }
 
     componentWillUnmount() {

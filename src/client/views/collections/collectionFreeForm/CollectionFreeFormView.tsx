@@ -194,6 +194,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private _lastY: number = 0;
     private get _pwidth() { return this.props.PanelWidth(); }
     private get _pheight() { return this.props.PanelHeight(); }
+    private _timelineRef = React.createRef<Timeline>(); 
     private inkKey = "ink";
 
     constructor(props: any) {
@@ -842,6 +843,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         let analyzers: ContextMenuProps[] = existingAnalyze && "subitems" in existingAnalyze ? existingAnalyze.subitems : [];
         analyzers.push({ description: "Analyze Strokes", event: this.analyzeStrokes, icon: "paint-brush" });
         !existingAnalyze && ContextMenu.Instance.addItem({ description: "Analyzers...", subitems: analyzers, icon: "hand-point-right" });
+        this._timelineRef.current!.timelineContextMenu(e.nativeEvent); 
     }
 
 
@@ -879,10 +881,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             addOverlay("arrangeInit", { x: 400, y: 100, width: 400, height: 300, title: "Layout Initialization" }, { collection: "Doc", docs: "Doc[]" }, undefined);
             addOverlay("arrangeScript", { x: 400, y: 500, width: 400, height: 300, title: "Layout Script" }, { doc: "Doc", index: "number", collection: "Doc", state: "any", docs: "Doc[]" }, "{x: number, y: number, width?: number, height?: number}");
         };
-    }
-    private _timeline = <Timeline {...this.props}/>; 
-    se = () => {
-    }
+    }  
     render() {
         const easing = () => this.props.Document.panTransformType === "Ease";
         Doc.UpdateDocumentExtensionForField(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey);
@@ -902,7 +901,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         <CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" />
                     </CollectionFreeFormViewPannableContents>
                 </MarqueeView>
-                <Timeline {...this.props}/>
+                <Timeline ref={this._timelineRef} {...this.props}/>
                 {this.overlayChildViews()}
                 <CollectionFreeFormOverlayView  {...this.props} {...this.getDocumentViewProps(this.props.Document)} />
             </div>

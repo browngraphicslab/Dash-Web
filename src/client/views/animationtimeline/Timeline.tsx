@@ -60,6 +60,9 @@ export class Timeline extends React.Component<FieldViewProps> {
     @observable private _ticks: number[] = [];
     @observable private _playButton = faPlayCircle; 
     @observable private _timelineVisible = false; 
+    @observable private _mouseToggled = false; 
+    @observable private _doubleClickEnabled = false; 
+
 
     @computed
     private get children(): List<Doc> {
@@ -78,8 +81,6 @@ export class Timeline extends React.Component<FieldViewProps> {
 
     componentWillMount() {
         this.props.Document.isAnimating ? this.props.Document.isAnimating = true : this.props.Document.isAnimating = false; 
-        document.addEventListener("contextmenu", (e) => {this.timelineContextMenu(e);});
-        console.log(this._currentBarX); 
     }
 
     componentDidMount() {
@@ -92,7 +93,7 @@ export class Timeline extends React.Component<FieldViewProps> {
                     return NumCast(this.props.Document.curPage);
                 }, curPage => {
                     if (!this._isPlaying) {
-                        this.changeCurrentBarX(curPage * this._tickIncrement / this._tickSpacing);
+                        this.changeCurrentBarX(curPage * this._tickIncrement / this._tickSpacing); 
                         this.props.Document.curPage = this._currentBarX; 
                         this.play(); 
                     }
@@ -107,21 +108,17 @@ export class Timeline extends React.Component<FieldViewProps> {
                 this._ticks = [];
                 for (let i = 0; i < this._time;) {
                     this._ticks.push(i);
-                    i += this._tickIncrement;
+                    i += 1000;
                 }
-                let trackbox = this._trackbox.current!;
-                this._totalLength = this._tickSpacing * this._ticks.length;
-                trackbox.style.width = `${this._totalLength}`;
-                this._scrubberbox.current!.style.width = `${this._totalLength}`;
+                this._totalLength = this._tickSpacing * (this._ticks.length/ this._tickIncrement); 
             }, {fireImmediately:true}); 
+            this._totalLength = this._tickSpacing * (this._ticks.length/ this._tickIncrement); 
             this._visibleLength = this._infoContainer.current!.getBoundingClientRect().width; 
-            this._visibleStart = this._infoContainer.current!.scrollLeft; 
+            this._visibleStart = this._infoContainer.current!.scrollLeft;   
         });
        
-    }
 
-    
-   
+    }
 
     @action
     changeCurrentBarX = (pixel: number) => {
@@ -136,6 +133,7 @@ export class Timeline extends React.Component<FieldViewProps> {
         this.play(); 
     }
 
+    @action
     play = () => {
         if (this._isPlaying) {
             this._isPlaying = false;
@@ -209,8 +207,6 @@ export class Timeline extends React.Component<FieldViewProps> {
 
 
 
-    @observable private _mouseToggled = false; 
-    @observable private _doubleClickEnabled = false; 
     @action
     onPanDown = (e: React.PointerEvent) => {
         e.preventDefault();
@@ -370,6 +366,35 @@ export class Timeline extends React.Component<FieldViewProps> {
         ContextMenu.Instance.addItem({ description: "Timeline Funcs...", subitems: subitems, icon: faClock });
     }
 
+    @action
+    onWheelZoom = (e: React.WheelEvent) => {
+        e.preventDefault(); 
+        e.stopPropagation(); 
+        e.deltaY < 0 ? this.zoom(true) : this.zoom(false); 
+    }
+
+    @action
+    zoom = (dir: boolean) => {
+        if (dir){
+            if (!(this._tickSpacing === 100 && this._tickIncrement === 1000)){
+                if (this._tickSpacing >= 100) {
+                    this._tickIncrement /= 2; 
+                    this._tickSpacing = 50; 
+                    this._totalLength = this._tickSpacing * (this._ticks.length/ this._tickIncrement); //CONSIDER THIS MUST CHANGE
+                } else {
+                    this._tickSpacing += 10; 
+                }
+            } 
+        } else {
+            if (this._tickSpacing <= 50) {
+                this._tickSpacing = 100; 
+                this._tickIncrement *= 2; 
+                this._totalLength = this._tickSpacing * (this._ticks.length/ this._tickIncrement); //CONSIDER THIS MUST CHANGE
+            } else {
+                this._tickSpacing -= 10; 
+            }
+        }
+    }
 
     private timelineToolBox = (scale:number) => {
         let size = 50 * scale; //50 is default
@@ -389,16 +414,16 @@ export class Timeline extends React.Component<FieldViewProps> {
                     <button key="timeline_minimize" className="minimize" onClick={this.minimize}>Minimize</button>
                     <div key="timeline_container" className="timeline-container" style={{ height: `${this._containerHeight}px`, left: "0px", top: "30px" }} ref={this._timelineContainer} onPointerDown={this.onTimelineDown}>
                         {this.timelineToolBox(0.5)}
-                        <div key ="timeline_info"className="info-container" ref={this._infoContainer}>
-                            <div key="timeline_scrubberbox" className="scrubberbox" ref={this._scrubberbox} onClick={this.onScrubberClick}>
+                        <div key ="timeline_info"className="info-container" ref={this._infoContainer} onWheel={this.onWheelZoom}>
+                            <div key="timeline_scrubberbox" className="scrubberbox" ref={this._scrubberbox} style={{width: `${this._totalLength}px`}} onClick={this.onScrubberClick}>
                                 {this._ticks.map(element => {
-                                    return <div className="tick" style={{ transform: `translate(${element / 1000 * this._tickSpacing}px)`, position: "absolute", pointerEvents: "none" }}> <p>{this.toReadTime(element)}</p></div>;
+                                    if(element % this._tickIncrement === 0) return <div className="tick" style={{ transform: `translate(${(element / this._tickIncrement)* this._tickSpacing}px)`, position: "absolute", pointerEvents: "none" }}> <p>{this.toReadTime(element)}</p></div>;
                                 })}
                             </div>
                             <div key="timeline_scrubber" className="scrubber" ref={this._scrubber} onPointerDown={this.onScrubberDown} style={{ transform: `translate(${this._currentBarX}px)` }}>
                                 <div key="timeline_scrubberhead" className="scrubberhead"></div>
                             </div>
-                            <div key="timeline_trackbox" className="trackbox" ref={this._trackbox} onPointerDown={this.onPanDown}>
+                            <div key="timeline_trackbox" className="trackbox" ref={this._trackbox} onPointerDown={this.onPanDown} style={{width: `${this._totalLength}px`}}>
                                 {DocListCast(this.children).map(doc => <Track node={doc} currentBarX={this._currentBarX} changeCurrentBarX={this.changeCurrentBarX} transform={this.props.ScreenToLocalTransform()} collection = {this.props.Document}/>)}
                             </div>
                         </div>
