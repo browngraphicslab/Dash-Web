@@ -41,42 +41,36 @@ export class ContextMenu extends React.Component {
     }
 
     @action
-    componentDidMount = () => {
-        document.addEventListener("pointerdown", e => {
-            runInAction(() => {
-                this._mouseDown = true;
-                this._mouseX = e.clientX;
-                this._mouseY = e.clientY;
-            });
-        });
-        document.addEventListener("pointerup", e => {
-            runInAction(() => {
-                this._mouseDown = false;
-            });
-            let curX = e.clientX;
-            let curY = e.clientY;
-            if (this._mouseX !== curX || this._mouseY !== curY) {
-                runInAction(() => {
-                    this._shouldDisplay = false;
-                });
-            }
+    onPointerDown = (e: PointerEvent) => {
+        this._mouseDown = true;
+        this._mouseX = e.clientX;
+        this._mouseY = e.clientY;
+    }
+    @action
+    onPointerUp = (e: PointerEvent) => {
+        this._mouseDown = false;
+        let curX = e.clientX;
+        let curY = e.clientY;
+        if (this._mouseX !== curX || this._mouseY !== curY) {
+            this._shouldDisplay = false;
+        }
 
-            if (this._shouldDisplay) {
-                runInAction(() => {
-                    this._display = true;
-                });
-            }
-        });
+        this._shouldDisplay && (this._display = true);
+    }
+    componentWillUnmount() {
+        document.removeEventListener("pointerdown", this.onPointerDown);
+        document.removeEventListener("pointerup", this.onPointerUp);
+        this._reactionDisposer && this._reactionDisposer();
+    }
+
+    @action
+    componentDidMount = () => {
+        document.addEventListener("pointerdown", this.onPointerDown);
+        document.addEventListener("pointerup", this.onPointerUp);
 
         this._reactionDisposer = reaction(
             () => this._shouldDisplay,
-            () => {
-                if (this._shouldDisplay && !this._mouseDown) {
-                    runInAction(() => {
-                        this._display = true;
-                    });
-                }
-            },
+            () => this._shouldDisplay && !this._mouseDown && runInAction(() => this._display = true)
         );
     }
 
