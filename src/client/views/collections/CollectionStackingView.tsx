@@ -95,7 +95,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             if (this.isStackingView && BoolCast(this.props.Document.autoHeight)) {
                 let sectionsList = Array.from(this.Sections.size ? this.Sections.values() : [this.filteredChildren]);
                 return this.props.ContentScaling() * sectionsList.reduce((maxHght, s) => Math.max(maxHght,
-                    50 + s.reduce((height, d, i) => height + this.childDocHeight(d) + (i === s.length - 1 ? this.yMargin : this.gridGap), this.yMargin)
+                    (this.Sections.size ? 50 : 0) + s.reduce((height, d, i) => height + this.childDocHeight(d) + (i === s.length - 1 ? this.yMargin : this.gridGap), this.yMargin)
                 ), 0);
             }
             return -1;
