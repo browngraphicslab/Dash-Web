@@ -13,6 +13,7 @@ import { listSpec } from "../../../new_fields/Schema";
 import { Cast, FieldValue, StrCast } from "../../../new_fields/Types";
 import { RouteStore } from "../../RouteStore";
 import { Utils } from "../../../Utils";
+import { HistoryUtil } from "../../../client/util/History";
 
 export class CurrentUserUtils {
     private static curr_email: string;
@@ -26,6 +27,8 @@ export class CurrentUserUtils {
     @computed public static get UserDocument() { return this.user_document; }
     public static get MainDocId() { return this.mainDocId; }
     public static set MainDocId(id: string | undefined) { this.mainDocId = id; }
+
+    @observable public static GuestTarget: Doc | undefined;
 
     private static createUserDocument(id: string): Doc {
         let doc = new Doc(id, true);
@@ -90,14 +93,16 @@ export class CurrentUserUtils {
         this.curr_email = email;
         await rp.get(Utils.prepend(RouteStore.getUserDocumentId)).then(id => {
             if (id) {
-                return DocServer.GetRefField(id).then(async field => {
-                    if (field instanceof Doc) {
-                        await this.updateUserDocument(field);
-                        runInAction(() => this.user_document = field);
-                    } else {
-                        runInAction(() => this.user_document = this.createUserDocument(id));
-                    }
-                });
+                if (id !== "guest") {
+                    return DocServer.GetRefField(id).then(async field => {
+                        if (field instanceof Doc) {
+                            await this.updateUserDocument(field);
+                            runInAction(() => this.user_document = field);
+                        } else {
+                            runInAction(() => this.user_document = this.createUserDocument(id));
+                        }
+                    });
+                }
             } else {
                 throw new Error("There should be a user id! Why does Dash think there isn't one?");
             }

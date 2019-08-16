@@ -22,7 +22,7 @@ import * as wdm from 'webpack-dev-middleware';
 import * as whm from 'webpack-hot-middleware';
 import { Utils } from '../Utils';
 import { getForgot, getLogin, getLogout, getReset, getSignup, postForgot, postLogin, postReset, postSignup } from './authentication/controllers/user_controller';
-import { DashUserModel } from './authentication/models/user_model';
+import User, { DashUserModel } from './authentication/models/user_model';
 import { Client } from './Client';
 import { Database } from './database';
 import { MessageStore, Transferable, Types, Diff, YoutubeQueryTypes as YoutubeQueryType, YoutubeQueryInput } from "./Message";
@@ -49,6 +49,7 @@ const mongoose = require('mongoose');
 const probe = require("probe-image-size");
 var SolrNode = require('solr-node');
 var shell = require('shelljs');
+import * as qs from 'query-string';
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
 let youtubeApiKey: string;
@@ -100,6 +101,8 @@ enum Method {
     POST
 }
 
+const Guest = new User({ email: "guest@dash.edu" } as Partial<DashUserModel>);
+
 /**
  * Please invoke this function when adding a new route to Dash's server.
  * It ensures that any requests leading to or containing user-sensitive information
@@ -115,8 +118,14 @@ function addSecureRoute(method: Method,
     ...subscribers: string[]
 ) {
     let abstracted = (req: express.Request, res: express.Response) => {
-        if (req.user) {
-            handler(req.user, res, req);
+        let readonly = qs.parse(qs.extract(req.originalUrl), { sort: false }).readonly !== undefined;
+        req.session!.readonly = readonly;
+        if (readonly && !req.user) {
+            req.session!.guest = Guest;
+        }
+        let validated = req.user || req.session!.guest;
+        if (validated) {
+            handler(validated, res, req);
         } else {
             req.session!.target = req.originalUrl;
             onRejection(res, req);
@@ -436,7 +445,7 @@ function LoadPage(file: string, pageNumber: number, res: Response) {
             console.log(pageNumber);
             pdf.getPage(pageNumber).then((page: Pdfjs.PDFPageProxy) => {
                 console.log("reading " + page);
-                let viewport = page.getViewport({ scale: 1 });
+                let viewport = page.getViewport(1);
                 let canvasAndContext = factory.create(viewport.width, viewport.height);
                 let renderContext = {
                     canvasContext: canvasAndContext.context,
@@ -487,6 +496,11 @@ addSecureRoute(
 addSecureRoute(
     Method.GET,
     (user, res, req) => {
+        if (!req.session!.readonly) {
+            res.redirect(RouteStore.login);
+            return;
+        }
+        req.session!.readonly = false;
         let detector = new mobileDetect(req.headers['user-agent'] || "");
         let filename = detector.mobile() !== null ? 'mobile/image.html' : 'index.html';
         res.sendFile(path.join(__dirname, '../../deploy/' + filename));
@@ -498,14 +512,14 @@ addSecureRoute(
 
 addSecureRoute(
     Method.GET,
-    (user, res) => res.send(user.userDocumentId || ""),
+    (user, res, req) => res.send(user.userDocumentId || (req.session!.guest ? "guest" : "")),
     undefined,
     RouteStore.getUserDocumentId,
 );
 
 addSecureRoute(
     Method.GET,
-    (user, res) => res.send(JSON.stringify({ id: user.id, email: user.email })),
+    (user, res) => { res.send(JSON.stringify({ id: user.id, email: user.email })); },
     undefined,
     RouteStore.getCurrUser
 );

@@ -7,7 +7,7 @@ import "normalize.css";
 import * as React from 'react';
 import { SketchPicker } from 'react-color';
 import Measure from 'react-measure';
-import { Doc, DocListCast, Opt, HeightSym } from '../../new_fields/Doc';
+import { Doc, DocListCast, Opt, HeightSym, FieldResult, Field } from '../../new_fields/Doc';
 import { Id } from '../../new_fields/FieldSymbols';
 import { InkTool } from '../../new_fields/InkField';
 import { List } from '../../new_fields/List';
@@ -17,7 +17,7 @@ import { CurrentUserUtils } from '../../server/authentication/models/current_use
 import { RouteStore } from '../../server/RouteStore';
 import { emptyFunction, returnOne, returnTrue, Utils, returnEmptyString } from '../../Utils';
 import { DocServer } from '../DocServer';
-import { Docs } from '../documents/Documents';
+import { Docs, DocumentOptions } from '../documents/Documents';
 import { SetupDrag } from '../util/DragManager';
 import { HistoryUtil } from '../util/History';
 import { Transform } from '../util/Transform';
@@ -65,6 +65,10 @@ export class MainView extends React.Component {
         }, duration);
     }
 
+    @computed private get userDoc() {
+        return CurrentUserUtils.UserDocument;
+    }
+
     public cancelDictationFade = () => {
         if (this.overlayTimeout) {
             clearTimeout(this.overlayTimeout);
@@ -73,7 +77,7 @@ export class MainView extends React.Component {
     }
 
     @computed private get mainContainer(): Opt<Doc> {
-        return FieldValue(Cast(CurrentUserUtils.UserDocument.activeWorkspace, Doc));
+        return this.userDoc ? FieldValue(Cast(this.userDoc.activeWorkspace, Doc)) : CurrentUserUtils.GuestTarget;
     }
     @computed get mainFreeform(): Opt<Doc> {
         let docs = DocListCast(this.mainContainer!.data);
@@ -85,7 +89,7 @@ export class MainView extends React.Component {
             if (!("presentationView" in doc)) {
                 doc.presentationView = new List<Doc>([Docs.Create.TreeDocument([], { title: "Presentation" })]);
             }
-            CurrentUserUtils.UserDocument.activeWorkspace = doc;
+            this.userDoc && (this.userDoc.activeWorkspace = doc);
         }
     }
 
@@ -130,21 +134,23 @@ export class MainView extends React.Component {
         window.removeEventListener("keydown", KeyManager.Instance.handle);
         window.addEventListener("keydown", KeyManager.Instance.handle);
 
-        reaction(() => {
-            let workspaces = CurrentUserUtils.UserDocument.workspaces;
-            let recent = CurrentUserUtils.UserDocument.recentlyClosed;
-            if (!(recent instanceof Doc)) return 0;
-            if (!(workspaces instanceof Doc)) return 0;
-            let workspacesDoc = workspaces;
-            let recentDoc = recent;
-            let libraryHeight = this.getPHeight() - workspacesDoc[HeightSym]() - recentDoc[HeightSym]() - 20 + CurrentUserUtils.UserDocument[HeightSym]() * 0.00001;
-            return libraryHeight;
-        }, (libraryHeight: number) => {
-            if (libraryHeight && Math.abs(CurrentUserUtils.UserDocument[HeightSym]() - libraryHeight) > 5) {
-                CurrentUserUtils.UserDocument.height = libraryHeight;
-            }
-            (Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc) as Doc).allowClear = true;
-        }, { fireImmediately: true });
+        if (this.userDoc) {
+            reaction(() => {
+                let workspaces = this.userDoc.workspaces;
+                let recent = this.userDoc.recentlyClosed;
+                if (!(recent instanceof Doc)) return 0;
+                if (!(workspaces instanceof Doc)) return 0;
+                let workspacesDoc = workspaces;
+                let recentDoc = recent;
+                let libraryHeight = this.getPHeight() - workspacesDoc[HeightSym]() - recentDoc[HeightSym]() - 20 + this.userDoc[HeightSym]() * 0.00001;
+                return libraryHeight;
+            }, (libraryHeight: number) => {
+                if (libraryHeight && Math.abs(this.userDoc[HeightSym]() - libraryHeight) > 5) {
+                    this.userDoc.height = libraryHeight;
+                }
+                (Cast(this.userDoc.recentlyClosed, Doc) as Doc).allowClear = true;
+            }, { fireImmediately: true });
+        }
     }
 
     componentWillUnMount() {
@@ -164,6 +170,12 @@ export class MainView extends React.Component {
                 let type = pathname[0];
                 if (type === "doc") {
                     CurrentUserUtils.MainDocId = pathname[1];
+                    if (!this.userDoc) {
+                        runInAction(() => this.flyoutWidth = 0);
+                        DocServer.GetRefField(CurrentUserUtils.MainDocId).then(action(field => {
+                            field instanceof Doc && (CurrentUserUtils.GuestTarget = field);
+                        }));
+                    }
                 }
             }
         }
@@ -221,8 +233,8 @@ export class MainView extends React.Component {
     initAuthenticationRouters = async () => {
         // Load the user's active workspace, or create a new one if initial session after signup
         if (!CurrentUserUtils.MainDocId) {
-            const doc = await Cast(CurrentUserUtils.UserDocument.activeWorkspace, Doc);
-            if (doc) {
+            let doc: Opt<Doc>;
+            if (this.userDoc && (doc = await Cast(this.userDoc.activeWorkspace, Doc))) {
                 this.openWorkspace(doc);
             } else {
                 this.createNewWorkspace();
@@ -237,26 +249,31 @@ export class MainView extends React.Component {
 
     @action
     createNewWorkspace = async (id?: string) => {
-        let workspaces = Cast(CurrentUserUtils.UserDocument.workspaces, Doc);
-        if (!(workspaces instanceof Doc)) return;
-        const list = Cast((CurrentUserUtils.UserDocument.workspaces as Doc).data, listSpec(Doc));
-        if (list) {
-            let freeformDoc = Docs.Create.FreeformDocument([], { x: 0, y: 400, width: this.pwidth * .7, height: this.pheight, title: `WS collection ${list.length + 1}` });
-            var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc, freeformDoc, 600)] }] };
-            let mainDoc = Docs.Create.DockDocument([CurrentUserUtils.UserDocument, freeformDoc], JSON.stringify(dockingLayout), { title: `Workspace ${list.length + 1}` }, id);
-            if (!CurrentUserUtils.UserDocument.linkManagerDoc) {
-                let linkManagerDoc = new Doc();
-                linkManagerDoc.allLinks = new List<Doc>([]);
-                CurrentUserUtils.UserDocument.linkManagerDoc = linkManagerDoc;
-            }
-            list.push(mainDoc);
-            // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
-            setTimeout(() => {
-                this.openWorkspace(mainDoc);
-                // let pendingDocument = Docs.StackingDocument([], { title: "New Mobile Uploads" });
-                // mainDoc.optionalRightCollection = pendingDocument;
-            }, 0);
+        let freeformOptions: DocumentOptions = { x: 0, y: 400, width: this.pwidth * .7, height: this.pheight };
+        if (CurrentUserUtils.GuestTarget) {
+            freeformOptions.title = StrCast(CurrentUserUtils.GuestTarget.title);
         }
+        let workspaces: FieldResult<Doc>;
+        let freeformDoc = Docs.Create.FreeformDocument([], freeformOptions);
+        var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc, freeformDoc, 600)] }] };
+        let mainDoc = Docs.Create.DockDocument([this.userDoc, freeformDoc], JSON.stringify(dockingLayout), { title: `Workspace 1` }, id);
+        if (this.userDoc && ((workspaces = Cast(this.userDoc.workspaces, Doc)) instanceof Doc)) {
+            const list = Cast((workspaces).data, listSpec(Doc));
+            if (list) {
+                if (!this.userDoc.linkManagerDoc) {
+                    let linkManagerDoc = new Doc();
+                    linkManagerDoc.allLinks = new List<Doc>([]);
+                    this.userDoc.linkManagerDoc = linkManagerDoc;
+                }
+                list.push(mainDoc);
+            }
+        }
+        // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
+        setTimeout(() => {
+            this.openWorkspace(mainDoc);
+            // let pendingDocument = Docs.StackingDocument([], { title: "New Mobile Uploads" });
+            // mainDoc.optionalRightCollection = pendingDocument;
+        }, 0);
     }
 
     @action
@@ -278,10 +295,10 @@ export class MainView extends React.Component {
         } else {
             DocServer.Control.makeEditable();
         }
-        const col = await Cast(CurrentUserUtils.UserDocument.optionalRightCollection, Doc);
+        let col: Opt<Doc>;
         // if there is a pending doc, and it has new data, show it (syip: we use a timeout to prevent collection docking view from being uninitialized)
         setTimeout(async () => {
-            if (col) {
+            if (this.userDoc && (col = await Cast(this.userDoc.optionalRightCollection, Doc))) {
                 const l = Cast(col.data, listSpec(Doc));
                 if (l) {
                     runInAction(() => CollectionTreeView.NotifsCol = col);
@@ -377,11 +394,12 @@ export class MainView extends React.Component {
     }
     @computed
     get flyout() {
-        let sidebar = CurrentUserUtils.UserDocument.sidebar;
-        if (!(sidebar instanceof Doc)) return (null);
-        let sidebarDoc = sidebar;
+        let sidebar: FieldResult<Field>;
+        if (!this.userDoc || !((sidebar = this.userDoc.sidebar) instanceof Doc)) {
+            return (null);
+        }
         return <DocumentView
-            Document={sidebarDoc}
+            Document={sidebar}
             DataDoc={undefined}
             addDocument={undefined}
             addDocTab={this.addDocTabFunc}
@@ -405,8 +423,13 @@ export class MainView extends React.Component {
     }
     @computed
     get mainContent() {
-        let sidebar = CurrentUserUtils.UserDocument.sidebar;
-        if (!(sidebar instanceof Doc)) return (null);
+        if (!this.userDoc) {
+            return <div>{this.dockingContent}</div>;
+        }
+        let sidebar = this.userDoc.sidebar;
+        if (!(sidebar instanceof Doc)) {
+            return (null);
+        }
         return <div>
             <div className="mainView-libraryHandle"
                 style={{ cursor: "ew-resize", left: `${this.flyoutWidth - 10}px`, backgroundColor: `${StrCast(sidebar.backgroundColor, "lightGray")}` }}

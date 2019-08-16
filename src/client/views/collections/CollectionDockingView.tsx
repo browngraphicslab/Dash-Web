@@ -274,7 +274,8 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                         // Because this is in a set timeout, if this component unmounts right after mounting,
                         // we will leak a GoldenLayout, because we try to destroy it before we ever create it
                         setTimeout(() => this.setupGoldenLayout(), 1);
-                        DocListCast((CurrentUserUtils.UserDocument.workspaces as Doc).data).map(d => d.workspaceBrush = false);
+                        let userDoc = CurrentUserUtils.UserDocument;
+                        userDoc && DocListCast((userDoc.workspaces as Doc).data).map(d => d.workspaceBrush = false);
                         this.props.Document.workspaceBrush = true;
                     }
                     this._ignoreStateChange = "";
@@ -567,7 +568,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
 
     ScreenToLocalTransform = () => {
-        if (this._mainCont && this._mainCont!.children) {
+        if (this._mainCont && this._mainCont.children) {
             let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.children[0].firstChild as HTMLElement);
             scale = Utils.GetScreenTransform(this._mainCont).scale;
             return CollectionDockingView.Instance.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(1 / this.contentScaling() / scale);

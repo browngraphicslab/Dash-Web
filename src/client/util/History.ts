@@ -18,6 +18,7 @@ export namespace HistoryUtil {
         };
         readonly?: boolean;
         nro?: boolean;
+        guest?: boolean;
     }
 
     export type ParsedUrl = DocUrl;
@@ -156,7 +157,7 @@ export namespace HistoryUtil {
     export function parseUrl(location: Location | URL): ParsedUrl | undefined {
         const pathname = location.pathname.substring(1);
         const search = location.search;
-        const opts = qs.parse(search, { sort: false });
+        const opts = search.length ? qs.parse(search, { sort: false }) : {};
         let pathnameSplit = pathname.split("/");
 
         const type = pathnameSplit[0];

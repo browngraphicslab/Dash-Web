@@ -172,7 +172,6 @@ export namespace Docs {
             [DocumentType.LINKDOC, {
                 data: new List<Doc>(),
                 layout: { view: EmptyBox },
-                options: {}
             }],
             [DocumentType.YOUTUBE, {
                 layout: { view: YoutubeBox }
