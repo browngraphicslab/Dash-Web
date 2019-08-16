@@ -215,10 +215,14 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
     @undoBatch
     @action
-    onCloseUp = (e: PointerEvent): void => {
+    onCloseUp = async (e: PointerEvent) => {
         e.stopPropagation();
         if (e.button === 0) {
-            SelectionManager.SelectedDocuments().map(dv => dv.props.removeDocument && dv.props.removeDocument(dv.props.Document));
+            const recent = await Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc);
+            SelectionManager.SelectedDocuments().map(dv => {
+                recent && Doc.AddDocToList(recent, "data", dv.props.Document, undefined, true, true);
+                dv.props.removeDocument && dv.props.removeDocument(dv.props.Document);
+            });
             SelectionManager.DeselectAll();
             document.removeEventListener("pointermove", this.onCloseMove);
             document.removeEventListener("pointerup", this.onCloseUp);
