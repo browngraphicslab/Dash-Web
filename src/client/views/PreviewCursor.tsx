@@ -32,43 +32,43 @@ export class PreviewCursor extends React.Component<{}> {
         if (PreviewCursor.Visible) {
             if (e.clipboardData) {
                 let newPoint = PreviewCursor._getTransform().transformPoint(PreviewCursor._clickPoint[0], PreviewCursor._clickPoint[1]);
+                runInAction(() => { PreviewCursor.Visible = false; });
 
-                //keeping these just to hold onto types of pastes
-                //what needs to be done with html?
-                // console.log(e.clipboardData.getData("text/html"));
-                // console.log(e.clipboardData.getData("text/csv"));
-                // console.log(e.clipboardData.getData("text/plain"));
-                // console.log(e.clipboardData.getData("image/png"));
-                // console.log(e.clipboardData.getData("image/jpg"));
-                // console.log(e.clipboardData.getData("image/jpeg"));
-
-                // console.log(e.clipboardData.types)
-
-                // pasting in text
+                // pasting in text/video from youtube
                 if (e.clipboardData.getData("text/plain") !== "") {
+                    if (e.clipboardData.getData("text/plain").indexOf("www.youtube.com/watch") !== -1) {
+                        const url = e.clipboardData.getData("text/plain").replace("youtube.com/watch?v=", "youtube.com/embed/");
+                        PreviewCursor._addDocument(Docs.Create.VideoDocument(url, {
+                            title: url, width: 400, height: 315,
+                            nativeWidth: 600, nativeHeight: 472.5,
+                            x: newPoint[0], y: newPoint[1]
+                        }), false);
+                        return;
+                    }
                     let newBox = Docs.Create.TextDocument({
                         width: 200, height: 100,
                         x: newPoint[0],
                         y: newPoint[1],
-                        title: "-typed text-"
+                        title: "-pasted text-"
                     });
 
                     newBox.proto!.autoHeight = true;
                     PreviewCursor._addLiveTextDoc(newBox);
+                    return;
                 }
                 //pasting in images
-                else if (e.clipboardData.getData("text/html") !== "" && e.clipboardData.getData("text/html").includes("<img src=")) {
+                if (e.clipboardData.getData("text/html") !== "" && e.clipboardData.getData("text/html").includes("<img src=")) {
                     let re: any = /<img src="(.*?)"/g;
                     let arr: any[] = re.exec(e.clipboardData.getData("text/html"));
 
                     let img: Doc = Docs.Create.ImageDocument(
                         arr[1], {
-                            width: 200, title: "an image of a cat",
+                            width: 300, title: arr[1],
                             x: newPoint[0],
                             y: newPoint[1],
                         });
                     PreviewCursor._addDocument(img, false);
-                    runInAction(() => { PreviewCursor.Visible = false; });
+                    return;
                 }
 
             }
