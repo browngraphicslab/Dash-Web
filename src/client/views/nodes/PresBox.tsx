@@ -826,7 +826,6 @@ export class PresBox extends React.Component<FieldViewProps> { //FieldViewProps?
     render() {
 
         let width = "100%"; //NumCast(this.curPresentation.width)
-        console.log("The width is: " + width);
 
         return (
             <div className="presentationView-cont" onPointerEnter={action(() => !this.persistOpacity && (this.opacity = 1))} onPointerLeave={action(() => !this.persistOpacity && (this.opacity = 0.4))} style={{ width: width, overflow: "hidden", opacity: this.opacity, transition: "0.7s opacity ease", pointerEvents: "all" }}>

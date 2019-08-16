@@ -8,10 +8,10 @@ import * as React from 'react';
 import { SketchPicker } from 'react-color';
 import Measure from 'react-measure';
 import { Doc, DocListCast, Opt, HeightSym } from '../../new_fields/Doc';
+import { listSpec } from "../../new_fields/Schema";
 import { Id } from '../../new_fields/FieldSymbols';
 import { InkTool } from '../../new_fields/InkField';
 import { List } from '../../new_fields/List';
-import { listSpec } from '../../new_fields/Schema';
 import { Cast, FieldValue, NumCast, BoolCast, StrCast } from '../../new_fields/Types';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { RouteStore } from '../../server/RouteStore';
@@ -93,6 +93,7 @@ export class MainView extends React.Component {
 
     componentWillUnMount() {
         window.removeEventListener("keydown", KeyManager.Instance.handle);
+        //close presentation 
     }
 
     constructor(props: Readonly<{}>) {
@@ -457,7 +458,10 @@ export class MainView extends React.Component {
         }
         let isOpen = CollectionDockingView.Instance.Has(presDoc);
         if (isOpen) {
-            CollectionDockingView.Instance.CloseRightSplit(presDoc);
+            return;
+            // CollectionDockingView.Instance.CloseRightSplit(presDoc);
+            //why?? It's throwing an error that seems impossible to fix.
+            //ToDo: 
         } else {
             CollectionDockingView.Instance.AddRightSplit(presDoc, undefined);
         }
