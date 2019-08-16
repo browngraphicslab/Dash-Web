@@ -167,6 +167,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             FormattedTextBox._toolTipTextMenu && (FormattedTextBox._toolTipTextMenu.HackToFixTextSelectionGlitch = false);
             if (state.selection.empty && FormattedTextBox._toolTipTextMenu) {
                 const marks = tx.storedMarks;
+                console.log(marks)
                 if (marks) { FormattedTextBox._toolTipTextMenu.mark_key_pressed(marks); }
             }
             this._applyingChange = true;
@@ -433,7 +434,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 dispatchTransaction: this.dispatchTransaction,
                 nodeViews: {
                     image(node, view, getPos) { return new ImageResizeView(node, view, getPos); },
-                    star(node, view, getPos) { return new SummarizedView(node, view, getPos); }
+                    star(node, view, getPos) { return new SummarizedView(node, view, getPos); },
                 },
                 clipboardTextSerializer: this.clipboardTextSerializer,
                 handlePaste: this.handlePaste,
