@@ -22,7 +22,7 @@ import { SetupDrag } from '../util/DragManager';
 import { HistoryUtil } from '../util/History';
 import { Transform } from '../util/Transform';
 import { UndoManager } from '../util/UndoManager';
-import { CollectionBaseView } from './collections/CollectionBaseView';
+import { CollectionBaseView, CollectionViewType } from './collections/CollectionBaseView';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { ContextMenu } from './ContextMenu';
 import { DocumentDecorations } from './DocumentDecorations';
@@ -253,7 +253,7 @@ export class MainView extends React.Component {
                     initialized => {
                         if (initialized && received) {
                             DocServer.GetRefField(received).then(field => {
-                                if (field instanceof Doc) {
+                                if (field instanceof Doc && field.viewType !== CollectionViewType.Docking) {
                                     CollectionDockingView.Instance.AddRightSplit(field, undefined);
                                 }
                             });
