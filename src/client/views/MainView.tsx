@@ -273,7 +273,6 @@ export class MainView extends React.Component {
 
     @action
     createNewWorkspace = async (id?: string) => {
-        console.log("CREATING NEW WORKSPACE: ", id);
         let freeformOptions: DocumentOptions = { x: 0, y: 400, width: this.pwidth * .7, height: this.pheight };
         let workspaceTitle = "Workspace 1";
         if (CurrentUserUtils.GuestTarget) {
@@ -305,30 +304,32 @@ export class MainView extends React.Component {
 
     @action
     openWorkspace = async (doc: Doc, fromHistory = false) => {
-        console.log("OPENING EXISTING WORKSPACE: ", doc[Id]);
         CurrentUserUtils.MainDocId = doc[Id];
         this.mainContainer = doc;
         let state = this.urlState;
-        console.log(state.sharing);
-        fromHistory || (!CurrentUserUtils.GuestTarget && HistoryUtil.pushState({
-            type: "doc",
-            docId: doc[Id],
-            readonly: state.readonly,
-            nro: state.nro,
-            sharing: false,
-        }));
-        if (state.readonly === true || state.readonly === null || (state.sharing === true && !this.userDoc)) {
-            DocServer.Control.makeReadOnly();
-        } else if (state.safe) {
-            if (!state.nro) {
-                DocServer.Control.makeReadOnly();
-            }
-            CollectionBaseView.SetSafeMode(true);
-        } else if (state.nro || state.nro === null || state.readonly === false) {
-        } else if (BoolCast(doc.readOnly)) {
+        if (state.sharing === true && !this.userDoc) {
             DocServer.Control.makeReadOnly();
         } else {
-            DocServer.Control.makeEditable();
+            fromHistory || HistoryUtil.pushState({
+                type: "doc",
+                docId: doc[Id],
+                readonly: state.readonly,
+                nro: state.nro,
+                sharing: false,
+            });
+            if (state.readonly === true || state.readonly === null) {
+                DocServer.Control.makeReadOnly();
+            } else if (state.safe) {
+                if (!state.nro) {
+                    DocServer.Control.makeReadOnly();
+                }
+                CollectionBaseView.SetSafeMode(true);
+            } else if (state.nro || state.nro === null || state.readonly === false) {
+            } else if (BoolCast(doc.readOnly)) {
+                DocServer.Control.makeReadOnly();
+            } else {
+                DocServer.Control.makeEditable();
+            }
         }
         let col: Opt<Doc>;
         // if there is a pending doc, and it has new data, show it (syip: we use a timeout to prevent collection docking view from being uninitialized)
@@ -494,6 +495,21 @@ export class MainView extends React.Component {
         }
     }
 
+    setWriteMode = (mode: DocServer.WriteMode) => {
+        console.log(DocServer.WriteMode[mode]);
+        const mode1 = mode;
+        const mode2 = mode === DocServer.WriteMode.Default ? mode : DocServer.WriteMode.Playground;
+        DocServer.setFieldWriteMode("x", mode1);
+        DocServer.setFieldWriteMode("y", mode1);
+        DocServer.setFieldWriteMode("width", mode1);
+        DocServer.setFieldWriteMode("height", mode1);
+
+        DocServer.setFieldWriteMode("panX", mode2);
+        DocServer.setFieldWriteMode("panY", mode2);
+        DocServer.setFieldWriteMode("scale", mode2);
+        DocServer.setFieldWriteMode("viewType", mode2);
+    }
+
 
     @observable private _colorPickerDisplay = false;
     /* for the expandable add nodes menu. Not included with the miscbuttons because once it expands it expands the whole div with it, making canvas interactions limited. */
@@ -523,20 +539,6 @@ export class MainView extends React.Component {
         ];
         if (!ClientUtils.RELEASE) btns.unshift([React.createRef<HTMLDivElement>(), "cat", "Add Cat Image", addImageNode]);
 
-        const setWriteMode = (mode: DocServer.WriteMode) => {
-            console.log(DocServer.WriteMode[mode]);
-            const mode1 = mode;
-            const mode2 = mode === DocServer.WriteMode.Default ? mode : DocServer.WriteMode.Playground;
-            DocServer.setFieldWriteMode("x", mode1);
-            DocServer.setFieldWriteMode("y", mode1);
-            DocServer.setFieldWriteMode("width", mode1);
-            DocServer.setFieldWriteMode("height", mode1);
-
-            DocServer.setFieldWriteMode("panX", mode2);
-            DocServer.setFieldWriteMode("panY", mode2);
-            DocServer.setFieldWriteMode("scale", mode2);
-            DocServer.setFieldWriteMode("viewType", mode2);
-        };
         return < div id="add-nodes-menu" style={{ left: this.flyoutWidth + 20, bottom: 20 }} >
             <input type="checkbox" id="add-menu-toggle" ref={this.addMenuToggle} />
             <label htmlFor="add-menu-toggle" style={{ marginTop: 2 }} title="Add Node"><p>+</p></label>
@@ -555,10 +557,10 @@ export class MainView extends React.Component {
                         </div></li>)}
                     <li key="undoTest"><button className="add-button round-button" title="Click if undo isn't working" onClick={() => UndoManager.TraceOpenBatches()}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>
                     {ClientUtils.RELEASE ? [] : [
-                        <li key="test"><button className="add-button round-button" title="Default" onClick={() => setWriteMode(DocServer.WriteMode.Default)}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>,
-                        <li key="test1"><button className="add-button round-button" title="Playground" onClick={() => setWriteMode(DocServer.WriteMode.Playground)}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>,
-                        <li key="test2"><button className="add-button round-button" title="Live Playground" onClick={() => setWriteMode(DocServer.WriteMode.LivePlayground)}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>,
-                        <li key="test3"><button className="add-button round-button" title="Live Readonly" onClick={() => setWriteMode(DocServer.WriteMode.LiveReadonly)}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>
+                        <li key="test"><button className="add-button round-button" title="Default" onClick={() => this.setWriteMode(DocServer.WriteMode.Default)}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>,
+                        <li key="test1"><button className="add-button round-button" title="Playground" onClick={() => this.setWriteMode(DocServer.WriteMode.Playground)}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>,
+                        <li key="test2"><button className="add-button round-button" title="Live Playground" onClick={() => this.setWriteMode(DocServer.WriteMode.LivePlayground)}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>,
+                        <li key="test3"><button className="add-button round-button" title="Live Readonly" onClick={() => this.setWriteMode(DocServer.WriteMode.LiveReadonly)}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>
                     ]}
                     <li key="color"><button className="add-button round-button" title="Select Color" style={{ zIndex: 1000 }} onClick={() => this.toggleColorPicker()}><div className="toolbar-color-button" style={{ backgroundColor: InkingControl.Instance.selectedColor }} >
                         <div className="toolbar-color-picker" onClick={this.onColorClick} style={this._colorPickerDisplay ? { color: "black", display: "block" } : { color: "black", display: "none" }}>

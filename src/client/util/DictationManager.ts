@@ -2,7 +2,7 @@ import { SelectionManager } from "./SelectionManager";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { UndoManager } from "./UndoManager";
 import * as interpreter from "words-to-numbers";
-import { Doc } from "../../new_fields/Doc";
+import { Doc, Opt } from "../../new_fields/Doc";
 import { List } from "../../new_fields/List";
 import { Docs, DocumentType } from "../documents/Documents";
 import { CollectionViewType } from "../views/collections/CollectionBaseView";
@@ -12,6 +12,7 @@ import { AudioField, ImageField } from "../../new_fields/URLField";
 import { HistogramField } from "../northstar/dash-fields/HistogramField";
 import { MainView } from "../views/MainView";
 import { Utils } from "../../Utils";
+import { indexOf } from "typescript-collections/dist/lib/arrays";
 
 /**
  * This namespace provides a singleton instance of a manager that
@@ -44,6 +45,20 @@ export namespace DictationManager {
     export namespace Controls {
 
         const infringe = "unable to process: dictation manager still involved in previous session";
+        const browser = (() => {
+            let identifier = navigator.userAgent.toLowerCase();
+            if (identifier.indexOf("safari") >= 0) {
+                return "Safari";
+            }
+            if (identifier.indexOf("chrome") >= 0) {
+                return "Chrome";
+            }
+            if (identifier.indexOf("firefox") >= 0) {
+                return "Firefox";
+            }
+            return "Unidentified Browser";
+        })();
+        const unsupported = `listening is not supported in ${browser}`;
         const intraSession = ". ";
         const interSession = " ... ";
 
@@ -53,8 +68,7 @@ export namespace DictationManager {
         let current: string | undefined = undefined;
         let sessionResults: string[] = [];
 
-        const recognizer: SpeechRecognition = new webkitSpeechRecognition() || new SpeechRecognition();
-        recognizer.onstart = () => console.log("initiating speech recognition session...");
+        const recognizer: Opt<SpeechRecognition> = webkitSpeechRecognition ? new webkitSpeechRecognition() : undefined;
 
         export type InterimResultHandler = (results: string) => any;
         export type ContinuityArgs = { indefinite: boolean } | false;
@@ -97,6 +111,10 @@ export namespace DictationManager {
         };
 
         const listenImpl = (options?: Partial<ListeningOptions>) => {
+            if (!recognizer) {
+                console.log(unsupported);
+                return unsupported;
+            }
             if (isListening) {
                 return infringe;
             }
@@ -109,6 +127,7 @@ export namespace DictationManager {
             let intra = options && options.delimiters ? options.delimiters.intra : undefined;
             let inter = options && options.delimiters ? options.delimiters.inter : undefined;
 
+            recognizer.onstart = () => console.log("initiating speech recognition session...");
             recognizer.interimResults = handler !== undefined;
             recognizer.continuous = continuous === undefined ? false : continuous !== false;
             recognizer.lang = language === undefined ? "en-US" : language;
@@ -149,14 +168,20 @@ export namespace DictationManager {
                     } else {
                         resolve(current);
                     }
-                    reset();
+                    current = undefined;
+                    sessionResults = [];
+                    isListening = false;
+                    isManuallyStopped = false;
+                    recognizer.onresult = null;
+                    recognizer.onerror = null;
+                    recognizer.onend = null;
                 };
 
             });
         };
 
         export const stop = (salvageSession = true) => {
-            if (!isListening) {
+            if (!isListening || !recognizer) {
                 return;
             }
             isManuallyStopped = true;
@@ -177,16 +202,6 @@ export namespace DictationManager {
                 transcripts.push(results.item(i).item(0).transcript.trim());
             }
             return transcripts.join(delimiter || intraSession);
-        };
-
-        const reset = () => {
-            current = undefined;
-            sessionResults = [];
-            isListening = false;
-            isManuallyStopped = false;
-            recognizer.onresult = null;
-            recognizer.onerror = null;
-            recognizer.onend = null;
         };
 
     }

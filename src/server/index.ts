@@ -513,11 +513,6 @@ addSecureRoute(
     RouteStore.getCurrUser
 );
 
-// app.get(RouteStore.getCurrUser, (req, res) => {
-//     let user = req.user;
-//     res.send(JSON.stringify({ id: user.id, email: user.email }));
-// });
-
 const ServicesApiKeyMap = new Map<string, string | undefined>([
     ["face", process.env.FACE],
     ["vision", process.env.VISION],
