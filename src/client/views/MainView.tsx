@@ -66,6 +66,8 @@ export class MainView extends React.Component {
         }, duration);
     }
 
+    private urlState: HistoryUtil.DocUrl;
+
     @computed private get userDoc() {
         return CurrentUserUtils.UserDocument;
     }
@@ -163,6 +165,7 @@ export class MainView extends React.Component {
     constructor(props: Readonly<{}>) {
         super(props);
         MainView.Instance = this;
+        this.urlState = HistoryUtil.parseUrl(window.location) || {} as any;
         // causes errors to be generated when modifying an observable outside of an action
         configure({ enforceActions: "observed" });
         if (window.location.pathname !== RouteStore.home) {
@@ -233,23 +236,44 @@ export class MainView extends React.Component {
 
     initAuthenticationRouters = async () => {
         // Load the user's active workspace, or create a new one if initial session after signup
-        if (!CurrentUserUtils.MainDocId) {
+        let received = CurrentUserUtils.MainDocId;
+        if (received && !this.userDoc) {
+            reaction(
+                () => CurrentUserUtils.GuestTarget,
+                target => target && this.createNewWorkspace(),
+                { fireImmediately: true }
+            );
+        } else {
+            if (received && this.urlState.sharing) {
+                reaction(
+                    () => {
+                        let docking = CollectionDockingView.Instance;
+                        return docking && docking.initialized;
+                    },
+                    initialized => {
+                        if (initialized && received) {
+                            DocServer.GetRefField(received).then(field => {
+                                if (field instanceof Doc) {
+                                    CollectionDockingView.Instance.AddRightSplit(field, undefined);
+                                }
+                            });
+                        }
+                    },
+                );
+            }
             let doc: Opt<Doc>;
             if (this.userDoc && (doc = await Cast(this.userDoc.activeWorkspace, Doc))) {
                 this.openWorkspace(doc);
             } else {
                 this.createNewWorkspace();
             }
-        } else {
-            reaction(() => CurrentUserUtils.GuestTarget, target => {
-                target && NumCast(target.viewType) !== 3 && this.createNewWorkspace();
-            }, { fireImmediately: true });
         }
     }
 
 
     @action
     createNewWorkspace = async (id?: string) => {
+        console.log("CREATING NEW WORKSPACE: ", id);
         let freeformOptions: DocumentOptions = { x: 0, y: 400, width: this.pwidth * .7, height: this.pheight };
         let workspaceTitle = "Workspace 1";
         if (CurrentUserUtils.GuestTarget) {
@@ -281,11 +305,19 @@ export class MainView extends React.Component {
 
     @action
     openWorkspace = async (doc: Doc, fromHistory = false) => {
+        console.log("OPENING EXISTING WORKSPACE: ", doc[Id]);
         CurrentUserUtils.MainDocId = doc[Id];
         this.mainContainer = doc;
-        const state = HistoryUtil.parseUrl(window.location) || {} as any;
-        fromHistory || HistoryUtil.pushState({ type: "doc", docId: doc[Id], readonly: state.readonly, nro: state.nro });
-        if (state.readonly === true || state.readonly === null) {
+        let state = this.urlState;
+        console.log(state.sharing);
+        fromHistory || (!CurrentUserUtils.GuestTarget && HistoryUtil.pushState({
+            type: "doc",
+            docId: doc[Id],
+            readonly: state.readonly,
+            nro: state.nro,
+            sharing: false,
+        }));
+        if (state.readonly === true || state.readonly === null || (state.sharing === true && !this.userDoc)) {
             DocServer.Control.makeReadOnly();
         } else if (state.safe) {
             if (!state.nro) {

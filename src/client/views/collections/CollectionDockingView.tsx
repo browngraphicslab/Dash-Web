@@ -1,6 +1,6 @@
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
-import { action, Lambda, observable, reaction, trace, computed } from "mobx";
+import { action, Lambda, observable, reaction, trace, computed, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
 import Measure from "react-measure";
@@ -32,7 +32,7 @@ library.add(faFile);
 
 @observer
 export class CollectionDockingView extends React.Component<SubCollectionViewProps> {
-    public static Instance: CollectionDockingView;
+    @observable public static Instance: CollectionDockingView;
     public static makeDocumentConfig(document: Doc, dataDoc: Doc | undefined, width?: number) {
         return {
             type: 'react-component',
@@ -47,7 +47,11 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         };
     }
 
-    private _goldenLayout: any = null;
+    @computed public get initialized() {
+        return this._goldenLayout !== null;
+    }
+
+    @observable private _goldenLayout: any = null;
     private _containerRef = React.createRef<HTMLDivElement>();
     private _flush: boolean = false;
     private _ignoreStateChange = "";
@@ -56,7 +60,9 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
     constructor(props: SubCollectionViewProps) {
         super(props);
-        if (props.addDocTab === emptyFunction) CollectionDockingView.Instance = this;
+        if (props.addDocTab === emptyFunction) {
+            runInAction(() => CollectionDockingView.Instance = this);
+        }
         //Why is this here?
         (window as any).React = React;
         (window as any).ReactDOM = ReactDOM;
@@ -233,7 +239,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         var config = StrCast(this.props.Document.dockingConfig);
         if (config) {
             if (!this._goldenLayout) {
-                this._goldenLayout = new GoldenLayout(JSON.parse(config));
+                runInAction(() => this._goldenLayout = new GoldenLayout(JSON.parse(config)));
             }
             else {
                 if (config === JSON.stringify(this._goldenLayout.toConfig())) {
@@ -246,7 +252,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     this._goldenLayout.unbind('stackCreated', this.stackCreated);
                 } catch (e) { }
                 this._goldenLayout.destroy();
-                this._goldenLayout = new GoldenLayout(JSON.parse(config));
+                runInAction(() => this._goldenLayout = new GoldenLayout(JSON.parse(config)));
             }
             this._goldenLayout.on('itemDropped', this.itemDropped);
             this._goldenLayout.on('tabCreated', this.tabCreated);
@@ -295,7 +301,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
         }
         if (this._goldenLayout) this._goldenLayout.destroy();
-        this._goldenLayout = null;
+        runInAction(() => this._goldenLayout = null);
         window.removeEventListener('resize', this.onResize);
 
         if (this.reactionDisposer) {

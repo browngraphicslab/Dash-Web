@@ -605,10 +605,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
         !existing && cm.addItem({ description: "Layout...", subitems: layoutItems, icon: "compass" });
         if (!ClientUtils.RELEASE) {
-            let copies: ContextMenuProps[] = [];
-            copies.push({ description: "Copy URL", event: () => Utils.CopyText(Utils.prepend("/doc/" + this.props.Document[Id])), icon: "link" });
-            copies.push({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "fingerprint" });
-            cm.addItem({ description: "Copy...", subitems: copies, icon: "copy" });
+            // let copies: ContextMenuProps[] = [];
+            cm.addItem({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "fingerprint" });
+            // cm.addItem({ description: "Copy...", subitems: copies, icon: "copy" });
         }
         let existingAnalyze = ContextMenu.Instance.findByDescription("Analyzers...");
         let analyzers: ContextMenuProps[] = existingAnalyze && "subitems" in existingAnalyze ? existingAnalyze.subitems : [];
@@ -684,6 +683,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
         runInAction(() => {
             cm.addItem({ description: "Share...", subitems: usersMenu, icon: "share" });
+            cm.addItem({
+                description: "Copy Sharing Link",
+                event: () => {
+                    let url = Utils.prepend("/doc/" + this.props.Document[Id]);
+                    Utils.CopyText(`${url}?sharing=true`);
+                },
+                icon: "link"
+            });
+
             if (!this.topMost) {
                 // DocumentViews should stop propagation of this event
                 e.stopPropagation();
@@ -699,7 +707,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     onPointerLeave = (e: React.PointerEvent): void => { Doc.UnBrushDoc(this.props.Document); };
 
     isSelected = () => SelectionManager.IsSelected(this);
-    @action select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); }
+    @action select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); };
     @computed get nativeWidth() { return this.Document.nativeWidth || 0; }
     @computed get nativeHeight() { return this.Document.nativeHeight || 0; }
     @computed get onClickHandler() { return this.props.onClick ? this.props.onClick : this.Document.onClick; }

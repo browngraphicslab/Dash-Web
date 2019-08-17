@@ -118,20 +118,9 @@ function addSecureRoute(method: Method,
     ...subscribers: string[]
 ) {
     let abstracted = (req: express.Request, res: express.Response) => {
-        let readonly = qs.parse(qs.extract(req.originalUrl), { sort: false }).readonly === "true";
-        readonly = readonly && req.originalUrl.startsWith("/doc/");
-        // if (readonly) {
-        //     if (!req.user) {
-        //         req.session!.guest = guest_id;
-        //     }
-        // } else {
-        //     if (req.session!.guest) {
-        //         req.session!.guest = undefined;
-        //         res.redirect(RouteStore.login);
-        //         return;
-        //     }
-        // }
-        if (req.user || readonly) {
+        let sharing = qs.parse(qs.extract(req.originalUrl), { sort: false }).sharing === "true";
+        sharing = sharing && req.originalUrl.startsWith("/doc/");
+        if (req.user || sharing) {
             handler(req.user, res, req);
         } else {
             req.session!.target = req.originalUrl;
