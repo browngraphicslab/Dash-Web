@@ -50,6 +50,7 @@ const probe = require("probe-image-size");
 var SolrNode = require('solr-node');
 var shell = require('shelljs');
 import * as qs from 'query-string';
+import { SharingOptions } from '../client/util/sharing';
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
 let youtubeApiKey: string;
@@ -100,8 +101,6 @@ enum Method {
     GET,
     POST
 }
-
-const guest_id = Utils.GenerateGuid();
 
 /**
  * Please invoke this function when adding a new route to Dash's server.

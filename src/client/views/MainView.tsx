@@ -40,7 +40,7 @@ import { CollectionTreeView } from './collections/CollectionTreeView';
 import { ClientUtils } from '../util/ClientUtils';
 import { SchemaHeaderField, RandomPastel } from '../../new_fields/SchemaHeaderField';
 import { DictationManager } from '../util/DictationManager';
-import { list } from 'serializr';
+import MainViewModal from './MainViewModal';
 
 @observer
 export class MainView extends React.Component {
@@ -602,28 +602,30 @@ export class MainView extends React.Component {
         this.isSearchVisible = !this.isSearchVisible;
     }
 
-    private get dictationOverlay() {
+    @computed private get dictationOverlay() {
         let display = this.dictationOverlayVisible;
         let success = this.dictationSuccess;
         let result = this.isListening && !this.isListening.interim ? DictationManager.placeholder : `"${this.dictatedPhrase}"`;
+        let dialogueBoxStyle = {
+            opacity: display ? 1 : 0,
+            background: success === undefined ? "gainsboro" : success ? "lawngreen" : "red",
+            borderColor: this.isListening ? "red" : "black",
+            fontStyle: "italic"
+        };
+        let overlayStyle = {
+            opacity: display ? 0.4 : 0,
+            backgroundColor: this.isListening ? "red" : "darkslategrey"
+        };
         return (
-            <div>
-                <div
-                    className={"dictation-prompt"}
-                    style={{
-                        opacity: display ? 1 : 0,
-                        background: success === undefined ? "gainsboro" : success ? "lawngreen" : "red",
-                        borderColor: this.isListening ? "red" : "black",
-                    }}
-                >{result}</div>
-                <div
-                    className={"dictation-prompt-overlay"}
-                    style={{
-                        opacity: display ? 0.4 : 0,
-                        backgroundColor: this.isListening ? "red" : "darkslategrey"
-                    }}
-                />
-            </div>
+            <MainViewModal
+                isDisplayed={this.dictationOverlayVisible}
+                interactive={false}
+                dialogueBoxDisplayedOpacity={1}
+                overlayDisplayedOpacity={0.4}
+                contents={result}
+                dialogueBoxStyle={dialogueBoxStyle}
+                overlayStyle={overlayStyle}
+            />
         );
     }
 
