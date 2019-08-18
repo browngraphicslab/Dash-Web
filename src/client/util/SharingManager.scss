@@ -2,11 +2,54 @@
     display: flex;
     flex-direction: column;
 
+    p {
+        font-size: 20px;
+        text-align: left;
+        font-style: italic;
+        padding: 0;
+        margin: 0 0 20px 0;
+    }
+
+    .hr-substitute {
+        border: solid black 0.5px;
+        margin-top: 20px;
+    }
+
+    .people-with-container {
+        display: flex;
+        height: 25px;
+
+        .people-with {
+            font-size: 14px;
+            margin: 0;
+            padding-top: 3px;
+            font-style: normal;
+        }
+
+        .people-with-select {
+            width: 126px;
+            margin-left: 10px;
+            outline: none;
+        }
+    }
+
+    .share-individual {
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
+
     .users-list {
         margin-top: 20px;
         font-style: italic;
         color: red;
         font-weight: bold;
+        margin-top: 0px;
+        background: gainsboro;
+        border: 1px solid black;
+        border-radius: 5px;
+        padding-left: 10px;
+        max-height: 200px;
+        overflow: scroll;
     }
 
     .container {
@@ -20,6 +63,7 @@
         -ms-user-select: none;
         user-select: none;
         width: auto;
+        max-width: 700px;
         text-align: left;
         font-style: normal;
         font-size: 15;
@@ -44,6 +88,8 @@
         display: flex;
         flex-direction: row;
         margin-bottom: 10px;
+        margin-left: auto;
+        margin-right: auto;
 
         .link-box,
         .copy {
@@ -55,6 +101,8 @@
 
         .link-box {
             background: white;
+            color: blue;
+            text-decoration: underline;
         }
 
         .copy {
@@ -63,8 +111,22 @@
             border-radius: 50%;
             width: 42px;
             height: 42px;
-            transition: 0.5s color ease;
+            transition: 1.5s all ease;
             padding-top: 12px;
         }
+    }
+
+    .close-button {
+        border-radius: 5px;
+        margin-top: 20px;
+        padding: 10px 0;
+        background: aliceblue;
+        transition: 0.5s ease all;
+        border: 1px solid;
+        border-color: aliceblue;
+    }
+
+    .close-button:hover {
+        border-color: black;
     }
 }

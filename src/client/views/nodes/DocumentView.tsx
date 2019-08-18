@@ -659,7 +659,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         runInAction(() => {
             cm.addItem({
                 description: "Share",
-                event: () => SharingManager.Instance.open(this.props.Document),
+                event: () => SharingManager.Instance.open(this),
                 icon: "external-link-alt"
             });
 
