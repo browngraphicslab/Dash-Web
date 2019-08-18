@@ -1,10 +1,10 @@
-import { computed, observable, runInAction, action } from "mobx";
+import { observable, runInAction, action } from "mobx";
 import * as React from "react";
 import MainViewModal from "../views/MainViewModal";
 import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
 import { Doc } from "../../new_fields/Doc";
 import { DocServer } from "../DocServer";
-import { Cast } from "../../new_fields/Types";
+import { Cast, StrCast } from "../../new_fields/Types";
 import { listSpec } from "../../new_fields/Schema";
 import { List } from "../../new_fields/List";
 import { RouteStore } from "../../server/RouteStore";
@@ -32,6 +32,16 @@ export enum SharingPermissions {
     Edit = "Can Edit"
 }
 
+const ColorMapping = new Map<string, string>([
+    [SharingPermissions.None, "red"],
+    [SharingPermissions.View, "maroon"],
+    [SharingPermissions.Comment, "blue"],
+    [SharingPermissions.Edit, "green"]
+]);
+
+const SharingKey = "sharingPermissions";
+const DefaultColor = "black";
+
 @observer
 export default class SharingManager extends React.Component<{}> {
     public static Instance: SharingManager;
@@ -44,16 +54,27 @@ export default class SharingManager extends React.Component<{}> {
         this.target = target;
         MainView.Instance.hasActiveModal = true;
         this.isOpen = true;
+        if (!this.sharingDoc) {
+            this.sharingDoc = new Doc;
+        }
     });
 
     public close = action(() => {
         this.isOpen = false;
-        setTimeout(() => {
+        setTimeout(action(() => {
             this.copied = false;
             MainView.Instance.hasActiveModal = false;
             this.target = undefined;
-        }, 500);
+        }), 500);
     });
+
+    private get sharingDoc() {
+        return this.target ? Cast(this.target[SharingKey], Doc) as Doc : undefined;
+    }
+
+    private set sharingDoc(value: Doc | undefined) {
+        this.target && (this.target[SharingKey] = value);
+    }
 
     constructor(props: {}) {
         super(props);
@@ -71,7 +92,13 @@ export default class SharingManager extends React.Component<{}> {
         });
     }
 
-    setInternalSharing = async (user: User, accessible: boolean) => {
+    setInternalSharing = async (user: User, state: string) => {
+        if (!this.sharingDoc) {
+            console.log("SHARING ABORTED!");
+            return;
+        }
+        let sharingDoc = await this.sharingDoc;
+        sharingDoc[user.userDocumentId] = state;
         const userDocument = await DocServer.GetRefField(user.userDocumentId);
         if (!(userDocument instanceof Doc)) {
             console.log(`Couldn't get user document of user ${user.email}`);
@@ -89,8 +116,8 @@ export default class SharingManager extends React.Component<{}> {
                 console.log("UNABLE TO ACCESS NOTIFICATION DATA");
                 return;
             }
-            console.log(`Attempting to ${accessible ? "" : "un"}share the document ${target[Id]}`);
-            if (accessible) {
+            console.log(`Attempting to set permissions to ${state} for the document ${target[Id]}`);
+            if (state !== SharingPermissions.None) {
                 const sharedDoc = Doc.MakeAlias(target);
                 if (data) {
                     data.push(sharedDoc);
@@ -100,6 +127,7 @@ export default class SharingManager extends React.Component<{}> {
             } else {
                 let dataDocs = (await Promise.all(data.map(doc => doc))).map(doc => Doc.GetProto(doc));
                 if (dataDocs.includes(target)) {
+                    console.log("Searching in ", dataDocs, "for", target);
                     dataDocs.splice(dataDocs.indexOf(target), 1);
                     console.log("SUCCESSFULLY UNSHARED DOC");
                 } else {
@@ -139,26 +167,33 @@ export default class SharingManager extends React.Component<{}> {
                 </div>
                 <div className={"users-list"} style={{ marginTop: this.users.length ? 0 : 20 }}>
                     {!this.users.length ? "There are no other users in your database." :
-                        this.users.map(user => (
-                            <div
-                                key={user.email}
-                                className={"container"}
-                            >
-                                <select
-                                    className={"permissions-dropdown"}
-                                    onChange={e => this.setInternalSharing(user, e.currentTarget.value !== SharingPermissions.None)}
+                        this.users.map(user => {
+                            return (
+                                <div
+                                    key={user.email}
+                                    className={"container"}
                                 >
-                                    {Object.values(SharingPermissions).map(permission => {
-                                        return (
-                                            <option key={permission} value={permission}>
-                                                {permission}
-                                            </option>
-                                        );
-                                    })}
-                                </select>
-                                <span className={"padding"}>{user.email}</span>
-                            </div>
-                        ))
+                                    <select
+                                        className={"permissions-dropdown"}
+                                        value={this.sharingDoc ? StrCast(this.sharingDoc[user.userDocumentId], SharingPermissions.None) : SharingPermissions.None}
+                                        style={{
+                                            color: this.sharingDoc ? ColorMapping.get(StrCast(this.sharingDoc[user.userDocumentId], SharingPermissions.None)) : DefaultColor,
+                                            borderColor: this.sharingDoc ? ColorMapping.get(StrCast(this.sharingDoc[user.userDocumentId], SharingPermissions.None)) : DefaultColor
+                                        }}
+                                        onChange={e => this.setInternalSharing(user, e.currentTarget.value)}
+                                    >
+                                        {Object.values(SharingPermissions).map(permission => {
+                                            return (
+                                                <option key={permission} value={permission}>
+                                                    {permission}
+                                                </option>
+                                            );
+                                        })}
+                                    </select>
+                                    <span className={"padding"}>{user.email}</span>
+                                </div>
+                            );
+                        })
                     }
                 </div>
             </div>

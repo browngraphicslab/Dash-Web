@@ -14,7 +14,6 @@
         position: relative;
         margin-top: 10px;
         margin-bottom: 10px;
-        cursor: pointer;
         font-size: 22px;
         -webkit-user-select: none;
         -moz-user-select: none;
@@ -25,10 +24,18 @@
         font-style: normal;
         font-size: 15;
         font-weight: normal;
-        padding-left: 10px;
-        padding-right: 10px;    
+        padding: 0;
+
+        .padding {
+            padding: 0 0 0 20px;
+            color: black;
+        }
+
+        .permissions-dropdown {
+            outline: none;
+        }
     }
-    
+
     .no-users {
         margin-top: 20px;
     }
@@ -36,6 +43,7 @@
     .link-container {
         display: flex;
         flex-direction: row;
+        margin-bottom: 10px;
 
         .link-box,
         .copy {
@@ -44,22 +52,19 @@
             padding: 10px;
             border: solid black 1px;
         }
-        
+
         .link-box {
             background: white;
         }
-        
+
         .copy {
             margin-left: 20px;
             cursor: alias;
             border-radius: 50%;
             width: 42px;
             height: 42px;
+            transition: 0.5s color ease;
             padding-top: 12px;
         }
-    }
-
-    .padding {
-        padding: 0 0 0 20px;
     }
 }
