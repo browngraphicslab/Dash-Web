@@ -41,12 +41,12 @@ import { ClientUtils } from '../util/ClientUtils';
 import { SchemaHeaderField, RandomPastel } from '../../new_fields/SchemaHeaderField';
 import { DictationManager } from '../util/DictationManager';
 import MainViewModal from './MainViewModal';
+import SharingManager from '../util/SharingManager';
 
 @observer
 export class MainView extends React.Component {
     public static Instance: MainView;
     @observable addMenuToggle = React.createRef<HTMLInputElement>();
-    @observable private _workspacesShown: boolean = false;
     @observable public pwidth: number = 0;
     @observable public pheight: number = 0;
 
@@ -55,6 +55,8 @@ export class MainView extends React.Component {
     @observable private dictationDisplayState = false;
     @observable private dictationListeningState: DictationManager.Controls.ListeningUIStatus = false;
 
+    public hasActiveModal = false;
+
     public overlayTimeout: NodeJS.Timeout | undefined;
 
     public initiateDictationFade = () => {
@@ -62,6 +64,7 @@ export class MainView extends React.Component {
         this.overlayTimeout = setTimeout(() => {
             this.dictationOverlayVisible = false;
             this.dictationSuccess = undefined;
+            this.hasActiveModal = false;
             setTimeout(() => this.dictatedPhrase = DictationManager.placeholder, 500);
         }, duration);
     }
@@ -270,19 +273,19 @@ export class MainView extends React.Component {
         }
     }
 
-
     @action
     createNewWorkspace = async (id?: string) => {
-        let freeformOptions: DocumentOptions = { x: 0, y: 400, width: this.pwidth * .7, height: this.pheight };
-        let workspaceTitle = "Workspace 1";
-        if (CurrentUserUtils.GuestTarget) {
-            freeformOptions.title = StrCast(CurrentUserUtils.GuestTarget.title);
-            workspaceTitle = `Guest View of ${freeformOptions.title}`;
-        }
+        let freeformOptions: DocumentOptions = {
+            x: 0,
+            y: 400,
+            width: this.pwidth * .7,
+            height: this.pheight,
+            title: CurrentUserUtils.GuestTarget ? `Guest View of ${StrCast(CurrentUserUtils.GuestTarget.title)}` : "My Blank Collection"
+        };
         let workspaces: FieldResult<Doc>;
         let freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
         var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc, freeformDoc, 600)] }] };
-        let mainDoc = Docs.Create.DockDocument([this.userDoc, freeformDoc], JSON.stringify(dockingLayout), { title: workspaceTitle }, id);
+        let mainDoc = Docs.Create.DockDocument([this.userDoc, freeformDoc], JSON.stringify(dockingLayout), {}, id);
         if (this.userDoc && ((workspaces = Cast(this.userDoc.workspaces, Doc)) instanceof Doc)) {
             const list = Cast((workspaces).data, listSpec(Doc));
             if (list) {
@@ -292,6 +295,7 @@ export class MainView extends React.Component {
                     this.userDoc.linkManagerDoc = linkManagerDoc;
                 }
                 list.push(mainDoc);
+                mainDoc.title = `Workspace ${list.length}`;
             }
         }
         // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
@@ -605,26 +609,21 @@ export class MainView extends React.Component {
     }
 
     @computed private get dictationOverlay() {
-        let display = this.dictationOverlayVisible;
         let success = this.dictationSuccess;
         let result = this.isListening && !this.isListening.interim ? DictationManager.placeholder : `"${this.dictatedPhrase}"`;
         let dialogueBoxStyle = {
-            opacity: display ? 1 : 0,
             background: success === undefined ? "gainsboro" : success ? "lawngreen" : "red",
             borderColor: this.isListening ? "red" : "black",
             fontStyle: "italic"
         };
         let overlayStyle = {
-            opacity: display ? 0.4 : 0,
             backgroundColor: this.isListening ? "red" : "darkslategrey"
         };
         return (
             <MainViewModal
+                contents={result}
                 isDisplayed={this.dictationOverlayVisible}
                 interactive={false}
-                dialogueBoxDisplayedOpacity={1}
-                overlayDisplayedOpacity={0.4}
-                contents={result}
                 dialogueBoxStyle={dialogueBoxStyle}
                 overlayStyle={overlayStyle}
             />
@@ -635,6 +634,7 @@ export class MainView extends React.Component {
         return (
             <div id="main-div">
                 {this.dictationOverlay}
+                <SharingManager />
                 <DocumentDecorations />
                 {this.mainContent}
                 <PreviewCursor />

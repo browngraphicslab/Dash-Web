@@ -25,7 +25,7 @@ import { getForgot, getLogin, getLogout, getReset, getSignup, postForgot, postLo
 import User, { DashUserModel } from './authentication/models/user_model';
 import { Client } from './Client';
 import { Database } from './database';
-import { MessageStore, Transferable, Types, Diff, YoutubeQueryTypes as YoutubeQueryType, YoutubeQueryInput } from "./Message";
+import { MessageStore, Transferable, Types, Diff, YoutubeQueryTypes as YoutubeQueryType, YoutubeQueryInput, SourceSpecified } from "./Message";
 import { RouteStore } from './RouteStore';
 import v4 = require('uuid/v4');
 const app = express();
@@ -50,7 +50,6 @@ const probe = require("probe-image-size");
 var SolrNode = require('solr-node');
 var shell = require('shelljs');
 import * as qs from 'query-string';
-import { SharingOptions } from '../client/util/sharing';
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
 let youtubeApiKey: string;
@@ -783,8 +782,8 @@ function setField(socket: Socket, newValue: Transferable) {
     }
 }
 
-function GetRefField([id, callback]: [string, (result?: Transferable) => void]) {
-    Database.Instance.getDocument(id, callback, "newDocuments");
+function GetRefField([args, callback]: [SourceSpecified, (result?: Transferable) => void]) {
+    Database.Instance.getDocument(args.id, callback, args.mongoCollection || "newDocuments");
 }
 
 function GetRefFields([ids, callback]: [string[], (result?: Transferable[]) => void]) {

@@ -1,0 +1,65 @@
+.sharing-interface {
+    display: flex;
+    flex-direction: column;
+
+    .users-list {
+        margin-top: 20px;
+        font-style: italic;
+        color: red;
+        font-weight: bold;
+    }
+
+    .container {
+        display: block;
+        position: relative;
+        margin-top: 10px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        font-size: 22px;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        width: auto;
+        text-align: left;
+        font-style: normal;
+        font-size: 15;
+        font-weight: normal;
+        padding-left: 10px;
+        padding-right: 10px;    
+    }
+    
+    .no-users {
+        margin-top: 20px;
+    }
+
+    .link-container {
+        display: flex;
+        flex-direction: row;
+
+        .link-box,
+        .copy {
+            padding: 10px;
+            border-radius: 10px;
+            padding: 10px;
+            border: solid black 1px;
+        }
+        
+        .link-box {
+            background: white;
+        }
+        
+        .copy {
+            margin-left: 20px;
+            cursor: alias;
+            border-radius: 50%;
+            width: 42px;
+            height: 42px;
+            padding-top: 12px;
+        }
+    }
+
+    .padding {
+        padding: 0 0 0 20px;
+    }
+}

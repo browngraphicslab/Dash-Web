@@ -5,24 +5,36 @@ export interface MainViewOverlayProps {
     isDisplayed: boolean;
     interactive: boolean;
     contents: string | JSX.Element;
-    dialogueBoxStyle: React.CSSProperties;
-    overlayStyle: React.CSSProperties;
-    dialogueBoxDisplayedOpacity: number;
-    overlayDisplayedOpacity: number;
+    dialogueBoxStyle?: React.CSSProperties;
+    overlayStyle?: React.CSSProperties;
+    dialogueBoxDisplayedOpacity?: number;
+    overlayDisplayedOpacity?: number;
 }
 
 export default class MainViewModal extends React.Component<MainViewOverlayProps> {
 
     render() {
+        let p = this.props;
+        let dialogueOpacity = p.dialogueBoxDisplayedOpacity || 1;
+        let overlayOpacity = p.overlayDisplayedOpacity || 0.4;
         return (
-            <div style={{ pointerEvents: this.props.interactive ? "all" : "none" }}>
+            <div style={{ pointerEvents: p.isDisplayed ? p.interactive ? "all" : "none" : "none" }}>
                 <div
                     className={"dialogue-box"}
-                    style={this.props.dialogueBoxStyle}
-                >{this.props.contents}</div>
+                    style={{
+                        backgroundColor: "gainsboro",
+                        borderColor: "black",
+                        ...(p.dialogueBoxStyle || {}),
+                        opacity: p.isDisplayed ? dialogueOpacity : 0
+                    }}
+                >{p.contents}</div>
                 <div
                     className={"overlay"}
-                    style={this.props.overlayStyle}
+                    style={{
+                        backgroundColor: "gainsboro",
+                        ...(p.overlayStyle || {}),
+                        opacity: p.isDisplayed ? overlayOpacity : 0
+                    }}
                 />
             </div>
         );

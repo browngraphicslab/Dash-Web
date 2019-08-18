@@ -87,6 +87,7 @@ export namespace DictationManager {
             let results: string | undefined;
             let main = MainView.Instance;
 
+            main.hasActiveModal = true;
             main.dictationOverlayVisible = true;
             main.isListening = { interim: false };
 

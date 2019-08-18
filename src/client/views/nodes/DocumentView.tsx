@@ -42,6 +42,7 @@ import "./DocumentView.scss";
 import { FormattedTextBox } from './FormattedTextBox';
 import React = require("react");
 import { IDisposable } from '../../northstar/utils/IDisposable';
+import SharingManager from '../../util/SharingManager';
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(fa.faTrash);
@@ -570,7 +571,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         subitems.push({ description: "Open Right", event: () => this.props.addDocTab && this.props.addDocTab(this.props.Document, this.dataDoc, "onRight"), icon: "caret-square-right" });
         subitems.push({ description: "Open Right Alias", event: () => this.props.addDocTab && this.props.addDocTab(Doc.MakeAlias(this.props.Document), this.dataDoc, "onRight"), icon: "caret-square-right" });
         subitems.push({ description: "Open Fields", event: this.fieldsClicked, icon: "layer-group" });
-        cm.addItem({ description: "Open...", subitems: subitems, icon: "external-link-alt" });
+        cm.addItem({ description: "Open...", subitems: subitems, icon: "expand-arrows-alt" });
         let existingMake = ContextMenu.Instance.findByDescription("Make...");
         let makes: ContextMenuProps[] = existingMake && "subitems" in existingMake ? existingMake.subitems : [];
         makes.push({ description: this.props.Document.isBackground ? "Remove Background" : "Make Background", event: this.makeBackground, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
@@ -655,41 +656,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }
         });
         cm.addItem({ description: "Delete", event: this.deleteClicked, icon: "trash" });
-        type User = { email: string, userDocumentId: string };
-        let usersMenu: ContextMenuProps[] = [];
-        try {
-            let stuff = await rp.get(Utils.prepend(RouteStore.getUsers));
-            const users: User[] = JSON.parse(stuff);
-            usersMenu = users.filter(({ email }) => email !== CurrentUserUtils.email).map(({ email, userDocumentId }) => ({
-                description: email, event: async () => {
-                    const userDocument = await Cast(DocServer.GetRefField(userDocumentId), Doc);
-                    if (!userDocument) {
-                        throw new Error(`Couldn't get user document of user ${email}`);
-                    }
-                    const notifDoc = await Cast(userDocument.optionalRightCollection, Doc);
-                    if (notifDoc instanceof Doc) {
-                        const data = await Cast(notifDoc.data, listSpec(Doc));
-                        const sharedDoc = Doc.MakeAlias(this.props.Document);
-                        if (data) {
-                            data.push(sharedDoc);
-                        } else {
-                            notifDoc.data = new List([sharedDoc]);
-                        }
-                    }
-                }, icon: "male"
-            }));
-        } catch {
-
-        }
         runInAction(() => {
-            cm.addItem({ description: "Share...", subitems: usersMenu, icon: "share" });
             cm.addItem({
-                description: "Copy Sharing Link",
-                event: () => {
-                    let url = Utils.prepend("/doc/" + this.props.Document[Id]);
-                    Utils.CopyText(`${url}?sharing=true`);
-                },
-                icon: "link"
+                description: "Share",
+                event: () => SharingManager.Instance.open(this.props.Document),
+                icon: "external-link-alt"
             });
 
             if (!this.topMost) {
