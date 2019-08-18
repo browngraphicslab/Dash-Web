@@ -28,7 +28,6 @@
 
         .people-with-select {
             width: 126px;
-            margin-left: 10px;
             outline: none;
         }
     }
@@ -39,17 +38,21 @@
     }
 
     .users-list {
-        margin-top: 20px;
         font-style: italic;
-        color: red;
-        font-weight: bold;
-        margin-top: 0px;
-        background: gainsboro;
+        background: white;
         border: 1px solid black;
-        border-radius: 5px;
         padding-left: 10px;
+        padding-right: 10px;
         max-height: 200px;
         overflow: scroll;
+        height: -webkit-fill-available;
+        text-align: left;
+        display: flex;
+        align-content: center;
+        align-items: center;
+        text-align: center;
+        justify-content: center;
+        color: red;
     }
 
     .container {
@@ -62,7 +65,8 @@
         -moz-user-select: none;
         -ms-user-select: none;
         user-select: none;
-        width: auto;
+        width: 700px;
+        min-width: 700px;
         max-width: 700px;
         text-align: left;
         font-style: normal;

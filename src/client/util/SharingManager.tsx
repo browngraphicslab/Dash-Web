@@ -65,14 +65,16 @@ export default class SharingManager extends React.Component<{}> {
     }
 
     public open = action((target: DocumentView) => {
-        SelectionManager.DeselectAll();
-        this.targetDocView = target;
-        this.targetDoc = target.props.Document;
-        MainView.Instance.hasActiveModal = true;
-        this.isOpen = true;
-        if (!this.sharingDoc) {
-            this.sharingDoc = new Doc;
-        }
+        this.populateUsers().then(() => {
+            SelectionManager.DeselectAll();
+            this.targetDocView = target;
+            this.targetDoc = target.props.Document;
+            MainView.Instance.hasActiveModal = true;
+            this.isOpen = true;
+            if (!this.sharingDoc) {
+                this.sharingDoc = new Doc;
+            }
+        });
     });
 
     public close = action(() => {
@@ -95,11 +97,6 @@ export default class SharingManager extends React.Component<{}> {
     constructor(props: {}) {
         super(props);
         SharingManager.Instance = this;
-        autorun(() => console.log(this.dialogueBoxOpacity));
-    }
-
-    componentWillMount() {
-        this.populateUsers();
     }
 
     populateUsers = async () => {
@@ -239,6 +236,7 @@ export default class SharingManager extends React.Component<{}> {
                         className={"people-with-select"}
                         value={this.sharingDoc ? StrCast(this.sharingDoc[PublicKey], SharingPermissions.None) : SharingPermissions.None}
                         style={{
+                            marginLeft: this.linkVisible ? 10 : 0,
                             color: this.sharingDoc ? ColorMapping.get(StrCast(this.sharingDoc[PublicKey], SharingPermissions.None)) : DefaultColor,
                             borderColor: this.sharingDoc ? ColorMapping.get(StrCast(this.sharingDoc[PublicKey], SharingPermissions.None)) : DefaultColor
                         }}
@@ -249,7 +247,7 @@ export default class SharingManager extends React.Component<{}> {
                 </div>
                 <div className={"hr-substitute"} />
                 <p className={"share-individual"}>Privately share {this.focusOn("this document")} with an individual...</p>
-                <div className={"users-list"} style={{ marginTop: this.users.length ? 0 : 20 }}>
+                <div className={"users-list"} style={{ display: this.users.length ? "block" : "flex" }}>
                     {!this.users.length ? "There are no other users in your database." :
                         this.users.map(user => {
                             return (
