@@ -3,9 +3,10 @@ import "./MetadataEntryMenu.scss";
 import { observer } from 'mobx-react';
 import { observable, action, runInAction, trace } from 'mobx';
 import { KeyValueBox } from './nodes/KeyValueBox';
-import { Doc, Field } from '../../new_fields/Doc';
+import { Doc, Field, DocListCast, DocListCastAsync } from '../../new_fields/Doc';
 import * as Autosuggest from 'react-autosuggest';
 import { undoBatch } from '../util/UndoManager';
+import { child } from 'serializr';
 
 export type DocLike = Doc | Doc[] | Promise<Doc> | Promise<Doc[]>;
 export interface MetadataEntryProps {
@@ -19,6 +20,7 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
     @observable private _currentKey: string = "";
     @observable private _currentValue: string = "";
     @observable private suggestions: string[] = [];
+    private _addChildren: boolean = false;
     private userModified = false;
 
     private autosuggestRef = React.createRef<Autosuggest>();
@@ -82,16 +84,28 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
             e.stopPropagation();
             const script = KeyValueBox.CompileKVPScript(this._currentValue);
             if (!script) return;
+
             let doc = this.props.docs;
             if (typeof doc === "function") {
                 doc = doc();
             }
             doc = await doc;
+
             let success: boolean;
             if (doc instanceof Doc) {
                 success = KeyValueBox.ApplyKVPScript(doc, this._currentKey, script);
             } else {
-                success = doc.every(d => KeyValueBox.ApplyKVPScript(d, this._currentKey, script));
+                let childSuccess = true;
+                if (this._addChildren) {
+                    console.log(this._currentKey);
+                    for (let document of doc) {
+                        let collectionChildren = await DocListCastAsync(document.data);
+                        if (collectionChildren) {
+                            childSuccess = collectionChildren.every(c => KeyValueBox.ApplyKVPScript(c, this._currentKey, script));
+                        }
+                    }
+                }
+                success = doc.every(d => KeyValueBox.ApplyKVPScript(d, this._currentKey, script)) && childSuccess;
             }
             if (!success) {
                 if (this.props.onError) {
@@ -155,6 +169,10 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
         this.suggestions = [];
     }
 
+    onClick = (e: React.ChangeEvent<HTMLInputElement>) => {
+        this._addChildren = !this._addChildren;
+    }
+
     render() {
         return (
             <div className="metadataEntry-outerDiv">
@@ -169,6 +187,8 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
                     ref={this.autosuggestRef} />
                 Value:
                 <input className="metadataEntry-input" value={this._currentValue} onChange={this.onValueChange} onKeyDown={this.onValueKeyDown} />
+                Children:
+                <input type="checkbox" onChange={this.onClick} ></input>
             </div>
         );
     }

@@ -1,6 +1,10 @@
 .metadataEntry-outerDiv {
     display: flex;
     width: 300px;
+
+    input[type=checkbox] {
+        margin-left: 5px;
+    }
 }
 
 .react-autosuggest__container {
