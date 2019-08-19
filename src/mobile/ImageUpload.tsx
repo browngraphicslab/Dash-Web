@@ -12,6 +12,7 @@ import { List } from '../new_fields/List';
 import { observer } from 'mobx-react';
 import { observable } from 'mobx';
 import { Utils } from '../Utils';
+import { System } from '../new_fields/FieldSymbols';
 
 
 
@@ -106,7 +107,7 @@ class Uploader extends React.Component {
 
 
 //currently, this is given system privileges (universal read/write), is this okay? -syip
-DocServer.init(window.location.protocol, window.location.hostname, 4321, "image upload", "system");
+DocServer.init(window.location.protocol, window.location.hostname, 4321, "image upload", System);
 
 ReactDOM.render((
     <Uploader />

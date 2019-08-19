@@ -50,10 +50,10 @@ export class SelectorContextMenu extends React.Component<SelectorProps> {
     render() {
         return (
             <>
-                <p>Contexts:</p>
-                {this._docs.map(doc => <p><a onClick={this.getOnClick(doc)}>{doc.col.title}</a></p>)}
-                {this._otherDocs.length ? <hr></hr> : null}
-                {this._otherDocs.map(doc => <p><a onClick={this.getOnClick(doc)}>{doc.col.title}</a></p>)}
+                <p key="contexts">Contexts:</p>
+                {this._docs.map(doc => <p key={doc.col[Id] + doc.target[Id]}><a onClick={this.getOnClick(doc)}>{doc.col.title}</a></p>)}
+                {this._otherDocs.length ? <hr key="hr" /> : null}
+                {this._otherDocs.map(doc => <p key="p"><a onClick={this.getOnClick(doc)}>{doc.col.title}</a></p>)}
             </>
         );
     }

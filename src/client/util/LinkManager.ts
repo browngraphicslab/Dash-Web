@@ -252,3 +252,4 @@ export class LinkManager {
 Scripting.addGlobal(function links(doc: any) {
     return new List(LinkManager.Instance.getAllRelatedLinks(doc));
 });
+

@@ -24,7 +24,7 @@ interface IPageProps {
     renderAnnotations: (annotations: Doc[], removeOld: boolean) => void;
     sendAnnotations: (annotations: HTMLDivElement[], page: number) => void;
     createAnnotation: (div: HTMLDivElement, page: number) => void;
-    makeAnnotationDocuments: (doc: Doc | undefined, scale: number, color: string, linkTo: boolean) => Doc;
+    makeAnnotationDocuments: (doc: Doc | undefined, color: string, linkTo: boolean) => Doc;
     getScrollFromPage: (page: number) => number;
     setSelectionText: (text: string) => void;
 }
@@ -49,30 +49,21 @@ export default class Page extends React.Component<IPageProps> {
     private _startY: number = 0;
     private _startX: number = 0;
 
-    componentDidMount = (): void => {
-        this.loadPage(this.props.pdf);
-    }
+    componentDidMount = (): void => this.loadPage(this.props.pdf);
 
-    componentDidUpdate = (): void => {
-        this.loadPage(this.props.pdf);
-    }
+    componentDidUpdate = (): void => this.loadPage(this.props.pdf);
 
-    componentWillUnmount = (): void => {
-        this._reactionDisposer && this._reactionDisposer();
-    }
+    componentWillUnmount = (): void => this._reactionDisposer && this._reactionDisposer();
 
-    private loadPage = (pdf: Pdfjs.PDFDocumentProxy): void => {
-        this._state !== "rendering" && !this._page && pdf.getPage(this._currPage).then(
-            (page: Pdfjs.PDFPageProxy): void => {
-                this._state = "rendering";
-                this.renderPage(page);
-            });
+    loadPage = (pdf: Pdfjs.PDFDocumentProxy): void => {
+        pdf.getPage(this._currPage).then(page => this.renderPage(page));
     }
 
     @action
-    private renderPage = (page: Pdfjs.PDFPageProxy): void => {
+    renderPage = (page: Pdfjs.PDFPageProxy): void => {
         // lower scale = easier to read at small sizes, higher scale = easier to read at large sizes
-        if (this._canvas.current && this._textLayer.current) {
+        if (this._state !== "rendering" && !this._page && this._canvas.current && this._textLayer.current) {
+            this._state = "rendering";
             let viewport = page.getViewport(scale);
             this._canvas.current.width = this._width = viewport.width;
             this._canvas.current.height = this._height = viewport.height;
@@ -96,8 +87,7 @@ export default class Page extends React.Component<IPageProps> {
     @action
     highlight = (targetDoc: Doc | undefined, color: string) => {
         // creates annotation documents for current highlights
-        let annotationDoc = this.props.makeAnnotationDocuments(targetDoc, scale, color, false);
-        Doc.GetProto(annotationDoc).annotationOn = this.props.Document;
+        let annotationDoc = this.props.makeAnnotationDocuments(targetDoc, color, false);
         Doc.AddDocToList(this.props.fieldExtensionDoc, "annotations", annotationDoc);
         return annotationDoc;
     }
@@ -113,7 +103,7 @@ export default class Page extends React.Component<IPageProps> {
         if (this._textLayer.current) {
             let targetDoc = Docs.Create.TextDocument({ width: 200, height: 200, title: "New Annotation" });
             targetDoc.targetPage = this.props.page;
-            let annotationDoc = this.highlight(undefined, "pink");
+            let annotationDoc = this.highlight(undefined, "red");
             annotationDoc.linkedToDoc = false;
             let dragData = new DragManager.AnnotationDragData(this.props.Document, annotationDoc, targetDoc);
             DragManager.StartAnnotationDrag([ele], dragData, e.pageX, e.pageY, {
@@ -122,8 +112,7 @@ export default class Page extends React.Component<IPageProps> {
                         if (!BoolCast(annotationDoc.linkedToDoc)) {
                             let annotations = await DocListCastAsync(annotationDoc.annotations);
                             annotations && annotations.forEach(anno => anno.target = targetDoc);
-                            let pdfDoc = await Cast(annotationDoc.pdfDoc, Doc);
-                            pdfDoc && DocUtils.MakeLink(annotationDoc, targetDoc, dragData.targetContext, `Annotation from ${StrCast(pdfDoc.title)}`, "", StrCast(pdfDoc.title))
+                            DocUtils.MakeLink(annotationDoc, targetDoc, dragData.targetContext, `Annotation from ${StrCast(this.props.Document.title)}`)
                         }
                     }
                 },
@@ -153,10 +142,8 @@ export default class Page extends React.Component<IPageProps> {
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         // if alt+left click, drag and annotate
-        if (e.altKey && e.button === 0) {
-            e.stopPropagation();
-        }
-        else if (e.button === 0) {
+        if (NumCast(this.props.Document.scale, 1) !== 1) return;
+        if (!e.altKey && e.button === 0) {
             PDFMenu.Instance.StartDrag = this.startDrag;
             PDFMenu.Instance.Highlight = this.highlight;
             PDFMenu.Instance.Snippet = this.createSnippet;
@@ -207,24 +194,21 @@ export default class Page extends React.Component<IPageProps> {
     onSelectEnd = (e: PointerEvent): void => {
         if (this._marqueeing) {
             this._marqueeing = false;
-            if (this._marquee.current) {
-                let copy = document.createElement("div");
-                // make a copy of the marquee
-                let style = this._marquee.current.style;
-                copy.style.left = style.left;
-                copy.style.top = style.top;
-                copy.style.width = style.width;
-                copy.style.height = style.height;
-
-                // apply the appropriate background, opacity, and transform
-                copy.style.border = style.border;
-                copy.style.opacity = style.opacity;
-                copy.className = "pdfPage-annotationBox";
-                this.props.createAnnotation(copy, this.props.page);
-                this._marquee.current.style.opacity = "0";
-            }
-
             if (this._marqueeWidth > 10 || this._marqueeHeight > 10) {
+                if (this._marquee.current) { // make a copy of the marquee
+                    let copy = document.createElement("div");
+                    let style = this._marquee.current.style;
+                    copy.style.left = style.left;
+                    copy.style.top = style.top;
+                    copy.style.width = style.width;
+                    copy.style.height = style.height;
+                    copy.style.border = style.border;
+                    copy.style.opacity = style.opacity;
+                    copy.className = "pdfPage-annotationBox";
+                    this.props.createAnnotation(copy, this.props.page);
+                    this._marquee.current.style.opacity = "0";
+                }
+
                 if (!e.ctrlKey) {
                     PDFMenu.Instance.Status = "snippet";
                     PDFMenu.Instance.Marquee = { left: this._marqueeX, top: this._marqueeY, width: this._marqueeWidth, height: this._marqueeHeight };
@@ -293,23 +277,15 @@ export default class Page extends React.Component<IPageProps> {
     render() {
         return (
             <div className={"pdfPage-cont"} onPointerDown={this.onPointerDown} onDoubleClick={this.doubleClick} style={{ "width": this._width, "height": this._height }}>
-                <div className="PdfPage-canvasContainer">
-                    <canvas ref={this._canvas} />
+                <canvas className="PdfPage-canvasContainer" ref={this._canvas} />
+                <div className="pdfPage-dragAnnotationBox" ref={this._marquee}
+                    style={{
+                        left: `${this._marqueeX}px`, top: `${this._marqueeY}px`,
+                        width: `${this._marqueeWidth}px`, height: `${this._marqueeHeight}px`,
+                        border: `${this._marqueeWidth === 0 ? "" : "10px dashed black"}`
+                    }}>
                 </div>
-                <div className="pdfPage-annotationLayer">
-                    <div className="pdfPage-dragAnnotationBox" ref={this._marquee}
-                        style={{
-                            left: `${this._marqueeX}px`, top: `${this._marqueeY}px`,
-                            width: `${this._marqueeWidth}px`, height: `${this._marqueeHeight}px`,
-                            border: `${this._marqueeWidth === 0 ? "" : "10px dashed black"}`
-                        }}>
-                    </div>
-                </div>
-                <div className="pdfPage-textlayer"
-                    ref={this._textLayer}
-                    style={{ top: `-${2 * this._height}px`, height: `${this._height}px` }}
-                />
-            </div>
-        );
+                <div className="pdfPage-textlayer" ref={this._textLayer} />
+            </div>);
     }
 }

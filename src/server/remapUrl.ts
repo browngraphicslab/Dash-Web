@@ -2,6 +2,8 @@ import { Database } from "./database";
 import { Search } from "./Search";
 import * as path from 'path';
 
+//npx ts-node src/server/remapUrl.ts
+
 const suffixMap: { [type: string]: true } = {
     "video": true,
     "pdf": true,

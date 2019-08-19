@@ -3,15 +3,17 @@
     // Hover to view descriptions of existing attributes.
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
-    "configurations": [
-        {
+    "configurations": [{
             "type": "chrome",
             "request": "launch",
             "name": "Launch Chrome against localhost",
             "sourceMaps": true,
             "breakOnLoad": true,
-            "url": "http://localhost:1050/login",
+            "url": "http://localhost:1050/logout",
             "webRoot": "${workspaceFolder}",
+            "runtimeArgs": [
+                "--experimental-modules"
+            ]
         },
         {
             "type": "firefox",

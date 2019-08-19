@@ -1,6 +1,6 @@
 require('dotenv').config();
 import * as bodyParser from 'body-parser';
-import { exec } from 'child_process';
+import { exec, ExecOptions } from 'child_process';
 import * as cookieParser from 'cookie-parser';
 import * as express from 'express';
 import * as session from 'express-session';
@@ -22,7 +22,7 @@ import * as wdm from 'webpack-dev-middleware';
 import * as whm from 'webpack-hot-middleware';
 import { Utils } from '../Utils';
 import { getForgot, getLogin, getLogout, getReset, getSignup, postForgot, postLogin, postReset, postSignup } from './authentication/controllers/user_controller';
-import { DashUserModel } from './authentication/models/user_model';
+import User, { DashUserModel } from './authentication/models/user_model';
 import { Client } from './Client';
 import { Database } from './database';
 import { MessageStore, Transferable, Types, Diff, YoutubeQueryTypes as YoutubeQueryType, YoutubeQueryInput } from "./Message";
@@ -48,6 +48,8 @@ const mongoose = require('mongoose');
 const probe = require("probe-image-size");
 var SolrNode = require('solr-node');
 var shell = require('shelljs');
+import * as qs from 'query-string';
+import { Public, System } from '../new_fields/FieldSymbols';
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
 let youtubeApiKey: string;
@@ -114,7 +116,9 @@ function addSecureRoute(method: Method,
     ...subscribers: string[]
 ) {
     let abstracted = (req: express.Request, res: express.Response) => {
-        if (req.user) {
+        let sharing = qs.parse(qs.extract(req.originalUrl), { sort: false }).sharing === "true";
+        sharing = sharing && req.originalUrl.startsWith("/doc/");
+        if (req.user || sharing) {
             handler(req.user, res, req);
         } else {
             req.session!.target = req.originalUrl;
@@ -145,6 +149,33 @@ app.get("/pull", (req, res) =>
         }
         res.redirect("/");
     }));
+
+app.get("/buxton", (req, res) => {
+    let cwd = '../scraping/buxton';
+
+    let onResolved = (stdout: string) => { console.log(stdout); res.redirect("/"); };
+    let onRejected = (err: any) => { console.error(err.message); res.send(err); };
+    let tryPython3 = () => command_line('python3 scraper.py', cwd).then(onResolved, onRejected);
+
+    command_line('python scraper.py', cwd).then(onResolved, tryPython3);
+});
+
+const command_line = (command: string, fromDirectory?: string) => {
+    return new Promise<string>((resolve, reject) => {
+        let options: ExecOptions = {};
+        if (fromDirectory) {
+            options.cwd = path.join(__dirname, fromDirectory);
+        }
+        exec(command, options, (err, stdout) => err ? reject(err) : resolve(stdout));
+    });
+};
+
+const read_text_file = (relativePath: string) => {
+    let target = path.join(__dirname, relativePath);
+    return new Promise<string>((resolve, reject) => {
+        fs.readFile(target, (err, data) => err ? reject(err) : resolve(data.toString()));
+    });
+};
 
 app.get("/version", (req, res) => {
     exec('"C:\\Program Files\\Git\\bin\\git.exe" rev-parse HEAD', (err, stdout, stderr) => {
@@ -464,21 +495,20 @@ addSecureRoute(
         res.sendFile(path.join(__dirname, '../../deploy/' + filename));
     },
     undefined,
-    RouteStore.home,
-    RouteStore.openDocumentWithId
+    RouteStore.home, RouteStore.openDocumentWithId
 );
 
 addSecureRoute(
     Method.GET,
-    (user, res) => res.send(user.userDocumentId || ""),
-    undefined,
+    (user, res) => res.send(user.userDocumentId),
+    (res) => res.send(undefined),
     RouteStore.getUserDocumentId,
 );
 
 addSecureRoute(
     Method.GET,
-    (user, res) => res.send(JSON.stringify({ id: user.id, email: user.email })),
-    undefined,
+    (user, res) => { res.send(JSON.stringify({ id: user.id, email: user.email })); },
+    (res) => res.send(JSON.stringify({ id: "__guest__", email: "" })),
     RouteStore.getCurrUser
 );
 
@@ -642,21 +672,31 @@ app.use(RouteStore.corsProxy, (req, res) => {
     }).pipe(res);
 });
 
-app.get(RouteStore.delete, (req, res) => {
-    if (release) {
-        res.send("no");
-        return;
-    }
-    deleteFields().then(() => res.redirect(RouteStore.home));
-});
+addSecureRoute(
+    Method.GET,
+    (user, res, req) => {
+        if (release) {
+            res.send("no");
+            return;
+        }
+        deleteFields().then(() => res.redirect(RouteStore.home));
+    },
+    undefined,
+    RouteStore.delete
+);
 
-app.get(RouteStore.deleteAll, (req, res) => {
-    if (release) {
-        res.send("no");
-        return;
-    }
-    deleteAll().then(() => res.redirect(RouteStore.home));
-});
+addSecureRoute(
+    Method.GET,
+    (user, res, req) => {
+        if (release) {
+            res.send("no");
+            return;
+        }
+        deleteAll().then(() => res.redirect(RouteStore.home));
+    },
+    undefined,
+    RouteStore.deleteAll
+);
 
 app.use(wdm(compiler, { publicPath: config.output.publicPath }));
 
@@ -749,37 +789,37 @@ function setField(socket: Socket, newValue: Transferable) {
  * @param user - User to check
  * @param key - Key to check
  */
-export function HasRead(doc: any, user: string, key?: string): boolean { return HasPermission(doc, user, 0, key); }
+export function HasRead(doc: any, users: string[], key?: string): boolean { return HasPermission(doc, users, 0, key); }
 /**
  * 
  * Returns true if the user id has permission to write to the document (or the field, if specified)
  * @param doc - Document to check
- * @param user - User to check
+ * @param users - User to check
  * @param key - Key to check
  */
-export function HasWrite(doc: any, user: string, key?: string): boolean { return HasPermission(doc, user, 1, key); }
+export function HasWrite(doc: any, users: string[], key?: string): boolean { return HasPermission(doc, users, 1, key); }
 /**
  * 
  * Returns true if the user id has permission to add to the document (or the field, if specified)
  * @param doc - Document to check
- * @param user - User to check
+ * @param users - User to check
  * @param key - Key to check
  */
-export function HasAdd(doc: any, user: string, key?: string): boolean { return HasPermission(doc, user, 2, key); }
+export function HasAdd(doc: any, users: string[], key?: string): boolean { return HasPermission(doc, users, 2, key); }
 /**
  * 
  * Returns true if the user id has no permissions to the document (or the field, if specified)
  * @param doc - Document to check
- * @param user - User to check
+ * @param users - User to check
  * @param key - Key to check
  */
-export function HasNone(doc: any, user: string, key?: string): boolean { return HasPermission(doc, user, 3, key); }
+export function HasNone(doc: any, users: string[], key?: string): boolean { return HasPermission(doc, users, 3, key); }
 
-function HasPermission(doc: any, user: string, permission: ServerPermissions, key?: string) {
+function HasPermission(doc: any, users: string[], permission: ServerPermissions, key?: string) {
     let acls = doc ? doc.acls : undefined;
     if (acls) {
         if (!key) {
-            return (acls[user] && acls[user]["*"] === permission);
+            return users.some(user => (acls[user] && acls[user]["*"] === permission));
         }
         else {
             return true;
@@ -793,7 +833,7 @@ export enum ServerPermissions {
 }
 
 /** Returns true if the user id has read or write permission on the document (or the field, if specified) */
-export function HasReadOrWrite(doc: any, user: string, key?: string): boolean { return HasRead(doc, user, key) || HasWrite(doc, user, key); }
+export function HasReadOrWrite(doc: any, users: string[], key?: string): boolean { return HasRead(doc, users, key) || HasWrite(doc, users, key); }
 
 export function GetFillerDocument(id: string, options: {}) {
 
@@ -803,7 +843,7 @@ function GetRefField(socket: Socket, [id, callback]: [string, (result: any) => v
     Database.Instance.getDocument(id, (result) => {
         let info = socketMap.get(socket);
         if (info) {
-            if (HasReadOrWrite(result, "system") || HasReadOrWrite(result, info.id)) {
+            if (HasReadOrWrite(result, [System, Public]) || HasReadOrWrite(result, [info.id])) {
                 callback(result);
             }
             else if (!result) {
@@ -826,7 +866,7 @@ function GetRefField(socket: Socket, [id, callback]: [string, (result: any) => v
                         text: "Permission Denied",
                         proto: result.fields.proto,
                         data_ext: result.fields.data_ext
-                    }
+                    };
                 }
                 clone.acls = {};
                 clone.acls[info.id] = {};

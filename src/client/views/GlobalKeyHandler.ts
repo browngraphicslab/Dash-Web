@@ -3,12 +3,10 @@ import { SelectionManager } from "../util/SelectionManager";
 import { CollectionDockingView } from "./collections/CollectionDockingView";
 import { MainView } from "./MainView";
 import { DragManager } from "../util/DragManager";
-import { action } from "mobx";
+import { action, runInAction } from "mobx";
 import { Doc } from "../../new_fields/Doc";
-import { CognitiveServices } from "../cognitive_services/CognitiveServices";
-import DictationManager from "../util/DictationManager";
-import { ContextMenu } from "./ContextMenu";
-import { ContextMenuProps } from "./ContextMenuItem";
+import { DictationManager } from "../util/DictationManager";
+import SharingManager from "../util/SharingManager";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -62,7 +60,8 @@ export default class KeyManager {
     private unmodified = action((keyname: string, e: KeyboardEvent) => {
         switch (keyname) {
             case "escape":
-                if (MainView.Instance.isPointerDown) {
+                let main = MainView.Instance;
+                if (main.isPointerDown) {
                     DragManager.AbortDrag();
                 } else {
                     if (CollectionDockingView.Instance.HasFullScreen()) {
@@ -71,8 +70,10 @@ export default class KeyManager {
                         SelectionManager.DeselectAll();
                     }
                 }
-                MainView.Instance.toggleColorPicker(true);
+                main.toggleColorPicker(true);
                 SelectionManager.DeselectAll();
+                DictationManager.Controls.stop();
+                SharingManager.Instance.close();
                 break;
             case "delete":
             case "backspace":
@@ -106,13 +107,11 @@ export default class KeyManager {
 
         switch (keyname) {
             case " ":
-                let transcript = await DictationManager.Instance.listen();
-                console.log(`I heard${transcript ? `: ${transcript.toLowerCase()}` : " nothing: I thought I was still listening from an earlier session."}`);
-                let command: ContextMenuProps | undefined;
-                transcript && (command = ContextMenu.Instance.findByDescription(transcript, true)) && "event" in command && command.event();
-                stopPropagation = true;
-                preventDefault = true;
-                break;
+                if (!MainView.Instance.hasActiveModal) {
+                    DictationManager.Controls.listen({ tryExecute: true });
+                    stopPropagation = true;
+                    preventDefault = true;
+                }
         }
 
         return {

@@ -5,6 +5,9 @@
     height: 100%;
     overflow-y: scroll;
     overflow-x: hidden;
+    .pdfBox-scrollHack {
+        pointer-events: none;
+    }
 }
 
 .pdfBox-cont {

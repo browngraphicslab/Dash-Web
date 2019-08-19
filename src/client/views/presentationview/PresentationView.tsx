@@ -112,9 +112,8 @@ export class PresentationView extends React.Component<PresViewProps>  {
     async componentDidMount() {
         let docAtZero = await this.props.Documents[0];
         runInAction(() => this.curPresentation = docAtZero);
-
+        this.curPresentation.width = 0;
         this.setPresentationBackUps();
-
     }
 
 

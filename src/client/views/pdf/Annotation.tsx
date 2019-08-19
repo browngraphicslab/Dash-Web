@@ -9,7 +9,7 @@ import { DocumentManager } from "../../util/DocumentManager";
 import { PresentationView } from "../presentationview/PresentationView";
 import PDFMenu from "./PDFMenu";
 import "./Annotation.scss";
-import { AnnotationTypes, scale } from "./PDFViewer";
+import { scale } from "./PDFViewer";
 
 interface IAnnotationProps {
     anno: Doc;
@@ -22,17 +22,8 @@ interface IAnnotationProps {
 
 export default class Annotation extends React.Component<IAnnotationProps> {
     render() {
-        let annotationDocs = DocListCast(this.props.anno.annotations);
-        let res = annotationDocs.map(a => {
-            let type = NumCast(a.type);
-            switch (type) {
-                case AnnotationTypes.Region:
-                    return <RegionAnnotation addDocTab={this.props.addDocTab} document={a} fieldExtensionDoc={this.props.fieldExtensionDoc} scrollTo={this.props.scrollTo} ParentIndex={this.props.ParentIndex} index={this.props.index} x={NumCast(a.x)} y={NumCast(a.y)} width={a[WidthSym]()} height={a[HeightSym]()} key={a[Id]} />;
-                default:
-                    return <div></div>;
-            }
-        });
-        return res;
+        return DocListCast(this.props.anno.annotations).map(a => (
+            <RegionAnnotation {...this.props} document={a} x={NumCast(a.x)} y={NumCast(a.y)} width={a[WidthSym]()} height={a[HeightSym]()} key={a[Id]} />));
     }
 }
 
@@ -51,8 +42,6 @@ interface IRegionAnnotationProps {
 
 @observer
 class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
-    @observable private _backgroundColor: string = "red";
-
     private _reactionDisposer?: IReactionDisposer;
     private _scrollDisposer?: IReactionDisposer;
     private _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
@@ -60,13 +49,13 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
     componentDidMount() {
         this._reactionDisposer = reaction(
             () => this.props.document.delete,
-            () => this.props.document.delete && this._mainCont.current && (this._mainCont.current.style.display = "none"),
+            (del) => del && this._mainCont.current && (this._mainCont.current.style.display = "none"),
             { fireImmediately: true }
         );
 
         this._scrollDisposer = reaction(
             () => this.props.ParentIndex(),
-            () => this.props.ParentIndex() === this.props.index && this.props.scrollTo && this.props.scrollTo(this.props.y * scale)
+            (ind) => ind === this.props.index && this.props.scrollTo && this.props.scrollTo(this.props.y * scale)
         );
     }
 
@@ -129,15 +118,13 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
     }
 
     render() {
-        return (
-            <div className="pdfAnnotation" onPointerDown={this.onPointerDown} ref={this._mainCont}
-                style={{
-                    top: this.props.y * scale,
-                    left: this.props.x * scale,
-                    width: this.props.width * scale,
-                    height: this.props.height * scale,
-                    backgroundColor: this.props.ParentIndex() === this.props.index ? "green" : StrCast(this.props.document.color)
-                }} />
-        );
+        return (<div className="pdfAnnotation" onPointerDown={this.onPointerDown} ref={this._mainCont}
+            style={{
+                top: this.props.y,
+                left: this.props.x,
+                width: this.props.width,
+                height: this.props.height,
+                backgroundColor: this.props.ParentIndex() === this.props.index ? "green" : StrCast(this.props.document.color)
+            }} />);
     }
 }

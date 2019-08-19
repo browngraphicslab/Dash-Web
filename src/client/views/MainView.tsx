@@ -1,14 +1,14 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
 import { faArrowDown, faCloudUploadAlt, faArrowUp, faClone, faCheck, faPlay, faPause, faCaretUp, faLongArrowAltRight, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faPortrait, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faThumbtack, faTree, faUndoAlt, faCat, faBolt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, configure, observable, runInAction, reaction, trace } from 'mobx';
+import { action, computed, configure, observable, runInAction, reaction, trace, autorun } from 'mobx';
 import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
 import { SketchPicker } from 'react-color';
 import Measure from 'react-measure';
-import { Doc, DocListCast, Opt, HeightSym } from '../../new_fields/Doc';
-import { Id } from '../../new_fields/FieldSymbols';
+import { Doc, DocListCast, Opt, HeightSym, FieldResult, Field } from '../../new_fields/Doc';
+import { Id, GetAcls, Public } from '../../new_fields/FieldSymbols';
 import { InkTool } from '../../new_fields/InkField';
 import { List } from '../../new_fields/List';
 import { listSpec } from '../../new_fields/Schema';
@@ -17,12 +17,12 @@ import { CurrentUserUtils } from '../../server/authentication/models/current_use
 import { RouteStore } from '../../server/RouteStore';
 import { emptyFunction, returnOne, returnTrue, Utils, returnEmptyString } from '../../Utils';
 import { DocServer } from '../DocServer';
-import { Docs } from '../documents/Documents';
+import { Docs, DocumentOptions } from '../documents/Documents';
 import { SetupDrag } from '../util/DragManager';
 import { HistoryUtil } from '../util/History';
 import { Transform } from '../util/Transform';
 import { UndoManager } from '../util/UndoManager';
-import { CollectionBaseView } from './collections/CollectionBaseView';
+import { CollectionBaseView, CollectionViewType } from './collections/CollectionBaseView';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { ContextMenu } from './ContextMenu';
 import { DocumentDecorations } from './DocumentDecorations';
@@ -39,16 +39,51 @@ import { FilterBox } from './search/FilterBox';
 import { CollectionTreeView } from './collections/CollectionTreeView';
 import { ClientUtils } from '../util/ClientUtils';
 import { SchemaHeaderField, RandomPastel } from '../../new_fields/SchemaHeaderField';
+import { DictationManager } from '../util/DictationManager';
+import MainViewModal from './MainViewModal';
+import SharingManager from '../util/SharingManager';
 
 @observer
 export class MainView extends React.Component {
     public static Instance: MainView;
     @observable addMenuToggle = React.createRef<HTMLInputElement>();
-    @observable private _workspacesShown: boolean = false;
     @observable public pwidth: number = 0;
     @observable public pheight: number = 0;
+
+    @observable private dictationState = DictationManager.placeholder;
+    @observable private dictationSuccessState: boolean | undefined = undefined;
+    @observable private dictationDisplayState = false;
+    @observable private dictationListeningState: DictationManager.Controls.ListeningUIStatus = false;
+
+    public hasActiveModal = false;
+
+    public overlayTimeout: NodeJS.Timeout | undefined;
+
+    public initiateDictationFade = () => {
+        let duration = DictationManager.Commands.dictationFadeDuration;
+        this.overlayTimeout = setTimeout(() => {
+            this.dictationOverlayVisible = false;
+            this.dictationSuccess = undefined;
+            this.hasActiveModal = false;
+            setTimeout(() => this.dictatedPhrase = DictationManager.placeholder, 500);
+        }, duration);
+    }
+
+    private urlState: HistoryUtil.DocUrl;
+
+    @computed private get userDoc() {
+        return CurrentUserUtils.UserDocument;
+    }
+
+    public cancelDictationFade = () => {
+        if (this.overlayTimeout) {
+            clearTimeout(this.overlayTimeout);
+            this.overlayTimeout = undefined;
+        }
+    }
+
     @computed private get mainContainer(): Opt<Doc> {
-        return FieldValue(Cast(CurrentUserUtils.UserDocument.activeWorkspace, Doc));
+        return this.userDoc ? FieldValue(Cast(this.userDoc.activeWorkspace, Doc)) : CurrentUserUtils.GuestWorkspace;
     }
     @computed get mainFreeform(): Opt<Doc> {
         let docs = DocListCast(this.mainContainer!.data);
@@ -60,8 +95,40 @@ export class MainView extends React.Component {
             if (!("presentationView" in doc)) {
                 doc.presentationView = new List<Doc>([Docs.Create.TreeDocument([], { title: "Presentation" })]);
             }
-            CurrentUserUtils.UserDocument.activeWorkspace = doc;
+            this.userDoc ? (this.userDoc.activeWorkspace = doc) : (CurrentUserUtils.GuestWorkspace = doc);
         }
+    }
+
+    @computed public get dictatedPhrase() {
+        return this.dictationState;
+    }
+
+    public set dictatedPhrase(value: string) {
+        runInAction(() => this.dictationState = value);
+    }
+
+    @computed public get dictationSuccess() {
+        return this.dictationSuccessState;
+    }
+
+    public set dictationSuccess(value: boolean | undefined) {
+        runInAction(() => this.dictationSuccessState = value);
+    }
+
+    @computed public get dictationOverlayVisible() {
+        return this.dictationDisplayState;
+    }
+
+    public set dictationOverlayVisible(value: boolean) {
+        runInAction(() => this.dictationDisplayState = value);
+    }
+
+    @computed public get isListening() {
+        return this.dictationListeningState;
+    }
+
+    public set isListening(value: DictationManager.Controls.ListeningUIStatus) {
+        runInAction(() => this.dictationListeningState = value);
     }
 
     componentWillMount() {
@@ -73,21 +140,23 @@ export class MainView extends React.Component {
         window.removeEventListener("keydown", KeyManager.Instance.handle);
         window.addEventListener("keydown", KeyManager.Instance.handle);
 
-        reaction(() => {
-            let workspaces = CurrentUserUtils.UserDocument.workspaces;
-            let recent = CurrentUserUtils.UserDocument.recentlyClosed;
-            if (!(recent instanceof Doc)) return 0;
-            if (!(workspaces instanceof Doc)) return 0;
-            let workspacesDoc = workspaces;
-            let recentDoc = recent;
-            let libraryHeight = this.getPHeight() - workspacesDoc[HeightSym]() - recentDoc[HeightSym]() - 20 + CurrentUserUtils.UserDocument[HeightSym]() * 0.00001;
-            return libraryHeight;
-        }, (libraryHeight: number) => {
-            if (libraryHeight && Math.abs(CurrentUserUtils.UserDocument[HeightSym]() - libraryHeight) > 5) {
-                CurrentUserUtils.UserDocument.height = libraryHeight;
-            }
-            (Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc) as Doc).allowClear = true;
-        }, { fireImmediately: true });
+        if (this.userDoc) {
+            reaction(() => {
+                let workspaces = this.userDoc.workspaces;
+                let recent = this.userDoc.recentlyClosed;
+                if (!(recent instanceof Doc)) return 0;
+                if (!(workspaces instanceof Doc)) return 0;
+                let workspacesDoc = workspaces;
+                let recentDoc = recent;
+                let libraryHeight = this.getPHeight() - workspacesDoc[HeightSym]() - recentDoc[HeightSym]() - 20 + this.userDoc[HeightSym]() * 0.00001;
+                return libraryHeight;
+            }, (libraryHeight: number) => {
+                if (libraryHeight && Math.abs(this.userDoc[HeightSym]() - libraryHeight) > 5) {
+                    this.userDoc.height = libraryHeight;
+                }
+                (Cast(this.userDoc.recentlyClosed, Doc) as Doc).allowClear = true;
+            }, { fireImmediately: true });
+        }
     }
 
     componentWillUnMount() {
@@ -99,6 +168,7 @@ export class MainView extends React.Component {
     constructor(props: Readonly<{}>) {
         super(props);
         MainView.Instance = this;
+        this.urlState = HistoryUtil.parseUrl(window.location) || {} as any;
         // causes errors to be generated when modifying an observable outside of an action
         configure({ enforceActions: "observed" });
         if (window.location.pathname !== RouteStore.home) {
@@ -107,6 +177,12 @@ export class MainView extends React.Component {
                 let type = pathname[0];
                 if (type === "doc") {
                     CurrentUserUtils.MainDocId = pathname[1];
+                    if (!this.userDoc) {
+                        runInAction(() => this.flyoutWidth = 0);
+                        DocServer.GetRefField(CurrentUserUtils.MainDocId).then(action(field => {
+                            field instanceof Doc && (CurrentUserUtils.GuestTarget = field);
+                        }));
+                    }
                 }
             }
         }
@@ -163,68 +239,107 @@ export class MainView extends React.Component {
 
     initAuthenticationRouters = async () => {
         // Load the user's active workspace, or create a new one if initial session after signup
-        if (!CurrentUserUtils.MainDocId) {
-            const doc = await Cast(CurrentUserUtils.UserDocument.activeWorkspace, Doc);
-            if (doc) {
+        let received = CurrentUserUtils.MainDocId;
+        if (received && !this.userDoc) {
+            reaction(
+                () => CurrentUserUtils.GuestTarget,
+                target => target && this.createNewWorkspace(),
+                { fireImmediately: true }
+            );
+        } else {
+            if (received && this.urlState.sharing) {
+                reaction(
+                    () => {
+                        let docking = CollectionDockingView.Instance;
+                        return docking && docking.initialized;
+                    },
+                    initialized => {
+                        if (initialized && received) {
+                            DocServer.GetRefField(received).then(field => {
+                                if (field instanceof Doc && field.viewType !== CollectionViewType.Docking) {
+                                    CollectionDockingView.Instance.AddRightSplit(field, undefined);
+                                }
+                            });
+                        }
+                    },
+                );
+            }
+            let doc: Opt<Doc>;
+            if (this.userDoc && (doc = await Cast(this.userDoc.activeWorkspace, Doc))) {
                 this.openWorkspace(doc);
             } else {
                 this.createNewWorkspace();
             }
-        } else {
-            DocServer.GetRefField(CurrentUserUtils.MainDocId).then(field =>
-                field instanceof Doc ? this.openWorkspace(field) :
-                    this.createNewWorkspace(CurrentUserUtils.MainDocId));
         }
     }
 
-
     @action
     createNewWorkspace = async (id?: string) => {
-        let workspaces = Cast(CurrentUserUtils.UserDocument.workspaces, Doc);
-        if (!(workspaces instanceof Doc)) return;
-        const list = Cast((CurrentUserUtils.UserDocument.workspaces as Doc).data, listSpec(Doc));
-        if (list) {
-            let freeformDoc = Docs.Create.FreeformDocument([], { x: 0, y: 400, width: this.pwidth * .7, height: this.pheight, title: `WS collection ${list.length + 1}` });
-            var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc, freeformDoc, 600)] }] };
-            let mainDoc = Docs.Create.DockDocument([CurrentUserUtils.UserDocument, freeformDoc], JSON.stringify(dockingLayout), { title: `Workspace ${list.length + 1}` }, id);
-            if (!CurrentUserUtils.UserDocument.linkManagerDoc) {
-                let linkManagerDoc = new Doc();
-                linkManagerDoc.allLinks = new List<Doc>([]);
-                CurrentUserUtils.UserDocument.linkManagerDoc = linkManagerDoc;
+        let freeformOptions: DocumentOptions = {
+            x: 0,
+            y: 400,
+            width: this.pwidth * .7,
+            height: this.pheight,
+            title: CurrentUserUtils.GuestTarget ? `Guest View of ${StrCast(CurrentUserUtils.GuestTarget.title)}` : "My Blank Collection"
+        };
+        let workspaces: FieldResult<Doc>;
+        let freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
+        var dockingLayout = { content: [{ type: 'row', content: [CollectionDockingView.makeDocumentConfig(freeformDoc, freeformDoc, 600)] }] };
+        let mainDoc = Docs.Create.DockDocument([this.userDoc, freeformDoc], JSON.stringify(dockingLayout), {}, id);
+        if (this.userDoc && ((workspaces = Cast(this.userDoc.workspaces, Doc)) instanceof Doc)) {
+            const list = Cast((workspaces).data, listSpec(Doc));
+            if (list) {
+                if (!this.userDoc.linkManagerDoc) {
+                    let linkManagerDoc = new Doc();
+                    linkManagerDoc.allLinks = new List<Doc>([]);
+                    this.userDoc.linkManagerDoc = linkManagerDoc;
+                }
+                list.push(mainDoc);
+                mainDoc.title = `Workspace ${list.length}`;
             }
-            list.push(mainDoc);
-            // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
-            setTimeout(() => {
-                this.openWorkspace(mainDoc);
-                // let pendingDocument = Docs.StackingDocument([], { title: "New Mobile Uploads" });
-                // mainDoc.optionalRightCollection = pendingDocument;
-            }, 0);
         }
+        // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
+        setTimeout(() => {
+            this.openWorkspace(mainDoc);
+            // let pendingDocument = Docs.StackingDocument([], { title: "New Mobile Uploads" });
+            // mainDoc.optionalRightCollection = pendingDocument;
+        }, 0);
     }
 
     @action
     openWorkspace = async (doc: Doc, fromHistory = false) => {
         CurrentUserUtils.MainDocId = doc[Id];
         this.mainContainer = doc;
-        const state = HistoryUtil.parseUrl(window.location) || {} as any;
-        fromHistory || HistoryUtil.pushState({ type: "doc", docId: doc[Id], readonly: state.readonly, nro: state.nro });
-        if (state.readonly === true || state.readonly === null) {
-            DocServer.Control.makeReadOnly();
-        } else if (state.safe) {
-            if (!state.nro) {
-                DocServer.Control.makeReadOnly();
-            }
-            CollectionBaseView.SetSafeMode(true);
-        } else if (state.nro || state.nro === null || state.readonly === false) {
-        } else if (BoolCast(doc.readOnly)) {
+        let state = this.urlState;
+        let target = CurrentUserUtils.GuestTarget;
+        if (target && target[GetAcls]()[Public]["*"] === 0) {
             DocServer.Control.makeReadOnly();
         } else {
-            DocServer.Control.makeEditable();
+            fromHistory || HistoryUtil.pushState({
+                type: "doc",
+                docId: doc[Id],
+                readonly: state.readonly,
+                nro: state.nro,
+                sharing: false,
+            });
+            if (state.readonly === true || state.readonly === null) {
+                DocServer.Control.makeReadOnly();
+            } else if (state.safe) {
+                if (!state.nro) {
+                    DocServer.Control.makeReadOnly();
+                }
+                CollectionBaseView.SetSafeMode(true);
+            } else if (state.nro || state.nro === null || state.readonly === false) {
+            } else if (BoolCast(doc.readOnly)) {
+                DocServer.Control.makeReadOnly();
+            } else {
+                DocServer.Control.makeEditable();
+            }
         }
-        const col = await Cast(CurrentUserUtils.UserDocument.optionalRightCollection, Doc);
+        let col: Opt<Doc>;
         // if there is a pending doc, and it has new data, show it (syip: we use a timeout to prevent collection docking view from being uninitialized)
         setTimeout(async () => {
-            if (col) {
+            if (this.userDoc && (col = await Cast(this.userDoc.optionalRightCollection, Doc))) {
                 const l = Cast(col.data, listSpec(Doc));
                 if (l) {
                     runInAction(() => CollectionTreeView.NotifsCol = col);
@@ -264,6 +379,7 @@ export class MainView extends React.Component {
                             DataDoc={undefined}
                             addDocument={undefined}
                             addDocTab={emptyFunction}
+                            onClick={undefined}
                             removeDocument={undefined}
                             ScreenToLocalTransform={Transform.Identity}
                             ContentScaling={returnOne}
@@ -319,15 +435,17 @@ export class MainView extends React.Component {
     }
     @computed
     get flyout() {
-        let sidebar = CurrentUserUtils.UserDocument.sidebar;
-        if (!(sidebar instanceof Doc)) return (null);
-        let sidebarDoc = sidebar;
+        let sidebar: FieldResult<Field>;
+        if (!this.userDoc || !((sidebar = this.userDoc.sidebar) instanceof Doc)) {
+            return (null);
+        }
         return <DocumentView
-            Document={sidebarDoc}
+            Document={sidebar}
             DataDoc={undefined}
             addDocument={undefined}
             addDocTab={this.addDocTabFunc}
             removeDocument={undefined}
+            onClick={undefined}
             ScreenToLocalTransform={Transform.Identity}
             ContentScaling={returnOne}
             PanelWidth={this.flyoutWidthFunc}
@@ -346,8 +464,13 @@ export class MainView extends React.Component {
     }
     @computed
     get mainContent() {
-        let sidebar = CurrentUserUtils.UserDocument.sidebar;
-        if (!(sidebar instanceof Doc)) return (null);
+        if (!this.userDoc) {
+            return <div>{this.dockingContent}</div>;
+        }
+        let sidebar = this.userDoc.sidebar;
+        if (!(sidebar instanceof Doc)) {
+            return (null);
+        }
         return <div>
             <div className="mainView-libraryHandle"
                 style={{ cursor: "ew-resize", left: `${this.flyoutWidth - 10}px`, backgroundColor: `${StrCast(sidebar.backgroundColor, "lightGray")}` }}
@@ -377,6 +500,21 @@ export class MainView extends React.Component {
         }
     }
 
+    setWriteMode = (mode: DocServer.WriteMode) => {
+        console.log(DocServer.WriteMode[mode]);
+        const mode1 = mode;
+        const mode2 = mode === DocServer.WriteMode.Default ? mode : DocServer.WriteMode.Playground;
+        DocServer.setFieldWriteMode("x", mode1);
+        DocServer.setFieldWriteMode("y", mode1);
+        DocServer.setFieldWriteMode("width", mode1);
+        DocServer.setFieldWriteMode("height", mode1);
+
+        DocServer.setFieldWriteMode("panX", mode2);
+        DocServer.setFieldWriteMode("panY", mode2);
+        DocServer.setFieldWriteMode("scale", mode2);
+        DocServer.setFieldWriteMode("viewType", mode2);
+    }
+
 
     @observable private _colorPickerDisplay = false;
     /* for the expandable add nodes menu. Not included with the miscbuttons because once it expands it expands the whole div with it, making canvas interactions limited. */
@@ -389,7 +527,7 @@ export class MainView extends React.Component {
         //let addTreeNode = action(() => Docs.TreeDocument([CurrentUserUtils.UserDocument], { width: 250, height: 400, title: "Library:" + CurrentUserUtils.email, dropAction: "alias" }));
         // let addTreeNode = action(() => Docs.TreeDocument(this._northstarSchemas, { width: 250, height: 400, title: "northstar schemas", dropAction: "copy"  }));
         let addColNode = action(() => Docs.Create.FreeformDocument([], { width: this.pwidth * .7, height: this.pheight, title: "a freeform collection" }));
-        let addTreeNode = action(() => CurrentUserUtils.UserDocument);
+        let addDragboxNode = action(() => Docs.Create.DragboxDocument({ width: 40, height: 40, title: "drag collection" }));
         let addImageNode = action(() => Docs.Create.ImageDocument(imgurl, { width: 200, title: "an image of a cat" }));
         let addButtonDocument = action(() => Docs.Create.ButtonDocument({ width: 150, height: 50, title: "Button" }));
         let addImportCollectionNode = action(() => Docs.Create.DirectoryImportDocument({ title: "Directory Import", width: 400, height: 400 }));
@@ -401,7 +539,8 @@ export class MainView extends React.Component {
             [React.createRef<HTMLDivElement>(), "bolt", "Add Button", addButtonDocument],
             // [React.createRef<HTMLDivElement>(), "clone", "Add Docking Frame", addDockingNode],
             [React.createRef<HTMLDivElement>(), "cloud-upload-alt", "Import Directory", addImportCollectionNode],
-            [React.createRef<HTMLDivElement>(), "play", "Add Youtube Searcher", addYoutubeSearcher]
+            [React.createRef<HTMLDivElement>(), "play", "Add Youtube Searcher", addYoutubeSearcher],
+            [React.createRef<HTMLDivElement>(), "file", "Add Document Dragger", addDragboxNode]
         ];
         if (!ClientUtils.RELEASE) btns.unshift([React.createRef<HTMLDivElement>(), "cat", "Add Cat Image", addImageNode]);
 
@@ -422,6 +561,12 @@ export class MainView extends React.Component {
                             </button>
                         </div></li>)}
                     <li key="undoTest"><button className="add-button round-button" title="Click if undo isn't working" onClick={() => UndoManager.TraceOpenBatches()}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>
+                    {ClientUtils.RELEASE ? [] : [
+                        <li key="test"><button className="add-button round-button" title="Default" onClick={() => this.setWriteMode(DocServer.WriteMode.Default)}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>,
+                        <li key="test1"><button className="add-button round-button" title="Playground" onClick={() => this.setWriteMode(DocServer.WriteMode.Playground)}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>,
+                        <li key="test2"><button className="add-button round-button" title="Live Playground" onClick={() => this.setWriteMode(DocServer.WriteMode.LivePlayground)}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>,
+                        <li key="test3"><button className="add-button round-button" title="Live Readonly" onClick={() => this.setWriteMode(DocServer.WriteMode.LiveReadonly)}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>
+                    ]}
                     <li key="color"><button className="add-button round-button" title="Select Color" style={{ zIndex: 1000 }} onClick={() => this.toggleColorPicker()}><div className="toolbar-color-button" style={{ backgroundColor: InkingControl.Instance.selectedColor }} >
                         <div className="toolbar-color-picker" onClick={this.onColorClick} style={this._colorPickerDisplay ? { color: "black", display: "block" } : { color: "black", display: "none" }}>
                             <SketchPicker color={InkingControl.Instance.selectedColor} onChange={InkingControl.Instance.switchColor} />
@@ -464,9 +609,33 @@ export class MainView extends React.Component {
         this.isSearchVisible = !this.isSearchVisible;
     }
 
+    @computed private get dictationOverlay() {
+        let success = this.dictationSuccess;
+        let result = this.isListening && !this.isListening.interim ? DictationManager.placeholder : `"${this.dictatedPhrase}"`;
+        let dialogueBoxStyle = {
+            background: success === undefined ? "gainsboro" : success ? "lawngreen" : "red",
+            borderColor: this.isListening ? "red" : "black",
+            fontStyle: "italic"
+        };
+        let overlayStyle = {
+            backgroundColor: this.isListening ? "red" : "darkslategrey"
+        };
+        return (
+            <MainViewModal
+                contents={result}
+                isDisplayed={this.dictationOverlayVisible}
+                interactive={false}
+                dialogueBoxStyle={dialogueBoxStyle}
+                overlayStyle={overlayStyle}
+            />
+        );
+    }
+
     render() {
         return (
             <div id="main-div">
+                {this.dictationOverlay}
+                <SharingManager />
                 <DocumentDecorations />
                 {this.mainContent}
                 <PreviewCursor />

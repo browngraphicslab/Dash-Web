@@ -22,6 +22,7 @@ export interface Transferable {
     readonly id: string;
     readonly type: Types;
     readonly data?: any;
+    readonly mongoCollection?: string;
 }
 
 export enum YoutubeQueryTypes {

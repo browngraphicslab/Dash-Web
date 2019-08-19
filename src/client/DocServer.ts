@@ -1,6 +1,6 @@
 import * as OpenSocket from 'socket.io-client';
 import { MessageStore, Diff, YoutubeQueryTypes } from "./../server/Message";
-import { Opt } from '../new_fields/Doc';
+import { Opt, Doc } from '../new_fields/Doc';
 import { Utils, emptyFunction } from '../Utils';
 import { SerializationHelper } from './util/SerializationHelper';
 import { RefField } from '../new_fields/RefField';
@@ -27,6 +27,42 @@ export namespace DocServer {
     let USERNAME: string;
     let USERID: string;
     // indicates whether or not a document is currently being udpated, and, if so, its id
+
+    export enum WriteMode {
+        Default = 0, //Anything goes
+        Playground = 1,
+        LiveReadonly = 2,
+        LivePlayground = 3,
+    }
+
+    const fieldWriteModes: { [field: string]: WriteMode } = {};
+    const docsWithUpdates: { [field: string]: Set<Doc> } = {};
+
+    export function setFieldWriteMode(field: string, writeMode: WriteMode) {
+        fieldWriteModes[field] = writeMode;
+        if (writeMode !== WriteMode.Playground) {
+            const docs = docsWithUpdates[field];
+            if (docs) {
+                docs.forEach(doc => Doc.RunCachedUpdate(doc, field));
+                delete docsWithUpdates[field];
+            }
+        }
+    }
+
+    export function getFieldWriteMode(field: string) {
+        return fieldWriteModes[field] || WriteMode.Default;
+    }
+
+    export function registerDocWithCachedUpdate(doc: Doc, field: string, oldValue: any) {
+        let list = docsWithUpdates[field];
+        if (!list) {
+            list = docsWithUpdates[field] = new Set;
+        }
+        if (!list.has(doc)) {
+            Doc.AddCachedUpdate(doc, field, oldValue);
+            list.add(doc);
+        }
+    }
 
     export function init(protocol: string, hostname: string, port: number, identifier: string, userId: string) {
         _cache = {};
@@ -153,7 +189,7 @@ export namespace DocServer {
         }
     };
 
-    let _GetRefField: (id: string) => Promise<Opt<RefField>> = errorFunc;
+    let _GetRefField: (id: string, mongoCollection?: string) => Promise<Opt<RefField>> = errorFunc;
 
     export function GetRefField(id: string): Promise<Opt<RefField>> {
         return _GetRefField(id);

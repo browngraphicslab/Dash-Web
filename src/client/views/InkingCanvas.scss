@@ -21,8 +21,7 @@
     width: 8192px;
     height: 8192px;
     cursor: "crosshair";
-    pointer-events: auto;
-
+    pointer-events: all;
 }
 
 .inkingCanvas-canSelect,
@@ -35,7 +34,7 @@
 
 .inkingCanvas-noSelect {
     pointer-events: none;
-    cursor: "arrow";
+    cursor: "crosshair";
 }
 
 .inkingCanvas-paths-ink,

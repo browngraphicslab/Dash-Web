@@ -13,7 +13,7 @@ import { listSpec } from "../../../new_fields/Schema";
 import { Cast, FieldValue, StrCast } from "../../../new_fields/Types";
 import { RouteStore } from "../../RouteStore";
 import { Utils } from "../../../Utils";
-import { SetAcls } from "../../../new_fields/FieldSymbols";
+import { SetAcls, System } from "../../../new_fields/FieldSymbols";
 
 export class CurrentUserUtils {
     private static curr_email: string;
@@ -28,9 +28,12 @@ export class CurrentUserUtils {
     public static get MainDocId() { return this.mainDocId; }
     public static set MainDocId(id: string | undefined) { this.mainDocId = id; }
 
+    @observable public static GuestTarget: Doc | undefined;
+    @observable public static GuestWorkspace: Doc | undefined;
+
     private static createUserDocument(id: string): Doc {
         let doc = new Doc(id, true);
-        doc[SetAcls]("system", Permissions.WRITE);
+        doc[SetAcls](System, Permissions.WRITE);
         doc.viewType = CollectionViewType.Tree;
         doc.dropAction = "alias";
         doc.layout = CollectionView.LayoutString();
@@ -43,8 +46,8 @@ export class CurrentUserUtils {
         doc.boxShadow = "0 0";
         doc.excludeFromLibrary = true;
         const rightColl = Docs.Create.StackingDocument([], { title: "New mobile uploads" });
-        rightColl[SetAcls]("system", Permissions.WRITE);
-        rightColl.proto![SetAcls]("system", Permissions.WRITE);
+        rightColl[SetAcls](System, Permissions.WRITE);
+        rightColl.proto![SetAcls](System, Permissions.WRITE);
         doc.optionalRightCollection = rightColl;
         // doc.library = Docs.Create.TreeDocument([doc], { title: `Library: ${CurrentUserUtils.email}` });
         // (doc.library as Doc).excludeFromLibrary = true;
@@ -101,14 +104,16 @@ export class CurrentUserUtils {
         this.curr_email = email;
         await rp.get(Utils.prepend(RouteStore.getUserDocumentId)).then(id => {
             if (id) {
-                return DocServer.GetRefField(id).then(async field => {
-                    if (field instanceof Doc) {
-                        await this.updateUserDocument(field);
-                        runInAction(() => this.user_document = field);
-                    } else {
-                        runInAction(() => this.user_document = this.createUserDocument(id));
-                    }
-                });
+                if (id !== "guest") {
+                    return DocServer.GetRefField(id).then(async field => {
+                        if (field instanceof Doc) {
+                            await this.updateUserDocument(field);
+                            runInAction(() => this.user_document = field);
+                        } else {
+                            runInAction(() => this.user_document = this.createUserDocument(id));
+                        }
+                    });
+                }
             } else {
                 throw new Error("There should be a user id! Why does Dash think there isn't one?");
             }

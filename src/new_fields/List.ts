@@ -285,7 +285,7 @@ class ListImpl<T extends Field> extends ObjectField {
             let perm = Permissions.WRITE;
             let parent = this[Parent];
             if (parent instanceof Doc && parent.acls[CurrentUserUtils.id]) {
-                perm = parent.acls[CurrentUserUtils.id]
+                perm = parent.acls[CurrentUserUtils.id];
             }
             this[SetAcls](CurrentUserUtils.id, perm);
         }

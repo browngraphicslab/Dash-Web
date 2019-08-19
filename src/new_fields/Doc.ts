@@ -1,5 +1,5 @@
-import { observable, action, runInAction } from "mobx";
-import { serializable, primitive, map, alias, list, PropSchema, custom, createSimpleSchema, object, serialize } from "serializr";
+import { serializable, primitive, map, alias } from "serializr";
+import { observable, runInAction, ObservableMap } from "mobx";
 import { autoObject, SerializationHelper, Deserializable, afterDocDeserialize } from "../client/util/SerializationHelper";
 import { DocServer } from "../client/DocServer";
 import { setter, getter, getField, updateFunction, deleteProperty, makeEditable, makeReadOnly } from "./util";
@@ -7,8 +7,8 @@ import { Cast, ToConstructor, PromiseValue, FieldValue, NumCast, BoolCast, StrCa
 import { listSpec } from "./Schema";
 import { ObjectField } from "./ObjectField";
 import { RefField, FieldId } from "./RefField";
-import { ToScriptString, SelfProxy, Parent, OnUpdate, Self, HandleUpdate, Update, Id, SetAcls, GetAcls, CloneAcls } from "./FieldSymbols";
-import { scriptingGlobal } from "../client/util/Scripting";
+import { ToScriptString, SelfProxy, Parent, OnUpdate, Self, HandleUpdate, Update, Id, SetAcls, GetAcls, CloneAcls, Copy, Public } from "./FieldSymbols";
+import { scriptingGlobal, CompileScript, Scripting } from "../client/util/Scripting";
 import { List } from "./List";
 import { DocumentType } from "../client/documents/Documents";
 import { ComputedField } from "./ScriptField";
@@ -70,6 +70,8 @@ export function DocListCast(field: FieldResult): Doc[] {
 
 export const WidthSym = Symbol("Width");
 export const HeightSym = Symbol("Height");
+export const UpdatingFromServer = Symbol("UpdatingFromServer");
+const CachedUpdates = Symbol("Cached updates");
 
 function fetchProto(doc: Doc) {
     const proto = doc.proto;
@@ -141,6 +143,7 @@ export class Doc extends RefField {
             defineProperty: () => { throw new Error("Currently properties can't be defined on documents using Object.defineProperty"); },
         });
         this[SelfProxy] = doc;
+        this[SetAcls](Public, 3);
         if (!id || forceSave) {
             DocServer.CreateField(doc);
             let perm = Permissions.WRITE;
@@ -174,8 +177,10 @@ export class Doc extends RefField {
     //{ [key: string]: Field | FieldWaiting | undefined }
     private ___fields: any = {};
 
+    private [UpdatingFromServer]: boolean = false;
+
     private [Update] = (diff: any) => {
-        if (updatingFromServer) {
+        if (this[UpdatingFromServer]) {
             return;
         }
         DocServer.UpdateField(this[Id], diff);
@@ -190,18 +195,29 @@ export class Doc extends RefField {
         return "invalid";
     }
 
-    public async [HandleUpdate](diff: any) {
+    private [CachedUpdates]: { [key: string]: () => void | Promise<any> } = {};
+
+    public async[HandleUpdate](diff: any) {
         const set = diff.$set;
+        const sameAuthor = this.author === CurrentUserUtils.email;
         if (set) {
             for (const key in set) {
                 if (!key.startsWith("fields.")) {
                     continue;
                 }
-                const value = await SerializationHelper.Deserialize(set[key]);
                 const fKey = key.substring(7);
-                updatingFromServer = true;
-                this[fKey] = value;
-                updatingFromServer = false;
+                const fn = async () => {
+                    const value = await SerializationHelper.Deserialize(set[key]);
+                    this[UpdatingFromServer] = true;
+                    this[fKey] = value;
+                    this[UpdatingFromServer] = false;
+                };
+                if (sameAuthor || DocServer.getFieldWriteMode(fKey) !== DocServer.WriteMode.Playground) {
+                    delete this[CachedUpdates][fKey];
+                    await fn();
+                } else {
+                    this[CachedUpdates][fKey] = fn;
+                }
             }
         }
         const unset = diff.$unset;
@@ -211,9 +227,17 @@ export class Doc extends RefField {
                     continue;
                 }
                 const fKey = key.substring(7);
-                updatingFromServer = true;
-                delete this[fKey];
-                updatingFromServer = false;
+                const fn = () => {
+                    this[UpdatingFromServer] = true;
+                    delete this[fKey];
+                    this[UpdatingFromServer] = false;
+                };
+                if (sameAuthor || DocServer.getFieldWriteMode(fKey) !== DocServer.WriteMode.Playground) {
+                    delete this[CachedUpdates][fKey];
+                    await fn();
+                } else {
+                    this[CachedUpdates][fKey] = fn;
+                }
             }
         }
     }
@@ -230,6 +254,21 @@ export namespace Doc {
     //         return Cast(field, ctor);
     //     });
     // }
+    export function RunCachedUpdate(doc: Doc, field: string) {
+        const update = doc[CachedUpdates][field];
+        if (update) {
+            update();
+            delete doc[CachedUpdates][field];
+        }
+    }
+    export function AddCachedUpdate(doc: Doc, field: string, oldValue: any) {
+        const val = oldValue;
+        doc[CachedUpdates][field] = () => {
+            doc[UpdatingFromServer] = true;
+            doc[field] = val;
+            doc[UpdatingFromServer] = false;
+        };
+    }
     export function MakeReadOnly(): { end(): void } {
         makeReadOnly();
         return {
@@ -316,6 +355,10 @@ export namespace Doc {
     export function GetProto(doc: Doc) {
         return Doc.GetT(doc, "isPrototype", "boolean", true) ? doc : (doc.proto || doc);
     }
+    export function GetDataDoc(doc: Doc): Doc {
+        let proto = Doc.GetProto(doc);
+        return proto === doc ? proto : Doc.GetDataDoc(proto);
+    }
 
     export function allKeys(doc: Doc): string[] {
         const results: Set<string> = new Set;
@@ -391,7 +434,7 @@ export namespace Doc {
         docExtensionForField.extendsDoc = doc; // this is used by search to map field matches on the extension doc back to the document it extends.
         docExtensionForField.type = DocumentType.EXTENSION;
         let proto: Doc | undefined = doc;
-        while (proto && !Doc.IsPrototype(proto)) {
+        while (proto && !Doc.IsPrototype(proto) && proto.proto) {
             proto = proto.proto;
         }
         (proto ? proto : doc)[fieldKey + "_ext"] = new PrefetchProxy(docExtensionForField);
@@ -410,10 +453,15 @@ export namespace Doc {
         }
     }
     export function MakeAlias(doc: Doc) {
-        if (!GetT(doc, "isPrototype", "boolean", true)) {
-            return Doc.MakeCopy(doc);
+        let alias = !GetT(doc, "isPrototype", "boolean", true) ? Doc.MakeCopy(doc) : Doc.MakeDelegate(doc);
+        let aliasNumber = Doc.GetProto(doc).aliasNumber = NumCast(Doc.GetProto(doc).aliasNumber) + 1;
+        let script = `return renameAlias(self, ${aliasNumber})`;
+        //let script = "StrCast(self.title).replace(/\\([0-9]*\\)/, \"\") + `(${n})`";
+        let compiled = CompileScript(script, { params: { this: "Doc" }, capturedVariables: { self: doc }, typecheck: false });
+        if (compiled.compiled) {
+            alias.title = new ComputedField(compiled);
         }
-        return Doc.MakeDelegate(doc); // bcz?
+        return alias;
     }
 
     //
@@ -457,7 +505,7 @@ export namespace Doc {
 
     export function GetLayoutDataDocPair(doc: Doc, dataDoc: Doc | undefined, fieldKey: string, childDocLayout: Doc) {
         let layoutDoc = childDocLayout;
-        let resolvedDataDoc = !doc.isTemplate && dataDoc !== doc ? dataDoc : undefined;
+        let resolvedDataDoc = !doc.isTemplate && dataDoc !== doc && dataDoc ? Doc.GetDataDoc(dataDoc) : undefined;
         if (resolvedDataDoc && Doc.WillExpandTemplateLayout(childDocLayout, resolvedDataDoc)) {
             Doc.UpdateDocumentExtensionForField(resolvedDataDoc, fieldKey);
             let fieldExtensionDoc = Doc.resolvedFieldDataDoc(resolvedDataDoc, StrCast(childDocLayout.templateField, StrCast(childDocLayout.title)), "dummy");
@@ -505,7 +553,8 @@ export namespace Doc {
     let _applyCount: number = 0;
     export function ApplyTemplate(templateDoc: Doc) {
         if (!templateDoc) return undefined;
-        let otherdoc = new Doc();
+        let datadoc = new Doc();
+        let otherdoc = Doc.MakeDelegate(datadoc);
         otherdoc.width = templateDoc[WidthSym]();
         otherdoc.height = templateDoc[HeightSym]();
         otherdoc.title = templateDoc.title + "(..." + _applyCount++ + ")";
@@ -513,6 +562,8 @@ export namespace Doc {
         otherdoc.miniLayout = StrCast(templateDoc.miniLayout);
         otherdoc.detailedLayout = otherdoc.layout;
         otherdoc.type = DocumentType.TEMPLATE;
+        !templateDoc.nativeWidth && (otherdoc.nativeWidth = 0);
+        !templateDoc.nativeHeight && (otherdoc.nativeHeight = 0);
         return otherdoc;
     }
     export function ApplyTemplateTo(templateDoc: Doc, target: Doc, targetData?: Doc) {
@@ -521,6 +572,7 @@ export namespace Doc {
         target.nativeHeight = Doc.GetProto(target).nativeHeight = undefined;
         target.width = templateDoc.width;
         target.height = templateDoc.height;
+        target.onClick = templateDoc.onClick instanceof ObjectField && templateDoc.onClick[Copy]();
         Doc.GetProto(target).type = DocumentType.TEMPLATE;
         if (targetData && targetData.layout === target) {
             targetData.layout = temp;
@@ -531,6 +583,8 @@ export namespace Doc {
             target.miniLayout = StrCast(templateDoc.miniLayout);
             target.detailedLayout = target.layout;
         }
+        !templateDoc.nativeWidth && (target.nativeWidth = 0);
+        !templateDoc.nativeHeight && (target.nativeHeight = 0);
     }
 
     export function MakeTemplate(fieldTemplate: Doc, metaKey: string, templateDataDoc: Doc) {
@@ -586,4 +640,25 @@ export namespace Doc {
             }
         });
     }
+
+    export class DocBrush {
+        @observable BrushedDoc: ObservableMap<Doc, boolean> = new ObservableMap();
+    }
+    const manager = new DocBrush();
+    export function IsBrushed(doc: Doc) {
+        return manager.BrushedDoc.has(doc) || manager.BrushedDoc.has(Doc.GetDataDoc(doc));
+    }
+    export function IsBrushedDegree(doc: Doc) {
+        return manager.BrushedDoc.has(Doc.GetDataDoc(doc)) ? 2 : manager.BrushedDoc.has(doc) ? 1 : 0;
+    }
+    export function BrushDoc(doc: Doc) {
+        manager.BrushedDoc.set(doc, true);
+        manager.BrushedDoc.set(Doc.GetDataDoc(doc), true);
+    }
+    export function UnBrushDoc(doc: Doc) {
+        manager.BrushedDoc.delete(doc);
+        manager.BrushedDoc.delete(Doc.GetDataDoc(doc));
+    }
 }
+Scripting.addGlobal(function renameAlias(doc: any, n: any) { return StrCast(doc.title).replace(/\([0-9]*\)/, "") + `(${n})`; });
+Scripting.addGlobal(function getProto(doc: any) { return Doc.GetProto(doc); });
