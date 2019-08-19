@@ -752,7 +752,7 @@ export class PresBox extends React.Component<FieldViewProps> { //FieldViewProps?
             //getting the presentation that will be removed
             let removedDoc = this.presentationsMapping.get(this.currentSelectedPresValue!);
             //that presentation is removed
-            presentationList!.splice(presentationList!.indexOf(removedDoc!), 1);
+            presentationList!.splice(presentationList.indexOf(removedDoc!), 1);
 
             //its mappings are removed from local copies
             this.presentationsKeyMapping.delete(removedDoc!);

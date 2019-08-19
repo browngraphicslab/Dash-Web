@@ -1,25 +1,3 @@
-export enum DocumentType {
-    NONE = "none",
-    TEXT = "text",
-    HIST = "histogram",
-    IMG = "image",
-    WEB = "web",
-    COL = "collection",
-    KVP = "kvp",
-    VID = "video",
-    AUDIO = "audio",
-    PDF = "pdf",
-    ICON = "icon",
-    IMPORT = "import",
-    LINK = "link",
-    LINKDOC = "linkdoc",
-    BUTTON = "button",
-    TEMPLATE = "template",
-    EXTENSION = "extension",
-    YOUTUBE = "youtube",
-    DRAGBOX = "dragbox",
-}
-
 import { HistogramField } from "../northstar/dash-fields/HistogramField";
 import { HistogramBox } from "../northstar/dash-nodes/HistogramBox";
 import { HistogramOperation } from "../northstar/operations/HistogramOperation";
@@ -64,31 +42,13 @@ import { ButtonBox } from "../views/nodes/ButtonBox";
 import { DragBox } from "../views/nodes/DragBox";
 import { SchemaHeaderField, RandomPastel } from "../../new_fields/SchemaHeaderField";
 import { PresBox } from "../views/nodes/PresBox";
+import { ComputedField } from "../../new_fields/ScriptField";
+import { ProxyField } from "../../new_fields/Proxy";
+import { DocumentType } from "./DocumentTypes";
 //import { PresBox } from "../views/nodes/PresBox";
 //import { PresField } from "../../new_fields/PresField";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
-
-export enum DocumentType {
-    NONE = "none",
-    TEXT = "text",
-    HIST = "histogram",
-    IMG = "image",
-    WEB = "web",
-    COL = "collection",
-    KVP = "kvp",
-    VID = "video",
-    AUDIO = "audio",
-    PDF = "pdf",
-    ICON = "icon",
-    IMPORT = "import",
-    LINK = "link",
-    LINKDOC = "linkdoc",
-    BUTTON = "button",
-    TEMPLATE = "template",
-    EXTENSION = "extension",
-    PRES = "presentation"
-}
 
 export interface DocumentOptions {
     x?: number;

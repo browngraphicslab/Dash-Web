@@ -11,7 +11,8 @@ import { CurrentUserUtils } from "../../../server/authentication/models/current_
 import { RouteStore } from "../../../server/RouteStore";
 import { Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
-import { Docs, DocumentOptions, DocumentType } from "../../documents/Documents";
+import { DocumentType } from "../../documents/DocumentTypes";
+import { Docs, DocumentOptions } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocComponent } from "../DocComponent";

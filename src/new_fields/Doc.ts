@@ -10,10 +10,10 @@ import { RefField, FieldId } from "./RefField";
 import { ToScriptString, SelfProxy, Parent, OnUpdate, Self, HandleUpdate, Update, Id, Copy } from "./FieldSymbols";
 import { scriptingGlobal, CompileScript, Scripting } from "../client/util/Scripting";
 import { List } from "./List";
-import { DocumentType } from "../client/documents/Documents";
+import { DocumentType } from "../client/documents/DocumentTypes";
 import { ComputedField, ScriptField } from "./ScriptField";
 import { PrefetchProxy, ProxyField } from "./Proxy";
-import { CurrentUserUtils } from "../server/authentication/models/current_user_utils";
+//import { CurrentUserUtils } from "../server/authentication/models/current_user_utils";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -154,7 +154,7 @@ export class Doc extends RefField {
 
     public async [HandleUpdate](diff: any) {
         const set = diff.$set;
-        const sameAuthor = this.author === CurrentUserUtils.email;
+        const sameAuthor = this.author === "foo@bar.com";//CurrentUserUtils.email;
         if (set) {
             for (const key in set) {
                 if (!key.startsWith("fields.")) {

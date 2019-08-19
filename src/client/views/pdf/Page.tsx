@@ -19,8 +19,8 @@ interface IPageProps {
     numPages: number;
     page: number;
     pageLoaded: (page: Pdfjs.PDFPageViewport) => void;
-    fieldExtensionDoc: Doc,
-    Document: Doc,
+    fieldExtensionDoc: Doc;
+    Document: Doc;
     renderAnnotations: (annotations: Doc[], removeOld: boolean) => void;
     sendAnnotations: (annotations: HTMLDivElement[], page: number) => void;
     createAnnotation: (div: HTMLDivElement, page: number) => void;
@@ -112,7 +112,7 @@ export default class Page extends React.Component<IPageProps> {
                         if (!BoolCast(annotationDoc.linkedToDoc)) {
                             let annotations = await DocListCastAsync(annotationDoc.annotations);
                             annotations && annotations.forEach(anno => anno.target = targetDoc);
-                            DocUtils.MakeLink(annotationDoc, targetDoc, dragData.targetContext, `Annotation from ${StrCast(this.props.Document.title)}`)
+                            DocUtils.MakeLink(annotationDoc, targetDoc, dragData.targetContext, `Annotation from ${StrCast(this.props.Document.title)}`);
                         }
                     }
                 },

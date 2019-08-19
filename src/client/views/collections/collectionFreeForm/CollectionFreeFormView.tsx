@@ -36,7 +36,8 @@ import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCurso
 import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
-import { DocumentType, Docs } from "../../../documents/Documents";
+import { Docs } from "../../../documents/Documents";
+import { DocumentType } from "../../../documents/DocumentTypes";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard);
 
