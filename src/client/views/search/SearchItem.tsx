@@ -203,6 +203,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
                     removeDocument={returnFalse}
                     ScreenToLocalTransform={Transform.Identity}
                     addDocTab={returnFalse}
+                    pinToPres={returnFalse}
                     renderDepth={1}
                     PanelWidth={returnXDimension}
                     PanelHeight={returnYDimension}

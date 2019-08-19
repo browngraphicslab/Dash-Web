@@ -644,6 +644,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             whenActiveChanged: this.props.whenActiveChanged,
             bringToFront: this.bringToFront,
             addDocTab: this.props.addDocTab,
+            pinToPres: this.props.pinToPres,
             zoomToScale: this.zoomToScale,
             getScale: this.getScale
         };
@@ -669,6 +670,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             whenActiveChanged: this.props.whenActiveChanged,
             bringToFront: this.bringToFront,
             addDocTab: this.props.addDocTab,
+            pinToPres: this.props.pinToPres,
             zoomToScale: this.zoomToScale,
             getScale: this.getScale
         };

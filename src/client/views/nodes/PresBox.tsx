@@ -1,22 +1,22 @@
 import React = require("react");
-import { FieldViewProps, FieldView } from './FieldView';
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { faArrowLeft, faArrowRight, faEdit, faMinus, faPlay, faPlus, faStop, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { observable, action, runInAction, reaction, autorun, computed } from "mobx";
-import "../presentationview/PresentationView.scss";
-import { DocumentManager } from "../../util/DocumentManager";
-import { Utils } from "../../../Utils";
 import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
-import { listSpec } from "../../../new_fields/Schema";
-import { Cast, NumCast, FieldValue, PromiseValue, StrCast, BoolCast } from "../../../new_fields/Types";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
+import { listSpec } from "../../../new_fields/Schema";
+import { BoolCast, Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
+import { Utils } from "../../../Utils";
+import { DocumentManager } from "../../util/DocumentManager";
+import { undoBatch } from "../../util/UndoManager";
 import PresentationElement, { buttonIndex } from "../presentationview/PresentationElement";
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowRight, faArrowLeft, faPlay, faStop, faPlus, faTimes, faMinus, faEdit } from '@fortawesome/free-solid-svg-icons';
-import { Docs } from "../../documents/Documents";
-import { undoBatch, UndoManager } from "../../util/UndoManager";
 import PresentationViewList from "../presentationview/PresentationList";
+import "../presentationview/PresentationView.scss";
+import { FieldView, FieldViewProps } from './FieldView';
+import { ContextMenu } from "../ContextMenu";
 
 library.add(faArrowLeft);
 library.add(faArrowRight);
@@ -37,16 +37,13 @@ const expandedWidth = 450;
 @observer
 export class PresBox extends React.Component<FieldViewProps> { //FieldViewProps?
 
-    @computed
-    private get presentationDocs() {
-        let source = Doc.GetProto(this.props.Document);
-        return DocListCast(source.data);
-    }
 
     public static LayoutString(fieldKey?: string) { return FieldView.LayoutString(PresBox, fieldKey); }
 
-    //public static Instance: PresentationView;
     public static Instance: PresBox;
+
+    //Keeping track of the doc for the current presentation -- bcz: keeping a list of current presentations shouldn't be needed.  Let users create them, store them, as they see fit.
+    @computed get curPresentation() { return this.props.Document; }
 
     //Mapping from presentation ids to a list of doc that represent a group
     @observable groupMappings: Map<String, Doc[]> = new Map();
@@ -59,9 +56,6 @@ export class PresBox extends React.Component<FieldViewProps> { //FieldViewProps?
     //back-up so that presentation stays the way it's when refreshed
     @observable presGroupBackUp: Doc = new Doc();
     @observable presButtonBackUp: Doc = new Doc();
-
-    //Keeping track of the doc for the current presentation
-    @observable curPresentation: Doc = new Doc();
     //Mapping of guids to presentations.
     @observable presentationsMapping: Map<String, Doc> = new Map();
     //Mapping of presentations to guid, so that select option values can be given.
@@ -77,12 +71,14 @@ export class PresBox extends React.Component<FieldViewProps> { //FieldViewProps?
     @observable opacity = 1;
     @observable persistOpacity = true;
     @observable labelOpacity = 0;
+    @observable presMode = false;
+
+    @observable public static CurrentPresentation: PresBox;
 
     //initilize class variables
-    constructor(props: FieldViewProps) { //FieldViewProps?
+    constructor(props: FieldViewProps) {
         super(props);
-        //PresentationView.Instance = this;
-        PresBox.Instance = this;
+        runInAction(() => PresBox.CurrentPresentation = this);
     }
 
     @action
@@ -94,32 +90,10 @@ export class PresBox extends React.Component<FieldViewProps> { //FieldViewProps?
         }
     }
 
-    //The first lifecycle function that gets called to set up the current presentation.
-    async componentWillMount() {
-        this.presentationDocs.forEach(async (doc, index: number) => {
-
-            //For each presentation received from mainContainer, a mapping is created.
-            let curDoc: Doc = await doc;
-            let newGuid = Utils.GenerateGuid();
-            this.presentationsKeyMapping.set(curDoc, newGuid);
-            this.presentationsMapping.set(newGuid, curDoc);
-
-            //The Presentation at first index gets set as default start presentation
-            if (index === 0) {
-                runInAction(() => this.currentSelectedPresValue = newGuid);
-                runInAction(() => this.curPresentation = curDoc);
-            }
-        });
-    }
-
-    //Second lifecycle function that gets called when component mounts. It makes sure to
+    //Second lifecycle function that gets called when component mounts. It makes sure toS
     //get the back-up information from previous session for the current presentation.
     async componentDidMount() {
-        let docAtZero = await this.presentationDocs[0];
-        runInAction(() => this.curPresentation = docAtZero);
-
         this.setPresentationBackUps();
-
     }
 
 
@@ -212,7 +186,6 @@ export class PresBox extends React.Component<FieldViewProps> { //FieldViewProps?
     //observable means render is re-called every time variable is changed
     @observable
     collapsed: boolean = false;
-    closePresentation = action(() => this.curPresentation.width = 0);
     next = async () => {
         const current = NumCast(this.curPresentation.selectedDoc);
         //asking to get document at current index
@@ -556,23 +529,6 @@ export class PresBox extends React.Component<FieldViewProps> { //FieldViewProps?
         runInAction(() => this.groupMappings = new Map());
     }
 
-    /**
-     * Adds a document to the presentation view
-     **/
-    @undoBatch
-    @action
-    public PinDoc(doc: Doc) {
-        //add this new doc to props.Document
-        const data = Cast(this.curPresentation.data, listSpec(Doc));
-        if (data) {
-            data.push(doc);
-        } else {
-            this.curPresentation.data = new List([doc]);
-        }
-
-        this.toggle(true);
-    }
-
     //Function that sets the store of the children docs.
     @action
     setChildrenDocs = (docList: Doc[]) => {
@@ -648,72 +604,15 @@ export class PresBox extends React.Component<FieldViewProps> { //FieldViewProps?
 
     }
 
-    /**
-     * The function that is called to add a new presentation to the presentationView.
-     * It sets up te mappings and local copies of it. Resets the groupings and presentation.
-     * Makes the new presentation current selected, and retrieve the back-Ups if present.
-     */
-    @action
-    addNewPresentation = (presTitle: string) => {
-        //creating a new presentation doc
-        let newPresentationDoc = Docs.Create.TreeDocument([], { title: presTitle });
-        let presDocs = Cast(Doc.GetProto(this.props.Document).data, listSpec(Doc));
-        presDocs && presDocs.push(newPresentationDoc);
-
-        //setting that new doc as current
-        this.curPresentation = newPresentationDoc;
-
-        //storing the doc in local copies for easier access
-        let newGuid = Utils.GenerateGuid();
-        this.presentationsMapping.set(newGuid, newPresentationDoc);
-        this.presentationsKeyMapping.set(newPresentationDoc, newGuid);
-
-        //resetting the previous presentation's actions so that new presentation can be loaded.
-        this.resetGroupIds();
-        this.resetPresentation();
-        this.presElementsMappings = new Map();
-        this.currentSelectedPresValue = newGuid;
-        this.setPresentationBackUps();
-
-    }
-
-    /**
-     * The function that is called to change the current selected presentation.
-     * Changes the presentation, also resetting groupings and presentation in process.
-     * Plus retrieving the backUps for the newly selected presentation.
-     */
-    @action
-    getSelectedPresentation = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        //get the guid of the selected presentation
-        let selectedGuid = e.target.value;
-        //set that as current presentation
-        this.curPresentation = this.presentationsMapping.get(selectedGuid)!;
-
-        //reset current Presentations local things so that new one can be loaded
-        this.resetGroupIds();
-        this.resetPresentation();
-        this.presElementsMappings = new Map();
-        this.currentSelectedPresValue = selectedGuid;
-        this.setPresentationBackUps();
-
-
-    }
 
     /**
      * The function that is called to render either select for presentations, or title inputting.
      */
     renderSelectOrPresSelection = () => {
-        let presentationList = this.presentationDocs;
         if (this.PresTitleInputOpen || this.PresTitleChangeOpen) {
             return <input ref={(e) => this.titleInputElement = e!} type="text" className="presentationView-title" placeholder="Enter Name!" onKeyDown={this.submitPresentationTitle} />;
         } else {
-            return <select value={this.currentSelectedPresValue} id="pres_selector" className="presentationView-title" onChange={this.getSelectedPresentation}>
-                {presentationList.map((doc: Doc, index: number) => {
-                    let mappedGuid = this.presentationsKeyMapping.get(doc);
-                    let docGuid: string = mappedGuid ? mappedGuid.toString() : "";
-                    return <option key={docGuid} value={docGuid}>{StrCast(doc.title)}</option>;
-                })}
-            </select>;
+            return (null);
         }
     }
 
@@ -726,87 +625,12 @@ export class PresBox extends React.Component<FieldViewProps> { //FieldViewProps?
         if (e.keyCode === 13) {
             let presTitle = this.titleInputElement!.value;
             this.titleInputElement!.value = "";
-            if (this.PresTitleInputOpen) {
-                if (presTitle === "") {
-                    presTitle = "Presentation";
-                }
-                this.PresTitleInputOpen = false;
-                this.addNewPresentation(presTitle);
-            } else if (this.PresTitleChangeOpen) {
+            if (this.PresTitleChangeOpen) {
                 this.PresTitleChangeOpen = false;
                 this.changePresentationTitle(presTitle);
             }
         }
     }
-
-    /**
-     * The function that is called to remove a presentation from all its copies, and the main Container's
-     * list. Sets up the next presentation as current.
-     */
-    @action
-    removePresentation = async () => {
-        if (this.presentationsMapping.size !== 1) {
-            let presentationList = this.presentationDocs;
-            let batch = UndoManager.StartBatch("presRemoval");
-
-            //getting the presentation that will be removed
-            let removedDoc = this.presentationsMapping.get(this.currentSelectedPresValue!);
-            //that presentation is removed
-            presentationList!.splice(presentationList.indexOf(removedDoc!), 1);
-
-            //its mappings are removed from local copies
-            this.presentationsKeyMapping.delete(removedDoc!);
-            this.presentationsMapping.delete(this.currentSelectedPresValue!);
-
-            //the next presentation is set as current
-            let remainingPresentations = this.presentationsMapping.values();
-            let nextDoc = remainingPresentations.next().value;
-            this.curPresentation = nextDoc;
-
-
-            //Storing these for being able to undo changes
-            let curGuid = this.currentSelectedPresValue!;
-            let curPresStatus = this.presStatus;
-
-            //resetting the groups and presentation actions so that next presentation gets loaded
-            this.resetGroupIds();
-            this.resetPresentation();
-            this.currentSelectedPresValue = this.presentationsKeyMapping.get(nextDoc)!.toString();
-            this.setPresentationBackUps();
-
-            //Storing for undo
-            let currentGroups = this.groupMappings;
-            let curPresElemMapping = this.presElementsMappings;
-
-            //Event to undo actions that are not related to doc directly, aka. local things
-            UndoManager.AddEvent({
-                undo: action(() => {
-                    this.curPresentation = removedDoc!;
-                    this.presentationsMapping.set(curGuid, removedDoc!);
-                    this.presentationsKeyMapping.set(removedDoc!, curGuid);
-                    this.currentSelectedPresValue = curGuid;
-
-                    this.presStatus = curPresStatus;
-                    this.groupMappings = currentGroups;
-                    this.presElementsMappings = curPresElemMapping;
-                    this.setPresentationBackUps();
-
-                }),
-                redo: action(() => {
-                    this.curPresentation = nextDoc;
-                    this.presStatus = false;
-                    this.presentationsKeyMapping.delete(removedDoc!);
-                    this.presentationsMapping.delete(curGuid);
-                    this.currentSelectedPresValue = this.presentationsKeyMapping.get(nextDoc)!.toString();
-                    this.setPresentationBackUps();
-
-                }),
-            });
-
-            batch.end();
-        }
-    }
-
     /**
      * The function that is called to change title of presentation to what user entered.
      */
@@ -822,26 +646,23 @@ export class PresBox extends React.Component<FieldViewProps> { //FieldViewProps?
         this.presElementsMappings.set(keyDoc, elem);
     }
 
+    specificContextMenu = (e: React.MouseEvent): void => {
+        ContextMenu.Instance.addItem({ description: "Make Current Presentation", event: action(() => Doc.UserDoc().curPresentation = this.props.Document), icon: "asterisk" });
+        ContextMenu.Instance.addItem({
+            description: "Toggle Minimized Mode", event: action(() => {
+                this.presMode = !this.presMode;
+                if (this.presMode) this.props.addDocTab && this.props.addDocTab(this.props.Document, this.props.DataDoc, "close");
+            }), icon: "asterisk"
+        });
+    }
 
     render() {
 
         let width = "100%"; //NumCast(this.curPresentation.width)
-
         return (
-            <div className="presentationView-cont" onPointerEnter={action(() => !this.persistOpacity && (this.opacity = 1))} onPointerLeave={action(() => !this.persistOpacity && (this.opacity = 0.4))} style={{ width: width, overflow: "hidden", opacity: this.opacity, transition: "0.7s opacity ease", pointerEvents: "all" }}>
-                <div className="presentationView-heading">
-                    {this.renderSelectOrPresSelection()}
-                    <button title="Close Presentation" className='presentation-icon' onClick={this.closePresentation}><FontAwesomeIcon icon={"times"} /></button> {/**this.closePresentation  CLICK does not work?! Also without the*/}
-                    <button title="Add Presentation" className="presentation-icon" style={{ marginRight: 10 }} onClick={() => {
-                        runInAction(() => { if (this.PresTitleChangeOpen) { this.PresTitleChangeOpen = false; } });
-                        runInAction(() => this.PresTitleInputOpen ? this.PresTitleInputOpen = false : this.PresTitleInputOpen = true);
-                    }}><FontAwesomeIcon icon={"plus"} /></button>
-                    <button title="Remove Presentation" className='presentation-icon' style={{ marginRight: 10 }} onClick={this.removePresentation}><FontAwesomeIcon icon={"minus"} /></button>
-                    <button title="Change Presentation Title" className="presentation-icon" style={{ marginRight: 10 }} onClick={() => {
-                        runInAction(() => { if (this.PresTitleInputOpen) { this.PresTitleInputOpen = false; } });
-                        runInAction(() => this.PresTitleChangeOpen ? this.PresTitleChangeOpen = false : this.PresTitleChangeOpen = true);
-                    }}><FontAwesomeIcon icon={"edit"} /></button>
-                </div>
+            <div className="presentationView-cont" onPointerEnter={action(() => !this.persistOpacity && (this.opacity = 1))} onContextMenu={this.specificContextMenu}
+                onPointerLeave={action(() => !this.persistOpacity && (this.opacity = 0.4))}
+                style={{ width: width, opacity: this.opacity, }}>
                 <div className="presentation-buttons">
                     <button title="Back" className="presentation-button" onClick={this.back}><FontAwesomeIcon icon={"arrow-left"} /></button>
                     {this.renderPlayPauseButton()}

@@ -36,6 +36,7 @@ interface IViewerProps {
     active: () => boolean;
     setPanY?: (n: number) => void;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
+    pinToPres: (document: Doc) => void;
     addDocument?: (doc: Doc, allowDuplicates?: boolean) => boolean;
 }
 

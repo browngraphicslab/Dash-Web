@@ -29,6 +29,8 @@ import { faFile, faUnlockAlt } from '@fortawesome/free-solid-svg-icons';
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
 import { Docs } from '../../documents/Documents';
 import { DateField } from '../../../new_fields/DateField';
+import { List } from '../../../new_fields/List';
+import { DocumentType } from '../../documents/DocumentTypes';
 library.add(faFile);
 
 @observer
@@ -543,11 +545,31 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         }));
     }
 
+    /**
+     * Adds a document to the presentation view
+     **/
+    @undoBatch
+    @action
+    public PinDoc(doc: Doc) {
+        if (doc.type === DocumentType.PRES) {
+            MainView.Instance.toggleMiniPresentation()
+        }
+        //add this new doc to props.Document
+        let curPres = Cast(CurrentUserUtils.UserDocument.curPresentation, Doc) as Doc;
+        if (curPres) {
+            const data = Cast(curPres.data, listSpec(Doc));
+            if (data) {
+                data.push(doc);
+            } else {
+                curPres.data = new List([doc]);
+            }
+        }
+    }
+
     componentDidMount() {
         this.props.glContainer.layoutManager.on("activeContentItemChanged", this.onActiveContentItemChanged);
         this.props.glContainer.on("tab", this.onActiveContentItemChanged);
         this.onActiveContentItemChanged();
-        // setTimeout(() => MainView.Instance.openPresentationView(), 2000);
     }
 
     componentWillUnmount() {
@@ -592,6 +614,8 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             MainView.Instance.openWorkspace(doc);
         } else if (location === "onRight") {
             CollectionDockingView.Instance.AddRightSplit(doc, dataDoc);
+        } else if (location === "close") {
+            CollectionDockingView.Instance.CloseRightSplit(doc);
         } else {
             CollectionDockingView.Instance.AddTab(this._stack, doc, dataDoc);
         }
@@ -618,6 +642,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             focus={emptyFunction}
             backgroundColor={returnEmptyString}
             addDocTab={this.addDocTab}
+            pinToPres={this.PinDoc}
             ContainingCollectionView={undefined}
             zoomToScale={emptyFunction}
             getScale={returnOne} />;

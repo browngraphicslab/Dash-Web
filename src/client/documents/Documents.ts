@@ -290,7 +290,7 @@ export namespace Docs {
             const { omit: protoProps, extract: delegateProps } = OmitKeys(options, delegateKeys);
 
             if (!("author" in protoProps)) {
-                protoProps.author = CurrentUserUtils.email;
+                protoProps.author = Doc.CurrentUserEmail;
             }
 
             if (!("creationDate" in protoProps)) {

@@ -12,7 +12,6 @@ import { List } from '../../new_fields/List';
 import { Id } from '../../new_fields/FieldSymbols';
 import { InkTool } from '../../new_fields/InkField';
 import { listSpec } from '../../new_fields/Schema';
-import { SchemaHeaderField } from '../../new_fields/SchemaHeaderField';
 import { BoolCast, Cast, FieldValue, StrCast } from '../../new_fields/Types';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { RouteStore } from '../../server/RouteStore';
@@ -24,7 +23,7 @@ import { DictationManager } from '../util/DictationManager';
 import { SetupDrag } from '../util/DragManager';
 import { HistoryUtil } from '../util/History';
 import { Transform } from '../util/Transform';
-import { UndoManager } from '../util/UndoManager';
+import { UndoManager, undoBatch } from '../util/UndoManager';
 import { CollectionBaseView } from './collections/CollectionBaseView';
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { CollectionTreeView } from './collections/CollectionTreeView';
@@ -37,15 +36,16 @@ import { MainOverlayTextBox } from './MainOverlayTextBox';
 import { DocumentView } from './nodes/DocumentView';
 import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
-import { PresentationView } from './presentationview/PresentationView';
 import { PreviewCursor } from './PreviewCursor';
 import { FilterBox } from './search/FilterBox';
+import { DocumentManager } from '../util/DocumentManager';
+import PresModeMenu from './presentationview/PresentationModeMenu';
+import { PresBox } from './nodes/PresBox';
 
 @observer
 export class MainView extends React.Component {
     public static Instance: MainView;
     @observable addMenuToggle = React.createRef<HTMLInputElement>();
-    @observable private _workspacesShown: boolean = false;
     @observable public pwidth: number = 0;
     @observable public pheight: number = 0;
 
@@ -82,10 +82,6 @@ export class MainView extends React.Component {
     public isPointerDown = false;
     private set mainContainer(doc: Opt<Doc>) {
         if (doc) {
-            if (!("presentationView" in doc)) {
-                let initialDoc = Docs.Create.TreeDocument([], { title: "Presentation" });
-                doc.presentationView = Docs.Create.PresDocument(new List<Doc>([initialDoc]));
-            }
             CurrentUserUtils.UserDocument.activeWorkspace = doc;
         }
     }
@@ -322,6 +318,7 @@ export class MainView extends React.Component {
                             DataDoc={undefined}
                             addDocument={undefined}
                             addDocTab={emptyFunction}
+                            pinToPres={emptyFunction}
                             onClick={undefined}
                             removeDocument={undefined}
                             ScreenToLocalTransform={Transform.Identity}
@@ -339,7 +336,6 @@ export class MainView extends React.Component {
                             zoomToScale={emptyFunction}
                             getScale={returnOne}
                         />}
-                    {/* {presentationDoc ? <PresentationView Documents={Cast(presentationDoc.data, listSpec(Doc))!} key="presentation" /> : null} */}
                 </div>
             }
         </Measure>;
@@ -386,6 +382,7 @@ export class MainView extends React.Component {
             DataDoc={undefined}
             addDocument={undefined}
             addDocTab={this.addDocTabFunc}
+            pinToPres={emptyFunction}
             removeDocument={undefined}
             onClick={undefined}
             ScreenToLocalTransform={Transform.Identity}
@@ -443,26 +440,24 @@ export class MainView extends React.Component {
 
         let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
 
-        // let addDockingNode = action(() => Docs.Create.StandardCollectionDockingDocument([{ doc: addColNode(), initialWidth: 200 }], { width: 200, height: 200, title: "a nested docking freeform collection" }));
-        let addSchemaNode = action(() => Docs.Create.SchemaDocument([new SchemaHeaderField("title", "#f1efeb")], [], { width: 200, height: 200, title: "a schema collection" }));
-        //let addTreeNode = action(() => Docs.TreeDocument([CurrentUserUtils.UserDocument], { width: 250, height: 400, title: "Library:" + CurrentUserUtils.email, dropAction: "alias" }));
-        // let addTreeNode = action(() => Docs.TreeDocument(this._northstarSchemas, { width: 250, height: 400, title: "northstar schemas", dropAction: "copy"  }));
         let addColNode = action(() => Docs.Create.FreeformDocument([], { width: this.pwidth * .7, height: this.pheight, title: "a freeform collection" }));
+        let addPresNode = action(() => Doc.UserDoc().curPresentation = Docs.Create.PresDocument(new List<Doc>(), { width: 200, height: 500, title: "a presentation trail" }));
         let addWebNode = action(() => Docs.Create.WebDocument("https://en.wikipedia.org/wiki/Hedgehog", { width: 300, height: 300, title: "New Webpage" }));
         let addDragboxNode = action(() => Docs.Create.DragboxDocument({ width: 40, height: 40, title: "drag collection" }));
         let addImageNode = action(() => Docs.Create.ImageDocument(imgurl, { width: 200, title: "an image of a cat" }));
         let addButtonDocument = action(() => Docs.Create.ButtonDocument({ width: 150, height: 50, title: "Button" }));
         let addImportCollectionNode = action(() => Docs.Create.DirectoryImportDocument({ title: "Directory Import", width: 400, height: 400 }));
-        let youtubeurl = "https://www.youtube.com/embed/TqcApsGRzWw";
-        let addYoutubeSearcher = action(() => Docs.Create.YoutubeDocument(youtubeurl, { width: 600, height: 600, title: "youtube search" }));
+        // let youtubeurl = "https://www.youtube.com/embed/TqcApsGRzWw";
+        // let addYoutubeSearcher = action(() => Docs.Create.YoutubeDocument(youtubeurl, { width: 600, height: 600, title: "youtube search" }));
 
         let btns: [React.RefObject<HTMLDivElement>, IconName, string, () => Doc][] = [
             [React.createRef<HTMLDivElement>(), "object-group", "Add Collection", addColNode],
+            [React.createRef<HTMLDivElement>(), "table", "Add Presentation Trail", addPresNode],
             [React.createRef<HTMLDivElement>(), "globe-asia", "Add Website", addWebNode],
             [React.createRef<HTMLDivElement>(), "bolt", "Add Button", addButtonDocument],
             // [React.createRef<HTMLDivElement>(), "clone", "Add Docking Frame", addDockingNode],
             [React.createRef<HTMLDivElement>(), "cloud-upload-alt", "Import Directory", addImportCollectionNode], //remove at some point in favor of addImportCollectionNode
-            [React.createRef<HTMLDivElement>(), "play", "Add Youtube Searcher", addYoutubeSearcher],
+            //[React.createRef<HTMLDivElement>(), "play", "Add Youtube Searcher", addYoutubeSearcher],
             [React.createRef<HTMLDivElement>(), "file", "Add Document Dragger", addDragboxNode]
         ];
         if (!ClientUtils.RELEASE) btns.unshift([React.createRef<HTMLDivElement>(), "cat", "Add Cat Image", addImageNode]);
@@ -489,7 +484,7 @@ export class MainView extends React.Component {
             <div id="add-options-content">
                 <ul id="add-options-list">
                     <li key="search"><button className="add-button round-button" title="Search" onClick={this.toggleSearch}><FontAwesomeIcon icon="search" size="sm" /></button></li>
-                    <li key="presentation"><button className="add-button round-button" title="Open Presentation View" onClick={this.togglePresentationView}><FontAwesomeIcon icon="table" size="sm" /></button></li>
+                    <li key="presentation"><button className="add-button round-button" title="Show Current Presentation Trail" onClick={this.togglePresentationView}><FontAwesomeIcon icon="table" size="sm" /></button></li>
                     <li key="undo"><button className="add-button round-button" title="Undo" style={{ opacity: UndoManager.CanUndo() ? 1 : 0.5, transition: "0.4s ease all" }} onClick={() => UndoManager.Undo()}><FontAwesomeIcon icon="undo-alt" size="sm" /></button></li>
                     <li key="redo"><button className="add-button round-button" title="Redo" style={{ opacity: UndoManager.CanRedo() ? 1 : 0.5, transition: "0.4s ease all" }} onClick={() => UndoManager.Redo()}><FontAwesomeIcon icon="redo-alt" size="sm" /></button></li>
                     {btns.map(btn =>
@@ -543,30 +538,20 @@ export class MainView extends React.Component {
     @observable isSearchVisible = false;
     @action.bound
     toggleSearch = () => {
-        // console.log("search toggling")
         this.isSearchVisible = !this.isSearchVisible;
     }
 
     togglePresentationView = () => {
-        let presDoc = this.presentationDoc;
-        if (!presDoc) {
-            return;
-        }
-        let isOpen = CollectionDockingView.Instance.Has(presDoc);
-        if (isOpen) {
-            return;
-            // CollectionDockingView.Instance.CloseRightSplit(presDoc);
-            //why?? It's throwing an error that seems impossible to fix.
-            //ToDo: 
-        } else {
-            CollectionDockingView.Instance.AddRightSplit(presDoc, undefined);
+        if (CurrentUserUtils.UserDocument.curPresentation) {
+            let isOpen = DocumentManager.Instance.getDocumentView(CurrentUserUtils.UserDocument.curPresentation as Doc);
+            if (isOpen) {
+                CollectionDockingView.Instance.CloseRightSplit(CurrentUserUtils.UserDocument.curPresentation as Doc);
+            } else {
+                CollectionDockingView.Instance.AddRightSplit(CurrentUserUtils.UserDocument.curPresentation as Doc, undefined);
+            }
         }
     }
 
-    private get presentationDoc() {
-        let mainCont = this.mainContainer;
-        return mainCont ? FieldValue(Cast(mainCont.presentationView, Doc)) : undefined;
-    }
     private get dictationOverlay() {
         let display = this.dictationOverlayVisible;
         let success = this.dictationSuccess;
@@ -592,12 +577,21 @@ export class MainView extends React.Component {
         );
     }
 
+    @computed get miniPresentation() {
+        let next = () => PresBox.CurrentPresentation.next();
+        let back = () => PresBox.CurrentPresentation.back();
+        let startOrResetPres = () => PresBox.CurrentPresentation.startOrResetPres();
+        let closePresMode = action(() => {PresBox.CurrentPresentation.presMode = false; this.addDocTabFunc(PresBox.CurrentPresentation.props.Document)});
+        return !PresBox.CurrentPresentation || !PresBox.CurrentPresentation.presMode ? (null) : <PresModeMenu next={next} back={back} presStatus={PresBox.CurrentPresentation.presStatus} startOrResetPres={startOrResetPres} closePresMode={closePresMode} > </PresModeMenu>
+    }
+
     render() {
         return (
             <div id="main-div">
                 {this.dictationOverlay}
                 <DocumentDecorations />
                 {this.mainContent}
+                {this.miniPresentation}
                 <PreviewCursor />
                 <ContextMenu />
                 {this.nodesMenu()}

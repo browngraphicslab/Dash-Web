@@ -251,6 +251,7 @@ export interface SchemaTableProps {
     active: () => boolean;
     onDrop: (e: React.DragEvent<Element>, options: DocumentOptions, completed?: (() => void) | undefined) => void;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
+    pinToPres: (document: Doc) => void;
     isSelected: () => boolean;
     isFocused: (document: Doc) => boolean;
     setFocused: (document: Doc) => void;
@@ -377,6 +378,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                         fieldKey: this.props.fieldKey,
                         renderDepth: this.props.renderDepth,
                         addDocTab: this.props.addDocTab,
+                        pinToPres: this.props.pinToPres,
                         moveDocument: this.props.moveDocument,
                         setIsEditing: this.setCellIsEditing,
                         isEditable: isEditable,
@@ -907,6 +909,7 @@ interface CollectionSchemaPreviewProps {
     active: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
+    pinToPres: (document: Doc) => void;
     setPreviewScript: (script: string) => void;
     previewScript?: string;
 }
@@ -997,6 +1000,7 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
                         whenActiveChanged={this.props.whenActiveChanged}
                         ContainingCollectionView={this.props.CollectionView}
                         addDocTab={this.props.addDocTab}
+                        pinToPres={this.props.pinToPres}
                         parentActive={this.props.active}
                         ScreenToLocalTransform={this.getTransform}
                         renderDepth={this.props.renderDepth + 1}

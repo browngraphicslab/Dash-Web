@@ -15,7 +15,7 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { ContextMenu } from "../ContextMenu";
 import { Transform } from "../../util/Transform";
 import { DocumentView } from "../nodes/DocumentView";
-import { DocumentType } from "../../documents/Documents";
+import { DocumentType } from "../../documents/DocumentTypes";
 import React = require("react");
 
 
@@ -839,6 +839,7 @@ export default class PresentationElement extends React.Component<PresentationEle
                     removeDocument={returnFalse}
                     ScreenToLocalTransform={Transform.Identity}
                     addDocTab={returnFalse}
+                    pinToPres={returnFalse}
                     renderDepth={1}
                     PanelWidth={() => 350}
                     PanelHeight={() => 90}

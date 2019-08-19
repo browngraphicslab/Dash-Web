@@ -83,7 +83,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             let ind;
             let doc = this.props.Document;
             let id = CurrentUserUtils.id;
-            let email = CurrentUserUtils.email;
+            let email = Doc.CurrentUserEmail;
             let pos = { x: position[0], y: position[1] };
             if (id && email) {
                 const proto = Doc.GetProto(doc);

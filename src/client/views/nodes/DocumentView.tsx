@@ -33,7 +33,6 @@ import { DocComponent } from "../DocComponent";
 import { EditableView } from '../EditableView';
 import { MainView } from '../MainView';
 import { OverlayView } from '../OverlayView';
-import { PresentationView } from "../presentationview/PresentationView";
 import { ScriptBox } from '../ScriptBox';
 import { ScriptingRepl } from '../ScriptingRepl';
 import { Template } from "./../Templates";
@@ -98,6 +97,7 @@ export interface DocumentViewProps {
     whenActiveChanged: (isActive: boolean) => void;
     bringToFront: (doc: Doc, sendToBack?: boolean) => void;
     addDocTab: (doc: Doc, dataDoc: Doc | undefined, where: string) => void;
+    pinToPres: (document: Doc) => void;
     collapseToPoint?: (scrpt: number[], expandedDocs: Doc[] | undefined) => void;
     zoomToScale: (scale: number) => void;
     backgroundColor: (doc: Doc) => string | undefined;
@@ -614,7 +614,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let analyzers: ContextMenuProps[] = existingAnalyze && "subitems" in existingAnalyze ? existingAnalyze.subitems : [];
         analyzers.push({ description: "Transcribe Speech", event: this.listen, icon: "microphone" });
         !existingAnalyze && cm.addItem({ description: "Analyzers...", subitems: analyzers, icon: "hand-point-right" });
-        cm.addItem({ description: "Pin to Presentation", event: () => PresBox.Instance.PinDoc(this.props.Document), icon: "map-pin" }); //I think this should work... and it does! A miracle!
+        cm.addItem({ description: "Pin to Presentation", event: () => this.props.pinToPres(this.props.Document), icon: "map-pin" }); //I think this should work... and it does! A miracle!
         cm.addItem({ description: "Add Repl", icon: "laptop-code", event: () => OverlayView.Instance.addWindow(<ScriptingRepl />, { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" }) });
         cm.addItem({
             description: "Download document", icon: "download", event: () => {
@@ -661,7 +661,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         try {
             let stuff = await rp.get(Utils.prepend(RouteStore.getUsers));
             const users: User[] = JSON.parse(stuff);
-            usersMenu = users.filter(({ email }) => email !== CurrentUserUtils.email).map(({ email, userDocumentId }) => ({
+            usersMenu = users.filter(({ email }) => email !== Doc.CurrentUserEmail).map(({ email, userDocumentId }) => ({
                 description: email, event: async () => {
                     const userDocument = await Cast(DocServer.GetRefField(userDocumentId), Doc);
                     if (!userDocument) {
