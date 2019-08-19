@@ -212,6 +212,10 @@ export default class SharingManager extends React.Component<{}> {
         });
     }
 
+    private get publicPermissionsColor() {
+        return this.targetDoc ? ColorMapping.get(this.publicPermissions) : DefaultColor;
+    }
+
     private get sharingInterface() {
         return (
             <div className={"sharing-interface"}>
@@ -236,8 +240,8 @@ export default class SharingManager extends React.Component<{}> {
                         value={this.publicPermissions}
                         style={{
                             marginLeft: this.linkVisible ? 10 : 0,
-                            color: this.targetDoc ? ColorMapping.get(this.publicPermissions) : DefaultColor,
-                            borderColor: this.targetDoc ? ColorMapping.get(this.publicPermissions) : DefaultColor
+                            color: this.publicPermissionsColor,
+                            borderColor: this.publicPermissionsColor
                         }}
                         onChange={e => this.publicPermissions = Number(e.currentTarget.value)}
                     >
@@ -249,6 +253,7 @@ export default class SharingManager extends React.Component<{}> {
                 <div className={"users-list"} style={{ display: this.users.length ? "block" : "flex" }}>
                     {!this.users.length ? "There are no other users in your database." :
                         this.users.map(user => {
+                            let userColor = this.targetDoc ? ColorMapping.get(NumCast(this.targetDoc[GetAcls]()[user.userDocumentId], 3)) : DefaultColor;
                             return (
                                 <div
                                     key={user.email}
@@ -258,13 +263,12 @@ export default class SharingManager extends React.Component<{}> {
                                         className={"permissions-dropdown"}
                                         value={this.targetDoc ? NumCast(this.targetDoc[GetAcls]()[user.userDocumentId], 3) : 3}
                                         style={{
-                                            color: this.targetDoc ? ColorMapping.get(NumCast(this.targetDoc[GetAcls]()[user.userDocumentId], 3)) : DefaultColor,
-                                            borderColor: this.targetDoc ? ColorMapping.get(NumCast(this.targetDoc[GetAcls]()[user.userDocumentId], 3)) : DefaultColor
+                                            color: userColor,
+                                            borderColor: userColor
                                         }}
                                         onChange={e => this.setInternalSharing(user, Number(e.currentTarget.value) || 3)}
                                     >
                                         {this.sharingOptions}
-
                                     </select>
                                     <span className={"padding"}>{user.email}</span>
                                 </div>
