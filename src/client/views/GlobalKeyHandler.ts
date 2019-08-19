@@ -3,11 +3,12 @@ import { SelectionManager } from "../util/SelectionManager";
 import { CollectionDockingView } from "./collections/CollectionDockingView";
 import { MainView } from "./MainView";
 import { DragManager } from "../util/DragManager";
-import { action } from "mobx";
+import { action, runInAction } from "mobx";
 import { Doc } from "../../new_fields/Doc";
+import { DictationManager } from "../util/DictationManager";
 
 const modifiers = ["control", "meta", "shift", "alt"];
-type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo;
+type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
 type KeyControlInfo = {
     preventDefault: boolean,
     stopPropagation: boolean
@@ -25,9 +26,10 @@ export default class KeyManager {
         this.router.set(isMac ? "0001" : "0100", this.ctrl);
         this.router.set(isMac ? "0100" : "0010", this.alt);
         this.router.set(isMac ? "1001" : "1100", this.ctrl_shift);
+        this.router.set("1000", this.shift);
     }
 
-    public handle = (e: KeyboardEvent) => {
+    public handle = async (e: KeyboardEvent) => {
         let keyname = e.key.toLowerCase();
         this.handleGreedy(keyname);
 
@@ -43,7 +45,7 @@ export default class KeyManager {
             return;
         }
 
-        let control = handleConstrained(keyname, e);
+        let control = await handleConstrained(keyname, e);
 
         control.stopPropagation && e.stopPropagation();
         control.preventDefault && e.preventDefault();
@@ -57,7 +59,8 @@ export default class KeyManager {
     private unmodified = action((keyname: string, e: KeyboardEvent) => {
         switch (keyname) {
             case "escape":
-                if (MainView.Instance.isPointerDown) {
+                let main = MainView.Instance;
+                if (main.isPointerDown) {
                     DragManager.AbortDrag();
                 } else {
                     if (CollectionDockingView.Instance.HasFullScreen()) {
@@ -66,8 +69,9 @@ export default class KeyManager {
                         SelectionManager.DeselectAll();
                     }
                 }
-                MainView.Instance.toggleColorPicker(true);
+                main.toggleColorPicker(true);
                 SelectionManager.DeselectAll();
+                DictationManager.Controls.stop();
                 break;
             case "delete":
             case "backspace":
@@ -94,6 +98,23 @@ export default class KeyManager {
             preventDefault: false
         };
     });
+
+    private shift = async (keyname: string) => {
+        let stopPropagation = false;
+        let preventDefault = false;
+
+        switch (keyname) {
+            case " ":
+                DictationManager.Controls.listen({ tryExecute: true });
+                stopPropagation = true;
+                preventDefault = true;
+        }
+
+        return {
+            stopPropagation: stopPropagation,
+            preventDefault: preventDefault
+        };
+    }
 
     private alt = action((keyname: string) => {
         let stopPropagation = true;
@@ -172,6 +193,12 @@ export default class KeyManager {
             preventDefault: preventDefault
         };
     });
+
+    async printClipboard() {
+        let text: string = await navigator.clipboard.readText();
+        console.log(text)
+        console.log(document.activeElement)
+    }
 
     private ctrl_shift = action((keyname: string) => {
         let stopPropagation = true;

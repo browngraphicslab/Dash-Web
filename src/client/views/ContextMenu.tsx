@@ -1,6 +1,6 @@
 import React = require("react");
 import { ContextMenuItem, ContextMenuProps, OriginalMenuProps } from "./ContextMenuItem";
-import { observable, action, computed } from "mobx";
+import { observable, action, computed, runInAction, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
 import "./ContextMenu.scss";
 import { library } from '@fortawesome/fontawesome-svg-core';
@@ -27,6 +27,13 @@ export class ContextMenu extends React.Component {
     @observable private _width: number = 0;
     @observable private _height: number = 0;
 
+    @observable private _mouseX: number = -1;
+    @observable private _mouseY: number = -1;
+    @observable private _shouldDisplay: boolean = false;
+    @observable private _mouseDown: boolean = false;
+
+    private _reactionDisposer?: IReactionDisposer;
+
     constructor(props: Readonly<{}>) {
         super(props);
 
@@ -34,12 +41,50 @@ export class ContextMenu extends React.Component {
     }
 
     @action
+    onPointerDown = (e: PointerEvent) => {
+        this._mouseDown = true;
+        this._mouseX = e.clientX;
+        this._mouseY = e.clientY;
+    }
+    @action
+    onPointerUp = (e: PointerEvent) => {
+        this._mouseDown = false;
+        let curX = e.clientX;
+        let curY = e.clientY;
+        if (this._mouseX !== curX || this._mouseY !== curY) {
+            this._shouldDisplay = false;
+        }
+
+        this._shouldDisplay && (this._display = true);
+    }
+    componentWillUnmount() {
+        document.removeEventListener("pointerdown", this.onPointerDown);
+        document.removeEventListener("pointerup", this.onPointerUp);
+        this._reactionDisposer && this._reactionDisposer();
+    }
+
+    @action
+    componentDidMount = () => {
+        document.addEventListener("pointerdown", this.onPointerDown);
+        document.addEventListener("pointerup", this.onPointerUp);
+
+        this._reactionDisposer = reaction(
+            () => this._shouldDisplay,
+            () => this._shouldDisplay && !this._mouseDown && runInAction(() => this._display = true)
+        );
+    }
+
+    @action
     clearItems() {
         this._items = [];
     }
 
-    findByDescription = (target: string) => {
-        return this._items.find(menuItem => menuItem.description === target);
+    findByDescription = (target: string, toLowerCase = false) => {
+        return this._items.find(menuItem => {
+            let reference = menuItem.description;
+            toLowerCase && (reference = reference.toLowerCase());
+            return reference === target;
+        });
     }
 
     @action
@@ -79,22 +124,21 @@ export class ContextMenu extends React.Component {
     }
 
     @action
-    displayMenu(x: number, y: number) {
+    displayMenu = (x: number, y: number) => {
         //maxX and maxY will change if the UI/font size changes, but will work for any amount
         //of items added to the menu
 
         this._pageX = x;
         this._pageY = y;
-
         this._searchString = "";
-
-        this._display = true;
+        this._shouldDisplay = true;
     }
 
     @action
     closeMenu = () => {
         this.clearItems();
         this._display = false;
+        this._shouldDisplay = false;
     }
 
     @computed get filteredItems(): (OriginalMenuProps | string[])[] {

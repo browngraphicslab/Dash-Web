@@ -11,35 +11,33 @@ import { handleBackspace } from "../nodes/PDFBox";
 export default class PDFMenu extends React.Component {
     static Instance: PDFMenu;
 
-    @observable private _top: number = -300;
-    @observable private _left: number = -300;
-    @observable private _opacity: number = 1;
-    @observable private _transition: string = "opacity 0.5s";
-    @observable private _transitionDelay: string = "";
-
-
-    StartDrag: (e: PointerEvent, ele: HTMLElement) => void = emptyFunction;
-    Highlight: (d: Doc | undefined, color: string | undefined) => void = emptyFunction;
-    Delete: () => void = emptyFunction;
-    Snippet: (marquee: { left: number, top: number, width: number, height: number }) => void = emptyFunction;
-    AddTag: (key: string, value: string) => boolean = returnFalse;
-    PinToPres: () => void = emptyFunction;
-
-    @observable public Highlighting: boolean = false;
-    @observable public Status: "pdf" | "annotation" | "snippet" | "" = "";
-    @observable public Pinned: boolean = false;
-
-    public Marquee: { left: number; top: number; width: number; height: number; } | undefined;
-
     private _offsetY: number = 0;
     private _offsetX: number = 0;
     private _mainCont: React.RefObject<HTMLDivElement> = React.createRef();
     private _commentCont = React.createRef<HTMLButtonElement>();
     private _snippetButton: React.RefObject<HTMLButtonElement> = React.createRef();
     private _dragging: boolean = false;
+
+    @observable private _top: number = -300;
+    @observable private _left: number = -300;
+    @observable private _opacity: number = 1;
+    @observable private _transition: string = "opacity 0.5s";
+    @observable private _transitionDelay: string = "";
     @observable private _keyValue: string = "";
     @observable private _valueValue: string = "";
     @observable private _added: boolean = false;
+
+    @observable public Highlighting: boolean = false;
+    @observable public Status: "pdf" | "annotation" | "snippet" | "" = "";
+    @observable public Pinned: boolean = false;
+
+    public StartDrag: (e: PointerEvent, ele: HTMLElement) => void = emptyFunction;
+    public Highlight: (d: Doc | undefined, color: string) => void = emptyFunction;
+    public Delete: () => void = emptyFunction;
+    public Snippet: (marquee: { left: number, top: number, width: number, height: number }) => void = emptyFunction;
+    public AddTag: (key: string, value: string) => boolean = returnFalse;
+    public PinToPres: () => void = emptyFunction;
+    public Marquee: { left: number; top: number; width: number; height: number; } | undefined;
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -61,12 +59,10 @@ export default class PDFMenu extends React.Component {
         e.stopPropagation();
         e.preventDefault();
 
-        if (this._dragging) {
-            return;
+        if (!this._dragging) {
+            this.StartDrag(e, this._commentCont.current!);
+            this._dragging = true;
         }
-
-        this.StartDrag(e, this._commentCont.current!);
-        this._dragging = true;
     }
 
     pointerUp = (e: PointerEvent) => {
@@ -126,9 +122,20 @@ export default class PDFMenu extends React.Component {
     @action
     togglePin = (e: React.MouseEvent) => {
         this.Pinned = !this.Pinned;
-        if (!this.Pinned) {
-            this.Highlighting = false;
-        }
+        !this.Pinned && (this.Highlighting = false);
+    }
+
+    dragStart = (e: React.PointerEvent) => {
+        document.removeEventListener("pointermove", this.dragging);
+        document.addEventListener("pointermove", this.dragging);
+        document.removeEventListener("pointerup", this.dragEnd);
+        document.addEventListener("pointerup", this.dragEnd);
+
+        this._offsetX = this._mainCont.current!.getBoundingClientRect().width - e.nativeEvent.offsetX;
+        this._offsetY = e.nativeEvent.offsetY;
+
+        e.stopPropagation();
+        e.preventDefault();
     }
 
     @action
@@ -143,19 +150,6 @@ export default class PDFMenu extends React.Component {
     dragEnd = (e: PointerEvent) => {
         document.removeEventListener("pointermove", this.dragging);
         document.removeEventListener("pointerup", this.dragEnd);
-        e.stopPropagation();
-        e.preventDefault();
-    }
-
-    dragStart = (e: React.PointerEvent) => {
-        document.removeEventListener("pointermove", this.dragging);
-        document.addEventListener("pointermove", this.dragging);
-        document.removeEventListener("pointerup", this.dragEnd);
-        document.addEventListener("pointerup", this.dragEnd);
-
-        this._offsetX = this._mainCont.current!.getBoundingClientRect().width - e.nativeEvent.offsetX;
-        this._offsetY = e.nativeEvent.offsetY;
-
         e.stopPropagation();
         e.preventDefault();
     }
@@ -193,13 +187,10 @@ export default class PDFMenu extends React.Component {
     snippetDrag = (e: PointerEvent) => {
         e.stopPropagation();
         e.preventDefault();
-        if (this._dragging) {
-            return;
-        }
-        this._dragging = true;
+        if (!this._dragging) {
+            this._dragging = true;
 
-        if (this.Marquee) {
-            this.Snippet(this.Marquee);
+            this.Marquee && this.Snippet(this.Marquee);
         }
     }
 
@@ -226,36 +217,32 @@ export default class PDFMenu extends React.Component {
         if (this._keyValue.length > 0 && this._valueValue.length > 0) {
             this._added = this.AddTag(this._keyValue, this._valueValue);
 
-            setTimeout(
-                () => {
-                    runInAction(() => {
-                        this._added = false;
-                    });
-                }, 1000
-            );
+            setTimeout(action(() => this._added = false), 1000);
         }
     }
 
     render() {
-        let buttons = this.Status === "pdf" || this.Status === "snippet" ? [
-            <button key="1" className="pdfMenu-button" title="Click to Highlight" onClick={this.highlightClicked}
-                style={this.Highlighting ? { backgroundColor: "#121212" } : {}}>
-                <FontAwesomeIcon icon="highlighter" size="lg" style={{ transition: "transform 0.1s", transform: this.Highlighting ? "" : "rotate(-45deg)" }} />
-            </button>,
-            <button className="pdfMenu-button" title="Drag to Annotate" ref={this._commentCont} onPointerDown={this.pointerDown}><FontAwesomeIcon icon="comment-alt" size="lg" key="2" /></button>,
-            this.Status === "snippet" ? <button className="pdfMenu-button" title="Drag to Snippetize Selection" onPointerDown={this.snippetStart} ref={this._snippetButton}><FontAwesomeIcon icon="cut" size="lg" /></button> : undefined,
-            <button key="3" className="pdfMenu-button" title="Pin Menu" onClick={this.togglePin}
-                style={this.Pinned ? { backgroundColor: "#121212" } : {}}>
-                <FontAwesomeIcon icon="thumbtack" size="lg" style={{ transition: "transform 0.1s", transform: this.Pinned ? "rotate(45deg)" : "" }} />
-            </button>
-        ] : [
-                <button key="4" className="pdfMenu-button" title="Delete Anchor" onPointerDown={this.deleteClicked}><FontAwesomeIcon icon="trash-alt" size="lg" key="1" /></button>,
-                <button key="5" className="pdfMenu-button" title="Pin to Presentation" onPointerDown={this.PinToPres}><FontAwesomeIcon icon="map-pin" size="lg" key="2" /></button>, //change this to pin to 'new' presentation
-                <div className="pdfMenu-addTag" key="3">
+        let buttons = this.Status === "pdf" || this.Status === "snippet" ?
+            [
+                <button key="1" className="pdfMenu-button" title="Click to Highlight" onClick={this.highlightClicked} style={this.Highlighting ? { backgroundColor: "#121212" } : {}}>
+                    <FontAwesomeIcon icon="highlighter" size="lg" style={{ transition: "transform 0.1s", transform: this.Highlighting ? "" : "rotate(-45deg)" }} /></button>,
+                <button key="2" className="pdfMenu-button" title="Drag to Annotate" ref={this._commentCont} onPointerDown={this.pointerDown}>
+                    <FontAwesomeIcon icon="comment-alt" size="lg" /></button>,
+                <button key="3" className="pdfMenu-button" title="Drag to Snippetize Selection" style={{ display: this.Status === "snippet" ? "" : "none" }} onPointerDown={this.snippetStart} ref={this._snippetButton}>
+                    <FontAwesomeIcon icon="cut" size="lg" /></button>,
+                <button key="4" className="pdfMenu-button" title="Pin Menu" onClick={this.togglePin} style={this.Pinned ? { backgroundColor: "#121212" } : {}}>
+                    <FontAwesomeIcon icon="thumbtack" size="lg" style={{ transition: "transform 0.1s", transform: this.Pinned ? "rotate(45deg)" : "" }} /> </button>
+            ] : [
+                <button key="5" className="pdfMenu-button" title="Delete Anchor" onPointerDown={this.deleteClicked}>
+                    <FontAwesomeIcon icon="trash-alt" size="lg" /></button>,
+                <button key="6" className="pdfMenu-button" title="Pin to Presentation" onPointerDown={this.PinToPres}>
+                    <FontAwesomeIcon icon="map-pin" size="lg" /></button>,
+                <div key="7" className="pdfMenu-addTag" >
                     <input onKeyDown={handleBackspace} onChange={this.keyChanged} placeholder="Key" style={{ gridColumn: 1 }} />
                     <input onKeyDown={handleBackspace} onChange={this.valueChanged} placeholder="Value" style={{ gridColumn: 3 }} />
                 </div>,
-                <button key="6" className="pdfMenu-button" title={`Add tag: ${this._keyValue} with value: ${this._valueValue}`} onPointerDown={this.addTag}><FontAwesomeIcon style={{ transition: "all .2s" }} color={this._added ? "#42f560" : "white"} icon="check" size="lg" key="4" /></button>,
+                <button key="8" className="pdfMenu-button" title={`Add tag: ${this._keyValue} with value: ${this._valueValue}`} onPointerDown={this.addTag}>
+                    <FontAwesomeIcon style={{ transition: "all .2s" }} color={this._added ? "#42f560" : "white"} icon="check" size="lg" /></button>,
             ];
 
         return (

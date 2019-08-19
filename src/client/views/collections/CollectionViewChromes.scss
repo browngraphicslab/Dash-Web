@@ -3,16 +3,18 @@
 
 .collectionViewChrome-cont {
     position: relative;
+    opacity: 0.9;
     z-index: 9001;
     transition: top .5s;
-    background: lightslategray;
+    background: lightgrey;
     padding: 10px;
 
     .collectionViewChrome {
         display: grid;
         grid-template-columns: 1fr auto;
         padding-bottom: 10px;
-        border-bottom: .5px solid lightgrey;
+        border-bottom: .5px solid rgb(180, 180, 180);
+        overflow: hidden;
 
         .collectionViewBaseChrome {
             display: flex;
@@ -34,9 +36,19 @@
             }
 
             .collectionViewBaseChrome-collapse {
-                transition: all .5s;
+                transition: all .5s, opacity 0.3s;
                 position: absolute;
                 width: 40px;
+                transform-origin: top left;
+                // margin-top: 10px;
+            }
+            .collectionViewBaseChrome-template {
+                margin-left: 10px;
+                display: grid;
+                background: rgb(238, 238, 238);
+                color:grey;
+                margin-top:auto;
+                margin-bottom:auto;
             }
 
             .collectionViewBaseChrome-viewSpecs {
@@ -93,7 +105,7 @@
 
                     .collectionViewBaseChrome-viewSpecsMenu-lastRow {
                         display: grid;
-                        grid-template-columns: 1fr 1fr;
+                        grid-template-columns: 1fr 1fr 1fr;
                         grid-gap: 10px;
                         margin: 10px;
                     }
@@ -102,17 +114,20 @@
         }
 
 
-        .collectionStackingViewChrome-cont {
+        .collectionStackingViewChrome-cont,
+        .collectionTreeViewChrome-cont {
             display: flex;
             justify-content: space-between;
         }
 
-        .collectionStackingViewChrome-sort {
+        .collectionStackingViewChrome-sort,
+        .collectionTreeViewChrome-sort {
             display: flex;
             align-items: center;
             justify-content: space-between;
 
-            .collectionStackingViewChrome-sortIcon {
+            .collectionStackingViewChrome-sortIcon,
+            .collectionTreeViewChrome-sortIcon {
                 transition: transform .5s;
                 margin-left: 10px;
             }
@@ -123,18 +138,21 @@
         }
 
 
-        .collectionStackingViewChrome-sectionFilter-cont {
+        .collectionStackingViewChrome-sectionFilter-cont,
+        .collectionTreeViewChrome-sectionFilter-cont {
             justify-self: right;
             display: flex;
             font-size: 75%;
             letter-spacing: 2px;
 
-            .collectionStackingViewChrome-sectionFilter-label {
+            .collectionStackingViewChrome-sectionFilter-label,
+            .collectionTreeViewChrome-sectionFilter-label {
                 vertical-align: center;
                 padding: 10px;
             }
 
-            .collectionStackingViewChrome-sectionFilter {
+            .collectionStackingViewChrome-sectionFilter,
+            .collectionTreeViewChrome-sectionFilter {
                 color: white;
                 width: 100px;
                 text-align: center;
@@ -161,8 +179,60 @@
             }
         }
 
-        .collectionStackingViewChrome-sectionFilter:hover {
+        .collectionStackingViewChrome-sectionFilter:hover,
+        .collectionTreeViewChrome-sectionFilter:hover {
             cursor: text;
+        }
+    }
+}
+
+.collectionSchemaViewChrome-cont {
+    display: flex;
+    font-size: 10.5px;
+
+    .collectionSchemaViewChrome-toggle {
+        display: flex;
+        margin-left: 10px;
+    }
+
+    .collectionSchemaViewChrome-label {
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-right: 5px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .collectionSchemaViewChrome-toggler {
+        width: 100px;
+        height: 41px;
+        background-color: black;
+        position: relative;
+    }
+
+    .collectionSchemaViewChrome-togglerButton {
+        width: 47px;
+        height: 35px;
+        background-color: $light-color-secondary;
+        // position: absolute;
+        transition: all 0.5s ease;
+        // top: 3px;
+        margin-top: 3px;
+        color: gray;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        text-align: center;
+
+        &.on {
+            margin-left: 3px;
+        }
+
+        &.off {
+            margin-left: 50px;
         }
     }
 }

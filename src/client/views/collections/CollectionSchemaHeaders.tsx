@@ -2,7 +2,7 @@ import React = require("react");
 import { action, computed, observable, trace, untracked } from "mobx";
 import { observer } from "mobx-react";
 import "./CollectionSchemaView.scss";
-import { faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn, faSortAmountDown, faSortAmountUp, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { library, IconProp } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Flyout, anchorPoints } from "../DocumentDecorations";
@@ -10,9 +10,10 @@ import { ColumnType } from "./CollectionSchemaView";
 import { emptyFunction } from "../../../Utils";
 import { contains } from "typescript-collections/dist/lib/arrays";
 import { faFile } from "@fortawesome/free-regular-svg-icons";
-import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
+import { SchemaHeaderField, RandomPastel, PastelSchemaPalette } from "../../../new_fields/SchemaHeaderField";
+import { undoBatch } from "../../util/UndoManager";
 
-library.add(faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn, faFile);
+library.add(faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn, faFile as any, faSortAmountDown, faSortAmountUp, faTimes);
 
 export interface HeaderProps {
     keyValue: SchemaHeaderField;
@@ -23,23 +24,24 @@ export interface HeaderProps {
     onSelect: (oldKey: string, newKey: string, addnew: boolean) => void;
     setIsEditing: (isEditing: boolean) => void;
     deleteColumn: (column: string) => void;
-    setColumnType: (key: string, type: ColumnType) => void;
-    setColumnSort: (key: string, desc: boolean) => void;
-    removeColumnSort: (key: string) => void;
+    setColumnType: (column: SchemaHeaderField, type: ColumnType) => void;
+    setColumnSort: (column: SchemaHeaderField, desc: boolean | undefined) => void;
+    setColumnColor: (column: SchemaHeaderField, color: string) => void;
+
 }
 
 export class CollectionSchemaHeader extends React.Component<HeaderProps> {
     render() {
         let icon: IconProp = this.props.keyType === ColumnType.Number ? "hashtag" : this.props.keyType === ColumnType.String ? "font" :
             this.props.keyType === ColumnType.Boolean ? "check-square" : this.props.keyType === ColumnType.Doc ? "file" : "align-justify";
-
         return (
             <div className="collectionSchemaView-header" style={{ background: this.props.keyValue.color }}>
                 <CollectionSchemaColumnMenu
-                    keyValue={this.props.keyValue.heading}
+                    columnField={this.props.keyValue}
+                    // keyValue={this.props.keyValue.heading}
                     possibleKeys={this.props.possibleKeys}
                     existingKeys={this.props.existingKeys}
-                    keyType={this.props.keyType}
+                    // keyType={this.props.keyType}
                     typeConst={this.props.typeConst}
                     menuButtonContent={<div><FontAwesomeIcon icon={icon} size="sm" />{this.props.keyValue.heading}</div>}
                     addNew={false}
@@ -49,7 +51,7 @@ export class CollectionSchemaHeader extends React.Component<HeaderProps> {
                     onlyShowOptions={false}
                     setColumnType={this.props.setColumnType}
                     setColumnSort={this.props.setColumnSort}
-                    removeColumnSort={this.props.removeColumnSort}
+                    setColumnColor={this.props.setColumnColor}
                 />
             </div>
         );
@@ -70,13 +72,12 @@ export class CollectionSchemaAddColumnHeader extends React.Component<AddColumnHe
     }
 }
 
-
-
 export interface ColumnMenuProps {
-    keyValue: string;
+    columnField: SchemaHeaderField;
+    // keyValue: string;
     possibleKeys: string[];
     existingKeys: string[];
-    keyType: ColumnType;
+    // keyType: ColumnType;
     typeConst: boolean;
     menuButtonContent: JSX.Element;
     addNew: boolean;
@@ -84,10 +85,10 @@ export interface ColumnMenuProps {
     setIsEditing: (isEditing: boolean) => void;
     deleteColumn: (column: string) => void;
     onlyShowOptions: boolean;
-    setColumnType: (key: string, type: ColumnType) => void;
-    setColumnSort: (key: string, desc: boolean) => void;
-    removeColumnSort: (key: string) => void;
+    setColumnType: (column: SchemaHeaderField, type: ColumnType) => void;
+    setColumnSort: (column: SchemaHeaderField, desc: boolean | undefined) => void;
     anchorPoint?: any;
+    setColumnColor: (column: SchemaHeaderField, color: string) => void;
 }
 @observer
 export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps> {
@@ -116,10 +117,16 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
         this.props.setIsEditing(this._isOpen);
     }
 
-    setColumnType = (oldKey: string, newKey: string, addnew: boolean) => {
-        let typeStr = newKey as keyof typeof ColumnType;
-        let type = ColumnType[typeStr];
-        this.props.setColumnType(this.props.keyValue, type);
+    changeColumnType = (type: ColumnType): void => {
+        this.props.setColumnType(this.props.columnField, type);
+    }
+
+    changeColumnSort = (desc: boolean | undefined): void => {
+        this.props.setColumnSort(this.props.columnField, desc);
+    }
+
+    changeColumnColor = (color: string): void => {
+        this.props.setColumnColor(this.props.columnField, color);
     }
 
     @action
@@ -131,38 +138,80 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
 
     renderTypes = () => {
         if (this.props.typeConst) return <></>;
+
+        let type = this.props.columnField.type;
         return (
             <div className="collectionSchema-headerMenu-group">
                 <label>Column type:</label>
                 <div className="columnMenu-types">
-                    <button title="Any" className={this.props.keyType === ColumnType.Any ? "active" : ""} onClick={() => this.props.setColumnType(this.props.keyValue, ColumnType.Any)}>
+                    <div className={"columnMenu-option" + (type === ColumnType.Any ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.Any)}>
                         <FontAwesomeIcon icon={"align-justify"} size="sm" />
-                    </button>
-                    <button title="Number" className={this.props.keyType === ColumnType.Number ? "active" : ""} onClick={() => this.props.setColumnType(this.props.keyValue, ColumnType.Number)}>
+                        Any
+                    </div>
+                    <div className={"columnMenu-option" + (type === ColumnType.Number ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.Number)}>
                         <FontAwesomeIcon icon={"hashtag"} size="sm" />
-                    </button>
-                    <button title="String" className={this.props.keyType === ColumnType.String ? "active" : ""} onClick={() => this.props.setColumnType(this.props.keyValue, ColumnType.String)}>
+                        Number
+                    </div>
+                    <div className={"columnMenu-option" + (type === ColumnType.String ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.String)}>
                         <FontAwesomeIcon icon={"font"} size="sm" />
-                    </button>
-                    <button title="Checkbox" className={this.props.keyType === ColumnType.Boolean ? "active" : ""} onClick={() => this.props.setColumnType(this.props.keyValue, ColumnType.Boolean)}>
+                        Text
+                    </div>
+                    <div className={"columnMenu-option" + (type === ColumnType.Boolean ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.Boolean)}>
                         <FontAwesomeIcon icon={"check-square"} size="sm" />
-                    </button>
-                    <button title="Document" className={this.props.keyType === ColumnType.Doc ? "active" : ""} onClick={() => this.props.setColumnType(this.props.keyValue, ColumnType.Doc)}>
+                        Checkbox
+                    </div>
+                    <div className={"columnMenu-option" + (type === ColumnType.Doc ? " active" : "")} onClick={() => this.changeColumnType(ColumnType.Doc)}>
                         <FontAwesomeIcon icon={"file"} size="sm" />
-                    </button>
+                        Document
+                    </div>
+                </div>
+            </div >
+        );
+    }
+
+    renderSorting = () => {
+        let sort = this.props.columnField.desc;
+        return (
+            <div className="collectionSchema-headerMenu-group">
+                <label>Sort by:</label>
+                <div className="columnMenu-sort">
+                    <div className={"columnMenu-option" + (sort === true ? " active" : "")} onClick={() => this.changeColumnSort(true)}>
+                        <FontAwesomeIcon icon="sort-amount-down" size="sm" />
+                        Sort descending
+                    </div>
+                    <div className={"columnMenu-option" + (sort === false ? " active" : "")} onClick={() => this.changeColumnSort(false)}>
+                        <FontAwesomeIcon icon="sort-amount-up" size="sm" />
+                        Sort ascending
+                    </div>
+                    <div className="columnMenu-option" onClick={() => this.changeColumnSort(undefined)}>
+                        <FontAwesomeIcon icon="times" size="sm" />
+                        Clear sorting
+                    </div>
                 </div>
             </div>
         );
     }
 
-    renderSorting = () => {
+    renderColors = () => {
+        let selected = this.props.columnField.color;
+
+        let pink = PastelSchemaPalette.get("pink2");
+        let purple = PastelSchemaPalette.get("purple2");
+        let blue = PastelSchemaPalette.get("bluegreen1");
+        let yellow = PastelSchemaPalette.get("yellow4");
+        let red = PastelSchemaPalette.get("red2");
+        let gray = "#f1efeb";
+
         return (
             <div className="collectionSchema-headerMenu-group">
-                <label>Sort by:</label>
-                <div className="columnMenu-sort">
-                    <div className="columnMenu-option" onClick={() => this.props.setColumnSort(this.props.keyValue, false)}>Sort ascending</div>
-                    <div className="columnMenu-option" onClick={() => this.props.setColumnSort(this.props.keyValue, true)}>Sort descending</div>
-                    <div className="columnMenu-option" onClick={() => this.props.removeColumnSort(this.props.keyValue)}>Clear sorting</div>
+                <label>Color:</label>
+                <div className="columnMenu-colors">
+                    <div className={"columnMenu-colorPicker" + (selected === pink ? " active" : "")} style={{ backgroundColor: pink }} onClick={() => this.changeColumnColor(pink!)}></div>
+                    <div className={"columnMenu-colorPicker" + (selected === purple ? " active" : "")} style={{ backgroundColor: purple }} onClick={() => this.changeColumnColor(purple!)}></div>
+                    <div className={"columnMenu-colorPicker" + (selected === blue ? " active" : "")} style={{ backgroundColor: blue }} onClick={() => this.changeColumnColor(blue!)}></div>
+                    <div className={"columnMenu-colorPicker" + (selected === yellow ? " active" : "")} style={{ backgroundColor: yellow }} onClick={() => this.changeColumnColor(yellow!)}></div>
+                    <div className={"columnMenu-colorPicker" + (selected === red ? " active" : "")} style={{ backgroundColor: red }} onClick={() => this.changeColumnColor(red!)}></div>
+                    <div className={"columnMenu-colorPicker" + (selected === gray ? " active" : "")} style={{ backgroundColor: gray }} onClick={() => this.changeColumnColor(gray)}></div>
                 </div>
             </div>
         );
@@ -171,10 +220,10 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
     renderContent = () => {
         return (
             <div className="collectionSchema-header-menuOptions">
-                <label>Key:</label>
                 <div className="collectionSchema-headerMenu-group">
+                    <label>Key:</label>
                     <KeysDropdown
-                        keyValue={this.props.keyValue}
+                        keyValue={this.props.columnField.heading}
                         possibleKeys={this.props.possibleKeys}
                         existingKeys={this.props.existingKeys}
                         canAddNew={true}
@@ -187,8 +236,9 @@ export class CollectionSchemaColumnMenu extends React.Component<ColumnMenuProps>
                     <>
                         {this.renderTypes()}
                         {this.renderSorting()}
+                        {this.renderColors()}
                         <div className="collectionSchema-headerMenu-group">
-                            <button onClick={() => this.props.deleteColumn(this.props.keyValue)}>Delete Column</button>
+                            <button onClick={() => this.props.deleteColumn(this.props.columnField.heading)}>Delete Column</button>
                         </div>
                     </>
                 }
@@ -220,9 +270,10 @@ interface KeysDropdownProps {
 @observer
 class KeysDropdown extends React.Component<KeysDropdownProps> {
     @observable private _key: string = this.props.keyValue;
-    @observable private _searchTerm: string = "";
+    @observable private _searchTerm: string = this.props.keyValue;
     @observable private _isOpen: boolean = false;
     @observable private _canClose: boolean = true;
+    @observable private _inputRef: React.RefObject<HTMLInputElement> = React.createRef();
 
     @action setSearchTerm = (value: string): void => { this._searchTerm = value; };
     @action setKey = (key: string): void => { this._key = key; };
@@ -234,6 +285,22 @@ class KeysDropdown extends React.Component<KeysDropdownProps> {
         this.setKey(key);
         this._isOpen = false;
         this.props.setIsEditing(false);
+    }
+
+    @undoBatch
+    @action
+    onKeyDown = (e: React.KeyboardEvent): void => {
+        if (e.key === "Enter") {
+            let keyOptions = this._searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
+            let exactFound = keyOptions.findIndex(key => key.toUpperCase() === this._searchTerm.toUpperCase()) > -1 ||
+                this.props.existingKeys.findIndex(key => key.toUpperCase() === this._searchTerm.toUpperCase()) > -1;
+
+            if (!exactFound && this._searchTerm !== "" && this.props.canAddNew) {
+                this.onSelect(this._searchTerm);
+            } else {
+                this._searchTerm = this._key;
+            }
+        }
     }
 
     onChange = (val: string): void => {
@@ -288,7 +355,7 @@ class KeysDropdown extends React.Component<KeysDropdownProps> {
     render() {
         return (
             <div className="keys-dropdown">
-                <input className="keys-search" type="text" value={this._searchTerm} placeholder="Search for or create a new key"
+                <input className="keys-search" ref={this._inputRef} type="text" value={this._searchTerm} placeholder="Column key" onKeyDown={this.onKeyDown}
                     onChange={e => this.onChange(e.target.value)} onFocus={this.onFocus} onBlur={this.onBlur}></input>
                 <div className="keys-options-wrapper" onPointerEnter={this.onPointerEnter} onPointerOut={this.onPointerOut}>
                     {this.renderOptions()}

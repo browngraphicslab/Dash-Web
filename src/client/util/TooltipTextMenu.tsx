@@ -1,25 +1,25 @@
-import { action } from "mobx";
-import { Dropdown, MenuItem, icons, } from "prosemirror-menu"; //no import css
-import { EditorState, NodeSelection, TextSelection, Transaction } from "prosemirror-state";
-import { EditorView } from "prosemirror-view";
-import { schema } from "./RichTextSchema";
-import { Schema, NodeType, MarkType, Mark, ResolvedPos } from "prosemirror-model";
-import { Node as ProsNode } from "prosemirror-model";
-import "./TooltipTextMenu.scss";
-const { toggleMark, setBlockType } = require("prosemirror-commands");
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { wrapInList, liftListItem, } from 'prosemirror-schema-list';
 import { faListUl } from '@fortawesome/free-solid-svg-icons';
-import { FieldViewProps } from "../views/nodes/FieldView";
-const { openPrompt, TextField } = require("./ProsemirrorCopy/prompt.js");
-import { DragManager } from "./DragManager";
-import { Doc, Opt, Field } from "../../new_fields/Doc";
+import { action, observable } from "mobx";
+import { Dropdown, icons, MenuItem } from "prosemirror-menu"; //no import css
+import { Mark, MarkType, Node as ProsNode, NodeType, ResolvedPos, Schema } from "prosemirror-model";
+import { liftListItem, wrapInList } from 'prosemirror-schema-list';
+import { EditorState, NodeSelection, TextSelection } from "prosemirror-state";
+import { EditorView } from "prosemirror-view";
+import { Doc, Field, Opt } from "../../new_fields/Doc";
+import { Id } from "../../new_fields/FieldSymbols";
+import { Utils } from "../../Utils";
 import { DocServer } from "../DocServer";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
-import { DocumentManager } from "./DocumentManager";
-import { Id } from "../../new_fields/FieldSymbols";
+import { FieldViewProps } from "../views/nodes/FieldView";
 import { FormattedTextBoxProps } from "../views/nodes/FormattedTextBox";
-import { Utils } from "../../Utils";
+import { DocumentManager } from "./DocumentManager";
+import { DragManager } from "./DragManager";
+import { LinkManager } from "./LinkManager";
+import { schema } from "./RichTextSchema";
+import "./TooltipTextMenu.scss";
+const { toggleMark, setBlockType } = require("prosemirror-commands");
+const { openPrompt, TextField } = require("./ProsemirrorCopy/prompt.js");
 
 //appears above a selection of text in a RichTextBox to give user options such as Bold, Italics, etc.
 export class TooltipTextMenu {
@@ -33,6 +33,9 @@ export class TooltipTextMenu {
     private fontSizeToNum: Map<MarkType, number>;
     private fontStylesToName: Map<MarkType, string>;
     private listTypeToIcon: Map<NodeType, string>;
+    //private link: HTMLAnchorElement;
+    private wrapper: HTMLDivElement;
+    private extras: HTMLDivElement;
 
     private linkEditor?: HTMLDivElement;
     private linkText?: HTMLDivElement;
@@ -46,13 +49,44 @@ export class TooltipTextMenu {
 
     private _collapseBtn?: MenuItem;
 
+    private _brushMarks?: Set<Mark>;
+    private _brushIsEmpty: boolean = true;
+    private _brushdom?: Node;
+
+    private _marksToDoms: Map<Mark, HTMLSpanElement> = new Map();
+
+    private _collapsed: boolean = false;
+
+    @observable
+    private _storedMarks: Mark<any>[] | null | undefined;
+
+    public HackToFixTextSelectionGlitch: boolean = false;
+
+
     constructor(view: EditorView, editorProps: FieldViewProps & FormattedTextBoxProps) {
         this.view = view;
         this.editorProps = editorProps;
-        this.tooltip = document.createElement("div");
-        this.tooltip.className = "tooltipMenu";
 
-        this.dragElement(this.tooltip);
+        this.wrapper = document.createElement("div");
+        this.tooltip = document.createElement("div");
+        this.extras = document.createElement("div");
+
+        this.wrapper.appendChild(this.extras);
+        this.wrapper.appendChild(this.tooltip);
+
+        this.tooltip.className = "tooltipMenu";
+        this.extras.className = "tooltipExtras";
+        this.wrapper.className = "wrapper";
+
+        const dragger = document.createElement("span");
+        dragger.className = "dragger";
+        dragger.textContent = ">>>";
+        this.extras.appendChild(dragger);
+
+        this.dragElement(dragger);
+
+        this._storedMarks = this.view.state.storedMarks;
+
         // this.createCollapse();
         // if (this._collapseBtn) {
         //     this.tooltip.appendChild(this._collapseBtn.render(this.view).dom);
@@ -71,13 +105,23 @@ export class TooltipTextMenu {
             { command: toggleMark(schema.marks.superscript), dom: this.icon("s", "superscript", "Superscript") },
             { command: toggleMark(schema.marks.subscript), dom: this.icon("s", "subscript", "Subscript") },
             { command: toggleMark(schema.marks.highlight), dom: this.icon("H", 'blue', 'Blue') }
-            // { command: wrapInList(schema.nodes.bullet_list), dom: this.icon(":", "bullets") },
-            // { command: wrapInList(schema.nodes.ordered_list), dom: this.icon("1)", "bullets") },
-            // { command: lift, dom: this.icon("<", "lift") },
         ];
+
+        this._marksToDoms = new Map();
         //add menu items
         items.forEach(({ dom, command }) => {
             this.tooltip.appendChild(dom);
+            switch (dom.title) {
+                case "Bold":
+                    this._marksToDoms.set(schema.mark(schema.marks.strong), dom);
+                    break;
+                case "Italic":
+                    this._marksToDoms.set(schema.mark(schema.marks.em), dom);
+                    break;
+                case "Underline":
+                    this._marksToDoms.set(schema.mark(schema.marks.underline), dom);
+                    break;
+            }
 
             //pointer down handler to activate button effects
             dom.addEventListener("pointerdown", e => {
@@ -86,11 +130,16 @@ export class TooltipTextMenu {
                 if (dom.contains(e.target as Node)) {
                     e.stopPropagation();
                     command(view.state, view.dispatch, view);
+                    // if (this.view.state.selection.empty) {
+                    //     if (dom.style.color === "white") { dom.style.color = "greenyellow"; }
+                    //     else { dom.style.color = "white"; }
+                    // }
                 }
             });
 
         });
         this.updateLinkMenu();
+
 
         //list of font styles
         this.fontStylesToName = new Map();
@@ -123,23 +172,24 @@ export class TooltipTextMenu {
         this.listTypeToIcon = new Map();
         this.listTypeToIcon.set(schema.nodes.bullet_list, ":");
         this.listTypeToIcon.set(schema.nodes.ordered_list, "1)");
+        // this.listTypeToIcon.set(schema.nodes.bullet_list, "⬜");
         this.listTypes = Array.from(this.listTypeToIcon.keys());
 
+        //custom tools
         // this.tooltip.appendChild(this.createLink().render(this.view).dom);
 
+        this._brushdom = this.createBrush().render(this.view).dom;
+        this.tooltip.appendChild(this._brushdom);
+        this.tooltip.appendChild(this.createLink().render(this.view).dom);
         this.tooltip.appendChild(this.createStar().render(this.view).dom);
-
-
 
         this.updateListItemDropdown(":", this.listTypeBtnDom);
 
         this.update(view, undefined);
 
-        //view.dom.parentNode!.parentNode!.insertBefore(this.tooltip, view.dom.parentNode);
-
-        // quick and dirty null check
+        // add tooltip to outerdiv to circumvent scaling problem
         const outer_div = this.editorProps.outer_div;
-        outer_div && outer_div(this.tooltip);
+        outer_div && outer_div(this.wrapper);
     }
 
     //label of dropdown will change to given label
@@ -163,6 +213,8 @@ export class TooltipTextMenu {
         }
         this.fontSizeDom = newfontSizeDom;
     }
+
+    // Make the DIV element draggable
 
     //label of dropdown will change to given label
     updateFontStyleDropdown(label: string) {
@@ -259,6 +311,8 @@ export class TooltipTextMenu {
                         },
                         hideSource: false
                     });
+                e.stopPropagation();
+                e.preventDefault();
             };
             this.linkEditor.appendChild(this.linkDrag);
             // this.linkEditor.appendChild(this.linkText);
@@ -285,6 +339,7 @@ export class TooltipTextMenu {
         if (elmnt) {
             // if present, the header is where you move the DIV from:
             elmnt.onpointerdown = dragMouseDown;
+            elmnt.ondblclick = onClick;
         }
         const self = this;
 
@@ -299,6 +354,17 @@ export class TooltipTextMenu {
             document.onpointermove = elementDrag;
         }
 
+        function onClick(e: MouseEvent) {
+            self._collapsed = !self._collapsed;
+            const children = self.wrapper.childNodes;
+            if (self._collapsed && children.length > 1) {
+                self.wrapper.removeChild(self.tooltip);
+            }
+            else {
+                self.wrapper.appendChild(self.tooltip);
+            }
+        }
+
         function elementDrag(e: PointerEvent) {
             e = e || window.event;
             //e.preventDefault();
@@ -308,8 +374,11 @@ export class TooltipTextMenu {
             pos3 = e.clientX;
             pos4 = e.clientY;
             // set the element's new position:
-            elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
-            elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+            // elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+            // elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+
+            self.wrapper.style.top = (self.wrapper.offsetTop - pos2) + "px";
+            self.wrapper.style.left = (self.wrapper.offsetLeft - pos1) + "px";
         }
 
         function closeDragElement() {
@@ -332,6 +401,27 @@ export class TooltipTextMenu {
         this.view.dispatch(this.view.state.tr.addMark(this.view.state.selection.from, this.view.state.selection.to, link));
         node = this.view.state.selection.$from.nodeAfter;
         link = node && node.marks.find(m => m.type.name === "link");
+    }
+
+    deleteLink = () => {
+        let node = this.view.state.selection.$from.nodeAfter;
+        let link = node && node.marks.find(m => m.type.name === "link");
+        let href = link!.attrs.href;
+        if (href) {
+            if (href.indexOf(Utils.prepend("/doc/")) === 0) {
+                const linkclicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
+                if (linkclicked) {
+                    DocServer.GetRefField(linkclicked).then(async linkDoc => {
+                        if (linkDoc instanceof Doc) {
+                            LinkManager.Instance.deleteLink(linkDoc);
+                            this.view.dispatch(this.view.state.tr.removeMark(this.view.state.selection.from, this.view.state.selection.to, this.view.state.schema.marks.link));
+                        }
+                    });
+                }
+            }
+        }
+
+
     }
 
     public static insertStar(state: EditorState<any>, dispatch: any) {
@@ -367,7 +457,7 @@ export class TooltipTextMenu {
     }
 
     //for a specific grouping of marks (passed in), remove all and apply the passed-in one to the selected text
-    changeToMarkInGroup = (markType: MarkType, view: EditorView, fontMarks: MarkType[]) => {
+    changeToMarkInGroup = (markType: MarkType | undefined, view: EditorView, fontMarks: MarkType[]) => {
         let { $cursor, ranges } = view.state.selection as TextSelection;
         let state = view.state;
         let dispatch = view.dispatch;
@@ -393,17 +483,23 @@ export class TooltipTextMenu {
                 }
             }
         });
-        // fontsize
-        if (markType.name[0] === 'p') {
-            let size = this.fontSizeToNum.get(markType);
-            if (size) { this.updateFontSizeDropdown(String(size) + " pt"); }
+
+        if (markType) {
+            // fontsize
+            if (markType.name[0] === 'p') {
+                let size = this.fontSizeToNum.get(markType);
+                if (size) { this.updateFontSizeDropdown(String(size) + " pt"); }
+            }
+            else {
+                let fontName = this.fontStylesToName.get(markType);
+                if (fontName) { this.updateFontStyleDropdown(fontName); }
+            }
+            //actually apply font
+            return toggleMark(markType)(view.state, view.dispatch, view);
         }
         else {
-            let fontName = this.fontStylesToName.get(markType);
-            if (fontName) { this.updateFontStyleDropdown(fontName); }
+            return;
         }
-        //actually apply font
-        return toggleMark(markType)(view.state, view.dispatch, view);
     }
 
     //remove all node typeand apply the passed-in one to the selected text
@@ -444,6 +540,85 @@ export class TooltipTextMenu {
             }
 
         });
+    }
+
+    deleteLinkItem() {
+        const icon = {
+            height: 16, width: 16,
+            path: "M15.898,4.045c-0.271-0.272-0.713-0.272-0.986,0l-4.71,4.711L5.493,4.045c-0.272-0.272-0.714-0.272-0.986,0s-0.272,0.714,0,0.986l4.709,4.711l-4.71,4.711c-0.272,0.271-0.272,0.713,0,0.986c0.136,0.136,0.314,0.203,0.492,0.203c0.179,0,0.357-0.067,0.493-0.203l4.711-4.711l4.71,4.711c0.137,0.136,0.314,0.203,0.494,0.203c0.178,0,0.355-0.067,0.492-0.203c0.273-0.273,0.273-0.715,0-0.986l-4.711-4.711l4.711-4.711C16.172,4.759,16.172,4.317,15.898,4.045z"
+        };
+        return new MenuItem({
+            title: "Delete Link",
+            label: "X",
+            icon: icon,
+            css: "color: red",
+            class: "summarize",
+            execEvent: "",
+            run: (state, dispatch) => {
+                this.deleteLink();
+            }
+        });
+    }
+
+    createBrush(active: boolean = false) {
+        const icon = {
+            height: 32, width: 32,
+            path: "M30.828 1.172c-1.562-1.562-4.095-1.562-5.657 0l-5.379 5.379-3.793-3.793-4.243 4.243 3.326 3.326-14.754 14.754c-0.252 0.252-0.358 0.592-0.322 0.921h-0.008v5c0 0.552 0.448 1 1 1h5c0 0 0.083 0 0.125 0 0.288 0 0.576-0.11 0.795-0.329l14.754-14.754 3.326 3.326 4.243-4.243-3.793-3.793 5.379-5.379c1.562-1.562 1.562-4.095 0-5.657zM5.409 30h-3.409v-3.409l14.674-14.674 3.409 3.409-14.674 14.674z"
+        };
+        return new MenuItem({
+            title: "Brush tool",
+            label: "Brush tool",
+            icon: icon,
+            css: "color:white;",
+            class: active ? "brush-active" : "brush",
+            execEvent: "",
+            run: (state, dispatch) => {
+                this.brush_function(state, dispatch);
+            },
+            active: (state) => {
+                return true;
+            }
+        });
+    }
+
+    // selectionchanged event handler
+
+    brush_function(state: EditorState<any>, dispatch: any) {
+        if (this._brushIsEmpty) {
+            const selected_marks = this.getMarksInSelection(this.view.state);
+            if (this._brushdom) {
+                if (selected_marks.size >= 0) {
+                    this._brushMarks = selected_marks;
+                    const newbrush = this.createBrush(true).render(this.view).dom;
+                    this.tooltip.replaceChild(newbrush, this._brushdom);
+                    this._brushdom = newbrush;
+                    this._brushIsEmpty = !this._brushIsEmpty;
+                }
+            }
+        }
+        else {
+            let { from, to, $from } = this.view.state.selection;
+            if (this._brushdom) {
+                if (!this.view.state.selection.empty && $from && $from.nodeAfter) {
+                    if (this._brushMarks && to - from > 0) {
+                        this.view.dispatch(this.view.state.tr.removeMark(from, to));
+                        this._brushMarks.forEach((mark: Mark) => {
+                            const markType = mark.type;
+                            this.changeToMarkInGroup(markType, this.view, []);
+
+                        });
+                    }
+                }
+                else {
+                    const newbrush = this.createBrush(false).render(this.view).dom;
+                    this.tooltip.replaceChild(newbrush, this._brushdom);
+                    this._brushdom = newbrush;
+                    this._brushIsEmpty = !this._brushIsEmpty;
+                }
+            }
+        }
+
+
     }
 
     createCollapse() {
@@ -601,18 +776,27 @@ export class TooltipTextMenu {
         };
     }
 
-    getMarksInSelection(state: EditorState<any>, targets: MarkType<any>[]) {
-        let found: Mark<any>[] = [];
+    getMarksInSelection(state: EditorState<any>) {
+        let found = new Set<Mark>();
         let { from, to } = state.selection as TextSelection;
         state.doc.nodesBetween(from, to, (node) => {
             let marks = node.marks;
             if (marks) {
                 marks.forEach(m => {
-                    if (targets.includes(m.type)) found.push(m);
+                    found.add(m);
                 });
             }
         });
         return found;
+    }
+
+    reset_mark_doms() {
+        let iterator = this._marksToDoms.values();
+        let next = iterator.next();
+        while (!next.done) {
+            next.value.style.color = "white";
+            next = iterator.next();
+        }
     }
 
     //updates the tooltip menu when the selection changes
@@ -622,13 +806,13 @@ export class TooltipTextMenu {
         if (lastState && lastState.doc.eq(state.doc) &&
             lastState.selection.eq(state.selection)) return;
 
+        this.reset_mark_doms();
+
         // Hide the tooltip if the selection is empty
         if (state.selection.empty) {
             //this.tooltip.style.display = "none";
             //return;
         }
-
-
         //UPDATE LIST ITEM DROPDOWN
 
         //UPDATE FONT STYLE DROPDOWN
@@ -665,13 +849,57 @@ export class TooltipTextMenu {
                 this.updateFontSizeDropdown("Various");
             }
         }
-        this.view.dispatch(this.view.state.tr.setStoredMarks(this._activeMarks));
+        !this.HackToFixTextSelectionGlitch &&
+            this.view.dispatch(this.view.state.tr.setStoredMarks(this._activeMarks)); // bcz: what's the purpose of this line?  It messes up text selection without the Hack.
+
+        this.update_mark_doms();
+    }
+
+    public mark_key_pressed(marks: Mark<any>[]) {
+        if (this.view.state.selection.empty) {
+            if (marks) this._activeMarks = marks;
+            this.update_mark_doms();
+        }
+    }
+
+    update_mark_doms() {
+        this.reset_mark_doms();
+        let foundlink = false;
+        let children = this.extras.childNodes;
+        this._activeMarks.forEach((mark) => {
+            if (this._marksToDoms.has(mark)) {
+                let dom = this._marksToDoms.get(mark);
+                if (dom) dom.style.color = "greenyellow";
+            }
+            if (children.length > 1) {
+                foundlink = true;
+            }
+            if (mark.type.name === "link" && children.length === 1) {
+                // let del = document.createElement("button");
+                // del.textContent = "X";
+                // del.style.color = "red";
+                // del.style.height = "10px";
+                // del.style.width = "10px";
+                // del.style.marginLeft = "5px";
+                // del.onclick = this.deleteLink;
+                // this.extras.appendChild(del);
+                let del = this.deleteLinkItem().render(this.view).dom;
+                this.extras.appendChild(del);
+                foundlink = true;
+            }
+        });
+        if (!foundlink) {
+            if (children.length > 1) {
+                this.extras.removeChild(children[1]);
+            }
+        }
+
     }
 
     //finds all active marks on selection in given group
     activeMarksOnSelection(markGroup: MarkType[]) {
         //current selection
-        let { empty, ranges } = this.view.state.selection as TextSelection;
+        let { empty, ranges, $to } = this.view.state.selection as TextSelection;
         let state = this.view.state;
         let dispatch = this.view.dispatch;
         let activeMarks: MarkType[];
@@ -686,6 +914,9 @@ export class TooltipTextMenu {
                 }
                 return false;
             });
+
+            const refnode = this.reference_node($to);
+            this._activeMarks = refnode.marks;
         }
         else {
             const pos = this.view.state.selection.$from;
@@ -696,9 +927,7 @@ export class TooltipTextMenu {
                 else {
                     return [];
                 }
-
                 this._activeMarks = ref_node.marks;
-
                 activeMarks = markGroup.filter(mark_type => {
                     if (dispatch) {
                         let mark = state.schema.mark(mark_type);
@@ -717,11 +946,11 @@ export class TooltipTextMenu {
 
     reference_node(pos: ResolvedPos<any>): ProsNode {
         let ref_node: ProsNode = this.view.state.doc;
-        if (pos.nodeAfter !== null && pos.nodeAfter !== undefined) {
-            ref_node = pos.nodeAfter;
-        }
-        else if (pos.nodeBefore !== null && pos.nodeBefore !== undefined) {
+        if (pos.nodeBefore !== null && pos.nodeBefore !== undefined) {
             ref_node = pos.nodeBefore;
+        }
+        else if (pos.nodeAfter !== null && pos.nodeAfter !== undefined) {
+            ref_node = pos.nodeAfter;
         }
         else if (pos.pos > 0) {
             let skip = false;
@@ -735,10 +964,13 @@ export class TooltipTextMenu {
                 });
             }
         }
+        if (!ref_node.isLeaf && ref_node.childCount > 0) {
+            ref_node = ref_node.child(0);
+        }
         return ref_node;
     }
 
     destroy() {
-        this.tooltip.remove();
+        this.wrapper.remove();
     }
 }

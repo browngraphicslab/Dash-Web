@@ -10,7 +10,7 @@ import { Id } from '../../../new_fields/FieldSymbols';
 import { FieldId } from "../../../new_fields/RefField";
 import { listSpec } from "../../../new_fields/Schema";
 import { Cast, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
-import { emptyFunction, returnTrue, Utils, returnOne } from "../../../Utils";
+import { emptyFunction, returnTrue, Utils, returnOne, returnEmptyString } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { DocumentManager } from '../../util/DocumentManager';
 import { DragLinksAsDocuments, DragManager } from "../../util/DragManager";
@@ -18,7 +18,6 @@ import { SelectionManager } from '../../util/SelectionManager';
 import { Transform } from '../../util/Transform';
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocumentView } from "../nodes/DocumentView";
-import { CollectionViewType } from './CollectionBaseView';
 import "./CollectionDockingView.scss";
 import { SubCollectionViewProps } from "./CollectionSubView";
 import { ParentDocSelector } from './ParentDocumentSelector';
@@ -29,6 +28,7 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 import { faFile, faUnlockAlt } from '@fortawesome/free-solid-svg-icons';
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
 import { Docs } from '../../documents/Documents';
+import { DateField } from '../../../new_fields/DateField';
 library.add(faFile);
 
 @observer
@@ -213,13 +213,29 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     }
     @action
     public AddTab = (stack: any, document: Doc, dataDocument: Doc | undefined) => {
+        Doc.GetProto(document).lastOpened = new DateField;
         let docs = Cast(this.props.Document.data, listSpec(Doc));
         if (docs) {
             docs.push(document);
         }
         let docContentConfig = CollectionDockingView.makeDocumentConfig(document, dataDocument);
-        var newContentItem = stack.layoutManager.createContentItem(docContentConfig, this._goldenLayout);
-        stack.addChild(newContentItem.contentItems[0], undefined);
+        if (stack === undefined) {
+            let stack: any = this._goldenLayout.root;
+            while (!stack.isStack) {
+                if (stack.contentItems.length) {
+                    stack = stack.contentItems[0];
+                } else {
+                    stack.addChild({ type: 'stack', content: [docContentConfig] });
+                    stack = undefined;
+                    break;
+                }
+            }
+            if (stack) {
+                stack.addChild(docContentConfig);
+            }
+        } else {
+            stack.addChild(docContentConfig, undefined);
+        }
         this.layoutChanged();
     }
 
@@ -383,7 +399,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 const stack = tab.contentItem.parent;
                 // shifts the focus to this tab when another tab is dragged over it
                 tab.element[0].onmouseenter = (e: any) => {
-                    if (!this._isPointerDown) return;
+                    if (!this._isPointerDown || !SelectionManager.GetIsDragging()) return;
                     var activeContentItem = tab.header.parent.getActiveContentItem();
                     if (tab.contentItem !== activeContentItem) {
                         tab.header.parent.setActiveContentItem(tab.contentItem);
@@ -403,10 +419,10 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 tab.reactComponents = [dragSpan, upDiv];
                 tab.element.append(dragSpan);
                 tab.element.append(upDiv);
-                tab.reactionDisposer = reaction(() => [doc.title],
-                    () => {
-                        tab.titleElement[0].textContent = doc.title;
-                    }, { fireImmediately: true });
+                tab.reactionDisposer = reaction(() => [doc.title, Doc.IsBrushedDegree(doc)], () => {
+                    tab.titleElement[0].textContent = doc.title, { fireImmediately: true };
+                    tab.titleElement[0].style.outline = `${["transparent", "white", "white"][Doc.IsBrushedDegree(doc)]} ${["none", "dashed", "solid"][Doc.IsBrushedDegree(doc)]} 1px`;
+                });
                 //TODO why can't this just be doc instead of the id?
                 tab.titleElement[0].DashDocId = tab.contentItem.config.props.documentId;
             }
@@ -414,9 +430,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         tab.titleElement[0].Tab = tab;
         tab.closeElement.off('click') //unbind the current click handler
             .click(async function () {
-                if (tab.reactionDisposer) {
-                    tab.reactionDisposer();
-                }
+                tab.reactionDisposer && tab.reactionDisposer();
                 let doc = await DocServer.GetRefField(tab.contentItem.config.props.documentId);
                 if (doc instanceof Doc) {
                     let theDoc = doc;
@@ -504,7 +518,7 @@ interface DockedFrameProps {
 }
 @observer
 export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
-    _mainCont = React.createRef<HTMLDivElement>();
+    _mainCont: HTMLDivElement | undefined = undefined;
     @observable private _panelWidth = 0;
     @observable private _panelHeight = 0;
     @observable private _document: Opt<Doc>;
@@ -545,14 +559,15 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     private onActiveContentItemChanged() {
         if (this.props.glContainer.tab) {
             this._isActive = this.props.glContainer.tab.isActive;
+            !this._isActive && this._document && Doc.UnBrushDoc(this._document); // bcz: bad -- trying to simulate a pointer leave event when a new tab is opened up on top of an existing one.
         }
     }
 
-    panelWidth = () => Math.min(this._panelWidth, Math.max(NumCast(this._document!.width), this.nativeWidth()));
-    panelHeight = () => Math.min(this._panelHeight, Math.max(NumCast(this._document!.height), NumCast(this._document!.nativeHeight, this._panelHeight)));
+    panelWidth = () => this._document!.ignoreAspect ? this._panelWidth : Math.min(this._panelWidth, Math.max(NumCast(this._document!.width), this.nativeWidth()));
+    panelHeight = () => this._document!.ignoreAspect ? this._panelHeight : Math.min(this._panelHeight, Math.max(NumCast(this._document!.height), NumCast(this._document!.nativeHeight, this._panelHeight)));
 
-    nativeWidth = () => !BoolCast(this._document!.ignoreAspect) ? NumCast(this._document!.nativeWidth, this._panelWidth) : 0;
-    nativeHeight = () => !BoolCast(this._document!.ignoreAspect) ? NumCast(this._document!.nativeHeight, this._panelHeight) : 0;
+    nativeWidth = () => !this._document!.ignoreAspect ? NumCast(this._document!.nativeWidth) || this._panelWidth : 0;
+    nativeHeight = () => !this._document!.ignoreAspect ? NumCast(this._document!.nativeHeight) || this._panelHeight : 0;
 
     contentScaling = () => {
         const nativeH = this.nativeHeight();
@@ -563,14 +578,14 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
 
     ScreenToLocalTransform = () => {
-        if (this._mainCont.current && this._mainCont.current.children) {
-            let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.current.children[0].firstChild as HTMLElement);
-            scale = Utils.GetScreenTransform(this._mainCont.current).scale;
+        if (this._mainCont && this._mainCont!.children) {
+            let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.children[0].firstChild as HTMLElement);
+            scale = Utils.GetScreenTransform(this._mainCont).scale;
             return CollectionDockingView.Instance.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(1 / this.contentScaling() / scale);
         }
         return Transform.Identity();
     }
-    get previewPanelCenteringOffset() { return this.nativeWidth && !BoolCast(this._document!.ignoreAspect) ? (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2 : 0; }
+    get previewPanelCenteringOffset() { return this.nativeWidth && !BoolCast(this._document!.ignoreAspect) ? (this._panelWidth - this.nativeWidth()) / 2 : 0; }
 
     addDocTab = (doc: Doc, dataDoc: Doc | undefined, location: string) => {
         if (doc.dockingConfig) {
@@ -601,6 +616,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             parentActive={returnTrue}
             whenActiveChanged={emptyFunction}
             focus={emptyFunction}
+            backgroundColor={returnEmptyString}
             addDocTab={this.addDocTab}
             ContainingCollectionView={undefined}
             zoomToScale={emptyFunction}
@@ -609,7 +625,13 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
 
     @computed get content() {
         return (
-            <div className="collectionDockingView-content" ref={this._mainCont}
+            <div className="collectionDockingView-content" ref={action((ref: HTMLDivElement) => {
+                this._mainCont = ref;
+                if (ref) {
+                    this._panelWidth = Number(getComputedStyle(ref).width!.replace("px", ""));
+                    this._panelHeight = Number(getComputedStyle(ref).height!.replace("px", ""));
+                }
+            })}
                 style={{ transform: `translate(${this.previewPanelCenteringOffset}px, 0px)` }}>
                 {this.docView}
             </div >);

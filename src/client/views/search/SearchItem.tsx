@@ -1,31 +1,34 @@
 import React = require("react");
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faCaretUp, faChartBar, faFilePdf, faFilm, faGlobeAsia, faImage, faLink, faMusic, faObjectGroup, faStickyNote, faFingerprint } from '@fortawesome/free-solid-svg-icons';
+import { faCaretUp, faChartBar, faFile, faFilePdf, faFilm, faFingerprint, faGlobeAsia, faImage, faLink, faMusic, faObjectGroup, faStickyNote } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, HeightSym, WidthSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
+import { ObjectField } from "../../../new_fields/ObjectField";
+import { RichTextField } from "../../../new_fields/RichTextField";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { emptyFunction, returnFalse, returnOne, Utils } from "../../../Utils";
+import { emptyFunction, returnEmptyString, returnFalse, returnOne, Utils } from "../../../Utils";
+import { DocServer } from "../../DocServer";
 import { DocumentType } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
-import { SetupDrag, DragManager } from "../../util/DragManager";
+import { DragManager, SetupDrag } from "../../util/DragManager";
 import { LinkManager } from "../../util/LinkManager";
 import { SearchUtil } from "../../util/SearchUtil";
 import { Transform } from "../../util/Transform";
 import { SEARCH_THUMBNAIL_SIZE } from "../../views/globalCssVariables.scss";
 import { CollectionViewType } from "../collections/CollectionBaseView";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
+import { ContextMenu } from "../ContextMenu";
 import { DocumentView } from "../nodes/DocumentView";
 import { SearchBox } from "./SearchBox";
 import "./SearchItem.scss";
 import "./SelectorContextMenu.scss";
-import { ContextMenu } from "../ContextMenu";
-import { faFile } from '@fortawesome/free-solid-svg-icons';
 
 export interface SearchItemProps {
     doc: Doc;
+    query?: string;
     highlighting: string[];
 }
 
@@ -86,7 +89,7 @@ export class SelectorContextMenu extends React.Component<SearchItemProps> {
                             SetupDrag(item, () => doc.col, undefined, undefined, undefined, undefined, () => SearchBox.Instance.closeSearch())}>
                             <FontAwesomeIcon icon={faStickyNote} />
                         </div>
-                        <a className="title" onClick={this.getOnClick(doc)}>{doc.col.title}</a>
+                        <a onClick={this.getOnClick(doc)}>{doc.col.title}</a>
                     </div>;
                 })}
             </div>
@@ -94,27 +97,103 @@ export class SelectorContextMenu extends React.Component<SearchItemProps> {
     }
 }
 
+export interface LinkMenuProps {
+    doc1: Doc;
+    doc2: Doc;
+}
+
+@observer
+export class LinkContextMenu extends React.Component<LinkMenuProps> {
+
+    highlightDoc = (doc: Doc) => () => Doc.BrushDoc(doc);
+
+    unHighlightDoc = (doc: Doc) => () => Doc.UnBrushDoc(doc);
+
+    getOnClick = (col: Doc) => () => CollectionDockingView.Instance.AddRightSplit(col, undefined);
+
+    render() {
+        return (
+            <div className="parents">
+                <p className="contexts">Anchors:</p>
+                <div className="collection"><a onMouseEnter={this.highlightDoc(this.props.doc1)} onMouseLeave={this.unHighlightDoc(this.props.doc1)} onClick={this.getOnClick(this.props.doc1)}>Doc 1: {this.props.doc2.title}</a></div>
+                <div><a onMouseEnter={this.highlightDoc(this.props.doc2)} onMouseLeave={this.unHighlightDoc(this.props.doc2)} onClick={this.getOnClick(this.props.doc2)}>Doc 2: {this.props.doc1.title}</a></div>
+            </div>
+        );
+    }
+
+}
+
 @observer
 export class SearchItem extends React.Component<SearchItemProps> {
 
     @observable _selected: boolean = false;
+    private _previewDoc?: Doc;
 
     onClick = () => {
         // I dont think this is the best functionality because clicking the name of the collection does that. Change it back if you'd like
         DocumentManager.Instance.jumpToDocument(this.props.doc, false);
+        if (this.props.doc.data instanceof RichTextField) {
+            this.highlightTextBox(this.props.doc);
+        }
         // CollectionDockingView.Instance.AddRightSplit(this.props.doc, undefined);
     }
     @observable _useIcons = true;
     @observable _displayDim = 50;
 
-    @computed
-    public get DocumentIcon() {
+    highlightTextBox = (doc: Doc) => {
+        if (this.props.query) {
+            const fieldkey = 'search_string';
+            if (Object.keys(doc).indexOf(fieldkey) === -1) {
+                doc.search_string = this.props.query;
+            }
+            else {
+                doc.search_string = undefined;
+            }
+
+        }
+    }
+
+    fitToBox = () => {
+        let bounds = Doc.ComputeContentBounds([this.props.doc]);
+        return [(bounds.x + bounds.r) / 2, (bounds.y + bounds.b) / 2, Number(SEARCH_THUMBNAIL_SIZE) / Math.max((bounds.b - bounds.y), (bounds.r - bounds.x)), this._displayDim];
+    }
+
+    componentWillUnmount() {
+        if (this._previewDoc) {
+            DocServer.DeleteDocument(this._previewDoc[Id]);
+        }
+    }
+
+
+    //@computed
+    @action
+    public DocumentIcon() {
+        let layoutresult = StrCast(this.props.doc.type);
         if (!this._useIcons) {
+            let renderDoc = this.props.doc;
+            //let box: number[] = [];
+            if (layoutresult.indexOf(DocumentType.COL) !== -1) {
+                renderDoc = Doc.MakeDelegate(renderDoc);
+                let bounds = DocListCast(renderDoc.data).reduce((bounds, doc) => {
+                    var [sptX, sptY] = [NumCast(doc.x), NumCast(doc.y)];
+                    let [bptX, bptY] = [sptX + doc[WidthSym](), sptY + doc[HeightSym]()];
+                    return {
+                        x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
+                        r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)
+                    };
+                }, { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: Number.MIN_VALUE, b: Number.MIN_VALUE });
+                let box = () => [(bounds.x + bounds.r) / 2, (bounds.y + bounds.b) / 2, Number(SEARCH_THUMBNAIL_SIZE) / (bounds.r - bounds.x), this._displayDim];
+            }
             let returnXDimension = () => this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE);
             let returnYDimension = () => this._displayDim;
-            let scale = () => returnXDimension() / NumCast(this.props.doc.nativeWidth, returnXDimension());
-            return <div
-                onPointerDown={action(() => { this._useIcons = !this._useIcons; this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE); })}
+            let scale = () => returnXDimension() / NumCast(renderDoc.nativeWidth, returnXDimension());
+            let newRenderDoc = Doc.MakeDelegate(renderDoc); ///   newRenderDoc -> renderDoc -> render"data"Doc -> TextProt
+            this._previewDoc = newRenderDoc;
+            const docview = <div
+                onPointerDown={action(() => {
+                    this._useIcons = !this._useIcons;
+                    this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE);
+                })}
                 onPointerEnter={action(() => this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE))}
                 onPointerLeave={action(() => this._displayDim = 50)} >
                 <DocumentView
@@ -128,6 +207,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
                     PanelWidth={returnXDimension}
                     PanelHeight={returnYDimension}
                     focus={emptyFunction}
+                    backgroundColor={returnEmptyString}
                     selectOnLoad={false}
                     parentActive={returnFalse}
                     whenActiveChanged={returnFalse}
@@ -138,9 +218,15 @@ export class SearchItem extends React.Component<SearchItemProps> {
                     ContentScaling={scale}
                 />
             </div>;
+            const data = renderDoc.data;
+            if (data instanceof ObjectField) newRenderDoc.data = ObjectField.MakeCopy(data);
+            newRenderDoc.preview = true;
+            newRenderDoc.search_string = this.props.query;
+            return docview;
         }
-
-        let layoutresult = StrCast(this.props.doc.type);
+        if (this._previewDoc) {
+            DocServer.DeleteDocument(this._previewDoc[Id]);
+        }
         let button = layoutresult.indexOf(DocumentType.PDF) !== -1 ? faFilePdf :
             layoutresult.indexOf(DocumentType.IMG) !== -1 ? faImage :
                 layoutresult.indexOf(DocumentType.TEXT) !== -1 ? faStickyNote :
@@ -188,14 +274,12 @@ export class SearchItem extends React.Component<SearchItemProps> {
 
                 let doc1 = Cast(this.props.doc.anchor1, Doc, null);
                 let doc2 = Cast(this.props.doc.anchor2, Doc, null);
-                doc1 && (doc1.libraryBrush = true);
-                doc2 && (doc2.libraryBrush = true);
+                Doc.BrushDoc(doc1);
+                Doc.BrushDoc(doc2);
             }
         } else {
-            let docViews: DocumentView[] = DocumentManager.Instance.getAllDocumentViews(this.props.doc);
-            docViews.forEach(element => {
-                element.props.Document.libraryBrush = true;
-            });
+            DocumentManager.Instance.getAllDocumentViews(this.props.doc).forEach(element =>
+                Doc.BrushDoc(element.props.Document));
         }
     }
 
@@ -205,14 +289,12 @@ export class SearchItem extends React.Component<SearchItemProps> {
 
                 let doc1 = Cast(this.props.doc.anchor1, Doc, null);
                 let doc2 = Cast(this.props.doc.anchor2, Doc, null);
-                doc1 && (doc1.libraryBrush = false);
-                doc2 && (doc2.libraryBrush = false);
+                Doc.UnBrushDoc(doc1);
+                Doc.UnBrushDoc(doc2);
             }
         } else {
-            let docViews: DocumentView[] = DocumentManager.Instance.getAllDocumentViews(this.props.doc);
-            docViews.forEach(element => {
-                element.props.Document.libraryBrush = false;
-            });
+            DocumentManager.Instance.getAllDocumentViews(this.props.doc).
+                forEach(element => Doc.UnBrushDoc(element.props.Document));
         }
     }
 
@@ -239,6 +321,8 @@ export class SearchItem extends React.Component<SearchItemProps> {
     }
 
     render() {
+        const doc1 = Cast(this.props.doc.anchor1, Doc);
+        const doc2 = Cast(this.props.doc.anchor2, Doc);
         return (
             <div className="search-overview" onPointerDown={this.pointerDown} onContextMenu={this.onContextMenu}>
                 <div className="search-item" onPointerEnter={this.highlightDoc} onPointerLeave={this.unHighlightDoc} id="result"
@@ -251,7 +335,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
                         </div>
                         <div className="search-info" style={{ width: this._useIcons ? "15%" : "400px" }}>
                             <div className={`icon-${this._useIcons ? "icons" : "live"}`}>
-                                <div className="search-type" title="Click to Preview">{this.DocumentIcon}</div>
+                                <div className="search-type" title="Click to Preview">{this.DocumentIcon()}</div>
                                 <div className="search-label">{this.props.doc.type ? this.props.doc.type : "Other"}</div>
                             </div>
                             <div className="link-container item">
@@ -262,7 +346,8 @@ export class SearchItem extends React.Component<SearchItemProps> {
                     </div>
                 </div>
                 <div className="searchBox-instances">
-                    <SelectorContextMenu {...this.props} />
+                    {(doc1 instanceof Doc && doc2 instanceof Doc) && this.props.doc.type === DocumentType.LINK ? <LinkContextMenu doc1={doc1} doc2={doc2} /> :
+                        <SelectorContextMenu {...this.props} />}
                 </div>
             </div>
         );

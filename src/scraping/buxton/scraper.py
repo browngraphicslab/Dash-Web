@@ -17,6 +17,7 @@ dist = "../../server/public/files"
 
 db = MongoClient("localhost", 27017)["Dash"]
 target_collection = db.newDocuments
+target_doc_title = "Workspace 1"
 schema_guids = []
 common_proto_id = ""
 
@@ -69,7 +70,7 @@ def text_doc_map(string_list):
     return listify(proxify_guids(list(map(guid_map, string_list))))
 
 
-def write_schema(parse_results, display_fields, storage_key):
+def write_collection(parse_results, display_fields, storage_key, viewType=2):
     view_guids = parse_results["child_guids"]
 
     data_doc = parse_results["schema"]
@@ -90,7 +91,7 @@ def write_schema(parse_results, display_fields, storage_key):
             "zoomBasis": 1,
             "zIndex": 2,
             "libraryBrush": False,
-            "viewType": 2
+            "viewType": viewType
         },
         "__type": "Doc"
     }
@@ -130,8 +131,7 @@ def write_text_doc(content):
             "x": 10,
             "y": 10,
             "width": 400,
-            "zIndex": 2,
-            "libraryBrush": False
+            "zIndex": 2
         },
         "__type": "Doc"
     }
@@ -139,7 +139,7 @@ def write_text_doc(content):
     data_doc = {
         "_id": data_doc_guid,
         "fields": {
-            "proto": protofy("commonImportProto"),
+            "proto": protofy("textProto"),
             "data": {
                 "Data": '{"doc":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"' + content + '"}]}]},"selection":{"type":"text","anchor":1,"head":1}' + '}',
                 "__type": "RichTextField"
@@ -183,8 +183,7 @@ def write_image(folder, name):
             "x": 10,
             "y": 10,
             "width": min(800, native_width),
-            "zIndex": 2,
-            "libraryBrush": False
+            "zIndex": 2
         },
         "__type": "Doc"
     }
@@ -235,9 +234,9 @@ def parse_document(file_name: str):
         count += 1
         view_guids.append(write_image(pure_name, image))
         copyfile(dir_path + "/" + image, dir_path +
-                  "/" + image.replace(".", "_o.", 1))
-        os.rename(dir_path + "/" + image, dir_path +
-                  "/" + image.replace(".", "_m.", 1))
+                 "/" + image.replace(".", "_o.", 1))
+        copyfile(dir_path + "/" + image, dir_path +
+                 "/" + image.replace(".", "_m.", 1))
     print(f"extracted {count} images...")
 
     def sanitize(line): return re.sub("[\n\t]+", "", line).replace(u"\u00A0", " ").replace(
@@ -381,22 +380,22 @@ candidates = 0
 for file_name in os.listdir(source):
     if file_name.endswith('.docx'):
         candidates += 1
-        schema_guids.append(write_schema(
+        schema_guids.append(write_collection(
             parse_document(file_name), ["title", "data"], "image_data"))
 
 print("writing parent schema...")
-parent_guid = write_schema({
+parent_guid = write_collection({
     "schema": {
         "_id": guid(),
         "fields": {},
         "__type": "Doc"
     },
     "child_guids": schema_guids
-}, ["title", "short_description", "original_price"], "data")
+}, ["title", "short_description", "original_price"], "data", 1)
 
 print("appending parent schema to main workspace...\n")
 target_collection.update_one(
-    {"fields.title": "WS collection 1"},
+    {"fields.title": target_doc_title},
     {"$push": {"fields.data.fields": {"fieldId": parent_guid, "__type": "proxy"}}}
 )
 

@@ -10,6 +10,7 @@ import { LinkManager } from "./LinkManager";
 import { SelectionManager } from "./SelectionManager";
 import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
 import { DocumentDecorations } from "../views/DocumentDecorations";
+import { NumberLiteralType } from "typescript";
 
 export type dropActionType = "alias" | "copy" | undefined;
 export function SetupDrag(
@@ -140,6 +141,10 @@ export namespace DragManager {
         dragHasStarted?: () => void;
 
         withoutShiftDrag?: boolean;
+
+        offsetX?: number;
+
+        offsetY?: number;
     }
 
     export interface DragDropDisposer {
@@ -216,6 +221,7 @@ export namespace DragManager {
             this.annotationDocument = annotationDoc;
             this.xOffset = this.yOffset = 0;
         }
+        targetContext: Doc | undefined;
         dragDocument: Doc;
         annotationDocument: Doc;
         dropDocument: Doc;
@@ -398,7 +404,8 @@ export namespace DragManager {
                 hideSource = options.hideSource();
             }
         }
-        eles.map(ele => (ele.hidden = hideSource));
+        eles.map(ele => (ele.hidden = hideSource) &&
+            (ele.parentElement && ele.parentElement.className.indexOf("collectionFreeFormDocumentView") !== -1 && (ele.parentElement.hidden = hideSource)));
 
         let lastX = downX;
         let lastY = downY;
@@ -422,13 +429,16 @@ export namespace DragManager {
             lastX = e.pageX;
             lastY = e.pageY;
             dragElements.map((dragElement, i) => (dragElement.style.transform =
-                `translate(${(xs[i] += moveX)}px, ${(ys[i] += moveY)}px)  scale(${scaleXs[i]}, ${scaleYs[i]})`)
+                `translate(${(xs[i] += moveX) + (options ? (options.offsetX || 0) : 0)}px, ${(ys[i] += moveY) + (options ? (options.offsetY || 0) : 0)}px)  scale(${scaleXs[i]}, ${scaleYs[i]})`)
             );
         };
 
         let hideDragElements = () => {
             dragElements.map(dragElement => dragElement.parentNode === dragDiv && dragDiv.removeChild(dragElement));
-            eles.map(ele => (ele.hidden = false));
+            eles.map(ele => {
+                ele.hidden = false;
+                (ele.parentElement && ele.parentElement.className.indexOf("collectionFreeFormDocumentView") !== -1 && (ele.parentElement.hidden = false));
+            });
         };
         let endDrag = () => {
             document.removeEventListener("pointermove", moveHandler, true);
@@ -480,7 +490,7 @@ export namespace DragManager {
                         x: e.x,
                         y: e.y,
                         data: dragData,
-                        mods: e.altKey ? "AltKey" : e.ctrlKey ? "CtrlKey" : ""
+                        mods: e.altKey ? "AltKey" : e.ctrlKey ? "CtrlKey" : e.metaKey ? "MetaKey" : ""
                     }
                 })
             );

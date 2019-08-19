@@ -17,8 +17,7 @@ import { IconBox } from "./IconBox";
 import { ImageBox } from "./ImageBox";
 import { PDFBox } from "./PDFBox";
 import { VideoBox } from "./VideoBox";
-import { Id } from "../../../new_fields/FieldSymbols";
-import { PresBox } from "./PresBox";
+import { ScriptField } from "../../../new_fields/ScriptField";
 
 //
 // these properties get assigned through the render() method of the DocumentView when it creates this node.
@@ -33,6 +32,7 @@ export interface FieldViewProps {
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
     Document: Doc;
     DataDoc?: Doc;
+    onClick?: ScriptField;
     isSelected: () => boolean;
     select: (isCtrlPressed: boolean) => void;
     renderDepth: number;
@@ -49,6 +49,8 @@ export interface FieldViewProps {
     PanelHeight: () => number;
     setVideoBox?: (player: VideoBox) => void;
     setPdfBox?: (player: PDFBox) => void;
+    ContentScaling: () => number;
+    ChromeHeight?: () => number;
 }
 
 @observer

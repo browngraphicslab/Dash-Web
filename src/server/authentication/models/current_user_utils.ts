@@ -41,8 +41,6 @@ export class CurrentUserUtils {
         doc.boxShadow = "0 0";
         doc.excludeFromLibrary = true;
         doc.optionalRightCollection = Docs.Create.StackingDocument([], { title: "New mobile uploads" });
-        // doc.library = Docs.Create.TreeDocument([doc], { title: `Library: ${CurrentUserUtils.email}` });
-        // (doc.library as Doc).excludeFromLibrary = true;
         return doc;
     }
 
@@ -71,7 +69,7 @@ export class CurrentUserUtils {
             doc.sidebar = sidebar;
         }
         StrCast(doc.title).indexOf("@") !== -1 && (doc.title = StrCast(doc.title).split("@")[0] + "'s Library");
-
+        doc.width = 100;
     }
 
     public static loadCurrentUser() {

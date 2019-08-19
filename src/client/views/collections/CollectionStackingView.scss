@@ -1,13 +1,23 @@
 @import "../globalCssVariables";
 
-.collectionStackingView {
+.collectionMasonryView {
+    display:inline;
+}
+.collectionStackingView{
+    display: flex;
+}
+.collectionStackingView, .collectionMasonryView{
     height: 100%;
     width: 100%;
     position: absolute;
-    display: flex;
+    top: 0;
     overflow-y: auto;
     flex-wrap: wrap;
     transition: top .5s;
+    .collectionSchemaView-previewDoc {
+        height: 100%;
+        position: absolute;
+    }
 
     .collectionStackingView-docView-container {
         width: 45%;
@@ -26,13 +36,19 @@
     .collectionStackingView-masonrySingle,
     .collectionStackingView-masonryGrid {
         width: 100%;
-        height: 100%;
-        position: absolute;
         display: grid;
         top: 0;
         left: 0;
-        width: 100%;
+    }
+    .collectionStackingView-masonrySingle {
+        height: 100%;
         position: absolute;
+    }
+    .collectionStackingView-masonryGrid {
+        margin: auto;
+        height: max-content;
+        position: relative;
+        grid-auto-rows: 0px;
     }
 
     .collectionStackingView-masonrySingle {
@@ -73,14 +89,20 @@
         transform-origin: top left;
         grid-column-end: span 1;
         height: 100%;
+        margin: auto;
+    }
+    
+    .collectionStackingView-masonrySection {
+        margin: auto;
     }
 
     .collectionStackingView-sectionHeader {
         text-align: center;
-        margin-left: 5px;
-        margin-right: 5px;
+        margin-left: 2px;
+        margin-right: 2px;
         margin-top: 10px;
-        overflow: hidden;
+        background: gray;
+        // overflow: hidden; overflow is visible so the color menu isn't hidden -ftong
 
         .editableView-input {
             color: black;
@@ -123,6 +145,43 @@
             }
         }
 
+        .collectionStackingView-sectionColor {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+
+            [class*="css"] {
+                max-width: 102px;
+            }
+
+            .collectionStackingView-sectionColorButton {
+                height: 35px;
+            }
+
+            .collectionStackingView-colorPicker {
+                width: 78px;
+
+                .colorOptions {
+                    display: flex;
+                    flex-wrap: wrap;
+                }
+
+                .colorPicker {
+                    cursor: pointer;
+                    width: 20px;
+                    height: 20px;
+                    border-radius: 10px;
+                    margin: 3px;
+
+                    &.active {
+                        border: 2px solid white;
+                        box-shadow: 0 0 0 2px lightgray;
+                    }
+                }
+            }
+        }
+
         .collectionStackingView-sectionDelete {
             position: absolute;
             right: 0;
@@ -133,9 +192,9 @@
 
     .collectionStackingView-addDocumentButton,
     .collectionStackingView-addGroupButton {
-        display: inline-block;
-        margin: 0 5px;
+        display: flex;
         overflow: hidden;
+        margin: auto;
         width: 90%;
         color: lightgrey;
         overflow: ellipses;
@@ -144,6 +203,7 @@
         .editableView-container-editing {
             color: grey;
             padding: 10px;
+            width: 100%;
         }
 
         .editableView-input:hover,
@@ -181,4 +241,53 @@
         letter-spacing: 2px;
         height: fit-content;
     }
+
+    .rc-switch {
+        position: absolute;
+        display: inline-block;
+        bottom: 4px;
+        right: 4px;
+        width: 70px;
+        height: 30px;
+        border-radius: 40px 40px;
+        background-color: lightslategrey;
+    }
+
+    .rc-switch:after {
+        position: absolute;
+        width: 22px;
+        height: 22px;
+        left: 3px;
+        top: 4px;
+        border-radius: 50% 50%;
+        background-color: #fff;
+        content: " ";
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.26);
+        -webkit-transform: scale(1);
+        transform: scale(1);
+        transition: left 0.3s cubic-bezier(0.35, 0, 0.25, 1);
+        -webkit-animation-timing-function: cubic-bezier(0.35, 0, 0.25, 1);
+        animation-timing-function: cubic-bezier(0.35, 0, 0.25, 1);
+        -webkit-animation-duration: 0.3s;
+        animation-duration: 0.3s;
+    }
+
+    .rc-switch-checked:after {
+        left: 44px;
+    }
+
+    .rc-switch-inner {
+        color: #fff;
+        font-size: 12px;
+        position: absolute;
+        left: 28px;
+        top: 8px;
+    }
+
+    .rc-switch-checked .rc-switch-inner {
+        left: 8px;
+    }
+
+
 }

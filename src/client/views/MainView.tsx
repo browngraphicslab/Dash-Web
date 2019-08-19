@@ -1,29 +1,33 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowDown, faCaretUp, faLongArrowAltRight, faCloudUploadAlt, faArrowUp, faClone, faCheck, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faPortrait, faMusic, faObjectGroup, faPenNib, faRedoAlt, faTable, faThumbtack, faTree, faUndoAlt, faCat, faBolt } from '@fortawesome/free-solid-svg-icons';
+import { faArrowDown, faArrowUp, faBolt, faCaretUp, faCat, faCheck, faClone, faCloudUploadAlt, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faLongArrowAltRight, faMusic, faObjectGroup, faPause, faPenNib, faPlay, faPortrait, faRedoAlt, faTable, faThumbtack, faTree, faUndoAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, configure, observable, runInAction, reaction, trace } from 'mobx';
+import { action, computed, configure, observable, reaction, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
 import { SketchPicker } from 'react-color';
 import Measure from 'react-measure';
 import { Doc, DocListCast, Opt, HeightSym } from '../../new_fields/Doc';
-import { listSpec } from "../../new_fields/Schema";
+import { List } from '../../new_fields/List';
 import { Id } from '../../new_fields/FieldSymbols';
 import { InkTool } from '../../new_fields/InkField';
-import { List } from '../../new_fields/List';
-import { Cast, FieldValue, NumCast, BoolCast, StrCast } from '../../new_fields/Types';
+import { listSpec } from '../../new_fields/Schema';
+import { SchemaHeaderField } from '../../new_fields/SchemaHeaderField';
+import { BoolCast, Cast, FieldValue, StrCast } from '../../new_fields/Types';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { RouteStore } from '../../server/RouteStore';
-import { emptyFunction, returnOne, returnTrue, Utils } from '../../Utils';
+import { emptyFunction, returnEmptyString, returnOne, returnTrue, Utils } from '../../Utils';
 import { DocServer } from '../DocServer';
 import { Docs } from '../documents/Documents';
+import { ClientUtils } from '../util/ClientUtils';
+import { DictationManager } from '../util/DictationManager';
 import { SetupDrag } from '../util/DragManager';
 import { HistoryUtil } from '../util/History';
 import { Transform } from '../util/Transform';
 import { UndoManager } from '../util/UndoManager';
 import { CollectionBaseView } from './collections/CollectionBaseView';
 import { CollectionDockingView } from './collections/CollectionDockingView';
+import { CollectionTreeView } from './collections/CollectionTreeView';
 import { ContextMenu } from './ContextMenu';
 import { DocumentDecorations } from './DocumentDecorations';
 import KeyManager from './GlobalKeyHandler';
@@ -36,9 +40,6 @@ import PDFMenu from './pdf/PDFMenu';
 import { PresentationView } from './presentationview/PresentationView';
 import { PreviewCursor } from './PreviewCursor';
 import { FilterBox } from './search/FilterBox';
-import { CollectionTreeView } from './collections/CollectionTreeView';
-import { ClientUtils } from '../util/ClientUtils';
-import { SchemaHeaderField, RandomPastel } from '../../new_fields/SchemaHeaderField';
 
 @observer
 export class MainView extends React.Component {
@@ -47,6 +48,30 @@ export class MainView extends React.Component {
     @observable private _workspacesShown: boolean = false;
     @observable public pwidth: number = 0;
     @observable public pheight: number = 0;
+
+    @observable private dictationState = DictationManager.placeholder;
+    @observable private dictationSuccessState: boolean | undefined = undefined;
+    @observable private dictationDisplayState = false;
+    @observable private dictationListeningState: DictationManager.Controls.ListeningUIStatus = false;
+
+    public overlayTimeout: NodeJS.Timeout | undefined;
+
+    public initiateDictationFade = () => {
+        let duration = DictationManager.Commands.dictationFadeDuration;
+        this.overlayTimeout = setTimeout(() => {
+            this.dictationOverlayVisible = false;
+            this.dictationSuccess = undefined;
+            setTimeout(() => this.dictatedPhrase = DictationManager.placeholder, 500);
+        }, duration);
+    }
+
+    public cancelDictationFade = () => {
+        if (this.overlayTimeout) {
+            clearTimeout(this.overlayTimeout);
+            this.overlayTimeout = undefined;
+        }
+    }
+
     @computed private get mainContainer(): Opt<Doc> {
         return FieldValue(Cast(CurrentUserUtils.UserDocument.activeWorkspace, Doc));
     }
@@ -63,6 +88,38 @@ export class MainView extends React.Component {
             }
             CurrentUserUtils.UserDocument.activeWorkspace = doc;
         }
+    }
+
+    @computed public get dictatedPhrase() {
+        return this.dictationState;
+    }
+
+    public set dictatedPhrase(value: string) {
+        runInAction(() => this.dictationState = value);
+    }
+
+    @computed public get dictationSuccess() {
+        return this.dictationSuccessState;
+    }
+
+    public set dictationSuccess(value: boolean | undefined) {
+        runInAction(() => this.dictationSuccessState = value);
+    }
+
+    @computed public get dictationOverlayVisible() {
+        return this.dictationDisplayState;
+    }
+
+    public set dictationOverlayVisible(value: boolean) {
+        runInAction(() => this.dictationDisplayState = value);
+    }
+
+    @computed public get isListening() {
+        return this.dictationListeningState;
+    }
+
+    public set isListening(value: DictationManager.Controls.ListeningUIStatus) {
+        runInAction(() => this.dictationListeningState = value);
     }
 
     componentWillMount() {
@@ -94,6 +151,8 @@ export class MainView extends React.Component {
     componentWillUnMount() {
         window.removeEventListener("keydown", KeyManager.Instance.handle);
         //close presentation 
+        window.removeEventListener("pointerdown", this.globalPointerDown);
+        window.removeEventListener("pointerup", this.globalPointerUp);
     }
 
     constructor(props: Readonly<{}>) {
@@ -125,6 +184,8 @@ export class MainView extends React.Component {
         library.add(faFilm);
         library.add(faMusic);
         library.add(faTree);
+        library.add(faPlay);
+        library.add(faPause);
         library.add(faClone);
         library.add(faCut);
         library.add(faCommentAlt);
@@ -140,18 +201,23 @@ export class MainView extends React.Component {
         this.initAuthenticationRouters();
     }
 
+    globalPointerDown = action((e: PointerEvent) => {
+        this.isPointerDown = true;
+        const targets = document.elementsFromPoint(e.x, e.y);
+        if (targets && targets.length && targets[0].className.toString().indexOf("contextMenu") === -1) {
+            ContextMenu.Instance.closeMenu();
+        }
+    });
+
+    globalPointerUp = () => this.isPointerDown = false;
+
     initEventListeners = () => {
         // window.addEventListener("pointermove", (e) => this.reportLocation(e))
         window.addEventListener("drop", (e) => e.preventDefault(), false); // drop event handler
         window.addEventListener("dragover", (e) => e.preventDefault(), false); // drag event handler
         // click interactions for the context menu
-        document.addEventListener("pointerdown", action((e: PointerEvent) => {
-            this.isPointerDown = true;
-            const targets = document.elementsFromPoint(e.x, e.y);
-            if (targets && targets.length && targets[0].className.toString().indexOf("contextMenu") === -1) {
-                ContextMenu.Instance.closeMenu();
-            }
-        }), true);
+        document.addEventListener("pointerdown", this.globalPointerDown);
+        document.addEventListener("pointerup", this.globalPointerUp);
     }
 
     initAuthenticationRouters = async () => {
@@ -256,12 +322,14 @@ export class MainView extends React.Component {
                             DataDoc={undefined}
                             addDocument={undefined}
                             addDocTab={emptyFunction}
+                            onClick={undefined}
                             removeDocument={undefined}
                             ScreenToLocalTransform={Transform.Identity}
                             ContentScaling={returnOne}
                             PanelWidth={this.getPWidth}
                             PanelHeight={this.getPHeight}
                             renderDepth={0}
+                            backgroundColor={returnEmptyString}
                             selectOnLoad={false}
                             focus={emptyFunction}
                             parentActive={returnTrue}
@@ -293,7 +361,6 @@ export class MainView extends React.Component {
     }
     @action
     onPointerUp = (e: PointerEvent) => {
-        this.isPointerDown = false;
         if (Math.abs(e.clientX - this._downsize) < 4) {
             if (this.flyoutWidth < 5) this.flyoutWidth = 250;
             else this.flyoutWidth = 0;
@@ -320,6 +387,7 @@ export class MainView extends React.Component {
             addDocument={undefined}
             addDocTab={this.addDocTabFunc}
             removeDocument={undefined}
+            onClick={undefined}
             ScreenToLocalTransform={Transform.Identity}
             ContentScaling={returnOne}
             PanelWidth={this.flyoutWidthFunc}
@@ -327,6 +395,7 @@ export class MainView extends React.Component {
             renderDepth={0}
             selectOnLoad={false}
             focus={emptyFunction}
+            backgroundColor={returnEmptyString}
             parentActive={returnTrue}
             whenActiveChanged={emptyFunction}
             bringToFront={emptyFunction}
@@ -368,7 +437,6 @@ export class MainView extends React.Component {
         }
     }
 
-
     @observable private _colorPickerDisplay = false;
     /* for the expandable add nodes menu. Not included with the miscbuttons because once it expands it expands the whole div with it, making canvas interactions limited. */
     nodesMenu() {
@@ -376,26 +444,47 @@ export class MainView extends React.Component {
         let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
 
         // let addDockingNode = action(() => Docs.Create.StandardCollectionDockingDocument([{ doc: addColNode(), initialWidth: 200 }], { width: 200, height: 200, title: "a nested docking freeform collection" }));
-        let addSchemaNode = action(() => Docs.Create.SchemaDocument([new SchemaHeaderField("title")], [], { width: 200, height: 200, title: "a schema collection" }));
+        let addSchemaNode = action(() => Docs.Create.SchemaDocument([new SchemaHeaderField("title", "#f1efeb")], [], { width: 200, height: 200, title: "a schema collection" }));
         //let addTreeNode = action(() => Docs.TreeDocument([CurrentUserUtils.UserDocument], { width: 250, height: 400, title: "Library:" + CurrentUserUtils.email, dropAction: "alias" }));
         // let addTreeNode = action(() => Docs.TreeDocument(this._northstarSchemas, { width: 250, height: 400, title: "northstar schemas", dropAction: "copy"  }));
         let addColNode = action(() => Docs.Create.FreeformDocument([], { width: this.pwidth * .7, height: this.pheight, title: "a freeform collection" }));
-        let addTreeNode = action(() => CurrentUserUtils.UserDocument);
+        let addWebNode = action(() => Docs.Create.WebDocument("https://en.wikipedia.org/wiki/Hedgehog", { width: 300, height: 300, title: "New Webpage" }));
+        let addDragboxNode = action(() => Docs.Create.DragboxDocument({ width: 40, height: 40, title: "drag collection" }));
         let addImageNode = action(() => Docs.Create.ImageDocument(imgurl, { width: 200, title: "an image of a cat" }));
         let addButtonDocument = action(() => Docs.Create.ButtonDocument({ width: 150, height: 50, title: "Button" }));
         let addImportCollectionNode = action(() => Docs.Create.DirectoryImportDocument({ title: "Directory Import", width: 400, height: 400 }));
+        let youtubeurl = "https://www.youtube.com/embed/TqcApsGRzWw";
+        let addYoutubeSearcher = action(() => Docs.Create.YoutubeDocument(youtubeurl, { width: 600, height: 600, title: "youtube search" }));
 
         let btns: [React.RefObject<HTMLDivElement>, IconName, string, () => Doc][] = [
             [React.createRef<HTMLDivElement>(), "object-group", "Add Collection", addColNode],
+            [React.createRef<HTMLDivElement>(), "globe-asia", "Add Website", addWebNode],
             [React.createRef<HTMLDivElement>(), "bolt", "Add Button", addButtonDocument],
             // [React.createRef<HTMLDivElement>(), "clone", "Add Docking Frame", addDockingNode],
             [React.createRef<HTMLDivElement>(), "cloud-upload-alt", "Import Directory", addImportCollectionNode], //remove at some point in favor of addImportCollectionNode
+            [React.createRef<HTMLDivElement>(), "play", "Add Youtube Searcher", addYoutubeSearcher],
+            [React.createRef<HTMLDivElement>(), "file", "Add Document Dragger", addDragboxNode]
         ];
         if (!ClientUtils.RELEASE) btns.unshift([React.createRef<HTMLDivElement>(), "cat", "Add Cat Image", addImageNode]);
 
+        const setWriteMode = (mode: DocServer.WriteMode) => {
+            console.log(DocServer.WriteMode[mode]);
+            const mode1 = mode;
+            const mode2 = mode === DocServer.WriteMode.Default ? mode : DocServer.WriteMode.Playground;
+            DocServer.setFieldWriteMode("x", mode1);
+            DocServer.setFieldWriteMode("y", mode1);
+            DocServer.setFieldWriteMode("width", mode1);
+            DocServer.setFieldWriteMode("height", mode1);
+
+            DocServer.setFieldWriteMode("panX", mode2);
+            DocServer.setFieldWriteMode("panY", mode2);
+            DocServer.setFieldWriteMode("scale", mode2);
+            DocServer.setFieldWriteMode("viewType", mode2);
+        };
         return < div id="add-nodes-menu" style={{ left: this.flyoutWidth + 20, bottom: 20 }} >
+
             <input type="checkbox" id="add-menu-toggle" ref={this.addMenuToggle} />
-            <label htmlFor="add-menu-toggle" style={{ marginTop: 2 }} title="Add Node"><p>+</p></label>
+            <label htmlFor="add-menu-toggle" style={{ marginTop: 2 }} title="Close Menu"><p>+</p></label>
 
             <div id="add-options-content">
                 <ul id="add-options-list">
@@ -410,6 +499,12 @@ export class MainView extends React.Component {
                             </button>
                         </div></li>)}
                     <li key="undoTest"><button className="add-button round-button" title="Click if undo isn't working" onClick={() => UndoManager.TraceOpenBatches()}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>
+                    {ClientUtils.RELEASE ? [] : [
+                        <li key="test"><button className="add-button round-button" title="Default" onClick={() => setWriteMode(DocServer.WriteMode.Default)}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>,
+                        <li key="test1"><button className="add-button round-button" title="Playground" onClick={() => setWriteMode(DocServer.WriteMode.Playground)}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>,
+                        <li key="test2"><button className="add-button round-button" title="Live Playground" onClick={() => setWriteMode(DocServer.WriteMode.LivePlayground)}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>,
+                        <li key="test3"><button className="add-button round-button" title="Live Readonly" onClick={() => setWriteMode(DocServer.WriteMode.LiveReadonly)}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>
+                    ]}
                     <li key="color"><button className="add-button round-button" title="Select Color" style={{ zIndex: 1000 }} onClick={() => this.toggleColorPicker()}><div className="toolbar-color-button" style={{ backgroundColor: InkingControl.Instance.selectedColor }} >
                         <div className="toolbar-color-picker" onClick={this.onColorClick} style={this._colorPickerDisplay ? { color: "black", display: "block" } : { color: "black", display: "none" }}>
                             <SketchPicker color={InkingControl.Instance.selectedColor} onChange={InkingControl.Instance.switchColor} />
@@ -446,8 +541,9 @@ export class MainView extends React.Component {
     }
 
     @observable isSearchVisible = false;
-    @action
+    @action.bound
     toggleSearch = () => {
+        // console.log("search toggling")
         this.isSearchVisible = !this.isSearchVisible;
     }
 
@@ -471,10 +567,35 @@ export class MainView extends React.Component {
         let mainCont = this.mainContainer;
         return mainCont ? FieldValue(Cast(mainCont.presentationView, Doc)) : undefined;
     }
+    private get dictationOverlay() {
+        let display = this.dictationOverlayVisible;
+        let success = this.dictationSuccess;
+        let result = this.isListening && !this.isListening.interim ? DictationManager.placeholder : `"${this.dictatedPhrase}"`;
+        return (
+            <div>
+                <div
+                    className={"dictation-prompt"}
+                    style={{
+                        opacity: display ? 1 : 0,
+                        background: success === undefined ? "gainsboro" : success ? "lawngreen" : "red",
+                        borderColor: this.isListening ? "red" : "black",
+                    }}
+                >{result}</div>
+                <div
+                    className={"dictation-prompt-overlay"}
+                    style={{
+                        opacity: display ? 0.4 : 0,
+                        backgroundColor: this.isListening ? "red" : "darkslategrey"
+                    }}
+                />
+            </div>
+        );
+    }
 
     render() {
         return (
             <div id="main-div">
+                {this.dictationOverlay}
                 <DocumentDecorations />
                 {this.mainContent}
                 <PreviewCursor />
@@ -482,7 +603,7 @@ export class MainView extends React.Component {
                 {this.nodesMenu()}
                 {this.miscButtons}
                 <PDFMenu />
-                <MainOverlayTextBox />
+                <MainOverlayTextBox firstinstance={true} />
                 <OverlayView />
             </div >
         );

@@ -11,6 +11,7 @@ import { SelectionManager } from '../../util/SelectionManager';
 import { ContextMenu } from '../ContextMenu';
 import { FieldViewProps } from '../nodes/FieldView';
 import './CollectionBaseView.scss';
+import { DateField } from '../../../new_fields/DateField';
 
 export enum CollectionViewType {
     Invalid,
@@ -20,6 +21,24 @@ export enum CollectionViewType {
     Tree,
     Stacking,
     Masonry
+}
+
+export namespace CollectionViewType {
+
+    const stringMapping = new Map<string, CollectionViewType>([
+        ["invalid", CollectionViewType.Invalid],
+        ["freeform", CollectionViewType.Freeform],
+        ["schema", CollectionViewType.Schema],
+        ["docking", CollectionViewType.Docking],
+        ["tree", CollectionViewType.Tree],
+        ["stacking", CollectionViewType.Stacking],
+        ["masonry", CollectionViewType.Masonry]
+    ]);
+
+    export const valueOf = (value: string) => {
+        return stringMapping.get(value.toLowerCase());
+    };
+
 }
 
 export interface CollectionRenderProps {
@@ -65,7 +84,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
 
     active = (): boolean => {
         var isSelected = this.props.isSelected();
-        return isSelected || this._isChildActive || this.props.renderDepth === 0 || BoolCast(this.props.Document.excludeFromLibrary);
+        return isSelected || BoolCast(this.props.Document.forceActive) || this._isChildActive || this.props.renderDepth === 0 || BoolCast(this.props.Document.excludeFromLibrary);
     }
 
     //TODO should this be observable?
@@ -81,7 +100,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
     addDocument(doc: Doc, allowDuplicates: boolean = false): boolean {
         var curPage = NumCast(this.props.Document.curPage, -1);
         Doc.GetProto(doc).page = curPage;
-        if (curPage >= 0) {
+        if (this.props.fieldExt) { // bcz: fieldExt !== undefined means this is an overlay layer
             Doc.GetProto(doc).annotationOn = this.props.Document;
         }
         allowDuplicates = true;
@@ -95,6 +114,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         } else {
             Doc.GetProto(targetDataDoc)[targetField] = new List([doc]);
         }
+        Doc.GetProto(doc).lastOpened = new DateField;
         return true;
     }
 
@@ -108,8 +128,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         let value = Cast(targetDataDoc[targetField], listSpec(Doc), []);
         let index = value.reduce((p, v, i) => (v instanceof Doc && v[Id] === doc[Id]) ? i : p, -1);
         PromiseValue(Cast(doc.annotationOn, Doc)).then(annotationOn =>
-            annotationOn === this.dataDoc.Document && (doc.annotationOn = undefined)
-        );
+            annotationOn === this.dataDoc.Document && (doc.annotationOn = undefined));
 
         if (index !== -1) {
             value.splice(index, 1);
@@ -147,7 +166,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
             <div id="collectionBaseView"
                 style={{
                     pointerEvents: this.props.Document.isBackground ? "none" : "all",
-                    boxShadow: `#9c9396 ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}`
+                    boxShadow: this.props.Document.isBackground ? undefined : `#9c9396 ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}`
                 }}
                 className={this.props.className || "collectionView-cont"}
                 onContextMenu={this.props.onContextMenu} ref={this.props.contentRef}>
