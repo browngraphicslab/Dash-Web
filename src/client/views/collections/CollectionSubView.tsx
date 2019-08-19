@@ -16,7 +16,7 @@ import { DragManager } from "../../util/DragManager";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocComponent } from "../DocComponent";
 import { FieldViewProps } from "../nodes/FieldView";
-import { FormattedTextBox } from "../nodes/FormattedTextBox";
+import { FormattedTextBox, Blank } from "../nodes/FormattedTextBox";
 import { CollectionPDFView } from "./CollectionPDFView";
 import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
@@ -206,7 +206,17 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 this.props.addDocument(Docs.Create.VideoDocument(url, { ...options, title: url, width: 400, height: 315, nativeWidth: 600, nativeHeight: 472.5 }));
                 return;
             }
-
+            let matches: RegExpExecArray | null;
+            if ((matches = /(https:\/\/)?docs\.google\.com\/document\/d\/([^\\]+)\/edit/g.exec(text)) !== null) {
+                let newBox = Docs.Create.TextDocument({ ...options, width: 600, height: 400, title: "Fetching title from Google Docs..." });
+                let proto = newBox.proto!;
+                proto.autoHeight = true;
+                proto.googleDocId = matches[2];
+                proto.data = "Fetching contents from Google Docs...";
+                proto.backgroundColor = "#eeeeff";
+                this.props.addDocument(newBox);
+                return;
+            }
             let batch = UndoManager.StartBatch("collection view drop");
             let promises: Promise<void>[] = [];
             // tslint:disable-next-line:prefer-for-of

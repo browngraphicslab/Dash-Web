@@ -1,6 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faEdit, faSmile, faTextHeight, faUpload } from '@fortawesome/free-solid-svg-icons';
-import { action, IReactionDisposer, observable, reaction, runInAction, computed, Lambda, trace } from "mobx";
+import { action, IReactionDisposer, observable, reaction, runInAction, computed, Lambda, trace, untracked } from "mobx";
 import { observer } from "mobx-react";
 import { baseKeymap } from "prosemirror-commands";
 import { history } from "prosemirror-history";
@@ -47,6 +47,8 @@ library.add(faSmile, faTextHeight, faUpload);
 // FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document
 //
 
+export const Blank = `{"doc":{"type":"doc","content":[]},"selection":{"type":"text","anchor":0,"head":0}}`;
+
 export interface FormattedTextBoxProps {
     isOverlay?: boolean;
     hideOnLeave?: boolean;
@@ -84,7 +86,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     private _proxyReactionDisposer: Opt<IReactionDisposer>;
     private dropDisposer?: DragManager.DragDropDisposer;
     public get CurrentDiv(): HTMLDivElement { return this._ref.current!; }
-    private isOpening = false;
+    private isGoogleDocsUpdate = false;
     @observable _entered = false;
 
     @observable public static InputBoxOverlay?: FormattedTextBox = undefined;
@@ -290,28 +292,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
-    componentWillMount() {
-        this.pollExportedCounterpart();
-    }
-
-    pollExportedCounterpart = async () => {
-        let dataDoc = Doc.GetProto(this.props.Document);
-        let documentId = StrCast(dataDoc[googleDocId]);
-        if (documentId) {
-            let exportState = await GoogleApiClientUtils.Docs.read({ documentId });
-            if (exportState) {
-                let data = Cast(dataDoc.data, RichTextField);
-                if (data) {
-                    this.isOpening = true;
-                    dataDoc.data = new RichTextField(data[FromGoogleDocText](exportState));
-                }
-            } else {
-                delete dataDoc[googleDocId];
-            }
-            this.tryUpdateHeight();
-        }
-    }
-
     componentDidMount() {
         const config = {
             schema,
@@ -347,22 +327,31 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         this._reactionDisposer = reaction(
             () => {
                 const field = this.dataDoc ? Cast(this.dataDoc[this.props.fieldKey], RichTextField) : undefined;
-                return field ? field.Data : `{"doc":{"type":"doc","content":[]},"selection":{"type":"text","anchor":0,"head":0}}`;
+                return field ? field.Data : Blank;
             },
             incomingValue => {
                 if (this._editorView && !this._applyingChange) {
                     let updatedState = JSON.parse(incomingValue);
                     this._editorView.updateState(EditorState.fromJSON(config, updatedState));
                     // manually sets cursor selection at the end of the text on focus
-                    if (this.isOpening) {
-                        this.isOpening = false;
+                    if (this.isGoogleDocsUpdate) {
+                        this.isGoogleDocsUpdate = false;
                         let end = this._editorView.state.doc.content.size - 1;
                         updatedState.selection = { type: "text", anchor: end, head: end };
                         this._editorView.updateState(EditorState.fromJSON(config, updatedState));
                     }
+                    this.tryUpdateHeight();
                 }
             }
         );
+
+        reaction(() => this.props.Document.pullFromGoogleDocsTrigger, () => {
+            this.pullFromGoogleDoc();
+        });
+
+        reaction(() => this.props.Document.pushToGoogleDocsTrigger, () => {
+            this.pushToGoogleDoc();
+        });
 
         this._textReactionDisposer = reaction(
             () => this.extensionDoc,
@@ -391,6 +380,13 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 this.unhighlightSearchTerms();
             }
         }, { fireImmediately: true });
+
+        ["pushToGoogleDocsTrigger", "pullFromGoogleDocsTrigger"].map(key => {
+            let doc = this.props.Document;
+            if (doc[key] === undefined) {
+                untracked(() => doc[key] = false);
+            }
+        });
     }
 
     clipboardTextSerializer = (slice: Slice): string => {
@@ -644,7 +640,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             this._undoTyping.end();
             this._undoTyping = undefined;
         }
-        this.updateGoogleDoc();
     }
     public _undoTyping?: UndoManager.Batch;
     onKeyPress = (e: React.KeyboardEvent) => {
@@ -701,13 +696,13 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (!(googleDocId in Doc.GetProto(this.props.Document))) {
             ContextMenu.Instance.addItem({
                 description: "Export to Google Doc...",
-                event: this.updateGoogleDoc,
+                event: this.pushToGoogleDoc,
                 icon: "upload"
             });
         }
     }
 
-    updateGoogleDoc = () => {
+    pushToGoogleDoc = () => {
         let modes = GoogleApiClientUtils.Docs.WriteMode;
         let mode = modes.Replace;
         let reference: Opt<GoogleApiClientUtils.Docs.Reference> = Cast(this.dataDoc[googleDocId], "string");
@@ -724,6 +719,25 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             GoogleApiClientUtils.Docs.write({ reference, content, mode });
         }
     }
+
+    pullFromGoogleDoc = async () => {
+        let dataDoc = Doc.GetProto(this.props.Document);
+        let documentId = StrCast(dataDoc[googleDocId]);
+        if (documentId) {
+            let exportState = await GoogleApiClientUtils.Docs.read({ documentId });
+            if (exportState && exportState.body && exportState.title) {
+                let data = Cast(dataDoc.data, RichTextField);
+                if (data) {
+                    this.isGoogleDocsUpdate = true;
+                    dataDoc.data = new RichTextField(data[FromGoogleDocText](exportState.body));
+                    dataDoc.title = exportState.title;
+                }
+            } else {
+                delete dataDoc[googleDocId];
+            }
+        }
+    }
+
 
     render() {
         let self = this;

@@ -27,8 +27,8 @@ export namespace GoogleApiClientUtils {
         export type CreationResult = Opt<DocumentId>;
         export type RetrievalResult = Opt<docs_v1.Schema$Document>;
         export type UpdateResult = Opt<docs_v1.Schema$BatchUpdateDocumentResponse>;
-        export type ReadLinesResult = Opt<string[]>;
-        export type ReadResult = Opt<string>;
+        export type ReadLinesResult = Opt<{ title?: string, bodyLines?: string[] }>;
+        export type ReadResult = { title?: string, body?: string };
 
         export interface CreateOptions {
             handler: IdHandler; // callback to process the documentId of the newly created Google Doc
@@ -148,18 +148,27 @@ export namespace GoogleApiClientUtils {
         };
 
         export const read = async (options: ReadOptions): Promise<ReadResult> => {
-            return retrieve(options).then(schema => {
-                return schema ? Utils.extractText(schema, options.removeNewlines) : undefined;
+            return retrieve(options).then(document => {
+                let result: ReadResult = {};
+                if (document) {
+                    let title = document.title;
+                    let body = Utils.extractText(document, options.removeNewlines);
+                    result = { title, body };
+                }
+                return result;
             });
         };
 
         export const readLines = async (options: ReadOptions): Promise<ReadLinesResult> => {
-            return retrieve(options).then(schema => {
-                if (!schema) {
-                    return undefined;
+            return retrieve(options).then(document => {
+                let result: ReadLinesResult = {};
+                if (document) {
+                    let title = document.title;
+                    let bodyLines = Utils.extractText(document).split("\n");
+                    options.removeNewlines && (bodyLines = bodyLines.filter(line => line.length));
+                    result = { title, bodyLines };
                 }
-                const lines = Utils.extractText(schema).split("\n");
-                return options.removeNewlines ? lines.filter(line => line.length) : lines;
+                return result;
             });
         };
 

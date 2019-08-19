@@ -1,6 +1,5 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faLink, faTag } from '@fortawesome/free-solid-svg-icons';
-import * as fa from '@fortawesome/free-brands-svg-icons';
+import { faLink, faTag, faArrowAltCircleDown, faArrowAltCircleUp } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
@@ -37,7 +36,8 @@ export const Flyout = higflyout.default;
 
 library.add(faLink);
 library.add(faTag);
-library.add(fa.faGoogleDrive as any);
+library.add(faArrowAltCircleDown);
+library.add(faArrowAltCircleUp);
 
 @observer
 export class DocumentDecorations extends React.Component<{}, { value: string }> {
@@ -620,13 +620,28 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         );
     }
 
-    considerGoogleDoc = () => {
+    considerGoogleDocsPush = () => {
         let thisDoc = SelectionManager.SelectedDocuments()[0].props.Document;
-        let canEmbed = thisDoc.data && thisDoc.data instanceof RichTextField;
-        if (!canEmbed) return (null);
+        let canPush = thisDoc.data && thisDoc.data instanceof RichTextField;
+        if (!canPush) return (null);
         return (
             <div className={"linkButtonWrapper"}>
-                <FontAwesomeIcon className="documentdecorations-icon" icon="image" size="sm" />
+                <div title="Push to Google Docs" className="linkButton-linker" onClick={() => thisDoc.pushToGoogleDocsTrigger = !thisDoc.pushToGoogleDocsTrigger}>
+                    <FontAwesomeIcon className="documentdecorations-icon" icon="arrow-alt-circle-up" size="sm" />
+                </div>
+            </div>
+        );
+    }
+
+    considerGoogleDocsPull = () => {
+        let thisDoc = SelectionManager.SelectedDocuments()[0].props.Document;
+        let canPull = thisDoc.data && thisDoc.data instanceof RichTextField;
+        if (!canPull) return (null);
+        return (
+            <div className={"linkButtonWrapper"}>
+                <div title="Pull From Google Docs" className="linkButton-linker" onClick={() => thisDoc.pullFromGoogleDocsTrigger = !thisDoc.pullFromGoogleDocsTrigger}>
+                    <FontAwesomeIcon className="documentdecorations-icon" icon="arrow-alt-circle-down" size="sm" />
+                </div>
             </div>
         );
     }
@@ -781,7 +796,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     </div>
                     {this.metadataMenu}
                     {this.considerEmbed()}
-                    {this.considerGoogleDoc()}
+                    {this.considerGoogleDocsPush()}
+                    {this.considerGoogleDocsPull()}
                     {/* {this.considerTooltip()} */}
                 </div>
             </div >
