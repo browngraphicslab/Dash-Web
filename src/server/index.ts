@@ -436,7 +436,7 @@ function LoadPage(file: string, pageNumber: number, res: Response) {
             console.log(pageNumber);
             pdf.getPage(pageNumber).then((page: Pdfjs.PDFPageProxy) => {
                 console.log("reading " + page);
-                let viewport = page.getViewport(1);
+                let viewport = page.getViewport(1 as any);
                 let canvasAndContext = factory.create(viewport.width, viewport.height);
                 let renderContext = {
                     canvasContext: canvasAndContext.context,
