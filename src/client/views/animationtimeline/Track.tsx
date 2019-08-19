@@ -1,16 +1,14 @@
 import * as React from "react";
 import { observer } from "mobx-react";
-import { observable, reaction, action, IReactionDisposer, observe, IObservableArray, computed, toJS, IObservableObject, runInAction, autorun } from "mobx";
+import { observable, reaction, action, IReactionDisposer, computed, runInAction, autorun } from "mobx";
 import "./Track.scss";
 import { Doc, DocListCastAsync, DocListCast, Field } from "../../../new_fields/Doc";
 import { listSpec } from "../../../new_fields/Schema";
 import { FieldValue, Cast, NumCast, BoolCast, StrCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { Keyframe, KeyframeFunc, RegionData } from "./Keyframe";
-import { FlyoutProps } from "./Timeline";
 import { Transform } from "../../util/Transform";
 import { RichTextField } from "../../../new_fields/RichTextField";
-import { createObjectBindingPattern } from "typescript";
 import { DateField } from "../../../new_fields/DateField";
 
 interface IProps {
@@ -68,23 +66,7 @@ export class Track extends React.Component<IProps> {
         if (kf.type === KeyframeFunc.KeyframeType.default) { // only save for non-fades
             kf.key = Doc.MakeCopy(this.props.node, true);
             let leftkf: (Doc | undefined) = await KeyframeFunc.calcMinLeft(regiondata!, KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement), kf); // lef keyframe, if it exists
-            let rightkf: (Doc | undefined) = await KeyframeFunc.calcMinRight(regiondata!, KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement), kf); //right keyframe, if it exists
-            // while (leftkf !== undefined) {
-            //     if (leftkf!.type === KeyframeFunc.KeyframeType.fade) {
-            //         let edge:(Doc | undefined) = await KeyframeFunc.calcMinLeft(regiondata!, KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement), leftkf!);
-            //         edge!.key = Doc.MakeCopy(kf.key as Doc, true);
-            //         leftkf!.key = Doc.MakeCopy(kf.key as Doc, true);
-            //         (Cast(edge!.key, Doc)! as Doc).opacity = 0.1;
-            //         (Cast(leftkf!.key, Doc)! as Doc).opacity = 1;
-            //     } else if (leftkf!.key ) {
-            //         leftkf!.key = Doc.MakeCopy(kf.key as Doc, true);
-            //     }
-
-            // }
-            
-            
-            
-            
+            let rightkf: (Doc | undefined) = await KeyframeFunc.calcMinRight(regiondata!, KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement), kf); //right keyframe, if it exists 
             if (leftkf!.type === KeyframeFunc.KeyframeType.fade) { //replicating this keyframe to fades
                 let edge:(Doc | undefined) = await KeyframeFunc.calcMinLeft(regiondata!, KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement), leftkf!);
                 edge!.key = Doc.MakeCopy(kf.key as Doc, true);
@@ -160,7 +142,6 @@ export class Track extends React.Component<IProps> {
                         this.props.node[key] = new RichTextField(nodeData); 
                     }
                 } else if (key === "creationDate") {
-                    
                     this.props.node[key] = new DateField(); 
                 }  else {
                     this.props.node[key] = kfNode[key];
@@ -175,9 +156,9 @@ export class Track extends React.Component<IProps> {
     @action
     private filterKeys = (keys: string[]): string[] => {
         return keys.reduce((acc: string[], key: string) => {
-            if (key !== "regions" && key !== "cursors" && key !== "hidden" && key !== "nativeHeight" && key !== "nativeWidth" && key !== "schemaColumns") acc.push(key);
+            if (key !== "regions" && key !== "cursors" && key !== "hidden" && key !== "nativeHeight" && key !== "nativeWidth" && key !== "schemaColumns" && key !==  "creationDate") acc.push(key);
             return acc;
-        }, []) as string[];
+        }, []);
     }
 
     @action
@@ -280,15 +261,16 @@ export class Track extends React.Component<IProps> {
     createRegion = (position: number) => {
         let regiondata = KeyframeFunc.defaultKeyframe();
         regiondata.position = position;
-        let leftRegion = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.left, regiondata, this.regions);
         let rightRegion = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.right, regiondata, this.regions);
-        if ((rightRegion && leftRegion && rightRegion.position - (leftRegion.position + leftRegion.duration) < NumCast(regiondata.fadeIn) + NumCast(regiondata.fadeOut)) || (rightRegion && rightRegion.position - regiondata.position < NumCast(regiondata.fadeIn) + NumCast(regiondata.fadeOut))) {
-            return;
-        } else if (rightRegion && rightRegion.position - regiondata.position >= NumCast(regiondata.fadeIn) + NumCast(regiondata.fadeOut)) {
+    
+        if (rightRegion && rightRegion.position - regiondata.position <= 4000) {
             regiondata.duration = rightRegion.position - regiondata.position;
+        } 
+        if(this.regions.length === 0 || !rightRegion || (rightRegion && rightRegion.position - regiondata.position >= NumCast(regiondata.fadeIn) + NumCast(regiondata.fadeOut))){
+            this.regions.push(regiondata);
+            return regiondata;
         }
-        this.regions.push(regiondata);
-        return regiondata;
+       
     }
 
 

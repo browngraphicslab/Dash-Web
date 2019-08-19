@@ -28,7 +28,7 @@ export namespace KeyframeFunc {
         let leftMost: (RegionData | undefined) = undefined;
         let rightMost: (RegionData | undefined) = undefined;
         DocListCast(regions).forEach(region => {
-            let neighbor = RegionData(region as Doc);
+            let neighbor = RegionData(region);
             if (currentRegion.position! > neighbor.position) {
                 if (!leftMost || neighbor.position > leftMost.position) {
                     leftMost = neighbor;
@@ -230,7 +230,6 @@ export class Keyframe extends React.Component<IProps> {
         let doclist = (await DocListCastAsync(this.regiondata.keyframes))!;
         let existingkf: (Doc | undefined) = undefined;
         doclist.forEach(TK => {
-            TK = TK as Doc;
             if (TK.time === kfpos) existingkf = TK;
         });
         if (existingkf) return existingkf;
@@ -299,8 +298,8 @@ export class Keyframe extends React.Component<IProps> {
             this.regiondata.position = 0;
         } else if ((left && left.position + left.duration >= futureX)) {
             this.regiondata.position = left.position + left.duration;
-        } else if ((right && right.position <= futureX + this.pixelDuration)) {
-            this.regiondata.position = right.position - this.pixelDuration;
+        } else if ((right && right.position <= futureX + this.regiondata.duration)) {
+            this.regiondata.position = right.position - this.regiondata.duration;
         } else {
             this.regiondata.position = futureX;
         }            
@@ -353,7 +352,8 @@ export class Keyframe extends React.Component<IProps> {
             this.regiondata.duration -= offset;
             this.regiondata.position += offset;
         }
-        
+        this.keyframes[0].time = this.regiondata.position; 
+        this.keyframes[1].time = this.regiondata.position + this.regiondata.fadeIn; 
     }
 
 
@@ -375,6 +375,8 @@ export class Keyframe extends React.Component<IProps> {
         } else {
             this.regiondata.duration += offset;
         }
+        this.keyframes[this.keyframes.length - 2].time = this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut; 
+        this.keyframes[this.keyframes.length - 1].time = this.regiondata.position + this.regiondata.duration; 
        
     }
 
@@ -408,24 +410,36 @@ export class Keyframe extends React.Component<IProps> {
 
     @action 
     makeKeyframeMenu = (kf :Doc, e:MouseEvent) => {
-        let items = [
-            TimelineMenu.Instance.addItem("button", "Show Data", () => {
-            runInAction(() => {let kvp = Docs.Create.KVPDocument(Cast(kf.key, Doc) as Doc, { width: 300, height: 300 }); 
+   
+        TimelineMenu.Instance.addItem("button", "Show Data", () => {
+        runInAction(() => {let kvp = Docs.Create.KVPDocument(Cast(kf.key, Doc) as Doc, { width: 300, height: 300 }); 
             CollectionDockingView.Instance.AddRightSplit(kvp, (kf.key as Doc).data as Doc); });
-            }), 
-            TimelineMenu.Instance.addItem("button", "Delete", () => {}), 
-            TimelineMenu.Instance.addItem("input", "Move", (val) => {kf.time = parseInt(val, 10);})  
-        ]; 
-        TimelineMenu.Instance.addMenu("Keyframe", items); 
+        }), 
+        TimelineMenu.Instance.addItem("button", "Delete", () => {}), 
+        TimelineMenu.Instance.addItem("input", "Move", (val) => {kf.time = parseInt(val, 10);});  
+        
+        TimelineMenu.Instance.addMenu("Keyframe"); 
         TimelineMenu.Instance.openMenu(e.clientX, e.clientY); 
-}
+    }
+
+    @action 
+    makeRegionMenu = (kf: Doc, e: MouseEvent) => {
+        TimelineMenu.Instance.addItem("button", "Add Ease", () => {this.onContainerDown(kf, "interpolate");}),
+        TimelineMenu.Instance.addItem("button", "Add Path", () => {this.onContainerDown(kf, "path");}), 
+        TimelineMenu.Instance.addItem("input", "fadeIn", (val) => {this.regiondata.fadeIn = parseInt(val, 10);}), 
+        TimelineMenu.Instance.addItem("input", "fadeOut", (val) => {this.regiondata.fadeOut = parseInt(val, 10);}),
+        TimelineMenu.Instance.addItem("input", "position", (val) => {this.regiondata.position = parseInt(val, 10);}),
+        TimelineMenu.Instance.addItem("input", "duration", (val) => {this.regiondata.duration = parseInt(val, 10);}),
+        TimelineMenu.Instance.addMenu("Region"); 
+        TimelineMenu.Instance.openMenu(e.clientX, e.clientY); 
+    }
     @action
     private createKeyframeJSX = (kf: Doc, type = KeyframeFunc.KeyframeType.default) => {
         if (type === KeyframeFunc.KeyframeType.default) {
             return (
                 <div className="keyframe" style={{ left: `${KeyframeFunc.convertPixelTime(NumCast(kf.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement) - this.pixelPosition}px` }}>
                     <div className="divider"></div>
-                    <div className="keyframeCircle" onPointerDown={(e) => { this.moveKeyframe(e, kf as Doc); }} onContextMenu={(e: React.MouseEvent) => {
+                    <div className="keyframeCircle" onPointerDown={(e) => { this.moveKeyframe(e, kf); }} onContextMenu={(e: React.MouseEvent) => {
                         e.preventDefault();
                         e.stopPropagation();
                         this.makeKeyframeMenu(kf, e.nativeEvent); 
@@ -546,7 +560,9 @@ export class Keyframe extends React.Component<IProps> {
                     onPointerDown={this.onBarPointerDown}>
                     <div className="leftResize" onPointerDown={this.onResizeLeft} ></div>
                     <div className="rightResize" onPointerDown={this.onResizeRight}></div>
-                    {this.keyframes.map(kf => { this.createKeyframeJSX(kf, kf.type as KeyframeFunc.KeyframeType); })}
+                    {this.keyframes.map(kf => {
+                        return this.createKeyframeJSX(kf, kf.type as KeyframeFunc.KeyframeType); 
+                    })}
                     {this.keyframes.map( kf => {
                        if(this.keyframes.indexOf(kf ) !== this.keyframes.length - 1) {
                             let left = this.keyframes[this.keyframes.indexOf(kf) + 1]; 
@@ -561,16 +577,7 @@ export class Keyframe extends React.Component<IProps> {
                                     e.preventDefault(); 
                                     e.stopPropagation(); 
                                     this._mouseToggled = true; 
-                                    let items = [
-                                        TimelineMenu.Instance.addItem("button", "Add Ease", () => {this.onContainerDown(kf, "interpolate");}),
-                                        TimelineMenu.Instance.addItem("button", "Add Path", () => {this.onContainerDown(kf, "path");}), 
-                                        TimelineMenu.Instance.addItem("input", "fadeIn", (val) => {this.regiondata.fadeIn = parseInt(val, 10);}), 
-                                        TimelineMenu.Instance.addItem("input", "fadeOut", (val) => {this.regiondata.fadeOut = parseInt(val, 10);}),
-                                        TimelineMenu.Instance.addItem("input", "position", (val) => {this.regiondata.position = parseInt(val, 10);}),
-                                        TimelineMenu.Instance.addItem("input", "duration", (val) => {this.regiondata.duration = parseInt(val, 10);}),
-                                    ]; 
-                                    TimelineMenu.Instance.addMenu("Region", items); 
-                                    TimelineMenu.Instance.openMenu(e.clientX, e.clientY); 
+                                    this.makeRegionMenu(kf, e.nativeEvent); 
                                 }}>
                                 </div>
                             ); 

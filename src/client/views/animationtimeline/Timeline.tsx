@@ -1,7 +1,6 @@
 import * as React from "react";
 import "./Timeline.scss";
-import { CollectionSubView } from "../collections/CollectionSubView";
-import { Document, listSpec } from "../../../new_fields/Schema";
+import { listSpec } from "../../../new_fields/Schema";
 import { observer } from "mobx-react";
 import { Track } from "./Track";
 import { observable, reaction, action, IReactionDisposer, computed, runInAction, observe } from "mobx";
@@ -13,8 +12,8 @@ import { faPlayCircle, faBackward, faForward, faGripLines, faArrowUp, faArrowDow
 import { ContextMenuProps } from "../ContextMenuItem";
 import { ContextMenu } from "../ContextMenu";
 import { TimelineOverview } from "./TimelineOverview";
-import { playcustomapp } from "googleapis/build/src/apis/playcustomapp";
-import { FieldView, FieldViewProps } from "../nodes/FieldView";
+import { FieldViewProps } from "../nodes/FieldView";
+import { KeyframeFunc } from "./Keyframe";
 
 
 
@@ -62,6 +61,8 @@ export class Timeline extends React.Component<FieldViewProps> {
     @observable private _timelineVisible = false; 
     @observable private _mouseToggled = false; 
     @observable private _doubleClickEnabled = false; 
+    @observable private _mutationDisposer:MutationObserver[] = []; 
+    @observable private _reactionDisposer:IReactionDisposer[] = []; 
 
 
     @computed
@@ -89,7 +90,7 @@ export class Timeline extends React.Component<FieldViewProps> {
             console.log(this.props.Document.duration);
             if (this.props.Document.duration) {
                 this._time = Math.round(NumCast(this.props.Document.duration)) * 1000;
-                reaction(() => {
+                this._reactionDisposer.push(reaction(() => {
                     return NumCast(this.props.Document.curPage);
                 }, curPage => {
                     if (!this._isPlaying) {
@@ -97,12 +98,11 @@ export class Timeline extends React.Component<FieldViewProps> {
                         this.props.Document.curPage = this._currentBarX; 
                         this.play(); 
                     }
-                   
-                });
+                }));
             }
         }
         runInAction(() => {
-            reaction(() => {
+            this._reactionDisposer.push(reaction(() => {
                 return this._time;  
             }, () => {
                 this._ticks = [];
@@ -111,7 +111,7 @@ export class Timeline extends React.Component<FieldViewProps> {
                     i += 1000;
                 }
                 this._totalLength = this._tickSpacing * (this._time/ this._tickIncrement); 
-            }, {fireImmediately:true}); 
+            }, {fireImmediately:true})); 
             this._totalLength = this._tickSpacing * (this._ticks.length/ this._tickIncrement); 
             this._visibleLength = this._infoContainer.current!.getBoundingClientRect().width; 
             this._visibleStart = this._infoContainer.current!.scrollLeft;   
@@ -321,7 +321,6 @@ export class Timeline extends React.Component<FieldViewProps> {
         return `${min}:${sec}`;
     }
 
-
     timelineContextMenu = (e:MouseEvent): void => {
         let subitems: ContextMenuProps[] = [];
         let timelineContainer = this._timelineWrapper.current!;
@@ -354,31 +353,41 @@ export class Timeline extends React.Component<FieldViewProps> {
     onWheelZoom = (e: React.WheelEvent) => {
         e.preventDefault(); 
         e.stopPropagation(); 
+        let offset = e.clientX - this._infoContainer.current!.getBoundingClientRect().left; 
+        let prevTime = KeyframeFunc.convertPixelTime(this._visibleStart + offset, "mili", "time", this._tickSpacing, this._tickIncrement); 
         e.deltaY < 0 ? this.zoom(true) : this.zoom(false); 
+        let currPixel = KeyframeFunc.convertPixelTime(prevTime, "mili", "pixel", this._tickSpacing, this._tickIncrement); 
+        this._infoContainer.current!.scrollLeft = currPixel - offset; 
+        this._visibleStart = currPixel - offset; 
     }
 
     @action
     zoom = (dir: boolean) => {
+        let spacingChange = this._tickSpacing; 
+        let incrementChange = this._tickIncrement; 
         if (dir){
             if (!(this._tickSpacing === 100 && this._tickIncrement === 1000)){
                 if (this._tickSpacing >= 100) {
-                    this._tickIncrement /= 2; 
-                    this._tickSpacing = 50; 
+                    incrementChange /= 2; 
+                    spacingChange = 50; 
                 } else {
-                    this._tickSpacing += 10; 
+                    spacingChange += 5; 
                 }
             } 
         } else {
-            if (this._totalLength >= this._infoContainer.current!.getBoundingClientRect().width){
-                if (this._tickSpacing <= 50) {
-                    this._tickSpacing = 100; 
-                    this._tickIncrement *= 2; 
-                } else {
-                    this._tickSpacing -= 10; 
-                }
+            if (this._tickSpacing <= 50) {
+                spacingChange = 100; 
+                incrementChange *= 2; 
+            } else {
+                spacingChange -= 5; 
             }
         }
-        this._totalLength = this._tickSpacing * (this._time/ this._tickIncrement); 
+        let finalLength = spacingChange * (this._time / incrementChange);  
+        if (finalLength >= this._infoContainer.current!.getBoundingClientRect().width){
+            this._totalLength = finalLength; 
+            this._tickSpacing = spacingChange; 
+            this._tickIncrement = incrementChange; 
+        }
     }
 
     private timelineToolBox = (scale:number) => {
