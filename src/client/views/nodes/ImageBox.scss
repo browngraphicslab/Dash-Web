@@ -62,17 +62,40 @@
     position:relative;
     width:100%;
     margin:0 auto;
+    display:flex;
+    align-items: center;
+    height:100%;
+    .imageBox-fadeBlocker {
+        width:100%;
+        height:100%;
+        background: black;
+        display:flex;
+        flex-direction: row;
+        align-items: center;
+        z-index: 1;
+        .imageBox-fadeaway {
+            object-fit: contain;
+            width:100%;
+            height:100%;
+        }
+    }
   }
   
   #cf img {
     position:absolute;
     left:0;
+  }
+  
+  .imageBox-fadeBlocker {
     -webkit-transition: opacity 1s ease-in-out;
     -moz-transition: opacity 1s ease-in-out;
     -o-transition: opacity 1s ease-in-out;
     transition: opacity 1s ease-in-out;
   }
-  
-  #cf img.fadeaway:hover {
+  .imageBox-fadeBlocker:hover {
+    -webkit-transition: opacity 1s ease-in-out;
+    -moz-transition: opacity 1s ease-in-out;
+    -o-transition: opacity 1s ease-in-out;
+    transition: opacity 1s ease-in-out;
     opacity:0;
   }

@@ -1,7 +1,7 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faEye } from "@fortawesome/free-regular-svg-icons";
 import { faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faPaintBrush, faTable, faUpload, faChalkboard, faBraille } from "@fortawesome/free-solid-svg-icons";
-import { action, computed, observable } from "mobx";
+import { action, computed, observable, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCastAsync, HeightSym, WidthSym, DocListCast, FieldResult, Field, Opt } from "../../../../new_fields/Doc";
 import { Id } from "../../../../new_fields/FieldSymbols";
@@ -80,7 +80,6 @@ export namespace PivotView {
         let collection = target.Document;
         const field = StrCast(collection.pivotField) || "title";
         const width = NumCast(collection.pivotWidth) || 200;
-
         const groups = new Map<FieldResult<Field>, Doc[]>();
 
         for (const doc of target.childDocs) {
@@ -93,14 +92,11 @@ export namespace PivotView {
             } else {
                 groups.set(val, [doc]);
             }
-
         }
 
         let minSize = Infinity;
 
-        groups.forEach((val, key) => {
-            minSize = Math.min(minSize, val.length);
-        });
+        groups.forEach((val, key) => minSize = Math.min(minSize, val.length));
 
         const numCols = NumCast(collection.pivotNumColumns) || Math.ceil(Math.sqrt(minSize));
         const fontSize = NumCast(collection.pivotFontSize);
@@ -137,42 +133,36 @@ export namespace PivotView {
         });
 
         let elements = target.viewDefsToJSX(groupNames);
-        let curPage = FieldValue(target.Document.curPage, -1);
-
-        let docViews = target.childDocs.filter(doc => doc instanceof Doc).reduce((prev, doc) => {
-            var page = NumCast(doc.page, -1);
-            if ((Math.abs(Math.round(page) - Math.round(curPage)) < 3) || page === -1) {
-                let minim = BoolCast(doc.isMinimized);
-                if (minim === undefined || !minim) {
-                    let defaultPosition = (): ViewDefBounds => {
-                        return {
-                            x: NumCast(doc.x),
-                            y: NumCast(doc.y),
-                            z: NumCast(doc.z),
-                            width: NumCast(doc.width),
-                            height: NumCast(doc.height)
-                        };
+        let docViews = target.childDocs.reduce((prev, doc) => {
+            let minim = BoolCast(doc.isMinimized);
+            if (minim === undefined || !minim) {
+                let defaultPosition = (): ViewDefBounds => {
+                    return {
+                        x: NumCast(doc.x),
+                        y: NumCast(doc.y),
+                        z: NumCast(doc.z),
+                        width: NumCast(doc.width),
+                        height: NumCast(doc.height)
                     };
-                    const pos = docMap.get(doc) || defaultPosition();
-                    prev.push({
-                        ele: (
-                            <CollectionFreeFormDocumentView
-                                key={doc[Id]}
-                                x={pos.x}
-                                y={pos.y}
-                                width={pos.width}
-                                height={pos.height}
-                                {...target.getChildDocumentViewProps(doc)}
-                            />),
-                        bounds: {
-                            x: pos.x,
-                            y: pos.y,
-                            z: pos.z,
-                            width: NumCast(pos.width),
-                            height: NumCast(pos.height)
-                        }
-                    });
-                }
+                };
+                const pos = docMap.get(doc) || defaultPosition();
+                prev.push({
+                    ele: <CollectionFreeFormDocumentView
+                        key={doc[Id]}
+                        x={pos.x}
+                        y={pos.y}
+                        width={pos.width}
+                        height={pos.height}
+                        {...target.getChildDocumentViewProps(doc)}
+                    />,
+                    bounds: {
+                        x: pos.x,
+                        y: pos.y,
+                        z: pos.z,
+                        width: NumCast(pos.width),
+                        height: NumCast(pos.height)
+                    }
+                });
             }
             return prev;
         }, elements);
@@ -196,9 +186,15 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private get _pheight() { return this.props.PanelHeight(); }
     private _timelineRef = React.createRef<Timeline>(); 
     private inkKey = "ink";
+    private _childLayoutDisposer?: IReactionDisposer;
 
-    constructor(props: any) {
-        super(props);
+    componentDidMount() {
+        this._childLayoutDisposer = reaction(() => [this.childDocs, Cast(this.props.Document.childLayout, Doc)],
+            async (args) => args[1] instanceof Doc &&
+                this.childDocs.map(async doc => !Doc.AreProtosEqual(args[1] as Doc, (await doc).layout as Doc) && Doc.ApplyTemplateTo(args[1] as Doc, (await doc), undefined)));
+    }
+    componentWillUnmount() {
+        this._childLayoutDisposer && this._childLayoutDisposer();
     }
 
     get parentScaling() {
@@ -726,6 +722,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @computed.struct
     get elements() {
+        if (this.Document.usePivotLayout) return PivotView.elements(this);
         let curPage = FieldValue(this.Document.curPage, -1);
         const initScript = this.Document.arrangeInit;
         const script = this.Document.arrangeScript;
@@ -769,7 +766,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @computed.struct
     get views() {
-        let source = this.Document.usePivotLayout === true ? PivotView.elements(this) : this.elements;
+        let source = this.elements;
         return source.filter(ele => ele.bounds && !ele.bounds.z).map(ele => ele.ele);
     }
     @computed.struct

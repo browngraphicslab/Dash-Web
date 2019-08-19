@@ -130,12 +130,13 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
     render() {
         this.TextDoc; this.TextDataDoc;
         if (FormattedTextBox.InputBoxOverlay && this._textTargetDiv) {
+            let wid = FormattedTextBox.InputBoxOverlay.props.Document.width; // need to force overlay to render when underlying text box is resized (eg, w/ DocDecorations)
             let textRect = this._textTargetDiv.getBoundingClientRect();
             let s = this._textXf().Scale;
             let location = this._textBottom ? textRect.bottom : textRect.top;
             let hgt = this._textAutoHeight || this._textBottom ? "auto" : this._textTargetDiv.clientHeight;
             return <div ref={this._setouterdiv} className="mainOverlayTextBox-unscaled_div" style={{ transform: `translate(${textRect.left}px, ${location}px)` }} >
-                <div className="mainOverlayTextBox-textInput" style={{ transform: `scale(${1 / s},${1 / s})`, width: "auto", height: "0px" }} >
+                <div className="mainOverlayTextBox-textInput" style={{ transform: `scale(${1 / s})`, width: "auto", height: "0px" }} >
                     <div className="mainOverlayTextBox-textInput" onPointerDown={this.textBoxDown} ref={this._textProxyDiv} onScroll={this.textScroll}
                         style={{ width: `${textRect.width * s}px`, height: "0px" }}>
                         <div style={{ height: hgt, width: "100%", position: "absolute", bottom: this._textBottom ? "0px" : undefined }}>
@@ -145,7 +146,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
                                 onClick={undefined}
                                 isSelected={returnTrue} select={emptyFunction} renderDepth={0} selectOnLoad={true}
                                 ContainingCollectionView={undefined} whenActiveChanged={emptyFunction} active={returnTrue} ContentScaling={returnOne}
-                                ScreenToLocalTransform={this._textXf} PanelWidth={returnZero} PanelHeight={returnZero} focus={emptyFunction} addDocTab={this.addDocTab} />
+                                ScreenToLocalTransform={this._textXf} PanelWidth={returnZero} PanelHeight={returnZero} focus={emptyFunction} addDocTab={this.addDocTab} outer_div={(tooltip: HTMLElement) => { this._tooltip = tooltip; this.updateTooltip(); }} />
                         </div>
                     </div>
                 </div>

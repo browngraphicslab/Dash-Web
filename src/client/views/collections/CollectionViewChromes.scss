@@ -54,6 +54,14 @@
                 transform-origin: top left;
                 // margin-top: 10px;
             }
+            .collectionViewBaseChrome-template {
+                margin-left: 10px;
+                display: grid;
+                background: rgb(238, 238, 238);
+                color:grey;
+                margin-top:auto;
+                margin-bottom:auto;
+            }
 
             .collectionViewBaseChrome-viewSpecs {
                 margin-left: 10px;
@@ -109,7 +117,7 @@
 
                     .collectionViewBaseChrome-viewSpecsMenu-lastRow {
                         display: grid;
-                        grid-template-columns: 1fr 1fr;
+                        grid-template-columns: 1fr 1fr 1fr;
                         grid-gap: 10px;
                         margin: 10px;
                     }
@@ -118,17 +126,20 @@
         }
 
 
-        .collectionStackingViewChrome-cont {
+        .collectionStackingViewChrome-cont,
+        .collectionTreeViewChrome-cont {
             display: flex;
             justify-content: space-between;
         }
 
-        .collectionStackingViewChrome-sort {
+        .collectionStackingViewChrome-sort,
+        .collectionTreeViewChrome-sort {
             display: flex;
             align-items: center;
             justify-content: space-between;
 
-            .collectionStackingViewChrome-sortIcon {
+            .collectionStackingViewChrome-sortIcon,
+            .collectionTreeViewChrome-sortIcon {
                 transition: transform .5s;
                 margin-left: 10px;
             }
@@ -139,18 +150,21 @@
         }
 
 
-        .collectionStackingViewChrome-sectionFilter-cont {
+        .collectionStackingViewChrome-sectionFilter-cont,
+        .collectionTreeViewChrome-sectionFilter-cont {
             justify-self: right;
             display: flex;
             font-size: 75%;
             letter-spacing: 2px;
 
-            .collectionStackingViewChrome-sectionFilter-label {
+            .collectionStackingViewChrome-sectionFilter-label,
+            .collectionTreeViewChrome-sectionFilter-label {
                 vertical-align: center;
                 padding: 10px;
             }
 
-            .collectionStackingViewChrome-sectionFilter {
+            .collectionStackingViewChrome-sectionFilter,
+            .collectionTreeViewChrome-sectionFilter {
                 color: white;
                 width: 100px;
                 text-align: center;
@@ -177,7 +191,8 @@
             }
         }
 
-        .collectionStackingViewChrome-sectionFilter:hover {
+        .collectionStackingViewChrome-sectionFilter:hover,
+        .collectionTreeViewChrome-sectionFilter:hover {
             cursor: text;
         }
     }

@@ -5,7 +5,7 @@ import { CollectionViewType } from "./CollectionBaseView";
 import { undoBatch } from "../../util/UndoManager";
 import { action, observable, runInAction, computed, IObservable, IObservableValue, reaction, autorun } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast } from "../../../new_fields/Doc";
+import { Doc, DocListCast, FieldResult } from "../../../new_fields/Doc";
 import { DocLike } from "../MetadataEntryMenu";
 import * as Autosuggest from 'react-autosuggest';
 import { EditableView } from "../EditableView";
@@ -21,7 +21,10 @@ import { listSpec } from "../../../new_fields/Schema";
 import { List } from "../../../new_fields/List";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { threadId } from "worker_threads";
+import { DragManager } from "../../util/DragManager";
 const datepicker = require('js-datepicker');
+import * as $ from 'jquery';
+import { firebasedynamiclinks } from "googleapis/build/src/apis/firebasedynamiclinks";
 
 interface CollectionViewChromeProps {
     CollectionView: CollectionView;
@@ -29,10 +32,18 @@ interface CollectionViewChromeProps {
     collapse?: (value: boolean) => any;
 }
 
+interface Filter {
+    key: string;
+    value: string;
+    contains: boolean;
+}
+
 let stopPropagation = (e: React.SyntheticEvent) => e.stopPropagation();
 
 @observer
 export class CollectionViewBaseChrome extends React.Component<CollectionViewChromeProps> {
+    //(!)?\(\(\(doc.(\w+) && \(doc.\w+ as \w+\).includes\(\"(\w+)\"\)
+
     @observable private _viewSpecsOpen: boolean = false;
     @observable private _dateWithinValue: string = "";
     @observable private _dateValue: Date | string = "";
@@ -42,6 +53,43 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     private _picker: any;
     private _datePickerElGuid = Utils.GenerateGuid();
 
+    getFilters = (script: string) => {
+        let re: any = /(!)?\(\(\(doc\.(\w+)\s+&&\s+\(doc\.\w+\s+as\s+\w+\)\.includes\(\"(\w+)\"\)/g;
+        let arr: any[] = re.exec(script);
+        let toReturn: Filter[] = [];
+        if (arr !== null) {
+            let filter: Filter = {
+                key: arr[2],
+                value: arr[3],
+                contains: (arr[1] === "!") ? false : true,
+            };
+            toReturn.push(filter);
+            script = script.replace(arr[0], "");
+            if (re.exec(script) !== null) {
+                toReturn.push(...this.getFilters(script));
+            }
+            else { return toReturn; }
+        }
+        return toReturn;
+    }
+
+    addKeyRestrictions = (fields: Filter[]) => {
+
+        if (fields.length !== 0) {
+            for (let i = 0; i < fields.length; i++) {
+                this._keyRestrictions.push([<KeyRestrictionRow field={fields[i].key} value={fields[i].value} key={Utils.GenerateGuid()} contains={fields[i].contains} script={(value: string) => runInAction(() => this._keyRestrictions[i][1] = value)} />, ""]);
+
+            }
+            if (this._keyRestrictions.length === 1) {
+                this._keyRestrictions.push([<KeyRestrictionRow field="" value="" key={Utils.GenerateGuid()} contains={true} script={(value: string) => runInAction(() => this._keyRestrictions[1][1] = value)} />, ""]);
+            }
+        }
+        else {
+            this._keyRestrictions.push([<KeyRestrictionRow field="" value="" key={Utils.GenerateGuid()} contains={true} script={(value: string) => runInAction(() => this._keyRestrictions[0][1] = value)} />, ""]);
+            this._keyRestrictions.push([<KeyRestrictionRow field="" value="" key={Utils.GenerateGuid()} contains={false} script={(value: string) => runInAction(() => this._keyRestrictions[1][1] = value)} />, ""]);
+        }
+    }
+
     componentDidMount = () => {
         setTimeout(() => this._picker = datepicker("#" + this._datePickerElGuid, {
             disabler: (date: Date) => date > new Date(),
@@ -49,10 +97,14 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             dateSelected: new Date()
         }), 1000);
 
-        runInAction(() => {
-            this._keyRestrictions.push([<KeyRestrictionRow key={Utils.GenerateGuid()} contains={true} script={(value: string) => runInAction(() => this._keyRestrictions[0][1] = value)} />, ""]);
-            this._keyRestrictions.push([<KeyRestrictionRow key={Utils.GenerateGuid()} contains={false} script={(value: string) => runInAction(() => this._keyRestrictions[1][1] = value)} />, ""]);
+        let fields: Filter[] = [];
+        if (this.filterValue) {
+            let string = this.filterValue.script.originalScript;
+            fields = this.getFilters(string);
+        }
 
+        runInAction(() => {
+            this.addKeyRestrictions(fields);
             // chrome status is one of disabled, collapsed, or visible. this determines initial state from document
             let chromeStatus = this.props.CollectionView.props.Document.chromeStatus;
             if (chromeStatus) {
@@ -111,17 +163,19 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     @action
     addKeyRestriction = (e: React.MouseEvent) => {
         let index = this._keyRestrictions.length;
-        this._keyRestrictions.push([<KeyRestrictionRow key={Utils.GenerateGuid()} contains={true} script={(value: string) => runInAction(() => this._keyRestrictions[index][1] = value)} />, ""]);
+        this._keyRestrictions.push([<KeyRestrictionRow field="" value="" key={Utils.GenerateGuid()} contains={true} script={(value: string) => runInAction(() => this._keyRestrictions[index][1] = value)} />, ""]);
 
         this.openViewSpecs(e);
     }
 
-    @action
+    @action.bound
     applyFilter = (e: React.MouseEvent) => {
+
         this.openViewSpecs(e);
 
-        let keyRestrictionScript = `${this._keyRestrictions.map(i => i[1])
-            .reduce((acc: string, value: string, i: number) => value ? `${acc} && ${value}` : acc)}`;
+        console.log(this._keyRestrictions)
+
+        let keyRestrictionScript = "(" + this._keyRestrictions.map(i => i[1]).filter(i => i.length > 0).join(" && ") + ")";
         let yearOffset = this._dateWithinValue[1] === 'y' ? 1 : 0;
         let monthOffset = this._dateWithinValue[1] === 'm' ? parseInt(this._dateWithinValue[0]) : 0;
         let weekOffset = this._dateWithinValue[1] === 'w' ? parseInt(this._dateWithinValue[0]) : 0;
@@ -141,9 +195,10 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             }
         }
         let fullScript = dateRestrictionScript.length || keyRestrictionScript.length ? dateRestrictionScript.length ?
-            `return ${dateRestrictionScript} ${keyRestrictionScript.length ? "&&" : ""} ${keyRestrictionScript}` :
-            `return ${keyRestrictionScript} ${dateRestrictionScript.length ? "&&" : ""} ${dateRestrictionScript}` :
+            `return ${dateRestrictionScript} ${keyRestrictionScript.length ? "&&" : ""} (${keyRestrictionScript})` :
+            `return (${keyRestrictionScript}) ${dateRestrictionScript.length ? "&&" : ""} ${dateRestrictionScript}` :
             "return true";
+
         let compiled = CompileScript(fullScript, { params: { doc: Doc.name }, typecheck: false });
         if (compiled.compiled) {
             this.props.CollectionView.props.Document.viewSpecScript = new ScriptField(compiled);
@@ -176,6 +231,12 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                     type={this.props.type} />);
             case CollectionViewType.Schema: return (
                 <CollectionSchemaViewChrome
+                    key="collchrome"
+                    CollectionView={this.props.CollectionView}
+                    type={this.props.type}
+                />);
+            case CollectionViewType.Tree: return (
+                <CollectionTreeViewChrome
                     key="collchrome"
                     CollectionView={this.props.CollectionView}
                     type={this.props.type}
@@ -215,6 +276,38 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             })} />);
     }
 
+    @action.bound
+    clearFilter = () => {
+        let compiled = CompileScript("return true", { params: { doc: Doc.name }, typecheck: false });
+        if (compiled.compiled) {
+            this.props.CollectionView.props.Document.viewSpecScript = new ScriptField(compiled);
+        }
+
+        this._keyRestrictions = [];
+        this.addKeyRestrictions([]);
+    }
+
+    private dropDisposer?: DragManager.DragDropDisposer;
+    protected createDropTarget = (ele: HTMLDivElement) => {
+        this.dropDisposer && this.dropDisposer();
+        if (ele) {
+            this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
+        }
+    }
+
+    @undoBatch
+    @action
+    protected drop(e: Event, de: DragManager.DropEvent): boolean {
+        if (de.data instanceof DragManager.DocumentDragData) {
+            if (de.data.draggedDocuments.length) {
+                this.props.CollectionView.props.Document.childLayout = de.data.draggedDocuments[0];
+                e.stopPropagation();
+                return true;
+            }
+        }
+        return true;
+    }
+
     render() {
         let collapsed = this.props.CollectionView.props.Document.chromeStatus !== "enabled";
         return (
@@ -245,9 +338,10 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                         <div className="collectionViewBaseChrome-viewSpecs" style={{ display: collapsed ? "none" : "grid" }}>
                             <input className="collectionViewBaseChrome-viewSpecsInput"
                                 placeholder="FILTER DOCUMENTS"
-                                value={this.filterValue ? this.filterValue.script.originalScript : ""}
+                                value={this.filterValue ? this.filterValue.script.originalScript === "return true" ? "" : this.filterValue.script.originalScript : ""}
                                 onChange={(e) => { }}
-                                onPointerDown={this.openViewSpecs} />
+                                onPointerDown={this.openViewSpecs}
+                                id="viewSpecsInput" />
                             {this.getPivotInput()}
                             <div className="collectionViewBaseChrome-viewSpecsMenu"
                                 onPointerDown={this.openViewSpecs}
@@ -287,13 +381,15 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                                     <button className="collectonViewBaseChrome-viewSpecsMenu-lastRowButton" onClick={this.applyFilter}>
                                         APPLY FILTER
                             </button>
-                                    
+                                    <button className="collectonViewBaseChrome-viewSpecsMenu-lastRowButton" onClick={this.clearFilter}>
+                                        CLEAR
+                            </button>
                                 </div>
                             </div>
                         </div>
-                        {/* <button className="collectionViewBaseChrome-button" >
-                            SHOW TIMELINE
-                        </button> */}
+                        <div className="collectionViewBaseChrome-template" ref={this.createDropTarget} style={{}}>
+                            TEMPLATE
+                        </div>
                     </div>
                     {this.subChrome()}
                 </div>
@@ -472,3 +568,108 @@ export class CollectionSchemaViewChrome extends React.Component<CollectionViewCh
         );
     }
 }
+
+@observer
+export class CollectionTreeViewChrome extends React.Component<CollectionViewChromeProps> {
+    @observable private _currentKey: string = "";
+    @observable private suggestions: string[] = [];
+
+    @computed private get descending() { return BoolCast(this.props.CollectionView.props.Document.stackingHeadersSortDescending); }
+    @computed get sectionFilter() { return StrCast(this.props.CollectionView.props.Document.sectionFilter); }
+
+    getKeySuggestions = async (value: string): Promise<string[]> => {
+        value = value.toLowerCase();
+        let docs: Doc | Doc[] | Promise<Doc> | Promise<Doc[]> | (() => DocLike)
+            = () => DocListCast(this.props.CollectionView.props.Document[this.props.CollectionView.props.fieldExt ? this.props.CollectionView.props.fieldExt : this.props.CollectionView.props.fieldKey]);
+        if (typeof docs === "function") {
+            docs = docs();
+        }
+        docs = await docs;
+        if (docs instanceof Doc) {
+            return Object.keys(docs).filter(key => key.toLowerCase().startsWith(value));
+        } else {
+            const keys = new Set<string>();
+            docs.forEach(doc => Doc.allKeys(doc).forEach(key => keys.add(key)));
+            return Array.from(keys).filter(key => key.toLowerCase().startsWith(value));
+        }
+    }
+
+    @action
+    onKeyChange = (e: React.ChangeEvent, { newValue }: { newValue: string }) => {
+        this._currentKey = newValue;
+    }
+
+    getSuggestionValue = (suggestion: string) => suggestion;
+
+    renderSuggestion = (suggestion: string) => {
+        return <p>{suggestion}</p>;
+    }
+
+    onSuggestionFetch = async ({ value }: { value: string }) => {
+        const sugg = await this.getKeySuggestions(value);
+        runInAction(() => {
+            this.suggestions = sugg;
+        });
+    }
+
+    @action
+    onSuggestionClear = () => {
+        this.suggestions = [];
+    }
+
+    setValue = (value: string) => {
+        this.props.CollectionView.props.Document.sectionFilter = value;
+        return true;
+    }
+
+    @action toggleSort = () => { this.props.CollectionView.props.Document.stackingHeadersSortDescending = !this.props.CollectionView.props.Document.stackingHeadersSortDescending; };
+    @action resetValue = () => { this._currentKey = this.sectionFilter; };
+
+    render() {
+        return (
+            <div className="collectionTreeViewChrome-cont">
+                <button className="collectionTreeViewChrome-sort" onClick={this.toggleSort}>
+                    <div className="collectionTreeViewChrome-sortLabel">
+                        Sort
+                        </div>
+                    <div className="collectionTreeViewChrome-sortIcon" style={{ transform: `rotate(${this.descending ? "180" : "0"}deg)` }}>
+                        <FontAwesomeIcon icon="caret-up" size="2x" color="white" />
+                    </div>
+                </button>
+                <div className="collectionTreeViewChrome-sectionFilter-cont">
+                    <div className="collectionTreeViewChrome-sectionFilter-label">
+                        GROUP ITEMS BY:
+                        </div>
+                    <div className="collectionTreeViewChrome-sectionFilter">
+                        <EditableView
+                            GetValue={() => this.sectionFilter}
+                            autosuggestProps={
+                                {
+                                    resetValue: this.resetValue,
+                                    value: this._currentKey,
+                                    onChange: this.onKeyChange,
+                                    autosuggestProps: {
+                                        inputProps:
+                                        {
+                                            value: this._currentKey,
+                                            onChange: this.onKeyChange
+                                        },
+                                        getSuggestionValue: this.getSuggestionValue,
+                                        suggestions: this.suggestions,
+                                        alwaysRenderSuggestions: true,
+                                        renderSuggestion: this.renderSuggestion,
+                                        onSuggestionsFetchRequested: this.onSuggestionFetch,
+                                        onSuggestionsClearRequested: this.onSuggestionClear
+                                    }
+                                }}
+                            oneLine
+                            SetValue={this.setValue}
+                            contents={this.sectionFilter ? this.sectionFilter : "N/A"}
+                        />
+                    </div>
+                </div>
+            </div>
+        );
+    }
+}
+

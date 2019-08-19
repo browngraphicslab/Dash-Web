@@ -7,7 +7,7 @@ import { Cast, ToConstructor, PromiseValue, FieldValue, NumCast, BoolCast, StrCa
 import { listSpec } from "./Schema";
 import { ObjectField } from "./ObjectField";
 import { RefField, FieldId } from "./RefField";
-import { ToScriptString, SelfProxy, Parent, OnUpdate, Self, HandleUpdate, Update, Id } from "./FieldSymbols";
+import { ToScriptString, SelfProxy, Parent, OnUpdate, Self, HandleUpdate, Update, Id, Copy } from "./FieldSymbols";
 import { scriptingGlobal, CompileScript, Scripting } from "../client/util/Scripting";
 import { List } from "./List";
 import { DocumentType } from "../client/documents/Documents";
@@ -527,6 +527,7 @@ export namespace Doc {
         target.nativeHeight = Doc.GetProto(target).nativeHeight = undefined;
         target.width = templateDoc.width;
         target.height = templateDoc.height;
+        target.onClick = templateDoc.onClick instanceof ObjectField && templateDoc.onClick[Copy]();
         Doc.GetProto(target).type = DocumentType.TEMPLATE;
         if (targetData && targetData.layout === target) {
             targetData.layout = temp;

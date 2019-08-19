@@ -7,12 +7,14 @@ import { Doc } from "../../../new_fields/Doc";
 interface IKeyRestrictionProps {
     contains: boolean;
     script: (value: string) => void;
+    field: string;
+    value: string;
 }
 
 @observer
 export default class KeyRestrictionRow extends React.Component<IKeyRestrictionProps> {
-    @observable private _key = "";
-    @observable private _value = "";
+    @observable private _key = this.props.field;
+    @observable private _value = this.props.value;
     @observable private _contains = this.props.contains;
 
     render() {

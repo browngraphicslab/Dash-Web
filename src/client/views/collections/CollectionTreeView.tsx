@@ -25,7 +25,7 @@ import { CollectionSchemaPreview } from './CollectionSchemaView';
 import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTreeView.scss";
 import React = require("react");
-import { ComputedField } from '../../../new_fields/ScriptField';
+import { ComputedField, ScriptField } from '../../../new_fields/ScriptField';
 import { KeyValueBox } from '../nodes/KeyValueBox';
 
 
@@ -400,21 +400,56 @@ class TreeView extends React.Component<TreeViewProps> {
         panelWidth: () => number,
         renderDepth: number
     ) {
-        let docList = docs.filter(child => !child.excludeFromLibrary);
+        let viewSpecScript = Cast(containingCollection.viewSpecScript, ScriptField);
+        if (viewSpecScript) {
+            let script = viewSpecScript.script;
+            docs = docs.filter(d => {
+                let res = script.run({ doc: d });
+                if (res.success) {
+                    return res.result;
+                }
+                else {
+                    console.log(res.error);
+                }
+            });
+        }
+
+        let descending = BoolCast(containingCollection.stackingHeadersSortDescending);
+        docs.sort(function (a, b): 1 | -1 {
+            let descA = descending ? b : a;
+            let descB = descending ? a : b;
+            let first = descA[String(containingCollection.sectionFilter)];
+            let second = descB[String(containingCollection.sectionFilter)];
+            // TODO find better way to sort how to sort..................
+            if (typeof first === 'number' && typeof second === 'number') {
+                return (first - second) > 0 ? 1 : -1;
+            }
+            if (typeof first === 'string' && typeof second === 'string') {
+                return first > second ? 1 : -1;
+            }
+            if (typeof first === 'boolean' && typeof second === 'boolean') {
+                // if (first === second) { // bugfixing?: otherwise, the list "flickers" because the list is resorted during every load
+                //     return Number(descA.x) > Number(descB.x) ? 1 : -1;
+                // }
+                return first > second ? 1 : -1;
+            }
+            return descending ? 1 : -1;
+        });
+
         let rowWidth = () => panelWidth() - 20;
-        return docList.map((child, i) => {
+        return docs.map((child, i) => {
             let pair = Doc.GetLayoutDataDocPair(containingCollection, dataDoc, key, child);
 
             let indent = i === 0 ? undefined : () => {
-                if (StrCast(docList[i - 1].layout).indexOf("CollectionView") !== -1) {
-                    let fieldKeysub = StrCast(docList[i - 1].layout).split("fieldKey")[1];
+                if (StrCast(docs[i - 1].layout).indexOf("CollectionView") !== -1) {
+                    let fieldKeysub = StrCast(docs[i - 1].layout).split("fieldKey")[1];
                     let fieldKey = fieldKeysub.split("\"")[1];
-                    Doc.AddDocToList(docList[i - 1], fieldKey, child);
+                    Doc.AddDocToList(docs[i - 1], fieldKey, child);
                     remove(child);
                 }
             };
             let addDocument = (doc: Doc, relativeTo?: Doc, before?: boolean) => {
-                return add(doc, relativeTo ? relativeTo : docList[i], before !== undefined ? before : false);
+                return add(doc, relativeTo ? relativeTo : docs[i], before !== undefined ? before : false);
             };
             let rowHeight = () => {
                 let aspect = NumCast(child.nativeWidth, 0) / NumCast(child.nativeHeight, 0);
