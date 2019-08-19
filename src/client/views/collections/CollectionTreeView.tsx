@@ -254,7 +254,7 @@ class TreeView extends React.Component<TreeViewProps> {
         doc && Object.keys(doc).forEach(key => !(key in ids) && doc[key] !== ComputedField.undefined && (ids[key] = key));
 
         let rows: JSX.Element[] = [];
-        for (let key of Object.keys(ids).sort()) {
+        for (let key of Object.keys(ids).slice().sort()) {
             let contents = doc[key];
             let contentElement: JSX.Element[] | JSX.Element = [];
 
@@ -419,7 +419,7 @@ class TreeView extends React.Component<TreeViewProps> {
         }
 
         let descending = BoolCast(containingCollection.stackingHeadersSortDescending);
-        docs.sort(function (a, b): 1 | -1 {
+        docs.slice().sort(function (a, b): 1 | -1 {
             let descA = descending ? b : a;
             let descB = descending ? a : b;
             let first = descA[String(containingCollection.sectionFilter)];

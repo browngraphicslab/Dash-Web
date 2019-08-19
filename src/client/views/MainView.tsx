@@ -1,5 +1,5 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowDown, faArrowUp, faBolt, faCaretUp, faCat, faCheck, faClone, faCloudUploadAlt, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faLongArrowAltRight, faMusic, faObjectGroup, faPause, faPenNib, faPlay, faPortrait, faRedoAlt, faTable, faThumbtack, faTree, faUndoAlt } from '@fortawesome/free-solid-svg-icons';
+import { faArrowDown, faArrowUp, faBolt, faCaretUp, faCat, faCheck, faClone, faCloudUploadAlt, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faLongArrowAltRight, faMusic, faObjectGroup, faPause, faPenNib, faPlay, faPortrait, faRedoAlt, faThumbtack, faTree, faUndoAlt, faTv } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, reaction, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
@@ -38,7 +38,6 @@ import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { FilterBox } from './search/FilterBox';
-import { DocumentManager } from '../util/DocumentManager';
 import PresModeMenu from './presentationview/PresentationModeMenu';
 import { PresBox } from './nodes/PresBox';
 
@@ -172,7 +171,7 @@ export class MainView extends React.Component {
         library.add(faCat);
         library.add(faFilePdf);
         library.add(faObjectGroup);
-        library.add(faTable);
+        library.add(faTv);
         library.add(faGlobeAsia);
         library.add(faUndoAlt);
         library.add(faRedoAlt);
@@ -452,30 +451,15 @@ export class MainView extends React.Component {
 
         let btns: [React.RefObject<HTMLDivElement>, IconName, string, () => Doc][] = [
             [React.createRef<HTMLDivElement>(), "object-group", "Add Collection", addColNode],
-            [React.createRef<HTMLDivElement>(), "table", "Add Presentation Trail", addPresNode],
+            [React.createRef<HTMLDivElement>(), "tv", "Add Presentation Trail", addPresNode],
             [React.createRef<HTMLDivElement>(), "globe-asia", "Add Website", addWebNode],
             [React.createRef<HTMLDivElement>(), "bolt", "Add Button", addButtonDocument],
-            // [React.createRef<HTMLDivElement>(), "clone", "Add Docking Frame", addDockingNode],
+            [React.createRef<HTMLDivElement>(), "file", "Add Document Dragger", addDragboxNode],
             [React.createRef<HTMLDivElement>(), "cloud-upload-alt", "Import Directory", addImportCollectionNode], //remove at some point in favor of addImportCollectionNode
             //[React.createRef<HTMLDivElement>(), "play", "Add Youtube Searcher", addYoutubeSearcher],
-            [React.createRef<HTMLDivElement>(), "file", "Add Document Dragger", addDragboxNode]
         ];
         if (!ClientUtils.RELEASE) btns.unshift([React.createRef<HTMLDivElement>(), "cat", "Add Cat Image", addImageNode]);
 
-        const setWriteMode = (mode: DocServer.WriteMode) => {
-            console.log(DocServer.WriteMode[mode]);
-            const mode1 = mode;
-            const mode2 = mode === DocServer.WriteMode.Default ? mode : DocServer.WriteMode.Playground;
-            DocServer.setFieldWriteMode("x", mode1);
-            DocServer.setFieldWriteMode("y", mode1);
-            DocServer.setFieldWriteMode("width", mode1);
-            DocServer.setFieldWriteMode("height", mode1);
-
-            DocServer.setFieldWriteMode("panX", mode2);
-            DocServer.setFieldWriteMode("panY", mode2);
-            DocServer.setFieldWriteMode("scale", mode2);
-            DocServer.setFieldWriteMode("viewType", mode2);
-        };
         return < div id="add-nodes-menu" style={{ left: this.flyoutWidth + 20, bottom: 20 }} >
 
             <input type="checkbox" id="add-menu-toggle" ref={this.addMenuToggle} />
@@ -484,7 +468,6 @@ export class MainView extends React.Component {
             <div id="add-options-content">
                 <ul id="add-options-list">
                     <li key="search"><button className="add-button round-button" title="Search" onClick={this.toggleSearch}><FontAwesomeIcon icon="search" size="sm" /></button></li>
-                    <li key="presentation"><button className="add-button round-button" title="Show Current Presentation Trail" onClick={this.togglePresentationView}><FontAwesomeIcon icon="table" size="sm" /></button></li>
                     <li key="undo"><button className="add-button round-button" title="Undo" style={{ opacity: UndoManager.CanUndo() ? 1 : 0.5, transition: "0.4s ease all" }} onClick={() => UndoManager.Undo()}><FontAwesomeIcon icon="undo-alt" size="sm" /></button></li>
                     <li key="redo"><button className="add-button round-button" title="Redo" style={{ opacity: UndoManager.CanRedo() ? 1 : 0.5, transition: "0.4s ease all" }} onClick={() => UndoManager.Redo()}><FontAwesomeIcon icon="redo-alt" size="sm" /></button></li>
                     {btns.map(btn =>
@@ -493,13 +476,6 @@ export class MainView extends React.Component {
                                 <FontAwesomeIcon icon={btn[1]} size="sm" />
                             </button>
                         </div></li>)}
-                    <li key="undoTest"><button className="add-button round-button" title="Click if undo isn't working" onClick={() => UndoManager.TraceOpenBatches()}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>
-                    {ClientUtils.RELEASE ? [] : [
-                        <li key="test"><button className="add-button round-button" title="Default" onClick={() => setWriteMode(DocServer.WriteMode.Default)}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>,
-                        <li key="test1"><button className="add-button round-button" title="Playground" onClick={() => setWriteMode(DocServer.WriteMode.Playground)}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>,
-                        <li key="test2"><button className="add-button round-button" title="Live Playground" onClick={() => setWriteMode(DocServer.WriteMode.LivePlayground)}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>,
-                        <li key="test3"><button className="add-button round-button" title="Live Readonly" onClick={() => setWriteMode(DocServer.WriteMode.LiveReadonly)}><FontAwesomeIcon icon="exclamation" size="sm" /></button></li>
-                    ]}
                     <li key="color"><button className="add-button round-button" title="Select Color" style={{ zIndex: 1000 }} onClick={() => this.toggleColorPicker()}><div className="toolbar-color-button" style={{ backgroundColor: InkingControl.Instance.selectedColor }} >
                         <div className="toolbar-color-picker" onClick={this.onColorClick} style={this._colorPickerDisplay ? { color: "black", display: "block" } : { color: "black", display: "none" }}>
                             <SketchPicker color={InkingControl.Instance.selectedColor} onChange={InkingControl.Instance.switchColor} />
@@ -541,17 +517,6 @@ export class MainView extends React.Component {
         this.isSearchVisible = !this.isSearchVisible;
     }
 
-    togglePresentationView = () => {
-        if (CurrentUserUtils.UserDocument.curPresentation) {
-            let isOpen = DocumentManager.Instance.getDocumentView(CurrentUserUtils.UserDocument.curPresentation as Doc);
-            if (isOpen) {
-                CollectionDockingView.Instance.CloseRightSplit(CurrentUserUtils.UserDocument.curPresentation as Doc);
-            } else {
-                CollectionDockingView.Instance.AddRightSplit(CurrentUserUtils.UserDocument.curPresentation as Doc, undefined);
-            }
-        }
-    }
-
     private get dictationOverlay() {
         let display = this.dictationOverlayVisible;
         let success = this.dictationSuccess;
@@ -581,7 +546,7 @@ export class MainView extends React.Component {
         let next = () => PresBox.CurrentPresentation.next();
         let back = () => PresBox.CurrentPresentation.back();
         let startOrResetPres = () => PresBox.CurrentPresentation.startOrResetPres();
-        let closePresMode = action(() => {PresBox.CurrentPresentation.presMode = false; this.addDocTabFunc(PresBox.CurrentPresentation.props.Document)});
+        let closePresMode = action(() => { PresBox.CurrentPresentation.presMode = false; this.addDocTabFunc(PresBox.CurrentPresentation.props.Document) });
         return !PresBox.CurrentPresentation || !PresBox.CurrentPresentation.presMode ? (null) : <PresModeMenu next={next} back={back} presStatus={PresBox.CurrentPresentation.presStatus} startOrResetPres={startOrResetPres} closePresMode={closePresMode} > </PresModeMenu>
     }
 

@@ -573,21 +573,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         cm.addItem({ description: "Open...", subitems: subitems, icon: "external-link-alt" });
         let existingMake = ContextMenu.Instance.findByDescription("Make...");
         let makes: ContextMenuProps[] = existingMake && "subitems" in existingMake ? existingMake.subitems : [];
-        makes.push({ description: this.props.Document.isBackground ? "Remove Background" : "Make Background", event: this.makeBackground, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
-        makes.push({ description: this.props.Document.isButton ? "Remove Button" : "Make Button", event: this.makeBtnClicked, icon: "concierge-bell" });
-        makes.push({ description: "Edit OnClick script", icon: "edit", event: () => ScriptBox.EditClickScript(this.props.Document, "onClick") });
+        makes.push({ description: this.props.Document.isBackground ? "Remove Background" : "Into Background", event: this.makeBackground, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
+        makes.push({ description: this.props.Document.isButton ? "Remove Button" : "Into Button", event: this.makeBtnClicked, icon: "concierge-bell" });
+        makes.push({ description: "OnClick script", icon: "edit", event: () => ScriptBox.EditClickScript(this.props.Document, "onClick") });
         makes.push({
-            description: "Make Portal", event: () => {
+            description: "Into Portal", event: () => {
                 let portal = Docs.Create.FreeformDocument([], { width: this.props.Document[WidthSym]() + 10, height: this.props.Document[HeightSym](), title: this.props.Document.title + ".portal" });
-                //Doc.GetProto(this.props.Document).subBulletDocs = new List<Doc>([portal]);
-                //summary.proto!.maximizeLocation = "inTab";  // or "inPlace", or "onRight"
-                //Doc.GetProto(this.props.Document).templates = new List<string>([Templates.Bullet.Layout]);
-                //let coll = Docs.Create.StackingDocument([this.props.Document, portal], { x: NumCast(this.props.Document.x), y: NumCast(this.props.Document.y), width: this.props.Document[WidthSym]() + 10, height: this.props.Document[HeightSym](), title: this.props.Document.title + ".cont" });
-                //this.props.addDocument && this.props.addDocument(coll);
-                //this.props.removeDocument && this.props.removeDocument(this.props.Document);
                 DocUtils.MakeLink(this.props.Document, portal, undefined, this.props.Document.title + ".portal");
                 this.makeBtnClicked();
-
             }, icon: "window-restore"
         });
         !existingMake && cm.addItem({ description: "Make...", subitems: makes, icon: "hand-point-right" });
@@ -684,6 +677,31 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
         runInAction(() => {
             cm.addItem({ description: "Share...", subitems: usersMenu, icon: "share" });
+            if (!ClientUtils.RELEASE) {
+                let setWriteMode = (mode: DocServer.WriteMode) => {
+                    console.log(DocServer.WriteMode[mode]);
+                    DocServer.AclsMode = mode;
+                    const mode1 = mode;
+                    const mode2 = mode === DocServer.WriteMode.Default ? mode : DocServer.WriteMode.Playground;
+                    DocServer.setFieldWriteMode("x", mode1);
+                    DocServer.setFieldWriteMode("y", mode1);
+                    DocServer.setFieldWriteMode("width", mode1);
+                    DocServer.setFieldWriteMode("height", mode1);
+
+                    DocServer.setFieldWriteMode("panX", mode2);
+                    DocServer.setFieldWriteMode("panY", mode2);
+                    DocServer.setFieldWriteMode("scale", mode2);
+                    DocServer.setFieldWriteMode("viewType", mode2);
+                };
+                let aclsMenu: ContextMenuProps[] = [];
+                aclsMenu.push({ description: "Default (write/read all)", event: () => setWriteMode(DocServer.WriteMode.Default), icon: DocServer.AclsMode === DocServer.WriteMode.Default ? "check" : "exclamation" });
+                aclsMenu.push({ description: "Playground (write own/no read)", event: () => setWriteMode(DocServer.WriteMode.Playground), icon: DocServer.AclsMode === DocServer.WriteMode.Playground ? "check" : "exclamation" });
+                aclsMenu.push({ description: "Live Playground (write own/read others)", event: () => setWriteMode(DocServer.WriteMode.LivePlayground), icon: DocServer.AclsMode === DocServer.WriteMode.LivePlayground ? "check" : "exclamation" });
+                aclsMenu.push({ description: "Live Readonly (no write/read others)", event: () => setWriteMode(DocServer.WriteMode.LiveReadonly), icon: DocServer.AclsMode === DocServer.WriteMode.LiveReadonly ? "check" : "exclamation" });
+                cm.addItem({ description: "Collaboration ACLs...", subitems: aclsMenu, icon: "share" });
+                cm.addItem({ description: "Undo Debug Test", event: () => UndoManager.TraceOpenBatches(), icon: "exclamation" });
+            }
+
             if (!this.topMost) {
                 // DocumentViews should stop propagation of this event
                 e.stopPropagation();
