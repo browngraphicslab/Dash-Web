@@ -96,7 +96,7 @@ export class BottomUI extends React.Component<BottomUIProps> {
                     this.props.leftboundSet(thing);
                 }
             }
-            this.props.setsortstate(this.searchString3);
+            this.props.setsortstate(this.searchString3!);
         }
         if (e.keyCode === 9) {
             e.preventDefault;
@@ -263,7 +263,7 @@ export class BottomUI extends React.Component<BottomUIProps> {
                     <div ref={this.colorrefGreen} onClick={(e) => this.toggleColor(e, "#bfff80")} className="color2" style={{ position: "relative", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#bfff80", border: "2px solid #9c9396" }}></div>
                     <div ref={this.colorrefRed} onClick={(e) => this.toggleColor(e, "#ff8080")} className="color3" style={{ position: "relative", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#ff8080", border: "2px solid #9c9396" }}></div>
                     <div ref={this.colorrefBlue} onClick={(e) => this.toggleColor(e, "#80dfff")} className="color4" style={{ position: "relative", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#80dfff", border: "2px solid #9c9396" }}></div>
-                    <input height={"20px"} className="sortinput" type="text" value={this.searchString3 ? this.searchString : undefined} placeholder={"sort value: " + this.props.sortstate} onChange={this.onChange3} onKeyPress={this.enter3} />
+                    <input height={"20px"} className={this.props.truesort} type="text" value={this.searchString3 ? this.searchString : undefined} placeholder={"sort value: " + this.props.sortstate} onChange={this.onChange3} onKeyPress={this.enter3} />
                 </div>
                 <div ref={this.props.barref} className="backdropscroll" onPointerDown={this.onPointerDown_OffBar} style={{ zIndex: 1, top: "3%", width: "100%", bottom: "90%", position: "fixed", }}>
                     {this.props.thumbnailmap}
@@ -290,11 +290,11 @@ export interface BottomUIProps {
     minvalue: number;
     sortstate: string;
     setsortstate: (string: string) => void;
-    selectedvalue: string;
     selectedColor: string;
     selectedColorSet: (color: string) => void;
     barref: React.RefObject<HTMLDivElement>;
     barwidthSet: (number: number) => void;
     screenref: React.RefObject<HTMLDivElement>;
     markerrender: () => void;
+    truesort: string;
 }

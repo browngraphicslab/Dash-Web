@@ -22,7 +22,6 @@ import Measure from "react-measure";
 import { EditableView } from "../EditableView";
 import { listSpec } from "../../../new_fields/Schema";
 import { BottomUI } from "./CollectionTimeLineViewBottomUI";
-import { throwStatement, TSParenthesizedType } from "babel-types";
 import { anchorPoints, Flyout } from "../DocumentDecorations";
 
 
@@ -46,12 +45,13 @@ type Node = {
     thumbnailref2: HTMLDivElement | undefined,
     header: JSX.Element,
     headerref: HTMLDivElement | undefined,
+    headerref2: HTMLDivElement | undefined,
     map: JSX.Element,
     mapref: HTMLDivElement | undefined,
     data: any;
     doc: Doc;
     leftval: number;
-    y: number;
+
 };
 
 @observer
@@ -83,7 +83,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             }
         });
         this.initializeMarkers();
-        document.addEventListener("keydown", this.onKeyDown_Selector);
+        //document.addEventListener("keydown", this.onKeyDown_Selector);
     }
 
 
@@ -136,9 +136,9 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         return map;
     }
 
-    componentWillUnmount() {
-        document.removeEventListener("keydown", (e) => this.onKeyDown_Selector(e));
-    }
+    // componentWillUnmount() {
+    //     document.removeEventListener("keydown", (e) => this.onKeyDown_Selector(e));
+    // }
 
     @action
     resetSelections() {
@@ -194,7 +194,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     }
 
     @observable private filtered: String[] = ["Audio", "Pdf", "Text", "Image", "Video", "Web", "Misc"];
-    @observable private preview: Doc | undefined;
     private selections: (HTMLDivElement | undefined)[] = [];
     @observable _lastX: number = 0;
     @observable _lastY: number = 0;
@@ -213,7 +212,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             doc.initialScale = newscale;
         });
     }
-
 
 
     @action
@@ -256,25 +254,25 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             d.color = this.selectedColor;
             this.markerDocs.push(d);
         }
-        else {
-            if (e.pageY > document.body.clientHeight * 0.6 && e.pageY < document.body.clientHeight * 0.79) {
-                this._downX = this._lastX = e.pageX;
-                this._downY = this._lastY = e.pageY;
-                if (!e.ctrlKey) {
-                    for (let thumbnail of this.thumbnails) {
-                        if (thumbnail.thumbnailref !== undefined) {
-                            let thumbnailref = thumbnail.thumbnailref;
-                            thumbnailref!.classList.toggle("selected", false);
-                            thumbnailref!.classList.toggle("unselected", true);
-                            thumbnail.headerref!.classList.toggle("selection", false);
-                            thumbnail.headerref!.classList.toggle("unselection", true);
-                        }
-                    }
-                    this.selections = [];
-                    this.newselect = [];
-                }
-            }
-        }
+        // else {
+        //     if (e.pageY > document.body.clientHeight * 0.6 && e.pageY < document.body.clientHeight * 0.79) {
+        //         this._downX = this._lastX = e.pageX;
+        //         this._downY = this._lastY = e.pageY;
+        //         if (!e.ctrlKey) {
+        //             for (let thumbnail of this.thumbnails) {
+        //                 if (thumbnail.thumbnailref !== undefined) {
+        //                     let thumbnailref = thumbnail.thumbnailref;
+        //                     thumbnailref!.classList.toggle("selected", false);
+        //                     thumbnailref!.classList.toggle("unselected", true);
+        //                     thumbnail.headerref!.classList.toggle("selection", false);
+        //                     thumbnail.headerref!.classList.toggle("unselection", true);
+        //                 }
+        //             }
+        //             this.selections = [];
+        //             this.newselect = [];
+        //         }
+        //     }
+        // }
     }
 
     @action
@@ -312,15 +310,15 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             doc.initialMapWidth = newmapwidth;
         }
 
-        if (!e.altKey) {
-            this.marqueeSelect();
-            if (Math.abs(this._lastX - this._downX) > Utils.DRAG_THRESHOLD ||
-                Math.abs(this._lastY - this._downY) > Utils.DRAG_THRESHOLD) {
-                runInAction(() => this._visible = true);
-                e.stopPropagation();
-                e.preventDefault();
-            }
-        }
+        // if (!e.altKey) {
+        //     this.marqueeSelect();
+        //     if (Math.abs(this._lastX - this._downX) > Utils.DRAG_THRESHOLD ||
+        //         Math.abs(this._lastY - this._downY) > Utils.DRAG_THRESHOLD) {
+        //         runInAction(() => this._visible = true);
+        //         e.stopPropagation();
+        //         e.preventDefault();
+        //     }
+        // }
     }
 
     @action
@@ -391,7 +389,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         header!.classList.toggle("unselection", true);
     }
 
-    private curthumb: Node | undefined = undefined;
     @action
     select(e: React.MouseEvent<HTMLDivElement>, d: Doc, b: HTMLDivElement | undefined) {
         var thumbnail = undefined;
@@ -400,7 +397,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             if (thumbnails.thumbnailref === b) {
                 thumbnail = (thumbnails.thumbnailref);
                 header = thumbnails.headerref;
-                this.curthumb = thumbnails;
             }
         }
         if (e.ctrlKey) {
@@ -427,26 +423,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 this.selections.push(thumbnail);
             }
         }
-        this.preview = d;
-        document.addEventListener("pointermove", this.onPointerMove_select);
-        document.addEventListener("pointerup", this.onPointerUp_select);
     }
 
-    onPointerMove_select = (e: PointerEvent) => {
-        let curtop = parseFloat(this.curthumb!.headerref!.style.top!);
-        let curthumb = parseFloat(this.curthumb!.thumbnailref2!.style.top!);
-        console.log(curthumb);
-        curtop += e.movementY;
-        curthumb += e.movementY;
-        this.curthumb!.headerref!.style.top! = String(curtop);
-        this.curthumb!.thumbnailref2!.style.top! = String(curthumb);
-        document.addEventListener("pointerup", this.onPointerUp_select);
-    }
-
-    onPointerUp_select = (e: PointerEvent) => {
-        document.removeEventListener("pointermove", this.onPointerMove_select);
-
-    }
 
     private _values: number[] = [];
     private ticks: JSX.Element[] = [];
@@ -538,7 +516,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             leftval = (((values[i] - values[0]) * this.barwidth * 0.97 / this._range) * (this.barwidth / (this.barwidth - this.rightbound - this.leftbound)) - (this.leftbound * (this.barwidth) / (this.barwidth - this.rightbound - this.leftbound))) + "px";
             //Creating the node
             let newNode: Node = {
-                y: (document.body.clientHeight / 2),
                 thumbnail: (<div ref={(el) => el ? newNode.thumbnailref2 = el : null} onClick={(e) => this.select(e, keyvalue[i].doc, newNode.thumbnailref)} style={{ top: "0px", position: "absolute", left: leftval, width: "100px", height: "100px" }}>
                     <div ref={(el) => el ? newNode.thumbnailref = el : null} className="unselected" style={{ position: "absolute", width: "100px", height: "100px", pointerEvents: "all" }}>
                         <FontAwesomeIcon icon={this.checkData(docs[i])} size="sm" style={{ position: "absolute" }} />
@@ -553,14 +530,24 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 thumbnailref2: undefined,
                 header: (
                     <div ref={(el) => el ? newNode.headerref = el : null} className="unselection" onPointerDown={this.onPointerDown_Selector} style={{
-                        whiteSpace: "nowrap", borderRadius: "5px 5px 0px 0px", border: "1px",
-                        textOverflow: "ellipsis", overflow: "hidden", paddingLeft: "3px", paddingRight: "3px", paddingTop: "3px", top: "-28px", zIndex: 99, position: "absolute", left: leftval, width: "100px", height: "30px"
+                        zIndex: 99, position: "absolute", left: leftval, top: "100px",
                     }}>
-                        {docs[i].title}
-                    </div>
+                        <div style={{
+                            borderTop: "3px solid #9c9396",
+                            whiteSpace: "nowrap",
+                            textOverflow: "ellipsis", position: "absolute", overflow: "hidden", paddingLeft: "3px", paddingRight: "3px", paddingTop: "3px", top: "-100px", left: "100px", zIndex: 99, width: "100px", height: "30px"
+                        }}> {docs[i].title}</div>
+
+                        <div ref={(el) => el ? newNode.headerref2 = el : null} style={{ alignItems: "center", justifyItems: "center", display: "flex", position: "absolute", height: (document.body.clientHeight * 0.75 - document.body.clientHeight / 4) - 100, width: "2px", backgroundColor: "#9c9396" }}>
+                            <div style={{ paddingLeft: "3px" }}>
+                                {this.sortstate}:{docs[i][this.sortstate]}</div>
+
+                        </div>
+                    </div >
                 ),
                 doc: docs[i],
                 headerref: undefined,
+                headerref2: undefined,
                 map: (
                     <div ref={(el) => el ? newNode.mapref = el : null}
                         style={{
@@ -579,19 +566,58 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.thumbnails = this.filterDocs(this.thumbnails);
     }
 
+    adjustY() {
+        console.log("sure");
+        for (let thumbnail1 of this.thumbnails) {
+            thumbnail1!.headerref!.style.top! = "0";
+            thumbnail1!.thumbnailref2!.style.top! = "0";
+            thumbnail1!.headerref2!.style.height! = String((document.body.clientHeight * 0.75 - document.body.clientHeight / 4) - 100);
+            thumbnail1.headerref2!.style.top! = "0";
+        }
+        let overlap = false;
+        while (overlap === false) {
+            console.log("YUH");
+            overlap = true;
+            for (let thumbnail1 of this.thumbnails) {
+                for (let thumbnail2 of this.thumbnails) {
+                    let thumbnail1y = parseFloat(thumbnail1.headerref!.style.top!);
+                    let thumbnail2y = parseFloat(thumbnail2.headerref!.style.top!);
+                    if (((thumbnail1.leftval > thumbnail2.leftval && thumbnail1.leftval - 100 < thumbnail2.leftval)
+                        || (thumbnail1.leftval < thumbnail2.leftval && thumbnail1.leftval + 100 > thumbnail2.leftval))
+                        && ((thumbnail1y! >= thumbnail2y! && thumbnail1y! - 100 <= thumbnail2y!)
+                            || (thumbnail1y! <= thumbnail2y! && thumbnail1y! + 100 >= thumbnail2y!))
+                        && thumbnail1 !== thumbnail2) {
+                        let curtop = parseFloat(thumbnail1!.headerref!.style.top!);
+                        let curthumb = parseFloat(thumbnail1!.thumbnailref2!.style.top!);
+                        let curpreview = parseFloat(thumbnail1!.headerref2!.style.height!);
+                        curtop += 105;
+                        curthumb += 105;
+                        curpreview -= 105;
+                        thumbnail1!.headerref!.style.top! = String(curtop);
+                        thumbnail1!.thumbnailref2!.style.top! = String(curthumb);
+                        thumbnail1!.headerref2!.style.height! = String(curpreview);
+                        overlap = false;
+                        console.log("hit");
+                    }
+                }
+            }
+        }
+    }
+
 
     createticks() {
         //Creates the array of tick marks.
         let counter = 0;
         this.ticks = [];
+        console.log(this.barwidth);
         for (let i = 0; i < this.barwidth; i += this.barwidth / 1000) {
             let leftval = ((i * (this.barwidth / (this.barwidth - this.rightbound - this.leftbound)) - (this.leftbound * (this.barwidth) / (this.barwidth - this.rightbound - this.leftbound))) + "px");
             if (counter % 100 === 0) {
-                let val = Math.round(counter * this._range / this.barwidth);
+                let val = Math.round(counter * this._range / 1000 + this._values[0]);
                 this.ticks.push(<div className="max" style={{
                     position: "absolute", top: "0%", left: leftval, zIndex: -100, writingMode: "vertical-rl",
                     textOrientation: "mixed",
-                }}>{val}</div>);
+                }}><div style={{ paddingTop: "10px" }}>{val}</div></div>);
             }
             else if (counter % 50 === 0) { this.ticks.push(<div className="max2" style={{ position: "absolute", top: "0%", left: leftval, zIndex: -100 }} />); }
             else if (counter % 10 === 0) { this.ticks.push(<div className="active" style={{ position: "absolute", top: "0%", left: leftval, zIndex: -100 }} />); }
@@ -602,36 +628,36 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     private altpreventer: boolean = true;
 
-    @action
-    onKeyDown_Selector = (e: KeyboardEvent | React.KeyboardEvent) => {
-        e.preventDefault;
-        if (e.altKey && this.selections.length > 0 && this.altpreventer) {
-            this.altpreventer = false;
-            let min = 9999999;
-            let max = -999999;
-            for (let selection of this.selections) {
-                min = selection!.getBoundingClientRect().left < min ? selection!.getBoundingClientRect().left : min;
-                max = selection!.getBoundingClientRect().right > max ? selection!.getBoundingClientRect().right : max;
-            }
-            let d = new Doc;
-            d.initialLeft = ((min - 3 - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98));
-            d.firstLeft = ((min - 3 - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98));
-            d.initialScale = (this.barwidth / (this.barwidth - this.rightbound - this.leftbound));
-            d.initialWidth = Math.abs(max - min);
-            d.initialX = this.leftbound;
-            d.initialMapLeft = (((min - 3 - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98) / this.barref.current!.clientWidth) * (this.barwidth - this.rightbound - this.leftbound)) + this.leftbound;
-            d.initialMapWidth = (Math.abs(max - min));
-            d.annotation = "Edit me!";
-            d.color = this.selectedColor;
-            this.markerDocs.push(d);
-        }
-        addEventListener("keyup", this.onKeyUp_Selector);
-    }
+    // @action
+    // onKeyDown_Selector = (e: KeyboardEvent | React.KeyboardEvent) => {
+    //     e.preventDefault;
+    //     if (e.altKey && this.selections.length > 0 && this.altpreventer) {
+    //         this.altpreventer = false;
+    //         let min = 9999999;
+    //         let max = -999999;
+    //         for (let selection of this.selections) {
+    //             min = selection!.getBoundingClientRect().left < min ? selection!.getBoundingClientRect().left : min;
+    //             max = selection!.getBoundingClientRect().right > max ? selection!.getBoundingClientRect().right : max;
+    //         }
+    //         let d = new Doc;
+    //         d.initialLeft = ((min - 3 - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98));
+    //         d.firstLeft = ((min - 3 - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98));
+    //         d.initialScale = (this.barwidth / (this.barwidth - this.rightbound - this.leftbound));
+    //         d.initialWidth = Math.abs(max - min);
+    //         d.initialX = this.leftbound;
+    //         d.initialMapLeft = (((min - 3 - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98) / this.barref.current!.clientWidth) * (this.barwidth - this.rightbound - this.leftbound)) + this.leftbound;
+    //         d.initialMapWidth = (Math.abs(max - min));
+    //         d.annotation = "Edit me!";
+    //         d.color = this.selectedColor;
+    //         this.markerDocs.push(d);
+    //     }
+    //     addEventListener("keyup", this.onKeyUp_Selector);
+    // }
 
-    onKeyUp_Selector = (e: KeyboardEvent | React.KeyboardEvent) => {
-        e.preventDefault;
-        this.altpreventer = true;
-    }
+    // onKeyUp_Selector = (e: KeyboardEvent | React.KeyboardEvent) => {
+    //     e.preventDefault;
+    //     this.altpreventer = true;
+    // }
 
     @action
     checkData = (document: Doc): IconProp => {
@@ -710,20 +736,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
     }
 
-    private get selectedValue() {
-        let selectedValue: string;
-        if (!this.preview) {
-            selectedValue = "";
-        } else {
-            if (this.sortstate === "creationDate") {
-                selectedValue = Cast(this.preview.creationDate, DateField)!.date.toString();
-            } else {
-                let res = this.preview[this.sortstate];
-                selectedValue = StrCast(res) || String(NumCast(res));
-            }
-        }
-        return selectedValue;
-    }
 
     @observable private barwidth = (this.barref.current ? this.barref.current.clientWidth : (952));
     @observable private leftbound = 0;
@@ -736,16 +748,45 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     leftboundSet = (number: number) => {
-        console.log(this.leftbound);
         runInAction(() => this.leftbound = number);
-        console.log(this.leftbound);
         this.markerrender();
-    };
+    }
     @action
     rightboundSet = (number: number) => { this.rightbound = number; this.markerrender(); }
     selectedColorSet = (color: string) => { this.selectedColor = color; };
     barwidthSet = (color: number) => { this.barwidth = color; this.markerrender(); };
-    setsortsate = (string: string) => { this.sortstate = string; };
+    setsortsate = (string: string) => {
+        console.log(string); this.sortstate = string; this.adjustY(); this.adjustY();
+        (this.thumbnails.length > 0 ? this.truesort = "sortinputRIGHT" : this.truesort = "sortinputWRONG");
+    }
+
+    @observable private truesort: string = "sortinput";
+    onPointerDown_Dragger = (e: React.PointerEvent): void => {
+        document.addEventListener("pointermove", this.onPointerMove_Dragger, true);
+        document.addEventListener("pointerup", this.onPointerUp_Dragger, true);
+        this.screenref.current!.style.cursor = "grabbing";
+    }
+    @action
+    onPointerMove_Dragger = (e: PointerEvent): void => {
+        document.addEventListener("pointerup", this.onPointerUp_Dragger, true);
+        if (this.rightbound + e.movementX < 0) {
+            this.rightbound = 0;
+
+        }
+        else if (this.leftbound - e.movementX < 0) {
+            this.leftbound = 0;
+        }
+        else {
+            this.rightbound += e.movementX;
+            this.leftbound -= e.movementX;
+        }
+    }
+    onPointerUp_Dragger = (e: PointerEvent): void => {
+        document.removeEventListener("pointermove", this.onPointerMove_Dragger, true);
+        document.removeEventListener("pointerup", this.onPointerUp_Dragger, true);
+        this.screenref.current!.style.cursor = "grab";
+    }
+
 
     render() {
         this.updateWidth();
@@ -754,7 +795,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.thumbnailloop();
         let p: [number, number] = this._visible ? this.props.ScreenToLocalTransform().translate(0, 0).transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
         return (
-            <div className="collectionTimelineView" ref={this.screenref} style={{ width: "100%", height: "100%" }} onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
+            <div className="collectionTimelineView" ref={this.screenref} style={{ overflow: "scroll", cursor: "grab", width: "100%", height: "100%" }} onPointerDown={this.onPointerDown_Dragger} onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
                 <Flyout
                     anchorPoint={anchorPoints.RIGHT_TOP}
                     content={<div>
@@ -764,7 +805,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     }>
                     <button id="schemaOptionsMenuBtn" style={{ position: "fixed" }}><FontAwesomeIcon style={{ color: "white" }} icon="cog" size="sm" /></button>
                 </Flyout>
-                <div className="timeline" style={{ position: "absolute", height: "25px", width: "100%", top: String(document.body.clientHeight * 0.55 + 72) + "px", zIndex: -9999 }}>
+                <div className="timeline" style={{ position: "fixed", height: "25px", width: "100%", top: String(document.body.clientHeight * 0.75) + "px", zIndex: 9999 }}>
                     {this.ticks}
                 </div>
                 {DocListCast(this.props.Document.markers).map(d => this.createmarker(d))}
@@ -779,24 +820,27 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     barwidth={this.barwidth}
                     minvalue={this._values[0]}
                     sortstate={this.sortstate}
-                    selectedvalue={this.selectedValue}
                     selectedColor={this.selectedColor}
                     selectedColorSet={this.selectedColorSet}
                     barref={this.barref}
                     barwidthSet={this.barwidthSet}
                     screenref={this.screenref}
                     markerrender={this.markerrender}
-                    setsortstate={this.setsortsate}>
+                    setsortstate={this.setsortsate}
+                    truesort={this.truesort}>
+
                 </BottomUI>
                 <Measure onResize={() => this.updateWidth()}>
                     {({ measureRef }) => <div ref={measureRef}> </div>}
                 </Measure>
-                <div className="marqueeView" style={{ height: "40%", top: "60%", borderRadius: "inherit", position: "absolute", width: "100%", }} onPointerDown={this.onPointerDown_Selector} onKeyDown={this.onKeyDown_Selector}>
+                <div className="marqueeView" style={{ height: "40%", top: "60%", borderRadius: "inherit", position: "absolute", width: "100%", }} onPointerDown={this.onPointerDown_Selector}
+                //onKeyDown={this.onKeyDown_Selector}>
+                >
                     {<div style={{ transform: `translate(${p[0]}px, ${p[1] - 0.58 * (document.body.clientHeight)}px)` }} >
                         {this._visible ? this.marqueeDiv : null}
                     </div>}
                 </div>
-                <div style={{ top: "50%", position: "absolute", bottom: "25%" }}>{this.thumbnails.map(item => item.thumbnail)}{this.thumbnails.map(item => item.header)}</div>
+                <div style={{ top: document.body.clientHeight / 4, position: "absolute", bottom: "25%" }}>{this.thumbnails.map(item => item.thumbnail)}{this.thumbnails.map(item => item.header)}</div>
             </div >
         );
     }

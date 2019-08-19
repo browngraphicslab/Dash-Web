@@ -75,7 +75,20 @@
 
     .sortinput {
         grid-column: 8/9;
+        border: $intermediate-color 2px solid;
     }
+
+    .sortinputWRONG {
+        grid-column: 8/9;
+        border: red 2px solid;
+    }
+
+    .sortinputRIGHT {
+        grid-column: 8/9;
+        border: green 2px solid;
+    }
+
+
 
 
 }
