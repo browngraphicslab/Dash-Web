@@ -170,11 +170,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
 
     @action.bound
     applyFilter = (e: React.MouseEvent) => {
-
         this.openViewSpecs(e);
-
-        console.log(this._keyRestrictions)
-
         let keyRestrictionScript = "(" + this._keyRestrictions.map(i => i[1]).filter(i => i.length > 0).join(" && ") + ")";
         let yearOffset = this._dateWithinValue[1] === 'y' ? 1 : 0;
         let monthOffset = this._dateWithinValue[1] === 'm' ? parseInt(this._dateWithinValue[0]) : 0;
