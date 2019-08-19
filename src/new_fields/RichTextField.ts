@@ -6,6 +6,8 @@ import { scriptingGlobal } from "../client/util/Scripting";
 
 export const ToGoogleDocText = Symbol("PlainText");
 export const FromGoogleDocText = Symbol("PlainText");
+const delimiter = "\n";
+const joiner = "";
 
 @scriptingGlobal
 @Deserializable("RichTextField")
@@ -27,45 +29,39 @@ export class RichTextField extends ObjectField {
     }
 
     [ToGoogleDocText]() {
-        let state = JSON.parse(this.Data);
-        let text = state.doc.textBetween(0, state.doc.content.size, "\n\n");
-        console.log(text);
+        // Because we're working with plain text, just concatenate all paragraphs
         let content = JSON.parse(this.Data).doc.content;
         let paragraphs = content.filter((item: any) => item.type === "paragraph");
-        let output = "";
-        for (let i = 0; i < paragraphs.length; i++) {
-            let paragraph = paragraphs[i];
-            let addNewLine = i > 0 ? paragraphs[i - 1].content : false;
-            if (paragraph.content) {
-                output += paragraph.content.map((block: any) => block.text).join("");
-            } else {
-                output += i === 0 ? "" : "\n";
-            }
-            addNewLine && (output += "\n");
-        }
-        return output;
+
+        // Functions to flatten ProseMirror paragraph objects (and their components) to plain text
+        // While this function already exists in state.doc.textBeteen(), it doesn't account for newlines 
+        let blockText = (block: any) => block.text;
+        let concatenateParagraph = (p: any) => (p.content ? p.content.map(blockText).join(joiner) : "") + delimiter;
+
+        // Concatentate paragraphs and string the result together. Trim the last newline, an artifact.
+        let textParagraphs = paragraphs.map(concatenateParagraph);
+        return textParagraphs.join(joiner).trimEnd(delimiter);
     }
 
     [FromGoogleDocText](plainText: string) {
-        let elements = plainText.split("\n");
+        // Remap the text, creating blocks split on newlines
+        let elements = plainText.split(delimiter);
+
+        // Google Docs adds in an extra carriage return automatically, so this counteracts it
         !elements[elements.length - 1].length && elements.pop();
+
+        // Preserve the current state, but re-write the content to be the blocks
         let parsed = JSON.parse(this.Data);
         parsed.doc.content = elements.map(text => {
             let paragraph: any = { type: "paragraph" };
-            if (text.length) {
-                paragraph.content = [{
-                    type: "text",
-                    marks: [],
-                    text
-                }];
-            }
+            text.length && (paragraph.content = [{ type: "text", marks: [], text }]); // An empty paragraph gets treated as a line break
             return paragraph;
         });
-        parsed.selection = {
-            type: "text",
-            anchor: 1,
-            head: 1
-        };
+
+        // If the new content is shorter than the previous content and selection is unchanged, may throw an out of bounds exception, so we reset it
+        parsed.selection = { type: "text", anchor: 1, head: 1 };
+
+        // Export the ProseMirror-compatible state object we've jsut built
         return JSON.stringify(parsed);
     }
 

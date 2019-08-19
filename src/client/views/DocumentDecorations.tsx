@@ -1,5 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faLink, faTag } from '@fortawesome/free-solid-svg-icons';
+import * as fa from '@fortawesome/free-brands-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
@@ -36,6 +37,7 @@ export const Flyout = higflyout.default;
 
 library.add(faLink);
 library.add(faTag);
+library.add(fa.faGoogleDrive as any);
 
 @observer
 export class DocumentDecorations extends React.Component<{}, { value: string }> {
@@ -618,6 +620,17 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         );
     }
 
+    considerGoogleDoc = () => {
+        let thisDoc = SelectionManager.SelectedDocuments()[0].props.Document;
+        let canEmbed = thisDoc.data && thisDoc.data instanceof RichTextField;
+        if (!canEmbed) return (null);
+        return (
+            <div className={"linkButtonWrapper"}>
+                <FontAwesomeIcon className="documentdecorations-icon" icon="image" size="sm" />
+            </div>
+        );
+    }
+
     considerTooltip = () => {
         let thisDoc = SelectionManager.SelectedDocuments()[0].props.Document;
         let isTextDoc = thisDoc.data && thisDoc.data instanceof RichTextField;
@@ -768,6 +781,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     </div>
                     {this.metadataMenu}
                     {this.considerEmbed()}
+                    {this.considerGoogleDoc()}
                     {/* {this.considerTooltip()} */}
                 </div>
             </div >

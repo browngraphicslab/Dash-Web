@@ -60,7 +60,7 @@ const richTextSchema = createSchema({
     documentText: "string"
 });
 
-const googleDocKey = "googleDocId";
+const googleDocId = "googleDocId";
 
 type RichTextDocument = makeInterface<[typeof richTextSchema]>;
 const RichTextDocument = makeInterface(richTextSchema);
@@ -84,6 +84,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     private _proxyReactionDisposer: Opt<IReactionDisposer>;
     private dropDisposer?: DragManager.DragDropDisposer;
     public get CurrentDiv(): HTMLDivElement { return this._ref.current!; }
+    private isOpening = false;
     @observable _entered = false;
 
     @observable public static InputBoxOverlay?: FormattedTextBox = undefined;
@@ -295,17 +296,19 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     pollExportedCounterpart = async () => {
         let dataDoc = Doc.GetProto(this.props.Document);
-        let documentId = StrCast(dataDoc[googleDocKey]);
+        let documentId = StrCast(dataDoc[googleDocId]);
         if (documentId) {
             let exportState = await GoogleApiClientUtils.Docs.read({ documentId });
             if (exportState) {
                 let data = Cast(dataDoc.data, RichTextField);
                 if (data) {
+                    this.isOpening = true;
                     dataDoc.data = new RichTextField(data[FromGoogleDocText](exportState));
                 }
             } else {
-                delete dataDoc[googleDocKey];
+                delete dataDoc[googleDocId];
             }
+            this.tryUpdateHeight();
         }
     }
 
@@ -346,9 +349,18 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 const field = this.dataDoc ? Cast(this.dataDoc[this.props.fieldKey], RichTextField) : undefined;
                 return field ? field.Data : `{"doc":{"type":"doc","content":[]},"selection":{"type":"text","anchor":0,"head":0}}`;
             },
-            field2 => {
-                this._editorView && !this._applyingChange &&
-                    this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field2)));
+            incomingValue => {
+                if (this._editorView && !this._applyingChange) {
+                    let updatedState = JSON.parse(incomingValue);
+                    this._editorView.updateState(EditorState.fromJSON(config, updatedState));
+                    // manually sets cursor selection at the end of the text on focus
+                    if (this.isOpening) {
+                        this.isOpening = false;
+                        let end = this._editorView.state.doc.content.size - 1;
+                        updatedState.selection = { type: "text", anchor: end, head: end };
+                        this._editorView.updateState(EditorState.fromJSON(config, updatedState));
+                    }
+                }
             }
         );
 
@@ -686,7 +698,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             event: action(() => Doc.GetProto(this.props.Document).autoHeight = !BoolCast(this.props.Document.autoHeight)), icon: "expand-arrows-alt"
         });
         ContextMenu.Instance.addItem({ description: "Text Funcs...", subitems: subitems, icon: "text-height" });
-        if (!(googleDocKey in Doc.GetProto(this.props.Document))) {
+        if (!(googleDocId in Doc.GetProto(this.props.Document))) {
             ContextMenu.Instance.addItem({
                 description: "Export to Google Doc...",
                 event: this.updateGoogleDoc,
@@ -698,21 +710,18 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     updateGoogleDoc = () => {
         let modes = GoogleApiClientUtils.Docs.WriteMode;
         let mode = modes.Replace;
-        let reference: Opt<GoogleApiClientUtils.Docs.Reference> = Cast(this.dataDoc[googleDocKey], "string");
+        let reference: Opt<GoogleApiClientUtils.Docs.Reference> = Cast(this.dataDoc[googleDocId], "string");
         if (!reference) {
             mode = modes.Insert;
             reference = {
                 title: StrCast(this.dataDoc.title),
-                handler: id => this.dataDoc[googleDocKey] = id
+                handler: id => this.dataDoc[googleDocId] = id
             };
         }
-        const data = Cast(this.dataDoc.data, RichTextField);
-        if (data) {
-            GoogleApiClientUtils.Docs.write({
-                mode,
-                content: data[ToGoogleDocText](),
-                reference
-            });
+        if (this._editorView) {
+            let data = Cast(this.dataDoc.data, RichTextField);
+            let content = data ? data[ToGoogleDocText]() : this._editorView.state.doc.textContent;
+            GoogleApiClientUtils.Docs.write({ reference, content, mode });
         }
     }
 
