@@ -1,5 +1,5 @@
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faLink, faTag, faArrowAltCircleDown, faArrowAltCircleUp } from '@fortawesome/free-solid-svg-icons';
+import { library, IconProp } from '@fortawesome/fontawesome-svg-core';
+import { faLink, faTag, faArrowAltCircleDown, faArrowAltCircleUp, faCheckCircle, faStopCircle, faCloudUploadAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
@@ -18,7 +18,7 @@ import { CollectionView } from "./collections/CollectionView";
 import './DocumentDecorations.scss';
 import { DocumentView, PositionDocument } from "./nodes/DocumentView";
 import { FieldView } from "./nodes/FieldView";
-import { FormattedTextBox } from "./nodes/FormattedTextBox";
+import { FormattedTextBox, GoogleRef } from "./nodes/FormattedTextBox";
 import { IconBox } from "./nodes/IconBox";
 import { LinkMenu } from "./nodes/LinkMenu";
 import { TemplateMenu } from "./TemplateMenu";
@@ -26,7 +26,6 @@ import { Template, Templates } from "./Templates";
 import React = require("react");
 import { RichTextField } from '../../new_fields/RichTextField';
 import { LinkManager } from '../util/LinkManager';
-import { ObjectField } from '../../new_fields/ObjectField';
 import { MetadataEntryMenu } from './MetadataEntryMenu';
 import { ImageBox } from './nodes/ImageBox';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
@@ -39,6 +38,11 @@ library.add(faLink);
 library.add(faTag);
 library.add(faArrowAltCircleDown);
 library.add(faArrowAltCircleUp);
+library.add(faStopCircle);
+library.add(faCheckCircle);
+library.add(faCloudUploadAlt);
+
+const cloud: IconProp = "cloud-upload-alt";
 
 @observer
 export class DocumentDecorations extends React.Component<{}, { value: string }> {
@@ -68,6 +72,52 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @observable private _opacity = 1;
     @observable private _removeIcon = false;
     @observable public Interacting = false;
+
+    @observable public pushIcon: IconProp = "arrow-alt-circle-up";
+    @observable public pullIcon: IconProp = "arrow-alt-circle-down";
+    @observable public pullColor: string = "white";
+    public pullColorAnimating = false;
+
+    private pullAnimating = false;
+    private pushAnimating = false;
+
+    public startPullOutcome = action((success: boolean) => {
+        if (this.pullAnimating) {
+            return;
+        }
+        this.pullAnimating = true;
+        this.pullIcon = success ? "check-circle" : "stop-circle";
+        setTimeout(() => runInAction(() => {
+            this.pullIcon = "arrow-alt-circle-down";
+            this.pullAnimating = false;
+        }), 1000);
+    });
+
+    public startPushOutcome = action((success: boolean) => {
+        if (this.pushAnimating) {
+            return;
+        }
+        this.pushAnimating = true;
+        this.pushIcon = success ? "check-circle" : "stop-circle";
+        setTimeout(() => runInAction(() => {
+            this.pushIcon = "arrow-alt-circle-up";
+            this.pushAnimating = false;
+        }), 1000);
+    });
+
+    public setPullState = (unchanged: boolean) => {
+        if (this.pullColorAnimating) {
+            return;
+        }
+        this.pullColorAnimating = true;
+        this.pullColor = unchanged ? "lawngreen" : "red";
+        setTimeout(() => {
+            runInAction(() => {
+                this.pullColor = "white";
+                this.pullColorAnimating = false;
+            });
+        }, 2000);
+    }
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -621,33 +671,37 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         );
     }
 
+    private get targetDoc() {
+        return SelectionManager.SelectedDocuments()[0].props.Document;
+    }
+
     considerGoogleDocsPush = () => {
-        let thisDoc = SelectionManager.SelectedDocuments()[0].props.Document;
-        let canPush = thisDoc.data && thisDoc.data instanceof RichTextField;
+        let canPush = this.targetDoc.data && this.targetDoc.data instanceof RichTextField;
         if (!canPush) return (null);
+        let published = Doc.GetProto(this.targetDoc)[GoogleRef] !== undefined;
+        let icon: IconProp = published ? (this.pushIcon as any) : (cloud as any);
         return (
             <div className={"linkButtonWrapper"}>
-                <div title="Push to Google Docs" className="linkButton-linker" onClick={() => {
+                <div title={`${published ? "Push" : "Publish"} to Google Docs`} className="linkButton-linker" onClick={() => {
                     DocumentDecorations.hasPushedHack = false;
-                    thisDoc[Pushes] = NumCast(thisDoc[Pushes]) + 1;
+                    this.targetDoc[Pushes] = NumCast(this.targetDoc[Pushes]) + 1;
                 }}>
-                    <FontAwesomeIcon className="documentdecorations-icon" icon="arrow-alt-circle-up" size="sm" />
+                    <FontAwesomeIcon className="documentdecorations-icon" icon={icon} size={published ? "sm" : "xs"} />
                 </div>
             </div>
         );
     }
 
     considerGoogleDocsPull = () => {
-        let thisDoc = SelectionManager.SelectedDocuments()[0].props.Document;
-        let canPull = thisDoc.data && thisDoc.data instanceof RichTextField;
-        if (!canPull) return (null);
+        let canPull = this.targetDoc.data && this.targetDoc.data instanceof RichTextField;
+        if (!canPull || !Doc.GetProto(this.targetDoc)[GoogleRef]) return (null);
         return (
             <div className={"linkButtonWrapper"}>
-                <div title="Pull From Google Docs" className="linkButton-linker" onClick={() => {
+                <div style={{ backgroundColor: this.pullColor, transition: "1s ease all" }} title="Pull From Google Docs" className="linkButton-linker" onClick={() => {
                     DocumentDecorations.hasPulledHack = false;
-                    thisDoc[Pulls] = NumCast(thisDoc[Pulls]) + 1;
+                    this.targetDoc[Pulls] = NumCast(this.targetDoc[Pulls]) + 1;
                 }}>
-                    <FontAwesomeIcon className="documentdecorations-icon" icon="arrow-alt-circle-down" size="sm" />
+                    <FontAwesomeIcon className="documentdecorations-icon" icon={this.pullIcon} size="sm" />
                 </div>
             </div>
         );

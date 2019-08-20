@@ -60,10 +60,12 @@ const richTextSchema = createSchema({
     documentText: "string"
 });
 
-const googleDocId = "googleDocId";
+export const GoogleRef = "googleDocId";
 
 type RichTextDocument = makeInterface<[typeof richTextSchema]>;
 const RichTextDocument = makeInterface(richTextSchema);
+
+type PullHandler = (exportState: GoogleApiClientUtils.Docs.ReadResult, dataDoc: Doc) => void;
 
 @observer
 export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTextBoxProps), RichTextDocument>(RichTextDocument) {
@@ -324,6 +326,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 }, { fireImmediately: true });
         }
 
+        this.pullFromGoogleDoc(this.checkState);
+
         this._reactionDisposer = reaction(
             () => {
                 const field = this.dataDoc ? Cast(this.dataDoc[this.props.fieldKey], RichTextField) : undefined;
@@ -350,7 +354,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             () => {
                 if (!DocumentDecorations.hasPulledHack) {
                     DocumentDecorations.hasPulledHack = true;
-                    this.pullFromGoogleDoc();
+                    this.pullFromGoogleDoc(this.updateState);
                 }
             }
         );
@@ -394,43 +398,62 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }, { fireImmediately: true });
     }
 
-    pushToGoogleDoc = () => {
+    pushToGoogleDoc = async () => {
         let modes = GoogleApiClientUtils.Docs.WriteMode;
         let mode = modes.Replace;
-        let reference: Opt<GoogleApiClientUtils.Docs.Reference> = Cast(this.dataDoc[googleDocId], "string");
+        let reference: Opt<GoogleApiClientUtils.Docs.Reference> = Cast(this.dataDoc[GoogleRef], "string");
         if (!reference) {
             mode = modes.Insert;
             reference = {
                 title: StrCast(this.dataDoc.title),
-                handler: id => this.dataDoc[googleDocId] = id
+                handler: id => this.dataDoc[GoogleRef] = id
             };
         }
         if (this._editorView) {
             let data = Cast(this.dataDoc.data, RichTextField);
             let content = data ? data[ToPlainText]() : this._editorView.state.doc.textContent;
-            GoogleApiClientUtils.Docs.write({ reference, content, mode });
+            let response = await GoogleApiClientUtils.Docs.write({ reference, content, mode });
+            let pushSuccess = response !== undefined && !("errors" in response);
+            DocumentDecorations.Instance.startPushOutcome(pushSuccess);
         }
     }
 
-    pullFromGoogleDoc = async () => {
+    pullFromGoogleDoc = async (handler: PullHandler) => {
         let dataDoc = Doc.GetProto(this.props.Document);
-        let documentId = StrCast(dataDoc[googleDocId]);
+        let documentId = StrCast(dataDoc[GoogleRef]);
         if (documentId) {
             let exportState = await GoogleApiClientUtils.Docs.read({ documentId });
-            UndoManager.RunInBatch(() => {
-                if (exportState && exportState.body && exportState.title) {
-                    let data = Cast(dataDoc.data, RichTextField);
-                    if (data) {
-                        this.isGoogleDocsUpdate = true;
-                        dataDoc.data = new RichTextField(data[FromPlainText](exportState.body));
-                        dataDoc.title = exportState.title;
-                    }
-                } else {
-                    delete dataDoc[googleDocId];
-                }
-            }, Pulls);
+            UndoManager.RunInBatch(() => handler(exportState, dataDoc), Pulls);
         }
     }
+
+    updateState = (exportState: GoogleApiClientUtils.Docs.ReadResult, dataDoc: Doc) => {
+        let pullSuccess = false;
+        if (exportState !== undefined && exportState.body !== undefined && exportState.title !== undefined) {
+            let data = Cast(dataDoc.data, RichTextField);
+            if (data) {
+                pullSuccess = true;
+                this.isGoogleDocsUpdate = true;
+                dataDoc.data = new RichTextField(data[FromPlainText](exportState.body));
+                dataDoc.title = exportState.title;
+            }
+        } else {
+            delete dataDoc[GoogleRef];
+        }
+        DocumentDecorations.Instance.startPullOutcome(pullSuccess);
+    }
+
+    checkState = (exportState: GoogleApiClientUtils.Docs.ReadResult, dataDoc: Doc) => {
+        if (exportState !== undefined && exportState.body !== undefined && exportState.title !== undefined) {
+            let data = Cast(dataDoc.data, RichTextField);
+            if (data) {
+                let storedPlainText = data[ToPlainText]() + "\n";
+                let receivedPlainText = exportState.body;
+                DocumentDecorations.Instance.setPullState(storedPlainText === receivedPlainText);
+            }
+        }
+    }
+
 
     clipboardTextSerializer = (slice: Slice): string => {
         let text = "", separated = true;
