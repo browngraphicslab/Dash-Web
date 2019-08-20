@@ -37,6 +37,7 @@ import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import { DocumentType, Docs } from "../../../documents/Documents";
+import { PreviewCursor } from "../../PreviewCursor";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard);
 

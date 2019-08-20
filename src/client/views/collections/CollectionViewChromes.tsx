@@ -276,17 +276,6 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             })} />);
     }
 
-    @action.bound
-    clearFilter = () => {
-        let compiled = CompileScript("return true", { params: { doc: Doc.name }, typecheck: false });
-        if (compiled.compiled) {
-            this.props.CollectionView.props.Document.viewSpecScript = new ScriptField(compiled);
-        }
-
-        this._keyRestrictions = [];
-        this.addKeyRestrictions([]);
-    }
-
     private dropDisposer?: DragManager.DragDropDisposer;
     protected createDropTarget = (ele: HTMLDivElement) => {
         this.dropDisposer && this.dropDisposer();
@@ -306,6 +295,17 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             }
         }
         return true;
+    }
+
+    @action.bound
+    clearFilter = () => {
+        let compiled = CompileScript("return true", { params: { doc: Doc.name }, typecheck: false });
+        if (compiled.compiled) {
+            this.props.CollectionView.props.Document.viewSpecScript = new ScriptField(compiled);
+        }
+
+        this._keyRestrictions = [];
+        this.addKeyRestrictions([]);
     }
 
     render() {
