@@ -551,9 +551,6 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     @undoBatch
     @action
     public PinDoc(doc: Doc) {
-        if (doc.type === DocumentType.PRES) {
-            MainView.Instance.toggleMiniPresentation()
-        }
         //add this new doc to props.Document
         let curPres = Cast(CurrentUserUtils.UserDocument.curPresentation, Doc) as Doc;
         if (curPres) {
@@ -562,6 +559,9 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                 data.push(doc);
             } else {
                 curPres.data = new List([doc]);
+            }
+            if (!DocumentManager.Instance.getDocumentView(curPres)) {
+                this.addDocTab(curPres, undefined, "onRight");
             }
         }
     }

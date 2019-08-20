@@ -646,14 +646,13 @@ export class PresBox extends React.Component<FieldViewProps> { //FieldViewProps?
         this.presElementsMappings.set(keyDoc, elem);
     }
 
+    minimize = undoBatch(action(() => {
+        this.presMode = true;
+        this.props.addDocTab && this.props.addDocTab(this.props.Document, this.props.DataDoc, "close");
+    }));
+
     specificContextMenu = (e: React.MouseEvent): void => {
         ContextMenu.Instance.addItem({ description: "Make Current Presentation", event: action(() => Doc.UserDoc().curPresentation = this.props.Document), icon: "asterisk" });
-        ContextMenu.Instance.addItem({
-            description: "Toggle Minimized Mode", event: action(() => {
-                this.presMode = !this.presMode;
-                if (this.presMode) this.props.addDocTab && this.props.addDocTab(this.props.Document, this.props.DataDoc, "close");
-            }), icon: "asterisk"
-        });
     }
 
     render() {
@@ -667,6 +666,7 @@ export class PresBox extends React.Component<FieldViewProps> { //FieldViewProps?
                     <button title="Back" className="presentation-button" onClick={this.back}><FontAwesomeIcon icon={"arrow-left"} /></button>
                     {this.renderPlayPauseButton()}
                     <button title="Next" className="presentation-button" onClick={this.next}><FontAwesomeIcon icon={"arrow-right"} /></button>
+                    <button title="Minimize" className="presentation-button" onClick={this.minimize}><FontAwesomeIcon icon={"eye"} /></button>
                 </div>
                 <input
                     type="checkbox"

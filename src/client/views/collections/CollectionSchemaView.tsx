@@ -171,6 +171,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 active={this.props.active}
                 whenActiveChanged={this.props.whenActiveChanged}
                 addDocTab={this.props.addDocTab}
+                pinToPres={this.props.pinToPres}
                 setPreviewScript={this.setPreviewScript}
                 previewScript={this.previewScript}
             />
@@ -200,6 +201,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 active={this.props.active}
                 onDrop={this.onDrop}
                 addDocTab={this.props.addDocTab}
+                pinToPres={this.props.pinToPres}
                 isSelected={this.props.isSelected}
                 isFocused={this.isFocused}
                 setFocused={this.setFocused}
