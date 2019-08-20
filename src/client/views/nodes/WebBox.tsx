@@ -1,18 +1,29 @@
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, observable } from "mobx";
 import { observer } from "mobx-react";
-import { FieldResult } from "../../../new_fields/Doc";
 import { HtmlField } from "../../../new_fields/HtmlField";
-import { InkTool } from "../../../new_fields/InkField";
-import { Cast, NumCast } from "../../../new_fields/Types";
 import { WebField } from "../../../new_fields/URLField";
-import { Utils } from "../../../Utils";
 import { DocumentDecorations } from "../DocumentDecorations";
 import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from './FieldView';
-import { KeyValueBox } from "./KeyValueBox";
 import "./WebBox.scss";
 import React = require("react");
+import { InkTool } from "../../../new_fields/InkField";
+import { Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
+import { Utils } from "../../../Utils";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faStickyNote } from '@fortawesome/free-solid-svg-icons';
+import { observable, action, computed } from "mobx";
+import { listSpec } from "../../../new_fields/Schema";
+import { Field, FieldResult } from "../../../new_fields/Doc";
+import { RefField } from "../../../new_fields/RefField";
+import { ObjectField } from "../../../new_fields/ObjectField";
+import { updateSourceFile } from "typescript";
+import { KeyValueBox } from "./KeyValueBox";
+import { setReactionScheduler } from "mobx/lib/internal";
+import { library } from "@fortawesome/fontawesome-svg-core";
+import { Docs } from "../../documents/Documents";
+import { PreviewCursor } from "../PreviewCursor";
+
+library.add(faStickyNote)
 
 @observer
 export class WebBox extends React.Component<FieldViewProps> {
@@ -64,6 +75,24 @@ export class WebBox extends React.Component<FieldViewProps> {
         }
     }
 
+    switchToText() {
+        console.log("switchng to text")
+        if (this.props.removeDocument) this.props.removeDocument(this.props.Document);
+        // let newPoint = PreviewCursor._getTransform().transformPoint(PreviewCursor._clickPoint[0], PreviewCursor._clickPoint[1]);
+        let newBox = Docs.Create.TextDocument({
+            width: 200, height: 100,
+            // x: newPoint[0],
+            // y: newPoint[1],
+            x: NumCast(this.props.Document.x),
+            y: NumCast(this.props.Document.y),
+            title: "-pasted text-"
+        });
+
+        newBox.proto!.autoHeight = true;
+        PreviewCursor._addLiveTextDoc(newBox);
+        return;
+    }
+
     urlEditor() {
         return (
             <div className="webView-urlEditor" style={{ top: this.collapsed ? -70 : 0 }}>
@@ -86,9 +115,18 @@ export class WebBox extends React.Component<FieldViewProps> {
                                 onChange={this.onURLChange}
                                 onKeyDown={this.onValueKeyDown}
                             />
-                            <button className="submitUrl" onClick={this.submitURL}>
-                                SUBMIT URL
+                            <div style={{
+                                display: "flex",
+                                flexDirection: "row",
+
+                            }}>
+                                <button className="submitUrl" onClick={this.submitURL}>
+                                    SUBMIT URL
                             </button>
+                                <button className="switchToText" onClick={this.switchToText} style={{ paddingLeft: 10 }} >
+                                    <FontAwesomeIcon icon={faStickyNote} size={"2x"} />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

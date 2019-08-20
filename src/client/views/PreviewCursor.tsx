@@ -34,8 +34,10 @@ export class PreviewCursor extends React.Component<{}> {
                 let newPoint = PreviewCursor._getTransform().transformPoint(PreviewCursor._clickPoint[0], PreviewCursor._clickPoint[1]);
                 runInAction(() => { PreviewCursor.Visible = false; });
 
-                // pasting in text/video from youtube
+
                 if (e.clipboardData.getData("text/plain") !== "") {
+
+                    // tests for youtube and makes video document
                     if (e.clipboardData.getData("text/plain").indexOf("www.youtube.com/watch") !== -1) {
                         const url = e.clipboardData.getData("text/plain").replace("youtube.com/watch?v=", "youtube.com/embed/");
                         PreviewCursor._addDocument(Docs.Create.VideoDocument(url, {
@@ -45,6 +47,20 @@ export class PreviewCursor extends React.Component<{}> {
                         }), false);
                         return;
                     }
+
+                    // tests for URL and makes web document
+                    let re: any = /^https?:\/\/www\./g;
+                    if (re.test(e.clipboardData.getData("text/plain"))) {
+                        const url = e.clipboardData.getData("text/plain")
+                        PreviewCursor._addDocument(Docs.Create.WebDocument(url, {
+                            title: url, width: 300, height: 300,
+                            // nativeWidth: 300, nativeHeight: 472.5,
+                            x: newPoint[0], y: newPoint[1]
+                        }), false);
+                        return;
+                    }
+
+                    // creates text document
                     let newBox = Docs.Create.TextDocument({
                         width: 200, height: 100,
                         x: newPoint[0],
