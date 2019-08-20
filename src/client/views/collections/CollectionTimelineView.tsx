@@ -96,7 +96,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             markerUnit.element = (< div ref={(el) => el ? markerUnit.ref = el : null} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, String(markerUnit.document.annotation), markerUnit)}
                 style={{
                     top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid" + (markerUnit.document.color),
-                    width: "10px", height: "30px", backgroundColor: String(markerUnit.document.color), opacity: 0.25, position: "absolute", left: 0,
+                    width: "10px", height: "30px", backgroundColor: String(markerUnit.document.color), opacity: 0.5, position: "absolute", left: 0,
                 }}></div>);
             markerUnit.map = <div className="ugh" ref={(el) => el ? markerUnit.mapref = el : null}
                 style={{
@@ -113,12 +113,20 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     createmarker = (doc: Doc): JSX.Element => {
         let markerUnit = { document: doc, ref: undefined, mapref: undefined } as MarkerUnit;
-        markerUnit.element = (< div ref={(el) => el ? markerUnit.ref = el : null} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, String(markerUnit.document.annotation), markerUnit)}
+        markerUnit.element = (< div ref={(el) => el ? markerUnit.ref = el : null} onDoubleClick={(e) => this.doubleclick(e, markerUnit)} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, String(markerUnit.document.annotation), markerUnit)}
             style={{
                 top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid" + String(markerUnit.document.color),
-                width: NumCast(doc.initialWidth), height: "30px", backgroundColor: String(markerUnit.document.color), zIndex: 5, opacity: 0.25,
+                width: NumCast(doc.initialWidth), height: "30px", backgroundColor: String(markerUnit.document.color), zIndex: 5, opacity: 0.5,
                 position: "absolute", left: NumCast(doc.initialLeft),
-            }}></div>);
+            }}>
+            <EditableView
+                contents={doc.annotation}
+                SetValue={this.annotationUpdate}
+                GetValue={() => ""}
+                display={"inline"}
+                height={30}
+            />
+        </div>);
         return markerUnit.element;
     }
 
@@ -216,19 +224,29 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     onPointerDown_DeleteMarker = (e: React.PointerEvent, annotation: string, markerUnit: MarkerUnit): void => {
+
         if (e.ctrlKey) {
             this.markerDocs.splice(this.markerDocs.indexOf(markerUnit.document), 1);
             this.selectedMarker = undefined;
         }
         else {
-            this.selectedMarker ? this.selectedMarker.ref!.style.opacity = "0.25" : null;
+            this.selectedMarker ? this.selectedMarker.ref!.style.opacity = "0.5" : null;
             this.selectedMarker ? this.selectedMarker.ref!.style.border = "0px solid black" : null;
-            this.annotationText = annotation;
             this.selectedMarker = markerUnit;
             this.selectedMarker.ref!.style.opacity = "0.9";
             this.selectedMarker.ref!.style.border = "1px solid black";
             this.selectedMarker.ref!.style.borderStyle = "dashed";
             this.selectedMarker.ref!.style.backgroundColor ? this.selectedColor = this.selectedMarker.ref!.style.backgroundColor : null;
+        }
+
+    }
+
+    @action
+    doubleclick(e: React.MouseEvent, markerUnit: MarkerUnit) {
+        if (markerUnit.ref!.style.border === "1px dashed black") {
+            console.log("yuh");
+            this.leftbound = NumCast(markerUnit.document.initialLeft);
+            this.rightbound = this.barwidth - NumCast(markerUnit.document.initialWidth) - this.leftbound;
         }
     }
 
@@ -250,7 +268,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             d.initialWidth = 10;
             d.initialMapLeft = (((leftval / this.barref.current!.clientWidth)) * (this.barwidth - this.rightbound - this.leftbound)) + this.leftbound;
             d.initialMapWidth = 10;
-            d.annotation = "Edit me!";
+            d.annotation = "";
             d.color = this.selectedColor;
             this.markerDocs.push(d);
         }
@@ -569,7 +587,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     adjustY() {
         console.log("sure");
         for (let thumbnail1 of this.thumbnails) {
-            thumbnail1!.headerref!.style.top! = "0";
+            thumbnail1!.headerref!.style.top! = "100";
             thumbnail1!.thumbnailref2!.style.top! = "0";
             thumbnail1!.headerref2!.style.height! = String((document.body.clientHeight * 0.75 - document.body.clientHeight / 4) - 100);
             thumbnail1.headerref2!.style.top! = "0";
@@ -580,8 +598,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             overlap = true;
             for (let thumbnail1 of this.thumbnails) {
                 for (let thumbnail2 of this.thumbnails) {
-                    let thumbnail1y = parseFloat(thumbnail1.headerref!.style.top!);
-                    let thumbnail2y = parseFloat(thumbnail2.headerref!.style.top!);
+                    let thumbnail1y = parseFloat(thumbnail1.thumbnailref2!.style.top!);
+                    let thumbnail2y = parseFloat(thumbnail2.thumbnailref2!.style.top!);
                     if (((thumbnail1.leftval > thumbnail2.leftval && thumbnail1.leftval - 100 < thumbnail2.leftval)
                         || (thumbnail1.leftval < thumbnail2.leftval && thumbnail1.leftval + 100 > thumbnail2.leftval))
                         && ((thumbnail1y! >= thumbnail2y! && thumbnail1y! - 100 <= thumbnail2y!)
@@ -708,34 +726,13 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             </div>);
     }
 
-    @observable private annotationText: string = "Select an annotation!";
     @observable private selectedMarker: MarkerUnit | undefined;
     @observable private selectedColor: string = "ffff80";
 
     @action annotationUpdate = (newValue: string) => {
-        this.annotationText = newValue;
         this.selectedMarker!.document.annotation = newValue;
         return true;
     }
-    annotationPanel() {
-        if (this.selectedMarker) {
-            return (
-                <div style={{ height: "100%", background: (this.selectedMarker.ref ? (this.selectedMarker.ref!.style.backgroundColor ? this.selectedMarker.ref!.style.backgroundColor : "white") : "white") }}>
-                    <EditableView
-                        contents={this.annotationText}
-                        SetValue={this.annotationUpdate}
-                        GetValue={() => ""}
-                        display={"inline"}
-                        height={72}
-                    />
-                </div >
-            );
-        }
-        else {
-            return ("No annotation selected.");
-        }
-    }
-
 
     @observable private barwidth = (this.barref.current ? this.barref.current.clientWidth : (952));
     @observable private leftbound = 0;
@@ -762,9 +759,30 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @observable private truesort: string = "sortinput";
     onPointerDown_Dragger = (e: React.PointerEvent): void => {
-        document.addEventListener("pointermove", this.onPointerMove_Dragger, true);
-        document.addEventListener("pointerup", this.onPointerUp_Dragger, true);
-        this.screenref.current!.style.cursor = "grabbing";
+        if (e.altKey) {
+            document.addEventListener("pointermove", this.onPointerMove_Selector, true);
+            document.addEventListener("pointerup", this.onPointerUp_Selector, true);
+            this.preventbug = true;
+            e.preventDefault;
+            let leftval = (e.pageX - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98);
+            let d = new Doc;
+            d.initialLeft = leftval;
+            d.firstLeft = leftval;
+            d.initialScale = (this.barwidth / (this.barwidth - this.rightbound - this.leftbound));
+            d.initialX = this.leftbound;
+            d.initialWidth = 10;
+            d.initialMapLeft = (((leftval / this.barref.current!.clientWidth)) * (this.barwidth - this.rightbound - this.leftbound)) + this.leftbound;
+            d.initialMapWidth = 10;
+            d.annotation = "hi";
+            d.color = this.selectedColor;
+            this.markerDocs.push(d);
+        }
+
+        else {
+            document.addEventListener("pointermove", this.onPointerMove_Dragger, true);
+            document.addEventListener("pointerup", this.onPointerUp_Dragger, true);
+            this.screenref.current!.style.cursor = "grabbing";
+        }
     }
     @action
     onPointerMove_Dragger = (e: PointerEvent): void => {
