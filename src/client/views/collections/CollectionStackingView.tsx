@@ -23,6 +23,7 @@ import { CollectionSubView } from "./CollectionSubView";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { ScriptBox } from "../ScriptBox";
+import { CollectionMasonryViewFieldRow } from "./CollectionMasonryViewFieldRow";
 
 @observer
 export class CollectionStackingView extends CollectionSubView(doc => doc) {
@@ -125,7 +126,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
     createRef = (ele: HTMLDivElement | null) => {
         this._masonryGridRef = ele;
-        this.createDropTarget(ele!);
+        this.createDropTarget(ele!); //so the whole grid is the drop target?
     }
 
     overlays = (doc: Doc) => {
@@ -282,45 +283,72 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             translate(offset[0], offset[1]).
             scale(NumCast(doc.width, 1) / this.columnWidth);
     }
-    masonryChildren(docs: Doc[]) {
-        this._docXfs.length = 0;
-        return docs.map((d, i) => {
-            let dref = React.createRef<HTMLDivElement>();
-            let layoutDoc = Doc.expandTemplateLayout(d, this.props.DataDoc);
-            let width = () => (d.nativeWidth && !d.ignoreAspect && !this.props.Document.fillColumn ? Math.min(d[WidthSym](), this.columnWidth) : this.columnWidth);/// (uniqueHeadings.length + 1);
-            let height = () => this.getDocHeight(layoutDoc);
-            let dxf = () => this.getDocTransform(layoutDoc, dref.current!);
-            let rowSpan = Math.ceil((height() + this.gridGap) / this.gridGap);
-            this._docXfs.push({ dxf: dxf, width: width, height: height });
-            return <div className="collectionStackingView-masonryDoc" key={d[Id]} ref={dref} style={{ gridRowEnd: `span ${rowSpan}` }} >
-                {this.getDisplayDoc(layoutDoc, d, dxf, width)}
-            </div>;
-        });
-    }
+    // masonryChildren(docs: Doc[]) {
+    //     this._docXfs.length = 0;
+    //     return docs.map((d, i) => {
+    //         let dref = React.createRef<HTMLDivElement>();
+    //         let layoutDoc = Doc.expandTemplateLayout(d, this.props.DataDoc);
+    //         let width = () => (d.nativeWidth && !d.ignoreAspect && !this.props.Document.fillColumn ? Math.min(d[WidthSym](), this.columnWidth) : this.columnWidth);/// (uniqueHeadings.length + 1);
+    //         let height = () => this.getDocHeight(layoutDoc);
+    //         let dxf = () => this.getDocTransform(layoutDoc, dref.current!);
+    //         let rowSpan = Math.ceil((height() + this.gridGap) / this.gridGap);
+    //         this._docXfs.push({ dxf: dxf, width: width, height: height });
+    //         return <div className="collectionStackingView-masonryDoc" key={d[Id]} ref={dref} style={{ gridRowEnd: `span ${rowSpan}` }} >
+    //             {this.getDisplayDoc(layoutDoc, d, dxf, width)}
+    //         </div>;
+    //     });
+    // }
 
-    @observable _headingsHack: number = 1;
-    sectionMasonry(heading: SchemaHeaderField | undefined, docList: Doc[]) {
-        let cols = Math.max(1, Math.min(docList.length,
+    // @observable _headingsHack: number = 1;
+    // sectionMasonry(heading: SchemaHeaderField | undefined, docList: Doc[]) {
+    //     let cols = Math.max(1, Math.min(docList.length,
+    //         Math.floor((this.props.PanelWidth() - 2 * this.xMargin) / (this.columnWidth + this.gridGap))));
+    //     // let specialCols = () => this.isMasonryView ? 1 : Math.max(1, Math.min(docList.length,
+    //     //     Math.floor((this.props.PanelWidth() - 2 * this.xMargin) / (this.columnWidth + this.gridGap))));
+    //     // let type: "string" | "number" | "bigint" | "boolean" | "symbol" | "undefined" | "object" | "function" | undefined = undefined;
+    //     return <div ref={} key={heading ? heading.heading : "empty"} className="collectionStackingView-masonrySection">
+    //         {!heading ? (null) :
+    //             <div key={`${heading.heading}`} className="collectionStackingView-sectionHeader" style={{ background: heading.color }}
+    //                 onClick={action(() => this._headingsHack++ && heading.setCollapsed(!heading.collapsed))} >
+    //                 {heading.heading}
+    //             </div>}
+    //         {this._headingsHack && heading && heading.collapsed ? (null) :
+    //             <div key={`${heading}-stack`} className={`collectionStackingView-masonryGrid`}
+    //                 style={{
+    //                     padding: `${this.yMargin}px ${this.xMargin}px`,
+    //                     width: `${cols * (this.columnWidth + this.gridGap) + 2 * this.xMargin - this.gridGap}px`,
+    //                     gridGap: this.gridGap,
+    //                     gridTemplateColumns: numberRange(cols).reduce((list, i) => list + ` ${this.columnWidth}px`, ""),
+    //                 }}>
+    //                 {this.masonryChildren(docList)}
+    //                 {this.columnDragger}
+    //             </div>
+    //         }
+    //     </div>;
+    // }
+
+    sectionMasonry = (heading: SchemaHeaderField | undefined, docList: Doc[]) => {
+        let key = this.sectionFilter;
+        let type: "string" | "number" | "bigint" | "boolean" | "symbol" | "undefined" | "object" | "function" | undefined = undefined;
+        let types = docList.length ? docList.map(d => typeof d[key]) : this.childDocs.map(d => typeof d[key]);
+        if (types.map((i, idx) => types.indexOf(i) === idx).length === 1) {
+            type = types[0];
+        }
+        let rows = () => !this.isStackingView ? 1 : Math.max(1, Math.min(docList.length,
             Math.floor((this.props.PanelWidth() - 2 * this.xMargin) / (this.columnWidth + this.gridGap))));
-        return <div key={heading ? heading.heading : "empty"} className="collectionStackingView-masonrySection">
-            {!heading ? (null) :
-                <div key={`${heading.heading}`} className="collectionStackingView-sectionHeader" style={{ background: heading.color }}
-                    onClick={action(() => this._headingsHack++ && heading.setCollapsed(!heading.collapsed))} >
-                    {heading.heading}
-                </div>}
-            {this._headingsHack && heading && heading.collapsed ? (null) :
-                <div key={`${heading}-stack`} className={`collectionStackingView-masonryGrid`}
-                    style={{
-                        padding: `${this.yMargin}px ${this.xMargin}px`,
-                        width: `${cols * (this.columnWidth + this.gridGap) + 2 * this.xMargin - this.gridGap}px`,
-                        gridGap: this.gridGap,
-                        gridTemplateColumns: numberRange(cols).reduce((list, i) => list + ` ${this.columnWidth}px`, ""),
-                    }}>
-                    {this.masonryChildren(docList)}
-                    {this.columnDragger}
-                </div>
-            }
-        </div>;
+        return <CollectionMasonryViewFieldRow
+            key={heading ? heading.heading : ""}
+            rows={rows}
+            headings={this.headings}
+            heading={heading ? heading.heading : ""}
+            headingObject={heading}
+            docList={docList}
+            parent={this}
+            type={type}
+            createDropTarget={this.createDropTarget}
+            screenToLocalTransform={this.props.ScreenToLocalTransform}
+            color={heading ? heading.color : ""}
+        />;
     }
 
     @action

@@ -9,7 +9,7 @@ import { Id } from "../../../new_fields/FieldSymbols";
 import { PastelSchemaPalette, SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import { ScriptField } from "../../../new_fields/ScriptField";
 import { NumCast, StrCast } from "../../../new_fields/Types";
-import { Utils } from "../../../Utils";
+import { Utils, numberRange } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { CompileScript } from "../../util/Scripting";
@@ -23,9 +23,8 @@ import "./CollectionStackingView.scss";
 
 library.add(faPalette);
 
-
-interface CSVFieldColumnProps {
-    cols: () => number;
+interface CMVFieldRowProps {
+    rows: () => number;
     headings: () => object[];
     heading: string;
     headingObject: SchemaHeaderField | undefined;
@@ -34,10 +33,11 @@ interface CSVFieldColumnProps {
     type: "string" | "number" | "bigint" | "boolean" | "symbol" | "undefined" | "object" | "function" | undefined;
     createDropTarget: (ele: HTMLDivElement) => void;
     screenToLocalTransform: () => Transform;
+    color: string | undefined;
 }
 
 @observer
-export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldColumnProps> {
+export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowProps> {
     @observable private _background = "inherit";
 
     private _dropRef: HTMLDivElement | null = null;
@@ -49,17 +49,17 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
     @observable _heading = this.props.headingObject ? this.props.headingObject.heading : this.props.heading;
     @observable _color = this.props.headingObject ? this.props.headingObject.color : "#f1efeb";
 
-    createColumnDropRef = (ele: HTMLDivElement | null) => {
+    createRowDropRef = (ele: HTMLDivElement | null) => {
         this._dropRef = ele;
         this.dropDisposer && this.dropDisposer();
         if (ele) {
-            this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.columnDrop.bind(this) } });
+            this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.rowDrop.bind(this) } });
         }
     }
 
     @undoBatch
     @action
-    columnDrop = (e: Event, de: DragManager.DropEvent) => {
+    rowDrop = (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.DocumentDragData) {
             let key = StrCast(this.props.parent.props.Document.sectionFilter);
             let castedValue = this.getValue(this._heading);
@@ -74,20 +74,19 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         }
     }
 
-    children(docs: Doc[]) {
+    masonryChildren(docs: Doc[]) {
         let parent = this.props.parent;
         parent._docXfs.length = 0;
         return docs.map((d, i) => {
-            let pair = Doc.GetLayoutDataDocPair(parent.props.Document, parent.props.DataDoc, parent.props.fieldKey, d);
-            let width = () => Math.min(d.nativeWidth && !d.ignoreAspect && !parent.props.Document.fillColumn ? d[WidthSym]() : Number.MAX_VALUE, parent.columnWidth / parent.numGroupColumns);
-            let height = () => parent.getDocHeight(pair.layout);
             let dref = React.createRef<HTMLDivElement>();
-            let dxf = () => this.getDocTransform(pair.layout, dref.current!);
-            this.props.parent._docXfs.push({ dxf: dxf, width: width, height: height });
+            let layoutDoc = Doc.expandTemplateLayout(d, parent.props.DataDoc);
+            let width = () => (d.nativeWidth && !d.ignoreAspect && !parent.props.Document.fillColumn ? Math.min(d[WidthSym](), parent.columnWidth) : parent.columnWidth);/// (uniqueHeadings.length + 1);
+            let height = () => parent.getDocHeight(layoutDoc);
+            let dxf = () => parent.getDocTransform(layoutDoc, dref.current!);
             let rowSpan = Math.ceil((height() + parent.gridGap) / parent.gridGap);
-            let style = parent.isStackingView ? { width: width(), margin: "auto", marginTop: i === 0 ? 0 : parent.gridGap, height: height() } : { gridRowEnd: `span ${rowSpan}` };
-            return <div className={`collectionStackingView-${parent.isStackingView ? "columnDoc" : "masonryDoc"}`} key={d[Id]} ref={dref} style={style} >
-                {this.props.parent.getDisplayDoc(pair.layout, pair.data, dxf, width)}
+            parent._docXfs.push({ dxf: dxf, width: width, height: height });
+            return <div className="collectionStackingView-masonryDoc" key={d[Id]} ref={dref} style={{ gridRowEnd: `span ${rowSpan}` }} >
+                {this.props.parent.getDisplayDoc(layoutDoc, d, dxf, width)}
             </div>;
         });
     }
@@ -247,14 +246,14 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         );
     }
 
+    @observable _headingsHack: number = 1;
     render() {
-        let cols = this.props.cols();
+        let cols = this.props.rows();
         let key = StrCast(this.props.parent.props.Document.sectionFilter);
         let templatecols = "";
         let headings = this.props.headings();
         let heading = this._heading;
         let style = this.props.parent;
-        let singleColumn = style.isStackingView;
         let uniqueHeadings = headings.map((i, idx) => headings.indexOf(i) === idx);
         let evContents = heading ? heading : this.props.type && this.props.type === "number" ? "0" : `NO ${key.toUpperCase()} VALUE`;
         let headerEditableViewProps = {
@@ -268,46 +267,74 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             SetValue: this.addDocument,
             contents: "+ NEW"
         };
-        let headingView = this.props.headingObject ?
-            <div key={heading} className="collectionStackingView-sectionHeader" ref={this._headerRef}
-                style={{
-                    width: (style.columnWidth) /
-                        ((uniqueHeadings.length +
-                            ((this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'view-mode' && this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'disabled') ? 1 : 0)) || 1)
-                }}>
-                {/* the default bucket (no key value) has a tooltip that describes what it is.
-                    Further, it does not have a color and cannot be deleted. */}
-                <div className="collectionStackingView-sectionHeader-subCont" onPointerDown={this.headerDown}
-                    title={evContents === `NO ${key.toUpperCase()} VALUE` ?
-                        `Documents that don't have a ${key} value will go here. This column cannot be removed.` : ""}
-                    style={{
-                        width: "100%",
-                        background: evContents !== `NO ${key.toUpperCase()} VALUE` ? this._color : "lightgrey",
-                        color: "grey"
-                    }}>
-                    <EditableView {...headerEditableViewProps} />
-                    {evContents === `NO ${key.toUpperCase()} VALUE` ? (null) :
-                        <div className="collectionStackingView-sectionColor">
-                            <Flyout anchorPoint={anchorPoints.TOP_CENTER} content={this.renderColorPicker()}>
-                                <button className="collectionStackingView-sectionColorButton">
-                                    <FontAwesomeIcon icon="palette" size="sm" />
-                                </button>
-                            </ Flyout >
-                        </div>
-                    }
-                    {evContents === `NO ${key.toUpperCase()} VALUE` ?
-                        (null) :
-                        <button className="collectionStackingView-sectionDelete" onClick={this.deleteColumn}>
-                            <FontAwesomeIcon icon="trash" />
-                        </button>}
-                </div>
-            </div> : (null);
-        for (let i = 0; i < cols; i++) templatecols += `${style.columnWidth / style.numGroupColumns}px `;
+        // let headingView = this.props.headingObject ?
+        let headingView =
+            <div>
+                <div key={`${this.props.heading}`} className="collectionStackingView-sectionHeader" style={{ background: this.props.color }}
+                // onClick={action(() => this._headingsHack++ && instHeading.setCollapsed(!instHeading.collapsed))} 
+                >
+                    {this.props.heading}
+                </div >
+                {/* <div className="red-box"></div> */}
+                <EditableView {...headerEditableViewProps} />
+                {evContents === `NO ${key.toUpperCase()} VALUE` ? (null) :
+                    <div className="collectionStackingView-sectionColor">
+                        <Flyout anchorPoint={anchorPoints.TOP_CENTER} content={this.renderColorPicker()}>
+                            <button className="collectionStackingView-sectionColorButton">
+                                <FontAwesomeIcon icon="palette" size="sm" />
+                            </button>
+                        </ Flyout >
+                    </div>
+                }
+            </div>;
+
+
+        // <div key={heading} className="collectionStackingView-sectionHeader" ref={this._headerRef}
+        //     style={{
+        //         width: (style.columnWidth) /
+        //             ((uniqueHeadings.length +
+        //                 ((this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'view-mode' && this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'disabled') ? 1 : 0)) || 1)
+        //     }}>
+        //     {/* the default bucket (no key value) has a tooltip that describes what it is.
+        //         Further, it does not have a color and cannot be deleted. */}
+        // <div className="collectionStackingView-sectionHeader-subCont" onPointerDown={this.headerDown}
+        //     title={evContents === `NO ${key.toUpperCase()} VALUE` ?
+        //         `Documents that don't have a ${key} value will go here. This column cannot be removed.` : ""}
+        //     style={{
+        //         width: "100%",
+        //         background: evContents !== `NO ${key.toUpperCase()} VALUE` ? this._color : "lightgrey",
+        //         color: "grey"
+        //     }}>
+        //     <EditableView {...headerEditableViewProps} />
+        //     {evContents === `NO ${key.toUpperCase()} VALUE` ? (null) :
+        //         <div className="collectionStackingView-sectionColor">
+        //             <Flyout anchorPoint={anchorPoints.TOP_CENTER} content={this.renderColorPicker()}>
+        //                 <button className="collectionStackingView-sectionColorButton">
+        //                     <FontAwesomeIcon icon="palette" size="sm" />
+        //                 </button>
+        //             </ Flyout >
+        //         </div>
+        //     }
+        //     {evContents === `NO ${key.toUpperCase()} VALUE` ?
+        //         (null) :
+        //         <button className="collectionStackingView-sectionDelete" onClick={this.deleteColumn}>
+        //             <FontAwesomeIcon icon="trash" />
+        //         </button>}
+        // </div>;
+        // </div> : (null);
+        // for (let i = 0; i < cols; i++) templatecols += `${style.columnWidth / style.numGroupColumns}px `;
         return (
-            <div className="collectionStackingViewFieldColumn" key={heading} style={{ width: `${100 / ((uniqueHeadings.length + ((this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'view-mode' && this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'disabled') ? 1 : 0)) || 1)}%`, background: this._background }}
-                ref={this.createColumnDropRef} onPointerEnter={this.pointerEntered} onPointerLeave={this.pointerLeave}>
+            <div className="collectionStackingView-masonrySection"
+                key={heading = "empty"}
+                style={{ width: `${100 / ((uniqueHeadings.length + ((this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'view-mode' && this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'disabled') ? 1 : 0)) || 1)}%`, background: this._background }}
+                ref={this.createRowDropRef} onPointerEnter={this.pointerEntered} onPointerLeave={this.pointerLeave} >
                 {headingView}
-                <div key={`${heading}-stack`} className={`collectionStackingView-masonry${singleColumn ? "Single" : "Grid"}`}
+                {/* {!heading ? (null) :
+                    <div key={`${instHeading.heading}`} className="collectionStackingView-sectionHeader" style={{ background: instHeading.color }}
+                        onClick={action(() => this._headingsHack++ && instHeading.setCollapsed(!instHeading.collapsed))} >
+                        {instHeading.heading}
+                    </div>} */}
+                {/* <div key={`${heading}-stack`} className={`collectionStackingView-masonry${singleColumn ? "Single" : "Grid"}`}
                     style={{
                         padding: singleColumn ? `${style.yMargin}px ${0}px ${style.yMargin}px ${0}px` : `${style.yMargin}px ${0}px`,
                         margin: "auto",
@@ -320,15 +347,31 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                     }}
                 // ref={this.createColumnDropRef} onPointerEnter={this.pointerEntered} onPointerLeave={this.pointerLeave}
                 >
-                    {this.children(this.props.docList)}
+                    {this.masonryChildren(this.props.docList)}
                     {singleColumn ? (null) : this.props.parent.columnDragger}
-                </div>
-                {(this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'view-mode' && this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'disabled') ?
-                    <div key={`${heading}-add-document`} className="collectionStackingView-addDocumentButton"
-                        style={{ width: style.columnWidth / style.numGroupColumns }}>
-                        <EditableView {...newEditableViewProps} />
-                    </div> : null}
-            </div>
+                </div> */}
+                {
+                    this._headingsHack && heading ? (null) :
+                        <div key={`${heading}-stack`} className={`collectionStackingView-masonryGrid`}
+                            style={{
+                                padding: `${this.props.parent.yMargin}px ${this.props.parent.xMargin}px`,
+                                width: `${cols * (this.props.parent.columnWidth + this.props.parent.gridGap) + 2 * this.props.parent.xMargin - this.props.parent.gridGap}px`,
+                                gridGap: this.props.parent.gridGap,
+                                // gridTemplateColumns: undefined,
+                                gridTemplateColumns: numberRange(cols).reduce((list: string, i: any) => list + ` ${this.props.parent.columnWidth}px`, ""),
+                            }}>
+                            {this.masonryChildren(this.props.docList)}
+                            {this.props.parent.columnDragger}
+                        </div>
+                }
+                { //controls the +NEW for each row
+                    (this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'view-mode' && this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'disabled') ?
+                        <div key={`${heading}-add-document`} className="collectionStackingView-addDocumentButton"
+                            style={{ width: style.columnWidth / style.numGroupColumns }}>
+                            <EditableView {...newEditableViewProps} />
+                        </div> : null
+                }
+            </div >
         );
     }
 }

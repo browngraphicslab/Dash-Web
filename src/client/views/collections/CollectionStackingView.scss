@@ -1,12 +1,15 @@
 @import "../globalCssVariables";
 
 .collectionMasonryView {
-    display:inline;
+    display: inline;
 }
-.collectionStackingView{
+
+.collectionStackingView {
     display: flex;
 }
-.collectionStackingView, .collectionMasonryView{
+
+.collectionStackingView,
+.collectionMasonryView {
     height: 100%;
     width: 100%;
     position: absolute;
@@ -14,6 +17,7 @@
     overflow-y: auto;
     flex-wrap: wrap;
     transition: top .5s;
+
     .collectionSchemaView-previewDoc {
         height: 100%;
         position: absolute;
@@ -40,10 +44,12 @@
         top: 0;
         left: 0;
     }
+
     .collectionStackingView-masonrySingle {
         height: 100%;
         position: absolute;
     }
+
     .collectionStackingView-masonryGrid {
         margin: auto;
         height: max-content;
@@ -91,7 +97,7 @@
         height: 100%;
         margin: auto;
     }
-    
+
     .collectionStackingView-masonrySection {
         margin: auto;
     }
@@ -290,4 +296,10 @@
     }
 
 
+}
+
+.red-box {
+    width: 200px;
+    height: 200px;
+    background: red;
 }
