@@ -329,12 +329,12 @@ export namespace Doc {
 
     export function AddDocToList(target: Doc, key: string, doc: Doc, relativeTo?: Doc, before?: boolean, first?: boolean, allowDuplicates?: boolean) {
         if (target[key] === undefined) {
-            console.log("target key undefined");
+            // console.log("target key undefined");
             Doc.GetProto(target)[key] = new List<Doc>();
         }
         let list = Cast(target[key], listSpec(Doc));
         if (list) {
-            console.log("has list");
+            // console.log("has list");
             if (allowDuplicates !== true) {
                 let pind = list.reduce((l, d, i) => d instanceof Doc && Doc.AreProtosEqual(d, doc) ? i : l, -1);
                 if (pind !== -1) {
@@ -342,15 +342,15 @@ export namespace Doc {
                 }
             }
             if (first) {
-                console.log("is first");
+                // console.log("is first");
                 list.splice(0, 0, doc);
             }
             else {
-                console.log("not first");
+                // console.log("not first");
                 let ind = relativeTo ? list.indexOf(relativeTo) : -1;
                 if (ind === -1) list.push(doc);
                 else list.splice(before ? ind : ind + 1, 0, doc);
-                console.log("index", ind);
+                // console.log("index", ind);
             }
         }
         return true;
@@ -595,23 +595,66 @@ export namespace Doc {
         });
     }
 
+    export function isBrushedHighlightedDegree(doc: Doc) {
+        if (Doc.IsHighlighted(doc)) {
+            return 3;
+        }
+        else {
+            return Doc.IsBrushedDegree(doc);
+        }
+    }
+
     export class DocBrush {
         @observable BrushedDoc: ObservableMap<Doc, boolean> = new ObservableMap();
     }
-    const manager = new DocBrush();
+    const brushManager = new DocBrush();
     export function IsBrushed(doc: Doc) {
-        return manager.BrushedDoc.has(doc) || manager.BrushedDoc.has(Doc.GetDataDoc(doc));
+        return brushManager.BrushedDoc.has(doc) || brushManager.BrushedDoc.has(Doc.GetDataDoc(doc));
     }
     export function IsBrushedDegree(doc: Doc) {
-        return manager.BrushedDoc.has(Doc.GetDataDoc(doc)) ? 2 : manager.BrushedDoc.has(doc) ? 1 : 0;
+        return brushManager.BrushedDoc.has(Doc.GetDataDoc(doc)) ? 2 : brushManager.BrushedDoc.has(doc) ? 1 : 0;
     }
     export function BrushDoc(doc: Doc) {
-        manager.BrushedDoc.set(doc, true);
-        manager.BrushedDoc.set(Doc.GetDataDoc(doc), true);
+        brushManager.BrushedDoc.set(doc, true);
+        brushManager.BrushedDoc.set(Doc.GetDataDoc(doc), true);
     }
     export function UnBrushDoc(doc: Doc) {
-        manager.BrushedDoc.delete(doc);
-        manager.BrushedDoc.delete(Doc.GetDataDoc(doc));
+        brushManager.BrushedDoc.delete(doc);
+        brushManager.BrushedDoc.delete(Doc.GetDataDoc(doc));
+    }
+
+    export class HighlightBrush {
+        @observable HighlightedDoc: ObservableMap<Doc, boolean> = new ObservableMap();
+    }
+    const highlightManager = new HighlightBrush();
+    export function IsHighlighted(doc: Doc) {
+        // return highlightManager.HighlightedDoc.has(doc) || highlightManager.HighlightedDoc.has(Doc.GetDataDoc(doc));
+        return highlightManager.HighlightedDoc.get(doc) || highlightManager.HighlightedDoc.get(Doc.GetDataDoc(doc));
+    }
+    export function HighlightDoc(doc: Doc) {
+        console.log("is highlighting")
+        runInAction(() => {
+            highlightManager.HighlightedDoc.set(doc, true);
+            highlightManager.HighlightedDoc.set(Doc.GetDataDoc(doc), true);
+        });
+    }
+    export function UnHighlightDoc(doc: Doc) {
+        // highlightManager.HighlightedDoc.delete(doc);
+        // highlightManager.HighlightedDoc.delete(Doc.GetDataDoc(doc));
+        runInAction(() => {
+            highlightManager.HighlightedDoc.set(doc, false);
+            highlightManager.HighlightedDoc.set(Doc.GetDataDoc(doc), false);
+        })
+    }
+    export function UnhighlightAll() {
+        // highlightManager.HighlightedDoc.clear();
+        let docs = highlightManager.HighlightedDoc.keys();
+        let doc = docs.next();
+        while (docs.next !== null) {
+            Doc.UnHighlightDoc(doc.value);
+            doc = docs.next();
+        }
+
     }
 }
 Scripting.addGlobal(function renameAlias(doc: any, n: any) { return StrCast(doc.title).replace(/\([0-9]*\)/, "") + `(${n})`; });

@@ -32,45 +32,30 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     private _drag = React.createRef<HTMLDivElement>();
     @observable private _showMore: boolean = false;
     @action toggleShowMore() { this._showMore = !this._showMore; }
+    @observable shouldUnhighlight: boolean = false;
 
-    @undoBatch
-    onFollowLink = async (e: React.PointerEvent): Promise<void> => {
-        e.stopPropagation();
-        e.persist();
-        let jumpToDoc = this.props.destinationDoc;
-        let pdfDoc = FieldValue(Cast(this.props.destinationDoc, Doc));
-        if (pdfDoc) {
-            jumpToDoc = pdfDoc;
-        }
-        let proto = Doc.GetProto(this.props.linkDoc);
-        let targetContext = await Cast(proto.targetContext, Doc);
-        let sourceContext = await Cast(proto.sourceContext, Doc);
-        let self = this;
+    componentDidMount = () => {
+        // document.addEventListener("pointerdown", this.unhighlight);
+    }
 
+    unhighlight = () => {
+        // if (this.shouldUnhighlight)
+        // Doc.UnhighlightAll();
+        Doc.UnHighlightDoc(this.props.destinationDoc);
+    }
 
-        let dockingFunc = (document: Doc) => { this.props.addDocTab(document, undefined, "inTab"); SelectionManager.DeselectAll(); };
-        if (e.ctrlKey) {
-            dockingFunc = (document: Doc) => CollectionDockingView.Instance.AddRightSplit(document, undefined);
-        }
+    @action
+    highlightDoc = () => {
+        // this.shouldUnhighlight = false;
+        document.removeEventListener("pointerdown", this.unhighlight);
 
-        if (this.props.destinationDoc === self.props.linkDoc.anchor2 && targetContext) {
-            DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, async document => dockingFunc(document), undefined, targetContext!);
-            console.log("1")
-        }
-        else if (this.props.destinationDoc === self.props.linkDoc.anchor1 && sourceContext) {
-            DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, document => dockingFunc(sourceContext!));
-            console.log("2")
-        }
-        else if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
-            DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, undefined, undefined, NumCast((this.props.destinationDoc === self.props.linkDoc.anchor2 ? self.props.linkDoc.anchor2Page : self.props.linkDoc.anchor1Page)));
-            console.log("3")
+        Doc.HighlightDoc(this.props.destinationDoc);
 
-        }
-        else {
-            DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, dockingFunc);
-            console.log("4")
+        window.setTimeout(() => {
+            // this.shouldUnhighlight = true;
+            document.addEventListener("pointerdown", this.unhighlight);
 
-        }
+        }, 3000);
     }
 
     // NOT DONE?
@@ -92,17 +77,18 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     // this opens the linked doc in a right split, NOT in its collection
     @undoBatch
     openLinkRight = () => {
+        this.highlightDoc();
         let alias = Doc.MakeAlias(this.props.destinationDoc);
         CollectionDockingView.Instance.AddRightSplit(alias, undefined);
         SelectionManager.DeselectAll();
-
     }
 
-    // NOT DONE
+    // DONE
     // this is the standard "follow link" (jump to document)
     // taken from follow link
     @undoBatch
     jumpToLink = async (shouldZoom: boolean = false) => {
+        this.highlightDoc();
         let jumpToDoc = this.props.destinationDoc;
         let pdfDoc = FieldValue(Cast(this.props.destinationDoc, Doc));
         if (pdfDoc) {
@@ -112,7 +98,6 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         let targetContext = await Cast(proto.targetContext, Doc);
         let sourceContext = await Cast(proto.sourceContext, Doc);
         let self = this;
-
 
         let dockingFunc = (document: Doc) => { this.props.addDocTab(document, undefined, "inTab"); SelectionManager.DeselectAll(); };
 
@@ -136,6 +121,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     // this opens it full screen, do we need a separate full screen option?
     @undoBatch
     openLinkTab = () => {
+        this.highlightDoc();
         let fullScreenAlias = Doc.MakeAlias(this.props.destinationDoc);
         this.props.addDocTab(fullScreenAlias, undefined, "inTab");
         SelectionManager.DeselectAll();
@@ -146,12 +132,14 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     // target = the document to center on
     @undoBatch
     openLinkColTab = ({ col, target }: { col: Doc, target: Doc }) => {
-
+        this.highlightDoc();
     }
 
     // this will open a link next to the source doc
     @undoBatch
     openLinkInPlace = () => {
+        this.highlightDoc();
+
         let alias = Doc.MakeAlias(this.props.destinationDoc);
         let y = this.props.sourceDoc.y;
         let x = this.props.sourceDoc.x;
@@ -160,7 +148,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     }
 
     //set this to be the default link behavior, can be any of the above
-    private defaultLinkBehavior: any = this.openLinkInPlace;
+    private defaultLinkBehavior: any = this.openLinkRight;
 
     onEdit = (e: React.PointerEvent): void => {
         e.stopPropagation();
@@ -238,3 +226,43 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         );
     }
 }
+
+    // @undoBatch
+    // onFollowLink = async (e: React.PointerEvent): Promise<void> => {
+    //     e.stopPropagation();
+    //     e.persist();
+    //     let jumpToDoc = this.props.destinationDoc;
+    //     let pdfDoc = FieldValue(Cast(this.props.destinationDoc, Doc));
+    //     if (pdfDoc) {
+    //         jumpToDoc = pdfDoc;
+    //     }
+    //     let proto = Doc.GetProto(this.props.linkDoc);
+    //     let targetContext = await Cast(proto.targetContext, Doc);
+    //     let sourceContext = await Cast(proto.sourceContext, Doc);
+    //     let self = this;
+
+
+    //     let dockingFunc = (document: Doc) => { this.props.addDocTab(document, undefined, "inTab"); SelectionManager.DeselectAll(); };
+    //     if (e.ctrlKey) {
+    //         dockingFunc = (document: Doc) => CollectionDockingView.Instance.AddRightSplit(document, undefined);
+    //     }
+
+    //     if (this.props.destinationDoc === self.props.linkDoc.anchor2 && targetContext) {
+    //         DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, async document => dockingFunc(document), undefined, targetContext!);
+    //         console.log("1")
+    //     }
+    //     else if (this.props.destinationDoc === self.props.linkDoc.anchor1 && sourceContext) {
+    //         DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, document => dockingFunc(sourceContext!));
+    //         console.log("2")
+    //     }
+    //     else if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
+    //         DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, undefined, undefined, NumCast((this.props.destinationDoc === self.props.linkDoc.anchor2 ? self.props.linkDoc.anchor2Page : self.props.linkDoc.anchor1Page)));
+    //         console.log("3")
+
+    //     }
+    //     else {
+    //         DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, dockingFunc);
+    //         console.log("4")
+
+    //     }
+    // }

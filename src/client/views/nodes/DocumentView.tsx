@@ -747,18 +747,20 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
         let showTextTitle = showTitle && StrCast(this.layoutDoc.layout).startsWith("<FormattedTextBox") ? showTitle : undefined;
         let brushDegree = Doc.IsBrushedDegree(this.props.Document);
+        let fullDegree = Doc.isBrushedHighlightedDegree(this.props.Document);
+        // console.log(fullDegree)
         let borderRounding = StrCast(Doc.GetProto(this.props.Document).borderRounding);
-        let localScale = this.props.ScreenToLocalTransform().Scale * brushDegree;
+        let localScale = this.props.ScreenToLocalTransform().Scale * fullDegree;
         return (
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
                 style={{
                     pointerEvents: this.layoutDoc.isBackground && !this.isSelected() ? "none" : "all",
                     color: foregroundColor,
-                    outlineColor: ["transparent", "maroon", "maroon"][brushDegree],
-                    outlineStyle: ["none", "dashed", "solid"][brushDegree],
-                    outlineWidth: brushDegree && !borderRounding ? `${localScale}px` : "0px",
-                    border: brushDegree && borderRounding ? `${["none", "dashed", "solid"][brushDegree]} ${["transparent", "maroon", "maroon"][brushDegree]} ${localScale}px` : undefined,
+                    outlineColor: ["transparent", "maroon", "maroon", "yellow"][fullDegree],
+                    outlineStyle: ["none", "dashed", "solid", "solid"][fullDegree],
+                    outlineWidth: fullDegree && !borderRounding ? `${localScale}px` : "0px",
+                    border: fullDegree && borderRounding ? `${["none", "dashed", "solid", "solid"][fullDegree]} ${["transparent", "maroon", "maroon", "yellow"][fullDegree]} ${localScale}px` : undefined,
                     borderRadius: "inherit",
                     background: backgroundColor,
                     width: nativeWidth,
