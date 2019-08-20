@@ -1,6 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faEdit, faSmile, faTextHeight, faUpload } from '@fortawesome/free-solid-svg-icons';
-import { action, IReactionDisposer, observable, reaction, runInAction, computed, Lambda, trace, untracked } from "mobx";
+import { action, IReactionDisposer, observable, reaction, runInAction, computed, Lambda, trace, untracked, autorun } from "mobx";
 import { observer } from "mobx-react";
 import { baseKeymap } from "prosemirror-commands";
 import { history } from "prosemirror-history";
@@ -399,32 +399,46 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     pushToGoogleDoc = async () => {
-        let modes = GoogleApiClientUtils.Docs.WriteMode;
-        let mode = modes.Replace;
-        let reference: Opt<GoogleApiClientUtils.Docs.Reference> = Cast(this.dataDoc[GoogleRef], "string");
-        if (!reference) {
-            mode = modes.Insert;
-            reference = {
-                title: StrCast(this.dataDoc.title),
-                handler: id => this.dataDoc[GoogleRef] = id
+        this.pullFromGoogleDoc(async (exportState: GoogleApiClientUtils.Docs.ReadResult, dataDoc: Doc) => {
+            let modes = GoogleApiClientUtils.Docs.WriteMode;
+            let mode = modes.Replace;
+            let reference: Opt<GoogleApiClientUtils.Docs.Reference> = Cast(this.dataDoc[GoogleRef], "string");
+            if (!reference) {
+                mode = modes.Insert;
+                reference = {
+                    title: StrCast(this.dataDoc.title),
+                    handler: id => this.dataDoc[GoogleRef] = id
+                };
+            }
+            let redo = async () => {
+                if (this._editorView && reference) {
+                    let data = Cast(this.dataDoc.data, RichTextField);
+                    let content = data ? data[ToPlainText]() : this._editorView.state.doc.textContent;
+                    let response = await GoogleApiClientUtils.Docs.write({ reference, content, mode });
+                    let pushSuccess = response !== undefined && !("errors" in response);
+                    dataDoc.unchanged = pushSuccess;
+                    DocumentDecorations.Instance.startPushOutcome(pushSuccess);
+                }
             };
-        }
-        if (this._editorView) {
-            let data = Cast(this.dataDoc.data, RichTextField);
-            let content = data ? data[ToPlainText]() : this._editorView.state.doc.textContent;
-            let response = await GoogleApiClientUtils.Docs.write({ reference, content, mode });
-            let pushSuccess = response !== undefined && !("errors" in response);
-            DocumentDecorations.Instance.startPushOutcome(pushSuccess);
-        }
+            let undo = () => {
+                let content = exportState.body;
+                if (reference && content) {
+                    GoogleApiClientUtils.Docs.write({ reference, content, mode });
+                }
+            };
+            UndoManager.AddEvent({ undo, redo });
+            redo();
+        });
     }
 
     pullFromGoogleDoc = async (handler: PullHandler) => {
-        let dataDoc = Doc.GetProto(this.props.Document);
+        let dataDoc = this.dataDoc;
         let documentId = StrCast(dataDoc[GoogleRef]);
+        let exportState: GoogleApiClientUtils.Docs.ReadResult = {};
         if (documentId) {
-            let exportState = await GoogleApiClientUtils.Docs.read({ documentId });
-            UndoManager.RunInBatch(() => handler(exportState, dataDoc), Pulls);
+            exportState = await GoogleApiClientUtils.Docs.read({ documentId });
         }
+        UndoManager.RunInBatch(() => handler(exportState, dataDoc), Pulls);
     }
 
     updateState = (exportState: GoogleApiClientUtils.Docs.ReadResult, dataDoc: Doc) => {
@@ -436,6 +450,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 this.isGoogleDocsUpdate = true;
                 dataDoc.data = new RichTextField(data[FromPlainText](exportState.body));
                 dataDoc.title = exportState.title;
+                dataDoc.unchanged = true;
             }
         } else {
             delete dataDoc[GoogleRef];
@@ -449,7 +464,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             if (data) {
                 let storedPlainText = data[ToPlainText]() + "\n";
                 let receivedPlainText = exportState.body;
-                DocumentDecorations.Instance.setPullState(storedPlainText === receivedPlainText);
+                let storedTitle = dataDoc.title;
+                let receivedTitle = exportState.title;
+                let unchanged = storedPlainText === receivedPlainText && storedTitle === receivedTitle;
+                dataDoc.unchanged = unchanged;
+                DocumentDecorations.Instance.setPullState(unchanged);
             }
         }
     }

@@ -694,7 +694,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
     considerGoogleDocsPull = () => {
         let canPull = this.targetDoc.data && this.targetDoc.data instanceof RichTextField;
-        if (!canPull || !Doc.GetProto(this.targetDoc)[GoogleRef]) return (null);
+        let dataDoc = Doc.GetProto(this.targetDoc);
+        if (!canPull || !dataDoc[GoogleRef] || dataDoc.unchanged) return (null);
         return (
             <div className={"linkButtonWrapper"}>
                 <div style={{ backgroundColor: this.pullColor, transition: "1s ease all" }} title="Pull From Google Docs" className="linkButton-linker" onClick={() => {
