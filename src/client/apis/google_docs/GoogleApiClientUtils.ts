@@ -4,6 +4,9 @@ import { RouteStore } from "../../../server/RouteStore";
 import { Opt } from "../../../new_fields/Doc";
 import { isArray } from "util";
 
+export const Pulls = "googleDocsPullCount";
+export const Pushes = "googleDocsPushCount";
+
 export namespace GoogleApiClientUtils {
 
     export namespace Docs {

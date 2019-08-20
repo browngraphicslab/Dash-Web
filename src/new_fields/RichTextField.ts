@@ -4,8 +4,8 @@ import { Deserializable } from "../client/util/SerializationHelper";
 import { Copy, ToScriptString } from "./FieldSymbols";
 import { scriptingGlobal } from "../client/util/Scripting";
 
-export const ToGoogleDocText = Symbol("PlainText");
-export const FromGoogleDocText = Symbol("PlainText");
+export const ToPlainText = Symbol("PlainText");
+export const FromPlainText = Symbol("PlainText");
 const delimiter = "\n";
 const joiner = "";
 
@@ -28,7 +28,7 @@ export class RichTextField extends ObjectField {
         return `new RichTextField("${this.Data}")`;
     }
 
-    [ToGoogleDocText]() {
+    [ToPlainText]() {
         // Because we're working with plain text, just concatenate all paragraphs
         let content = JSON.parse(this.Data).doc.content;
         let paragraphs = content.filter((item: any) => item.type === "paragraph");
@@ -43,7 +43,7 @@ export class RichTextField extends ObjectField {
         return textParagraphs.join(joiner).trimEnd(delimiter);
     }
 
-    [FromGoogleDocText](plainText: string) {
+    [FromPlainText](plainText: string) {
         // Remap the text, creating blocks split on newlines
         let elements = plainText.split(delimiter);
 

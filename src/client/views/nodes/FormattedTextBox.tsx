@@ -12,7 +12,7 @@ import { EditorView } from "prosemirror-view";
 import { Doc, Opt, DocListCast } from "../../../new_fields/Doc";
 import { Id, Copy } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
-import { RichTextField, ToGoogleDocText, FromGoogleDocText } from "../../../new_fields/RichTextField";
+import { RichTextField, ToPlainText, FromPlainText } from "../../../new_fields/RichTextField";
 import { createSchema, listSpec, makeInterface } from "../../../new_fields/Schema";
 import { BoolCast, Cast, NumCast, StrCast, DateCast } from "../../../new_fields/Types";
 import { DocServer } from "../../DocServer";
@@ -30,16 +30,14 @@ import { ContextMenu } from "../../views/ContextMenu";
 import { ContextMenuProps } from '../ContextMenuItem';
 import { DocComponent } from "../DocComponent";
 import { InkingControl } from "../InkingControl";
-import { Templates } from '../Templates';
 import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import React = require("react");
-import { For } from 'babel-types';
 import { DateField } from '../../../new_fields/DateField';
 import { Utils } from '../../../Utils';
 import { MainOverlayTextBox } from '../MainOverlayTextBox';
-import { GoogleApiClientUtils } from '../../apis/google_docs/GoogleApiClientUtils';
-import * as diff from "diff";
+import { GoogleApiClientUtils, Pulls, Pushes } from '../../apis/google_docs/GoogleApiClientUtils';
+import { DocumentDecorations } from '../DocumentDecorations';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -84,6 +82,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     private _searchReactionDisposer?: Lambda;
     private _textReactionDisposer: Opt<IReactionDisposer>;
     private _proxyReactionDisposer: Opt<IReactionDisposer>;
+    private pullReactionDisposer: Opt<IReactionDisposer>;
+    private pushReactionDisposer: Opt<IReactionDisposer>;
     private dropDisposer?: DragManager.DragDropDisposer;
     public get CurrentDiv(): HTMLDivElement { return this._ref.current!; }
     private isGoogleDocsUpdate = false;
@@ -345,13 +345,25 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             }
         );
 
-        reaction(() => this.props.Document.pullFromGoogleDocsTrigger, () => {
-            this.pullFromGoogleDoc();
-        });
+        this.pullReactionDisposer = reaction(
+            () => this.props.Document[Pulls],
+            () => {
+                if (!DocumentDecorations.hasPulledHack) {
+                    DocumentDecorations.hasPulledHack = true;
+                    this.pullFromGoogleDoc();
+                }
+            }
+        );
 
-        reaction(() => this.props.Document.pushToGoogleDocsTrigger, () => {
-            this.pushToGoogleDoc();
-        });
+        this.pushReactionDisposer = reaction(
+            () => this.props.Document[Pushes],
+            () => {
+                if (!DocumentDecorations.hasPushedHack) {
+                    DocumentDecorations.hasPushedHack = true;
+                    this.pushToGoogleDoc();
+                }
+            }
+        );
 
         this._textReactionDisposer = reaction(
             () => this.extensionDoc,
@@ -380,13 +392,44 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 this.unhighlightSearchTerms();
             }
         }, { fireImmediately: true });
+    }
 
-        ["pushToGoogleDocsTrigger", "pullFromGoogleDocsTrigger"].map(key => {
-            let doc = this.props.Document;
-            if (doc[key] === undefined) {
-                untracked(() => doc[key] = false);
-            }
-        });
+    pushToGoogleDoc = () => {
+        let modes = GoogleApiClientUtils.Docs.WriteMode;
+        let mode = modes.Replace;
+        let reference: Opt<GoogleApiClientUtils.Docs.Reference> = Cast(this.dataDoc[googleDocId], "string");
+        if (!reference) {
+            mode = modes.Insert;
+            reference = {
+                title: StrCast(this.dataDoc.title),
+                handler: id => this.dataDoc[googleDocId] = id
+            };
+        }
+        if (this._editorView) {
+            let data = Cast(this.dataDoc.data, RichTextField);
+            let content = data ? data[ToPlainText]() : this._editorView.state.doc.textContent;
+            GoogleApiClientUtils.Docs.write({ reference, content, mode });
+        }
+    }
+
+    pullFromGoogleDoc = async () => {
+        let dataDoc = Doc.GetProto(this.props.Document);
+        let documentId = StrCast(dataDoc[googleDocId]);
+        if (documentId) {
+            let exportState = await GoogleApiClientUtils.Docs.read({ documentId });
+            UndoManager.RunInBatch(() => {
+                if (exportState && exportState.body && exportState.title) {
+                    let data = Cast(dataDoc.data, RichTextField);
+                    if (data) {
+                        this.isGoogleDocsUpdate = true;
+                        dataDoc.data = new RichTextField(data[FromPlainText](exportState.body));
+                        dataDoc.title = exportState.title;
+                    }
+                } else {
+                    delete dataDoc[googleDocId];
+                }
+            }, Pulls);
+        }
     }
 
     clipboardTextSerializer = (slice: Slice): string => {
@@ -516,6 +559,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         this._reactionDisposer && this._reactionDisposer();
         this._proxyReactionDisposer && this._proxyReactionDisposer();
         this._textReactionDisposer && this._textReactionDisposer();
+        this.pushReactionDisposer && this.pushReactionDisposer();
+        this.pullReactionDisposer && this.pullReactionDisposer();
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
@@ -693,49 +738,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             event: action(() => Doc.GetProto(this.props.Document).autoHeight = !BoolCast(this.props.Document.autoHeight)), icon: "expand-arrows-alt"
         });
         ContextMenu.Instance.addItem({ description: "Text Funcs...", subitems: subitems, icon: "text-height" });
-        if (!(googleDocId in Doc.GetProto(this.props.Document))) {
-            ContextMenu.Instance.addItem({
-                description: "Export to Google Doc...",
-                event: this.pushToGoogleDoc,
-                icon: "upload"
-            });
-        }
-    }
-
-    pushToGoogleDoc = () => {
-        let modes = GoogleApiClientUtils.Docs.WriteMode;
-        let mode = modes.Replace;
-        let reference: Opt<GoogleApiClientUtils.Docs.Reference> = Cast(this.dataDoc[googleDocId], "string");
-        if (!reference) {
-            mode = modes.Insert;
-            reference = {
-                title: StrCast(this.dataDoc.title),
-                handler: id => this.dataDoc[googleDocId] = id
-            };
-        }
-        if (this._editorView) {
-            let data = Cast(this.dataDoc.data, RichTextField);
-            let content = data ? data[ToGoogleDocText]() : this._editorView.state.doc.textContent;
-            GoogleApiClientUtils.Docs.write({ reference, content, mode });
-        }
-    }
-
-    pullFromGoogleDoc = async () => {
-        let dataDoc = Doc.GetProto(this.props.Document);
-        let documentId = StrCast(dataDoc[googleDocId]);
-        if (documentId) {
-            let exportState = await GoogleApiClientUtils.Docs.read({ documentId });
-            if (exportState && exportState.body && exportState.title) {
-                let data = Cast(dataDoc.data, RichTextField);
-                if (data) {
-                    this.isGoogleDocsUpdate = true;
-                    dataDoc.data = new RichTextField(data[FromGoogleDocText](exportState.body));
-                    dataDoc.title = exportState.title;
-                }
-            } else {
-                delete dataDoc[googleDocId];
-            }
-        }
     }
 
 

@@ -30,6 +30,7 @@ import { ObjectField } from '../../new_fields/ObjectField';
 import { MetadataEntryMenu } from './MetadataEntryMenu';
 import { ImageBox } from './nodes/ImageBox';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
+import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -626,7 +627,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (!canPush) return (null);
         return (
             <div className={"linkButtonWrapper"}>
-                <div title="Push to Google Docs" className="linkButton-linker" onClick={() => thisDoc.pushToGoogleDocsTrigger = !thisDoc.pushToGoogleDocsTrigger}>
+                <div title="Push to Google Docs" className="linkButton-linker" onClick={() => {
+                    DocumentDecorations.hasPushedHack = false;
+                    thisDoc[Pushes] = NumCast(thisDoc[Pushes]) + 1;
+                }}>
                     <FontAwesomeIcon className="documentdecorations-icon" icon="arrow-alt-circle-up" size="sm" />
                 </div>
             </div>
@@ -639,12 +643,18 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (!canPull) return (null);
         return (
             <div className={"linkButtonWrapper"}>
-                <div title="Pull From Google Docs" className="linkButton-linker" onClick={() => thisDoc.pullFromGoogleDocsTrigger = !thisDoc.pullFromGoogleDocsTrigger}>
+                <div title="Pull From Google Docs" className="linkButton-linker" onClick={() => {
+                    DocumentDecorations.hasPulledHack = false;
+                    thisDoc[Pulls] = NumCast(thisDoc[Pulls]) + 1;
+                }}>
                     <FontAwesomeIcon className="documentdecorations-icon" icon="arrow-alt-circle-down" size="sm" />
                 </div>
             </div>
         );
     }
+
+    public static hasPushedHack = false;
+    public static hasPulledHack = false;
 
     considerTooltip = () => {
         let thisDoc = SelectionManager.SelectedDocuments()[0].props.Document;
