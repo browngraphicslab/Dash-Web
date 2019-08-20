@@ -13,6 +13,8 @@ import { LinkManager } from '../../util/LinkManager';
 import { DragLinkAsDocument } from '../../util/DragManager';
 import { CollectionDockingView } from '../collections/CollectionDockingView';
 import { SelectionManager } from '../../util/SelectionManager';
+import { CollectionViewType } from '../collections/CollectionBaseView';
+import { DocumentView } from './DocumentView';
 library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp);
 
 
@@ -53,21 +55,117 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
 
         if (this.props.destinationDoc === self.props.linkDoc.anchor2 && targetContext) {
             DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, async document => dockingFunc(document), undefined, targetContext!);
+            console.log("1")
         }
         else if (this.props.destinationDoc === self.props.linkDoc.anchor1 && sourceContext) {
             DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, document => dockingFunc(sourceContext!));
+            console.log("2")
         }
         else if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
             DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, undefined, undefined, NumCast((this.props.destinationDoc === self.props.linkDoc.anchor2 ? self.props.linkDoc.anchor2Page : self.props.linkDoc.anchor1Page)));
+            console.log("3")
+
         }
         else {
             DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, dockingFunc);
+            console.log("4")
+
         }
     }
+
+    // NOT DONE?
+    // col = collection the doc is in
+    // target = the document to center on
+    @undoBatch
+    openLinkColRight = ({ col, target }: { col: Doc, target: Doc }) => {
+        col = Doc.IsPrototype(col) ? Doc.MakeDelegate(col) : col;
+        if (NumCast(col.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
+            const newPanX = NumCast(target.x) + NumCast(target.width) / NumCast(target.zoomBasis, 1) / 2;
+            const newPanY = NumCast(target.y) + NumCast(target.height) / NumCast(target.zoomBasis, 1) / 2;
+            col.panX = newPanX;
+            col.panY = newPanY;
+        }
+        CollectionDockingView.Instance.AddRightSplit(col, undefined);
+    }
+
+    // DONE
+    // this opens the linked doc in a right split, NOT in its collection
+    @undoBatch
+    openLinkRight = () => {
+        let alias = Doc.MakeAlias(this.props.destinationDoc);
+        CollectionDockingView.Instance.AddRightSplit(alias, undefined);
+        SelectionManager.DeselectAll();
+
+    }
+
+    // NOT DONE
+    // this is the standard "follow link" (jump to document)
+    // taken from follow link
+    @undoBatch
+    jumpToLink = async (shouldZoom: boolean = false) => {
+        let jumpToDoc = this.props.destinationDoc;
+        let pdfDoc = FieldValue(Cast(this.props.destinationDoc, Doc));
+        if (pdfDoc) {
+            jumpToDoc = pdfDoc;
+        }
+        let proto = Doc.GetProto(this.props.linkDoc);
+        let targetContext = await Cast(proto.targetContext, Doc);
+        let sourceContext = await Cast(proto.sourceContext, Doc);
+        let self = this;
+
+
+        let dockingFunc = (document: Doc) => { this.props.addDocTab(document, undefined, "inTab"); SelectionManager.DeselectAll(); };
+
+        if (this.props.destinationDoc === self.props.linkDoc.anchor2 && targetContext) {
+            DocumentManager.Instance.jumpToDocument(jumpToDoc, shouldZoom, false, async document => dockingFunc(document), undefined, targetContext!);
+        }
+        else if (this.props.destinationDoc === self.props.linkDoc.anchor1 && sourceContext) {
+            DocumentManager.Instance.jumpToDocument(jumpToDoc, shouldZoom, false, document => dockingFunc(sourceContext!));
+        }
+        else if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
+            DocumentManager.Instance.jumpToDocument(jumpToDoc, shouldZoom, undefined, undefined, NumCast((this.props.destinationDoc === self.props.linkDoc.anchor2 ? self.props.linkDoc.anchor2Page : self.props.linkDoc.anchor1Page)));
+
+        }
+        else {
+            DocumentManager.Instance.jumpToDocument(jumpToDoc, shouldZoom, false, dockingFunc);
+        }
+    }
+
+    // DONE
+    // opens link in new tab (not in a collection)
+    // this opens it full screen, do we need a separate full screen option?
+    @undoBatch
+    openLinkTab = () => {
+        let fullScreenAlias = Doc.MakeAlias(this.props.destinationDoc);
+        this.props.addDocTab(fullScreenAlias, undefined, "inTab");
+        SelectionManager.DeselectAll();
+    }
+
+    //opens link in new tab in collection
+    // col = collection the doc is in
+    // target = the document to center on
+    @undoBatch
+    openLinkColTab = ({ col, target }: { col: Doc, target: Doc }) => {
+
+    }
+
+    // this will open a link next to the source doc
+    @undoBatch
+    openLinkInPlace = () => {
+        let alias = Doc.MakeAlias(this.props.destinationDoc);
+        let y = this.props.sourceDoc.y;
+        let x = this.props.sourceDoc.x;
+
+        console.log(x, y);
+    }
+
+    //set this to be the default link behavior, can be any of the above
+    private defaultLinkBehavior: any = this.openLinkInPlace;
 
     onEdit = (e: React.PointerEvent): void => {
         e.stopPropagation();
         this.props.showEditor(this.props.linkDoc);
+        SelectionManager.DeselectAll();
     }
 
     renderMetadata = (): JSX.Element => {
@@ -127,7 +225,10 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                             {canExpand ? <div title="Show more" className="button" onPointerDown={() => this.toggleShowMore()}>
                                 <FontAwesomeIcon className="fa-icon" icon={this._showMore ? "chevron-up" : "chevron-down"} size="sm" /></div> : <></>}
                             <div title="Edit link" className="button" onPointerDown={this.onEdit}><FontAwesomeIcon className="fa-icon" icon="edit" size="sm" /></div>
-                            <div title="Follow link" className="button" onPointerDown={this.onFollowLink}><FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" /></div>
+                            {/* Original */}
+                            {/* <div title="Follow link" className="button" onPointerDown={this.onFollowLink}><FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" /></div> */}
+                            {/* New */}
+                            <div title="Follow link" className="button" onPointerDown={this.defaultLinkBehavior}><FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" /></div>
                         </div>
                     </div>
                     {this._showMore ? this.renderMetadata() : <></>}

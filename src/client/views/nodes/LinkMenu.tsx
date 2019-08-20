@@ -42,6 +42,7 @@ export class LinkMenu extends React.Component<Props> {
             linkItems.push(
                 <LinkMenuGroup
                     key={groupType}
+                    docView={this.props.docView}
                     sourceDoc={this.props.docView.props.Document}
                     group={group}
                     groupType={groupType}
