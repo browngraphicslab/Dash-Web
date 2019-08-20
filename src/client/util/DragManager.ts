@@ -9,8 +9,6 @@ import { DocumentManager } from "./DocumentManager";
 import { LinkManager } from "./LinkManager";
 import { SelectionManager } from "./SelectionManager";
 import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
-import { DocumentDecorations } from "../views/DocumentDecorations";
-import { NumberLiteralType } from "typescript";
 
 export type dropActionType = "alias" | "copy" | undefined;
 export function SetupDrag(
@@ -211,6 +209,7 @@ export namespace DragManager {
         dropAction: dropActionType;
         userDropAction: dropActionType;
         moveDocument?: MoveFunction;
+        applyAsTemplate?: boolean;
         [id: string]: any;
     }
 

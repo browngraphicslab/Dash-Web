@@ -446,20 +446,23 @@ export namespace Doc {
         if (expandedTemplateLayout instanceof Doc) {
             return expandedTemplateLayout;
         }
+        if (expandedTemplateLayout instanceof Promise) {
+            return undefined;
+        }
         let expandedLayoutFieldKey = "Layout[" + templateLayoutDoc[Id] + "]";
         expandedTemplateLayout = dataDoc[expandedLayoutFieldKey];
         if (expandedTemplateLayout instanceof Doc) {
             return expandedTemplateLayout;
         }
         if (expandedTemplateLayout === undefined) {
-            setTimeout(() =>
-                dataDoc[expandedLayoutFieldKey] = Doc.MakeDelegate(templateLayoutDoc, undefined, "[" + templateLayoutDoc.title + "]"), 0);
+            setTimeout(() => dataDoc[expandedLayoutFieldKey] === undefined &&
+                (dataDoc[expandedLayoutFieldKey] = Doc.MakeDelegate(templateLayoutDoc, undefined, "[" + templateLayoutDoc.title + "]")), 0);
         }
-        return templateLayoutDoc; // use the templateLayout when it's not a template or the expandedTemplate is pending.
+        return undefined; // use the templateLayout when it's not a template or the expandedTemplate is pending.
     }
 
     export function GetLayoutDataDocPair(doc: Doc, dataDoc: Doc | undefined, fieldKey: string, childDocLayout: Doc) {
-        let layoutDoc = childDocLayout;
+        let layoutDoc: Doc | undefined = childDocLayout;
         let resolvedDataDoc = !doc.isTemplate && dataDoc !== doc && dataDoc ? Doc.GetDataDoc(dataDoc) : undefined;
         if (resolvedDataDoc && Doc.WillExpandTemplateLayout(childDocLayout, resolvedDataDoc)) {
             Doc.UpdateDocumentExtensionForField(resolvedDataDoc, fieldKey);

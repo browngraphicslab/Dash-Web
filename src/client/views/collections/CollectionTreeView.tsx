@@ -443,6 +443,9 @@ class TreeView extends React.Component<TreeViewProps> {
         let rowWidth = () => panelWidth() - 20;
         return docs.map((child, i) => {
             let pair = Doc.GetLayoutDataDocPair(containingCollection, dataDoc, key, child);
+            if (!pair.layout || pair.data instanceof Promise) {
+                return (null);
+            }
 
             let indent = i === 0 ? undefined : () => {
                 if (StrCast(docs[i - 1].layout).indexOf("CollectionView") !== -1) {

@@ -68,7 +68,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     }
 
     get dataDoc() {
-        if (this.props.DataDoc === undefined && this.props.Document.layout instanceof Doc) {
+        if (this.props.DataDoc === undefined && (this.props.Document.layout instanceof Doc || this.props.Document instanceof Promise)) {
             // if there is no dataDoc (ie, we're not rendering a template layout), but this document
             // has a template layout document, then we will render the template layout but use 
             // this document as the data document for the layout.

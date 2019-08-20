@@ -113,7 +113,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         @undoBatch
         @action
         protected drop(e: Event, de: DragManager.DropEvent): boolean {
-            if (de.data instanceof DragManager.DocumentDragData) {
+            if (de.data instanceof DragManager.DocumentDragData && !de.data.applyAsTemplate) {
                 if (de.mods === "AltKey" && de.data.draggedDocuments.length) {
                     this.childDocs.map(doc =>
                         Doc.ApplyTemplateTo(de.data.draggedDocuments[0], doc, undefined)

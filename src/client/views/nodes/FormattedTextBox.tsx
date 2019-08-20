@@ -167,7 +167,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             FormattedTextBox._toolTipTextMenu && (FormattedTextBox._toolTipTextMenu.HackToFixTextSelectionGlitch = false);
             if (state.selection.empty && FormattedTextBox._toolTipTextMenu) {
                 const marks = tx.storedMarks;
-                console.log(marks);
                 if (marks) { FormattedTextBox._toolTipTextMenu.mark_key_pressed(marks); }
             }
             this._applyingChange = true;
@@ -296,10 +295,10 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field2)))
         );
 
-        this.props.isOverlay && (this._heightReactionDisposer = reaction(
+        this._heightReactionDisposer = reaction(
             () => this.props.Document[WidthSym](),
             () => this.tryUpdateHeight()
-        ));
+        );
 
         this._textReactionDisposer = reaction(
             () => this.extensionDoc,
@@ -448,8 +447,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (this.props.selectOnLoad) {
             if (!this.props.isOverlay) this.props.select(false);
             else this._editorView!.focus();
-            this.tryUpdateHeight();
         }
+        this.tryUpdateHeight();
     }
 
     componentWillUnmount() {
@@ -610,9 +609,10 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     @action
     tryUpdateHeight() {
-        if (this.props.Document.autoHeight && this.props.isOverlay) {
+        if (this.props.Document.autoHeight && this._ref.current!.scrollHeight !== 0) {
+            console.log("DT = " + this.props.Document.title + " " + this._ref.current!.clientHeight + " " + this._ref.current!.scrollHeight + " " + this._ref.current!.textContent)
             let xf = this._ref.current!.getBoundingClientRect();
-            let scrBounds = this.props.ScreenToLocalTransform().transformBounds(0, 0, xf.width, xf.height);
+            let scrBounds = this.props.ScreenToLocalTransform().transformBounds(0, 0, xf.width, this._ref.current!.textContent === "" ? 35 : this._ref.current!.scrollHeight);
             let nh = this.props.Document.isTemplate ? 0 : NumCast(this.dataDoc.nativeHeight, 0);
             let dh = NumCast(this.props.Document.height, 0);
             let sh = scrBounds.height;

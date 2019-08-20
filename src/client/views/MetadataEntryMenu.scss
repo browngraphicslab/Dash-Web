@@ -1,6 +1,18 @@
 .metadataEntry-outerDiv {
     display: flex;
+    flex-direction: column;
     width: 300px;
+}
+
+.metadataEntry-keys {
+    max-height: 80;
+    overflow-y: auto; 
+    display: flex;
+    flex-direction: column;
+}
+.metadataEntry-inputArea {
+    display:flex;
+    flex-direction: row;
 }
 
 .react-autosuggest__container {
