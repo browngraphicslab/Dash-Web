@@ -13,7 +13,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faStickyNote } from '@fortawesome/free-solid-svg-icons';
 import { observable, action, computed } from "mobx";
 import { listSpec } from "../../../new_fields/Schema";
-import { Field, FieldResult } from "../../../new_fields/Doc";
+import { Field, FieldResult, Doc, Opt } from "../../../new_fields/Doc";
 import { RefField } from "../../../new_fields/RefField";
 import { ObjectField } from "../../../new_fields/ObjectField";
 import { updateSourceFile } from "typescript";
@@ -22,6 +22,10 @@ import { setReactionScheduler } from "mobx/lib/internal";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { Docs } from "../../documents/Documents";
 import { PreviewCursor } from "../PreviewCursor";
+import { SelectionManager } from "../../util/SelectionManager";
+import { CollectionView } from "../collections/CollectionView";
+import { CollectionPDFView } from "../collections/CollectionPDFView";
+import { CollectionVideoView } from "../collections/CollectionVideoView";
 
 library.add(faStickyNote)
 
@@ -75,21 +79,44 @@ export class WebBox extends React.Component<FieldViewProps> {
         }
     }
 
-    switchToText() {
-        console.log("switchng to text")
-        if (this.props.removeDocument) this.props.removeDocument(this.props.Document);
-        // let newPoint = PreviewCursor._getTransform().transformPoint(PreviewCursor._clickPoint[0], PreviewCursor._clickPoint[1]);
+
+    switchToText = () => {
+        let url: string = "";
+        let field = Cast(this.props.Document[this.props.fieldKey], WebField);
+        if (field) url = field.url.href;
+
+        let parent: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
+        // let parentDoc: any;
+        SelectionManager.SelectedDocuments().map(dv => {
+            parent = dv.props.ContainingCollectionView;
+            // if(parent) parentDoc = parent.props.Document;
+            dv.props.removeDocument && dv.props.removeDocument(dv.props.Document);
+        });
+
+        // // let newPoint = PreviewCursor._getTransform().transformPoint(PreviewCursor._clickPoint[0], PreviewCursor._clickPoint[1]);
         let newBox = Docs.Create.TextDocument({
             width: 200, height: 100,
             // x: newPoint[0],
             // y: newPoint[1],
             x: NumCast(this.props.Document.x),
             y: NumCast(this.props.Document.y),
-            title: "-pasted text-"
+            title: url
         });
 
+        console.log(newBox)
+        if (parent) {
+            let parentDoc: Doc = parent.props.Document;
+            if (parentDoc && parentDoc.props) {
+                parentDoc.props.addDocument();
+            }
+        }
+
         newBox.proto!.autoHeight = true;
-        PreviewCursor._addLiveTextDoc(newBox);
+        // PreviewCursor._addLiveTextDoc(newBox);
+        // if (parent && parent.props.addDocument) {
+        //     console.log("adding doc")
+        //     parent.props.addDocument(newBox);
+        // }
         return;
     }
 

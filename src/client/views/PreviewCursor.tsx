@@ -49,7 +49,7 @@ export class PreviewCursor extends React.Component<{}> {
                     }
 
                     // tests for URL and makes web document
-                    let re: any = /^https?:\/\/www\./g;
+                    let re: any = /^https?:\/\//g;
                     if (re.test(e.clipboardData.getData("text/plain"))) {
                         const url = e.clipboardData.getData("text/plain")
                         PreviewCursor._addDocument(Docs.Create.WebDocument(url, {
