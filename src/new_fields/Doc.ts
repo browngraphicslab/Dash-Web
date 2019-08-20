@@ -624,35 +624,31 @@ export namespace Doc {
     }
 
     export class HighlightBrush {
-        @observable HighlightedDoc: ObservableMap<Doc, boolean> = new ObservableMap();
+        @observable HighlightedDoc: Map<Doc, boolean> = new Map();
     }
     const highlightManager = new HighlightBrush();
     export function IsHighlighted(doc: Doc) {
-        // return highlightManager.HighlightedDoc.has(doc) || highlightManager.HighlightedDoc.has(Doc.GetDataDoc(doc));
-        return highlightManager.HighlightedDoc.get(doc) || highlightManager.HighlightedDoc.get(Doc.GetDataDoc(doc));
+        let IsHighlighted = highlightManager.HighlightedDoc.get(doc) || highlightManager.HighlightedDoc.get(Doc.GetDataDoc(doc));
+        return IsHighlighted;
     }
     export function HighlightDoc(doc: Doc) {
-        console.log("is highlighting")
         runInAction(() => {
             highlightManager.HighlightedDoc.set(doc, true);
             highlightManager.HighlightedDoc.set(Doc.GetDataDoc(doc), true);
         });
     }
     export function UnHighlightDoc(doc: Doc) {
-        // highlightManager.HighlightedDoc.delete(doc);
-        // highlightManager.HighlightedDoc.delete(Doc.GetDataDoc(doc));
         runInAction(() => {
             highlightManager.HighlightedDoc.set(doc, false);
             highlightManager.HighlightedDoc.set(Doc.GetDataDoc(doc), false);
-        })
+        });
     }
     export function UnhighlightAll() {
-        // highlightManager.HighlightedDoc.clear();
-        let docs = highlightManager.HighlightedDoc.keys();
-        let doc = docs.next();
-        while (docs.next !== null) {
-            Doc.UnHighlightDoc(doc.value);
-            doc = docs.next();
+        let mapEntries = highlightManager.HighlightedDoc.keys();
+        let docEntry: IteratorResult<Doc>;
+        while (!(docEntry = mapEntries.next()).done) {
+            let targetDoc = docEntry.value;
+            targetDoc && Doc.UnHighlightDoc(targetDoc);
         }
 
     }

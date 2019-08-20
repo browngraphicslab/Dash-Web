@@ -32,30 +32,20 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     private _drag = React.createRef<HTMLDivElement>();
     @observable private _showMore: boolean = false;
     @action toggleShowMore() { this._showMore = !this._showMore; }
-    @observable shouldUnhighlight: boolean = false;
 
-    componentDidMount = () => {
-        // document.addEventListener("pointerdown", this.unhighlight);
-    }
 
     unhighlight = () => {
-        // if (this.shouldUnhighlight)
-        // Doc.UnhighlightAll();
-        Doc.UnHighlightDoc(this.props.destinationDoc);
+        Doc.UnhighlightAll();
+        document.removeEventListener("pointerdown", this.unhighlight);
     }
 
     @action
     highlightDoc = () => {
-        // this.shouldUnhighlight = false;
         document.removeEventListener("pointerdown", this.unhighlight);
-
         Doc.HighlightDoc(this.props.destinationDoc);
-
         window.setTimeout(() => {
-            // this.shouldUnhighlight = true;
             document.addEventListener("pointerdown", this.unhighlight);
-
-        }, 3000);
+        }, 10000);
     }
 
     // NOT DONE?
