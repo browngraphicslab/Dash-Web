@@ -272,9 +272,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (this.props.Document !== SelectionManager.SelectedDocuments()[0].props.Document) {
             return;
         }
-        e.stopPropagation();
-        e.preventDefault();
-        e.key === "R" && this.recordBullet();
+        if (e.key === "R" && e.altKey) {
+            e.stopPropagation();
+            e.preventDefault();
+            this.recordBullet();
+        }
     }
 
     recordBullet = async () => {
@@ -480,8 +482,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     updateState = (exportState: GoogleApiClientUtils.Docs.ReadResult, dataDoc: Doc) => {
         let pullSuccess = false;
         if (exportState !== undefined && exportState.body !== undefined && exportState.title !== undefined) {
-            let data = Cast(dataDoc.data, RichTextField);
-            if (data) {
+            const data = Cast(dataDoc.data, RichTextField);
+            if (data instanceof RichTextField) {
                 pullSuccess = true;
                 this.isGoogleDocsUpdate = true;
                 dataDoc.data = new RichTextField(data[FromPlainText](exportState.body));
@@ -492,7 +494,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             delete dataDoc[GoogleRef];
         }
         DocumentDecorations.Instance.startPullOutcome(pullSuccess);
-        this.tryUpdateHeight();
+        setTimeout(() => this.tryUpdateHeight(), 0);
     }
 
     checkState = (exportState: GoogleApiClientUtils.Docs.ReadResult, dataDoc: Doc) => {
@@ -630,7 +632,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             if (!this.props.isOverlay) this.props.select(false);
             else this._editorView!.focus();
         }
-        this.tryUpdateHeight();
     }
 
     componentWillUnmount() {
