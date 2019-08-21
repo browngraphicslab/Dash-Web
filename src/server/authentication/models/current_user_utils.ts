@@ -10,7 +10,7 @@ import { CollectionView } from "../../../client/views/collections/CollectionView
 import { Doc } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
-import { Cast, StrCast } from "../../../new_fields/Types";
+import { Cast, StrCast, PromiseValue } from "../../../new_fields/Types";
 import { Utils } from "../../../Utils";
 import { RouteStore } from "../../RouteStore";
 
@@ -49,12 +49,14 @@ export class CurrentUserUtils {
             workspaces.boxShadow = "0 0";
             doc.workspaces = workspaces;
         }
+        PromiseValue(Cast(doc.workspaces, Doc)).then(workspaces => workspaces && (workspaces.preventTreeViewOpen = true));
         if (doc.recentlyClosed === undefined) {
             const recentlyClosed = Docs.Create.TreeDocument([], { title: "Recently Closed", height: 75 });
             recentlyClosed.excludeFromLibrary = true;
             recentlyClosed.boxShadow = "0 0";
             doc.recentlyClosed = recentlyClosed;
         }
+        PromiseValue(Cast(doc.recentlyClosed, Doc)).then(recent => recent && (recent.preventTreeViewOpen = true));
         if (doc.curPresentation === undefined) {
             const curPresentation = Docs.Create.PresDocument(new List<Doc>(), { title: "Presentation" });
             curPresentation.excludeFromLibrary = true;
@@ -73,6 +75,7 @@ export class CurrentUserUtils {
         }
         StrCast(doc.title).indexOf("@") !== -1 && (doc.title = StrCast(doc.title).split("@")[0] + "'s Library");
         doc.width = 100;
+        doc.preventTreeViewOpen = true;
     }
 
     public static loadCurrentUser() {
