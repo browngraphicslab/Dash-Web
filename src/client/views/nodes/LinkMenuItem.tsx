@@ -48,7 +48,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         }, 10000);
     }
 
-    // NOT DONE?
+    // NOT TESTED
     // col = collection the doc is in
     // target = the document to center on
     @undoBatch
@@ -77,7 +77,9 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     // this is the standard "follow link" (jump to document)
     // taken from follow link
     @undoBatch
-    jumpToLink = async (shouldZoom: boolean = false) => {
+    jumpToLink = async (shouldZoom: boolean) => {
+        //there is an issue right now so this will be false automatically
+        shouldZoom = false;
         this.highlightDoc();
         let jumpToDoc = this.props.destinationDoc;
         let pdfDoc = FieldValue(Cast(this.props.destinationDoc, Doc));
@@ -117,12 +119,23 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         SelectionManager.DeselectAll();
     }
 
-    //opens link in new tab in collection
+    // NOT TESTED
+    // opens link in new tab in collection
     // col = collection the doc is in
     // target = the document to center on
     @undoBatch
     openLinkColTab = ({ col, target }: { col: Doc, target: Doc }) => {
         this.highlightDoc();
+        col = Doc.IsPrototype(col) ? Doc.MakeDelegate(col) : col;
+        if (NumCast(col.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
+            const newPanX = NumCast(target.x) + NumCast(target.width) / NumCast(target.zoomBasis, 1) / 2;
+            const newPanY = NumCast(target.y) + NumCast(target.height) / NumCast(target.zoomBasis, 1) / 2;
+            col.panX = newPanX;
+            col.panY = newPanY;
+        }
+        // CollectionDockingView.Instance.AddRightSplit(col, undefined);
+        this.props.addDocTab(col, undefined, "inTab");
+        SelectionManager.DeselectAll();
     }
 
     // this will open a link next to the source doc
@@ -133,12 +146,23 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         let alias = Doc.MakeAlias(this.props.destinationDoc);
         let y = this.props.sourceDoc.y;
         let x = this.props.sourceDoc.x;
+        let parentView: any = undefined;
+        let parentDoc: Doc = this.props.sourceDoc;
 
-        console.log(x, y);
+        SelectionManager.SelectedDocuments().map(dv => {
+            if (dv.props.Document === this.props.sourceDoc) {
+                parentView = dv.props.ContainingCollectionView;
+            }
+        });
+
+        if (parentView) {
+            // console.log(parentDoc)
+            console.log(parentView.props.addDocument)
+        }
     }
 
     //set this to be the default link behavior, can be any of the above
-    private defaultLinkBehavior: any = this.openLinkRight;
+    private defaultLinkBehavior: any = this.openLinkInPlace;
 
     onEdit = (e: React.PointerEvent): void => {
         e.stopPropagation();
