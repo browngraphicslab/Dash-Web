@@ -11,7 +11,8 @@ import { CurrentUserUtils } from "../../../server/authentication/models/current_
 import { RouteStore } from "../../../server/RouteStore";
 import { Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
-import { Docs, DocumentOptions, DocumentType } from "../../documents/Documents";
+import { DocumentType } from "../../documents/DocumentTypes";
+import { Docs, DocumentOptions } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocComponent } from "../DocComponent";
@@ -82,7 +83,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             let ind;
             let doc = this.props.Document;
             let id = CurrentUserUtils.id;
-            let email = CurrentUserUtils.email;
+            let email = Doc.CurrentUserEmail;
             let pos = { x: position[0], y: position[1] };
             if (id && email) {
                 const proto = Doc.GetProto(doc);
@@ -112,7 +113,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         @undoBatch
         @action
         protected drop(e: Event, de: DragManager.DropEvent): boolean {
-            if (de.data instanceof DragManager.DocumentDragData) {
+            if (de.data instanceof DragManager.DocumentDragData && !de.data.applyAsTemplate) {
                 if (de.mods === "AltKey" && de.data.draggedDocuments.length) {
                     this.childDocs.map(doc =>
                         Doc.ApplyTemplateTo(de.data.draggedDocuments[0], doc, undefined)

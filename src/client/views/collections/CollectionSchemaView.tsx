@@ -30,7 +30,7 @@ import { undoBatch } from "../../util/UndoManager";
 import { CollectionSchemaHeader, CollectionSchemaAddColumnHeader } from "./CollectionSchemaHeaders";
 import { CellProps, CollectionSchemaCell, CollectionSchemaNumberCell, CollectionSchemaStringCell, CollectionSchemaBooleanCell, CollectionSchemaCheckboxCell, CollectionSchemaDocCell } from "./CollectionSchemaCells";
 import { MovableColumn, MovableRow } from "./CollectionSchemaMovableTableHOC";
-import { ComputedField } from "../../../new_fields/ScriptField";
+import { ComputedField, ScriptField } from "../../../new_fields/ScriptField";
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 
 
@@ -171,6 +171,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 active={this.props.active}
                 whenActiveChanged={this.props.whenActiveChanged}
                 addDocTab={this.props.addDocTab}
+                pinToPres={this.props.pinToPres}
                 setPreviewScript={this.setPreviewScript}
                 previewScript={this.previewScript}
             />
@@ -200,6 +201,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 active={this.props.active}
                 onDrop={this.onDrop}
                 addDocTab={this.props.addDocTab}
+                pinToPres={this.props.pinToPres}
                 isSelected={this.props.isSelected}
                 isFocused={this.isFocused}
                 setFocused={this.setFocused}
@@ -251,6 +253,7 @@ export interface SchemaTableProps {
     active: () => boolean;
     onDrop: (e: React.DragEvent<Element>, options: DocumentOptions, completed?: (() => void) | undefined) => void;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
+    pinToPres: (document: Doc) => void;
     isSelected: () => boolean;
     isFocused: (document: Doc) => boolean;
     setFocused: (document: Doc) => void;
@@ -377,6 +380,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                         fieldKey: this.props.fieldKey,
                         renderDepth: this.props.renderDepth,
                         addDocTab: this.props.addDocTab,
+                        pinToPres: this.props.pinToPres,
                         moveDocument: this.props.moveDocument,
                         setIsEditing: this.setCellIsEditing,
                         isEditable: isEditable,
@@ -899,6 +903,7 @@ interface CollectionSchemaPreviewProps {
     height: () => number;
     showOverlays?: (doc: Doc) => { title?: string, caption?: string };
     CollectionView?: CollectionView | CollectionPDFView | CollectionVideoView;
+    onClick?: ScriptField;
     getTransform: () => Transform;
     addDocument: (document: Doc, allowDuplicates?: boolean) => boolean;
     moveDocument: (document: Doc, target: Doc, addDoc: ((doc: Doc) => boolean)) => boolean;
@@ -906,6 +911,7 @@ interface CollectionSchemaPreviewProps {
     active: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
+    pinToPres: (document: Doc) => void;
     setPreviewScript: (script: string) => void;
     previewScript?: string;
 }
@@ -988,23 +994,25 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
                         DataDoc={this.props.DataDocument}
                         Document={this.props.Document}
                         fitToBox={this.props.fitToBox}
-                        renderDepth={this.props.renderDepth + 1}
-                        selectOnLoad={false}
+                        onClick={this.props.onClick}
                         showOverlays={this.props.showOverlays}
                         addDocument={this.props.addDocument}
                         removeDocument={this.props.removeDocument}
                         moveDocument={this.props.moveDocument}
+                        whenActiveChanged={this.props.whenActiveChanged}
+                        ContainingCollectionView={this.props.CollectionView}
+                        addDocTab={this.props.addDocTab}
+                        pinToPres={this.props.pinToPres}
+                        parentActive={this.props.active}
                         ScreenToLocalTransform={this.getTransform}
+                        renderDepth={this.props.renderDepth + 1}
+                        selectOnLoad={false}
                         ContentScaling={this.contentScaling}
                         PanelWidth={this.PanelWidth}
                         PanelHeight={this.PanelHeight}
-                        ContainingCollectionView={this.props.CollectionView}
                         focus={emptyFunction}
                         backgroundColor={returnEmptyString}
-                        parentActive={this.props.active}
-                        whenActiveChanged={this.props.whenActiveChanged}
                         bringToFront={emptyFunction}
-                        addDocTab={this.props.addDocTab}
                         zoomToScale={emptyFunction}
                         getScale={returnOne}
                     />

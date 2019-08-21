@@ -151,7 +151,7 @@
         "js-datepicker": "^4.6.6",
         "jsonwebtoken": "^8.5.0",
         "jsx-to-string": "^1.4.0",
-        "lodash": "^4.17.11",
+        "lodash": "^4.17.15",
         "mobile-detect": "^1.4.3",
         "mobx": "^5.9.0",
         "mobx-react": "^5.3.5",

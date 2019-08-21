@@ -6,10 +6,10 @@ import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
 import { DocumentManager } from "../../util/DocumentManager";
-import { PresentationView } from "../presentationview/PresentationView";
 import PDFMenu from "./PDFMenu";
 import "./Annotation.scss";
 import { scale } from "./PDFViewer";
+import { PresBox } from "../nodes/PresBox";
 
 interface IAnnotationProps {
     anno: Doc;
@@ -18,6 +18,7 @@ interface IAnnotationProps {
     fieldExtensionDoc: Doc;
     scrollTo?: (n: number) => void;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
+    pinToPres: (document: Doc) => void;
 }
 
 export default class Annotation extends React.Component<IAnnotationProps> {
@@ -37,6 +38,7 @@ interface IRegionAnnotationProps {
     fieldExtensionDoc: Doc;
     scrollTo?: (n: number) => void;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
+    pinToPres: (document: Doc) => void;
     document: Doc;
 }
 
@@ -81,7 +83,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
 
     pinToPres = () => {
         let group = FieldValue(Cast(this.props.document.group, Doc));
-        group && PresentationView.Instance.PinDoc(group);
+        group && this.props.pinToPres(group);
     }
 
     @action

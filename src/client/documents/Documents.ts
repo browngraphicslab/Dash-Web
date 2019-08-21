@@ -1,24 +1,3 @@
-export enum DocumentType {
-    NONE = "none",
-    TEXT = "text",
-    HIST = "histogram",
-    IMG = "image",
-    WEB = "web",
-    COL = "collection",
-    KVP = "kvp",
-    VID = "video",
-    AUDIO = "audio",
-    PDF = "pdf",
-    ICON = "icon",
-    IMPORT = "import",
-    LINK = "link",
-    LINKDOC = "linkdoc",
-    BUTTON = "button",
-    TEMPLATE = "template",
-    EXTENSION = "extension",
-    YOUTUBE = "youtube",
-}
-
 import { HistogramField } from "../northstar/dash-fields/HistogramField";
 import { HistogramBox } from "../northstar/dash-nodes/HistogramBox";
 import { HistogramOperation } from "../northstar/operations/HistogramOperation";
@@ -60,9 +39,14 @@ import { DocumentManager } from "../util/DocumentManager";
 import DirectoryImportBox from "../util/Import & Export/DirectoryImportBox";
 import { Scripting, CompileScript } from "../util/Scripting";
 import { ButtonBox } from "../views/nodes/ButtonBox";
+import { DragBox } from "../views/nodes/DragBox";
 import { SchemaHeaderField, RandomPastel } from "../../new_fields/SchemaHeaderField";
+import { PresBox } from "../views/nodes/PresBox";
 import { ComputedField } from "../../new_fields/ScriptField";
 import { ProxyField } from "../../new_fields/Proxy";
+import { DocumentType } from "./DocumentTypes";
+//import { PresBox } from "../views/nodes/PresBox";
+//import { PresField } from "../../new_fields/PresField";
 var requestImageSize = require('../util/request-image-size');
 var path = require('path');
 
@@ -177,6 +161,14 @@ export namespace Docs {
             }],
             [DocumentType.BUTTON, {
                 layout: { view: ButtonBox },
+            }],
+            [DocumentType.PRES, {
+                layout: { view: PresBox },
+                options: {}
+            }],
+            [DocumentType.DRAGBOX, {
+                layout: { view: DragBox },
+                options: { width: 40, height: 40 },
             }]
         ]);
 
@@ -298,7 +290,7 @@ export namespace Docs {
             const { omit: protoProps, extract: delegateProps } = OmitKeys(options, delegateKeys);
 
             if (!("author" in protoProps)) {
-                protoProps.author = CurrentUserUtils.email;
+                protoProps.author = Doc.CurrentUserEmail;
             }
 
             if (!("creationDate" in protoProps)) {
@@ -345,6 +337,9 @@ export namespace Docs {
                 })
                 .catch((err: any) => console.log(err));
             return inst;
+        }
+        export function PresDocument(initial: List<Doc> = new List(), options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.PRES), initial, options);
         }
 
         export function VideoDocument(url: string, options: DocumentOptions = {}) {
@@ -440,6 +435,11 @@ export namespace Docs {
 
         export function ButtonDocument(options?: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.BUTTON), undefined, { ...(options || {}) });
+        }
+
+
+        export function DragboxDocument(options?: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.DRAGBOX), undefined, { ...(options || {}) });
         }
 
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {

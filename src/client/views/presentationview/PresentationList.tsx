@@ -6,10 +6,7 @@ import { Utils } from "../../../Utils";
 import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
 import { NumCast, StrCast } from "../../../new_fields/Types";
 import { Id } from "../../../new_fields/FieldSymbols";
-import PresentationElement, { buttonIndex } from "./PresentationElement";
-import "../../../new_fields/Doc";
-
-
+import PresentationElement from "./PresentationElement";
 
 
 interface PresListProps {

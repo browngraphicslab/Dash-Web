@@ -11,6 +11,7 @@ import { SelectionManager } from '../../util/SelectionManager';
 import { ContextMenu } from '../ContextMenu';
 import { FieldViewProps } from '../nodes/FieldView';
 import './CollectionBaseView.scss';
+import { DateField } from '../../../new_fields/DateField';
 
 export enum CollectionViewType {
     Invalid,
@@ -83,7 +84,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
 
     active = (): boolean => {
         var isSelected = this.props.isSelected();
-        return isSelected || this._isChildActive || this.props.renderDepth === 0 || BoolCast(this.props.Document.excludeFromLibrary);
+        return isSelected || BoolCast(this.props.Document.forceActive) || this._isChildActive || this.props.renderDepth === 0 || BoolCast(this.props.Document.excludeFromLibrary);
     }
 
     //TODO should this be observable?
@@ -113,6 +114,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         } else {
             Doc.GetProto(targetDataDoc)[targetField] = new List([doc]);
         }
+        Doc.GetProto(doc).lastOpened = new DateField;
         return true;
     }
 

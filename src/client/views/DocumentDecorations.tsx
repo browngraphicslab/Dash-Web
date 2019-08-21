@@ -1,5 +1,5 @@
 import { library, IconProp } from '@fortawesome/fontawesome-svg-core';
-import { faLink, faTag, faArrowAltCircleDown, faArrowAltCircleUp, faCheckCircle, faStopCircle, faCloudUploadAlt, faSyncAlt } from '@fortawesome/free-solid-svg-icons';
+import { faLink, faTag, faTimes, faArrowAltCircleDown, faArrowAltCircleUp, faCheckCircle, faStopCircle, faCloudUploadAlt, faSyncAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
@@ -36,6 +36,7 @@ export const Flyout = higflyout.default;
 
 library.add(faLink);
 library.add(faTag);
+library.add(faTimes);
 library.add(faArrowAltCircleDown);
 library.add(faArrowAltCircleUp);
 library.add(faStopCircle);
@@ -74,6 +75,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @observable private _opacity = 1;
     @observable private _removeIcon = false;
     @observable public Interacting = false;
+    @observable private _isMoving = false;
 
     @observable public pushIcon: IconProp = "arrow-alt-circle-up";
     @observable public pullIcon: IconProp = "arrow-alt-circle-down";
@@ -267,10 +269,14 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
     @undoBatch
     @action
-    onCloseUp = (e: PointerEvent): void => {
+    onCloseUp = async (e: PointerEvent) => {
         e.stopPropagation();
         if (e.button === 0) {
-            SelectionManager.SelectedDocuments().map(dv => dv.props.removeDocument && dv.props.removeDocument(dv.props.Document));
+            const recent = await Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc);
+            SelectionManager.SelectedDocuments().map(dv => {
+                recent && Doc.AddDocToList(recent, "data", dv.props.Document, undefined, true, true);
+                dv.props.removeDocument && dv.props.removeDocument(dv.props.Document);
+            });
             SelectionManager.DeselectAll();
             document.removeEventListener("pointermove", this.onCloseMove);
             document.removeEventListener("pointerup", this.onCloseUp);
@@ -400,9 +406,14 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             document.addEventListener("pointermove", this.onRadiusMove);
             document.addEventListener("pointerup", this.onRadiusUp);
         }
+        if (!this._isMoving) {
+            SelectionManager.SelectedDocuments().map(dv => dv.props.Document.layout instanceof Doc ? dv.props.Document.layout : dv.props.Document.isTemplate ? dv.props.Document : Doc.GetProto(dv.props.Document)).
+                map(d => d.borderRounding = "0%");
+        }
     }
 
     onRadiusMove = (e: PointerEvent): void => {
+        this._isMoving = true;
         let dist = Math.sqrt((e.clientX - this._radiusDown[0]) * (e.clientX - this._radiusDown[0]) + (e.clientY - this._radiusDown[1]) * (e.clientY - this._radiusDown[1]));
         SelectionManager.SelectedDocuments().map(dv => dv.props.Document.layout instanceof Doc ? dv.props.Document.layout : dv.props.Document.isTemplate ? dv.props.Document : Doc.GetProto(dv.props.Document)).
             map(d => d.borderRounding = `${Math.min(100, dist)}%`);
@@ -415,6 +426,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         e.preventDefault();
         this._isPointerDown = false;
         this._resizeUndo && this._resizeUndo.end();
+        this._isMoving = false;
         document.removeEventListener("pointermove", this.onRadiusMove);
         document.removeEventListener("pointerup", this.onRadiusUp);
     }
@@ -577,7 +589,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 break;
         }
 
-        runInAction(() => FormattedTextBox.InputBoxOverlay = undefined);
+        if (!this._resizing) runInAction(() => FormattedTextBox.InputBoxOverlay = undefined);
         SelectionManager.SelectedDocuments().forEach(element => {
             if (dX !== 0 || dY !== 0 || dW !== 0 || dH !== 0) {
                 let doc = PositionDocument(element.props.Document);
@@ -591,12 +603,12 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 doc.x = (doc.x || 0) + dX * (actualdW - width);
                 doc.y = (doc.y || 0) + dY * (actualdH - height);
                 let proto = doc.isTemplate ? doc : Doc.GetProto(element.props.Document); // bcz: 'doc' didn't work here...
-                let fixedAspect = e.ctrlKey || (!BoolCast(proto.ignoreAspect) && nwidth && nheight);
+                let fixedAspect = e.ctrlKey || (!BoolCast(doc.ignoreAspect) && nwidth && nheight);
                 if (fixedAspect && (!nwidth || !nheight)) {
                     proto.nativeWidth = nwidth = doc.width || 0;
                     proto.nativeHeight = nheight = doc.height || 0;
                 }
-                if (nwidth > 0 && nheight > 0 && !BoolCast(proto.ignoreAspect)) {
+                if (nwidth > 0 && nheight > 0 && !BoolCast(doc.ignoreAspect)) {
                     if (Math.abs(dW) > Math.abs(dH)) {
                         if (!fixedAspect) {
                             Doc.SetInPlace(element.props.Document, "nativeWidth", actualdW / (doc.width || 1) * (doc.nativeWidth || 0), true);
@@ -856,7 +868,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 {this._edtingTitle ?
                     <input ref={this.keyinput} className="title" type="text" name="dynbox" value={this._title} onBlur={this.titleBlur} onChange={this.titleChanged} onKeyPress={this.titleEntered} /> :
                     <div className="title" onPointerDown={this.onTitleDown} ><span>{`${this.selectionTitle}`}</span></div>}
-                <div className="documentDecorations-closeButton" title="Close Document" onPointerDown={this.onCloseDown}>X</div>
+                <div className="documentDecorations-closeButton" title="Close Document" onPointerDown={this.onCloseDown}>
+                    <FontAwesomeIcon className="documentdecorations-times" icon={faTimes} size="lg" />
+                </div>
                 <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-topResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-topRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
