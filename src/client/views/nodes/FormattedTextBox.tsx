@@ -354,7 +354,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             () => {
                 if (!DocumentDecorations.hasPulledHack) {
                     DocumentDecorations.hasPulledHack = true;
-                    this.pullFromGoogleDoc(this.updateState);
+                    let unchanged = this.dataDoc.unchanged;
+                    this.pullFromGoogleDoc(unchanged ? this.checkState : this.updateState);
                 }
             }
         );

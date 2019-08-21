@@ -38,9 +38,10 @@ export class RichTextField extends ObjectField {
         let blockText = (block: any) => block.text;
         let concatenateParagraph = (p: any) => (p.content ? p.content.map(blockText).join(joiner) : "") + delimiter;
 
-        // Concatentate paragraphs and string the result together. Trim the last newline, an artifact.
-        let textParagraphs = paragraphs.map(concatenateParagraph);
-        return textParagraphs.join(joiner).trimEnd(delimiter);
+        // Concatentate paragraphs and string the result together
+        let textParagraphs: string[] = paragraphs.map(concatenateParagraph);
+        let plainText = textParagraphs.join(joiner);
+        return plainText.substring(0, plainText.length - 1);
     }
 
     [FromPlainText](plainText: string) {

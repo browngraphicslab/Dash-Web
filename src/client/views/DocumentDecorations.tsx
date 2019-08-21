@@ -1,5 +1,5 @@
 import { library, IconProp } from '@fortawesome/fontawesome-svg-core';
-import { faLink, faTag, faArrowAltCircleDown, faArrowAltCircleUp, faCheckCircle, faStopCircle, faCloudUploadAlt } from '@fortawesome/free-solid-svg-icons';
+import { faLink, faTag, faArrowAltCircleDown, faArrowAltCircleUp, faCheckCircle, faStopCircle, faCloudUploadAlt, faSyncAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
@@ -41,8 +41,10 @@ library.add(faArrowAltCircleUp);
 library.add(faStopCircle);
 library.add(faCheckCircle);
 library.add(faCloudUploadAlt);
+library.add(faSyncAlt);
 
 const cloud: IconProp = "cloud-upload-alt";
+const fetch: IconProp = "sync-alt";
 
 @observer
 export class DocumentDecorations extends React.Component<{}, { value: string }> {
@@ -76,48 +78,47 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @observable public pushIcon: IconProp = "arrow-alt-circle-up";
     @observable public pullIcon: IconProp = "arrow-alt-circle-down";
     @observable public pullColor: string = "white";
+    @observable public isAnimatingFetch = false;
     public pullColorAnimating = false;
 
     private pullAnimating = false;
     private pushAnimating = false;
 
     public startPullOutcome = action((success: boolean) => {
-        if (this.pullAnimating) {
-            return;
+        if (!this.pullAnimating) {
+            this.pullAnimating = true;
+            this.pullIcon = success ? "check-circle" : "stop-circle";
+            setTimeout(() => runInAction(() => {
+                this.pullIcon = "arrow-alt-circle-down";
+                this.pullAnimating = false;
+            }), 1000);
         }
-        this.pullAnimating = true;
-        this.pullIcon = success ? "check-circle" : "stop-circle";
-        setTimeout(() => runInAction(() => {
-            this.pullIcon = "arrow-alt-circle-down";
-            this.pullAnimating = false;
-        }), 1000);
     });
 
     public startPushOutcome = action((success: boolean) => {
-        if (this.pushAnimating) {
-            return;
+        if (!this.pushAnimating) {
+            this.pushAnimating = true;
+            this.pushIcon = success ? "check-circle" : "stop-circle";
+            setTimeout(() => runInAction(() => {
+                this.pushIcon = "arrow-alt-circle-up";
+                this.pushAnimating = false;
+            }), 1000);
         }
-        this.pushAnimating = true;
-        this.pushIcon = success ? "check-circle" : "stop-circle";
-        setTimeout(() => runInAction(() => {
-            this.pushIcon = "arrow-alt-circle-up";
-            this.pushAnimating = false;
-        }), 1000);
     });
 
-    public setPullState = (unchanged: boolean) => {
-        if (this.pullColorAnimating) {
-            return;
+    public setPullState = action((unchanged: boolean) => {
+        this.isAnimatingFetch = false;
+        if (!this.pullColorAnimating) {
+            this.pullColorAnimating = true;
+            this.pullColor = unchanged ? "lawngreen" : "red";
+            setTimeout(this.clearPullColor, 1000);
         }
-        this.pullColorAnimating = true;
-        this.pullColor = unchanged ? "lawngreen" : "red";
-        setTimeout(() => {
-            runInAction(() => {
-                this.pullColor = "white";
-                this.pullColorAnimating = false;
-            });
-        }, 2000);
-    }
+    });
+
+    private clearPullColor = action(() => {
+        this.pullColor = "white";
+        this.pullColorAnimating = false;
+    });
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -679,7 +680,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let canPush = this.targetDoc.data && this.targetDoc.data instanceof RichTextField;
         if (!canPush) return (null);
         let published = Doc.GetProto(this.targetDoc)[GoogleRef] !== undefined;
-        let icon: IconProp = published ? (this.pushIcon as any) : (cloud as any);
+        let icon: IconProp = published ? (this.pushIcon as any) : cloud;
         return (
             <div className={"linkButtonWrapper"}>
                 <div title={`${published ? "Push" : "Publish"} to Google Docs`} className="linkButton-linker" onClick={() => {
@@ -695,14 +696,33 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     considerGoogleDocsPull = () => {
         let canPull = this.targetDoc.data && this.targetDoc.data instanceof RichTextField;
         let dataDoc = Doc.GetProto(this.targetDoc);
-        if (!canPull || !dataDoc[GoogleRef] || dataDoc.unchanged) return (null);
+        if (!canPull || !dataDoc[GoogleRef]) return (null);
+        let icon = !dataDoc.unchanged ? (this.pullIcon as any) : fetch;
+        let animation = this.isAnimatingFetch ? "spin 0.5s linear infinite" : "none";
         return (
             <div className={"linkButtonWrapper"}>
-                <div style={{ backgroundColor: this.pullColor, transition: "1s ease all" }} title="Pull From Google Docs" className="linkButton-linker" onClick={() => {
-                    DocumentDecorations.hasPulledHack = false;
-                    this.targetDoc[Pulls] = NumCast(this.targetDoc[Pulls]) + 1;
-                }}>
-                    <FontAwesomeIcon className="documentdecorations-icon" icon={this.pullIcon} size="sm" />
+                <div
+                    title="Pull From Google Docs"
+                    className="linkButton-linker"
+                    style={{
+                        backgroundColor: this.pullColor,
+                        transition: "0.2s ease all"
+                    }}
+                    onClick={() => {
+                        this.clearPullColor();
+                        DocumentDecorations.hasPulledHack = false;
+                        this.targetDoc[Pulls] = NumCast(this.targetDoc[Pulls]) + 1;
+                        dataDoc.unchanged && runInAction(() => this.isAnimatingFetch = true);
+                    }}>
+                    <FontAwesomeIcon
+                        style={{
+                            WebkitAnimation: animation,
+                            MozAnimation: animation
+                        }}
+                        className="documentdecorations-icon"
+                        icon={icon}
+                        size="sm"
+                    />
                 </div>
             </div>
         );
