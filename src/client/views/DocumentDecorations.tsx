@@ -20,7 +20,7 @@ import { DocumentView, PositionDocument } from "./nodes/DocumentView";
 import { FieldView } from "./nodes/FieldView";
 import { FormattedTextBox, GoogleRef } from "./nodes/FormattedTextBox";
 import { IconBox } from "./nodes/IconBox";
-import { LinkMenu } from "./nodes/LinkMenu";
+import { LinkMenu } from "./linking/LinkMenu";
 import { TemplateMenu } from "./TemplateMenu";
 import { Template, Templates } from "./Templates";
 import React = require("react");

@@ -23,7 +23,7 @@ import { library } from "@fortawesome/fontawesome-svg-core";
 import { Docs } from "../../documents/Documents";
 import { PreviewCursor } from "../PreviewCursor";
 
-library.add(faStickyNote)
+library.add(faStickyNote);
 
 @observer
 export class WebBox extends React.Component<FieldViewProps> {
@@ -76,7 +76,6 @@ export class WebBox extends React.Component<FieldViewProps> {
     }
 
     switchToText() {
-        console.log("switchng to text")
         if (this.props.removeDocument) this.props.removeDocument(this.props.Document);
         // let newPoint = PreviewCursor._getTransform().transformPoint(PreviewCursor._clickPoint[0], PreviewCursor._clickPoint[1]);
         let newBox = Docs.Create.TextDocument({

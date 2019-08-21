@@ -14,7 +14,7 @@ import { DragLinkAsDocument } from '../../util/DragManager';
 import { CollectionDockingView } from '../collections/CollectionDockingView';
 import { SelectionManager } from '../../util/SelectionManager';
 import { CollectionViewType } from '../collections/CollectionBaseView';
-import { DocumentView } from './DocumentView';
+import { DocumentView } from '../nodes/DocumentView';
 library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp);
 
 
@@ -157,7 +157,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
 
         if (parentView) {
             // console.log(parentDoc)
-            console.log(parentView.props.addDocument)
+            console.log(parentView.props.addDocument);
         }
     }
 
