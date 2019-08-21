@@ -1,26 +1,24 @@
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { action, computed, observable, runInAction } from "mobx";
+import { observer } from "mobx-react";
 import * as React from "react";
+import { Doc, DocListCast } from "../../../new_fields/Doc";
+import { Id } from "../../../new_fields/FieldSymbols";
+import { List } from "../../../new_fields/List";
+import { listSpec } from "../../../new_fields/Schema";
+import { ScriptField } from "../../../new_fields/ScriptField";
+import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { Utils } from "../../../Utils";
+import { DragManager } from "../../util/DragManager";
+import { CompileScript } from "../../util/Scripting";
+import { undoBatch } from "../../util/UndoManager";
+import { EditableView } from "../EditableView";
+import { COLLECTION_BORDER_WIDTH } from "../globalCssVariables.scss";
+import { DocLike } from "../MetadataEntryMenu";
+import { CollectionViewType } from "./CollectionBaseView";
 import { CollectionView } from "./CollectionView";
 import "./CollectionViewChromes.scss";
-import { CollectionViewType } from "./CollectionBaseView";
-import { undoBatch } from "../../util/UndoManager";
-import { action, observable, runInAction, computed, IObservable, IObservableValue, reaction, autorun } from "mobx";
-import { observer } from "mobx-react";
-import { Doc, DocListCast } from "../../../new_fields/Doc";
-import { DocLike } from "../MetadataEntryMenu";
-import * as Autosuggest from 'react-autosuggest';
-import { EditableView } from "../EditableView";
-import { StrCast, NumCast, BoolCast, Cast } from "../../../new_fields/Types";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Utils } from "../../../Utils";
 import KeyRestrictionRow from "./KeyRestrictionRow";
-import { CompileScript } from "../../util/Scripting";
-import { ScriptField } from "../../../new_fields/ScriptField";
-import { CollectionSchemaView } from "./CollectionSchemaView";
-import { COLLECTION_BORDER_WIDTH } from "../globalCssVariables.scss";
-import { listSpec } from "../../../new_fields/Schema";
-import { List } from "../../../new_fields/List";
-import { Id } from "../../../new_fields/FieldSymbols";
-import { threadId } from "worker_threads";
 const datepicker = require('js-datepicker');
 
 interface CollectionViewChromeProps {
@@ -29,10 +27,18 @@ interface CollectionViewChromeProps {
     collapse?: (value: boolean) => any;
 }
 
+interface Filter {
+    key: string;
+    value: string;
+    contains: boolean;
+}
+
 let stopPropagation = (e: React.SyntheticEvent) => e.stopPropagation();
 
 @observer
 export class CollectionViewBaseChrome extends React.Component<CollectionViewChromeProps> {
+    //(!)?\(\(\(doc.(\w+) && \(doc.\w+ as \w+\).includes\(\"(\w+)\"\)
+
     @observable private _viewSpecsOpen: boolean = false;
     @observable private _dateWithinValue: string = "";
     @observable private _dateValue: Date | string = "";
@@ -40,19 +46,54 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     @computed private get filterValue() { return Cast(this.props.CollectionView.props.Document.viewSpecScript, ScriptField); }
 
     private _picker: any;
-    private _datePickerElGuid = Utils.GenerateGuid();
+
+    getFilters = (script: string) => {
+        let re: any = /(!)?\(\(\(doc\.(\w+)\s+&&\s+\(doc\.\w+\s+as\s+\w+\)\.includes\(\"(\w+)\"\)/g;
+        let arr: any[] = re.exec(script);
+        let toReturn: Filter[] = [];
+        if (arr !== null) {
+            let filter: Filter = {
+                key: arr[2],
+                value: arr[3],
+                contains: (arr[1] === "!") ? false : true,
+            };
+            toReturn.push(filter);
+            script = script.replace(arr[0], "");
+            if (re.exec(script) !== null) {
+                toReturn.push(...this.getFilters(script));
+            }
+            else { return toReturn; }
+        }
+        return toReturn;
+    }
+
+    addKeyRestrictions = (fields: Filter[]) => {
+
+        if (fields.length !== 0) {
+            for (let i = 0; i < fields.length; i++) {
+                this._keyRestrictions.push([<KeyRestrictionRow field={fields[i].key} value={fields[i].value} key={Utils.GenerateGuid()} contains={fields[i].contains} script={(value: string) => runInAction(() => this._keyRestrictions[i][1] = value)} />, ""]);
+
+            }
+            if (this._keyRestrictions.length === 1) {
+                this._keyRestrictions.push([<KeyRestrictionRow field="" value="" key={Utils.GenerateGuid()} contains={true} script={(value: string) => runInAction(() => this._keyRestrictions[1][1] = value)} />, ""]);
+            }
+        }
+        else {
+            this._keyRestrictions.push([<KeyRestrictionRow field="" value="" key={Utils.GenerateGuid()} contains={true} script={(value: string) => runInAction(() => this._keyRestrictions[0][1] = value)} />, ""]);
+            this._keyRestrictions.push([<KeyRestrictionRow field="" value="" key={Utils.GenerateGuid()} contains={false} script={(value: string) => runInAction(() => this._keyRestrictions[1][1] = value)} />, ""]);
+        }
+    }
 
     componentDidMount = () => {
-        setTimeout(() => this._picker = datepicker("#" + this._datePickerElGuid, {
-            disabler: (date: Date) => date > new Date(),
-            onSelect: (instance: any, date: Date) => runInAction(() => this._dateValue = date),
-            dateSelected: new Date()
-        }), 1000);
+
+        let fields: Filter[] = [];
+        if (this.filterValue) {
+            let string = this.filterValue.script.originalScript;
+            fields = this.getFilters(string);
+        }
 
         runInAction(() => {
-            this._keyRestrictions.push([<KeyRestrictionRow key={Utils.GenerateGuid()} contains={true} script={(value: string) => runInAction(() => this._keyRestrictions[0][1] = value)} />, ""]);
-            this._keyRestrictions.push([<KeyRestrictionRow key={Utils.GenerateGuid()} contains={false} script={(value: string) => runInAction(() => this._keyRestrictions[1][1] = value)} />, ""]);
-
+            this.addKeyRestrictions(fields);
             // chrome status is one of disabled, collapsed, or visible. this determines initial state from document
             let chromeStatus = this.props.CollectionView.props.Document.chromeStatus;
             if (chromeStatus) {
@@ -111,17 +152,17 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     @action
     addKeyRestriction = (e: React.MouseEvent) => {
         let index = this._keyRestrictions.length;
-        this._keyRestrictions.push([<KeyRestrictionRow key={Utils.GenerateGuid()} contains={true} script={(value: string) => runInAction(() => this._keyRestrictions[index][1] = value)} />, ""]);
+        this._keyRestrictions.push([<KeyRestrictionRow field="" value="" key={Utils.GenerateGuid()} contains={true} script={(value: string) => runInAction(() => this._keyRestrictions[index][1] = value)} />, ""]);
 
         this.openViewSpecs(e);
     }
 
-    @action
+    @action.bound
     applyFilter = (e: React.MouseEvent) => {
+
         this.openViewSpecs(e);
 
-        let keyRestrictionScript = `${this._keyRestrictions.map(i => i[1])
-            .reduce((acc: string, value: string, i: number) => value ? `${acc} && ${value}` : acc)}`;
+        let keyRestrictionScript = "(" + this._keyRestrictions.map(i => i[1]).filter(i => i.length > 0).join(" && ") + ")";
         let yearOffset = this._dateWithinValue[1] === 'y' ? 1 : 0;
         let monthOffset = this._dateWithinValue[1] === 'm' ? parseInt(this._dateWithinValue[0]) : 0;
         let weekOffset = this._dateWithinValue[1] === 'w' ? parseInt(this._dateWithinValue[0]) : 0;
@@ -141,9 +182,10 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             }
         }
         let fullScript = dateRestrictionScript.length || keyRestrictionScript.length ? dateRestrictionScript.length ?
-            `return ${dateRestrictionScript} ${keyRestrictionScript.length ? "&&" : ""} ${keyRestrictionScript}` :
-            `return ${keyRestrictionScript} ${dateRestrictionScript.length ? "&&" : ""} ${dateRestrictionScript}` :
+            `return ${dateRestrictionScript} ${keyRestrictionScript.length ? "&&" : ""} (${keyRestrictionScript})` :
+            `return (${keyRestrictionScript}) ${dateRestrictionScript.length ? "&&" : ""} ${dateRestrictionScript}` :
             "return true";
+
         let compiled = CompileScript(fullScript, { params: { doc: Doc.name }, typecheck: false });
         if (compiled.compiled) {
             this.props.CollectionView.props.Document.viewSpecScript = new ScriptField(compiled);
@@ -221,6 +263,47 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             })} />);
     }
 
+    @action.bound
+    clearFilter = () => {
+        let compiled = CompileScript("return true", { params: { doc: Doc.name }, typecheck: false });
+        if (compiled.compiled) {
+            this.props.CollectionView.props.Document.viewSpecScript = new ScriptField(compiled);
+        }
+
+        this._keyRestrictions = [];
+        this.addKeyRestrictions([]);
+    }
+
+    private dropDisposer?: DragManager.DragDropDisposer;
+    protected createDropTarget = (ele: HTMLDivElement) => {
+        this.dropDisposer && this.dropDisposer();
+        if (ele) {
+            this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
+        }
+    }
+
+    @undoBatch
+    @action
+    protected drop(e: Event, de: DragManager.DropEvent): boolean {
+        if (de.data instanceof DragManager.DocumentDragData) {
+            if (de.data.draggedDocuments.length) {
+                this.props.CollectionView.props.Document.childLayout = de.data.draggedDocuments[0];
+                e.stopPropagation();
+                return true;
+            }
+        }
+        return true;
+    }
+
+    datePickerRef = (node: HTMLInputElement) => {
+        if (node) {
+            this._picker = datepicker("#" + node.id, {
+                disabler: (date: Date) => date > new Date(),
+                onSelect: (instance: any, date: Date) => runInAction(() => this._dateValue = date),
+                dateSelected: new Date()
+            });
+        }
+    }
     render() {
         let collapsed = this.props.CollectionView.props.Document.chromeStatus !== "enabled";
         return (
@@ -251,9 +334,10 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                         <div className="collectionViewBaseChrome-viewSpecs" style={{ display: collapsed ? "none" : "grid" }}>
                             <input className="collectionViewBaseChrome-viewSpecsInput"
                                 placeholder="FILTER DOCUMENTS"
-                                value={this.filterValue ? this.filterValue.script.originalScript : ""}
+                                value={this.filterValue ? this.filterValue.script.originalScript === "return true" ? "" : this.filterValue.script.originalScript : ""}
                                 onChange={(e) => { }}
-                                onPointerDown={this.openViewSpecs} />
+                                onPointerDown={this.openViewSpecs}
+                                id="viewSpecsInput" />
                             {this.getPivotInput()}
                             <div className="collectionViewBaseChrome-viewSpecsMenu"
                                 onPointerDown={this.openViewSpecs}
@@ -280,7 +364,8 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                                         <option value="1y">1 year of</option>
                                     </select>
                                     <input className="collectionViewBaseChrome-viewSpecsMenu-rowRight"
-                                        id={this._datePickerElGuid}
+                                        id={Utils.GenerateGuid()}
+                                        ref={this.datePickerRef}
                                         value={this._dateValue instanceof Date ? this._dateValue.toLocaleDateString() : this._dateValue}
                                         onChange={(e) => runInAction(() => this._dateValue = e.target.value)}
                                         onPointerDown={this.openDatePicker}
@@ -293,10 +378,13 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                                     <button className="collectonViewBaseChrome-viewSpecsMenu-lastRowButton" onClick={this.applyFilter}>
                                         APPLY FILTER
                             </button>
+                                    <button className="collectonViewBaseChrome-viewSpecsMenu-lastRowButton" onClick={this.clearFilter}>
+                                        CLEAR
+                            </button>
                                 </div>
                             </div>
                         </div>
-                        <div className="collectionViewBaseChrome-template" style={{}}>
+                        <div className="collectionViewBaseChrome-template" ref={this.createDropTarget} style={{}}>
                             TEMPLATE
                         </div>
                     </div>

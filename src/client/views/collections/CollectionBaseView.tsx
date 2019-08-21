@@ -11,6 +11,7 @@ import { SelectionManager } from '../../util/SelectionManager';
 import { ContextMenu } from '../ContextMenu';
 import { FieldViewProps } from '../nodes/FieldView';
 import './CollectionBaseView.scss';
+import { DateField } from '../../../new_fields/DateField';
 
 export enum CollectionViewType {
     Invalid,
@@ -115,6 +116,7 @@ export class CollectionBaseView extends React.Component<CollectionViewProps> {
         } else {
             Doc.GetProto(targetDataDoc)[targetField] = new List([doc]);
         }
+        Doc.GetProto(doc).lastOpened = new DateField;
         return true;
     }
 

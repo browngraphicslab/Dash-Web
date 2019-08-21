@@ -194,6 +194,10 @@ export default class KeyManager {
         };
     });
 
+    async printClipboard() {
+        let text: string = await navigator.clipboard.readText();
+    }
+
     private ctrl_shift = action((keyname: string) => {
         let stopPropagation = true;
         let preventDefault = true;

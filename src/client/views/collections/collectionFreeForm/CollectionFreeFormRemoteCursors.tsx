@@ -55,7 +55,7 @@ export class CollectionFreeFormRemoteCursors extends React.Component<CollectionV
                 ctx.stroke();
 
                 // ctx.font = "10px Arial";
-                // ctx.fillText(CurrentUserUtils.email[0].toUpperCase(), 10, 10);
+                // ctx.fillText(Doc.CurrentUserEmail[0].toUpperCase(), 10, 10);
             }
         }
     }

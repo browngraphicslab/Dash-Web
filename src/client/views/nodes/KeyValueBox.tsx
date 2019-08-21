@@ -128,7 +128,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         let rows: JSX.Element[] = [];
         let i = 0;
         const self = this;
-        for (let key of Object.keys(ids).sort()) {
+        for (let key of Object.keys(ids).slice().sort()) {
             rows.push(<KeyValuePair doc={realDoc} ref={(function () {
                 let oldEl: KeyValuePair | undefined;
                 return (el: KeyValuePair) => {
