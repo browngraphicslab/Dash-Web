@@ -284,7 +284,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         let results = await DictationManager.Controls.listen({
             interimHandler: this.setCurrentBulletContent,
             continuous: { indefinite: false },
-            // terminators: [completedCue, "bullet", "next"]
+            terminators: [completedCue, "bullet", "next"]
         });
         if (results && [DictationManager.Controls.Infringed, completedCue].includes(results)) {
             DictationManager.Controls.stop();
