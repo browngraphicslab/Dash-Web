@@ -17,7 +17,7 @@ import { DragManager } from "../../util/DragManager";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocComponent } from "../DocComponent";
 import { FieldViewProps } from "../nodes/FieldView";
-import { FormattedTextBox, Blank } from "../nodes/FormattedTextBox";
+import { FormattedTextBox, GoogleRef } from "../nodes/FormattedTextBox";
 import { CollectionPDFView } from "./CollectionPDFView";
 import { CollectionVideoView } from "./CollectionVideoView";
 import { CollectionView } from "./CollectionView";
@@ -209,11 +209,11 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             }
             let matches: RegExpExecArray | null;
             if ((matches = /(https:\/\/)?docs\.google\.com\/document\/d\/([^\\]+)\/edit/g.exec(text)) !== null) {
-                let newBox = Docs.Create.TextDocument({ ...options, width: 600, height: 400, title: "Fetching title from Google Docs..." });
+                let newBox = Docs.Create.TextDocument({ ...options, width: 400, height: 200, title: "Awaiting title from Google Docs..." });
                 let proto = newBox.proto!;
                 proto.autoHeight = true;
-                proto.googleDocId = matches[2];
-                proto.data = "Fetching contents from Google Docs...";
+                proto[GoogleRef] = matches[2];
+                proto.data = "Please select and then click on this document's pull button to load its contents from from Google Docs...";
                 proto.backgroundColor = "#eeeeff";
                 this.props.addDocument(newBox);
                 return;

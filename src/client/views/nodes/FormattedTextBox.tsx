@@ -434,6 +434,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             delete dataDoc[GoogleRef];
         }
         DocumentDecorations.Instance.startPullOutcome(pullSuccess);
+        this.tryUpdateHeight();
     }
 
     checkState = (exportState: GoogleApiClientUtils.Docs.ReadResult, dataDoc: Doc) => {
