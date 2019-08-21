@@ -14,7 +14,6 @@ import * as mobileDetect from 'mobile-detect';
 import * as passport from 'passport';
 import * as path from 'path';
 import * as request from 'request';
-import * as rp from 'request-promise';
 import * as io from 'socket.io';
 import { Socket } from 'socket.io';
 import * as webpack from 'webpack';
@@ -36,19 +35,19 @@ const port = 1050; // default port to listen
 const serverPort = 4321;
 import expressFlash = require('express-flash');
 import flash = require('connect-flash');
-import c = require("crypto");
 import { Search } from './Search';
-import { debug } from 'util';
 import _ = require('lodash');
 import * as Archiver from 'archiver';
-import * as AdmZip from 'adm-zip';
-import * as YoutubeApi from './youtubeApi/youtubeApiSample.js';
+import AdmZip from 'adm-zip';
+import * as YoutubeApi from "./apis/youtube/youtubeApiSample";
 import { Response } from 'express-serve-static-core';
+import { GoogleApiServerUtils } from "./apis/google/GoogleApiServerUtils";
+import { GaxiosResponse } from 'gaxios';
+import { Opt } from '../new_fields/Doc';
+import { docs_v1 } from 'googleapis';
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const probe = require("probe-image-size");
-var SolrNode = require('solr-node');
-var shell = require('shelljs');
 
 const download = (url: string, dest: fs.PathLike) => request.get(url).pipe(fs.createWriteStream(dest));
 let youtubeApiKey: string;
@@ -171,6 +170,13 @@ const read_text_file = (relativePath: string) => {
     let target = path.join(__dirname, relativePath);
     return new Promise<string>((resolve, reject) => {
         fs.readFile(target, (err, data) => err ? reject(err) : resolve(data.toString()));
+    });
+};
+
+const write_text_file = (relativePath: string, contents: any) => {
+    let target = path.join(__dirname, relativePath);
+    return new Promise<void>((resolve, reject) => {
+        fs.writeFile(target, contents, (err) => err ? reject(err) : resolve());
     });
 };
 
@@ -789,6 +795,34 @@ function HandleYoutubeQuery([query, callback]: [YoutubeQueryInput, (result?: any
             YoutubeApi.authorizedGetVideoDetails(youtubeApiKey, query.videoIds, callback);
     }
 }
+
+const credentials = path.join(__dirname, "./credentials/google_docs_credentials.json");
+const token = path.join(__dirname, "./credentials/google_docs_token.json");
+
+type ApiResponse = Promise<GaxiosResponse>;
+type ApiHandler = (endpoint: docs_v1.Resource$Documents, parameters: any) => ApiResponse;
+type Action = "create" | "retrieve" | "update";
+
+const EndpointHandlerMap = new Map<Action, ApiHandler>([
+    ["create", (api, params) => api.create(params)],
+    ["retrieve", (api, params) => api.get(params)],
+    ["update", (api, params) => api.batchUpdate(params)],
+]);
+
+app.post(RouteStore.googleDocs + ":action", (req, res) => {
+    GoogleApiServerUtils.Docs.GetEndpoint({ credentials, token }).then(endpoint => {
+        let handler = EndpointHandlerMap.get(req.params.action);
+        if (handler) {
+            let execute = handler(endpoint.documents, req.body).then(
+                response => res.send(response.data),
+                rejection => res.send(rejection)
+            );
+            execute.catch(exception => res.send(exception));
+            return;
+        }
+        res.send(undefined);
+    });
+});
 
 const suffixMap: { [type: string]: (string | [string, string | ((json: any) => any)]) } = {
     "number": "_n",

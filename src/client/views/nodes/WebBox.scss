@@ -54,26 +54,10 @@
         padding-bottom: 10px;
         overflow: hidden;
 
-        .collectionViewBaseChrome {
+        .editorBase {
             display: flex;
 
-            .collectionViewBaseChrome-viewPicker {
-                font-size: 75%;
-                text-transform: uppercase;
-                letter-spacing: 2px;
-                background: rgb(238, 238, 238);
-                color: grey;
-                outline-color: black;
-                border: none;
-                padding: 12px 10px 11px 10px;
-                margin-left: 50px;
-            }
-
-            .collectionViewBaseChrome-viewPicker:active {
-                outline-color: black;
-            }
-
-            .collectionViewBaseChrome-collapse {
+            .editor-collapse {
                 transition: all .5s, opacity 0.3s;
                 position: absolute;
                 width: 40px;
@@ -142,10 +126,6 @@
 
         button:hover {
             transform: scale(1);
-        }
-
-        .collectionStackingViewChrome-sectionFilter:hover {
-            cursor: text;
         }
     }
 }

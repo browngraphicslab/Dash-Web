@@ -11,7 +11,7 @@ import { listSpec } from "../../../new_fields/Schema";
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import { BoolCast, Cast, NumCast, StrCast, ScriptCast } from "../../../new_fields/Types";
 import { emptyFunction, Utils, numberRange } from "../../../Utils";
-import { DocumentType } from "../../documents/Documents";
+import { DocumentType } from "../../documents/DocumentTypes";
 import { DragManager } from "../../util/DragManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
@@ -63,7 +63,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             setTimeout(() => this.props.Document.sectionHeaders = new List<SchemaHeaderField>(), 0);
             return new Map<SchemaHeaderField, Doc[]>();
         }
-        const sectionHeaders = this.sectionHeaders!;
+        const sectionHeaders = this.sectionHeaders;
         let fields = new Map<SchemaHeaderField, Doc[]>(sectionHeaders.map(sh => [sh, []] as [SchemaHeaderField, []]));
         this.filteredChildren.map(d => {
             let sectionValue = (d[this.sectionFilter] ? d[this.sectionFilter] : `NO ${this.sectionFilter.toUpperCase()} VALUE`) as object;
@@ -95,7 +95,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             if (this.isStackingView && BoolCast(this.props.Document.autoHeight)) {
                 let sectionsList = Array.from(this.Sections.size ? this.Sections.values() : [this.filteredChildren]);
                 return this.props.ContentScaling() * sectionsList.reduce((maxHght, s) => Math.max(maxHght,
-                    50 + s.reduce((height, d, i) => height + this.childDocHeight(d) + (i === s.length - 1 ? this.yMargin : this.gridGap), this.yMargin)
+                    (this.Sections.size ? 50 : 0) + s.reduce((height, d, i) => height + this.childDocHeight(d) + (i === s.length - 1 ? this.yMargin : this.gridGap), this.yMargin)
                 ), 0);
             }
             return -1;
@@ -155,11 +155,13 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             active={this.props.active}
             whenActiveChanged={this.props.whenActiveChanged}
             addDocTab={this.props.addDocTab}
+            pinToPres={this.props.pinToPres}
             setPreviewScript={emptyFunction}
             previewScript={undefined}>
         </CollectionSchemaPreview>;
     }
-    getDocHeight(d: Doc) {
+    getDocHeight(d?: Doc) {
+        if (!d) return 0;
         let nw = NumCast(d.nativeWidth);
         let nh = NumCast(d.nativeHeight);
         if (!d.ignoreAspect && nw && nh) {
@@ -289,10 +291,10 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             let layoutDoc = Doc.expandTemplateLayout(d, this.props.DataDoc);
             let width = () => (d.nativeWidth && !d.ignoreAspect && !this.props.Document.fillColumn ? Math.min(d[WidthSym](), this.columnWidth) : this.columnWidth);/// (uniqueHeadings.length + 1);
             let height = () => this.getDocHeight(layoutDoc);
-            let dxf = () => this.getDocTransform(layoutDoc, dref.current!);
+            let dxf = () => this.getDocTransform(layoutDoc!, dref.current!);
             let rowSpan = Math.ceil((height() + this.gridGap) / this.gridGap);
             this._docXfs.push({ dxf: dxf, width: width, height: height });
-            return <div className="collectionStackingView-masonryDoc" key={d[Id]} ref={dref} style={{ gridRowEnd: `span ${rowSpan}` }} >
+            return !layoutDoc ? (null) : <div className="collectionStackingView-masonryDoc" key={d[Id]} ref={dref} style={{ gridRowEnd: `span ${rowSpan}` }} >
                 {this.getDisplayDoc(layoutDoc, d, dxf, width)}
             </div>;
         });

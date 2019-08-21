@@ -1,12 +1,6 @@
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { Schema, NodeSpec, MarkSpec, DOMOutputSpecArray, NodeType, Slice, Mark, Node } from "prosemirror-model";
-import { joinUp, lift, setBlockType, toggleMark, wrapIn, selectNodeForward, deleteSelection } from 'prosemirror-commands';
-import { redo, undo } from 'prosemirror-history';
-import { orderedList, bulletList, listItem, } from 'prosemirror-schema-list';
-import { EditorState, Transaction, NodeSelection, TextSelection, Selection, } from "prosemirror-state";
-import { EditorView, } from "prosemirror-view";
-import { View } from '@react-pdf/renderer';
-import { TooltipTextMenu } from './TooltipTextMenu';
+import { DOMOutputSpecArray, MarkSpec, Node, NodeSpec, Schema, Slice } from "prosemirror-model";
+import { bulletList, listItem, orderedList } from 'prosemirror-schema-list';
+import { TextSelection } from "prosemirror-state";
 
 const pDOM: DOMOutputSpecArray = ["p", 0], blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];

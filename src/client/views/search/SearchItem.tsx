@@ -11,7 +11,7 @@ import { RichTextField } from "../../../new_fields/RichTextField";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { emptyFunction, returnEmptyString, returnFalse, returnOne, Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
-import { DocumentType } from "../../documents/Documents";
+import { DocumentType } from "../../documents/DocumentTypes";
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager, SetupDrag } from "../../util/DragManager";
 import { LinkManager } from "../../util/LinkManager";
@@ -203,6 +203,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
                     removeDocument={returnFalse}
                     ScreenToLocalTransform={Transform.Identity}
                     addDocTab={returnFalse}
+                    pinToPres={returnFalse}
                     renderDepth={1}
                     PanelWidth={returnXDimension}
                     PanelHeight={returnYDimension}

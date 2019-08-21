@@ -89,10 +89,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
     drop = (e: Event, de: DragManager.DropEvent) => {
         if (de.data instanceof DragManager.DocumentDragData) {
             de.data.droppedDocuments.forEach(action((drop: Doc) => {
-                if (de.mods === "CtrlKey") {
-                    Doc.ApplyTemplateTo(drop, this.props.Document, this.props.DataDoc);
-                    e.stopPropagation();
-                } else if (de.mods === "AltKey" && /*this.dataDoc !== this.props.Document &&*/ drop.data instanceof ImageField) {
+                if (de.mods === "AltKey" && /*this.dataDoc !== this.props.Document &&*/ drop.data instanceof ImageField) {
                     Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new ImageField(drop.data.url);
                     e.stopPropagation();
                 } else if (de.mods === "MetaKey") {
@@ -321,7 +318,7 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                 let rotation = NumCast(this.dataDoc.rotation) % 180;
                 let realsize = rotation === 90 || rotation === 270 ? { height: size.width, width: size.height } : size;
                 let aspect = realsize.height / realsize.width;
-                if (Math.abs(NumCast(layoutdoc.height) - realsize.height) > 1 || Math.abs(NumCast(layoutdoc.width) - realsize.width) > 1) {
+                if (layoutdoc.nativeHeight !== 0 && layoutdoc.nativeWidth !== 0 && (Math.abs(NumCast(layoutdoc.height) - realsize.height) > 1 || Math.abs(NumCast(layoutdoc.width) - realsize.width) > 1)) {
                     setTimeout(action(() => {
                         layoutdoc.height = layoutdoc[WidthSym]() * aspect;
                         layoutdoc.nativeHeight = realsize.height;
@@ -420,13 +417,13 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
                         width={nativeWidth}
                         ref={this._imgRef}
                         onError={this.onError} />
-                    {fadepath === srcpath ? (null) : <img id="fadeaway" className="fadeaway"
+                    {fadepath === srcpath ? (null) : <div className="imageBox-fadeBlocker"> <img className="imageBox-fadeaway"
                         key={"fadeaway" + this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
                         src={fadepath}
                         style={{ transform: `translate(0px, ${shift}px) rotate(${rotation}deg) scale(${aspect})` }}
                         width={nativeWidth}
                         ref={this._imgRef}
-                        onError={this.onError} />}
+                        onError={this.onError} /></div>}
                 </div>
                 {paths.length > 1 ? this.dots(paths) : (null)}
                 <div className="imageBox-audioBackground"

@@ -10,20 +10,17 @@ import { CollectionView } from "../../../client/views/collections/CollectionView
 import { Doc } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
-import { Cast, FieldValue, StrCast } from "../../../new_fields/Types";
-import { RouteStore } from "../../RouteStore";
+import { Cast, StrCast, PromiseValue } from "../../../new_fields/Types";
 import { Utils } from "../../../Utils";
+import { RouteStore } from "../../RouteStore";
 
 export class CurrentUserUtils {
-    private static curr_email: string;
     private static curr_id: string;
-    @observable private static user_document: Doc;
     //TODO tfs: these should be temporary...
     private static mainDocId: string | undefined;
 
-    public static get email() { return this.curr_email; }
     public static get id() { return this.curr_id; }
-    @computed public static get UserDocument() { return this.user_document; }
+    @computed public static get UserDocument() { return Doc.UserDoc(); }
     public static get MainDocId() { return this.mainDocId; }
     public static set MainDocId(id: string | undefined) { this.mainDocId = id; }
 
@@ -32,7 +29,7 @@ export class CurrentUserUtils {
         doc.viewType = CollectionViewType.Tree;
         doc.dropAction = "alias";
         doc.layout = CollectionView.LayoutString();
-        doc.title = this.email;
+        doc.title = Doc.CurrentUserEmail;
         this.updateUserDocument(doc);
         doc.data = new List<Doc>();
         doc.gridGap = 5;
@@ -41,8 +38,6 @@ export class CurrentUserUtils {
         doc.boxShadow = "0 0";
         doc.excludeFromLibrary = true;
         doc.optionalRightCollection = Docs.Create.StackingDocument([], { title: "New mobile uploads" });
-        // doc.library = Docs.Create.TreeDocument([doc], { title: `Library: ${CurrentUserUtils.email}` });
-        // (doc.library as Doc).excludeFromLibrary = true;
         return doc;
     }
 
@@ -54,11 +49,19 @@ export class CurrentUserUtils {
             workspaces.boxShadow = "0 0";
             doc.workspaces = workspaces;
         }
+        PromiseValue(Cast(doc.workspaces, Doc)).then(workspaces => workspaces && (workspaces.preventTreeViewOpen = true));
         if (doc.recentlyClosed === undefined) {
             const recentlyClosed = Docs.Create.TreeDocument([], { title: "Recently Closed", height: 75 });
             recentlyClosed.excludeFromLibrary = true;
             recentlyClosed.boxShadow = "0 0";
             doc.recentlyClosed = recentlyClosed;
+        }
+        PromiseValue(Cast(doc.recentlyClosed, Doc)).then(recent => recent && (recent.preventTreeViewOpen = true));
+        if (doc.curPresentation === undefined) {
+            const curPresentation = Docs.Create.PresDocument(new List<Doc>(), { title: "Presentation" });
+            curPresentation.excludeFromLibrary = true;
+            curPresentation.boxShadow = "0 0";
+            doc.curPresentation = curPresentation;
         }
         if (doc.sidebar === undefined) {
             const sidebar = Docs.Create.StackingDocument([doc.workspaces as Doc, doc, doc.recentlyClosed as Doc], { title: "Sidebar" });
@@ -72,6 +75,7 @@ export class CurrentUserUtils {
         }
         StrCast(doc.title).indexOf("@") !== -1 && (doc.title = StrCast(doc.title).split("@")[0] + "'s Library");
         doc.width = 100;
+        doc.preventTreeViewOpen = true;
     }
 
     public static loadCurrentUser() {
@@ -87,15 +91,15 @@ export class CurrentUserUtils {
 
     public static async loadUserDocument({ id, email }: { id: string, email: string }) {
         this.curr_id = id;
-        this.curr_email = email;
+        Doc.CurrentUserEmail = email;
         await rp.get(Utils.prepend(RouteStore.getUserDocumentId)).then(id => {
             if (id) {
                 return DocServer.GetRefField(id).then(async field => {
                     if (field instanceof Doc) {
                         await this.updateUserDocument(field);
-                        runInAction(() => this.user_document = field);
+                        runInAction(() => Doc.SetUserDoc(field));
                     } else {
-                        runInAction(() => this.user_document = this.createUserDocument(id));
+                        runInAction(() => Doc.SetUserDoc(this.createUserDocument(id)));
                     }
                 });
             } else {

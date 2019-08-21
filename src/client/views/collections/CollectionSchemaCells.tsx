@@ -40,6 +40,7 @@ export interface CellProps {
     fieldKey: string;
     renderDepth: number;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
+    pinToPres: (document: Doc) => void;
     moveDocument: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     isFocused: boolean;
     changeFocusedCellByIndex: (row: number, col: number) => void;
@@ -160,6 +161,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             PanelHeight: returnZero,
             PanelWidth: returnZero,
             addDocTab: this.props.addDocTab,
+            pinToPres: this.props.pinToPres,
             ContentScaling: returnOne
         };
 
