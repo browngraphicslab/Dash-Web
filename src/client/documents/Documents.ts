@@ -45,6 +45,7 @@ import { PresBox } from "../views/nodes/PresBox";
 import { ComputedField } from "../../new_fields/ScriptField";
 import { ProxyField } from "../../new_fields/Proxy";
 import { DocumentType } from "./DocumentTypes";
+import { LinkFollowBox } from "../views/linking/LinkFollowBox";
 //import { PresBox } from "../views/nodes/PresBox";
 //import { PresField } from "../../new_fields/PresField";
 var requestImageSize = require('../util/request-image-size');
@@ -169,6 +170,9 @@ export namespace Docs {
             [DocumentType.DRAGBOX, {
                 layout: { view: DragBox },
                 options: { width: 40, height: 40 },
+            }],
+            [DocumentType.LINKFOLLOW, {
+                layout: { view: LinkFollowBox }
             }]
         ]);
 

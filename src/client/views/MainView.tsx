@@ -40,6 +40,7 @@ import { PreviewCursor } from './PreviewCursor';
 import { FilterBox } from './search/FilterBox';
 import PresModeMenu from './presentationview/PresentationModeMenu';
 import { PresBox } from './nodes/PresBox';
+import { LinkFollowBox } from './linking/LinkFollowBox';
 
 @observer
 export class MainView extends React.Component {
@@ -54,6 +55,8 @@ export class MainView extends React.Component {
     @observable private dictationListeningState: DictationManager.Controls.ListeningUIStatus = false;
 
     public overlayTimeout: NodeJS.Timeout | undefined;
+
+    @observable private _linkFollowBox = false;
 
     public initiateDictationFade = () => {
         let duration = DictationManager.Commands.dictationFadeDuration;
@@ -498,6 +501,12 @@ export class MainView extends React.Component {
         this._colorPickerDisplay = close ? false : !this._colorPickerDisplay;
     }
 
+    @action
+    toggleLinkFollowBox = () => {
+        console.log("toggling link editor")
+        this._linkFollowBox = !this._linkFollowBox;
+    }
+
     /* @TODO this should really be moved into a moveable toolbar component, but for now let's put it here to meet the deadline */
     @computed
     get miscButtons() {
@@ -506,6 +515,7 @@ export class MainView extends React.Component {
         return [
             this.isSearchVisible ? <div className="main-searchDiv" key="search" style={{ top: '34px', right: '1px', position: 'absolute' }} > <FilterBox /> </div> : null,
             <div className="main-buttonDiv" key="logout" style={{ bottom: '0px', right: '1px', position: 'absolute' }} ref={logoutRef}>
+                <button onClick={this.toggleLinkFollowBox}>Open Link Editor</button>
                 <button onClick={() => window.location.assign(Utils.prepend(RouteStore.logout))}>Log Out</button></div>
         ];
 
@@ -564,6 +574,7 @@ export class MainView extends React.Component {
                 <PDFMenu />
                 <MainOverlayTextBox firstinstance={true} />
                 <OverlayView />
+                {/* <LinkFollowBox /> */}
             </div >
         );
     }

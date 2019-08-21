@@ -52,11 +52,11 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     // col = collection the doc is in
     // target = the document to center on
     @undoBatch
-    openLinkColRight = ({ col, target }: { col: Doc, target: Doc }) => {
+    openLinkColRight = (col: Doc) => {
         col = Doc.IsPrototype(col) ? Doc.MakeDelegate(col) : col;
         if (NumCast(col.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
-            const newPanX = NumCast(target.x) + NumCast(target.width) / NumCast(target.zoomBasis, 1) / 2;
-            const newPanY = NumCast(target.y) + NumCast(target.height) / NumCast(target.zoomBasis, 1) / 2;
+            const newPanX = NumCast(this.props.destinationDoc.x) + NumCast(this.props.destinationDoc.width) / NumCast(this.props.destinationDoc.zoomBasis, 1) / 2;
+            const newPanY = NumCast(this.props.destinationDoc.y) + NumCast(this.props.destinationDoc.height) / NumCast(this.props.destinationDoc.zoomBasis, 1) / 2;
             col.panX = newPanX;
             col.panY = newPanY;
         }
@@ -124,12 +124,12 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     // col = collection the doc is in
     // target = the document to center on
     @undoBatch
-    openLinkColTab = ({ col, target }: { col: Doc, target: Doc }) => {
+    openLinkColTab = (col: Doc) => {
         this.highlightDoc();
         col = Doc.IsPrototype(col) ? Doc.MakeDelegate(col) : col;
         if (NumCast(col.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
-            const newPanX = NumCast(target.x) + NumCast(target.width) / NumCast(target.zoomBasis, 1) / 2;
-            const newPanY = NumCast(target.y) + NumCast(target.height) / NumCast(target.zoomBasis, 1) / 2;
+            const newPanX = NumCast(this.props.destinationDoc.x) + NumCast(this.props.destinationDoc.width) / NumCast(this.props.destinationDoc.zoomBasis, 1) / 2;
+            const newPanY = NumCast(this.props.destinationDoc.y) + NumCast(this.props.destinationDoc.height) / NumCast(this.props.destinationDoc.zoomBasis, 1) / 2;
             col.panX = newPanX;
             col.panY = newPanY;
         }
