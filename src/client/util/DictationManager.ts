@@ -13,6 +13,7 @@ import { AudioField, ImageField } from "../../new_fields/URLField";
 import { HistogramField } from "../northstar/dash-fields/HistogramField";
 import { MainView } from "../views/MainView";
 import { Utils } from "../../Utils";
+import { RichTextField } from "../../new_fields/RichTextField";
 
 /**
  * This namespace provides a singleton instance of a manager that
@@ -300,11 +301,15 @@ export namespace DictationManager {
                 }
             }],
 
-            ["promote", {
+            ["create bulleted note", {
                 action: (target: DocumentView) => {
-                    console.log(target);
-                },
-                restrictTo: [DocumentType.TEXT]
+                    let newBox = Docs.Create.TextDocument({ width: 400, height: 200, title: "My Outline" });
+                    let proto = newBox.proto!;
+                    let proseMirrorState = '"{"doc":{"type":"doc","content":[{"type":"bullet_list","content":[{"type":"list_item","content":[{"type":"paragraph","content":[{"type":"text","text":""}]}]}]}]},"selection":{"type":"text","anchor":1,"head":1}}"';
+                    proto.data = new RichTextField(proseMirrorState);
+                    proto.backgroundColor = "#eeffff";
+                    target.props.addDocTab(newBox, proto, "onRight");
+                }
             }]
 
         ]);
