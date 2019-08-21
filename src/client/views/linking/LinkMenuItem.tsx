@@ -1,12 +1,12 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faEdit, faEye, faTimes, faArrowRight, faChevronDown, faChevronUp } from '@fortawesome/free-solid-svg-icons';
+import { faEdit, faEye, faTimes, faArrowRight, faChevronDown, faChevronUp, faGlobeAsia } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { observer } from "mobx-react";
 import { DocumentManager } from "../../util/DocumentManager";
 import { undoBatch } from "../../util/UndoManager";
 import './LinkMenu.scss';
 import React = require("react");
-import { Doc, DocListCastAsync } from '../../../new_fields/Doc';
+import { Doc, DocListCastAsync, WidthSym } from '../../../new_fields/Doc';
 import { StrCast, Cast, FieldValue, NumCast } from '../../../new_fields/Types';
 import { observable, action } from 'mobx';
 import { LinkManager } from '../../util/LinkManager';
@@ -138,27 +138,29 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         SelectionManager.DeselectAll();
     }
 
+    // DONE
     // this will open a link next to the source doc
     @undoBatch
     openLinkInPlace = () => {
         this.highlightDoc();
 
         let alias = Doc.MakeAlias(this.props.destinationDoc);
-        let y = this.props.sourceDoc.y;
-        let x = this.props.sourceDoc.x;
-        let parentView: any = undefined;
-        let parentDoc: Doc = this.props.sourceDoc;
+        let y = NumCast(this.props.sourceDoc.y);
+        let x = NumCast(this.props.sourceDoc.x);
+
+        let width = NumCast(this.props.sourceDoc.width);
+        let height = NumCast(this.props.sourceDoc.height);
+
+        alias.x = x + width + 30;
+        alias.y = y;
+        alias.width = width;
+        alias.height = height;
 
         SelectionManager.SelectedDocuments().map(dv => {
             if (dv.props.Document === this.props.sourceDoc) {
-                parentView = dv.props.ContainingCollectionView;
+                dv.props.addDocument && dv.props.addDocument(alias, false);
             }
         });
-
-        if (parentView) {
-            // console.log(parentDoc)
-            console.log(parentView.props.addDocument);
-        }
     }
 
     //set this to be the default link behavior, can be any of the above
