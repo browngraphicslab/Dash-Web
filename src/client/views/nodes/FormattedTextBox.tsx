@@ -389,9 +389,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 };
             }
             let redo = async () => {
-                if (this._editorView && reference) {
-                    let data = Cast(this.dataDoc.data, RichTextField);
-                    let content = data ? data[ToPlainText]() : this._editorView.state.doc.textContent;
+                let data = Cast(this.dataDoc.data, RichTextField);
+                if (this._editorView && reference && data) {
+                    let content = data[ToPlainText]();
                     let response = await GoogleApiClientUtils.Docs.write({ reference, content, mode });
                     let pushSuccess = response !== undefined && !("errors" in response);
                     dataDoc.unchanged = pushSuccess;

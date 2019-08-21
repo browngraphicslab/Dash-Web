@@ -213,7 +213,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 let proto = newBox.proto!;
                 proto.autoHeight = true;
                 proto[GoogleRef] = matches[2];
-                proto.data = "Please select and then click on this document's pull button to load its contents from from Google Docs...";
+                proto.data = "Please select this document and then click on its pull button to load its contents from from Google Docs...";
                 proto.backgroundColor = "#eeeeff";
                 this.props.addDocument(newBox);
                 return;
