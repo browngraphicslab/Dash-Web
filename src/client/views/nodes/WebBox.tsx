@@ -26,6 +26,8 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { CollectionView } from "../collections/CollectionView";
 import { CollectionPDFView } from "../collections/CollectionPDFView";
 import { CollectionVideoView } from "../collections/CollectionVideoView";
+import { DocumentView } from "./DocumentView";
+import { FormattedTextBox } from "./FormattedTextBox";
 
 library.add(faStickyNote)
 
@@ -85,13 +87,14 @@ export class WebBox extends React.Component<FieldViewProps> {
         let field = Cast(this.props.Document[this.props.fieldKey], WebField);
         if (field) url = field.url.href;
 
-        let parent: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
+        let docView: DocumentView;
         // let parentDoc: any;
         SelectionManager.SelectedDocuments().map(dv => {
-            parent = dv.props.ContainingCollectionView;
-            // if(parent) parentDoc = parent.props.Document;
+            // docView = dv;
             dv.props.removeDocument && dv.props.removeDocument(dv.props.Document);
         });
+
+        console.log("happening")
 
         // // let newPoint = PreviewCursor._getTransform().transformPoint(PreviewCursor._clickPoint[0], PreviewCursor._clickPoint[1]);
         let newBox = Docs.Create.TextDocument({
@@ -103,13 +106,16 @@ export class WebBox extends React.Component<FieldViewProps> {
             title: url
         });
 
-        console.log(newBox)
-        if (parent) {
-            let parentDoc: Doc = parent.props.Document;
-            if (parentDoc && parentDoc.props) {
-                parentDoc.props.addDocument();
-            }
-        }
+        console.log(typeof newBox)
+
+        // const script = KeyValueBox.CompileKVPScript(`new RichTextField("{"doc":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"${url}"}]}]},"selection":{"type":"text","anchor":1,"head":1}}")`);
+        // const script = KeyValueBox.CompileKVPScript(newBox.setText(url))
+        // console.log(script)
+        // if (!script) return;
+        // KeyValueBox.ApplyKVPScript(this.props.Document, "data", script);
+
+        console.log(newBox);
+
 
         newBox.proto!.autoHeight = true;
         // PreviewCursor._addLiveTextDoc(newBox);

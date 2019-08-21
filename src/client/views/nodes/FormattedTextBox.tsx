@@ -162,6 +162,13 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
+    public setText = (text: string) => {
+        const tx = this._editorView!.state.tr.insertText(text);
+        const state = this._editorView!.state;
+        this._editorView!.dispatch(tx);
+        return new RichTextField(JSON.stringify(state.toJSON()));
+    }
+
     dispatchTransaction = (tx: Transaction) => {
         if (this._editorView) {
             const state = this._editorView.state.apply(tx);
