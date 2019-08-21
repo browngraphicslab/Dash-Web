@@ -1,6 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faEdit, faSmile, faTextHeight, faUpload } from '@fortawesome/free-solid-svg-icons';
-import { action, computed, IReactionDisposer, Lambda, observable, reaction, runInAction } from "mobx";
+import { action, computed, IReactionDisposer, Lambda, observable, reaction, runInAction, autorun } from "mobx";
 import { observer } from "mobx-react";
 import { baseKeymap } from "prosemirror-commands";
 import { history } from "prosemirror-history";
@@ -87,7 +87,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     private pushReactionDisposer: Opt<IReactionDisposer>;
     private dropDisposer?: DragManager.DragDropDisposer;
     public get CurrentDiv(): HTMLDivElement { return this._ref.current!; }
-    private isGoogleDocsUpdate = false;
     @observable _entered = false;
 
     @observable public static InputBoxOverlay?: FormattedTextBox = undefined;
@@ -321,7 +320,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     private newListItems = (count: number) => {
         let listItems: any[] = [];
         for (let i = 0; i < count; i++) {
-            listItems.push(schema.nodes.list_item.create(null, schema.nodes.paragraph.create(null)));
+            listItems.push(schema.nodes.list_item.create(undefined, schema.nodes.paragraph.create()));
         }
         return listItems;
     }
@@ -359,7 +358,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
 
         this.pullFromGoogleDoc(this.checkState);
-        runInAction(() => DocumentDecorations.Instance.isAnimatingFetch = true);
+        this.dataDoc[GoogleRef] && this.dataDoc.unchanged && runInAction(() => DocumentDecorations.Instance.isAnimatingFetch = true);
 
         this._reactionDisposer = reaction(
             () => {
@@ -370,13 +369,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 if (this._editorView && !this._applyingChange) {
                     let updatedState = JSON.parse(incomingValue);
                     this._editorView.updateState(EditorState.fromJSON(config, updatedState));
-                    // manually sets cursor selection at the end of the text on focus
-                    if (this.isGoogleDocsUpdate) {
-                        this.isGoogleDocsUpdate = false;
-                        let end = this._editorView.state.doc.content.size - 1;
-                        updatedState.selection = { type: "text", anchor: end, head: end };
-                        this._editorView.updateState(EditorState.fromJSON(config, updatedState));
-                    }
+                    this.tryUpdateHeight();
                 }
             }
         );
@@ -485,16 +478,22 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             const data = Cast(dataDoc.data, RichTextField);
             if (data instanceof RichTextField) {
                 pullSuccess = true;
-                this.isGoogleDocsUpdate = true;
                 dataDoc.data = new RichTextField(data[FromPlainText](exportState.body));
+                setTimeout(() => {
+                    if (this._editorView) {
+                        let state = this._editorView.state;
+                        let end = state.doc.content.size - 1;
+                        this._editorView.dispatch(state.tr.setSelection(TextSelection.create(state.doc, end, end)));
+                    }
+                }, 0);
                 dataDoc.title = exportState.title;
+                this.Document.customTitle = true;
                 dataDoc.unchanged = true;
             }
         } else {
             delete dataDoc[GoogleRef];
         }
         DocumentDecorations.Instance.startPullOutcome(pullSuccess);
-        setTimeout(() => this.tryUpdateHeight(), 0);
     }
 
     checkState = (exportState: GoogleApiClientUtils.Docs.ReadResult, dataDoc: Doc) => {
@@ -719,6 +718,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     onFocused = (e: React.FocusEvent): void => {
         document.removeEventListener("keypress", this.recordKeyHandler);
         document.addEventListener("keypress", this.recordKeyHandler);
+        this.tryUpdateHeight();
         if (!this.props.isOverlay) {
             FormattedTextBox.InputBoxOverlay = this;
         } else {
