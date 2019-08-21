@@ -694,6 +694,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let canPush = this.targetDoc.data && this.targetDoc.data instanceof RichTextField;
         if (!canPush) return (null);
         let published = Doc.GetProto(this.targetDoc)[GoogleRef] !== undefined;
+        if (!published) {
+            this.targetDoc.autoHeight = true;
+        }
         let icon: IconProp = published ? (this.pushIcon as any) : cloud;
         return (
             <div className={"linkButtonWrapper"}>
