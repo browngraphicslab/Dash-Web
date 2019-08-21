@@ -815,7 +815,7 @@ const EndpointHandlerMap = new Map<Action, ApiHandler>([
 
 app.post(RouteStore.googleDocs + ":action", (req, res) => {
     GoogleApiServerUtils.Docs.GetEndpoint({ credentials, token }).then(endpoint => {
-        let handler = EndpointHandlerMap.get(req.params.action);
+        let handler = EndpointHandlerMap.get(req.params.action as Action);
         if (handler) {
             let execute = handler(endpoint.documents, req.body).then(
                 response => res.send(response.data),
