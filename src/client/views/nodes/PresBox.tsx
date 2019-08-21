@@ -116,9 +116,9 @@ export class PresBox extends React.Component<FieldViewProps> { //FieldViewProps?
 
         let presDocs = DocListCast(this.curPresentation.data);
         for (; nextSelected < presDocs.length - 1; nextSelected++) {
-            if (!this.presElementsMappings.get(presDocs[nextSelected + 1])!.props.document.groupButton)
+            if (!this.presElementsMappings.get(presDocs[nextSelected + 1])!.props.document.groupButton) {
                 break;
-
+            }
         }
 
         this.gotoDocument(nextSelected, current);
@@ -239,8 +239,9 @@ export class PresBox extends React.Component<FieldViewProps> { //FieldViewProps?
         let nextSelected = presDocs.indexOf(curDoc);
         let currentDocGroups: Doc[] = [];
         for (; nextSelected < presDocs.length - 1; nextSelected++) {
-            if (!this.presElementsMappings.get(presDocs[nextSelected + 1])!.props.document.groupButton)
+            if (!this.presElementsMappings.get(presDocs[nextSelected + 1])!.props.document.groupButton) {
                 break;
+            }
             currentDocGroups.push(presDocs[nextSelected]);
         }
 

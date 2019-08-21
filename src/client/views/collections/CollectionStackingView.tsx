@@ -291,10 +291,10 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             let layoutDoc = Doc.expandTemplateLayout(d, this.props.DataDoc);
             let width = () => (d.nativeWidth && !d.ignoreAspect && !this.props.Document.fillColumn ? Math.min(d[WidthSym](), this.columnWidth) : this.columnWidth);/// (uniqueHeadings.length + 1);
             let height = () => this.getDocHeight(layoutDoc);
-            let dxf = () => this.getDocTransform(layoutDoc, dref.current!);
+            let dxf = () => this.getDocTransform(layoutDoc!, dref.current!);
             let rowSpan = Math.ceil((height() + this.gridGap) / this.gridGap);
             this._docXfs.push({ dxf: dxf, width: width, height: height });
-            return <div className="collectionStackingView-masonryDoc" key={d[Id]} ref={dref} style={{ gridRowEnd: `span ${rowSpan}` }} >
+            return !layoutDoc ? (null) : <div className="collectionStackingView-masonryDoc" key={d[Id]} ref={dref} style={{ gridRowEnd: `span ${rowSpan}` }} >
                 {this.getDisplayDoc(layoutDoc, d, dxf, width)}
             </div>;
         });

@@ -261,8 +261,6 @@ export default class PresentationElement extends React.Component<PresentationEle
 
     //This is used to remove the dragging when dropped.
     onPointerLeave = (e: React.PointerEvent): void => {
-        //to get currently selected presentation doc
-
         this.header!.className = "presentationView-item";
 
         if (this.currentIndex === this.props.index) {

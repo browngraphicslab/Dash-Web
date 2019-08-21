@@ -23,14 +23,11 @@
     user-select: none;
     transition: all .1s;
 
-    
-
     .documentView-node {
         
         position: absolute;
         z-index: 1;
     }
-
 }
 
 .presentationView-item-above {
@@ -73,7 +70,6 @@
     display: inline-block;
     width: calc(100% - 200px);
     letter-spacing: 2px;
-
 }
 
 .presentation-icon {
