@@ -274,7 +274,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
         e.stopPropagation();
         e.preventDefault();
-        e.which === 174 && e.altKey && this.recordBullet();
+        e.key === "R" && this.recordBullet();
     }
 
     recordBullet = async () => {
@@ -282,7 +282,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         let results = await DictationManager.Controls.listen({
             interimHandler: this.setCurrentBulletContent,
             continuous: { indefinite: false },
-            terminators: [completedCue, "bullet", "next"]
+            // terminators: [completedCue, "bullet", "next"]
         });
         if (results && [DictationManager.Controls.Infringed, completedCue].includes(results)) {
             DictationManager.Controls.stop();
