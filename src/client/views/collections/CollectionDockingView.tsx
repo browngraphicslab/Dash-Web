@@ -29,6 +29,8 @@ import { faFile, faUnlockAlt } from '@fortawesome/free-solid-svg-icons';
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
 import { Docs } from '../../documents/Documents';
 import { DateField } from '../../../new_fields/DateField';
+import { List } from '../../../new_fields/List';
+import { DocumentType } from '../../documents/DocumentTypes';
 library.add(faFile);
 
 @observer
@@ -160,6 +162,14 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         this._ignoreStateChange = JSON.stringify(this._goldenLayout.toConfig());
         if (removed) CollectionDockingView.Instance._removedDocs.push(removed);
         this.stateChanged();
+    }
+
+    public Has = (document: Doc) => {
+        let docs = Cast(this.props.Document.data, listSpec(Doc));
+        if (!docs) {
+            return false;
+        }
+        return docs.includes(document);
     }
 
     //
@@ -535,6 +545,27 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         }));
     }
 
+    /**
+     * Adds a document to the presentation view
+     **/
+    @undoBatch
+    @action
+    public PinDoc(doc: Doc) {
+        //add this new doc to props.Document
+        let curPres = Cast(CurrentUserUtils.UserDocument.curPresentation, Doc) as Doc;
+        if (curPres) {
+            const data = Cast(curPres.data, listSpec(Doc));
+            if (data) {
+                data.push(doc);
+            } else {
+                curPres.data = new List([doc]);
+            }
+            if (!DocumentManager.Instance.getDocumentView(curPres)) {
+                this.addDocTab(curPres, undefined, "onRight");
+            }
+        }
+    }
+
     componentDidMount() {
         this.props.glContainer.layoutManager.on("activeContentItemChanged", this.onActiveContentItemChanged);
         this.props.glContainer.on("tab", this.onActiveContentItemChanged);
@@ -569,7 +600,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
 
     ScreenToLocalTransform = () => {
-        if (this._mainCont && this._mainCont!.children) {
+        if (this._mainCont && this._mainCont.children) {
             let { scale, translateX, translateY } = Utils.GetScreenTransform(this._mainCont.children[0].firstChild as HTMLElement);
             scale = Utils.GetScreenTransform(this._mainCont).scale;
             return CollectionDockingView.Instance.props.ScreenToLocalTransform().translate(-translateX, -translateY).scale(1 / this.contentScaling() / scale);
@@ -583,6 +614,8 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             MainView.Instance.openWorkspace(doc);
         } else if (location === "onRight") {
             CollectionDockingView.Instance.AddRightSplit(doc, dataDoc);
+        } else if (location === "close") {
+            CollectionDockingView.Instance.CloseRightSplit(doc);
         } else {
             CollectionDockingView.Instance.AddTab(this._stack, doc, dataDoc);
         }
@@ -609,6 +642,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             focus={emptyFunction}
             backgroundColor={returnEmptyString}
             addDocTab={this.addDocTab}
+            pinToPres={this.PinDoc}
             ContainingCollectionView={undefined}
             zoomToScale={emptyFunction}
             getScale={returnOne} />;

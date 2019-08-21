@@ -1,5 +1,5 @@
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faLink, faTag, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { library, IconProp } from '@fortawesome/fontawesome-svg-core';
+import { faLink, faTag, faTimes, faArrowAltCircleDown, faArrowAltCircleUp, faCheckCircle, faStopCircle, faCloudUploadAlt, faSyncAlt, faShare } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
@@ -18,7 +18,7 @@ import { CollectionView } from "./collections/CollectionView";
 import './DocumentDecorations.scss';
 import { DocumentView, PositionDocument } from "./nodes/DocumentView";
 import { FieldView } from "./nodes/FieldView";
-import { FormattedTextBox } from "./nodes/FormattedTextBox";
+import { FormattedTextBox, GoogleRef } from "./nodes/FormattedTextBox";
 import { IconBox } from "./nodes/IconBox";
 import { LinkMenu } from "./nodes/LinkMenu";
 import { TemplateMenu } from "./TemplateMenu";
@@ -26,10 +26,10 @@ import { Template, Templates } from "./Templates";
 import React = require("react");
 import { RichTextField } from '../../new_fields/RichTextField';
 import { LinkManager } from '../util/LinkManager';
-import { ObjectField } from '../../new_fields/ObjectField';
 import { MetadataEntryMenu } from './MetadataEntryMenu';
 import { ImageBox } from './nodes/ImageBox';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
+import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -37,6 +37,16 @@ export const Flyout = higflyout.default;
 library.add(faLink);
 library.add(faTag);
 library.add(faTimes);
+library.add(faArrowAltCircleDown);
+library.add(faArrowAltCircleUp);
+library.add(faStopCircle);
+library.add(faCheckCircle);
+library.add(faCloudUploadAlt);
+library.add(faSyncAlt);
+library.add(faShare);
+
+const cloud: IconProp = "cloud-upload-alt";
+const fetch: IconProp = "sync-alt";
 
 @observer
 export class DocumentDecorations extends React.Component<{}, { value: string }> {
@@ -67,6 +77,52 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @observable private _removeIcon = false;
     @observable public Interacting = false;
     @observable private _isMoving = false;
+
+    @observable public pushIcon: IconProp = "arrow-alt-circle-up";
+    @observable public pullIcon: IconProp = "arrow-alt-circle-down";
+    @observable public pullColor: string = "white";
+    @observable public isAnimatingFetch = false;
+    @observable public openHover = false;
+    public pullColorAnimating = false;
+
+    private pullAnimating = false;
+    private pushAnimating = false;
+
+    public startPullOutcome = action((success: boolean) => {
+        if (!this.pullAnimating) {
+            this.pullAnimating = true;
+            this.pullIcon = success ? "check-circle" : "stop-circle";
+            setTimeout(() => runInAction(() => {
+                this.pullIcon = "arrow-alt-circle-down";
+                this.pullAnimating = false;
+            }), 1000);
+        }
+    });
+
+    public startPushOutcome = action((success: boolean) => {
+        if (!this.pushAnimating) {
+            this.pushAnimating = true;
+            this.pushIcon = success ? "check-circle" : "stop-circle";
+            setTimeout(() => runInAction(() => {
+                this.pushIcon = "arrow-alt-circle-up";
+                this.pushAnimating = false;
+            }), 1000);
+        }
+    });
+
+    public setPullState = action((unchanged: boolean) => {
+        this.isAnimatingFetch = false;
+        if (!this.pullColorAnimating) {
+            this.pullColorAnimating = true;
+            this.pullColor = unchanged ? "lawngreen" : "red";
+            setTimeout(this.clearPullColor, 1000);
+        }
+    });
+
+    private clearPullColor = action(() => {
+        this.pullColor = "white";
+        this.pullColorAnimating = false;
+    });
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -630,6 +686,76 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         );
     }
 
+    private get targetDoc() {
+        return SelectionManager.SelectedDocuments()[0].props.Document;
+    }
+
+    considerGoogleDocsPush = () => {
+        let canPush = this.targetDoc.data && this.targetDoc.data instanceof RichTextField;
+        if (!canPush) return (null);
+        let published = Doc.GetProto(this.targetDoc)[GoogleRef] !== undefined;
+        if (!published) {
+            this.targetDoc.autoHeight = true;
+        }
+        let icon: IconProp = published ? (this.pushIcon as any) : cloud;
+        return (
+            <div className={"linkButtonWrapper"}>
+                <div title={`${published ? "Push" : "Publish"} to Google Docs`} className="linkButton-linker" onClick={() => {
+                    DocumentDecorations.hasPushedHack = false;
+                    this.targetDoc[Pushes] = NumCast(this.targetDoc[Pushes]) + 1;
+                }}>
+                    <FontAwesomeIcon className="documentdecorations-icon" icon={icon} size={published ? "sm" : "xs"} />
+                </div>
+            </div>
+        );
+    }
+
+    considerGoogleDocsPull = () => {
+        let canPull = this.targetDoc.data && this.targetDoc.data instanceof RichTextField;
+        let dataDoc = Doc.GetProto(this.targetDoc);
+        if (!canPull || !dataDoc[GoogleRef]) return (null);
+        let icon = !dataDoc.unchanged ? (this.pullIcon as any) : fetch;
+        icon = this.openHover ? "share" : icon;
+        let animation = this.isAnimatingFetch ? "spin 0.5s linear infinite" : "none";
+        let title = `${!dataDoc.unchanged ? "Pull from" : "Fetch"} Google Docs`;
+        return (
+            <div className={"linkButtonWrapper"}>
+                <div
+                    title={title}
+                    className="linkButton-linker"
+                    style={{
+                        backgroundColor: this.pullColor,
+                        transition: "0.2s ease all"
+                    }}
+                    onPointerEnter={e => e.ctrlKey && runInAction(() => this.openHover = true)}
+                    onPointerLeave={() => runInAction(() => this.openHover = false)}
+                    onClick={e => {
+                        if (e.ctrlKey) {
+                            window.open(`https://docs.google.com/document/d/${dataDoc[GoogleRef]}/edit`);
+                        } else {
+                            this.clearPullColor();
+                            DocumentDecorations.hasPulledHack = false;
+                            this.targetDoc[Pulls] = NumCast(this.targetDoc[Pulls]) + 1;
+                            dataDoc.unchanged && runInAction(() => this.isAnimatingFetch = true);
+                        }
+                    }}>
+                    <FontAwesomeIcon
+                        style={{
+                            WebkitAnimation: animation,
+                            MozAnimation: animation
+                        }}
+                        className="documentdecorations-icon"
+                        icon={icon}
+                        size="sm"
+                    />
+                </div>
+            </div>
+        );
+    }
+
+    public static hasPushedHack = false;
+    public static hasPulledHack = false;
+
     considerTooltip = () => {
         let thisDoc = SelectionManager.SelectedDocuments()[0].props.Document;
         let isTextDoc = thisDoc.data && thisDoc.data instanceof RichTextField;
@@ -783,6 +909,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     </div>
                     {this.metadataMenu}
                     {this.considerEmbed()}
+                    {this.considerGoogleDocsPush()}
+                    {this.considerGoogleDocsPull()}
                     {/* {this.considerTooltip()} */}
                 </div>
             </div >

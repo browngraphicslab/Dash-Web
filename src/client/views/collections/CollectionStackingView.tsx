@@ -11,7 +11,7 @@ import { listSpec } from "../../../new_fields/Schema";
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import { BoolCast, Cast, NumCast, StrCast, ScriptCast } from "../../../new_fields/Types";
 import { emptyFunction, Utils, numberRange } from "../../../Utils";
-import { DocumentType } from "../../documents/Documents";
+import { DocumentType } from "../../documents/DocumentTypes";
 import { DragManager } from "../../util/DragManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
@@ -155,11 +155,13 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             active={this.props.active}
             whenActiveChanged={this.props.whenActiveChanged}
             addDocTab={this.props.addDocTab}
+            pinToPres={this.props.pinToPres}
             setPreviewScript={emptyFunction}
             previewScript={undefined}>
         </CollectionSchemaPreview>;
     }
-    getDocHeight(d: Doc) {
+    getDocHeight(d?: Doc) {
+        if (!d) return 0;
         let nw = NumCast(d.nativeWidth);
         let nh = NumCast(d.nativeHeight);
         if (!d.ignoreAspect && nw && nh) {

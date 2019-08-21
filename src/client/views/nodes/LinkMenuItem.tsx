@@ -94,7 +94,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         let dockingFunc = (document: Doc) => { this.props.addDocTab(document, undefined, "inTab"); SelectionManager.DeselectAll(); };
 
         if (this.props.destinationDoc === self.props.linkDoc.anchor2 && targetContext) {
-            DocumentManager.Instance.jumpToDocument(jumpToDoc, shouldZoom, false, async document => dockingFunc(document), undefined, targetContext!);
+            DocumentManager.Instance.jumpToDocument(jumpToDoc, shouldZoom, false, async document => dockingFunc(document), undefined, targetContext);
         }
         else if (this.props.destinationDoc === self.props.linkDoc.anchor1 && sourceContext) {
             DocumentManager.Instance.jumpToDocument(jumpToDoc, shouldZoom, false, document => dockingFunc(sourceContext!));

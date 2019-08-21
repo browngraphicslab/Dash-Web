@@ -36,8 +36,8 @@ import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCurso
 import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
-import { DocumentType, Docs } from "../../../documents/Documents";
-import { PreviewCursor } from "../../PreviewCursor";
+import { Docs } from "../../../documents/Documents";
+import { DocumentType } from "../../../documents/DocumentTypes";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard);
 
@@ -622,20 +622,19 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     getScale = () => this.Document.scale ? this.Document.scale : 1;
 
-    getChildDocumentViewProps(childDocLayout: Doc): DocumentViewProps {
-        let pair = Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, this.props.fieldKey, childDocLayout);
+    getChildDocumentViewProps(childLayout: Doc, childData?: Doc): DocumentViewProps {
         return {
-            DataDoc: pair.data,
-            Document: pair.layout,
+            DataDoc: childData,
+            Document: childLayout,
             addDocument: this.props.addDocument,
             removeDocument: this.props.removeDocument,
             moveDocument: this.props.moveDocument,
             onClick: this.props.onClick,
-            ScreenToLocalTransform: pair.layout.z ? this.getTransformOverlay : this.getTransform,
+            ScreenToLocalTransform: childLayout.z ? this.getTransformOverlay : this.getTransform,
             renderDepth: this.props.renderDepth + 1,
-            selectOnLoad: pair.layout[Id] === this._selectOnLoaded,
-            PanelWidth: pair.layout[WidthSym],
-            PanelHeight: pair.layout[HeightSym],
+            selectOnLoad: childLayout[Id] === this._selectOnLoaded,
+            PanelWidth: childLayout[WidthSym],
+            PanelHeight: childLayout[HeightSym],
             ContentScaling: returnOne,
             ContainingCollectionView: this.props.CollectionView,
             focus: this.focusDocument,
@@ -644,6 +643,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             whenActiveChanged: this.props.whenActiveChanged,
             bringToFront: this.bringToFront,
             addDocTab: this.props.addDocTab,
+            pinToPres: this.props.pinToPres,
             zoomToScale: this.zoomToScale,
             getScale: this.getScale
         };
@@ -669,6 +669,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             whenActiveChanged: this.props.whenActiveChanged,
             bringToFront: this.bringToFront,
             addDocTab: this.props.addDocTab,
+            pinToPres: this.props.pinToPres,
             zoomToScale: this.zoomToScale,
             getScale: this.getScale
         };
@@ -743,12 +744,15 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     const pos = script ? this.getCalculatedPositions(script, { doc, index: prev.length, collection: this.Document, docs, state }) :
                         { x: Cast(doc.x, "number"), y: Cast(doc.y, "number"), z: Cast(doc.z, "number"), width: Cast(doc.width, "number"), height: Cast(doc.height, "number") };
                     state = pos.state === undefined ? state : pos.state;
-                    prev.push({
-                        ele: <CollectionFreeFormDocumentView key={doc[Id]}
-                            x={script ? pos.x : undefined} y={script ? pos.y : undefined}
-                            width={script ? pos.width : undefined} height={script ? pos.height : undefined} {...this.getChildDocumentViewProps(doc)} />,
-                        bounds: (pos.x !== undefined && pos.y !== undefined) ? { x: pos.x, y: pos.y, z: pos.z, width: NumCast(pos.width), height: NumCast(pos.height) } : undefined
-                    });
+                    let pair = Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, this.props.fieldKey, doc);
+                    if (pair.layout && !(pair.data instanceof Promise)) {
+                        prev.push({
+                            ele: <CollectionFreeFormDocumentView key={doc[Id]}
+                                x={script ? pos.x : undefined} y={script ? pos.y : undefined}
+                                width={script ? pos.width : undefined} height={script ? pos.height : undefined} {...this.getChildDocumentViewProps(pair.layout, pair.data)} />,
+                            bounds: (pos.x !== undefined && pos.y !== undefined) ? { x: pos.x, y: pos.y, z: pos.z, width: NumCast(pos.width), height: NumCast(pos.height) } : undefined
+                        });
+                    }
                 }
             }
             return prev;

@@ -1,30 +1,25 @@
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { action, computed, observable, runInAction } from "mobx";
+import { observer } from "mobx-react";
 import * as React from "react";
+import { Doc, DocListCast } from "../../../new_fields/Doc";
+import { Id } from "../../../new_fields/FieldSymbols";
+import { List } from "../../../new_fields/List";
+import { listSpec } from "../../../new_fields/Schema";
+import { ScriptField } from "../../../new_fields/ScriptField";
+import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { Utils } from "../../../Utils";
+import { DragManager } from "../../util/DragManager";
+import { CompileScript } from "../../util/Scripting";
+import { undoBatch } from "../../util/UndoManager";
+import { EditableView } from "../EditableView";
+import { COLLECTION_BORDER_WIDTH } from "../globalCssVariables.scss";
+import { DocLike } from "../MetadataEntryMenu";
+import { CollectionViewType } from "./CollectionBaseView";
 import { CollectionView } from "./CollectionView";
 import "./CollectionViewChromes.scss";
-import { CollectionViewType } from "./CollectionBaseView";
-import { undoBatch } from "../../util/UndoManager";
-import { action, observable, runInAction, computed, IObservable, IObservableValue, reaction, autorun } from "mobx";
-import { observer } from "mobx-react";
-import { Doc, DocListCast, FieldResult } from "../../../new_fields/Doc";
-import { DocLike } from "../MetadataEntryMenu";
-import * as Autosuggest from 'react-autosuggest';
-import { EditableView } from "../EditableView";
-import { StrCast, NumCast, BoolCast, Cast } from "../../../new_fields/Types";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Utils } from "../../../Utils";
 import KeyRestrictionRow from "./KeyRestrictionRow";
-import { CompileScript } from "../../util/Scripting";
-import { ScriptField } from "../../../new_fields/ScriptField";
-import { CollectionSchemaView } from "./CollectionSchemaView";
-import { COLLECTION_BORDER_WIDTH } from "../globalCssVariables.scss";
-import { listSpec } from "../../../new_fields/Schema";
-import { List } from "../../../new_fields/List";
-import { Id } from "../../../new_fields/FieldSymbols";
-import { threadId } from "worker_threads";
-import { DragManager } from "../../util/DragManager";
 const datepicker = require('js-datepicker');
-import * as $ from 'jquery';
-import { firebasedynamiclinks } from "googleapis/build/src/apis/firebasedynamiclinks";
 
 interface CollectionViewChromeProps {
     CollectionView: CollectionView;
@@ -51,7 +46,6 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     @computed private get filterValue() { return Cast(this.props.CollectionView.props.Document.viewSpecScript, ScriptField); }
 
     private _picker: any;
-    private _datePickerElGuid = Utils.GenerateGuid();
 
     getFilters = (script: string) => {
         let re: any = /(!)?\(\(\(doc\.(\w+)\s+&&\s+\(doc\.\w+\s+as\s+\w+\)\.includes\(\"(\w+)\"\)/g;
@@ -91,11 +85,6 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     }
 
     componentDidMount = () => {
-        setTimeout(() => this._picker = datepicker("#" + this._datePickerElGuid, {
-            disabler: (date: Date) => date > new Date(),
-            onSelect: (instance: any, date: Date) => runInAction(() => this._dateValue = date),
-            dateSelected: new Date()
-        }), 1000);
 
         let fields: Filter[] = [];
         if (this.filterValue) {
@@ -172,8 +161,6 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     applyFilter = (e: React.MouseEvent) => {
 
         this.openViewSpecs(e);
-
-        console.log(this._keyRestrictions)
 
         let keyRestrictionScript = "(" + this._keyRestrictions.map(i => i[1]).filter(i => i.length > 0).join(" && ") + ")";
         let yearOffset = this._dateWithinValue[1] === 'y' ? 1 : 0;
@@ -308,6 +295,15 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
         this.addKeyRestrictions([]);
     }
 
+    datePickerRef = (node: HTMLInputElement) => {
+        if (node) {
+            this._picker = datepicker("#" + node.id, {
+                disabler: (date: Date) => date > new Date(),
+                onSelect: (instance: any, date: Date) => runInAction(() => this._dateValue = date),
+                dateSelected: new Date()
+            });
+        }
+    }
     render() {
         let collapsed = this.props.CollectionView.props.Document.chromeStatus !== "enabled";
         return (
@@ -368,7 +364,8 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                                         <option value="1y">1 year of</option>
                                     </select>
                                     <input className="collectionViewBaseChrome-viewSpecsMenu-rowRight"
-                                        id={this._datePickerElGuid}
+                                        id={Utils.GenerateGuid()}
+                                        ref={this.datePickerRef}
                                         value={this._dateValue instanceof Date ? this._dateValue.toLocaleDateString() : this._dateValue}
                                         onChange={(e) => runInAction(() => this._dateValue = e.target.value)}
                                         onPointerDown={this.openDatePicker}

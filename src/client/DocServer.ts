@@ -33,6 +33,8 @@ export namespace DocServer {
         LivePlayground = 3,
     }
 
+    export let AclsMode = WriteMode.Default;
+
     const fieldWriteModes: { [field: string]: WriteMode } = {};
     const docsWithUpdates: { [field: string]: Set<Doc> } = {};
 
