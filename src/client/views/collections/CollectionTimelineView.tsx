@@ -115,7 +115,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         markerUnit.element = (< div ref={(el) => el ? markerUnit.ref = el : null} onDoubleClick={(e) => this.doubleclick(e, markerUnit)} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, String(markerUnit.document.annotation), markerUnit)}
             style={{
                 top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid" + String(markerUnit.document.color),
-                width: NumCast(doc.initialWidth), height: "30px", backgroundColor: String(markerUnit.document.color), zIndex: 5, opacity: 0.5,
+                width: NumCast(doc.initialWidth), height: "30px", backgroundColor: String(markerUnit.document.color), zIndex: 5, opacity: 0.5, padding: "2px",
                 position: "absolute", left: NumCast(doc.initialLeft),
             }}>
             <EditableView
@@ -124,6 +124,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 GetValue={() => ""}
                 display={"inline"}
                 height={30}
+                oneLine={true}
             />
         </div>);
         if (markerUnit.document.sortstate === this.sortstate) {
@@ -239,7 +240,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     @action
     doubleclick(e: React.MouseEvent, markerUnit: MarkerUnit) {
         if (markerUnit.ref!.style.border === "1px dashed black") {
-            console.log(markerUnit.document.initialLeft);
             this.leftbound = NumCast(markerUnit.document.initialMapLeft);
             this.rightbound = this.barwidth - NumCast(markerUnit.document.initialMapWidth) - this.leftbound;
         }
@@ -260,32 +260,54 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             let newX2 = NumCast(doc.initialMapWidth);
             let newmapwidth = newX2 + e.movementX / (this.barwidth / (this.barwidth - this.rightbound - this.leftbound));
             let newwidth = newX + e.movementX;
+            let leftval = NumCast(doc.initialLeft) + newwidth;
+            let mintick: React.RefObject<HTMLDivElement>;
+            let minticknum = Infinity;
+            for (let ticks of this.tickrefs) {
+                if (ticks.current !== null) {
+                    ticks.current.style.borderStyle = "solid";
+                    if (Math.abs(leftval - parseFloat(ticks.current.style.left)) < minticknum) {
+                        minticknum = Math.abs(leftval - parseFloat(ticks!.current.style.left!));
+                        mintick = ticks;
+                    }
+                }
+            }
+            mintick.current.style.borderStyle = "dashed";
+
+
             for (let markers of this.markerDocs) {
                 let marker = await markers;
-                if (NumCast(doc.initialLeft!) + newwidth > marker.initialLeft! && NumCast(doc.initialLeft!) + newwidth < NumCast(marker.initialLeft!) + NumCast(marker.initialWidth!) && this.sortstate === marker.sortstate) {
-                    console.log("oof");
+                if (leftval > NumCast(marker.initialLeft!) && leftval < NumCast(marker.initialLeft!) + NumCast(marker.initialWidth!) && this.sortstate === marker.sortstate) {
                     return;
                 }
             }
+            //doc.initialWidth = leftval - parseFloat(doc.initialLeft);
             doc.initialWidth = newwidth;
             doc.initialMapWidth = newmapwidth;
         }
     }
 
     @action
-    onPointerUp_Selector = (e: PointerEvent): void => {
+    onPointerUp_Selector = async (e: PointerEvent) => {
         document.removeEventListener("pointermove", this.onPointerMove_Selector, true);
-        if (this._visible) {
-            if (!e.shiftKey) {
-                SelectionManager.DeselectAll(undefined);
+        let mintick: React.RefObject<HTMLDivElement>;
+        let minticknum = Infinity;
+        let doc = await this.markerDocs[this.markerDocs.length - 1];
+        let leftval = NumCast(doc.initialLeft) + NumCast(doc.initialWidth);
+        for (let ticks of this.tickrefs) {
+            if (ticks.current !== null) {
+                ticks.current.style.borderStyle = "solid";
+
+                if (Math.abs(leftval - parseFloat(ticks.current.style.left)) < minticknum) {
+                    minticknum = Math.abs(leftval - parseFloat(ticks!.current.style.left!));
+                    mintick = ticks;
+                }
             }
         }
-        this._visible = false;
-        this.preventbug = false;
-        for (let select of this.newselect) {
-            if (!this.selections.includes(select)) {
-                this.selections.push(select);
-            }
+
+        doc.initialWidth = parseFloat(mintick.current.style.left) - NumCast(doc.initialLeft);
+        if (doc.initialWidth === 0) {
+            runInAction(() => this.markerDocs.pop());
         }
     }
 
@@ -492,7 +514,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         }}> {docs[i].title}</div>
                         <div style={{ width: "100", border: "3px solid #9c9396", borderRadius: "0px 0px 10px 0px", }}>
                             <EditableView
-                                contents={String(docs[i].caption) !== "undefined" ? String(docs[i].caption) : "No caption"}
+                                contents={String(docs[i].showCaptions) !== "undefined" ? String(docs[i].caption) : "No caption"}
                                 SetValue={(strng) => this.captionupdate(docs[i], strng)}
                                 GetValue={() => ""}
                                 display={"inline"}
@@ -530,12 +552,11 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     }
 
     captionupdate(doc: Doc, string: string) {
-        doc.caption = string;
+        //doc.data.caption = string;
         return true;
     }
 
     adjustY() {
-        console.log("sure");
         for (let thumbnail1 of this.thumbnails) {
             thumbnail1!.headerref!.style.top! = "100";
             thumbnail1!.thumbnailref2!.style.top! = "0";
@@ -544,14 +565,13 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
         let overlap = false;
         while (overlap === false) {
-            console.log("YUH");
             overlap = true;
             for (let thumbnail1 of this.thumbnails) {
                 for (let thumbnail2 of this.thumbnails) {
                     let thumbnail1y = parseFloat(thumbnail1.thumbnailref2!.style.top!);
                     let thumbnail2y = parseFloat(thumbnail2.thumbnailref2!.style.top!);
-                    if (((thumbnail1.leftval > thumbnail2.leftval && thumbnail1.leftval - 100 < thumbnail2.leftval)
-                        || (thumbnail1.leftval < thumbnail2.leftval && thumbnail1.leftval + 100 > thumbnail2.leftval))
+                    if (((thumbnail1.leftval >= thumbnail2.leftval && thumbnail1.leftval - 100 < thumbnail2.leftval)
+                        || (thumbnail1.leftval <= thumbnail2.leftval && thumbnail1.leftval + 100 > thumbnail2.leftval))
                         && ((thumbnail1y! >= thumbnail2y! && thumbnail1y! - 100 <= thumbnail2y!)
                             || (thumbnail1y! <= thumbnail2y! && thumbnail1y! + 100 >= thumbnail2y!))
                         && thumbnail1 !== thumbnail2) {
@@ -565,13 +585,13 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         thumbnail1!.thumbnailref2!.style.top! = String(curthumb);
                         thumbnail1!.headerref2!.style.height! = String(curpreview);
                         overlap = false;
-                        console.log("hit");
                     }
                 }
             }
         }
     }
 
+    private tickrefs: React.RefObject<HTMLDivElement>[] = [];
 
     createticks() {
         //Creates the array of tick marks.
@@ -579,16 +599,19 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.ticks = [];
         for (let i = 0; i < this.barwidth; i += this.barwidth / 1000) {
             let leftval = ((i * (this.barwidth / (this.barwidth - this.rightbound - this.leftbound)) - (this.leftbound * (this.barwidth) / (this.barwidth - this.rightbound - this.leftbound))) + "px");
+            let tickref = React.createRef<HTMLDivElement>();
+            this.tickrefs.push(tickref);
             if (counter % 100 === 0) {
                 let val = Math.round(counter * this._range / 1000 + this._values[0]);
-                this.ticks.push(<div className="max" style={{
+                this.ticks.push(<div className="max" ref={tickref} style={{
                     position: "absolute", top: "0%", left: leftval, zIndex: -100, writingMode: "vertical-rl",
                     textOrientation: "mixed",
-                }}><div style={{ paddingTop: "10px" }}>{val}</div></div>);
+                }
+                }> <div style={{ paddingTop: "10px" }}>{val}</div></div >);
             }
-            else if (counter % 50 === 0) { this.ticks.push(<div className="max2" style={{ position: "absolute", top: "0%", left: leftval, zIndex: -100 }} />); }
-            else if (counter % 10 === 0) { this.ticks.push(<div className="active" style={{ position: "absolute", top: "0%", left: leftval, zIndex: -100 }} />); }
-            else { this.ticks.push(<div className="inactive" style={{ position: "absolute", top: "0%", left: leftval, zIndex: -100 }} />); }
+            else if (counter % 50 === 0) { this.ticks.push(<div className="max2" ref={tickref} style={{ position: "absolute", top: "0%", left: leftval, zIndex: -100 }} />); }
+            else if (counter % 10 === 0) { this.ticks.push(<div className="active" ref={tickref} style={{ position: "absolute", top: "0%", left: leftval, zIndex: -100 }} />); }
+            //else { this.ticks.push(<div className="inactive" style={{ position: "absolute", top: "0%", left: leftval, zIndex: -100 }} />); }
             counter++;
         }
     }
@@ -620,14 +643,14 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         let getTransform = () => transform().translate(-centeringOffset, 0).scale(1 / contentScaling());
         let centeringOffset = () => (width - nativeWidth * contentScaling()) / 2;
         return (
-            <div className="collectionSchemaView-previewDoc" style={{ transform: `translate(${centeringOffset}px, 0px)`, width: width, height: "100%" }}>
+            <div className="collectionSchemaView-previewDoc" style={{ transform: `translate(${centeringOffset}px, 0px)`, width: width, height: "94px", overflow: "hidden" }}>
                 <DocumentView
                     Document={d}
                     selectOnLoad={false}
                     ScreenToLocalTransform={getTransform}
                     addDocument={this.props.addDocument} moveDocument={this.props.moveDocument}
                     ContentScaling={contentScaling}
-                    PanelWidth={PanelWidth} PanelHeight={PanelHeight}
+                    PanelWidth={() => 94} PanelHeight={() => 94}
                     ContainingCollectionView={this.props.CollectionView}
                     focus={emptyFunction}
                     parentActive={this.props.active}
@@ -669,21 +692,33 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     selectedColorSet = (color: string) => { this.selectedColor = color; };
     barwidthSet = (color: number) => { this.barwidth = color; this.markerrender(); };
     setsortsate = (string: string) => {
-        console.log(string); this.sortstate = string; this.adjustY(); this.adjustY();
+        this.sortstate = string; this.adjustY(); this.adjustY();
         (this.thumbnails.length > 0 ? this.truesort = "sortinputRIGHT" : this.truesort = "sortinputWRONG");
     }
 
     @observable private truesort: string = "sortinput";
     onPointerDown_Dragger = async (e: React.PointerEvent) => {
-        if (e.altKey) {
-            let leftval = (e.pageX - document.body.clientWidth + this.screenref.current!.clientWidth / 0.98);
+        let leftval = (e.pageX - document.body.clientWidth + this.screenref.current!.clientWidth);
+        let mintick: React.RefObject<HTMLDivElement>;
 
+        let minticknum = 9999999999;
+        for (let ticks of this.tickrefs) {
+            if (ticks.current !== null) {
+                if (Math.abs(leftval - parseFloat(ticks.current.style.left)) < minticknum) {
+                    minticknum = Math.abs(leftval - parseFloat(ticks!.current.style.left!));
+                    mintick = ticks;
+                }
+            }
+        }
+        //mintick.current.style.borderStyle = "dashed";
+        //mintick.current.style.height = "50px";
+
+
+        if (e.altKey) {
+            leftval = parseFloat(mintick.current.style.left);
             for (let markers of this.markerDocs) {
                 let marker = await markers;
-                console.log(marker.initialLeft);
-                console.log(marker.initialWidth);
-                if (leftval > marker.initialLeft! && leftval < NumCast(marker.initialLeft!) + NumCast(marker.initialWidth!) && this.sortstate === marker.sortstate) {
-                    console.log("oof");
+                if (leftval >= NumCast(marker.initialLeft!) && leftval < NumCast(marker.initialLeft!) + NumCast(marker.initialWidth!) && this.sortstate === marker.sortstate) {
                     return;
                 }
             }
