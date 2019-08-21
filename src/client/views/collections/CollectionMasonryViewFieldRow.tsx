@@ -143,14 +143,14 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     }
 
     @action
-    pointerEntered = () => {
+    pointerEnteredRow = () => {
         if (SelectionManager.GetIsDragging()) {
             this._background = "#b4b4b4";
         }
     }
 
     @action
-    pointerLeave = () => {
+    pointerLeaveRow = () => {
         this._background = "inherit";
         document.removeEventListener("pointermove", this.startDrag);
     }
@@ -249,6 +249,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     @observable _headingsHack: number = 1;
     render() {
         let cols = this.props.rows();
+        let rows = Math.max(1, Math.min(this.props.docList.length, Math.floor((this.props.parent.props.PanelWidth() - 2 * this.props.parent.xMargin) / (this.props.parent.columnWidth + this.props.parent.gridGap))));
         let key = StrCast(this.props.parent.props.Document.sectionFilter);
         let templatecols = "";
         let headings = this.props.headings();
@@ -302,22 +303,23 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
         return (
             <div className="collectionStackingView-masonrySection"
                 key={heading = "empty"}
-                style={{ width: `${100 / ((uniqueHeadings.length + ((this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'view-mode' && this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'disabled') ? 1 : 0)) || 1)}%`, background: this._background }}
-                ref={this.createRowDropRef} onPointerEnter={this.pointerEntered} onPointerLeave={this.pointerLeave} >
+                style={{ width: this.props.parent.NodeWidth }}
+                ref={this.createRowDropRef}
+                onPointerEnter={this.pointerEnteredRow}
+                onPointerLeave={this.pointerLeaveRow}
+            >
                 {headingView}
                 {
-                    this._headingsHack && heading ? (null) :
-                        <div key={`${heading}-stack`} className={`collectionStackingView-masonryGrid`}
-                            style={{
-                                padding: `${this.props.parent.yMargin}px ${this.props.parent.xMargin}px`,
-                                width: `${cols * (this.props.parent.columnWidth + this.props.parent.gridGap) + 2 * this.props.parent.xMargin - this.props.parent.gridGap}px`,
-                                gridGap: this.props.parent.gridGap,
-                                // gridTemplateColumns: undefined,
-                                gridTemplateColumns: numberRange(cols).reduce((list: string, i: any) => list + ` ${this.props.parent.columnWidth}px`, ""),
-                            }}>
-                            {this.masonryChildren(this.props.docList)}
-                            {this.props.parent.columnDragger}
-                        </div>
+                    <div key={`${heading}-stack`} className={`collectionStackingView-masonryGrid`}
+                        style={{
+                            padding: `${this.props.parent.yMargin}px ${this.props.parent.xMargin}px`,
+                            width: this.props.parent.NodeWidth,
+                            gridGap: this.props.parent.gridGap,
+                            gridTemplateColumns: numberRange(rows).reduce((list: string, i: any) => list + ` ${this.props.parent.columnWidth}px`, ""),
+                        }}>
+                        {this.masonryChildren(this.props.docList)}
+                        {this.props.parent.columnDragger}
+                    </div>
                 }
                 { //controls the +NEW for each row
                     (this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'view-mode' && this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'disabled') ?

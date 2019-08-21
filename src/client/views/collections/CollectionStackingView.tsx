@@ -48,6 +48,9 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         return Math.min(this.props.PanelWidth() / (this.props as any).ContentScaling() - 2 * this.xMargin,
             this.isStackingView ? Number.MAX_VALUE : NumCast(this.props.Document.columnWidth, 250));
     }
+    @computed get NodeWidth() {
+        return this.props.PanelWidth();
+    }
 
     childDocHeight(child: Doc) { return this.getDocHeight(Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, this.props.fieldKey, child).layout); }
 
