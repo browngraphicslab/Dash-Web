@@ -301,11 +301,16 @@ export namespace DictationManager {
                 }
             }],
 
-            ["create bulleted note", {
+            ["new outline", {
                 action: (target: DocumentView) => {
                     let newBox = Docs.Create.TextDocument({ width: 400, height: 200, title: "My Outline" });
+                    newBox.autoHeight = true;
                     let proto = newBox.proto!;
-                    let proseMirrorState = '"{"doc":{"type":"doc","content":[{"type":"bullet_list","content":[{"type":"list_item","content":[{"type":"paragraph","content":[{"type":"text","text":""}]}]}]}]},"selection":{"type":"text","anchor":1,"head":1}}"';
+                    proto.page = -1;
+                    let prompt = "Press alt + r to start dictating here...";
+                    let head = 3;
+                    let anchor = head + prompt.length;
+                    let proseMirrorState = `{"doc":{"type":"doc","content":[{"type":"bullet_list","content":[{"type":"list_item","content":[{"type":"paragraph","content":[{"type":"text","text":"${prompt}"}]}]}]}]},"selection":{"type":"text","anchor":${anchor},"head":${head}}}`;
                     proto.data = new RichTextField(proseMirrorState);
                     proto.backgroundColor = "#eeffff";
                     target.props.addDocTab(newBox, proto, "onRight");
@@ -323,6 +328,9 @@ export namespace DictationManager {
                     let what = matches[2];
                     let dataDoc = Doc.GetProto(target.props.Document);
                     let fieldKey = "data";
+                    if (isNaN(count)) {
+                        return;
+                    }
                     for (let i = 0; i < count; i++) {
                         let created: Doc | undefined;
                         switch (what) {

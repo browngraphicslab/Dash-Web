@@ -35,6 +35,7 @@ import React = require("react");
 import { GoogleApiClientUtils, Pulls, Pushes } from '../../apis/google_docs/GoogleApiClientUtils';
 import { DocumentDecorations } from '../DocumentDecorations';
 import { MainOverlayTextBox } from '../MainOverlayTextBox';
+import { DictationManager } from '../../util/DictationManager';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -265,7 +266,25 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
+    setCurrentBulletContent = (value: string) => {
+        if (this._editorView) {
+            this._editorView.state;
+        }
+    }
+
+    considerRecordingSession = (e: KeyboardEvent) => {
+        if (e.which === 82 && e.altKey) {
+            let continuous = { indefinite: true };
+            DictationManager.Controls.listen({
+                interimHandler: this.setCurrentBulletContent,
+                continuous
+            });
+        }
+    }
+
     componentDidMount() {
+        document.removeEventListener("keypress", this.considerRecordingSession);
+        document.addEventListener("keypress", this.considerRecordingSession);
         const config = {
             schema,
             inpRules, //these currently don't do anything, but could eventually be helpful
@@ -576,6 +595,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     componentWillUnmount() {
+        document.removeEventListener("keypress", this.considerRecordingSession);
         this._editorView && this._editorView.destroy();
         this._reactionDisposer && this._reactionDisposer();
         this._proxyReactionDisposer && this._proxyReactionDisposer();
