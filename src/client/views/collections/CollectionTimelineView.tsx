@@ -13,7 +13,7 @@ import { DateField } from "../../../new_fields/DateField";
 import { List } from "../../../new_fields/List";
 import { Transform } from "../../util/Transform";
 import { faFilePdf, faFilm, faFont, faGlobeAsia, faImage, faMusic, faObjectGroup, faBell } from '@fortawesome/free-solid-svg-icons';
-import { RichTextField } from "../../../new_fields/RichTextField";
+import { RichTextField, ToPlainText, FromPlainText } from "../../../new_fields/RichTextField";
 import { ImageField, VideoField, AudioField, PdfField, WebField } from "../../../new_fields/URLField";
 import { IconProp } from "@fortawesome/fontawesome-svg-core";
 import { Docs } from "../../documents/Documents";
@@ -514,7 +514,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         }}> {docs[i].title}</div>
                         <div style={{ width: "100", border: "3px solid #9c9396", borderRadius: "0px 0px 10px 0px", }}>
                             <EditableView
-                                contents={String(docs[i].showCaptions) !== "undefined" ? String(docs[i].caption) : "No caption"}
+                                contents={this.getCaption(docs[i])}
                                 SetValue={(strng) => this.captionupdate(docs[i], strng)}
                                 GetValue={() => ""}
                                 display={"inline"}
@@ -552,8 +552,17 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     }
 
     captionupdate(doc: Doc, string: string) {
-        //doc.data.caption = string;
+        doc = Doc.GetProto(doc);
+        let caption = Cast(doc.caption, RichTextField);
+        doc.caption = new RichTextField(caption ? caption[FromPlainText](string) : RichTextField.Initialize(string));
         return true;
+    }
+
+    getCaption = (doc: Doc) => {
+        doc = Doc.GetProto(doc);
+        let caption = Cast(doc.caption, RichTextField);
+        console.log(caption ? caption[ToPlainText]() : "No caption");
+        return caption ? caption[ToPlainText]() : "No caption";
     }
 
     adjustY() {
