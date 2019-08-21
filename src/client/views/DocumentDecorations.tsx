@@ -1,5 +1,5 @@
 import { library, IconProp } from '@fortawesome/fontawesome-svg-core';
-import { faLink, faTag, faTimes, faArrowAltCircleDown, faArrowAltCircleUp, faCheckCircle, faStopCircle, faCloudUploadAlt, faSyncAlt } from '@fortawesome/free-solid-svg-icons';
+import { faLink, faTag, faTimes, faArrowAltCircleDown, faArrowAltCircleUp, faCheckCircle, faStopCircle, faCloudUploadAlt, faSyncAlt, faShare } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
@@ -43,6 +43,7 @@ library.add(faStopCircle);
 library.add(faCheckCircle);
 library.add(faCloudUploadAlt);
 library.add(faSyncAlt);
+library.add(faShare);
 
 const cloud: IconProp = "cloud-upload-alt";
 const fetch: IconProp = "sync-alt";
@@ -81,6 +82,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @observable public pullIcon: IconProp = "arrow-alt-circle-down";
     @observable public pullColor: string = "white";
     @observable public isAnimatingFetch = false;
+    @observable public openHover = false;
     public pullColorAnimating = false;
 
     private pullAnimating = false;
@@ -710,21 +712,29 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let dataDoc = Doc.GetProto(this.targetDoc);
         if (!canPull || !dataDoc[GoogleRef]) return (null);
         let icon = !dataDoc.unchanged ? (this.pullIcon as any) : fetch;
+        icon = this.openHover ? "share" : icon;
         let animation = this.isAnimatingFetch ? "spin 0.5s linear infinite" : "none";
+        let title = `${!dataDoc.unchanged ? "Pull from" : "Fetch"} Google Docs`;
         return (
             <div className={"linkButtonWrapper"}>
                 <div
-                    title="Pull From Google Docs"
+                    title={title}
                     className="linkButton-linker"
                     style={{
                         backgroundColor: this.pullColor,
                         transition: "0.2s ease all"
                     }}
-                    onClick={() => {
-                        this.clearPullColor();
-                        DocumentDecorations.hasPulledHack = false;
-                        this.targetDoc[Pulls] = NumCast(this.targetDoc[Pulls]) + 1;
-                        dataDoc.unchanged && runInAction(() => this.isAnimatingFetch = true);
+                    onPointerEnter={e => e.ctrlKey && runInAction(() => this.openHover = true)}
+                    onPointerLeave={() => runInAction(() => this.openHover = false)}
+                    onClick={e => {
+                        if (e.ctrlKey) {
+                            window.open(`https://docs.google.com/document/d/${dataDoc[GoogleRef]}/edit`);
+                        } else {
+                            this.clearPullColor();
+                            DocumentDecorations.hasPulledHack = false;
+                            this.targetDoc[Pulls] = NumCast(this.targetDoc[Pulls]) + 1;
+                            dataDoc.unchanged && runInAction(() => this.isAnimatingFetch = true);
+                        }
                     }}>
                     <FontAwesomeIcon
                         style={{
