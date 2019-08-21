@@ -1,6 +1,5 @@
 .presentationView-cont {
     position: absolute;
-    background: white;
     z-index: 2;
     box-shadow: #AAAAAA .2vw .2vw .4vw;
     right: 0;
@@ -49,12 +48,15 @@
 
 .presentationView-item:hover {
     transition: all .1s;
-    background: #AAAAAA
+    background: #AAAAAA;
+    border-radius: 12px;
 }
 
 .presentationView-selected {
     background: gray;
     color: black;
+    border-radius: 12px;
+    box-shadow: black 2px 2px 5px;
 }
 
 .presentationView-heading {
@@ -79,11 +81,12 @@
 }
 
 .presentation-interaction {
+    color: gray;
     float: left;
 }
 
 .presentation-interaction-selected {
-    background: #505050;
+    color: white;
     float: left;
 }
 
@@ -96,6 +99,7 @@
     margin-right: 2.5%;
     margin-left: 2.5%;
     width: 20%;
+    border-radius: 5px;
 }
 
 .presentation-buttons {
