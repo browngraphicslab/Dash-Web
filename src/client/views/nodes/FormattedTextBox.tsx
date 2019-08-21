@@ -268,48 +268,16 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
-    setCurrentBulletContent = (value: string) => {
-        if (this._editorView) {
-            // let next = value.endsWith("bullet");
-            // if (next) {
-            //     value = value.split("bullet")[0];
-            // }
-            let state = this._editorView.state;
-            let from = state.selection.from;
-            let to = state.selection.to;
-            this._editorView.dispatch(state.tr.insertText(value, from, to));
-            state = this._editorView.state;
-            let updated = TextSelection.create(state.doc, from, from + value.length);
-            this._editorView.dispatch(state.tr.setSelection(updated));
-            // if (next) {
-            //     this.nextBullet(this._editorView.state.selection.to);
-            // }
+    recordKeyHandler = (e: KeyboardEvent) => {
+        if (this.props.Document !== SelectionManager.SelectedDocuments()[0].props.Document) {
+            return;
         }
+        e.stopPropagation();
+        e.preventDefault();
+        e.which === 174 && e.altKey && this.recordBullet();
     }
 
-    nextBullet = (pos: number) => {
-        if (this._editorView) {
-            // DictationManager.Controls.stop(false);
-            let frag = Fragment.fromArray(this.newListItems(2));
-            let slice = new Slice(frag, 2, 2);
-            let state = this._editorView.state;
-            this._editorView.dispatch(state.tr.step(new ReplaceStep(pos, pos, slice)));
-            pos += 4;
-            state = this._editorView.state;
-            this._editorView.dispatch(state.tr.setSelection(TextSelection.create(this._editorView.state.doc, pos, pos)));
-            // this.recordSession();
-        }
-    }
-
-    private newListItems = (count: number) => {
-        let listItems: any[] = [];
-        for (let i = 0; i < count; i++) {
-            listItems.push(schema.nodes.list_item.create(null, schema.nodes.paragraph.create(null)));
-        }
-        return listItems;
-    }
-
-    recordSession = async () => {
+    recordBullet = async () => {
         let completedCue = "end session";
         let results = await DictationManager.Controls.listen({
             interimHandler: this.setCurrentBulletContent,
@@ -321,16 +289,39 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             return;
         }
         this.nextBullet(this._editorView!.state.selection.to);
-        setTimeout(this.recordSession, 2000);
+        setTimeout(this.recordBullet, 2000);
     }
 
-    recordKeyHandler = (e: KeyboardEvent) => {
-        if (this.props.Document !== SelectionManager.SelectedDocuments()[0].props.Document) {
-            return;
+    setCurrentBulletContent = (value: string) => {
+        if (this._editorView) {
+            let state = this._editorView.state;
+            let from = state.selection.from;
+            let to = state.selection.to;
+            this._editorView.dispatch(state.tr.insertText(value, from, to));
+            state = this._editorView.state;
+            let updated = TextSelection.create(state.doc, from, from + value.length);
+            this._editorView.dispatch(state.tr.setSelection(updated));
         }
-        e.stopPropagation();
-        e.preventDefault();
-        e.which === 174 && e.altKey && this.recordSession();
+    }
+
+    nextBullet = (pos: number) => {
+        if (this._editorView) {
+            let frag = Fragment.fromArray(this.newListItems(2));
+            let slice = new Slice(frag, 2, 2);
+            let state = this._editorView.state;
+            this._editorView.dispatch(state.tr.step(new ReplaceStep(pos, pos, slice)));
+            pos += 4;
+            state = this._editorView.state;
+            this._editorView.dispatch(state.tr.setSelection(TextSelection.create(this._editorView.state.doc, pos, pos)));
+        }
+    }
+
+    private newListItems = (count: number) => {
+        let listItems: any[] = [];
+        for (let i = 0; i < count; i++) {
+            listItems.push(schema.nodes.list_item.create(null, schema.nodes.paragraph.create(null)));
+        }
+        return listItems;
     }
 
     componentDidMount() {
