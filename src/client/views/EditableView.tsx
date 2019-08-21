@@ -3,6 +3,7 @@ import { observer } from 'mobx-react';
 import { observable, action, trace } from 'mobx';
 import "./EditableView.scss";
 import * as Autosuggest from 'react-autosuggest';
+import { SchemaHeaderField } from '../../new_fields/SchemaHeaderField';
 
 export interface EditableProps {
     /**
@@ -40,6 +41,8 @@ export interface EditableProps {
     editing?: boolean;
     onClick?: (e: React.MouseEvent) => boolean;
     isEditingCallback?: (isEditing: boolean) => void;
+    // HeadingObject: SchemaHeaderField | undefined;
+    // HeadingsHack: number;
 }
 
 /**
@@ -50,6 +53,8 @@ export interface EditableProps {
 @observer
 export class EditableView extends React.Component<EditableProps> {
     @observable _editing: boolean = false;
+    @observable _collapsed: boolean = false;
+    @observable _headingsHack: number = 1;
 
     constructor(props: EditableProps) {
         super(props);
@@ -65,6 +70,15 @@ export class EditableView extends React.Component<EditableProps> {
             this._editing = nextProps.editing;
         }
     }
+
+    // collapseSection() {
+    //     if (this.props.HeadingObject) {
+    //         this._headingsHack++;
+    //         this.props.HeadingObject.setCollapsed(!this.props.HeadingObject.collapsed);
+    //         this._collapsed = !this._collapsed;
+    //         console.log("THIS IS COLLAPSE FROM EDITABLEVIEW" + this._collapsed);
+    //     }
+    // }
 
     @action
     onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -93,6 +107,9 @@ export class EditableView extends React.Component<EditableProps> {
     @action
     onClick = (e: React.MouseEvent) => {
         e.nativeEvent.stopPropagation();
+        // if (e.ctrlKey) {
+        //     this.collapseSection();
+        // }
         if (!this.props.onClick || !this.props.onClick(e)) {
             this._editing = true;
             this.props.isEditingCallback && this.props.isEditingCallback(true);
