@@ -6,7 +6,7 @@ import { baseKeymap } from "prosemirror-commands";
 import { history } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
 import { Fragment, Node, Node as ProsNode, NodeType, Slice } from "prosemirror-model";
-import { EditorState, Plugin, Transaction } from "prosemirror-state";
+import { EditorState, Plugin, Transaction, TextSelection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { DateField } from '../../../new_fields/DateField';
 import { Doc, DocListCast, Opt, WidthSym } from "../../../new_fields/Doc";
@@ -36,6 +36,7 @@ import { GoogleApiClientUtils, Pulls, Pushes } from '../../apis/google_docs/Goog
 import { DocumentDecorations } from '../DocumentDecorations';
 import { MainOverlayTextBox } from '../MainOverlayTextBox';
 import { DictationManager } from '../../util/DictationManager';
+import { ReplaceStep } from 'prosemirror-transform';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -181,6 +182,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 const marks = tx.storedMarks;
                 if (marks) { FormattedTextBox._toolTipTextMenu.mark_key_pressed(marks); }
             }
+
             this._applyingChange = true;
             const fieldkey = "preview";
             if (this.extensionDoc) this.extensionDoc.text = state.doc.textBetween(0, state.doc.content.size, "\n\n");
@@ -268,23 +270,70 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     setCurrentBulletContent = (value: string) => {
         if (this._editorView) {
-            this._editorView.state;
+            // let next = value.endsWith("bullet");
+            // if (next) {
+            //     value = value.split("bullet")[0];
+            // }
+            let state = this._editorView.state;
+            let from = state.selection.from;
+            let to = state.selection.to;
+            this._editorView.dispatch(state.tr.insertText(value, from, to));
+            state = this._editorView.state;
+            let updated = TextSelection.create(state.doc, from, from + value.length);
+            this._editorView.dispatch(state.tr.setSelection(updated));
+            // if (next) {
+            //     this.nextBullet(this._editorView.state.selection.to);
+            // }
         }
     }
 
-    considerRecordingSession = (e: KeyboardEvent) => {
-        if (e.which === 82 && e.altKey) {
-            let continuous = { indefinite: true };
-            DictationManager.Controls.listen({
-                interimHandler: this.setCurrentBulletContent,
-                continuous
-            });
+    nextBullet = (pos: number) => {
+        if (this._editorView) {
+            // DictationManager.Controls.stop(false);
+            let frag = Fragment.fromArray(this.newListItems(2));
+            let slice = new Slice(frag, 2, 2);
+            let state = this._editorView.state;
+            this._editorView.dispatch(state.tr.step(new ReplaceStep(pos, pos, slice)));
+            pos += 4;
+            state = this._editorView.state;
+            this._editorView.dispatch(state.tr.setSelection(TextSelection.create(this._editorView.state.doc, pos, pos)));
+            // this.recordSession();
         }
+    }
+
+    private newListItems = (count: number) => {
+        let listItems: any[] = [];
+        for (let i = 0; i < count; i++) {
+            listItems.push(schema.nodes.list_item.create(null, schema.nodes.paragraph.create(null)));
+        }
+        return listItems;
+    }
+
+    recordSession = async () => {
+        let completedCue = "end session";
+        let results = await DictationManager.Controls.listen({
+            interimHandler: this.setCurrentBulletContent,
+            continuous: { indefinite: false },
+            terminators: [completedCue, "bullet", "next"]
+        });
+        if (results && [DictationManager.Controls.Infringed, completedCue].includes(results)) {
+            DictationManager.Controls.stop();
+            return;
+        }
+        this.nextBullet(this._editorView!.state.selection.to);
+        setTimeout(this.recordSession, 2000);
+    }
+
+    recordKeyHandler = (e: KeyboardEvent) => {
+        if (this.props.Document !== SelectionManager.SelectedDocuments()[0].props.Document) {
+            return;
+        }
+        e.stopPropagation();
+        e.preventDefault();
+        e.which === 174 && e.altKey && this.recordSession();
     }
 
     componentDidMount() {
-        document.removeEventListener("keypress", this.considerRecordingSession);
-        document.addEventListener("keypress", this.considerRecordingSession);
         const config = {
             schema,
             inpRules, //these currently don't do anything, but could eventually be helpful
@@ -335,7 +384,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                         updatedState.selection = { type: "text", anchor: end, head: end };
                         this._editorView.updateState(EditorState.fromJSON(config, updatedState));
                     }
-                    this.tryUpdateHeight();
                 }
             }
         );
@@ -595,7 +643,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     componentWillUnmount() {
-        document.removeEventListener("keypress", this.considerRecordingSession);
         this._editorView && this._editorView.destroy();
         this._reactionDisposer && this._reactionDisposer();
         this._proxyReactionDisposer && this._proxyReactionDisposer();
@@ -678,6 +725,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     @action
     onFocused = (e: React.FocusEvent): void => {
+        document.removeEventListener("keypress", this.recordKeyHandler);
+        document.addEventListener("keypress", this.recordKeyHandler);
         if (!this.props.isOverlay) {
             FormattedTextBox.InputBoxOverlay = this;
         } else {
@@ -727,6 +776,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         });
     }
     onBlur = (e: any) => {
+        document.removeEventListener("keypress", this.recordKeyHandler);
         if (this._undoTyping) {
             this._undoTyping.end();
             this._undoTyping = undefined;

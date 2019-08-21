@@ -730,7 +730,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     onPointerEnter={e => e.ctrlKey && runInAction(() => this.openHover = true)}
                     onPointerLeave={() => runInAction(() => this.openHover = false)}
                     onClick={e => {
-                        if (e.ctrlKey) {
+                        if (e.altKey) {
+                            e.preventDefault();
                             window.open(`https://docs.google.com/document/d/${dataDoc[GoogleRef]}/edit`);
                         } else {
                             this.clearPullColor();

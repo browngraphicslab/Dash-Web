@@ -45,7 +45,7 @@ export namespace DictationManager {
 
     export namespace Controls {
 
-        const infringe = "unable to process: dictation manager still involved in previous session";
+        export const Infringed = "unable to process: dictation manager still involved in previous session";
         const intraSession = ". ";
         const interSession = " ... ";
 
@@ -69,30 +69,32 @@ export namespace DictationManager {
             delimiters: DelimiterArgs;
             interimHandler: InterimResultHandler;
             tryExecute: boolean;
+            terminators: string[];
         }
 
         export const listen = async (options?: Partial<ListeningOptions>) => {
             let results: string | undefined;
-            let main = MainView.Instance;
+            // let main = MainView.Instance;
 
-            main.dictationOverlayVisible = true;
-            main.isListening = { interim: false };
+            // main.dictationOverlayVisible = true;
+            // main.isListening = { interim: false };
 
             try {
                 results = await listenImpl(options);
                 if (results) {
                     Utils.CopyText(results);
-                    main.isListening = false;
-                    let execute = options && options.tryExecute;
-                    main.dictatedPhrase = execute ? results.toLowerCase() : results;
-                    main.dictationSuccess = execute ? await DictationManager.Commands.execute(results) : true;
+                    // main.isListening = false;
+                    // let execute = options && options.tryExecute;
+                    // main.dictatedPhrase = execute ? results.toLowerCase() : results;
+                    // main.dictationSuccess = execute ? await DictationManager.Commands.execute(results) : true;
+                    options && options.tryExecute && await DictationManager.Commands.execute(results);
                 }
             } catch (e) {
-                main.isListening = false;
-                main.dictatedPhrase = results = `dictation error: ${"error" in e ? e.error : "unknown error"}`;
-                main.dictationSuccess = false;
+                // main.isListening = false;
+                // main.dictatedPhrase = results = `dictation error: ${"error" in e ? e.error : "unknown error"}`;
+                // main.dictationSuccess = false;
             } finally {
-                main.initiateDictationFade();
+                // main.initiateDictationFade();
             }
 
             return results;
@@ -100,7 +102,7 @@ export namespace DictationManager {
 
         const listenImpl = (options?: Partial<ListeningOptions>) => {
             if (isListening) {
-                return infringe;
+                return Infringed;
             }
             isListening = true;
 
@@ -128,6 +130,12 @@ export namespace DictationManager {
 
                 recognizer.onresult = (e: SpeechRecognitionEvent) => {
                     current = synthesize(e, intra);
+                    let matchedTerminator: string | undefined;
+                    if (options && options.terminators && (matchedTerminator = options.terminators.find(end => current ? current.trim().toLowerCase().endsWith(end.toLowerCase()) : false))) {
+                        current = matchedTerminator;
+                        recognizer.abort();
+                        return complete();
+                    }
                     handler && handler(current);
                     isManuallyStopped && complete();
                 };
@@ -163,13 +171,13 @@ export namespace DictationManager {
             }
             isManuallyStopped = true;
             salvageSession ? recognizer.stop() : recognizer.abort();
-            let main = MainView.Instance;
-            if (main.dictationOverlayVisible) {
-                main.cancelDictationFade();
-                main.dictationOverlayVisible = false;
-                main.dictationSuccess = undefined;
-                setTimeout(() => main.dictatedPhrase = placeholder, 500);
-            }
+            // let main = MainView.Instance;
+            // if (main.dictationOverlayVisible) {
+            // main.cancelDictationFade();
+            // main.dictationOverlayVisible = false;
+            // main.dictationSuccess = undefined;
+            // setTimeout(() => main.dictatedPhrase = placeholder, 500);
+            // }
         };
 
         const synthesize = (e: SpeechRecognitionEvent, delimiter?: string) => {
