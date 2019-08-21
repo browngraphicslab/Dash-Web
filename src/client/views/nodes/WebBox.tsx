@@ -87,43 +87,21 @@ export class WebBox extends React.Component<FieldViewProps> {
         let field = Cast(this.props.Document[this.props.fieldKey], WebField);
         if (field) url = field.url.href;
 
-        let docView: DocumentView;
-        // let parentDoc: any;
+        let newBox = Docs.Create.TextDocument({
+            x: NumCast(this.props.Document.x),
+            y: NumCast(this.props.Document.y),
+            title: url,
+            width: 200,
+            height: 70,
+            documentText: "@@@" + url
+        });
+
         SelectionManager.SelectedDocuments().map(dv => {
-            // docView = dv;
+            dv.props.addDocument && dv.props.addDocument(newBox, false);
             dv.props.removeDocument && dv.props.removeDocument(dv.props.Document);
         });
 
-        console.log("happening")
-
-        // // let newPoint = PreviewCursor._getTransform().transformPoint(PreviewCursor._clickPoint[0], PreviewCursor._clickPoint[1]);
-        let newBox = Docs.Create.TextDocument({
-            width: 200, height: 100,
-            // x: newPoint[0],
-            // y: newPoint[1],
-            x: NumCast(this.props.Document.x),
-            y: NumCast(this.props.Document.y),
-            title: url
-        });
-
-        console.log(typeof newBox)
-
-        // const script = KeyValueBox.CompileKVPScript(`new RichTextField("{"doc":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"${url}"}]}]},"selection":{"type":"text","anchor":1,"head":1}}")`);
-        // const script = KeyValueBox.CompileKVPScript(newBox.setText(url))
-        // console.log(script)
-        // if (!script) return;
-        // KeyValueBox.ApplyKVPScript(this.props.Document, "data", script);
-
-        console.log(newBox);
-
-
-        newBox.proto!.autoHeight = true;
-        // PreviewCursor._addLiveTextDoc(newBox);
-        // if (parent && parent.props.addDocument) {
-        //     console.log("adding doc")
-        //     parent.props.addDocument(newBox);
-        // }
-        return;
+        Doc.BrushDoc(newBox);
     }
 
     urlEditor() {
@@ -151,14 +129,15 @@ export class WebBox extends React.Component<FieldViewProps> {
                             <div style={{
                                 display: "flex",
                                 flexDirection: "row",
-
+                                justifyContent: "space-between",
+                                minWidth: "100px",
                             }}>
                                 <button className="submitUrl" onClick={this.submitURL}>
-                                    SUBMIT URL
-                            </button>
-                                <button className="switchToText" onClick={this.switchToText} style={{ paddingLeft: 10 }} >
-                                    <FontAwesomeIcon icon={faStickyNote} size={"2x"} />
+                                    SUBMIT
                                 </button>
+                                <div className="switchToText" title="Convert web to text doc" onClick={this.switchToText} style={{ display: "flex", alignItems: "center", justifyContent: "center" }} >
+                                    <FontAwesomeIcon icon={faStickyNote} size={"lg"} />
+                                </div>
                             </div>
                         </div>
                     </div>

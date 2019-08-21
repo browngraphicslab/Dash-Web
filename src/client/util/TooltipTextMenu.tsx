@@ -189,7 +189,6 @@ export class TooltipTextMenu {
         this.tooltip.appendChild(this._brushdom);
         this.tooltip.appendChild(this.createLink().render(this.view).dom);
         this.tooltip.appendChild(this.createStar().render(this.view).dom);
-        this.tooltip.appendChild(this.createCheckbox().render(this.view).dom);
 
         this.updateListItemDropdown(":", this.listTypeBtnDom);
 
@@ -441,14 +440,6 @@ export class TooltipTextMenu {
         return true;
     }
 
-    public static insertCheckbox(state: EditorState<any>, dispatch: any) {
-        let newNode = schema.nodes.checkbox.create({ visibility: false });
-        if (dispatch) {
-            dispatch(state.tr.replaceSelectionWith(newNode));
-        }
-        return true;
-    }
-
     //will display a remove-list-type button if selection is in list, otherwise will show list type dropdown
     updateListItemDropdown(label: string, listTypeBtn: any) {
         //remove old btn
@@ -461,7 +452,6 @@ export class TooltipTextMenu {
         });
         //option to remove the list formatting
         toAdd.push(this.dropdownNodeBtn("X", "color: black; width: 40px;", undefined, this.view, this.listTypes, this.changeToNodeType));
-        toAdd.push(this.dropdownNodeBtn("⬜", "color:black; width:40px;", schema.nodes.checkbox_list, this.view, this.listTypes, this.changeToNodeType))
 
         listTypeBtn = (new Dropdown(toAdd, {
             label: label,
@@ -525,11 +515,6 @@ export class TooltipTextMenu {
         liftListItem(schema.nodes.list_item)(view.state, view.dispatch);
         if (nodeType) { //add new
             wrapInList(nodeType)(view.state, view.dispatch);
-            // console.log(nodeType === schema.nodes.checkbox_list)
-            // if (nodeType === schema.nodes.checkbox_list) {
-            //     TooltipTextMenu.insertCheckbox(view.state, view.dispatch)
-            // }
-
         }
     }
 
@@ -562,20 +547,6 @@ export class TooltipTextMenu {
             }
 
         });
-    }
-
-    createCheckbox() {
-        return new MenuItem({
-            title: "Checkbox",
-            label: "Checkbox",
-            icon: icons.code,
-            css: "color:white",
-            class: "checkbox",
-            execEvent: "",
-            run: (state, dispatch) => {
-                TooltipTextMenu.insertCheckbox(state, dispatch);
-            }
-        })
     }
 
     deleteLinkItem() {
