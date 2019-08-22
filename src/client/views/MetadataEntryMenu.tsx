@@ -97,7 +97,6 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
             } else {
                 let childSuccess = true;
                 if (this._addChildren) {
-                    console.log(this._currentKey);
                     for (let document of doc) {
                         let collectionChildren = await DocListCastAsync(document.data);
                         if (collectionChildren) {
@@ -173,6 +172,29 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
         this._addChildren = !this._addChildren;
     }
 
+    private get considerChildOptions() {
+        let docSource = this.props.docs;
+        if (typeof docSource === "function") {
+            docSource = docSource();
+        }
+        docSource = docSource as Doc[] | Doc;
+        if (docSource instanceof Doc) {
+            if (docSource.viewType === undefined) {
+                return (null);
+            }
+        } else if (Array.isArray(docSource)) {
+            if (!docSource.every(doc => doc.viewType !== undefined)) {
+                return null;
+            }
+        }
+        return (
+            <div style={{ display: "flex" }}>
+                Children:
+                <input type="checkbox" onChange={this.onClick} ></input>
+            </div>
+        );
+    }
+
     render() {
         return (
             <div className="metadataEntry-outerDiv">
@@ -187,8 +209,7 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
                     ref={this.autosuggestRef} />
                 Value:
                 <input className="metadataEntry-input" value={this._currentValue} onChange={this.onValueChange} onKeyDown={this.onValueKeyDown} />
-                Children:
-                <input type="checkbox" onChange={this.onClick} ></input>
+                {this.considerChildOptions}
             </div >
         );
     }
