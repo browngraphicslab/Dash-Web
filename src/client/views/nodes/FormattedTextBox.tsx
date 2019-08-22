@@ -145,7 +145,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
 
     paste = (e: ClipboardEvent) => {
-        //this is throwing a ton of erros so i had to comment it out
+        //this is throwing a ton of errors so commented it out
         if (e.clipboardData && this._editorView) {
             // let pdfPasteText = `${Utils.GenerateDeterministicGuid("pdf paste")}`;
             // for (let i = 0; i < e.clipboardData.items.length; i++) {
@@ -171,13 +171,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             //     }
             // }
         }
-    }
-
-    public setText = (text: string) => {
-        const tx = this._editorView!.state.tr.insertText(text);
-        const state = this._editorView!.state;
-        this._editorView!.dispatch(tx);
-        return new RichTextField(JSON.stringify(state.toJSON()));
     }
 
     dispatchTransaction = (tx: Transaction) => {
