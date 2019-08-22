@@ -715,7 +715,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     chromeHeight = () => {
         let showOverlays = this.props.showOverlays ? this.props.showOverlays(this.layoutDoc) : undefined;
         let showTitle = showOverlays && "title" in showOverlays ? showOverlays.title : StrCast(this.layoutDoc.showTitle);
-        return showTitle ? 25 : 0;
+        let templates = Cast(this.layoutDoc.templates, listSpec("string"));
+        if (!showOverlays && templates instanceof List) {
+            templates.map(str => {
+                if (!showTitle && str.indexOf("{props.Document.title}") !== -1) showTitle = "title";
+            });
+        }
+        return (showTitle ? 25 : 0) + 1;// bcz: why 8??
     }
 
     get layoutDoc() {
@@ -769,7 +775,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 {!showTitle && !showCaption ? this.contents :
                     <div style={{ position: "absolute", display: "inline-block", width: "100%", height: "100%", pointerEvents: "none" }}>
 
-                        <div style={{ width: "100%", height: showTextTitle ? "calc(100% - 33px)" : "100%", display: "inline-block", position: "absolute", top: showTextTitle ? "29px" : undefined }}>
+                        <div style={{ width: "100%", height: showTextTitle ? "calc(100% - 29px)" : "100%", display: "inline-block", position: "absolute", top: showTextTitle ? "29px" : undefined }}>
                             {this.contents}
                         </div>
                         {!showTitle ? (null) :
