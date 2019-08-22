@@ -6,7 +6,7 @@ import { observable, action } from "mobx";
 import { ObjectField } from "./ObjectField";
 import { RefField } from "./RefField";
 import { ProxyField } from "./Proxy";
-import { Self, Update, Parent, OnUpdate, SelfProxy, ToScriptString, Copy, GetAcls, SetAcls, CloneAcls } from "./FieldSymbols";
+import { Self, Update, Parent, OnUpdate, SelfProxy, ToScriptString, Copy, GetAcls, SetAcls, CloneAcls, Public } from "./FieldSymbols";
 import { Scripting } from "../client/util/Scripting";
 import { CurrentUserUtils } from "../server/authentication/models/current_user_utils";
 import { Cast, FieldValue } from "./Types";
@@ -280,6 +280,7 @@ class ListImpl<T extends Field> extends ObjectField {
             defineProperty: () => { throw new Error("Currently properties can't be defined on documents using Object.defineProperty"); },
         });
         this[SelfProxy] = list;
+        this[SetAcls](Public, 3);
         if (fields) {
             (list as any).push(...fields);
             let perm = Permissions.WRITE;
