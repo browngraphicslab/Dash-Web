@@ -62,7 +62,6 @@
                 position: absolute;
                 width: 40px;
                 transform-origin: top left;
-                // margin-top: 10px;
             }
 
             .switchToText {
@@ -71,56 +70,6 @@
 
             .switchToText:hover {
                 color: $dark-color;
-            }
-
-            .collectionViewBaseChrome-viewSpecs {
-                margin-left: 10px;
-                display: grid;
-
-
-
-                .collectionViewBaseChrome-viewSpecsMenu {
-                    overflow: hidden;
-                    transition: height .5s, display .5s;
-                    position: absolute;
-                    top: 60px;
-                    z-index: 100;
-                    display: flex;
-                    flex-direction: column;
-                    background: rgb(238, 238, 238);
-                    box-shadow: grey 2px 2px 4px;
-
-                    .qs-datepicker {
-                        left: unset;
-                        right: 0;
-                    }
-
-                    .collectionViewBaseChrome-viewSpecsMenu-row {
-                        display: grid;
-                        grid-template-columns: 150px 200px 150px;
-                        margin-top: 10px;
-                        margin-right: 10px;
-
-                        .collectionViewBaseChrome-viewSpecsMenu-rowLeft,
-                        .collectionViewBaseChrome-viewSpecsMenu-rowMiddle,
-                        .collectionViewBaseChrome-viewSpecsMenu-rowRight {
-                            font-size: 75%;
-                            letter-spacing: 2px;
-                            color: grey;
-                            margin-left: 10px;
-                            padding: 5px;
-                            border: none;
-                            outline-color: black;
-                        }
-                    }
-
-                    .collectionViewBaseChrome-viewSpecsMenu-lastRow {
-                        display: grid;
-                        grid-template-columns: 1fr 1fr 1fr;
-                        grid-gap: 10px;
-                        margin: 10px;
-                    }
-                }
             }
         }
 
