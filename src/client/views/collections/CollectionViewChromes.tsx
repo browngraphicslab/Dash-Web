@@ -297,11 +297,15 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
 
     datePickerRef = (node: HTMLInputElement) => {
         if (node) {
-            this._picker = datepicker("#" + node.id, {
-                disabler: (date: Date) => date > new Date(),
-                onSelect: (instance: any, date: Date) => runInAction(() => this._dateValue = date),
-                dateSelected: new Date()
-            });
+            try {
+                this._picker = datepicker("#" + node.id, {
+                    disabler: (date: Date) => date > new Date(),
+                    onSelect: (instance: any, date: Date) => runInAction(() => this._dateValue = date),
+                    dateSelected: new Date()
+                });
+            } catch (e) {
+                console.log("date picker exception:" + e);
+            }
         }
     }
     render() {
