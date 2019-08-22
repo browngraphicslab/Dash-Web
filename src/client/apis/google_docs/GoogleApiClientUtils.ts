@@ -25,11 +25,11 @@ export namespace GoogleApiClientUtils {
         Replace
     }
 
-    export type DocumentId = string;
-    export type Reference = DocumentId | CreateOptions;
+    export type Identifier = string;
+    export type Reference = Identifier | CreateOptions;
     export type TextContent = string | string[];
-    export type IdHandler = (id: DocumentId) => any;
-    export type CreationResult = Opt<DocumentId>;
+    export type IdHandler = (id: Identifier) => any;
+    export type CreationResult = Opt<Identifier>;
     export type ReadLinesResult = Opt<{ title?: string, bodyLines?: string[] }>;
     export type ReadResult = { title?: string, body?: string };
 
@@ -39,10 +39,14 @@ export namespace GoogleApiClientUtils {
     }
 
     export interface RetrieveOptions {
-        documentId: DocumentId;
+        service: Service;
+        identifier: Identifier;
     }
 
-    export type ReadOptions = RetrieveOptions & { removeNewlines?: boolean };
+    export interface ReadOptions {
+        identifier: Identifier;
+        removeNewlines?: boolean;
+    }
 
     export interface WriteOptions {
         mode: WriteMode;
@@ -78,11 +82,11 @@ export namespace GoogleApiClientUtils {
 
     export namespace Docs {
 
-        export type RetrievalResult = Opt<docs_v1.Schema$Document>;
+        export type RetrievalResult = Opt<docs_v1.Schema$Document | slides_v1.Schema$Presentation>;
         export type UpdateResult = Opt<docs_v1.Schema$BatchUpdateDocumentResponse>;
 
         export interface UpdateOptions {
-            documentId: DocumentId;
+            documentId: Identifier;
             requests: docs_v1.Schema$Request[];
         }
 
@@ -126,11 +130,20 @@ export namespace GoogleApiClientUtils {
 
         }
 
+        const KeyMapping = new Map<Service, string>([
+            [Service.Documents, "documentId"],
+            [Service.Slides, "presentationId"]
+        ]);
+
         export const retrieve = async (options: RetrieveOptions): Promise<RetrievalResult> => {
-            const path = `${RouteStore.googleDocs}/${Service.Documents}/${Actions.Retrieve}`;
+            const path = `${RouteStore.googleDocs}/${options.service}/${Actions.Retrieve}`;
             try {
-                const schema: RetrievalResult = await PostToServer(path, options);
-                return schema;
+                let parameters: any = {}, key: string | undefined;
+                if ((key = KeyMapping.get(options.service))) {
+                    parameters[key] = options.identifier;
+                    const schema: RetrievalResult = await PostToServer(path, parameters);
+                    return schema;
+                }
             } catch {
                 return undefined;
             }
@@ -153,7 +166,7 @@ export namespace GoogleApiClientUtils {
         };
 
         export const read = async (options: ReadOptions): Promise<ReadResult> => {
-            return retrieve(options).then(document => {
+            return retrieve({ ...options, service: Service.Documents }).then(document => {
                 let result: ReadResult = {};
                 if (document) {
                     let title = document.title;
@@ -165,7 +178,7 @@ export namespace GoogleApiClientUtils {
         };
 
         export const readLines = async (options: ReadOptions): Promise<ReadLinesResult> => {
-            return retrieve(options).then(document => {
+            return retrieve({ ...options, service: Service.Documents }).then(document => {
                 let result: ReadLinesResult = {};
                 if (document) {
                     let title = document.title;
@@ -179,14 +192,14 @@ export namespace GoogleApiClientUtils {
 
         export const write = async (options: WriteOptions): Promise<UpdateResult> => {
             const requests: docs_v1.Schema$Request[] = [];
-            const documentId = await Utils.initialize(options.reference);
-            if (!documentId) {
+            const identifier = await Utils.initialize(options.reference);
+            if (!identifier) {
                 return undefined;
             }
             let index = options.index;
             const mode = options.mode;
             if (!(index && mode === WriteMode.Insert)) {
-                let schema = await retrieve({ documentId });
+                let schema = await retrieve({ identifier, service: Service.Documents });
                 if (!schema || !(index = Utils.endOf(schema))) {
                     return undefined;
                 }
@@ -212,7 +225,7 @@ export namespace GoogleApiClientUtils {
             if (!requests.length) {
                 return undefined;
             }
-            let replies: any = await update({ documentId, requests });
+            let replies: any = await update({ documentId: identifier, requests });
             let errors = "errors";
             if (errors in replies) {
                 console.log("Write operation failed:");

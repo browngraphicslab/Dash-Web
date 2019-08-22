@@ -465,7 +465,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         let documentId = StrCast(dataDoc[GoogleRef]);
         let exportState: GoogleApiClientUtils.ReadResult = {};
         if (documentId) {
-            exportState = await GoogleApiClientUtils.Docs.read({ documentId });
+            exportState = await GoogleApiClientUtils.Docs.read({ identifier: documentId });
         }
         UndoManager.RunInBatch(() => handler(exportState, dataDoc), Pulls);
     }
