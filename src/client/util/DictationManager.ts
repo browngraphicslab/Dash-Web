@@ -64,6 +64,7 @@ export namespace DictationManager {
         export type ListeningUIStatus = { interim: boolean } | false;
 
         export interface ListeningOptions {
+            useOverlay: boolean;
             language: string;
             continuous: ContinuityArgs;
             delimiters: DelimiterArgs;
@@ -74,27 +75,34 @@ export namespace DictationManager {
 
         export const listen = async (options?: Partial<ListeningOptions>) => {
             let results: string | undefined;
-            // let main = MainView.Instance;
+            let main = MainView.Instance;
 
-            // main.dictationOverlayVisible = true;
-            // main.isListening = { interim: false };
+            let overlay = options !== undefined && options.useOverlay;
+            if (overlay) {
+                main.dictationOverlayVisible = true;
+                main.isListening = { interim: false };
+            }
 
             try {
                 results = await listenImpl(options);
                 if (results) {
                     Utils.CopyText(results);
-                    // main.isListening = false;
-                    // let execute = options && options.tryExecute;
-                    // main.dictatedPhrase = execute ? results.toLowerCase() : results;
-                    // main.dictationSuccess = execute ? await DictationManager.Commands.execute(results) : true;
+                    if (overlay) {
+                        main.isListening = false;
+                        let execute = options && options.tryExecute;
+                        main.dictatedPhrase = execute ? results.toLowerCase() : results;
+                        main.dictationSuccess = execute ? await DictationManager.Commands.execute(results) : true;
+                    }
                     options && options.tryExecute && await DictationManager.Commands.execute(results);
                 }
             } catch (e) {
-                // main.isListening = false;
-                // main.dictatedPhrase = results = `dictation error: ${"error" in e ? e.error : "unknown error"}`;
-                // main.dictationSuccess = false;
+                if (overlay) {
+                    main.isListening = false;
+                    main.dictatedPhrase = results = `dictation error: ${"error" in e ? e.error : "unknown error"}`;
+                    main.dictationSuccess = false;
+                }
             } finally {
-                // main.initiateDictationFade();
+                overlay && main.initiateDictationFade();
             }
 
             return results;

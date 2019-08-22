@@ -40,7 +40,6 @@ import { PreviewCursor } from './PreviewCursor';
 import { FilterBox } from './search/FilterBox';
 import PresModeMenu from './presentationview/PresentationModeMenu';
 import { PresBox } from './nodes/PresBox';
-import { GoogleApiClientUtils } from '../apis/google_docs/GoogleApiClientUtils';
 
 @observer
 export class MainView extends React.Component {
