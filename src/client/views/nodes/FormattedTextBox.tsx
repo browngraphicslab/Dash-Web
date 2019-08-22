@@ -374,7 +374,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 this.unhighlightSearchTerms();
             }
         }, { fireImmediately: true });
-        this.tryUpdateHeight();
+        setTimeout(() => this.tryUpdateHeight(), 0);
     }
 
     pushToGoogleDoc = async () => {
