@@ -735,12 +735,10 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     @action
     tryUpdateHeight() {
-        if (this.props.Document.autoHeight && this._ref.current!.scrollHeight !== 0) {
-            let xf = this._ref.current!.getBoundingClientRect();
-            let scrBounds = this.props.ScreenToLocalTransform().transformBounds(0, 0, xf.width, this._ref.current!.textContent === "" ? 35 : this._ref.current!.scrollHeight);
+        let sh = this._ref.current ? this._ref.current.scrollHeight : 0;
+        if (this.props.Document.autoHeight && sh !== 0) {
             let nh = this.props.Document.isTemplate ? 0 : NumCast(this.dataDoc.nativeHeight, 0);
             let dh = NumCast(this.props.Document.height, 0);
-            let sh = scrBounds.height;
             const ChromeHeight = MainOverlayTextBox.Instance.ChromeHeight;
             this.props.Document.height = Math.max(10, (nh ? dh / nh * sh : sh) + (ChromeHeight ? ChromeHeight() : 0));
             this.dataDoc.nativeHeight = nh ? sh : undefined;
