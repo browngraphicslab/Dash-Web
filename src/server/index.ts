@@ -806,10 +806,10 @@ const EndpointHandlerMap = new Map<GoogleApiServerUtils.Action, GoogleApiServerU
     ["update", (api, params) => api.batchUpdate(params)],
 ]);
 
-app.post(RouteStore.googleDocs + ":sector/:action", (req, res) => {
+app.post(RouteStore.googleDocs + "/:sector/:action", (req, res) => {
     let sector = req.params.sector;
     let action = req.params.action;
-    GoogleApiServerUtils.GetEndpoint(GoogleApiServerUtils.Sector[sector], { credentials, token }).then(endpoint => {
+    GoogleApiServerUtils.GetEndpoint(GoogleApiServerUtils.Service[sector], { credentials, token }).then(endpoint => {
         let handler = EndpointHandlerMap.get(action);
         if (endpoint && handler) {
             let execute = handler(endpoint, req.body).then(

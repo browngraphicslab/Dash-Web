@@ -24,7 +24,7 @@ export namespace GoogleApiServerUtils {
 
     export const parseBuffer = (data: Buffer) => JSON.parse(data.toString());
 
-    export enum Sector {
+    export enum Service {
         Documents = "Documents",
         Slides = "Slides"
     }
@@ -54,10 +54,10 @@ export namespace GoogleApiServerUtils {
                     let routed: Opt<Endpoint>;
                     let parameters: EndpointParameters = { auth, version: "v1" };
                     switch (sector) {
-                        case Sector.Documents:
+                        case Service.Documents:
                             routed = google.docs(parameters).documents;
                             break;
-                        case Sector.Slides:
+                        case Service.Slides:
                             routed = google.slides(parameters).presentations;
                             break;
                     }

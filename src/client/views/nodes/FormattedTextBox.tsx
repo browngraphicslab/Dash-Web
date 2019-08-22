@@ -436,7 +436,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             let reference: Opt<GoogleApiClientUtils.Reference> = Cast(this.dataDoc[GoogleRef], "string");
             if (!reference) {
                 mode = modes.Insert;
-                reference = { title: StrCast(this.dataDoc.title) };
+                reference = { service: GoogleApiClientUtils.Service.Documents, title: StrCast(this.dataDoc.title) };
             }
             let redo = async () => {
                 let data = Cast(this.dataDoc.data, RichTextField);

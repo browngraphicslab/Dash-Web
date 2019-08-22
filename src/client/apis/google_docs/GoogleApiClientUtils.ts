@@ -9,6 +9,11 @@ export const Pushes = "googleDocsPushCount";
 
 export namespace GoogleApiClientUtils {
 
+    export enum Service {
+        Documents = "Documents",
+        Slides = "Slides"
+    }
+
     export enum Actions {
         Create = "create",
         Retrieve = "retrieve",
@@ -29,6 +34,7 @@ export namespace GoogleApiClientUtils {
     export type ReadResult = { title?: string, body?: string };
 
     export interface CreateOptions {
+        service: Service;
         title?: string; // if excluded, will use a default title annotated with the current date
     }
 
@@ -45,6 +51,30 @@ export namespace GoogleApiClientUtils {
         index?: number; // if excluded, will compute the last index of the document and append the content there
     }
 
+    /**
+    * After following the authentication routine, which connects this API call to the current signed in account
+    * and grants the appropriate permissions, this function programmatically creates an arbitrary Google Doc which
+    * should appear in the user's Google Doc library instantaneously.
+    * 
+    * @param options the title to assign to the new document, and the information necessary
+    * to store the new documentId returned from the creation process
+    * @returns the documentId of the newly generated document, or undefined if the creation process fails.
+    */
+    export const create = async (options: CreateOptions): Promise<CreationResult> => {
+        const path = `${RouteStore.googleDocs}/${options.service}/${Actions.Create}`;
+        const parameters = {
+            requestBody: {
+                title: options.title || `Dash Export (${new Date().toDateString()})`
+            }
+        };
+        try {
+            const schema: any = await PostToServer(path, parameters);
+            let key = ["document", "presentation"].find(prefix => `${prefix}Id` in schema) + "Id";
+            return schema[key];
+        } catch {
+            return undefined;
+        }
+    };
 
     export namespace Docs {
 
@@ -96,33 +126,8 @@ export namespace GoogleApiClientUtils {
 
         }
 
-        /**
-         * After following the authentication routine, which connects this API call to the current signed in account
-         * and grants the appropriate permissions, this function programmatically creates an arbitrary Google Doc which
-         * should appear in the user's Google Doc library instantaneously.
-         * 
-         * @param options the title to assign to the new document, and the information necessary
-         * to store the new documentId returned from the creation process
-         * @returns the documentId of the newly generated document, or undefined if the creation process fails.
-         */
-        export const create = async (options: CreateOptions): Promise<CreationResult> => {
-            const path = RouteStore.googleDocs + "Documents/" + Actions.Create;
-            const parameters = {
-                requestBody: {
-                    title: options.title || `Dash Export (${new Date().toDateString()})`
-                }
-            };
-            try {
-                const schema: docs_v1.Schema$Document = await PostToServer(path, parameters);
-                const generatedId = schema.documentId;
-                return generatedId;
-            } catch {
-                return undefined;
-            }
-        };
-
         export const retrieve = async (options: RetrieveOptions): Promise<RetrievalResult> => {
-            const path = RouteStore.googleDocs + "Documents/" + Actions.Retrieve;
+            const path = `${RouteStore.googleDocs}/${Service.Documents}/${Actions.Retrieve}`;
             try {
                 const schema: RetrievalResult = await PostToServer(path, options);
                 return schema;
@@ -132,7 +137,7 @@ export namespace GoogleApiClientUtils {
         };
 
         export const update = async (options: UpdateOptions): Promise<UpdateResult> => {
-            const path = RouteStore.googleDocs + "Documents/" + Actions.Update;
+            const path = `${RouteStore.googleDocs}/${Service.Documents}/${Actions.Update}`;
             const parameters = {
                 documentId: options.documentId,
                 requestBody: {
@@ -214,26 +219,6 @@ export namespace GoogleApiClientUtils {
                 console.log(replies[errors].map((error: any) => error.message));
             }
             return replies;
-        };
-
-    }
-
-    export namespace Slides {
-
-        export const create = async (options: CreateOptions): Promise<CreationResult> => {
-            const path = RouteStore.googleDocs + "Slides/" + Actions.Create;
-            const parameters = {
-                requestBody: {
-                    title: options.title || `Dash Export (${new Date().toDateString()})`
-                }
-            };
-            try {
-                const schema: slides_v1.Schema$Presentation = await PostToServer(path, parameters);
-                const generatedId = schema.presentationId;
-                return generatedId;
-            } catch {
-                return undefined;
-            }
         };
 
     }

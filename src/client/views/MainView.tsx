@@ -122,7 +122,7 @@ export class MainView extends React.Component {
         var tag = document.createElement('script');
 
         let title = "THIS IS MY FIRST DASH PRESENTATION";
-        GoogleApiClientUtils.Slides.create({ title }).then(id => console.log("We received this! ", id));
+        GoogleApiClientUtils.create({ service: GoogleApiClientUtils.Service.Slides, title }).then(id => console.log("We received this! ", id));
 
         tag.src = "https://www.youtube.com/iframe_api";
         var firstScriptTag = document.getElementsByTagName('script')[0];
