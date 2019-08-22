@@ -443,6 +443,7 @@ export class MainView extends React.Component {
         let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
 
         let addColNode = action(() => Docs.Create.FreeformDocument([], { width: this.pwidth * .7, height: this.pheight, title: "a freeform collection" }));
+        let addLinkFollowBox = action(() => Docs.Create.LinkFollowBoxDocument({ width: 200, height: 500, title: "Link Follow Document" }));
         let addPresNode = action(() => Doc.UserDoc().curPresentation = Docs.Create.PresDocument(new List<Doc>(), { width: 200, height: 500, title: "a presentation trail" }));
         let addWebNode = action(() => Docs.Create.WebDocument("https://en.wikipedia.org/wiki/Hedgehog", { width: 300, height: 300, title: "New Webpage" }));
         let addDragboxNode = action(() => Docs.Create.DragboxDocument({ width: 40, height: 40, title: "drag collection" }));
@@ -458,6 +459,7 @@ export class MainView extends React.Component {
             [React.createRef<HTMLDivElement>(), "globe-asia", "Add Website", addWebNode],
             [React.createRef<HTMLDivElement>(), "bolt", "Add Button", addButtonDocument],
             [React.createRef<HTMLDivElement>(), "file", "Add Document Dragger", addDragboxNode],
+            [React.createRef<HTMLDivElement>(), "caret-up", "Open Link Follow Box", addLinkFollowBox],
             [React.createRef<HTMLDivElement>(), "cloud-upload-alt", "Import Directory", addImportCollectionNode], //remove at some point in favor of addImportCollectionNode
             //[React.createRef<HTMLDivElement>(), "play", "Add Youtube Searcher", addYoutubeSearcher],
         ];

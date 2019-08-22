@@ -15,6 +15,7 @@ import { CollectionDockingView } from '../collections/CollectionDockingView';
 import { SelectionManager } from '../../util/SelectionManager';
 import { CollectionViewType } from '../collections/CollectionBaseView';
 import { DocumentView } from '../nodes/DocumentView';
+import { SearchUtil } from '../../util/SearchUtil';
 library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp);
 
 
@@ -61,6 +62,13 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
             col.panY = newPanY;
         }
         CollectionDockingView.Instance.AddRightSplit(col, undefined);
+    }
+
+    // DONE
+    @undoBatch
+    openFullScreen = () => {
+        let view: DocumentView | null = DocumentManager.Instance.getDocumentView(this.props.destinationDoc);
+        view && CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(view);
     }
 
     // DONE
@@ -161,10 +169,12 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                 dv.props.addDocument && dv.props.addDocument(alias, false);
             }
         });
+
+        this.jumpToLink(false);
     }
 
     //set this to be the default link behavior, can be any of the above
-    private defaultLinkBehavior: any = this.openLinkInPlace;
+    private defaultLinkBehavior: any = this.openLinkTab;
 
     onEdit = (e: React.PointerEvent): void => {
         e.stopPropagation();

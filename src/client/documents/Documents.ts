@@ -446,6 +446,10 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.DRAGBOX), undefined, { ...(options || {}) });
         }
 
+        export function LinkFollowBoxDocument(options?: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.LINKFOLLOW), undefined, { ...(options || {}) });
+        }
+
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { ...options, viewType: CollectionViewType.Docking, dockingConfig: config }, id);
         }
