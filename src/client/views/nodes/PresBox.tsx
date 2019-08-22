@@ -12,7 +12,7 @@ import { BoolCast, Cast, FieldValue, NumCast, StrCast } from "../../../new_field
 import { Utils } from "../../../Utils";
 import { DocumentManager } from "../../util/DocumentManager";
 import { undoBatch } from "../../util/UndoManager";
-import PresentationElement, { buttonIndex } from "../presentationview/PresentationElement";
+import PresentationElement from "../presentationview/PresentationElement";
 import PresentationViewList from "../presentationview/PresentationList";
 import "../presentationview/PresentationView.scss";
 import { FieldView, FieldViewProps } from './FieldView';
@@ -45,17 +45,12 @@ export class PresBox extends React.Component<FieldViewProps> { //FieldViewProps?
     //Keeping track of the doc for the current presentation -- bcz: keeping a list of current presentations shouldn't be needed.  Let users create them, store them, as they see fit.
     @computed get curPresentation() { return this.props.Document; }
 
-    //Mapping from presentation ids to a list of doc that represent a group
-    @observable groupMappings: Map<String, Doc[]> = new Map();
     //mapping from docs to their rendered component
     @observable presElementsMappings: Map<Doc, PresentationElement> = new Map();
     //variable that holds all the docs in the presentation
     @observable childrenDocs: Doc[] = [];
     //variable to hold if presentation is started
     @observable presStatus: boolean = false;
-    //back-up so that presentation stays the way it's when refreshed
-    @observable presGroupBackUp: Doc = new Doc();
-    @observable presButtonBackUp: Doc = new Doc();
     //Mapping of guids to presentations.
     @observable presentationsMapping: Map<String, Doc> = new Map();
     //Mapping of presentations to guid, so that select option values can be given.
@@ -102,85 +97,9 @@ export class PresBox extends React.Component<FieldViewProps> { //FieldViewProps?
      * otherwise initializes.
      */
     setPresentationBackUps = async () => {
-        //getting both backUp documents
-
-        let castedGroupBackUp = Cast(this.curPresentation.presGroupBackUp, Doc);
-        let castedButtonBackUp = Cast(this.curPresentation.presButtonBackUp, Doc);
-        //if instantiated before 
-        if (castedGroupBackUp instanceof Promise) {
-            castedGroupBackUp.then(doc => {
-                let toAssign = doc ? doc : new Doc();
-                this.curPresentation.presGroupBackUp = toAssign;
-                runInAction(() => this.presGroupBackUp = toAssign);
-                if (doc) {
-                    if (toAssign[Id] === doc[Id]) {
-                        this.retrieveGroupMappings();
-                    }
-                }
-            });
-
-            //if never instantiated a store doc yet
-        } else if (castedGroupBackUp instanceof Doc) {
-            let castedDoc: Doc = await castedGroupBackUp;
-            runInAction(() => this.presGroupBackUp = castedDoc);
-            this.retrieveGroupMappings();
-        } else {
-            runInAction(() => {
-                let toAssign = new Doc();
-                this.presGroupBackUp = toAssign;
-                this.curPresentation.presGroupBackUp = toAssign;
-
-            });
-
-        }
-        //if instantiated before 
-        if (castedButtonBackUp instanceof Promise) {
-            castedButtonBackUp.then(doc => {
-                let toAssign = doc ? doc : new Doc();
-                this.curPresentation.presButtonBackUp = toAssign;
-                runInAction(() => this.presButtonBackUp = toAssign);
-            });
-
-            //if never instantiated a store doc yet
-        } else if (castedButtonBackUp instanceof Doc) {
-            let castedDoc: Doc = await castedButtonBackUp;
-            runInAction(() => this.presButtonBackUp = castedDoc);
-
-        } else {
-            runInAction(() => {
-                let toAssign = new Doc();
-                this.presButtonBackUp = toAssign;
-                this.curPresentation.presButtonBackUp = toAssign;
-            });
-
-        }
-
-
         //storing the presentation status,ie. whether it was stopped or playing
         let presStatusBackUp = BoolCast(this.curPresentation.presStatus);
         runInAction(() => this.presStatus = presStatusBackUp);
-    }
-
-    /**
-     * This is the function that is called to retrieve the groups that have been stored and
-     * push them to the groupMappings.
-     */
-    retrieveGroupMappings = async () => {
-        let castedGroupDocs = await DocListCastAsync(this.presGroupBackUp.groupDocs);
-        if (castedGroupDocs !== undefined) {
-            castedGroupDocs.forEach(async (groupDoc: Doc, index: number) => {
-                let castedGrouping = await DocListCastAsync(groupDoc.grouping);
-                let castedKey = StrCast(groupDoc.presentIdStore, null);
-                if (castedGrouping) {
-                    castedGrouping.forEach((doc: Doc) => {
-                        doc.presentId = castedKey;
-                    });
-                }
-                if (castedGrouping !== undefined && castedKey !== undefined) {
-                    this.groupMappings.set(castedKey, castedGrouping);
-                }
-            });
-        }
     }
 
     //observable means render is re-called every time variable is changed
@@ -193,17 +112,13 @@ export class PresBox extends React.Component<FieldViewProps> { //FieldViewProps?
         if (docAtCurrentNext === undefined) {
             return;
         }
-        //asking for it's presentation id
-        let curNextPresId = StrCast(docAtCurrentNext.presentId);
         let nextSelected = current + 1;
 
-        //if curDoc is in a group, selection slides until last one, if not it's next one
-        if (this.groupMappings.has(curNextPresId)) {
-            let currentsArray = this.groupMappings.get(StrCast(docAtCurrentNext.presentId))!;
-            nextSelected = current + currentsArray.length - currentsArray.indexOf(docAtCurrentNext);
-
-            //end of grup so go beyond
-            if (nextSelected === current) nextSelected = current + 1;
+        let presDocs = DocListCast(this.curPresentation.data);
+        for (; nextSelected < presDocs.length - 1; nextSelected++) {
+            if (!this.presElementsMappings.get(presDocs[nextSelected + 1])!.props.document.groupButton) {
+                break;
+            }
         }
 
         this.gotoDocument(nextSelected, current);
@@ -219,31 +134,31 @@ export class PresBox extends React.Component<FieldViewProps> { //FieldViewProps?
 
         //asking for its presentation id.
         let curPresId = StrCast(docAtCurrent.presentId);
-        let prevSelected = current - 1;
+        let prevSelected = current;
         let zoomOut: boolean = false;
 
         //checking if this presentation id is mapped to a group, if so chosing the first element in group
-        if (this.groupMappings.has(curPresId)) {
-            let currentsArray = this.groupMappings.get(StrCast(docAtCurrent.presentId))!;
-            prevSelected = current - currentsArray.length + (currentsArray.length - currentsArray.indexOf(docAtCurrent)) - 1;
-            //end of grup so go beyond
-            if (prevSelected === current) prevSelected = current - 1;
-
-            //checking if any of the group members had used zooming in
-            currentsArray.forEach((doc: Doc) => {
-                //let presElem: PresentationElement | undefined = this.presElementsMappings.get(doc);
-                if (this.presElementsMappings.get(doc)!.selected[buttonIndex.Show]) {
-                    zoomOut = true;
-                    return;
-                }
-            });
-
+        let presDocs = DocListCast(this.curPresentation.data);
+        let currentsArray: Doc[] = [];
+        for (; prevSelected > 0 && presDocs[prevSelected].groupButton; prevSelected--) {
+            currentsArray.push(presDocs[prevSelected]);
         }
+        prevSelected = Math.max(0, prevSelected - 1);
+
+        //checking if any of the group members had used zooming in
+        currentsArray.forEach((doc: Doc) => {
+            //let presElem: PresentationElement | undefined = this.presElementsMappings.get(doc);
+            if (this.presElementsMappings.get(doc)!.props.document.showButton) {
+                zoomOut = true;
+                return;
+            }
+        });
+
 
         // if a group set that flag to zero or a single element
         //If so making sure to zoom out, which goes back to state before zooming action
         if (current > 0) {
-            if (zoomOut || this.presElementsMappings.get(docAtCurrent)!.selected[buttonIndex.Show]) {
+            if (zoomOut || this.presElementsMappings.get(docAtCurrent)!.showButton) {
                 let prevScale = NumCast(this.childrenDocs[prevSelected].viewScale, null);
                 let curScale = DocumentManager.Instance.getScaleOfDocView(this.childrenDocs[current]);
                 if (prevScale !== undefined) {
@@ -264,19 +179,18 @@ export class PresBox extends React.Component<FieldViewProps> { //FieldViewProps?
      */
     showAfterPresented = (index: number) => {
         this.presElementsMappings.forEach((presElem: PresentationElement, key: Doc) => {
-            let selectedButtons: boolean[] = presElem.selected;
             //the order of cases is aligned based on priority
-            if (selectedButtons[buttonIndex.HideTillPressed]) {
+            if (presElem.props.document.hideTillShownButton) {
                 if (this.childrenDocs.indexOf(key) <= index) {
                     key.opacity = 1;
                 }
             }
-            if (selectedButtons[buttonIndex.HideAfter]) {
+            if (presElem.props.document.hideAfterButton) {
                 if (this.childrenDocs.indexOf(key) < index) {
                     key.opacity = 0;
                 }
             }
-            if (selectedButtons[buttonIndex.FadeAfter]) {
+            if (presElem.props.document.fadeButton) {
                 if (this.childrenDocs.indexOf(key) < index) {
                     key.opacity = 0.5;
                 }
@@ -291,21 +205,19 @@ export class PresBox extends React.Component<FieldViewProps> { //FieldViewProps?
      */
     hideIfNotPresented = (index: number) => {
         this.presElementsMappings.forEach((presElem: PresentationElement, key: Doc) => {
-            let selectedButtons: boolean[] = presElem.selected;
-
             //the order of cases is aligned based on priority
 
-            if (selectedButtons[buttonIndex.HideAfter]) {
+            if (presElem.props.document.hideAfterButton) {
                 if (this.childrenDocs.indexOf(key) >= index) {
                     key.opacity = 1;
                 }
             }
-            if (selectedButtons[buttonIndex.FadeAfter]) {
+            if (presElem.props.document.fadeButton) {
                 if (this.childrenDocs.indexOf(key) >= index) {
                     key.opacity = 1;
                 }
             }
-            if (selectedButtons[buttonIndex.HideTillPressed]) {
+            if (presElem.props.document.hideTillShownButton) {
                 if (this.childrenDocs.indexOf(key) > index) {
                     key.opacity = 0;
                 }
@@ -320,34 +232,36 @@ export class PresBox extends React.Component<FieldViewProps> { //FieldViewProps?
      */
     navigateToElement = async (curDoc: Doc, fromDoc: number) => {
         let docToJump: Doc = curDoc;
-        let curDocPresId = StrCast(curDoc.presentId, null);
         let willZoom: boolean = false;
 
-        //checking if in group
-        if (curDocPresId !== undefined) {
-            if (this.groupMappings.has(curDocPresId)) {
-                let currentDocGroup = this.groupMappings.get(curDocPresId)!;
-                currentDocGroup.forEach((doc: Doc, index: number) => {
-                    let selectedButtons: boolean[] = this.presElementsMappings.get(doc)!.selected;
-                    if (selectedButtons[buttonIndex.Navigate]) {
-                        docToJump = doc;
-                        willZoom = false;
-                    }
-                    if (selectedButtons[buttonIndex.Show]) {
-                        docToJump = doc;
-                        willZoom = true;
-                    }
-                });
-            }
 
+        let presDocs = DocListCast(this.curPresentation.data);
+        let nextSelected = presDocs.indexOf(curDoc);
+        let currentDocGroups: Doc[] = [];
+        for (; nextSelected < presDocs.length - 1; nextSelected++) {
+            if (!this.presElementsMappings.get(presDocs[nextSelected + 1])!.props.document.groupButton) {
+                break;
+            }
+            currentDocGroups.push(presDocs[nextSelected]);
         }
+
+        currentDocGroups.forEach((doc: Doc, index: number) => {
+            if (this.presElementsMappings.get(doc)!.navButton) {
+                docToJump = doc;
+                willZoom = false;
+            }
+            if (this.presElementsMappings.get(doc)!.showButton) {
+                docToJump = doc;
+                willZoom = true;
+            }
+        });
+
         //docToJump stayed same meaning, it was not in the group or was the last element in the group
         if (docToJump === curDoc) {
             //checking if curDoc has navigation open
-            let curDocButtons = this.presElementsMappings.get(curDoc)!.selected;
-            if (curDocButtons[buttonIndex.Navigate]) {
+            if (this.presElementsMappings.get(curDoc)!.navButton) {
                 DocumentManager.Instance.jumpToDocument(curDoc, false);
-            } else if (curDocButtons[buttonIndex.Show]) {
+            } else if (this.presElementsMappings.get(curDoc)!.showButton) {
                 let curScale = DocumentManager.Instance.getScaleOfDocView(this.childrenDocs[fromDoc]);
                 //awaiting jump so that new scale can be found, since jumping is async
                 await DocumentManager.Instance.jumpToDocument(curDoc, true);
@@ -406,69 +320,6 @@ export class PresBox extends React.Component<FieldViewProps> { //FieldViewProps?
             //removing the Presentation Element stored for it
             this.presElementsMappings.delete(removedDoc);
 
-            let removedDocPresentId = StrCast(removedDoc.presentId);
-
-            //Removing it from local mapping of the groups
-            if (this.groupMappings.has(removedDocPresentId)) {
-                let removedDocsGroup = this.groupMappings.get(removedDocPresentId);
-                if (removedDocsGroup) {
-                    removedDocsGroup.splice(removedDocsGroup.indexOf(removedDoc), 1);
-                    if (removedDocsGroup.length === 0) {
-                        this.groupMappings.delete(removedDocPresentId);
-                    }
-                }
-            }
-
-            //removing it from the backUp of selected Buttons
-            // let castedList = Cast(this.presButtonBackUp.selectedButtonDocs, listSpec(Doc));
-            // if (castedList) {
-            //     castedList.forEach(async (doc, indexOfDoc) => {
-            //         let curDoc = await doc;
-            //         let curDocId = StrCast(curDoc.docId);
-            //         if (curDocId === removedDoc[Id]) {
-            //             if (castedList) {
-            //                 castedList.splice(indexOfDoc, 1);
-            //                 return;
-            //             }
-            //         }
-            //     });
-
-            // }
-            //removing it from the backUp of selected Buttons
-
-            let castedList = Cast(this.presButtonBackUp.selectedButtonDocs, listSpec(Doc));
-            if (castedList) {
-                for (let doc of castedList) {
-                    let curDoc = await doc;
-                    let curDocId = StrCast(curDoc.docId);
-                    if (curDocId === removedDoc[Id]) {
-                        castedList.splice(castedList.indexOf(curDoc), 1);
-                        break;
-
-                    }
-                }
-            }
-
-            //removing it from the backup of groups
-            let castedGroupDocs = await DocListCastAsync(this.presGroupBackUp.groupDocs);
-            if (castedGroupDocs) {
-                castedGroupDocs.forEach(async (groupDoc: Doc, index: number) => {
-                    let castedKey = StrCast(groupDoc.presentIdStore, null);
-                    if (castedKey === removedDocPresentId) {
-                        let castedGrouping = await DocListCastAsync(groupDoc.grouping);
-                        if (castedGrouping) {
-                            castedGrouping.splice(castedGrouping.indexOf(removedDoc), 1);
-                            if (castedGrouping.length === 0) {
-                                castedGroupDocs!.splice(castedGroupDocs!.indexOf(groupDoc), 1);
-                            }
-                        }
-                    }
-
-                });
-
-            }
-
-
         }
     }
 
@@ -489,6 +340,7 @@ export class PresBox extends React.Component<FieldViewProps> { //FieldViewProps?
     //it'll also execute the necessary actions if presentation is playing.
     @action
     public gotoDocument = async (index: number, fromDoc: number) => {
+        Doc.UnBrushAllDocs();
         const list = FieldValue(Cast(this.curPresentation.data, listSpec(Doc)));
         if (!list) {
             return;
@@ -509,26 +361,7 @@ export class PresBox extends React.Component<FieldViewProps> { //FieldViewProps?
             this.hideIfNotPresented(index);
             this.showAfterPresented(index);
         }
-
     }
-
-    //Function that is called to resetGroupIds, so that documents get new groupIds at
-    //first load, when presentation is changed.
-    resetGroupIds = async () => {
-        let castedGroupDocs = await DocListCastAsync(this.presGroupBackUp.groupDocs);
-        if (castedGroupDocs !== undefined) {
-            castedGroupDocs.forEach(async (groupDoc: Doc, index: number) => {
-                let castedGrouping = await DocListCastAsync(groupDoc.grouping);
-                if (castedGrouping) {
-                    castedGrouping.forEach((doc: Doc) => {
-                        doc.presentId = Utils.GenerateGuid();
-                    });
-                }
-            });
-        }
-        runInAction(() => this.groupMappings = new Map());
-    }
-
     //Function that sets the store of the children docs.
     @action
     setChildrenDocs = (docList: Doc[]) => {
@@ -580,21 +413,19 @@ export class PresBox extends React.Component<FieldViewProps> { //FieldViewProps?
     //The function that starts the presentation, also checking if actions should be applied
     //directly at start.
     startPresentation = (startIndex: number) => {
-        let selectedButtons: boolean[];
         this.presElementsMappings.forEach((component: PresentationElement, doc: Doc) => {
-            selectedButtons = component.selected;
-            if (selectedButtons[buttonIndex.HideTillPressed]) {
+            if (component.props.document.hideTillShownButton) {
                 if (this.childrenDocs.indexOf(doc) > startIndex) {
                     doc.opacity = 0;
                 }
 
             }
-            if (selectedButtons[buttonIndex.HideAfter]) {
+            if (component.props.document.hideAfterButton) {
                 if (this.childrenDocs.indexOf(doc) < startIndex) {
                     doc.opacity = 0;
                 }
             }
-            if (selectedButtons[buttonIndex.FadeAfter]) {
+            if (component.props.document.fadeButton) {
                 if (this.childrenDocs.indexOf(doc) < startIndex) {
                     doc.opacity = 0.5;
                 }
@@ -684,12 +515,9 @@ export class PresBox extends React.Component<FieldViewProps> { //FieldViewProps?
                     mainDocument={this.curPresentation}
                     deleteDocument={this.RemoveDoc}
                     gotoDocument={this.gotoDocument}
-                    groupMappings={this.groupMappings}
                     PresElementsMappings={this.presElementsMappings}
                     setChildrenDocs={this.setChildrenDocs}
                     presStatus={this.presStatus}
-                    presButtonBackUp={this.presButtonBackUp}
-                    presGroupBackUp={this.presGroupBackUp}
                     removeDocByRef={this.removeDocByRef}
                     clearElemMap={() => this.presElementsMappings.clear()}
                 />

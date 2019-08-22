@@ -38,7 +38,7 @@ import flash = require('connect-flash');
 import { Search } from './Search';
 import _ = require('lodash');
 import * as Archiver from 'archiver';
-import AdmZip from 'adm-zip';
+var AdmZip = require('adm-zip');
 import * as YoutubeApi from "./apis/youtube/youtubeApiSample";
 import { Response } from 'express-serve-static-core';
 import { GoogleApiServerUtils } from "./apis/google/GoogleApiServerUtils";
@@ -359,7 +359,7 @@ app.post("/uploadDoc", (req, res) => {
             for (const name in files) {
                 const path_2 = files[name].path;
                 const zip = new AdmZip(path_2);
-                zip.getEntries().forEach(entry => {
+                zip.getEntries().forEach((entry: any) => {
                     if (!entry.entryName.startsWith("files/")) return;
                     let dirname = path.dirname(entry.entryName) + "/";
                     let extname = path.extname(entry.entryName);
@@ -368,13 +368,17 @@ app.post("/uploadDoc", (req, res) => {
                     // zip.extractEntryTo(dirname + basename + "_s" + extname, __dirname + RouteStore.public, true, false);
                     // zip.extractEntryTo(dirname + basename + "_m" + extname, __dirname + RouteStore.public, true, false);
                     // zip.extractEntryTo(dirname + basename + "_l" + extname, __dirname + RouteStore.public, true, false);
-                    zip.extractEntryTo(entry.entryName, __dirname + RouteStore.public, true, false);
-                    dirname = "/" + dirname;
+                    try {
+                        zip.extractEntryTo(entry.entryName, __dirname + RouteStore.public, true, false);
+                        dirname = "/" + dirname;
 
-                    fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_o" + extname));
-                    fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_s" + extname));
-                    fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_m" + extname));
-                    fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_l" + extname));
+                        fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_o" + extname));
+                        fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_s" + extname));
+                        fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_m" + extname));
+                        fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_l" + extname));
+                    } catch (e) {
+                        console.log(e);
+                    }
                 });
                 const json = zip.getEntry("doc.json");
                 let docs: any;

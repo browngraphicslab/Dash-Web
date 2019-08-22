@@ -40,7 +40,6 @@ import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import { FormattedTextBox } from './FormattedTextBox';
 import React = require("react");
-import { PresBox } from './PresBox';
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(fa.faTrash);
@@ -629,35 +628,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }
         });
 
-        cm.addItem({
-            description: "Import document", icon: "upload", event: () => {
-                const input = document.createElement("input");
-                input.type = "file";
-                input.accept = ".zip";
-                input.onchange = async _e => {
-                    const files = input.files;
-                    if (!files) return;
-                    const file = files[0];
-                    let formData = new FormData();
-                    formData.append('file', file);
-                    formData.append('remap', "true");
-                    const upload = Utils.prepend("/uploadDoc");
-                    const response = await fetch(upload, { method: "POST", body: formData });
-                    const json = await response.json();
-                    if (json === "error") {
-                        return;
-                    }
-                    const doc = await DocServer.GetRefField(json);
-                    if (!doc || !(doc instanceof Doc)) {
-                        return;
-                    }
-                    const [x, y] = this.props.ScreenToLocalTransform().transformPoint(e.pageX, e.pageY);
-                    doc.x = x, doc.y = y;
-                    this.props.addDocument && this.props.addDocument(doc, false);
-                };
-                input.click();
-            }
-        });
         cm.addItem({ description: "Delete", event: this.deleteClicked, icon: "trash" });
         type User = { email: string, userDocumentId: string };
         let usersMenu: ContextMenuProps[] = [];
@@ -745,7 +715,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     chromeHeight = () => {
         let showOverlays = this.props.showOverlays ? this.props.showOverlays(this.layoutDoc) : undefined;
         let showTitle = showOverlays && "title" in showOverlays ? showOverlays.title : StrCast(this.layoutDoc.showTitle);
-        return showTitle ? 25 : 0;
+        let templates = Cast(this.layoutDoc.templates, listSpec("string"));
+        if (!showOverlays && templates instanceof List) {
+            templates.map(str => {
+                if (!showTitle && str.indexOf("{props.Document.title}") !== -1) showTitle = "title";
+            });
+        }
+        return (showTitle ? 25 : 0) + 1;// bcz: why 8??
     }
 
     get layoutDoc() {
@@ -799,7 +775,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 {!showTitle && !showCaption ? this.contents :
                     <div style={{ position: "absolute", display: "inline-block", width: "100%", height: "100%", pointerEvents: "none" }}>
 
-                        <div style={{ width: "100%", height: showTextTitle ? "calc(100% - 33px)" : "100%", display: "inline-block", position: "absolute", top: showTextTitle ? "29px" : undefined }}>
+                        <div style={{ width: "100%", height: showTextTitle ? "calc(100% - 29px)" : "100%", display: "inline-block", position: "absolute", top: showTextTitle ? "29px" : undefined }}>
                             {this.contents}
                         </div>
                         {!showTitle ? (null) :

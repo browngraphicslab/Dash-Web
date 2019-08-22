@@ -155,7 +155,7 @@ class TreeView extends React.Component<TreeViewProps> {
         let rect = this._header!.current!.getBoundingClientRect();
         let bounds = this.props.ScreenToLocalTransform().transformPoint(rect.left, rect.top + rect.height / 2);
         let before = x[1] < bounds[1];
-        let inside = x[0] > bounds[0] + 75 || (!before && this.treeViewOpen);
+        let inside = x[0] > bounds[0] + 75;
         this._header!.current!.className = "treeViewItem-header";
         if (inside) this._header!.current!.className += " treeViewItem-header-inside";
         else if (before) this._header!.current!.className += " treeViewItem-header-above";

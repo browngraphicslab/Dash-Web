@@ -29,7 +29,7 @@ export class CurrentUserUtils {
         doc.viewType = CollectionViewType.Tree;
         doc.dropAction = "alias";
         doc.layout = CollectionView.LayoutString();
-        doc.title = Doc.CurrentUserEmail
+        doc.title = Doc.CurrentUserEmail;
         this.updateUserDocument(doc);
         doc.data = new List<Doc>();
         doc.gridGap = 5;

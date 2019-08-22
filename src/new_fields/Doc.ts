@@ -621,6 +621,9 @@ export namespace Doc {
         manager.BrushedDoc.delete(doc);
         manager.BrushedDoc.delete(Doc.GetDataDoc(doc));
     }
+    export function UnBrushAllDocs() {
+        manager.BrushedDoc.clear();
+    }
 }
 Scripting.addGlobal(function renameAlias(doc: any, n: any) { return StrCast(doc.title).replace(/\([0-9]*\)/, "") + `(${n})`; });
 Scripting.addGlobal(function getProto(doc: any) { return Doc.GetProto(doc); });
