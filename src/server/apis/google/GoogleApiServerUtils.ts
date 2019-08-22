@@ -1,7 +1,10 @@
-import { google, docs_v1 } from "googleapis";
+import { google, docs_v1, slides_v1 } from "googleapis";
 import { createInterface } from "readline";
 import { readFile, writeFile } from "fs";
 import { OAuth2Client } from "google-auth-library";
+import { Opt } from "../../../new_fields/Doc";
+import { GlobalOptions } from "googleapis-common";
+import { GaxiosResponse } from "gaxios";
 
 /**
  * Server side authentication for Google Api queries.
@@ -13,38 +16,57 @@ export namespace GoogleApiServerUtils {
     const SCOPES = [
         'documents.readonly',
         'documents',
+        'presentations',
+        'presentations.readonly',
         'drive',
         'drive.file',
     ];
-    // The file token.json stores the user's access and refresh tokens, and is
-    // created automatically when the authorization flow completes for the first
-    // time.
+
     export const parseBuffer = (data: Buffer) => JSON.parse(data.toString());
 
-    export namespace Docs {
+    export enum Sector {
+        Documents = "Documents",
+        Slides = "Slides"
+    }
 
-        export interface CredentialPaths {
-            credentials: string;
-            token: string;
-        }
 
-        export type Endpoint = docs_v1.Docs;
+    export interface CredentialPaths {
+        credentials: string;
+        token: string;
+    }
 
-        export const GetEndpoint = async (paths: CredentialPaths) => {
-            return new Promise<Endpoint>((resolve, reject) => {
-                readFile(paths.credentials, (err, credentials) => {
-                    if (err) {
-                        reject(err);
-                        return console.log('Error loading client secret file:', err);
+    export type ApiResponse = Promise<GaxiosResponse>;
+    export type ApiRouter = (endpoint: Endpoint, paramters: any) => ApiResponse;
+    export type ApiHandler = (parameters: any) => ApiResponse;
+    export type Action = "create" | "retrieve" | "update";
+
+    export type Endpoint = { get: ApiHandler, create: ApiHandler, batchUpdate: ApiHandler };
+    export type EndpointParameters = GlobalOptions & { version: "v1" };
+
+    export const GetEndpoint = async (sector: string, paths: CredentialPaths) => {
+        return new Promise<Opt<Endpoint>>((resolve, reject) => {
+            readFile(paths.credentials, (err, credentials) => {
+                if (err) {
+                    reject(err);
+                    return console.log('Error loading client secret file:', err);
+                }
+                return authorize(parseBuffer(credentials), paths.token).then(auth => {
+                    let routed: Opt<Endpoint>;
+                    let parameters: EndpointParameters = { auth, version: "v1" };
+                    switch (sector) {
+                        case Sector.Documents:
+                            routed = google.docs(parameters).documents;
+                            break;
+                        case Sector.Slides:
+                            routed = google.slides(parameters).presentations;
+                            break;
                     }
-                    return authorize(parseBuffer(credentials), paths.token).then(auth => {
-                        resolve(google.docs({ version: "v1", auth }));
-                    });
+                    resolve(routed);
                 });
             });
-        };
+        });
+    };
 
-    }
 
     /**
      * Create an OAuth2 client with the given credentials, and returns the promise resolving to the authenticated client
@@ -105,5 +127,4 @@ export namespace GoogleApiServerUtils {
             });
         });
     }
-
 }

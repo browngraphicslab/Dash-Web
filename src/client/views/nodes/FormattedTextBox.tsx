@@ -64,7 +64,7 @@ export const GoogleRef = "googleDocId";
 type RichTextDocument = makeInterface<[typeof richTextSchema]>;
 const RichTextDocument = makeInterface(richTextSchema);
 
-type PullHandler = (exportState: GoogleApiClientUtils.Docs.ReadResult, dataDoc: Doc) => void;
+type PullHandler = (exportState: GoogleApiClientUtils.ReadResult, dataDoc: Doc) => void;
 
 @observer
 export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTextBoxProps), RichTextDocument>(RichTextDocument) {
@@ -430,22 +430,20 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     pushToGoogleDoc = async () => {
-        this.pullFromGoogleDoc(async (exportState: GoogleApiClientUtils.Docs.ReadResult, dataDoc: Doc) => {
-            let modes = GoogleApiClientUtils.Docs.WriteMode;
+        this.pullFromGoogleDoc(async (exportState: GoogleApiClientUtils.ReadResult, dataDoc: Doc) => {
+            let modes = GoogleApiClientUtils.WriteMode;
             let mode = modes.Replace;
-            let reference: Opt<GoogleApiClientUtils.Docs.Reference> = Cast(this.dataDoc[GoogleRef], "string");
+            let reference: Opt<GoogleApiClientUtils.Reference> = Cast(this.dataDoc[GoogleRef], "string");
             if (!reference) {
                 mode = modes.Insert;
-                reference = {
-                    title: StrCast(this.dataDoc.title),
-                    handler: id => this.dataDoc[GoogleRef] = id
-                };
+                reference = { title: StrCast(this.dataDoc.title) };
             }
             let redo = async () => {
                 let data = Cast(this.dataDoc.data, RichTextField);
                 if (this._editorView && reference && data) {
                     let content = data[ToPlainText]();
                     let response = await GoogleApiClientUtils.Docs.write({ reference, content, mode });
+                    response && (this.dataDoc[GoogleRef] = response.documentId);
                     let pushSuccess = response !== undefined && !("errors" in response);
                     dataDoc.unchanged = pushSuccess;
                     DocumentDecorations.Instance.startPushOutcome(pushSuccess);
@@ -465,14 +463,14 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     pullFromGoogleDoc = async (handler: PullHandler) => {
         let dataDoc = this.dataDoc;
         let documentId = StrCast(dataDoc[GoogleRef]);
-        let exportState: GoogleApiClientUtils.Docs.ReadResult = {};
+        let exportState: GoogleApiClientUtils.ReadResult = {};
         if (documentId) {
             exportState = await GoogleApiClientUtils.Docs.read({ documentId });
         }
         UndoManager.RunInBatch(() => handler(exportState, dataDoc), Pulls);
     }
 
-    updateState = (exportState: GoogleApiClientUtils.Docs.ReadResult, dataDoc: Doc) => {
+    updateState = (exportState: GoogleApiClientUtils.ReadResult, dataDoc: Doc) => {
         let pullSuccess = false;
         if (exportState !== undefined && exportState.body !== undefined && exportState.title !== undefined) {
             const data = Cast(dataDoc.data, RichTextField);
@@ -496,7 +494,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         DocumentDecorations.Instance.startPullOutcome(pullSuccess);
     }
 
-    checkState = (exportState: GoogleApiClientUtils.Docs.ReadResult, dataDoc: Doc) => {
+    checkState = (exportState: GoogleApiClientUtils.ReadResult, dataDoc: Doc) => {
         if (exportState !== undefined && exportState.body !== undefined && exportState.title !== undefined) {
             let data = Cast(dataDoc.data, RichTextField);
             if (data) {

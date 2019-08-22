@@ -1,4 +1,4 @@
-import { docs_v1 } from "googleapis";
+import { docs_v1, slides_v1 } from "googleapis";
 import { PostToServer } from "../../../Utils";
 import { RouteStore } from "../../../server/RouteStore";
 import { Opt } from "../../../new_fields/Doc";
@@ -9,47 +9,47 @@ export const Pushes = "googleDocsPushCount";
 
 export namespace GoogleApiClientUtils {
 
+    export enum Actions {
+        Create = "create",
+        Retrieve = "retrieve",
+        Update = "update"
+    }
+
+    export enum WriteMode {
+        Insert,
+        Replace
+    }
+
+    export type DocumentId = string;
+    export type Reference = DocumentId | CreateOptions;
+    export type TextContent = string | string[];
+    export type IdHandler = (id: DocumentId) => any;
+    export type CreationResult = Opt<DocumentId>;
+    export type ReadLinesResult = Opt<{ title?: string, bodyLines?: string[] }>;
+    export type ReadResult = { title?: string, body?: string };
+
+    export interface CreateOptions {
+        title?: string; // if excluded, will use a default title annotated with the current date
+    }
+
+    export interface RetrieveOptions {
+        documentId: DocumentId;
+    }
+
+    export type ReadOptions = RetrieveOptions & { removeNewlines?: boolean };
+
+    export interface WriteOptions {
+        mode: WriteMode;
+        content: TextContent;
+        reference: Reference;
+        index?: number; // if excluded, will compute the last index of the document and append the content there
+    }
+
+
     export namespace Docs {
 
-        export enum Actions {
-            Create = "create",
-            Retrieve = "retrieve",
-            Update = "update"
-        }
-
-        export enum WriteMode {
-            Insert,
-            Replace
-        }
-
-        export type DocumentId = string;
-        export type Reference = DocumentId | CreateOptions;
-        export type TextContent = string | string[];
-        export type IdHandler = (id: DocumentId) => any;
-
-        export type CreationResult = Opt<DocumentId>;
         export type RetrievalResult = Opt<docs_v1.Schema$Document>;
         export type UpdateResult = Opt<docs_v1.Schema$BatchUpdateDocumentResponse>;
-        export type ReadLinesResult = Opt<{ title?: string, bodyLines?: string[] }>;
-        export type ReadResult = { title?: string, body?: string };
-
-        export interface CreateOptions {
-            handler: IdHandler; // callback to process the documentId of the newly created Google Doc
-            title?: string; // if excluded, will use a default title annotated with the current date
-        }
-
-        export interface RetrieveOptions {
-            documentId: DocumentId;
-        }
-
-        export type ReadOptions = RetrieveOptions & { removeNewlines?: boolean };
-
-        export interface WriteOptions {
-            mode: WriteMode;
-            content: TextContent;
-            reference: Reference;
-            index?: number; // if excluded, will compute the last index of the document and append the content there
-        }
 
         export interface UpdateOptions {
             documentId: DocumentId;
@@ -106,7 +106,7 @@ export namespace GoogleApiClientUtils {
          * @returns the documentId of the newly generated document, or undefined if the creation process fails.
          */
         export const create = async (options: CreateOptions): Promise<CreationResult> => {
-            const path = RouteStore.googleDocs + Actions.Create;
+            const path = RouteStore.googleDocs + "Documents/" + Actions.Create;
             const parameters = {
                 requestBody: {
                     title: options.title || `Dash Export (${new Date().toDateString()})`
@@ -115,17 +115,14 @@ export namespace GoogleApiClientUtils {
             try {
                 const schema: docs_v1.Schema$Document = await PostToServer(path, parameters);
                 const generatedId = schema.documentId;
-                if (generatedId) {
-                    options.handler(generatedId);
-                    return generatedId;
-                }
+                return generatedId;
             } catch {
                 return undefined;
             }
         };
 
         export const retrieve = async (options: RetrieveOptions): Promise<RetrievalResult> => {
-            const path = RouteStore.googleDocs + Actions.Retrieve;
+            const path = RouteStore.googleDocs + "Documents/" + Actions.Retrieve;
             try {
                 const schema: RetrievalResult = await PostToServer(path, options);
                 return schema;
@@ -135,7 +132,7 @@ export namespace GoogleApiClientUtils {
         };
 
         export const update = async (options: UpdateOptions): Promise<UpdateResult> => {
-            const path = RouteStore.googleDocs + Actions.Update;
+            const path = RouteStore.googleDocs + "Documents/" + Actions.Update;
             const parameters = {
                 documentId: options.documentId,
                 requestBody: {
@@ -217,6 +214,26 @@ export namespace GoogleApiClientUtils {
                 console.log(replies[errors].map((error: any) => error.message));
             }
             return replies;
+        };
+
+    }
+
+    export namespace Slides {
+
+        export const create = async (options: CreateOptions): Promise<CreationResult> => {
+            const path = RouteStore.googleDocs + "Slides/" + Actions.Create;
+            const parameters = {
+                requestBody: {
+                    title: options.title || `Dash Export (${new Date().toDateString()})`
+                }
+            };
+            try {
+                const schema: slides_v1.Schema$Presentation = await PostToServer(path, parameters);
+                const generatedId = schema.presentationId;
+                return generatedId;
+            } catch {
+                return undefined;
+            }
         };
 
     }

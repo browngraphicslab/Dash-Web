@@ -40,6 +40,7 @@ import { PreviewCursor } from './PreviewCursor';
 import { FilterBox } from './search/FilterBox';
 import PresModeMenu from './presentationview/PresentationModeMenu';
 import { PresBox } from './nodes/PresBox';
+import { GoogleApiClientUtils } from '../apis/google_docs/GoogleApiClientUtils';
 
 @observer
 export class MainView extends React.Component {
@@ -119,6 +120,9 @@ export class MainView extends React.Component {
 
     componentWillMount() {
         var tag = document.createElement('script');
+
+        let title = "THIS IS MY FIRST DASH PRESENTATION";
+        GoogleApiClientUtils.Slides.create({ title }).then(id => console.log("We received this! ", id));
 
         tag.src = "https://www.youtube.com/iframe_api";
         var firstScriptTag = document.getElementsByTagName('script')[0];
