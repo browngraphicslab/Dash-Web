@@ -51,6 +51,7 @@ type Node = {
     data: any;
     doc: Doc;
     leftval: number;
+    top: number;
 
 };
 
@@ -61,6 +62,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     private screenref = React.createRef<HTMLDivElement>();
     private barref = React.createRef<HTMLDivElement>();
     private marqueeref = React.createRef<HTMLDivElement>();
+    private timelineref = React.createRef<HTMLDivElement>();
     @observable private types: boolean[] = [];
 
     @computed
@@ -83,8 +85,22 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             }
         });
         this.initializeMarkers();
+        document.addEventListener("keydown", this.onKeyDown_Selector);
+
     }
 
+    @action
+    onKeyDown_Selector = (e: KeyboardEvent | React.KeyboardEvent) => {
+        e.preventDefault;
+        if (e.altKey) {
+
+        }
+        addEventListener("keyup", this.onKeyUp_Selector);
+    }
+
+    onKeyUp_Selector = (e: KeyboardEvent | React.KeyboardEvent) => {
+        e.preventDefault;
+    }
 
     @action
     initializeMarkers = async () => {
@@ -94,8 +110,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             let markerUnit = { document: doc, ref: undefined, mapref: undefined } as MarkerUnit;
             markerUnit.element = (< div ref={(el) => el ? markerUnit.ref = el : null} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, String(markerUnit.document.annotation), markerUnit)}
                 style={{
-                    top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid" + (markerUnit.document.color),
-                    width: "10px", height: "30px", backgroundColor: String(markerUnit.document.color), opacity: 0.5, position: "absolute", left: 0,
+                    top: "71%", border: "2px solid" + (markerUnit.document.color),
+                    width: "10px", height: "30px", backgroundColor: String(markerUnit.document.color), opacity: 0.5, position: "fixed", left: 0,
                 }}></div>);
             markerUnit.map = <div className="ugh" ref={(el) => el ? markerUnit.mapref = el : null}
                 style={{
@@ -114,9 +130,9 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         let markerUnit = { document: doc, ref: undefined, mapref: undefined } as MarkerUnit;
         markerUnit.element = (< div ref={(el) => el ? markerUnit.ref = el : null} onDoubleClick={(e) => this.doubleclick(e, markerUnit)} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, String(markerUnit.document.annotation), markerUnit)}
             style={{
-                top: String(document.body.clientHeight * 0.65 + 72), border: "2px solid" + String(markerUnit.document.color),
+                top: "71%", border: "2px solid" + String(markerUnit.document.color),
                 width: NumCast(doc.initialWidth), height: "30px", backgroundColor: String(markerUnit.document.color), zIndex: 5, opacity: 0.5, padding: "2px",
-                position: "absolute", left: NumCast(doc.initialLeft),
+                position: "fixed", left: NumCast(doc.initialLeft),
             }}>
             <EditableView
                 contents={doc.annotation}
@@ -522,7 +538,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         </div>
 
 
-                        <div ref={(el) => el ? newNode.headerref2 = el : null} style={{ alignItems: "center", justifyItems: "center", display: "flex", position: "absolute", height: (document.body.clientHeight * 0.75 - document.body.clientHeight / 4) - 100, width: "2px", backgroundColor: "#9c9396" }}>
+                        <div ref={(el) => el ? newNode.headerref2 = el : null} style={{ alignItems: "center", justifyItems: "center", display: "flex", position: "absolute", width: "2px", backgroundColor: "#9c9396" }}>
                             <div style={{ paddingLeft: "3px" }}>
                                 {this.sortstate}:{Math.round(NumCast(docs[i][this.sortstate]))}</div>
 
@@ -530,6 +546,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     </div >
                 ),
                 doc: docs[i],
+                top: document.body.clientHeight / 6,
                 headerref: undefined,
                 headerref2: undefined,
                 map: (
@@ -565,12 +582,12 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     }
 
     adjustY() {
-        for (let thumbnail1 of this.thumbnails) {
-            thumbnail1!.headerref!.style.top! = "100";
-            thumbnail1!.thumbnailref2!.style.top! = "0";
-            thumbnail1!.headerref2!.style.height! = String((document.body.clientHeight * 0.75 - document.body.clientHeight / 4) - 100);
-            thumbnail1.headerref2!.style.top! = "0";
-        }
+        // for (let thumbnail1 of this.thumbnails) {
+        //     thumbnail1!.headerref!.style.top! = "100";
+        //     thumbnail1!.thumbnailref2!.style.top! = "0";
+        //     thumbnail1!.headerref2!.style.height! = String((document.body.clientHeight * 0.75 - document.body.clientHeight / 4) - 100);
+        //     thumbnail1.headerref2!.style.top! = "0";
+        // }
         let overlap = false;
         while (overlap === false) {
             overlap = true;
@@ -588,7 +605,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         let curpreview = parseFloat(thumbnail1!.headerref2!.style.height!);
                         curtop += 105;
                         curthumb += 105;
-                        curpreview -= 105;
+                        thumbnail1.top += 105;
+                        curpreview = document.body.clientHeight * 0.75 - thumbnail1.top;
                         thumbnail1!.headerref!.style.top! = String(curtop);
                         thumbnail1!.thumbnailref2!.style.top! = String(curthumb);
                         thumbnail1!.headerref2!.style.height! = String(curpreview);
@@ -596,6 +614,43 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     }
                 }
             }
+        }
+
+        for (let thumbnail1 of this.thumbnails) {
+            for (let thumbnail2 of this.thumbnails) {
+                let thumbnail1y = parseFloat(thumbnail1.thumbnailref2!.style.top!);
+                let thumbnail2y = parseFloat(thumbnail2.thumbnailref2!.style.top!);
+                let curtop = parseFloat(thumbnail1!.headerref!.style.top!);
+                let curthumb = parseFloat(thumbnail1!.thumbnailref2!.style.top!);
+                let curpreview = parseFloat(thumbnail1!.headerref2!.style.height!);
+                curtop -= 105;
+                curthumb -= 105;
+                thumbnail1.top += 105;
+                curpreview = document.body.clientHeight * 0.75 - thumbnail1.top;
+                thumbnail1!.headerref!.style.top! = String(curtop);
+                thumbnail1!.thumbnailref2!.style.top! = String(curthumb);
+                thumbnail1!.headerref2!.style.height! = String(curpreview);
+                thumbnail1y = parseFloat(thumbnail1.thumbnailref2!.style.top!);
+                thumbnail2y = parseFloat(thumbnail2.thumbnailref2!.style.top!);
+                if ((((thumbnail1.leftval >= thumbnail2.leftval && thumbnail1.leftval - 100 < thumbnail2.leftval)
+                    || (thumbnail1.leftval <= thumbnail2.leftval && thumbnail1.leftval + 100 > thumbnail2.leftval))
+                    && ((thumbnail1y! >= thumbnail2y! && thumbnail1y! - 100 <= thumbnail2y!)
+                        || (thumbnail1y! <= thumbnail2y! && thumbnail1y! + 100 >= thumbnail2y!))!)
+                    && thumbnail1 !== thumbnail2) {
+                    let curtop = parseFloat(thumbnail1!.headerref!.style.top!);
+                    let curthumb = parseFloat(thumbnail1!.thumbnailref2!.style.top!);
+                    let curpreview = parseFloat(thumbnail1!.headerref2!.style.height!);
+                    curtop += 105;
+                    curthumb += 105;
+                    thumbnail1.top += 105;
+                    curpreview = document.body.clientHeight * 0.75 - thumbnail1.top;
+                    thumbnail1!.headerref!.style.top! = String(curtop);
+                    thumbnail1!.thumbnailref2!.style.top! = String(curthumb);
+                    thumbnail1!.headerref2!.style.height! = String(curpreview);
+
+                }
+            }
+
         }
     }
 
@@ -646,8 +701,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
         let contentScaling = () => wscale;
         let transform = () => new Transform(0, 0, 1);
-        let PanelWidth = () => nativeWidth * contentScaling();
-        let PanelHeight = () => nativeHeight * contentScaling();
         let getTransform = () => transform().translate(-centeringOffset, 0).scale(1 / contentScaling());
         let centeringOffset = () => (width - nativeWidth * contentScaling()) / 2;
         return (
@@ -791,7 +844,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.updatetrue();
         let p: [number, number] = this._visible ? this.props.ScreenToLocalTransform().translate(0, 0).transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
         return (
-            <div className="collectionTimelineView" ref={this.screenref} style={{ overflow: "scroll", cursor: "grab", width: "100%", height: "100%" }} onPointerDown={this.onPointerDown_Dragger} onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
+            <div className="collectionTimelineView" onKeyDown={this.onKeyDown_Selector} ref={this.screenref} style={{ overflow: "scroll", cursor: "grab", width: "100%", height: "100%" }} onPointerDown={this.onPointerDown_Dragger} onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
                 <Flyout
                     anchorPoint={anchorPoints.RIGHT_TOP}
                     content={<div>
@@ -801,10 +854,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     }>
                     <button id="schemaOptionsMenuBtn" style={{ position: "fixed" }}><FontAwesomeIcon style={{ color: "white" }} icon="cog" size="sm" /></button>
                 </Flyout>
-                <div className="timeline" style={{ position: "fixed", height: "25px", width: "100%", top: String(document.body.clientHeight * 0.75) + "px", zIndex: 9999 }}>
+                <div ref={this.timelineref} className="timeline" style={{ position: "fixed", height: "25px", width: "100%", top: "75%", zIndex: 9999 }}>
+                    {DocListCast(this.props.Document.markers).map(d => this.createmarker(d))}
                     {this.ticks}
                 </div>
-                {DocListCast(this.props.Document.markers).map(d => this.createmarker(d))}
                 <BottomUI
                     thumbnailmap={this.thumbnails.map(item => item.map)}
                     markermap={DocListCast(this.props.Document.markers).map(d => this.createmap(d))}
@@ -836,7 +889,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         {this._visible ? this.marqueeDiv : null}
                     </div>}
                 </div>
-                <div style={{ top: document.body.clientHeight / 4, position: "absolute", bottom: "25%" }}>{this.thumbnails.map(item => item.thumbnail)}{this.thumbnails.map(item => item.header)}</div>
+                <div style={{ top: document.body.clientHeight / 6, position: "absolute", bottom: "25%" }}>{this.thumbnails.map(item => item.thumbnail)}{this.thumbnails.map(item => item.header)}</div>
             </div >
         );
     }
