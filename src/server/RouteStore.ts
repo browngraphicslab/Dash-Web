@@ -31,6 +31,6 @@ export enum RouteStore {
 
     // APIS
     cognitiveServices = "/cognitiveservices",
-    googleDocs = "/googleDocs/"
+    googleDocs = "/googleDocs"
 
 }

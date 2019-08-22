@@ -105,7 +105,7 @@ export default class KeyManager {
 
         switch (keyname) {
             case " ":
-                DictationManager.Controls.listen({ tryExecute: true });
+                DictationManager.Controls.listen({ useOverlay: true, tryExecute: true });
                 stopPropagation = true;
                 preventDefault = true;
         }
