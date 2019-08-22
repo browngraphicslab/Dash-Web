@@ -28,6 +28,7 @@ import "./CollectionTreeView.scss";
 import React = require("react");
 import { ComputedField, ScriptField } from '../../../new_fields/ScriptField';
 import { KeyValueBox } from '../nodes/KeyValueBox';
+import { ContextMenuProps } from '../ContextMenuItem';
 
 
 export interface TreeViewProps {
@@ -541,6 +542,10 @@ export class CollectionTreeView extends CollectionSubView(Document) {
             e.stopPropagation();
             e.preventDefault();
             ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
+        } else {
+            let layoutItems: ContextMenuProps[] = [];
+            layoutItems.push({ description: this.props.Document.preventTreeViewOpen ? "Persist Treeview State" : "Abandon Treeview State", event: () => this.props.Document.preventTreeViewOpen = !this.props.Document.preventTreeViewOpen, icon: "paint-brush" });
+            ContextMenu.Instance.addItem({ description: "Treeview Options ...", subitems: layoutItems, icon: "eye" });
         }
     }
     outerXf = () => Utils.GetScreenTransform(this._mainEle!);
