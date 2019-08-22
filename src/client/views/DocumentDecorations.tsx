@@ -714,7 +714,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let canPull = this.targetDoc.data && this.targetDoc.data instanceof RichTextField;
         let dataDoc = Doc.GetProto(this.targetDoc);
         if (!canPull || !dataDoc[GoogleRef]) return (null);
-        let icon = !dataDoc.unchanged ? (this.pullIcon as any) : fetch;
+        let icon = dataDoc.unchanged === false ? (this.pullIcon as any) : fetch;
         icon = this.openHover ? "share" : icon;
         let animation = this.isAnimatingFetch ? "spin 0.5s linear infinite" : "none";
         let title = `${!dataDoc.unchanged ? "Pull from" : "Fetch"} Google Docs`;
@@ -727,10 +727,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                         backgroundColor: this.pullColor,
                         transition: "0.2s ease all"
                     }}
-                    onPointerEnter={e => e.ctrlKey && runInAction(() => this.openHover = true)}
+                    onPointerEnter={e => e.altKey && runInAction(() => this.openHover = true)}
                     onPointerLeave={() => runInAction(() => this.openHover = false)}
                     onClick={e => {
-                        if (e.ctrlKey) {
+                        if (e.altKey) {
+                            e.preventDefault();
                             window.open(`https://docs.google.com/document/d/${dataDoc[GoogleRef]}/edit`);
                         } else {
                             this.clearPullColor();

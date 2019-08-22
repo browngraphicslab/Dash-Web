@@ -6,7 +6,7 @@ import { baseKeymap } from "prosemirror-commands";
 import { history } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
 import { Fragment, Node, Node as ProsNode, NodeType, Slice } from "prosemirror-model";
-import { EditorState, Plugin, Transaction } from "prosemirror-state";
+import { EditorState, Plugin, Transaction, TextSelection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { DateField } from '../../../new_fields/DateField';
 import { Doc, DocListCast, Opt, WidthSym } from "../../../new_fields/Doc";
@@ -35,6 +35,8 @@ import React = require("react");
 import { GoogleApiClientUtils, Pulls, Pushes } from '../../apis/google_docs/GoogleApiClientUtils';
 import { DocumentDecorations } from '../DocumentDecorations';
 import { MainOverlayTextBox } from '../MainOverlayTextBox';
+import { DictationManager } from '../../util/DictationManager';
+import { ReplaceStep } from 'prosemirror-transform';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -62,7 +64,7 @@ export const GoogleRef = "googleDocId";
 type RichTextDocument = makeInterface<[typeof richTextSchema]>;
 const RichTextDocument = makeInterface(richTextSchema);
 
-type PullHandler = (exportState: GoogleApiClientUtils.Docs.ReadResult, dataDoc: Doc) => void;
+type PullHandler = (exportState: GoogleApiClientUtils.ReadResult, dataDoc: Doc) => void;
 
 @observer
 export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTextBoxProps), RichTextDocument>(RichTextDocument) {
@@ -85,7 +87,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     private pushReactionDisposer: Opt<IReactionDisposer>;
     private dropDisposer?: DragManager.DragDropDisposer;
     public get CurrentDiv(): HTMLDivElement { return this._ref.current!; }
-    private isGoogleDocsUpdate = false;
     @observable _entered = false;
 
     @observable public static InputBoxOverlay?: FormattedTextBox = undefined;
@@ -180,6 +181,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 const marks = tx.storedMarks;
                 if (marks) { FormattedTextBox._toolTipTextMenu.mark_key_pressed(marks); }
             }
+
             this._applyingChange = true;
             const fieldkey = "preview";
             if (this.extensionDoc) this.extensionDoc.text = state.doc.textBetween(0, state.doc.content.size, "\n\n");
@@ -265,6 +267,64 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
+    recordKeyHandler = (e: KeyboardEvent) => {
+        if (this.props.Document !== SelectionManager.SelectedDocuments()[0].props.Document) {
+            return;
+        }
+        if (e.key === "R" && e.altKey) {
+            e.stopPropagation();
+            e.preventDefault();
+            this.recordBullet();
+        }
+    }
+
+    recordBullet = async () => {
+        let completedCue = "end session";
+        let results = await DictationManager.Controls.listen({
+            interimHandler: this.setCurrentBulletContent,
+            continuous: { indefinite: false },
+            terminators: [completedCue, "bullet", "next"]
+        });
+        if (results && [DictationManager.Controls.Infringed, completedCue].includes(results)) {
+            DictationManager.Controls.stop();
+            return;
+        }
+        this.nextBullet(this._editorView!.state.selection.to);
+        setTimeout(this.recordBullet, 2000);
+    }
+
+    setCurrentBulletContent = (value: string) => {
+        if (this._editorView) {
+            let state = this._editorView.state;
+            let from = state.selection.from;
+            let to = state.selection.to;
+            this._editorView.dispatch(state.tr.insertText(value, from, to));
+            state = this._editorView.state;
+            let updated = TextSelection.create(state.doc, from, from + value.length);
+            this._editorView.dispatch(state.tr.setSelection(updated));
+        }
+    }
+
+    nextBullet = (pos: number) => {
+        if (this._editorView) {
+            let frag = Fragment.fromArray(this.newListItems(2));
+            let slice = new Slice(frag, 2, 2);
+            let state = this._editorView.state;
+            this._editorView.dispatch(state.tr.step(new ReplaceStep(pos, pos, slice)));
+            pos += 4;
+            state = this._editorView.state;
+            this._editorView.dispatch(state.tr.setSelection(TextSelection.create(this._editorView.state.doc, pos, pos)));
+        }
+    }
+
+    private newListItems = (count: number) => {
+        let listItems: any[] = [];
+        for (let i = 0; i < count; i++) {
+            listItems.push(schema.nodes.list_item.create(undefined, schema.nodes.paragraph.create()));
+        }
+        return listItems;
+    }
+
     componentDidMount() {
         const config = {
             schema,
@@ -298,7 +358,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
 
         this.pullFromGoogleDoc(this.checkState);
-        runInAction(() => DocumentDecorations.Instance.isAnimatingFetch = true);
+        this.dataDoc[GoogleRef] && this.dataDoc.unchanged && runInAction(() => DocumentDecorations.Instance.isAnimatingFetch = true);
 
         this._reactionDisposer = reaction(
             () => {
@@ -309,13 +369,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 if (this._editorView && !this._applyingChange) {
                     let updatedState = JSON.parse(incomingValue);
                     this._editorView.updateState(EditorState.fromJSON(config, updatedState));
-                    // manually sets cursor selection at the end of the text on focus
-                    if (this.isGoogleDocsUpdate) {
-                        this.isGoogleDocsUpdate = false;
-                        let end = this._editorView.state.doc.content.size - 1;
-                        updatedState.selection = { type: "text", anchor: end, head: end };
-                        this._editorView.updateState(EditorState.fromJSON(config, updatedState));
-                    }
                     this.tryUpdateHeight();
                 }
             }
@@ -378,22 +431,20 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     pushToGoogleDoc = async () => {
-        this.pullFromGoogleDoc(async (exportState: GoogleApiClientUtils.Docs.ReadResult, dataDoc: Doc) => {
-            let modes = GoogleApiClientUtils.Docs.WriteMode;
+        this.pullFromGoogleDoc(async (exportState: GoogleApiClientUtils.ReadResult, dataDoc: Doc) => {
+            let modes = GoogleApiClientUtils.WriteMode;
             let mode = modes.Replace;
-            let reference: Opt<GoogleApiClientUtils.Docs.Reference> = Cast(this.dataDoc[GoogleRef], "string");
+            let reference: Opt<GoogleApiClientUtils.Reference> = Cast(this.dataDoc[GoogleRef], "string");
             if (!reference) {
                 mode = modes.Insert;
-                reference = {
-                    title: StrCast(this.dataDoc.title),
-                    handler: id => this.dataDoc[GoogleRef] = id
-                };
+                reference = { service: GoogleApiClientUtils.Service.Documents, title: StrCast(this.dataDoc.title) };
             }
             let redo = async () => {
                 let data = Cast(this.dataDoc.data, RichTextField);
                 if (this._editorView && reference && data) {
                     let content = data[ToPlainText]();
                     let response = await GoogleApiClientUtils.Docs.write({ reference, content, mode });
+                    response && (this.dataDoc[GoogleRef] = response.documentId);
                     let pushSuccess = response !== undefined && !("errors" in response);
                     dataDoc.unchanged = pushSuccess;
                     DocumentDecorations.Instance.startPushOutcome(pushSuccess);
@@ -413,32 +464,38 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     pullFromGoogleDoc = async (handler: PullHandler) => {
         let dataDoc = this.dataDoc;
         let documentId = StrCast(dataDoc[GoogleRef]);
-        let exportState: GoogleApiClientUtils.Docs.ReadResult = {};
+        let exportState: GoogleApiClientUtils.ReadResult = {};
         if (documentId) {
-            exportState = await GoogleApiClientUtils.Docs.read({ documentId });
+            exportState = await GoogleApiClientUtils.Docs.read({ identifier: documentId });
         }
         UndoManager.RunInBatch(() => handler(exportState, dataDoc), Pulls);
     }
 
-    updateState = (exportState: GoogleApiClientUtils.Docs.ReadResult, dataDoc: Doc) => {
+    updateState = (exportState: GoogleApiClientUtils.ReadResult, dataDoc: Doc) => {
         let pullSuccess = false;
         if (exportState !== undefined && exportState.body !== undefined && exportState.title !== undefined) {
-            let data = Cast(dataDoc.data, RichTextField);
-            if (data) {
+            const data = Cast(dataDoc.data, RichTextField);
+            if (data instanceof RichTextField) {
                 pullSuccess = true;
-                this.isGoogleDocsUpdate = true;
                 dataDoc.data = new RichTextField(data[FromPlainText](exportState.body));
+                setTimeout(() => {
+                    if (this._editorView) {
+                        let state = this._editorView.state;
+                        let end = state.doc.content.size - 1;
+                        this._editorView.dispatch(state.tr.setSelection(TextSelection.create(state.doc, end, end)));
+                    }
+                }, 0);
                 dataDoc.title = exportState.title;
+                this.Document.customTitle = true;
                 dataDoc.unchanged = true;
             }
         } else {
             delete dataDoc[GoogleRef];
         }
         DocumentDecorations.Instance.startPullOutcome(pullSuccess);
-        this.tryUpdateHeight();
     }
 
-    checkState = (exportState: GoogleApiClientUtils.Docs.ReadResult, dataDoc: Doc) => {
+    checkState = (exportState: GoogleApiClientUtils.ReadResult, dataDoc: Doc) => {
         if (exportState !== undefined && exportState.body !== undefined && exportState.title !== undefined) {
             let data = Cast(dataDoc.data, RichTextField);
             if (data) {
@@ -573,7 +630,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             if (!this.props.isOverlay) this.props.select(false);
             else this._editorView!.focus();
         }
-        this.tryUpdateHeight();
     }
 
     componentWillUnmount() {
@@ -659,6 +715,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     @action
     onFocused = (e: React.FocusEvent): void => {
+        document.removeEventListener("keypress", this.recordKeyHandler);
+        document.addEventListener("keypress", this.recordKeyHandler);
+        this.tryUpdateHeight();
         if (!this.props.isOverlay) {
             FormattedTextBox.InputBoxOverlay = this;
         } else {
@@ -708,6 +767,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         });
     }
     onBlur = (e: any) => {
+        document.removeEventListener("keypress", this.recordKeyHandler);
         if (this._undoTyping) {
             this._undoTyping.end();
             this._undoTyping = undefined;
