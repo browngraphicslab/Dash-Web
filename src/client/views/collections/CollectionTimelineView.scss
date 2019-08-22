@@ -45,18 +45,24 @@
     }
 
     .active {
-        border: 1px solid $intermediate-color;
+        border-left: 1px solid $intermediate-color;
         height: 5px
     }
 
+
     .max {
-        border-left: 2px solid $intermediate-color;
+        border-left: 1px solid $intermediate-color;
         height: 25px
     }
 
     .max2 {
-        border: 1px solid $intermediate-color;
+        border-left: 1px solid $intermediate-color;
         height: 15px
+    }
+
+    .hover {
+        border-left: 1px dashed $intermediate-color;
+        height: 30px
     }
 
     .backdropscroll {

@@ -241,11 +241,24 @@ export class BottomUI extends React.Component<BottomUIProps> {
         e.preventDefault();
     }
 
+    private borderref = React.createRef<HTMLInputElement>();
+
+    toggleborder() {
+        if (this.borderref.current) {
+            if (this.props.truesort === "sortinputRIGHT") {
+                this.borderref.current!.style.border = "green 2px solid";
+            }
+            if (this.props.truesort === "sortinputWRONG") {
+                this.borderref.current!.style.border = "red 2px solid";
+            }
+        }
+    }
+
     render() {
+        this.toggleborder();
         return (
             <div>
                 <div className="collectionTimelineViewBottomUI-grid">
-
                     <form className="form" ref={this.searchref}>
                         <div className="min">
                             <input size={10} value={this.searchString2} onChange={this.onChange2} onKeyPress={this.enter2} type="text" placeholder={"Min: " + String(Math.round((this.props.leftbound * this.props._range / this.props.barwidth) + this.props.minvalue))}
@@ -263,7 +276,7 @@ export class BottomUI extends React.Component<BottomUIProps> {
                     <div ref={this.colorrefGreen} onClick={(e) => this.toggleColor(e, "#bfff80")} className="color2" style={{ position: "relative", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#bfff80", border: "2px solid #9c9396" }}></div>
                     <div ref={this.colorrefRed} onClick={(e) => this.toggleColor(e, "#ff8080")} className="color3" style={{ position: "relative", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#ff8080", border: "2px solid #9c9396" }}></div>
                     <div ref={this.colorrefBlue} onClick={(e) => this.toggleColor(e, "#80dfff")} className="color4" style={{ position: "relative", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#80dfff", border: "2px solid #9c9396" }}></div>
-                    <input height={"20px"} className={this.props.truesort} type="text" value={this.searchString3 ? this.searchString : undefined} placeholder={"sort value: " + this.props.sortstate} onChange={this.onChange3} onKeyPress={this.enter3} />
+                    <input height={"20px"} ref={this.borderref} type="text" value={this.searchString3 ? this.searchString : undefined} placeholder={"sort value: " + this.props.sortstate} onChange={this.onChange3} onKeyPress={this.enter3} />
                 </div>
                 <div ref={this.props.barref} className="backdropscroll" onPointerDown={this.onPointerDown_OffBar} style={{ zIndex: 1, top: "3.5%", width: "100%", bottom: "90%", position: "fixed", }}>
                     {this.props.thumbnailmap}

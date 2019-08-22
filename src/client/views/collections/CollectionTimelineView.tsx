@@ -265,14 +265,14 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             let minticknum = Infinity;
             for (let ticks of this.tickrefs) {
                 if (ticks.current !== null) {
-                    ticks.current.style.borderStyle = "solid";
+                    ticks.current!.classList.remove("hover");
                     if (Math.abs(leftval - parseFloat(ticks.current.style.left)) < minticknum) {
                         minticknum = Math.abs(leftval - parseFloat(ticks!.current.style.left!));
                         mintick = ticks;
                     }
                 }
             }
-            mintick.current.style.borderStyle = "dashed";
+            mintick.current!.classList.add("hover");
 
 
             for (let markers of this.markerDocs) {
@@ -281,7 +281,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     return;
                 }
             }
-            //doc.initialWidth = leftval - parseFloat(doc.initialLeft);
             doc.initialWidth = newwidth;
             doc.initialMapWidth = newmapwidth;
         }
@@ -296,7 +295,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         let leftval = NumCast(doc.initialLeft) + NumCast(doc.initialWidth);
         for (let ticks of this.tickrefs) {
             if (ticks.current !== null) {
-                ticks.current.style.borderStyle = "solid";
+                ticks.current!.classList.remove("hover");
 
                 if (Math.abs(leftval - parseFloat(ticks.current.style.left)) < minticknum) {
                     minticknum = Math.abs(leftval - parseFloat(ticks!.current.style.left!));
@@ -700,9 +699,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     rightboundSet = (number: number) => { this.rightbound = number; this.markerrender(); }
     selectedColorSet = (color: string) => { this.selectedColor = color; };
     barwidthSet = (color: number) => { this.barwidth = color; this.markerrender(); };
+
+    @action
     setsortsate = (string: string) => {
         this.sortstate = string; this.adjustY(); this.adjustY();
-        (this.thumbnails.length > 0 ? this.truesort = "sortinputRIGHT" : this.truesort = "sortinputWRONG");
     }
 
     @observable private truesort: string = "sortinput";
@@ -777,12 +777,18 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         document.removeEventListener("pointerup", this.onPointerUp_Dragger, true);
         this.screenref.current!.style.cursor = "grab";
     }
+    @action
+    updatetrue() {
+        (this.thumbnails.length > 0 ? this.truesort = "sortinputRIGHT" : this.truesort = "sortinputWRONG");
+
+    }
 
     render() {
         this.updateWidth();
         this.createticks();
         this.filtermenu();
         this.thumbnailloop();
+        this.updatetrue();
         let p: [number, number] = this._visible ? this.props.ScreenToLocalTransform().translate(0, 0).transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
         return (
             <div className="collectionTimelineView" ref={this.screenref} style={{ overflow: "scroll", cursor: "grab", width: "100%", height: "100%" }} onPointerDown={this.onPointerDown_Dragger} onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
