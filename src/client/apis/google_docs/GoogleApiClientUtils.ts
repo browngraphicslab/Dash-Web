@@ -236,4 +236,36 @@ export namespace GoogleApiClientUtils {
 
     }
 
+    export namespace Slides {
+
+        export namespace Utils {
+
+            export const extractTextBoxes = (slides: slides_v1.Schema$Page[]) => {
+                slides.map(slide => {
+                    let elements = slide.pageElements;
+                    if (elements) {
+                        let textboxes: slides_v1.Schema$TextContent[] = [];
+                        for (let element of elements) {
+                            if (element && element.shape && element.shape.shapeType === "TEXT_BOX" && element.shape.text) {
+                                textboxes.push(element.shape.text);
+                            }
+                        }
+                        textboxes.map(text => {
+                            if (text.textElements) {
+                                text.textElements.map(element => {
+
+                                });
+                            }
+                            if (text.lists) {
+
+                            }
+                        });
+                    }
+                });
+            };
+
+        }
+
+    }
+
 }
