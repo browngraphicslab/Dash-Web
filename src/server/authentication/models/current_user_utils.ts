@@ -73,6 +73,12 @@ export class CurrentUserUtils {
             sidebar.boxShadow = "1 1 3";
             doc.sidebar = sidebar;
         }
+        if (doc.overlays === undefined) {
+            const overlays = Docs.Create.FreeformDocument([], { title: "Overlays" });
+            overlays.excludeFromLibrary = true;
+            Doc.GetProto(overlays).backgroundColor = "#aca3a6";
+            doc.overlays = overlays;
+        }
         StrCast(doc.title).indexOf("@") !== -1 && (doc.title = StrCast(doc.title).split("@")[0] + "'s Library");
         doc.width = 100;
         doc.preventTreeViewOpen = true;
