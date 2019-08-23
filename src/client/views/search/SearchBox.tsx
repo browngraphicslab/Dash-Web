@@ -245,7 +245,6 @@ export class SearchBox extends React.Component {
 
     @action.bound
     closeSearch = () => {
-        console.log("closing search")
         FilterBox.Instance.closeFilter();
         this.closeResults();
         this._searchbarOpen = false;

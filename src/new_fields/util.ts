@@ -7,7 +7,6 @@ import { ObjectField } from "./ObjectField";
 import { action } from "mobx";
 import { Parent, OnUpdate, Update, Id, SelfProxy, Self } from "./FieldSymbols";
 import { DocServer } from "../client/DocServer";
-import { CurrentUserUtils } from "../server/authentication/models/current_user_utils";
 
 function _readOnlySetter(): never {
     throw new Error("Documents can't be modified in read-only mode");
@@ -61,7 +60,7 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
     }
     const writeMode = DocServer.getFieldWriteMode(prop as string);
     const fromServer = target[UpdatingFromServer];
-    const sameAuthor = fromServer || (receiver.author === CurrentUserUtils.email);
+    const sameAuthor = fromServer || (receiver.author === Doc.CurrentUserEmail);
     const writeToDoc = sameAuthor || (writeMode !== DocServer.WriteMode.LiveReadonly);
     const writeToServer = sameAuthor || (writeMode === DocServer.WriteMode.Default);
     if (writeToDoc) {

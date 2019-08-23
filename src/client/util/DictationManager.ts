@@ -2,9 +2,10 @@ import { SelectionManager } from "./SelectionManager";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { UndoManager } from "./UndoManager";
 import * as interpreter from "words-to-numbers";
+import { DocumentType } from "../documents/DocumentTypes";
 import { Doc } from "../../new_fields/Doc";
 import { List } from "../../new_fields/List";
-import { Docs, DocumentType } from "../documents/Documents";
+import { Docs } from "../documents/Documents";
 import { CollectionViewType } from "../views/collections/CollectionBaseView";
 import { Cast, CastCtor } from "../../new_fields/Types";
 import { listSpec } from "../../new_fields/Schema";
@@ -12,6 +13,7 @@ import { AudioField, ImageField } from "../../new_fields/URLField";
 import { HistogramField } from "../northstar/dash-fields/HistogramField";
 import { MainView } from "../views/MainView";
 import { Utils } from "../../Utils";
+import { RichTextField } from "../../new_fields/RichTextField";
 
 /**
  * This namespace provides a singleton instance of a manager that
@@ -43,7 +45,7 @@ export namespace DictationManager {
 
     export namespace Controls {
 
-        const infringe = "unable to process: dictation manager still involved in previous session";
+        export const Infringed = "unable to process: dictation manager still involved in previous session";
         const intraSession = ". ";
         const interSession = " ... ";
 
@@ -62,35 +64,45 @@ export namespace DictationManager {
         export type ListeningUIStatus = { interim: boolean } | false;
 
         export interface ListeningOptions {
+            useOverlay: boolean;
             language: string;
             continuous: ContinuityArgs;
             delimiters: DelimiterArgs;
             interimHandler: InterimResultHandler;
             tryExecute: boolean;
+            terminators: string[];
         }
 
         export const listen = async (options?: Partial<ListeningOptions>) => {
             let results: string | undefined;
             let main = MainView.Instance;
 
-            main.dictationOverlayVisible = true;
-            main.isListening = { interim: false };
+            let overlay = options !== undefined && options.useOverlay;
+            if (overlay) {
+                main.dictationOverlayVisible = true;
+                main.isListening = { interim: false };
+            }
 
             try {
                 results = await listenImpl(options);
                 if (results) {
                     Utils.CopyText(results);
-                    main.isListening = false;
-                    let execute = options && options.tryExecute;
-                    main.dictatedPhrase = execute ? results.toLowerCase() : results;
-                    main.dictationSuccess = execute ? await DictationManager.Commands.execute(results) : true;
+                    if (overlay) {
+                        main.isListening = false;
+                        let execute = options && options.tryExecute;
+                        main.dictatedPhrase = execute ? results.toLowerCase() : results;
+                        main.dictationSuccess = execute ? await DictationManager.Commands.execute(results) : true;
+                    }
+                    options && options.tryExecute && await DictationManager.Commands.execute(results);
                 }
             } catch (e) {
-                main.isListening = false;
-                main.dictatedPhrase = results = `dictation error: ${"error" in e ? e.error : "unknown error"}`;
-                main.dictationSuccess = false;
+                if (overlay) {
+                    main.isListening = false;
+                    main.dictatedPhrase = results = `dictation error: ${"error" in e ? e.error : "unknown error"}`;
+                    main.dictationSuccess = false;
+                }
             } finally {
-                main.initiateDictationFade();
+                overlay && main.initiateDictationFade();
             }
 
             return results;
@@ -98,7 +110,7 @@ export namespace DictationManager {
 
         const listenImpl = (options?: Partial<ListeningOptions>) => {
             if (isListening) {
-                return infringe;
+                return Infringed;
             }
             isListening = true;
 
@@ -126,6 +138,12 @@ export namespace DictationManager {
 
                 recognizer.onresult = (e: SpeechRecognitionEvent) => {
                     current = synthesize(e, intra);
+                    let matchedTerminator: string | undefined;
+                    if (options && options.terminators && (matchedTerminator = options.terminators.find(end => current ? current.trim().toLowerCase().endsWith(end.toLowerCase()) : false))) {
+                        current = matchedTerminator;
+                        recognizer.abort();
+                        return complete();
+                    }
                     handler && handler(current);
                     isManuallyStopped && complete();
                 };
@@ -161,13 +179,13 @@ export namespace DictationManager {
             }
             isManuallyStopped = true;
             salvageSession ? recognizer.stop() : recognizer.abort();
-            let main = MainView.Instance;
-            if (main.dictationOverlayVisible) {
-                main.cancelDictationFade();
-                main.dictationOverlayVisible = false;
-                main.dictationSuccess = undefined;
-                setTimeout(() => main.dictatedPhrase = placeholder, 500);
-            }
+            // let main = MainView.Instance;
+            // if (main.dictationOverlayVisible) {
+            // main.cancelDictationFade();
+            // main.dictationOverlayVisible = false;
+            // main.dictationSuccess = undefined;
+            // setTimeout(() => main.dictatedPhrase = placeholder, 500);
+            // }
         };
 
         const synthesize = (e: SpeechRecognitionEvent, delimiter?: string) => {
@@ -299,11 +317,20 @@ export namespace DictationManager {
                 }
             }],
 
-            ["promote", {
+            ["new outline", {
                 action: (target: DocumentView) => {
-                    console.log(target);
-                },
-                restrictTo: [DocumentType.TEXT]
+                    let newBox = Docs.Create.TextDocument({ width: 400, height: 200, title: "My Outline" });
+                    newBox.autoHeight = true;
+                    let proto = newBox.proto!;
+                    proto.page = -1;
+                    let prompt = "Press alt + r to start dictating here...";
+                    let head = 3;
+                    let anchor = head + prompt.length;
+                    let proseMirrorState = `{"doc":{"type":"doc","content":[{"type":"bullet_list","content":[{"type":"list_item","content":[{"type":"paragraph","content":[{"type":"text","text":"${prompt}"}]}]}]}]},"selection":{"type":"text","anchor":${anchor},"head":${head}}}`;
+                    proto.data = new RichTextField(proseMirrorState);
+                    proto.backgroundColor = "#eeffff";
+                    target.props.addDocTab(newBox, proto, "onRight");
+                }
             }]
 
         ]);
@@ -317,6 +344,9 @@ export namespace DictationManager {
                     let what = matches[2];
                     let dataDoc = Doc.GetProto(target.props.Document);
                     let fieldKey = "data";
+                    if (isNaN(count)) {
+                        return;
+                    }
                     for (let i = 0; i < count; i++) {
                         let created: Doc | undefined;
                         switch (what) {

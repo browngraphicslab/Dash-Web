@@ -9,8 +9,6 @@ import { DocumentManager } from "./DocumentManager";
 import { LinkManager } from "./LinkManager";
 import { SelectionManager } from "./SelectionManager";
 import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
-import { DocumentDecorations } from "../views/DocumentDecorations";
-import { NumberLiteralType } from "typescript";
 
 export type dropActionType = "alias" | "copy" | undefined;
 export function SetupDrag(
@@ -142,6 +140,8 @@ export namespace DragManager {
 
         withoutShiftDrag?: boolean;
 
+        finishDrag?: (dropData: { [id: string]: any }) => void;
+
         offsetX?: number;
 
         offsetY?: number;
@@ -211,6 +211,7 @@ export namespace DragManager {
         dropAction: dropActionType;
         userDropAction: dropActionType;
         moveDocument?: MoveFunction;
+        applyAsTemplate?: boolean;
         [id: string]: any;
     }
 
@@ -235,7 +236,7 @@ export namespace DragManager {
 
     export function StartDocumentDrag(eles: HTMLElement[], dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
         runInAction(() => StartDragFunctions.map(func => func()));
-        StartDrag(eles, dragData, downX, downY, options,
+        StartDrag(eles, dragData, downX, downY, options, options && options.finishDrag ? options.finishDrag :
             (dropData: { [id: string]: any }) => {
                 (dropData.droppedDocuments = dragData.userDropAction === "alias" || (!dragData.userDropAction && dragData.dropAction === "alias") ?
                     dragData.draggedDocuments.map(d => Doc.MakeAlias(d)) :

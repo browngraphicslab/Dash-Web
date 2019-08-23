@@ -198,7 +198,7 @@ export class PDFBox extends DocComponent<FieldViewProps, PdfDocument>(PdfDocumen
                 <PDFViewer pdf={this._pdf} url={pdfUrl.url.pathname} active={this.props.active} scrollTo={this.scrollTo} loaded={this.loaded} panY={NumCast(this.props.Document.panY)}
                     Document={this.props.Document} DataDoc={this.props.DataDoc}
                     addDocTab={this.props.addDocTab} setPanY={this.setPanY}
-                    addDocument={this.props.addDocument}
+                    pinToPres={this.props.pinToPres} addDocument={this.props.addDocument}
                     fieldKey={this.props.fieldKey} fieldExtensionDoc={this.fieldExtensionDoc} />
                 {this.settingsPanel()}
             </div>);
