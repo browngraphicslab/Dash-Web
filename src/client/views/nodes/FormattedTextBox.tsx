@@ -156,11 +156,13 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                         console.log('here is frag', ret.frag);
                         console.log('here is node', linkNode);
                         console.log(editor.state.tr.selection);
+                        let anchor = editor.state.doc.resolve(ret.start);
+                        let head = editor.state.doc.resolve(ret.start + ret.frag.size);
+
                         // 1. get pos of start of frag in doc
                         // get from frag to slice to selection 
-                        let slice = new Slice(ret.frag, 1, 1); // significance of open depth???
-                        // let tr = editor.state.tr.setSelection(TextSelection.create(slice, ));
-                        // editor.dispatch(tr.scrollIntoView());
+                        let tr = editor.state.tr.setSelection(TextSelection.between(anchor, head));
+                        editor.dispatch(tr.scrollIntoView());
                     }
 
                     // this._editorView.state.tr.setSelection(editor.state.doc, start of node, end of node);
