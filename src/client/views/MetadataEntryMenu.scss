@@ -1,7 +1,11 @@
 .metadataEntry-outerDiv {
     display: flex;
+    width: 310px;
     flex-direction: column;
-    width: 300px;
+
+    input[type=checkbox] {
+        margin-left: 5px;
+    }
 }
 
 .metadataEntry-keys {
