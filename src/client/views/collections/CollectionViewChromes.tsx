@@ -286,20 +286,22 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
         }
     }
 
+
+    commands = [{
+        // title: "set content", script: "getProto(this.target).data = aliasDocs(this.source.map(async p => await p));", params: ["target", "source"],  // bcz: doesn't look like we can do async stuff in scripting...
+        title: "set content", script: "getProto(this.target).data = aliasDocs(this.source);", params: ["target", "source"],
+        immediate: (draggedDocs: Doc[]) => Doc.GetProto(this.props.CollectionView.props.Document).data = new List<Doc>(draggedDocs)
+    },
+    {
+        title: "set template", script: "this.target.childLayout = this.source ? this.source[0] : undefined", params: ["target", "source"],
+        immediate: (draggedDocs: Doc[]) => this.props.CollectionView.props.Document.childLayout = draggedDocs.length ? draggedDocs[0] : undefined
+    }];
     @undoBatch
     @action
     protected drop(e: Event, de: DragManager.DropEvent): boolean {
-        if (de.data instanceof DragManager.DocumentDragData) {
-            if (de.data.draggedDocuments.length) {
-                if (this._currentKey === "Set Template") {
-                    this.props.CollectionView.props.Document.childLayout = de.data.draggedDocuments[0];
-                }
-                if (this._currentKey === "Set Content") {
-                    Doc.GetProto(this.props.CollectionView.props.Document).data = new List<Doc>(de.data.draggedDocuments);
-                }
-                e.stopPropagation();
-                return true;
-            }
+        if (de.data instanceof DragManager.DocumentDragData && de.data.draggedDocuments.length) {
+            this.commands.filter(c => c.title === this._currentKey).map(c => c.immediate(de.data.draggedDocuments));
+            e.stopPropagation();
         }
         return true;
     }
@@ -317,9 +319,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             }
         }
     }
-
     @observable private _currentKey: string = "";
-    @observable _allCommands: string[] = ["Set Template", "Set Content"];
     private autosuggestRef = React.createRef<Autosuggest>();
 
     renderSuggestion = (suggestion: string) => {
@@ -340,38 +340,19 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
         this.suggestions = [];
     }
     getKeySuggestions = async (value: string): Promise<string[]> => {
-        return this._allCommands.filter(c => c.indexOf(value) !== -1);
+        return this.commands.filter(c => c.title.indexOf(value) !== -1).map(c => c.title);
     }
 
     autoSuggestDown = (e: React.PointerEvent) => {
         e.stopPropagation();
     }
+
     dragCommandDown = (e: React.PointerEvent) => {
-        let de = new DragManager.DocumentDragData([this.props.CollectionView.props.Document], [undefined]);
-        DragManager.StartDocumentDrag([this._commandRef.current!], de, e.clientX, e.clientY, {
-            finishDrag: (dropData: { [id: string]: any }) => {
-                let bd = Docs.Create.ButtonDocument({ width: 150, height: 50, title: this._currentKey });
-                let script = `getProto(target).data = copyField(this.source);`;
-                let compiled = CompileScript(script, {
-                    params: { doc: Doc.name },
-                    capturedVariables: { target: this.props.CollectionView.props.Document },
-                    typecheck: false,
-                    editable: true
-                });
-                if (compiled.compiled) {
-                    let scriptField = new ScriptField(compiled);
-                    bd.onClick = scriptField;
-                }
-                dropData.droppedDocuments = [bd];
-            },
-            handlers: {
-                dragComplete: action(() => {
-                }),
-            },
-            hideSource: false
-        });
-        e.preventDefault();
+        this.commands.filter(c => c.title === this._currentKey).map(c =>
+            DragManager.StartButtonDrag([this._commandRef.current!], c.script, c.title,
+                { target: this.props.CollectionView.props.Document }, c.params, e.clientX, e.clientY));
         e.stopPropagation();
+        e.preventDefault();
     }
 
     render() {
@@ -419,7 +400,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                                 <div className="collectionViewBaseChrome-viewSpecsMenu-row">
                                     <div className="collectionViewBaseChrome-viewSpecsMenu-rowLeft">
                                         CREATED WITHIN:
-                            </div>
+                                    </div>
                                     <select className="collectionViewBaseChrome-viewSpecsMenu-rowMiddle"
                                         style={{ textTransform: "uppercase", textAlign: "center" }}
                                         value={this._dateWithinValue}
@@ -442,15 +423,9 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                                         placeholder="Value" />
                                 </div>
                                 <div className="collectionViewBaseChrome-viewSpecsMenu-lastRow">
-                                    <button className="collectonViewBaseChrome-viewSpecsMenu-lastRowButton" onClick={this.addKeyRestriction}>
-                                        ADD KEY RESTRICTION
-                            </button>
-                                    <button className="collectonViewBaseChrome-viewSpecsMenu-lastRowButton" onClick={this.applyFilter}>
-                                        APPLY FILTER
-                            </button>
-                                    <button className="collectonViewBaseChrome-viewSpecsMenu-lastRowButton" onClick={this.clearFilter}>
-                                        CLEAR
-                            </button>
+                                    <button className="collectonViewBaseChrome-viewSpecsMenu-lastRowButton" onClick={this.addKeyRestriction}> ADD KEY RESTRICTION </button>
+                                    <button className="collectonViewBaseChrome-viewSpecsMenu-lastRowButton" onClick={this.applyFilter}> APPLY FILTER </button>
+                                    <button className="collectonViewBaseChrome-viewSpecsMenu-lastRowButton" onClick={this.clearFilter}> CLEAR </button>
                                 </div>
                             </div>
                         </div>

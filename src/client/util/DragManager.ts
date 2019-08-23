@@ -1,5 +1,5 @@
 import { action, runInAction } from "mobx";
-import { Doc } from "../../new_fields/Doc";
+import { Doc, Field } from "../../new_fields/Doc";
 import { Cast, StrCast } from "../../new_fields/Types";
 import { URLField } from "../../new_fields/URLField";
 import { emptyFunction } from "../../Utils";
@@ -9,6 +9,11 @@ import { DocumentManager } from "./DocumentManager";
 import { LinkManager } from "./LinkManager";
 import { SelectionManager } from "./SelectionManager";
 import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
+import { Docs } from "../documents/Documents";
+import { CompileScript } from "./Scripting";
+import { ScriptField } from "../../new_fields/ScriptField";
+import { List } from "../../new_fields/List";
+import { PrefetchProxy } from "../../new_fields/Proxy";
 
 export type dropActionType = "alias" | "copy" | undefined;
 export function SetupDrag(
@@ -247,6 +252,27 @@ export namespace DragManager {
             });
     }
 
+    export function StartButtonDrag(eles: HTMLElement[], script: string, title: string, vars: { [name: string]: Field }, params: string[], downX: number, downY: number, options?: DragOptions) {
+        let dragData = new DragManager.DocumentDragData([], [undefined]);
+        runInAction(() => StartDragFunctions.map(func => func()));
+        StartDrag(eles, dragData, downX, downY, options, options && options.finishDrag ? options.finishDrag :
+            (dropData: { [id: string]: any }) => {
+                let bd = Docs.Create.ButtonDocument({ width: 150, height: 50, title: title });
+                let compiled = CompileScript(script, {
+                    params: { doc: Doc.name },
+                    typecheck: false,
+                    editable: true
+                });
+                if (compiled.compiled) {
+                    let scriptField = new ScriptField(compiled);
+                    bd.onClick = scriptField;
+                }
+                params.map(p => Object.keys(vars).indexOf(p) !== -1 && (Doc.GetProto(bd)[p] = new PrefetchProxy(vars[p] as Doc)));
+                bd.buttonParams = new List<string>(params);
+                dropData.droppedDocuments = [bd];
+            });
+    }
+
     export function StartLinkedDocumentDrag(eles: HTMLElement[], dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
         dragData.moveDocument = moveLinkedDocument;
 
@@ -482,7 +508,7 @@ export namespace DragManager {
             // if (parent && dragEle) parent.appendChild(dragEle);
         });
         if (target) {
-            if (finishDrag) finishDrag(dragData);
+            finishDrag && finishDrag(dragData);
 
             target.dispatchEvent(
                 new CustomEvent<DropEvent>("dashOnDrop", {

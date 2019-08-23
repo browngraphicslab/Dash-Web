@@ -34,15 +34,11 @@ import "./FormattedTextBox.scss";
 import React = require("react");
 import { GoogleApiClientUtils, Pulls, Pushes } from '../../apis/google_docs/GoogleApiClientUtils';
 import { DocumentDecorations } from '../DocumentDecorations';
-import { MainOverlayTextBox } from '../MainOverlayTextBox';
 import { DictationManager } from '../../util/DictationManager';
 import { ReplaceStep } from 'prosemirror-transform';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
-
-// FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document
-//
 
 export const Blank = `{"doc":{"type":"doc","content":[]},"selection":{"type":"text","anchor":0,"head":0}}`;
 
@@ -225,27 +221,29 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     paste = (e: ClipboardEvent) => {
         if (e.clipboardData && this._editorView) {
-            let pdfPasteText = `${Utils.GenerateDeterministicGuid("pdf paste")}`;
-            for (let i = 0; i < e.clipboardData.items.length; i++) {
-                let item = e.clipboardData.items.item(i);
-                if (item.type === "text/plain") {
-                    item.getAsString((text) => {
-                        let pdfPasteIndex = text.indexOf(pdfPasteText);
-                        if (pdfPasteIndex > -1) {
-                            let insertText = text.substr(0, pdfPasteIndex);
-                            const tx = this._editorView!.state.tr.insertText(insertText);
-                            // tx.setSelection(new Selection(tx.))
-                            const state = this._editorView!.state;
-                            this._editorView!.dispatch(tx);
-                            if (FormattedTextBox._toolTipTextMenu) {
-                                // this._toolTipTextMenu.makeLinkWithState(state)
-                            }
-                            e.stopPropagation();
-                            e.preventDefault();
-                        }
-                    });
-                }
-            }
+            // let pdfPasteText = `${Utils.GenerateDeterministicGuid("pdf paste")}`;
+            // for (let i = 0; i < e.clipboardData.items.length; i++) {
+            //     let item = e.clipboardData.items.item(i);
+            //     console.log(item)
+            //     if (item.type === "text/plain") {
+            //         console.log("plain")
+            //         item.getAsString((text) => {
+            //             let pdfPasteIndex = text.indexOf(pdfPasteText);
+            //             if (pdfPasteIndex > -1) {
+            //                 let insertText = text.substr(0, pdfPasteIndex);
+            //                 const tx = this._editorView!.state.tr.insertText(insertText);
+            //                 // tx.setSelection(new Selection(tx.))
+            //                 const state = this._editorView!.state;
+            //                 this._editorView!.dispatch(tx);
+            //                 if (FormattedTextBox._toolTipTextMenu) {
+            //                     // this._toolTipTextMenu.makeLinkWithState(state)
+            //                 }
+            //                 e.stopPropagation();
+            //                 e.preventDefault();
+            //             }
+            //         });
+            //     }
+            // }
         }
     }
 
