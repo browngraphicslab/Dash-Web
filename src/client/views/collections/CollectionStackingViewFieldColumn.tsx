@@ -247,6 +247,14 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         );
     }
 
+    @observable private collapsed: boolean = false;
+
+    private toggleVisibility = action(() => {
+        this.collapsed = !this.collapsed;
+    });
+
+    @observable _headingsHack: number = 1;
+
     render() {
         let cols = this.props.cols();
         let key = StrCast(this.props.parent.props.Document.sectionFilter);
@@ -261,12 +269,20 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             GetValue: () => evContents,
             SetValue: this.headingChanged,
             contents: evContents,
-            oneLine: true
+            oneLine: true,
+            HeadingObject: this.props.headingObject,
+            HeadingsHack: this._headingsHack,
+            toggle: this.toggleVisibility,
+            color: this._color
         };
         let newEditableViewProps = {
             GetValue: () => "",
             SetValue: this.addDocument,
-            contents: "+ NEW"
+            contents: "+ NEW",
+            HeadingObject: this.props.headingObject,
+            HeadingsHack: this._headingsHack,
+            toggle: this.toggleVisibility,
+            color: this._color
         };
         let headingView = this.props.headingObject ?
             <div key={heading} className="collectionStackingView-sectionHeader" ref={this._headerRef}
@@ -307,27 +323,31 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             <div className="collectionStackingViewFieldColumn" key={heading} style={{ width: `${100 / ((uniqueHeadings.length + ((this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'view-mode' && this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'disabled') ? 1 : 0)) || 1)}%`, background: this._background }}
                 ref={this.createColumnDropRef} onPointerEnter={this.pointerEntered} onPointerLeave={this.pointerLeave}>
                 {headingView}
-                <div key={`${heading}-stack`} className={`collectionStackingView-masonry${singleColumn ? "Single" : "Grid"}`}
-                    style={{
-                        padding: singleColumn ? `${style.yMargin}px ${0}px ${style.yMargin}px ${0}px` : `${style.yMargin}px ${0}px`,
-                        margin: "auto",
-                        width: "max-content", //singleColumn ? undefined : `${cols * (style.columnWidth + style.gridGap) + 2 * style.xMargin - style.gridGap}px`,
-                        height: 'max-content',
-                        position: "relative",
-                        gridGap: style.gridGap,
-                        gridTemplateColumns: singleColumn ? undefined : templatecols,
-                        gridAutoRows: singleColumn ? undefined : "0px"
-                    }}
-                // ref={this.createColumnDropRef} onPointerEnter={this.pointerEntered} onPointerLeave={this.pointerLeave}
-                >
-                    {this.children(this.props.docList)}
-                    {singleColumn ? (null) : this.props.parent.columnDragger}
-                </div>
-                {(this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'view-mode' && this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'disabled') ?
-                    <div key={`${heading}-add-document`} className="collectionStackingView-addDocumentButton"
-                        style={{ width: style.columnWidth / style.numGroupColumns }}>
-                        <EditableView {...newEditableViewProps} />
-                    </div> : null}
+                {this.collapsed ? (null) :
+                    <div>
+                        <div key={`${heading}-stack`} className={`collectionStackingView-masonry${singleColumn ? "Single" : "Grid"}`}
+                            style={{
+                                padding: singleColumn ? `${style.yMargin}px ${0}px ${style.yMargin}px ${0}px` : `${style.yMargin}px ${0}px`,
+                                margin: "auto",
+                                width: "max-content", //singleColumn ? undefined : `${cols * (style.columnWidth + style.gridGap) + 2 * style.xMargin - style.gridGap}px`,
+                                height: 'max-content',
+                                position: "relative",
+                                gridGap: style.gridGap,
+                                gridTemplateColumns: singleColumn ? undefined : templatecols,
+                                gridAutoRows: singleColumn ? undefined : "0px"
+                            }}
+                        // ref={this.createColumnDropRef} onPointerEnter={this.pointerEntered} onPointerLeave={this.pointerLeave}
+                        >
+                            {this.children(this.props.docList)}
+                            {singleColumn ? (null) : this.props.parent.columnDragger}
+                        </div>
+                        {(this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'view-mode' && this.props.parent.props.CollectionView.props.Document.chromeStatus !== 'disabled') ?
+                            <div key={`${heading}-add-document`} className="collectionStackingView-addDocumentButton"
+                                style={{ width: style.columnWidth / style.numGroupColumns }}>
+                                <EditableView {...newEditableViewProps} />
+                            </div> : null}
+                    </div>
+                }
             </div>
         );
     }

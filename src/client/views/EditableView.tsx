@@ -41,8 +41,10 @@ export interface EditableProps {
     editing?: boolean;
     onClick?: (e: React.MouseEvent) => boolean;
     isEditingCallback?: (isEditing: boolean) => void;
-    // HeadingObject: SchemaHeaderField | undefined;
-    // HeadingsHack: number;
+    HeadingObject?: SchemaHeaderField | undefined;
+    HeadingsHack?: number;
+    toggle?: () => void;
+    color?: string | undefined;
 }
 
 /**
@@ -53,7 +55,6 @@ export interface EditableProps {
 @observer
 export class EditableView extends React.Component<EditableProps> {
     @observable _editing: boolean = false;
-    @observable _collapsed: boolean = false;
     @observable _headingsHack: number = 1;
 
     constructor(props: EditableProps) {
@@ -71,14 +72,13 @@ export class EditableView extends React.Component<EditableProps> {
         }
     }
 
-    // collapseSection() {
-    //     if (this.props.HeadingObject) {
-    //         this._headingsHack++;
-    //         this.props.HeadingObject.setCollapsed(!this.props.HeadingObject.collapsed);
-    //         this._collapsed = !this._collapsed;
-    //         console.log("THIS IS COLLAPSE FROM EDITABLEVIEW" + this._collapsed);
-    //     }
-    // }
+    collapseSection() {
+        if (this.props.HeadingObject) {
+            this._headingsHack++;
+            this.props.HeadingObject.setCollapsed(!this.props.HeadingObject.collapsed);
+            this.props.toggle && this.props.toggle();
+        }
+    }
 
     @action
     onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -107,12 +107,14 @@ export class EditableView extends React.Component<EditableProps> {
     @action
     onClick = (e: React.MouseEvent) => {
         e.nativeEvent.stopPropagation();
-        // if (e.ctrlKey) {
-        //     this.collapseSection();
-        // }
         if (!this.props.onClick || !this.props.onClick(e)) {
             this._editing = true;
             this.props.isEditingCallback && this.props.isEditingCallback(true);
+        }
+        if (e.ctrlKey) {
+            this._editing = false;
+            this.props.isEditingCallback && this.props.isEditingCallback(false);
+            this.collapseSection();
         }
         e.stopPropagation();
     }

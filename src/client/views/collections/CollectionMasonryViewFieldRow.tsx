@@ -248,7 +248,12 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
 
     @observable private collapsed: boolean = false;
 
+    private toggleVisibility = action(() => {
+        this.collapsed = !this.collapsed;
+    });
+
     @observable _headingsHack: number = 1;
+
     render() {
         let cols = this.props.rows();
         let rows = Math.max(1, Math.min(this.props.docList.length, Math.floor((this.props.parent.props.PanelWidth() - 2 * this.props.parent.xMargin) / (this.props.parent.columnWidth + this.props.parent.gridGap))));
@@ -264,30 +269,23 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
             SetValue: this.headingChanged,
             contents: evContents,
             oneLine: true,
-            // HeadingObject: this.props.headingObject,
-            // HeadingsHack: this._headingsHack
+            HeadingObject: this.props.headingObject,
+            HeadingsHack: this._headingsHack,
+            toggle: this.toggleVisibility,
+            color: this.props.color
         };
         let newEditableViewProps = {
             GetValue: () => "",
             SetValue: this.addDocument,
             contents: "+ NEW",
-            // HeadingObject: this.props.headingObject,
-            // HeadingsHack: this._headingsHack
+            HeadingObject: this.props.headingObject,
+            HeadingsHack: this._headingsHack,
+            toggle: this.toggleVisibility,
+            color: this.props.color
         };
-        // let headingView = this.props.headingObject ?
         let headingView =
             <div>
-                <div key={`${this.props.heading}`} className="collectionStackingView-sectionHeader" style={{ background: this.props.color }}
-                    onClick={action(() => {
-                        if (this.props.headingObject) {
-                            this._headingsHack++;
-                            this.props.headingObject.setCollapsed(!this.props.headingObject.collapsed);
-                            this.collapsed = !this.collapsed;
-                            console.log("value of collapse: " + this.collapsed);
-                        }
-                    })}
-                >
-                    {this.props.heading}
+                <div className="collectionStackingView-sectionHeader">
                     <div className="collectionStackingView-sectionHeader-subCont" onPointerDown={this.headerDown}
                         title={evContents === `NO ${key.toUpperCase()} VALUE` ?
                             `Documents that don't have a ${key} value will go here. This column cannot be removed.` : ""}
@@ -324,7 +322,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
             >
                 {headingView}
                 {this.collapsed ? (null) :
-                    <div>
+                    < div >
                         <div key={`${heading}-stack`} className={`collectionStackingView-masonryGrid`}
                             style={{
                                 padding: `${this.props.parent.yMargin}px ${this.props.parent.xMargin}px`,
