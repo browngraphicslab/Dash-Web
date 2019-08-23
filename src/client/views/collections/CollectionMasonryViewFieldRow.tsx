@@ -297,7 +297,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
                         {<EditableView {...headerEditableViewProps} />}
                         {evContents === `NO ${key.toUpperCase()} VALUE` ? (null) :
                             <div className="collectionStackingView-sectionColor">
-                                <Flyout anchorPoint={anchorPoints.TOP_CENTER} content={this.renderColorPicker()}>
+                                <Flyout anchorPoint={anchorPoints.CENTER_RIGHT} content={this.renderColorPicker()}>
                                     <button className="collectionStackingView-sectionColorButton">
                                         <FontAwesomeIcon icon="palette" size="sm" />
                                     </button>
