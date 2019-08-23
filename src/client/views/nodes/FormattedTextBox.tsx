@@ -147,11 +147,22 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
                     if (ret.frag.size > 2) { // fragment is not empty
                         console.log('here is frag', ret.frag);
-                        let tr = editor.state.tr.setSelection(TextSelection.near(editor.state.doc.resolve(ret.start)));
-                        editor.dispatch(tr.scrollIntoView()); // not sure whether scrollintoview or focus will work, waiting on fix for resizing text boxes
+                        let tr;
+                        let index = 0;
+                        while (ret.frag.child(index).nodeSize === 2) {
+                            index++;
+                        }
+
+                        // TODO find how to select correct child.............................
+                        if (ret.frag.child(index)) {
+                            tr = editor.state.tr.setSelection(TextSelection.between(editor.state.doc.resolve(ret.start), editor.state.doc.resolve(ret.start + ret.frag.child(index).nodeSize)));
+                        } else { // fallback
+                            tr = editor.state.tr.setSelection(TextSelection.near(editor.state.doc.resolve(ret.start)));
+                        }
                         editor.focus();
+                        editor.dispatch(tr.scrollIntoView());
+                        this.props.Document.guid = "";
                     }
-                    this.props.Document.guid = "";
                 }
 
                 function findLinkFrag(frag: Fragment, editor: EditorView) {
