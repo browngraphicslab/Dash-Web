@@ -1,4 +1,5 @@
 import { observer } from "mobx-react";
+import { FieldResult, Doc, Field } from "../../../new_fields/Doc";
 import { HtmlField } from "../../../new_fields/HtmlField";
 import { WebField } from "../../../new_fields/URLField";
 import { DocumentDecorations } from "../DocumentDecorations";
@@ -13,17 +14,17 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faStickyNote } from '@fortawesome/free-solid-svg-icons';
 import { observable, action, computed } from "mobx";
 import { listSpec } from "../../../new_fields/Schema";
-import { Field, FieldResult } from "../../../new_fields/Doc";
 import { RefField } from "../../../new_fields/RefField";
 import { ObjectField } from "../../../new_fields/ObjectField";
 import { updateSourceFile } from "typescript";
 import { KeyValueBox } from "./KeyValueBox";
 import { setReactionScheduler } from "mobx/lib/internal";
 import { library } from "@fortawesome/fontawesome-svg-core";
+import { SelectionManager } from "../../util/SelectionManager";
 import { Docs } from "../../documents/Documents";
-import { PreviewCursor } from "../PreviewCursor";
 
 library.add(faStickyNote);
+library.add(faStickyNote)
 
 @observer
 export class WebBox extends React.Component<FieldViewProps> {
@@ -75,21 +76,27 @@ export class WebBox extends React.Component<FieldViewProps> {
         }
     }
 
-    switchToText() {
-        if (this.props.removeDocument) this.props.removeDocument(this.props.Document);
-        // let newPoint = PreviewCursor._getTransform().transformPoint(PreviewCursor._clickPoint[0], PreviewCursor._clickPoint[1]);
+
+    switchToText = () => {
+        let url: string = "";
+        let field = Cast(this.props.Document[this.props.fieldKey], WebField);
+        if (field) url = field.url.href;
+
         let newBox = Docs.Create.TextDocument({
-            width: 200, height: 100,
-            // x: newPoint[0],
-            // y: newPoint[1],
             x: NumCast(this.props.Document.x),
             y: NumCast(this.props.Document.y),
-            title: "-pasted text-"
+            title: url,
+            width: 200,
+            height: 70,
+            documentText: "@@@" + url
         });
 
-        newBox.proto!.autoHeight = true;
-        PreviewCursor._addLiveTextDoc(newBox);
-        return;
+        SelectionManager.SelectedDocuments().map(dv => {
+            dv.props.addDocument && dv.props.addDocument(newBox, false);
+            dv.props.removeDocument && dv.props.removeDocument(dv.props.Document);
+        });
+
+        Doc.BrushDoc(newBox);
     }
 
     urlEditor() {
@@ -117,14 +124,15 @@ export class WebBox extends React.Component<FieldViewProps> {
                             <div style={{
                                 display: "flex",
                                 flexDirection: "row",
-
+                                justifyContent: "space-between",
+                                minWidth: "100px",
                             }}>
                                 <button className="submitUrl" onClick={this.submitURL}>
-                                    SUBMIT URL
-                            </button>
-                                <button className="switchToText" onClick={this.switchToText} style={{ paddingLeft: 10 }} >
-                                    <FontAwesomeIcon icon={faStickyNote} size={"2x"} />
+                                    SUBMIT
                                 </button>
+                                <div className="switchToText" title="Convert web to text doc" onClick={this.switchToText} style={{ display: "flex", alignItems: "center", justifyContent: "center" }} >
+                                    <FontAwesomeIcon icon={faStickyNote} size={"lg"} />
+                                </div>
                             </div>
                         </div>
                     </div>

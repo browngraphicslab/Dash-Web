@@ -181,9 +181,6 @@ export default class KeyManager {
                 break;
             case "a":
             case "v":
-                stopPropagation = false;
-                preventDefault = false;
-                break;
             case "x":
             case "c":
                 stopPropagation = false;

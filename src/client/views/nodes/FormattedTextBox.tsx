@@ -34,15 +34,11 @@ import "./FormattedTextBox.scss";
 import React = require("react");
 import { GoogleApiClientUtils, Pulls, Pushes } from '../../apis/google_docs/GoogleApiClientUtils';
 import { DocumentDecorations } from '../DocumentDecorations';
-import { MainOverlayTextBox } from '../MainOverlayTextBox';
 import { DictationManager } from '../../util/DictationManager';
 import { ReplaceStep } from 'prosemirror-transform';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
-
-// FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document
-//
 
 export const Blank = `{"doc":{"type":"doc","content":[]},"selection":{"type":"text","anchor":0,"head":0}}`;
 
@@ -146,7 +142,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
 
     paste = (e: ClipboardEvent) => {
-        //this is throwing a ton of erros so i had to comment it out
         if (e.clipboardData && this._editorView) {
             // let pdfPasteText = `${Utils.GenerateDeterministicGuid("pdf paste")}`;
             // for (let i = 0; i < e.clipboardData.items.length; i++) {
