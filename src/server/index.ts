@@ -38,13 +38,14 @@ import flash = require('connect-flash');
 import { Search } from './Search';
 import _ = require('lodash');
 import * as Archiver from 'archiver';
-import AdmZip from 'adm-zip';
+var AdmZip = require('adm-zip');
 import * as YoutubeApi from "./apis/youtube/youtubeApiSample";
 import { Response } from 'express-serve-static-core';
 import { GoogleApiServerUtils } from "./apis/google/GoogleApiServerUtils";
 import { GaxiosResponse } from 'gaxios';
 import { Opt } from '../new_fields/Doc';
 import { docs_v1 } from 'googleapis';
+import { Endpoint } from 'googleapis-common';
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const probe = require("probe-image-size");
@@ -358,7 +359,7 @@ app.post("/uploadDoc", (req, res) => {
             for (const name in files) {
                 const path_2 = files[name].path;
                 const zip = new AdmZip(path_2);
-                zip.getEntries().forEach(entry => {
+                zip.getEntries().forEach((entry: any) => {
                     if (!entry.entryName.startsWith("files/")) return;
                     let dirname = path.dirname(entry.entryName) + "/";
                     let extname = path.extname(entry.entryName);
@@ -367,13 +368,17 @@ app.post("/uploadDoc", (req, res) => {
                     // zip.extractEntryTo(dirname + basename + "_s" + extname, __dirname + RouteStore.public, true, false);
                     // zip.extractEntryTo(dirname + basename + "_m" + extname, __dirname + RouteStore.public, true, false);
                     // zip.extractEntryTo(dirname + basename + "_l" + extname, __dirname + RouteStore.public, true, false);
-                    zip.extractEntryTo(entry.entryName, __dirname + RouteStore.public, true, false);
-                    dirname = "/" + dirname;
+                    try {
+                        zip.extractEntryTo(entry.entryName, __dirname + RouteStore.public, true, false);
+                        dirname = "/" + dirname;
 
-                    fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_o" + extname));
-                    fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_s" + extname));
-                    fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_m" + extname));
-                    fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_l" + extname));
+                        fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_o" + extname));
+                        fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_s" + extname));
+                        fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_m" + extname));
+                        fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_l" + extname));
+                    } catch (e) {
+                        console.log(e);
+                    }
                 });
                 const json = zip.getEntry("doc.json");
                 let docs: any;
@@ -799,21 +804,19 @@ function HandleYoutubeQuery([query, callback]: [YoutubeQueryInput, (result?: any
 const credentials = path.join(__dirname, "./credentials/google_docs_credentials.json");
 const token = path.join(__dirname, "./credentials/google_docs_token.json");
 
-type ApiResponse = Promise<GaxiosResponse>;
-type ApiHandler = (endpoint: docs_v1.Resource$Documents, parameters: any) => ApiResponse;
-type Action = "create" | "retrieve" | "update";
-
-const EndpointHandlerMap = new Map<Action, ApiHandler>([
+const EndpointHandlerMap = new Map<GoogleApiServerUtils.Action, GoogleApiServerUtils.ApiRouter>([
     ["create", (api, params) => api.create(params)],
     ["retrieve", (api, params) => api.get(params)],
     ["update", (api, params) => api.batchUpdate(params)],
 ]);
 
-app.post(RouteStore.googleDocs + ":action", (req, res) => {
-    GoogleApiServerUtils.Docs.GetEndpoint({ credentials, token }).then(endpoint => {
-        let handler = EndpointHandlerMap.get(req.params.action);
-        if (handler) {
-            let execute = handler(endpoint.documents, req.body).then(
+app.post(RouteStore.googleDocs + "/:sector/:action", (req, res) => {
+    let sector = req.params.sector;
+    let action = req.params.action;
+    GoogleApiServerUtils.GetEndpoint(GoogleApiServerUtils.Service[sector], { credentials, token }).then(endpoint => {
+        let handler = EndpointHandlerMap.get(action);
+        if (endpoint && handler) {
+            let execute = handler(endpoint, req.body).then(
                 response => res.send(response.data),
                 rejection => res.send(rejection)
             );

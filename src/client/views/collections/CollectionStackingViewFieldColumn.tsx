@@ -83,9 +83,9 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                 return (null);
             }
             let width = () => Math.min(d.nativeWidth && !d.ignoreAspect && !parent.props.Document.fillColumn ? d[WidthSym]() : Number.MAX_VALUE, parent.columnWidth / parent.numGroupColumns);
-            let height = () => parent.getDocHeight(pair!.layout);
+            let height = () => parent.getDocHeight(pair.layout);
             let dref = React.createRef<HTMLDivElement>();
-            let dxf = () => this.getDocTransform(pair!.layout, dref.current!);
+            let dxf = () => this.getDocTransform(pair.layout!, dref.current!);
             this.props.parent._docXfs.push({ dxf: dxf, width: width, height: height });
             let rowSpan = Math.ceil((height() + parent.gridGap) / parent.gridGap);
             let style = parent.isStackingView ? { width: width(), margin: "auto", marginTop: i === 0 ? 0 : parent.gridGap, height: height() } : { gridRowEnd: `span ${rowSpan}` };

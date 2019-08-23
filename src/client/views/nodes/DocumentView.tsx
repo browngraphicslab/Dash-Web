@@ -40,7 +40,7 @@ import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import { FormattedTextBox } from './FormattedTextBox';
 import React = require("react");
-import { PresBox } from './PresBox';
+import { DocumentType } from '../../documents/DocumentTypes';
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 library.add(fa.faTrash);
@@ -295,8 +295,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     onClick = async (e: React.MouseEvent) => {
         if (e.nativeEvent.cancelBubble) return; // needed because EditableView may stopPropagation which won't apparently stop this event from firing.
-        e.stopPropagation();
         if (this.onClickHandler && this.onClickHandler.script) {
+            e.stopPropagation();
             this.onClickHandler.script.run({ this: this.props.Document.isTemplate && this.props.DataDoc ? this.props.DataDoc : this.props.Document });
             e.preventDefault();
             return;
@@ -304,6 +304,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let altKey = e.altKey;
         let ctrlKey = e.ctrlKey;
         if (this._doubleTap && this.props.renderDepth) {
+            e.stopPropagation();
             let fullScreenAlias = Doc.MakeAlias(this.props.Document);
             fullScreenAlias.templates = new List<string>();
             Doc.UseDetailLayout(fullScreenAlias);
@@ -315,10 +316,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         else if (CurrentUserUtils.MainDocId !== this.props.Document[Id] &&
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
                 Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
+            if (BoolCast(this.props.Document.ignoreClick)) {
+                return;
+            }
+            e.stopPropagation();
             SelectionManager.SelectDoc(this, e.ctrlKey);
             let isExpander = (e.target as any).id === "isExpander";
-            if (BoolCast(this.props.Document.isButton) || isExpander) {
-                SelectionManager.DeselectAll();
+            if (BoolCast(this.props.Document.isButton) || this.props.Document.type === DocumentType.BUTTON || isExpander) {
                 let subBulletDocs = await DocListCastAsync(this.props.Document.subBulletDocs);
                 let maximizedDocs = await DocListCastAsync(this.props.Document.maximizedDocs);
                 let summarizedDocs = await DocListCastAsync(this.props.Document.summarizedDocs);
@@ -329,6 +333,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 expandedDocs = summarizedDocs ? [...summarizedDocs, ...expandedDocs] : expandedDocs;
                 // let expandedDocs = [...(subBulletDocs ? subBulletDocs : []), ...(maximizedDocs ? maximizedDocs : []), ...(summarizedDocs ? summarizedDocs : []),];
                 if (expandedDocs.length) {   // bcz: need a better way to associate behaviors with click events on widget-documents
+                    SelectionManager.DeselectAll();
                     let maxLocation = StrCast(this.props.Document.maximizeLocation, "inPlace");
                     let getDispDoc = (target: Doc) => Object.getOwnPropertyNames(target).indexOf("isPrototype") === -1 ? target : Doc.MakeDelegate(target);
                     if (altKey || ctrlKey) {
@@ -357,6 +362,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     }
                 }
                 else if (linkedDocs.length) {
+                    SelectionManager.DeselectAll();
                     let first = linkedDocs.filter(d => Doc.AreProtosEqual(d.anchor1 as Doc, this.props.Document));
                     let linkedFwdDocs = first.length ? [first[0].anchor2 as Doc, first[0].anchor1 as Doc] : [expandedDocs[0], expandedDocs[0]];
 
@@ -394,13 +400,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
         if (this.active) e.stopPropagation(); // events stop at the lowest document that is active.  
         document.removeEventListener("pointermove", this.onPointerMove);
-        document.addEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
+        document.addEventListener("pointermove", this.onPointerMove);
         document.addEventListener("pointerup", this.onPointerUp);
-        // }
     }
     onPointerMove = (e: PointerEvent): void => {
-        if (!e.cancelBubble && this.active) {
+        if (e.cancelBubble && this.active) {
+            document.removeEventListener("pointermove", this.onPointerMove);
+        }
+        else if (!e.cancelBubble && this.active) {
             if (!this.props.Document.excludeFromLibrary && (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3)) {
                 if (!e.altKey && !this.topMost && e.buttons === 1 && !BoolCast(this.props.Document.lockedPosition)) {
                     document.removeEventListener("pointermove", this.onPointerMove);
@@ -583,7 +591,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         cm.addItem({ description: "Open...", subitems: subitems, icon: "external-link-alt" });
         let existingMake = ContextMenu.Instance.findByDescription("Make...");
         let makes: ContextMenuProps[] = existingMake && "subitems" in existingMake ? existingMake.subitems : [];
-        makes.push({ description: this.props.Document.isBackground ? "Remove Background" : "Into Background", event: this.makeBackground, icon: BoolCast(this.props.Document.lockedPosition) ? "unlock" : "lock" });
+        makes.push({ description: this.props.Document.isBackground ? "Remove Background" : "Into Background", event: this.makeBackground, icon: this.props.Document.lockedPosition ? "unlock" : "lock" });
         makes.push({ description: this.props.Document.isButton ? "Remove Button" : "Into Button", event: this.makeBtnClicked, icon: "concierge-bell" });
         makes.push({ description: "OnClick script", icon: "edit", event: () => ScriptBox.EditClickScript(this.props.Document, "onClick") });
         makes.push({
@@ -593,6 +601,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 this.makeBtnClicked();
             }, icon: "window-restore"
         });
+        makes.push({ description: this.props.Document.ignoreClick ? "Selectable" : "Unselectable", event: () => this.props.Document.ignoreClick = !this.props.Document.ignoreClick, icon: this.props.Document.ignoreClick ? "unlock" : "lock" })
         !existingMake && cm.addItem({ description: "Make...", subitems: makes, icon: "hand-point-right" });
         let existing = ContextMenu.Instance.findByDescription("Layout...");
         let layoutItems: ContextMenuProps[] = existing && "subitems" in existing ? existing.subitems : [];
@@ -629,35 +638,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }
         });
 
-        cm.addItem({
-            description: "Import document", icon: "upload", event: () => {
-                const input = document.createElement("input");
-                input.type = "file";
-                input.accept = ".zip";
-                input.onchange = async _e => {
-                    const files = input.files;
-                    if (!files) return;
-                    const file = files[0];
-                    let formData = new FormData();
-                    formData.append('file', file);
-                    formData.append('remap', "true");
-                    const upload = Utils.prepend("/uploadDoc");
-                    const response = await fetch(upload, { method: "POST", body: formData });
-                    const json = await response.json();
-                    if (json === "error") {
-                        return;
-                    }
-                    const doc = await DocServer.GetRefField(json);
-                    if (!doc || !(doc instanceof Doc)) {
-                        return;
-                    }
-                    const [x, y] = this.props.ScreenToLocalTransform().transformPoint(e.pageX, e.pageY);
-                    doc.x = x, doc.y = y;
-                    this.props.addDocument && this.props.addDocument(doc, false);
-                };
-                input.click();
-            }
-        });
         cm.addItem({ description: "Delete", event: this.deleteClicked, icon: "trash" });
         type User = { email: string, userDocumentId: string };
         let usersMenu: ContextMenuProps[] = [];
@@ -745,7 +725,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     chromeHeight = () => {
         let showOverlays = this.props.showOverlays ? this.props.showOverlays(this.layoutDoc) : undefined;
         let showTitle = showOverlays && "title" in showOverlays ? showOverlays.title : StrCast(this.layoutDoc.showTitle);
-        return showTitle ? 25 : 0;
+        let templates = Cast(this.layoutDoc.templates, listSpec("string"));
+        if (!showOverlays && templates instanceof List) {
+            templates.map(str => {
+                if (!showTitle && str.indexOf("{props.Document.title}") !== -1) showTitle = "title";
+            });
+        }
+        return (showTitle ? 25 : 0) + 1;// bcz: why 8??
     }
 
     get layoutDoc() {
@@ -801,7 +787,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 {!showTitle && !showCaption ? this.contents :
                     <div style={{ position: "absolute", display: "inline-block", width: "100%", height: "100%", pointerEvents: "none" }}>
 
-                        <div style={{ width: "100%", height: showTextTitle ? "calc(100% - 33px)" : "100%", display: "inline-block", position: "absolute", top: showTextTitle ? "29px" : undefined }}>
+                        <div style={{ width: "100%", height: showTextTitle ? "calc(100% - 29px)" : "100%", display: "inline-block", position: "absolute", top: showTextTitle ? "29px" : undefined }}>
                             {this.contents}
                         </div>
                         {!showTitle ? (null) :

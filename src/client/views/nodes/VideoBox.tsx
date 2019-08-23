@@ -34,7 +34,7 @@ library.add(faVideo);
 export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoDocument) {
     private _reactionDisposer?: IReactionDisposer;
     private _youtubeReactionDisposer?: IReactionDisposer;
-    private _youtubePlayer: any = undefined;
+    private _youtubePlayer: YT.Player | undefined = undefined;
     private _videoRef: HTMLVideoElement | null = null;
     private _youtubeIframeId: number = -1;
     private _youtubeContentCreated = false;
@@ -78,7 +78,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
     @action public Pause = (update: boolean = true) => {
         this.Playing = false;
         update && this.player && this.player.pause();
-        update && this._youtubePlayer && this._youtubePlayer.pauseVideo();
+        update && this._youtubePlayer && this._youtubePlayer.pauseVideo && this._youtubePlayer.pauseVideo();
         this._youtubePlayer && this._playTimer && clearInterval(this._playTimer);
         this._playTimer = undefined;
         this.updateTimecode();
@@ -244,7 +244,7 @@ export class VideoBox extends DocComponent<FieldViewProps, VideoDocument>(VideoD
         let onYoutubePlayerStateChange = (event: any) => runInAction(() => {
             if (started && event.data === YT.PlayerState.PLAYING) {
                 started = false;
-                this._youtubePlayer.unMute();
+                this._youtubePlayer && this._youtubePlayer.unMute();
                 this.Pause();
                 return;
             }

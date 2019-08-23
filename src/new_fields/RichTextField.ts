@@ -28,6 +28,12 @@ export class RichTextField extends ObjectField {
         return `new RichTextField("${this.Data}")`;
     }
 
+    public static Initialize = (initial: string) => {
+        !initial.length && (initial = " ");
+        let pos = initial.length + 1;
+        return `{"doc":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"${initial}"}]}]},"selection":{"type":"text","anchor":${pos},"head":${pos}}}`;
+    }
+
     [ToPlainText]() {
         // Because we're working with plain text, just concatenate all paragraphs
         let content = JSON.parse(this.Data).doc.content;

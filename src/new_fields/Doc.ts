@@ -664,6 +664,10 @@ export namespace Doc {
         }
 
     }
+    export function UnBrushAllDocs() {
+        manager.BrushedDoc.clear();
+    }
 }
 Scripting.addGlobal(function renameAlias(doc: any, n: any) { return StrCast(doc.title).replace(/\([0-9]*\)/, "") + `(${n})`; });
 Scripting.addGlobal(function getProto(doc: any) { return Doc.GetProto(doc); });
+Scripting.addGlobal(function copyField(field: any) { return ObjectField.MakeCopy(field); });

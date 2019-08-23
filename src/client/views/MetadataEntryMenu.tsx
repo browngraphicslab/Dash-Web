@@ -172,7 +172,7 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
                 </div>
                 <div className="metadataEntry-keys" >
                     <ul>
-                        {this._allSuggestions.map(s => <li key={s} onClick={action(() => { this._currentKey = s; this.previewValue(); })} >{s}</li>)}
+                        {this._allSuggestions.slice().sort().map(s => <li key={s} onClick={action(() => { this._currentKey = s; this.previewValue(); })} >{s}</li>)}
                     </ul>
                 </div>
             </div>

@@ -374,7 +374,7 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
     marqueeSelect(selectBackgrounds: boolean = true) {
         let selRect = this.Bounds;
         let selection: Doc[] = [];
-        this.props.activeDocuments().filter(doc => !doc.isBackground).map(doc => {
+        this.props.activeDocuments().filter(doc => !doc.isBackground && doc.z === undefined).map(doc => {
             var x = NumCast(doc.x);
             var y = NumCast(doc.y);
             var w = NumCast(doc.width);
@@ -384,12 +384,28 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
             }
         });
         if (!selection.length && selectBackgrounds) {
-            this.props.activeDocuments().map(doc => {
+            this.props.activeDocuments().filter(doc => doc.z === undefined).map(doc => {
                 var x = NumCast(doc.x);
                 var y = NumCast(doc.y);
                 var w = NumCast(doc.width);
                 var h = NumCast(doc.height);
                 if (this.intersectRect({ left: x, top: y, width: w, height: h }, selRect)) {
+                    selection.push(doc);
+                }
+            });
+        }
+        if (!selection.length) {
+            let left = this._downX < this._lastX ? this._downX : this._lastX;
+            let top = this._downY < this._lastY ? this._downY : this._lastY;
+            let topLeft = this.props.getContainerTransform().transformPoint(left, top);
+            let size = this.props.getContainerTransform().transformDirection(this._lastX - this._downX, this._lastY - this._downY);
+            let otherBounds = { left: topLeft[0], top: topLeft[1], width: Math.abs(size[0]), height: Math.abs(size[1]) };
+            this.props.activeDocuments().filter(doc => doc.z !== undefined).map(doc => {
+                var x = NumCast(doc.x);
+                var y = NumCast(doc.y);
+                var w = NumCast(doc.width);
+                var h = NumCast(doc.height);
+                if (this.intersectRect({ left: x, top: y, width: w, height: h }, otherBounds)) {
                     selection.push(doc);
                 }
             });

@@ -1,17 +1,18 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faEye } from "@fortawesome/free-regular-svg-icons";
-import { faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faPaintBrush, faTable, faUpload, faChalkboard, faBraille } from "@fortawesome/free-solid-svg-icons";
-import { action, computed, observable, IReactionDisposer, reaction } from "mobx";
+import { faBraille, faChalkboard, faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faPaintBrush, faTable, faUpload } from "@fortawesome/free-solid-svg-icons";
+import { action, computed, IReactionDisposer, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCastAsync, HeightSym, WidthSym, DocListCast, FieldResult, Field, Opt } from "../../../../new_fields/Doc";
+import { Doc, DocListCastAsync, Field, FieldResult, HeightSym, Opt, WidthSym } from "../../../../new_fields/Doc";
 import { Id } from "../../../../new_fields/FieldSymbols";
 import { InkField, StrokeData } from "../../../../new_fields/InkField";
 import { createSchema, makeInterface } from "../../../../new_fields/Schema";
 import { ScriptField } from "../../../../new_fields/ScriptField";
 import { BoolCast, Cast, FieldValue, NumCast, StrCast } from "../../../../new_fields/Types";
-import { emptyFunction, returnOne, Utils, returnFalse, returnEmptyString } from "../../../../Utils";
+import { emptyFunction, returnEmptyString, returnOne, Utils } from "../../../../Utils";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
-import { DocServer } from "../../../DocServer";
+import { Docs } from "../../../documents/Documents";
+import { DocumentType } from "../../../documents/DocumentTypes";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { DragManager } from "../../../util/DragManager";
 import { HistoryUtil } from "../../../util/History";
@@ -29,15 +30,14 @@ import { DocumentViewProps, positionSchema } from "../../nodes/DocumentView";
 import { pageSchema } from "../../nodes/ImageBox";
 import { OverlayElementOptions, OverlayView } from "../../OverlayView";
 import PDFMenu from "../../pdf/PDFMenu";
-import { CollectionSubView } from "../CollectionSubView";
 import { ScriptBox } from "../../ScriptBox";
+import { CollectionSubView } from "../CollectionSubView";
 import { CollectionFreeFormLinksView } from "./CollectionFreeFormLinksView";
 import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCursors";
 import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
-import { Docs } from "../../../documents/Documents";
-import { DocumentType } from "../../../documents/DocumentTypes";
+import { DocServer } from "../../../DocServer";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard);
 
@@ -345,9 +345,14 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         }, -1);
         if (cluster !== -1) {
             let eles = this.childDocs.filter(cd => NumCast(cd.cluster) === cluster);
+
+            // hacky way to get a list of DocumentViews in the current view given a list of Documents in the current view
+            let prevSelected = SelectionManager.SelectedDocuments();
             this.selectDocuments(eles);
             let clusterDocs = SelectionManager.SelectedDocuments();
             SelectionManager.DeselectAll();
+            prevSelected.map(dv => SelectionManager.SelectDoc(dv, true));
+
             let de = new DragManager.DocumentDragData(eles, eles.map(d => undefined));
             de.moveDocument = this.props.moveDocument;
             const [left, top] = clusterDocs[0].props.ScreenToLocalTransform().scale(clusterDocs[0].props.ContentScaling()).inverse().transformPoint(0, 0);
@@ -818,6 +823,36 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     onContextMenu = (e: React.MouseEvent) => {
         let layoutItems: ContextMenuProps[] = [];
+        layoutItems.push({
+            description: "Import document", icon: "upload", event: () => {
+                const input = document.createElement("input");
+                input.type = "file";
+                input.accept = ".zip";
+                input.onchange = async _e => {
+                    const files = input.files;
+                    if (!files) return;
+                    const file = files[0];
+                    let formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('remap', "true");
+                    const upload = Utils.prepend("/uploadDoc");
+                    const response = await fetch(upload, { method: "POST", body: formData });
+                    const json = await response.json();
+                    if (json === "error") {
+                        return;
+                    }
+                    const doc = await DocServer.GetRefField(json);
+                    if (!doc || !(doc instanceof Doc)) {
+                        return;
+                    }
+                    const [x, y] = this.props.ScreenToLocalTransform().transformPoint(e.pageX, e.pageY);
+                    doc.x = x, doc.y = y;
+                    this.props.addDocument &&
+                        this.props.addDocument(doc, false);
+                };
+                input.click();
+            }
+        });
         layoutItems.push({ description: `${this.fitToBox ? "Unset" : "Set"} Fit To Container`, event: this.fitToContainer, icon: !this.fitToBox ? "expand-arrows-alt" : "compress-arrows-alt" });
         layoutItems.push({ description: "reset view", event: () => { this.props.Document.panX = this.props.Document.panY = 0; this.props.Document.scale = 1; }, icon: "compress-arrows-alt" });
         layoutItems.push({
@@ -835,12 +870,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             icon: !this.props.Document.useClusters ? "chalkboard" : "chalkboard"
         });
         layoutItems.push({ description: "Arrange contents in grid", event: this.arrangeContents, icon: "table" });
-        ContextMenu.Instance.addItem({ description: "Layout...", subitems: layoutItems, icon: "compass" });
-
-        let existingAnalyze = ContextMenu.Instance.findByDescription("Analyzers...");
-        let analyzers: ContextMenuProps[] = existingAnalyze && "subitems" in existingAnalyze ? existingAnalyze.subitems : [];
-        analyzers.push({ description: "Analyze Strokes", event: this.analyzeStrokes, icon: "paint-brush" });
-        !existingAnalyze && ContextMenu.Instance.addItem({ description: "Analyzers...", subitems: analyzers, icon: "hand-point-right" });
+        layoutItems.push({ description: "Analyze Strokes", event: this.analyzeStrokes, icon: "paint-brush" });
+        ContextMenu.Instance.addItem({ description: "Freeform Options ...", subitems: layoutItems, icon: "eye" });
     }
 
 
