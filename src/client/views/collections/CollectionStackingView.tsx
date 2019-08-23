@@ -96,11 +96,15 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
 
         // is there any reason this needs to exist? -syip.  yes, it handles autoHeight for stacking views (masonry isn't yet supported).
         this._heightDisposer = reaction(() => {
-            if (this.isStackingView && BoolCast(this.props.Document.autoHeight)) {
+            if (BoolCast(this.props.Document.autoHeight)) {
                 let sectionsList = Array.from(this.Sections.size ? this.Sections.values() : [this.filteredChildren]);
-                return this.props.ContentScaling() * sectionsList.reduce((maxHght, s) => Math.max(maxHght,
-                    (this.Sections.size ? 50 : 0) + s.reduce((height, d, i) => height + this.childDocHeight(d) + (i === s.length - 1 ? this.yMargin : this.gridGap), this.yMargin)
-                ), 0);
+                if (this.isStackingView) {
+                    return this.props.ContentScaling() * sectionsList.reduce((maxHght, s) => Math.max(maxHght,
+                        (this.Sections.size ? 50 : 0) + s.reduce((height, d, i) => height + this.childDocHeight(d) + (i === s.length - 1 ? this.yMargin : this.gridGap), this.yMargin)), 0);
+                } else {
+                    return this.props.ContentScaling() * sectionsList.reduce((totalHeight, s) => totalHeight +
+                        (this.Sections.size ? 50 : 0) + s.reduce((height, d, i) => height + this.childDocHeight(d) + (i === s.length - 1 ? this.yMargin : this.gridGap), this.yMargin) + 40, 0);
+                }
             }
             return -1;
         },

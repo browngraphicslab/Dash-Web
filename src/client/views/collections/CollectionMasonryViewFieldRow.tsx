@@ -82,11 +82,11 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
             let layoutDoc = Doc.expandTemplateLayout(d, parent.props.DataDoc);
             let width = () => (d.nativeWidth && !d.ignoreAspect && !parent.props.Document.fillColumn ? Math.min(d[WidthSym](), parent.columnWidth) : parent.columnWidth);/// (uniqueHeadings.length + 1);
             let height = () => parent.getDocHeight(layoutDoc);
-            let dxf = () => parent.getDocTransform(layoutDoc, dref.current!);
+            let dxf = () => parent.getDocTransform(layoutDoc as Doc, dref.current!);
             let rowSpan = Math.ceil((height() + parent.gridGap) / parent.gridGap);
             parent._docXfs.push({ dxf: dxf, width: width, height: height });
             return <div className="collectionStackingView-masonryDoc" key={d[Id]} ref={dref} style={{ gridRowEnd: `span ${rowSpan}` }} >
-                {this.props.parent.getDisplayDoc(layoutDoc, d, dxf, width)}
+                {this.props.parent.getDisplayDoc(layoutDoc as Doc, d, dxf, width)}
             </div>;
         });
     }
@@ -284,33 +284,31 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
             color: this.props.color
         };
         let headingView =
-            <div>
-                <div className="collectionStackingView-sectionHeader">
-                    <div className="collectionStackingView-sectionHeader-subCont" onPointerDown={this.headerDown}
-                        title={evContents === `NO ${key.toUpperCase()} VALUE` ?
-                            `Documents that don't have a ${key} value will go here. This column cannot be removed.` : ""}
-                        style={{
-                            width: "100%",
-                            background: evContents !== `NO ${key.toUpperCase()} VALUE` ? this._color : "lightgrey",
-                            color: "grey"
-                        }}>
-                        {<EditableView {...headerEditableViewProps} />}
-                        {evContents === `NO ${key.toUpperCase()} VALUE` ? (null) :
-                            <div className="collectionStackingView-sectionColor">
-                                <Flyout anchorPoint={anchorPoints.CENTER_RIGHT} content={this.renderColorPicker()}>
-                                    <button className="collectionStackingView-sectionColorButton">
-                                        <FontAwesomeIcon icon="palette" size="sm" />
-                                    </button>
-                                </ Flyout >
-                            </div>
-                        }
-                        {evContents === `NO ${key.toUpperCase()} VALUE` ?
-                            (null) :
-                            <button className="collectionStackingView-sectionDelete" onClick={this.deleteRow}>
-                                <FontAwesomeIcon icon="trash" />
-                            </button>}
-                    </div>
-                </div >
+            <div className="collectionStackingView-sectionHeader">
+                <div className="collectionStackingView-sectionHeader-subCont" onPointerDown={this.headerDown}
+                    title={evContents === `NO ${key.toUpperCase()} VALUE` ?
+                        `Documents that don't have a ${key} value will go here. This column cannot be removed.` : ""}
+                    style={{
+                        width: "100%",
+                        background: evContents !== `NO ${key.toUpperCase()} VALUE` ? this._color : "lightgrey",
+                        color: "grey"
+                    }}>
+                    {<EditableView {...headerEditableViewProps} />}
+                    {evContents === `NO ${key.toUpperCase()} VALUE` ? (null) :
+                        <div className="collectionStackingView-sectionColor">
+                            <Flyout anchorPoint={anchorPoints.CENTER_RIGHT} content={this.renderColorPicker()}>
+                                <button className="collectionStackingView-sectionColorButton">
+                                    <FontAwesomeIcon icon="palette" size="sm" />
+                                </button>
+                            </ Flyout >
+                        </div>
+                    }
+                    {evContents === `NO ${key.toUpperCase()} VALUE` ?
+                        (null) :
+                        <button className="collectionStackingView-sectionDelete" onClick={this.deleteRow}>
+                            <FontAwesomeIcon icon="trash" />
+                        </button>}
+                </div>
             </div >;
         return (
             <div className="collectionStackingView-masonrySection"
