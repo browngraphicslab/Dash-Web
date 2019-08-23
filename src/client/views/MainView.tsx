@@ -407,7 +407,7 @@ export class MainView extends React.Component {
     get mainContent() {
         let sidebar = CurrentUserUtils.UserDocument.sidebar;
         if (!(sidebar instanceof Doc)) return (null);
-        return <div>
+        return <div className="mainContent" style={{ width: "100%", height: "100%", position: "absolute" }}>
             <div className="mainView-libraryHandle"
                 style={{ cursor: "ew-resize", left: `${this.flyoutWidth - 10}px`, backgroundColor: `${StrCast(sidebar.backgroundColor, "lightGray")}` }}
                 onPointerDown={this.onPointerDown}>

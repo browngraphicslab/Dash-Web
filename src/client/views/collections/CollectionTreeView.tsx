@@ -373,6 +373,7 @@ class TreeView extends React.Component<TreeViewProps> {
         return <>
             <div className="docContainer" id={`docContainer-${this.props.parentKey}`} ref={reference} onPointerDown={onItemDown}
                 style={{
+                    color: this.props.document.isMinimized ? "red" : "black",
                     background: Doc.IsBrushed(this.props.document) ? "#06121212" : "0",
                     outline: BoolCast(this.props.document.workspaceBrush) ? "dashed 1px #06123232" : undefined,
                     pointerEvents: this.props.active() || SelectionManager.GetIsDragging() ? "all" : "none"

@@ -628,6 +628,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         !existingAnalyze && cm.addItem({ description: "Analyzers...", subitems: analyzers, icon: "hand-point-right" });
         cm.addItem({ description: "Pin to Presentation", event: () => this.props.pinToPres(this.props.Document), icon: "map-pin" }); //I think this should work... and it does! A miracle!
         cm.addItem({ description: "Add Repl", icon: "laptop-code", event: () => OverlayView.Instance.addWindow(<ScriptingRepl />, { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" }) });
+        cm.addItem({ description: "Move To Overlay", icon: "laptop-code", event: () => ((o: Doc) => o && Doc.AddDocToList(o, "data", this.props.Document))(Cast(CurrentUserUtils.UserDocument.overlays, Doc) as Doc) });
         cm.addItem({
             description: "Download document", icon: "download", event: () => {
                 const a = document.createElement("a");
