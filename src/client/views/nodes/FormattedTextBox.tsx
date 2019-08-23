@@ -134,58 +134,31 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
 
         document.addEventListener("paste", this.paste);
+
         reaction(
-            () => StrCast(this.props.Document.guid), // this refers to source guid
+            () => StrCast(this.props.Document.guid),
             (guid) => {
-                let linkNode;
                 let start = -1;
 
-                // go thru marks and look for guid
                 if (this._editorView && guid) {
                     let editor = this._editorView;
-
                     console.log(guid);
-
-                    // find index of where mark === 'link' AND guid of text is matching that of the source of the followed link
-                    // linkNode = editor.state.doc.content.firstChild;
-                    // editor.state.tr.selection.content.
-
                     let ret = findLinkFrag(editor.state.doc.content, editor);
 
                     if (ret.frag.size > 2) { // fragment is not empty
                         console.log('here is frag', ret.frag);
-                        console.log('here is node', linkNode);
-                        console.log(editor.state.tr.selection);
-                        let anchor = editor.state.doc.resolve(ret.start);
-                        let head = editor.state.doc.resolve(ret.start + ret.frag.size);
-
-                        // 1. get pos of start of frag in doc
-                        // get from frag to slice to selection 
-                        let tr = editor.state.tr.setSelection(TextSelection.between(anchor, head));
-                        editor.dispatch(tr.scrollIntoView());
+                        let tr = editor.state.tr.setSelection(TextSelection.near(editor.state.doc.resolve(ret.start)));
+                        editor.dispatch(tr.scrollIntoView()); // not sure whether scrollintoview or focus will work, waiting on fix for resizing text boxes
+                        editor.focus();
                     }
-
-                    // this._editorView.state.tr.setSelection(editor.state.doc, start of node, end of node);
-                    // slice = new Slice(frag, slice.openStart, slice.openEnd);
-                    // var tr = view.state.tr.replaceSelection(slice);
-                    // view.dispatch(tr.scrollIntoView()
-
-                    // this._editorView.dispatch( /** pass in transaction */);
+                    this.props.Document.guid = "";
                 }
-                /**
-                 * todo
-                 * 1. recurse through fragment/node content until we find text nodes
-                 * 2. once we find text nodes, find the specific one that matches guid (which we can do?????)
-                 * 3. transport that back into main 
-                 * PROBLEM: this reaction is called 4 times for some reason
-                 */
 
                 function findLinkFrag(frag: Fragment, editor: EditorView) {
                     const nodes: Node[] = [];
                     frag.forEach((node, index) => {
                         let examinedNode = findLinkNode(node, editor);
                         if (examinedNode) {
-                            // here -- add information about 'for each' index?
                             nodes.push(examinedNode);
                             if (index > start) {
                                 start = index;
@@ -203,11 +176,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     const linkIndex = marks.findIndex(mark => mark.type.name === "link");
                     if (linkIndex !== -1) {
                         if (guid === marks[linkIndex].attrs.guid) {
-                            console.log('linkindex is not -1,', linkIndex);
-                            console.log('found match,', node);
-                            linkNode = node;
                             return node;
                         }
+                        return undefined;
                     } else {
                         return undefined;
                     }
