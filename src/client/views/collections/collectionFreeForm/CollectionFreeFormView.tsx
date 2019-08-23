@@ -345,9 +345,14 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         }, -1);
         if (cluster !== -1) {
             let eles = this.childDocs.filter(cd => NumCast(cd.cluster) === cluster);
+
+            // hacky way to get a list of DocumentViews in the current view given a list of Documents in the current view
+            let prevSelected = SelectionManager.SelectedDocuments();
             this.selectDocuments(eles);
             let clusterDocs = SelectionManager.SelectedDocuments();
             SelectionManager.DeselectAll();
+            prevSelected.map(dv => SelectionManager.SelectDoc(dv, true));
+
             let de = new DragManager.DocumentDragData(eles, eles.map(d => undefined));
             de.moveDocument = this.props.moveDocument;
             const [left, top] = clusterDocs[0].props.ScreenToLocalTransform().scale(clusterDocs[0].props.ContentScaling()).inverse().transformPoint(0, 0);
@@ -818,30 +823,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     onContextMenu = (e: React.MouseEvent) => {
         let layoutItems: ContextMenuProps[] = [];
-        layoutItems.push({ description: `${this.fitToBox ? "Unset" : "Set"} Fit To Container`, event: this.fitToContainer, icon: !this.fitToBox ? "expand-arrows-alt" : "compress-arrows-alt" });
-        layoutItems.push({ description: "reset view", event: () => { this.props.Document.panX = this.props.Document.panY = 0; this.props.Document.scale = 1; }, icon: "compress-arrows-alt" });
         layoutItems.push({
-            description: `${this.props.Document.useClusters ? "Uncluster" : "Use Clusters"}`,
-            event: async () => {
-                Docs.Prototypes.get(DocumentType.TEXT).defaultBackgroundColor = "#f1efeb"; // backward compatibility with databases that didn't have a default background color on prototypes
-                Docs.Prototypes.get(DocumentType.COL).defaultBackgroundColor = "white";
-                this.props.Document.useClusters = !this.props.Document.useClusters;
-            },
-            icon: !this.props.Document.useClusters ? "braille" : "braille"
-        });
-        layoutItems.push({
-            description: `${this.props.Document.clusterOverridesDefaultBackground ? "Use Default Backgrounds" : "Clusters Override Defaults"}`,
-            event: async () => this.props.Document.clusterOverridesDefaultBackground = !this.props.Document.clusterOverridesDefaultBackground,
-            icon: !this.props.Document.useClusters ? "chalkboard" : "chalkboard"
-        });
-        layoutItems.push({ description: "Arrange contents in grid", event: this.arrangeContents, icon: "table" });
-        ContextMenu.Instance.addItem({ description: "Layout...", subitems: layoutItems, icon: "compass" });
-
-        let existingAnalyze = ContextMenu.Instance.findByDescription("Analyzers...");
-        let analyzers: ContextMenuProps[] = existingAnalyze && "subitems" in existingAnalyze ? existingAnalyze.subitems : [];
-        analyzers.push({ description: "Analyze Strokes", event: this.analyzeStrokes, icon: "paint-brush" });
-        !existingAnalyze && ContextMenu.Instance.addItem({ description: "Analyzers...", subitems: analyzers, icon: "hand-point-right" });
-        ContextMenu.Instance.addItem({
             description: "Import document", icon: "upload", event: () => {
                 const input = document.createElement("input");
                 input.type = "file";
@@ -871,6 +853,25 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 input.click();
             }
         });
+        layoutItems.push({ description: `${this.fitToBox ? "Unset" : "Set"} Fit To Container`, event: this.fitToContainer, icon: !this.fitToBox ? "expand-arrows-alt" : "compress-arrows-alt" });
+        layoutItems.push({ description: "reset view", event: () => { this.props.Document.panX = this.props.Document.panY = 0; this.props.Document.scale = 1; }, icon: "compress-arrows-alt" });
+        layoutItems.push({
+            description: `${this.props.Document.useClusters ? "Uncluster" : "Use Clusters"}`,
+            event: async () => {
+                Docs.Prototypes.get(DocumentType.TEXT).defaultBackgroundColor = "#f1efeb"; // backward compatibility with databases that didn't have a default background color on prototypes
+                Docs.Prototypes.get(DocumentType.COL).defaultBackgroundColor = "white";
+                this.props.Document.useClusters = !this.props.Document.useClusters;
+            },
+            icon: !this.props.Document.useClusters ? "braille" : "braille"
+        });
+        layoutItems.push({
+            description: `${this.props.Document.clusterOverridesDefaultBackground ? "Use Default Backgrounds" : "Clusters Override Defaults"}`,
+            event: async () => this.props.Document.clusterOverridesDefaultBackground = !this.props.Document.clusterOverridesDefaultBackground,
+            icon: !this.props.Document.useClusters ? "chalkboard" : "chalkboard"
+        });
+        layoutItems.push({ description: "Arrange contents in grid", event: this.arrangeContents, icon: "table" });
+        layoutItems.push({ description: "Analyze Strokes", event: this.analyzeStrokes, icon: "paint-brush" });
+        ContextMenu.Instance.addItem({ description: "Freeform Options ...", subitems: layoutItems, icon: "eye" });
     }
 
 
