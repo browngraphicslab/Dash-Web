@@ -252,7 +252,7 @@ export namespace DragManager {
             });
     }
 
-    export function StartButtonDrag(eles: HTMLElement[], script: string, title: string, vars: { [name: string]: Field }, params: string[], downX: number, downY: number, options?: DragOptions) {
+    export function StartButtonDrag(eles: HTMLElement[], script: string, title: string, vars: { [name: string]: Field }, params: string[], initialize?: (button: Doc) => void, downX: number, downY: number, options?: DragOptions) {
         let dragData = new DragManager.DocumentDragData([], [undefined]);
         runInAction(() => StartDragFunctions.map(func => func()));
         StartDrag(eles, dragData, downX, downY, options, options && options.finishDrag ? options.finishDrag :
@@ -268,6 +268,7 @@ export namespace DragManager {
                     bd.onClick = scriptField;
                 }
                 params.map(p => Object.keys(vars).indexOf(p) !== -1 && (Doc.GetProto(bd)[p] = new PrefetchProxy(vars[p] as Doc)));
+                initialize && initialize(bd);
                 bd.buttonParams = new List<string>(params);
                 dropData.droppedDocuments = [bd];
             });
