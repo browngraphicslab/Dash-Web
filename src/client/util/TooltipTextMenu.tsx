@@ -302,11 +302,13 @@ export class TooltipTextMenu {
                             dragComplete: action(() => {
                                 // let m = dragData.droppedDocuments;
                                 let linkDoc = dragData.linkDocument;
+                                let guid = Utils.GenerateGuid();
                                 let proto = Doc.GetProto(linkDoc);
                                 if (docView && docView.props.ContainingCollectionView) {
                                     proto.sourceContext = docView.props.ContainingCollectionView.props.Document;
                                 }
-                                linkDoc instanceof Doc && this.makeLink(Utils.prepend("/doc/" + linkDoc[Id]), ctrlKey ? "onRight" : "inTab");
+                                linkDoc.guid = guid;
+                                linkDoc instanceof Doc && this.makeLink(Utils.prepend("/doc/" + linkDoc[Id]), ctrlKey ? "onRight" : "inTab", guid);
                             }),
                         },
                         hideSource: false
@@ -390,13 +392,13 @@ export class TooltipTextMenu {
         }
     }
 
-    makeLinkWithState = (state: EditorState, target: string, location: string) => {
-        let link = state.schema.mark(state.schema.marks.link, { href: target, location: location });
-    }
+    // makeLinkWithState = (state: EditorState, target: string, location: string) => {
+    //     let link = state.schema.mark(state.schema.marks.link, { href: target, location: location });
+    // }
 
-    makeLink = (target: string, location: string) => {
+    makeLink = (target: string, location: string, guid?: string) => {
         let node = this.view.state.selection.$from.nodeAfter;
-        let link = this.view.state.schema.mark(this.view.state.schema.marks.link, { href: target, location: location });
+        let link = this.view.state.schema.mark(this.view.state.schema.marks.link, { href: target, location: location, guid: guid });
         this.view.dispatch(this.view.state.tr.removeMark(this.view.state.selection.from, this.view.state.selection.to, this.view.state.schema.marks.link));
         this.view.dispatch(this.view.state.tr.addMark(this.view.state.selection.from, this.view.state.selection.to, link));
         node = this.view.state.selection.$from.nodeAfter;

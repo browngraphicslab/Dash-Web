@@ -214,7 +214,8 @@ export const marks: { [index: string]: MarkSpec } = {
         attrs: {
             href: {},
             location: { default: null },
-            title: { default: null }
+            title: { default: null },
+            guid: { default: null }
         },
         inclusive: false,
         parseDOM: [{

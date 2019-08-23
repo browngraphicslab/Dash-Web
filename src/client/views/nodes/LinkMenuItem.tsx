@@ -43,8 +43,8 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         let proto = Doc.GetProto(this.props.linkDoc);
         let targetContext = await Cast(proto.targetContext, Doc);
         let sourceContext = await Cast(proto.sourceContext, Doc);
+        let guid = StrCast(this.props.linkDoc.guid);
         let self = this;
-
 
         let dockingFunc = (document: Doc) => { this.props.addDocTab(document, undefined, "inTab"); SelectionManager.DeselectAll(); };
         if (e.ctrlKey) {
@@ -55,6 +55,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
             DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, async document => dockingFunc(document), undefined, targetContext!);
         }
         else if (this.props.destinationDoc === self.props.linkDoc.anchor1 && sourceContext) {
+            jumpToDoc.guid = guid;
             DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, document => dockingFunc(sourceContext!));
         }
         else if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {

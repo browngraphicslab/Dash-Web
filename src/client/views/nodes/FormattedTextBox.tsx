@@ -6,7 +6,7 @@ import { baseKeymap } from "prosemirror-commands";
 import { history } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
 import { Fragment, Node, Node as ProsNode, NodeType, Slice } from "prosemirror-model";
-import { EditorState, Plugin, Transaction } from "prosemirror-state";
+import { EditorState, Plugin, Transaction, TextSelection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { DateField } from '../../../new_fields/DateField';
 import { Doc, DocListCast, Opt, WidthSym } from "../../../new_fields/Doc";
@@ -126,6 +126,84 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
 
         document.addEventListener("paste", this.paste);
+        reaction(
+            () => StrCast(this.props.Document.guid), // this refers to source guid
+            (guid) => {
+                let linkNode;
+                let start = -1;
+
+                // go thru marks and look for guid
+                if (this._editorView && guid) {
+                    let editor = this._editorView;
+
+                    console.log(guid);
+
+                    // find index of where mark === 'link' AND guid of text is matching that of the source of the followed link
+                    // linkNode = editor.state.doc.content.firstChild;
+                    // editor.state.tr.selection.content.
+
+                    let ret = findLinkFrag(editor.state.doc.content, editor);
+
+                    if (ret.frag.size > 2) { // fragment is not empty
+                        console.log('here is frag', ret.frag);
+                        console.log('here is node', linkNode);
+                        console.log(editor.state.tr.selection);
+                        // 1. get pos of start of frag in doc
+                        // get from frag to slice to selection 
+                        let slice = new Slice(ret.frag, 1, 1); // significance of open depth???
+                        // let tr = editor.state.tr.setSelection(TextSelection.create(slice, ));
+                        // editor.dispatch(tr.scrollIntoView());
+                    }
+
+                    // this._editorView.state.tr.setSelection(editor.state.doc, start of node, end of node);
+                    // slice = new Slice(frag, slice.openStart, slice.openEnd);
+                    // var tr = view.state.tr.replaceSelection(slice);
+                    // view.dispatch(tr.scrollIntoView()
+
+                    // this._editorView.dispatch( /** pass in transaction */);
+                }
+                /**
+                 * todo
+                 * 1. recurse through fragment/node content until we find text nodes
+                 * 2. once we find text nodes, find the specific one that matches guid (which we can do?????)
+                 * 3. transport that back into main 
+                 * PROBLEM: this reaction is called 4 times for some reason
+                 */
+
+                function findLinkFrag(frag: Fragment, editor: EditorView) {
+                    const nodes: Node[] = [];
+                    frag.forEach((node, index) => {
+                        let examinedNode = findLinkNode(node, editor);
+                        if (examinedNode) {
+                            // here -- add information about 'for each' index?
+                            nodes.push(examinedNode);
+                            if (index > start) {
+                                start = index;
+                            }
+                        }
+                    });
+                    return { frag: Fragment.fromArray(nodes), start: start };
+                }
+                function findLinkNode(node: Node, editor: EditorView) {
+                    if (!node.isText) {
+                        const content = findLinkFrag(node.content, editor);
+                        return node.copy(content.frag);
+                    }
+                    const marks = [...node.marks];
+                    const linkIndex = marks.findIndex(mark => mark.type.name === "link");
+                    if (linkIndex !== -1) {
+                        if (guid === marks[linkIndex].attrs.guid) {
+                            console.log('linkindex is not -1,', linkIndex);
+                            console.log('found match,', node);
+                            linkNode = node;
+                            return node;
+                        }
+                    } else {
+                        return undefined;
+                    }
+                }
+            }
+        );
     }
 
     @computed get extensionDoc() { return Doc.resolvedFieldDataDoc(this.dataDoc, this.props.fieldKey, "dummy"); }
@@ -167,7 +245,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             FormattedTextBox._toolTipTextMenu && (FormattedTextBox._toolTipTextMenu.HackToFixTextSelectionGlitch = false);
             if (state.selection.empty && FormattedTextBox._toolTipTextMenu) {
                 const marks = tx.storedMarks;
-                console.log(marks);
                 if (marks) { FormattedTextBox._toolTipTextMenu.mark_key_pressed(marks); }
             }
             this._applyingChange = true;
@@ -292,8 +369,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 const field = this.dataDoc ? Cast(this.dataDoc[this.props.fieldKey], RichTextField) : undefined;
                 return field ? field.Data : `{"doc":{"type":"doc","content":[]},"selection":{"type":"text","anchor":0,"head":0}}`;
             },
-            field2 => this._editorView && !this._applyingChange &&
-                this._editorView.updateState(EditorState.fromJSON(config, JSON.parse(field2)))
+            field2 => {
+                let ff2 = JSON.parse(field2);
+                this._editorView && !this._applyingChange &&
+                    this._editorView.updateState(EditorState.fromJSON(config, ff2));
+            }
         );
 
         this.props.isOverlay && (this._heightReactionDisposer = reaction(
@@ -384,9 +464,12 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 if (link) {
                     cbe.clipboardData!.setData("dash/linkDoc", link[Id]);
                     linkId = link[Id];
+                    let guid = StrCast(link.guid);
+                    link.guid = guid;
                     let frag = addMarkToFrag(slice.content);
                     slice = new Slice(frag, slice.openStart, slice.openEnd);
                     var tr = view.state.tr.replaceSelection(slice);
+
                     view.dispatch(tr.scrollIntoView().setMeta("paste", true).setMeta("uiEvent", "paste"));
                 }
             });
