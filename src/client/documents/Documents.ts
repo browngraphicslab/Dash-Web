@@ -54,6 +54,7 @@ var path = require('path');
 export interface DocumentOptions {
     x?: number;
     y?: number;
+    z?: number;
     type?: string;
     width?: number;
     height?: number;

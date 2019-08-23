@@ -1,10 +1,10 @@
-import { observable, computed, action, trace } from "mobx";
+import { observable, computed, action, trace, ObservableMap } from "mobx";
 import React = require("react");
 import { observer } from "mobx-react";
 import { FieldViewProps, FieldView } from "../nodes/FieldView";
 import { Doc } from "../../../new_fields/Doc";
 import { undoBatch } from "../../util/UndoManager";
-import { NumCast, FieldValue, Cast } from "../../../new_fields/Types";
+import { NumCast, FieldValue, Cast, StrCast } from "../../../new_fields/Types";
 import { CollectionViewType } from "../collections/CollectionBaseView";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { SelectionManager } from "../../util/SelectionManager";
@@ -12,19 +12,41 @@ import { DocumentManager } from "../../util/DocumentManager";
 import { DocumentView } from "../nodes/DocumentView";
 import "./LinkFollowBox.scss";
 
-export type LinkParamOptions = {
-    container: Doc;
-    context: Doc;
-    sourceDoc: Doc;
-    shoudldZoom: boolean;
-    linkDoc: Doc;
-};
+enum FollowModes {
+    OPENTAB = "Open in Tab",
+    OPENRIGHT = "Open in Right Split",
+    OPENFULL = "Open Full Screen",
+    PAN = "Pan to Document",
+    INPLACE = "Open In Place"
+}
+
+enum FollowOptions {
+    ZOOM = "zoom",
+    NOZOOM = "no zoom",
+}
 
 @observer
 export class LinkFollowBox extends React.Component<FieldViewProps> {
 
     public static LayoutString() { return FieldView.LayoutString(LinkFollowBox); }
     public static Instance: LinkFollowBox;
+    @observable static linkDoc: Doc | undefined = undefined;
+    @observable static destinationDoc: Doc | undefined = undefined;
+    @observable static sourceDoc: Doc | undefined = undefined;
+    @observable selectedMode: string = "";
+    @observable selectedOption: string = "";
+
+    constructor(props: FieldViewProps) {
+        super(props);
+        LinkFollowBox.Instance = this;
+    }
+
+    @action
+    setLinkDocs = (linkDoc: Doc, source: Doc, dest: Doc) => {
+        LinkFollowBox.linkDoc = linkDoc;
+        LinkFollowBox.sourceDoc = source;
+        LinkFollowBox.destinationDoc = dest;
+    }
 
     unhighlight = () => {
         Doc.UnhighlightAll();
@@ -40,11 +62,11 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
         }, 10000);
     }
 
-    // DONE
     @undoBatch
     openFullScreen = (destinationDoc: Doc) => {
-        let view: DocumentView | null = DocumentManager.Instance.getDocumentView(destinationDoc)
+        let view: DocumentView | null = DocumentManager.Instance.getDocumentView(destinationDoc);
         view && CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(view);
+        SelectionManager.DeselectAll();
     }
 
     // should container be a doc or documentview or what? This one needs work and is more long term
@@ -54,8 +76,6 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     }
 
     // NOT TESTED
-    // col = collection the doc is in
-    // target = the document to center on
     @undoBatch
     openLinkColRight = (destinationDoc: Doc, options: { context: Doc }) => {
         options.context = Doc.IsPrototype(options.context) ? Doc.MakeDelegate(options.context) : options.context;
@@ -66,26 +86,22 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
             options.context.panY = newPanY;
         }
         CollectionDockingView.Instance.AddRightSplit(options.context, undefined);
-    }
 
-    // DONE
-    // this opens the linked doc in a right split, NOT in its collection
-    @undoBatch
-    openLinkRight = (destinationDoc: Doc) => {
         this.highlightDoc(destinationDoc);
-        let alias = Doc.MakeAlias(destinationDoc);
-        CollectionDockingView.Instance.AddRightSplit(alias, undefined);
         SelectionManager.DeselectAll();
     }
 
-    // DONE
-    // this is the standard "follow link" (jump to document)
-    // taken from follow link
+    @undoBatch
+    openLinkRight = (destinationDoc: Doc) => {
+        let alias = Doc.MakeAlias(destinationDoc);
+        CollectionDockingView.Instance.AddRightSplit(alias, undefined);
+        this.highlightDoc(destinationDoc);
+        SelectionManager.DeselectAll();
+
+    }
+
     @undoBatch
     jumpToLink = async (destinationDoc: Doc, options: { shouldZoom: boolean, linkDoc: Doc }) => {
-        //there is an issue right now so this will be false automatically
-        options.shouldZoom = false;
-        this.highlightDoc(destinationDoc);
         let jumpToDoc = destinationDoc;
         let pdfDoc = FieldValue(Cast(destinationDoc, Doc));
         if (pdfDoc) {
@@ -110,26 +126,23 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
         else {
             DocumentManager.Instance.jumpToDocument(jumpToDoc, options.shouldZoom, false, dockingFunc);
         }
+
+        this.highlightDoc(destinationDoc);
+        SelectionManager.DeselectAll();
     }
 
-    // DONE
-    // opens link in new tab (not in a collection)
-    // this opens it full screen in new tab
     @undoBatch
     openLinkTab = (destinationDoc: Doc) => {
-        this.highlightDoc(destinationDoc);
         let fullScreenAlias = Doc.MakeAlias(destinationDoc);
         this.props.addDocTab(fullScreenAlias, undefined, "inTab");
+
+        this.highlightDoc(destinationDoc);
         SelectionManager.DeselectAll();
     }
 
     // NOT TESTED
-    // opens link in new tab in collection
-    // col = collection the doc is in
-    // target = the document to center on
     @undoBatch
     openLinkColTab = (destinationDoc: Doc, options: { context: Doc }) => {
-        this.highlightDoc(destinationDoc);
         options.context = Doc.IsPrototype(options.context) ? Doc.MakeDelegate(options.context) : options.context;
         if (NumCast(options.context.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
             const newPanX = NumCast(destinationDoc.x) + NumCast(destinationDoc.width) / NumCast(destinationDoc.zoomBasis, 1) / 2;
@@ -137,16 +150,14 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
             options.context.panX = newPanX;
             options.context.panY = newPanY;
         }
-        // CollectionDockingView.Instance.AddRightSplit(col, undefined);
         this.props.addDocTab(options.context, undefined, "inTab");
+
+        this.highlightDoc(destinationDoc);
         SelectionManager.DeselectAll();
     }
 
-    // DONE
-    // this will open a link next to the source doc
     @undoBatch
-    openLinkInPlace = (destinationDoc: Doc, options: { sourceDoc: Doc }) => {
-        this.highlightDoc(destinationDoc);
+    openLinkInPlace = (destinationDoc: Doc, options: { sourceDoc: Doc, linkDoc: Doc }) => {
 
         let alias = Doc.MakeAlias(destinationDoc);
         let y = NumCast(options.sourceDoc.y);
@@ -165,16 +176,146 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                 dv.props.addDocument && dv.props.addDocument(alias, false);
             }
         });
+
+        this.jumpToLink(destinationDoc, { shouldZoom: false, linkDoc: options.linkDoc });
+
+        this.highlightDoc(destinationDoc);
+        SelectionManager.DeselectAll();
     }
 
     //set this to be the default link behavior, can be any of the above
     private defaultLinkBehavior: (destinationDoc: Doc, options?: any) => void = this.openLinkInPlace;
-    private currentLinkBehavior: (destinationDoc: Doc, options?: any) => void = this.defaultLinkBehavior;
+    // private currentLinkBehavior: (destinationDoc: Doc, options?: any) => void = this.defaultLinkBehavior;
+
+    @computed
+    get LinkFollowTitle(): string {
+        if (LinkFollowBox.linkDoc) {
+            return StrCast(LinkFollowBox.linkDoc.title);
+        }
+        return "No Link Selected";
+    }
+
+    @action
+    currentLinkBehavior = () => {
+        if (this.selectedMode === FollowModes.INPLACE) {
+
+        }
+        else if (this.selectedMode === FollowModes.OPENFULL) {
+
+        }
+        else if (this.selectedMode === FollowModes.OPENRIGHT) {
+
+        }
+        else if (this.selectedMode === FollowModes.OPENTAB) {
+
+        }
+        else if (this.selectedMode === FollowModes.INPLACE) {
+
+        }
+        else if (this.selectedMode === FollowModes.PAN) {
+
+        }
+        else return;
+    }
+
+    @action
+    handleModeChange = (e: React.ChangeEvent) => {
+        let target = e.target as HTMLInputElement;
+        this.selectedMode = target.value;
+    }
+
+    @action
+    handleOptionChange = (e: React.ChangeEvent) => {
+        let target = e.target as HTMLInputElement;
+        this.selectedOption = target.value;
+    }
+
+    @computed
+    get availableModes() {
+        return (
+            <div>
+                <label><input
+                    type="radio"
+                    name="mode"
+                    value={FollowModes.OPENRIGHT}
+                    checked={this.selectedMode === FollowModes.OPENRIGHT}
+                    onChange={this.handleModeChange} />
+                    {FollowModes.OPENRIGHT}
+                </label><br />
+                <label><input
+                    type="radio"
+                    name="mode"
+                    value={FollowModes.OPENTAB}
+                    checked={this.selectedMode === FollowModes.OPENTAB}
+                    onChange={this.handleModeChange} />
+                    {FollowModes.OPENTAB}
+                </label><br />
+                <label><input
+                    type="radio"
+                    name="mode"
+                    value={FollowModes.OPENFULL}
+                    checked={this.selectedMode === FollowModes.OPENFULL}
+                    onChange={this.handleModeChange} />
+                    {FollowModes.OPENFULL}
+                </label><br />
+                <label><input
+                    type="radio"
+                    name="mode"
+                    value={FollowModes.PAN}
+                    checked={this.selectedMode === FollowModes.PAN}
+                    onChange={this.handleModeChange} />
+                    {FollowModes.PAN}
+                </label><br />
+                <label><input
+                    type="radio"
+                    name="mode"
+                    value={FollowModes.INPLACE}
+                    checked={this.selectedMode === FollowModes.INPLACE}
+                    onChange={this.handleModeChange} />
+                    {FollowModes.INPLACE}
+                </label><br />
+            </div>
+        );
+    }
+
+    @computed
+    get contexts() {
+        return (
+            <div>
+
+            </div>
+        );
+    }
 
     render() {
         return (
             <div className="linkFollowBox-main" style={{ height: NumCast(this.props.Document.height), width: NumCast(this.props.Document.width) }}>
+                <div className="linkFollowBox-header">{this.LinkFollowTitle}</div>
+                <div className="linkFollowBox-content" style={{ height: NumCast(this.props.Document.height) - 90 }}>
+                    <div className="linkFollowBox-item">
+                        <div className="linkFollowBox-item title">Mode</div>
+                        <div className="linkFollowBox-itemContent">{this.availableModes}</div>
+                    </div>
+                    <div className="linkFollowBox-item">
+                        <div className="linkFollowBox-item title">Context</div>
+                        <div className="linkFollowBox-itemContent">
 
+                        </div>
+                    </div>
+                    <div className="linkFollowBox-item">
+                        <div className="linkFollowBox-item title">Options</div>
+                        <div className="linkFollowBox-itemContent">
+
+                        </div>
+                    </div>
+                </div>
+                <div className="linkFollowBox-footer">
+                    <button
+                        onClick={this.currentLinkBehavior}
+                        disabled={(LinkFollowBox.linkDoc) ? false : true}>
+                        Follow Link
+                    </button>
+                </div>
             </div>
         );
     }

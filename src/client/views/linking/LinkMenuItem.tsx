@@ -16,6 +16,7 @@ import { SelectionManager } from '../../util/SelectionManager';
 import { CollectionViewType } from '../collections/CollectionBaseView';
 import { DocumentView } from '../nodes/DocumentView';
 import { SearchUtil } from '../../util/SearchUtil';
+import { LinkFollowBox } from './LinkFollowBox';
 library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp);
 
 
@@ -174,7 +175,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     }
 
     //set this to be the default link behavior, can be any of the above
-    private defaultLinkBehavior: any = this.openLinkTab;
+    // private defaultLinkBehavior: any = LinkFollowBox.computeLinkDocs(this.props.linkDoc);
 
     onEdit = (e: React.PointerEvent): void => {
         e.stopPropagation();
@@ -242,7 +243,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                             {/* Original */}
                             {/* <div title="Follow link" className="button" onPointerDown={this.onFollowLink}><FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" /></div> */}
                             {/* New */}
-                            <div title="Follow link" className="button" onPointerDown={this.defaultLinkBehavior}><FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" /></div>
+                            <div title="Follow link" className="button" onClick={() => LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc)}><FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" /></div>
                         </div>
                     </div>
                     {this._showMore ? this.renderMetadata() : <></>}
