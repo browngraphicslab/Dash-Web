@@ -1,7 +1,7 @@
 import React = require("react");
 import { observer } from "mobx-react";
-import { action, computed, observable, untracked, runInAction } from "mobx";
-import { Doc, DocListCast, Field, FieldResult, DocListCastAsync } from "../../../new_fields/Doc";
+import { action, computed, observable, untracked, runInAction, IReactionDisposer, reaction } from "mobx";
+import { Doc, DocListCast, Field, FieldResult, DocListCastAsync, Opt } from "../../../new_fields/Doc";
 import { NumCast, Cast, StrCast, } from "../../../new_fields/Types";
 import { emptyFunction, Utils, returnOne, returnEmptyString } from "../../../Utils";
 import { SelectionManager } from "../../util/SelectionManager";
@@ -23,6 +23,7 @@ import { EditableView } from "../EditableView";
 import { listSpec } from "../../../new_fields/Schema";
 import { BottomUI } from "./CollectionTimeLineViewBottomUI";
 import { anchorPoints, Flyout } from "../DocumentDecorations";
+import { Thumbnail, NodeProps } from "./CollectionTimeLineViewNode";
 
 
 type DocTuple = {
@@ -40,19 +41,9 @@ type MarkerUnit = {
 };
 
 type Node = {
-    thumbnail: JSX.Element,
-    thumbnailref: HTMLDivElement | undefined,
-    thumbnailref2: HTMLDivElement | undefined,
-    header: JSX.Element,
-    headerref: HTMLDivElement | undefined,
-    headerref2: HTMLDivElement | undefined,
-    map: JSX.Element,
-    mapref: HTMLDivElement | undefined,
-    data: any;
     doc: Doc;
     leftval: number;
     top: number;
-
 };
 
 @observer
@@ -63,7 +54,9 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     private barref = React.createRef<HTMLDivElement>();
     private marqueeref = React.createRef<HTMLDivElement>();
     private timelineref = React.createRef<HTMLDivElement>();
+    private sortReactionDisposer: IReactionDisposer | undefined;
     @observable private types: boolean[] = [];
+    @observable pendingThumbnailRefCount = 0;
 
     @computed
     private get markerDocs() {
@@ -86,7 +79,10 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         });
         this.initializeMarkers();
         document.addEventListener("keydown", this.onKeyDown_Selector);
+    }
 
+    componentWillUnmount() {
+        this.sortReactionDisposer && this.sortReactionDisposer();
     }
 
     @action
@@ -167,7 +163,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     resetSelections() {
         this.selections = [];
         for (let thumbnail of this.thumbnails) {
-            this.unfocus(thumbnail.thumbnailref, thumbnail.headerref);
+            //this.unfocus(thumbnail.thumbnailref, thumbnail.headerref);
         }
     }
 
@@ -213,6 +209,43 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.types[i] = button.current!.checked;
         this.resetSelections();
     }
+
+    // @action
+    // select(e: React.MouseEvent<HTMLDivElement>, d: Doc, b: HTMLDivElement | undefined) {
+    //     var thumbnail = undefined;
+    //     var header = undefined;
+    //     for (let thumbnails of this.thumbnails) {
+    //         if (thumbnails.thumbnailref === b) {
+    //             thumbnail = (thumbnails.thumbnailref);
+    //             //header = thumbnails.headerref;
+    //         }
+    //     }
+    //     if (e.ctrlKey) {
+    //         if (thumbnail!.classList.contains("selected")) {
+    //             //this.unfocus(thumbnail, header);
+    //             for (let i = 0; i < this.selections.length; i++) {
+    //                 if (this.selections[i] === thumbnail) {
+    //                     this.selections.splice(i, 1);
+    //                 }
+    //             }
+    //         }
+    //         else {
+    //             //this.focus(thumbnail, header);
+    //             this.selections.push(thumbnail);
+    //         }
+    //     }
+    //     else {
+    //         this.selections = [];
+    //         for (let thumbnails of this.thumbnails) {
+    //             //this.unfocus(thumbnails.thumbnailref, thumbnails.headerref);
+    //         }
+    //         if (!thumbnail!.classList.contains("selected")) {
+    //             //this.focus(thumbnail, header);
+    //             this.selections.push(thumbnail);
+    //         }
+    //     }
+    // }
+
 
     @observable private filtered: String[] = ["Audio", "Pdf", "Text", "Image", "Video", "Web", "Misc"];
     private selections: (HTMLDivElement | undefined)[] = [];
@@ -328,33 +361,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     private newselect: (HTMLDivElement | undefined)[] = [];
 
-    marqueeSelect() {
-        let newselect = [];
-        if (this.marqueeref.current !== null) {
-            let posInfo = this.marqueeref.current.getBoundingClientRect();
-            for (let thumbnails of this.thumbnails) {
-                if (thumbnails.thumbnailref !== undefined) {
-                    let thumbnail = thumbnails.thumbnailref;
-                    let thumbnailinfo = thumbnail!.getBoundingClientRect();
-                    let header = thumbnails.headerref;
-                    if ((thumbnailinfo.left > posInfo.left && thumbnailinfo.left < posInfo.right) || (thumbnailinfo.right > posInfo.left && thumbnailinfo.right < posInfo.right)) {
-                        this.focus(thumbnail, header);
-                        newselect.push(thumbnail);
-                    }
-                    else {
-                        this.unfocus(thumbnail, header);
-                    }
-                    for (let select of this.selections) {
-                        if (select === thumbnail) {
-                            this.focus(thumbnail, header);
-                        }
-                    }
-                }
-            }
-        }
-        this.newselect = newselect;
-    }
-
     @computed
     get marqueeDiv() {
         let v = this.props.ScreenToLocalTransform().translate(0, 0).transformDirection(this._lastX - this._downX, this._lastY - this._downY);
@@ -362,71 +368,18 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         </div>;
 
     }
-
-    focus(thumbnail: HTMLDivElement | undefined, header: HTMLDivElement | undefined) {
-        thumbnail!.classList.toggle("selected", true);
-        thumbnail!.classList.toggle("unselected", false);
-        header!.classList.toggle("selection", true);
-        header!.classList.toggle("unselection", false);
-    }
-
-    unfocus(thumbnail: HTMLDivElement | undefined, header: HTMLDivElement | undefined) {
-        thumbnail!.classList.toggle("selected", false);
-        thumbnail!.classList.toggle("unselected", true);
-        header!.classList.toggle("selection", false);
-        header!.classList.toggle("unselection", true);
-    }
-
-    @action
-    select(e: React.MouseEvent<HTMLDivElement>, d: Doc, b: HTMLDivElement | undefined) {
-        var thumbnail = undefined;
-        var header = undefined;
-        for (let thumbnails of this.thumbnails) {
-            if (thumbnails.thumbnailref === b) {
-                thumbnail = (thumbnails.thumbnailref);
-                header = thumbnails.headerref;
-            }
-        }
-        if (e.ctrlKey) {
-            if (thumbnail!.classList.contains("selected")) {
-                this.unfocus(thumbnail, header);
-                for (let i = 0; i < this.selections.length; i++) {
-                    if (this.selections[i] === thumbnail) {
-                        this.selections.splice(i, 1);
-                    }
-                }
-            }
-            else {
-                this.focus(thumbnail, header);
-                this.selections.push(thumbnail);
-            }
-        }
-        else {
-            this.selections = [];
-            for (let thumbnails of this.thumbnails) {
-                this.unfocus(thumbnails.thumbnailref, thumbnails.headerref);
-            }
-            if (!thumbnail!.classList.contains("selected")) {
-                this.focus(thumbnail, header);
-                this.selections.push(thumbnail);
-            }
-        }
-    }
-
-
     private _values: number[] = [];
     private ticks: JSX.Element[] = [];
     private thumbnails: Node[] = [];
-
     private filterDocs = (thumbnail: Node[]): Node[] => {
         let thumbnails = [];
         for (let oldthumbnail of thumbnail) {
-            if (this.filtered.includes("Image")) { if (oldthumbnail.data instanceof ImageField) { thumbnails.push(oldthumbnail); } }
-            if (this.filtered.includes("Audio")) { if (oldthumbnail.data instanceof AudioField) { thumbnails.push(oldthumbnail); } }
-            if (this.filtered.includes("Pdf")) { if (oldthumbnail.data instanceof PdfField) { thumbnails.push(oldthumbnail); } }
-            if (this.filtered.includes("Text")) { if (oldthumbnail.data instanceof RichTextField) { thumbnails.push(oldthumbnail); } }
-            if (this.filtered.includes("Video")) { if (oldthumbnail.data instanceof VideoField) { thumbnails.push(oldthumbnail); } }
-            if (this.filtered.includes("Web")) { if (oldthumbnail.data instanceof WebField) { thumbnails.push(oldthumbnail); } }
+            if (this.filtered.includes("Image")) { if (oldthumbnail.doc.data instanceof ImageField) { thumbnails.push(oldthumbnail); } }
+            if (this.filtered.includes("Audio")) { if (oldthumbnail.doc.data instanceof AudioField) { thumbnails.push(oldthumbnail); } }
+            if (this.filtered.includes("Pdf")) { if (oldthumbnail.doc.data instanceof PdfField) { thumbnails.push(oldthumbnail); } }
+            if (this.filtered.includes("Text")) { if (oldthumbnail.doc.data instanceof RichTextField) { thumbnails.push(oldthumbnail); } }
+            if (this.filtered.includes("Video")) { if (oldthumbnail.doc.data instanceof VideoField) { thumbnails.push(oldthumbnail); } }
+            if (this.filtered.includes("Web")) { if (oldthumbnail.doc.data instanceof WebField) { thumbnails.push(oldthumbnail); } }
             else if (this.filtered.includes("Misc")) { thumbnails.push(oldthumbnail); }
         }
         return thumbnails;
@@ -496,161 +449,49 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             }
         }
 
-
         this._values = values;
         let leftval = "0";
         this.thumbnails = [];
+        runInAction(() => this.pendingThumbnailRefCount = backup.length);
         for (let i = 0; i < backup.length; i++) {
             leftval = (((values[i] - values[0]) * this.barwidth / this._range) * (this.barwidth / (this.barwidth - this.rightbound - this.leftbound)) - (this.leftbound * (this.barwidth) / (this.barwidth - this.rightbound - this.leftbound))) + "px";
             //Creating the node
-            let newNode: Node = {
-                thumbnail: (<div ref={(el) => el ? newNode.thumbnailref2 = el : null} onClick={(e) => this.select(e, keyvalue[i].doc, newNode.thumbnailref)} style={{ top: "0px", position: "absolute", left: leftval, width: "100px", height: "100px" }}>
-                    <div ref={(el) => el ? newNode.thumbnailref = el : null} className="unselected" style={{ position: "absolute", width: "100px", height: "100px", pointerEvents: "all" }}>
-                        <FontAwesomeIcon icon={this.checkData(docs[i])} size="sm" style={{ position: "absolute" }} />
-                        <div className="window" style={{ pointerEvents: "none", zIndex: 10, width: "94px", height: "94px", position: "absolute" }}>
-                            <div className="window" style={{ background: "white", pointerEvents: "none", zIndex: -1, position: "absolute", width: "94px", height: "94px" }}>
-                                {this.documentDisplay(docs[i], 94, 94)}
-                            </div>
-                        </div>
-                    </div>
-                </div>),
-                thumbnailref: undefined,
-                thumbnailref2: undefined,
-                header: (
-                    <div ref={(el) => el ? newNode.headerref = el : null} className="unselection" style={{
-                        zIndex: 99, position: "absolute", left: leftval, top: "100px",
-                    }}>
-                        <div style={{
-                            border: "3px solid #9c9396",
-                            backgroundColor: "9c9396",
-                            borderRadius: "10px 10px 0px 0px",
-                            whiteSpace: "nowrap",
-                            textOverflow: "ellipsis", position: "absolute", overflow: "hidden", paddingLeft: "3px", paddingRight: "3px", paddingTop: "3px", top: "-130px", zIndex: 99, width: "100px", height: "30px"
-                        }}> {docs[i].title}</div>
-                        <div style={{ width: "100", border: "3px solid #9c9396", borderRadius: "0px 0px 10px 0px", }}>
-                            <EditableView
-                                contents={this.getCaption(docs[i])}
-                                SetValue={(strng) => this.captionupdate(docs[i], strng)}
-                                GetValue={() => ""}
-                                display={"inline"}
-                                height={30}
-                            />
-                        </div>
-
-
-                        <div ref={(el) => el ? newNode.headerref2 = el : null} style={{ alignItems: "center", justifyItems: "center", display: "flex", position: "absolute", width: "2px", backgroundColor: "#9c9396" }}>
-                            <div style={{ paddingLeft: "3px" }}>
-                                {this.sortstate}:{Math.round(NumCast(docs[i][this.sortstate]))}</div>
-
-                        </div>
-                    </div >
-                ),
-                doc: docs[i],
-                top: document.body.clientHeight / 6,
-                headerref: undefined,
-                headerref2: undefined,
-                map: (
-                    <div ref={(el) => el ? newNode.mapref = el : null}
-                        style={{
-                            position: "absolute",
-                            background: "black",
-                            zIndex: 90,
-                            top: "25%", left: ((values[i] - values[0]) * this.barwidth / this._range) + "px", width: "5px", border: "3px solid"
-                        }}>
-                    </div>),
-                mapref: undefined,
-                data: docs[i].data,
-                leftval: parseFloat(leftval),
-            };
+            //     // map: (
+            //     //     <div ref={(el) => el ? newNode.mapref = el : null}
+            //     //         style={{
+            //     //             position: "absolute",
+            //     //             background: "black",
+            //     //             zIndex: 90,
+            //     //             top: "25%", left: ((values[i] - values[0]) * this.barwidth / this._range) + "px", width: "5px", border: "3px solid"
+            //     //         }}>
+            //     //     </div>),
+            //     //mapref: undefined,
+            // };
+            let newNode = { leftval: parseFloat(leftval), doc: docs[i], top: 20 } as Node;
             this.thumbnails.push(newNode);
         }
         this.thumbnails = this.filterDocs(this.thumbnails);
-    }
-
-    captionupdate(doc: Doc, string: string) {
-        doc = Doc.GetProto(doc);
-        let caption = Cast(doc.caption, RichTextField);
-        doc.caption = new RichTextField(caption ? caption[FromPlainText](string) : RichTextField.Initialize(string));
-        return true;
-    }
-
-    getCaption = (doc: Doc) => {
-        doc = Doc.GetProto(doc);
-        let caption = Cast(doc.caption, RichTextField);
-        console.log(caption ? caption[ToPlainText]() : "No caption");
-        return caption ? caption[ToPlainText]() : "No caption";
+        this.adjustY();
     }
 
     adjustY() {
-        // for (let thumbnail1 of this.thumbnails) {
-        //     thumbnail1!.headerref!.style.top! = "100";
-        //     thumbnail1!.thumbnailref2!.style.top! = "0";
-        //     thumbnail1!.headerref2!.style.height! = String((document.body.clientHeight * 0.75 - document.body.clientHeight / 4) - 100);
-        //     thumbnail1.headerref2!.style.top! = "0";
-        // }
+        for (let thumbnail1 of this.thumbnails) {
+            thumbnail1.top = 0;
+        }
         let overlap = false;
         while (overlap === false) {
             overlap = true;
             for (let thumbnail1 of this.thumbnails) {
                 for (let thumbnail2 of this.thumbnails) {
-                    let thumbnail1y = parseFloat(thumbnail1.thumbnailref2!.style.top!);
-                    let thumbnail2y = parseFloat(thumbnail2.thumbnailref2!.style.top!);
                     if (((thumbnail1.leftval >= thumbnail2.leftval && thumbnail1.leftval - 100 < thumbnail2.leftval)
                         || (thumbnail1.leftval <= thumbnail2.leftval && thumbnail1.leftval + 100 > thumbnail2.leftval))
-                        && ((thumbnail1y! >= thumbnail2y! && thumbnail1y! - 100 <= thumbnail2y!)
-                            || (thumbnail1y! <= thumbnail2y! && thumbnail1y! + 100 >= thumbnail2y!))
+                        && (thumbnail1.top === thumbnail2.top)
                         && thumbnail1 !== thumbnail2) {
-                        let curtop = parseFloat(thumbnail1!.headerref!.style.top!);
-                        let curthumb = parseFloat(thumbnail1!.thumbnailref2!.style.top!);
-                        let curpreview = parseFloat(thumbnail1!.headerref2!.style.height!);
-                        curtop += 105;
-                        curthumb += 105;
                         thumbnail1.top += 105;
-                        curpreview = document.body.clientHeight * 0.75 - thumbnail1.top;
-                        thumbnail1!.headerref!.style.top! = String(curtop);
-                        thumbnail1!.thumbnailref2!.style.top! = String(curthumb);
-                        thumbnail1!.headerref2!.style.height! = String(curpreview);
                         overlap = false;
                     }
                 }
             }
-        }
-
-        for (let thumbnail1 of this.thumbnails) {
-            for (let thumbnail2 of this.thumbnails) {
-                let thumbnail1y = parseFloat(thumbnail1.thumbnailref2!.style.top!);
-                let thumbnail2y = parseFloat(thumbnail2.thumbnailref2!.style.top!);
-                let curtop = parseFloat(thumbnail1!.headerref!.style.top!);
-                let curthumb = parseFloat(thumbnail1!.thumbnailref2!.style.top!);
-                let curpreview = parseFloat(thumbnail1!.headerref2!.style.height!);
-                curtop -= 105;
-                curthumb -= 105;
-                thumbnail1.top += 105;
-                curpreview = document.body.clientHeight * 0.75 - thumbnail1.top;
-                thumbnail1!.headerref!.style.top! = String(curtop);
-                thumbnail1!.thumbnailref2!.style.top! = String(curthumb);
-                thumbnail1!.headerref2!.style.height! = String(curpreview);
-                thumbnail1y = parseFloat(thumbnail1.thumbnailref2!.style.top!);
-                thumbnail2y = parseFloat(thumbnail2.thumbnailref2!.style.top!);
-                if ((((thumbnail1.leftval >= thumbnail2.leftval && thumbnail1.leftval - 100 < thumbnail2.leftval)
-                    || (thumbnail1.leftval <= thumbnail2.leftval && thumbnail1.leftval + 100 > thumbnail2.leftval))
-                    && ((thumbnail1y! >= thumbnail2y! && thumbnail1y! - 100 <= thumbnail2y!)
-                        || (thumbnail1y! <= thumbnail2y! && thumbnail1y! + 100 >= thumbnail2y!))!)
-                    && thumbnail1 !== thumbnail2) {
-                    let curtop = parseFloat(thumbnail1!.headerref!.style.top!);
-                    let curthumb = parseFloat(thumbnail1!.thumbnailref2!.style.top!);
-                    let curpreview = parseFloat(thumbnail1!.headerref2!.style.height!);
-                    curtop += 105;
-                    curthumb += 105;
-                    thumbnail1.top += 105;
-                    curpreview = document.body.clientHeight * 0.75 - thumbnail1.top;
-                    thumbnail1!.headerref!.style.top! = String(curtop);
-                    thumbnail1!.thumbnailref2!.style.top! = String(curthumb);
-                    thumbnail1!.headerref2!.style.height! = String(curpreview);
-
-                }
-            }
-
         }
     }
 
@@ -674,56 +515,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             }
             else if (counter % 50 === 0) { this.ticks.push(<div className="max2" ref={tickref} style={{ position: "absolute", top: "0%", left: leftval, zIndex: -100 }} />); }
             else if (counter % 10 === 0) { this.ticks.push(<div className="active" ref={tickref} style={{ position: "absolute", top: "0%", left: leftval, zIndex: -100 }} />); }
-            //else { this.ticks.push(<div className="inactive" style={{ position: "absolute", top: "0%", left: leftval, zIndex: -100 }} />); }
             counter++;
         }
-    }
-
-    @action
-    checkData = (document: Doc): IconProp => {
-        let field = document.data;
-        if (field instanceof AudioField) { return faMusic; }
-        else if (field instanceof PdfField) { return faFilePdf; }
-        else if (field instanceof RichTextField) { return faFont; }
-        else if (field instanceof ImageField) { return faImage; }
-        else if (field instanceof VideoField) { return faFilm; }
-        else if (field instanceof WebField) { return faGlobeAsia; }
-        else if (field instanceof ProxyField) { return faObjectGroup; }
-        return faBell;
-    }
-
-    documentDisplay(d: Doc, width: number, height: number) {
-        let nativeWidth = NumCast(d.nativeWidth, width);
-        let nativeHeight = NumCast(d.nativeHeight, height);
-        let wscale = width / (nativeWidth ? nativeWidth : width);
-        if (wscale * nativeHeight > height) {
-            wscale = height / (nativeHeight ? nativeHeight : height);
-        }
-        let contentScaling = () => wscale;
-        let transform = () => new Transform(0, 0, 1);
-        let getTransform = () => transform().translate(-centeringOffset, 0).scale(1 / contentScaling());
-        let centeringOffset = () => (width - nativeWidth * contentScaling()) / 2;
-        return (
-            <div className="collectionSchemaView-previewDoc" style={{ transform: `translate(${centeringOffset}px, 0px)`, width: width, height: "94px", overflow: "hidden" }}>
-                <DocumentView
-                    Document={d}
-                    selectOnLoad={false}
-                    ScreenToLocalTransform={getTransform}
-                    addDocument={this.props.addDocument} moveDocument={this.props.moveDocument}
-                    ContentScaling={contentScaling}
-                    PanelWidth={() => 94} PanelHeight={() => 94}
-                    ContainingCollectionView={this.props.CollectionView}
-                    focus={emptyFunction}
-                    parentActive={this.props.active}
-                    whenActiveChanged={this.props.whenActiveChanged}
-                    bringToFront={emptyFunction}
-                    addDocTab={this.props.addDocTab}
-                    renderDepth={0}
-                    zoomToScale={emptyFunction}
-                    getScale={returnOne}
-                    backgroundColor={returnEmptyString}
-                />
-            </div>);
     }
 
     @observable private selectedMarker: MarkerUnit | undefined;
@@ -755,7 +548,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     @action
     setsortsate = (string: string) => {
-        this.sortstate = string; this.adjustY(); this.adjustY();
+        this.sortstate = string;
+        this.adjustY();
     }
 
     @observable private truesort: string = "sortinput";
@@ -772,9 +566,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 }
             }
         }
-        //mintick.current.style.borderStyle = "dashed";
-        //mintick.current.style.height = "50px";
-
 
         if (e.altKey) {
             leftval = parseFloat(mintick.current.style.left);
@@ -840,8 +631,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.updateWidth();
         this.createticks();
         this.filtermenu();
-        this.thumbnailloop();
         this.updatetrue();
+        this.thumbnailloop();
         let p: [number, number] = this._visible ? this.props.ScreenToLocalTransform().translate(0, 0).transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
         return (
             <div className="collectionTimelineView" onKeyDown={this.onKeyDown_Selector} ref={this.screenref} style={{ overflow: "scroll", cursor: "grab", width: "100%", height: "100%" }} onPointerDown={this.onPointerDown_Dragger} onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
@@ -859,7 +650,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     {this.ticks}
                 </div>
                 <BottomUI
-                    thumbnailmap={this.thumbnails.map(item => item.map)}
+                    //thumbnailmap={this.thumbnails.map(item => item.map)}
                     markermap={DocListCast(this.props.Document.markers).map(d => this.createmap(d))}
                     leftbound={this.leftbound}
                     rightbound={this.rightbound}
@@ -889,7 +680,11 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         {this._visible ? this.marqueeDiv : null}
                     </div>}
                 </div>
-                <div style={{ top: document.body.clientHeight / 6, position: "absolute", bottom: "25%" }}>{this.thumbnails.map(item => item.thumbnail)}{this.thumbnails.map(item => item.header)}</div>
+                <div style={{ top: document.body.clientHeight / 6, position: "absolute", bottom: "25%" }}>
+                    {this.thumbnails.map(doc =>
+                        <Thumbnail leftval={doc.leftval} doc={doc.doc} sortstate={this.sortstate} top={doc.top} timelinetop={parseFloat(this.timelineref.current!.style.top)}>
+                        </Thumbnail>
+                    )}</div>
             </div >
         );
     }
