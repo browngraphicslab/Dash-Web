@@ -530,6 +530,7 @@ export namespace Doc {
             target.nativeWidth = undefined;
             target.nativeHeight = undefined;
             target.onClick = undefined;
+            target.type = undefined;
             return;
         }
         let temp = Doc.MakeDelegate(templateDoc);
@@ -540,7 +541,7 @@ export namespace Doc {
         target.width = templateDoc.width;
         target.height = templateDoc.height;
         target.onClick = templateDoc.onClick instanceof ObjectField && templateDoc.onClick[Copy]();
-        Doc.GetProto(target).type = DocumentType.TEMPLATE;
+        target.type = DocumentType.TEMPLATE;
         if (targetData && targetData.layout === target) {
             targetData.layout = temp;
             targetData.miniLayout = StrCast(templateDoc.miniLayout);
@@ -588,7 +589,8 @@ export namespace Doc {
             let miniLayout = await PromiseValue(d.miniLayout);
             let detailLayout = await PromiseValue(d.detailedLayout);
             d.layout !== miniLayout ? miniLayout && (d.layout = d.miniLayout) : detailLayout && (d.layout = detailLayout);
-            if (d.layout === detailLayout) Doc.GetProto(d).nativeWidth = Doc.GetProto(d).nativeHeight = undefined;
+            if (d.layout === detailLayout) d.nativeWidth = d.nativeHeight = 0;
+            if (StrCast(d.layout) !== "") d.nativeWidth = d.nativeHeight = undefined;
         });
     }
     export function UseDetailLayout(d: Doc) {

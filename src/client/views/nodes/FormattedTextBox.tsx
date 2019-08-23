@@ -36,6 +36,7 @@ import { GoogleApiClientUtils, Pulls, Pushes } from '../../apis/google_docs/Goog
 import { DocumentDecorations } from '../DocumentDecorations';
 import { DictationManager } from '../../util/DictationManager';
 import { ReplaceStep } from 'prosemirror-transform';
+import { DocumentType } from '../../documents/DocumentTypes';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -256,10 +257,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             let model: NodeType = (url.includes(".mov") || url.includes(".mp4")) ? schema.nodes.video : schema.nodes.image;
             this._editorView!.dispatch(this._editorView!.state.tr.insert(0, model.create({ src: url })));
             e.stopPropagation();
-        } else {
-            if (de.data instanceof DragManager.DocumentDragData) {
-                this.props.Document.layout = de.data.draggedDocuments[0];
-                de.data.draggedDocuments[0].isTemplate = true;
+        } else if (de.data instanceof DragManager.DocumentDragData) {
+            const draggedDoc = de.data.draggedDocuments.length && de.data.draggedDocuments[0];
+            if (draggedDoc && draggedDoc.type === DocumentType.TEXT && StrCast(draggedDoc.layout) != "") {
+                this.props.Document.layout = draggedDoc;
+                draggedDoc.isTemplate = true;
                 e.stopPropagation();
             }
         }
@@ -796,7 +798,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     tryUpdateHeight() {
         const ChromeHeight = this.props.ChromeHeight;
         let sh = this._ref.current ? this._ref.current.scrollHeight : 0;
-        if (this.props.Document.autoHeight && sh !== 0) {
+        if (!this.props.isOverlay && this.props.Document.autoHeight && sh !== 0) {
             let nh = this.props.Document.isTemplate ? 0 : NumCast(this.dataDoc.nativeHeight, 0);
             let dh = NumCast(this.props.Document.height, 0);
             this.props.Document.height = Math.max(10, (nh ? dh / nh * sh : sh) + (ChromeHeight ? ChromeHeight() : 0));
