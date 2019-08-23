@@ -530,6 +530,7 @@ export namespace Doc {
             target.nativeWidth = undefined;
             target.nativeHeight = undefined;
             target.onClick = undefined;
+            target.type = undefined;
             return;
         }
         let temp = Doc.MakeDelegate(templateDoc);
@@ -540,7 +541,7 @@ export namespace Doc {
         target.width = templateDoc.width;
         target.height = templateDoc.height;
         target.onClick = templateDoc.onClick instanceof ObjectField && templateDoc.onClick[Copy]();
-        Doc.GetProto(target).type = DocumentType.TEMPLATE;
+        target.type = DocumentType.TEMPLATE;
         if (targetData && targetData.layout === target) {
             targetData.layout = temp;
             targetData.miniLayout = StrCast(templateDoc.miniLayout);
