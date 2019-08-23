@@ -3,6 +3,7 @@ import { observer } from 'mobx-react';
 import { observable, action, trace } from 'mobx';
 import "./EditableView.scss";
 import * as Autosuggest from 'react-autosuggest';
+import { undoBatch } from '../util/UndoManager';
 import { SchemaHeaderField } from '../../new_fields/SchemaHeaderField';
 
 export interface EditableProps {
@@ -84,14 +85,12 @@ export class EditableView extends React.Component<EditableProps> {
     onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Tab") {
             e.stopPropagation();
+            this.finalizeEdit(e.currentTarget.value, e.shiftKey);
             this.props.OnTab && this.props.OnTab();
         } else if (e.key === "Enter") {
             e.stopPropagation();
             if (!e.ctrlKey) {
-                if (this.props.SetValue(e.currentTarget.value, e.shiftKey)) {
-                    this._editing = false;
-                    this.props.isEditingCallback && this.props.isEditingCallback(false);
-                }
+                this.finalizeEdit(e.currentTarget.value, e.shiftKey);
             } else if (this.props.OnFillDown) {
                 this.props.OnFillDown(e.currentTarget.value);
                 this._editing = false;
@@ -119,6 +118,14 @@ export class EditableView extends React.Component<EditableProps> {
         e.stopPropagation();
     }
 
+    @action
+    private finalizeEdit(value: string, shiftDown: boolean) {
+        if (this.props.SetValue(value, shiftDown)) {
+            this._editing = false;
+            this.props.isEditingCallback && this.props.isEditingCallback(false);
+        }
+    }
+
     stopPropagation(e: React.SyntheticEvent) {
         e.stopPropagation();
     }
@@ -137,7 +144,7 @@ export class EditableView extends React.Component<EditableProps> {
                         className: "editableView-input",
                         onKeyDown: this.onKeyDown,
                         autoFocus: true,
-                        onBlur: action(() => this._editing = false),
+                        onBlur: e => this.finalizeEdit(e.currentTarget.value, false),
                         onPointerDown: this.stopPropagation,
                         onClick: this.stopPropagation,
                         onPointerUp: this.stopPropagation,
@@ -145,9 +152,14 @@ export class EditableView extends React.Component<EditableProps> {
                         onChange: this.props.autosuggestProps.onChange
                     }}
                 />
-                : <input className="editableView-input" defaultValue={this.props.GetValue()} onKeyDown={this.onKeyDown} autoFocus
-                    onBlur={action(() => { this._editing = false; this.props.isEditingCallback && this.props.isEditingCallback(false); })} onPointerDown={this.stopPropagation} onClick={this.stopPropagation} onPointerUp={this.stopPropagation}
-                    style={{ display: this.props.display, fontSize: this.props.fontSize }} />;
+                : <input className="editableView-input"
+                    defaultValue={this.props.GetValue()}
+                    onKeyDown={this.onKeyDown}
+                    autoFocus={true}
+                    onBlur={e => this.finalizeEdit(e.currentTarget.value, false)}
+                    onPointerDown={this.stopPropagation} onClick={this.stopPropagation} onPointerUp={this.stopPropagation}
+                    style={{ display: this.props.display, fontSize: this.props.fontSize }}
+                />;
         } else {
             if (this.props.autosuggestProps) this.props.autosuggestProps.resetValue();
             return (

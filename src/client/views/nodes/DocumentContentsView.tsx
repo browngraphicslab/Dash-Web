@@ -13,6 +13,7 @@ import { FormattedTextBox } from "./FormattedTextBox";
 import { ImageBox } from "./ImageBox";
 import { DragBox } from "./DragBox";
 import { ButtonBox } from "./ButtonBox";
+import { PresBox } from "./PresBox";
 import { IconBox } from "./IconBox";
 import { KeyValueBox } from "./KeyValueBox";
 import { PDFBox } from "./PDFBox";
@@ -67,7 +68,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     }
 
     get dataDoc() {
-        if (this.props.DataDoc === undefined && this.props.Document.layout instanceof Doc) {
+        if (this.props.DataDoc === undefined && (this.props.Document.layout instanceof Doc || this.props.Document instanceof Promise)) {
             // if there is no dataDoc (ie, we're not rendering a template layout), but this document
             // has a template layout document, then we will render the template layout but use 
             // this document as the data document for the layout.
@@ -107,7 +108,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         if (!this.layout && (this.props.layoutKey !== "overlayLayout" || !this.templates.length)) return (null);
         return <ObserverJsxParser
             blacklistedAttrs={[]}
-            components={{ FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, DragBox, ButtonBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox, YoutubeBox }}
+            components={{ FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, DragBox, ButtonBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox }}
             bindings={this.CreateBindings()}
             jsx={this.finalLayout}
             showWarnings={true}

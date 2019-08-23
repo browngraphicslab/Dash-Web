@@ -1,30 +1,27 @@
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { action, computed, observable, runInAction } from "mobx";
+import { observer } from "mobx-react";
 import * as React from "react";
+import { Doc, DocListCast } from "../../../new_fields/Doc";
+import { Id } from "../../../new_fields/FieldSymbols";
+import { List } from "../../../new_fields/List";
+import { listSpec } from "../../../new_fields/Schema";
+import { ScriptField } from "../../../new_fields/ScriptField";
+import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { Utils, emptyFunction } from "../../../Utils";
+import { DragManager } from "../../util/DragManager";
+import { CompileScript } from "../../util/Scripting";
+import { undoBatch } from "../../util/UndoManager";
+import { EditableView } from "../EditableView";
+import { COLLECTION_BORDER_WIDTH } from "../globalCssVariables.scss";
+import { DocLike } from "../MetadataEntryMenu";
+import { CollectionViewType } from "./CollectionBaseView";
 import { CollectionView } from "./CollectionView";
 import "./CollectionViewChromes.scss";
-import { CollectionViewType } from "./CollectionBaseView";
-import { undoBatch } from "../../util/UndoManager";
-import { action, observable, runInAction, computed, IObservable, IObservableValue, reaction, autorun } from "mobx";
-import { observer } from "mobx-react";
-import { Doc, DocListCast, FieldResult } from "../../../new_fields/Doc";
-import { DocLike } from "../MetadataEntryMenu";
 import * as Autosuggest from 'react-autosuggest';
-import { EditableView } from "../EditableView";
-import { StrCast, NumCast, BoolCast, Cast } from "../../../new_fields/Types";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Utils } from "../../../Utils";
 import KeyRestrictionRow from "./KeyRestrictionRow";
-import { CompileScript } from "../../util/Scripting";
-import { ScriptField } from "../../../new_fields/ScriptField";
-import { CollectionSchemaView } from "./CollectionSchemaView";
-import { COLLECTION_BORDER_WIDTH } from "../globalCssVariables.scss";
-import { listSpec } from "../../../new_fields/Schema";
-import { List } from "../../../new_fields/List";
-import { Id } from "../../../new_fields/FieldSymbols";
-import { threadId } from "worker_threads";
-import { DragManager } from "../../util/DragManager";
+import { Docs } from "../../documents/Documents";
 const datepicker = require('js-datepicker');
-import * as $ from 'jquery';
-import { firebasedynamiclinks } from "googleapis/build/src/apis/firebasedynamiclinks";
 
 interface CollectionViewChromeProps {
     CollectionView: CollectionView;
@@ -48,10 +45,11 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     @observable private _dateWithinValue: string = "";
     @observable private _dateValue: Date | string = "";
     @observable private _keyRestrictions: [JSX.Element, string][] = [];
+    @observable private suggestions: string[] = [];
+    _commandRef = React.createRef<HTMLInputElement>();
     @computed private get filterValue() { return Cast(this.props.CollectionView.props.Document.viewSpecScript, ScriptField); }
 
     private _picker: any;
-    private _datePickerElGuid = Utils.GenerateGuid();
 
     getFilters = (script: string) => {
         let re: any = /(!)?\(\(\(doc\.(\w+)\s+&&\s+\(doc\.\w+\s+as\s+\w+\)\.includes\(\"(\w+)\"\)/g;
@@ -91,11 +89,6 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     }
 
     componentDidMount = () => {
-        setTimeout(() => this._picker = datepicker("#" + this._datePickerElGuid, {
-            disabler: (date: Date) => date > new Date(),
-            onSelect: (instance: any, date: Date) => runInAction(() => this._dateValue = date),
-            dateSelected: new Date()
-        }), 1000);
 
         let fields: Filter[] = [];
         if (this.filterValue) {
@@ -172,8 +165,6 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     applyFilter = (e: React.MouseEvent) => {
 
         this.openViewSpecs(e);
-
-        console.log(this._keyRestrictions);
 
         let keyRestrictionScript = "(" + this._keyRestrictions.map(i => i[1]).filter(i => i.length > 0).join(" && ") + ")";
         let yearOffset = this._dateWithinValue[1] === 'y' ? 1 : 0;
@@ -295,17 +286,73 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
         }
     }
 
+
+    commands = [{
+        // title: "set content", script: "getProto(this.target).data = aliasDocs(this.source.map(async p => await p));", params: ["target", "source"],  // bcz: doesn't look like we can do async stuff in scripting...
+        title: "set content", script: "getProto(this.target).data = aliasDocs(this.source);", params: ["target", "source"],
+        immediate: (draggedDocs: Doc[]) => Doc.GetProto(this.props.CollectionView.props.Document).data = new List<Doc>(draggedDocs.map((d: any) => Doc.MakeAlias(d)))
+    },
+    {
+        title: "set template", script: "this.target.childLayout = this.source ? this.source[0] : undefined", params: ["target", "source"],
+        immediate: (draggedDocs: Doc[]) => this.props.CollectionView.props.Document.childLayout = draggedDocs.length ? draggedDocs[0] : undefined
+    }];
     @undoBatch
     @action
     protected drop(e: Event, de: DragManager.DropEvent): boolean {
-        if (de.data instanceof DragManager.DocumentDragData) {
-            if (de.data.draggedDocuments.length) {
-                this.props.CollectionView.props.Document.childLayout = de.data.draggedDocuments[0];
-                e.stopPropagation();
-                return true;
-            }
+        if (de.data instanceof DragManager.DocumentDragData && de.data.draggedDocuments.length) {
+            this.commands.filter(c => c.title === this._currentKey).map(c => c.immediate(de.data.draggedDocuments));
+            e.stopPropagation();
         }
         return true;
+    }
+
+    datePickerRef = (node: HTMLInputElement) => {
+        if (node) {
+            try {
+                this._picker = datepicker("#" + node.id, {
+                    disabler: (date: Date) => date > new Date(),
+                    onSelect: (instance: any, date: Date) => runInAction(() => this._dateValue = date),
+                    dateSelected: new Date()
+                });
+            } catch (e) {
+                console.log("date picker exception:" + e);
+            }
+        }
+    }
+    @observable private _currentKey: string = "";
+    private autosuggestRef = React.createRef<Autosuggest>();
+
+    renderSuggestion = (suggestion: string) => {
+        return <p>{suggestion}</p>;
+    }
+    getSuggestionValue = (suggestion: string) => suggestion;
+
+    @action
+    onKeyChange = (e: React.ChangeEvent, { newValue }: { newValue: string }) => {
+        this._currentKey = newValue;
+    }
+    onSuggestionFetch = async ({ value }: { value: string }) => {
+        const sugg = await this.getKeySuggestions(value);
+        runInAction(() => this.suggestions = sugg);
+    }
+    @action
+    onSuggestionClear = () => {
+        this.suggestions = [];
+    }
+    getKeySuggestions = async (value: string): Promise<string[]> => {
+        return this.commands.filter(c => c.title.indexOf(value) !== -1).map(c => c.title);
+    }
+
+    autoSuggestDown = (e: React.PointerEvent) => {
+        e.stopPropagation();
+    }
+
+    dragCommandDown = (e: React.PointerEvent) => {
+        this.commands.filter(c => c.title === this._currentKey).map(c =>
+            DragManager.StartButtonDrag([this._commandRef.current!], c.script, c.title,
+                { target: this.props.CollectionView.props.Document }, c.params, e.clientX, e.clientY));
+        e.stopPropagation();
+        e.preventDefault();
     }
 
     render() {
@@ -337,7 +384,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                         </select>
                         <div className="collectionViewBaseChrome-viewSpecs" style={{ display: collapsed ? "none" : "grid" }}>
                             <input className="collectionViewBaseChrome-viewSpecsInput"
-                                placeholder="FILTER DOCUMENTS"
+                                placeholder="FILTER"
                                 value={this.filterValue ? this.filterValue.script.originalScript === "return true" ? "" : this.filterValue.script.originalScript : ""}
                                 onChange={(e) => { }}
                                 onPointerDown={this.openViewSpecs}
@@ -353,7 +400,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                                 <div className="collectionViewBaseChrome-viewSpecsMenu-row">
                                     <div className="collectionViewBaseChrome-viewSpecsMenu-rowLeft">
                                         CREATED WITHIN:
-                            </div>
+                                    </div>
                                     <select className="collectionViewBaseChrome-viewSpecsMenu-rowMiddle"
                                         style={{ textTransform: "uppercase", textAlign: "center" }}
                                         value={this._dateWithinValue}
@@ -368,27 +415,33 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                                         <option value="1y">1 year of</option>
                                     </select>
                                     <input className="collectionViewBaseChrome-viewSpecsMenu-rowRight"
-                                        id={this._datePickerElGuid}
+                                        id={Utils.GenerateGuid()}
+                                        ref={this.datePickerRef}
                                         value={this._dateValue instanceof Date ? this._dateValue.toLocaleDateString() : this._dateValue}
                                         onChange={(e) => runInAction(() => this._dateValue = e.target.value)}
                                         onPointerDown={this.openDatePicker}
                                         placeholder="Value" />
                                 </div>
                                 <div className="collectionViewBaseChrome-viewSpecsMenu-lastRow">
-                                    <button className="collectonViewBaseChrome-viewSpecsMenu-lastRowButton" onClick={this.addKeyRestriction}>
-                                        ADD KEY RESTRICTION
-                            </button>
-                                    <button className="collectonViewBaseChrome-viewSpecsMenu-lastRowButton" onClick={this.applyFilter}>
-                                        APPLY FILTER
-                            </button>
-                                    <button className="collectonViewBaseChrome-viewSpecsMenu-lastRowButton" onClick={this.clearFilter}>
-                                        CLEAR
-                            </button>
+                                    <button className="collectonViewBaseChrome-viewSpecsMenu-lastRowButton" onClick={this.addKeyRestriction}> ADD KEY RESTRICTION </button>
+                                    <button className="collectonViewBaseChrome-viewSpecsMenu-lastRowButton" onClick={this.applyFilter}> APPLY FILTER </button>
+                                    <button className="collectonViewBaseChrome-viewSpecsMenu-lastRowButton" onClick={this.clearFilter}> CLEAR </button>
                                 </div>
                             </div>
                         </div>
-                        <div className="collectionViewBaseChrome-template" ref={this.createDropTarget} style={{}}>
-                            TEMPLATE
+                        <div className="collectionViewBaseChrome-template" ref={this.createDropTarget} >
+                            <div className="commandEntry-outerDiv" ref={this._commandRef} onPointerDown={this.dragCommandDown}>
+                                <div className="commandEntry-inputArea" onPointerDown={this.autoSuggestDown} >
+                                    <Autosuggest inputProps={{ value: this._currentKey, onChange: this.onKeyChange }}
+                                        getSuggestionValue={this.getSuggestionValue}
+                                        suggestions={this.suggestions}
+                                        alwaysRenderSuggestions={true}
+                                        renderSuggestion={this.renderSuggestion}
+                                        onSuggestionsFetchRequested={this.onSuggestionFetch}
+                                        onSuggestionsClearRequested={this.onSuggestionClear}
+                                        ref={this.autosuggestRef} />
+                                </div>
+                            </div>
                         </div>
                     </div>
                     {this.subChrome()}

@@ -68,6 +68,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             PanelWidth: returnZero,
             PanelHeight: returnZero,
             addDocTab: returnZero,
+            pinToPres: returnZero,
             ContentScaling: returnOne
         };
         let contents = <FieldView {...props} />;

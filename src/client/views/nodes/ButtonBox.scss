@@ -3,14 +3,29 @@
     height: 100%;
     pointer-events: all;
     border-radius: inherit;
-    display:table;
+    display:flex;
+    flex-direction: column;
 }
 
 .buttonBox-mainButton {
     width: 100%;
     height: 100%;
     border-radius: inherit;
+    text-align: center;
+    display: table;
+}
+.buttonBox-mainButtonCenter {
+    height: 100%;
     display:table-cell;
     vertical-align: middle;
-    text-align: center;
+}
+
+.buttonBox-params {
+     display:flex;
+     flex-direction: row;
+}
+
+.buttonBox-missingParam {
+    width:100%;
+    background: lightgray;
 }

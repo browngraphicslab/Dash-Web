@@ -1,11 +1,12 @@
 import * as React from 'react';
 import "./MetadataEntryMenu.scss";
 import { observer } from 'mobx-react';
-import { observable, action, runInAction, trace } from 'mobx';
+import { observable, action, runInAction, trace, computed, IReactionDisposer, reaction } from 'mobx';
 import { KeyValueBox } from './nodes/KeyValueBox';
-import { Doc, Field } from '../../new_fields/Doc';
+import { Doc, Field, DocListCast, DocListCastAsync } from '../../new_fields/Doc';
 import * as Autosuggest from 'react-autosuggest';
 import { undoBatch } from '../util/UndoManager';
+import { emptyFunction } from '../../Utils';
 
 export type DocLike = Doc | Doc[] | Promise<Doc> | Promise<Doc[]>;
 export interface MetadataEntryProps {
@@ -19,6 +20,9 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
     @observable private _currentKey: string = "";
     @observable private _currentValue: string = "";
     @observable private suggestions: string[] = [];
+    private _addChildren: boolean = false;
+    @observable _allSuggestions: string[] = [];
+    _suggestionDispser: IReactionDisposer | undefined;
     private userModified = false;
 
     private autosuggestRef = React.createRef<Autosuggest>();
@@ -82,16 +86,27 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
             e.stopPropagation();
             const script = KeyValueBox.CompileKVPScript(this._currentValue);
             if (!script) return;
+
             let doc = this.props.docs;
             if (typeof doc === "function") {
                 doc = doc();
             }
             doc = await doc;
+
             let success: boolean;
             if (doc instanceof Doc) {
                 success = KeyValueBox.ApplyKVPScript(doc, this._currentKey, script);
             } else {
-                success = doc.every(d => KeyValueBox.ApplyKVPScript(d, this._currentKey, script));
+                let childSuccess = true;
+                if (this._addChildren) {
+                    for (let document of doc) {
+                        let collectionChildren = await DocListCastAsync(document.data);
+                        if (collectionChildren) {
+                            childSuccess = collectionChildren.every(c => KeyValueBox.ApplyKVPScript(c, this._currentKey, script));
+                        }
+                    }
+                }
+                success = doc.every(d => KeyValueBox.ApplyKVPScript(d, this._currentKey, script)) && childSuccess;
             }
             if (!success) {
                 if (this.props.onError) {
@@ -140,35 +155,67 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
     getSuggestionValue = (suggestion: string) => suggestion;
 
     renderSuggestion = (suggestion: string) => {
-        return <p>{suggestion}</p>;
+        return (null);
+    }
+    componentDidMount() {
+
+        this._suggestionDispser = reaction(() => this._currentKey,
+            () => this.getKeySuggestions(this._currentKey).then(action((s: string[]) => this._allSuggestions = s)),
+            { fireImmediately: true });
+    }
+    componentWillUnmount() {
+        this._suggestionDispser && this._suggestionDispser();
     }
 
-    onSuggestionFetch = async ({ value }: { value: string }) => {
-        const sugg = await this.getKeySuggestions(value);
-        runInAction(() => {
-            this.suggestions = sugg;
-        });
+    onClick = (e: React.ChangeEvent<HTMLInputElement>) => {
+        this._addChildren = !this._addChildren;
     }
 
-    @action
-    onSuggestionClear = () => {
-        this.suggestions = [];
+    private get considerChildOptions() {
+        let docSource = this.props.docs;
+        if (typeof docSource === "function") {
+            docSource = docSource();
+        }
+        docSource = docSource as Doc[] | Doc;
+        if (docSource instanceof Doc) {
+            if (docSource.viewType === undefined) {
+                return (null);
+            }
+        } else if (Array.isArray(docSource)) {
+            if (!docSource.every(doc => doc.viewType !== undefined)) {
+                return null;
+            }
+        }
+        return (
+            <div style={{ display: "flex" }}>
+                Children:
+                <input type="checkbox" onChange={this.onClick} ></input>
+            </div>
+        );
     }
 
     render() {
         return (
             <div className="metadataEntry-outerDiv">
-                Key:
-                <Autosuggest inputProps={{ value: this._currentKey, onChange: this.onKeyChange }}
-                    getSuggestionValue={this.getSuggestionValue}
-                    suggestions={this.suggestions}
-                    alwaysRenderSuggestions
-                    renderSuggestion={this.renderSuggestion}
-                    onSuggestionsFetchRequested={this.onSuggestionFetch}
-                    onSuggestionsClearRequested={this.onSuggestionClear}
-                    ref={this.autosuggestRef} />
-                Value:
-                <input className="metadataEntry-input" value={this._currentValue} onChange={this.onValueChange} onKeyDown={this.onValueKeyDown} />
+                <div className="metadataEntry-inputArea">
+                    Key:
+                    <Autosuggest inputProps={{ value: this._currentKey, onChange: this.onKeyChange }}
+                        getSuggestionValue={this.getSuggestionValue}
+                        suggestions={[]}
+                        alwaysRenderSuggestions={false}
+                        renderSuggestion={this.renderSuggestion}
+                        onSuggestionsFetchRequested={emptyFunction}
+                        onSuggestionsClearRequested={emptyFunction}
+                        ref={this.autosuggestRef} />
+                    Value:
+                    <input className="metadataEntry-input" value={this._currentValue} onChange={this.onValueChange} onKeyDown={this.onValueKeyDown} />
+                    {this.considerChildOptions}
+                </div>
+                <div className="metadataEntry-keys" >
+                    <ul>
+                        {this._allSuggestions.slice().sort().map(s => <li key={s} onClick={action(() => { this._currentKey = s; this.previewValue(); })} >{s}</li>)}
+                    </ul>
+                </div>
             </div>
         );
     }
