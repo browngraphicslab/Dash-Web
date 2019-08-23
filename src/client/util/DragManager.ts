@@ -140,6 +140,8 @@ export namespace DragManager {
 
         withoutShiftDrag?: boolean;
 
+        finishDrag?: (dropData: { [id: string]: any }) => void;
+
         offsetX?: number;
 
         offsetY?: number;
@@ -234,7 +236,7 @@ export namespace DragManager {
 
     export function StartDocumentDrag(eles: HTMLElement[], dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
         runInAction(() => StartDragFunctions.map(func => func()));
-        StartDrag(eles, dragData, downX, downY, options,
+        StartDrag(eles, dragData, downX, downY, options, options && options.finishDrag ? options.finishDrag :
             (dropData: { [id: string]: any }) => {
                 (dropData.droppedDocuments = dragData.userDropAction === "alias" || (!dragData.userDropAction && dragData.dropAction === "alias") ?
                     dragData.draggedDocuments.map(d => Doc.MakeAlias(d)) :

@@ -8,7 +8,7 @@ import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField } from "../../../new_fields/ScriptField";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { Utils } from "../../../Utils";
+import { Utils, emptyFunction } from "../../../Utils";
 import { DragManager } from "../../util/DragManager";
 import { CompileScript } from "../../util/Scripting";
 import { undoBatch } from "../../util/UndoManager";
@@ -18,7 +18,9 @@ import { DocLike } from "../MetadataEntryMenu";
 import { CollectionViewType } from "./CollectionBaseView";
 import { CollectionView } from "./CollectionView";
 import "./CollectionViewChromes.scss";
+import * as Autosuggest from 'react-autosuggest';
 import KeyRestrictionRow from "./KeyRestrictionRow";
+import { Docs } from "../../documents/Documents";
 const datepicker = require('js-datepicker');
 
 interface CollectionViewChromeProps {
@@ -43,6 +45,8 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     @observable private _dateWithinValue: string = "";
     @observable private _dateValue: Date | string = "";
     @observable private _keyRestrictions: [JSX.Element, string][] = [];
+    @observable private suggestions: string[] = [];
+    _commandRef = React.createRef<HTMLInputElement>();
     @computed private get filterValue() { return Cast(this.props.CollectionView.props.Document.viewSpecScript, ScriptField); }
 
     private _picker: any;
@@ -287,7 +291,12 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     protected drop(e: Event, de: DragManager.DropEvent): boolean {
         if (de.data instanceof DragManager.DocumentDragData) {
             if (de.data.draggedDocuments.length) {
-                this.props.CollectionView.props.Document.childLayout = de.data.draggedDocuments[0];
+                if (this._currentKey === "Set Template") {
+                    this.props.CollectionView.props.Document.childLayout = de.data.draggedDocuments[0];
+                }
+                if (this._currentKey === "Set Content") {
+                    Doc.GetProto(this.props.CollectionView.props.Document).data = new List<Doc>(de.data.draggedDocuments);
+                }
                 e.stopPropagation();
                 return true;
             }
@@ -308,6 +317,63 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             }
         }
     }
+
+    @observable private _currentKey: string = "";
+    @observable _allCommands: string[] = ["Set Template", "Set Content"];
+    private autosuggestRef = React.createRef<Autosuggest>();
+
+    renderSuggestion = (suggestion: string) => {
+        return <p>{suggestion}</p>;
+    }
+    getSuggestionValue = (suggestion: string) => suggestion;
+
+    @action
+    onKeyChange = (e: React.ChangeEvent, { newValue }: { newValue: string }) => {
+        this._currentKey = newValue;
+    }
+    onSuggestionFetch = async ({ value }: { value: string }) => {
+        const sugg = await this.getKeySuggestions(value);
+        runInAction(() => this.suggestions = sugg);
+    }
+    @action
+    onSuggestionClear = () => {
+        this.suggestions = [];
+    }
+    getKeySuggestions = async (value: string): Promise<string[]> => {
+        return this._allCommands.filter(c => c.indexOf(value) !== -1);
+    }
+
+    autoSuggestDown = (e: React.PointerEvent) => {
+        e.stopPropagation();
+    }
+    dragCommandDown = (e: React.PointerEvent) => {
+        let de = new DragManager.DocumentDragData([this.props.CollectionView.props.Document], [undefined]);
+        DragManager.StartDocumentDrag([this._commandRef.current!], de, e.clientX, e.clientY, {
+            finishDrag: (dropData: { [id: string]: any }) => {
+                let bd = Docs.Create.ButtonDocument({ width: 150, height: 50, title: this._currentKey });
+                let script = `getProto(target).data = copyField(this.source);`;
+                let compiled = CompileScript(script, {
+                    params: { doc: Doc.name },
+                    capturedVariables: { target: this.props.CollectionView.props.Document },
+                    typecheck: false,
+                    editable: true
+                });
+                if (compiled.compiled) {
+                    let scriptField = new ScriptField(compiled);
+                    bd.onClick = scriptField;
+                }
+                dropData.droppedDocuments = [bd];
+            },
+            handlers: {
+                dragComplete: action(() => {
+                }),
+            },
+            hideSource: false
+        });
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
     render() {
         let collapsed = this.props.CollectionView.props.Document.chromeStatus !== "enabled";
         return (
@@ -337,7 +403,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                         </select>
                         <div className="collectionViewBaseChrome-viewSpecs" style={{ display: collapsed ? "none" : "grid" }}>
                             <input className="collectionViewBaseChrome-viewSpecsInput"
-                                placeholder="FILTER DOCUMENTS"
+                                placeholder="FILTER"
                                 value={this.filterValue ? this.filterValue.script.originalScript === "return true" ? "" : this.filterValue.script.originalScript : ""}
                                 onChange={(e) => { }}
                                 onPointerDown={this.openViewSpecs}
@@ -388,8 +454,19 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                                 </div>
                             </div>
                         </div>
-                        <div className="collectionViewBaseChrome-template" ref={this.createDropTarget} style={{}}>
-                            TEMPLATE
+                        <div className="collectionViewBaseChrome-template" ref={this.createDropTarget} >
+                            <div className="commandEntry-outerDiv" ref={this._commandRef} onPointerDown={this.dragCommandDown}>
+                                <div className="commandEntry-inputArea" onPointerDown={this.autoSuggestDown} >
+                                    <Autosuggest inputProps={{ value: this._currentKey, onChange: this.onKeyChange }}
+                                        getSuggestionValue={this.getSuggestionValue}
+                                        suggestions={this.suggestions}
+                                        alwaysRenderSuggestions={true}
+                                        renderSuggestion={this.renderSuggestion}
+                                        onSuggestionsFetchRequested={this.onSuggestionFetch}
+                                        onSuggestionsClearRequested={this.onSuggestionClear}
+                                        ref={this.autosuggestRef} />
+                                </div>
+                            </div>
                         </div>
                     </div>
                     {this.subChrome()}
