@@ -1,4 +1,4 @@
-import { observable, computed, action, trace, ObservableMap } from "mobx";
+import { observable, computed, action, trace, ObservableMap, runInAction } from "mobx";
 import React = require("react");
 import { observer } from "mobx-react";
 import { FieldViewProps, FieldView } from "../nodes/FieldView";
@@ -11,6 +11,8 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { DocumentManager } from "../../util/DocumentManager";
 import { DocumentView } from "../nodes/DocumentView";
 import "./LinkFollowBox.scss";
+import { SearchUtil } from "../../util/SearchUtil";
+import { Id } from "../../../new_fields/FieldSymbols";
 
 enum FollowModes {
     OPENTAB = "Open in Tab",
@@ -25,6 +27,60 @@ enum FollowOptions {
     NOZOOM = "no zoom",
 }
 
+// @observer
+// export class SelectorContextMenu extends React.Component {
+//     @observable private _docs: { col: Doc, target: Doc }[] = [];
+//     @observable private _otherDocs: { col: Doc, target: Doc }[] = [];
+
+//     constructor(props: any) {
+//         super(props);
+//         this.fetchDocuments();
+//     }
+
+//     async fetchDocuments() {
+//         let aliases = (await SearchUtil.GetViewsOfDocument(this.props.doc)).filter(doc => doc !== this.props.doc);
+//         const { docs } = await SearchUtil.Search("", true, { fq: `data_l:"${this.props.doc[Id]}"` });
+//         const map: Map<Doc, Doc> = new Map;
+//         const allDocs = await Promise.all(aliases.map(doc => SearchUtil.Search("", true, { fq: `data_l:"${doc[Id]}"` }).then(result => result.docs)));
+//         allDocs.forEach((docs, index) => docs.forEach(doc => map.set(doc, aliases[index])));
+//         docs.forEach(doc => map.delete(doc));
+//         runInAction(() => {
+//             this._docs = docs.filter(doc => !Doc.AreProtosEqual(doc, CollectionDockingView.Instance.props.Document)).map(doc => ({ col: doc, target: this.props.doc }));
+//             this._otherDocs = Array.from(map.entries()).filter(entry => !Doc.AreProtosEqual(entry[0], CollectionDockingView.Instance.props.Document)).map(([col, target]) => ({ col, target }));
+//         });
+//     }
+
+//     getOnClick({ col, target }: { col: Doc, target: Doc }) {
+//         return () => {
+//             col = Doc.IsPrototype(col) ? Doc.MakeDelegate(col) : col;
+//             if (NumCast(col.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
+//                 const newPanX = NumCast(target.x) + NumCast(target.width) / NumCast(target.zoomBasis, 1) / 2;
+//                 const newPanY = NumCast(target.y) + NumCast(target.height) / NumCast(target.zoomBasis, 1) / 2;
+//                 col.panX = newPanX;
+//                 col.panY = newPanY;
+//             }
+//             CollectionDockingView.Instance.AddRightSplit(col, undefined);
+//         };
+//     }
+//     render() {
+//         return (
+//             <div className="parents">
+//                 <p className="contexts">Contexts:</p>
+//                 {[...this._docs, ...this._otherDocs].map(doc => {
+//                     let item = React.createRef<HTMLDivElement>();
+//                     return <div className="collection" key={doc.col[Id] + doc.target[Id]} ref={item}>
+//                         <div className="collection-item" onPointerDown={
+//                             SetupDrag(item, () => doc.col, undefined, undefined, undefined, undefined, () => SearchBox.Instance.closeSearch())}>
+//                             <FontAwesomeIcon icon={faStickyNote} />
+//                         </div>
+//                         <a onClick={this.getOnClick(doc)}>{doc.col.title}</a>
+//                     </div>;
+//                 })}
+//             </div>
+//         );
+//     }
+// }
+
 @observer
 export class LinkFollowBox extends React.Component<FieldViewProps> {
 
@@ -34,18 +90,45 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     @observable static destinationDoc: Doc | undefined = undefined;
     @observable static sourceDoc: Doc | undefined = undefined;
     @observable selectedMode: string = "";
+    @observable selectedContext: any = undefined;
     @observable selectedOption: string = "";
+    @observable selectedContextString: string = "";
+
+    @observable private _docs: { col: Doc, target: Doc }[] = [];
+    @observable private _otherDocs: { col: Doc, target: Doc }[] = [];
 
     constructor(props: FieldViewProps) {
         super(props);
         LinkFollowBox.Instance = this;
     }
 
+    async fetchDocuments() {
+        if (LinkFollowBox.destinationDoc) {
+            let dest: Doc = LinkFollowBox.destinationDoc;
+            let aliases = await SearchUtil.GetViewsOfDocument(Doc.GetProto(dest));
+            const { docs } = await SearchUtil.Search("", true, { fq: `data_l:"${dest[Id]}"` });
+            const map: Map<Doc, Doc> = new Map;
+            const allDocs = await Promise.all(aliases.map(doc => SearchUtil.Search("", true, { fq: `data_l:"${doc[Id]}"` }).then(result => result.docs)));
+            allDocs.forEach((docs, index) => docs.forEach(doc => map.set(doc, aliases[index])));
+            docs.forEach(doc => map.delete(doc));
+            runInAction(() => {
+                this._docs = docs.filter(doc => !Doc.AreProtosEqual(doc, CollectionDockingView.Instance.props.Document)).map(doc => ({ col: doc, target: dest }));
+                this._otherDocs = Array.from(map.entries()).filter(entry => !Doc.AreProtosEqual(entry[0], CollectionDockingView.Instance.props.Document)).map(([col, target]) => ({ col, target }));
+            });
+        }
+    }
+
     @action
     setLinkDocs = (linkDoc: Doc, source: Doc, dest: Doc) => {
+        this.selectedContext = undefined;
+        this.selectedContextString = "";
+        this.selectedMode = "";
+        this.selectedOption = "";
+
         LinkFollowBox.linkDoc = linkDoc;
         LinkFollowBox.sourceDoc = source;
         LinkFollowBox.destinationDoc = dest;
+        this.fetchDocuments();
     }
 
     unhighlight = () => {
@@ -230,6 +313,12 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
         this.selectedOption = target.value;
     }
 
+    @action
+    handleContextChange = (e: React.ChangeEvent) => {
+        let target = e.target as HTMLInputElement;
+        this.selectedContextString = target.value;
+    }
+
     @computed
     get availableModes() {
         return (
@@ -279,7 +368,36 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     }
 
     @computed
-    get contexts() {
+    get availableContexts() {
+        return (
+            <div>
+                <label><input
+                    type="radio"
+                    name="context"
+                    value="self"
+                    checked={this.selectedContextString === "self"}
+                    onChange={this.handleContextChange} />
+                    Open Self
+                </label><br />
+                {[...this._docs, ...this._otherDocs].map(doc => {
+                    if (doc && doc.target) {
+                        return <div key={doc.col[Id] + doc.target[Id]}><label key={doc.col[Id] + doc.target[Id]}>
+                            <input
+                                type="radio"
+                                name="context"
+                                value={StrCast(doc.col.title)}
+                                checked={this.selectedContextString === StrCast(doc.col.title)}
+                                onChange={this.handleContextChange} />
+                            {doc.col.title}
+                        </label><br /></div>;
+                    }
+                })}
+            </div>
+        );
+    }
+
+    @computed
+    get availableOptions() {
         return (
             <div>
 
@@ -299,13 +417,13 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                     <div className="linkFollowBox-item">
                         <div className="linkFollowBox-item title">Context</div>
                         <div className="linkFollowBox-itemContent">
-
+                            {this.selectedMode !== "" ? this.availableContexts : "Please select a mode to view contexts"}
                         </div>
                     </div>
                     <div className="linkFollowBox-item">
                         <div className="linkFollowBox-item title">Options</div>
                         <div className="linkFollowBox-itemContent">
-
+                            {this.selectedContextString !== "" ? this.availableOptions : "Please select a context to view options"}
                         </div>
                     </div>
                 </div>

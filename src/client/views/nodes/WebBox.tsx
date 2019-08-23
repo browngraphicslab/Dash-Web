@@ -24,7 +24,6 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { Docs } from "../../documents/Documents";
 
 library.add(faStickyNote);
-library.add(faStickyNote)
 
 @observer
 export class WebBox extends React.Component<FieldViewProps> {

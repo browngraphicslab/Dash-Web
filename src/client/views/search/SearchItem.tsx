@@ -63,6 +63,7 @@ export class SelectorContextMenu extends React.Component<SearchItemProps> {
         runInAction(() => {
             this._docs = docs.filter(doc => !Doc.AreProtosEqual(doc, CollectionDockingView.Instance.props.Document)).map(doc => ({ col: doc, target: this.props.doc }));
             this._otherDocs = Array.from(map.entries()).filter(entry => !Doc.AreProtosEqual(entry[0], CollectionDockingView.Instance.props.Document)).map(([col, target]) => ({ col, target }));
+
         });
     }
 
