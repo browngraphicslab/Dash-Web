@@ -6,7 +6,7 @@ import { faTimes, faCheckCircle, faObjectGroup } from '@fortawesome/free-solid-s
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { Doc } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
-import { DocumentType } from '../../documents/Documents';
+import { DocumentType } from "../../documents/DocumentTypes";
 import { Cast, StrCast } from '../../../new_fields/Types';
 import * as _ from "lodash";
 import { IconBar } from './IconBar';

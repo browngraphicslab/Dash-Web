@@ -52,7 +52,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         }
 
         if (this.props.destinationDoc === self.props.linkDoc.anchor2 && targetContext) {
-            DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, async document => dockingFunc(document), undefined, targetContext!);
+            DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, async document => dockingFunc(document), undefined, targetContext);
         }
         else if (this.props.destinationDoc === self.props.linkDoc.anchor1 && sourceContext) {
             jumpToDoc.guid = guid;

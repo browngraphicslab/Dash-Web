@@ -39,6 +39,7 @@ export interface FieldViewProps {
     selectOnLoad: boolean;
     addDocument?: (document: Doc, allowDuplicates?: boolean) => boolean;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
+    pinToPres: (document: Doc) => void;
     removeDocument?: (document: Doc) => boolean;
     moveDocument?: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
@@ -57,6 +58,7 @@ export interface FieldViewProps {
 export class FieldView extends React.Component<FieldViewProps> {
     public static LayoutString(fieldType: { name: string }, fieldStr: string = "data", fieldExt: string = "") {
         return `<${fieldType.name} {...props} fieldKey={"${fieldStr}"} fieldExt={"${fieldExt}"} />`;
+        //"<ImageBox {...props} />"
     }
 
     @computed
@@ -78,6 +80,9 @@ export class FieldView extends React.Component<FieldViewProps> {
         else if (field instanceof ImageField) {
             return <ImageBox {...this.props} leaveNativeSize={true} />;
         }
+        // else if (field instaceof PresBox) {
+        //    return <PresBox {...this.props} />;
+        // }
         else if (field instanceof IconField) {
             return <IconBox {...this.props} />;
         }
