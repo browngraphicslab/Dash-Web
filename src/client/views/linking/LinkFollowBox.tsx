@@ -1,4 +1,4 @@
-import { observable, computed, action, trace, ObservableMap, runInAction } from "mobx";
+import { observable, computed, action, trace, ObservableMap, runInAction, reaction } from "mobx";
 import React = require("react");
 import { observer } from "mobx-react";
 import { FieldViewProps, FieldView } from "../nodes/FieldView";
@@ -13,6 +13,7 @@ import { DocumentView } from "../nodes/DocumentView";
 import "./LinkFollowBox.scss";
 import { SearchUtil } from "../../util/SearchUtil";
 import { Id } from "../../../new_fields/FieldSymbols";
+import { listSpec } from "../../../new_fields/Schema";
 
 enum FollowModes {
     OPENTAB = "Open in Tab",
@@ -27,60 +28,6 @@ enum FollowOptions {
     NOZOOM = "no zoom",
 }
 
-// @observer
-// export class SelectorContextMenu extends React.Component {
-//     @observable private _docs: { col: Doc, target: Doc }[] = [];
-//     @observable private _otherDocs: { col: Doc, target: Doc }[] = [];
-
-//     constructor(props: any) {
-//         super(props);
-//         this.fetchDocuments();
-//     }
-
-//     async fetchDocuments() {
-//         let aliases = (await SearchUtil.GetViewsOfDocument(this.props.doc)).filter(doc => doc !== this.props.doc);
-//         const { docs } = await SearchUtil.Search("", true, { fq: `data_l:"${this.props.doc[Id]}"` });
-//         const map: Map<Doc, Doc> = new Map;
-//         const allDocs = await Promise.all(aliases.map(doc => SearchUtil.Search("", true, { fq: `data_l:"${doc[Id]}"` }).then(result => result.docs)));
-//         allDocs.forEach((docs, index) => docs.forEach(doc => map.set(doc, aliases[index])));
-//         docs.forEach(doc => map.delete(doc));
-//         runInAction(() => {
-//             this._docs = docs.filter(doc => !Doc.AreProtosEqual(doc, CollectionDockingView.Instance.props.Document)).map(doc => ({ col: doc, target: this.props.doc }));
-//             this._otherDocs = Array.from(map.entries()).filter(entry => !Doc.AreProtosEqual(entry[0], CollectionDockingView.Instance.props.Document)).map(([col, target]) => ({ col, target }));
-//         });
-//     }
-
-//     getOnClick({ col, target }: { col: Doc, target: Doc }) {
-//         return () => {
-//             col = Doc.IsPrototype(col) ? Doc.MakeDelegate(col) : col;
-//             if (NumCast(col.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
-//                 const newPanX = NumCast(target.x) + NumCast(target.width) / NumCast(target.zoomBasis, 1) / 2;
-//                 const newPanY = NumCast(target.y) + NumCast(target.height) / NumCast(target.zoomBasis, 1) / 2;
-//                 col.panX = newPanX;
-//                 col.panY = newPanY;
-//             }
-//             CollectionDockingView.Instance.AddRightSplit(col, undefined);
-//         };
-//     }
-//     render() {
-//         return (
-//             <div className="parents">
-//                 <p className="contexts">Contexts:</p>
-//                 {[...this._docs, ...this._otherDocs].map(doc => {
-//                     let item = React.createRef<HTMLDivElement>();
-//                     return <div className="collection" key={doc.col[Id] + doc.target[Id]} ref={item}>
-//                         <div className="collection-item" onPointerDown={
-//                             SetupDrag(item, () => doc.col, undefined, undefined, undefined, undefined, () => SearchBox.Instance.closeSearch())}>
-//                             <FontAwesomeIcon icon={faStickyNote} />
-//                         </div>
-//                         <a onClick={this.getOnClick(doc)}>{doc.col.title}</a>
-//                     </div>;
-//                 })}
-//             </div>
-//         );
-//     }
-// }
-
 @observer
 export class LinkFollowBox extends React.Component<FieldViewProps> {
 
@@ -93,6 +40,8 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     @observable selectedContext: any = undefined;
     @observable selectedOption: string = "";
     @observable selectedContextString: string = "";
+    @observable sourceView: DocumentView | undefined = undefined;
+    @observable canPan: boolean = false;
 
     @observable private _docs: { col: Doc, target: Doc }[] = [];
     @observable private _otherDocs: { col: Doc, target: Doc }[] = [];
@@ -100,6 +49,53 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     constructor(props: FieldViewProps) {
         super(props);
         LinkFollowBox.Instance = this;
+    }
+
+    componentDidMount = () => {
+        this.resetVars();
+
+        reaction(
+            () => LinkFollowBox.destinationDoc,
+            async newLinkDestination => {
+                if (LinkFollowBox.destinationDoc && this.sourceView && this.sourceView.props.ContainingCollectionView) {
+                    let colView = this.sourceView.props.ContainingCollectionView;
+                    let colDoc = colView.props.Document;
+                    let shouldReturn = true;
+                    if (colDoc.viewType && colDoc.viewType === 1) {
+                        //this means its in a freeform collection
+                        let docs = Cast(colDoc.data, listSpec(Doc), []);
+                        let aliases = await SearchUtil.GetViewsOfDocument(Doc.GetProto(LinkFollowBox.destinationDoc));
+
+                        aliases.forEach(alias => {
+                            let docs2 = docs;
+                            let res = docs2.filter(doc => doc === alias);
+                            if (res.length > 0) {
+                                runInAction(() => {
+                                    this.canPan = true;
+                                    shouldReturn = false;
+                                });
+                            }
+                        });
+
+                        if (shouldReturn) { (() => { this.canPan = false; }); return; }
+                    }
+                    else { runInAction(() => { this.canPan = false; }); return; }
+                }
+                else { runInAction(() => { this.canPan = false; }); return; }
+            }
+        );
+    }
+
+    @action
+    resetVars = () => {
+        this.selectedContext = undefined;
+        this.selectedContextString = "";
+        this.selectedMode = "";
+        this.selectedOption = "";
+        LinkFollowBox.linkDoc = undefined;
+        LinkFollowBox.sourceDoc = undefined;
+        LinkFollowBox.destinationDoc = undefined;
+        this.sourceView = undefined;
     }
 
     async fetchDocuments() {
@@ -120,15 +116,18 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
 
     @action
     setLinkDocs = (linkDoc: Doc, source: Doc, dest: Doc) => {
-        this.selectedContext = undefined;
-        this.selectedContextString = "";
-        this.selectedMode = "";
-        this.selectedOption = "";
+        this.resetVars();
 
         LinkFollowBox.linkDoc = linkDoc;
         LinkFollowBox.sourceDoc = source;
         LinkFollowBox.destinationDoc = dest;
         this.fetchDocuments();
+
+        SelectionManager.SelectedDocuments().forEach(dv => {
+            if (dv.props.Document === LinkFollowBox.sourceDoc) {
+                this.sourceView = dv;
+            }
+        });
     }
 
     unhighlight = () => {
@@ -137,146 +136,155 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     }
 
     @action
-    highlightDoc = (destinationDoc: Doc) => {
-        document.removeEventListener("pointerdown", this.unhighlight);
-        Doc.HighlightDoc(destinationDoc);
-        window.setTimeout(() => {
-            document.addEventListener("pointerdown", this.unhighlight);
-        }, 10000);
+    highlightDoc = () => {
+        if (LinkFollowBox.destinationDoc) {
+            document.removeEventListener("pointerdown", this.unhighlight);
+            Doc.HighlightDoc(LinkFollowBox.destinationDoc);
+            window.setTimeout(() => {
+                document.addEventListener("pointerdown", this.unhighlight);
+            }, 10000);
+        }
     }
 
     @undoBatch
-    openFullScreen = (destinationDoc: Doc) => {
-        let view: DocumentView | null = DocumentManager.Instance.getDocumentView(destinationDoc);
-        view && CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(view);
-        SelectionManager.DeselectAll();
+    openFullScreen = () => {
+        if (LinkFollowBox.destinationDoc) {
+            let view: DocumentView | null = DocumentManager.Instance.getDocumentView(LinkFollowBox.destinationDoc);
+            view && CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(view);
+            SelectionManager.DeselectAll();
+        }
     }
 
     // should container be a doc or documentview or what? This one needs work and is more long term
     @undoBatch
-    openInContainer = (destinationDoc: Doc, options: { container: Doc }) => {
+    openInContainer = (options: { container: Doc }) => {
 
     }
 
     // NOT TESTED
     @undoBatch
-    openLinkColRight = (destinationDoc: Doc, options: { context: Doc }) => {
-        options.context = Doc.IsPrototype(options.context) ? Doc.MakeDelegate(options.context) : options.context;
-        if (NumCast(options.context.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
-            const newPanX = NumCast(destinationDoc.x) + NumCast(destinationDoc.width) / NumCast(destinationDoc.zoomBasis, 1) / 2;
-            const newPanY = NumCast(destinationDoc.y) + NumCast(destinationDoc.height) / NumCast(destinationDoc.zoomBasis, 1) / 2;
-            options.context.panX = newPanX;
-            options.context.panY = newPanY;
-        }
-        CollectionDockingView.Instance.AddRightSplit(options.context, undefined);
-
-        this.highlightDoc(destinationDoc);
-        SelectionManager.DeselectAll();
-    }
-
-    @undoBatch
-    openLinkRight = (destinationDoc: Doc) => {
-        let alias = Doc.MakeAlias(destinationDoc);
-        CollectionDockingView.Instance.AddRightSplit(alias, undefined);
-        this.highlightDoc(destinationDoc);
-        SelectionManager.DeselectAll();
-
-    }
-
-    @undoBatch
-    jumpToLink = async (destinationDoc: Doc, options: { shouldZoom: boolean, linkDoc: Doc }) => {
-        let jumpToDoc = destinationDoc;
-        let pdfDoc = FieldValue(Cast(destinationDoc, Doc));
-        if (pdfDoc) {
-            jumpToDoc = pdfDoc;
-        }
-        let proto = Doc.GetProto(options.linkDoc);
-        let targetContext = await Cast(proto.targetContext, Doc);
-        let sourceContext = await Cast(proto.sourceContext, Doc);
-
-        let dockingFunc = (document: Doc) => { this.props.addDocTab(document, undefined, "inTab"); SelectionManager.DeselectAll(); };
-
-        if (destinationDoc === options.linkDoc.anchor2 && targetContext) {
-            DocumentManager.Instance.jumpToDocument(jumpToDoc, options.shouldZoom, false, async document => dockingFunc(document), undefined, targetContext);
-        }
-        else if (destinationDoc === options.linkDoc.anchor1 && sourceContext) {
-            DocumentManager.Instance.jumpToDocument(jumpToDoc, options.shouldZoom, false, document => dockingFunc(sourceContext!));
-        }
-        else if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
-            DocumentManager.Instance.jumpToDocument(jumpToDoc, options.shouldZoom, undefined, undefined, NumCast((destinationDoc === options.linkDoc.anchor2 ? options.linkDoc.anchor2Page : options.linkDoc.anchor1Page)));
-
-        }
-        else {
-            DocumentManager.Instance.jumpToDocument(jumpToDoc, options.shouldZoom, false, dockingFunc);
-        }
-
-        this.highlightDoc(destinationDoc);
-        SelectionManager.DeselectAll();
-    }
-
-    @undoBatch
-    openLinkTab = (destinationDoc: Doc) => {
-        let fullScreenAlias = Doc.MakeAlias(destinationDoc);
-        this.props.addDocTab(fullScreenAlias, undefined, "inTab");
-
-        this.highlightDoc(destinationDoc);
-        SelectionManager.DeselectAll();
-    }
-
-    // NOT TESTED
-    @undoBatch
-    openLinkColTab = (destinationDoc: Doc, options: { context: Doc }) => {
-        options.context = Doc.IsPrototype(options.context) ? Doc.MakeDelegate(options.context) : options.context;
-        if (NumCast(options.context.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
-            const newPanX = NumCast(destinationDoc.x) + NumCast(destinationDoc.width) / NumCast(destinationDoc.zoomBasis, 1) / 2;
-            const newPanY = NumCast(destinationDoc.y) + NumCast(destinationDoc.height) / NumCast(destinationDoc.zoomBasis, 1) / 2;
-            options.context.panX = newPanX;
-            options.context.panY = newPanY;
-        }
-        this.props.addDocTab(options.context, undefined, "inTab");
-
-        this.highlightDoc(destinationDoc);
-        SelectionManager.DeselectAll();
-    }
-
-    @undoBatch
-    openLinkInPlace = (destinationDoc: Doc, options: { sourceDoc: Doc, linkDoc: Doc }) => {
-
-        let alias = Doc.MakeAlias(destinationDoc);
-        let y = NumCast(options.sourceDoc.y);
-        let x = NumCast(options.sourceDoc.x);
-
-        let width = NumCast(options.sourceDoc.width);
-        let height = NumCast(options.sourceDoc.height);
-
-        alias.x = x + width + 30;
-        alias.y = y;
-        alias.width = width;
-        alias.height = height;
-
-        SelectionManager.SelectedDocuments().map(dv => {
-            if (dv.props.Document === options.sourceDoc) {
-                dv.props.addDocument && dv.props.addDocument(alias, false);
+    openLinkColRight = (options: { context: Doc }) => {
+        if (LinkFollowBox.destinationDoc) {
+            options.context = Doc.IsPrototype(options.context) ? Doc.MakeDelegate(options.context) : options.context;
+            if (NumCast(options.context.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
+                const newPanX = NumCast(LinkFollowBox.destinationDoc.x) + NumCast(LinkFollowBox.destinationDoc.width) / NumCast(LinkFollowBox.destinationDoc.zoomBasis, 1) / 2;
+                const newPanY = NumCast(LinkFollowBox.destinationDoc.y) + NumCast(LinkFollowBox.destinationDoc.height) / NumCast(LinkFollowBox.destinationDoc.zoomBasis, 1) / 2;
+                options.context.panX = newPanX;
+                options.context.panY = newPanY;
             }
-        });
+            CollectionDockingView.Instance.AddRightSplit(options.context, undefined);
 
-        this.jumpToLink(destinationDoc, { shouldZoom: false, linkDoc: options.linkDoc });
+            this.highlightDoc();
+            SelectionManager.DeselectAll();
+        }
+    }
 
-        this.highlightDoc(destinationDoc);
-        SelectionManager.DeselectAll();
+    @undoBatch
+    openLinkRight = () => {
+        if (LinkFollowBox.destinationDoc) {
+            let alias = Doc.MakeAlias(LinkFollowBox.destinationDoc);
+            CollectionDockingView.Instance.AddRightSplit(alias, undefined);
+            this.highlightDoc();
+            SelectionManager.DeselectAll();
+        }
+
+    }
+
+    @undoBatch
+    jumpToLink = async (options: { shouldZoom: boolean }) => {
+        if (LinkFollowBox.destinationDoc && LinkFollowBox.linkDoc) {
+            let jumpToDoc: Doc = LinkFollowBox.destinationDoc;
+            let pdfDoc = FieldValue(Cast(LinkFollowBox.destinationDoc, Doc));
+            if (pdfDoc) {
+                jumpToDoc = pdfDoc;
+            }
+            let proto = Doc.GetProto(LinkFollowBox.linkDoc);
+            let targetContext = await Cast(proto.targetContext, Doc);
+            let sourceContext = await Cast(proto.sourceContext, Doc);
+
+            let dockingFunc = (document: Doc) => { this.props.addDocTab(document, undefined, "inTab"); SelectionManager.DeselectAll(); };
+
+            if (LinkFollowBox.destinationDoc === LinkFollowBox.linkDoc.anchor2 && targetContext) {
+                DocumentManager.Instance.jumpToDocument(jumpToDoc, options.shouldZoom, false, async document => dockingFunc(document), undefined, targetContext);
+            }
+            else if (LinkFollowBox.destinationDoc === LinkFollowBox.linkDoc.anchor1 && sourceContext) {
+                DocumentManager.Instance.jumpToDocument(jumpToDoc, options.shouldZoom, false, document => dockingFunc(sourceContext!));
+            }
+            else if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
+                DocumentManager.Instance.jumpToDocument(jumpToDoc, options.shouldZoom, undefined, undefined,
+                    NumCast((LinkFollowBox.destinationDoc === LinkFollowBox.linkDoc.anchor2 ? LinkFollowBox.linkDoc.anchor2Page : LinkFollowBox.linkDoc.anchor1Page)));
+
+            }
+            else {
+                DocumentManager.Instance.jumpToDocument(jumpToDoc, options.shouldZoom, false, dockingFunc);
+            }
+
+            this.highlightDoc();
+            SelectionManager.DeselectAll();
+        }
+    }
+
+    @undoBatch
+    openLinkTab = () => {
+        if (LinkFollowBox.destinationDoc) {
+            let fullScreenAlias = Doc.MakeAlias(LinkFollowBox.destinationDoc);
+            this.props.addDocTab(fullScreenAlias, undefined, "inTab");
+
+            this.highlightDoc();
+            SelectionManager.DeselectAll();
+        }
+    }
+
+    // NOT TESTED
+    @undoBatch
+    openLinkColTab = (options: { context: Doc }) => {
+        if (LinkFollowBox.destinationDoc) {
+            options.context = Doc.IsPrototype(options.context) ? Doc.MakeDelegate(options.context) : options.context;
+            if (NumCast(options.context.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
+                const newPanX = NumCast(LinkFollowBox.destinationDoc.x) + NumCast(LinkFollowBox.destinationDoc.width) / NumCast(LinkFollowBox.destinationDoc.zoomBasis, 1) / 2;
+                const newPanY = NumCast(LinkFollowBox.destinationDoc.y) + NumCast(LinkFollowBox.destinationDoc.height) / NumCast(LinkFollowBox.destinationDoc.zoomBasis, 1) / 2;
+                options.context.panX = newPanX;
+                options.context.panY = newPanY;
+            }
+            this.props.addDocTab(options.context, undefined, "inTab");
+
+            this.highlightDoc();
+            SelectionManager.DeselectAll();
+        }
+    }
+
+    @undoBatch
+    openLinkInPlace = (options: { shouldZoom: boolean }) => {
+
+        if (LinkFollowBox.destinationDoc && LinkFollowBox.sourceDoc) {
+            let alias = Doc.MakeAlias(LinkFollowBox.destinationDoc);
+            let y = NumCast(LinkFollowBox.sourceDoc.y);
+            let x = NumCast(LinkFollowBox.sourceDoc.x);
+
+            let width = NumCast(LinkFollowBox.sourceDoc.width);
+            let height = NumCast(LinkFollowBox.sourceDoc.height);
+
+            alias.x = x + width + 30;
+            alias.y = y;
+            alias.width = width;
+            alias.height = height;
+
+            SelectionManager.SelectedDocuments().map(dv => {
+                if (dv.props.Document === LinkFollowBox.sourceDoc) {
+                    dv.props.addDocument && dv.props.addDocument(alias, false);
+                }
+            });
+
+            this.jumpToLink({ shouldZoom: false });
+
+            this.highlightDoc();
+            SelectionManager.DeselectAll();
+        }
     }
 
     //set this to be the default link behavior, can be any of the above
-    private defaultLinkBehavior: (destinationDoc: Doc, options?: any) => void = this.openLinkInPlace;
+    private defaultLinkBehavior: (options?: any) => void = this.openLinkInPlace;
     // private currentLinkBehavior: (destinationDoc: Doc, options?: any) => void = this.defaultLinkBehavior;
-
-    @computed
-    get LinkFollowTitle(): string {
-        if (LinkFollowBox.linkDoc) {
-            return StrCast(LinkFollowBox.linkDoc.title);
-        }
-        return "No Link Selected";
-    }
 
     @action
     currentLinkBehavior = () => {
@@ -319,6 +327,23 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
         this.selectedContextString = target.value;
     }
 
+    // async canPan() {
+
+    // }
+
+    @computed
+    get canOpenInPlace() {
+        if (this.sourceView && this.sourceView.props.ContainingCollectionView) {
+            let colView = this.sourceView.props.ContainingCollectionView;
+            let colDoc = colView.props.Document;
+            if (colDoc.viewType && colDoc.viewType === 1) {
+                //this means its in a freeform collection
+                return true;
+            }
+        }
+        return false;
+    }
+
     @computed
     get availableModes() {
         return (
@@ -328,7 +353,8 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                     name="mode"
                     value={FollowModes.OPENRIGHT}
                     checked={this.selectedMode === FollowModes.OPENRIGHT}
-                    onChange={this.handleModeChange} />
+                    onChange={this.handleModeChange}
+                    disabled={false} />
                     {FollowModes.OPENRIGHT}
                 </label><br />
                 <label><input
@@ -336,7 +362,8 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                     name="mode"
                     value={FollowModes.OPENTAB}
                     checked={this.selectedMode === FollowModes.OPENTAB}
-                    onChange={this.handleModeChange} />
+                    onChange={this.handleModeChange}
+                    disabled={false} />
                     {FollowModes.OPENTAB}
                 </label><br />
                 <label><input
@@ -344,7 +371,8 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                     name="mode"
                     value={FollowModes.OPENFULL}
                     checked={this.selectedMode === FollowModes.OPENFULL}
-                    onChange={this.handleModeChange} />
+                    onChange={this.handleModeChange}
+                    disabled={false} />
                     {FollowModes.OPENFULL}
                 </label><br />
                 <label><input
@@ -352,7 +380,8 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                     name="mode"
                     value={FollowModes.PAN}
                     checked={this.selectedMode === FollowModes.PAN}
-                    onChange={this.handleModeChange} />
+                    onChange={this.handleModeChange}
+                    disabled={!this.canPan} />
                     {FollowModes.PAN}
                 </label><br />
                 <label><input
@@ -360,7 +389,8 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                     name="mode"
                     value={FollowModes.INPLACE}
                     checked={this.selectedMode === FollowModes.INPLACE}
-                    onChange={this.handleModeChange} />
+                    onChange={this.handleModeChange}
+                    disabled={!this.canOpenInPlace} />
                     {FollowModes.INPLACE}
                 </label><br />
             </div>
@@ -372,7 +402,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
         return (
             <div>
                 <label><input
-                    type="radio"
+                    type="radio" disabled={LinkFollowBox.linkDoc ? false : true}
                     name="context"
                     value="self"
                     checked={this.selectedContextString === "self"}
@@ -383,7 +413,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                     if (doc && doc.target) {
                         return <div key={doc.col[Id] + doc.target[Id]}><label key={doc.col[Id] + doc.target[Id]}>
                             <input
-                                type="radio"
+                                type="radio" disabled={LinkFollowBox.linkDoc ? false : true}
                                 name="context"
                                 value={StrCast(doc.col.title)}
                                 checked={this.selectedContextString === StrCast(doc.col.title)}
@@ -408,11 +438,15 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     render() {
         return (
             <div className="linkFollowBox-main" style={{ height: NumCast(this.props.Document.height), width: NumCast(this.props.Document.width) }}>
-                <div className="linkFollowBox-header">{this.LinkFollowTitle}</div>
+                <div className="linkFollowBox-header">
+                    {LinkFollowBox.linkDoc ? "Link Title :" + StrCast(LinkFollowBox.linkDoc.title) : "No Link Selected"}
+                </div>
                 <div className="linkFollowBox-content" style={{ height: NumCast(this.props.Document.height) - 90 }}>
                     <div className="linkFollowBox-item">
                         <div className="linkFollowBox-item title">Mode</div>
-                        <div className="linkFollowBox-itemContent">{this.availableModes}</div>
+                        <div className="linkFollowBox-itemContent">
+                            {LinkFollowBox.linkDoc ? this.availableModes : "Please select a link to view modes"}
+                        </div>
                     </div>
                     <div className="linkFollowBox-item">
                         <div className="linkFollowBox-item title">Context</div>
