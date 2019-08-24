@@ -13,7 +13,7 @@ import { listSpec } from "../../../new_fields/Schema";
 import { Cast, FieldValue, StrCast } from "../../../new_fields/Types";
 import { RouteStore } from "../../RouteStore";
 import { Utils } from "../../../Utils";
-import { SetAcls, System } from "../../../new_fields/FieldSymbols";
+import { SetAcls, System, Public } from "../../../new_fields/FieldSymbols";
 
 export class CurrentUserUtils {
     private static curr_email: string;
@@ -50,7 +50,7 @@ export class CurrentUserUtils {
         rightColl.proto![SetAcls](System, Permissions.WRITE);
         let list = new List<Doc>();
         if (list instanceof List) {
-            list[SetAcls](System, Permissions.ADDONLY);
+            list[SetAcls](Public, Permissions.ADDONLY);
         }
         rightColl.data = list;
         doc.optionalRightCollection = rightColl;

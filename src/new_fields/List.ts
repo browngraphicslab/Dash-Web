@@ -39,7 +39,7 @@ const listHandlers: any = {
             //TODO Error checking to make sure parent doesn't already exist
             if (item instanceof ObjectField) {
                 item[Parent] = list;
-                item[OnUpdate] = updateFunction(list, i + length, item, this);
+                item[OnUpdate] = updateFunction(list, i + length, item, this[Self].__fields);
             }
         }
         const res = list.__fields.push(...items);
@@ -62,6 +62,9 @@ const listHandlers: any = {
         return res;
     },
     splice: action(function (this: any, start: number, deleteCount: number, ...items: any[]) {
+        if (this[GetAcls]()[CurrentUserUtils.id]["*"] !== Permissions.WRITE) {
+            return false;
+        }
         items = items.map(toObjectField);
         const list = this[Self];
         for (let i = 0; i < items.length; i++) {
