@@ -240,19 +240,11 @@ class ListImpl<T extends Field> extends ObjectField {
         this[OnUpdate]({ "$set": { "acls": this._acls } });
     }
 
-    public [SetAcls] = (id: string, permission: Permissions, keys?: string[]) => {
+    public [SetAcls] = (id: string, permission: Permissions) => {
         if (!this._acls[id]) {
             this._acls[id] = {};
         }
-
-        if (keys) {
-            keys.forEach(k => {
-                this._acls[id][k] = permission;
-            });
-        }
-        else {
-            this._acls[id]["*"] = permission;
-        }
+        this._acls[id]["*"] = permission;
         this[OnUpdate]({ "$set": { "acls": this._acls } });
     }
 

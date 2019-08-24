@@ -118,26 +118,45 @@ export default class SharingManager extends React.Component<{}> {
                 return;
             }
             console.log(`Attempting to set permissions to ${permission} for the document ${target[Id]}`);
-            if (permission !== 3) {
-                const sharedDoc = Doc.MakeAlias(target);
-                if (sharedDoc.proto) {
-                    sharedDoc.proto[SetAcls](user.userDocumentId, permission);
+            let sharedDoc = Doc.MakeAlias(target);
+            if (sharedDoc.proto) {
+                switch (permission) {
+                    // read
+                    case 0:
+                        sharedDoc.proto[SetAcls](user.userDocumentId, permission);
+                        break;
+                    // write
+                    case 1:
+                        sharedDoc.proto[SetAcls](user.userDocumentId, permission);
+                        break;
+                    // addonly
+                    case 2:
+                        sharedDoc.proto[SetAcls](user.userDocumentId, permission);
+                        let tData = target.data;
+                        if (tData instanceof List) {
+                            tData[SetAcls](user.userDocumentId, permission);
+                        }
+                        break;
+                    // invisible
+                    case 3:
+                        let dataDocs = (await Promise.all(data.map(doc => doc))).map(doc => Doc.GetProto(doc));
+                        if (dataDocs.includes(target)) {
+                            console.log("Searching in ", dataDocs, "for", target);
+                            dataDocs.splice(dataDocs.indexOf(target), 1);
+                            console.log("SUCCESSFULLY UNSHARED DOC");
+                        } else {
+                            console.log("DIDN'T THINK WE HAD IT, SO NOT SUCCESSFULLY UNSHARED");
+                        }
+                        return;
+
                 }
-                sharedDoc[SetAcls](user.userDocumentId, permission);
-                if (data) {
-                    data.push(sharedDoc);
-                } else {
-                    notifDoc.data = new List([sharedDoc]);
-                }
-            } else {
-                let dataDocs = (await Promise.all(data.map(doc => doc))).map(doc => Doc.GetProto(doc));
-                if (dataDocs.includes(target)) {
-                    console.log("Searching in ", dataDocs, "for", target);
-                    dataDocs.splice(dataDocs.indexOf(target), 1);
-                    console.log("SUCCESSFULLY UNSHARED DOC");
-                } else {
-                    console.log("DIDN'T THINK WE HAD IT, SO NOT SUCCESSFULLY UNSHARED");
-                }
+            }
+            sharedDoc[SetAcls](user.userDocumentId, 1);
+            if (data) {
+                data.push(sharedDoc);
+            }
+            else {
+                notifDoc.data = new List([sharedDoc]);
             }
         }
     }
@@ -261,12 +280,12 @@ export default class SharingManager extends React.Component<{}> {
                                 >
                                     <select
                                         className={"permissions-dropdown"}
-                                        value={this.targetDoc ? NumCast(this.targetDoc[GetAcls]()[user.userDocumentId], 3) : 3}
+                                        value={3}
                                         style={{
                                             color: userColor,
                                             borderColor: userColor
                                         }}
-                                        onChange={e => this.setInternalSharing(user, Number(e.currentTarget.value) || 3)}
+                                        onChange={e => this.setInternalSharing(user, Number(e.currentTarget.value))}
                                     >
                                         {this.sharingOptions}
                                     </select>

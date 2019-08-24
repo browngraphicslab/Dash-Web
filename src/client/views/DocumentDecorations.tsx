@@ -30,6 +30,8 @@ import { ObjectField } from '../../new_fields/ObjectField';
 import { MetadataEntryMenu } from './MetadataEntryMenu';
 import { ImageBox } from './nodes/ImageBox';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
+import { GetAcls } from '../../new_fields/FieldSymbols';
+import { SerializationHelper } from '../util/SerializationHelper';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -721,6 +723,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (bounds.y > bounds.b) {
             bounds.y = bounds.b - (this._resizeBorderWidth + this._linkBoxHeight + this._titleHeight);
         }
+        let acls = seldoc.props.Document[GetAcls]()[CurrentUserUtils.id]["*"];
         return (<div className="documentDecorations">
             <div className="documentDecorations-background" style={{
                 width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",
@@ -768,6 +771,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     </div>
                     {this.metadataMenu}
                     {this.considerEmbed()}
+                    {acls}
                     {/* {this.considerTooltip()} */}
                 </div>
             </div >

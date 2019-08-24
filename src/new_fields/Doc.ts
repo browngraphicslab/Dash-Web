@@ -7,7 +7,7 @@ import { Cast, ToConstructor, PromiseValue, FieldValue, NumCast, BoolCast, StrCa
 import { listSpec } from "./Schema";
 import { ObjectField } from "./ObjectField";
 import { RefField, FieldId } from "./RefField";
-import { ToScriptString, SelfProxy, Parent, OnUpdate, Self, HandleUpdate, Update, Id, SetAcls, GetAcls, CloneAcls, Copy, Public } from "./FieldSymbols";
+import { ToScriptString, SelfProxy, Parent, OnUpdate, Self, HandleUpdate, Update, Id, SetAcls, GetAcls, CloneAcls, Copy, Public, System } from "./FieldSymbols";
 import { scriptingGlobal, CompileScript, Scripting } from "../client/util/Scripting";
 import { List } from "./List";
 import { DocumentType } from "../client/documents/Documents";
@@ -107,10 +107,25 @@ export class Doc extends RefField {
         if (keys) {
             keys.forEach(k => {
                 this._acls[id][k] = permission;
+                let field = this.__fields[k];
+                if (field instanceof PrefetchProxy) {
+                    let proxy = field.value();
+                    proxy[SetAcls](id, permission);
+                }
             });
         }
         else {
             this._acls[id]["*"] = permission;
+            let keys = Object.keys(this.__fields);
+            keys.forEach((k) => {
+                let field = this.__fields[k];
+                if (field instanceof PrefetchProxy) {
+                    let proxy = field.value();
+                    if (!Doc.BaseProto(proxy)) {
+                        proxy[SetAcls](id, permission);
+                    }
+                }
+            });
         }
         DocServer.UpdateField(this[Id], { "$set": { "acls": this._acls } });
     }
@@ -292,6 +307,9 @@ export namespace Doc {
     export function IsPrototype(doc: Doc) {
         return GetT(doc, "isPrototype", "boolean", true);
     }
+    export function BaseProto(doc: Doc) {
+        return GetT(doc, "baseProto", "boolean", true);
+    }
     export async function SetInPlace(doc: Doc, key: string, value: Field | undefined, defaultProto: boolean) {
         let hasProto = doc.proto instanceof Doc;
         let onDeleg = Object.getOwnPropertyNames(doc).indexOf(key) !== -1;
@@ -430,6 +448,7 @@ export namespace Doc {
     export function CreateDocumentExtensionForField(doc: Doc, fieldKey: string) {
         let docExtensionForField = new Doc(doc[Id] + fieldKey, true);
         docExtensionForField[CloneAcls](CurrentUserUtils.id, doc[GetAcls]()[CurrentUserUtils.id]);
+        docExtensionForField[CloneAcls](System, doc[GetAcls]()[System]);
         docExtensionForField.title = fieldKey + ".ext";
         docExtensionForField.extendsDoc = doc; // this is used by search to map field matches on the extension doc back to the document it extends.
         docExtensionForField.type = DocumentType.EXTENSION;

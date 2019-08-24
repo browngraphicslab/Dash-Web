@@ -833,7 +833,7 @@ export enum ServerPermissions {
 }
 
 /** Returns true if the user id has read or write permission on the document (or the field, if specified) */
-export function HasReadOrWrite(doc: any, users: string[], key?: string): boolean { return HasRead(doc, users, key) || HasWrite(doc, users, key); }
+export function HasReadPlus(doc: any, users: string[], key?: string): boolean { return HasRead(doc, users, key) || HasWrite(doc, users, key) || HasAdd(doc, users, key); }
 
 export function GetFillerDocument(id: string, options: {}) {
 
@@ -843,7 +843,7 @@ function GetRefField(socket: Socket, [id, callback]: [string, (result: any) => v
     Database.Instance.getDocument(id, (result) => {
         let info = socketMap.get(socket);
         if (info) {
-            if (HasReadOrWrite(result, [System, Public]) || HasReadOrWrite(result, [info.id])) {
+            if (HasReadPlus(result, [System, Public]) || HasReadPlus(result, [info.id])) {
                 callback(result);
             }
             else if (!result) {
@@ -868,7 +868,7 @@ function GetRefField(socket: Socket, [id, callback]: [string, (result: any) => v
                         data_ext: result.fields.data_ext
                     };
                 }
-                clone.acls = {};
+                clone.acls = result.acls;
                 clone.acls[info.id] = {};
                 clone.acls[info.id]["*"] = ServerPermissions.READ;
                 callback(clone);

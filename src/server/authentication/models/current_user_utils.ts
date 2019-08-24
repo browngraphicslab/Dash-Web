@@ -7,7 +7,7 @@ import { Attribute, AttributeGroup, Catalog, Schema } from "../../../client/nort
 import { ArrayUtil } from "../../../client/northstar/utils/ArrayUtil";
 import { CollectionViewType } from "../../../client/views/collections/CollectionBaseView";
 import { CollectionView } from "../../../client/views/collections/CollectionView";
-import { Doc, Permissions } from "../../../new_fields/Doc";
+import { Doc, Permissions, DocListCastAsync } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { Cast, FieldValue, StrCast } from "../../../new_fields/Types";
@@ -48,6 +48,11 @@ export class CurrentUserUtils {
         const rightColl = Docs.Create.StackingDocument([], { title: "New mobile uploads" });
         rightColl[SetAcls](System, Permissions.WRITE);
         rightColl.proto![SetAcls](System, Permissions.WRITE);
+        let list = new List<Doc>();
+        if (list instanceof List) {
+            list[SetAcls](System, Permissions.ADDONLY);
+        }
+        rightColl.data = list;
         doc.optionalRightCollection = rightColl;
         // doc.library = Docs.Create.TreeDocument([doc], { title: `Library: ${CurrentUserUtils.email}` });
         // (doc.library as Doc).excludeFromLibrary = true;

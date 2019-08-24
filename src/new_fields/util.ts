@@ -10,6 +10,7 @@ import { ComputedField } from "./ScriptField";
 import { CurrentUserUtils } from "../server/authentication/models/current_user_utils";
 import { StrCast } from "./Types";
 import { DocServer } from "../client/DocServer";
+import { NoEmitOnErrorsPlugin } from "webpack";
 
 function _readOnlySetter(): never {
     throw new Error("Documents can't be modified in read-only mode");
@@ -59,11 +60,11 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
     }
     let acls = receiver[GetAcls]();
     if (acls && CurrentUserUtils.id) {
-        let permissions = acls[CurrentUserUtils.id]["*"];
-        if (permissions === Permissions.READ) {
-            return true;
+        if (!acls[CurrentUserUtils.id]) {
+            // debugger;
         }
-        else if (permissions === Permissions.ADDONLY) {
+        let permissions = acls[CurrentUserUtils.id]["*"];
+        if (permissions === Permissions.ADDONLY) {
             if (receiver[prop]) {
                 return true;
             }
@@ -140,7 +141,7 @@ export function getter(target: any, prop: string | symbol | number, receiver: an
         return target.__fields[prop] || target[prop];
     }
     if (prop === "acls") {
-        console.log("HELLOOOO");
+        return target.acls;
     }
     if (SerializationHelper.IsSerializing()) {
         return target[prop];
