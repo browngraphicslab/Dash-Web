@@ -190,6 +190,18 @@ export namespace GoogleApiClientUtils {
             });
         };
 
+        export const setStyle = async (options: UpdateOptions) => {
+            let replies: any = await update({
+                documentId: options.documentId,
+                requests: options.requests
+            });
+            if ("errors" in replies) {
+                console.log("Write operation failed:");
+                console.log(replies.errors.map((error: any) => error.message));
+            }
+            return replies;
+        };
+
         export const write = async (options: WriteOptions): Promise<UpdateResult> => {
             const requests: docs_v1.Schema$Request[] = [];
             const identifier = await Utils.initialize(options.reference);
@@ -226,10 +238,9 @@ export namespace GoogleApiClientUtils {
                 return undefined;
             }
             let replies: any = await update({ documentId: identifier, requests });
-            let errors = "errors";
-            if (errors in replies) {
+            if ("errors" in replies) {
                 console.log("Write operation failed:");
-                console.log(replies[errors].map((error: any) => error.message));
+                console.log(replies.errors.map((error: any) => error.message));
             }
             return replies;
         };

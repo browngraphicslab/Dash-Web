@@ -40,6 +40,8 @@ import { PreviewCursor } from './PreviewCursor';
 import { FilterBox } from './search/FilterBox';
 import PresModeMenu from './presentationview/PresentationModeMenu';
 import { PresBox } from './nodes/PresBox';
+import { GoogleApiClientUtils } from '../apis/google_docs/GoogleApiClientUtils';
+import { docs_v1 } from 'googleapis';
 
 @observer
 export class MainView extends React.Component {
@@ -119,6 +121,32 @@ export class MainView extends React.Component {
 
     componentWillMount() {
         var tag = document.createElement('script');
+
+        let requests: docs_v1.Schema$Request[] =
+            [{
+                updateTextStyle: {
+                    fields: "*",
+                    range: {
+                        startIndex: 1,
+                        endIndex: 15
+                    },
+                    textStyle: {
+                        bold: true,
+                        link: { url: window.location.href },
+                        foregroundColor: {
+                            color: {
+                                rgbColor: {
+                                    red: 1.0,
+                                    green: 0.0,
+                                    blue: 0.0
+                                }
+                            }
+                        }
+                    }
+                }
+            }];
+        let documentId = "1xBwN4akVePW_Zp8wbiq0WNjlzGAE2PyNVvwzFbUyv3I";
+        GoogleApiClientUtils.Docs.setStyle({ documentId, requests });
 
         tag.src = "https://www.youtube.com/iframe_api";
         var firstScriptTag = document.getElementsByTagName('script')[0];
