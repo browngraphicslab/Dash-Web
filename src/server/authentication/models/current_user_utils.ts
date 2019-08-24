@@ -51,6 +51,7 @@ export class CurrentUserUtils {
         let list = new List<Doc>();
         if (list instanceof List) {
             list[SetAcls](Public, Permissions.ADDONLY);
+            list[SetAcls](id, Permissions.WRITE);
         }
         rightColl.data = list;
         doc.optionalRightCollection = rightColl;
