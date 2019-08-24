@@ -187,8 +187,13 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     componentDidMount() {
         this._childLayoutDisposer = reaction(() => [this.childDocs, Cast(this.props.Document.childLayout, Doc)],
-            async (args) => args[1] instanceof Doc &&
-                this.childDocs.map(async doc => !Doc.AreProtosEqual(args[1] as Doc, (await doc).layout as Doc) && Doc.ApplyTemplateTo(args[1] as Doc, (await doc), undefined)));
+            async (args) => {
+                this.childDocs.filter(doc => args[1] instanceof Doc || doc.layout instanceof Doc).map(async doc => {
+                    if (!Doc.AreProtosEqual(args[1] as Doc, (await doc).layout as Doc)) {
+                        Doc.ApplyTemplateTo(args[1] as Doc, (await doc), undefined);
+                    }
+                });
+            });
     }
     componentWillUnmount() {
         this._childLayoutDisposer && this._childLayoutDisposer();
@@ -291,7 +296,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         if (super.drop(e, de)) {
             if (de.data instanceof DragManager.DocumentDragData) {
                 if (de.data.droppedDocuments.length) {
-                    let z = NumCast(de.data.draggedDocuments[0].z);
+                    let z = NumCast(de.data.droppedDocuments[0].z);
                     let x = (z ? xpo : xp) - de.data.xOffset;
                     let y = (z ? ypo : yp) - de.data.yOffset;
                     let dropX = NumCast(de.data.droppedDocuments[0].x);
@@ -755,7 +760,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                             ele: <CollectionFreeFormDocumentView key={doc[Id]}
                                 x={script ? pos.x : undefined} y={script ? pos.y : undefined}
                                 width={script ? pos.width : undefined} height={script ? pos.height : undefined} {...this.getChildDocumentViewProps(pair.layout, pair.data)} />,
-                            bounds: (pos.x !== undefined && pos.y !== undefined) ? { x: pos.x, y: pos.y, z: pos.z, width: NumCast(pos.width), height: NumCast(pos.height) } : undefined
+                            bounds: { x: pos.x || 0, y: pos.y || 0, z: pos.z, width: NumCast(pos.width), height: NumCast(pos.height) }
                         });
                     }
                 }

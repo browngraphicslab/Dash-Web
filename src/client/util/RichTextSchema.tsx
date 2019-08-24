@@ -105,7 +105,6 @@ export const nodes: { [index: string]: NodeSpec } = {
         //     }
         // }]
     },
-
     // :: NodeSpec An inline image (`<img>`) node. Supports `src`,
     // `alt`, and `href` attributes. The latter two default to the empty
     // string.
@@ -197,7 +196,6 @@ export const nodes: { [index: string]: NodeSpec } = {
         ...listItem,
         content: 'paragraph block*'
     },
-
 };
 
 const emDOM: DOMOutputSpecArray = ["em", 0];

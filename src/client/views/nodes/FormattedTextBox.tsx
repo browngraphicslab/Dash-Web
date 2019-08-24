@@ -34,15 +34,12 @@ import "./FormattedTextBox.scss";
 import React = require("react");
 import { GoogleApiClientUtils, Pulls, Pushes } from '../../apis/google_docs/GoogleApiClientUtils';
 import { DocumentDecorations } from '../DocumentDecorations';
-import { MainOverlayTextBox } from '../MainOverlayTextBox';
 import { DictationManager } from '../../util/DictationManager';
 import { ReplaceStep } from 'prosemirror-transform';
+import { DocumentType } from '../../documents/DocumentTypes';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
-
-// FormattedTextBox: Displays an editable plain text node that maps to a specified Key of a Document
-//
 
 export const Blank = `{"doc":{"type":"doc","content":[]},"selection":{"type":"text","anchor":0,"head":0}}`;
 
@@ -147,27 +144,29 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     paste = (e: ClipboardEvent) => {
         if (e.clipboardData && this._editorView) {
-            let pdfPasteText = `${Utils.GenerateDeterministicGuid("pdf paste")}`;
-            for (let i = 0; i < e.clipboardData.items.length; i++) {
-                let item = e.clipboardData.items.item(i);
-                if (item.type === "text/plain") {
-                    item.getAsString((text) => {
-                        let pdfPasteIndex = text.indexOf(pdfPasteText);
-                        if (pdfPasteIndex > -1) {
-                            let insertText = text.substr(0, pdfPasteIndex);
-                            const tx = this._editorView!.state.tr.insertText(insertText);
-                            // tx.setSelection(new Selection(tx.))
-                            const state = this._editorView!.state;
-                            this._editorView!.dispatch(tx);
-                            if (FormattedTextBox._toolTipTextMenu) {
-                                // this._toolTipTextMenu.makeLinkWithState(state)
-                            }
-                            e.stopPropagation();
-                            e.preventDefault();
-                        }
-                    });
-                }
-            }
+            // let pdfPasteText = `${Utils.GenerateDeterministicGuid("pdf paste")}`;
+            // for (let i = 0; i < e.clipboardData.items.length; i++) {
+            //     let item = e.clipboardData.items.item(i);
+            //     console.log(item)
+            //     if (item.type === "text/plain") {
+            //         console.log("plain")
+            //         item.getAsString((text) => {
+            //             let pdfPasteIndex = text.indexOf(pdfPasteText);
+            //             if (pdfPasteIndex > -1) {
+            //                 let insertText = text.substr(0, pdfPasteIndex);
+            //                 const tx = this._editorView!.state.tr.insertText(insertText);
+            //                 // tx.setSelection(new Selection(tx.))
+            //                 const state = this._editorView!.state;
+            //                 this._editorView!.dispatch(tx);
+            //                 if (FormattedTextBox._toolTipTextMenu) {
+            //                     // this._toolTipTextMenu.makeLinkWithState(state)
+            //                 }
+            //                 e.stopPropagation();
+            //                 e.preventDefault();
+            //             }
+            //         });
+            //     }
+            // }
         }
     }
 
@@ -258,10 +257,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             let model: NodeType = (url.includes(".mov") || url.includes(".mp4")) ? schema.nodes.video : schema.nodes.image;
             this._editorView!.dispatch(this._editorView!.state.tr.insert(0, model.create({ src: url })));
             e.stopPropagation();
-        } else {
-            if (de.data instanceof DragManager.DocumentDragData) {
-                this.props.Document.layout = de.data.draggedDocuments[0];
-                de.data.draggedDocuments[0].isTemplate = true;
+        } else if (de.data instanceof DragManager.DocumentDragData) {
+            const draggedDoc = de.data.draggedDocuments.length && de.data.draggedDocuments[0];
+            if (draggedDoc && draggedDoc.type === DocumentType.TEXT && StrCast(draggedDoc.layout) !== "") {
+                this.props.Document.layout = draggedDoc;
+                draggedDoc.isTemplate = true;
                 e.stopPropagation();
             }
         }
@@ -798,7 +798,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     tryUpdateHeight() {
         const ChromeHeight = this.props.ChromeHeight;
         let sh = this._ref.current ? this._ref.current.scrollHeight : 0;
-        if (this.props.Document.autoHeight && sh !== 0) {
+        if (!this.props.isOverlay && this.props.Document.autoHeight && sh !== 0) {
             let nh = this.props.Document.isTemplate ? 0 : NumCast(this.dataDoc.nativeHeight, 0);
             let dh = NumCast(this.props.Document.height, 0);
             this.props.Document.height = Math.max(10, (nh ? dh / nh * sh : sh) + (ChromeHeight ? ChromeHeight() : 0));
