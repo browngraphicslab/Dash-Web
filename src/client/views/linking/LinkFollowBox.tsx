@@ -58,35 +58,17 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
             () => LinkFollowBox.destinationDoc,
             async newLinkDestination => {
                 if (LinkFollowBox.destinationDoc && this.sourceView && this.sourceView.props.ContainingCollectionView) {
-                    let colView = this.sourceView.props.ContainingCollectionView;
-                    let colDoc = colView.props.Document;
-                    let shouldReturn = true;
+                    let colDoc = this.sourceView.props.ContainingCollectionView.props.Document;
+                    runInAction(() => { this.canPan = false; });
                     if (colDoc.viewType && colDoc.viewType === 1) {
                         //this means its in a freeform collection
                         let docs = Cast(colDoc.data, listSpec(Doc), []);
                         let aliases = await SearchUtil.GetViewsOfDocument(Doc.GetProto(LinkFollowBox.destinationDoc));
 
                         aliases.forEach(alias => {
-                            let docs2 = docs;
-                            let res = docs2.filter(doc => doc === alias);
-                            if (res.length > 0) {
-                                runInAction(() => {
-                                    this.canPan = true;
-                                    shouldReturn = false;
-                                });
-                            }
+                            if (docs.filter(doc => doc === alias).length > 0) { runInAction(() => { this.canPan = true; }); }
                         });
-
-                        if (shouldReturn) {
-                            runInAction(() => { this.canPan = false; });
-                        }
                     }
-                    else {
-                        runInAction(() => { this.canPan = false; });
-                    }
-                }
-                else {
-                    runInAction(() => { this.canPan = false; });
                 }
             }
         );
