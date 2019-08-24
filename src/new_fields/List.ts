@@ -73,7 +73,7 @@ const listHandlers: any = {
             //TODO Need to change indices of other fields in array
             if (item instanceof ObjectField) {
                 item[Parent] = list;
-                item[OnUpdate] = updateFunction(list, i + start, item, this);
+                item[OnUpdate] = updateFunction(list, i + start, item, this[Self].__fields);
             }
         }
         const res = list.__fields.splice(start, deleteCount, ...items);
