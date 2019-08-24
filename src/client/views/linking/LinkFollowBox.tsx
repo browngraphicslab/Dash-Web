@@ -77,11 +77,17 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                             }
                         });
 
-                        if (shouldReturn) { (() => { this.canPan = false; }); return; }
+                        if (shouldReturn) {
+                            runInAction(() => { this.canPan = false; });
+                        }
                     }
-                    else { runInAction(() => { this.canPan = false; }); return; }
+                    else {
+                        runInAction(() => { this.canPan = false; });
+                    }
                 }
-                else { runInAction(() => { this.canPan = false; }); return; }
+                else {
+                    runInAction(() => { this.canPan = false; });
+                }
             }
         );
     }
