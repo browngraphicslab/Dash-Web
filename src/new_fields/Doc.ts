@@ -96,7 +96,9 @@ export class Doc extends RefField {
 
     public [CloneAcls] = (id: string, acls: { [key: string]: Permissions }) => {
         this._acls[id] = acls;
-        DocServer.UpdateField(this[Id], { "$set": { "acls": this._acls } });
+        if (!this[UpdatingFromServer]) {
+            DocServer.UpdateField(this[Id], { "$set": { "acls": this._acls } });
+        }
     }
 
     public [SetAcls] = (id: string, permission: Permissions, keys?: string[]) => {
@@ -217,6 +219,13 @@ export class Doc extends RefField {
         const sameAuthor = this.author === CurrentUserUtils.email;
         if (set) {
             for (const key in set) {
+                if (key.startsWith("acls")) {
+                    this[UpdatingFromServer] = true;
+                    Object.keys(set[key]).forEach(k => {
+                        this[CloneAcls](k, set[key][k]);
+                    });
+                    this[UpdatingFromServer] = false;
+                }
                 if (!key.startsWith("fields.")) {
                     continue;
                 }

@@ -35,6 +35,23 @@ export class PermissionsError extends Error {
     }
 }
 
+export function HasAddPlus(doc: any, users: string[], key?: string) {
+    return HasPermission(doc, users, Permissions.ADDONLY, key) || HasPermission(doc, users, Permissions.WRITE, key);
+}
+
+export function HasPermission(doc: any, users: string[], permission: Permissions, key?: string) {
+    let acls = doc ? doc.acls : undefined;
+    if (acls) {
+        if (!key) {
+            return users.some(user => (acls[user] && acls[user]["*"] === permission));
+        }
+        else {
+            return true;
+        }
+    }
+    return false;
+}
+
 const _setterImpl = action(function (target: any, prop: string | symbol | number, value: any, receiver: any): boolean {
     //console.log("-set " + target[SelfProxy].title + "(" + target[SelfProxy][prop] + ")." + prop.toString() + " = " + value);
     if (SerializationHelper.IsSerializing()) {

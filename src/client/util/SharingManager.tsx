@@ -1,4 +1,4 @@
-import { observable, runInAction, action, autorun } from "mobx";
+import { observable, runInAction, action, autorun, computed } from "mobx";
 import * as React from "react";
 import MainViewModal from "../views/MainViewModal";
 import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
@@ -99,7 +99,7 @@ export default class SharingManager extends React.Component<{}> {
         });
     }
 
-    setInternalSharing = async (user: User, permission: number) => {
+    setInternalSharing = async (user: User, permission: number, oldPermission: number) => {
         const userDocument = await DocServer.GetRefField(user.userDocumentId);
         if (!(userDocument instanceof Doc)) {
             console.log(`Couldn't get user document of user ${user.email}`);
@@ -118,45 +118,33 @@ export default class SharingManager extends React.Component<{}> {
                 return;
             }
             console.log(`Attempting to set permissions to ${permission} for the document ${target[Id]}`);
-            let sharedDoc = Doc.MakeAlias(target);
-            if (sharedDoc.proto) {
-                switch (permission) {
-                    // read
-                    case 0:
-                        sharedDoc.proto[SetAcls](user.userDocumentId, permission);
-                        break;
-                    // write
-                    case 1:
-                        sharedDoc.proto[SetAcls](user.userDocumentId, permission);
-                        break;
-                    // addonly
-                    case 2:
-                        sharedDoc.proto[SetAcls](user.userDocumentId, permission);
-                        let tData = target.data;
-                        if (tData instanceof List) {
-                            tData[SetAcls](user.userDocumentId, permission);
-                        }
-                        break;
-                    // invisible
-                    case 3:
-                        let dataDocs = (await Promise.all(data.map(doc => doc))).map(doc => Doc.GetProto(doc));
-                        if (dataDocs.includes(target)) {
-                            console.log("Searching in ", dataDocs, "for", target);
-                            dataDocs.splice(dataDocs.indexOf(target), 1);
-                            console.log("SUCCESSFULLY UNSHARED DOC");
-                        } else {
-                            console.log("DIDN'T THINK WE HAD IT, SO NOT SUCCESSFULLY UNSHARED");
-                        }
-                        return;
-
+            // if the document is already shared
+            if (oldPermission !== 3) {
+                let tempDoc = Doc.MakeAlias(target);
+                if (tempDoc.proto) {
+                    tempDoc.proto[SetAcls](user.userDocumentId, permission);
+                    let tData = tempDoc.proto.data;
+                    if (tData instanceof List) {
+                        tData[SetAcls](user.userDocumentId, permission);
+                    }
                 }
             }
-            sharedDoc[SetAcls](user.userDocumentId, 1);
-            if (data) {
-                data.push(sharedDoc);
-            }
             else {
-                notifDoc.data = new List([sharedDoc]);
+                let sharedDoc = Doc.MakeAlias(target);
+                if (sharedDoc.proto) {
+                    sharedDoc.proto[SetAcls](user.userDocumentId, permission);
+                    let tData = sharedDoc.proto.data;
+                    if (tData instanceof List) {
+                        tData[SetAcls](user.userDocumentId, permission);
+                    }
+                }
+                sharedDoc[SetAcls](user.userDocumentId, 1);
+                if (data) {
+                    data.push(sharedDoc);
+                }
+                else {
+                    notifDoc.data = new List([sharedDoc]);
+                }
             }
         }
     }
@@ -271,28 +259,7 @@ export default class SharingManager extends React.Component<{}> {
                 <p className={"share-individual"}>Privately share {this.focusOn("this document")} with an individual...</p>
                 <div className={"users-list"} style={{ display: this.users.length ? "block" : "flex" }}>
                     {!this.users.length ? "There are no other users in your database." :
-                        this.users.map(user => {
-                            let userColor = this.targetDoc ? ColorMapping.get(NumCast(this.targetDoc[GetAcls]()[user.userDocumentId], 3)) : DefaultColor;
-                            return (
-                                <div
-                                    key={user.email}
-                                    className={"container"}
-                                >
-                                    <select
-                                        className={"permissions-dropdown"}
-                                        value={3}
-                                        style={{
-                                            color: userColor,
-                                            borderColor: userColor
-                                        }}
-                                        onChange={e => this.setInternalSharing(user, Number(e.currentTarget.value))}
-                                    >
-                                        {this.sharingOptions}
-                                    </select>
-                                    <span className={"padding"}>{user.email}</span>
-                                </div>
-                            );
-                        })
+                        this.users.map(user => <UserOptions user={user} targetDoc={this.targetDoc} sharingOptions={this.sharingOptions} setInternalSharing={this.setInternalSharing} />)
                     }
                 </div>
                 <div className={"close-button"} onClick={this.close}>Done</div>
@@ -312,4 +279,54 @@ export default class SharingManager extends React.Component<{}> {
         );
     }
 
+}
+
+export interface IUserOptions {
+    user: User;
+    targetDoc: Doc | undefined;
+    sharingOptions: JSX.Element[];
+    setInternalSharing: (user: User, permission: number, oldPermission: number) => Promise<void>;
+}
+
+@observer
+export class UserOptions extends React.Component<IUserOptions> {
+    @observable
+    private _targetDoc = this.props.targetDoc;
+    @observable
+    private _userPermission: number = this._targetDoc && this._targetDoc[GetAcls]()[this.props.user.userDocumentId] ? this._targetDoc[GetAcls]()[this.props.user.userDocumentId]["*"] : 3;
+
+    private _previousValue: number = 3;
+
+    componentWillUpdate(props: IUserOptions) {
+        if (props.targetDoc !== this._targetDoc) {
+            runInAction(
+                () => this._targetDoc = props.targetDoc
+            );
+        }
+    }
+
+    render() {
+        let user = this.props.user;
+        return (
+            <div
+                key={user.email}
+                className={"container"}>
+                <select
+                    className={"permissions-dropdown"}
+                    value={this._userPermission}
+                    style={{
+                        color: ColorMapping.get(this._userPermission),
+                        borderColor: ColorMapping.get(this._userPermission)
+                    }}
+                    onFocus={e => this._previousValue = Number(e.currentTarget.value)}
+                    onChange={e => {
+                        runInAction(() => this._userPermission = Number(e.currentTarget.value));
+                        this.props.setInternalSharing(user, Number(e.currentTarget.value), this._previousValue);
+                    }}>
+                    {this.props.sharingOptions}
+                </select>
+                <span className={"padding"}>{user.email}</span>
+            </div>
+        )
+    }
 }

@@ -1,6 +1,6 @@
 import { Deserializable, autoObject, afterDocDeserialize } from "../client/util/SerializationHelper";
 import { Field, Permissions, Doc, DocListCast } from "./Doc";
-import { setter, getter, deleteProperty, updateFunction } from "./util";
+import { setter, getter, deleteProperty, updateFunction, HasPermission, HasAddPlus } from "./util";
 import { serializable, alias, list, map, primitive } from "serializr";
 import { observable, action } from "mobx";
 import { ObjectField } from "./ObjectField";
@@ -26,11 +26,17 @@ const listHandlers: any = {
         return res;
     },
     pop(): any {
+        if (!HasPermission(this[Self], [CurrentUserUtils.id, Public], Permissions.WRITE)) {
+            return false;
+        }
         const field = toRealField(this[Self].__fields.pop());
         this[Update]();
         return field;
     },
     push: action(function (this: any, ...items: any[]) {
+        if (!HasAddPlus(this[Self], [CurrentUserUtils.id, Public])) {
+            return false;
+        }
         items = items.map(toObjectField);
         const list = this[Self];
         const length = list.__fields.length;
@@ -47,22 +53,31 @@ const listHandlers: any = {
         return res;
     }),
     reverse() {
+        if (!HasPermission(this[Self], [CurrentUserUtils.id, Public], Permissions.WRITE)) {
+            return false;
+        }
         const res = this[Self].__fields.reverse();
         this[Update]();
         return res;
     },
     shift() {
+        if (!HasPermission(this[Self], [CurrentUserUtils.id, Public], Permissions.WRITE)) {
+            return false;
+        }
         const res = toRealField(this[Self].__fields.shift());
         this[Update]();
         return res;
     },
     sort(cmpFunc: any) {
+        if (!HasPermission(this[Self], [CurrentUserUtils.id, Public], Permissions.WRITE)) {
+            return false;
+        }
         const res = this[Self].__fields.sort(cmpFunc ? (first: any, second: any) => cmpFunc(toRealField(first), toRealField(second)) : undefined);
         this[Update]();
         return res;
     },
     splice: action(function (this: any, start: number, deleteCount: number, ...items: any[]) {
-        if (this[GetAcls]()[CurrentUserUtils.id]["*"] !== Permissions.WRITE) {
+        if (!HasPermission(this[Self], [CurrentUserUtils.id, Public], Permissions.WRITE)) {
             return false;
         }
         items = items.map(toObjectField);
@@ -130,6 +145,9 @@ const listHandlers: any = {
         }
     },
     slice(begin: number, end: number) {
+        if (!HasPermission(this[Self], [CurrentUserUtils.id, Public], Permissions.WRITE)) {
+            return false;
+        }
         return this[Self].__fields.slice(begin, end).map(toRealField);
     },
 
@@ -276,6 +294,9 @@ class ListImpl<T extends Field> extends ObjectField {
         });
         this[SelfProxy] = list;
         this[SetAcls](Public, 3);
+        if (CurrentUserUtils) {
+            this[SetAcls](CurrentUserUtils.id, 1);
+        }
         if (fields) {
             (list as any).push(...fields);
             let perm = Permissions.WRITE;
