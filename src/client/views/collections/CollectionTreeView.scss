@@ -31,7 +31,7 @@
         position: relative;
         width: 15px;
         color: $intermediate-color;
-        margin-top: 4px;
+        margin-top: 3px;
         transform: scale(1.3, 1.3);
     }
 
@@ -81,6 +81,9 @@
 
 .treeViewItem-openRight {
     display: none;
+    height: 17px;
+    background: gray;
+    width: 15px;
 }
 
 .treeViewItem-border {
@@ -95,15 +98,15 @@
 
     .treeViewItem-openRight {
         display: inline-block;
-        height: 13px;
-        margin-top: 2px;
-        margin-left: 5px;
+        height: 17px;
+        background: #a8a7a7;
+        width: 15px;
 
         // display: inline;
         svg {
             display: block;
             padding: 0px;
-            margin: 0px;
+            margin-left: 3px;
         }
     }
 }

@@ -340,7 +340,7 @@ class TreeView extends React.Component<TreeViewProps> {
 
     @computed
     get renderBullet() {
-        return <div className="bullet" onClick={action(() => this.treeViewOpen = !this.treeViewOpen)} style={{ color: StrCast(this.props.document.color, "black"), opacity: 0.4 }}>
+        return <div className="bullet" title="view inline" onClick={action(() => this.treeViewOpen = !this.treeViewOpen)} style={{ color: StrCast(this.props.document.color, "black"), opacity: 0.4 }}>
             {<FontAwesomeIcon icon={!this.treeViewOpen ? (this.childDocs ? "caret-square-right" : "caret-right") : (this.childDocs ? "caret-square-down" : "caret-down")} />}
         </div>;
     }
@@ -365,13 +365,11 @@ class TreeView extends React.Component<TreeViewProps> {
                 })}>
                 {this.treeViewExpandedView}
             </span>);
-        let dataDocs = CollectionDockingView.Instance ? Cast(CollectionDockingView.Instance.props.Document[this.fieldKey], listSpec(Doc), []) : [];
-        let openRight = dataDocs && dataDocs.indexOf(this.dataDoc) !== -1 ? (null) : (
-            <div className="treeViewItem-openRight" onPointerDown={this.onPointerDown} onClick={this.openRight}>
-                <FontAwesomeIcon icon="angle-right" size="lg" />
-            </div>);
+        let openRight = (<div className="treeViewItem-openRight" onPointerDown={this.onPointerDown} onClick={this.openRight}>
+            <FontAwesomeIcon title="open in pane on right" icon="angle-right" size="lg" />
+        </div>);
         return <>
-            <div className="docContainer" id={`docContainer-${this.props.parentKey}`} ref={reference} onPointerDown={onItemDown}
+            <div className="docContainer" title="click to edit title" id={`docContainer-${this.props.parentKey}`} ref={reference} onPointerDown={onItemDown}
                 style={{
                     color: this.props.document.isMinimized ? "red" : "black",
                     background: Doc.IsBrushed(this.props.document) ? "#06121212" : "0",
