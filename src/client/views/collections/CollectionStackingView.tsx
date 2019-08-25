@@ -34,6 +34,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     _docXfs: any[] = [];
     _columnStart: number = 0;
     @observable private cursor: CursorProperty = "grab";
+    @observable _scroll = 0; // used to force the document decoration to update when scrolling
     @computed get sectionHeaders() { return Cast(this.props.Document.sectionHeaders, listSpec(SchemaHeaderField)); }
     @computed get sectionFilter() { return StrCast(this.props.Document.sectionFilter); }
     @computed get filteredChildren() { return this.childDocs.filter(d => !d.isMinimized); }
@@ -277,6 +278,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
 
     getDocTransform(doc: Doc, dref: HTMLDivElement) {
+        let y = this._scroll;
         let { scale, translateX, translateY } = Utils.GetScreenTransform(dref);
         let outerXf = Utils.GetScreenTransform(this._masonryGridRef!);
         let offset = this.props.ScreenToLocalTransform().transformDirection(outerXf.translateX - translateX, outerXf.translateY - translateY);
@@ -371,7 +373,11 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         let sections = (this.sectionFilter ? Array.from(this.Sections.entries()).sort(this.sortFunc) : [[undefined, this.filteredChildren] as [SchemaHeaderField | undefined, Doc[]]]);
         return (
             <div className={this.isStackingView ? "collectionStackingView" : "collectionMasonryView"}
-                ref={this.createRef} onDrop={this.onDrop.bind(this)} onContextMenu={this.onContextMenu} onWheel={(e: React.WheelEvent) => e.stopPropagation()} >
+                ref={this.createRef}
+                onScroll={action((e: React.UIEvent<HTMLDivElement>) => this._scroll = e.currentTarget.scrollTop)}
+                onDrop={this.onDrop.bind(this)}
+                onContextMenu={this.onContextMenu}
+                onWheel={(e: React.WheelEvent) => e.stopPropagation()} >
                 {sections.map(section => this.isStackingView ? this.sectionStacking(section[0], section[1]) : this.sectionMasonry(section[0], section[1]))}
                 {!this.showAddAGroup ? (null) :
                     <div key={`${this.props.Document[Id]}-addGroup`} className="collectionStackingView-addGroupButton"

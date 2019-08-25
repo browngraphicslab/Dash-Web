@@ -85,23 +85,14 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             let width = () => Math.min(d.nativeWidth && !d.ignoreAspect && !parent.props.Document.fillColumn ? d[WidthSym]() : Number.MAX_VALUE, parent.columnWidth / parent.numGroupColumns);
             let height = () => parent.getDocHeight(pair.layout);
             let dref = React.createRef<HTMLDivElement>();
-            let dxf = () => this.getDocTransform(pair.layout!, dref.current!);
-            this.props.parent._docXfs.push({ dxf: dxf, width: width, height: height });
+            let dxf = () => parent.getDocTransform(pair.layout!, dref.current!);
+            parent._docXfs.push({ dxf: dxf, width: width, height: height });
             let rowSpan = Math.ceil((height() + parent.gridGap) / parent.gridGap);
             let style = parent.isStackingView ? { width: width(), margin: "auto", marginTop: i === 0 ? 0 : parent.gridGap, height: height() } : { gridRowEnd: `span ${rowSpan}` };
             return <div className={`collectionStackingView-${parent.isStackingView ? "columnDoc" : "masonryDoc"}`} key={d[Id]} ref={dref} style={style} >
-                {this.props.parent.getDisplayDoc(pair.layout, pair.data, dxf, width)}
+                {parent.getDisplayDoc(pair.layout, pair.data, dxf, width)}
             </div>;
         });
-    }
-
-    getDocTransform(doc: Doc, dref: HTMLDivElement) {
-        let { scale, translateX, translateY } = Utils.GetScreenTransform(dref);
-        let outerXf = Utils.GetScreenTransform(this.props.parent._masonryGridRef!);
-        let offset = this.props.parent.props.ScreenToLocalTransform().transformDirection(outerXf.translateX - translateX, outerXf.translateY - translateY);
-        return this.props.parent.props.ScreenToLocalTransform().
-            translate(offset[0], offset[1]).
-            scale(NumCast(doc.width, 1) / this.props.parent.columnWidth);
     }
 
     getValue = (value: string): any => {
