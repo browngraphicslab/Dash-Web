@@ -369,8 +369,11 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             contents: "+ ADD A GROUP"
         };
         Doc.UpdateDocumentExtensionForField(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey);
-
-        let sections = (this.sectionFilter ? Array.from(this.Sections.entries()).sort(this.sortFunc) : [[undefined, this.filteredChildren] as [SchemaHeaderField | undefined, Doc[]]]);
+        let sections = [[undefined, this.filteredChildren] as [SchemaHeaderField | undefined, Doc[]]];
+        if (this.sectionFilter) {
+            let entries = Array.from(this.Sections.entries());
+            sections = entries.sort(this.sortFunc);
+        }
         return (
             <div className={this.isStackingView ? "collectionStackingView" : "collectionMasonryView"}
                 ref={this.createRef}

@@ -153,7 +153,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
     @action
     addDocument = (value: string, shiftDown?: boolean) => {
         let key = StrCast(this.props.parent.props.Document.sectionFilter);
-        let newDoc = Docs.Create.TextDocument({ height: 18, width: 200, title: value });
+        let newDoc = Docs.Create.TextDocument({ height: 18, width: 200, documentText: "@@@" + value, title: value, autoHeight: true });
         newDoc[key] = this.getValue(this.props.heading);
         return this.props.parent.props.addDocument(newDoc);
     }
