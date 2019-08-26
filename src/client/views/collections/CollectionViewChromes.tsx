@@ -232,6 +232,11 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                     CollectionView={this.props.CollectionView}
                     type={this.props.type}
                 />);
+            case CollectionViewType.Masonry: return (
+                <CollectionStackingViewChrome
+                    key="collchrome"
+                    CollectionView={this.props.CollectionView}
+                    type={this.props.type} />);
             default:
                 return null;
         }
