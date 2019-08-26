@@ -138,7 +138,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
         reaction(
             () => StrCast(this.props.Document.guid),
-            (guid) => {
+            async (guid) => {
                 let start = -1;
 
                 if (this._editorView && guid) {
@@ -155,7 +155,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                         }
                         editor.focus();
                         editor.dispatch(tr.scrollIntoView());
-                        editor.dispatch(tr.scrollIntoView()); // bcz: sometimes selection doesn't fully scroll into view on smaller text boxes <5 lines visibility -- hopefully avoidable by ppl just not using small boxes...?
+                        // editor.dispatch(tr.scrollIntoView()); // bcz: sometimes selection doesn't fully scroll into view on smaller text boxes <5 lines visibility -- hopefully avoidable by ppl just not using small boxes...?
                         this.props.Document.guid = "";
                     }
                 }

@@ -55,8 +55,8 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
             DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, async document => dockingFunc(document), undefined, targetContext);
         }
         else if (this.props.destinationDoc === self.props.linkDoc.anchor1 && sourceContext) {
-            jumpToDoc.guid = guid;
             DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, document => dockingFunc(sourceContext!));
+            jumpToDoc.guid = guid;
         }
         else if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
             DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, undefined, undefined, NumCast((this.props.destinationDoc === self.props.linkDoc.anchor2 ? self.props.linkDoc.anchor2Page : self.props.linkDoc.anchor1Page)));
