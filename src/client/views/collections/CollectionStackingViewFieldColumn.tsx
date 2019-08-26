@@ -78,19 +78,16 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         let parent = this.props.parent;
         parent._docXfs.length = 0;
         return docs.map((d, i) => {
-            const pair = Doc.GetLayoutDataDocPair(parent.props.Document, parent.props.DataDoc, parent.props.fieldKey, d);
-            if (!pair.layout || pair.data instanceof Promise) {
-                return (null);
-            }
+            let pair = Doc.GetLayoutDataDocPair(parent.props.Document, parent.props.DataDoc, parent.props.fieldKey, d);
             let width = () => Math.min(d.nativeWidth && !d.ignoreAspect && !parent.props.Document.fillColumn ? d[WidthSym]() : Number.MAX_VALUE, parent.columnWidth / parent.numGroupColumns);
             let height = () => parent.getDocHeight(pair.layout);
             let dref = React.createRef<HTMLDivElement>();
-            let dxf = () => this.getDocTransform(pair.layout!, dref.current!);
+            let dxf = () => this.getDocTransform(pair.layout as Doc, dref.current!);
             this.props.parent._docXfs.push({ dxf: dxf, width: width, height: height });
             let rowSpan = Math.ceil((height() + parent.gridGap) / parent.gridGap);
             let style = parent.isStackingView ? { width: width(), margin: "auto", marginTop: i === 0 ? 0 : parent.gridGap, height: height() } : { gridRowEnd: `span ${rowSpan}` };
             return <div className={`collectionStackingView-${parent.isStackingView ? "columnDoc" : "masonryDoc"}`} key={d[Id]} ref={dref} style={style} >
-                {this.props.parent.getDisplayDoc(pair.layout, pair.data, dxf, width)}
+                {this.props.parent.getDisplayDoc(pair.layout as Doc, pair.data, dxf, width)}
             </div>;
         });
     }
@@ -214,10 +211,12 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         let [dx, dy] = this.props.screenToLocalTransform().transformDirection(e.clientX, e.clientY);
         this._startDragPosition = { x: dx, y: dy };
 
-        document.removeEventListener("pointermove", this.startDrag);
-        document.addEventListener("pointermove", this.startDrag);
-        document.removeEventListener("pointerup", this.pointerUp);
-        document.addEventListener("pointerup", this.pointerUp);
+        if (e.altKey) { //release alt key before dropping alias; also, things must have existed outside of the collection first in order to be in the alias...
+            document.removeEventListener("pointermove", this.startDrag);
+            document.addEventListener("pointermove", this.startDrag);
+            document.removeEventListener("pointerup", this.pointerUp);
+            document.addEventListener("pointerup", this.pointerUp);
+        }
     }
 
     renderColorPicker = () => {

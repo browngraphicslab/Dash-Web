@@ -94,7 +94,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             async (args) => args[1] instanceof Doc &&
                 this.childDocs.map(async doc => !Doc.AreProtosEqual(args[1] as Doc, (await doc).layout as Doc) && Doc.ApplyTemplateTo(args[1] as Doc, (await doc), undefined)));
 
-        // is there any reason this needs to exist? -syip.  yes, it handles autoHeight for stacking views (masonry isn't yet supported).
+        // is there any reason this needs to exist? -syip.  yes, it handles autoHeight for stacking and masonry views -eeng.
         this._heightDisposer = reaction(() => {
             if (BoolCast(this.props.Document.autoHeight)) {
                 let sectionsList = Array.from(this.Sections.size ? this.Sections.values() : [this.filteredChildren]);

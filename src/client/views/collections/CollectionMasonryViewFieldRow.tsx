@@ -210,10 +210,12 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
         let [dx, dy] = this.props.screenToLocalTransform().transformDirection(e.clientX, e.clientY);
         this._startDragPosition = { x: dx, y: dy };
 
-        document.removeEventListener("pointermove", this.startDrag);
-        document.addEventListener("pointermove", this.startDrag);
-        document.removeEventListener("pointerup", this.pointerUp);
-        document.addEventListener("pointerup", this.pointerUp);
+        if (e.altKey) { //release alt key before dropping alias; also, things must have existed outside of the collection first in order to be in the alias...
+            document.removeEventListener("pointermove", this.startDrag);
+            document.addEventListener("pointermove", this.startDrag);
+            document.removeEventListener("pointerup", this.pointerUp);
+            document.addEventListener("pointerup", this.pointerUp);
+        }
     }
 
     renderColorPicker = () => {
