@@ -77,12 +77,10 @@ export class CollectionView extends React.Component<FieldViewProps> {
         if (this.isAnnotationOverlay || this.props.Document.chromeStatus === "disabled" || type === CollectionViewType.Docking) {
             return [(null), this.SubViewHelper(type, renderProps)];
         }
-        else {
-            return [
-                (<CollectionViewBaseChrome CollectionView={this} key="chrome" type={type} collapse={this.collapse} />),
-                this.SubViewHelper(type, renderProps)
-            ];
-        }
+        return [
+            <CollectionViewBaseChrome CollectionView={this} key="chrome" type={type} collapse={this.collapse} />,
+            this.SubViewHelper(type, renderProps)
+        ];
     }
 
     get isAnnotationOverlay() { return this.props.fieldExt ? true : false; }

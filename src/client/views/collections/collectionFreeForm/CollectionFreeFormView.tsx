@@ -760,7 +760,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                             ele: <CollectionFreeFormDocumentView key={doc[Id]}
                                 x={script ? pos.x : undefined} y={script ? pos.y : undefined}
                                 width={script ? pos.width : undefined} height={script ? pos.height : undefined} {...this.getChildDocumentViewProps(pair.layout, pair.data)} />,
-                            bounds: (pos.x !== undefined && pos.y !== undefined) ? { x: pos.x, y: pos.y, z: pos.z, width: NumCast(pos.width), height: NumCast(pos.height) } : undefined
+                            bounds: { x: pos.x || 0, y: pos.y || 0, z: pos.z, width: NumCast(pos.width), height: NumCast(pos.height) }
                         });
                     }
                 }

@@ -36,6 +36,7 @@ import { GoogleApiClientUtils, Pulls, Pushes } from '../../apis/google_docs/Goog
 import { DocumentDecorations } from '../DocumentDecorations';
 import { DictationManager } from '../../util/DictationManager';
 import { ReplaceStep } from 'prosemirror-transform';
+import { DocumentType } from '../../documents/DocumentTypes';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -318,10 +319,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             let model: NodeType = (url.includes(".mov") || url.includes(".mp4")) ? schema.nodes.video : schema.nodes.image;
             this._editorView!.dispatch(this._editorView!.state.tr.insert(0, model.create({ src: url })));
             e.stopPropagation();
-        } else {
-            if (de.data instanceof DragManager.DocumentDragData) {
-                this.props.Document.layout = de.data.draggedDocuments[0];
-                de.data.draggedDocuments[0].isTemplate = true;
+        } else if (de.data instanceof DragManager.DocumentDragData) {
+            const draggedDoc = de.data.draggedDocuments.length && de.data.draggedDocuments[0];
+            if (draggedDoc && draggedDoc.type === DocumentType.TEXT && StrCast(draggedDoc.layout) !== "") {
+                this.props.Document.layout = draggedDoc;
+                draggedDoc.isTemplate = true;
                 e.stopPropagation();
             }
         }

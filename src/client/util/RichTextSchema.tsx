@@ -173,7 +173,46 @@ export const nodes: { [index: string]: NodeSpec } = {
     ordered_list: {
         ...orderedList,
         content: 'list_item+',
-        group: 'block'
+        group: 'block',
+        attrs: {
+            bulletStyle: { default: "decimal" },
+        },
+        toDOM(node: Node<any>) {
+            return ['ol', { style: `list-style: ${node.attrs.bulletStyle}` }, 0]
+        }
+    },
+    alphabet_list: {
+        ...orderedList,
+        content: 'list_item+',
+        group: 'block',
+        attrs: {
+            bulletStyle: { default: "lower-alpha" },
+        },
+        toDOM(node: Node<any>) {
+            return ['ol', { style: `list-style: ${node.attrs.bulletStyle}` }, 0]
+        }
+    },
+    cap_alphabet_list: {
+        ...orderedList,
+        content: 'list_item+',
+        group: 'block',
+        attrs: {
+            bulletStyle: { default: "upper-alpha" },
+        },
+        toDOM(node: Node<any>) {
+            return ['ol', { style: `list-style: ${node.attrs.bulletStyle}` }, 0]
+        }
+    },
+    roman_list: {
+        ...orderedList,
+        content: 'list_item+',
+        group: 'block',
+        attrs: {
+            bulletStyle: { default: "lower-roman" },
+        },
+        toDOM(node: Node<any>) {
+            return ['ol', { style: `list-style: ${node.attrs.bulletStyle}` }, 0]
+        }
     },
     //this doesn't currently work for some reason
     bullet_list: {
@@ -181,7 +220,9 @@ export const nodes: { [index: string]: NodeSpec } = {
         content: 'list_item+',
         group: 'block',
         // parseDOM: [{ tag: "ul" }, { style: 'list-style-type=disc' }],
-        // toDOM() { return ulDOM }
+        // toDOM() { return ['ol', {
+        //     style: 'list-type: hebrew'
+        // }] }
     },
 
     //bullet_list: {
