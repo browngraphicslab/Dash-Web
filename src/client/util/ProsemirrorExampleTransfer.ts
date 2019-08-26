@@ -1,14 +1,10 @@
-import { Schema, NodeType } from "prosemirror-model";
-import {
-    wrapIn, setBlockType, chainCommands, toggleMark, exitCode,
-    joinUp, joinDown, lift, selectParentNode, splitBlockKeepMarks, splitBlock, createParagraphNear, liftEmptyBlock
-} from "prosemirror-commands";
-import { wrapInList, splitListItem, liftListItem, sinkListItem } from "prosemirror-schema-list";
-import { undo, redo } from "prosemirror-history";
+import { chainCommands, exitCode, joinDown, joinUp, lift, selectParentNode, setBlockType, splitBlockKeepMarks, toggleMark, wrapIn } from "prosemirror-commands";
+import { redo, undo } from "prosemirror-history";
 import { undoInputRule } from "prosemirror-inputrules";
-import { Transaction, EditorState } from "prosemirror-state";
+import { Schema } from "prosemirror-model";
+import { liftListItem, splitListItem, wrapInList } from "prosemirror-schema-list";
+import { EditorState, Transaction } from "prosemirror-state";
 import { TooltipTextMenu } from "./TooltipTextMenu";
-import { Statement } from "../northstar/model/idea/idea";
 
 const mac = typeof navigator !== "undefined" ? /Mac/.test(navigator.platform) : false;
 
@@ -40,8 +36,8 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
     bind("Mod-b", toggleMark(schema.marks.strong));
     bind("Mod-B", toggleMark(schema.marks.strong));
 
-    bind("Mod-i", toggleMark(schema.marks.em));
-    bind("Mod-I", toggleMark(schema.marks.em));
+    bind("Mod-e", toggleMark(schema.marks.em));
+    bind("Mod-E", toggleMark(schema.marks.em));
 
     bind("Mod-u", toggleMark(schema.marks.underline));
     bind("Mod-U", toggleMark(schema.marks.underline));
@@ -50,7 +46,7 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
 
     bind("Ctrl-.", wrapInList(schema.nodes.bullet_list));
 
-    bind("Ctrl-n", wrapInList(schema.nodes.ordered_lis));
+    bind("Ctrl-n", wrapInList(schema.nodes.ordered_list));
 
     bind("Ctrl->", wrapIn(schema.nodes.blockquote));
 
@@ -91,20 +87,24 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
             dispatch(tx2);
         });
     });
-    bind("Tab", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
+
+    let bulletFunc = (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
+        var ref = state.selection;
+        var range = ref.$from.blockRange(ref.$to);
         var marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
-        if (!sinkListItem(schema.nodes.list_item)(state, (tx2: Transaction) => {
+        let depth = range && range.depth ? range.depth : 0;
+        let nodeType = depth == 2 ? schema.nodes.cap_alphabet_list : depth == 4 ? schema.nodes.roman_list : depth == 6 ? schema.nodes.alphabet_list : schema.nodes.ordered_list;
+
+        if (!wrapInList(nodeType)(state, (tx2: Transaction) => {
             marks && tx2.ensureMarks(marks);
             marks && tx2.setStoredMarks(marks);
             dispatch(tx2);
         })) {
-            wrapInList(schema.nodes.bullet_list)(state, (tx2: Transaction) => {
-                marks && tx2.ensureMarks(marks);
-                marks && tx2.setStoredMarks(marks);
-                dispatch(tx2);
-            });
+            console.log("bullet fail");
         }
-    });
+    }
+    bind("Tab", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => bulletFunc(state, dispatch));
+
     bind("Enter", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
         var marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
         if (!splitListItem(schema.nodes.list_item)(state, (tx3: Transaction) => {
