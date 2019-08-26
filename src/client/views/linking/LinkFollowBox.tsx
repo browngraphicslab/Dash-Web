@@ -58,7 +58,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
 
         this._panDisposer = reaction(
             () => LinkFollowBox.destinationDoc,
-            async newLinkDestination => {
+            async () => {
                 if (LinkFollowBox.destinationDoc && this.sourceView && this.sourceView.props.ContainingCollectionView) {
                     let colDoc = this.sourceView.props.ContainingCollectionView.props.Document;
                     runInAction(() => { this.canPan = false; });
@@ -287,15 +287,14 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
             this.selectedOption === FollowOptions.NOZOOM ? false : true;
 
         if (this.selectedMode === FollowModes.INPLACE) {
-            console.log("hello")
-            console.log(shouldZoom)
             if (shouldZoom !== undefined) this.openLinkInPlace({ shouldZoom: shouldZoom });
         }
         else if (this.selectedMode === FollowModes.OPENFULL) {
-
+            this.openFullScreen();
         }
         else if (this.selectedMode === FollowModes.OPENRIGHT) {
-
+            if (this.selectedContextString === "self") this.openLinkRight();
+            else this.selectedContext && this.openLinkColRight({ context: this.selectedContext });
         }
         else if (this.selectedMode === FollowModes.OPENTAB) {
 
@@ -313,8 +312,16 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     handleModeChange = (e: React.ChangeEvent) => {
         let target = e.target as HTMLInputElement;
         this.selectedMode = target.value;
+        this.selectedContext = undefined;
+        this.selectedContextString = "";
 
         this.shouldUseOnlyParentContext = (this.selectedMode === FollowModes.INPLACE || this.selectedMode === FollowModes.PAN);
+
+        if (this.selectedMode === FollowModes.OPENFULL) {
+            this.selectedContextString = "self";
+            this.selectedContext = LinkFollowBox.destinationDoc;
+        }
+
         if (this.shouldUseOnlyParentContext) {
             if (this.sourceView && this.sourceView.props.ContainingCollectionView) {
                 this.selectedContext = this.sourceView.props.ContainingCollectionView.props.Document;
@@ -332,7 +339,11 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     @action
     handleContextChange = (e: React.ChangeEvent) => {
         let target = e.target as HTMLInputElement;
-        this.selectedContextString = target.value;
+        let toArr = target.value;
+        let arr = toArr.split(",");
+        this.selectedContextString = arr[0];
+        console.log(this.selectedContextString)
+        this.selectedOption = "";
     }
 
     @computed
@@ -402,39 +413,57 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     }
 
     @computed
+    get parentName() {
+        if (this.sourceView && this.sourceView.props.ContainingCollectionView) {
+            let colView = this.sourceView.props.ContainingCollectionView;
+            return colView.props.Document.title;
+        }
+    }
+
+    @computed
+    get parentID(): string {
+        if (this.sourceView && this.sourceView.props.ContainingCollectionView) {
+            let colView = this.sourceView.props.ContainingCollectionView;
+            return StrCast(colView.props.Document[Id]);
+        }
+        return "col";
+    }
+
+    @computed
     get availableContexts() {
         return (
             this.shouldUseOnlyParentContext ?
                 <label><input
                     type="radio" disabled={true}
                     name="context"
-                    value="col"
+                    value={["col", this.parentID]}
                     checked={true} />
-                    Open XXX
+                    {this.parentName} (Parent Collection)
                 </label>
                 :
                 <div>
                     <label><input
-                        type="radio" disabled={LinkFollowBox.linkDoc ? false : true}
+                        type="radio" disabled={LinkFollowBox.linkDoc && !(this.selectedMode === FollowModes.OPENFULL) ? false : true}
                         name="context"
-                        value="self"
+                        value={LinkFollowBox.destinationDoc ? ["self", StrCast(LinkFollowBox.destinationDoc[Id])] : "self"}
                         checked={this.selectedContextString === "self"}
                         onChange={this.handleContextChange} />
                         Open Self
                 </label><br />
-                    {[...this._docs, ...this._otherDocs].map(doc => {
-                        if (doc && doc.target) {
-                            return <div key={doc.col[Id] + doc.target[Id]}><label key={doc.col[Id] + doc.target[Id]}>
-                                <input
-                                    type="radio" disabled={LinkFollowBox.linkDoc ? false : true}
-                                    name="context"
-                                    value={StrCast(doc.col.title)}
-                                    checked={this.selectedContextString === StrCast(doc.col.title)}
-                                    onChange={this.handleContextChange} />
-                                {doc.col.title}
-                            </label><br /></div>;
-                        }
-                    })}
+                    {this.selectedMode === FollowModes.OPENFULL ? null :
+                        [...this._docs, ...this._otherDocs].map(doc => {
+                            if (doc && doc.target) {
+                                return <div key={doc.col[Id] + doc.target[Id]}><label key={doc.col[Id] + doc.target[Id]}>
+                                    <input
+                                        type="radio" disabled={LinkFollowBox.linkDoc ? false : true}
+                                        name="context"
+                                        value={[StrCast(doc.col.title), StrCast(doc.col[Id])]}
+                                        checked={this.selectedContextString === StrCast(doc.col.title)}
+                                        onChange={this.handleContextChange} />
+                                    {doc.col.title}
+                                </label><br /></div>;
+                            }
+                        })}
                 </div>
         );
     }
@@ -465,7 +494,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                     </label><br />
                 </div>
                 :
-                null
+                <div>No Available Options</div>
         );
     }
 
