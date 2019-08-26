@@ -14,6 +14,8 @@ import "./LinkFollowBox.scss";
 import { SearchUtil } from "../../util/SearchUtil";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { listSpec } from "../../../new_fields/Schema";
+import { DocServer } from "../../DocServer";
+import { RefField } from "../../../new_fields/RefField";
 
 enum FollowModes {
     OPENTAB = "Open in Tab",
@@ -37,13 +39,15 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     @observable static destinationDoc: Doc | undefined = undefined;
     @observable static sourceDoc: Doc | undefined = undefined;
     @observable selectedMode: string = "";
-    @observable selectedContext: any = undefined;
+    @observable selectedContext: Doc | undefined = undefined;
+    @observable selectedContextAliases: Doc[] | undefined = undefined;
     @observable selectedOption: string = "";
     @observable selectedContextString: string = "";
     @observable sourceView: DocumentView | undefined = undefined;
     @observable canPan: boolean = false;
     @observable shouldUseOnlyParentContext = false;
-    _panDisposer?: IReactionDisposer;
+    _contextDisposer?: IReactionDisposer;
+    collectionTypes: string[];
 
     @observable private _docs: { col: Doc, target: Doc }[] = [];
     @observable private _otherDocs: { col: Doc, target: Doc }[] = [];
@@ -51,33 +55,49 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     constructor(props: FieldViewProps) {
         super(props);
         LinkFollowBox.Instance = this;
+
+        this.collectionTypes = ["Invalid", "Freeform", "Schema", "Docking", "Tree", "Stacking", "Masonry"];
     }
 
     componentDidMount = () => {
         this.resetVars();
 
-        this._panDisposer = reaction(
-            () => LinkFollowBox.destinationDoc,
+        this._contextDisposer = reaction(
+            () => this.selectedContextString,
             async () => {
-                if (LinkFollowBox.destinationDoc && this.sourceView && this.sourceView.props.ContainingCollectionView) {
-                    let colDoc = this.sourceView.props.ContainingCollectionView.props.Document;
-                    runInAction(() => { this.canPan = false; });
-                    if (colDoc.viewType && colDoc.viewType === 1) {
-                        //this means its in a freeform collection
-                        let docs = Cast(colDoc.data, listSpec(Doc), []);
-                        let aliases = await SearchUtil.GetViewsOfDocument(Doc.GetProto(LinkFollowBox.destinationDoc));
-
-                        aliases.forEach(alias => {
-                            if (docs.filter(doc => doc === alias).length > 0) { runInAction(() => { this.canPan = true; }); }
-                        });
+                let ref = await DocServer.GetRefField(this.selectedContextString);
+                runInAction(() => {
+                    if (ref instanceof Doc) {
+                        this.selectedContext = ref;
                     }
+                });
+                if (this.selectedContext instanceof Doc) {
+                    let aliases = await SearchUtil.GetViewsOfDocument(this.selectedContext);
+                    runInAction(() => { this.selectedContextAliases = aliases; });
                 }
             }
         );
     }
 
     componentWillUnmount = () => {
-        this._panDisposer && this._panDisposer();
+        this._contextDisposer && this._contextDisposer();
+    }
+
+    async resetPan() {
+        if (LinkFollowBox.destinationDoc && this.sourceView && this.sourceView.props.ContainingCollectionView) {
+            let colDoc = this.sourceView.props.ContainingCollectionView.props.Document;
+            runInAction(() => { this.canPan = false; });
+            if (colDoc.viewType && colDoc.viewType === CollectionViewType.Freeform) {
+                let docs = Cast(colDoc.data, listSpec(Doc), []);
+                let aliases = await SearchUtil.GetViewsOfDocument(Doc.GetProto(LinkFollowBox.destinationDoc));
+
+                aliases.forEach(alias => {
+                    if (docs.filter(doc => doc === alias).length > 0) {
+                        runInAction(() => { this.canPan = true; });
+                    }
+                });
+            }
+        }
     }
 
     @action
@@ -124,6 +144,8 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                 this.sourceView = dv;
             }
         });
+
+        this.resetPan();
     }
 
     unhighlight = () => {
@@ -151,15 +173,30 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
         }
     }
 
+    @undoBatch
+    openColFullScreen = (options: { context: Doc }) => {
+        if (LinkFollowBox.destinationDoc) {
+            if (NumCast(options.context.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
+                const newPanX = NumCast(LinkFollowBox.destinationDoc.x) + NumCast(LinkFollowBox.destinationDoc.width) / NumCast(LinkFollowBox.destinationDoc.zoomBasis, 1) / 2;
+                const newPanY = NumCast(LinkFollowBox.destinationDoc.y) + NumCast(LinkFollowBox.destinationDoc.height) / NumCast(LinkFollowBox.destinationDoc.zoomBasis, 1) / 2;
+                options.context.panX = newPanX;
+                options.context.panY = newPanY;
+            }
+            let view = DocumentManager.Instance.getDocumentView(options.context);
+            view && CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(view);
+            this.highlightDoc();
+            SelectionManager.DeselectAll();
+        }
+    }
+
     // should container be a doc or documentview or what? This one needs work and is more long term
     @undoBatch
     openInContainer = (options: { container: Doc }) => {
 
     }
 
-    // NOT TESTED
     @undoBatch
-    openLinkColRight = (options: { context: Doc }) => {
+    openLinkColRight = (options: { context: Doc, shouldZoom: boolean }) => {
         if (LinkFollowBox.destinationDoc) {
             options.context = Doc.IsPrototype(options.context) ? Doc.MakeDelegate(options.context) : options.context;
             if (NumCast(options.context.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
@@ -169,6 +206,8 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                 options.context.panY = newPanY;
             }
             CollectionDockingView.Instance.AddRightSplit(options.context, undefined);
+
+            if (options.shouldZoom) this.jumpToLink({ shouldZoom: options.shouldZoom });
 
             this.highlightDoc();
             SelectionManager.DeselectAll();
@@ -231,9 +270,8 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
         }
     }
 
-    // NOT TESTED
     @undoBatch
-    openLinkColTab = (options: { context: Doc }) => {
+    openLinkColTab = (options: { context: Doc, shouldZoom: boolean }) => {
         if (LinkFollowBox.destinationDoc) {
             options.context = Doc.IsPrototype(options.context) ? Doc.MakeDelegate(options.context) : options.context;
             if (NumCast(options.context.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
@@ -243,6 +281,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                 options.context.panY = newPanY;
             }
             this.props.addDocTab(options.context, undefined, "inTab");
+            if (options.shouldZoom) this.jumpToLink({ shouldZoom: options.shouldZoom });
 
             this.highlightDoc();
             SelectionManager.DeselectAll();
@@ -254,7 +293,6 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
 
         if (LinkFollowBox.destinationDoc && LinkFollowBox.sourceDoc) {
             let alias = Doc.MakeAlias(LinkFollowBox.destinationDoc);
-            console.log(alias)
             let y = NumCast(LinkFollowBox.sourceDoc.y);
             let x = NumCast(LinkFollowBox.sourceDoc.x);
 
@@ -279,33 +317,35 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
 
     //set this to be the default link behavior, can be any of the above
     private defaultLinkBehavior: (options?: any) => void = this.openLinkInPlace;
-    // private currentLinkBehavior: (destinationDoc: Doc, options?: any) => void = this.defaultLinkBehavior;
 
     @action
     currentLinkBehavior = () => {
-        let shouldZoom: boolean | undefined = this.selectedOption === "" ? undefined :
-            this.selectedOption === FollowOptions.NOZOOM ? false : true;
+        // this.resetPan();
+        if (LinkFollowBox.destinationDoc) {
+            if (this.selectedOption === "") this.selectedOption = FollowOptions.NOZOOM;
+            let shouldZoom: boolean = this.selectedOption === FollowOptions.NOZOOM ? false : true;
+            let notOpenInContext: boolean = this.selectedContextString === "self" || this.selectedContextString === LinkFollowBox.destinationDoc[Id];
 
-        if (this.selectedMode === FollowModes.INPLACE) {
-            if (shouldZoom !== undefined) this.openLinkInPlace({ shouldZoom: shouldZoom });
+            if (this.selectedMode === FollowModes.INPLACE) {
+                if (shouldZoom !== undefined) this.openLinkInPlace({ shouldZoom: shouldZoom });
+            }
+            else if (this.selectedMode === FollowModes.OPENFULL) {
+                if (notOpenInContext) this.openFullScreen();
+                else this.selectedContext && this.openColFullScreen({ context: this.selectedContext });
+            }
+            else if (this.selectedMode === FollowModes.OPENRIGHT) {
+                if (notOpenInContext) this.openLinkRight();
+                else this.selectedContext && this.openLinkColRight({ context: this.selectedContext, shouldZoom: shouldZoom });
+            }
+            else if (this.selectedMode === FollowModes.OPENTAB) {
+                if (notOpenInContext) this.openLinkTab();
+                else this.selectedContext && this.openLinkColTab({ context: this.selectedContext, shouldZoom: shouldZoom })
+            }
+            else if (this.selectedMode === FollowModes.PAN) {
+                this.jumpToLink({ shouldZoom: shouldZoom });
+            }
+            else return;
         }
-        else if (this.selectedMode === FollowModes.OPENFULL) {
-            this.openFullScreen();
-        }
-        else if (this.selectedMode === FollowModes.OPENRIGHT) {
-            if (this.selectedContextString === "self") this.openLinkRight();
-            else this.selectedContext && this.openLinkColRight({ context: this.selectedContext });
-        }
-        else if (this.selectedMode === FollowModes.OPENTAB) {
-
-        }
-        else if (this.selectedMode === FollowModes.INPLACE) {
-
-        }
-        else if (this.selectedMode === FollowModes.PAN) {
-
-        }
-        else return;
     }
 
     @action
@@ -316,11 +356,6 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
         this.selectedContextString = "";
 
         this.shouldUseOnlyParentContext = (this.selectedMode === FollowModes.INPLACE || this.selectedMode === FollowModes.PAN);
-
-        if (this.selectedMode === FollowModes.OPENFULL) {
-            this.selectedContextString = "self";
-            this.selectedContext = LinkFollowBox.destinationDoc;
-        }
 
         if (this.shouldUseOnlyParentContext) {
             if (this.sourceView && this.sourceView.props.ContainingCollectionView) {
@@ -339,10 +374,8 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     @action
     handleContextChange = (e: React.ChangeEvent) => {
         let target = e.target as HTMLInputElement;
-        let toArr = target.value;
-        let arr = toArr.split(",");
-        this.selectedContextString = arr[0];
-        console.log(this.selectedContextString)
+        this.selectedContextString = target.value;
+        // selectedContext is updated in reaction
         this.selectedOption = "";
     }
 
@@ -351,10 +384,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
         if (this.sourceView && this.sourceView.props.ContainingCollectionView) {
             let colView = this.sourceView.props.ContainingCollectionView;
             let colDoc = colView.props.Document;
-            if (colDoc.viewType && colDoc.viewType === 1) {
-                //this means its in a freeform collection
-                return true;
-            }
+            if (colDoc.viewType && colDoc.viewType === CollectionViewType.Freeform) return true;
         }
         return false;
     }
@@ -436,75 +466,96 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                 <label><input
                     type="radio" disabled={true}
                     name="context"
-                    value={["col", this.parentID]}
+                    value={this.parentID}
                     checked={true} />
                     {this.parentName} (Parent Collection)
                 </label>
                 :
                 <div>
                     <label><input
-                        type="radio" disabled={LinkFollowBox.linkDoc && !(this.selectedMode === FollowModes.OPENFULL) ? false : true}
+                        type="radio" disabled={LinkFollowBox.linkDoc ? false : true}
                         name="context"
-                        value={LinkFollowBox.destinationDoc ? ["self", StrCast(LinkFollowBox.destinationDoc[Id])] : "self"}
-                        checked={this.selectedContextString === "self"}
+                        value={LinkFollowBox.destinationDoc ? StrCast(LinkFollowBox.destinationDoc[Id]) : "self"}
+                        checked={LinkFollowBox.destinationDoc ? this.selectedContextString === StrCast(LinkFollowBox.destinationDoc[Id]) : this.selectedContextString === "self"}
                         onChange={this.handleContextChange} />
                         Open Self
                 </label><br />
-                    {this.selectedMode === FollowModes.OPENFULL ? null :
-                        [...this._docs, ...this._otherDocs].map(doc => {
-                            if (doc && doc.target) {
-                                return <div key={doc.col[Id] + doc.target[Id]}><label key={doc.col[Id] + doc.target[Id]}>
-                                    <input
-                                        type="radio" disabled={LinkFollowBox.linkDoc ? false : true}
-                                        name="context"
-                                        value={[StrCast(doc.col.title), StrCast(doc.col[Id])]}
-                                        checked={this.selectedContextString === StrCast(doc.col.title)}
-                                        onChange={this.handleContextChange} />
-                                    {doc.col.title}
-                                </label><br /></div>;
-                            }
-                        })}
+                    {[...this._docs, ...this._otherDocs].map(doc => {
+                        if (doc && doc.target && doc.col.title !== "Recently Closed") {
+                            return <div key={doc.col[Id] + doc.target[Id]}><label key={doc.col[Id] + doc.target[Id]}>
+                                <input
+                                    type="radio" disabled={LinkFollowBox.linkDoc ? false : true}
+                                    name="context"
+                                    value={StrCast(doc.col[Id])}
+                                    checked={this.selectedContextString === StrCast(doc.col[Id])}
+                                    onChange={this.handleContextChange} />
+                                {doc.col.title}
+                            </label><br /></div>;
+                        }
+                    })}
                 </div>
         );
     }
 
     @computed
+    get shouldShowZoom(): boolean {
+        if (this.selectedMode === FollowModes.OPENFULL) return false;
+        if (this.shouldUseOnlyParentContext) return true;
+        if (LinkFollowBox.destinationDoc ? this.selectedContextString === LinkFollowBox.destinationDoc[Id] : "self") return false;
+
+        let contextMatch: boolean = false;
+        if (this.selectedContextAliases) {
+            this.selectedContextAliases.forEach(alias => {
+                if (alias.viewType === CollectionViewType.Freeform) contextMatch = true;
+            });
+        }
+        if (contextMatch) return true;
+
+        return false;
+    }
+
+    @computed
     get availableOptions() {
-        let shouldShowZoom = (this.shouldUseOnlyParentContext || this.selectedContextString !== "self");
-        return (
-            shouldShowZoom ?
-                <div>
-                    <label><input
-                        type="radio"
-                        name="option"
-                        value={FollowOptions.ZOOM}
-                        checked={this.selectedOption === FollowOptions.ZOOM}
-                        onChange={this.handleOptionChange}
-                        disabled={false} />
-                        {FollowOptions.ZOOM}
-                    </label><br />
-                    <label><input
-                        type="radio"
-                        name="option"
-                        value={FollowOptions.NOZOOM}
-                        checked={this.selectedOption === FollowOptions.NOZOOM}
-                        onChange={this.handleOptionChange}
-                        disabled={false} />
-                        {FollowOptions.NOZOOM}
-                    </label><br />
-                </div>
-                :
-                <div>No Available Options</div>
-        );
+        if (LinkFollowBox.destinationDoc) {
+            return (
+                this.shouldShowZoom ?
+                    <div>
+                        <label><input
+                            type="radio"
+                            name="option"
+                            value={FollowOptions.ZOOM}
+                            checked={this.selectedOption === FollowOptions.ZOOM}
+                            onChange={this.handleOptionChange}
+                            disabled={false} />
+                            {FollowOptions.ZOOM}
+                        </label><br />
+                        <label><input
+                            type="radio"
+                            name="option"
+                            value={FollowOptions.NOZOOM}
+                            checked={this.selectedOption === FollowOptions.NOZOOM}
+                            onChange={this.handleOptionChange}
+                            disabled={false} />
+                            {FollowOptions.NOZOOM}
+                        </label><br />
+                    </div>
+                    :
+                    <div>No Available Options</div>
+            );
+        }
+        return null;
     }
 
     render() {
         return (
             <div className="linkFollowBox-main" style={{ height: NumCast(this.props.Document.height), width: NumCast(this.props.Document.width) }}>
                 <div className="linkFollowBox-header">
-                    {LinkFollowBox.linkDoc ? "Link Title :" + StrCast(LinkFollowBox.linkDoc.title) : "No Link Selected"}
+                    {LinkFollowBox.linkDoc ? "Link Title: " + StrCast(LinkFollowBox.linkDoc.title) : "No Link Selected"}
+                    <div className="linkFollowBox-header direction-indicator">{LinkFollowBox.linkDoc ?
+                        LinkFollowBox.sourceDoc && LinkFollowBox.destinationDoc ? "Source: " + StrCast(LinkFollowBox.sourceDoc.title) + ", Destination: " + StrCast(LinkFollowBox.destinationDoc.title)
+                            : "" : ""}</div>
                 </div>
-                <div className="linkFollowBox-content" style={{ height: NumCast(this.props.Document.height) - 90 }}>
+                <div className="linkFollowBox-content" style={{ height: NumCast(this.props.Document.height) - 110 }}>
                     <div className="linkFollowBox-item">
                         <div className="linkFollowBox-item title">Mode</div>
                         <div className="linkFollowBox-itemContent">
