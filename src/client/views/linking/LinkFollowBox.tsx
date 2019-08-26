@@ -1,4 +1,4 @@
-import { observable, computed, action, trace, ObservableMap, runInAction, reaction } from "mobx";
+import { observable, computed, action, trace, ObservableMap, runInAction, reaction, IReactionDisposer } from "mobx";
 import React = require("react");
 import { observer } from "mobx-react";
 import { FieldViewProps, FieldView } from "../nodes/FieldView";
@@ -43,6 +43,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     @observable sourceView: DocumentView | undefined = undefined;
     @observable canPan: boolean = false;
     @observable shouldUseOnlyParentContext = false;
+    _panDisposer?: IReactionDisposer;
 
     @observable private _docs: { col: Doc, target: Doc }[] = [];
     @observable private _otherDocs: { col: Doc, target: Doc }[] = [];
@@ -55,7 +56,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     componentDidMount = () => {
         this.resetVars();
 
-        reaction(
+        this._panDisposer = reaction(
             () => LinkFollowBox.destinationDoc,
             async newLinkDestination => {
                 if (LinkFollowBox.destinationDoc && this.sourceView && this.sourceView.props.ContainingCollectionView) {
@@ -73,6 +74,10 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                 }
             }
         );
+    }
+
+    componentWillUnmount = () => {
+        this._panDisposer && this._panDisposer();
     }
 
     @action
@@ -249,6 +254,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
 
         if (LinkFollowBox.destinationDoc && LinkFollowBox.sourceDoc) {
             let alias = Doc.MakeAlias(LinkFollowBox.destinationDoc);
+            console.log(alias)
             let y = NumCast(LinkFollowBox.sourceDoc.y);
             let x = NumCast(LinkFollowBox.sourceDoc.x);
 
@@ -260,13 +266,11 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
             alias.width = width;
             alias.height = height;
 
-            SelectionManager.SelectedDocuments().map(dv => {
-                if (dv.props.Document === LinkFollowBox.sourceDoc) {
-                    dv.props.addDocument && dv.props.addDocument(alias, false);
-                }
-            });
+            if (this.sourceView && this.sourceView.props.addDocument) {
+                this.sourceView.props.addDocument(alias, false);
+            }
 
-            this.jumpToLink({ shouldZoom: false });
+            this.jumpToLink({ shouldZoom: options.shouldZoom });
 
             this.highlightDoc();
             SelectionManager.DeselectAll();
@@ -279,8 +283,13 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
 
     @action
     currentLinkBehavior = () => {
-        if (this.selectedMode === FollowModes.INPLACE) {
+        let shouldZoom: boolean | undefined = this.selectedOption === "" ? undefined :
+            this.selectedOption === FollowOptions.NOZOOM ? false : true;
 
+        if (this.selectedMode === FollowModes.INPLACE) {
+            console.log("hello")
+            console.log(shouldZoom)
+            if (shouldZoom !== undefined) this.openLinkInPlace({ shouldZoom: shouldZoom });
         }
         else if (this.selectedMode === FollowModes.OPENFULL) {
 

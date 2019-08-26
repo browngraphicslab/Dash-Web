@@ -175,7 +175,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     }
 
     //set this to be the default link behavior, can be any of the above
-    // private defaultLinkBehavior: any = LinkFollowBox.computeLinkDocs(this.props.linkDoc);
+    private defaultLinkBehavior: any = this.openLinkInPlace;
 
     onEdit = (e: React.PointerEvent): void => {
         e.stopPropagation();
@@ -244,6 +244,8 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                             {/* <div title="Follow link" className="button" onPointerDown={this.onFollowLink}><FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" /></div> */}
                             {/* New */}
                             <div title="Follow link" className="button" onClick={() => LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc)}><FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" /></div>
+                            {/* <div title="Follow link" className="button" onClick={this.defaultLinkBehavior}><FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" /></div> */}
+
                         </div>
                     </div>
                     {this._showMore ? this.renderMetadata() : <></>}
