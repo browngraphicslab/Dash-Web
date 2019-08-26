@@ -5,7 +5,7 @@ import { ProxyField } from "./Proxy";
 import { RefField } from "./RefField";
 import { ObjectField } from "./ObjectField";
 import { action } from "mobx";
-import { Parent, OnUpdate, Update, Id, SelfProxy, Self, SetAcls, GetAcls } from "./FieldSymbols";
+import { Parent, OnUpdate, Update, Id, SelfProxy, Self, SetAcls, GetAcls, Public, SaveAcls } from "./FieldSymbols";
 import { ComputedField } from "./ScriptField";
 import { CurrentUserUtils } from "../server/authentication/models/current_user_utils";
 import { StrCast } from "./Types";
@@ -77,8 +77,8 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
     }
     let acls = receiver[GetAcls]();
     if (acls && CurrentUserUtils.id) {
-        if (!acls[CurrentUserUtils.id]) {
-            // debugger;
+        if (!acls[CurrentUserUtils.id] && acls[Public]["*"] === Permissions.NONE) {
+            return true;
         }
         let permissions = acls[CurrentUserUtils.id]["*"];
         let keyPermission = acls[CurrentUserUtils.id][prop];

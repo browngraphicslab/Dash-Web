@@ -1,5 +1,5 @@
 import { serializable, primitive, map, alias } from "serializr";
-import { observable, runInAction, ObservableMap } from "mobx";
+import { observable, runInAction, ObservableMap, action } from "mobx";
 import { autoObject, SerializationHelper, Deserializable, afterDocDeserialize } from "../client/util/SerializationHelper";
 import { DocServer } from "../client/DocServer";
 import { setter, getter, getField, updateFunction, deleteProperty, makeEditable, makeReadOnly } from "./util";
@@ -7,7 +7,7 @@ import { Cast, ToConstructor, PromiseValue, FieldValue, NumCast, BoolCast, StrCa
 import { listSpec } from "./Schema";
 import { ObjectField } from "./ObjectField";
 import { RefField, FieldId } from "./RefField";
-import { ToScriptString, SelfProxy, Parent, OnUpdate, Self, HandleUpdate, Update, Id, SetAcls, GetAcls, CloneAcls, Copy, Public, System } from "./FieldSymbols";
+import { ToScriptString, SelfProxy, Parent, OnUpdate, Self, HandleUpdate, Update, Id, SetAcls, GetAcls, CloneAcls, Copy, Public, System, SaveAcls } from "./FieldSymbols";
 import { scriptingGlobal, CompileScript, Scripting } from "../client/util/Scripting";
 import { List } from "./List";
 import { DocumentType } from "../client/documents/Documents";
@@ -96,7 +96,7 @@ export class Doc extends RefField {
 
     public [CloneAcls] = (id: string, acls: { [key: string]: Permissions }) => {
         this._acls[id] = acls;
-        if (!this[UpdatingFromServer]) {
+        if (!this[UpdatingFromServer] && !this[SaveAcls]()) {
             DocServer.UpdateField(this[Id], { "$set": { "acls": this._acls } });
         }
     }
@@ -108,13 +108,17 @@ export class Doc extends RefField {
 
         if (keys) {
             // this might be bad, helpful for testing -syip
-            this._acls[id]["*"] = Permissions.READ;
+            // this._acls[id]["*"] = Permissions.READ;
             keys.forEach(k => {
-                this._acls[id][k] = permission;
                 let field = this.__fields[k];
-                if (field instanceof PrefetchProxy) {
-                    let proxy = field.value();
-                    proxy[SetAcls](id, permission);
+                if (field || k === "*") {
+                    this._acls[id][k] = permission;
+                    if (field instanceof PrefetchProxy) {
+                        let proxy = field.value();
+                        if (!Doc.BaseProto(proxy)) {
+                            proxy[SetAcls](id, permission, keys);
+                        }
+                    }
                 }
             });
         }
@@ -131,7 +135,9 @@ export class Doc extends RefField {
                 }
             });
         }
-        DocServer.UpdateField(this[Id], { "$set": { "acls": this._acls } });
+        if (!this[SaveAcls]()) {
+            DocServer.UpdateField(this[Id], { "$set": { "acls": this._acls } });
+        }
     }
 
     public [GetAcls] = () => this._acls;
@@ -207,6 +213,9 @@ export class Doc extends RefField {
 
     private [Self] = this;
     private [SelfProxy]: any;
+    private [SaveAcls] = () => {
+        return this._acls.saveAcls;
+    }
     public [WidthSym] = () => NumCast(this[SelfProxy].width);  // bcz: is this the right way to access width/height?   it didn't work with : this.width
     public [HeightSym] = () => NumCast(this[SelfProxy].height);
 

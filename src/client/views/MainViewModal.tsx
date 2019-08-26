@@ -1,5 +1,7 @@
 import * as React from 'react';
 import "./MainViewModal.scss";
+import { observable, action, computed } from 'mobx';
+import { observer } from 'mobx-react';
 
 export interface MainViewOverlayProps {
     isDisplayed: boolean;
@@ -11,29 +13,33 @@ export interface MainViewOverlayProps {
     overlayDisplayedOpacity?: number;
 }
 
+@observer
 export default class MainViewModal extends React.Component<MainViewOverlayProps> {
+    @computed
+    private get _p() {
+        return this.props;
+    }
 
     render() {
-        let p = this.props;
-        let dialogueOpacity = p.dialogueBoxDisplayedOpacity || 1;
-        let overlayOpacity = p.overlayDisplayedOpacity || 0.4;
+        let dialogueOpacity = this._p.dialogueBoxDisplayedOpacity || 1;
+        let overlayOpacity = this._p.overlayDisplayedOpacity || 0.4;
         return (
-            <div style={{ pointerEvents: p.isDisplayed ? p.interactive ? "all" : "none" : "none" }}>
+            <div style={{ pointerEvents: this._p.isDisplayed ? this._p.interactive ? "all" : "none" : "none" }}>
                 <div
                     className={"dialogue-box"}
                     style={{
                         backgroundColor: "gainsboro",
                         borderColor: "black",
-                        ...(p.dialogueBoxStyle || {}),
-                        opacity: p.isDisplayed ? dialogueOpacity : 0
+                        ...(this._p.dialogueBoxStyle || {}),
+                        opacity: this._p.isDisplayed ? dialogueOpacity : 0
                     }}
-                >{p.contents}</div>
+                >{this._p.isDisplayed ? this._p.contents : (null)}</div>
                 <div
                     className={"overlay"}
                     style={{
                         backgroundColor: "gainsboro",
-                        ...(p.overlayStyle || {}),
-                        opacity: p.isDisplayed ? overlayOpacity : 0
+                        ...(this._p.overlayStyle || {}),
+                        opacity: this._p.isDisplayed ? overlayOpacity : 0
                     }}
                 />
             </div>

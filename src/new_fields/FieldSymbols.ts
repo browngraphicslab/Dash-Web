@@ -4,6 +4,7 @@ export const Self = Symbol("Self");
 export const SetAcls = Symbol("SetAcls");
 export const GetAcls = Symbol("GetAcls");
 export const CloneAcls = Symbol("CloneAcls");
+export const SaveAcls = Symbol("SaveAcls");
 export const SelfProxy = Symbol("SelfProxy");
 export const Public = "__public__";
 export const System = "__system__";

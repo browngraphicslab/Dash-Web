@@ -860,6 +860,7 @@ function GetRefField(socket: Socket, [id, callback]: [string, (result: any) => v
                 }
                 else {
                     clone.fields = {
+                        ...result.fields,
                         layout: "<FormattedTextBox {...props} fieldKey={\"data\"} fieldExt={\"\"} />",
                         data: '=new RichTextField("{"doc":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Permission denied"}]}]},"selection":{"type":"text","anchor":9,"head":9}}")',
                         title: "Permission Denied",
@@ -869,8 +870,11 @@ function GetRefField(socket: Socket, [id, callback]: [string, (result: any) => v
                     };
                 }
                 clone.acls = result.acls;
-                clone.acls[info.id] = {};
-                clone.acls[info.id]["*"] = ServerPermissions.READ;
+                clone.acls.saveAcls = {};
+                if (!clone.acls[info.id]) {
+                    clone.acls[info.id] = {};
+                    clone.acls[info.id]["*"] = ServerPermissions.READ;
+                }
                 callback(clone);
             }
         }

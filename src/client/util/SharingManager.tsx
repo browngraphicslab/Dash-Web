@@ -117,9 +117,11 @@ export default class SharingManager extends React.Component<{}> {
                 console.log("UNABLE TO ACCESS NOTIFICATION DATA");
                 return;
             }
+            let sharedDoc: Doc | undefined;
             console.log(`Attempting to set permissions to ${permission} for the document ${target[Id]}`);
             if (keys) {
-                let proto: Doc | undefined = Doc.MakeAlias(target);
+                sharedDoc = Doc.MakeAlias(target);
+                let proto: Doc | undefined = sharedDoc;
                 let depths = Array.from(keys.keys());
                 let j = 0;
                 // go through each depth
@@ -147,7 +149,7 @@ export default class SharingManager extends React.Component<{}> {
                     }
                 }
                 else {
-                    let sharedDoc = Doc.MakeAlias(target);
+                    sharedDoc = Doc.MakeAlias(target);
                     if (sharedDoc.proto) {
                         sharedDoc.proto[SetAcls](user.userDocumentId, permission);
                         let tData = sharedDoc.proto.data;
@@ -156,12 +158,14 @@ export default class SharingManager extends React.Component<{}> {
                         }
                     }
                     sharedDoc[SetAcls](user.userDocumentId, 1);
-                    if (data) {
-                        data.push(sharedDoc);
-                    }
-                    else {
-                        notifDoc.data = new List([sharedDoc]);
-                    }
+                }
+            }
+            if (sharedDoc) {
+                if (data) {
+                    data.push(sharedDoc);
+                }
+                else {
+                    notifDoc.data = new List([sharedDoc]);
                 }
             }
         }
@@ -241,7 +245,9 @@ export default class SharingManager extends React.Component<{}> {
         return this.targetDoc ? ColorMapping.get(this.publicPermissions) : DefaultColor;
     }
 
+    @computed
     private get sharingInterface() {
+        let targetDoc = this.targetDoc;
         return (
             <div className={"sharing-interface"}>
                 <p className={"share-link"}>Manage the public link to {this.focusOn("this document...")}</p>
@@ -277,7 +283,7 @@ export default class SharingManager extends React.Component<{}> {
                 <p className={"share-individual"}>Privately share {this.focusOn("this document")} with an individual...</p>
                 <div className={"users-list"} style={{ display: this.users.length ? "block" : "flex" }}>
                     {!this.users.length ? "There are no other users in your database." :
-                        this.users.map(user => <UserOptions user={user} targetDoc={this.targetDoc} sharingOptions={this.sharingOptions} setInternalSharing={this.setInternalSharing} />)
+                        this.users.map(user => <UserOptions user={user} targetDoc={targetDoc} sharingOptions={this.sharingOptions} setInternalSharing={this.setInternalSharing} />)
                     }
                 </div>
                 <div className={"close-button"} onClick={this.close}>Done</div>
@@ -308,22 +314,26 @@ export interface IUserOptions {
 
 @observer
 export class UserOptions extends React.Component<IUserOptions> {
-    @observable
-    private _targetDoc = this.props.targetDoc;
+    @computed
+    private get _targetDoc() {
+        return this.props.targetDoc;
+    }
+
     @observable
     private _userPermission: number = this._targetDoc && this._targetDoc[GetAcls]()[this.props.user.userDocumentId] ? this._targetDoc[GetAcls]()[this.props.user.userDocumentId]["*"] : 3;
+
+    // @computed
+    // private get _userPermission() {
+    //     if (this._targetDoc) {
+    //         let perm = this._targetDoc[GetAcls]()[this.props.user.userDocumentId]["*"];
+    //         return perm;
+    //     }
+    //     return 3;
+    // }
 
     private _checkedKeys: Map<number, string[]> = new Map<number, string[]>();
 
     private _previousValue: number = 3;
-
-    componentWillUpdate(props: IUserOptions) {
-        if (props.targetDoc !== this._targetDoc) {
-            runInAction(
-                () => this._targetDoc = props.targetDoc
-            );
-        }
-    }
 
     @action
     openSettings = (e: React.MouseEvent) => {
@@ -351,14 +361,17 @@ export class UserOptions extends React.Component<IUserOptions> {
             let proto: Doc | undefined = this._targetDoc;
             let depth = 0;
             while (proto && !Doc.BaseProto(proto)) {
-                keys.push(...Object.keys(this._targetDoc).map(k =>
+                let currDepth = depth;
+                console.log(Object.keys(proto));
+                keys.push(...Object.keys(proto).map(k =>
                     <div>
-                        <input type="checkbox" onChange={(e: React.ChangeEvent) => onKeyChanged(e, k, depth)} id={k} className="userOptions-permissionSettingsKey" />
+                        <input type="checkbox" onChange={(e: React.ChangeEvent) => onKeyChanged(e, k, currDepth)} id={k} className="userOptions-permissionSettingsKey" />
                         <label htmlFor={k}>{k}</label>
                     </div>));
                 depth++;
                 proto = proto.proto;
             }
+            return keys;
         }
         return <p>No keys found...</p>;
     }
