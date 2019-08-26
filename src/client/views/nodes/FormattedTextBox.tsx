@@ -143,25 +143,19 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
                 if (this._editorView && guid) {
                     let editor = this._editorView;
-                    console.log(guid);
                     let ret = findLinkFrag(editor.state.doc.content, editor);
 
                     if (ret.frag.size > 2) { // fragment is not empty
-                        console.log('here is frag', ret.frag);
                         let tr;
-                        let index = 0;
-                        while (ret.frag.child(index).nodeSize === 2) {
-                            index++;
-                        }
+                        if (ret.frag.firstChild) {
 
-                        // TODO find how to select correct child.............................
-                        if (ret.frag.child(index)) {
-                            tr = editor.state.tr.setSelection(TextSelection.between(editor.state.doc.resolve(ret.start), editor.state.doc.resolve(ret.start + ret.frag.child(index).nodeSize)));
-                        } else { // fallback
+                            tr = editor.state.tr.setSelection(TextSelection.between(editor.state.doc.resolve(ret.start + 2), editor.state.doc.resolve(ret.start + ret.frag.firstChild.nodeSize)));
+                        } else {
                             tr = editor.state.tr.setSelection(TextSelection.near(editor.state.doc.resolve(ret.start)));
                         }
                         editor.focus();
                         editor.dispatch(tr.scrollIntoView());
+                        editor.dispatch(tr.scrollIntoView()); // bcz: sometimes selection doesn't fully scroll into view on smaller text boxes <5 lines visibility -- hopefully avoidable by ppl just not using small boxes...?
                         this.props.Document.guid = "";
                     }
                 }
@@ -170,11 +164,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     const nodes: Node[] = [];
                     frag.forEach((node, index) => {
                         let examinedNode = findLinkNode(node, editor);
-                        if (examinedNode) {
+                        if (examinedNode && examinedNode.textContent !== "") {
                             nodes.push(examinedNode);
-                            if (index > start) {
-                                start = index;
-                            }
+                            start += index;
                         }
                     });
                     return { frag: Fragment.fromArray(nodes), start: start };
