@@ -79,6 +79,7 @@ export interface DocumentOptions {
     borderRounding?: string;
     schemaColumns?: List<SchemaHeaderField>;
     dockingConfig?: string;
+    autoHeight?: boolean;
     dbDoc?: Doc;
     // [key: string]: Opt<Field>;
 }

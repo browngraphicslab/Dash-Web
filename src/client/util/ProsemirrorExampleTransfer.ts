@@ -1,14 +1,10 @@
-import { Schema, NodeType } from "prosemirror-model";
-import {
-    wrapIn, setBlockType, chainCommands, toggleMark, exitCode,
-    joinUp, joinDown, lift, selectParentNode
-} from "prosemirror-commands";
-import { wrapInList, splitListItem, liftListItem, sinkListItem } from "prosemirror-schema-list";
-import { undo, redo } from "prosemirror-history";
+import { chainCommands, exitCode, joinDown, joinUp, lift, selectParentNode, setBlockType, splitBlockKeepMarks, toggleMark, wrapIn } from "prosemirror-commands";
+import { redo, undo } from "prosemirror-history";
 import { undoInputRule } from "prosemirror-inputrules";
-import { Transaction, EditorState } from "prosemirror-state";
+import { Schema } from "prosemirror-model";
+import { liftListItem, splitListItem, wrapInList } from "prosemirror-schema-list";
+import { EditorState, Transaction } from "prosemirror-state";
 import { TooltipTextMenu } from "./TooltipTextMenu";
-import { Statement } from "../northstar/model/idea/idea";
 
 const mac = typeof navigator !== "undefined" ? /Mac/.test(navigator.platform) : false;
 
@@ -30,79 +26,105 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
     bind("Shift-Mod-z", redo);
     bind("Backspace", undoInputRule);
 
-    if (!mac) {
-        bind("Mod-y", redo);
-    }
+    !mac && bind("Mod-y", redo);
 
     bind("Alt-ArrowUp", joinUp);
     bind("Alt-ArrowDown", joinDown);
     bind("Mod-BracketLeft", lift);
     bind("Escape", selectParentNode);
 
-    if (type = schema.marks.strong) {
-        bind("Mod-b", toggleMark(type));
-        bind("Mod-B", toggleMark(type));
-    }
-    if (type = schema.marks.em) {
-        bind("Mod-i", toggleMark(type));
-        bind("Mod-I", toggleMark(type));
-    }
-    if (type = schema.marks.underline) {
-        bind("Mod-u", toggleMark(type));
-        bind("Mod-U", toggleMark(type));
-    }
-    if (type = schema.marks.code) {
-        bind("Mod-`", toggleMark(type));
+    bind("Mod-b", toggleMark(schema.marks.strong));
+    bind("Mod-B", toggleMark(schema.marks.strong));
+
+    bind("Mod-e", toggleMark(schema.marks.em));
+    bind("Mod-E", toggleMark(schema.marks.em));
+
+    bind("Mod-u", toggleMark(schema.marks.underline));
+    bind("Mod-U", toggleMark(schema.marks.underline));
+
+    bind("Mod-`", toggleMark(schema.marks.code));
+
+    bind("Ctrl-.", wrapInList(schema.nodes.bullet_list));
+
+    bind("Ctrl-n", wrapInList(schema.nodes.ordered_list));
+
+    bind("Ctrl->", wrapIn(schema.nodes.blockquote));
+
+
+    let cmd = chainCommands(exitCode, (state, dispatch) => {
+        if (dispatch) {
+            dispatch(state.tr.replaceSelectionWith(schema.nodes.hard_break.create()).scrollIntoView());
+            return true;
+        }
+        return false;
+    });
+    bind("Mod-Enter", cmd);
+    bind("Shift-Enter", cmd);
+    mac && bind("Ctrl-Enter", cmd);
+
+
+    bind("Shift-Ctrl-0", setBlockType(schema.nodes.paragraph));
+
+    bind("Shift-Ctrl-\\", setBlockType(schema.nodes.code_block));
+
+    for (let i = 1; i <= 6; i++) {
+        bind("Shift-Ctrl-" + i, setBlockType(schema.nodes.heading, { level: i }));
     }
 
-    if (type = schema.nodes.bullet_list) {
-        bind("Ctrl-.", wrapInList(type));
-    }
-    if (type = schema.nodes.ordered_list) {
-        bind("Ctrl-n", wrapInList(type));
-    }
-    if (type = schema.nodes.blockquote) {
-        bind("Ctrl->", wrapIn(type));
-    }
-    if (type = schema.nodes.hard_break) {
-        let br = type, cmd = chainCommands(exitCode, (state, dispatch) => {
-            if (dispatch) {
-                dispatch(state.tr.replaceSelectionWith(br.create()).scrollIntoView());
-                return true;
-            }
-            return false;
-        });
-        bind("Mod-Enter", cmd);
-        bind("Shift-Enter", cmd);
-        if (mac) {
-            bind("Ctrl-Enter", cmd);
-        }
-    }
-    if (type = schema.nodes.list_item) {
-        bind("Enter", splitListItem(type));
-        bind("Shift-Tab", liftListItem(type));
-        bind("Tab", sinkListItem(type));
-    }
-    if (type = schema.nodes.paragraph) {
-        bind("Shift-Ctrl-0", setBlockType(type));
-    }
-    if (type = schema.nodes.code_block) {
-        bind("Shift-Ctrl-\\", setBlockType(type));
-    }
-    if (type = schema.nodes.heading) {
-        for (let i = 1; i <= 6; i++) {
-            bind("Shift-Ctrl-" + i, setBlockType(type, { level: i }));
-        }
-    }
-    if (type = schema.nodes.horizontal_rule) {
-        let hr = type;
-        bind("Mod-_", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
-            dispatch(state.tr.replaceSelectionWith(hr.create()).scrollIntoView());
-            return true;
-        });
-    }
+    let hr = schema.nodes.horizontal_rule;
+    bind("Mod-_", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
+        dispatch(state.tr.replaceSelectionWith(hr.create()).scrollIntoView());
+        return true;
+    });
 
     bind("Mod-s", TooltipTextMenu.insertStar);
+
+    bind("Shift-Tab", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
+        var marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
+        liftListItem(schema.nodes.list_item)(state, (tx2: Transaction) => {
+            marks && tx2.ensureMarks(marks);
+            marks && tx2.setStoredMarks(marks);
+            dispatch(tx2);
+        });
+    });
+
+    let bulletFunc = (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
+        var ref = state.selection;
+        var range = ref.$from.blockRange(ref.$to);
+        var marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
+        let depth = range && range.depth ? range.depth : 0;
+        let nodeType = depth == 2 ? schema.nodes.cap_alphabet_list : depth == 4 ? schema.nodes.roman_list : depth == 6 ? schema.nodes.alphabet_list : schema.nodes.ordered_list;
+
+        if (!wrapInList(nodeType)(state, (tx2: Transaction) => {
+            marks && tx2.ensureMarks(marks);
+            marks && tx2.setStoredMarks(marks);
+            dispatch(tx2);
+        })) {
+            console.log("bullet fail");
+        }
+    }
+    bind("Tab", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => bulletFunc(state, dispatch));
+
+    bind("Enter", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
+        var marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
+        if (!splitListItem(schema.nodes.list_item)(state, (tx3: Transaction) => {
+            marks && tx3.ensureMarks(marks);
+            marks && tx3.setStoredMarks(marks);
+            dispatch(tx3);
+        })) {
+            if (!splitBlockKeepMarks(state, (tx3: Transaction) => {
+                marks && tx3.ensureMarks(marks);
+                marks && tx3.setStoredMarks(marks);
+                if (!liftListItem(schema.nodes.list_item)(state, (tx4: Transaction) => dispatch(tx4))) {
+                    dispatch(tx3);
+                }
+            })) {
+                return false;
+            }
+        }
+        return true;
+    });
+
 
     return keys;
 }

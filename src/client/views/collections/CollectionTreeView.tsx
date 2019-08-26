@@ -271,7 +271,7 @@ class TreeView extends React.Component<TreeViewProps> {
 
             if (contents instanceof Doc || Cast(contents, listSpec(Doc))) {
                 let remDoc = (doc: Doc) => this.remove(doc, key);
-                let addDoc = (doc: Doc, addBefore?: Doc, before?: boolean) => Doc.AddDocToList(this.dataDoc, key, doc, addBefore, before, !BoolCast(this.props.document.stackingHeadersSortDescending, true));
+                let addDoc = (doc: Doc, addBefore?: Doc, before?: boolean) => Doc.AddDocToList(this.dataDoc, key, doc, addBefore, before, false, true);
                 contentElement = TreeView.GetChildElements(contents instanceof Doc ? [contents] :
                     DocListCast(contents), this.props.treeViewId, doc, undefined, key, addDoc, remDoc, this.move,
                     this.props.dropAction, this.props.addDocTab, this.props.pinToPres, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active, this.props.panelWidth, this.props.renderDepth, this.props.showHeaderFields, this.props.preventTreeViewOpen);
@@ -299,7 +299,7 @@ class TreeView extends React.Component<TreeViewProps> {
         const expandKey = this.treeViewExpandedView === this.fieldKey ? this.fieldKey : this.treeViewExpandedView === "links" ? "links" : undefined;
         if (expandKey !== undefined) {
             let remDoc = (doc: Doc) => this.remove(doc, expandKey);
-            let addDoc = (doc: Doc, addBefore?: Doc, before?: boolean) => Doc.AddDocToList(this.dataDoc, expandKey, doc, addBefore, before, !BoolCast(this.props.document.stackingHeadersSortDescending, true));
+            let addDoc = (doc: Doc, addBefore?: Doc, before?: boolean) => Doc.AddDocToList(this.dataDoc, expandKey, doc, addBefore, before, false, true);
             let docs = expandKey === "links" ? this.childLinks : this.childDocs;
             return <ul key={expandKey + "more"}>
                 {!docs ? (null) :
@@ -340,7 +340,7 @@ class TreeView extends React.Component<TreeViewProps> {
 
     @computed
     get renderBullet() {
-        return <div className="bullet" onClick={action(() => this.treeViewOpen = !this.treeViewOpen)} style={{ color: StrCast(this.props.document.color, "black"), opacity: 0.4 }}>
+        return <div className="bullet" title="view inline" onClick={action(() => this.treeViewOpen = !this.treeViewOpen)} style={{ color: StrCast(this.props.document.color, "black"), opacity: 0.4 }}>
             {<FontAwesomeIcon icon={!this.treeViewOpen ? (this.childDocs ? "caret-square-right" : "caret-right") : (this.childDocs ? "caret-square-down" : "caret-down")} />}
         </div>;
     }
@@ -365,13 +365,11 @@ class TreeView extends React.Component<TreeViewProps> {
                 })}>
                 {this.treeViewExpandedView}
             </span>);
-        let dataDocs = CollectionDockingView.Instance ? Cast(CollectionDockingView.Instance.props.Document[this.fieldKey], listSpec(Doc), []) : [];
-        let openRight = dataDocs && dataDocs.indexOf(this.dataDoc) !== -1 ? (null) : (
-            <div className="treeViewItem-openRight" onPointerDown={this.onPointerDown} onClick={this.openRight}>
-                <FontAwesomeIcon icon="angle-right" size="lg" />
-            </div>);
+        let openRight = (<div className="treeViewItem-openRight" onPointerDown={this.onPointerDown} onClick={this.openRight}>
+            <FontAwesomeIcon title="open in pane on right" icon="angle-right" size="lg" />
+        </div>);
         return <>
-            <div className="docContainer" id={`docContainer-${this.props.parentKey}`} ref={reference} onPointerDown={onItemDown}
+            <div className="docContainer" title="click to edit title" id={`docContainer-${this.props.parentKey}`} ref={reference} onPointerDown={onItemDown}
                 style={{
                     color: this.props.document.isMinimized ? "red" : "black",
                     background: Doc.IsBrushed(this.props.document) ? "#06121212" : "0",
@@ -433,12 +431,12 @@ class TreeView extends React.Component<TreeViewProps> {
             });
         }
 
-        let descending = BoolCast(containingCollection.stackingHeadersSortDescending, true);
-        docs.slice().sort(function (a, b): 1 | -1 {
-            let descA = descending ? b : a;
-            let descB = descending ? a : b;
-            let first = descA[String(containingCollection.sectionFilter)];
-            let second = descB[String(containingCollection.sectionFilter)];
+        let ascending = Cast(containingCollection.sortAscending, "boolean", null);
+        if (ascending !== undefined) docs.sort(function (a, b): 1 | -1 {
+            let descA = ascending ? b : a;
+            let descB = ascending ? a : b;
+            let first = descA.title;
+            let second = descB.title;
             // TODO find better way to sort how to sort..................
             if (typeof first === 'number' && typeof second === 'number') {
                 return (first - second) > 0 ? 1 : -1;
@@ -452,7 +450,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 // }
                 return first > second ? 1 : -1;
             }
-            return descending ? 1 : -1;
+            return ascending ? 1 : -1;
         });
 
         let rowWidth = () => panelWidth() - 20;
@@ -585,7 +583,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
     render() {
         Doc.UpdateDocumentExtensionForField(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey);
         let dropAction = StrCast(this.props.Document.dropAction) as dropActionType;
-        let addDoc = (doc: Doc, relativeTo?: Doc, before?: boolean) => Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, relativeTo, before, false, false, !BoolCast(this.props.Document.stackingHeadersSortDescending, true));
+        let addDoc = (doc: Doc, relativeTo?: Doc, before?: boolean) => Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, relativeTo, before, false, false, false);
         let moveDoc = (d: Doc, target: Doc, addDoc: (doc: Doc) => boolean) => this.props.moveDocument(d, target, addDoc);
         return !this.childDocs ? (null) : (
             <div id="body" className="collectionTreeView-dropTarget"
@@ -605,7 +603,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                         let doc = this.props.Document.detailedLayout instanceof Doc ? Doc.ApplyTemplate(Doc.GetProto(this.props.Document.detailedLayout)) : undefined;
                         if (!doc) doc = Docs.Create.FreeformDocument([], { title: "", x: 0, y: 0, width: 100, height: 25, templates: new List<string>([Templates.Title.Layout]) });
                         TreeView.loadId = doc[Id];
-                        Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, this.childDocs.length ? this.childDocs[0] : undefined, true, false, false, !BoolCast(this.props.Document.stackingHeadersSortDescending, true));
+                        Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, this.childDocs.length ? this.childDocs[0] : undefined, true, false, false, false);
                     })} />
                 {this.props.Document.workspaceLibrary ? this.renderNotifsButton : (null)}
                 {this.props.Document.allowClear ? this.renderClearButton : (null)}
