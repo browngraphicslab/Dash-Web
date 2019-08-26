@@ -213,6 +213,71 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
         return newContentItem;
     }
+
+    @action
+    public AddBottomSplit = (document: Doc, dataDoc: Doc | undefined, minimize: boolean = false) => {
+        let docs = Cast(this.props.Document.data, listSpec(Doc));
+        if (docs) {
+            docs.push(document);
+        }
+        let newItemStackConfig = {
+            type: 'stack',
+            content: [CollectionDockingView.makeDocumentConfig(document, dataDoc)]
+        };
+
+        var newContentItem = this._goldenLayout.root.layoutManager.createContentItem(newItemStackConfig, this._goldenLayout);
+        var config = {
+            content: [{
+                type: 'stack',
+                isClosable: false,
+                content: newContentItem,
+            }]
+        };
+
+        if (this._goldenLayout.root.contentItems.length === 0) {
+            var rowlayout = this._goldenLayout.root.contentItems[0];
+            var newColumn = rowlayout.layoutManager.createContentItem({ type: "column" }, this._goldenLayout);
+            rowlayout.parent.replaceChild(rowlayout, newColumn);
+
+            newColumn.addChild(newContentItem, undefined, true);
+            newColumn.addChild(rowlayout, 0, true);
+
+            rowlayout.config.height = 50;
+            newContentItem.config.height = 50;
+        } else if (this._goldenLayout.root.contentItems[0].isRow) {
+            var rowlayout = this._goldenLayout.root.contentItems[0];
+            var newColumn = rowlayout.layoutManager.createContentItem({ type: "column" }, this._goldenLayout);
+            rowlayout.parent.replaceChild(rowlayout, newColumn);
+
+            newColumn.addChild(newContentItem, undefined, true);
+            newColumn.addChild(rowlayout, 0, true);
+
+            rowlayout.config.height = 50;
+            newContentItem.config.height = 50;
+        } else {
+
+            var rowlayout = this._goldenLayout.root.contentItems[0];
+            var newColumn = rowlayout.layoutManager.createContentItem({ type: "column" }, this._goldenLayout);
+            rowlayout.parent.replaceChild(rowlayout, newColumn);
+
+            newColumn.addChild(newContentItem, undefined, true);
+            newColumn.addChild(rowlayout, 0, true);
+
+            rowlayout.config.height = 50;
+            newContentItem.config.height = 50;
+        }
+        if (minimize) {
+            // bcz: this makes the drag image show up better, but it also messes with fixed layout sizes
+            // newContentItem.config.width = 10;
+            // newContentItem.config.height = 10;
+        }
+        newContentItem.callDownwards('_$init');
+        this.layoutChanged();
+
+        return newContentItem;
+    }
+
+
     @action
     public AddTab = (stack: any, document: Doc, dataDocument: Doc | undefined) => {
         Doc.GetProto(document).lastOpened = new DateField;
@@ -616,7 +681,10 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             CollectionDockingView.Instance.AddRightSplit(doc, dataDoc);
         } else if (location === "close") {
             CollectionDockingView.Instance.CloseRightSplit(doc);
-        } else {
+        } else if (location === "onBottom") {
+            CollectionDockingView.Instance.AddBottomSplit(doc, dataDoc);
+        }
+        else {
             CollectionDockingView.Instance.AddTab(this._stack, doc, dataDoc);
         }
     }

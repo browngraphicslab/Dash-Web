@@ -1,7 +1,14 @@
 import { observable, action, runInAction } from "mobx";
 import React = require("react");
 import "./CollectionTimelineViewBottomUI.scss";
+import "./CollectionTimelineViewBottomUI.scss";
 
+type Node = {
+    doc: Doc;
+    leftval: number;
+    top: number;
+    mapleft: number;
+};
 
 
 export class BottomUI extends React.Component<BottomUIProps> {
@@ -245,10 +252,10 @@ export class BottomUI extends React.Component<BottomUIProps> {
 
     toggleborder() {
         if (this.borderref.current) {
-            if (this.props.truesort === "sortinputRIGHT") {
+            if (this.props.thumbnailmap.length > 0) {
                 this.borderref.current!.style.border = "green 2px solid";
             }
-            if (this.props.truesort === "sortinputWRONG") {
+            else {
                 this.borderref.current!.style.border = "red 2px solid";
             }
         }
@@ -279,7 +286,14 @@ export class BottomUI extends React.Component<BottomUIProps> {
                     <input height={"20px"} ref={this.borderref} type="text" value={this.searchString3 ? this.searchString : undefined} placeholder={"sort value: " + this.props.sortstate} onChange={this.onChange3} onKeyPress={this.enter3} />
                 </div>
                 <div ref={this.props.barref} className="backdropscroll" onPointerDown={this.onPointerDown_OffBar} style={{ zIndex: 1, top: "50px", height: "30px", width: "100%", bottom: "90%", position: "fixed", }}>
-                    {/*{this.props.thumbnailmap}*/}
+                    {this.props.thumbnailmap.map(item => <div
+                        style={{
+                            position: "absolute",
+                            background: "black",
+                            zIndex: 90,
+                            top: "25%", left: item.mapleft + "px", width: "5px", border: "3px solid"
+                        }}>
+                    </div>)}
                     {this.props.markermap}
                     <div className="v1" onPointerDown={this.onPointerDown_LeftBound} style={{ cursor: "ew-resize", position: "absolute", zIndex: 100, left: this.props.leftbound, height: "100%" }}></div>
                     <div className="v2" onPointerDown={this.onPointerDown2_RightBound} style={{ cursor: "ew-resize", position: "absolute", right: this.props.rightbound, height: "100%", zIndex: 100 }}></div>
@@ -292,7 +306,7 @@ export class BottomUI extends React.Component<BottomUIProps> {
 }
 
 export interface BottomUIProps {
-    //thumbnailmap: JSX.Element[];
+    thumbnailmap: Node[];
     markermap: JSX.Element[];
     leftbound: number;
     rightbound: number;
@@ -309,5 +323,4 @@ export interface BottomUIProps {
     barwidthSet: (number: number) => void;
     screenref: React.RefObject<HTMLDivElement>;
     markerrender: () => void;
-    truesort: string;
 }
