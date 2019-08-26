@@ -182,10 +182,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                         if (guid === marks[linkIndex].attrs.guid) {
                             return node;
                         }
-                        return undefined;
-                    } else {
-                        return undefined;
                     }
+                    return undefined;
                 }
             }
         );
