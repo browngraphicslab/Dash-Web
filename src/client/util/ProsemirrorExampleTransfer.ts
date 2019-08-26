@@ -93,13 +93,13 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
         var marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
         let depth = range && range.depth ? range.depth : 0;
         let nodeType = depth == 2 ? schema.nodes.cap_alphabet_list : depth == 4 ? schema.nodes.roman_list : depth == 6 ? schema.nodes.alphabet_list : schema.nodes.ordered_list;
-        let nodeTypeMark = depth == 2 ? schema.marks.mcap_alphabet_list : depth == 4 ? schema.marks.mroman_list : depth == 6 ? schema.marks.malphabet_list : schema.marks.mordered_list;
+        let nodeTypeMark = schema.marks.mbulletType.create({ bulletType: depth == 2 ? "upper-alpha" : depth == 4 ? "lower-roman" : depth == 6 ? "lower-alpha" : "decimal" });
         let created = levelMark(depth);
-        if (!sinkListItem(nodeType /*schema.nodes.list_item */)(state, (tx2: Transaction) => {
+        if (!sinkListItem(schema.nodes.list_item)(state, (tx2: Transaction) => {
             const resolvedPos = tx2.doc.resolve(range!.start);
 
             let ns = new NodeSelection(resolvedPos);
-            let tx3 = tx2.addMark(ns.from - 1, ns.to, created).addMark(ns.from - 1, ns.to, nodeTypeMark as any).setSelection(TextSelection.create(tx2.doc, ns.to - (depth == 0 ? 3 : 1)));
+            let tx3 = tx2.removeMark(ns.from - 1, ns.to, created).removeMark(ns.from - 1, ns.to, nodeTypeMark as any).addMark(ns.from - 1, ns.to, created).addMark(ns.from - 1, ns.to, nodeTypeMark as any).setSelection(TextSelection.create(tx2.doc, ns.to - (depth == 0 ? 3 : 1)));
             marks && tx3.ensureMarks([...marks, created]);
             marks && tx3.setStoredMarks([...marks, created]);
 
@@ -110,7 +110,7 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
             if (!wrapInList(nodeType)(newstate.state, (tx2: Transaction) => {
                 const resolvedPos = tx2.doc.resolve(range!.start);
                 let ns = new TextSelection(resolvedPos, tx2.doc.resolve(range!.end + 1)); // new NodeSelection(resolvedPos);
-                let tx3 = tx2.setSelection(ns).removeMark(ns.from, ns.to, created).addMark(ns.from, ns.to, created).setSelection(TextSelection.create(tx2.doc, ns.to));
+                let tx3 = tx2.setSelection(ns).removeMark(ns.from, ns.to, created).removeMark(ns.from, ns.to, nodeTypeMark as any).addMark(ns.from - 1, ns.to, nodeTypeMark as any).addMark(ns.from, ns.to, created).setSelection(TextSelection.create(tx2.doc, ns.to));
                 let tx4 = depth > 0 ? tx3.insertText(" ").setSelection(TextSelection.create(tx2.doc, ns.to - 2, ns.to + 2)).deleteSelection() : tx3;
                 marks && tx4.ensureMarks([...marks, created]);
                 marks && tx4.setStoredMarks([...marks, created]);
