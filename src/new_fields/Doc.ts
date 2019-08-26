@@ -107,6 +107,7 @@ export class Doc extends RefField {
         }
 
         if (keys) {
+            this._acls[id]["*"] = Permissions.READ;
             keys.forEach(k => {
                 this._acls[id][k] = permission;
                 let field = this.__fields[k];

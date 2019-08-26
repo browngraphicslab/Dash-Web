@@ -81,12 +81,13 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
             // debugger;
         }
         let permissions = acls[CurrentUserUtils.id]["*"];
-        if (permissions === Permissions.ADDONLY) {
+        let keyPermission = acls[CurrentUserUtils.id][prop];
+        if (permissions === Permissions.ADDONLY || keyPermission === Permissions.ADDONLY) {
             if (receiver[prop]) {
                 return true;
             }
         }
-        else if (permissions !== Permissions.WRITE) {
+        else if ((permissions !== Permissions.WRITE) && (keyPermission !== Permissions.WRITE)) {
             return true;
         }
     }

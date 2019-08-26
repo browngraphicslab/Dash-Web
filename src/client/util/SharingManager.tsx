@@ -99,7 +99,7 @@ export default class SharingManager extends React.Component<{}> {
         });
     }
 
-    setInternalSharing = async (user: User, permission: number, oldPermission: number) => {
+    setInternalSharing = async (user: User, permission: number, oldPermission: number, keys?: Map<number, string[]>) => {
         const userDocument = await DocServer.GetRefField(user.userDocumentId);
         if (!(userDocument instanceof Doc)) {
             console.log(`Couldn't get user document of user ${user.email}`);
@@ -119,31 +119,46 @@ export default class SharingManager extends React.Component<{}> {
             }
             console.log(`Attempting to set permissions to ${permission} for the document ${target[Id]}`);
             // if the document is already shared
-            if (oldPermission !== 3) {
-                let tempDoc = Doc.MakeAlias(target);
-                if (tempDoc.proto) {
-                    tempDoc.proto[SetAcls](user.userDocumentId, permission);
-                    let tData = tempDoc.proto.data;
-                    if (tData instanceof List) {
-                        tData[SetAcls](user.userDocumentId, permission);
+            if (keys) {
+                let proto: Doc | undefined = Doc.MakeAlias(target);
+                let depths = Array.from(keys.keys());
+                let j = 0;
+                for (let i = 0; i < depths.length; i++) {
+                    for (j; j < depths[i] && proto; j++) {
+                        proto = proto.proto;
+                    }
+                    if (proto) {
+                        proto[SetAcls](user.userDocumentId, permission, keys.get(depths[i]));
                     }
                 }
             }
             else {
-                let sharedDoc = Doc.MakeAlias(target);
-                if (sharedDoc.proto) {
-                    sharedDoc.proto[SetAcls](user.userDocumentId, permission);
-                    let tData = sharedDoc.proto.data;
-                    if (tData instanceof List) {
-                        tData[SetAcls](user.userDocumentId, permission);
+                if (oldPermission !== 3) {
+                    let tempDoc = Doc.MakeAlias(target);
+                    if (tempDoc.proto) {
+                        tempDoc.proto[SetAcls](user.userDocumentId, permission);
+                        let tData = tempDoc.proto.data;
+                        if (tData instanceof List) {
+                            tData[SetAcls](user.userDocumentId, permission);
+                        }
                     }
                 }
-                sharedDoc[SetAcls](user.userDocumentId, 1);
-                if (data) {
-                    data.push(sharedDoc);
-                }
                 else {
-                    notifDoc.data = new List([sharedDoc]);
+                    let sharedDoc = Doc.MakeAlias(target);
+                    if (sharedDoc.proto) {
+                        sharedDoc.proto[SetAcls](user.userDocumentId, permission);
+                        let tData = sharedDoc.proto.data;
+                        if (tData instanceof List) {
+                            tData[SetAcls](user.userDocumentId, permission);
+                        }
+                    }
+                    sharedDoc[SetAcls](user.userDocumentId, 1);
+                    if (data) {
+                        data.push(sharedDoc);
+                    }
+                    else {
+                        notifDoc.data = new List([sharedDoc]);
+                    }
                 }
             }
         }
@@ -285,7 +300,7 @@ export interface IUserOptions {
     user: User;
     targetDoc: Doc | undefined;
     sharingOptions: JSX.Element[];
-    setInternalSharing: (user: User, permission: number, oldPermission: number) => Promise<void>;
+    setInternalSharing: (user: User, permission: number, oldPermission: number, keys?: Map<number, string[]>) => Promise<void>;
 }
 
 @observer
@@ -295,6 +310,8 @@ export class UserOptions extends React.Component<IUserOptions> {
     @observable
     private _userPermission: number = this._targetDoc && this._targetDoc[GetAcls]()[this.props.user.userDocumentId] ? this._targetDoc[GetAcls]()[this.props.user.userDocumentId]["*"] : 3;
 
+    private _checkedKeys: Map<number, string[]> = new Map<number, string[]>();
+
     private _previousValue: number = 3;
 
     componentWillUpdate(props: IUserOptions) {
@@ -303,6 +320,44 @@ export class UserOptions extends React.Component<IUserOptions> {
                 () => this._targetDoc = props.targetDoc
             );
         }
+    }
+
+    @action
+    openSettings = (e: React.MouseEvent) => {
+
+    }
+
+    getKeys = () => {
+        if (this._targetDoc) {
+            let onKeyChanged = (e: React.ChangeEvent, key: string, depth: number) => {
+                let checked = (e.target as any).checked;
+                let depthArray = this._checkedKeys.get(depth);
+                if (!depthArray) {
+                    depthArray = [];
+                }
+                if (checked) {
+                    depthArray.push(key);
+                }
+                else {
+                    depthArray.splice(depthArray.indexOf(key));
+                }
+                this._checkedKeys.set(depth, depthArray);
+            };
+
+            let keys = [];
+            let proto: Doc | undefined = this._targetDoc;
+            let depth = 0;
+            while (proto && !Doc.BaseProto(proto)) {
+                keys.push(...Object.keys(this._targetDoc).map(k =>
+                    <div>
+                        <input type="checkbox" onChange={(e: React.ChangeEvent) => onKeyChanged(e, k, depth)} id={k} className="userOptions-permissionSettingsKey" />
+                        <label htmlFor={k}>{k}</label>
+                    </div>));
+                depth++;
+                proto = proto.proto;
+            }
+        }
+        return <p>No keys found...</p>;
     }
 
     render() {
@@ -321,11 +376,18 @@ export class UserOptions extends React.Component<IUserOptions> {
                     onFocus={e => this._previousValue = Number(e.currentTarget.value)}
                     onChange={e => {
                         runInAction(() => this._userPermission = Number(e.currentTarget.value));
-                        this.props.setInternalSharing(user, Number(e.currentTarget.value), this._previousValue);
+                        this.props.setInternalSharing(user, Number(e.currentTarget.value), this._previousValue, this._checkedKeys.size ? this._checkedKeys : undefined);
                     }}>
                     {this.props.sharingOptions}
                 </select>
                 <span className={"padding"}>{user.email}</span>
+                <div className="userOptions-permissionSettingsButton" onClick={this.openSettings}>
+                    <FontAwesomeIcon icon="cog" />
+                    <div className="userOptions-permissionSettings">
+                        <p className="userOptions-permissionSettingsTitle">Set on...</p>
+                        {this.getKeys()}
+                    </div>
+                </div>
             </div>
         )
     }

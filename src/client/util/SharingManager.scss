@@ -56,7 +56,8 @@
     }
 
     .container {
-        display: block;
+        display: grid;
+        grid-template-columns: auto 1fr 30px;
         position: relative;
         margin-top: 10px;
         margin-bottom: 10px;
@@ -81,6 +82,26 @@
 
         .permissions-dropdown {
             outline: none;
+            grid-column: 1;
+        }
+
+        .userOptions-permissionSettingsButton {
+            color: grey;
+
+            .userOptions-permissionSettings {
+                position: fixed;
+                width: 150px;
+                padding: 10px;
+                background: gainsboro;
+
+                .userOptions-permissionSettingsKey {
+                    font-weight: normal;
+                }
+
+                .userOptions-permissionSettingsTitle {
+                    color: black;
+                }
+            }
         }
     }
 
