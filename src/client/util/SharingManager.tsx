@@ -118,21 +118,24 @@ export default class SharingManager extends React.Component<{}> {
                 return;
             }
             console.log(`Attempting to set permissions to ${permission} for the document ${target[Id]}`);
-            // if the document is already shared
             if (keys) {
                 let proto: Doc | undefined = Doc.MakeAlias(target);
                 let depths = Array.from(keys.keys());
                 let j = 0;
+                // go through each depth
                 for (let i = 0; i < depths.length; i++) {
+                    // find the right level proto
                     for (j; j < depths[i] && proto; j++) {
                         proto = proto.proto;
                     }
+                    // set the permissions of the keys that match this proto on this proto
                     if (proto) {
                         proto[SetAcls](user.userDocumentId, permission, keys.get(depths[i]));
                     }
                 }
             }
             else {
+                // if the document has already been shared
                 if (oldPermission !== 3) {
                     let tempDoc = Doc.MakeAlias(target);
                     if (tempDoc.proto) {
