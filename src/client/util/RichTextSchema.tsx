@@ -178,7 +178,8 @@ export const nodes: { [index: string]: NodeSpec } = {
             bulletStyle: { default: "decimal" },
         },
         toDOM(node: Node<any>) {
-            return ['ol', { style: `list-style: ${node.attrs.bulletStyle}` }, 0]
+            let fsize = node.attrs.bulletStyle === "decimal" ? 24 : node.attrs.bulletStyle === "upper-alpha" ? 18 : node.attrs.bulletStyle === "lower-roman" ? 14 : 10;
+            return ['ol', { style: `list-style: ${node.attrs.bulletStyle}; font-size: ${fsize}` }, 0]
         }
     },
     alphabet_list: {
@@ -278,7 +279,7 @@ export const marks: { [index: string]: MarkSpec } = {
     // :: MarkSpec An emphasis mark. Rendered as an `<em>` element.
     // Has parse rules that also match `<i>` and `font-style: italic`.
     em: {
-        parseDOM: [{ tag: "i" }, { tag: "em" }, { style: "font-style=italic" }],
+        parseDOM: [{ tag: "i" }, { tag: "em" }, { style: "font-style: italic" }],
         toDOM() { return emDOM; }
     },
 
