@@ -145,10 +145,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     let editor = this._editorView;
                     let ret = findLinkFrag(editor.state.doc.content, editor);
 
-                    if (ret.frag.size > 2) { // fragment is not empty
+                    if (ret.frag.size > 2) {
                         let tr;
                         if (ret.frag.firstChild) {
-
                             tr = editor.state.tr.setSelection(TextSelection.between(editor.state.doc.resolve(ret.start + 2), editor.state.doc.resolve(ret.start + ret.frag.firstChild.nodeSize)));
                         } else {
                             tr = editor.state.tr.setSelection(TextSelection.near(editor.state.doc.resolve(ret.start)));
