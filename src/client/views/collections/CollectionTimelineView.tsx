@@ -127,9 +127,9 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         let markerUnit = { document: doc, ref: undefined, mapref: undefined } as MarkerUnit;
         markerUnit.element = (< div ref={(el) => el ? markerUnit.ref = el : null} onDoubleClick={(e) => this.doubleclick(e, markerUnit)} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, String(markerUnit.document.annotation), markerUnit)}
             style={{
-                top: "71%", border: "2px solid" + String(markerUnit.document.color),
-                width: NumCast(doc.initialWidth), height: "30px", backgroundColor: String(markerUnit.document.color), zIndex: 5, opacity: 0.5, padding: "2px",
-                position: "fixed", left: NumCast(doc.initialLeft),
+                border: "2px solid" + String(markerUnit.document.color),
+                width: NumCast(doc.initialWidth), height: "30px", top: "-30px", backgroundColor: String(markerUnit.document.color), zIndex: 5, opacity: 0.5, padding: "2px",
+                position: "absolute", left: NumCast(doc.initialLeft),
             }}>
             <EditableView
                 contents={doc.annotation}
@@ -629,8 +629,12 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     makeportal() {
         let portal = Docs.Create.FreeformDocument([], { width: 100, height: 100, title: this.props.Document.title + ".portal" });
         //DocUtils.MakeLink(this.props.Document, portal, undefined, this.props.Document.title + ".portal");
-        this.makeBtnClicked();
+        //this.makeBtnClicked();
         this.props.addDocTab && this.props.addDocTab(portal, portal, "onBottom");
+    }
+
+    updateDoc(document: Doc, document2: Doc) {
+        document = document2;
     }
 
     render() {

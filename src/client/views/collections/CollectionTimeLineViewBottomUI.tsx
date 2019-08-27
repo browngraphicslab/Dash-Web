@@ -2,6 +2,7 @@ import { observable, action, runInAction } from "mobx";
 import React = require("react");
 import "./CollectionTimelineViewBottomUI.scss";
 import "./CollectionTimelineViewBottomUI.scss";
+import { Doc } from "../../../new_fields/Doc";
 
 type Node = {
     doc: Doc;
