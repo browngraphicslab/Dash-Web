@@ -103,7 +103,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                         (this.Sections.size ? 50 : 0) + s.reduce((height, d, i) => height + this.childDocHeight(d) + (i === s.length - 1 ? this.yMargin : this.gridGap), this.yMargin)), 0);
                 } else {
                     return this.props.ContentScaling() * sectionsList.reduce((totalHeight, s) => totalHeight +
-                        (this.Sections.size ? 50 : 0) + s.reduce((height, d, i) => height + this.childDocHeight(d) + (i === s.length - 1 ? this.yMargin : this.gridGap), this.yMargin) + 40, 0);
+                        (this.Sections.size ? 50 : 0) + s.reduce((height, d, i) => height + this.childDocHeight(d) + (i === s.length - 1 ? this.yMargin : this.gridGap), this.yMargin) + 47, 0);
                 }
             }
             return -1;
@@ -313,7 +313,6 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             type={type}
             createDropTarget={this.createDropTarget}
             screenToLocalTransform={this.props.ScreenToLocalTransform}
-            color={heading ? heading.color : ""}
         />;
     }
 

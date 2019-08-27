@@ -33,7 +33,6 @@ interface CMVFieldRowProps {
     type: "string" | "number" | "bigint" | "boolean" | "symbol" | "undefined" | "object" | "function" | undefined;
     createDropTarget: (ele: HTMLDivElement) => void;
     screenToLocalTransform: () => Transform;
-    color: string | undefined;
 }
 
 @observer
@@ -274,7 +273,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
             HeadingObject: this.props.headingObject,
             HeadingsHack: this._headingsHack,
             toggle: this.toggleVisibility,
-            color: this.props.color
+            color: this._color
         };
         let newEditableViewProps = {
             GetValue: () => "",
@@ -283,10 +282,10 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
             HeadingObject: this.props.headingObject,
             HeadingsHack: this._headingsHack,
             toggle: this.toggleVisibility,
-            color: this.props.color
+            color: this._color
         };
-        let headingView =
-            <div className="collectionStackingView-sectionHeader">
+        let headingView = this.props.headingObject ?
+            <div className="collectionStackingView-sectionHeader" ref={this._headerRef} >
                 <div className="collectionStackingView-sectionHeader-subCont" onPointerDown={this.headerDown}
                     title={evContents === `NO ${key.toUpperCase()} VALUE` ?
                         `Documents that don't have a ${key} value will go here. This column cannot be removed.` : ""}
@@ -311,11 +310,11 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
                             <FontAwesomeIcon icon="trash" />
                         </button>}
                 </div>
-            </div >;
+            </div > : (null);
         return (
             <div className="collectionStackingView-masonrySection"
                 key={heading = "empty"}
-                style={{ width: this.props.parent.NodeWidth }}
+                style={{ width: this.props.parent.NodeWidth, background: this._background }}
                 ref={this.createRowDropRef}
                 onPointerEnter={this.pointerEnteredRow}
                 onPointerLeave={this.pointerLeaveRow}

@@ -23,7 +23,6 @@ import "./CollectionStackingView.scss";
 
 library.add(faPalette);
 
-
 interface CSVFieldColumnProps {
     cols: () => number;
     headings: () => object[];
