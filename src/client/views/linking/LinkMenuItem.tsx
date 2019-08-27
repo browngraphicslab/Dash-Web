@@ -90,23 +90,30 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
 
     onContextMenu = (e: React.MouseEvent) => {
         e.preventDefault();
-        ContextMenu.Instance.addItem({ description: "Open in Link Follower", event: () => console.log("opening 1!"), icon: "link" });
+        ContextMenu.Instance.addItem({ description: "Open in Link Follower", event: () => this.openLinkFollower(), icon: "link" });
         ContextMenu.Instance.addItem({ description: "Follow Default Link", event: () => this.followDefault(), icon: "arrow-right" });
         ContextMenu.Instance.displayMenu(e.clientX, e.clientY);
     }
 
-    followDefault = () => {
+    @action.bound
+    async followDefault() {
         if (LinkFollowBox.Instance === undefined) {
-            let doc = Docs.Create.LinkFollowBoxDocument({ x: MainView.Instance.flyoutWidth, y: 20, width: 500, height: 370, title: "Link Follower" });
-            Doc.AddDocToList(Cast(CurrentUserUtils.UserDocument.overlays, Doc) as Doc, "data", doc);
+            let doc = await Docs.Create.LinkFollowBoxDocument({ x: MainView.Instance.flyoutWidth, y: 20, width: 500, height: 370, title: "Link Follower" });
+            await Doc.AddDocToList(Cast(CurrentUserUtils.UserDocument.overlays, Doc) as Doc, "data", doc);
         }
         LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
         LinkFollowBox.Instance.defaultLinkBehavior();
     }
 
-    openLinkFollower = () => {
+    @action.bound
+    async openLinkFollower() {
+        if (LinkFollowBox.Instance === undefined) {
+            let doc = await Docs.Create.LinkFollowBoxDocument({ x: MainView.Instance.flyoutWidth, y: 20, width: 500, height: 370, title: "Link Follower" });
+            await Doc.AddDocToList(Cast(CurrentUserUtils.UserDocument.overlays, Doc) as Doc, "data", doc);
+        } else {
+            MainView.Instance.toggleLinkFollowBox(false);
+        }
         LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
-        MainView.Instance.toggleLinkFollowBox(false);
     }
 
     render() {
