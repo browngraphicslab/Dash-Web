@@ -2,7 +2,7 @@ import { action, observable, reaction, trace } from 'mobx';
 import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
-import { Doc } from '../../new_fields/Doc';
+import { Doc, DocListCast } from '../../new_fields/Doc';
 import { BoolCast } from '../../new_fields/Types';
 import { emptyFunction, returnTrue, returnZero, Utils, returnOne } from '../../Utils';
 import { DragManager } from '../util/DragManager';
@@ -42,13 +42,23 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
         return this._textBox && this._textBox.setFontColor(color);
     }
 
-
     constructor(props: MainOverlayTextBoxProps) {
         super(props);
         this._textProxyDiv = React.createRef();
         MainOverlayTextBox.Instance = this;
         reaction(() => FormattedTextBox.InputBoxOverlay,
             (box?: FormattedTextBox) => {
+                const tb = this._textBox;
+                const container = tb && tb.props.ContainingCollectionView;
+                if (tb && container) { // this hacky section is needed to force the edited text box to completely recreate itself since things can get out synch -- specifically, the bullet label state which is computed when the dom elements are created
+                    var dl = DocListCast(container.props.Document[container.props.fieldKey]);
+                    let dli = dl.indexOf(tb.props.Document);
+                    if (dli !== -1) {
+                        let prev = dli > 0 ? dl[dli - 1] : undefined;
+                        tb.props.removeDocument && tb.props.removeDocument(tb.props.Document);
+                        setTimeout(() => Doc.AddDocToList(container.props.Document, container.props.fieldKey, tb.props.Document, prev, false, dli === 0), 0);
+                    }
+                }
                 this._textBox = box;
                 if (box) {
                     this.ChromeHeight = box.props.ChromeHeight;

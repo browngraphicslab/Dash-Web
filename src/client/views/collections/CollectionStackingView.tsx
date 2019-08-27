@@ -278,7 +278,8 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
 
     getDocTransform(doc: Doc, dref: HTMLDivElement) {
-        let y = this._scroll;
+        if (!dref) return Transform.Identity();
+        let y = this._scroll; // required for document decorations to update when the text box container is scrolled
         let { scale, translateX, translateY } = Utils.GetScreenTransform(dref);
         let outerXf = Utils.GetScreenTransform(this._masonryGridRef!);
         let offset = this.props.ScreenToLocalTransform().transformDirection(outerXf.translateX - translateX, outerXf.translateY - translateY);
