@@ -37,6 +37,7 @@ import { DocumentDecorations } from '../DocumentDecorations';
 import { DictationManager } from '../../util/DictationManager';
 import { ReplaceStep } from 'prosemirror-transform';
 import { DocumentType } from '../../documents/DocumentTypes';
+import { link } from 'fs';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -726,9 +727,22 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                                 let proto = Doc.GetProto(linkDoc);
                                 let targetContext = await Cast(proto.targetContext, Doc);
                                 let jumpToDoc = await Cast(linkDoc.anchor2, Doc);
+
+                                let guid: string;
+                                if ((e.target as any).attributes.guid) {
+                                    guid = (e.target as any).attributes.guid;
+                                } else if (linkDoc.guid) {
+                                    guid = StrCast(linkDoc.guid);
+                                    (e.target as any).attributes.guid = linkDoc.guid;
+                                } else {
+                                    guid = Utils.GenerateGuid();
+                                    (e.target as any).attributes.guid = guid;
+                                    linkDoc.guid = guid;
+                                }
+
                                 if (jumpToDoc) {
                                     if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
-
+                                        // if !guid, then generate guid and apply to link....
                                         DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, undefined, undefined, NumCast((jumpToDoc === linkDoc.anchor2 ? linkDoc.anchor2Page : linkDoc.anchor1Page)));
                                         return;
                                     }
