@@ -116,7 +116,7 @@ function addSecureRoute(method: Method,
 ) {
     let abstracted = (req: express.Request, res: express.Response) => {
         if (req.user) {
-            handler(req.user, res, req);
+            handler(req.user as any, res, req);
         } else {
             req.session!.target = req.originalUrl;
             onRejection(res, req);
@@ -447,7 +447,7 @@ function LoadPage(file: string, pageNumber: number, res: Response) {
             console.log(pageNumber);
             pdf.getPage(pageNumber).then((page: Pdfjs.PDFPageProxy) => {
                 console.log("reading " + page);
-                let viewport = page.getViewport(1);
+                let viewport = page.getViewport({ scale: 1 });
                 let canvasAndContext = factory.create(viewport.width, viewport.height);
                 let renderContext = {
                     canvasContext: canvasAndContext.context,
@@ -811,8 +811,8 @@ const EndpointHandlerMap = new Map<GoogleApiServerUtils.Action, GoogleApiServerU
 ]);
 
 app.post(RouteStore.googleDocs + "/:sector/:action", (req, res) => {
-    let sector = req.params.sector;
-    let action = req.params.action;
+    let sector: any = req.params.sector;
+    let action: any = req.params.action;
     GoogleApiServerUtils.GetEndpoint(GoogleApiServerUtils.Service[sector], { credentials, token }).then(endpoint => {
         let handler = EndpointHandlerMap.get(action);
         if (endpoint && handler) {
