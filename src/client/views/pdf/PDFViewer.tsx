@@ -152,12 +152,18 @@ export class PDFViewer extends React.Component<IViewerProps> {
         if (this._pageSizes.length === 0) {
             this._isPage = Array<string>(this.props.pdf.numPages);
             this._pageSizes = Array<{ width: number, height: number }>(this.props.pdf.numPages);
+            this._visibleElements = Array<JSX.Element>(this.props.pdf.numPages);
             await Promise.all(this._pageSizes.map<Pdfjs.PDFPromise<any>>((val, i) =>
                 this.props.pdf.getPage(i + 1).then(action((page: Pdfjs.PDFPageProxy) => {
                     this._pageSizes.splice(i, 1, {
                         width: (page.view[page.rotate === 0 || page.rotate === 180 ? 2 : 3] - page.view[page.rotate === 0 || page.rotate === 180 ? 0 : 1]) * scale,
                         height: (page.view[page.rotate === 0 || page.rotate === 180 ? 3 : 2] - page.view[page.rotate === 0 || page.rotate === 180 ? 1 : 0]) * scale
                     });
+                    this._visibleElements.splice(i, 1,
+                        <div key={`${this.props.url}-placeholder-${i + 1}`} className="pdfviewer-placeholder"
+                            style={{ width: this._pageSizes[i].width, height: this._pageSizes[i].height }}>
+                            "PAGE IS LOADING... "
+                </div>)
                     this.getPlaceholderPage(i);
                 }))));
             this.props.loaded(Math.max(...this._pageSizes.map(i => i.width)), this._pageSizes[0].height, this.props.pdf.numPages);

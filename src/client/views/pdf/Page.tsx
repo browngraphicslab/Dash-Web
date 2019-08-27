@@ -64,13 +64,14 @@ export default class Page extends React.Component<IPageProps> {
         // lower scale = easier to read at small sizes, higher scale = easier to read at large sizes
         if (this._state !== "rendering" && !this._page && this._canvas.current && this._textLayer.current) {
             this._state = "rendering";
-            let viewport = page.getViewport(scale);
+            let viewport = page.getViewport({ scale: scale });
             this._canvas.current.width = this._width = viewport.width;
             this._canvas.current.height = this._height = viewport.height;
             this.props.pageLoaded(viewport);
             let ctx = this._canvas.current.getContext("2d");
             if (ctx) {
-                page.render({ canvasContext: ctx, viewport: viewport }); // renders the page onto the canvas context
+                //@ts-ignore
+                page.render({ canvasContext: ctx, viewport: viewport, enableWebGL: true }); // renders the page onto the canvas context
                 page.getTextContent().then(res =>                   // renders text onto the text container
                     //@ts-ignore
                     Pdfjs.renderTextLayer({
@@ -258,7 +259,7 @@ export default class Page extends React.Component<IPageProps> {
                 }
             }
         }
-        let text = selRange.extractContents().textContent;
+        let text = selRange.cloneContents().textContent;
         text && this.props.setSelectionText(text);
 
         // clear selection
