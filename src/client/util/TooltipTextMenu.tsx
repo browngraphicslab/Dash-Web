@@ -180,9 +180,6 @@ export class TooltipTextMenu {
         this.listTypeToIcon = new Map();
         this.listTypeToIcon.set(schema.nodes.bullet_list, ":");
         this.listTypeToIcon.set(schema.nodes.ordered_list, "1)");
-        this.listTypeToIcon.set(schema.nodes.alphabet_list, "a)");
-        this.listTypeToIcon.set(schema.nodes.cap_alphabet_list, "A)");
-        this.listTypeToIcon.set(schema.nodes.roman_list, "i.");
         // this.listTypeToIcon.set(schema.nodes.bullet_list, "⬜");
         this.listTypes = Array.from(this.listTypeToIcon.keys());
 
