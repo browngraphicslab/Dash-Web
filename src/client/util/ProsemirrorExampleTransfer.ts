@@ -79,19 +79,21 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
 
     bind("Mod-s", TooltipTextMenu.insertStar);
 
+    // let nodeTypeMark = depth == 2 ? "upper-alpha" : depth == 4 ? "lower-roman" : depth == 6 ? "lower-alpha" : "decimal";
+    let nodeTypeMark = (depth: number) => { return depth == 2 ? "decimal2" : depth == 4 ? "decimal3" : depth == 6 ? "decimal4" : "decimal" }
+
     let bulletFunc = (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
         var ref = state.selection;
         var range = ref.$from.blockRange(ref.$to);
         var marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
         let depth = range && range.depth ? range.depth : 0;
-        let nodeTypeMark = depth == 2 ? "upper-alpha" : depth == 4 ? "lower-roman" : depth == 6 ? "lower-alpha" : "decimal";
         if (!sinkListItem(schema.nodes.list_item)(state, (tx2: Transaction) => {
             const resolvedPos = tx2.doc.resolve(range!.start);
 
             let path = (resolvedPos as any).path as any;
             for (let i = path.length - 1; i > 0; i--) {
                 if (path[i].type === schema.nodes.ordered_list) {
-                    path[i].attrs.bulletStyle = nodeTypeMark;
+                    path[i].attrs.bulletStyle = nodeTypeMark(depth);
                     break;
                 }
             }
@@ -118,7 +120,6 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
         var range = ref.$from.blockRange(ref.$to);
         var marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
         let depth = range && range.depth > 3 ? range.depth - 4 : 0;
-        let nodeTypeMark = depth == 2 ? "upper-alpha" : depth == 4 ? "lower-roman" : depth == 6 ? "lower-alpha" : "decimal";
         liftListItem(schema.nodes.list_item)(state, (tx2: Transaction) => {
             try {
                 const resolvedPos = tx2.doc.resolve(Math.round((range!.start + range!.end) / 2));
@@ -126,7 +127,7 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
                 let path = (resolvedPos as any).path as any;
                 for (let i = path.length - 1; i > 0; i--) {
                     if (path[i].type === schema.nodes.ordered_list) {
-                        path[i].attrs.bulletStyle = nodeTypeMark;
+                        path[i].attrs.bulletStyle = nodeTypeMark(depth);
                         break;
                     }
                 }

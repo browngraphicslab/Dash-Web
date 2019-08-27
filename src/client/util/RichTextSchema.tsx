@@ -178,10 +178,9 @@ export const nodes: { [index: string]: NodeSpec } = {
             bulletStyle: { default: "decimal" },
         },
         toDOM(node: Node<any>) {
-            (node.content as any).content.map((x: any) => x.type.attrs.className = node.attrs.bulletStyle);
-            let fsize = node.attrs.bulletStyle === "decimal" ? 24 : node.attrs.bulletStyle === "upper-alpha" ? 18 : node.attrs.bulletStyle === "lower-roman" ? 14 : 10;
-            return ['ol', { class: `${node.attrs.bulletStyle}-ol`, style: `list-style: none; font-size: ${fsize}` }, 0]
-            //return ['ol', { class: `${node.attrs.bulletStyle}`, style: `list-style: ${node.attrs.bulletStyle}; font-size: ${fsize}` }, 0]
+            for (let i = 0; i < node.childCount; i++) node.child(i).attrs.className = node.attrs.bulletStyle;
+            return ['ol', { class: `${node.attrs.bulletStyle}-ol`, style: `list-style: none;` }, 0]
+            //return ['ol', { class: `${node.attrs.bulletStyle}`, style: `list-style: ${node.attrs.bulletStyle};`, 0]
         }
     },
     //this doesn't currently work for some reason
@@ -210,15 +209,7 @@ export const nodes: { [index: string]: NodeSpec } = {
         ...listItem,
         content: 'paragraph block*',
         toDOM(node: any) {
-            let first = node.firstChild;
-            while (first) {
-                if (first.marks.find((m: any) => m.type === schema.marks.mbulletType)) {
-                    let x = first.marks.find((m: any) => m.type === schema.marks.mbulletType);
-                    return ["li", { class: "XXX" }, 0];
-                }
-                first = first.firstChild;
-            }
-            return ["li", { class: node.type.attrs.className }, 0];
+            return ["li", { class: node.attrs.className }, 0];
         }
     },
 };
