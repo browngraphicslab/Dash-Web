@@ -165,7 +165,15 @@ export class TooltipTextMenu {
         this.fontSizeToNum.set(schema.marks.p48, 48);
         this.fontSizeToNum.set(schema.marks.p72, 72);
         this.fontSizeToNum.set(schema.marks.pFontSize, 10);
-        this.fontSizeToNum.set(schema.marks.pFontSize, 10);
+        // this.fontSizeToNum.set(schema.marks.pFontSize, 12);
+        // this.fontSizeToNum.set(schema.marks.pFontSize, 14);
+        // this.fontSizeToNum.set(schema.marks.pFontSize, 16);
+        // this.fontSizeToNum.set(schema.marks.pFontSize, 18);
+        // this.fontSizeToNum.set(schema.marks.pFontSize, 20);
+        // this.fontSizeToNum.set(schema.marks.pFontSize, 24);
+        // this.fontSizeToNum.set(schema.marks.pFontSize, 32);
+        // this.fontSizeToNum.set(schema.marks.pFontSize, 48);
+        // this.fontSizeToNum.set(schema.marks.pFontSize, 72);
         this.fontSizes = Array.from(this.fontSizeToNum.keys());
 
         //list types

@@ -115,7 +115,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     @undoBatch
     public setFontColor(color: string) {
-        let self = this;
         if (this._editorView!.state.selection.from === this._editorView!.state.selection.to) return false;
         if (this._editorView!.state.selection.to - this._editorView!.state.selection.from > this._editorView!.state.doc.nodeSize - 3) {
             this.props.Document.color = color;
@@ -176,15 +175,13 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             FormattedTextBox._toolTipTextMenu && (FormattedTextBox._toolTipTextMenu.HackToFixTextSelectionGlitch = true);
             this._editorView.updateState(state);
             FormattedTextBox._toolTipTextMenu && (FormattedTextBox._toolTipTextMenu.HackToFixTextSelectionGlitch = false);
-            if (state.selection.empty && FormattedTextBox._toolTipTextMenu) {
-                const marks = tx.storedMarks;
-                if (marks) { FormattedTextBox._toolTipTextMenu.mark_key_pressed(marks); }
+            if (state.selection.empty && FormattedTextBox._toolTipTextMenu && tx.storedMarks) {
+                FormattedTextBox._toolTipTextMenu.mark_key_pressed(tx.storedMarks);
             }
 
             this._applyingChange = true;
-            const fieldkey = "preview";
-            if (this.extensionDoc) this.extensionDoc.text = state.doc.textBetween(0, state.doc.content.size, "\n\n");
-            if (this.extensionDoc) this.extensionDoc.lastModified = new DateField(new Date(Date.now()));
+            this.extensionDoc && (this.extensionDoc.text = state.doc.textBetween(0, state.doc.content.size, "\n\n"));
+            this.extensionDoc && (this.extensionDoc.lastModified = new DateField(new Date(Date.now())));
             this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()));
             this._applyingChange = false;
             let title = StrCast(this.dataDoc.title);
@@ -198,7 +195,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     public highlightSearchTerms = (terms: String[]) => {
         if (this._editorView && (this._editorView as any).docView) {
-            const fieldkey = "preview";
             const doc = this._editorView.state.doc;
             const mark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight);
             doc.nodesBetween(0, doc.content.size, (node: ProsNode, pos: number, parent: ProsNode, index: number) => {

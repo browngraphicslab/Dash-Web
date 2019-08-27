@@ -319,6 +319,15 @@ export const marks: { [index: string]: MarkSpec } = {
         toDOM: () => ['sup']
     },
 
+    malphabet_list: {
+    },
+    mcap_alphabet_list: {
+    },
+    mroman_list: {
+    },
+    mo_list: {
+    },
+
     highlight: {
         parseDOM: [{ style: 'color: blue' }],
         toDOM() {
@@ -412,7 +421,6 @@ export const marks: { [index: string]: MarkSpec } = {
         attrs: {
             fontSize: { default: 10 }
         },
-        inclusive: false,
         parseDOM: [{ style: 'font-size: 10px;' }],
         toDOM: (node) => ['span', {
             style: `font-size: ${node.attrs.fontSize}px;`
