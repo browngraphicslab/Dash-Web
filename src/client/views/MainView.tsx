@@ -57,8 +57,6 @@ export class MainView extends React.Component {
 
     public overlayTimeout: NodeJS.Timeout | undefined;
 
-    @observable private _linkFollowBox = false;
-
     public initiateDictationFade = () => {
         let duration = DictationManager.Commands.dictationFadeDuration;
         this.overlayTimeout = setTimeout(() => {
@@ -437,17 +435,16 @@ export class MainView extends React.Component {
         }
     }
 
-    toggleLinkFollowBox = () => {
+    toggleLinkFollowBox = (shouldClose: boolean) => {
         if (LinkFollowBox.Instance) {
-            console.log("is instance!")
-            // if (LinkFollowBox.Instance.props && LinkFollowBox.Instance.props.removeDocument) LinkFollowBox.Instance.props.removeDocument(LinkFollowBox.Instance.props.Document);
+            let dvs = DocumentManager.Instance.getDocumentViews(LinkFollowBox.Instance.props.Document);
+            // if it already exisits, close it
+            if (dvs.length > 0 && shouldClose) LinkFollowBox.Instance.close();
+            // open it if not
+            else Doc.AddDocToList(Cast(CurrentUserUtils.UserDocument.overlays, Doc) as Doc, "data", LinkFollowBox.Instance.props.Document);
         }
         else {
-            let overlayView = document.getElementById("overlayView");
-            let overlayWidth = 0;
-            if (overlayView) overlayWidth = overlayView.offsetWidth;
-            let x: number = overlayWidth - 500;
-            let doc = Docs.Create.LinkFollowBoxDocument({ x: x, y: 20, width: 500, height: 370, title: "Link Follower" });
+            let doc = Docs.Create.LinkFollowBoxDocument({ x: this.flyoutWidth, y: 20, width: 500, height: 370, title: "Link Follower" });
             Doc.AddDocToList(Cast(CurrentUserUtils.UserDocument.overlays, Doc) as Doc, "data", doc);
         }
     }
@@ -495,7 +492,7 @@ export class MainView extends React.Component {
                                 <FontAwesomeIcon icon={btn[1]} size="sm" />
                             </button>
                         </div></li>)}
-                    <li key="linkFollow"><button className="add-button round-button" title="Open Link Follower" onClick={this.toggleLinkFollowBox}><FontAwesomeIcon icon="link" size="sm" /></button></li>
+                    <li key="linkFollow"><button className="add-button round-button" title="Open Link Follower" onClick={() => this.toggleLinkFollowBox(true)}><FontAwesomeIcon icon="link" size="sm" /></button></li>
                     <li key="color"><button className="add-button round-button" title="Select Color" style={{ zIndex: 1000 }} onClick={() => this.toggleColorPicker()}><div className="toolbar-color-button" style={{ backgroundColor: InkingControl.Instance.selectedColor }} >
                         <div className="toolbar-color-picker" onClick={this.onColorClick} style={this._colorPickerDisplay ? { color: "black", display: "block" } : { color: "black", display: "none" }}>
                             <SketchPicker color={InkingControl.Instance.selectedColor} onChange={InkingControl.Instance.switchColor} />

@@ -17,6 +17,9 @@ import { CollectionViewType } from '../collections/CollectionBaseView';
 import { DocumentView } from '../nodes/DocumentView';
 import { SearchUtil } from '../../util/SearchUtil';
 import { LinkFollowBox } from './LinkFollowBox';
+import { ContextMenu } from '../ContextMenu';
+import { MainView } from '../MainView';
+import { Docs } from '../../documents/Documents';
 library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp);
 
 
@@ -34,148 +37,6 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     private _drag = React.createRef<HTMLDivElement>();
     @observable private _showMore: boolean = false;
     @action toggleShowMore() { this._showMore = !this._showMore; }
-
-
-    unhighlight = () => {
-        Doc.UnhighlightAll();
-        document.removeEventListener("pointerdown", this.unhighlight);
-    }
-
-    @action
-    highlightDoc = () => {
-        document.removeEventListener("pointerdown", this.unhighlight);
-        Doc.HighlightDoc(this.props.destinationDoc);
-        window.setTimeout(() => {
-            document.addEventListener("pointerdown", this.unhighlight);
-        }, 10000);
-    }
-
-    // NOT TESTED
-    // col = collection the doc is in
-    // target = the document to center on
-    @undoBatch
-    openLinkColRight = (col: Doc) => {
-        col = Doc.IsPrototype(col) ? Doc.MakeDelegate(col) : col;
-        if (NumCast(col.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
-            const newPanX = NumCast(this.props.destinationDoc.x) + NumCast(this.props.destinationDoc.width) / NumCast(this.props.destinationDoc.zoomBasis, 1) / 2;
-            const newPanY = NumCast(this.props.destinationDoc.y) + NumCast(this.props.destinationDoc.height) / NumCast(this.props.destinationDoc.zoomBasis, 1) / 2;
-            col.panX = newPanX;
-            col.panY = newPanY;
-        }
-        CollectionDockingView.Instance.AddRightSplit(col, undefined);
-    }
-
-    // DONE
-    @undoBatch
-    openFullScreen = () => {
-        let view: DocumentView | null = DocumentManager.Instance.getDocumentView(this.props.destinationDoc);
-        view && CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(view);
-    }
-
-    // DONE
-    // this opens the linked doc in a right split, NOT in its collection
-    @undoBatch
-    openLinkRight = () => {
-        this.highlightDoc();
-        let alias = Doc.MakeAlias(this.props.destinationDoc);
-        CollectionDockingView.Instance.AddRightSplit(alias, undefined);
-        SelectionManager.DeselectAll();
-    }
-
-    // DONE
-    // this is the standard "follow link" (jump to document)
-    // taken from follow link
-    @undoBatch
-    jumpToLink = async (shouldZoom: boolean) => {
-        //there is an issue right now so this will be false automatically
-        shouldZoom = false;
-        this.highlightDoc();
-        let jumpToDoc = this.props.destinationDoc;
-        let pdfDoc = FieldValue(Cast(this.props.destinationDoc, Doc));
-        if (pdfDoc) {
-            jumpToDoc = pdfDoc;
-        }
-        let proto = Doc.GetProto(this.props.linkDoc);
-        let targetContext = await Cast(proto.targetContext, Doc);
-        let sourceContext = await Cast(proto.sourceContext, Doc);
-        let self = this;
-
-        let dockingFunc = (document: Doc) => { this.props.addDocTab(document, undefined, "inTab"); SelectionManager.DeselectAll(); };
-
-        if (this.props.destinationDoc === self.props.linkDoc.anchor2 && targetContext) {
-            DocumentManager.Instance.jumpToDocument(jumpToDoc, shouldZoom, false, async document => dockingFunc(document), undefined, targetContext);
-        }
-        else if (this.props.destinationDoc === self.props.linkDoc.anchor1 && sourceContext) {
-            DocumentManager.Instance.jumpToDocument(jumpToDoc, shouldZoom, false, document => dockingFunc(sourceContext!));
-        }
-        else if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
-            DocumentManager.Instance.jumpToDocument(jumpToDoc, shouldZoom, undefined, undefined, NumCast((this.props.destinationDoc === self.props.linkDoc.anchor2 ? self.props.linkDoc.anchor2Page : self.props.linkDoc.anchor1Page)));
-
-        }
-        else {
-            DocumentManager.Instance.jumpToDocument(jumpToDoc, shouldZoom, false, dockingFunc);
-        }
-    }
-
-    // DONE
-    // opens link in new tab (not in a collection)
-    // this opens it full screen, do we need a separate full screen option?
-    @undoBatch
-    openLinkTab = () => {
-        this.highlightDoc();
-        let fullScreenAlias = Doc.MakeAlias(this.props.destinationDoc);
-        this.props.addDocTab(fullScreenAlias, undefined, "inTab");
-        SelectionManager.DeselectAll();
-    }
-
-    // NOT TESTED
-    // opens link in new tab in collection
-    // col = collection the doc is in
-    // target = the document to center on
-    @undoBatch
-    openLinkColTab = (col: Doc) => {
-        this.highlightDoc();
-        col = Doc.IsPrototype(col) ? Doc.MakeDelegate(col) : col;
-        if (NumCast(col.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
-            const newPanX = NumCast(this.props.destinationDoc.x) + NumCast(this.props.destinationDoc.width) / NumCast(this.props.destinationDoc.zoomBasis, 1) / 2;
-            const newPanY = NumCast(this.props.destinationDoc.y) + NumCast(this.props.destinationDoc.height) / NumCast(this.props.destinationDoc.zoomBasis, 1) / 2;
-            col.panX = newPanX;
-            col.panY = newPanY;
-        }
-        // CollectionDockingView.Instance.AddRightSplit(col, undefined);
-        this.props.addDocTab(col, undefined, "inTab");
-        SelectionManager.DeselectAll();
-    }
-
-    // DONE
-    // this will open a link next to the source doc
-    @undoBatch
-    openLinkInPlace = () => {
-        this.highlightDoc();
-
-        let alias = Doc.MakeAlias(this.props.destinationDoc);
-        let y = NumCast(this.props.sourceDoc.y);
-        let x = NumCast(this.props.sourceDoc.x);
-
-        let width = NumCast(this.props.sourceDoc.width);
-        let height = NumCast(this.props.sourceDoc.height);
-
-        alias.x = x + width + 30;
-        alias.y = y;
-        alias.width = width;
-        alias.height = height;
-
-        SelectionManager.SelectedDocuments().map(dv => {
-            if (dv.props.Document === this.props.sourceDoc) {
-                dv.props.addDocument && dv.props.addDocument(alias, false);
-            }
-        });
-
-        this.jumpToLink(false);
-    }
-
-    //set this to be the default link behavior, can be any of the above
-    private defaultLinkBehavior: any = this.openLinkInPlace;
 
     onEdit = (e: React.PointerEvent): void => {
         e.stopPropagation();
@@ -226,6 +87,26 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         e.stopPropagation();
     }
 
+    onContextMenu = (e: React.MouseEvent) => {
+        e.preventDefault();
+        ContextMenu.Instance.addItem({ description: "Open in Link Follower", event: () => console.log("opening 1!"), icon: "link" });
+        ContextMenu.Instance.addItem({ description: "Follow Default Link", event: () => this.followDefault(), icon: "arrow-right" });
+        ContextMenu.Instance.displayMenu(e.clientX, e.clientY);
+    }
+
+    followDefault = () => {
+        if (!LinkFollowBox.Instance) {
+            Docs.Create.LinkFollowBoxDocument({ x: MainView.Instance.flyoutWidth, y: 20, width: 500, height: 370, title: "Link Follower" });
+        }
+        LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
+        LinkFollowBox.Instance.defaultLinkBehavior();
+    }
+
+    openLinkFollower = () => {
+        LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
+        MainView.Instance.toggleLinkFollowBox(false);
+    }
+
     render() {
 
         let keys = LinkManager.Instance.getMetadataKeysInGroup(this.props.groupType);//groupMetadataKeys.get(this.props.groupType);
@@ -240,12 +121,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                             {canExpand ? <div title="Show more" className="button" onPointerDown={() => this.toggleShowMore()}>
                                 <FontAwesomeIcon className="fa-icon" icon={this._showMore ? "chevron-up" : "chevron-down"} size="sm" /></div> : <></>}
                             <div title="Edit link" className="button" onPointerDown={this.onEdit}><FontAwesomeIcon className="fa-icon" icon="edit" size="sm" /></div>
-                            {/* Original */}
-                            {/* <div title="Follow link" className="button" onPointerDown={this.onFollowLink}><FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" /></div> */}
-                            {/* New */}
-                            <div title="Follow link" className="button" onClick={() => LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc)}><FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" /></div>
-                            {/* <div title="Follow link" className="button" onClick={this.defaultLinkBehavior}><FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" /></div> */}
-
+                            <div title="Follow link" className="button" onClick={this.followDefault} onContextMenu={this.onContextMenu}><FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" /></div>
                         </div>
                     </div>
                     {this._showMore ? this.renderMetadata() : <></>}
@@ -255,43 +131,3 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         );
     }
 }
-
-    // @undoBatch
-    // onFollowLink = async (e: React.PointerEvent): Promise<void> => {
-    //     e.stopPropagation();
-    //     e.persist();
-    //     let jumpToDoc = this.props.destinationDoc;
-    //     let pdfDoc = FieldValue(Cast(this.props.destinationDoc, Doc));
-    //     if (pdfDoc) {
-    //         jumpToDoc = pdfDoc;
-    //     }
-    //     let proto = Doc.GetProto(this.props.linkDoc);
-    //     let targetContext = await Cast(proto.targetContext, Doc);
-    //     let sourceContext = await Cast(proto.sourceContext, Doc);
-    //     let self = this;
-
-
-    //     let dockingFunc = (document: Doc) => { this.props.addDocTab(document, undefined, "inTab"); SelectionManager.DeselectAll(); };
-    //     if (e.ctrlKey) {
-    //         dockingFunc = (document: Doc) => CollectionDockingView.Instance.AddRightSplit(document, undefined);
-    //     }
-
-    //     if (this.props.destinationDoc === self.props.linkDoc.anchor2 && targetContext) {
-    //         DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, async document => dockingFunc(document), undefined, targetContext!);
-    //         console.log("1")
-    //     }
-    //     else if (this.props.destinationDoc === self.props.linkDoc.anchor1 && sourceContext) {
-    //         DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, document => dockingFunc(sourceContext!));
-    //         console.log("2")
-    //     }
-    //     else if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
-    //         DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, undefined, undefined, NumCast((this.props.destinationDoc === self.props.linkDoc.anchor2 ? self.props.linkDoc.anchor2Page : self.props.linkDoc.anchor1Page)));
-    //         console.log("3")
-
-    //     }
-    //     else {
-    //         DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, dockingFunc);
-    //         console.log("4")
-
-    //     }
-    // }

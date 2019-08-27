@@ -18,10 +18,33 @@
         // line-height: 30px;
         letter-spacing: 2px;
         font-size: 16px;
+        width: 100%;
     }
 
     .direction-indicator {
         font-size: 12px;
+    }
+
+    .closeDocument {
+        position: relative;
+        // z-index: inherit;
+        max-width: 30px;
+        top: -20px;
+        // left: 230px;
+        left: 460px;
+        color: $darker-alt-accent // right: 5px;
+    }
+
+    .closeDocument:hover {
+        color: $main-accent;
+    }
+
+    .topHeader {
+        // display: grid;
+        // grid-template-columns: 90% 10%;
+        width: 100%;
+        // flex-direction: row;
+        height: 25px;
     }
 
     .linkFollowBox-footer {

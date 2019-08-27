@@ -2,7 +2,7 @@ import { observable, computed, action, trace, ObservableMap, runInAction, reacti
 import React = require("react");
 import { observer } from "mobx-react";
 import { FieldViewProps, FieldView } from "../nodes/FieldView";
-import { Doc } from "../../../new_fields/Doc";
+import { Doc, DocListCastAsync } from "../../../new_fields/Doc";
 import { undoBatch } from "../../util/UndoManager";
 import { NumCast, FieldValue, Cast, StrCast } from "../../../new_fields/Types";
 import { CollectionViewType } from "../collections/CollectionBaseView";
@@ -17,6 +17,9 @@ import { listSpec } from "../../../new_fields/Schema";
 import { DocServer } from "../../DocServer";
 import { RefField } from "../../../new_fields/RefField";
 import { Docs } from "../../documents/Documents";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faTimes } from '@fortawesome/free-solid-svg-icons';
+import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 
 enum FollowModes {
     OPENTAB = "Open in Tab",
@@ -48,7 +51,6 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     @observable canPan: boolean = false;
     @observable shouldUseOnlyParentContext = false;
     _contextDisposer?: IReactionDisposer;
-    collectionTypes: string[];
 
     @observable private _docs: { col: Doc, target: Doc }[] = [];
     @observable private _otherDocs: { col: Doc, target: Doc }[] = [];
@@ -56,8 +58,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     constructor(props: FieldViewProps) {
         super(props);
         LinkFollowBox.Instance = this;
-
-        this.collectionTypes = ["Invalid", "Freeform", "Schema", "Docking", "Tree", "Stacking", "Masonry"];
+        this.props.Document.isBackground = true;
     }
 
     @computed
@@ -322,7 +323,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     }
 
     //set this to be the default link behavior, can be any of the above
-    private defaultLinkBehavior: (options?: any) => void = this.openLinkInPlace;
+    public defaultLinkBehavior: (options?: any) => void = this.openLinkRight;
 
     @action
     currentLinkBehavior = () => {
@@ -556,12 +557,20 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
         return null;
     }
 
+    async close() {
+        let res = await DocListCastAsync((CurrentUserUtils.UserDocument.overlays as Doc).data);
+        if (res) res.splice(res.indexOf(LinkFollowBox.Instance.props.Document), 1);
+    }
+
     render() {
         return (
             <div className="linkFollowBox-main" style={{ height: NumCast(this.props.Document.height), width: NumCast(this.props.Document.width) }}>
                 <div className="linkFollowBox-header">
-                    {LinkFollowBox.linkDoc ? "Link Title: " + StrCast(LinkFollowBox.linkDoc.title) : "No Link Selected"}
-                    <div className="linkFollowBox-header direction-indicator">{LinkFollowBox.linkDoc ?
+                    <div className="topHeader">
+                        {LinkFollowBox.linkDoc ? "Link Title: " + StrCast(LinkFollowBox.linkDoc.title) : "No Link Selected"}
+                        <div onClick={this.close} className="closeDocument"><FontAwesomeIcon icon={faTimes} size="lg" /></div>
+                    </div>
+                    <div className=" direction-indicator">{LinkFollowBox.linkDoc ?
                         LinkFollowBox.sourceDoc && LinkFollowBox.destinationDoc ? "Source: " + StrCast(LinkFollowBox.sourceDoc.title) + ", Destination: " + StrCast(LinkFollowBox.destinationDoc.title)
                             : "" : ""}</div>
                 </div>
@@ -586,6 +595,11 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                     </div>
                 </div>
                 <div className="linkFollowBox-footer">
+                    <button
+                        onClick={this.resetVars}>
+                        Clear Link
+                    </button>
+                    <div style={{ width: 20 }}></div>
                     <button
                         onClick={this.currentLinkBehavior}
                         disabled={(LinkFollowBox.linkDoc) ? false : true}>
