@@ -141,6 +141,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             () => StrCast(this.props.Document.guid),
             async (guid) => {
                 let start = -1;
+                let href = this.props.Document.href;
 
                 if (this._editorView && guid) {
                     let editor = this._editorView;
@@ -157,6 +158,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                         editor.dispatch(tr.scrollIntoView());
                         editor.dispatch(tr.scrollIntoView()); // bcz: sometimes selection doesn't fully scroll into view on smaller text boxes <5 lines visibility -- hopefully avoidable by ppl just not using small boxes...?
                         this.props.Document.guid = "";
+                        this.props.Document.href = "";
                     }
                 }
 
@@ -180,6 +182,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     const linkIndex = marks.findIndex(mark => mark.type.name === "link");
                     if (linkIndex !== -1) {
                         if (guid === marks[linkIndex].attrs.guid) {
+                            return node;
+                        } else if (href === marks[linkIndex].attrs.href) {
+                            marks[linkIndex].attrs.guid = guid;
                             return node;
                         }
                     }
@@ -727,18 +732,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                                 let proto = Doc.GetProto(linkDoc);
                                 let targetContext = await Cast(proto.targetContext, Doc);
                                 let jumpToDoc = await Cast(linkDoc.anchor2, Doc);
-
-                                let guid: string;
-                                if ((e.target as any).attributes.guid) {
-                                    guid = (e.target as any).attributes.guid;
-                                } else if (linkDoc.guid) {
-                                    guid = StrCast(linkDoc.guid);
-                                    (e.target as any).attributes.guid = linkDoc.guid;
-                                } else {
-                                    guid = Utils.GenerateGuid();
-                                    (e.target as any).attributes.guid = guid;
-                                    linkDoc.guid = guid;
-                                }
 
                                 if (jumpToDoc) {
                                     if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
