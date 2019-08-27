@@ -8,14 +8,11 @@
     box-shadow: $intermediate-color 0.2vw 0.2vw 0.4vw;
     border: solid #BBBBBBBB 5px;
     pointer-events: all;
-    // transform-origin: top right;
-    // overflow: hidden;
 
     .linkFollowBox-header {
         height: 50px;
         text-align: center;
         text-transform: uppercase;
-        // line-height: 30px;
         letter-spacing: 2px;
         font-size: 16px;
         width: 100%;
@@ -27,12 +24,10 @@
 
     .closeDocument {
         position: relative;
-        // z-index: inherit;
         max-width: 30px;
         top: -20px;
-        // left: 230px;
         left: 460px;
-        color: $darker-alt-accent // right: 5px;
+        color: $darker-alt-accent
     }
 
     .closeDocument:hover {
@@ -40,10 +35,7 @@
     }
 
     .topHeader {
-        // display: grid;
-        // grid-template-columns: 90% 10%;
         width: 100%;
-        // flex-direction: row;
         height: 25px;
     }
 
@@ -56,9 +48,7 @@
 
         button {
             background-color: $darker-alt-accent;
-            // height: 30px;
             width: 30%;
-            // font-size: 18px;
         }
     }
 
@@ -77,15 +67,10 @@
             .linkFollowBox-itemContent {
                 padding: 5px;
                 font-size: 12px;
-                // line-height: 40px;
                 overflow: scroll;
-
 
                 input[type=radio] {
                     border: 0px;
-                    // width: 100%;
-                    // height: 20px;
-                    // width: 20px;
                     margin-right: 5px;
                 }
             }
@@ -105,5 +90,4 @@
             }
         }
     }
-
 }

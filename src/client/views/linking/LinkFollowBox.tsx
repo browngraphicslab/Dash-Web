@@ -58,12 +58,8 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     constructor(props: FieldViewProps) {
         super(props);
         LinkFollowBox.Instance = this;
+        this.resetVars();
         this.props.Document.isBackground = true;
-    }
-
-    @computed
-    get getDoc() {
-        return this.props.Document;
     }
 
     componentDidMount = () => {
@@ -270,7 +266,9 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     openLinkTab = () => {
         if (LinkFollowBox.destinationDoc) {
             let fullScreenAlias = Doc.MakeAlias(LinkFollowBox.destinationDoc);
+            // THIS IS EMPTY FUNCTION
             this.props.addDocTab(fullScreenAlias, undefined, "inTab");
+            console.log(this.props.addDocTab)
 
             this.highlightDoc();
             SelectionManager.DeselectAll();
@@ -323,7 +321,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     }
 
     //set this to be the default link behavior, can be any of the above
-    public defaultLinkBehavior: (options?: any) => void = this.openLinkRight;
+    public defaultLinkBehavior: (options?: any) => void = this.openLinkTab;
 
     @action
     currentLinkBehavior = () => {
