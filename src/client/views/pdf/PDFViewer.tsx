@@ -163,7 +163,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
                         <div key={`${this.props.url}-placeholder-${i + 1}`} className="pdfviewer-placeholder"
                             style={{ width: this._pageSizes[i].width, height: this._pageSizes[i].height }}>
                             "PAGE IS LOADING... "
-                </div>)
+                </div>);
                     this.getPlaceholderPage(i);
                 }))));
             this.props.loaded(Math.max(...this._pageSizes.map(i => i.width)), this._pageSizes[0].height, this.props.pdf.numPages);

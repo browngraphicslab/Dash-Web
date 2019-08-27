@@ -622,7 +622,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             }
         }
 
-        if (this.props.Document[Id] == FormattedTextBox.SelectOnLoad) {
+        if (this.props.Document[Id] === FormattedTextBox.SelectOnLoad) {
             FormattedTextBox.SelectOnLoad = "";
             this.props.select(false);
         }

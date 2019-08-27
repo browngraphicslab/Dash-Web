@@ -600,7 +600,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 this.makeBtnClicked();
             }, icon: "window-restore"
         });
-        makes.push({ description: this.props.Document.ignoreClick ? "Selectable" : "Unselectable", event: () => this.props.Document.ignoreClick = !this.props.Document.ignoreClick, icon: this.props.Document.ignoreClick ? "unlock" : "lock" })
+        makes.push({ description: this.props.Document.ignoreClick ? "Selectable" : "Unselectable", event: () => this.props.Document.ignoreClick = !this.props.Document.ignoreClick, icon: this.props.Document.ignoreClick ? "unlock" : "lock" });
         !existingMake && cm.addItem({ description: "Make...", subitems: makes, icon: "hand-point-right" });
         let existing = ContextMenu.Instance.findByDescription("Layout...");
         let layoutItems: ContextMenuProps[] = existing && "subitems" in existing ? existing.subitems : [];
