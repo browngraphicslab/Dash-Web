@@ -16,6 +16,7 @@ import { Id } from "../../../new_fields/FieldSymbols";
 import { listSpec } from "../../../new_fields/Schema";
 import { DocServer } from "../../DocServer";
 import { RefField } from "../../../new_fields/RefField";
+import { Docs } from "../../documents/Documents";
 
 enum FollowModes {
     OPENTAB = "Open in Tab",
@@ -57,6 +58,11 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
         LinkFollowBox.Instance = this;
 
         this.collectionTypes = ["Invalid", "Freeform", "Schema", "Docking", "Tree", "Stacking", "Masonry"];
+    }
+
+    @computed
+    get getDoc() {
+        return this.props.Document;
     }
 
     componentDidMount = () => {
@@ -322,6 +328,10 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     currentLinkBehavior = () => {
         // this.resetPan();
         if (LinkFollowBox.destinationDoc) {
+            if (this.selectedContextString === "") {
+                this.selectedContextString = "self";
+                this.selectedContext = LinkFollowBox.destinationDoc;
+            }
             if (this.selectedOption === "") this.selectedOption = FollowOptions.NOZOOM;
             let shouldZoom: boolean = this.selectedOption === FollowOptions.NOZOOM ? false : true;
             let notOpenInContext: boolean = this.selectedContextString === "self" || this.selectedContextString === LinkFollowBox.destinationDoc[Id];
@@ -476,7 +486,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                         type="radio" disabled={LinkFollowBox.linkDoc ? false : true}
                         name="context"
                         value={LinkFollowBox.destinationDoc ? StrCast(LinkFollowBox.destinationDoc[Id]) : "self"}
-                        checked={LinkFollowBox.destinationDoc ? this.selectedContextString === StrCast(LinkFollowBox.destinationDoc[Id]) : this.selectedContextString === "self"}
+                        checked={LinkFollowBox.destinationDoc ? this.selectedContextString === StrCast(LinkFollowBox.destinationDoc[Id]) || this.selectedContextString === "self" : true}
                         onChange={this.handleContextChange} />
                         Open Self
                 </label><br />

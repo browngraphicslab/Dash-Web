@@ -12,7 +12,7 @@ import { List } from '../../new_fields/List';
 import { Id } from '../../new_fields/FieldSymbols';
 import { InkTool } from '../../new_fields/InkField';
 import { listSpec } from '../../new_fields/Schema';
-import { BoolCast, Cast, FieldValue, StrCast } from '../../new_fields/Types';
+import { BoolCast, Cast, FieldValue, StrCast, NumCast } from '../../new_fields/Types';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { RouteStore } from '../../server/RouteStore';
 import { emptyFunction, returnOne, returnTrue, Utils, returnEmptyString } from '../../Utils';
@@ -41,6 +41,7 @@ import { FilterBox } from './search/FilterBox';
 import PresModeMenu from './presentationview/PresentationModeMenu';
 import { PresBox } from './nodes/PresBox';
 import { LinkFollowBox } from './linking/LinkFollowBox';
+import { DocumentManager } from '../util/DocumentManager';
 
 @observer
 export class MainView extends React.Component {
@@ -436,14 +437,27 @@ export class MainView extends React.Component {
         }
     }
 
+    toggleLinkFollowBox = () => {
+        if (LinkFollowBox.Instance) {
+            console.log("is instance!")
+            // if (LinkFollowBox.Instance.props && LinkFollowBox.Instance.props.removeDocument) LinkFollowBox.Instance.props.removeDocument(LinkFollowBox.Instance.props.Document);
+        }
+        else {
+            let overlayView = document.getElementById("overlayView");
+            let overlayWidth = 0;
+            if (overlayView) overlayWidth = overlayView.offsetWidth;
+            let x: number = overlayWidth - 500;
+            let doc = Docs.Create.LinkFollowBoxDocument({ x: x, y: 20, width: 500, height: 370, title: "Link Follower" });
+            Doc.AddDocToList(Cast(CurrentUserUtils.UserDocument.overlays, Doc) as Doc, "data", doc);
+        }
+    }
+
     @observable private _colorPickerDisplay = false;
     /* for the expandable add nodes menu. Not included with the miscbuttons because once it expands it expands the whole div with it, making canvas interactions limited. */
     nodesMenu() {
-
         let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
 
         let addColNode = action(() => Docs.Create.FreeformDocument([], { width: this.pwidth * .7, height: this.pheight, title: "a freeform collection" }));
-        let addLinkFollowBox = action(() => Docs.Create.LinkFollowBoxDocument({ width: 500, height: 370, title: "Link Follower" }));
         let addPresNode = action(() => Doc.UserDoc().curPresentation = Docs.Create.PresDocument(new List<Doc>(), { width: 200, height: 500, title: "a presentation trail" }));
         let addWebNode = action(() => Docs.Create.WebDocument("https://en.wikipedia.org/wiki/Hedgehog", { width: 300, height: 300, title: "New Webpage" }));
         let addDragboxNode = action(() => Docs.Create.DragboxDocument({ width: 40, height: 40, title: "drag collection" }));
@@ -459,7 +473,7 @@ export class MainView extends React.Component {
             [React.createRef<HTMLDivElement>(), "globe-asia", "Add Website", addWebNode],
             [React.createRef<HTMLDivElement>(), "bolt", "Add Button", addButtonDocument],
             [React.createRef<HTMLDivElement>(), "file", "Add Document Dragger", addDragboxNode],
-            [React.createRef<HTMLDivElement>(), "link", "Open Link Follow Box", addLinkFollowBox],
+            // [React.createRef<HTMLDivElement>(), "link", "Open Link Follow Box", addLinkFollowBox],
             [React.createRef<HTMLDivElement>(), "cloud-upload-alt", "Import Directory", addImportCollectionNode], //remove at some point in favor of addImportCollectionNode
             //[React.createRef<HTMLDivElement>(), "play", "Add Youtube Searcher", addYoutubeSearcher],
         ];
@@ -481,6 +495,7 @@ export class MainView extends React.Component {
                                 <FontAwesomeIcon icon={btn[1]} size="sm" />
                             </button>
                         </div></li>)}
+                    <li key="linkFollow"><button className="add-button round-button" title="Open Link Follower" onClick={this.toggleLinkFollowBox}><FontAwesomeIcon icon="link" size="sm" /></button></li>
                     <li key="color"><button className="add-button round-button" title="Select Color" style={{ zIndex: 1000 }} onClick={() => this.toggleColorPicker()}><div className="toolbar-color-button" style={{ backgroundColor: InkingControl.Instance.selectedColor }} >
                         <div className="toolbar-color-picker" onClick={this.onColorClick} style={this._colorPickerDisplay ? { color: "black", display: "block" } : { color: "black", display: "none" }}>
                             <SketchPicker color={InkingControl.Instance.selectedColor} onChange={InkingControl.Instance.switchColor} />
@@ -503,12 +518,6 @@ export class MainView extends React.Component {
         this._colorPickerDisplay = close ? false : !this._colorPickerDisplay;
     }
 
-    @action
-    toggleLinkFollowBox = () => {
-        console.log("toggling link editor")
-        this._linkFollowBox = !this._linkFollowBox;
-    }
-
     /* @TODO this should really be moved into a moveable toolbar component, but for now let's put it here to meet the deadline */
     @computed
     get miscButtons() {
@@ -517,7 +526,6 @@ export class MainView extends React.Component {
         return [
             this.isSearchVisible ? <div className="main-searchDiv" key="search" style={{ top: '34px', right: '1px', position: 'absolute' }} > <FilterBox /> </div> : null,
             <div className="main-buttonDiv" key="logout" style={{ bottom: '0px', right: '1px', position: 'absolute' }} ref={logoutRef}>
-                <button onClick={this.toggleLinkFollowBox}>Open Link Editor</button>
                 <button onClick={() => window.location.assign(Utils.prepend(RouteStore.logout))}>Log Out</button></div>
         ];
 

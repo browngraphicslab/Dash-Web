@@ -140,7 +140,7 @@ export class OverlayView extends React.Component {
 
     render() {
         return (
-            <div className="overlayView">
+            <div className="overlayView" id="overlayView">
                 {this._elements}
                 {CurrentUserUtils.UserDocument.overlays instanceof Doc && DocListCast(CurrentUserUtils.UserDocument.overlays.data).map(d => (
                     <CollectionFreeFormDocumentView key={d[Id]}
