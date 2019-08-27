@@ -5,7 +5,7 @@ import { observer } from "mobx-react";
 import { baseKeymap } from "prosemirror-commands";
 import { history } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
-import { Fragment, Node, Node as ProsNode, NodeType, Slice } from "prosemirror-model";
+import { Fragment, Node, Node as ProsNode, NodeType, Slice, Mark } from "prosemirror-model";
 import { EditorState, Plugin, Transaction, TextSelection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { DateField } from '../../../new_fields/DateField';
@@ -37,6 +37,7 @@ import { DocumentDecorations } from '../DocumentDecorations';
 import { DictationManager } from '../../util/DictationManager';
 import { ReplaceStep } from 'prosemirror-transform';
 import { DocumentType } from '../../documents/DocumentTypes';
+import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -171,6 +172,10 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     dispatchTransaction = (tx: Transaction) => {
         if (this._editorView) {
+            var markerss = tx.storedMarks || (tx.selection.$to.parentOffset && tx.selection.$from.marks());
+            let newMarks = [...(markerss ? markerss.filter(m => m.type !== schema.marks.user_mark) : []), schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail })];
+            tx.ensureMarks(newMarks);
+            tx.setStoredMarks(newMarks);
             const state = this._editorView.state.apply(tx);
             FormattedTextBox._toolTipTextMenu && (FormattedTextBox._toolTipTextMenu.HackToFixTextSelectionGlitch = true);
             this._editorView.updateState(state);
@@ -267,6 +272,10 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (this.props.Document !== SelectionManager.SelectedDocuments()[0].props.Document) {
             return;
         }
+        var markerss = this._editorView!.state.storedMarks || (this._editorView!.state.selection.$to.parentOffset && this._editorView!.state.selection.$from.marks());
+        let newMarks = [...(markerss ? markerss.filter(m => m.type !== schema.marks.user_mark) : []), schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail })];
+        this._editorView!.state.storedMarks = newMarks;
+
         if (e.key === "R" && e.altKey) {
             e.stopPropagation();
             e.preventDefault();

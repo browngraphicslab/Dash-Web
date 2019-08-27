@@ -1,6 +1,7 @@
 import { DOMOutputSpecArray, MarkSpec, Node, NodeSpec, Schema, Slice } from "prosemirror-model";
 import { bulletList, listItem, orderedList } from 'prosemirror-schema-list';
 import { TextSelection } from "prosemirror-state";
+import { Doc } from "../../new_fields/Doc";
 
 const pDOM: DOMOutputSpecArray = ["p", 0], blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
@@ -320,6 +321,18 @@ export const marks: { [index: string]: MarkSpec } = {
         toDOM() {
             return ['span', {
                 style: 'background: yellow'
+            }];
+        }
+    },
+
+    // the id of the user who entered the text
+    user_mark: {
+        attrs: {
+            userid: { default: "" }
+        },
+        toDOM(node: any) {
+            return ['span', {
+                style: `background: ${node.attrs.userid.indexOf(Doc.CurrentUserEmail) === -1 ? "rgba(255, 255, 0, 0.267)" : undefined};`
             }];
         }
     },
