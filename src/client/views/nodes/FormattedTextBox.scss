@@ -66,3 +66,14 @@
 .em {
     font-style: italic;
 }
+
+
+ol { counter-reset: deci 0;}
+.decimal-ol {counter-reset: deci 0;}
+.upper-alpha-ol {counter-reset: ualph; }
+.lower-roman-ol {counter-reset: lroman; }
+.lower-alpha-ol {counter-reset: lalpha; }
+.decimal:before { content: counter(deci) " "; counter-increment: deci }
+.upper-alpha:before { content: counter(deci) "." counter(ualph, upper-alpha) " "; counter-increment: ualph }
+.lower-roman:before { content: counter(deci) "." counter(ualph, upper-alpha) "." counter(lroman, lower-roman) " "; counter-increment: lroman }
+.lower-alpha:before { content: counter(deci) "." counter(ualph, upper-alpha) "." counter(lroman, lower-roman) "." counter(lalpha, lower-alpha)" "; counter-increment: lalpha }
