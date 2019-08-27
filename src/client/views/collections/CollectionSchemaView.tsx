@@ -1006,7 +1006,6 @@ export class CollectionSchemaPreview extends React.Component<CollectionSchemaPre
                         parentActive={this.props.active}
                         ScreenToLocalTransform={this.getTransform}
                         renderDepth={this.props.renderDepth + 1}
-                        selectOnLoad={false}
                         ContentScaling={this.contentScaling}
                         PanelWidth={this.PanelWidth}
                         PanelHeight={this.PanelHeight}

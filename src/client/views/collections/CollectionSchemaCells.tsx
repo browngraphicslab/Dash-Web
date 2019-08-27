@@ -153,7 +153,6 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             isSelected: returnFalse,
             select: emptyFunction,
             renderDepth: this.props.renderDepth + 1,
-            selectOnLoad: false,
             ScreenToLocalTransform: Transform.Identity,
             focus: emptyFunction,
             active: returnFalse,

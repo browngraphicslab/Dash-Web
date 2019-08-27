@@ -92,7 +92,6 @@ export interface DocumentViewProps {
     PanelWidth: () => number;
     PanelHeight: () => number;
     focus: (doc: Doc, willZoom: boolean, scale?: number) => void;
-    selectOnLoad: boolean;
     parentActive: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     bringToFront: (doc: Doc, sendToBack?: boolean) => void;
@@ -717,7 +716,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             isSelected={this.isSelected}
             select={this.select}
             onClick={this.onClickHandler}
-            selectOnLoad={this.props.selectOnLoad}
             layoutKey={"layout"}
             fitToBox={BoolCast(this.props.Document.fitToBox) ? true : this.props.fitToBox}
             DataDoc={this.dataDoc} />);
@@ -808,7 +806,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                         }
                         {!showCaption ? (null) :
                             <div style={{ position: "absolute", bottom: 0, transformOrigin: "bottom left", width: `${100 * this.props.ContentScaling()}%`, transform: `scale(${1 / this.props.ContentScaling()})` }}>
-                                <FormattedTextBox {...this.props} onClick={this.onClickHandler} DataDoc={this.dataDoc} active={returnTrue} isSelected={this.isSelected} focus={emptyFunction} select={this.select} selectOnLoad={this.props.selectOnLoad} fieldExt={""} hideOnLeave={true} fieldKey={showCaption} />
+                                <FormattedTextBox {...this.props} onClick={this.onClickHandler} DataDoc={this.dataDoc} active={returnTrue} isSelected={this.isSelected} focus={emptyFunction} select={this.select} fieldExt={""} hideOnLeave={true} fieldKey={showCaption} />
                             </div>
                         }
                     </div>

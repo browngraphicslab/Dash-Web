@@ -622,11 +622,14 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             }
         }
 
-        if (this.props.selectOnLoad) {
-            if (!this.props.isOverlay) this.props.select(false);
-            else this._editorView!.focus();
+        if (this.props.Document[Id] == FormattedTextBox.SelectOnLoad) {
+            FormattedTextBox.SelectOnLoad = "";
+            this.props.select(false);
         }
+        else if (this.props.isOverlay) this._editorView!.focus();
     }
+
+    public static SelectOnLoad = "";
 
     componentWillUnmount() {
         this._editorView && this._editorView.destroy();

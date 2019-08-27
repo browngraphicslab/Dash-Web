@@ -1,7 +1,7 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faEye } from "@fortawesome/free-regular-svg-icons";
 import { faBraille, faChalkboard, faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faPaintBrush, faTable, faUpload } from "@fortawesome/free-solid-svg-icons";
-import { action, computed, IReactionDisposer, observable, reaction } from "mobx";
+import { action, computed, IReactionDisposer, observable, reaction, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCastAsync, Field, FieldResult, HeightSym, Opt, WidthSym } from "../../../../new_fields/Doc";
 import { Id } from "../../../../new_fields/FieldSymbols";
@@ -38,6 +38,7 @@ import "./CollectionFreeFormView.scss";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import { DocServer } from "../../../DocServer";
+import { FormattedTextBox } from "../../nodes/FormattedTextBox";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard);
 
@@ -165,8 +166,6 @@ export namespace PivotView {
             return prev;
         }, elements);
 
-        target.resetSelectOnLoaded();
-
         return docViews;
     };
 
@@ -177,7 +176,6 @@ const PanZoomDocument = makeInterface(panZoomSchema, positionSchema, pageSchema)
 
 @observer
 export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
-    private _selectOnLoaded: string = ""; // id of document that should be selected once it's loaded (used for click-to-type)
     private _lastX: number = 0;
     private _lastY: number = 0;
     private get _pwidth() { return this.props.PanelWidth(); }
@@ -241,7 +239,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private getContainerTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth, -this.borderWidth);
     private getLocalTransform = (): Transform => Transform.Identity().scale(1 / this.zoomScaling()).translate(this.panX(), this.panY());
     private addLiveTextBox = (newBox: Doc) => {
-        this._selectOnLoaded = newBox[Id];// track the new text box so we can give it a prop that tells it to focus itself when it's displayed
+        FormattedTextBox.SelectOnLoad = newBox[Id];// track the new text box so we can give it a prop that tells it to focus itself when it's displayed
         this.addDocument(newBox, false);
     }
     private addDocument = (newBox: Doc, allowDuplicates: boolean) => {
@@ -642,7 +640,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             onClick: this.props.onClick,
             ScreenToLocalTransform: childLayout.z ? this.getTransformOverlay : this.getTransform,
             renderDepth: this.props.renderDepth + 1,
-            selectOnLoad: childLayout[Id] === this._selectOnLoaded,
             PanelWidth: childLayout[WidthSym],
             PanelHeight: childLayout[HeightSym],
             ContentScaling: returnOne,
@@ -668,7 +665,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             onClick: this.props.onClick,
             ScreenToLocalTransform: this.getTransform,
             renderDepth: this.props.renderDepth,
-            selectOnLoad: layoutDoc[Id] === this._selectOnLoaded,
             PanelWidth: layoutDoc[WidthSym],
             PanelHeight: layoutDoc[HeightSym],
             ContentScaling: returnOne,
@@ -768,12 +764,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             return prev;
         }, elements);
 
-        this.resetSelectOnLoaded();
-
         return docviews;
     }
-
-    resetSelectOnLoaded = () => setTimeout(() => this._selectOnLoaded = "", 600);// bcz: surely there must be a better way ....
 
     @computed.struct
     get views() {
