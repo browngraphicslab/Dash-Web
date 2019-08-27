@@ -27,11 +27,14 @@ export namespace GoogleApiClientUtils {
 
     export type Identifier = string;
     export type Reference = Identifier | CreateOptions;
-    export type TextContent = string | string[];
+    export interface Content {
+        text: string | string[];
+        links: docs_v1.Schema$Request[];
+    }
     export type IdHandler = (id: Identifier) => any;
     export type CreationResult = Opt<Identifier>;
     export type ReadLinesResult = Opt<{ title?: string, bodyLines?: string[] }>;
-    export type ReadResult = { title?: string, body?: string };
+    export type ReadResult = { title: string, body: string };
 
     export interface CreateOptions {
         service: Service;
@@ -50,7 +53,7 @@ export namespace GoogleApiClientUtils {
 
     export interface WriteOptions {
         mode: WriteMode;
-        content: TextContent;
+        content: Content;
         reference: Reference;
         index?: number; // if excluded, will compute the last index of the document and append the content there
     }
@@ -165,28 +168,24 @@ export namespace GoogleApiClientUtils {
             }
         };
 
-        export const read = async (options: ReadOptions): Promise<ReadResult> => {
+        export const read = async (options: ReadOptions): Promise<Opt<ReadResult>> => {
             return retrieve({ ...options, service: Service.Documents }).then(document => {
-                let result: ReadResult = {};
                 if (document) {
-                    let title = document.title;
+                    let title = document.title!;
                     let body = Utils.extractText(document, options.removeNewlines);
-                    result = { title, body };
+                    return { title, body };
                 }
-                return result;
             });
         };
 
-        export const readLines = async (options: ReadOptions): Promise<ReadLinesResult> => {
+        export const readLines = async (options: ReadOptions): Promise<Opt<ReadLinesResult>> => {
             return retrieve({ ...options, service: Service.Documents }).then(document => {
-                let result: ReadLinesResult = {};
                 if (document) {
                     let title = document.title;
                     let bodyLines = Utils.extractText(document).split("\n");
                     options.removeNewlines && (bodyLines = bodyLines.filter(line => line.length));
-                    result = { title, bodyLines };
+                    return { title, bodyLines };
                 }
-                return result;
             });
         };
 
@@ -227,7 +226,7 @@ export namespace GoogleApiClientUtils {
                 });
                 index = 1;
             }
-            const text = options.content;
+            const text = options.content.text;
             text.length && requests.push({
                 insertText: {
                     text: isArray(text) ? text.join("\n") : text,
@@ -237,6 +236,7 @@ export namespace GoogleApiClientUtils {
             if (!requests.length) {
                 return undefined;
             }
+            requests.push(...options.content.links);
             let replies: any = await update({ documentId: identifier, requests });
             if ("errors" in replies) {
                 console.log("Write operation failed:");

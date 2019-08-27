@@ -496,10 +496,13 @@ export namespace Docs {
          * @param title an optional title to give to the highest parent document in the hierarchy
          */
         export function DocumentHierarchyFromJson(input: any, title?: string): Opt<Doc> {
-            if (input === null || ![...primitives, "object"].includes(typeof input)) {
+            if (input === undefined || input === null || ![...primitives, "object"].includes(typeof input)) {
                 return undefined;
             }
-            let parsed: any = typeof input === "string" ? JSONUtils.tryParse(input) : input;
+            let parsed = input;
+            if (typeof input === "string") {
+                parsed = JSONUtils.tryParse(input);
+            }
             let converted: Doc;
             if (typeof parsed === "object" && !(parsed instanceof Array)) {
                 converted = convertObject(parsed, title);
