@@ -104,6 +104,14 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
             let sxf = state.tr.setSelection(TextSelection.create(state.doc, range!.start, range!.end));
             let newstate = state.applyTransaction(sxf);
             if (!wrapInList(schema.nodes.ordered_list)(newstate.state, (tx2: Transaction) => {
+                const resolvedPos = tx2.doc.resolve(Math.round((range!.start + range!.end) / 2));
+                let path = (resolvedPos as any).path as any;
+                for (let i = path.length - 1; i > 0; i--) {
+                    if (path[i].type === schema.nodes.ordered_list) {
+                        path[i].attrs.bulletStyle = nodeTypeMark(depth);
+                        break;
+                    }
+                }
                 marks && tx2.ensureMarks([...marks]);
                 marks && tx2.setStoredMarks([...marks]);
 

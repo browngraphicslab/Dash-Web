@@ -175,7 +175,7 @@ export const nodes: { [index: string]: NodeSpec } = {
         content: 'list_item+',
         group: 'block',
         attrs: {
-            bulletStyle: { default: "decimal" },
+            bulletStyle: { default: "" },
         },
         toDOM(node: Node<any>) {
             for (let i = 0; i < node.childCount; i++) node.child(i).attrs.className = node.attrs.bulletStyle;
@@ -189,9 +189,10 @@ export const nodes: { [index: string]: NodeSpec } = {
         content: 'list_item+',
         group: 'block',
         // parseDOM: [{ tag: "ul" }, { style: 'list-style-type=disc' }],
-        // toDOM() { return ['ol', {
-        //     style: 'list-type: hebrew'
-        // }] }
+        toDOM(node: Node<any>) {
+            for (let i = 0; i < node.childCount; i++) node.child(i).attrs.className = "";
+            return ['ul', 0]
+        }
     },
 
     //bullet_list: {
