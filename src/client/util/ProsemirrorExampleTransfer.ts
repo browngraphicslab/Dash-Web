@@ -98,10 +98,17 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
         if (!sinkListItem(schema.nodes.list_item)(state, (tx2: Transaction) => {
             const resolvedPos = tx2.doc.resolve(range!.start);
 
+            let path = (resolvedPos as any).path as any;
+            for (let i = path.length - 1; i > 0; i--) {
+                if (path[i].type === schema.nodes.ordered_list) {
+                    path[i].attrs.bulletStyle = (nodeTypeMark as any).attrs.bulletType;
+                    break;
+                }
+            }
             let ns = new NodeSelection(resolvedPos);
-            let tx3 = tx2.removeMark(ns.from - 1, ns.to, created).removeMark(ns.from - 1, ns.to, nodeTypeMark as any).addMark(ns.from - 1, ns.to, created).addMark(ns.from - 1, ns.to, nodeTypeMark).setSelection(TextSelection.create(tx2.doc, ns.to - (depth == 0 ? 3 : 1)));
-            marks && tx3.ensureMarks([...marks.filter(m => m.type !== schema.marks.mbulletType && m.type !== schema.marks.pFontSize), created, nodeTypeMark]);
-            marks && tx3.setStoredMarks([...marks.filter(m => m.type !== schema.marks.mbulletType && m.type !== schema.marks.pFontSize), created, nodeTypeMark]);
+            let tx3 = tx2.removeMark(ns.from - 1, ns.to, created).addMark(ns.from - 1, ns.to, created).setSelection(TextSelection.create(tx2.doc, ns.to - (depth == 0 ? 3 : 1)));
+            marks && tx3.ensureMarks([...marks.filter(m => m.type !== schema.marks.pFontSize), created]);
+            marks && tx3.setStoredMarks([...marks.filter(m => m.type !== schema.marks.pFontSize), created]);
             dispatch(tx3);
         })) {
             let sxf = state.tr.setSelection(TextSelection.create(state.doc, range!.start, range!.end));
@@ -109,10 +116,10 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
             if (!wrapInList(nodeType)(newstate.state, (tx2: Transaction) => {
                 const resolvedPos = tx2.doc.resolve(range!.start);
                 let ns = new TextSelection(resolvedPos, tx2.doc.resolve(range!.end + 1)); // new NodeSelection(resolvedPos);
-                let tx3 = tx2.setSelection(ns).removeMark(ns.from, ns.to, created).removeMark(ns.from, ns.to, nodeTypeMark as any).addMark(ns.from, ns.to, nodeTypeMark as any).addMark(ns.from, ns.to, created).setSelection(TextSelection.create(tx2.doc, ns.to));
+                let tx3 = tx2.setSelection(ns).removeMark(ns.from, ns.to, created).addMark(ns.from, ns.to, created).setSelection(TextSelection.create(tx2.doc, ns.to));
                 let tx4 = depth > 0 ? tx3.insertText(" ").setSelection(TextSelection.create(tx2.doc, ns.to - 2, ns.to + 2)).deleteSelection() : tx3;
-                marks && tx4.ensureMarks([...marks.filter(m => m.type !== schema.marks.mbulletType && m.type !== schema.marks.pFontSize), created, nodeTypeMark]);
-                marks && tx4.setStoredMarks([...marks.filter(m => m.type !== schema.marks.mbulletType && m.type !== schema.marks.pFontSize), created, nodeTypeMark]);
+                marks && tx4.ensureMarks([...marks.filter(m => m.type !== schema.marks.pFontSize), created]);
+                marks && tx4.setStoredMarks([...marks.filter(m => m.type !== schema.marks.pFontSize), created]);
 
                 dispatch(tx4);
             })) {
@@ -133,14 +140,22 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
             try {
                 const resolvedPos = tx2.doc.resolve(Math.round((range!.start + range!.end) / 2));
                 let nodeIndex = resolvedPos.pos - (resolvedPos.nodeBefore && resolvedPos.nodeBefore.type.name === "text" ? resolvedPos.nodeBefore!.nodeSize : 0);
+
+                let path = (resolvedPos as any).path as any;
+                for (let i = path.length - 1; i > 0; i--) {
+                    if (path[i].type === schema.nodes.ordered_list) {
+                        path[i].attrs.bulletStyle = (nodeTypeMark as any).attrs.bulletType;
+                        break;
+                    }
+                }
+
                 let ns = new NodeSelection(tx2.doc.resolve(nodeIndex));
                 if (resolvedPos.nodeAfter && resolvedPos.nodeAfter.type.name === "list_item")
                     ns = new NodeSelection(tx2.doc.resolve(nodeIndex + 1));
-                let tx3 = tx2.setSelection(ns).removeMark(ns.from - 1, ns.to, created).addMark(ns.from - 1, ns.to, created)
-                    .removeMark(ns.from - 1, ns.to, nodeTypeMark).addMark(ns.from - 1, ns.to, nodeTypeMark).setSelection(TextSelection.create(tx2.doc, ns.to));
+                let tx3 = tx2.setSelection(ns).removeMark(ns.from - 1, ns.to, created).addMark(ns.from - 1, ns.to, created).setSelection(TextSelection.create(tx2.doc, ns.to));
 
-                marks && tx3.ensureMarks([...marks.filter(m => m.type !== schema.marks.mbulletType && m.type !== schema.marks.pFontSize), created, nodeTypeMark]);
-                marks && tx3.setStoredMarks([...marks.filter(m => m.type !== schema.marks.mbulletType && m.type !== schema.marks.pFontSize), created, nodeTypeMark]);
+                marks && tx3.ensureMarks([...marks.filter(m => m.type !== schema.marks.pFontSize), created]);
+                marks && tx3.setStoredMarks([...marks.filter(m => m.type !== schema.marks.pFontSize), created]);
                 dispatch(tx3);
             } catch (e) {
                 dispatch(tx2);

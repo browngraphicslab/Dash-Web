@@ -178,14 +178,6 @@ export const nodes: { [index: string]: NodeSpec } = {
             bulletStyle: { default: "decimal" },
         },
         toDOM(node: Node<any>) {
-            let first = node.firstChild;
-            while (first) {
-                if (first.marks.find((m) => m.type === schema.marks.mbulletType)) {
-                    let x = first.marks.find((m) => m.type === schema.marks.mbulletType);
-                    return ['ol', { style: `list-style: ${(x as any).attrs.bulletType}` }, 0]
-                }
-                first = first.firstChild;
-            }
             return ['ol', { style: `list-style: ${node.attrs.bulletStyle}` }, 0]
         }
     },
