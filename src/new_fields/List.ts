@@ -1,6 +1,6 @@
 import { Deserializable, autoObject, afterDocDeserialize } from "../client/util/SerializationHelper";
 import { Field, Permissions, Doc, DocListCast } from "./Doc";
-import { setter, getter, deleteProperty, updateFunction, HasPermission, HasAddPlus } from "./util";
+import { setter, getter, deleteProperty, updateFunction, HasPermission, HasAddPlus, HasReadPlus } from "./util";
 import { serializable, alias, list, map, primitive } from "serializr";
 import { observable, action } from "mobx";
 import { ObjectField } from "./ObjectField";
@@ -96,6 +96,9 @@ const listHandlers: any = {
         return res.map(toRealField);
     }),
     unshift(...items: any[]) {
+        if (!HasPermission(this[Self], [CurrentUserUtils.id, Public], Permissions.WRITE)) {
+            return false;
+        }
         items = items.map(toObjectField);
         const list = this[Self];
         const length = list.__fields.length;
@@ -118,6 +121,9 @@ const listHandlers: any = {
         return this[Self].__fields.map(toRealField).concat(...items);
     }),
     includes(valueToFind: any, fromIndex: number) {
+        if (!HasReadPlus(this[Self], [CurrentUserUtils.id, Public])) {
+            return false;
+        }
         const fields = this[Self].__fields;
         if (valueToFind instanceof RefField) {
             return fields.map(toRealField).includes(valueToFind, fromIndex);
@@ -126,6 +132,9 @@ const listHandlers: any = {
         }
     },
     indexOf(valueToFind: any, fromIndex: number) {
+        if (!HasReadPlus(this[Self], [CurrentUserUtils.id, Public])) {
+            return false;
+        }
         const fields = this[Self].__fields;
         if (valueToFind instanceof RefField) {
             return fields.map(toRealField).indexOf(valueToFind, fromIndex);
@@ -137,6 +146,9 @@ const listHandlers: any = {
         return this[Self].__fields.map(toRealField).join(separator);
     },
     lastIndexOf(valueToFind: any, fromIndex: number) {
+        if (!HasReadPlus(this[Self], [CurrentUserUtils.id, Public])) {
+            return false;
+        }
         const fields = this[Self].__fields;
         if (valueToFind instanceof RefField) {
             return fields.map(toRealField).lastIndexOf(valueToFind, fromIndex);

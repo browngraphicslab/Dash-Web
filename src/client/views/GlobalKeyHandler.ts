@@ -107,11 +107,9 @@ export default class KeyManager {
 
         switch (keyname) {
             case " ":
-                if (!MainView.Instance.hasActiveModal) {
-                    DictationManager.Controls.listen({ tryExecute: true });
-                    stopPropagation = true;
-                    preventDefault = true;
-                }
+                DictationManager.Controls.listen({ useOverlay: true, tryExecute: true });
+                stopPropagation = true;
+                preventDefault = true;
         }
 
         return {
@@ -197,6 +195,10 @@ export default class KeyManager {
             preventDefault: preventDefault
         };
     });
+
+    async printClipboard() {
+        let text: string = await navigator.clipboard.readText();
+    }
 
     private ctrl_shift = action((keyname: string) => {
         let stopPropagation = true;

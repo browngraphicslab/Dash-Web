@@ -4,8 +4,10 @@ import { Opt, Doc } from '../new_fields/Doc';
 import { Utils, emptyFunction } from '../Utils';
 import { SerializationHelper } from './util/SerializationHelper';
 import { RefField } from '../new_fields/RefField';
-import { Id, HandleUpdate } from '../new_fields/FieldSymbols';
+import { Id, HandleUpdate, SetAcls } from '../new_fields/FieldSymbols';
 import { CurrentUserUtils } from '../server/authentication/models/current_user_utils';
+import { RichTextField } from '../new_fields/RichTextField';
+import { Docs } from './documents/Documents';
 
 /**
  * This class encapsulates the transfer and cross-client synchronization of
@@ -34,6 +36,8 @@ export namespace DocServer {
         LiveReadonly = 2,
         LivePlayground = 3,
     }
+
+    export let AclsMode = WriteMode.Default;
 
     const fieldWriteModes: { [field: string]: WriteMode } = {};
     const docsWithUpdates: { [field: string]: Set<Doc> } = {};

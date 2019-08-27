@@ -1,13 +1,14 @@
 .presentationView-cont {
     position: absolute;
-    background: white;
     z-index: 2;
     box-shadow: #AAAAAA .2vw .2vw .4vw;
     right: 0;
     top: 0;
     bottom: 0;
     letter-spacing: 2px;
-    
+    overflow: hidden;
+    transition: 0.7s opacity ease;
+    pointer-events: all;
 }
 
 .presentationView-item {
@@ -22,14 +23,11 @@
     user-select: none;
     transition: all .1s;
 
-    
-
     .documentView-node {
         
         position: absolute;
         z-index: 1;
     }
-
 }
 
 .presentationView-item-above {
@@ -47,12 +45,15 @@
 
 .presentationView-item:hover {
     transition: all .1s;
-    background: #AAAAAA
+    background: #AAAAAA;
+    border-radius: 12px;
 }
 
 .presentationView-selected {
     background: gray;
     color: black;
+    border-radius: 12px;
+    box-shadow: black 2px 2px 5px;
 }
 
 .presentationView-heading {
@@ -69,7 +70,6 @@
     display: inline-block;
     width: calc(100% - 200px);
     letter-spacing: 2px;
-
 }
 
 .presentation-icon {
@@ -77,11 +77,12 @@
 }
 
 .presentation-interaction {
+    color: gray;
     float: left;
 }
 
 .presentation-interaction-selected {
-    background: #505050;
+    color: white;
     float: left;
 }
 
@@ -93,7 +94,8 @@
 .presentation-button {
     margin-right: 2.5%;
     margin-left: 2.5%;
-    width: 25%;
+    width: 20%;
+    border-radius: 5px;
 }
 
 .presentation-buttons {

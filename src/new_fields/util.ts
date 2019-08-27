@@ -35,6 +35,10 @@ export class PermissionsError extends Error {
     }
 }
 
+export function HasReadPlus(doc: any, users: string[], key?: string) {
+    return HasPermission(doc, users, Permissions.ADDONLY, key) || HasPermission(doc, users, Permissions.WRITE, key) || HasPermission(doc, users, Permissions.READ, key);
+}
+
 export function HasAddPlus(doc: any, users: string[], key?: string) {
     return HasPermission(doc, users, Permissions.ADDONLY, key) || HasPermission(doc, users, Permissions.WRITE, key);
 }
@@ -113,7 +117,7 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
     }
     const writeMode = DocServer.getFieldWriteMode(prop as string);
     const fromServer = target[UpdatingFromServer];
-    const sameAuthor = fromServer || (receiver.author === CurrentUserUtils.email);
+    const sameAuthor = fromServer || (receiver.author === Doc.CurrentUserEmail);
     const writeToDoc = sameAuthor || (writeMode !== DocServer.WriteMode.LiveReadonly);
     const writeToServer = sameAuthor || (writeMode === DocServer.WriteMode.Default);
     if (writeToDoc) {

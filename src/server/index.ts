@@ -14,7 +14,6 @@ import * as mobileDetect from 'mobile-detect';
 import * as passport from 'passport';
 import * as path from 'path';
 import * as request from 'request';
-import * as rp from 'request-promise';
 import * as io from 'socket.io';
 import { Socket } from 'socket.io';
 import * as webpack from 'webpack';
@@ -36,13 +35,17 @@ const port = 1050; // default port to listen
 const serverPort = 4321;
 import expressFlash = require('express-flash');
 import flash = require('connect-flash');
-import c = require("crypto");
 import { Search } from './Search';
 import _ = require('lodash');
 import * as Archiver from 'archiver';
-import * as AdmZip from 'adm-zip';
-import * as YoutubeApi from './youtubeApi/youtubeApiSample.js';
+var AdmZip = require('adm-zip');
+import * as YoutubeApi from "./apis/youtube/youtubeApiSample";
 import { Response } from 'express-serve-static-core';
+import { GoogleApiServerUtils } from "./apis/google/GoogleApiServerUtils";
+import { GaxiosResponse } from 'gaxios';
+import { Opt } from '../new_fields/Doc';
+import { docs_v1 } from 'googleapis';
+import { Endpoint } from 'googleapis-common';
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const probe = require("probe-image-size");
@@ -174,6 +177,13 @@ const read_text_file = (relativePath: string) => {
     let target = path.join(__dirname, relativePath);
     return new Promise<string>((resolve, reject) => {
         fs.readFile(target, (err, data) => err ? reject(err) : resolve(data.toString()));
+    });
+};
+
+const write_text_file = (relativePath: string, contents: any) => {
+    let target = path.join(__dirname, relativePath);
+    return new Promise<void>((resolve, reject) => {
+        fs.writeFile(target, contents, (err) => err ? reject(err) : resolve());
     });
 };
 
@@ -355,7 +365,7 @@ app.post("/uploadDoc", (req, res) => {
             for (const name in files) {
                 const path_2 = files[name].path;
                 const zip = new AdmZip(path_2);
-                zip.getEntries().forEach(entry => {
+                zip.getEntries().forEach((entry: any) => {
                     if (!entry.entryName.startsWith("files/")) return;
                     let dirname = path.dirname(entry.entryName) + "/";
                     let extname = path.extname(entry.entryName);
@@ -364,13 +374,17 @@ app.post("/uploadDoc", (req, res) => {
                     // zip.extractEntryTo(dirname + basename + "_s" + extname, __dirname + RouteStore.public, true, false);
                     // zip.extractEntryTo(dirname + basename + "_m" + extname, __dirname + RouteStore.public, true, false);
                     // zip.extractEntryTo(dirname + basename + "_l" + extname, __dirname + RouteStore.public, true, false);
-                    zip.extractEntryTo(entry.entryName, __dirname + RouteStore.public, true, false);
-                    dirname = "/" + dirname;
+                    try {
+                        zip.extractEntryTo(entry.entryName, __dirname + RouteStore.public, true, false);
+                        dirname = "/" + dirname;
 
-                    fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_o" + extname));
-                    fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_s" + extname));
-                    fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_m" + extname));
-                    fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_l" + extname));
+                        fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_o" + extname));
+                        fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_s" + extname));
+                        fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_m" + extname));
+                        fs.createReadStream(__dirname + RouteStore.public + dirname + basename + extname).pipe(fs.createWriteStream(__dirname + RouteStore.public + dirname + basename + "_l" + extname));
+                    } catch (e) {
+                        console.log(e);
+                    }
                 });
                 const json = zip.getEntry("doc.json");
                 let docs: any;
@@ -860,21 +874,18 @@ function GetRefField(socket: Socket, [id, callback]: [string, (result: any) => v
                 }
                 else {
                     clone.fields = {
-                        ...result.fields,
+                        x: result.fields.x,
+                        y: result.fields.y,
+                        width: result.fields.width,
+                        height: result.fields.height,
                         layout: "<FormattedTextBox {...props} fieldKey={\"data\"} fieldExt={\"\"} />",
-                        data: '=new RichTextField("{"doc":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Permission denied"}]}]},"selection":{"type":"text","anchor":9,"head":9}}")',
-                        title: "Permission Denied",
-                        text: "Permission Denied",
+                        title: result.fields.title ? "Permission Denied" : undefined,
+                        documentText: "@@@Permission Denied",
                         proto: result.fields.proto,
                         data_ext: result.fields.data_ext
                     };
                 }
                 clone.acls = result.acls;
-                clone.acls.saveAcls = {};
-                if (!clone.acls[info.id]) {
-                    clone.acls[info.id] = {};
-                    clone.acls[info.id]["*"] = ServerPermissions.READ;
-                }
                 callback(clone);
             }
         }
@@ -896,6 +907,32 @@ function HandleYoutubeQuery([query, callback]: [YoutubeQueryInput, (result?: any
             YoutubeApi.authorizedGetVideoDetails(youtubeApiKey, query.videoIds, callback);
     }
 }
+
+const credentials = path.join(__dirname, "./credentials/google_docs_credentials.json");
+const token = path.join(__dirname, "./credentials/google_docs_token.json");
+
+const EndpointHandlerMap = new Map<GoogleApiServerUtils.Action, GoogleApiServerUtils.ApiRouter>([
+    ["create", (api, params) => api.create(params)],
+    ["retrieve", (api, params) => api.get(params)],
+    ["update", (api, params) => api.batchUpdate(params)],
+]);
+
+app.post(RouteStore.googleDocs + "/:sector/:action", (req, res) => {
+    let sector = req.params.sector;
+    let action = req.params.action;
+    GoogleApiServerUtils.GetEndpoint(GoogleApiServerUtils.Service[sector], { credentials, token }).then(endpoint => {
+        let handler = EndpointHandlerMap.get(action);
+        if (endpoint && handler) {
+            let execute = handler(endpoint, req.body).then(
+                response => res.send(response.data),
+                rejection => res.send(rejection)
+            );
+            execute.catch(exception => res.send(exception));
+            return;
+        }
+        res.send(undefined);
+    });
+});
 
 const suffixMap: { [type: string]: (string | [string, string | ((json: any) => any)]) } = {
     "number": "_n",

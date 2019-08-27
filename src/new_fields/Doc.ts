@@ -1,5 +1,5 @@
 import { serializable, primitive, map, alias } from "serializr";
-import { observable, runInAction, ObservableMap, action } from "mobx";
+import { observable, runInAction, ObservableMap, action, toJS } from "mobx";
 import { autoObject, SerializationHelper, Deserializable, afterDocDeserialize } from "../client/util/SerializationHelper";
 import { DocServer } from "../client/DocServer";
 import { setter, getter, getField, updateFunction, deleteProperty, makeEditable, makeReadOnly } from "./util";
@@ -10,11 +10,10 @@ import { RefField, FieldId } from "./RefField";
 import { ToScriptString, SelfProxy, Parent, OnUpdate, Self, HandleUpdate, Update, Id, SetAcls, GetAcls, CloneAcls, Copy, Public, System, SaveAcls } from "./FieldSymbols";
 import { scriptingGlobal, CompileScript, Scripting } from "../client/util/Scripting";
 import { List } from "./List";
-import { DocumentType } from "../client/documents/Documents";
 import { ComputedField } from "./ScriptField";
 import { PrefetchProxy, ProxyField } from "./Proxy";
-import { AccessControlLocks } from "./PermissionsField";
 import { CurrentUserUtils } from "../server/authentication/models/current_user_utils";
+import { DocumentType } from "../client/documents/DocumentTypes";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -73,6 +72,7 @@ export const HeightSym = Symbol("Height");
 export const UpdatingFromServer = Symbol("UpdatingFromServer");
 const CachedUpdates = Symbol("Cached updates");
 
+
 function fetchProto(doc: Doc) {
     const proto = doc.proto;
     if (proto instanceof Promise) {
@@ -96,7 +96,7 @@ export class Doc extends RefField {
 
     public [CloneAcls] = (id: string, acls: { [key: string]: Permissions }) => {
         this._acls[id] = acls;
-        if (!this[UpdatingFromServer] && !this[SaveAcls]()) {
+        if (!this[UpdatingFromServer]) {
             DocServer.UpdateField(this[Id], { "$set": { "acls": this._acls } });
         }
     }
@@ -108,14 +108,16 @@ export class Doc extends RefField {
 
         if (keys) {
             // this might be bad, helpful for testing -syip
-            // this._acls[id]["*"] = Permissions.READ;
+            this._acls[id]["*"] = Permissions.READ;
             keys.forEach(k => {
                 let field = this.__fields[k];
                 if (field || k === "*") {
                     this._acls[id][k] = permission;
+                    console.log(`Setting ${id}.${k} to ${permission}`)
                     if (field instanceof PrefetchProxy) {
                         let proxy = field.value();
                         if (!Doc.BaseProto(proxy)) {
+                            // proxy[SetAcls](id, Permissions.READ);
                             proxy[SetAcls](id, permission, keys);
                         }
                     }
@@ -135,9 +137,7 @@ export class Doc extends RefField {
                 }
             });
         }
-        if (!this[SaveAcls]()) {
-            DocServer.UpdateField(this[Id], { "$set": { "acls": this._acls } });
-        }
+        DocServer.UpdateField(this[Id], { "$set": { "acls": this._acls } });
     }
 
     public [GetAcls] = () => this._acls;
@@ -213,9 +213,6 @@ export class Doc extends RefField {
 
     private [Self] = this;
     private [SelfProxy]: any;
-    private [SaveAcls] = () => {
-        return this._acls.saveAcls;
-    }
     public [WidthSym] = () => NumCast(this[SelfProxy].width);  // bcz: is this the right way to access width/height?   it didn't work with : this.width
     public [HeightSym] = () => NumCast(this[SelfProxy].height);
 
@@ -224,10 +221,10 @@ export class Doc extends RefField {
     }
 
     private [CachedUpdates]: { [key: string]: () => void | Promise<any> } = {};
-
-    public async[HandleUpdate](diff: any) {
+    public static CurrentUserEmail: string = "";
+    public async [HandleUpdate](diff: any) {
         const set = diff.$set;
-        const sameAuthor = this.author === CurrentUserUtils.email;
+        const sameAuthor = this.author === Doc.CurrentUserEmail;
         if (set) {
             for (const key in set) {
                 if (key.startsWith("acls")) {
@@ -410,14 +407,12 @@ export namespace Doc {
         return Array.from(results);
     }
 
-    export function AddDocToList(target: Doc, key: string, doc: Doc, relativeTo?: Doc, before?: boolean, first?: boolean, allowDuplicates?: boolean) {
+    export function AddDocToList(target: Doc, key: string, doc: Doc, relativeTo?: Doc, before?: boolean, first?: boolean, allowDuplicates?: boolean, reversed?: boolean) {
         if (target[key] === undefined) {
-            console.log("target key undefined");
             Doc.GetProto(target)[key] = new List<Doc>();
         }
         let list = Cast(target[key], listSpec(Doc));
         if (list) {
-            console.log("has list");
             if (allowDuplicates !== true) {
                 let pind = list.reduce((l, d, i) => d instanceof Doc && Doc.AreProtosEqual(d, doc) ? i : l, -1);
                 if (pind !== -1) {
@@ -425,15 +420,18 @@ export namespace Doc {
                 }
             }
             if (first) {
-                console.log("is first");
                 list.splice(0, 0, doc);
             }
             else {
-                console.log("not first");
                 let ind = relativeTo ? list.indexOf(relativeTo) : -1;
-                if (ind === -1) list.push(doc);
-                else list.splice(before ? ind : ind + 1, 0, doc);
-                console.log("index", ind);
+                if (ind === -1) {
+                    if (reversed) list.splice(0, 0, doc);
+                    else list.push(doc);
+                }
+                else {
+                    if (reversed) list.splice(before ? (list.length - ind) + 1 : list.length - ind, 0, doc);
+                    else list.splice(before ? ind : ind + 1, 0, doc);
+                }
             }
         }
         return true;
@@ -530,20 +528,23 @@ export namespace Doc {
         if (expandedTemplateLayout instanceof Doc) {
             return expandedTemplateLayout;
         }
+        if (expandedTemplateLayout instanceof Promise) {
+            return undefined;
+        }
         let expandedLayoutFieldKey = "Layout[" + templateLayoutDoc[Id] + "]";
         expandedTemplateLayout = dataDoc[expandedLayoutFieldKey];
         if (expandedTemplateLayout instanceof Doc) {
             return expandedTemplateLayout;
         }
         if (expandedTemplateLayout === undefined) {
-            setTimeout(() =>
-                dataDoc[expandedLayoutFieldKey] = Doc.MakeDelegate(templateLayoutDoc, undefined, "[" + templateLayoutDoc.title + "]"), 0);
+            setTimeout(() => dataDoc[expandedLayoutFieldKey] === undefined &&
+                (dataDoc[expandedLayoutFieldKey] = Doc.MakeDelegate(templateLayoutDoc, undefined, "[" + templateLayoutDoc.title + "]")), 0);
         }
-        return templateLayoutDoc; // use the templateLayout when it's not a template or the expandedTemplate is pending.
+        return undefined; // use the templateLayout when it's not a template or the expandedTemplate is pending.
     }
 
     export function GetLayoutDataDocPair(doc: Doc, dataDoc: Doc | undefined, fieldKey: string, childDocLayout: Doc) {
-        let layoutDoc = childDocLayout;
+        let layoutDoc: Doc | undefined = childDocLayout;
         let resolvedDataDoc = !doc.isTemplate && dataDoc !== doc && dataDoc ? Doc.GetDataDoc(dataDoc) : undefined;
         if (resolvedDataDoc && Doc.WillExpandTemplateLayout(childDocLayout, resolvedDataDoc)) {
             Doc.UpdateDocumentExtensionForField(resolvedDataDoc, fieldKey);
@@ -606,13 +607,23 @@ export namespace Doc {
         return otherdoc;
     }
     export function ApplyTemplateTo(templateDoc: Doc, target: Doc, targetData?: Doc) {
+        if (!templateDoc) {
+            target.layout = undefined;
+            target.nativeWidth = undefined;
+            target.nativeHeight = undefined;
+            target.onClick = undefined;
+            target.type = undefined;
+            return;
+        }
         let temp = Doc.MakeDelegate(templateDoc);
         target.nativeWidth = Doc.GetProto(target).nativeWidth = undefined;
         target.nativeHeight = Doc.GetProto(target).nativeHeight = undefined;
+        !templateDoc.nativeWidth && (target.nativeWidth = 0);
+        !templateDoc.nativeHeight && (target.nativeHeight = 0);
         target.width = templateDoc.width;
         target.height = templateDoc.height;
         target.onClick = templateDoc.onClick instanceof ObjectField && templateDoc.onClick[Copy]();
-        Doc.GetProto(target).type = DocumentType.TEMPLATE;
+        target.type = DocumentType.TEMPLATE;
         if (targetData && targetData.layout === target) {
             targetData.layout = temp;
             targetData.miniLayout = StrCast(templateDoc.miniLayout);
@@ -622,8 +633,6 @@ export namespace Doc {
             target.miniLayout = StrCast(templateDoc.miniLayout);
             target.detailedLayout = target.layout;
         }
-        !templateDoc.nativeWidth && (target.nativeWidth = 0);
-        !templateDoc.nativeHeight && (target.nativeHeight = 0);
     }
 
     export function MakeTemplate(fieldTemplate: Doc, metaKey: string, templateDataDoc: Doc) {
@@ -662,7 +671,8 @@ export namespace Doc {
             let miniLayout = await PromiseValue(d.miniLayout);
             let detailLayout = await PromiseValue(d.detailedLayout);
             d.layout !== miniLayout ? miniLayout && (d.layout = d.miniLayout) : detailLayout && (d.layout = detailLayout);
-            if (d.layout === detailLayout) Doc.GetProto(d).nativeWidth = Doc.GetProto(d).nativeHeight = undefined;
+            if (d.layout === detailLayout) d.nativeWidth = d.nativeHeight = 0;
+            if (StrCast(d.layout) !== "") d.nativeWidth = d.nativeHeight = undefined;
         });
     }
     export function UseDetailLayout(d: Doc) {
@@ -680,10 +690,14 @@ export namespace Doc {
         });
     }
 
-    export class DocBrush {
+
+    export class DocData {
+        @observable _user_doc: Doc = undefined!;
         @observable BrushedDoc: ObservableMap<Doc, boolean> = new ObservableMap();
     }
-    const manager = new DocBrush();
+    const manager = new DocData();
+    export function UserDoc(): Doc { return manager._user_doc; }
+    export function SetUserDoc(doc: Doc) { manager._user_doc = doc; }
     export function IsBrushed(doc: Doc) {
         return manager.BrushedDoc.has(doc) || manager.BrushedDoc.has(Doc.GetDataDoc(doc));
     }
@@ -698,6 +712,11 @@ export namespace Doc {
         manager.BrushedDoc.delete(doc);
         manager.BrushedDoc.delete(Doc.GetDataDoc(doc));
     }
+    export function UnBrushAllDocs() {
+        manager.BrushedDoc.clear();
+    }
 }
 Scripting.addGlobal(function renameAlias(doc: any, n: any) { return StrCast(doc.title).replace(/\([0-9]*\)/, "") + `(${n})`; });
 Scripting.addGlobal(function getProto(doc: any) { return Doc.GetProto(doc); });
+Scripting.addGlobal(function copyField(field: any) { return ObjectField.MakeCopy(field); });
+Scripting.addGlobal(function aliasDocs(field: any) { return new List<Doc>(field.map((d: any) => Doc.MakeAlias(d))); });

@@ -1,11 +1,6 @@
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { Schema, NodeSpec, MarkSpec, DOMOutputSpecArray, NodeType, Slice, Mark, Node } from "prosemirror-model";
-import { joinUp, lift, setBlockType, toggleMark, wrapIn, selectNodeForward, deleteSelection } from 'prosemirror-commands';
-import { redo, undo } from 'prosemirror-history';
-import { orderedList, bulletList, listItem, } from 'prosemirror-schema-list';
-import { EditorState, Transaction, NodeSelection, TextSelection, Selection, } from "prosemirror-state";
-import { EditorView, } from "prosemirror-view";
-import { View } from '@react-pdf/renderer';
+import { DOMOutputSpecArray, MarkSpec, Node, NodeSpec, Schema, Slice } from "prosemirror-model";
+import { bulletList, listItem, orderedList } from 'prosemirror-schema-list';
+import { TextSelection } from "prosemirror-state";
 
 const pDOM: DOMOutputSpecArray = ["p", 0], blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
@@ -178,7 +173,46 @@ export const nodes: { [index: string]: NodeSpec } = {
     ordered_list: {
         ...orderedList,
         content: 'list_item+',
-        group: 'block'
+        group: 'block',
+        attrs: {
+            bulletStyle: { default: "decimal" },
+        },
+        toDOM(node: Node<any>) {
+            return ['ol', { style: `list-style: ${node.attrs.bulletStyle}` }, 0]
+        }
+    },
+    alphabet_list: {
+        ...orderedList,
+        content: 'list_item+',
+        group: 'block',
+        attrs: {
+            bulletStyle: { default: "lower-alpha" },
+        },
+        toDOM(node: Node<any>) {
+            return ['ol', { style: `list-style: ${node.attrs.bulletStyle}` }, 0]
+        }
+    },
+    cap_alphabet_list: {
+        ...orderedList,
+        content: 'list_item+',
+        group: 'block',
+        attrs: {
+            bulletStyle: { default: "upper-alpha" },
+        },
+        toDOM(node: Node<any>) {
+            return ['ol', { style: `list-style: ${node.attrs.bulletStyle}` }, 0]
+        }
+    },
+    roman_list: {
+        ...orderedList,
+        content: 'list_item+',
+        group: 'block',
+        attrs: {
+            bulletStyle: { default: "lower-roman" },
+        },
+        toDOM(node: Node<any>) {
+            return ['ol', { style: `list-style: ${node.attrs.bulletStyle}` }, 0]
+        }
     },
     //this doesn't currently work for some reason
     bullet_list: {
@@ -186,8 +220,11 @@ export const nodes: { [index: string]: NodeSpec } = {
         content: 'list_item+',
         group: 'block',
         // parseDOM: [{ tag: "ul" }, { style: 'list-style-type=disc' }],
-        // toDOM() { return ulDOM }
+        // toDOM() { return ['ol', {
+        //     style: 'list-type: hebrew'
+        // }] }
     },
+
     //bullet_list: {
     //  content: 'list_item+',
     // group: 'block',
@@ -199,7 +236,7 @@ export const nodes: { [index: string]: NodeSpec } = {
     list_item: {
         ...listItem,
         content: 'paragraph block*'
-    }
+    },
 };
 
 const emDOM: DOMOutputSpecArray = ["em", 0];

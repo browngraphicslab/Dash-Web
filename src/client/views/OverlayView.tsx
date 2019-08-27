@@ -1,9 +1,15 @@
 import * as React from "react";
 import { observer } from "mobx-react";
 import { observable, action } from "mobx";
-import { Utils } from "../../Utils";
+import { Utils, emptyFunction, returnOne, returnTrue, returnEmptyString } from "../../Utils";
 
 import './OverlayView.scss';
+import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
+import { DocListCast, Doc } from "../../new_fields/Doc";
+import { Id } from "../../new_fields/FieldSymbols";
+import { DocumentView } from "./nodes/DocumentView";
+import { Transform } from "../util/Transform";
+import { CollectionFreeFormDocumentView } from "./nodes/CollectionFreeFormDocumentView";
 
 export type OverlayDisposer = () => void;
 
@@ -134,8 +140,29 @@ export class OverlayView extends React.Component {
 
     render() {
         return (
-            <div>
+            <div className="overlayView">
                 {this._elements}
+                {CurrentUserUtils.UserDocument.overlays instanceof Doc && DocListCast(CurrentUserUtils.UserDocument.overlays.data).map(d => (
+                    <CollectionFreeFormDocumentView key={d[Id]}
+                        Document={d}
+                        bringToFront={emptyFunction}
+                        addDocument={undefined}
+                        removeDocument={undefined}
+                        ContentScaling={returnOne}
+                        PanelWidth={returnOne}
+                        PanelHeight={returnOne}
+                        ScreenToLocalTransform={Transform.Identity}
+                        renderDepth={1}
+                        selectOnLoad={false}
+                        parentActive={returnTrue}
+                        whenActiveChanged={emptyFunction}
+                        focus={emptyFunction}
+                        backgroundColor={returnEmptyString}
+                        addDocTab={emptyFunction}
+                        pinToPres={emptyFunction}
+                        ContainingCollectionView={undefined}
+                        zoomToScale={emptyFunction}
+                        getScale={returnOne} />))}
             </div>
         );
     }

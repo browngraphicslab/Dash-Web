@@ -24,13 +24,13 @@ $linkGap : 3px;
     .documentDecorations-resizer {
         pointer-events: auto;
         background: $alt-accent;
-        opacity: 0.8;
+        opacity: 1;
     }
 
     .documentDecorations-radius {
         pointer-events: auto;
         background: black;
-        opacity: 0.8;
+        opacity: 1;
         transform: translate(10px, 10px);
         grid-row: 4;
     }
@@ -92,27 +92,30 @@ $linkGap : 3px;
 
     .title {
         background: $alt-accent;
+        opacity: 1;
         grid-column-start: 3;
         grid-column-end: 4;
         pointer-events: auto;
         overflow: hidden;
+        text-align: center;
     }
 }
 
 
 .documentDecorations-closeButton {
     background: $alt-accent;
-    opacity: 0.8;
+    opacity: 1;
     grid-column-start: 4;
     grid-column-end: 6;
     pointer-events: all;
     text-align: center;
     cursor: pointer;
+    padding-right: 10px;
 }
 
 .documentDecorations-minimizeButton {
     background: $alt-accent;
-    opacity: 0.8;
+    opacity: 1;
     grid-column-start: 1;
     grid-column-end: 3;
     pointer-events: all;
@@ -121,6 +124,7 @@ $linkGap : 3px;
     position: absolute;
     left: 0px;
     top: 0px;
+    padding-top: 5px;
     width: $MINIMIZED_ICON_SIZE;
     height: $MINIMIZED_ICON_SIZE;
 }
@@ -219,6 +223,11 @@ $linkGap : 3px;
     margin-top: 3px;
 }
 
+.documentdecorations-times {
+    margin-top: 3px;
+    padding-right: 3px;
+}
+
 .templating-button,
 .docDecs-tagButton {
     width: 20px;
@@ -256,3 +265,7 @@ $linkGap : 3px;
         margin-right: 10px;
     }
 }
+
+@-moz-keyframes spin { 100% { -moz-transform: rotate(360deg); } }
+@-webkit-keyframes spin { 100% { -webkit-transform: rotate(360deg); } }
+@keyframes spin { 100% { -webkit-transform: rotate(360deg); transform: rotate(360deg); } }

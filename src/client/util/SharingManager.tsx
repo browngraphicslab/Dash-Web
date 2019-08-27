@@ -95,7 +95,7 @@ export default class SharingManager extends React.Component<{}> {
     populateUsers = async () => {
         let userList = await RequestPromise.get(Utils.prepend(RouteStore.getUsers));
         runInAction(() => {
-            this.users = (JSON.parse(userList) as User[]).filter(({ email }) => email !== CurrentUserUtils.email);
+            this.users = (JSON.parse(userList) as User[]).filter(({ email }) => email !== Doc.CurrentUserEmail);
         });
     }
 
@@ -135,6 +135,12 @@ export default class SharingManager extends React.Component<{}> {
                         proto[SetAcls](user.userDocumentId, permission, keys.get(depths[i]));
                     }
                 }
+                if (data) {
+                    data.push(sharedDoc);
+                }
+                else {
+                    notifDoc.data = new List([sharedDoc]);
+                }
             }
             else {
                 // if the document has already been shared
@@ -158,14 +164,12 @@ export default class SharingManager extends React.Component<{}> {
                         }
                     }
                     sharedDoc[SetAcls](user.userDocumentId, 1);
-                }
-            }
-            if (sharedDoc) {
-                if (data) {
-                    data.push(sharedDoc);
-                }
-                else {
-                    notifDoc.data = new List([sharedDoc]);
+                    if (data) {
+                        data.push(sharedDoc);
+                    }
+                    else {
+                        notifDoc.data = new List([sharedDoc]);
+                    }
                 }
             }
         }

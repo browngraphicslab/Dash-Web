@@ -4,7 +4,6 @@ import { observable, action } from 'mobx';
 // import "./SearchBox.scss";
 import "./IconBar.scss";
 import "./IconButton.scss";
-import { DocumentType } from '../../documents/Documents';
 import { faSearch, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faMusic, faLink, faChartBar, faGlobeAsia, faBan, faTimesCircle, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { library } from '@fortawesome/fontawesome-svg-core';
