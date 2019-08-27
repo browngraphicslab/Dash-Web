@@ -66,3 +66,12 @@
 .em {
     font-style: italic;
 }
+
+ol { counter-reset: item }
+.XXX:before {
+     content: counters(item, ".") " ";
+     counter-increment: item ;
+}
+p {
+    display:inline;
+}

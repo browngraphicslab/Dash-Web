@@ -243,7 +243,18 @@ export const nodes: { [index: string]: NodeSpec } = {
     // },
     list_item: {
         ...listItem,
-        content: 'paragraph block*'
+        content: 'paragraph block*',
+        toDOM(node: any) {
+            let first = node.firstChild;
+            while (first) {
+                if (first.marks.find((m: any) => m.type === schema.marks.mbulletType)) {
+                    let x = first.marks.find((m: any) => m.type === schema.marks.mbulletType);
+                    return ["li", { class: "XXX" }, 0];
+                }
+                first = first.firstChild;
+            }
+            return ["li", 0];
+        }
     },
 };
 
