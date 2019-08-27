@@ -155,6 +155,7 @@ export class MainView extends React.Component {
     constructor(props: Readonly<{}>) {
         super(props);
         MainView.Instance = this;
+
         // causes errors to be generated when modifying an observable outside of an action
         configure({ enforceActions: "observed" });
         if (window.location.pathname !== RouteStore.home) {
@@ -470,7 +471,6 @@ export class MainView extends React.Component {
             [React.createRef<HTMLDivElement>(), "globe-asia", "Add Website", addWebNode],
             [React.createRef<HTMLDivElement>(), "bolt", "Add Button", addButtonDocument],
             [React.createRef<HTMLDivElement>(), "file", "Add Document Dragger", addDragboxNode],
-            // [React.createRef<HTMLDivElement>(), "link", "Open Link Follow Box", addLinkFollowBox],
             [React.createRef<HTMLDivElement>(), "cloud-upload-alt", "Import Directory", addImportCollectionNode], //remove at some point in favor of addImportCollectionNode
             //[React.createRef<HTMLDivElement>(), "play", "Add Youtube Searcher", addYoutubeSearcher],
         ];

@@ -8,7 +8,7 @@ import './LinkMenu.scss';
 import React = require("react");
 import { Doc, DocListCastAsync, WidthSym } from '../../../new_fields/Doc';
 import { StrCast, Cast, FieldValue, NumCast } from '../../../new_fields/Types';
-import { observable, action } from 'mobx';
+import { observable, action, computed } from 'mobx';
 import { LinkManager } from '../../util/LinkManager';
 import { DragLinkAsDocument } from '../../util/DragManager';
 import { CollectionDockingView } from '../collections/CollectionDockingView';
@@ -20,6 +20,7 @@ import { LinkFollowBox } from './LinkFollowBox';
 import { ContextMenu } from '../ContextMenu';
 import { MainView } from '../MainView';
 import { Docs } from '../../documents/Documents';
+import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
 library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp);
 
 
@@ -95,8 +96,9 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     }
 
     followDefault = () => {
-        if (!LinkFollowBox.Instance) {
-            Docs.Create.LinkFollowBoxDocument({ x: MainView.Instance.flyoutWidth, y: 20, width: 500, height: 370, title: "Link Follower" });
+        if (LinkFollowBox.Instance === undefined) {
+            let doc = Docs.Create.LinkFollowBoxDocument({ x: MainView.Instance.flyoutWidth, y: 20, width: 500, height: 370, title: "Link Follower" });
+            Doc.AddDocToList(Cast(CurrentUserUtils.UserDocument.overlays, Doc) as Doc, "data", doc);
         }
         LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
         LinkFollowBox.Instance.defaultLinkBehavior();
