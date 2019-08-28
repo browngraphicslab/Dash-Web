@@ -595,6 +595,8 @@ export class SummarizedView {
                 attrs.textslice = newSelection.content().toJSON();
                 view.dispatch(view.state.tr.setNodeMarkup(y, undefined, attrs));
                 view.dispatch(view.state.tr.setSelection(newSelection).deleteSelection(view.state, () => { }));
+                let marks = view.state.storedMarks.filter((m: any) => m.type !== view.state.schema.marks.highlight);
+                view.state.storedMarks = marks;
                 self._collapsed.textContent = "㊉";
             } else {
                 // node.attrs.visibility = !node.attrs.visibility;
