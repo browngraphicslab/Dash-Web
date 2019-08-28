@@ -170,12 +170,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     dispatchTransaction = (tx: Transaction) => {
         if (this._editorView) {
-            // var markerss = tx.storedMarks || (tx.selection.$to.parentOffset && tx.selection.$from.marks());
-            // let newMarks = [...(markerss ? markerss.filter(m => m.type !== schema.marks.user_mark) : []), schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail })];
-            // if (!this._down) {  // if the pointer is down, we're likely doing a drag selection.  If setStoreMarks is called during
-            //     tx.ensureMarks(newMarks);  // this operation, then it is likely (but not guaranteed) that nothing will be selected due to strange prosemirror behavior.
-            //     tx.setStoredMarks(newMarks);
-            // }
             const state = this._editorView.state.apply(tx);
             FormattedTextBox._toolTipTextMenu && (FormattedTextBox._toolTipTextMenu.HackToFixTextSelectionGlitch = true);
             this._editorView.updateState(state);
