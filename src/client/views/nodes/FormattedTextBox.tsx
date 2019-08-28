@@ -141,7 +141,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             () => StrCast(this.props.Document.guid),
             async (guid) => {
                 let start = -1;
-                let href = this.props.Document.href;
+                let href = this.props.Document.linkHref;
 
                 if (this._editorView && guid) {
                     let editor = this._editorView;
@@ -158,7 +158,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                         editor.dispatch(tr.scrollIntoView());
                         editor.dispatch(tr.scrollIntoView()); // bcz: sometimes selection doesn't fully scroll into view on smaller text boxes <5 lines visibility -- hopefully avoidable by ppl just not using small boxes...?
                         this.props.Document.guid = "";
-                        this.props.Document.href = "";
+                        this.props.Document.linkHref = "";
                     }
                 }
 
@@ -183,10 +183,13 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     if (linkIndex !== -1) {
                         if (guid === marks[linkIndex].attrs.guid) {
                             return node;
-                        } else if (href === marks[linkIndex].attrs.href) {
-                            marks[linkIndex].attrs.guid = guid;
-                            return node;
+                        } else {
+                            console.log(marks[linkIndex].attrs.href);
                         }
+                        // else if (href === marks[linkIndex].attrs.href) {
+                        //     marks[linkIndex].attrs.guid = guid;
+                        //     return node;
+                        // }
                     }
                     return undefined;
                 }
@@ -716,6 +719,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         let ctrlKey = e.ctrlKey;
         if (e.button === 0 && ((!this.props.isSelected() && !e.ctrlKey) || (this.props.isSelected() && e.ctrlKey)) && !e.metaKey && e.target) {
             let href = (e.target as any).href;
+            let guid = (e.target as any).guid;
             let location: string;
             if ((e.target as any).attributes.location) {
                 location = (e.target as any).attributes.location.value;
@@ -735,7 +739,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
                                 if (jumpToDoc) {
                                     if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
-                                        // if !guid, then generate guid and apply to link....
+                                        // if !guid, then generate guid and apply to full doc
+                                        if (!guid) {
+                                            console.log('making new guid!');
+                                            linkDoc.guid = Utils.GenerateGuid();
+                                        }
                                         DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, undefined, undefined, NumCast((jumpToDoc === linkDoc.anchor2 ? linkDoc.anchor2Page : linkDoc.anchor1Page)));
                                         return;
                                     }

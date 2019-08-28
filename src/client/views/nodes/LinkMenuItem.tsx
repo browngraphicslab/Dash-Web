@@ -13,6 +13,7 @@ import { LinkManager } from '../../util/LinkManager';
 import { DragLinkAsDocument } from '../../util/DragManager';
 import { CollectionDockingView } from '../collections/CollectionDockingView';
 import { SelectionManager } from '../../util/SelectionManager';
+import { Utils } from '../../../Utils';
 library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp);
 
 
@@ -44,7 +45,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         let targetContext = await Cast(proto.targetContext, Doc);
         let sourceContext = await Cast(proto.sourceContext, Doc);
         let guid = StrCast(this.props.linkDoc.guid);
-        let href = StrCast(this.props.linkDoc.href);
+        // let href = Utils.prepend("/doc/" + sourceContext[Id]); // trying to get id (?) so that we can search for this in the link marks
         let self = this;
 
         let dockingFunc = (document: Doc) => { this.props.addDocTab(document, undefined, "inTab"); SelectionManager.DeselectAll(); };
@@ -57,7 +58,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         }
         else if (this.props.destinationDoc === self.props.linkDoc.anchor1 && sourceContext) {
             DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, document => dockingFunc(sourceContext!));
-            jumpToDoc.href = href;
+            // jumpToDoc.linkHref = href;
             jumpToDoc.guid = guid;
         }
         else if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
