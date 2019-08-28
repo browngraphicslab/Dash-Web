@@ -60,14 +60,18 @@ export const GoogleRef = "googleDocId";
 type RichTextDocument = makeInterface<[typeof richTextSchema]>;
 const RichTextDocument = makeInterface(richTextSchema);
 
-type PullHandler = (exportState: Opt<GoogleApiClientUtils.ReadResult>, dataDoc: Doc) => void;
+type PullHandler = (exportState: Opt<GoogleApiClientUtils.Docs.ReadResult>, dataDoc: Doc) => void;
 
 @observer
 export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTextBoxProps), RichTextDocument>(RichTextDocument) {
     public static LayoutString(fieldStr: string = "data") {
         return FieldView.LayoutString(FormattedTextBox, fieldStr);
     }
+    public static blankState = () => {
+        return EditorState.create(FormattedTextBox.Instance._configuration);
+    }
     public static Instance: FormattedTextBox;
+    private _configuration: any;
     private _ref: React.RefObject<HTMLDivElement>;
     private _proseRef?: HTMLDivElement;
     private _editorView: Opt<EditorView>;
@@ -325,7 +329,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     componentDidMount() {
-        const config = {
+        this._configuration = {
             schema,
             inpRules, //these currently don't do anything, but could eventually be helpful
             plugins: this.props.isOverlay ? [
@@ -367,7 +371,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             incomingValue => {
                 if (this._editorView && !this._applyingChange) {
                     let updatedState = JSON.parse(incomingValue);
-                    this._editorView.updateState(EditorState.fromJSON(config, updatedState));
+                    this._editorView.updateState(EditorState.fromJSON(this._configuration, updatedState));
                     this.tryUpdateHeight();
                 }
             }
@@ -409,7 +413,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     this.dataDoc.lastModified = undefined;
                 }
             }, { fireImmediately: true });
-        this.setupEditor(config, this.dataDoc, this.props.fieldKey);
+        this.setupEditor(this._configuration, this.dataDoc, this.props.fieldKey);
 
         this._searchReactionDisposer = reaction(() => {
             return StrCast(this.props.Document.search_string);
@@ -430,17 +434,17 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     pushToGoogleDoc = async () => {
-        this.pullFromGoogleDoc(async (exportState: Opt<GoogleApiClientUtils.ReadResult>, dataDoc: Doc) => {
-            let modes = GoogleApiClientUtils.WriteMode;
+        this.pullFromGoogleDoc(async (exportState: Opt<GoogleApiClientUtils.Docs.ReadResult>, dataDoc: Doc) => {
+            let modes = GoogleApiClientUtils.Docs.WriteMode;
             let mode = modes.Replace;
-            let reference: Opt<GoogleApiClientUtils.Reference> = Cast(this.dataDoc[GoogleRef], "string");
+            let reference: Opt<GoogleApiClientUtils.Docs.Reference> = Cast(this.dataDoc[GoogleRef], "string");
             if (!reference) {
                 mode = modes.Insert;
-                reference = { service: GoogleApiClientUtils.Service.Documents, title: StrCast(this.dataDoc.title) };
+                reference = { title: StrCast(this.dataDoc.title) };
             }
             let redo = async () => {
                 if (this._editorView && reference) {
-                    let content = RichTextUtils.GoogleDocs.Convert(this._editorView.state);
+                    let content = RichTextUtils.GoogleDocs.Export(this._editorView.state);
                     let response = await GoogleApiClientUtils.Docs.write({ reference, content, mode });
                     response && (this.dataDoc[GoogleRef] = response.documentId);
                     let pushSuccess = response !== undefined && !("errors" in response);
@@ -452,9 +456,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 if (!exportState) {
                     return;
                 }
-                let content = {
+                let content: GoogleApiClientUtils.Docs.Content = {
                     text: exportState.body,
-                    links: []
+                    requests: []
                 };
                 if (reference && content) {
                     GoogleApiClientUtils.Docs.write({ reference, content, mode });
@@ -468,14 +472,15 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     pullFromGoogleDoc = async (handler: PullHandler) => {
         let dataDoc = this.dataDoc;
         let documentId = StrCast(dataDoc[GoogleRef]);
-        let exportState: Opt<GoogleApiClientUtils.ReadResult>;
+        let test = await RichTextUtils.GoogleDocs.Import(documentId);
+        let exportState: Opt<GoogleApiClientUtils.Docs.ReadResult>;
         if (documentId) {
-            exportState = await GoogleApiClientUtils.Docs.read({ identifier: documentId });
+            exportState = await GoogleApiClientUtils.Docs.read({ documentId });
         }
         UndoManager.RunInBatch(() => handler(exportState, dataDoc), Pulls);
     }
 
-    updateState = (exportState: Opt<GoogleApiClientUtils.ReadResult>, dataDoc: Doc) => {
+    updateState = (exportState: Opt<GoogleApiClientUtils.Docs.ReadResult>, dataDoc: Doc) => {
         let pullSuccess = false;
         if (exportState !== undefined && exportState.body !== undefined && exportState.title !== undefined) {
             const data = Cast(dataDoc.data, RichTextField);
@@ -499,7 +504,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         DocumentDecorations.Instance.startPullOutcome(pullSuccess);
     }
 
-    checkState = (exportState: Opt<GoogleApiClientUtils.ReadResult>, dataDoc: Doc) => {
+    checkState = (exportState: Opt<GoogleApiClientUtils.Docs.ReadResult>, dataDoc: Doc) => {
         if (exportState && this._editorView) {
             let storedPlainText = RichTextUtils.ToPlainText(this._editorView.state) + "\n";
             let receivedPlainText = exportState.body;

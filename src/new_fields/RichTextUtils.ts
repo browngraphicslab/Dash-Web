@@ -3,6 +3,8 @@ import { Node } from "prosemirror-model";
 import { RichTextField } from "./RichTextField";
 import { docs_v1 } from "googleapis";
 import { GoogleApiClientUtils } from "../client/apis/google_docs/GoogleApiClientUtils";
+import { FormattedTextBox } from "../client/views/nodes/FormattedTextBox";
+import { Opt } from "./Doc";
 
 export namespace RichTextUtils {
 
@@ -81,34 +83,68 @@ export namespace RichTextUtils {
 
     export namespace GoogleDocs {
 
-        export const Convert = (state: EditorState): GoogleApiClientUtils.Content => {
+        export const Export = (state: EditorState): GoogleApiClientUtils.Docs.Content => {
             let textNodes: Node<any>[] = [];
             let text = ToPlainText(state);
             let content = state.doc.content;
             content.forEach(node => node.content.forEach(node => node.type.name === "text" && textNodes.push(node)));
-            let links: docs_v1.Schema$Request[] = [];
-            let position = 1;
-            for (let node of textNodes) {
-                let link, length = node.nodeSize;
-                let marks = node.marks;
-                if (marks.length && (link = marks.find(mark => mark.type.name === "link"))) {
-                    links.push(encode({
-                        startIndex: position,
-                        endIndex: position + length,
-                        url: link.attrs.href,
-                    }));
-                }
-                position += length;
+            let linkRequests = ExtractLinks(textNodes);
+            return {
+                text,
+                requests: [...linkRequests]
+            };
+        };
+
+        export const Import = async (documentId: GoogleApiClientUtils.Docs.DocumentId) => {
+            let document = await GoogleApiClientUtils.Docs.retrieve({ documentId });
+            if (!document) {
+                return;
             }
-            return { text, links };
+            // let title = document.title!;
+            let runs = GoogleApiClientUtils.Docs.Utils.extractTextRuns(document);
+            let state = FormattedTextBox.blankState();
+            let from = 0;
+            runs.map(run => {
+                let text = run.content!;
+                state = state.apply(state.tr.insertText(text, from));
+                let to = from + text.length + 1;
+                let href: Opt<string>;
+                if (run.textStyle && run.textStyle.link && (href = run.textStyle.link.url)) {
+                    let mark = state.schema.mark(state.schema.marks.link, { href });
+                    state = state.apply(state.tr.addMark(from, to, mark));
+                }
+                from = to;
+            });
+            // return { title, body };
         };
 
         interface LinkInformation {
             startIndex: number;
             endIndex: number;
+            bold: boolean;
             url: string;
         }
-        const encode = (information: LinkInformation) => {
+
+        const ExtractLinks = (nodes: Node<any>[]) => {
+            let links: docs_v1.Schema$Request[] = [];
+            let position = 1;
+            for (let node of nodes) {
+                let link, length = node.nodeSize;
+                let marks = node.marks;
+                if (marks.length && (link = marks.find(mark => mark.type.name === "link"))) {
+                    links.push(Encode({
+                        startIndex: position,
+                        endIndex: position + length,
+                        url: link.attrs.href,
+                        bold: false
+                    }));
+                }
+                position += length;
+            }
+            return links;
+        };
+
+        const Encode = (information: LinkInformation) => {
             return {
                 updateTextStyle: {
                     fields: "*",
