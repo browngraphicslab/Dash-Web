@@ -5,8 +5,8 @@ import { observer } from "mobx-react";
 import { baseKeymap } from "prosemirror-commands";
 import { history } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
-import { Fragment, Node, Node as ProsNode, NodeType, Slice, Mark } from "prosemirror-model";
-import { EditorState, Plugin, Transaction, TextSelection } from "prosemirror-state";
+import { Fragment, Node, Node as ProsNode, NodeType, Slice, Mark, ResolvedPos } from "prosemirror-model";
+import { EditorState, Plugin, Transaction, TextSelection, NodeSelection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { DateField } from '../../../new_fields/DateField';
 import { Doc, DocListCast, Opt, WidthSym } from "../../../new_fields/Doc";
@@ -645,9 +645,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         document.removeEventListener("paste", this.paste);
     }
 
-    _down = false;
     onPointerDown = (e: React.PointerEvent): void => {
-        this._down = true;
         if (this.props.onClick && e.button === 0) {
             e.preventDefault();
         }
@@ -709,8 +707,47 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
+    findUserMark(marks: Mark[]) {
+        return marks.find(m => m.attrs && m.attrs.userid && m.attrs.userid !== Doc.CurrentUserEmail);
+    }
+    findStartOfMark(rpos: ResolvedPos) {
+        let before = 0;
+        let nbef = rpos.nodeBefore;
+        while (nbef && this.findUserMark(nbef.marks)) {
+            before += nbef.nodeSize;
+            rpos = this._editorView!.state.doc.resolve(rpos.pos - nbef.nodeSize);
+            rpos && (nbef = rpos.nodeBefore);
+        }
+        return before;
+    }
+    findEndOfMark(rpos: ResolvedPos) {
+        let after = 0;
+        let naft = rpos.nodeAfter;
+        while (naft && this.findUserMark(naft.marks)) {
+            after += naft.nodeSize;
+            rpos = this._editorView!.state.doc.resolve(rpos.pos + naft.nodeSize);
+            rpos && (naft = rpos.nodeAfter);
+        }
+        return after;
+    }
+
     onPointerUp = (e: React.PointerEvent): void => {
-        this._down = false;
+        let view = this._editorView!;
+        const pos = view.posAtCoords({ left: e.clientX, top: e.clientY });
+        const rpos = pos && view.state.doc.resolve(pos.pos);
+        if (pos && rpos && view.state.selection.$from === view.state.selection.$to) {
+            let nbef = this.findStartOfMark(rpos);
+            let naft = this.findEndOfMark(rpos);
+            const spos = view.state.doc.resolve(pos.pos - nbef);
+            const epos = view.state.doc.resolve(pos.pos + naft);
+            let ts = new TextSelection(spos, epos);
+            let child = rpos.nodeBefore;
+            let mark = child && this.findUserMark(child.marks);
+            if (mark && child && nbef && naft) {
+                let nmark = view.state.schema.marks.user_mark.create({ ...mark.attrs, userid: e.button === 2 ? Doc.CurrentUserEmail : mark.attrs.userid, opened: e.button === 2 ? false : !mark.attrs.opened });
+                view.dispatch(view.state.tr.setSelection(ts).removeMark(ts.from, ts.to, nmark).addMark(ts.from, ts.to, nmark).setSelection(new TextSelection(epos, epos)));
+            }
+        }
         if (e.buttons === 1 && this.props.isSelected() && !e.altKey) {
             e.stopPropagation();
         }

@@ -67,6 +67,23 @@
     font-style: italic;
 }
 
+.userMarkOpen {
+    background:  rgba(255, 255, 0, 0.267);
+    display: inline;
+}
+.userMark {
+    background:  rgba(255, 255, 0, 0.267);
+    font-size: 2px;
+    display: inline-grid;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width:10px;
+    min-height:10px;
+    text-align:center;
+    align-content: center;
+}
+
 ol { counter-reset: deci 0;}
 .decimal-ol { counter-reset: deci 0; p { display: inline }; font-size: 24 }
 .decimal2-ol {counter-reset: deci2; p { display: inline }; font-size: 18 }

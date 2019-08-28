@@ -333,12 +333,18 @@ export const marks: { [index: string]: MarkSpec } = {
     // the id of the user who entered the text
     user_mark: {
         attrs: {
-            userid: { default: "" }
+            userid: { default: "" },
+            hide_users: { default: [] },
+            opened: { default: false }
         },
+        group: "inline",
+        inclusive: false,
         toDOM(node: any) {
-            return ['span', {
-                style: `background: ${node.attrs.userid.indexOf(Doc.CurrentUserEmail) === -1 ? "rgba(255, 255, 0, 0.267)" : undefined};`
-            }];
+            let hideUsers = node.attrs.hide_users;
+            let hidden = hideUsers.indexOf(node.attrs.userid) !== -1 || (hideUsers.length === 0 && node.attrs.userid !== Doc.CurrentUserEmail);
+            return hidden ?
+                ['span', { class: node.attrs.opened ? "userMarkOpen" : "userMark" }, 0] :
+                ['span', 0];
         }
     },
 
