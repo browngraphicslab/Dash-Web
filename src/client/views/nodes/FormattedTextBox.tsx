@@ -331,8 +331,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     keymap(buildKeymap(schema)),
                     keymap(baseKeymap),
                 ]
-        }
-    };
+        };
+    }
 
     @action
     rebuildEditor() {
@@ -776,7 +776,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             SelectionManager.DeselectAll();
         }
         e.stopPropagation();
-        if (e.key === "Tab") {
+        if (e.key === "Tab" || e.key === "Enter") { // bullets typically change "levels" when tab or enter is used.  sometimes backspcae, so maybe that should be added.
             e.preventDefault();
             setTimeout(() => { // force re-rendering of bullet numbers that may have had their bullet labels change.  (Our prosemirrior code re-"marks" the changed bullets, but nothing causes the Dom to be re-rendered which is where the nubering takes place)
                 SelectionManager.DeselectAll();

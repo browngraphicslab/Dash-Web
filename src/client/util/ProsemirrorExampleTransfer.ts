@@ -79,8 +79,7 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
 
     bind("Mod-s", TooltipTextMenu.insertStar);
 
-    // let nodeTypeMark = depth == 2 ? "upper-alpha" : depth == 4 ? "lower-roman" : depth == 6 ? "lower-alpha" : "decimal";
-    let nodeTypeMark = (depth: number) => { return depth == 2 ? "decimal2" : depth == 4 ? "decimal3" : depth == 6 ? "decimal4" : "decimal" }
+    let nodeTypeMark = (depth: number) => depth === 2 ? "indent2" : depth === 4 ? "indent3" : depth === 6 ? "indent4" : "indent1";
 
     let bulletFunc = (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
         var ref = state.selection;
@@ -90,7 +89,7 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
         if (!sinkListItem(schema.nodes.list_item)(state, (tx2: Transaction) => {
             const resolvedPos = tx2.doc.resolve(range!.start);
 
-            let path = (resolvedPos as any).path as any;
+            let path = (resolvedPos as any).path;
             for (let i = path.length - 1; i > 0; i--) {
                 if (path[i].type === schema.nodes.ordered_list) {
                     path[i].attrs.bulletStyle = nodeTypeMark(depth);
@@ -105,7 +104,7 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
             let newstate = state.applyTransaction(sxf);
             if (!wrapInList(schema.nodes.ordered_list)(newstate.state, (tx2: Transaction) => {
                 const resolvedPos = tx2.doc.resolve(Math.round((range!.start + range!.end) / 2));
-                let path = (resolvedPos as any).path as any;
+                let path = (resolvedPos as any).path;
                 for (let i = path.length - 1; i > 0; i--) {
                     if (path[i].type === schema.nodes.ordered_list) {
                         path[i].attrs.bulletStyle = nodeTypeMark(depth);
@@ -120,8 +119,9 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
                 console.log("bullet fail");
             }
         }
-    }
-    bind("Tab", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => bulletFunc(state, dispatch));
+    };
+
+    bind("Tab", bulletFunc);
 
     bind("Shift-Tab", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
         var ref = state.selection;
@@ -132,7 +132,7 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
             try {
                 const resolvedPos = tx2.doc.resolve(Math.round((range!.start + range!.end) / 2));
 
-                let path = (resolvedPos as any).path as any;
+                let path = (resolvedPos as any).path;
                 for (let i = path.length - 1; i > 0; i--) {
                     if (path[i].type === schema.nodes.ordered_list) {
                         path[i].attrs.bulletStyle = nodeTypeMark(depth);
@@ -159,7 +159,8 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
             if (!splitBlockKeepMarks(state, (tx3: Transaction) => {
                 marks && tx3.ensureMarks(marks);
                 marks && tx3.setStoredMarks(marks);
-                if (!liftListItem(schema.nodes.list_item)(state, (tx4: Transaction) => dispatch(tx4))) {
+                if (!liftListItem(schema.nodes.list_item)(state, dispatch as ((tx: Transaction<Schema<any, any>>) => void))
+                ) {
                     dispatch(tx3);
                 }
             })) {

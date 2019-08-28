@@ -201,7 +201,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
 
     @observable _forceUpdate = 0;
-    _lastBox = { x: 0, y: 0, r: 0, b: 0 }
+    _lastBox = { x: 0, y: 0, r: 0, b: 0 };
     @computed
     get Bounds(): { x: number, y: number, b: number, r: number } {
         let x = this._forceUpdate;

@@ -53,7 +53,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     };
     _viewCommand = {
         title: "restore view", script: "this.target.panX = this.restoredPanX; this.target.panY = this.restoredPanY; this.target.scale = this.restoredScale;", params: ["target"],
-        immediate: (draggedDocs: Doc[]) => { this.props.CollectionView.props.Document.panX = 0; this.props.CollectionView.props.Document.panY = 0; this.props.CollectionView.props.Document.scale = 1 },
+        immediate: (draggedDocs: Doc[]) => { this.props.CollectionView.props.Document.panX = 0; this.props.CollectionView.props.Document.panY = 0; this.props.CollectionView.props.Document.scale = 1; },
         initialize: (button: Doc) => { button.restoredPanX = this.props.CollectionView.props.Document.panX; button.restoredPanY = this.props.CollectionView.props.Document.panY; button.restoredScale = this.props.CollectionView.props.Document.scale; }
     };
     _freeform_commands = [this._contentCommand, this._templateCommand, this._viewCommand];

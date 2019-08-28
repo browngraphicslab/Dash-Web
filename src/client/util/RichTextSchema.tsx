@@ -177,10 +177,15 @@ export const nodes: { [index: string]: NodeSpec } = {
         group: 'block',
         attrs: {
             bulletStyle: { default: "" },
+            mapStyle: { default: "decimal" }
         },
         toDOM(node: Node<any>) {
-            for (let i = 0; i < node.childCount; i++) node.child(i).attrs.className = node.attrs.bulletStyle;
-            return ['ol', { class: `${node.attrs.bulletStyle}-ol`, style: `list-style: none;` }, 0]
+            const bs = node.attrs.bulletStyle;
+            const decMap = bs === "indent1" ? "decimal" : bs === "indent2" ? "decimal2" : bs === "indent3" ? "decimal3" : bs === "indent4" ? "decimal4" : "";
+            const multiMap = bs === "indent1" ? "decimal" : bs === "indent2" ? "upper-alpha" : bs === "indent3" ? "lower-roman" : bs === "indent4" ? "lower-alpha" : "";
+            let map = node.attrs.mapStyle === "decimal" ? decMap : multiMap;
+            for (let i = 0; i < node.childCount; i++) node.child(i).attrs.className = map;
+            return ['ol', { class: `${map}-ol`, style: `list-style: none;` }, 0];
             //return ['ol', { class: `${node.attrs.bulletStyle}`, style: `list-style: ${node.attrs.bulletStyle};`, 0]
         }
     },
@@ -192,7 +197,7 @@ export const nodes: { [index: string]: NodeSpec } = {
         // parseDOM: [{ tag: "ul" }, { style: 'list-style-type=disc' }],
         toDOM(node: Node<any>) {
             for (let i = 0; i < node.childCount; i++) node.child(i).attrs.className = "";
-            return ['ul', 0]
+            return ['ul', 0];
         }
     },
 
@@ -302,7 +307,7 @@ export const marks: { [index: string]: MarkSpec } = {
         },
         toDOM(node: any) {
             return ['span', {
-                style: `background: ${node.attrs.bulletType == "decimal" ? "yellow" : node.attrs.bulletType === "upper-alpha" ? "blue" : "green"}`
+                style: `background: ${node.attrs.bulletType === "decimal" ? "yellow" : node.attrs.bulletType === "upper-alpha" ? "blue" : "green"}`
             }];
         }
     },
