@@ -50,14 +50,8 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
             (box?: FormattedTextBox) => {
                 const tb = this._textBox;
                 const container = tb && tb.props.ContainingCollectionView;
-                if (tb && container) { // this hacky section is needed to force the edited text box to completely recreate itself since things can get out synch -- specifically, the bullet label state which is computed when the dom elements are created
-                    var dl = DocListCast(container.props.Document[container.props.fieldKey]);
-                    let dli = dl.indexOf(tb.props.Document);
-                    if (dli !== -1) {
-                        let prev = dli > 0 ? dl[dli - 1] : undefined;
-                        tb.props.removeDocument && tb.props.removeDocument(tb.props.Document);
-                        setTimeout(() => Doc.AddDocToList(container.props.Document, container.props.fieldKey, tb.props.Document, prev, false, dli === 0), 0);
-                    }
+                if (tb && container) {
+                    tb.rebuildEditor();// this forces the edited text box to completely recreate itself to avoid get out of sync -- e.g., bullet labels are only computed when the dom elements are created
                 }
                 this._textBox = box;
                 if (box) {
