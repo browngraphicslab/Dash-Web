@@ -187,6 +187,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                             marks[linkIndex].attrs.guid = guid;
                             return node;
                         }
+                        console.log('href was and is ', href, marks[linkIndex].attrs.href);
                     }
                     return undefined;
                 }

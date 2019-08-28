@@ -47,8 +47,12 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         let sourceContext = await Cast(proto.sourceContext, Doc);
         let guid = StrCast(this.props.linkDoc.guid);
         let href;
+        let href2;
         if (sourceContext) {
             href = Utils.prepend("/doc/" + sourceContext[Id]); // trying to get id (?) so that we can search for this in the link marks
+        }
+        if (targetContext) {
+            href2 = Utils.prepend("/doc/" + targetContext[Id]); // trying to get id (?) so that we can search for this in the link marks
         }
         let self = this;
 
@@ -65,9 +69,10 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
             if (guid) {
                 jumpToDoc.guid = guid;
             } else if (href) { // retroactively fixing old in-text links by adding guid 
-                console.log('wegotthis', href, guid);
+                console.log('wegotthis', href, href2, proto.href, guid);
                 jumpToDoc.linkHref = href;
                 let newguid = Utils.GenerateGuid();
+                this.props.linkDoc.guid = newguid;
                 jumpToDoc.guid = newguid;
             }
         }
