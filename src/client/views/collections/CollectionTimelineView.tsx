@@ -473,7 +473,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         || (thumbnail1.leftval <= thumbnail2.leftval && thumbnail1.leftval + 50 > thumbnail2.leftval))
                         && (thumbnail1.top === thumbnail2.top)
                         && thumbnail1 !== thumbnail2) {
-                        thumbnail1.top += 120;
+                        thumbnail1.top += 60;
                         overlap = false;
                     }
                 }
@@ -633,16 +633,13 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.props.addDocTab && this.props.addDocTab(portal, portal, "onBottom");
     }
 
-    updateDoc(document: Doc, document2: Doc) {
-        document = document2;
-    }
+
 
     render() {
         this.updateWidth();
         this.createticks();
         this.filtermenu();
         this.thumbnailloop();
-        let p: [number, number] = this._visible ? this.props.ScreenToLocalTransform().translate(0, 0).transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
         return (
             <div className="collectionTimelineView" onKeyDown={this.onKeyDown_Selector} ref={this.screenref} style={{ overflow: "scroll", cursor: "grab", width: "100%", height: "100%" }} onPointerDown={this.onPointerDown_Dragger} onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
                 <Flyout
@@ -654,10 +651,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     }>
                     <button id="schemaOptionsMenuBtn" style={{ position: "fixed" }}><FontAwesomeIcon style={{ color: "white" }} icon="cog" size="sm" /></button>
                 </Flyout>
-                <div ref={this.timelineref} className="timeline" style={{ position: "absolute", height: "25px", width: "100%", top: "75%", zIndex: 9999 }}>
-                    {DocListCast(this.props.Document.markers).map(d => this.createmarker(d))}
-                    {this.ticks}
-                </div>
+
                 <BottomUI
                     thumbnailmap={this.thumbnails}
                     markermap={DocListCast(this.props.Document.markers).map(d => this.createmap(d))}
@@ -680,12 +674,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 <Measure onResize={() => this.updateWidth()}>
                     {({ measureRef }) => <div ref={measureRef}> </div>}
                 </Measure>
-                <div className="marqueeView" style={{ height: "40%", top: "60%", borderRadius: "inherit", position: "absolute", width: "100%", }}>
-                    {<div style={{ transform: `translate(${p[0]}px, ${p[1] - 0.58 * (document.body.clientHeight)}px)` }} >
-                        {this._visible ? this.marqueeDiv : null}
-                    </div>}
-                </div>
-                <div style={{ top: document.body.clientHeight / 6, position: "absolute", bottom: "25%" }}>
+
+                <div style={{ top: "125px", position: "absolute", bottom: "25%", width: "100%", }}>
                     {this.thumbnails.map(doc =>
                         <Thumbnail
                             scrollTop={document.body.scrollTop}
@@ -694,9 +684,18 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                             whenActiveChanged={this.props.whenActiveChanged}
                             addDocTab={this.props.addDocTab}
                             pinToPres={this.props.pinToPres}
+                            docheight={this.screenref.current ? this.screenref.current.style.height ? parseFloat(this.screenref.current.style.height) + 70 : 651 : 651}
+
                             createportal={() => this.makeportal()} leftval={doc.leftval} doc={doc.doc} sortstate={this.sortstate} top={doc.top} timelinetop={this.timelineref.current ? parseFloat(this.timelineref.current!.style.top!) : document.body.clientHeight * 0.75}>
                         </Thumbnail>
-                    )}</div>
+
+                    )}
+                    <div ref={this.timelineref} className="timeline" style={{ position: "fixed", height: "25px", width: "100%", top: "300px", zIndex: 999999 }}>
+                        {DocListCast(this.props.Document.markers).map(d => this.createmarker(d))}
+                        {this.ticks}
+                    </div>
+
+                </div>
             </div >
         );
     }

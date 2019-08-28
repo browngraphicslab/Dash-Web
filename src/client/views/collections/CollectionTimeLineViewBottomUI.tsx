@@ -286,7 +286,7 @@ export class BottomUI extends React.Component<BottomUIProps> {
                     <div ref={this.colorrefBlue} onClick={(e) => this.toggleColor(e, "#80dfff")} className="color4" style={{ position: "relative", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#80dfff", border: "2px solid #9c9396" }}></div>
                     <input height={"20px"} ref={this.borderref} type="text" value={this.searchString3 ? this.searchString : undefined} placeholder={"sort value: " + this.props.sortstate} onChange={this.onChange3} onKeyPress={this.enter3} />
                 </div>
-                <div ref={this.props.barref} className="backdropscroll" onPointerDown={this.onPointerDown_OffBar} style={{ zIndex: 1, top: "50px", height: "30px", width: "100%", bottom: "90%", position: "fixed", }}>
+                <div ref={this.props.barref} className="backdropscroll" onPointerDown={this.onPointerDown_OffBar} style={{ zIndex: 99, top: "50px", height: "30px", width: "100%", bottom: "90%", position: "fixed", }}>
                     {this.props.thumbnailmap.map(item => <div
                         style={{
                             position: "absolute",
