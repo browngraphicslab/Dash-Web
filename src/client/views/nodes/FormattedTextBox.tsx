@@ -628,6 +628,10 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             this.props.select(false);
         }
         else if (this.props.isOverlay) this._editorView!.focus();
+        var markerss = this._editorView!.state.storedMarks || (this._editorView!.state.selection.$to.parentOffset && this._editorView!.state.selection.$from.marks());
+        let newMarks = [...(markerss ? markerss.filter(m => m.type !== schema.marks.user_mark) : []), schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail })];
+        this._editorView!.state.storedMarks = newMarks;
+
     }
 
     componentWillUnmount() {
