@@ -111,8 +111,9 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
                         break;
                     }
                 }
-                marks && tx2.ensureMarks([...marks]);
-                marks && tx2.setStoredMarks([...marks]);
+                // when promoting to a list, assume list will format things so don't copy the stored marks.
+                // marks && tx2.ensureMarks([...marks]);
+                // marks && tx2.setStoredMarks([...marks]);
 
                 dispatch(tx2);
             })) {
