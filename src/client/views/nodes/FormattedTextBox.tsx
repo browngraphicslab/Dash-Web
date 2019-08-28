@@ -183,13 +183,10 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     if (linkIndex !== -1) {
                         if (guid === marks[linkIndex].attrs.guid) {
                             return node;
-                        } else {
-                            console.log(marks[linkIndex].attrs.href);
+                        } else if (href && href === marks[linkIndex].attrs.href) { // retroactively fixing old in-text links by adding guid
+                            marks[linkIndex].attrs.guid = guid;
+                            return node;
                         }
-                        // else if (href === marks[linkIndex].attrs.href) {
-                        //     marks[linkIndex].attrs.guid = guid;
-                        //     return node;
-                        // }
                     }
                     return undefined;
                 }
