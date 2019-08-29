@@ -739,7 +739,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                                     if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
                                         // if !guid, then generate guid and apply to full doc
                                         if (!guid) {
-                                            console.log('making new guid!');
+                                            console.log('making new guid!'); // hehheehhehehe
                                             linkDoc.guid = Utils.GenerateGuid();
                                         }
                                         DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, undefined, undefined, NumCast((jumpToDoc === linkDoc.anchor2 ? linkDoc.anchor2Page : linkDoc.anchor1Page)));

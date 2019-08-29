@@ -46,14 +46,6 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         let targetContext = await Cast(proto.targetContext, Doc);
         let sourceContext = await Cast(proto.sourceContext, Doc);
         let guid = StrCast(this.props.linkDoc.guid);
-        let href;
-        let href2;
-        if (sourceContext) {
-            href = Utils.prepend("/doc/" + sourceContext[Id]); // trying to get id (?) so that we can search for this in the link marks
-        }
-        if (targetContext) {
-            href2 = Utils.prepend("/doc/" + targetContext[Id]); // trying to get id (?) so that we can search for this in the link marks
-        }
         let self = this;
 
         let dockingFunc = (document: Doc) => { this.props.addDocTab(document, undefined, "inTab"); SelectionManager.DeselectAll(); };
@@ -67,10 +59,12 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         else if (this.props.destinationDoc === self.props.linkDoc.anchor1 && sourceContext) {
             DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, document => dockingFunc(sourceContext!));
             if (guid) {
+                console.log('wegotthis', self.props.linkDoc.anchor2, jumpToDoc[Id]);
+                jumpToDoc.linkHref = Utils.prepend("/doc/" + StrCast(this.props.linkDoc.anchor2));
                 jumpToDoc.guid = guid;
-            } else if (href) { // retroactively fixing old in-text links by adding guid 
-                console.log('wegotthis', href, href2, proto.href, guid);
-                jumpToDoc.linkHref = href;
+            } else { // retroactively fixing old in-text links by adding guid 
+                console.log('wegotthis', self.props.linkDoc.anchor2, jumpToDoc[Id]);
+                jumpToDoc.linkHref = Utils.prepend("/doc/" + StrCast(this.props.linkDoc.anchor2));
                 let newguid = Utils.GenerateGuid();
                 this.props.linkDoc.guid = newguid;
                 jumpToDoc.guid = newguid;
