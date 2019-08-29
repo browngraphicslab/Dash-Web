@@ -182,18 +182,29 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private get _pheight() { return this.props.PanelHeight(); }
     private inkKey = "ink";
     private _childLayoutDisposer?: IReactionDisposer;
+    private _childDisposer?: IReactionDisposer;
 
     componentDidMount() {
-        this._childLayoutDisposer = reaction(() => [this.childDocs, Cast(this.props.Document.childLayout, Doc)],
-            async (args) => {
-                this.childDocs.filter(doc => args[1] instanceof Doc || doc.layout instanceof Doc).map(async doc => {
-                    if (!Doc.AreProtosEqual(args[1] as Doc, (await doc).layout as Doc)) {
-                        Doc.ApplyTemplateTo(args[1] as Doc, (await doc), undefined);
+        this._childDisposer = reaction(() => this.childDocs,
+            async (childDocs) => {
+                let childLayout = Cast(this.props.Document.childLayout, Doc) as Doc;
+                childLayout && childDocs.map(async doc => {
+                    if (!Doc.AreProtosEqual(childLayout, (await doc).layout as Doc)) {
+                        Doc.ApplyTemplateTo(childLayout, doc, undefined);
+                    }
+                });
+            });
+        this._childLayoutDisposer = reaction(() => Cast(this.props.Document.childLayout, Doc),
+            async (childLayout) => {
+                this.childDocs.map(async doc => {
+                    if (!Doc.AreProtosEqual(childLayout as Doc, (await doc).layout as Doc)) {
+                        Doc.ApplyTemplateTo(childLayout as Doc, doc, undefined);
                     }
                 });
             });
     }
     componentWillUnmount() {
+        this._childDisposer && this._childDisposer();
         this._childLayoutDisposer && this._childLayoutDisposer();
     }
 
