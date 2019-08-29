@@ -38,7 +38,7 @@ enum FollowOptions {
 export class LinkFollowBox extends React.Component<FieldViewProps> {
 
     public static LayoutString() { return FieldView.LayoutString(LinkFollowBox); }
-    public static Instance: LinkFollowBox;
+    public static Instance: LinkFollowBox | undefined;
     @observable static linkDoc: Doc | undefined = undefined;
     @observable static destinationDoc: Doc | undefined = undefined;
     @observable static sourceDoc: Doc | undefined = undefined;
@@ -557,7 +557,8 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
 
     async close() {
         let res = await DocListCastAsync((CurrentUserUtils.UserDocument.overlays as Doc).data);
-        if (res) res.splice(res.indexOf(LinkFollowBox.Instance.props.Document), 1);
+        if (res) res.splice(res.indexOf(LinkFollowBox.Instance!.props.Document), 1);
+        LinkFollowBox.Instance = undefined;
     }
 
     render() {
