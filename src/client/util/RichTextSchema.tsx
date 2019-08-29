@@ -1,6 +1,7 @@
 import { DOMOutputSpecArray, MarkSpec, Node, NodeSpec, Schema, Slice } from "prosemirror-model";
 import { bulletList, listItem, orderedList } from 'prosemirror-schema-list';
 import { TextSelection } from "prosemirror-state";
+import { Doc } from "../../new_fields/Doc";
 
 const pDOM: DOMOutputSpecArray = ["p", 0], blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
@@ -175,43 +176,17 @@ export const nodes: { [index: string]: NodeSpec } = {
         content: 'list_item+',
         group: 'block',
         attrs: {
-            bulletStyle: { default: "decimal" },
+            bulletStyle: { default: "" },
+            mapStyle: { default: "decimal" }
         },
         toDOM(node: Node<any>) {
-            return ['ol', { style: `list-style: ${node.attrs.bulletStyle}` }, 0]
-        }
-    },
-    alphabet_list: {
-        ...orderedList,
-        content: 'list_item+',
-        group: 'block',
-        attrs: {
-            bulletStyle: { default: "lower-alpha" },
-        },
-        toDOM(node: Node<any>) {
-            return ['ol', { style: `list-style: ${node.attrs.bulletStyle}` }, 0]
-        }
-    },
-    cap_alphabet_list: {
-        ...orderedList,
-        content: 'list_item+',
-        group: 'block',
-        attrs: {
-            bulletStyle: { default: "upper-alpha" },
-        },
-        toDOM(node: Node<any>) {
-            return ['ol', { style: `list-style: ${node.attrs.bulletStyle}` }, 0]
-        }
-    },
-    roman_list: {
-        ...orderedList,
-        content: 'list_item+',
-        group: 'block',
-        attrs: {
-            bulletStyle: { default: "lower-roman" },
-        },
-        toDOM(node: Node<any>) {
-            return ['ol', { style: `list-style: ${node.attrs.bulletStyle}` }, 0]
+            const bs = node.attrs.bulletStyle;
+            const decMap = bs === "indent1" ? "decimal" : bs === "indent2" ? "decimal2" : bs === "indent3" ? "decimal3" : bs === "indent4" ? "decimal4" : "";
+            const multiMap = bs === "indent1" ? "decimal" : bs === "indent2" ? "upper-alpha" : bs === "indent3" ? "lower-roman" : bs === "indent4" ? "lower-alpha" : "";
+            let map = node.attrs.mapStyle === "decimal" ? decMap : multiMap;
+            for (let i = 0; i < node.childCount; i++) node.child(i).attrs.className = map;
+            return ['ol', { class: `${map}-ol`, style: `list-style: none;` }, 0];
+            //return ['ol', { class: `${node.attrs.bulletStyle}`, style: `list-style: ${node.attrs.bulletStyle};`, 0]
         }
     },
     //this doesn't currently work for some reason
@@ -220,9 +195,10 @@ export const nodes: { [index: string]: NodeSpec } = {
         content: 'list_item+',
         group: 'block',
         // parseDOM: [{ tag: "ul" }, { style: 'list-style-type=disc' }],
-        // toDOM() { return ['ol', {
-        //     style: 'list-type: hebrew'
-        // }] }
+        toDOM(node: Node<any>) {
+            for (let i = 0; i < node.childCount; i++) node.child(i).attrs.className = "";
+            return ['ul', 0];
+        }
     },
 
     //bullet_list: {
@@ -234,8 +210,14 @@ export const nodes: { [index: string]: NodeSpec } = {
     //select: state => true,
     // },
     list_item: {
+        attrs: {
+            className: { default: "" }
+        },
         ...listItem,
-        content: 'paragraph block*'
+        content: 'paragraph block*',
+        toDOM(node: any) {
+            return ["li", { class: node.attrs.className }, 0];
+        }
     },
 };
 
@@ -268,7 +250,7 @@ export const marks: { [index: string]: MarkSpec } = {
     // :: MarkSpec An emphasis mark. Rendered as an `<em>` element.
     // Has parse rules that also match `<i>` and `font-style: italic`.
     em: {
-        parseDOM: [{ tag: "i" }, { tag: "em" }, { style: "font-style=italic" }],
+        parseDOM: [{ tag: "i" }, { tag: "em" }, { style: "font-style: italic" }],
         toDOM() { return emDOM; }
     },
 
@@ -320,6 +302,17 @@ export const marks: { [index: string]: MarkSpec } = {
         toDOM: () => ['sup']
     },
 
+    mbulletType: {
+        attrs: {
+            bulletType: { default: "decimal" }
+        },
+        toDOM(node: any) {
+            return ['span', {
+                style: `background: ${node.attrs.bulletType === "decimal" ? "yellow" : node.attrs.bulletType === "upper-alpha" ? "blue" : "green"}`
+            }];
+        }
+    },
+
     highlight: {
         parseDOM: [{ style: 'color: blue' }],
         toDOM() {
@@ -335,6 +328,28 @@ export const marks: { [index: string]: MarkSpec } = {
             return ['span', {
                 style: 'background: yellow'
             }];
+        }
+    },
+
+    // the id of the user who entered the text
+    user_mark: {
+        attrs: {
+            userid: { default: "" },
+            hide_users: { default: [] },
+            opened: { default: true },
+            modified: { default: "when?" }
+        },
+        group: "inline",
+        inclusive: false,
+        toDOM(node: any) {
+            let hideUsers = node.attrs.hide_users;
+            let hidden = hideUsers.indexOf(node.attrs.userid) !== -1 || (hideUsers.length === 0 && node.attrs.userid !== Doc.CurrentUserEmail);
+            return hidden ?
+                (node.attrs.opened ?
+                    ['span', { class: "userMarkOpen" }, 0] :
+                    ['span', { class: "userMark" }, ['span', { style: "font-size:2" }, 0]]
+                ) :
+                ['span', 0];
         }
     },
 
@@ -413,7 +428,6 @@ export const marks: { [index: string]: MarkSpec } = {
         attrs: {
             fontSize: { default: 10 }
         },
-        inclusive: false,
         parseDOM: [{ style: 'font-size: 10px;' }],
         toDOM: (node) => ['span', {
             style: `font-size: ${node.attrs.fontSize}px;`
@@ -592,6 +606,8 @@ export class SummarizedView {
                 attrs.textslice = newSelection.content().toJSON();
                 view.dispatch(view.state.tr.setNodeMarkup(y, undefined, attrs));
                 view.dispatch(view.state.tr.setSelection(newSelection).deleteSelection(view.state, () => { }));
+                let marks = view.state.storedMarks.filter((m: any) => m.type !== view.state.schema.marks.highlight);
+                view.state.storedMarks = marks;
                 self._collapsed.textContent = "㊉";
             } else {
                 // node.attrs.visibility = !node.attrs.visibility;

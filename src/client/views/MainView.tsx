@@ -326,7 +326,6 @@ export class MainView extends React.Component {
                             PanelHeight={this.getPHeight}
                             renderDepth={0}
                             backgroundColor={returnEmptyString}
-                            selectOnLoad={false}
                             focus={emptyFunction}
                             parentActive={returnTrue}
                             whenActiveChanged={emptyFunction}
@@ -389,7 +388,6 @@ export class MainView extends React.Component {
             PanelWidth={this.flyoutWidthFunc}
             PanelHeight={this.getPHeight}
             renderDepth={0}
-            selectOnLoad={false}
             focus={emptyFunction}
             backgroundColor={returnEmptyString}
             parentActive={returnTrue}

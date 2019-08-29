@@ -66,3 +66,36 @@
 .em {
     font-style: italic;
 }
+
+.userMarkOpen {
+    background:  rgba(255, 255, 0, 0.267);
+    display: inline;
+}
+.userMark {
+    background:  rgba(255, 255, 0, 0.267);
+    font-size: 2px;
+    display: inline-grid;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width:10px;
+    min-height:10px;
+    text-align:center;
+    align-content: center;
+}
+
+ol { counter-reset: deci 0;}
+.decimal-ol { counter-reset: deci 0; p { display: inline }; font-size: 24 }
+.decimal2-ol {counter-reset: deci2; p { display: inline }; font-size: 18 }
+.decimal3-ol {counter-reset: deci3; p { display: inline }; font-size: 14 }
+.decimal4-ol {counter-reset: deci4; p { display: inline }; font-size: 10 }
+.upper-alpha-ol {counter-reset: ualph; p { display: inline }; font-size: 18 }
+.lower-roman-ol {counter-reset: lroman;  p { display: inline }; font-size: 14; }
+.lower-alpha-ol {counter-reset: lalpha;  p { display: inline }; font-size: 10;}
+.decimal:before { content: counter(deci) " "; counter-increment: deci; display:inline-block; width: 30}
+.decimal2:before { content: counter(deci) "." counter(deci2) " "; counter-increment: deci2; display:inline-block; width: 35}
+.decimal3:before { content: counter(deci) "." counter(deci2) "." counter(deci3) " "; counter-increment: deci3; display:inline-block; width: 35}
+.decimal4:before { content: counter(deci) "." counter(deci2) "." counter(deci3) "." counter(deci4) " "; counter-increment: deci4; display:inline-block; width: 40}
+.upper-alpha:before { content: counter(deci) "." counter(ualph, upper-alpha) " "; counter-increment: ualph; display:inline-block; width: 35 }
+.lower-roman:before { content: counter(deci) "." counter(ualph, upper-alpha) "." counter(lroman, lower-roman) " "; counter-increment: lroman;display:inline-block; width: 50 }
+.lower-alpha:before { content: counter(deci) "." counter(ualph, upper-alpha) "." counter(lroman, lower-roman) "." counter(lalpha, lower-alpha)" "; counter-increment: lalpha; display:inline-block; width: 35}

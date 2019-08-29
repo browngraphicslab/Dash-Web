@@ -359,7 +359,6 @@ export default class PresentationElement extends React.Component<PresentationEle
                     PanelHeight={() => 90}
                     focus={emptyFunction}
                     backgroundColor={returnEmptyString}
-                    selectOnLoad={false}
                     parentActive={returnFalse}
                     whenActiveChanged={returnFalse}
                     bringToFront={emptyFunction}

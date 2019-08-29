@@ -209,7 +209,6 @@ export class SearchItem extends React.Component<SearchItemProps> {
                     PanelHeight={returnYDimension}
                     focus={emptyFunction}
                     backgroundColor={returnEmptyString}
-                    selectOnLoad={false}
                     parentActive={returnFalse}
                     whenActiveChanged={returnFalse}
                     bringToFront={emptyFunction}

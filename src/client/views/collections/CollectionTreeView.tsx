@@ -432,26 +432,28 @@ class TreeView extends React.Component<TreeViewProps> {
         }
 
         let ascending = Cast(containingCollection.sortAscending, "boolean", null);
-        if (ascending !== undefined) docs.sort(function (a, b): 1 | -1 {
-            let descA = ascending ? b : a;
-            let descB = ascending ? a : b;
-            let first = descA.title;
-            let second = descB.title;
-            // TODO find better way to sort how to sort..................
-            if (typeof first === 'number' && typeof second === 'number') {
-                return (first - second) > 0 ? 1 : -1;
-            }
-            if (typeof first === 'string' && typeof second === 'string') {
-                return first > second ? 1 : -1;
-            }
-            if (typeof first === 'boolean' && typeof second === 'boolean') {
-                // if (first === second) { // bugfixing?: otherwise, the list "flickers" because the list is resorted during every load
-                //     return Number(descA.x) > Number(descB.x) ? 1 : -1;
-                // }
-                return first > second ? 1 : -1;
-            }
-            return ascending ? 1 : -1;
-        });
+        if (ascending !== undefined) {
+            docs.sort(function (a, b): 1 | -1 {
+                let descA = ascending ? b : a;
+                let descB = ascending ? a : b;
+                let first = descA.title;
+                let second = descB.title;
+                // TODO find better way to sort how to sort..................
+                if (typeof first === 'number' && typeof second === 'number') {
+                    return (first - second) > 0 ? 1 : -1;
+                }
+                if (typeof first === 'string' && typeof second === 'string') {
+                    return first > second ? 1 : -1;
+                }
+                if (typeof first === 'boolean' && typeof second === 'boolean') {
+                    // if (first === second) { // bugfixing?: otherwise, the list "flickers" because the list is resorted during every load
+                    //     return Number(descA.x) > Number(descB.x) ? 1 : -1;
+                    // }
+                    return first > second ? 1 : -1;
+                }
+                return ascending ? 1 : -1;
+            });
+        }
 
         let rowWidth = () => panelWidth() - 20;
         return docs.map((child, i) => {

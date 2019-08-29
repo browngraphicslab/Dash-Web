@@ -18,7 +18,7 @@ import { Docs } from "../../documents/Documents";
 import { faStickyNote } from "@fortawesome/free-solid-svg-icons";
 import { library } from "@fortawesome/fontawesome-svg-core";
 
-library.add(faStickyNote)
+library.add(faStickyNote);
 
 @observer
 export class WebBox extends React.Component<FieldViewProps> {
