@@ -714,25 +714,30 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         const pos = view.posAtCoords({ left: e.clientX, top: e.clientY });
         const rpos = pos && view.state.doc.resolve(pos.pos);
         let noselection = view.state.selection.$from === view.state.selection.$to;
+        let set = false;
         if (pos && rpos) {
             let nbef = findStartOfMark(rpos, view, findOtherUserMark);
             let naft = findEndOfMark(rpos, view, findOtherUserMark);
-            const spos = view.state.doc.resolve(pos.pos - nbef);
-            const epos = view.state.doc.resolve(pos.pos + naft);
-            let ts = new TextSelection(spos, epos);
+            const spos = pos.pos - nbef;
+            const epos = pos.pos + naft;
             let child = rpos.nodeBefore || rpos.nodeAfter;
             let mark = child && findOtherUserMark(child.marks);
             if (mark && child && (nbef || naft) && (!mark.attrs.opened || noselection)) {
-                let opened = e.button === 2 ? false : !mark.attrs.opened;
-                SelectionSizeTooltip.tooltip.style.display = opened ? "" : "none";
-                let mid = opened ? epos : view.state.doc.resolve((spos.pos + epos.pos) / 2);
-                let nmark = view.state.schema.marks.user_mark.create({ ...mark.attrs, userid: e.button === 2 ? Doc.CurrentUserEmail : mark.attrs.userid, opened: opened });
-                view.dispatch(view.state.tr.addMark(ts.from, ts.to, nmark).setSelection(new TextSelection(mid, mid)));
+                SelectionSizeTooltip.SetState(this, mark.attrs.opened, spos, epos, mark);
+                set = true;
             }
         }
+        !set && SelectionSizeTooltip.Hide();
         if (e.buttons === 1 && this.props.isSelected() && !e.altKey) {
             e.stopPropagation();
         }
+    }
+
+    setAnnotation = (start: number, end: number, mark: Mark, opened: boolean, keep: boolean = false) => {
+        let view = this._editorView!;
+        let mid = view.state.doc.resolve(Math.round((start + end) / 2));
+        let nmark = view.state.schema.marks.user_mark.create({ ...mark.attrs, userid: keep ? Doc.CurrentUserEmail : mark.attrs.userid, opened: opened });
+        view.dispatch(view.state.tr.removeMark(start, end, nmark).addMark(start, end, nmark).setSelection(new TextSelection(mid, mid)));
     }
 
     @action

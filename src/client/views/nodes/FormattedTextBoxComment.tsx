@@ -1,6 +1,5 @@
-import { Plugin, EditorState, TextSelection } from "prosemirror-state"
+import { Plugin, EditorState } from "prosemirror-state"
 import './FormattedTextBoxComment.scss'
-import { DragManager } from "../../util/DragManager";
 import { ResolvedPos, Mark } from "prosemirror-model";
 import { EditorView } from "prosemirror-view";
 import { Doc } from "../../../new_fields/Doc";
@@ -35,18 +34,43 @@ export function findEndOfMark(rpos: ResolvedPos, view: EditorView, finder: (mark
     return after;
 }
 
+
 export class SelectionSizeTooltip {
-    static tooltip: any;
+    static tooltip: HTMLElement;
+    static start: number;
+    static end: number;
+    static mark: Mark;
+    static opened: boolean;
+    static textBox: any;
     constructor(view: any) {
         if (!SelectionSizeTooltip.tooltip) {
+            const root = document.getElementById("root");
             SelectionSizeTooltip.tooltip = document.createElement("div");
             SelectionSizeTooltip.tooltip.className = "FormattedTextBox-tooltip";
-            DragManager.Root().appendChild(SelectionSizeTooltip.tooltip);
+            SelectionSizeTooltip.tooltip.style.pointerEvents = "all";
+            SelectionSizeTooltip.tooltip.onpointerdown = (e: PointerEvent) => {
+                SelectionSizeTooltip.opened = !SelectionSizeTooltip.opened;
+                SelectionSizeTooltip.textBox.setAnnotation(
+                    SelectionSizeTooltip.start, SelectionSizeTooltip.end, SelectionSizeTooltip.mark,
+                    SelectionSizeTooltip.opened, e.button == 2);
+            };
+            root && root.appendChild(SelectionSizeTooltip.tooltip);
         }
-
         this.update(view, undefined);
     }
 
+    public static Hide() {
+        SelectionSizeTooltip.textBox = undefined;
+        SelectionSizeTooltip.tooltip && (SelectionSizeTooltip.tooltip.style.display = "none");
+    }
+    public static SetState(textBox: any, opened: boolean, start: number, end: number, mark: Mark) {
+        SelectionSizeTooltip.textBox = textBox;
+        SelectionSizeTooltip.start = start;
+        SelectionSizeTooltip.end = end;
+        SelectionSizeTooltip.mark = mark;
+        SelectionSizeTooltip.opened = opened;
+        SelectionSizeTooltip.textBox && SelectionSizeTooltip.tooltip && (SelectionSizeTooltip.tooltip.style.display = "");
+    }
 
     update(view: EditorView, lastState?: EditorState) {
         let state = view.state;
@@ -59,12 +83,13 @@ export class SelectionSizeTooltip {
             let naft = findEndOfMark(state.selection.$from, view, findOtherUserMark);
             let child = state.selection.$from.nodeBefore;
             let mark = child && findOtherUserMark(child.marks);
-            if (mark && child && nbef && naft && mark.attrs.opened && SelectionSizeTooltip.tooltip.offsetParent) {
+            if (mark && child && nbef && naft) {
                 SelectionSizeTooltip.tooltip.textContent = mark.attrs.userid;
                 // These are in screen coordinates
-                let start = view.coordsAtPos(state.selection.from), end = view.coordsAtPos(state.selection.to);
+                // let start = view.coordsAtPos(state.selection.from), end = view.coordsAtPos(state.selection.to);
+                let start = view.coordsAtPos(state.selection.from - nbef), end = view.coordsAtPos(state.selection.from - nbef);
                 // The box in which the tooltip is positioned, to use as base
-                let box = SelectionSizeTooltip.tooltip.offsetParent.getBoundingClientRect();
+                let box = (document.getElementById("main-div") as any).getBoundingClientRect();
                 // Find a center-ish x position from the selection endpoints (when
                 // crossing lines, end may be more to the left)
                 let left = Math.max((start.left + end.left) / 2, start.left + 3);
