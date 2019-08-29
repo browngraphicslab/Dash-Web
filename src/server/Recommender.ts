@@ -24,7 +24,7 @@ export class Recommender {
     private loadModel(): Promise<any> {
         let self = this;
         return new Promise(res => {
-            w2v.loadModel("./node_modules/word2vec/vectors.txt", function (err: any, model: any) {
+            w2v.loadModel("./node_modules/word2vec/examples/fixtures/vectors.txt", function (err: any, model: any) {
                 self._model = model;
                 self.dimension = model.size;
                 res(model);
