@@ -37,6 +37,7 @@ export function findEndOfMark(rpos: ResolvedPos, view: EditorView, finder: (mark
 
 export class SelectionSizeTooltip {
     static tooltip: HTMLElement;
+    static tooltipText: HTMLElement;
     static start: number;
     static end: number;
     static mark: Mark;
@@ -45,14 +46,20 @@ export class SelectionSizeTooltip {
     constructor(view: any) {
         if (!SelectionSizeTooltip.tooltip) {
             const root = document.getElementById("root");
+            let input = document.createElement("input");
+            input.type = "checkbox";
             SelectionSizeTooltip.tooltip = document.createElement("div");
+            SelectionSizeTooltip.tooltipText = document.createElement("div");
+            SelectionSizeTooltip.tooltip.appendChild(SelectionSizeTooltip.tooltipText);
             SelectionSizeTooltip.tooltip.className = "FormattedTextBox-tooltip";
             SelectionSizeTooltip.tooltip.style.pointerEvents = "all";
+            SelectionSizeTooltip.tooltip.appendChild(input);
             SelectionSizeTooltip.tooltip.onpointerdown = (e: PointerEvent) => {
-                SelectionSizeTooltip.opened = !SelectionSizeTooltip.opened;
+                let keep = e.target && (e.target as any).type === "checkbox";
+                SelectionSizeTooltip.opened = keep || !SelectionSizeTooltip.opened;
                 SelectionSizeTooltip.textBox.setAnnotation(
                     SelectionSizeTooltip.start, SelectionSizeTooltip.end, SelectionSizeTooltip.mark,
-                    SelectionSizeTooltip.opened, e.button == 2);
+                    SelectionSizeTooltip.opened, keep);
             };
             root && root.appendChild(SelectionSizeTooltip.tooltip);
         }
@@ -84,7 +91,7 @@ export class SelectionSizeTooltip {
             let child = state.selection.$from.nodeBefore;
             let mark = child && findOtherUserMark(child.marks);
             if (mark && child && nbef && naft) {
-                SelectionSizeTooltip.tooltip.textContent = mark.attrs.userid + " " + mark.attrs.modified;
+                SelectionSizeTooltip.tooltipText.textContent = mark.attrs.userid + " " + mark.attrs.modified;
                 // These are in screen coordinates
                 // let start = view.coordsAtPos(state.selection.from), end = view.coordsAtPos(state.selection.to);
                 let start = view.coordsAtPos(state.selection.from - nbef), end = view.coordsAtPos(state.selection.from - nbef);
