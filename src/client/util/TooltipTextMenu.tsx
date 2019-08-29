@@ -28,11 +28,11 @@ export class TooltipTextMenu {
     private view: EditorView;
     private fontStyles: MarkType[];
     private fontSizes: MarkType[];
-    private listTypes: NodeType[];
+    private listTypes: (NodeType | any)[];
     private editorProps: FieldViewProps & FormattedTextBoxProps;
     private fontSizeToNum: Map<MarkType, number>;
     private fontStylesToName: Map<MarkType, string>;
-    private listTypeToIcon: Map<NodeType, string>;
+    private listTypeToIcon: Map<NodeType | any, string>;
     //private link: HTMLAnchorElement;
     private wrapper: HTMLDivElement;
     private extras: HTMLDivElement;
@@ -179,10 +179,8 @@ export class TooltipTextMenu {
         //list types
         this.listTypeToIcon = new Map();
         this.listTypeToIcon.set(schema.nodes.bullet_list, ":");
-        this.listTypeToIcon.set(schema.nodes.ordered_list, "1)");
-        this.listTypeToIcon.set(schema.nodes.alphabet_list, "a)");
-        this.listTypeToIcon.set(schema.nodes.cap_alphabet_list, "A)");
-        this.listTypeToIcon.set(schema.nodes.roman_list, "i.");
+        this.listTypeToIcon.set(schema.nodes.ordered_list.create({ mapStyle: "decimal" }), "1.1");
+        this.listTypeToIcon.set(schema.nodes.ordered_list.create({ mapStyle: "multi" }), "1.A");
         // this.listTypeToIcon.set(schema.nodes.bullet_list, "⬜");
         this.listTypes = Array.from(this.listTypeToIcon.keys());
 
@@ -515,10 +513,28 @@ export class TooltipTextMenu {
 
     //remove all node typeand apply the passed-in one to the selected text
     changeToNodeType(nodeType: NodeType | undefined, view: EditorView) {
-        //remove old
-        liftListItem(schema.nodes.list_item)(view.state, view.dispatch);
-        if (nodeType) { //add new
+        //remove oldif (nodeType) { //add new
+        if (nodeType === schema.nodes.bullet_list) {
             wrapInList(nodeType)(view.state, view.dispatch);
+        } else {
+            var ref = view.state.selection;
+            var range = ref.$from.blockRange(ref.$to);
+            var marks = view.state.storedMarks || (view.state.selection.$to.parentOffset && view.state.selection.$from.marks());
+            wrapInList(schema.nodes.ordered_list)(view.state, (tx2: any) => {
+                const resolvedPos = tx2.doc.resolve(Math.round((range!.start + range!.end) / 2));
+                let path = resolvedPos.path;
+                for (let i = path.length - 1; i > 0; i--) {
+                    if (path[i].type === schema.nodes.ordered_list) {
+                        path[i].attrs.bulletStyle = "indent1";
+                        path[i].attrs.mapStyle = (nodeType as any).attrs.mapStyle;
+                        break;
+                    }
+                }
+                marks && tx2.ensureMarks([...marks]);
+                marks && tx2.setStoredMarks([...marks]);
+
+                view.dispatch(tx2);
+            });
         }
     }
 

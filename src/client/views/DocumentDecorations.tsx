@@ -200,14 +200,22 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         this.onBackgroundUp(e);
     }
 
+    @observable _forceUpdate = 0;
+    _lastBox = { x: 0, y: 0, r: 0, b: 0 };
     @computed
     get Bounds(): { x: number, y: number, b: number, r: number } {
-        return SelectionManager.SelectedDocuments().reduce((bounds, documentView) => {
+        let x = this._forceUpdate;
+        this._lastBox = SelectionManager.SelectedDocuments().reduce((bounds, documentView) => {
             if (documentView.props.renderDepth === 0 ||
                 Doc.AreProtosEqual(documentView.props.Document, CurrentUserUtils.UserDocument)) {
                 return bounds;
             }
             let transform = (documentView.props.ScreenToLocalTransform().scale(documentView.props.ContentScaling())).inverse();
+            if (transform.TranslateX === 0 && transform.TranslateY === 0) {
+                setTimeout(action(() => this._forceUpdate++), 0); // bcz: fix CollectionStackingView's getTransform() somehow...
+                return this._lastBox;
+            }
+
             var [sptX, sptY] = transform.transformPoint(0, 0);
             let [bptX, bptY] = transform.transformPoint(documentView.props.PanelWidth(), documentView.props.PanelHeight());
             return {
@@ -215,6 +223,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)
             };
         }, { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: Number.MIN_VALUE, b: Number.MIN_VALUE });
+        return this._lastBox;
     }
 
     onBackgroundDown = (e: React.PointerEvent): void => {
@@ -822,11 +831,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
         let templates: Map<Template, boolean> = new Map();
         Array.from(Object.values(Templates.TemplateList)).map(template => {
-            let sorted = SelectionManager.ViewsSortedVertically(); // slice().sort((doc1, doc2) => {
-            //     if (NumCast(doc1.props.Document.y) > NumCast(doc2.props.Document.x)) return 1;
-            //     if (NumCast(doc1.props.Document.x) < NumCast(doc2.props.Document.x)) return -1;
-            //     return 0;
-            // });
+            let sorted = SelectionManager.ViewsSortedVertically();
             let docTemps = sorted.reduce((res: string[], doc: DocumentView, i) => {
                 let temps = doc.props.Document.templates;
                 if (temps instanceof List) {

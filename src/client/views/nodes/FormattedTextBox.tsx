@@ -5,8 +5,8 @@ import { observer } from "mobx-react";
 import { baseKeymap } from "prosemirror-commands";
 import { history } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
-import { Fragment, Node, Node as ProsNode, NodeType, Slice } from "prosemirror-model";
-import { EditorState, Plugin, Transaction, TextSelection } from "prosemirror-state";
+import { Fragment, Node, Node as ProsNode, NodeType, Slice, Mark, ResolvedPos } from "prosemirror-model";
+import { EditorState, Plugin, Transaction, TextSelection, NodeSelection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { DateField } from '../../../new_fields/DateField';
 import { Doc, DocListCast, Opt, WidthSym } from "../../../new_fields/Doc";
@@ -15,7 +15,7 @@ import { List } from '../../../new_fields/List';
 import { RichTextField, ToPlainText, FromPlainText } from "../../../new_fields/RichTextField";
 import { BoolCast, Cast, NumCast, StrCast, DateCast } from "../../../new_fields/Types";
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
-import { Utils } from '../../../Utils';
+import { Utils, numberRange } from '../../../Utils';
 import { DocServer } from "../../DocServer";
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentManager } from '../../util/DocumentManager';
@@ -37,6 +37,8 @@ import { DocumentDecorations } from '../DocumentDecorations';
 import { DictationManager } from '../../util/DictationManager';
 import { ReplaceStep } from 'prosemirror-transform';
 import { DocumentType } from '../../documents/DocumentTypes';
+import { selectionSizePlugin, findStartOfMark, findUserMark, findEndOfMark, findOtherUserMark, SelectionSizeTooltip } from './FormattedTextBoxComment';
+import { date } from 'serializr';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -68,25 +70,25 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     public static LayoutString(fieldStr: string = "data") {
         return FieldView.LayoutString(FormattedTextBox, fieldStr);
     }
-    public static Instance: FormattedTextBox;
-    private _ref: React.RefObject<HTMLDivElement>;
+    private static _toolTipTextMenu: TooltipTextMenu | undefined = undefined;
+    private _ref: React.RefObject<HTMLDivElement> = React.createRef();
     private _proseRef?: HTMLDivElement;
     private _editorView: Opt<EditorView>;
-    private static _toolTipTextMenu: TooltipTextMenu | undefined = undefined;
     private _applyingChange: boolean = false;
     private _linkClicked = "";
+    private _undoTyping?: UndoManager.Batch;
     private _reactionDisposer: Opt<IReactionDisposer>;
     private _searchReactionDisposer?: Lambda;
     private _textReactionDisposer: Opt<IReactionDisposer>;
     private _heightReactionDisposer: Opt<IReactionDisposer>;
     private _proxyReactionDisposer: Opt<IReactionDisposer>;
-    private pullReactionDisposer: Opt<IReactionDisposer>;
-    private pushReactionDisposer: Opt<IReactionDisposer>;
+    private _pullReactionDisposer: Opt<IReactionDisposer>;
+    private _pushReactionDisposer: Opt<IReactionDisposer>;
     private dropDisposer?: DragManager.DragDropDisposer;
-    public get CurrentDiv(): HTMLDivElement { return this._ref.current!; }
-    @observable _entered = false;
 
+    @observable private _entered = false;
     @observable public static InputBoxOverlay?: FormattedTextBox = undefined;
+    public static SelectOnLoad = "";
     public static InputBoxOverlayScroll: number = 0;
     public static IsFragment(html: string) {
         return html.indexOf("data-pm-slice") !== -1;
@@ -127,14 +129,12 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     constructor(props: FieldViewProps) {
         super(props);
-        FormattedTextBox.Instance = this;
-        this._ref = React.createRef();
         if (this.props.isOverlay) {
             DragManager.StartDragFunctions.push(() => FormattedTextBox.InputBoxOverlay = undefined);
         }
-
-        document.addEventListener("paste", this.paste);
     }
+
+    public get CurrentDiv(): HTMLDivElement { return this._ref.current!; }
 
     @computed get extensionDoc() { return Doc.resolvedFieldDataDoc(this.dataDoc, this.props.fieldKey, "dummy"); }
 
@@ -235,12 +235,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     protected createDropTarget = (ele: HTMLDivElement) => {
         this._proseRef = ele;
-        if (this.dropDisposer) {
-            this.dropDisposer();
-        }
-        if (ele) {
-            this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
-        }
+        this.dropDisposer && this.dropDisposer();
+        ele && (this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } }));
     }
 
     @undoBatch
@@ -264,13 +260,12 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     recordKeyHandler = (e: KeyboardEvent) => {
-        if (this.props.Document !== SelectionManager.SelectedDocuments()[0].props.Document) {
-            return;
-        }
-        if (e.key === "R" && e.altKey) {
-            e.stopPropagation();
-            e.preventDefault();
-            this.recordBullet();
+        if (this.props.Document === SelectionManager.SelectedDocuments()[0].props.Document) {
+            if (e.key === "R" && e.altKey) {
+                e.stopPropagation();
+                e.preventDefault();
+                this.recordBullet();
+            }
         }
     }
 
@@ -314,15 +309,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     private newListItems = (count: number) => {
-        let listItems: any[] = [];
-        for (let i = 0; i < count; i++) {
-            listItems.push(schema.nodes.list_item.create(undefined, schema.nodes.paragraph.create()));
-        }
-        return listItems;
+        return numberRange(count).map(x => schema.nodes.list_item.create(undefined, schema.nodes.paragraph.create()));
     }
 
-    componentDidMount() {
-        const config = {
+    @computed get config() {
+        return {
             schema,
             inpRules, //these currently don't do anything, but could eventually be helpful
             plugins: this.props.isOverlay ? [
@@ -335,13 +326,23 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     props: {
                         attributes: { class: "ProseMirror-example-setup-style" }
                     }
-                })
+                }),
+                selectionSizePlugin
             ] : [
                     history(),
                     keymap(buildKeymap(schema)),
                     keymap(baseKeymap),
                 ]
         };
+    }
+
+    @action
+    rebuildEditor() {
+        this.setupEditor(this.config, this.dataDoc, this.props.fieldKey);
+    }
+
+    componentDidMount() {
+        document.addEventListener("paste", this.paste);
 
         if (!this.props.isOverlay) {
             this._proxyReactionDisposer = reaction(() => this.props.isSelected(),
@@ -364,13 +365,13 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             incomingValue => {
                 if (this._editorView && !this._applyingChange) {
                     let updatedState = JSON.parse(incomingValue);
-                    this._editorView.updateState(EditorState.fromJSON(config, updatedState));
+                    this._editorView.updateState(EditorState.fromJSON(this.config, updatedState));
                     this.tryUpdateHeight();
                 }
             }
         );
 
-        this.pullReactionDisposer = reaction(
+        this._pullReactionDisposer = reaction(
             () => this.props.Document[Pulls],
             () => {
                 if (!DocumentDecorations.hasPulledHack) {
@@ -381,7 +382,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             }
         );
 
-        this.pushReactionDisposer = reaction(
+        this._pushReactionDisposer = reaction(
             () => this.props.Document[Pushes],
             () => {
                 if (!DocumentDecorations.hasPushedHack) {
@@ -406,7 +407,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     this.dataDoc.lastModified = undefined;
                 }
             }, { fireImmediately: true });
-        this.setupEditor(config, this.dataDoc, this.props.fieldKey);
+
+
+        this.setupEditor(this.config, this.dataDoc, this.props.fieldKey);
 
         this._searchReactionDisposer = reaction(() => {
             return StrCast(this.props.Document.search_string);
@@ -505,7 +508,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             }
         }
     }
-
 
     clipboardTextSerializer = (slice: Slice): string => {
         let text = "", separated = true;
@@ -606,6 +608,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             }
         }
         if (this._proseRef) {
+            this._editorView && this._editorView.destroy();
             this._editorView = new EditorView(this._proseRef, {
                 state: field && field.Data ? EditorState.fromJSON(config, JSON.parse(field.Data)) : EditorState.create(config),
                 dispatchTransaction: this.dispatchTransaction,
@@ -622,21 +625,27 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             }
         }
 
-        if (this.props.selectOnLoad) {
-            if (!this.props.isOverlay) this.props.select(false);
-            else this._editorView!.focus();
+        if (this.props.Document[Id] === FormattedTextBox.SelectOnLoad) {
+            FormattedTextBox.SelectOnLoad = "";
+            this.props.select(false);
         }
+        else if (this.props.isOverlay) this._editorView!.focus();
+        var markerss = this._editorView!.state.storedMarks || (this._editorView!.state.selection.$to.parentOffset && this._editorView!.state.selection.$from.marks());
+        let newMarks = [...(markerss ? markerss.filter(m => m.type !== schema.marks.user_mark) : []), schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail })];
+        this._editorView!.state.storedMarks = newMarks;
+
     }
 
     componentWillUnmount() {
-        this._editorView && this._editorView.destroy();
         this._reactionDisposer && this._reactionDisposer();
         this._proxyReactionDisposer && this._proxyReactionDisposer();
         this._textReactionDisposer && this._textReactionDisposer();
-        this.pushReactionDisposer && this.pushReactionDisposer();
-        this.pullReactionDisposer && this.pullReactionDisposer();
+        this._pushReactionDisposer && this._pushReactionDisposer();
+        this._pullReactionDisposer && this._pullReactionDisposer();
         this._heightReactionDisposer && this._heightReactionDisposer();
         this._searchReactionDisposer && this._searchReactionDisposer();
+        document.removeEventListener("paste", this.paste);
+        this._editorView && this._editorView.destroy();
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
@@ -700,13 +709,36 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             e.preventDefault();
         }
     }
+
     onPointerUp = (e: React.PointerEvent): void => {
-        if (FormattedTextBox._toolTipTextMenu && FormattedTextBox._toolTipTextMenu.tooltip) {
-            //this._toolTipTextMenu.tooltip.style.opacity = "1";
+        let view = this._editorView!;
+        const pos = view.posAtCoords({ left: e.clientX, top: e.clientY });
+        const rpos = pos && view.state.doc.resolve(pos.pos);
+        let noselection = view.state.selection.$from === view.state.selection.$to;
+        let set = false;
+        if (pos && rpos) {
+            let nbef = findStartOfMark(rpos, view, findOtherUserMark);
+            let naft = findEndOfMark(rpos, view, findOtherUserMark);
+            const spos = pos.pos - nbef;
+            const epos = pos.pos + naft;
+            let child = rpos.nodeBefore || rpos.nodeAfter;
+            let mark = child && findOtherUserMark(child.marks);
+            if (mark && child && (nbef || naft) && (!mark.attrs.opened || noselection)) {
+                SelectionSizeTooltip.SetState(this, mark.attrs.opened, spos, epos, mark);
+                set = true;
+            }
         }
+        !set && SelectionSizeTooltip.Hide();
         if (e.buttons === 1 && this.props.isSelected() && !e.altKey) {
             e.stopPropagation();
         }
+    }
+
+    setAnnotation = (start: number, end: number, mark: Mark, opened: boolean, keep: boolean = false) => {
+        let view = this._editorView!;
+        let mid = view.state.doc.resolve(Math.round((start + end) / 2));
+        let nmark = view.state.schema.marks.user_mark.create({ ...mark.attrs, userid: keep ? Doc.CurrentUserEmail : mark.attrs.userid, opened: opened });
+        view.dispatch(view.state.tr.removeMark(start, end, nmark).addMark(start, end, nmark).setSelection(new TextSelection(mid, mid)));
     }
 
     @action
@@ -751,7 +783,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 return self._toolTipTextMenu = new TooltipTextMenu(_editorView, myprops);
             }
         });
-        //this.props.Document.tooltip = self._toolTipTextMenu;
     }
 
     tooltipLinkingMenuPlugin() {
@@ -769,13 +800,37 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             this._undoTyping = undefined;
         }
     }
-    public _undoTyping?: UndoManager.Batch;
     onKeyPress = (e: React.KeyboardEvent) => {
         if (e.key === "Escape") {
             SelectionManager.DeselectAll();
         }
         e.stopPropagation();
-        if (e.key === "Tab") e.preventDefault();
+        if (e.key === "Tab" || e.key === "Enter") { // bullets typically change "levels" when tab or enter is used.  sometimes backspcae, so maybe that should be added.
+            e.preventDefault();
+            setTimeout(() => { // force re-rendering of bullet numbers that may have had their bullet labels change.  (Our prosemirrior code re-"marks" the changed bullets, but nothing causes the Dom to be re-rendered which is where the nubering takes place)
+                SelectionManager.DeselectAll();
+                SelectionManager.SelectDoc(DocumentManager.Instance.getDocumentView(this.props.Document, this.props.ContainingCollectionView)!, false);
+            }, 0);
+        }
+        function timenow() {
+            var now = new Date();
+            let ampm = 'am';
+            let h = now.getHours();
+            let m: any = now.getMinutes();
+            let s: any = now.getSeconds();
+            if (h >= 12) {
+                if (h > 12) h -= 12;
+                ampm = 'pm';
+            }
+
+            if (m < 10) m = '0' + m;
+            if (s < 10) s = '0' + s;
+            return now.toLocaleDateString() + ' ' + h + ':' + m + ':' + s + ' ' + ampm;
+        }
+        var markerss = this._editorView!.state.storedMarks || (this._editorView!.state.selection.$to.parentOffset && this._editorView!.state.selection.$from.marks());
+        let newMarks = [...(markerss ? markerss.filter(m => m.type !== schema.marks.user_mark) : []), schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: timenow() })];
+        this._editorView!.state.storedMarks = newMarks;
+
         // stop propagation doesn't seem to stop propagation of native keyboard events.
         // so we set a flag on the native event that marks that the event's been handled.
         (e.nativeEvent as any).DASHFormattedTextBoxHandled = true;
@@ -802,24 +857,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
-    @action
-    onPointerEnter = (e: React.PointerEvent) => {
-        this._entered = true;
-    }
-    @action
-    onPointerLeave = (e: React.PointerEvent) => {
-        this._entered = false;
-    }
-
-    specificContextMenu = (e: React.MouseEvent): void => {
-        // let subitems: ContextMenuProps[] = [];
-        // subitems.push({
-        //     description: BoolCast(this.props.Document.autoHeight) ? "Manual Height" : "Auto Height",
-        //     event: action(() => Doc.GetProto(this.props.Document).autoHeight = !BoolCast(this.props.Document.autoHeight)), icon: "expand-arrows-alt"
-        // });
-        // ContextMenu.Instance.addItem({ description: "Text Funcs...", subitems: subitems, icon: "text-height" });
-    }
-
 
     render() {
         let self = this;
@@ -842,14 +879,13 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 onKeyDown={this.onKeyPress}
                 onFocus={this.onFocused}
                 onClick={this.onClick}
-                onContextMenu={this.specificContextMenu}
                 onBlur={this.onBlur}
                 onPointerUp={this.onPointerUp}
                 onPointerDown={this.onPointerDown}
                 onMouseDown={this.onMouseDown}
                 onWheel={this.onPointerWheel}
-                onPointerEnter={this.onPointerEnter}
-                onPointerLeave={this.onPointerLeave}
+                onPointerEnter={action(() => this._entered = true)}
+                onPointerLeave={action(() => this._entered = false)}
             >
                 <div className={`formattedTextBox-inner${rounded}`} ref={this.createDropTarget} style={{ whiteSpace: "pre-wrap" }} />
             </div>

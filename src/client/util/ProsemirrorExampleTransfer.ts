@@ -79,66 +79,71 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
 
     bind("Mod-s", TooltipTextMenu.insertStar);
 
+    let nodeTypeMark = (depth: number) => depth === 2 ? "indent2" : depth === 4 ? "indent3" : depth === 6 ? "indent4" : "indent1";
 
-    let levelMark = (depth: number) => {
-        let p10 = schema.marks.pFontSize.create({ fontSize: 10 });
-        let p14 = schema.marks.pFontSize.create({ fontSize: 14 });
-        let p18 = schema.marks.pFontSize.create({ fontSize: 18 });
-        let p24 = schema.marks.pFontSize.create({ fontSize: 24 });
-        return depth == 0 ? p24 : depth == 2 ? p18 : depth == 4 ? p14 : p10;
-    }
     let bulletFunc = (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
         var ref = state.selection;
         var range = ref.$from.blockRange(ref.$to);
         var marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
         let depth = range && range.depth ? range.depth : 0;
-        let nodeType = depth == 2 ? schema.nodes.cap_alphabet_list : depth == 4 ? schema.nodes.roman_list : depth == 6 ? schema.nodes.alphabet_list : schema.nodes.ordered_list;
-        let nodeTypeMark = depth == 2 ? schema.marks.mcap_alphabet_list : depth == 4 ? schema.marks.mroman_list : depth == 6 ? schema.marks.malphabet_list : schema.marks.mordered_list;
-        let created = levelMark(depth);
-        if (!sinkListItem(nodeType /*schema.nodes.list_item */)(state, (tx2: Transaction) => {
+        if (!sinkListItem(schema.nodes.list_item)(state, (tx2: Transaction) => {
             const resolvedPos = tx2.doc.resolve(range!.start);
 
-            let ns = new NodeSelection(resolvedPos);
-            let tx3 = tx2.addMark(ns.from - 1, ns.to, created).addMark(ns.from - 1, ns.to, nodeTypeMark as any).setSelection(TextSelection.create(tx2.doc, ns.to - (depth == 0 ? 3 : 1)));
-            marks && tx3.ensureMarks([...marks, created]);
-            marks && tx3.setStoredMarks([...marks, created]);
-
-            dispatch(tx3);
+            let path = (resolvedPos as any).path;
+            for (let i = path.length - 1; i > 0; i--) {
+                if (path[i].type === schema.nodes.ordered_list) {
+                    path[i].attrs.bulletStyle = nodeTypeMark(depth);
+                    break;
+                }
+            }
+            marks && tx2.ensureMarks([...marks]);
+            marks && tx2.setStoredMarks([...marks]);
+            dispatch(tx2);
         })) {
             let sxf = state.tr.setSelection(TextSelection.create(state.doc, range!.start, range!.end));
             let newstate = state.applyTransaction(sxf);
-            if (!wrapInList(nodeType)(newstate.state, (tx2: Transaction) => {
-                const resolvedPos = tx2.doc.resolve(range!.start);
-                let ns = new TextSelection(resolvedPos, tx2.doc.resolve(range!.end + 1)); // new NodeSelection(resolvedPos);
-                let tx3 = tx2.setSelection(ns).removeMark(ns.from, ns.to, created).addMark(ns.from, ns.to, created).setSelection(TextSelection.create(tx2.doc, ns.to));
-                let tx4 = depth > 0 ? tx3.insertText(" ").setSelection(TextSelection.create(tx2.doc, ns.to - 2, ns.to + 2)).deleteSelection() : tx3;
-                marks && tx4.ensureMarks([...marks, created]);
-                marks && tx4.setStoredMarks([...marks, created]);
+            if (!wrapInList(schema.nodes.ordered_list)(newstate.state, (tx2: Transaction) => {
+                const resolvedPos = tx2.doc.resolve(Math.round((range!.start + range!.end) / 2));
+                let path = (resolvedPos as any).path;
+                for (let i = path.length - 1; i > 0; i--) {
+                    if (path[i].type === schema.nodes.ordered_list) {
+                        path[i].attrs.bulletStyle = nodeTypeMark(depth);
+                        break;
+                    }
+                }
+                // when promoting to a list, assume list will format things so don't copy the stored marks.
+                // marks && tx2.ensureMarks([...marks]);
+                // marks && tx2.setStoredMarks([...marks]);
 
-                dispatch(tx4);
+                dispatch(tx2);
             })) {
                 console.log("bullet fail");
             }
         }
-    }
-    bind("Tab", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => bulletFunc(state, dispatch));
+    };
+
+    bind("Tab", bulletFunc);
 
     bind("Shift-Tab", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
         var ref = state.selection;
         var range = ref.$from.blockRange(ref.$to);
         var marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
-        let created = levelMark(range && range.depth ? range.depth - 4 : 0);
+        let depth = range && range.depth > 3 ? range.depth - 4 : 0;
         liftListItem(schema.nodes.list_item)(state, (tx2: Transaction) => {
             try {
                 const resolvedPos = tx2.doc.resolve(Math.round((range!.start + range!.end) / 2));
-                let nodeIndex = resolvedPos.pos - (resolvedPos.nodeBefore && resolvedPos.nodeBefore.type.name === "text" ? resolvedPos.nodeBefore!.nodeSize : 0);
-                let ns = new NodeSelection(tx2.doc.resolve(nodeIndex));
-                if (resolvedPos.nodeAfter && resolvedPos.nodeAfter.type.name === "list_item")
-                    ns = new NodeSelection(tx2.doc.resolve(nodeIndex + 1));
-                let tx3 = tx2.setSelection(ns).removeMark(ns.from, ns.to, created).addMark(ns.from, ns.to, created).setSelection(TextSelection.create(tx2.doc, ns.to));
-                marks && tx3.ensureMarks([...marks, created]);
-                marks && tx3.setStoredMarks([...marks, created]);
-                dispatch(tx3);
+
+                let path = (resolvedPos as any).path;
+                for (let i = path.length - 1; i > 0; i--) {
+                    if (path[i].type === schema.nodes.ordered_list) {
+                        path[i].attrs.bulletStyle = nodeTypeMark(depth);
+                        break;
+                    }
+                }
+
+                marks && tx2.ensureMarks([...marks]);
+                marks && tx2.setStoredMarks([...marks]);
+                dispatch(tx2);
             } catch (e) {
                 dispatch(tx2);
             }
@@ -155,7 +160,8 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
             if (!splitBlockKeepMarks(state, (tx3: Transaction) => {
                 marks && tx3.ensureMarks(marks);
                 marks && tx3.setStoredMarks(marks);
-                if (!liftListItem(schema.nodes.list_item)(state, (tx4: Transaction) => dispatch(tx4))) {
+                if (!liftListItem(schema.nodes.list_item)(state, dispatch as ((tx: Transaction<Schema<any, any>>) => void))
+                ) {
                     dispatch(tx3);
                 }
             })) {
