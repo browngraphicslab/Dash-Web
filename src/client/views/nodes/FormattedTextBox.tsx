@@ -38,6 +38,7 @@ import { DictationManager } from '../../util/DictationManager';
 import { ReplaceStep } from 'prosemirror-transform';
 import { DocumentType } from '../../documents/DocumentTypes';
 import { selectionSizePlugin, findStartOfMark, findUserMark, findEndOfMark, findOtherUserMark, SelectionSizeTooltip } from './FormattedTextBoxComment';
+import { date } from 'serializr';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -811,8 +812,23 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 SelectionManager.SelectDoc(DocumentManager.Instance.getDocumentView(this.props.Document, this.props.ContainingCollectionView)!, false);
             }, 0);
         }
+        function timenow() {
+            var now = new Date();
+            let ampm = 'am';
+            let h = now.getHours();
+            let m: any = now.getMinutes();
+            let s: any = now.getSeconds();
+            if (h >= 12) {
+                if (h > 12) h -= 12;
+                ampm = 'pm';
+            }
+
+            if (m < 10) m = '0' + m;
+            if (s < 10) s = '0' + s;
+            return now.toLocaleDateString() + ' ' + h + ':' + m + ':' + s + ' ' + ampm;
+        }
         var markerss = this._editorView!.state.storedMarks || (this._editorView!.state.selection.$to.parentOffset && this._editorView!.state.selection.$from.marks());
-        let newMarks = [...(markerss ? markerss.filter(m => m.type !== schema.marks.user_mark) : []), schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail })];
+        let newMarks = [...(markerss ? markerss.filter(m => m.type !== schema.marks.user_mark) : []), schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: timenow() })];
         this._editorView!.state.storedMarks = newMarks;
 
         // stop propagation doesn't seem to stop propagation of native keyboard events.

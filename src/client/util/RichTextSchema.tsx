@@ -335,7 +335,8 @@ export const marks: { [index: string]: MarkSpec } = {
         attrs: {
             userid: { default: "" },
             hide_users: { default: [] },
-            opened: { default: true }
+            opened: { default: true },
+            modified: { default: "when?" }
         },
         group: "inline",
         inclusive: false,

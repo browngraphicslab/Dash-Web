@@ -84,7 +84,7 @@ export class SelectionSizeTooltip {
             let child = state.selection.$from.nodeBefore;
             let mark = child && findOtherUserMark(child.marks);
             if (mark && child && nbef && naft) {
-                SelectionSizeTooltip.tooltip.textContent = mark.attrs.userid;
+                SelectionSizeTooltip.tooltip.textContent = mark.attrs.userid + " " + mark.attrs.modified;
                 // These are in screen coordinates
                 // let start = view.coordsAtPos(state.selection.from), end = view.coordsAtPos(state.selection.to);
                 let start = view.coordsAtPos(state.selection.from - nbef), end = view.coordsAtPos(state.selection.from - nbef);
