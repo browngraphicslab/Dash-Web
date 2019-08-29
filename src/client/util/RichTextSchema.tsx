@@ -343,7 +343,10 @@ export const marks: { [index: string]: MarkSpec } = {
             let hideUsers = node.attrs.hide_users;
             let hidden = hideUsers.indexOf(node.attrs.userid) !== -1 || (hideUsers.length === 0 && node.attrs.userid !== Doc.CurrentUserEmail);
             return hidden ?
-                ['span', { class: node.attrs.opened ? "userMarkOpen" : "userMark" }, 0] :
+                (node.attrs.opened ?
+                    ['span', { class: "userMarkOpen" }, 0] :
+                    ['span', { class: "userMark" }, ['span', { style: "font-size:2" }, 0]]
+                ) :
                 ['span', 0];
         }
     },

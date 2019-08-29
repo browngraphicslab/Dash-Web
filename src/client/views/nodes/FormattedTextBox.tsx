@@ -37,7 +37,7 @@ import { DocumentDecorations } from '../DocumentDecorations';
 import { DictationManager } from '../../util/DictationManager';
 import { ReplaceStep } from 'prosemirror-transform';
 import { DocumentType } from '../../documents/DocumentTypes';
-import { number } from 'prop-types';
+import { selectionSizePlugin, findStartOfMark, findUserMark, findEndOfMark, findOtherUserMark, SelectionSizeTooltip } from './FormattedTextBoxComment';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -325,7 +325,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     props: {
                         attributes: { class: "ProseMirror-example-setup-style" }
                     }
-                })
+                }),
+                selectionSizePlugin
             ] : [
                     history(),
                     keymap(buildKeymap(schema)),
@@ -643,6 +644,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         this._heightReactionDisposer && this._heightReactionDisposer();
         this._searchReactionDisposer && this._searchReactionDisposer();
         document.removeEventListener("paste", this.paste);
+        this._editorView && this._editorView.destroy();
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
@@ -707,45 +709,25 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
-    findUserMark(marks: Mark[]) {
-        return marks.find(m => m.attrs && m.attrs.userid && m.attrs.userid !== Doc.CurrentUserEmail);
-    }
-    findStartOfMark(rpos: ResolvedPos) {
-        let before = 0;
-        let nbef = rpos.nodeBefore;
-        while (nbef && this.findUserMark(nbef.marks)) {
-            before += nbef.nodeSize;
-            rpos = this._editorView!.state.doc.resolve(rpos.pos - nbef.nodeSize);
-            rpos && (nbef = rpos.nodeBefore);
-        }
-        return before;
-    }
-    findEndOfMark(rpos: ResolvedPos) {
-        let after = 0;
-        let naft = rpos.nodeAfter;
-        while (naft && this.findUserMark(naft.marks)) {
-            after += naft.nodeSize;
-            rpos = this._editorView!.state.doc.resolve(rpos.pos + naft.nodeSize);
-            rpos && (naft = rpos.nodeAfter);
-        }
-        return after;
-    }
-
     onPointerUp = (e: React.PointerEvent): void => {
         let view = this._editorView!;
         const pos = view.posAtCoords({ left: e.clientX, top: e.clientY });
         const rpos = pos && view.state.doc.resolve(pos.pos);
-        if (pos && rpos && view.state.selection.$from === view.state.selection.$to) {
-            let nbef = this.findStartOfMark(rpos);
-            let naft = this.findEndOfMark(rpos);
+        let noselection = view.state.selection.$from === view.state.selection.$to;
+        if (pos && rpos) {
+            let nbef = findStartOfMark(rpos, view, findOtherUserMark);
+            let naft = findEndOfMark(rpos, view, findOtherUserMark);
             const spos = view.state.doc.resolve(pos.pos - nbef);
             const epos = view.state.doc.resolve(pos.pos + naft);
             let ts = new TextSelection(spos, epos);
-            let child = rpos.nodeBefore;
-            let mark = child && this.findUserMark(child.marks);
-            if (mark && child && nbef && naft) {
-                let nmark = view.state.schema.marks.user_mark.create({ ...mark.attrs, userid: e.button === 2 ? Doc.CurrentUserEmail : mark.attrs.userid, opened: e.button === 2 ? false : !mark.attrs.opened });
-                view.dispatch(view.state.tr.setSelection(ts).removeMark(ts.from, ts.to, nmark).addMark(ts.from, ts.to, nmark).setSelection(new TextSelection(epos, epos)));
+            let child = rpos.nodeBefore || rpos.nodeAfter;
+            let mark = child && findOtherUserMark(child.marks);
+            if (mark && child && (nbef || naft) && (!mark.attrs.opened || noselection)) {
+                let opened = e.button === 2 ? false : !mark.attrs.opened;
+                SelectionSizeTooltip.tooltip.style.display = opened ? "" : "none";
+                let mid = opened ? epos : view.state.doc.resolve((spos.pos + epos.pos) / 2);
+                let nmark = view.state.schema.marks.user_mark.create({ ...mark.attrs, userid: e.button === 2 ? Doc.CurrentUserEmail : mark.attrs.userid, opened: opened });
+                view.dispatch(view.state.tr.addMark(ts.from, ts.to, nmark).setSelection(new TextSelection(mid, mid)));
             }
         }
         if (e.buttons === 1 && this.props.isSelected() && !e.altKey) {
