@@ -1,20 +1,19 @@
-import * as React from 'react';
-import { FieldViewProps, FieldView } from './FieldView';
-import { createSchema, makeInterface } from '../../../new_fields/Schema';
-import { ScriptField } from '../../../new_fields/ScriptField';
-import { DocComponent } from '../DocComponent';
-import { ContextMenu } from '../ContextMenu';
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faEdit } from '@fortawesome/free-regular-svg-icons';
-import { emptyFunction } from '../../../Utils';
-import { ScriptBox } from '../ScriptBox';
-import { CompileScript } from '../../util/Scripting';
-import { OverlayView } from '../OverlayView';
-import { Doc } from '../../../new_fields/Doc';
-
-import './ButtonBox.scss';
+import { action, computed } from 'mobx';
 import { observer } from 'mobx-react';
-import { DocumentIconContainer } from './DocumentIcon';
+import * as React from 'react';
+import { Doc, DocListCastAsync } from '../../../new_fields/Doc';
+import { List } from '../../../new_fields/List';
+import { createSchema, makeInterface, listSpec } from '../../../new_fields/Schema';
+import { ScriptField } from '../../../new_fields/ScriptField';
+import { BoolCast, StrCast, Cast } from '../../../new_fields/Types';
+import { DragManager } from '../../util/DragManager';
+import { undoBatch } from '../../util/UndoManager';
+import { DocComponent } from '../DocComponent';
+import './ButtonBox.scss';
+import { FieldView, FieldViewProps } from './FieldView';
+
 
 library.add(faEdit as any);
 
@@ -29,48 +28,42 @@ const ButtonDocument = makeInterface(ButtonSchema);
 @observer
 export class ButtonBox extends DocComponent<FieldViewProps, ButtonDocument>(ButtonDocument) {
     public static LayoutString() { return FieldView.LayoutString(ButtonBox); }
+    private dropDisposer?: DragManager.DragDropDisposer;
 
-    onClick = (e: React.MouseEvent) => {
-        const onClick = this.Document.onClick;
-        if (!onClick) {
-            return;
+    @computed get dataDoc() { return this.props.DataDoc && (BoolCast(this.props.Document.isTemplate) || BoolCast(this.props.DataDoc.isTemplate) || this.props.DataDoc.layout === this.props.Document) ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
+
+
+    protected createDropTarget = (ele: HTMLDivElement) => {
+        if (this.dropDisposer) {
+            this.dropDisposer();
         }
-        e.stopPropagation();
-        e.preventDefault();
-        onClick.script.run({ this: this.props.Document });
+        if (ele) {
+            this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.drop.bind(this) } });
+        }
     }
-
-    onContextMenu = () => {
-        ContextMenu.Instance.addItem({
-            description: "Edit OnClick script", icon: "edit", event: () => {
-                let overlayDisposer: () => void = emptyFunction;
-                const script = this.Document.onClick;
-                let originalText: string | undefined = undefined;
-                if (script) originalText = script.script.originalScript;
-                // tslint:disable-next-line: no-unnecessary-callback-wrapper
-                let scriptingBox = <ScriptBox initialText={originalText} onCancel={() => overlayDisposer()} onSave={(text, onError) => {
-                    const script = CompileScript(text, {
-                        params: { this: Doc.name },
-                        typecheck: false,
-                        editable: true,
-                        transformer: DocumentIconContainer.getTransformer()
-                    });
-                    if (!script.compiled) {
-                        onError(script.errors.map(error => error.messageText).join("\n"));
-                        return;
-                    }
-                    this.Document.onClick = new ScriptField(script);
-                    overlayDisposer();
-                }} showDocumentIcons />;
-                overlayDisposer = OverlayView.Instance.addWindow(scriptingBox, { x: 400, y: 200, width: 500, height: 400, title: `${this.Document.title || ""} OnClick` });
-            }
-        });
+    @undoBatch
+    @action
+    drop = (e: Event, de: DragManager.DropEvent) => {
+        if (de.data instanceof DragManager.DocumentDragData) {
+            Doc.GetProto(this.dataDoc).source = new List<Doc>(de.data.droppedDocuments);
+            e.stopPropagation();
+        }
     }
-
+    // (!missingParams || !missingParams.length ? "" : "(" + missingParams.map(m => m + ":").join(" ") + ")")
     render() {
+        let params = Cast(this.props.Document.buttonParams, listSpec("string"));
+        let missingParams = params && params.filter(p => this.props.Document[p] === undefined);
+        params && params.map(async p => await DocListCastAsync(this.props.Document[p])); // bcz: really hacky form of prefetching ... 
         return (
-            <div className="buttonBox-outerDiv" onContextMenu={this.onContextMenu}>
-                <button className="buttonBox-mainButton" onClick={this.onClick}>{this.Document.text || this.Document.title || "Button"}</button>
+            <div className="buttonBox-outerDiv" ref={this.createDropTarget} >
+                <div className="buttonBox-mainButton" style={{ background: StrCast(this.props.Document.backgroundColor), color: StrCast(this.props.Document.color, "black") }} >
+                    <div className="buttonBox-mainButtonCenter">
+                        {(this.Document.text || this.Document.title)}
+                    </div>
+                </div>
+                <div className="buttonBox-params" >
+                    {!missingParams || !missingParams.length ? (null) : missingParams.map(m => <div key={m} className="buttonBox-missingParam">{m}</div>)}
+                </div>
             </div>
         );
     }

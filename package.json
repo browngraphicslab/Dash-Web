@@ -75,6 +75,7 @@
         "@types/express-session": "^1.15.12",
         "@types/express-validator": "^3.0.0",
         "@types/formidable": "^1.0.31",
+        "@types/gapi": "0.0.39",
         "@types/jquery": "^3.3.29",
         "@types/jquery-awesome-cursor": "^0.3.0",
         "@types/jsonwebtoken": "^8.3.2",

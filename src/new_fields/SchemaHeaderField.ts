@@ -1,8 +1,8 @@
 import { Deserializable } from "../client/util/SerializationHelper";
-import { serializable, createSimpleSchema, primitive } from "serializr";
+import { serializable, primitive } from "serializr";
 import { ObjectField } from "./ObjectField";
 import { Copy, ToScriptString, OnUpdate } from "./FieldSymbols";
-import { scriptingGlobal, Scripting } from "../client/util/Scripting";
+import { scriptingGlobal } from "../client/util/Scripting";
 import { ColumnType } from "../client/views/collections/CollectionSchemaView";
 
 export const PastelSchemaPalette = new Map<string, string>([
@@ -53,9 +53,11 @@ export class SchemaHeaderField extends ObjectField {
     @serializable(primitive())
     width: number;
     @serializable(primitive())
+    collapsed: boolean | undefined;
+    @serializable(primitive())
     desc: boolean | undefined; // boolean determines sort order, undefined when no sort
 
-    constructor(heading: string = "", color: string = RandomPastel(), type?: ColumnType, width?: number, desc?: boolean) {
+    constructor(heading: string = "", color: string = RandomPastel(), type?: ColumnType, width?: number, desc?: boolean, collapsed?: boolean) {
         super();
 
         this.heading = heading;
@@ -63,6 +65,7 @@ export class SchemaHeaderField extends ObjectField {
         this.type = type ? type : 0;
         this.width = width ? width : -1;
         this.desc = desc;
+        this.collapsed = collapsed;
     }
 
     setHeading(heading: string) {
@@ -87,6 +90,11 @@ export class SchemaHeaderField extends ObjectField {
 
     setDesc(desc: boolean | undefined) {
         this.desc = desc;
+        this[OnUpdate]();
+    }
+
+    setCollapsed(collapsed: boolean | undefined) {
+        this.collapsed = collapsed;
         this[OnUpdate]();
     }
 

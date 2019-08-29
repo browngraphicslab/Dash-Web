@@ -2,7 +2,7 @@ import { action, observable, reaction, trace } from 'mobx';
 import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
-import { Doc } from '../../new_fields/Doc';
+import { Doc, DocListCast } from '../../new_fields/Doc';
 import { BoolCast } from '../../new_fields/Types';
 import { emptyFunction, returnTrue, returnZero, Utils, returnOne } from '../../Utils';
 import { DragManager } from '../util/DragManager';
@@ -42,13 +42,17 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
         return this._textBox && this._textBox.setFontColor(color);
     }
 
-
     constructor(props: MainOverlayTextBoxProps) {
         super(props);
         this._textProxyDiv = React.createRef();
         MainOverlayTextBox.Instance = this;
         reaction(() => FormattedTextBox.InputBoxOverlay,
             (box?: FormattedTextBox) => {
+                const tb = this._textBox;
+                const container = tb && tb.props.ContainingCollectionView;
+                if (tb && container) {
+                    tb.rebuildEditor();// this forces the edited text box to completely recreate itself to avoid get out of sync -- e.g., bullet labels are only computed when the dom elements are created
+                }
                 this._textBox = box;
                 if (box) {
                     this.ChromeHeight = box.props.ChromeHeight;
@@ -59,7 +63,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
                         let sxf = Utils.GetScreenTransform(box ? box.CurrentDiv : undefined);
                         return new Transform(-sxf.translateX, -sxf.translateY, 1 / sxf.scale);
                     };
-                    this.setTextDoc(box.props.fieldKey, box.CurrentDiv, xf, BoolCast(box.props.Document.autoHeight, false) || box.props.height === "min-content");
+                    this.setTextDoc(box.props.fieldKey, box.CurrentDiv, xf, BoolCast(box.props.Document.autoHeight) || box.props.height === "min-content");
                 }
                 else {
                     this.TextDoc = undefined;
@@ -130,21 +134,26 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
     render() {
         this.TextDoc; this.TextDataDoc;
         if (FormattedTextBox.InputBoxOverlay && this._textTargetDiv) {
+            let wid = FormattedTextBox.InputBoxOverlay.props.Document.width; // need to force overlay to render when underlying text box is resized (eg, w/ DocDecorations)
+            let hgtx = FormattedTextBox.InputBoxOverlay.props.Document.height; // need to force overlay to render when underlying text box is resized (eg, w/ DocDecorations)
             let textRect = this._textTargetDiv.getBoundingClientRect();
             let s = this._textXf().Scale;
             let location = this._textBottom ? textRect.bottom : textRect.top;
-            let hgt = this._textAutoHeight || this._textBottom ? "auto" : this._textTargetDiv.clientHeight;
+            let hgt = (this._textBox && this._textBox.props.Document.autoHeight) || this._textBottom ? "auto" : this._textTargetDiv.clientHeight;
             return <div ref={this._setouterdiv} className="mainOverlayTextBox-unscaled_div" style={{ transform: `translate(${textRect.left}px, ${location}px)` }} >
-                <div className="mainOverlayTextBox-textInput" style={{ transform: `scale(${1 / s},${1 / s})`, width: "auto", height: "0px" }} >
+                <div className="mainOverlayTextBox-textInput" style={{ transform: `scale(${1 / s})`, width: "auto", height: "0px" }} >
                     <div className="mainOverlayTextBox-textInput" onPointerDown={this.textBoxDown} ref={this._textProxyDiv} onScroll={this.textScroll}
                         style={{ width: `${textRect.width * s}px`, height: "0px" }}>
                         <div style={{ height: hgt, width: "100%", position: "absolute", bottom: this._textBottom ? "0px" : undefined }}>
                             <FormattedTextBox color={`${this._textColor}`} fieldKey={this.TextFieldKey} fieldExt="" hideOnLeave={this._textHideOnLeave} isOverlay={true}
                                 Document={FormattedTextBox.InputBoxOverlay.props.Document}
                                 DataDoc={FormattedTextBox.InputBoxOverlay.props.DataDoc}
-                                isSelected={returnTrue} select={emptyFunction} renderDepth={0} selectOnLoad={true}
+                                onClick={undefined}
+                                ChromeHeight={this.ChromeHeight}
+                                isSelected={returnTrue} select={emptyFunction} renderDepth={0}
                                 ContainingCollectionView={undefined} whenActiveChanged={emptyFunction} active={returnTrue} ContentScaling={returnOne}
-                                ScreenToLocalTransform={this._textXf} PanelWidth={returnZero} PanelHeight={returnZero} focus={emptyFunction} addDocTab={this.addDocTab} outer_div={(tooltip: HTMLElement) => { this._tooltip = tooltip; this.updateTooltip(); }} />
+                                ScreenToLocalTransform={this._textXf} PanelWidth={returnZero} PanelHeight={returnZero} focus={emptyFunction}
+                                pinToPres={returnZero} addDocTab={this.addDocTab} outer_div={(tooltip: HTMLElement) => { this._tooltip = tooltip; this.updateTooltip(); }} />
                         </div>
                     </div>
                 </div>

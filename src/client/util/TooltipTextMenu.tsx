@@ -1,32 +1,25 @@
-import { action, observable, observe } from "mobx";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTag, faPlus, faCloudUploadAlt } from '@fortawesome/free-solid-svg-icons';
-import { Dropdown, MenuItem, icons, } from "prosemirror-menu"; //no import css
-import { EditorState, NodeSelection, TextSelection, Transaction } from "prosemirror-state";
-import { EditorView } from "prosemirror-view";
-import { schema } from "./RichTextSchema";
-import { Schema, NodeType, MarkType, Mark, ResolvedPos } from "prosemirror-model";
-import { Node as ProsNode } from "prosemirror-model";
-import "./TooltipTextMenu.scss";
-const { toggleMark, setBlockType } = require("prosemirror-commands");
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { wrapInList, liftListItem, } from 'prosemirror-schema-list';
 import { faListUl } from '@fortawesome/free-solid-svg-icons';
-import { FieldViewProps } from "../views/nodes/FieldView";
-const { openPrompt, TextField } = require("./ProsemirrorCopy/prompt.js");
-import { DragManager } from "./DragManager";
-import { Doc, Opt, Field } from "../../new_fields/Doc";
+import { action, observable } from "mobx";
+import { Dropdown, icons, MenuItem } from "prosemirror-menu"; //no import css
+import { Mark, MarkType, Node as ProsNode, NodeType, ResolvedPos, Schema } from "prosemirror-model";
+import { liftListItem, wrapInList } from 'prosemirror-schema-list';
+import { EditorState, NodeSelection, TextSelection } from "prosemirror-state";
+import { EditorView } from "prosemirror-view";
+import { Doc, Field, Opt } from "../../new_fields/Doc";
+import { Id } from "../../new_fields/FieldSymbols";
+import { Utils } from "../../Utils";
 import { DocServer } from "../DocServer";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
+import { FieldViewProps } from "../views/nodes/FieldView";
+import { FormattedTextBoxProps } from "../views/nodes/FormattedTextBox";
 import { DocumentManager } from "./DocumentManager";
-import { Id } from "../../new_fields/FieldSymbols";
-import { FormattedTextBoxProps, FormattedTextBox } from "../views/nodes/FormattedTextBox";
-import { typeAlias } from "babel-types";
-import React, { Children } from "react";
-import ReactDOM from "react-dom";
-import { Utils } from "../../Utils";
+import { DragManager } from "./DragManager";
 import { LinkManager } from "./LinkManager";
-import { bool } from "prop-types";
+import { schema } from "./RichTextSchema";
+import "./TooltipTextMenu.scss";
+const { toggleMark, setBlockType } = require("prosemirror-commands");
+const { openPrompt, TextField } = require("./ProsemirrorCopy/prompt.js");
 
 //appears above a selection of text in a RichTextBox to give user options such as Bold, Italics, etc.
 export class TooltipTextMenu {
@@ -35,11 +28,11 @@ export class TooltipTextMenu {
     private view: EditorView;
     private fontStyles: MarkType[];
     private fontSizes: MarkType[];
-    private listTypes: NodeType[];
+    private listTypes: (NodeType | any)[];
     private editorProps: FieldViewProps & FormattedTextBoxProps;
     private fontSizeToNum: Map<MarkType, number>;
     private fontStylesToName: Map<MarkType, string>;
-    private listTypeToIcon: Map<NodeType, string>;
+    private listTypeToIcon: Map<NodeType | any, string>;
     //private link: HTMLAnchorElement;
     private wrapper: HTMLDivElement;
     private extras: HTMLDivElement;
@@ -66,6 +59,8 @@ export class TooltipTextMenu {
 
     @observable
     private _storedMarks: Mark<any>[] | null | undefined;
+
+    public HackToFixTextSelectionGlitch: boolean = false;
 
 
     constructor(view: EditorView, editorProps: FieldViewProps & FormattedTextBoxProps) {
@@ -170,13 +165,23 @@ export class TooltipTextMenu {
         this.fontSizeToNum.set(schema.marks.p48, 48);
         this.fontSizeToNum.set(schema.marks.p72, 72);
         this.fontSizeToNum.set(schema.marks.pFontSize, 10);
-        this.fontSizeToNum.set(schema.marks.pFontSize, 10);
+        // this.fontSizeToNum.set(schema.marks.pFontSize, 12);
+        // this.fontSizeToNum.set(schema.marks.pFontSize, 14);
+        // this.fontSizeToNum.set(schema.marks.pFontSize, 16);
+        // this.fontSizeToNum.set(schema.marks.pFontSize, 18);
+        // this.fontSizeToNum.set(schema.marks.pFontSize, 20);
+        // this.fontSizeToNum.set(schema.marks.pFontSize, 24);
+        // this.fontSizeToNum.set(schema.marks.pFontSize, 32);
+        // this.fontSizeToNum.set(schema.marks.pFontSize, 48);
+        // this.fontSizeToNum.set(schema.marks.pFontSize, 72);
         this.fontSizes = Array.from(this.fontSizeToNum.keys());
 
         //list types
         this.listTypeToIcon = new Map();
         this.listTypeToIcon.set(schema.nodes.bullet_list, ":");
-        this.listTypeToIcon.set(schema.nodes.ordered_list, "1)");
+        this.listTypeToIcon.set(schema.nodes.ordered_list.create({ mapStyle: "decimal" }), "1.1");
+        this.listTypeToIcon.set(schema.nodes.ordered_list.create({ mapStyle: "multi" }), "1.A");
+        // this.listTypeToIcon.set(schema.nodes.bullet_list, "⬜");
         this.listTypes = Array.from(this.listTypeToIcon.keys());
 
         //custom tools
@@ -190,8 +195,6 @@ export class TooltipTextMenu {
         this.updateListItemDropdown(":", this.listTypeBtnDom);
 
         this.update(view, undefined);
-
-        //view.dom.parentNode!.parentNode!.insertBefore(this.tooltip, view.dom.parentNode);
 
         // add tooltip to outerdiv to circumvent scaling problem
         const outer_div = this.editorProps.outer_div;
@@ -510,10 +513,28 @@ export class TooltipTextMenu {
 
     //remove all node typeand apply the passed-in one to the selected text
     changeToNodeType(nodeType: NodeType | undefined, view: EditorView) {
-        //remove old
-        liftListItem(schema.nodes.list_item)(view.state, view.dispatch);
-        if (nodeType) { //add new
+        //remove oldif (nodeType) { //add new
+        if (nodeType === schema.nodes.bullet_list) {
             wrapInList(nodeType)(view.state, view.dispatch);
+        } else {
+            var ref = view.state.selection;
+            var range = ref.$from.blockRange(ref.$to);
+            var marks = view.state.storedMarks || (view.state.selection.$to.parentOffset && view.state.selection.$from.marks());
+            wrapInList(schema.nodes.ordered_list)(view.state, (tx2: any) => {
+                const resolvedPos = tx2.doc.resolve(Math.round((range!.start + range!.end) / 2));
+                let path = resolvedPos.path;
+                for (let i = path.length - 1; i > 0; i--) {
+                    if (path[i].type === schema.nodes.ordered_list) {
+                        path[i].attrs.bulletStyle = "indent1";
+                        path[i].attrs.mapStyle = (nodeType as any).attrs.mapStyle;
+                        break;
+                    }
+                }
+                marks && tx2.ensureMarks([...marks]);
+                marks && tx2.setStoredMarks([...marks]);
+
+                view.dispatch(tx2);
+            });
         }
     }
 
@@ -855,7 +876,8 @@ export class TooltipTextMenu {
                 this.updateFontSizeDropdown("Various");
             }
         }
-        this.view.dispatch(this.view.state.tr.setStoredMarks(this._activeMarks));
+        !this.HackToFixTextSelectionGlitch &&
+            this.view.dispatch(this.view.state.tr.setStoredMarks(this._activeMarks)); // bcz: what's the purpose of this line?  It messes up text selection without the Hack.
 
         this.update_mark_doms();
     }
@@ -969,7 +991,7 @@ export class TooltipTextMenu {
                 });
             }
         }
-        if (!ref_node.isLeaf) {
+        if (!ref_node.isLeaf && ref_node.childCount > 0) {
             ref_node = ref_node.child(0);
         }
         return ref_node;

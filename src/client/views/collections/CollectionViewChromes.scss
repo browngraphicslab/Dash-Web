@@ -7,7 +7,6 @@
     z-index: 9001;
     transition: top .5s;
     background: lightgrey;
-    padding: 10px;
 
     .collectionViewChrome {
         display: grid;
@@ -42,6 +41,14 @@
                 transform-origin: top left;
                 // margin-top: 10px;
             }
+            .collectionViewBaseChrome-template {
+                margin-left: 10px;
+                display: grid;
+                background: rgb(238, 238, 238);
+                color:grey;
+                margin-top:auto;
+                margin-bottom:auto;
+            }
 
             .collectionViewBaseChrome-viewSpecs {
                 margin-left: 10px;
@@ -57,7 +64,7 @@
                     font-size: 75%;
                     background: rgb(238, 238, 238);
                     height: 100%;
-                    width: 150px;
+                    width: 75px;
                 }
 
                 .collectionViewBaseChrome-viewSpecsMenu {
@@ -97,7 +104,7 @@
 
                     .collectionViewBaseChrome-viewSpecsMenu-lastRow {
                         display: grid;
-                        grid-template-columns: 1fr 1fr;
+                        grid-template-columns: 1fr 1fr 1fr;
                         grid-gap: 10px;
                         margin: 10px;
                     }
@@ -106,17 +113,20 @@
         }
 
 
-        .collectionStackingViewChrome-cont {
+        .collectionStackingViewChrome-cont,
+        .collectionTreeViewChrome-cont {
             display: flex;
             justify-content: space-between;
         }
 
-        .collectionStackingViewChrome-sort {
+        .collectionStackingViewChrome-sort,
+        .collectionTreeViewChrome-sort {
             display: flex;
             align-items: center;
             justify-content: space-between;
 
-            .collectionStackingViewChrome-sortIcon {
+            .collectionStackingViewChrome-sortIcon,
+            .collectionTreeViewChrome-sortIcon {
                 transition: transform .5s;
                 margin-left: 10px;
             }
@@ -127,18 +137,21 @@
         }
 
 
-        .collectionStackingViewChrome-sectionFilter-cont {
+        .collectionStackingViewChrome-sectionFilter-cont,
+        .collectionTreeViewChrome-sectionFilter-cont {
             justify-self: right;
             display: flex;
             font-size: 75%;
             letter-spacing: 2px;
 
-            .collectionStackingViewChrome-sectionFilter-label {
+            .collectionStackingViewChrome-sectionFilter-label,
+            .collectionTreeViewChrome-sectionFilter-label {
                 vertical-align: center;
                 padding: 10px;
             }
 
-            .collectionStackingViewChrome-sectionFilter {
+            .collectionStackingViewChrome-sectionFilter,
+            .collectionTreeViewChrome-sectionFilter {
                 color: white;
                 width: 100px;
                 text-align: center;
@@ -165,7 +178,8 @@
             }
         }
 
-        .collectionStackingViewChrome-sectionFilter:hover {
+        .collectionStackingViewChrome-sectionFilter:hover,
+        .collectionTreeViewChrome-sectionFilter:hover {
             cursor: text;
         }
     }
@@ -220,4 +234,75 @@
             margin-left: 50px;
         }
     }
+}
+
+
+.commandEntry-outerDiv {
+    display: flex;
+    flex-direction: column;
+    width: 165px;
+    height: 40px;
+}
+.commandEntry-inputArea {
+    display:flex;
+    flex-direction: row;
+    width: 150px;
+    margin: auto 0 auto auto;
+}
+
+.react-autosuggest__container {
+    position: relative;
+    width: 100%;
+    margin-left: 5px;
+    margin-right: 5px;
+}
+
+.react-autosuggest__input {
+    border: 1px solid #aaa;
+    border-radius: 4px;
+    width: 100%;
+}
+
+.react-autosuggest__input--focused {
+    outline: none;
+}
+
+.react-autosuggest__input--open {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.react-autosuggest__suggestions-container {
+    display: none;
+}
+
+.react-autosuggest__suggestions-container--open {
+    display: block;
+    position: fixed;
+    overflow-y: auto;
+    max-height: 400px;
+    width: 180px;
+    border: 1px solid #aaa;
+    background-color: #fff;
+    font-family: Helvetica, sans-serif;
+    font-weight: 300;
+    font-size: 16px;
+    border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
+    z-index: 2;
+}
+
+.react-autosuggest__suggestions-list {
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
+}
+
+.react-autosuggest__suggestion {
+    cursor: pointer;
+    padding: 10px 20px;
+}
+
+.react-autosuggest__suggestion--highlighted {
+    background-color: #ddd;
 }

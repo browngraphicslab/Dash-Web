@@ -9,6 +9,7 @@ import { CollectionView } from '../views/collections/CollectionView';
 import { DocumentView } from '../views/nodes/DocumentView';
 import { LinkManager } from './LinkManager';
 import { undoBatch, UndoManager } from './UndoManager';
+import { Scripting } from './Scripting';
 
 
 export class DocumentManager {
@@ -203,3 +204,4 @@ export class DocumentManager {
         }
     }
 }
+Scripting.addGlobal(function focus(doc: any) { DocumentManager.Instance.getDocumentViews(Doc.GetProto(doc)).map(view => view.props.focus(doc, true)); });

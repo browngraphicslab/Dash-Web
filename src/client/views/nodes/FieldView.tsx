@@ -17,7 +17,7 @@ import { IconBox } from "./IconBox";
 import { ImageBox } from "./ImageBox";
 import { PDFBox } from "./PDFBox";
 import { VideoBox } from "./VideoBox";
-import { Id } from "../../../new_fields/FieldSymbols";
+import { ScriptField } from "../../../new_fields/ScriptField";
 
 //
 // these properties get assigned through the render() method of the DocumentView when it creates this node.
@@ -32,12 +32,13 @@ export interface FieldViewProps {
     ContainingCollectionView: Opt<CollectionView | CollectionPDFView | CollectionVideoView>;
     Document: Doc;
     DataDoc?: Doc;
+    onClick?: ScriptField;
     isSelected: () => boolean;
     select: (isCtrlPressed: boolean) => void;
     renderDepth: number;
-    selectOnLoad: boolean;
     addDocument?: (document: Doc, allowDuplicates?: boolean) => boolean;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
+    pinToPres: (document: Doc) => void;
     removeDocument?: (document: Doc) => boolean;
     moveDocument?: (document: Doc, targetCollection: Doc, addDocument: (document: Doc) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
@@ -56,6 +57,7 @@ export interface FieldViewProps {
 export class FieldView extends React.Component<FieldViewProps> {
     public static LayoutString(fieldType: { name: string }, fieldStr: string = "data", fieldExt: string = "") {
         return `<${fieldType.name} {...props} fieldKey={"${fieldStr}"} fieldExt={"${fieldExt}"} />`;
+        //"<ImageBox {...props} />"
     }
 
     @computed
@@ -77,6 +79,9 @@ export class FieldView extends React.Component<FieldViewProps> {
         else if (field instanceof ImageField) {
             return <ImageBox {...this.props} leaveNativeSize={true} />;
         }
+        // else if (field instaceof PresBox) {
+        //    return <PresBox {...this.props} />;
+        // }
         else if (field instanceof IconField) {
             return <IconBox {...this.props} />;
         }
@@ -102,7 +107,6 @@ export class FieldView extends React.Component<FieldViewProps> {
             //         PanelWidth={returnHundred}
             //         PanelHeight={returnHundred}
             //         renderDepth={0} //TODO Why is renderDepth reset?
-            //         selectOnLoad={false}
             //         focus={emptyFunction}
             //         isSelected={this.props.isSelected}
             //         select={returnFalse}

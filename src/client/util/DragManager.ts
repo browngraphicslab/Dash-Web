@@ -1,5 +1,5 @@
 import { action, runInAction } from "mobx";
-import { Doc } from "../../new_fields/Doc";
+import { Doc, Field } from "../../new_fields/Doc";
 import { Cast, StrCast } from "../../new_fields/Types";
 import { URLField } from "../../new_fields/URLField";
 import { emptyFunction } from "../../Utils";
@@ -9,8 +9,11 @@ import { DocumentManager } from "./DocumentManager";
 import { LinkManager } from "./LinkManager";
 import { SelectionManager } from "./SelectionManager";
 import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
-import { DocumentDecorations } from "../views/DocumentDecorations";
-import { NumberLiteralType } from "typescript";
+import { Docs } from "../documents/Documents";
+import { CompileScript } from "./Scripting";
+import { ScriptField } from "../../new_fields/ScriptField";
+import { List } from "../../new_fields/List";
+import { PrefetchProxy } from "../../new_fields/Proxy";
 
 export type dropActionType = "alias" | "copy" | undefined;
 export function SetupDrag(
@@ -142,6 +145,8 @@ export namespace DragManager {
 
         withoutShiftDrag?: boolean;
 
+        finishDrag?: (dropData: { [id: string]: any }) => void;
+
         offsetX?: number;
 
         offsetY?: number;
@@ -211,6 +216,7 @@ export namespace DragManager {
         dropAction: dropActionType;
         userDropAction: dropActionType;
         moveDocument?: MoveFunction;
+        applyAsTemplate?: boolean;
         [id: string]: any;
     }
 
@@ -235,7 +241,7 @@ export namespace DragManager {
 
     export function StartDocumentDrag(eles: HTMLElement[], dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
         runInAction(() => StartDragFunctions.map(func => func()));
-        StartDrag(eles, dragData, downX, downY, options,
+        StartDrag(eles, dragData, downX, downY, options, options && options.finishDrag ? options.finishDrag :
             (dropData: { [id: string]: any }) => {
                 (dropData.droppedDocuments = dragData.userDropAction === "alias" || (!dragData.userDropAction && dragData.dropAction === "alias") ?
                     dragData.draggedDocuments.map(d => Doc.MakeAlias(d)) :
@@ -243,6 +249,28 @@ export namespace DragManager {
                         dragData.draggedDocuments.map(d => Doc.MakeCopy(d, true)) :
                         dragData.draggedDocuments
                 );
+            });
+    }
+
+    export function StartButtonDrag(eles: HTMLElement[], script: string, title: string, vars: { [name: string]: Field }, params: string[], initialize?: (button: Doc) => void, downX: number, downY: number, options?: DragOptions) {
+        let dragData = new DragManager.DocumentDragData([], [undefined]);
+        runInAction(() => StartDragFunctions.map(func => func()));
+        StartDrag(eles, dragData, downX, downY, options, options && options.finishDrag ? options.finishDrag :
+            (dropData: { [id: string]: any }) => {
+                let bd = Docs.Create.ButtonDocument({ width: 150, height: 50, title: title });
+                let compiled = CompileScript(script, {
+                    params: { doc: Doc.name },
+                    typecheck: false,
+                    editable: true
+                });
+                if (compiled.compiled) {
+                    let scriptField = new ScriptField(compiled);
+                    bd.onClick = scriptField;
+                }
+                params.map(p => Object.keys(vars).indexOf(p) !== -1 && (Doc.GetProto(bd)[p] = new PrefetchProxy(vars[p] as Doc)));
+                initialize && initialize(bd);
+                bd.buttonParams = new List<string>(params);
+                dropData.droppedDocuments = [bd];
             });
     }
 
@@ -481,7 +509,7 @@ export namespace DragManager {
             // if (parent && dragEle) parent.appendChild(dragEle);
         });
         if (target) {
-            if (finishDrag) finishDrag(dragData);
+            finishDrag && finishDrag(dragData);
 
             target.dispatchEvent(
                 new CustomEvent<DropEvent>("dashOnDrop", {
@@ -490,7 +518,7 @@ export namespace DragManager {
                         x: e.x,
                         y: e.y,
                         data: dragData,
-                        mods: e.altKey ? "AltKey" : e.ctrlKey ? "CtrlKey" : ""
+                        mods: e.altKey ? "AltKey" : e.ctrlKey ? "CtrlKey" : e.metaKey ? "MetaKey" : ""
                     }
                 })
             );

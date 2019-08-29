@@ -26,6 +26,13 @@ export const inpRules = {
             match => ({ order: +match[1] }),
             (match, node) => node.childCount + node.attrs.order === +match[1]
         ),
+        // a. alphabbetical list
+        wrappingInputRule(
+            /^([a-z]+)\.\s$/,
+            schema.nodes.alphabet_list,
+            match => ({ order: +match[1] }),
+            (match, node) => node.childCount + node.attrs.order === +match[1]
+        ),
 
         // * bullet list
         wrappingInputRule(/^\s*([-+*])\s$/, schema.nodes.bullet_list),
