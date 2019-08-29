@@ -438,13 +438,7 @@ export class MainView extends React.Component {
         if (LinkFollowBox.Instance) {
             let dvs = DocumentManager.Instance.getDocumentViews(LinkFollowBox.Instance.props.Document);
             // if it already exisits, close it
-            if (dvs.length > 0 && shouldClose) LinkFollowBox.Instance.close();
-            // open it if not
-            else Doc.AddDocToList(Cast(CurrentUserUtils.UserDocument.overlays, Doc) as Doc, "data", LinkFollowBox.Instance.props.Document);
-        }
-        else {
-            let doc = Docs.Create.LinkFollowBoxDocument({ x: this.flyoutWidth, y: 20, width: 500, height: 370, title: "Link Follower" });
-            Doc.AddDocToList(Cast(CurrentUserUtils.UserDocument.overlays, Doc) as Doc, "data", doc);
+            LinkFollowBox.Instance.props.Document.isMinimized = (dvs.length > 0 && shouldClose);
         }
     }
 

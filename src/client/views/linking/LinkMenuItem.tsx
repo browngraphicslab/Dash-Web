@@ -97,24 +97,20 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
 
     @action.bound
     async followDefault() {
-        if (LinkFollowBox.Instance === undefined) {
-            let doc = await Docs.Create.LinkFollowBoxDocument({ x: MainView.Instance.flyoutWidth, y: 20, width: 500, height: 370, title: "Link Follower" });
-            await Doc.AddDocToList(Cast(CurrentUserUtils.UserDocument.overlays, Doc) as Doc, "data", doc);
-        } else {
-            LinkFollowBox.Instance!.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
-            LinkFollowBox.Instance!.defaultLinkBehavior();
+        if (LinkFollowBox.Instance !== undefined) {
+            LinkFollowBox.Instance.props.Document.isMinimized = false;
+            LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
+            LinkFollowBox.Instance.defaultLinkBehavior();
         }
     }
 
     @action.bound
     async openLinkFollower() {
-        if (LinkFollowBox.Instance === undefined) {
-            let doc = await Docs.Create.LinkFollowBoxDocument({ x: MainView.Instance.flyoutWidth, y: 20, width: 500, height: 370, title: "Link Follower" });
-            await Doc.AddDocToList(Cast(CurrentUserUtils.UserDocument.overlays, Doc) as Doc, "data", doc);
-        } else {
+        if (LinkFollowBox.Instance !== undefined) {
+            LinkFollowBox.Instance.props.Document.isMinimized = false;
             MainView.Instance.toggleLinkFollowBox(false);
+            LinkFollowBox.Instance.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
         }
-        LinkFollowBox.Instance!.setLinkDocs(this.props.linkDoc, this.props.sourceDoc, this.props.destinationDoc);
     }
 
     render() {

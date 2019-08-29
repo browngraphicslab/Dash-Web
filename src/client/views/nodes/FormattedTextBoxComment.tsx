@@ -1,12 +1,12 @@
-import { Plugin, EditorState } from "prosemirror-state"
-import './FormattedTextBoxComment.scss'
+import { Plugin, EditorState } from "prosemirror-state";
+import './FormattedTextBoxComment.scss';
 import { ResolvedPos, Mark } from "prosemirror-model";
 import { EditorView } from "prosemirror-view";
 import { Doc } from "../../../new_fields/Doc";
 
 export let selectionSizePlugin = new Plugin({
     view(editorView) { return new SelectionSizeTooltip(editorView); }
-})
+});
 export function findOtherUserMark(marks: Mark[]): Mark | undefined {
     return marks.find(m => m.attrs.userid && m.attrs.userid !== Doc.CurrentUserEmail);
 }
@@ -106,5 +106,5 @@ export class SelectionSizeTooltip {
         }
     }
 
-    destroy() { SelectionSizeTooltip.tooltip.style.display = "none" }
+    destroy() { SelectionSizeTooltip.tooltip.style.display = "none"; }
 }

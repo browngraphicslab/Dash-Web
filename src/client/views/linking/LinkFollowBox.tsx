@@ -1,4 +1,4 @@
-import { observable, computed, action, trace, ObservableMap, runInAction, reaction, IReactionDisposer } from "mobx";
+import { observable, computed, action, runInAction, reaction, IReactionDisposer } from "mobx";
 import React = require("react");
 import { observer } from "mobx-react";
 import { FieldViewProps, FieldView } from "../nodes/FieldView";
@@ -15,8 +15,6 @@ import { SearchUtil } from "../../util/SearchUtil";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { listSpec } from "../../../new_fields/Schema";
 import { DocServer } from "../../DocServer";
-import { RefField } from "../../../new_fields/RefField";
-import { Docs } from "../../documents/Documents";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
@@ -126,9 +124,11 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
             const allDocs = await Promise.all(aliases.map(doc => SearchUtil.Search("", true, { fq: `data_l:"${doc[Id]}"` }).then(result => result.docs)));
             allDocs.forEach((docs, index) => docs.forEach(doc => map.set(doc, aliases[index])));
             docs.forEach(doc => map.delete(doc));
-            runInAction(() => {
+            runInAction(async () => {
                 this._docs = docs.filter(doc => !Doc.AreProtosEqual(doc, CollectionDockingView.Instance.props.Document)).map(doc => ({ col: doc, target: dest }));
                 this._otherDocs = Array.from(map.entries()).filter(entry => !Doc.AreProtosEqual(entry[0], CollectionDockingView.Instance.props.Document)).map(([col, target]) => ({ col, target }));
+                let tcontext = LinkFollowBox.linkDoc && (await Cast(LinkFollowBox.linkDoc.targetContext, Doc)) as Doc;
+                runInAction(() => tcontext && this._docs.splice(0, 0, { col: tcontext, target: dest }));
             });
         }
     }
@@ -268,7 +268,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
             let fullScreenAlias = Doc.MakeAlias(LinkFollowBox.destinationDoc);
             // THIS IS EMPTY FUNCTION
             this.props.addDocTab(fullScreenAlias, undefined, "inTab");
-            console.log(this.props.addDocTab)
+            console.log(this.props.addDocTab);
 
             this.highlightDoc();
             SelectionManager.DeselectAll();
@@ -348,7 +348,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
             }
             else if (this.selectedMode === FollowModes.OPENTAB) {
                 if (notOpenInContext) this.openLinkTab();
-                else this.selectedContext && this.openLinkColTab({ context: this.selectedContext, shouldZoom: shouldZoom })
+                else this.selectedContext && this.openLinkColTab({ context: this.selectedContext, shouldZoom: shouldZoom });
             }
             else if (this.selectedMode === FollowModes.PAN) {
                 this.jumpToLink({ shouldZoom: shouldZoom });
@@ -555,19 +555,13 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
         return null;
     }
 
-    async close() {
-        let res = await DocListCastAsync((CurrentUserUtils.UserDocument.overlays as Doc).data);
-        if (res) res.splice(res.indexOf(LinkFollowBox.Instance!.props.Document), 1);
-        LinkFollowBox.Instance = undefined;
-    }
-
     render() {
         return (
             <div className="linkFollowBox-main" style={{ height: NumCast(this.props.Document.height), width: NumCast(this.props.Document.width) }}>
                 <div className="linkFollowBox-header">
                     <div className="topHeader">
                         {LinkFollowBox.linkDoc ? "Link Title: " + StrCast(LinkFollowBox.linkDoc.title) : "No Link Selected"}
-                        <div onClick={this.close} className="closeDocument"><FontAwesomeIcon icon={faTimes} size="lg" /></div>
+                        <div onClick={() => this.props.Document.isMinimized = true} className="closeDocument"><FontAwesomeIcon icon={faTimes} size="lg" /></div>
                     </div>
                     <div className=" direction-indicator">{LinkFollowBox.linkDoc ?
                         LinkFollowBox.sourceDoc && LinkFollowBox.destinationDoc ? "Source: " + StrCast(LinkFollowBox.sourceDoc.title) + ", Destination: " + StrCast(LinkFollowBox.destinationDoc.title)
