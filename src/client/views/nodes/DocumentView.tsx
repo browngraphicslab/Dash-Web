@@ -648,21 +648,31 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 if (!ClientRecommender.Instance) new ClientRecommender({ title: "Client Recommender" });
                 let documents: Doc[] = [];
                 let allDocs = await SearchUtil.GetAllDocs();
-                allDocs.forEach(doc => console.log(doc.title));
+                //allDocs.forEach(doc => console.log(doc.title));
                 // clears internal representation of documents as vectors
                 ClientRecommender.Instance.reset_docs();
                 await Promise.all(allDocs.map((doc: Doc) => {
-                    if (doc.type === DocumentType.IMG) {
-                        console.log(StrCast(doc.title));
-                        documents.push(doc);
-                        const extdoc = doc.data_ext as Doc;
-                        return ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc);
+                    let mainDoc: boolean = false;
+                    const dataDoc = Doc.GetDataDoc(doc);
+                    if (doc.type === DocumentType.TEXT) {
+                        if (dataDoc === Doc.GetDataDoc(this.props.Document)) {
+                            mainDoc = true;
+                            console.log(StrCast(doc.title));
+                        }
+                        if (!documents.includes(dataDoc)) {
+                            documents.push(dataDoc);
+                            const extdoc = doc.data_ext as Doc;
+                            return ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc, mainDoc);
+                        }
                     }
                 }));
                 console.log(ClientRecommender.Instance.createDistanceMatrix());
+                const doclist = ClientRecommender.Instance.computeSimilarities();
                 let recDocs: { preview: Doc, score: number }[] = [];
-                for (let i = 0; i < documents.length; i++) {
-                    recDocs.push({ preview: documents[i], score: i });
+                // tslint:disable-next-line: prefer-for-of
+                for (let i = 0; i < doclist.length; i++) {
+                    console.log(doclist[i].score);
+                    recDocs.push({ preview: doclist[i].actualDoc, score: doclist[i].score });
                 }
                 Recommendations.Instance.addDocuments(recDocs);
                 Recommendations.Instance.displayRecommendations(e.pageX + 100, e.pageY);

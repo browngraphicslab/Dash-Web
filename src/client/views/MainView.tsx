@@ -204,6 +204,7 @@ export class MainView extends React.Component {
         const targets = document.elementsFromPoint(e.x, e.y);
         if (targets && targets.length && targets[0].className.toString().indexOf("contextMenu") === -1) {
             ContextMenu.Instance.closeMenu();
+            Recommendations.Instance.closeMenu();
         }
     });
 

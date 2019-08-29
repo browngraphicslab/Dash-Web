@@ -10,8 +10,10 @@ import { returnFalse, emptyFunction, returnEmptyString, returnOne } from "../../
 import { Transform } from "../util/Transform";
 import { ObjectField } from "../../new_fields/ObjectField";
 import { DocumentView } from "./nodes/DocumentView";
-import { DocumentType } from "../documents/Documents";
-
+import { DocumentType } from '../documents/DocumentTypes';
+import { ClientRecommender } from "../ClientRecommender";
+import { DocServer } from "../DocServer";
+import { Id } from "../../new_fields/FieldSymbols";
 
 export interface RecProps {
     documents: { preview: Doc, similarity: number }[];
@@ -28,6 +30,7 @@ export class Recommendations extends React.Component<{}> {
     @observable private _width: number = 0;
     @observable private _height: number = 0;
     @observable private _documents: { preview: Doc, score: number }[] = [];
+    private previewDocs: Doc[] = [];
 
     constructor(props: {}) {
         super(props);
@@ -52,7 +55,8 @@ export class Recommendations extends React.Component<{}> {
         let returnXDimension = () => 50;
         let returnYDimension = () => 50;
         let scale = () => returnXDimension() / NumCast(renderDoc.nativeWidth, returnXDimension());
-        let newRenderDoc = Doc.MakeDelegate(renderDoc); ///   newRenderDoc -> renderDoc -> render"data"Doc -> TextProt
+        //let scale = () => 1;
+        //let newRenderDoc = Doc.MakeDelegate(renderDoc); ///   newRenderDoc -> renderDoc -> render"data"Doc -> TextProt
         const docview = <div>
             {/* onPointerDown={action(() => {
                 this._useIcons = !this._useIcons;
@@ -62,7 +66,7 @@ export class Recommendations extends React.Component<{}> {
             onPointerLeave={action(() => this._displayDim = 50)} > */}
             <DocumentView
                 fitToBox={StrCast(doc.type).indexOf(DocumentType.COL) !== -1}
-                Document={doc}
+                Document={renderDoc}
                 addDocument={returnFalse}
                 removeDocument={returnFalse}
                 ScreenToLocalTransform={Transform.Identity}
@@ -82,9 +86,10 @@ export class Recommendations extends React.Component<{}> {
                 ContentScaling={scale}
             />
         </div>;
-        const data = renderDoc.data;
-        if (data instanceof ObjectField) newRenderDoc.data = ObjectField.MakeCopy(data);
-        newRenderDoc.preview = true;
+        // const data = renderDoc.data;
+        // if (data instanceof ObjectField) newRenderDoc.data = ObjectField.MakeCopy(data);
+        // newRenderDoc.preview = true;
+        // this.previewDocs.push(newRenderDoc);
         return docview;
 
     }
@@ -92,6 +97,8 @@ export class Recommendations extends React.Component<{}> {
     @action
     closeMenu = () => {
         this._display = false;
+        this.previewDocs.forEach(doc => DocServer.DeleteDocument(doc[Id]));
+        this.previewDocs = [];
     }
 
     @action

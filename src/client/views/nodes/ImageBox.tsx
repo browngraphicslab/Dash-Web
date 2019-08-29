@@ -240,22 +240,6 @@ export class ImageBox extends DocComponent<FieldViewProps, ImageDocument>(ImageD
         }
     }
 
-    extractText = async () => {
-        //let activedocs = this.getActiveDocuments();
-        let allDocs = await SearchUtil.GetAllDocs();
-        allDocs.forEach(doc => console.log(doc.title));
-        // clears internal representation of documents as vectors
-        ClientRecommender.Instance.reset_docs();
-        await Promise.all(allDocs.map((doc: Doc) => {
-            //console.log(StrCast(doc.title));
-            if (doc.type === DocumentType.IMG) {
-                const extdoc = doc.data_ext as Doc;
-                return ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc);
-            }
-        }));
-        console.log(ClientRecommender.Instance.createDistanceMatrix());
-    }
-
     generateMetadata = (threshold: Confidence = Confidence.Excellent) => {
         let converter = (results: any) => {
             let tagDoc = new Doc;

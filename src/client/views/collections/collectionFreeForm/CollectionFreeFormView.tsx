@@ -857,27 +857,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 input.click();
             }
         });
-        ContextMenu.Instance.addItem({
-            description: "Recommender System",
-            event: async () => {
-                // if (!ClientRecommender.Instance) new ClientRecommender({ title: "Client Recommender" });
-                let activedocs = this.getActiveDocuments();
-                let allDocs = await SearchUtil.GetAllDocs();
-                allDocs.forEach(doc => console.log(doc.title));
-                // clears internal representation of documents as vectors
-                ClientRecommender.Instance.reset_docs();
-                await Promise.all(allDocs.map((doc: Doc) => {
-                    console.log(StrCast(doc.title));
-                    if (doc.type === DocumentType.IMG) {
-                        console.log(doc.title);
-                        const extdoc = doc.data_ext as Doc;
-                        return ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc);
-                    }
-                }));
-                console.log(ClientRecommender.Instance.createDistanceMatrix());
-            },
-            icon: "brain"
-        });
         layoutItems.push({ description: `${this.fitToBox ? "Unset" : "Set"} Fit To Container`, event: this.fitToContainer, icon: !this.fitToBox ? "expand-arrows-alt" : "compress-arrows-alt" });
         layoutItems.push({ description: "reset view", event: () => { this.props.Document.panX = this.props.Document.panY = 0; this.props.Document.scale = 1; }, icon: "compress-arrows-alt" });
         layoutItems.push({

@@ -263,29 +263,35 @@ export namespace CognitiveServices {
 
         export namespace Appliers {
 
-            export async function vectorize(keyterms: any) {
+            export async function vectorize(keyterms: any, dataDoc: Doc, mainDoc: boolean = false) {
                 console.log("vectorizing...");
                 //keyterms = ["father", "king"];
                 let args = { method: 'POST', uri: Utils.prepend("/recommender"), body: { keyphrases: keyterms }, json: true };
                 await requestPromise.post(args).then(async (wordvecs) => {
-                    var vectorValues = new Set<number[]>();
-                    wordvecs.forEach((wordvec: any) => {
-                        //console.log(wordvec.word);
-                        vectorValues.add(wordvec.values as number[]);
-                    });
-                    ClientRecommender.Instance.mean(vectorValues);
+                    if (wordvecs.length > 0) {
+                        console.log("successful vectorization!");
+                        var vectorValues = new Set<number[]>();
+                        wordvecs.forEach((wordvec: any) => {
+                            //console.log(wordvec.word);
+                            vectorValues.add(wordvec.values as number[]);
+                        });
+                        ClientRecommender.Instance.mean(vectorValues, dataDoc, mainDoc);
+                    } // adds document to internal doc set
+                    else {
+                        console.log("unsuccessful :( word(s) not in vocabulary");
+                    }
                     //console.log(vectorValues.size);
                 });
             }
 
-            export const analyzer = async (target: Doc, keys: string[], data: string, converter: Converter) => {
+            export const analyzer = async (dataDoc: Doc, target: Doc, keys: string[], data: string, converter: Converter, mainDoc: boolean = false) => {
                 let results = await ExecuteQuery(Service.Text, Manager, data);
                 console.log(results);
                 let keyterms = converter(results);
                 //target[keys[0]] = Docs.Get.DocumentHierarchyFromJson(results, "Key Word Analysis");
                 target[keys[0]] = keyterms;
                 console.log("analyzed!");
-                await vectorize(keyterms);
+                await vectorize(keyterms, dataDoc, mainDoc);
             };
         }
 
