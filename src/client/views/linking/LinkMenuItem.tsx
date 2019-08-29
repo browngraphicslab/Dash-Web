@@ -42,7 +42,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     onEdit = (e: React.PointerEvent): void => {
         e.stopPropagation();
         this.props.showEditor(this.props.linkDoc);
-        SelectionManager.DeselectAll();
+        //SelectionManager.DeselectAll();
     }
 
     renderMetadata = (): JSX.Element => {
