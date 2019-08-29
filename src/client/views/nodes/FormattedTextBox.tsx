@@ -37,12 +37,9 @@ import { DocumentDecorations } from '../DocumentDecorations';
 import { DictationManager } from '../../util/DictationManager';
 import { ReplaceStep } from 'prosemirror-transform';
 import { DocumentType } from '../../documents/DocumentTypes';
-<<<<<<< HEAD
 import { link } from 'fs';
-=======
 import { selectionSizePlugin, findStartOfMark, findUserMark, findEndOfMark, findOtherUserMark, SelectionSizeTooltip } from './FormattedTextBoxComment';
 import { date } from 'serializr';
->>>>>>> 22a5999626b11cf75cafbcd421601e668438f6ad
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);

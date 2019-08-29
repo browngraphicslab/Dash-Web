@@ -59,7 +59,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
         else if (this.props.destinationDoc === self.props.linkDoc.anchor1 && sourceContext) {
             DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, false, document => dockingFunc(sourceContext!));
             if (guid) {
-                console.log('wegotthis', self.props.linkDoc.anchor2, jumpToDoc[Id]);
+                console.log('wegotthis', StrCast(self.props.linkDoc.anchor2), jumpToDoc[Id]);
                 jumpToDoc.linkHref = Utils.prepend("/doc/" + StrCast(this.props.linkDoc.anchor2));
                 jumpToDoc.guid = guid;
             } else { // retroactively fixing old in-text links by adding guid 
