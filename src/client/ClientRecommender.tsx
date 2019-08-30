@@ -39,6 +39,7 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
     @action
     public reset_docs() {
         ClientRecommender.Instance.docVectors = new Set();
+        ClientRecommender.Instance.mainDoc = undefined;
         ClientRecommender.Instance.corr_matrix = [[0, 0], [0, 0]];
     }
 
@@ -133,7 +134,10 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
             let keyterms = new List<string>();
             results.documents.forEach((doc: any) => {
                 let keyPhrases = doc.keyPhrases;
-                keyPhrases.map((kp: string) => keyterms.push(kp));
+                keyPhrases.map((kp: string) => {
+                    const words = kp.split(" ");
+                    words.forEach((word) => keyterms.push(word));
+                });
             });
             return keyterms;
         };

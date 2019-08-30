@@ -648,7 +648,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 if (!ClientRecommender.Instance) new ClientRecommender({ title: "Client Recommender" });
                 let documents: Doc[] = [];
                 let allDocs = await SearchUtil.GetAllDocs();
-                //allDocs.forEach(doc => console.log(doc.title));
+                // allDocs.forEach(doc => console.log(doc.title));
                 // clears internal representation of documents as vectors
                 ClientRecommender.Instance.reset_docs();
                 await Promise.all(allDocs.map((doc: Doc) => {

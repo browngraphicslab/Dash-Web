@@ -161,7 +161,7 @@ export class Recommendations extends React.Component<{}> {
                                     <span className="image-background">
                                         {this.DocumentIcon(doc.preview)}
                                     </span>
-                                    <span className="score">{doc.score}</span>
+                                    <span className="score">{doc.score.toFixed(4)}</span>
                                 </div>
                             );
                         })}
