@@ -38,6 +38,7 @@ import { DictationManager } from '../../util/DictationManager';
 import { ReplaceStep } from 'prosemirror-transform';
 import { DocumentType } from '../../documents/DocumentTypes';
 import { RichTextUtils } from '../../../new_fields/RichTextUtils';
+import * as _ from "lodash";
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -481,7 +482,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         let pullSuccess = false;
         if (exportState !== undefined) {
             pullSuccess = true;
-            dataDoc.data = exportState.data;
+            dataDoc.data = new RichTextField(JSON.stringify(exportState.state.toJSON()));
             setTimeout(() => {
                 if (this._editorView) {
                     let state = this._editorView.state;
@@ -500,11 +501,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     checkState = (exportState: Opt<GoogleApiClientUtils.Docs.ImportResult>, dataDoc: Doc) => {
         if (exportState && this._editorView) {
-            let storedPlainText = RichTextUtils.ToPlainText(this._editorView.state) + "\n";
-            let receivedPlainText = exportState.text;
-            let storedTitle = dataDoc.title;
-            let receivedTitle = exportState.title;
-            let unchanged = storedPlainText === receivedPlainText && storedTitle === receivedTitle;
+            let equalContent = _.isEqual(this._editorView.state.doc, exportState.state.doc);
+            let equalTitles = dataDoc.title === exportState.title;
+            let unchanged = equalContent && equalTitles;
             dataDoc.unchanged = unchanged;
             DocumentDecorations.Instance.setPullState(unchanged);
         }

@@ -5,6 +5,7 @@ import { docs_v1 } from "googleapis";
 import { GoogleApiClientUtils } from "../client/apis/google_docs/GoogleApiClientUtils";
 import { FormattedTextBox } from "../client/views/nodes/FormattedTextBox";
 import { Opt } from "./Doc";
+import * as Color from "color";
 
 export namespace RichTextUtils {
 
@@ -96,73 +97,85 @@ export namespace RichTextUtils {
         };
 
         export const Import = async (documentId: GoogleApiClientUtils.Docs.DocumentId): Promise<Opt<GoogleApiClientUtils.Docs.ImportResult>> => {
-            let Docs = GoogleApiClientUtils.Docs;
-            let document = await Docs.retrieve({ documentId });
-
+            const Docs = GoogleApiClientUtils.Docs;
+            const document = await Docs.retrieve({ documentId });
             if (!document) {
                 return undefined;
             }
 
-            let title = document.title!;
-
-            let { text, runs } = Docs.Utils.extractText(document);
-            let segments = runs[Symbol.iterator]();
+            const title = document.title!;
+            const { text, runs } = Docs.Utils.extractText(document);
+            const segments = runs[Symbol.iterator]();
 
             let state = FormattedTextBox.blankState();
-            let breaks: number[] = [];
-            let from = 0;
+            const schema = state.schema;
+            const nodes: Node[] = [];
+
             let result = segments.next();
             while (!result.done) {
                 let run = result.value;
-                let fragment = run.content!;
-                if (fragment.hasNewline()) {
-                    let trimmed = fragment.removeTrailingNewlines();
-                    if (fragment.length === 1) {
-                        breaks.push(from);
-                    } else {
-                        let content = Fragment.from(state.schema.text(trimmed, styleToMarks(state.schema, run.textStyle)));
-                        let node = state.schema.node("paragraph", null, content);
-                        state = state.apply(state.tr.insert(from, node));
-                        from += node.nodeSize;
-                    }
+                if (run.content!.hasNewline()) {
+                    addParagraph(nodes, schema, textNode(schema, run));
                     result = segments.next();
                 } else {
-                    let nodes: Node[] = [];
-                    nodes.push(state.schema.text(fragment, styleToMarks(state.schema, run.textStyle)));
+                    const inner: Node[] = [];
+                    inner.push(textNode(schema, run));
                     result = segments.next();
                     while (!result.done) {
                         run = result.value;
-                        fragment = run.content!;
-                        let trimmed = fragment.removeTrailingNewlines();
-                        nodes.push(state.schema.text(trimmed, styleToMarks(state.schema, run.textStyle)));
-                        if (fragment.hasNewline()) {
-                            let node = state.schema.node("paragraph", null, Fragment.fromArray(nodes));
-                            state = state.apply(state.tr.insert(from, node));
-                            from += node.nodeSize;
-                            result = segments.next();
+                        inner.push(textNode(schema, run));
+                        result = segments.next();
+                        if (run.content!.hasNewline()) {
+                            addParagraph(nodes, schema, inner);
                             break;
                         }
-                        result = segments.next();
                     }
                     if (result.done) {
                         break;
                     }
                 }
             }
-            breaks.forEach(position => state = state.apply(state.tr.insert(position, state.schema.node("paragraph"))));
-            let data = new RichTextField(JSON.stringify(state.toJSON()));
-            return { title, text, data };
+            state = state.apply(state.tr.replaceWith(0, 2, nodes));
+            return { title, text, state };
         };
+
+        const addParagraph = (list: Node[], schema: any, content?: Node[] | Node) => {
+            list.push(schema.node("paragraph", null, content ? Fragment.from(content) : null));
+        };
+
+        const textNode = (schema: any, run: docs_v1.Schema$TextRun) => {
+            let text = run.content!.removeTrailingNewlines();
+            return text.length ? schema.text(text, styleToMarks(schema, run.textStyle)) : undefined;
+        };
+
+        const MarkMapping = new Map<keyof docs_v1.Schema$TextStyle, string>([
+            ["bold", "strong"],
+            ["italic", "em"],
+            ["foregroundColor", "pFontColor"]
+        ]);
 
         const styleToMarks = (schema: any, textStyle?: docs_v1.Schema$TextStyle) => {
             if (!textStyle) {
                 return undefined;
             }
             let marks: Mark[] = [];
-            if (textStyle.link) {
-                let href = textStyle.link.url;
-                marks.push(schema.mark(schema.marks.link, { href }));
-            }
+            Object.keys(textStyle).forEach(key => {
+                let value: any;
+                let targeted = key as keyof docs_v1.Schema$TextStyle;
+                if (value = textStyle[targeted]) {
+                    let attributes: any = {};
+                    let converted = MarkMapping.get(targeted) || targeted;
+
+                    value.url && (attributes.href = value.url);
+                    if (value.color) {
+                        let object: { [key: string]: number } = value.color.rgbColor;
+                        attributes.color = Color.rgb(Object.values(object).map(value => value * 255)).hex();
+                    }
+
+                    let mark = schema.mark(schema.marks[converted], attributes);
+                    mark && marks.push(mark);
+                }
+            });
             return marks;
         };
 

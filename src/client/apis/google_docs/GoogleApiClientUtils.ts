@@ -45,7 +45,7 @@ export namespace GoogleApiClientUtils {
         export interface ImportResult {
             title: string;
             text: string;
-            data: RichTextField;
+            state: EditorState;
         }
 
         export interface CreateOptions {
