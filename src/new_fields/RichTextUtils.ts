@@ -1,5 +1,5 @@
 import { EditorState } from "prosemirror-state";
-import { Node } from "prosemirror-model";
+import { Node, Fragment, Mark } from "prosemirror-model";
 import { RichTextField } from "./RichTextField";
 import { docs_v1 } from "googleapis";
 import { GoogleApiClientUtils } from "../client/apis/google_docs/GoogleApiClientUtils";
@@ -95,27 +95,75 @@ export namespace RichTextUtils {
             };
         };
 
-        export const Import = async (documentId: GoogleApiClientUtils.Docs.DocumentId) => {
-            let document = await GoogleApiClientUtils.Docs.retrieve({ documentId });
+        export const Import = async (documentId: GoogleApiClientUtils.Docs.DocumentId): Promise<Opt<GoogleApiClientUtils.Docs.ImportResult>> => {
+            let Docs = GoogleApiClientUtils.Docs;
+            let document = await Docs.retrieve({ documentId });
+
             if (!document) {
-                return;
+                return undefined;
             }
-            // let title = document.title!;
-            let runs = GoogleApiClientUtils.Docs.Utils.extractTextRuns(document);
+
+            let title = document.title!;
+
+            let { text, runs } = Docs.Utils.extractText(document);
+            let segments = runs[Symbol.iterator]();
+
             let state = FormattedTextBox.blankState();
+            let breaks: number[] = [];
             let from = 0;
-            runs.map(run => {
-                let text = run.content!;
-                state = state.apply(state.tr.insertText(text, from));
-                let to = from + text.length + 1;
-                let href: Opt<string>;
-                if (run.textStyle && run.textStyle.link && (href = run.textStyle.link.url)) {
-                    let mark = state.schema.mark(state.schema.marks.link, { href });
-                    state = state.apply(state.tr.addMark(from, to, mark));
+            let result = segments.next();
+            while (!result.done) {
+                let run = result.value;
+                let fragment = run.content!;
+                if (fragment.hasNewline()) {
+                    let trimmed = fragment.removeTrailingNewlines();
+                    if (fragment.length === 1) {
+                        breaks.push(from);
+                    } else {
+                        let content = Fragment.from(state.schema.text(trimmed, styleToMarks(state.schema, run.textStyle)));
+                        let node = state.schema.node("paragraph", null, content);
+                        state = state.apply(state.tr.insert(from, node));
+                        from += node.nodeSize;
+                    }
+                    result = segments.next();
+                } else {
+                    let nodes: Node[] = [];
+                    nodes.push(state.schema.text(fragment, styleToMarks(state.schema, run.textStyle)));
+                    result = segments.next();
+                    while (!result.done) {
+                        run = result.value;
+                        fragment = run.content!;
+                        let trimmed = fragment.removeTrailingNewlines();
+                        nodes.push(state.schema.text(trimmed, styleToMarks(state.schema, run.textStyle)));
+                        if (fragment.hasNewline()) {
+                            let node = state.schema.node("paragraph", null, Fragment.fromArray(nodes));
+                            state = state.apply(state.tr.insert(from, node));
+                            from += node.nodeSize;
+                            result = segments.next();
+                            break;
+                        }
+                        result = segments.next();
+                    }
+                    if (result.done) {
+                        break;
+                    }
                 }
-                from = to;
-            });
-            // return { title, body };
+            }
+            breaks.forEach(position => state = state.apply(state.tr.insert(position, state.schema.node("paragraph"))));
+            let data = new RichTextField(JSON.stringify(state.toJSON()));
+            return { title, text, data };
+        };
+
+        const styleToMarks = (schema: any, textStyle?: docs_v1.Schema$TextStyle) => {
+            if (!textStyle) {
+                return undefined;
+            }
+            let marks: Mark[] = [];
+            if (textStyle.link) {
+                let href = textStyle.link.url;
+                marks.push(schema.mark(schema.marks.link, { href }));
+            }
+            return marks;
         };
 
         interface LinkInformation {

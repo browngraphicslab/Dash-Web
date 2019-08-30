@@ -60,16 +60,14 @@ export const GoogleRef = "googleDocId";
 type RichTextDocument = makeInterface<[typeof richTextSchema]>;
 const RichTextDocument = makeInterface(richTextSchema);
 
-type PullHandler = (exportState: Opt<GoogleApiClientUtils.Docs.ReadResult>, dataDoc: Doc) => void;
+type PullHandler = (exportState: Opt<GoogleApiClientUtils.Docs.ImportResult>, dataDoc: Doc) => void;
 
 @observer
 export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTextBoxProps), RichTextDocument>(RichTextDocument) {
     public static LayoutString(fieldStr: string = "data") {
         return FieldView.LayoutString(FormattedTextBox, fieldStr);
     }
-    public static blankState = () => {
-        return EditorState.create(FormattedTextBox.Instance._configuration);
-    }
+    public static blankState = () => EditorState.create(FormattedTextBox.Instance._configuration);
     public static Instance: FormattedTextBox;
     private _configuration: any;
     private _ref: React.RefObject<HTMLDivElement>;
@@ -434,7 +432,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     pushToGoogleDoc = async () => {
-        this.pullFromGoogleDoc(async (exportState: Opt<GoogleApiClientUtils.Docs.ReadResult>, dataDoc: Doc) => {
+        this.pullFromGoogleDoc(async (exportState: Opt<GoogleApiClientUtils.Docs.ImportResult>, dataDoc: Doc) => {
             let modes = GoogleApiClientUtils.Docs.WriteMode;
             let mode = modes.Replace;
             let reference: Opt<GoogleApiClientUtils.Docs.Reference> = Cast(this.dataDoc[GoogleRef], "string");
@@ -457,7 +455,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     return;
                 }
                 let content: GoogleApiClientUtils.Docs.Content = {
-                    text: exportState.body,
+                    text: exportState.text,
                     requests: []
                 };
                 if (reference && content) {
@@ -472,42 +470,38 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     pullFromGoogleDoc = async (handler: PullHandler) => {
         let dataDoc = this.dataDoc;
         let documentId = StrCast(dataDoc[GoogleRef]);
-        let test = await RichTextUtils.GoogleDocs.Import(documentId);
-        let exportState: Opt<GoogleApiClientUtils.Docs.ReadResult>;
+        let exportState: Opt<GoogleApiClientUtils.Docs.ImportResult>;
         if (documentId) {
-            exportState = await GoogleApiClientUtils.Docs.read({ documentId });
+            exportState = await RichTextUtils.GoogleDocs.Import(documentId);
         }
         UndoManager.RunInBatch(() => handler(exportState, dataDoc), Pulls);
     }
 
-    updateState = (exportState: Opt<GoogleApiClientUtils.Docs.ReadResult>, dataDoc: Doc) => {
+    updateState = (exportState: Opt<GoogleApiClientUtils.Docs.ImportResult>, dataDoc: Doc) => {
         let pullSuccess = false;
-        if (exportState !== undefined && exportState.body !== undefined && exportState.title !== undefined) {
-            const data = Cast(dataDoc.data, RichTextField);
-            if (data instanceof RichTextField) {
-                pullSuccess = true;
-                dataDoc.data = RichTextUtils.Synthesize(exportState.body, data);
-                setTimeout(() => {
-                    if (this._editorView) {
-                        let state = this._editorView.state;
-                        let end = state.doc.content.size - 1;
-                        this._editorView.dispatch(state.tr.setSelection(TextSelection.create(state.doc, end, end)));
-                    }
-                }, 0);
-                dataDoc.title = exportState.title;
-                this.Document.customTitle = true;
-                dataDoc.unchanged = true;
-            }
+        if (exportState !== undefined) {
+            pullSuccess = true;
+            dataDoc.data = exportState.data;
+            setTimeout(() => {
+                if (this._editorView) {
+                    let state = this._editorView.state;
+                    let end = state.doc.content.size - 1;
+                    this._editorView.dispatch(state.tr.setSelection(TextSelection.create(state.doc, end, end)));
+                }
+            }, 0);
+            dataDoc.title = exportState.title;
+            this.Document.customTitle = true;
+            dataDoc.unchanged = true;
         } else {
             delete dataDoc[GoogleRef];
         }
         DocumentDecorations.Instance.startPullOutcome(pullSuccess);
     }
 
-    checkState = (exportState: Opt<GoogleApiClientUtils.Docs.ReadResult>, dataDoc: Doc) => {
+    checkState = (exportState: Opt<GoogleApiClientUtils.Docs.ImportResult>, dataDoc: Doc) => {
         if (exportState && this._editorView) {
             let storedPlainText = RichTextUtils.ToPlainText(this._editorView.state) + "\n";
-            let receivedPlainText = exportState.body;
+            let receivedPlainText = exportState.text;
             let storedTitle = dataDoc.title;
             let receivedTitle = exportState.title;
             let unchanged = storedPlainText === receivedPlainText && storedTitle === receivedTitle;

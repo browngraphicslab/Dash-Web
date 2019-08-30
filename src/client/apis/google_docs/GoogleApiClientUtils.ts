@@ -3,6 +3,8 @@ import { PostToServer } from "../../../Utils";
 import { RouteStore } from "../../../server/RouteStore";
 import { Opt } from "../../../new_fields/Doc";
 import { isArray } from "util";
+import { EditorState } from "prosemirror-state";
+import { RichTextField } from "../../../new_fields/RichTextField";
 
 export const Pulls = "googleDocsPullCount";
 export const Pushes = "googleDocsPushCount";
@@ -40,6 +42,11 @@ export namespace GoogleApiClientUtils {
         export type CreationResult = Opt<DocumentId>;
         export type ReadLinesResult = Opt<{ title?: string, bodyLines?: string[] }>;
         export type ReadResult = { title: string, body: string };
+        export interface ImportResult {
+            title: string;
+            text: string;
+            data: RichTextField;
+        }
 
         export interface CreateOptions {
             title?: string; // if excluded, will use a default title annotated with the current date
@@ -87,13 +94,16 @@ export namespace GoogleApiClientUtils {
 
         export namespace Utils {
 
-            export const extractText = (document: docs_v1.Schema$Document, removeNewlines = false): string => {
+            export type ExtractResult = { text: string, runs: docs_v1.Schema$TextRun[] };
+            export const extractText = (document: docs_v1.Schema$Document, removeNewlines = false): ExtractResult => {
                 let runs = extractTextRuns(document);
-                const text = runs.map(run => run.content).join("");
-                return removeNewlines ? text.ReplaceAll("\n", "") : text;
+                let text = runs.map(run => run.content).join("");
+                text = text.substring(0, text.length - 1);
+                removeNewlines && text.ReplaceAll("\n", "");
+                return { text, runs };
             };
 
-            export const extractTextRuns = (document: docs_v1.Schema$Document, filterEmpty = true) => {
+            const extractTextRuns = (document: docs_v1.Schema$Document, filterEmpty = true) => {
                 const fragments: docs_v1.Schema$TextRun[] = [];
                 if (document.body && document.body.content) {
                     for (const element of document.body.content) {
@@ -160,7 +170,7 @@ export namespace GoogleApiClientUtils {
             return retrieve({ documentId: options.documentId }).then(document => {
                 if (document) {
                     let title = document.title!;
-                    let body = Utils.extractText(document, options.removeNewlines);
+                    let body = Utils.extractText(document, options.removeNewlines).text;
                     return { title, body };
                 }
             });
@@ -170,7 +180,7 @@ export namespace GoogleApiClientUtils {
             return retrieve({ documentId: options.documentId }).then(document => {
                 if (document) {
                     let title = document.title;
-                    let bodyLines = Utils.extractText(document).split("\n");
+                    let bodyLines = Utils.extractText(document).text.split("\n");
                     options.removeNewlines && (bodyLines = bodyLines.filter(line => line.length));
                     return { title, bodyLines };
                 }

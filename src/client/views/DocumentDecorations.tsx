@@ -82,6 +82,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @observable public pullIcon: IconProp = "arrow-alt-circle-down";
     @observable public pullColor: string = "white";
     @observable public isAnimatingFetch = false;
+    @observable public isAnimatingPulse = false;
     @observable public openHover = false;
     public pullColorAnimating = false;
 
@@ -102,6 +103,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     public startPushOutcome = action((success: boolean) => {
         if (!this.pushAnimating) {
             this.pushAnimating = true;
+            this.isAnimatingPulse = false;
             this.pushIcon = success ? "check-circle" : "stop-circle";
             setTimeout(() => runInAction(() => {
                 this.pushIcon = "arrow-alt-circle-up";
@@ -698,9 +700,12 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         return (
             <div className={"linkButtonWrapper"}>
                 <div title={`${published ? "Push" : "Publish"} to Google Docs`} className="linkButton-linker" onClick={() => {
+                    if (!published) {
+                        runInAction(() => this.isAnimatingPulse = true);
+                    }
                     DocumentDecorations.hasPushedHack = false;
                     this.targetDoc[Pushes] = NumCast(this.targetDoc[Pushes]) + 1;
-                }}>
+                }} style={{ animation: this.isAnimatingPulse ? "shadow-pulse 1s infinite" : "none" }}>
                     <FontAwesomeIcon className="documentdecorations-icon" icon={icon} size={published ? "sm" : "xs"} />
                 </div>
             </div>

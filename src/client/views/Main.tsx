@@ -8,6 +8,26 @@ import { Doc, DocListCastAsync } from "../../new_fields/Doc";
 import { List } from "../../new_fields/List";
 import { DocServer } from "../DocServer";
 
+String.prototype.removeTrailingNewlines = function () {
+    let sliced = this;
+    while (sliced.endsWith("\n")) {
+        sliced = sliced.substring(0, this.length - 1);
+    }
+    return sliced as string;
+};
+
+String.prototype.hasNewline = function () {
+    return this.endsWith("\n");
+};
+
+(Array.prototype as any).lastElement = function (this: any[]) {
+    if (!this.length) {
+        return undefined;
+    }
+    return this[this.length - 1];
+};
+
+
 let swapDocs = async () => {
     let oldDoc = await Cast(CurrentUserUtils.UserDocument.linkManagerDoc, Doc);
     // Docs.Prototypes.MainLinkDocument().allLinks = new List<Doc>();

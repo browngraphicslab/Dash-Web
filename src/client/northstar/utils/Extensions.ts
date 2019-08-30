@@ -1,6 +1,8 @@
 interface String {
     ReplaceAll(toReplace: string, replacement: string): string;
     Truncate(length: number, replacement: string): String;
+    removeTrailingNewlines(): string;
+    hasNewline(): boolean;
 }
 
 String.prototype.ReplaceAll = function (toReplace: string, replacement: string): string {
