@@ -176,13 +176,13 @@ export const nodes: { [index: string]: NodeSpec } = {
         content: 'list_item+',
         group: 'block',
         attrs: {
-            bulletStyle: { default: "" },
+            bulletStyle: { default: 0 },
             mapStyle: { default: "decimal" }
         },
         toDOM(node: Node<any>) {
             const bs = node.attrs.bulletStyle;
-            const decMap = bs === "indent1" ? "decimal" : bs === "indent2" ? "decimal2" : bs === "indent3" ? "decimal3" : bs === "indent4" ? "decimal4" : "";
-            const multiMap = bs === "indent1" ? "decimal" : bs === "indent2" ? "upper-alpha" : bs === "indent3" ? "lower-roman" : bs === "indent4" ? "lower-alpha" : "";
+            const decMap = bs === 1 ? "decimal" : bs === 2 ? "decimal2" : bs === 3 ? "decimal3" : bs === 4 ? "decimal4" : "";
+            const multiMap = bs === 1 ? "decimal" : bs === 2 ? "upper-alpha" : bs === 3 ? "lower-roman" : bs === 4 ? "lower-alpha" : "";
             let map = node.attrs.mapStyle === "decimal" ? decMap : multiMap;
             for (let i = 0; i < node.childCount; i++) node.child(i).attrs.className = map;
             return ['ol', { class: `${map}-ol`, style: `list-style: none;` }, 0];

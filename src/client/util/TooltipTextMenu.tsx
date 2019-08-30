@@ -3,7 +3,7 @@ import { faListUl } from '@fortawesome/free-solid-svg-icons';
 import { action, observable } from "mobx";
 import { Dropdown, icons, MenuItem } from "prosemirror-menu"; //no import css
 import { Mark, MarkType, Node as ProsNode, NodeType, ResolvedPos, Schema } from "prosemirror-model";
-import { liftListItem, wrapInList } from 'prosemirror-schema-list';
+import { wrapInList } from 'prosemirror-schema-list';
 import { EditorState, NodeSelection, TextSelection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { Doc, Field, Opt } from "../../new_fields/Doc";
@@ -525,7 +525,7 @@ export class TooltipTextMenu {
                 let path = resolvedPos.path;
                 for (let i = path.length - 1; i > 0; i--) {
                     if (path[i].type === schema.nodes.ordered_list) {
-                        path[i].attrs.bulletStyle = "indent1";
+                        path[i].attrs.bulletStyle = 1;
                         path[i].attrs.mapStyle = (nodeType as any).attrs.mapStyle;
                         break;
                     }

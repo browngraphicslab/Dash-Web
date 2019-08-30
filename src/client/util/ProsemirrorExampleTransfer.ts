@@ -2,7 +2,8 @@ import { chainCommands, exitCode, joinDown, joinUp, lift, selectParentNode, setB
 import { redo, undo } from "prosemirror-history";
 import { undoInputRule } from "prosemirror-inputrules";
 import { Schema } from "prosemirror-model";
-import { liftListItem, splitListItem, wrapInList, sinkListItem } from "prosemirror-schema-list";
+import { liftListItem, } from "./prosemirrorPatches.js";
+import { splitListItem, wrapInList, sinkListItem } from "prosemirror-schema-list";
 import { EditorState, Transaction, TextSelection, NodeSelection } from "prosemirror-state";
 import { TooltipTextMenu } from "./TooltipTextMenu";
 
@@ -79,75 +80,73 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
 
     bind("Mod-s", TooltipTextMenu.insertStar);
 
-    let nodeTypeMark = (depth: number) => depth === 2 ? "indent2" : depth === 4 ? "indent3" : depth === 6 ? "indent4" : "indent1";
+    let updateBullets = (tx2: Transaction, refStart: number, delta: number) => {
+        for (let i = refStart; i > 0; i--) {
+            let testPos = tx2.doc.nodeAt(i);
+            if (testPos && testPos.type === schema.nodes.list_item) {
+                let start = i;
+                let preve = i > 0 && tx2.doc.nodeAt(start - 1);
+                if (preve && preve.type === schema.nodes.ordered_list) {
+                    start = start - 1;
+                }
+                let rangeStart = tx2.doc.nodeAt(start);
+                if (rangeStart && rangeStart.type === schema.nodes.ordered_list) {
+                    tx2.setNodeMarkup(start, rangeStart.type, { ...rangeStart.attrs, bulletStyle: rangeStart.attrs.bulletStyle + delta }, rangeStart.marks);
+                }
+                rangeStart && rangeStart.descendants((node: any, offset: any, index: any) => {
+                    if (node.type === schema.nodes.ordered_list) {
+                        tx2.setNodeMarkup(start + offset + 1, node.type, { ...node.attrs, bulletStyle: node.attrs.bulletStyle + delta }, node.marks);
+                    }
+                });
+                break;
+            }
+        }
+    }
 
-    let bulletFunc = (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
+    bind("Tab", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
         var ref = state.selection;
         var range = ref.$from.blockRange(ref.$to);
         var marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
-        let depth = range && range.depth ? range.depth : 0;
         if (!sinkListItem(schema.nodes.list_item)(state, (tx2: Transaction) => {
-            const resolvedPos = tx2.doc.resolve(range!.start);
-
-            let path = (resolvedPos as any).path;
-            for (let i = path.length - 1; i > 0; i--) {
-                if (path[i].type === schema.nodes.ordered_list) {
-                    path[i].attrs.bulletStyle = nodeTypeMark(depth);
-                    break;
-                }
-            }
+            updateBullets(tx2, range!.start, 1);
             marks && tx2.ensureMarks([...marks]);
             marks && tx2.setStoredMarks([...marks]);
             dispatch(tx2);
-        })) {
+        })) { // couldn't sink into an existing list, so wrap in a new one
             let sxf = state.tr.setSelection(TextSelection.create(state.doc, range!.start, range!.end));
             let newstate = state.applyTransaction(sxf);
             if (!wrapInList(schema.nodes.ordered_list)(newstate.state, (tx2: Transaction) => {
-                const resolvedPos = tx2.doc.resolve(Math.round((range!.start + range!.end) / 2));
-                let path = (resolvedPos as any).path;
-                for (let i = path.length - 1; i > 0; i--) {
-                    if (path[i].type === schema.nodes.ordered_list) {
-                        path[i].attrs.bulletStyle = nodeTypeMark(depth);
+                for (let i = range!.start; i >= 0; i--) {
+                    let rangeStart = tx2.doc.nodeAt(i);
+                    if (rangeStart && rangeStart.type === schema.nodes.ordered_list) {
+                        tx2.setNodeMarkup(i, rangeStart.type, { ...rangeStart.attrs, bulletStyle: 1 }, rangeStart.marks);
                         break;
                     }
                 }
                 // when promoting to a list, assume list will format things so don't copy the stored marks.
-                // marks && tx2.ensureMarks([...marks]);
-                // marks && tx2.setStoredMarks([...marks]);
-
-                dispatch(tx2);
-            })) {
-                console.log("bullet fail");
-            }
-        }
-    };
-
-    bind("Tab", bulletFunc);
-
-    bind("Shift-Tab", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
-        var ref = state.selection;
-        var range = ref.$from.blockRange(ref.$to);
-        var marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
-        let depth = range && range.depth > 3 ? range.depth - 4 : 0;
-        liftListItem(schema.nodes.list_item)(state, (tx2: Transaction) => {
-            try {
-                const resolvedPos = tx2.doc.resolve(Math.round((range!.start + range!.end) / 2));
-
-                let path = (resolvedPos as any).path;
-                for (let i = path.length - 1; i > 0; i--) {
-                    if (path[i].type === schema.nodes.ordered_list) {
-                        path[i].attrs.bulletStyle = nodeTypeMark(depth);
-                        break;
-                    }
-                }
-
                 marks && tx2.ensureMarks([...marks]);
                 marks && tx2.setStoredMarks([...marks]);
                 dispatch(tx2);
-            } catch (e) {
-                dispatch(tx2);
+            })) {
+                console.log("bullet promote fail");
             }
-        });
+        }
+    });
+
+    bind("Shift-Tab", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
+        var range = state.selection.$from.blockRange(state.selection.$to);
+        var marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
+
+        let tr = state.tr;
+        updateBullets(tr, range!.start, -1);
+
+        if (!liftListItem(schema.nodes.list_item)(tr, (tx2: Transaction) => {
+            marks && tx2.ensureMarks([...marks]);
+            marks && tx2.setStoredMarks([...marks]);
+            dispatch(tx2);
+        })) {
+            console.log("bullet demote fail");
+        }
     });
 
     bind("Enter", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
@@ -160,8 +159,7 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
             if (!splitBlockKeepMarks(state, (tx3: Transaction) => {
                 marks && tx3.ensureMarks(marks);
                 marks && tx3.setStoredMarks(marks);
-                if (!liftListItem(schema.nodes.list_item)(state, dispatch as ((tx: Transaction<Schema<any, any>>) => void))
-                ) {
+                if (!liftListItem(schema.nodes.list_item)(tx3, dispatch as ((tx: Transaction<Schema<any, any>>) => void))) {
                     dispatch(tx3);
                 }
             })) {
