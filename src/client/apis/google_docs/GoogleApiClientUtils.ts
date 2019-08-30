@@ -94,29 +94,39 @@ export namespace GoogleApiClientUtils {
 
         export namespace Utils {
 
-            export type ExtractResult = { text: string, runs: docs_v1.Schema$TextRun[] };
+            export type ExtractResult = { text: string, paragraphs: DeconstructedParagraph[] };
             export const extractText = (document: docs_v1.Schema$Document, removeNewlines = false): ExtractResult => {
-                let runs = extractTextRuns(document);
-                let text = runs.map(run => run.content).join("");
+                let paragraphs = extractParagraphs(document);
+                let text = paragraphs.map(paragraph => paragraph.runs.map(run => run.content).join("")).join("");
                 text = text.substring(0, text.length - 1);
                 removeNewlines && text.ReplaceAll("\n", "");
-                return { text, runs };
+                return { text, paragraphs };
             };
 
-            const extractTextRuns = (document: docs_v1.Schema$Document, filterEmpty = true) => {
-                const fragments: docs_v1.Schema$TextRun[] = [];
+            export type DeconstructedParagraph = { runs: docs_v1.Schema$TextRun[], bullet: Opt<number> };
+            const extractParagraphs = (document: docs_v1.Schema$Document, filterEmpty = true): DeconstructedParagraph[] => {
+                const fragments: DeconstructedParagraph[] = [];
                 if (document.body && document.body.content) {
                     for (const element of document.body.content) {
-                        if (element.paragraph && element.paragraph.elements) {
-                            for (const inner of element.paragraph.elements) {
-                                if (inner && inner.textRun) {
-                                    fragments.push(inner.textRun);
+                        let runs: docs_v1.Schema$TextRun[] = [];
+                        let bullet: Opt<number>;
+                        if (element.paragraph) {
+                            if (element.paragraph.elements) {
+                                for (const inner of element.paragraph.elements) {
+                                    if (inner && inner.textRun) {
+                                        let run = inner.textRun;
+                                        (run.content || !filterEmpty) && runs.push(inner.textRun);
+                                    }
                                 }
                             }
+                            if (element.paragraph.bullet) {
+                                bullet = element.paragraph.bullet.nestingLevel || 0;
+                            }
                         }
+                        runs.length && fragments.push({ runs, bullet });
                     }
                 }
-                return filterEmpty ? fragments.filter(run => run.content) : fragments;
+                return fragments;
             };
 
             export const endOf = (schema: docs_v1.Schema$Document): number | undefined => {

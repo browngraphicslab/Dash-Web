@@ -97,50 +97,26 @@ export namespace RichTextUtils {
         };
 
         export const Import = async (documentId: GoogleApiClientUtils.Docs.DocumentId): Promise<Opt<GoogleApiClientUtils.Docs.ImportResult>> => {
-            const Docs = GoogleApiClientUtils.Docs;
-            const document = await Docs.retrieve({ documentId });
+            const document = await GoogleApiClientUtils.Docs.retrieve({ documentId });
             if (!document) {
                 return undefined;
             }
 
             const title = document.title!;
-            const { text, runs } = Docs.Utils.extractText(document);
-            const segments = runs[Symbol.iterator]();
-
+            const { text, paragraphs } = GoogleApiClientUtils.Docs.Utils.extractText(document);
             let state = FormattedTextBox.blankState();
-            const schema = state.schema;
-            const nodes: Node[] = [];
 
-            let result = segments.next();
-            while (!result.done) {
-                let run = result.value;
-                if (run.content!.hasNewline()) {
-                    addParagraph(nodes, schema, textNode(schema, run));
-                    result = segments.next();
-                } else {
-                    const inner: Node[] = [];
-                    inner.push(textNode(schema, run));
-                    result = segments.next();
-                    while (!result.done) {
-                        run = result.value;
-                        inner.push(textNode(schema, run));
-                        result = segments.next();
-                        if (run.content!.hasNewline()) {
-                            addParagraph(nodes, schema, inner);
-                            break;
-                        }
-                    }
-                    if (result.done) {
-                        break;
-                    }
-                }
-            }
+            const nodes = paragraphs.map(paragraph => paragraphNode(state.schema, paragraph));
             state = state.apply(state.tr.replaceWith(0, 2, nodes));
+
             return { title, text, state };
         };
 
-        const addParagraph = (list: Node[], schema: any, content?: Node[] | Node) => {
-            list.push(schema.node("paragraph", null, content ? Fragment.from(content) : null));
+        const paragraphNode = (schema: any, content: GoogleApiClientUtils.Docs.Utils.DeconstructedParagraph) => {
+            let children = content.runs.map(run => textNode(schema, run));
+            let complete = children.every(child => child !== undefined);
+            let fragment = complete ? Fragment.from(children) : undefined;
+            return schema.node("paragraph", null, fragment);
         };
 
         const textNode = (schema: any, run: docs_v1.Schema$TextRun) => {
