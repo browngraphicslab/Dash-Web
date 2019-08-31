@@ -713,24 +713,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     onPointerUp = (e: React.PointerEvent): void => {
-        let view = this._editorView!;
-        const pos = view.posAtCoords({ left: e.clientX, top: e.clientY });
-        const rpos = pos && view.state.doc.resolve(pos.pos);
-        let noselection = view.state.selection.$from === view.state.selection.$to;
-        let set = false;
-        if (pos && rpos) {
-            let nbef = findStartOfMark(rpos, view, findOtherUserMark);
-            let naft = findEndOfMark(rpos, view, findOtherUserMark);
-            const spos = pos.pos - nbef;
-            const epos = pos.pos + naft;
-            let child = rpos.nodeBefore || rpos.nodeAfter;
-            let mark = child && findOtherUserMark(child.marks);
-            if (mark && child && (nbef || naft) && (!mark.attrs.opened || noselection)) {
-                SelectionSizeTooltip.SetState(this, mark.attrs.opened, spos, epos, mark);
-                set = true;
-            }
-        }
-        !set && SelectionSizeTooltip.Hide();
+        SelectionSizeTooltip.textBox = this;
         if (e.buttons === 1 && this.props.isSelected() && !e.altKey) {
             e.stopPropagation();
         }
