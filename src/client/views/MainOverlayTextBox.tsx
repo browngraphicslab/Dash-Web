@@ -48,11 +48,6 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
         MainOverlayTextBox.Instance = this;
         reaction(() => FormattedTextBox.InputBoxOverlay,
             (box?: FormattedTextBox) => {
-                const tb = this._textBox;
-                const container = tb && tb.props.ContainingCollectionView;
-                if (tb && container) {
-                    tb.rebuildEditor();// this forces the edited text box to completely recreate itself to avoid get out of sync -- e.g., bullet labels are only computed when the dom elements are created
-                }
                 this._textBox = box;
                 if (box) {
                     this.ChromeHeight = box.props.ChromeHeight;

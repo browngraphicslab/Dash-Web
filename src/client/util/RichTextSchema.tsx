@@ -573,6 +573,14 @@ export class ImageResizeView {
     }
 }
 
+export class OrderedListView {
+    constructor(node: any, view: any, getPos: any) { }
+
+    update(node: any) {
+        return false; // if attr's of an ordered_list (e.g., bulletStyle) change, return false forces the dom node to be recreated which is necessary for the bullet labels to update
+    }
+}
+
 export class SummarizedView {
     // TODO: highlight text that is summarized. to find end of region, walk along mark
     _collapsed: HTMLElement;

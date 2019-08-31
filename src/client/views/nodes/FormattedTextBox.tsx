@@ -22,7 +22,7 @@ import { DocumentManager } from '../../util/DocumentManager';
 import { DragManager } from "../../util/DragManager";
 import buildKeymap from "../../util/ProsemirrorExampleTransfer";
 import { inpRules } from "../../util/RichTextRules";
-import { ImageResizeView, schema, SummarizedView } from "../../util/RichTextSchema";
+import { ImageResizeView, schema, SummarizedView, OrderedListView } from "../../util/RichTextSchema";
 import { SelectionManager } from "../../util/SelectionManager";
 import { TooltipLinkingMenu } from "../../util/TooltipLinkingMenu";
 import { TooltipTextMenu } from "../../util/TooltipTextMenu";
@@ -615,6 +615,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 nodeViews: {
                     image(node, view, getPos) { return new ImageResizeView(node, view, getPos); },
                     star(node, view, getPos) { return new SummarizedView(node, view, getPos); },
+                    ordered_list(node, view, getPos) { return new OrderedListView(node, view, getPos); }
+
                 },
                 clipboardTextSerializer: this.clipboardTextSerializer,
                 handlePaste: this.handlePaste,
@@ -807,10 +809,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         e.stopPropagation();
         if (e.key === "Tab" || e.key === "Enter") { // bullets typically change "levels" when tab or enter is used.  sometimes backspcae, so maybe that should be added.
             e.preventDefault();
-            setTimeout(() => { // force re-rendering of bullet numbers that may have had their bullet labels change.  (Our prosemirrior code re-"marks" the changed bullets, but nothing causes the Dom to be re-rendered which is where the nubering takes place)
-                SelectionManager.DeselectAll();
-                SelectionManager.SelectDoc(DocumentManager.Instance.getDocumentView(this.props.Document, this.props.ContainingCollectionView)!, false);
-            }, 0);
         }
         function timenow() {
             var now = new Date();
