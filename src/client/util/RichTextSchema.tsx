@@ -181,8 +181,8 @@ export const nodes: { [index: string]: NodeSpec } = {
         },
         toDOM(node: Node<any>) {
             const bs = node.attrs.bulletStyle;
-            const decMap = bs === 1 ? "decimal" : bs === 2 ? "decimal2" : bs === 3 ? "decimal3" : bs === 4 ? "decimal4" : "";
-            const multiMap = bs === 1 ? "decimal" : bs === 2 ? "upper-alpha" : bs === 3 ? "lower-roman" : bs === 4 ? "lower-alpha" : "";
+            const decMap = bs ? "decimal" + bs : "";
+            const multiMap = bs === 1 ? "decimal1" : bs === 2 ? "upper-alpha" : bs === 3 ? "lower-roman" : bs === 4 ? "lower-alpha" : "";
             let map = node.attrs.mapStyle === "decimal" ? decMap : multiMap;
             for (let i = 0; i < node.childCount; i++) node.child(i).attrs.className = map;
             return ['ol', { class: `${map}-ol`, style: `list-style: none;` }, 0];

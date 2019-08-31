@@ -152,8 +152,8 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
     bind("Enter", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
         var marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
         if (!splitListItem(schema.nodes.list_item)(state, (tx3: Transaction) => {
-            marks && tx3.ensureMarks(marks);
-            marks && tx3.setStoredMarks(marks);
+            // marks && tx3.ensureMarks(marks);
+            // marks && tx3.setStoredMarks(marks);
             dispatch(tx3);
         })) {
             if (!splitBlockKeepMarks(state, (tx3: Transaction) => {
