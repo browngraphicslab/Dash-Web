@@ -123,7 +123,7 @@ export namespace GoogleApiClientUtils {
                                 bullet = element.paragraph.bullet.nestingLevel || 0;
                             }
                         }
-                        runs.length && fragments.push({ runs, bullet });
+                        (runs.length || !filterEmpty) && fragments.push({ runs, bullet });
                     }
                 }
                 return fragments;

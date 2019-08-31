@@ -1,4 +1,4 @@
-import { EditorState } from "prosemirror-state";
+import { EditorState, Transaction, TextSelection } from "prosemirror-state";
 import { Node, Fragment, Mark } from "prosemirror-model";
 import { RichTextField } from "./RichTextField";
 import { docs_v1 } from "googleapis";
@@ -6,6 +6,8 @@ import { GoogleApiClientUtils } from "../client/apis/google_docs/GoogleApiClient
 import { FormattedTextBox } from "../client/views/nodes/FormattedTextBox";
 import { Opt } from "./Doc";
 import * as Color from "color";
+import { sinkListItem } from "prosemirror-schema-list";
+import { number } from "prop-types";
 
 export namespace RichTextUtils {
 
@@ -96,6 +98,8 @@ export namespace RichTextUtils {
             };
         };
 
+        type BulletPosition = { value: number, sinks: number };
+
         export const Import = async (documentId: GoogleApiClientUtils.Docs.DocumentId): Promise<Opt<GoogleApiClientUtils.Docs.ImportResult>> => {
             const document = await GoogleApiClientUtils.Docs.retrieve({ documentId });
             if (!document) {
@@ -105,17 +109,85 @@ export namespace RichTextUtils {
             const title = document.title!;
             const { text, paragraphs } = GoogleApiClientUtils.Docs.Utils.extractText(document);
             let state = FormattedTextBox.blankState();
+            let structured = parseLists(paragraphs);
 
-            const nodes = paragraphs.map(paragraph => paragraphNode(state.schema, paragraph));
+            let position = 3;
+            let lists: ListGroup[] = [];
+            const indentMap = new Map<ListGroup, BulletPosition[]>();
+            let globalOffset = 0;
+            const nodes = structured.map(element => {
+                if (Array.isArray(element)) {
+                    lists.push(element);
+                    let positions: BulletPosition[] = [];
+                    let items = element.map(paragraph => {
+                        let item = listItem(state.schema, paragraph.runs);
+                        let sinks = paragraph.bullet!;
+                        positions.push({
+                            value: position + globalOffset,
+                            sinks
+                        });
+                        position += item.nodeSize;
+                        globalOffset += 2 * sinks;
+                        return item;
+                    });
+                    indentMap.set(element, positions);
+                    return list(state.schema, items);
+                } else {
+                    let paragraph = paragraphNode(state.schema, element.runs);
+                    position += paragraph.nodeSize;
+                    return paragraph;
+                }
+            });
             state = state.apply(state.tr.replaceWith(0, 2, nodes));
+
+            let sink = sinkListItem(state.schema.nodes.list_item);
+            let dispatcher = (tr: Transaction) => state = state.apply(tr);
+            for (let list of lists) {
+                for (let pos of indentMap.get(list)!) {
+                    let resolved = state.doc.resolve(pos.value);
+                    state = state.apply(state.tr.setSelection(new TextSelection(resolved)));
+                    for (let i = 0; i < pos.sinks; i++) {
+                        sink(state, dispatcher);
+                    }
+                }
+            }
 
             return { title, text, state };
         };
 
-        const paragraphNode = (schema: any, content: GoogleApiClientUtils.Docs.Utils.DeconstructedParagraph) => {
-            let children = content.runs.map(run => textNode(schema, run));
-            let complete = children.every(child => child !== undefined);
-            let fragment = complete ? Fragment.from(children) : undefined;
+        type Paragraph = GoogleApiClientUtils.Docs.Utils.DeconstructedParagraph;
+        type ListGroup = Paragraph[];
+        type PreparedParagraphs = (ListGroup | Paragraph)[];
+
+        const parseLists = (paragraphs: ListGroup) => {
+            let groups: PreparedParagraphs = [];
+            let group: ListGroup = [];
+            for (let paragraph of paragraphs) {
+                if (paragraph.bullet !== undefined) {
+                    group.push(paragraph);
+                } else {
+                    if (group.length) {
+                        groups.push(group);
+                        group = [];
+                    }
+                    groups.push(paragraph);
+                }
+            }
+            group.length && groups.push(group);
+            return groups;
+        };
+
+        const listItem = (schema: any, runs: docs_v1.Schema$TextRun[]): Node => {
+            return schema.node("list_item", null, paragraphNode(schema, runs));
+        };
+
+        const list = (schema: any, items: Node[]): Node => {
+            return schema.node("bullet_list", null, items);
+        };
+
+        const paragraphNode = (schema: any, runs: docs_v1.Schema$TextRun[]): Node => {
+            let children = runs.map(run => textNode(schema, run)).filter(child => child !== undefined);
+            let fragment = children.length ? Fragment.from(children) : undefined;
             return schema.node("paragraph", null, fragment);
         };
 
