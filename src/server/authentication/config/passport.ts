@@ -5,7 +5,6 @@ import { default as User } from '../models/user_model';
 import { Request, Response, NextFunction } from "express";
 import { RouteStore } from '../../RouteStore';
 import * as GoogleOAuth from "passport-google-oauth20";
-const config = require("../../credentials/google_photos_credentials");
 
 const LocalStrategy = passportLocal.Strategy;
 const GoogleOAuthStrategy = GoogleOAuth.Strategy;
@@ -33,18 +32,6 @@ passport.use(new LocalStrategy({ usernameField: 'email', passReqToCallback: true
         });
     });
 }));
-
-
-passport.use(new GoogleOAuthStrategy(
-    {
-        clientID: config.oAuthClientID,
-        clientSecret: config.oAuthclientSecret,
-        callbackURL: config.oAuthCallbackUrl,
-        // Set the correct profile URL that does not require any additional APIs
-        userProfileURL: 'https://www.googleapis.com/oauth2/v3/userinfo'
-    },
-    (token, refreshToken, profile, done) => done(undefined, { profile, token })
-));
 
 export let isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
     if (req.isAuthenticated()) {

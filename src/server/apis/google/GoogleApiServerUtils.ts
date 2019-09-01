@@ -1,7 +1,7 @@
 import { google, docs_v1, slides_v1 } from "googleapis";
 import { createInterface } from "readline";
 import { readFile, writeFile } from "fs";
-import { OAuth2Client } from "google-auth-library";
+import { OAuth2Client, Credentials } from "google-auth-library";
 import { Opt } from "../../../new_fields/Doc";
 import { GlobalOptions } from "googleapis-common";
 import { GaxiosResponse } from "gaxios";
@@ -48,14 +48,14 @@ export namespace GoogleApiServerUtils {
 
     export const GetEndpoint = async (sector: string, paths: CredentialPaths) => {
         return new Promise<Opt<Endpoint>>((resolve, reject) => {
-            readFile(paths.credentials, (err, credentials) => {
+            readFile(paths.credentials, async (err, credentials) => {
                 if (err) {
                     reject(err);
                     return console.log('Error loading client secret file:', err);
                 }
-                return authorize(parseBuffer(credentials), paths.token).then(async auth => {
+                authorize(parseBuffer(credentials), paths.token).then(async result => {
                     let routed: Opt<Endpoint>;
-                    let parameters: EndpointParameters = { auth, version: "v1" };
+                    let parameters: EndpointParameters = { auth: result.client, version: "v1" };
                     switch (sector) {
                         case Service.Documents:
                             routed = google.docs(parameters).documents;
@@ -64,7 +64,7 @@ export namespace GoogleApiServerUtils {
                             routed = google.slides(parameters).presentations;
                             break;
                         case Service.Photos:
-                            const photos = new Photos(auth);
+                            const photos = new Photos(result.token.access_token);
                             let response = await photos.albums.list();
                             console.log("WE GOT SOMETHING!", response);
                     }
@@ -74,24 +74,25 @@ export namespace GoogleApiServerUtils {
         });
     };
 
-
+    type TokenResult = { token: Credentials, client: OAuth2Client };
     /**
      * Create an OAuth2 client with the given credentials, and returns the promise resolving to the authenticated client
      * @param {Object} credentials The authorization client credentials.
      */
-    export function authorize(credentials: any, token_path: string): Promise<OAuth2Client> {
+    export function authorize(credentials: any, token_path: string): Promise<TokenResult> {
         const { client_secret, client_id, redirect_uris } = credentials.installed;
         const oAuth2Client = new google.auth.OAuth2(
             client_id, client_secret, redirect_uris[0]);
 
-        return new Promise<OAuth2Client>((resolve, reject) => {
+        return new Promise<TokenResult>((resolve, reject) => {
             readFile(token_path, (err, token) => {
                 // Check if we have previously stored a token.
                 if (err) {
                     return getNewToken(oAuth2Client, token_path).then(resolve, reject);
                 }
-                oAuth2Client.setCredentials(parseBuffer(token));
-                resolve(oAuth2Client);
+                let parsed = parseBuffer(token);
+                oAuth2Client.setCredentials(parsed);
+                resolve({ token: parsed, client: oAuth2Client });
             });
         });
     }
@@ -103,7 +104,7 @@ export namespace GoogleApiServerUtils {
      * @param {getEventsCallback} callback The callback for the authorized client.
      */
     function getNewToken(oAuth2Client: OAuth2Client, token_path: string) {
-        return new Promise<OAuth2Client>((resolve, reject) => {
+        return new Promise<TokenResult>((resolve, reject) => {
             const authUrl = oAuth2Client.generateAuthUrl({
                 access_type: 'offline',
                 scope: SCOPES.map(relative => prefix + relative),
@@ -129,7 +130,7 @@ export namespace GoogleApiServerUtils {
                         }
                         console.log('Token stored to', token_path);
                     });
-                    resolve(oAuth2Client);
+                    resolve({ token, client: oAuth2Client });
                 });
             });
         });
