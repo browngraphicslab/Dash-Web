@@ -114,7 +114,6 @@ export class Thumbnail extends React.Component<NodeProps> {
             this.classref.current!.classList.add("unselection");
         }
         if (e.altKey) {
-            console.log('hi');
             this.props.createportal();
 
         }
@@ -134,7 +133,7 @@ export class Thumbnail extends React.Component<NodeProps> {
     render() {
         this.getCaption();
         return (
-            <div onClick={(e) => this.toggleSelection(e)} style={{ position: "absolute", height:"100%", left: this.props.leftval, top: this.props.top, width: "50px", height: "50px" }}>
+            <div onClick={(e) => this.toggleSelection(e)} style={{ position: "absolute", left: this.props.leftval, top: this.props.top, width: "50px", height: "50px" }}>
                 <div className="unselected" style={{ position: "absolute", width: "50px", height: "50px", pointerEvents: "all" }}>
                     <FontAwesomeIcon icon={this.checkData(this.props.doc)} size="sm" style={{ position: "absolute" }} />
                     <div className="window" style={{ pointerEvents: "none", zIndex: 10, width: "47px", height: "47px", position: "absolute" }}>
@@ -163,11 +162,11 @@ export class Thumbnail extends React.Component<NodeProps> {
                             oneLine={true}
                         />
                     </div>
-                    <div style={{  height: "100% ", alignItems: "center", justifyItems: "center", display: "flex",position: "fixed", width: "1px", zIndex:-400, backgroundColor: "#9c9396" }}>
+                    <div style={{ height: "100% ", alignItems: "center", justifyItems: "center", display: "flex", position: "fixed", width: "1px", zIndex: -400, backgroundColor: "#9c9396" }}>
                     </div>
-                    <div style={{  height: "100% ", alignItems: "center", justifyItems: "center", display: "flex", top:"-" + String(this.props.top), position: "fixed", width: "1px", zIndex:-400, backgroundColor: "#9c9396" }}>
+                    <div style={{ height: "100% ", alignItems: "center", justifyItems: "center", display: "flex", top: "-" + String(this.props.top), position: "fixed", width: "1px", zIndex: -400, backgroundColor: "#9c9396" }}>
                     </div>
-                    <div style={{ paddingLeft: "3px", width: "50px", overflow:"hidden" }}>
+                    <div style={{ paddingLeft: "3px", width: "50px", overflow: "hidden" }}>
                         {this.props.sortstate}:{Math.round(NumCast(this.props.doc[this.props.sortstate]))}</div>
                 </div>
             </div >

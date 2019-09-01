@@ -1,6 +1,6 @@
 import React = require("react");
 import { observer } from "mobx-react";
-import { action, computed, observable, untracked, runInAction, IReactionDisposer, reaction, } from "mobx";
+import { action, computed, observable, untracked, runInAction, IReactionDisposer, reaction, isObservableArray, } from "mobx";
 import { Doc, DocListCast, Field, FieldResult, DocListCastAsync, Opt, HeightSym, WidthSym, } from "../../../new_fields/Doc";
 import { NumCast, Cast, StrCast, BoolCast } from "../../../new_fields/Types";
 import { emptyFunction, Utils, returnOne, returnEmptyString } from "../../../Utils";
@@ -504,6 +504,45 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             counter++;
         }
     }
+    @action
+    createRows() {
+        //Creates the array of tick marks.
+        // let counter = 0;
+        // this.ticks = [];
+        // for (let i = 0; i < this.barwidth; i += this.barwidth / 1000) {
+        //     let leftval = ((i * (this.barwidth / (this.barwidth - this.rightbound - this.leftbound)) - (this.leftbound * (this.barwidth) / (this.barwidth - this.rightbound - this.leftbound))) + "px");
+        //     let tickref = React.createRef<HTMLDivElement>();
+        //     this.tickrefs.push(tickref);
+        //     if (counter % 100 === 0) {
+        //         let val = Math.round(counter * this._range * 1.1 / 1000 + this._values[0] - this._range * 0.05);
+        //         this.ticks.push(<div className="max" ref={tickref} style={{
+        //             position: "absolute", top: "0%", left: leftval, zIndex: -100, writingMode: "vertical-rl",
+        //             textOrientation: "mixed",
+        //         }
+        //         }> <div style={{ paddingTop: "10px" }}>{val}</div></div >);
+        //     }[
+
+        //     else if (counter % 50 === 0) { this.ticks.push(<div className="max2" ref={tickref} style={{ position: "absolute", top: "0%", left: leftval, zIndex: -100 }} />); }
+        //     else if (counter % 10 === 0) { this.ticks.push(<div className="active" ref={tickref} style={{ position: "absolute", top: "0%", left: leftval, zIndex: -100 }} />); }
+        //     counter++;
+        // }
+        console.log(document.body.clientHeight);
+        for (let i = this.rowscale; i < this.windowheight; i
+            += this.rowscale) {
+            this.rows.push(<div style={{ position: "absolute", top: i, border: "1px black solid", zIndex: -100 }} />);
+
+        }
+    }
+    @action
+    rowscaleset = (number: number) => { this.rowscale += number; this.createRows(); }
+
+    private rows: JSX.Element[] = [];
+
+    @observable
+    private windowheight: number = 700;
+
+    @observable
+    private rowscale: number = 50;
 
     @observable private selectedMarker: MarkerUnit | undefined;
     @observable private selectedColor: string = "ffff80";
@@ -628,7 +667,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     makeportal() {
         let portal = Docs.Create.FreeformDocument([], { width: 100, height: 100, title: this.props.Document.title + ".portal" });
-        //DocUtils.MakeLink(this.props.Document, portal, undefined, this.props.Document.title + ".portal");
+        DocUtils.MakeLink(this.props.Document, portal, undefined, this.props.Document.title + ".portal");
         //this.makeBtnClicked();
         this.props.addDocTab && this.props.addDocTab(portal, portal, "onBottom");
     }
@@ -637,6 +676,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     render() {
         this.updateWidth();
+        this.createRows();
         this.createticks();
         this.filtermenu();
         this.thumbnailloop();
@@ -669,13 +709,15 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     barwidthSet={this.barwidthSet}
                     screenref={this.screenref}
                     markerrender={this.markerrender}
-                    setsortstate={this.setsortsate}>
+                    setsortstate={this.setsortsate}
+                    rowscaleset={this.rowscaleset}>
                 </BottomUI>
                 <Measure onResize={() => this.updateWidth()}>
                     {({ measureRef }) => <div ref={measureRef}> </div>}
                 </Measure>
 
                 <div style={{ top: "125px", position: "absolute", bottom: "25%", width: "100%", }}>
+                    {this.rows}
                     {this.thumbnails.map(doc =>
                         <Thumbnail
                             scrollTop={document.body.scrollTop}

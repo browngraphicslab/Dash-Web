@@ -181,6 +181,7 @@ export class BottomUI extends React.Component<BottomUIProps> {
         document.removeEventListener("pointermove", this.onPointerMove_LeftBound);
         document.removeEventListener("pointermove", this.onPointerMove_RightBound);
         document.removeEventListener("pointermove", this.onPointerMove_OnBar);
+        document.removeEventListener("pointermove", this.onPointerMove_AdjustScale);
         document.body.style.cursor = "default";
     }
 
@@ -228,6 +229,23 @@ export class BottomUI extends React.Component<BottomUIProps> {
         e.stopPropagation();
         e.preventDefault();
     }
+
+    @action
+    onPointerDown_AdjustScale = (e: React.PointerEvent): void => {
+        document.addEventListener("pointermove", this.onPointerMove_AdjustScale);
+        e.stopPropagation();
+        e.preventDefault();
+    }
+
+
+    @action
+    onPointerMove_AdjustScale = (e: PointerEvent): void => {
+        e.stopPropagation();
+        e.preventDefault();
+        this.props.rowscaleset(e.movementX);
+        document.addEventListener("pointerup", this.onPointerUp);
+    }
+
 
     @action
     onPointerDown_OffBar = (e: React.PointerEvent): void => {
@@ -279,6 +297,7 @@ export class BottomUI extends React.Component<BottomUIProps> {
                         </div>
 
                     </form>
+                    <div onPointerDown={this.onPointerDown_AdjustScale} style={{ backgroundColor: "black", height: "50px", cursor: "ew-resize", position: "absolute", zIndex: 100, left: this.props.leftbound, width: "50px" }}></div>
                     <div className="reset"> <button onClick={() => runInAction(() => { this.props.leftboundSet(0); this.props.rightboundSet(0); (this.searchref.current ? this.searchref.current.reset() : null); })}>Reset Range</button></div>
                     <div ref={this.colorrefYellow} onClick={(e) => this.toggleColor(e, "#ffff80")} className="color1" style={{ position: "relative", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#ffff80", border: "2px solid black" }}></div>
                     <div ref={this.colorrefGreen} onClick={(e) => this.toggleColor(e, "#bfff80")} className="color2" style={{ position: "relative", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#bfff80", border: "2px solid #9c9396" }}></div>
@@ -313,6 +332,7 @@ export interface BottomUIProps {
     rightbound: number;
     leftboundSet: (number: number) => void;
     rightboundSet: (number: number) => void;
+    rowscaleset: (number: number) => void;
     _range: number;
     barwidth: number;
     minvalue: number;

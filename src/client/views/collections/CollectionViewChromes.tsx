@@ -228,6 +228,12 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                     CollectionView={this.props.CollectionView}
                     type={this.props.type}
                 />);
+            case CollectionViewType.Timeline: return (
+                <CollectionTimelineViewChrome
+                    key="collchrome"
+                    CollectionView={this.props.CollectionView}
+                    type={this.props.type}
+                />);
             default:
                 return null;
         }
@@ -330,6 +336,8 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="4">Tree View</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="5">Stacking View</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="6">Masonry View</option>
+                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="7">Timeline View</option>
+
                         </select>
                         <div className="collectionViewBaseChrome-viewSpecs" style={{ display: collapsed ? "none" : "grid" }}>
                             <input className="collectionViewBaseChrome-viewSpecsInput"
@@ -666,6 +674,73 @@ export class CollectionTreeViewChrome extends React.Component<CollectionViewChro
                     </div>
                 </div>
             </div>
+        );
+    }
+}
+
+
+@observer
+export class CollectionTimelineViewChrome extends React.Component<CollectionViewChromeProps> {
+    // private _textwrapAllRows: boolean = Cast(this.props.CollectionView.props.Document.textwrappedSchemaRows, listSpec("string"), []).length > 0;
+
+    @undoBatch
+    togglePreview = () => {
+        let dividerWidth = 4;
+        let borderWidth = Number(COLLECTION_BORDER_WIDTH);
+        let panelWidth = this.props.CollectionView.props.PanelWidth();
+        let previewWidth = NumCast(this.props.CollectionView.props.Document.schemaPreviewWidth);
+        let tableWidth = panelWidth - 2 * borderWidth - dividerWidth - previewWidth;
+        this.props.CollectionView.props.Document.schemaPreviewWidth = previewWidth === 0 ? Math.min(tableWidth / 3, 200) : 0;
+    }
+
+    @undoBatch
+    @action
+    toggleTextwrap = async () => {
+        let textwrappedRows = Cast(this.props.CollectionView.props.Document.textwrappedSchemaRows, listSpec("string"), []);
+        if (textwrappedRows.length) {
+            this.props.CollectionView.props.Document.textwrappedSchemaRows = new List<string>([]);
+        } else {
+            let docs: Doc | Doc[] | Promise<Doc> | Promise<Doc[]> | (() => DocLike)
+                = () => DocListCast(this.props.CollectionView.props.Document[this.props.CollectionView.props.fieldExt ? this.props.CollectionView.props.fieldExt : this.props.CollectionView.props.fieldKey]);
+            if (typeof docs === "function") {
+                docs = docs();
+            }
+            docs = await docs;
+            if (docs instanceof Doc) {
+                let allRows = [docs[Id]];
+                this.props.CollectionView.props.Document.textwrappedSchemaRows = new List<string>(allRows);
+            } else {
+                let allRows = docs.map(doc => doc[Id]);
+                this.props.CollectionView.props.Document.textwrappedSchemaRows = new List<string>(allRows);
+            }
+        }
+    }
+
+
+    render() {
+        let previewWidth = NumCast(this.props.CollectionView.props.Document.schemaPreviewWidth);
+        let textWrapped = Cast(this.props.CollectionView.props.Document.textwrappedSchemaRows, listSpec("string"), []).length > 0;
+
+        return (
+            <div className="collectionSchemaViewChrome-cont">
+                <div className="collectionSchemaViewChrome-toggle">
+                    <div className="collectionSchemaViewChrome-label">Wrap Text: </div>
+                    <div className="collectionSchemaViewChrome-toggler" onClick={this.toggleTextwrap}>
+                        <div className={"collectionSchemaViewChrome-togglerButton" + (textWrapped ? " on" : " off")}>
+                            {textWrapped ? "on" : "off"}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="collectionSchemaViewChrome-toggle">
+                    <div className="collectionSchemaViewChrome-label">Show Preview: </div>
+                    <div className="collectionSchemaViewChrome-toggler" onClick={this.togglePreview}>
+                        <div className={"collectionSchemaViewChrome-togglerButton" + (previewWidth !== 0 ? " on" : " off")}>
+                            {previewWidth !== 0 ? "on" : "off"}
+                        </div>
+                    </div>
+                </div>
+            </div >
         );
     }
 }
