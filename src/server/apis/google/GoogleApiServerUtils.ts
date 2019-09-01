@@ -65,8 +65,7 @@ export namespace GoogleApiServerUtils {
                             break;
                         case Service.Photos:
                             const photos = new Photos(result.token.access_token);
-                            let response = await photos.albums.list();
-                            console.log("WE GOT SOMETHING!", response);
+                            console.log(await photos.albums.list());
                     }
                     resolve(routed);
                 });
