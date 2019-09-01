@@ -5,6 +5,7 @@ import { OAuth2Client } from "google-auth-library";
 import { Opt } from "../../../new_fields/Doc";
 import { GlobalOptions } from "googleapis-common";
 import { GaxiosResponse } from "gaxios";
+import Photos = require("googlephotos");
 
 /**
  * Server side authentication for Google Api queries.
@@ -20,15 +21,17 @@ export namespace GoogleApiServerUtils {
         'presentations.readonly',
         'drive',
         'drive.file',
+        'photoslibrary',
+        'photoslibrary.sharing'
     ];
 
     export const parseBuffer = (data: Buffer) => JSON.parse(data.toString());
 
     export enum Service {
         Documents = "Documents",
-        Slides = "Slides"
+        Slides = "Slides",
+        Photos = "Photos"
     }
-
 
     export interface CredentialPaths {
         credentials: string;
@@ -50,7 +53,7 @@ export namespace GoogleApiServerUtils {
                     reject(err);
                     return console.log('Error loading client secret file:', err);
                 }
-                return authorize(parseBuffer(credentials), paths.token).then(auth => {
+                return authorize(parseBuffer(credentials), paths.token).then(async auth => {
                     let routed: Opt<Endpoint>;
                     let parameters: EndpointParameters = { auth, version: "v1" };
                     switch (sector) {
@@ -60,6 +63,10 @@ export namespace GoogleApiServerUtils {
                         case Service.Slides:
                             routed = google.slides(parameters).presentations;
                             break;
+                        case Service.Photos:
+                            const photos = new Photos(auth);
+                            let response = await photos.albums.list();
+                            console.log("WE GOT SOMETHING!", response);
                     }
                     resolve(routed);
                 });

@@ -15,7 +15,7 @@ import { listSpec } from '../../new_fields/Schema';
 import { BoolCast, Cast, FieldValue, StrCast } from '../../new_fields/Types';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { RouteStore } from '../../server/RouteStore';
-import { emptyFunction, returnOne, returnTrue, Utils, returnEmptyString } from '../../Utils';
+import { emptyFunction, returnOne, returnTrue, Utils, returnEmptyString, PostToServer } from '../../Utils';
 import { DocServer } from '../DocServer';
 import { Docs } from '../documents/Documents';
 import { ClientUtils } from '../util/ClientUtils';
@@ -127,6 +127,8 @@ export class MainView extends React.Component {
         firstScriptTag.parentNode!.insertBefore(tag, firstScriptTag);
         window.removeEventListener("keydown", KeyManager.Instance.handle);
         window.addEventListener("keydown", KeyManager.Instance.handle);
+
+        PostToServer('/googleDocs/Photos/Test', {});
 
         reaction(() => {
             let workspaces = CurrentUserUtils.UserDocument.workspaces;

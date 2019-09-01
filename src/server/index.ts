@@ -29,6 +29,7 @@ import { RouteStore } from './RouteStore';
 import v4 = require('uuid/v4');
 const app = express();
 const config = require('../../webpack.config');
+const OAuthConfig = require('../server/credentials/google_photos_credentials');
 import { createCanvas, loadImage, Canvas } from "canvas";
 const compiler = webpack(config);
 const port = 1050; // default port to listen
@@ -46,6 +47,7 @@ import { GaxiosResponse } from 'gaxios';
 import { Opt } from '../new_fields/Doc';
 import { docs_v1 } from 'googleapis';
 import { Endpoint } from 'googleapis-common';
+import { PhotosLibraryQuery } from './apis/google/GooglePhotosUtils';
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const probe = require("probe-image-size");
@@ -195,6 +197,31 @@ app.get("/version", (req, res) => {
 const solrURL = "http://localhost:8983/solr/#/dash";
 
 // GETTERS
+
+// app.get('/auth/google', passport.authenticate('google', {
+//     scope: OAuthConfig.scopes,
+//     failureFlash: true,  // Display errors to the user.
+//     session: true,
+// }));
+
+// app.get("/failed", (req, res) => res.send("DIDN'T WORK!"));
+
+// app.get(
+//     '/auth/google/callback',
+//     passport.authenticate(
+//         'google', { failureRedirect: '/failed', failureFlash: true, session: true }),
+//     (req, res) => {
+//         // User has logged in.
+//         console.log('OAUTH: user has logged in 1.');
+//         PhotosLibraryQuery(req.user.token, {});
+//         console.log('OAUTH: user has logged in 2.');
+//         res.redirect('/');
+//     });
+
+// app.get('/GooglePhotos', (req, res) => {
+//     console.log("WORKING ON GOOGLE PHOTOS");
+//     PhotosLibraryQuery(req.user.token, {});
+// });
 
 app.get("/search", async (req, res) => {
     const solrQuery: any = {};
