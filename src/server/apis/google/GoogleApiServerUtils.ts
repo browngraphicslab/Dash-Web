@@ -5,8 +5,9 @@ import { OAuth2Client, Credentials } from "google-auth-library";
 import { Opt } from "../../../new_fields/Doc";
 import { GlobalOptions } from "googleapis-common";
 import { GaxiosResponse } from "gaxios";
-import { GooglePhotos, CreateAlbum, Action } from "./GooglePhotosUtils";
+import { GooglePhotos } from "./GooglePhotosUtils";
 import { Utils } from "../../../Utils";
+import { Album } from "./Typings/albums";
 
 /**
  * Server side authentication for Google Api queries.
@@ -67,8 +68,8 @@ export namespace GoogleApiServerUtils {
                         case Service.Photos:
                             let token = result.token.access_token;
                             if (token) {
-                                let create: CreateAlbum = {
-                                    action: Action.Create,
+                                let create: Album.Create = {
+                                    action: Album.Action.Create,
                                     body: {
                                         album: {
                                             title: "Sam's Bulk Export",
