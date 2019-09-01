@@ -1,5 +1,5 @@
 import request = require('request-promise');
-import { Album } from './Typings/albums';
+import { Album } from './typings/albums';
 
 const apiEndpoint = "https://photoslibrary.googleapis.com";
 

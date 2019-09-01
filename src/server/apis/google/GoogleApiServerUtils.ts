@@ -7,7 +7,7 @@ import { GlobalOptions } from "googleapis-common";
 import { GaxiosResponse } from "gaxios";
 import { GooglePhotos } from "./GooglePhotosUtils";
 import { Utils } from "../../../Utils";
-import { Album } from "./Typings/albums";
+import { Album } from "./typings/albums";
 
 /**
  * Server side authentication for Google Api queries.
