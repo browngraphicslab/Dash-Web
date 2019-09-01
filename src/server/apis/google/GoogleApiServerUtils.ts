@@ -5,7 +5,8 @@ import { OAuth2Client, Credentials } from "google-auth-library";
 import { Opt } from "../../../new_fields/Doc";
 import { GlobalOptions } from "googleapis-common";
 import { GaxiosResponse } from "gaxios";
-import Photos = require("googlephotos");
+import { GooglePhotos, CreateAlbum, Action } from "./GooglePhotosUtils";
+import { Utils } from "../../../Utils";
 
 /**
  * Server side authentication for Google Api queries.
@@ -64,8 +65,18 @@ export namespace GoogleApiServerUtils {
                             routed = google.slides(parameters).presentations;
                             break;
                         case Service.Photos:
-                            const photos = new Photos(result.token.access_token);
-                            console.log(await photos.albums.list());
+                            let token = result.token.access_token;
+                            if (token) {
+                                let create: CreateAlbum = {
+                                    action: Action.Create,
+                                    body: {
+                                        album: {
+                                            title: "Sam's Bulk Export",
+                                        }
+                                    }
+                                };
+                                console.log(await GooglePhotos.ExecuteQuery(token, create));
+                            }
                     }
                     resolve(routed);
                 });

@@ -4,10 +4,8 @@ import _ from "lodash";
 import { default as User } from '../models/user_model';
 import { Request, Response, NextFunction } from "express";
 import { RouteStore } from '../../RouteStore';
-import * as GoogleOAuth from "passport-google-oauth20";
 
 const LocalStrategy = passportLocal.Strategy;
-const GoogleOAuthStrategy = GoogleOAuth.Strategy;
 
 passport.serializeUser<any, any>((user, done) => {
     done(undefined, user.id);
