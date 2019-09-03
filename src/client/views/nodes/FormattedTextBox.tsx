@@ -22,7 +22,7 @@ import { DocumentManager } from '../../util/DocumentManager';
 import { DragManager } from "../../util/DragManager";
 import buildKeymap from "../../util/ProsemirrorExampleTransfer";
 import { inpRules } from "../../util/RichTextRules";
-import { ImageResizeView, schema, SummarizedView, OrderedListView } from "../../util/RichTextSchema";
+import { ImageResizeView, schema, SummarizedView, OrderedListView, FootnoteView } from "../../util/RichTextSchema";
 import { SelectionManager } from "../../util/SelectionManager";
 import { TooltipLinkingMenu } from "../../util/TooltipLinkingMenu";
 import { TooltipTextMenu } from "../../util/TooltipTextMenu";
@@ -168,10 +168,33 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
+    // this should be internal to prosemirror, but is needed
+    // here to make sure that footnote view nodes in the overlay editor
+    // get removed when they're not selected.
+    syncNodeSelection(view: any, sel: any) {
+        if (sel instanceof NodeSelection) {
+            var desc = view.docView.descAt(sel.from);
+            if (desc != view.lastSelectedViewDesc) {
+                if (view.lastSelectedViewDesc) {
+                    view.lastSelectedViewDesc.deselectNode();
+                    view.lastSelectedViewDesc = null;
+                }
+                if (desc) { desc.selectNode(); }
+                view.lastSelectedViewDesc = desc;
+            }
+        } else {
+            if (view.lastSelectedViewDesc) {
+                view.lastSelectedViewDesc.deselectNode();
+                view.lastSelectedViewDesc = null;
+            }
+        }
+    }
+
     dispatchTransaction = (tx: Transaction) => {
         if (this._editorView) {
             const state = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
+            this.syncNodeSelection(this._editorView, this._editorView.state.selection); // bcz: ugh -- shouldn't be needed but without this the overlay view's footnote popup doesn't get deselected
             if (state.selection.empty && FormattedTextBox._toolTipTextMenu && tx.storedMarks) {
                 FormattedTextBox._toolTipTextMenu.mark_key_pressed(tx.storedMarks);
             }
@@ -612,12 +635,13 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 nodeViews: {
                     image(node, view, getPos) { return new ImageResizeView(node, view, getPos); },
                     star(node, view, getPos) { return new SummarizedView(node, view, getPos); },
-                    ordered_list(node, view, getPos) { return new OrderedListView(node, view, getPos); }
-
+                    ordered_list(node, view, getPos) { return new OrderedListView(node, view, getPos); },
+                    footnote(node, view, getPos) { return new FootnoteView(node, view, getPos) }
                 },
                 clipboardTextSerializer: this.clipboardTextSerializer,
                 handlePaste: this.handlePaste,
             });
+            (this._editorView as any).isOverlay = this.props.isOverlay;
             if (startup) {
                 Doc.GetProto(doc).documentText = undefined;
                 this._editorView.dispatch(this._editorView.state.tr.insertText(startup));

@@ -84,6 +84,53 @@
     align-content: center;
 }
 
+footnote {
+    display: inline-block;
+    position: relative;
+    cursor: pointer;
+    div {
+        padding : 0 !important;
+    }
+}
+
+footnote::after {
+    content: counter(prosemirror-footnote);
+    vertical-align: super;
+    font-size: 75%;
+    counter-increment: prosemirror-footnote;
+}
+
+.ProseMirror {
+    counter-reset: prosemirror-footnote;
+  }
+
+.footnote-tooltip {
+    cursor: auto;
+    font-size: 75%;
+    position: absolute;
+    left: -30px;
+    top: calc(100% + 10px);
+    background: silver;
+    padding: 3px;
+    border-radius: 2px;
+    max-width: 100px;
+    min-width: 50px;
+    width: max-content;
+}
+
+.footnote-tooltip::before {
+    border: 5px solid silver;
+    border-top-width: 0px;
+    border-left-color: transparent;
+    border-right-color: transparent;
+    position: absolute;
+    top: -5px;
+    left: 27px;
+    content: " ";
+    height: 0;
+    width: 0;
+}
+
 ol { counter-reset: deci1 0;}
 .decimal1-ol {counter-reset: deci1; p { display: inline }; font-size: 24 }
 .decimal2-ol {counter-reset: deci2; p { display: inline }; font-size: 18 }
