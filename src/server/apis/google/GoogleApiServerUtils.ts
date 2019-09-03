@@ -1,13 +1,12 @@
-import { google, docs_v1, slides_v1 } from "googleapis";
+import { google } from "googleapis";
 import { createInterface } from "readline";
 import { readFile, writeFile } from "fs";
 import { OAuth2Client, Credentials } from "google-auth-library";
 import { Opt } from "../../../new_fields/Doc";
 import { GlobalOptions } from "googleapis-common";
 import { GaxiosResponse } from "gaxios";
-import { GooglePhotos } from "./GooglePhotosUtils";
-import { Utils } from "../../../Utils";
-import { Album } from "./typings/albums";
+import request = require('request-promise');
+import * as qs from 'query-string';
 
 /**
  * Server side authentication for Google Api queries.
@@ -31,8 +30,7 @@ export namespace GoogleApiServerUtils {
 
     export enum Service {
         Documents = "Documents",
-        Slides = "Slides",
-        Photos = "Photos"
+        Slides = "Slides"
     }
 
     export interface CredentialPaths {
@@ -49,38 +47,31 @@ export namespace GoogleApiServerUtils {
     export type EndpointParameters = GlobalOptions & { version: "v1" };
 
     export const GetEndpoint = async (sector: string, paths: CredentialPaths) => {
-        return new Promise<Opt<Endpoint>>((resolve, reject) => {
+        return new Promise<Opt<Endpoint>>(resolve => {
+            RetrieveAuthenticationInformation(paths).then(authentication => {
+                let routed: Opt<Endpoint>;
+                let parameters: EndpointParameters = { auth: authentication.client, version: "v1" };
+                switch (sector) {
+                    case Service.Documents:
+                        routed = google.docs(parameters).documents;
+                        break;
+                    case Service.Slides:
+                        routed = google.slides(parameters).presentations;
+                        break;
+                }
+                resolve(routed);
+            });
+        });
+    };
+
+    export const RetrieveAuthenticationInformation = async (paths: CredentialPaths) => {
+        return new Promise<TokenResult>((resolve, reject) => {
             readFile(paths.credentials, async (err, credentials) => {
                 if (err) {
                     reject(err);
                     return console.log('Error loading client secret file:', err);
                 }
-                authorize(parseBuffer(credentials), paths.token).then(async result => {
-                    let routed: Opt<Endpoint>;
-                    let parameters: EndpointParameters = { auth: result.client, version: "v1" };
-                    switch (sector) {
-                        case Service.Documents:
-                            routed = google.docs(parameters).documents;
-                            break;
-                        case Service.Slides:
-                            routed = google.slides(parameters).presentations;
-                            break;
-                        case Service.Photos:
-                            let token = result.token.access_token;
-                            if (token) {
-                                let create: Album.Create = {
-                                    action: Album.Action.Create,
-                                    body: {
-                                        album: {
-                                            title: "Sam's Bulk Export",
-                                        }
-                                    }
-                                };
-                                console.log(await GooglePhotos.ExecuteQuery(token, create));
-                            }
-                    }
-                    resolve(routed);
-                });
+                authorize(parseBuffer(credentials), paths.token).then(resolve, reject);
             });
         });
     };
@@ -101,12 +92,43 @@ export namespace GoogleApiServerUtils {
                 if (err) {
                     return getNewToken(oAuth2Client, token_path).then(resolve, reject);
                 }
-                let parsed = parseBuffer(token);
+                let parsed: Credentials = parseBuffer(token);
+                if (parsed.expiry_date! < new Date().getTime()) {
+                    return refreshToken(parsed, client_id, client_secret, oAuth2Client, token_path).then(resolve, reject);
+                }
                 oAuth2Client.setCredentials(parsed);
                 resolve({ token: parsed, client: oAuth2Client });
             });
         });
     }
+
+    const refreshEndpoint = "https://oauth2.googleapis.com/token";
+    const refreshToken = (credentials: Credentials, client_id: string, client_secret: string, oAuth2Client: OAuth2Client, token_path: string) => {
+        return new Promise<TokenResult>((resolve, reject) => {
+            let headerParameters = { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
+            let queryParameters = {
+                refreshToken: credentials.refresh_token,
+                client_id,
+                client_secret,
+                grant_type: "refresh_token"
+            };
+            let url = `${refreshEndpoint}?${qs.stringify(queryParameters)}`;
+            request.post(url, headerParameters).then(response => {
+                let parsed = JSON.parse(response);
+                credentials.access_token = parsed.access_token;
+                credentials.expiry_date = new Date().getTime() + parsed.expires_in;
+                writeFile(token_path, JSON.stringify(credentials), (err) => {
+                    if (err) {
+                        console.error(err);
+                        reject(err);
+                    }
+                    console.log('Refreshed token stored to', token_path);
+                    oAuth2Client.setCredentials(credentials);
+                    resolve({ token: credentials, client: oAuth2Client });
+                });
+            });
+        });
+    };
 
     /**
      * Get and store new token after prompting for user authorization, and then

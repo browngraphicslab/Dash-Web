@@ -42,6 +42,8 @@ import PresModeMenu from './presentationview/PresentationModeMenu';
 import { PresBox } from './nodes/PresBox';
 import { GoogleApiClientUtils } from '../apis/google_docs/GoogleApiClientUtils';
 import { docs_v1 } from 'googleapis';
+import { Album } from '../../server/apis/google/typings/albums';
+import { GooglePhotosClientUtils } from '../apis/google_docs/GooglePhotosClientUtils';
 
 @observer
 export class MainView extends React.Component {
@@ -128,7 +130,7 @@ export class MainView extends React.Component {
         window.removeEventListener("keydown", KeyManager.Instance.handle);
         window.addEventListener("keydown", KeyManager.Instance.handle);
 
-        PostToServer('/googleDocs/Photos/Test', {});
+        this.executeGooglePhotosAlbumTestRoutine();
 
         reaction(() => {
             let workspaces = CurrentUserUtils.UserDocument.workspaces;
@@ -145,6 +147,12 @@ export class MainView extends React.Component {
             }
             (Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc) as Doc).allowClear = true;
         }, { fireImmediately: true });
+    }
+
+    executeGooglePhotosAlbumTestRoutine = async () => {
+        let title = "This is a generically created album!";
+        console.log(await GooglePhotosClientUtils.Create(title));
+        console.log(await GooglePhotosClientUtils.List({ pageSize: 50 }));
     }
 
     componentWillUnMount() {

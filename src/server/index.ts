@@ -42,11 +42,7 @@ var AdmZip = require('adm-zip');
 import * as YoutubeApi from "./apis/youtube/youtubeApiSample";
 import { Response } from 'express-serve-static-core';
 import { GoogleApiServerUtils } from "./apis/google/GoogleApiServerUtils";
-// import { GaxiosResponse } from 'gaxios';
-// import { Opt } from '../new_fields/Doc';
-// import { docs_v1 } from 'googleapis';
-// import { Endpoint } from 'googleapis-common';
-// import { PhotosLibraryQuery } from './apis/google/GooglePhotosUtils';
+import { GooglePhotos } from './apis/google/GooglePhotosServerUtils';
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const probe = require("probe-image-size");
@@ -195,32 +191,7 @@ app.get("/version", (req, res) => {
 // SEARCH
 const solrURL = "http://localhost:8983/solr/#/dash";
 
-// GETTERS
-
-// app.get('/auth/google', passport.authenticate('google', {
-//     scope: OAuthConfig.scopes,
-//     failureFlash: true,  // Display errors to the user.
-//     session: true,
-// }));
-
-// app.get("/failed", (req, res) => res.send("DIDN'T WORK!"));
-
-// app.get(
-//     '/auth/google/callback',
-//     passport.authenticate(
-//         'google', { failureRedirect: '/failed', failureFlash: true, session: true }),
-//     (req, res) => {
-//         // User has logged in.
-//         console.log('OAUTH: user has logged in 1.');
-//         PhotosLibraryQuery(req.user.token, {});
-//         console.log('OAUTH: user has logged in 2.');
-//         res.redirect('/');
-//     });
-
-// app.get('/GooglePhotos', (req, res) => {
-//     console.log("WORKING ON GOOGLE PHOTOS");
-//     PhotosLibraryQuery(req.user.token, {});
-// });
+// GETTERSå
 
 app.get("/search", async (req, res) => {
     const solrQuery: any = {};
@@ -850,6 +821,27 @@ app.post(RouteStore.googleDocs + "/:sector/:action", (req, res) => {
             return;
         }
         res.send(undefined);
+    });
+});
+
+app.post(RouteStore.googlePhotos, (req, res) => {
+    GoogleApiServerUtils.RetrieveAuthenticationInformation({ credentials, token }).then(authentication => {
+        let validated = authentication.token.access_token;
+        if (!validated) {
+            res.send("Error: unable to authenticate Google Photos API request.");
+            return;
+        }
+        GooglePhotos.ExecuteQuery({ token: validated, query: req.body })
+            .then(response => {
+                if (response === undefined) {
+                    res.send("Error: unable to build suffix for Google Photos API request");
+                    return;
+                }
+                res.send(response);
+            })
+            .catch(error => {
+                res.send(`Error: an exception occurred in the execution of this Google Photos API request\n${error}`);
+            });
     });
 });
 

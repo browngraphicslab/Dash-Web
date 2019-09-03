@@ -1,16 +1,16 @@
 export namespace Album {
 
-    export type Query = (AddEnrichment | BatchAddMediaItems | BatchRemoveMediaItems | Create | Get | List | Share | Unshare) & { body: any };
+    export type Query = (AddEnrichment | BatchAddMediaItems | BatchRemoveMediaItems | Create | Get | List | Share | Unshare);
 
     export enum Action {
-        AddEnrichment,
-        BatchAddMediaItems,
-        BatchRemoveMediaItems,
-        Create,
-        Get,
-        List,
-        Share,
-        Unshare
+        AddEnrichment = "addEnrichment",
+        BatchAddMediaItems = "batchAddMediaItems",
+        BatchRemoveMediaItems = "batchRemoveMediaItems",
+        Create = "create",
+        Get = "get",
+        List = "list",
+        Share = "share",
+        Unshare = "unshare"
     }
 
     export interface AddEnrichment {
@@ -52,11 +52,13 @@ export namespace Album {
 
     export interface List {
         action: Action.List;
-        parameters: {
-            pageSize: number,
-            pageToken: string,
-            excludeNonAppCreatedData: boolean
-        };
+        parameters: ListOptions;
+    }
+
+    export interface ListOptions {
+        pageSize: number;
+        pageToken: string;
+        excludeNonAppCreatedData: boolean;
     }
 
     export interface Share {
