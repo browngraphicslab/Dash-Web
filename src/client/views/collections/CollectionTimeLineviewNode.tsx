@@ -67,14 +67,14 @@ export class Thumbnail extends React.Component<NodeProps> {
         let getTransform = () => transform().translate(-centeringOffset, 0).scale(1 / contentScaling());
         let centeringOffset = () => (width - nativeWidth * contentScaling()) / 2;
         return (
-            <div className="collectionSchemaView-previewDoc" style={{ transform: `translate(${centeringOffset}px, 0px)`, width: "44px", height: "44px", overflow: "hidden" }}>
+            <div className="collectionSchemaView-previewDoc" style={{ transform: `translate(${centeringOffset}px, 0px)`, width, height, overflow: "hidden" }}>
                 <DocumentView
                     pinToPres={this.props.pinToPres}
                     Document={d}
                     selectOnLoad={false}
                     ScreenToLocalTransform={getTransform}
                     ContentScaling={contentScaling}
-                    PanelWidth={() => 44} PanelHeight={() => 44}
+                    PanelWidth={() => width} PanelHeight={() => height}
                     ContainingCollectionView={this.props.CollectionView}
                     focus={emptyFunction}
                     parentActive={this.props.active}
@@ -133,26 +133,26 @@ export class Thumbnail extends React.Component<NodeProps> {
     render() {
         this.getCaption();
         return (
-            <div onClick={(e) => this.toggleSelection(e)} style={{ position: "absolute", left: this.props.leftval, top: this.props.top, width: "50px", height: "50px" }}>
-                <div className="unselected" style={{ position: "absolute", width: "50px", height: "50px", pointerEvents: "all" }}>
+            <div onClick={(e) => this.toggleSelection(e)} style={{ position: "absolute", left: this.props.leftval, top: this.props.top, width: this.props.scale, height: this.props.scale }}>
+                <div className="unselected" style={{ position: "absolute", width: this.props.scale, height: this.props.scale, pointerEvents: "all" }}>
                     <FontAwesomeIcon icon={this.checkData(this.props.doc)} size="sm" style={{ position: "absolute" }} />
                     <div className="window" style={{ pointerEvents: "none", zIndex: 10, width: "47px", height: "47px", position: "absolute" }}>
                         <div className="window" style={{ background: "white", pointerEvents: "none", zIndex: -1, position: "absolute", width: "44px", height: "44px" }}>
-                            {this.documentDisplay(this.props.doc, 44, 44)}
+                            {this.documentDisplay(this.props.doc, this.props.scale - 3, this.props.scale - 3)}
                         </div>
                     </div>
                 </div>
                 <div ref={this.classref} className="unselection" style={{
-                    zIndex: 98, position: "absolute", top: "50px",
+                    zIndex: 98, position: "absolute", top: this.props.scale,
                 }}>
                     <div style={{
                         border: "3px solid #9c9396",
                         backgroundColor: "9c9396",
                         borderRadius: "10px 10px 0px 0px",
                         whiteSpace: "nowrap",
-                        textOverflow: "ellipsis", position: "absolute", overflow: "hidden", paddingLeft: "3px", paddingRight: "3px", paddingTop: "3px", top: "-80px", zIndex: 99, width: "50px", height: "30px"
+                        textOverflow: "ellipsis", position: "absolute", overflow: "hidden", paddingLeft: "3px", paddingRight: "3px", paddingTop: "3px", top: "-80px", zIndex: 99, width: this.props.scale, height: "30px"
                     }}> {this.props.doc.title}</div>
-                    <div style={{ width: "50", height: "30", border: "3px solid #9c9396", borderRadius: "0px 0px 10px 0px", }}>
+                    <div style={{ width: this.props.scale, height: "30", border: "3px solid #9c9396", borderRadius: "0px 0px 10px 0px", }}>
                         <EditableView
                             contents={this.caption}
                             SetValue={(strng) => this.captionupdate(this.props.doc, strng)}
@@ -166,7 +166,7 @@ export class Thumbnail extends React.Component<NodeProps> {
                     </div>
                     <div style={{ height: "100% ", alignItems: "center", justifyItems: "center", display: "flex", top: "-" + String(this.props.top), position: "fixed", width: "1px", zIndex: -400, backgroundColor: "#9c9396" }}>
                     </div>
-                    <div style={{ paddingLeft: "3px", width: "50px", overflow: "hidden" }}>
+                    <div style={{ paddingLeft: "3px", width: this.props.scale, overflow: "hidden" }}>
                         {this.props.sortstate}:{Math.round(NumCast(this.props.doc[this.props.sortstate]))}</div>
                 </div>
             </div >
@@ -176,6 +176,7 @@ export class Thumbnail extends React.Component<NodeProps> {
 }
 
 export interface NodeProps {
+    scale: number;
     leftval: number;
     sortstate: string;
     doc: Doc;

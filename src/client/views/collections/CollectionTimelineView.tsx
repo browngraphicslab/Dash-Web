@@ -25,6 +25,7 @@ import { BottomUI } from "./CollectionTimeLineViewBottomUI";
 import { anchorPoints, Flyout } from "../DocumentDecorations";
 import { Thumbnail, NodeProps } from "./CollectionTimeLineViewNode";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
+import { thisExpression } from "babel-types";
 
 
 type DocTuple = {
@@ -46,6 +47,12 @@ type Node = {
     leftval: number;
     top: number;
     mapleft: number;
+    row: number;
+};
+
+
+type RowVal = {
+    index: number;
 };
 
 @observer
@@ -128,7 +135,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         markerUnit.element = (< div ref={(el) => el ? markerUnit.ref = el : null} onDoubleClick={(e) => this.doubleclick(e, markerUnit)} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, String(markerUnit.document.annotation), markerUnit)}
             style={{
                 border: "2px solid" + String(markerUnit.document.color),
-                width: NumCast(doc.initialWidth), height: "30px", top: "-30px", backgroundColor: String(markerUnit.document.color), zIndex: 5, opacity: 0.5, padding: "2px",
+                width: NumCast(doc.initialWidth), height: this.rowscale, top: "-30px", backgroundColor: String(markerUnit.document.color), zIndex: 5, opacity: 0.5, padding: "2px",
                 position: "absolute", left: NumCast(doc.initialLeft),
             }}>
             <EditableView
@@ -282,7 +289,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             this.selectedMarker.ref!.style.opacity = "0.9";
             this.selectedMarker.ref!.style.border = "1px solid black";
             this.selectedMarker.ref!.style.borderStyle = "dashed";
-            this.selectedMarker.ref!.style.backgroundColor ? this.selectedColor = this.selectedMarker.ref!.style.backgroundColor : null;
+            this.selectedMarker.ref!.style.backgroundColor ? this.props.Document.selectedColor = this.selectedMarker.ref!.style.backgroundColor : null;
         }
 
     }
@@ -355,15 +362,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
     }
 
-    private newselect: (HTMLDivElement | undefined)[] = [];
-
-    @computed
-    get marqueeDiv() {
-        let v = this.props.ScreenToLocalTransform().translate(0, 0).transformDirection(this._lastX - this._downX, this._lastY - this._downY);
-        return <div ref={this.marqueeref} className="marquee" style={{ width: `${Math.abs(v[0])}`, height: `${Math.abs(v[1])}`, zIndex: 2000 }} >
-        </div>;
-
-    }
     private _values: number[] = [];
     private ticks: JSX.Element[] = [];
     private thumbnails: Node[] = [];
@@ -452,7 +450,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         for (let i = 0; i < backup.length; i++) {
             leftval = ((((this._range * 0.05) + values[i] - values[0]) * this.barwidth / (this._range * 1.1)) * (this.barwidth / (this.barwidth - this.rightbound - this.leftbound)) - (this.leftbound * (this.barwidth) / (this.barwidth - this.rightbound - this.leftbound))) + "px";
             let newNode = {
-                mapleft: ((values[i] - values[0] + (this._range * 0.05)) * this.barwidth / (this._range * 1.1)), leftval: parseFloat(leftval), doc: docs[i], top: 20
+                mapleft: ((values[i] - values[0] + (this._range * 0.05)) * this.barwidth / (this._range * 1.1)), leftval: parseFloat(leftval), doc: docs[i], top: 20, row: 0
             } as Node;
             this.thumbnails.push(newNode);
         }
@@ -462,18 +460,18 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
     adjustY() {
         for (let thumbnail1 of this.thumbnails) {
-            thumbnail1.top = 0;
+            thumbnail1.row = 0;
         }
         let overlap = false;
         while (overlap === false) {
             overlap = true;
             for (let thumbnail1 of this.thumbnails) {
                 for (let thumbnail2 of this.thumbnails) {
-                    if (((thumbnail1.leftval >= thumbnail2.leftval && thumbnail1.leftval - 50 < thumbnail2.leftval)
-                        || (thumbnail1.leftval <= thumbnail2.leftval && thumbnail1.leftval + 50 > thumbnail2.leftval))
-                        && (thumbnail1.top === thumbnail2.top)
+                    if (((thumbnail1.leftval >= thumbnail2.leftval && thumbnail1.leftval - this.rowscale < thumbnail2.leftval)
+                        || (thumbnail1.leftval <= thumbnail2.leftval && thumbnail1.leftval + this.rowscale > thumbnail2.leftval))
+                        && (thumbnail1.row === thumbnail2.row)
                         && thumbnail1 !== thumbnail2) {
-                        thumbnail1.top += 60;
+                        thumbnail1.row += 1;
                         overlap = false;
                     }
                 }
@@ -504,6 +502,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             counter++;
         }
     }
+
     @action
     createRows() {
         //Creates the array of tick marks.
@@ -526,35 +525,94 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         //     else if (counter % 10 === 0) { this.ticks.push(<div className="active" ref={tickref} style={{ position: "absolute", top: "0%", left: leftval, zIndex: -100 }} />); }
         //     counter++;
         // }
-        console.log(document.body.clientHeight);
+        this.rows = [];
+        this.rowval = []
         for (let i = this.rowscale; i < this.windowheight; i
             += this.rowscale) {
-            this.rows.push(<div style={{ position: "absolute", top: i, border: "1px black solid", zIndex: -100 }} />);
-
+            this.rows.push(<div style={{ position: "absolute", top: i, border: "1px black dotted", width: "100%", zIndex: -100 }} />);
+            this.rowval.push(i);
         }
     }
+
     @action
-    rowscaleset = (number: number) => { this.rowscale += number; this.createRows(); }
+    rowscaleset = (number: number) => {
+        this.rowscale += number;
+        this.createRows();
+        console.log(this.rowscale);
+    }
 
     private rows: JSX.Element[] = [];
+    private rowval: number[] = [];
 
     @observable
     private windowheight: number = 700;
 
-    @observable
-    private rowscale: number = 50;
+    @observable private rowscale: number = 50;
 
     @observable private selectedMarker: MarkerUnit | undefined;
-    @observable private selectedColor: string = "ffff80";
+
+    private get selectedColor() {
+        let doc = this.props.Document;
+        let color: string;
+        if (doc.selectedColor) {
+            color = StrCast(this.props.Document.selectedColor);
+        } else {
+            color = doc.selectedColor = "ffff80";
+        }
+        return color;
+    }
+
+    private get leftbound() {
+        let doc = this.props.Document;
+        if (doc.leftbound) {
+
+            return NumCast(doc.leftbound);
+        } else {
+            doc.leftbound = 0;
+        }
+        return NumCast(doc.leftbound);
+    }
+
+    private set leftbound(number) {
+        this.props.Document.leftbound = number;
+    }
+
+    private get rightbound() {
+        let doc = this.props.Document;
+        if (doc.rightbound) {
+
+            return NumCast(doc.rightbound);
+        } else {
+            doc.rightbound = 0;
+        }
+        return NumCast(doc.rightbound);
+    }
+
+    private set rightbound(number) {
+        this.props.Document.rightbound = number;
+    }
+
+
+    private get barwidth() {
+        let doc = this.props.Document;
+        doc.barwidth = (this.barref.current ? this.barref.current.clientWidth : (952));
+        return NumCast(doc.barwidth);
+    }
+
+    private set barwidth(number) {
+        this.props.Document.barwidth = number;
+    }
+
+
+
 
     @action annotationUpdate = (newValue: string) => {
         this.selectedMarker!.document.annotation = newValue;
         return true;
     }
 
-    @observable private barwidth = (this.barref.current ? this.barref.current.clientWidth : (952));
-    @observable private leftbound = 0;
-    @observable private rightbound = 0;
+
+
 
     @action
     updateWidth() {
@@ -568,17 +626,13 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     }
     @action
     rightboundSet = (number: number) => { this.rightbound = number; this.markerrender(); }
-    selectedColorSet = (color: string) => { this.selectedColor = color; };
-    barwidthSet = (color: number) => { this.barwidth = color; this.markerrender(); };
 
     @action
     setsortsate = (string: string) => {
         this.sortstate = string;
         this.adjustY();
-
         this.thumbnailloop();
         this.createticks();
-
     }
 
     onPointerDown_Dragger = async (e: React.PointerEvent) => {
@@ -602,6 +656,11 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                 if (leftval >= NumCast(marker.initialLeft!) && leftval < NumCast(marker.initialLeft!) + NumCast(marker.initialWidth!) && this.sortstate === marker.sortstate) {
                     return;
                 }
+            }
+            let closestRow = 0;
+            let closestRowVal = 99999999;
+            for (let rows of this.rowval) {
+                // if (Math.abs(rows-))
             }
 
             document.addEventListener("pointermove", this.onPointerMove_Selector, true);
@@ -703,10 +762,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     barwidth={this.barwidth}
                     minvalue={this._values[0] - this._range * 0.05}
                     sortstate={this.sortstate}
-                    selectedColor={this.selectedColor}
-                    selectedColorSet={this.selectedColorSet}
                     barref={this.barref}
-                    barwidthSet={this.barwidthSet}
                     screenref={this.screenref}
                     markerrender={this.markerrender}
                     setsortstate={this.setsortsate}
@@ -720,6 +776,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     {this.rows}
                     {this.thumbnails.map(doc =>
                         <Thumbnail
+                            scale={this.rowscale}
                             scrollTop={document.body.scrollTop}
                             CollectionView={this.props.CollectionView}
                             active={this.props.active}
@@ -727,8 +784,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                             addDocTab={this.props.addDocTab}
                             pinToPres={this.props.pinToPres}
                             docheight={this.screenref.current ? this.screenref.current.style.height ? parseFloat(this.screenref.current.style.height) + 70 : 651 : 651}
-
-                            createportal={() => this.makeportal()} leftval={doc.leftval} doc={doc.doc} sortstate={this.sortstate} top={doc.top} timelinetop={this.timelineref.current ? parseFloat(this.timelineref.current!.style.top!) : document.body.clientHeight * 0.75}>
+                            createportal={() => this.makeportal()} leftval={doc.leftval} doc={doc.doc} sortstate={this.sortstate} top={this.rowval[doc.row]} timelinetop={this.timelineref.current ? parseFloat(this.timelineref.current!.style.top!) : document.body.clientHeight * 0.75}>
                         </Thumbnail>
 
                     )}

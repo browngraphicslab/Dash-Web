@@ -335,8 +335,8 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="2">Schema View</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="4">Tree View</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="5">Stacking View</option>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="6">Masonry View</option>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="7">Timeline View</option>
+                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="6">Timeline View</option>
+                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="7">Masonry View</option>
 
                         </select>
                         <div className="collectionViewBaseChrome-viewSpecs" style={{ display: collapsed ? "none" : "grid" }}>
@@ -716,6 +716,112 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
         }
     }
 
+    private colorrefYellow = React.createRef<HTMLDivElement>();
+    private colorrefGreen = React.createRef<HTMLDivElement>();
+    private colorrefRed = React.createRef<HTMLDivElement>();
+    private colorrefBlue = React.createRef<HTMLDivElement>();
+    @action
+    toggleColor = (e: React.MouseEvent<HTMLDivElement>, color: string) => {
+        this.props.CollectionView.props.Document.selectedColor = color;
+        if (color === "#ffff80") {
+            this.colorrefYellow.current!.style.border = "2px solid black";
+            this.colorrefGreen.current!.style.border = "2px solid #9c9396";
+            this.colorrefRed.current!.style.border = "2px solid #9c9396";
+            this.colorrefBlue.current!.style.border = "2px solid #9c9396";
+        }
+        if (color === "#bfff80") {
+            this.colorrefGreen.current!.style.border = "2px solid black";
+            this.colorrefYellow.current!.style.border = "2px solid #9c9396";
+            this.colorrefRed.current!.style.border = "2px solid #9c9396";
+            this.colorrefBlue.current!.style.border = "2px solid #9c9396";
+        }
+        if (color === "#ff8080") {
+            this.colorrefRed.current!.style.border = "2px solid black";
+            this.colorrefGreen.current!.style.border = "2px solid #9c9396";
+            this.colorrefYellow.current!.style.border = "2px solid #9c9396";
+            this.colorrefBlue.current!.style.border = "2px solid #9c9396";
+        }
+        if (color === "#80dfff") {
+            this.colorrefBlue.current!.style.border = "2px solid black";
+            this.colorrefGreen.current!.style.border = "2px solid #9c9396";
+            this.colorrefRed.current!.style.border = "2px solid #9c9396";
+            this.colorrefYellow.current!.style.border = "2px solid #9c9396";
+        }
+    }
+    private searchref = React.createRef<HTMLFormElement>();
+
+
+    @action.bound
+    enter = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        let doc = this.props.CollectionView.props.Document;
+
+        if (e.key === "Enter") {
+            var thing = (parseFloat(this.searchString!) - this.props.minvalue) * this.props.barwidth / this.props._range;
+            if (!isNaN(thing)) {
+                if (thing > this.props.barwidth) {
+                    doc.rightbound = 0;
+                }
+                else if
+                    (NumCast(doc.leftbound) + thing >= this.props.barwidth) {
+                    doc.rightbound = (this.props.barwidth - NumCast(doc.leftbound) - 1);
+                }
+                else {
+                    doc.rightbound = (this.props.barwidth - thing);
+                }
+
+
+            }
+
+            this.searchref.current ? this.searchref.current.reset() : null;
+            this.searchString = undefined;
+            this.searchString2 = undefined;
+        }
+        if (e.keyCode === 9) {
+            e.preventDefault;
+            e.stopPropagation();
+        }
+    }
+
+    @action.bound
+    enter2 = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        let doc = this.props.CollectionView.props.Document;
+        if (e.key === "Enter") {
+            var thing = (parseFloat(this.searchString2!) - this.props.minvalue) * NumCast(doc.barwidth) / this.props._range;
+            if (!isNaN(thing)) {
+                if (thing < 0) {
+                    doc.leftbound = 0;
+                }
+                else if (thing >= NumCast(doc.barwidth) - NumCast(doc.rightbound)) {
+                    doc.leftbound = (NumCast(doc.barwidth) - NumCast(doc.rightbound) - 1);
+                }
+                else {
+                    doc.leftbound = thing;
+                }
+            }
+            this.searchString2 = undefined;
+            this.searchString = undefined;
+            this.searchref.current!.reset();
+        }
+        if (e.keyCode === 9) {
+            e.preventDefault;
+            e.stopPropagation();
+        }
+    }
+
+
+    @action.bound
+    onChange(e: React.ChangeEvent<HTMLInputElement>) {
+        this.searchString = e.target.value;
+    }
+
+    @action.bound
+    onChange2(e: React.ChangeEvent<HTMLInputElement>) {
+        this.searchString2 = e.target.value;
+    }
+
+
+    @observable searchString: string | undefined;
+    @observable searchString2: string | undefined;
 
     render() {
         let previewWidth = NumCast(this.props.CollectionView.props.Document.schemaPreviewWidth);
@@ -723,6 +829,24 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
 
         return (
             <div className="collectionSchemaViewChrome-cont">
+                <input placeholder={StrCast(this.props.CollectionView.props.Document.selectedColor)}></input>
+                <div ref={this.colorrefYellow} onClick={(e) => this.toggleColor(e, "#ffff80")} className="color1" style={{ position: "relative", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#ffff80", border: "2px solid black" }}></div>
+                <div ref={this.colorrefGreen} onClick={(e) => this.toggleColor(e, "#bfff80")} className="color2" style={{ position: "relative", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#bfff80", border: "2px solid #9c9396" }}></div>
+                <div ref={this.colorrefRed} onClick={(e) => this.toggleColor(e, "#ff8080")} className="color3" style={{ position: "relative", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#ff8080", border: "2px solid #9c9396" }}></div>
+                <div ref={this.colorrefBlue} onClick={(e) => this.toggleColor(e, "#80dfff")} className="color4" style={{ position: "relative", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#80dfff", border: "2px solid #9c9396" }}></div>
+                <div className="reset"> <button onClick={() => runInAction(() => { this.props.CollectionView.props.Document.leftbound = 0; this.props.CollectionView.props.Document.rightbound = 0; (this.searchref.current ? this.searchref.current.reset() : null); })}>Reset Range</button></div>
+                <form className="form" ref={this.searchref}>
+                    <div className="min">
+                        <input size={10} value={this.searchString2} onChange={this.onChange2} onKeyPress={this.enter2} type="text" placeholder={"Min: " + String(Math.round((NumCast(this.props.CollectionView.props.Document.leftbound) * this.props._range / this.props.barwidth) + this.props.minvalue))}
+                            className="searchBox-barChild searchBox-input" />
+                    </div>
+
+                    <div className="max">
+                        <input size={10} value={this.searchString ? this.searchString : undefined} onChange={this.onChange} onFocus={() => this.searchString = ""} onKeyPress={this.enter} type="text" placeholder={"Max: " + String(Math.round(((this.props.barwidth - NumCast(this.props.CollectionView.props.Document.rightbound)) * this.props._range / this.props.barwidth) + this.props.minvalue))}
+                            className="searchBox-barChild searchBox-input" />
+                    </div>
+
+                </form>
                 <div className="collectionSchemaViewChrome-toggle">
                     <div className="collectionSchemaViewChrome-label">Wrap Text: </div>
                     <div className="collectionSchemaViewChrome-toggler" onClick={this.toggleTextwrap}>

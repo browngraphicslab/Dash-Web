@@ -112,36 +112,6 @@ export class BottomUI extends React.Component<BottomUIProps> {
         }
     }
 
-    @action
-    toggleColor = (e: React.MouseEvent<HTMLDivElement>, color: string) => {
-        this.props.selectedColorSet(color);
-        if (color === "#ffff80") {
-            this.colorrefYellow.current!.style.border = "2px solid black";
-            this.colorrefGreen.current!.style.border = "2px solid #9c9396";
-            this.colorrefRed.current!.style.border = "2px solid #9c9396";
-            this.colorrefBlue.current!.style.border = "2px solid #9c9396";
-        }
-        if (color === "#bfff80") {
-            this.colorrefGreen.current!.style.border = "2px solid black";
-            this.colorrefYellow.current!.style.border = "2px solid #9c9396";
-            this.colorrefRed.current!.style.border = "2px solid #9c9396";
-            this.colorrefBlue.current!.style.border = "2px solid #9c9396";
-        }
-        if (color === "#ff8080") {
-            this.colorrefRed.current!.style.border = "2px solid black";
-            this.colorrefGreen.current!.style.border = "2px solid #9c9396";
-            this.colorrefYellow.current!.style.border = "2px solid #9c9396";
-            this.colorrefBlue.current!.style.border = "2px solid #9c9396";
-        }
-        if (color === "#80dfff") {
-            this.colorrefBlue.current!.style.border = "2px solid black";
-            this.colorrefGreen.current!.style.border = "2px solid #9c9396";
-            this.colorrefRed.current!.style.border = "2px solid #9c9396";
-            this.colorrefYellow.current!.style.border = "2px solid #9c9396";
-        }
-    }
-
-
     private colorrefYellow = React.createRef<HTMLDivElement>();
     private colorrefGreen = React.createRef<HTMLDivElement>();
     private colorrefRed = React.createRef<HTMLDivElement>();
@@ -298,11 +268,6 @@ export class BottomUI extends React.Component<BottomUIProps> {
 
                     </form>
                     <div onPointerDown={this.onPointerDown_AdjustScale} style={{ backgroundColor: "black", height: "50px", cursor: "ew-resize", position: "absolute", zIndex: 100, left: this.props.leftbound, width: "50px" }}></div>
-                    <div className="reset"> <button onClick={() => runInAction(() => { this.props.leftboundSet(0); this.props.rightboundSet(0); (this.searchref.current ? this.searchref.current.reset() : null); })}>Reset Range</button></div>
-                    <div ref={this.colorrefYellow} onClick={(e) => this.toggleColor(e, "#ffff80")} className="color1" style={{ position: "relative", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#ffff80", border: "2px solid black" }}></div>
-                    <div ref={this.colorrefGreen} onClick={(e) => this.toggleColor(e, "#bfff80")} className="color2" style={{ position: "relative", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#bfff80", border: "2px solid #9c9396" }}></div>
-                    <div ref={this.colorrefRed} onClick={(e) => this.toggleColor(e, "#ff8080")} className="color3" style={{ position: "relative", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#ff8080", border: "2px solid #9c9396" }}></div>
-                    <div ref={this.colorrefBlue} onClick={(e) => this.toggleColor(e, "#80dfff")} className="color4" style={{ position: "relative", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#80dfff", border: "2px solid #9c9396" }}></div>
                     <input height={"20px"} ref={this.borderref} type="text" value={this.searchString3 ? this.searchString : undefined} placeholder={"sort value: " + this.props.sortstate} onChange={this.onChange3} onKeyPress={this.enter3} />
                 </div>
                 <div ref={this.props.barref} className="backdropscroll" onPointerDown={this.onPointerDown_OffBar} style={{ zIndex: 99, top: "50px", height: "30px", width: "100%", bottom: "90%", position: "fixed", }}>
@@ -338,8 +303,6 @@ export interface BottomUIProps {
     minvalue: number;
     sortstate: string;
     setsortstate: (string: string) => void;
-    selectedColor: string;
-    selectedColorSet: (color: string) => void;
     barref: React.RefObject<HTMLDivElement>;
     barwidthSet: (number: number) => void;
     screenref: React.RefObject<HTMLDivElement>;
