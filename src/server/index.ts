@@ -43,6 +43,7 @@ import * as YoutubeApi from "./apis/youtube/youtubeApiSample";
 import { Response } from 'express-serve-static-core';
 import { GoogleApiServerUtils } from "./apis/google/GoogleApiServerUtils";
 import { GooglePhotos } from './apis/google/GooglePhotosServerUtils';
+import { GooglePhotosUploadUtils } from './apis/google/GooglePhotosUploadUtils';
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const probe = require("probe-image-size");
@@ -824,25 +825,36 @@ app.post(RouteStore.googleDocs + "/:sector/:action", (req, res) => {
     });
 });
 
-app.post(RouteStore.googlePhotos, (req, res) => {
-    GoogleApiServerUtils.RetrieveAuthenticationInformation({ credentials, token }).then(authentication => {
-        let validated = authentication.token.access_token;
-        if (!validated) {
-            res.send("Error: unable to authenticate Google Photos API request.");
-            return;
-        }
-        GooglePhotos.ExecuteQuery({ token: validated, query: req.body })
-            .then(response => {
-                if (response === undefined) {
-                    res.send("Error: unable to build suffix for Google Photos API request");
-                    return;
-                }
-                res.send(response);
-            })
-            .catch(error => {
-                res.send(`Error: an exception occurred in the execution of this Google Photos API request\n${error}`);
-            });
-    });
+app.post(RouteStore.googlePhotosQuery, (req, res) => {
+    GoogleApiServerUtils.RetrieveAccessToken({ credentials, token }).then(
+        token => {
+            GooglePhotos.ExecuteQuery({ token, query: req.body })
+                .then(response => {
+                    if (response === undefined) {
+                        res.send("Error: unable to build suffix for Google Photos API request");
+                        return;
+                    }
+                    res.send(response);
+                })
+                .catch(error => {
+                    res.send(`Error: an exception occurred in the execution of this Google Photos API request\n${error}`);
+                });
+        },
+        error => res.send(error)
+    );
+});
+
+app.post(RouteStore.googlePhotosMediaUpload, (req, res) => {
+    GoogleApiServerUtils.RetrieveAccessToken({ credentials, token }).then(
+        token => {
+            GooglePhotosUploadUtils.SubmitUpload({ token, ...req.body })
+                .then(response => {
+                    res.send(response);
+                }).catch(error => {
+                    res.send(`Error: an exception occurred in uploading the given media\n${error}`);
+                });
+        },
+        error => res.send(error));
 });
 
 const suffixMap: { [type: string]: (string | [string, string | ((json: any) => any)]) } = {

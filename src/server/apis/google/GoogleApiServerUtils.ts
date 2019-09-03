@@ -48,7 +48,7 @@ export namespace GoogleApiServerUtils {
 
     export const GetEndpoint = async (sector: string, paths: CredentialPaths) => {
         return new Promise<Opt<Endpoint>>(resolve => {
-            RetrieveAuthenticationInformation(paths).then(authentication => {
+            RetrieveCredentials(paths).then(authentication => {
                 let routed: Opt<Endpoint>;
                 let parameters: EndpointParameters = { auth: authentication.client, version: "v1" };
                 switch (sector) {
@@ -64,7 +64,7 @@ export namespace GoogleApiServerUtils {
         });
     };
 
-    export const RetrieveAuthenticationInformation = async (paths: CredentialPaths) => {
+    export const RetrieveCredentials = async (paths: CredentialPaths) => {
         return new Promise<TokenResult>((resolve, reject) => {
             readFile(paths.credentials, async (err, credentials) => {
                 if (err) {
@@ -73,6 +73,15 @@ export namespace GoogleApiServerUtils {
                 }
                 authorize(parseBuffer(credentials), paths.token).then(resolve, reject);
             });
+        });
+    };
+
+    export const RetrieveAccessToken = async (paths: CredentialPaths) => {
+        return new Promise<string>((resolve, reject) => {
+            RetrieveCredentials(paths).then(
+                credentials => resolve(credentials.token.access_token!),
+                error => reject(`Error: unable to authenticate Google Photos API request.\n${error}`)
+            );
         });
     };
 

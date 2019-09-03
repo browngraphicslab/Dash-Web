@@ -44,6 +44,7 @@ import { GoogleApiClientUtils } from '../apis/google_docs/GoogleApiClientUtils';
 import { docs_v1 } from 'googleapis';
 import { Album } from '../../server/apis/google/typings/albums';
 import { GooglePhotosClientUtils } from '../apis/google_docs/GooglePhotosClientUtils';
+import { ImageField } from '../../new_fields/URLField';
 
 @observer
 export class MainView extends React.Component {
@@ -129,6 +130,11 @@ export class MainView extends React.Component {
         firstScriptTag.parentNode!.insertBefore(tag, firstScriptTag);
         window.removeEventListener("keydown", KeyManager.Instance.handle);
         window.addEventListener("keydown", KeyManager.Instance.handle);
+
+        let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
+        let image = Docs.Create.ImageDocument(imgurl, { width: 200, title: "an image of a cat" });
+        let parameters = { title: StrCast(image.title), MEDIA_BINARY_DATA: GooglePhotosClientUtils.toDataURL(Cast(image.data, ImageField)) };
+        PostToServer(RouteStore.googlePhotosMediaUpload, parameters).then(console.log);
 
         reaction(() => {
             let workspaces = CurrentUserUtils.UserDocument.workspaces;
