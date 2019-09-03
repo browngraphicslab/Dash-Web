@@ -37,8 +37,7 @@ import { DocumentDecorations } from '../DocumentDecorations';
 import { DictationManager } from '../../util/DictationManager';
 import { ReplaceStep } from 'prosemirror-transform';
 import { DocumentType } from '../../documents/DocumentTypes';
-import { selectionSizePlugin, findStartOfMark, findUserMark, findEndOfMark, findOtherUserMark, SelectionSizeTooltip } from './FormattedTextBoxComment';
-import { date } from 'serializr';
+import { formattedTextBoxCommentPlugin, FormattedTextBoxComment } from './FormattedTextBoxComment';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -172,9 +171,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     dispatchTransaction = (tx: Transaction) => {
         if (this._editorView) {
             const state = this._editorView.state.apply(tx);
-            FormattedTextBox._toolTipTextMenu && (FormattedTextBox._toolTipTextMenu.HackToFixTextSelectionGlitch = true);
             this._editorView.updateState(state);
-            FormattedTextBox._toolTipTextMenu && (FormattedTextBox._toolTipTextMenu.HackToFixTextSelectionGlitch = false);
             if (state.selection.empty && FormattedTextBox._toolTipTextMenu && tx.storedMarks) {
                 FormattedTextBox._toolTipTextMenu.mark_key_pressed(tx.storedMarks);
             }
@@ -327,7 +324,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                         attributes: { class: "ProseMirror-example-setup-style" }
                     }
                 }),
-                selectionSizePlugin
+                formattedTextBoxCommentPlugin
             ] : [
                     history(),
                     keymap(buildKeymap(schema)),
@@ -713,7 +710,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     onPointerUp = (e: React.PointerEvent): void => {
-        SelectionSizeTooltip.textBox = this;
+        FormattedTextBoxComment.textBox = this;
         if (e.buttons === 1 && this.props.isSelected() && !e.altKey) {
             e.stopPropagation();
         }
@@ -805,8 +802,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             }
 
             if (m < 10) m = '0' + m;
-            if (s < 10) s = '0' + s;
-            return now.toLocaleDateString() + ' ' + h + ':' + m + ':' + s + ' ' + ampm;
+            return now.toLocaleDateString() + ' ' + h + ':' + m + ' ' + ampm;
         }
         var markerss = this._editorView!.state.storedMarks || (this._editorView!.state.selection.$to.parentOffset && this._editorView!.state.selection.$from.marks());
         let newMarks = [...(markerss ? markerss.filter(m => m.type !== schema.marks.user_mark) : []), schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: timenow() })];

@@ -60,8 +60,6 @@ export class TooltipTextMenu {
     @observable
     private _storedMarks: Mark<any>[] | null | undefined;
 
-    public HackToFixTextSelectionGlitch: boolean = false;
-
 
     constructor(view: EditorView, editorProps: FieldViewProps & FormattedTextBoxProps) {
         this.view = view;
@@ -629,7 +627,7 @@ export class TooltipTextMenu {
                 if (!this.view.state.selection.empty && $from && $from.nodeAfter) {
                     if (this._brushMarks && to - from > 0) {
                         this.view.dispatch(this.view.state.tr.removeMark(from, to));
-                        this._brushMarks.forEach((mark: Mark) => {
+                        Array.from(this._brushMarks).filter(m => m.type !== schema.marks.user_mark).forEach((mark: Mark) => {
                             const markType = mark.type;
                             this.changeToMarkInGroup(markType, this.view, []);
 
@@ -876,8 +874,6 @@ export class TooltipTextMenu {
                 this.updateFontSizeDropdown("Various");
             }
         }
-        !this.HackToFixTextSelectionGlitch &&
-            this.view.dispatch(this.view.state.tr.setStoredMarks(this._activeMarks)); // bcz: what's the purpose of this line?  It messes up text selection without the Hack.
 
         this.update_mark_doms();
     }

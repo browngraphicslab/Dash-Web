@@ -346,7 +346,7 @@ export const marks: { [index: string]: MarkSpec } = {
             return hidden ?
                 (node.attrs.opened ?
                     ['span', { class: "userMarkOpen" }, 0] :
-                    ['span', { class: "userMark" }, ['span', { style: "font-size:2" }, 0]]
+                    ['span', { class: "userMark" }, ['span', 0]]
                 ) :
                 ['span', 0];
         }
