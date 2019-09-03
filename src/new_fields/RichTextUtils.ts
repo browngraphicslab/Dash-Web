@@ -7,7 +7,6 @@ import { FormattedTextBox } from "../client/views/nodes/FormattedTextBox";
 import { Opt } from "./Doc";
 import * as Color from "color";
 import { sinkListItem } from "prosemirror-schema-list";
-import { number } from "prop-types";
 
 export namespace RichTextUtils {
 

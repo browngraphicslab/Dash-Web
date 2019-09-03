@@ -608,6 +608,19 @@ export namespace Doc {
         });
     }
 
+    export function isBrushedHighlightedDegree(doc: Doc) {
+        if (Doc.IsHighlighted(doc)) {
+            return 3;
+        }
+        else {
+            return Doc.IsBrushedDegree(doc);
+        }
+    }
+
+    export class DocBrush {
+        @observable BrushedDoc: ObservableMap<Doc, boolean> = new ObservableMap();
+    }
+    const brushManager = new DocBrush();
 
     export class DocData {
         @observable _user_doc: Doc = undefined!;
@@ -617,18 +630,48 @@ export namespace Doc {
     export function UserDoc(): Doc { return manager._user_doc; }
     export function SetUserDoc(doc: Doc) { manager._user_doc = doc; }
     export function IsBrushed(doc: Doc) {
-        return manager.BrushedDoc.has(doc) || manager.BrushedDoc.has(Doc.GetDataDoc(doc));
+        return brushManager.BrushedDoc.has(doc) || brushManager.BrushedDoc.has(Doc.GetDataDoc(doc));
     }
     export function IsBrushedDegree(doc: Doc) {
-        return manager.BrushedDoc.has(Doc.GetDataDoc(doc)) ? 2 : manager.BrushedDoc.has(doc) ? 1 : 0;
+        return brushManager.BrushedDoc.has(Doc.GetDataDoc(doc)) ? 2 : brushManager.BrushedDoc.has(doc) ? 1 : 0;
     }
     export function BrushDoc(doc: Doc) {
-        manager.BrushedDoc.set(doc, true);
-        manager.BrushedDoc.set(Doc.GetDataDoc(doc), true);
+        brushManager.BrushedDoc.set(doc, true);
+        brushManager.BrushedDoc.set(Doc.GetDataDoc(doc), true);
     }
     export function UnBrushDoc(doc: Doc) {
-        manager.BrushedDoc.delete(doc);
-        manager.BrushedDoc.delete(Doc.GetDataDoc(doc));
+        brushManager.BrushedDoc.delete(doc);
+        brushManager.BrushedDoc.delete(Doc.GetDataDoc(doc));
+    }
+
+    export class HighlightBrush {
+        @observable HighlightedDoc: Map<Doc, boolean> = new Map();
+    }
+    const highlightManager = new HighlightBrush();
+    export function IsHighlighted(doc: Doc) {
+        let IsHighlighted = highlightManager.HighlightedDoc.get(doc) || highlightManager.HighlightedDoc.get(Doc.GetDataDoc(doc));
+        return IsHighlighted;
+    }
+    export function HighlightDoc(doc: Doc) {
+        runInAction(() => {
+            highlightManager.HighlightedDoc.set(doc, true);
+            highlightManager.HighlightedDoc.set(Doc.GetDataDoc(doc), true);
+        });
+    }
+    export function UnHighlightDoc(doc: Doc) {
+        runInAction(() => {
+            highlightManager.HighlightedDoc.set(doc, false);
+            highlightManager.HighlightedDoc.set(Doc.GetDataDoc(doc), false);
+        });
+    }
+    export function UnhighlightAll() {
+        let mapEntries = highlightManager.HighlightedDoc.keys();
+        let docEntry: IteratorResult<Doc>;
+        while (!(docEntry = mapEntries.next()).done) {
+            let targetDoc = docEntry.value;
+            targetDoc && Doc.UnHighlightDoc(targetDoc);
+        }
+
     }
     export function UnBrushAllDocs() {
         manager.BrushedDoc.clear();

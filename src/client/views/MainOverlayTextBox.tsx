@@ -2,7 +2,7 @@ import { action, observable, reaction, trace } from 'mobx';
 import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
-import { Doc } from '../../new_fields/Doc';
+import { Doc, DocListCast } from '../../new_fields/Doc';
 import { BoolCast } from '../../new_fields/Types';
 import { emptyFunction, returnTrue, returnZero, Utils, returnOne } from '../../Utils';
 import { DragManager } from '../util/DragManager';
@@ -41,7 +41,6 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
     public SetColor(color: string) {
         return this._textBox && this._textBox.setFontColor(color);
     }
-
 
     constructor(props: MainOverlayTextBoxProps) {
         super(props);
@@ -146,7 +145,7 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
                                 DataDoc={FormattedTextBox.InputBoxOverlay.props.DataDoc}
                                 onClick={undefined}
                                 ChromeHeight={this.ChromeHeight}
-                                isSelected={returnTrue} select={emptyFunction} renderDepth={0} selectOnLoad={true}
+                                isSelected={returnTrue} select={emptyFunction} renderDepth={0}
                                 ContainingCollectionView={undefined} whenActiveChanged={emptyFunction} active={returnTrue} ContentScaling={returnOne}
                                 ScreenToLocalTransform={this._textXf} PanelWidth={returnZero} PanelHeight={returnZero} focus={emptyFunction}
                                 pinToPres={returnZero} addDocTab={this.addDocTab} outer_div={(tooltip: HTMLElement) => { this._tooltip = tooltip; this.updateTooltip(); }} />

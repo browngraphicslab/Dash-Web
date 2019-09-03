@@ -92,7 +92,6 @@ export interface DocumentViewProps {
     PanelWidth: () => number;
     PanelHeight: () => number;
     focus: (doc: Doc, willZoom: boolean, scale?: number) => void;
-    selectOnLoad: boolean;
     parentActive: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     bringToFront: (doc: Doc, sendToBack?: boolean) => void;
@@ -601,7 +600,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 this.makeBtnClicked();
             }, icon: "window-restore"
         });
-        makes.push({ description: this.props.Document.ignoreClick ? "Selectable" : "Unselectable", event: () => this.props.Document.ignoreClick = !this.props.Document.ignoreClick, icon: this.props.Document.ignoreClick ? "unlock" : "lock" })
+        makes.push({ description: this.props.Document.ignoreClick ? "Selectable" : "Unselectable", event: () => this.props.Document.ignoreClick = !this.props.Document.ignoreClick, icon: this.props.Document.ignoreClick ? "unlock" : "lock" });
         !existingMake && cm.addItem({ description: "Make...", subitems: makes, icon: "hand-point-right" });
         let existing = ContextMenu.Instance.findByDescription("Layout...");
         let layoutItems: ContextMenuProps[] = existing && "subitems" in existing ? existing.subitems : [];
@@ -717,7 +716,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             isSelected={this.isSelected}
             select={this.select}
             onClick={this.onClickHandler}
-            selectOnLoad={this.props.selectOnLoad}
             layoutKey={"layout"}
             fitToBox={BoolCast(this.props.Document.fitToBox) ? true : this.props.fitToBox}
             DataDoc={this.dataDoc} />);
@@ -761,18 +759,20 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
         let showTextTitle = showTitle && StrCast(this.layoutDoc.layout).startsWith("<FormattedTextBox") ? showTitle : undefined;
         let brushDegree = Doc.IsBrushedDegree(this.props.Document);
+        let fullDegree = Doc.isBrushedHighlightedDegree(this.props.Document);
+        // console.log(fullDegree)
         let borderRounding = StrCast(Doc.GetProto(this.props.Document).borderRounding);
-        let localScale = this.props.ScreenToLocalTransform().Scale * brushDegree;
+        let localScale = this.props.ScreenToLocalTransform().Scale * fullDegree;
         return (
             <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
                 ref={this._mainCont}
                 style={{
                     pointerEvents: this.layoutDoc.isBackground && !this.isSelected() ? "none" : "all",
                     color: foregroundColor,
-                    outlineColor: ["transparent", "maroon", "maroon"][brushDegree],
-                    outlineStyle: ["none", "dashed", "solid"][brushDegree],
-                    outlineWidth: brushDegree && !borderRounding ? `${localScale}px` : "0px",
-                    border: brushDegree && borderRounding ? `${["none", "dashed", "solid"][brushDegree]} ${["transparent", "maroon", "maroon"][brushDegree]} ${localScale}px` : undefined,
+                    outlineColor: ["transparent", "maroon", "maroon", "yellow"][fullDegree],
+                    outlineStyle: ["none", "dashed", "solid", "solid"][fullDegree],
+                    outlineWidth: fullDegree && !borderRounding ? `${localScale}px` : "0px",
+                    border: fullDegree && borderRounding ? `${["none", "dashed", "solid", "solid"][fullDegree]} ${["transparent", "maroon", "maroon", "yellow"][fullDegree]} ${localScale}px` : undefined,
                     borderRadius: "inherit",
                     background: backgroundColor,
                     width: nativeWidth,
@@ -808,7 +808,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                         }
                         {!showCaption ? (null) :
                             <div style={{ position: "absolute", bottom: 0, transformOrigin: "bottom left", width: `${100 * this.props.ContentScaling()}%`, transform: `scale(${1 / this.props.ContentScaling()})` }}>
-                                <FormattedTextBox {...this.props} onClick={this.onClickHandler} DataDoc={this.dataDoc} active={returnTrue} isSelected={this.isSelected} focus={emptyFunction} select={this.select} selectOnLoad={this.props.selectOnLoad} fieldExt={""} hideOnLeave={true} fieldKey={showCaption} />
+                                <FormattedTextBox {...this.props} onClick={this.onClickHandler} DataDoc={this.dataDoc} active={returnTrue} isSelected={this.isSelected} focus={emptyFunction} select={this.select} fieldExt={""} hideOnLeave={true} fieldKey={showCaption} />
                             </div>
                         }
                     </div>

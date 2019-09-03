@@ -1,5 +1,5 @@
 import { IconName, library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowDown, faArrowUp, faBolt, faCaretUp, faCat, faCheck, faClone, faCloudUploadAlt, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faLongArrowAltRight, faMusic, faObjectGroup, faPause, faPenNib, faPlay, faPortrait, faRedoAlt, faThumbtack, faTree, faUndoAlt, faTv } from '@fortawesome/free-solid-svg-icons';
+import { faLink, faArrowDown, faArrowUp, faBolt, faCaretUp, faCat, faCheck, faClone, faCloudUploadAlt, faCommentAlt, faCut, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faLongArrowAltRight, faMusic, faObjectGroup, faPause, faPenNib, faPlay, faPortrait, faRedoAlt, faThumbtack, faTree, faUndoAlt, faTv } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, reaction, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
@@ -12,7 +12,7 @@ import { List } from '../../new_fields/List';
 import { Id } from '../../new_fields/FieldSymbols';
 import { InkTool } from '../../new_fields/InkField';
 import { listSpec } from '../../new_fields/Schema';
-import { BoolCast, Cast, FieldValue, StrCast } from '../../new_fields/Types';
+import { BoolCast, Cast, FieldValue, StrCast, NumCast } from '../../new_fields/Types';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { RouteStore } from '../../server/RouteStore';
 import { emptyFunction, returnOne, returnTrue, Utils, returnEmptyString, PostToServer } from '../../Utils';
@@ -40,11 +40,11 @@ import { PreviewCursor } from './PreviewCursor';
 import { FilterBox } from './search/FilterBox';
 import PresModeMenu from './presentationview/PresentationModeMenu';
 import { PresBox } from './nodes/PresBox';
-import { GoogleApiClientUtils } from '../apis/google_docs/GoogleApiClientUtils';
 import { docs_v1 } from 'googleapis';
 import { Album } from '../../server/apis/google/typings/albums';
 import { GooglePhotosClientUtils } from '../apis/google_docs/GooglePhotosClientUtils';
 import { ImageField } from '../../new_fields/URLField';
+import { LinkFollowBox } from './linking/LinkFollowBox';
 
 @observer
 export class MainView extends React.Component {
@@ -163,6 +163,7 @@ export class MainView extends React.Component {
     constructor(props: Readonly<{}>) {
         super(props);
         MainView.Instance = this;
+
         // causes errors to be generated when modifying an observable outside of an action
         configure({ enforceActions: "observed" });
         if (window.location.pathname !== RouteStore.home) {
@@ -336,7 +337,6 @@ export class MainView extends React.Component {
                             PanelHeight={this.getPHeight}
                             renderDepth={0}
                             backgroundColor={returnEmptyString}
-                            selectOnLoad={false}
                             focus={emptyFunction}
                             parentActive={returnTrue}
                             whenActiveChanged={emptyFunction}
@@ -399,7 +399,6 @@ export class MainView extends React.Component {
             PanelWidth={this.flyoutWidthFunc}
             PanelHeight={this.getPHeight}
             renderDepth={0}
-            selectOnLoad={false}
             focus={emptyFunction}
             backgroundColor={returnEmptyString}
             parentActive={returnTrue}
@@ -443,10 +442,17 @@ export class MainView extends React.Component {
         }
     }
 
+    toggleLinkFollowBox = (shouldClose: boolean) => {
+        if (LinkFollowBox.Instance) {
+            let dvs = DocumentManager.Instance.getDocumentViews(LinkFollowBox.Instance.props.Document);
+            // if it already exisits, close it
+            LinkFollowBox.Instance.props.Document.isMinimized = (dvs.length > 0 && shouldClose);
+        }
+    }
+
     @observable private _colorPickerDisplay = false;
     /* for the expandable add nodes menu. Not included with the miscbuttons because once it expands it expands the whole div with it, making canvas interactions limited. */
     nodesMenu() {
-
         let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
 
         let addColNode = action(() => Docs.Create.FreeformDocument([], { width: this.pwidth * .7, height: this.pheight, title: "a freeform collection" }));
@@ -486,6 +492,7 @@ export class MainView extends React.Component {
                                 <FontAwesomeIcon icon={btn[1]} size="sm" />
                             </button>
                         </div></li>)}
+                    <li key="linkFollow"><button className="add-button round-button" title="Open Link Follower" onClick={() => this.toggleLinkFollowBox(true)}><FontAwesomeIcon icon="link" size="sm" /></button></li>
                     <li key="color"><button className="add-button round-button" title="Select Color" style={{ zIndex: 1000 }} onClick={() => this.toggleColorPicker()}><div className="toolbar-color-button" style={{ backgroundColor: InkingControl.Instance.selectedColor }} >
                         <div className="toolbar-color-picker" onClick={this.onColorClick} style={this._colorPickerDisplay ? { color: "black", display: "block" } : { color: "black", display: "none" }}>
                             <SketchPicker color={InkingControl.Instance.selectedColor} onChange={InkingControl.Instance.switchColor} />
