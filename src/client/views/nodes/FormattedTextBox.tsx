@@ -813,10 +813,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         e.stopPropagation();
         if (e.key === "Tab" || e.key === "Enter") { // bullets typically change "levels" when tab or enter is used.  sometimes backspcae, so maybe that should be added. e.preventDefault();
             e.preventDefault();
-            setTimeout(() => { // force re-rendering of bullet numbers that may have had their bullet labels change.  (Our prosemirrior code re-"marks" the changed bullets, but nothing causes the Dom to be re-rendered which is where the nubering takes place)
-                SelectionManager.DeselectAll();
-                SelectionManager.SelectDoc(DocumentManager.Instance.getDocumentView(this.props.Document, this.props.ContainingCollectionView)!, false);
-            }, 0);
+            // bcz: if we use this, it fixes some problesm with bullet numbers but kills undo/redo
+            // setTimeout(() => { // force re-rendering of bullet numbers that may have had their bullet labels change.  (Our prosemirrior code re-"marks" the changed bullets, but nothing causes the Dom to be re-rendered which is where the nubering takes place)
+            //     SelectionManager.DeselectAll();
+            //     SelectionManager.SelectDoc(DocumentManager.Instance.getDocumentView(this.props.Document, this.props.ContainingCollectionView)!, false);
+            // }, 0);
         }
         function timenow() {
             var now = new Date();
