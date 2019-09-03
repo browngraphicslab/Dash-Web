@@ -134,7 +134,7 @@ export class MainView extends React.Component {
         let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
         let image = Docs.Create.ImageDocument(imgurl, { width: 200, title: "an image of a cat" });
         let parameters = { title: StrCast(image.title), MEDIA_BINARY_DATA: GooglePhotosClientUtils.toDataURL(Cast(image.data, ImageField)) };
-        PostToServer(RouteStore.googlePhotosMediaUpload, parameters).then(console.log);
+        // PostToServer(RouteStore.googlePhotosMediaUpload, parameters).then(console.log);
 
         reaction(() => {
             let workspaces = CurrentUserUtils.UserDocument.workspaces;

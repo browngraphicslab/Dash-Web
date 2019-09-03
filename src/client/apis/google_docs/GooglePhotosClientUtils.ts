@@ -39,6 +39,8 @@ export namespace GooglePhotosClientUtils {
         }
         const image = document.createElement("img");
         image.src = field.url.href;
+        image.width = 200;
+        image.height = 200;
         const canvas = document.createElement("canvas");
         canvas.width = image.width;
         canvas.height = image.height;
