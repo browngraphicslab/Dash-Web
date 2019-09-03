@@ -23,6 +23,7 @@ export namespace GoogleApiServerUtils {
         'drive',
         'drive.file',
         'photoslibrary',
+        'photoslibrary.appendonly',
         'photoslibrary.sharing'
     ];
 

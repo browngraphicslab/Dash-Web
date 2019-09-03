@@ -14,7 +14,7 @@ export namespace GooglePhotosUploadUtils {
         let options = {
             headers: {
                 'Content-Type': 'application/octet-stream',
-                auth: { 'bearer': parameters.token },
+                Authorization: `Bearer ${parameters.token}`,
                 'X-Goog-Upload-File-Name': parameters.title,
                 'X-Goog-Upload-Protocol': 'raw'
             },
