@@ -116,7 +116,7 @@ export namespace GoogleApiServerUtils {
             request.post(url, headerParameters).then(response => {
                 let parsed = JSON.parse(response);
                 credentials.access_token = parsed.access_token;
-                credentials.expiry_date = new Date().getTime() + parsed.expires_in;
+                credentials.expiry_date = new Date().getTime() + parsed.expires_in * 1000;
                 writeFile(token_path, JSON.stringify(credentials), (err) => {
                     if (err) {
                         console.error(err);

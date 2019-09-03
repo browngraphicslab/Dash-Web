@@ -130,8 +130,6 @@ export class MainView extends React.Component {
         window.removeEventListener("keydown", KeyManager.Instance.handle);
         window.addEventListener("keydown", KeyManager.Instance.handle);
 
-        this.executeGooglePhotosAlbumTestRoutine();
-
         reaction(() => {
             let workspaces = CurrentUserUtils.UserDocument.workspaces;
             let recent = CurrentUserUtils.UserDocument.recentlyClosed;
@@ -147,12 +145,6 @@ export class MainView extends React.Component {
             }
             (Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc) as Doc).allowClear = true;
         }, { fireImmediately: true });
-    }
-
-    executeGooglePhotosAlbumTestRoutine = async () => {
-        let title = "This is a generically created album!";
-        console.log(await GooglePhotosClientUtils.Create(title));
-        console.log(await GooglePhotosClientUtils.List({ pageSize: 50 }));
     }
 
     componentWillUnMount() {
