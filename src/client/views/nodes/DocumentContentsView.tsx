@@ -14,6 +14,7 @@ import { ImageBox } from "./ImageBox";
 import { DragBox } from "./DragBox";
 import { ButtonBox } from "./ButtonBox";
 import { PresBox } from "./PresBox";
+import { LinkFollowBox } from "../linking/LinkFollowBox";
 import { IconBox } from "./IconBox";
 import { KeyValueBox } from "./KeyValueBox";
 import { PDFBox } from "./PDFBox";
@@ -30,6 +31,7 @@ import { List } from "../../../new_fields/List";
 import { Doc } from "../../../new_fields/Doc";
 import DirectoryImportBox from "../../util/Import & Export/DirectoryImportBox";
 import { ScriptField } from "../../../new_fields/ScriptField";
+import { fromPromise } from "mobx-utils";
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 type BindingProps = Without<FieldViewProps, 'fieldKey'>;
@@ -108,7 +110,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         if (!this.layout && (this.props.layoutKey !== "overlayLayout" || !this.templates.length)) return (null);
         return <ObserverJsxParser
             blacklistedAttrs={[]}
-            components={{ FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, DragBox, ButtonBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox }}
+            components={{ FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, DragBox, ButtonBox, FieldView, CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, CollectionPDFView, CollectionVideoView, WebBox, KeyValueBox, PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, LinkFollowBox }}
             bindings={this.CreateBindings()}
             jsx={this.finalLayout}
             showWarnings={true}

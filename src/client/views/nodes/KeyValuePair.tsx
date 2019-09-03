@@ -60,7 +60,6 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             isSelected: returnFalse,
             select: emptyFunction,
             renderDepth: 1,
-            selectOnLoad: false,
             active: returnFalse,
             whenActiveChanged: emptyFunction,
             ScreenToLocalTransform: Transform.Identity,

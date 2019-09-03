@@ -79,6 +79,9 @@ export class CurrentUserUtils {
             Doc.GetProto(overlays).backgroundColor = "#aca3a6";
             doc.overlays = overlays;
         }
+        if (doc.linkFollowBox === undefined) {
+            PromiseValue(Cast(doc.overlays, Doc)).then(overlays => overlays && Doc.AddDocToList(overlays, "data", doc.linkFollowBox = Docs.Create.LinkFollowBoxDocument({ x: 250, y: 20, width: 500, height: 370, title: "Link Follower" })));
+        }
         StrCast(doc.title).indexOf("@") !== -1 && (doc.title = StrCast(doc.title).split("@")[0] + "'s Library");
         doc.width = 100;
         doc.preventTreeViewOpen = true;

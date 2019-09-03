@@ -8,7 +8,6 @@ import { DocumentView, DocumentViewProps, positionSchema } from "./DocumentView"
 import "./DocumentView.scss";
 import React = require("react");
 import { Doc } from "../../../new_fields/Doc";
-import { returnEmptyString } from "../../../Utils";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     x?: number;

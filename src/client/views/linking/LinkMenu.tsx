@@ -1,6 +1,6 @@
 import { action, observable } from "mobx";
 import { observer } from "mobx-react";
-import { DocumentView } from "./DocumentView";
+import { DocumentView } from "../nodes/DocumentView";
 import { LinkEditor } from "./LinkEditor";
 import './LinkMenu.scss';
 import React = require("react");
@@ -39,6 +39,7 @@ export class LinkMenu extends React.Component<Props> {
             linkItems.push(
                 <LinkMenuGroup
                     key={groupType}
+                    docView={this.props.docView}
                     sourceDoc={this.props.docView.props.Document}
                     group={group}
                     groupType={groupType}

@@ -1,6 +1,12 @@
 import { DOMOutputSpecArray, MarkSpec, Node, NodeSpec, Schema, Slice } from "prosemirror-model";
 import { bulletList, listItem, orderedList } from 'prosemirror-schema-list';
-import { TextSelection } from "prosemirror-state";
+import { TextSelection, EditorState } from "prosemirror-state";
+import { Doc } from "../../new_fields/Doc";
+import { StepMap } from "prosemirror-transform";
+import { EditorView } from "prosemirror-view";
+import { keymap } from "prosemirror-keymap";
+import { undo, redo } from "prosemirror-history";
+import { toggleMark, splitBlock, selectAll, baseKeymap } from "prosemirror-commands";
 
 const pDOM: DOMOutputSpecArray = ["p", 0], blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
@@ -11,6 +17,20 @@ export const nodes: { [index: string]: NodeSpec } = {
     // :: NodeSpec The top level document node.
     doc: {
         content: "block+"
+    },
+
+    footnote: {
+        group: "inline",
+        content: "inline*",
+        inline: true,
+        attrs: {
+            visibility: { default: false }
+        },
+        // This makes the view treat the node as a leaf, even though it
+        // technically has content
+        atom: true,
+        toDOM: () => ["footnote", 0],
+        parseDOM: [{ tag: "footnote" }]
     },
 
     // :: NodeSpec A plain paragraph textblock. Represented in the DOM
@@ -173,7 +193,21 @@ export const nodes: { [index: string]: NodeSpec } = {
     ordered_list: {
         ...orderedList,
         content: 'list_item+',
-        group: 'block'
+        group: 'block',
+        attrs: {
+            bulletStyle: { default: 0 },
+            mapStyle: { default: "decimal" },
+        },
+        toDOM(node: Node<any>) {
+            const bs = node.attrs.bulletStyle;
+            const decMap = bs ? "decimal" + bs : "";
+            const multiMap = bs === 1 ? "decimal1" : bs === 2 ? "upper-alpha" : bs === 3 ? "lower-roman" : bs === 4 ? "lower-alpha" : "";
+            let map = node.attrs.mapStyle === "decimal" ? decMap : multiMap;
+            for (let i = 0; i < node.childCount; i++) node.child(i).attrs.className = map;
+            return ['ol', { class: `${map}-ol`, style: `list-style: none;` }, 0];
+            //return node.attrs.bulletStyle < 2 ? ['ol', { class: `${map}-ol`, style: `list-style: none;` }, 0] :
+            //     ['ol', { class: `${node.attrs.bulletStyle}`, style: `list-style: ${node.attrs.bulletStyle}; font-size: 5px` }, "hello"];
+        }
     },
     //this doesn't currently work for some reason
     bullet_list: {
@@ -181,7 +215,10 @@ export const nodes: { [index: string]: NodeSpec } = {
         content: 'list_item+',
         group: 'block',
         // parseDOM: [{ tag: "ul" }, { style: 'list-style-type=disc' }],
-        // toDOM() { return ulDOM }
+        toDOM(node: Node<any>) {
+            for (let i = 0; i < node.childCount; i++) node.child(i).attrs.className = "";
+            return ['ul', 0];
+        }
     },
 
     //bullet_list: {
@@ -193,8 +230,14 @@ export const nodes: { [index: string]: NodeSpec } = {
     //select: state => true,
     // },
     list_item: {
+        attrs: {
+            className: { default: "" }
+        },
         ...listItem,
-        content: 'paragraph block*'
+        content: 'paragraph block*',
+        toDOM(node: any) {
+            return ["li", { class: node.attrs.className }, 0];
+        }
     },
 };
 
@@ -226,7 +269,7 @@ export const marks: { [index: string]: MarkSpec } = {
     // :: MarkSpec An emphasis mark. Rendered as an `<em>` element.
     // Has parse rules that also match `<i>` and `font-style: italic`.
     em: {
-        parseDOM: [{ tag: "i" }, { tag: "em" }, { style: "font-style=italic" }],
+        parseDOM: [{ tag: "i" }, { tag: "em" }, { style: "font-style: italic" }],
         toDOM() { return emDOM; }
     },
 
@@ -278,11 +321,22 @@ export const marks: { [index: string]: MarkSpec } = {
         toDOM: () => ['sup']
     },
 
+    mbulletType: {
+        attrs: {
+            bulletType: { default: "decimal" }
+        },
+        toDOM(node: any) {
+            return ['span', {
+                style: `background: ${node.attrs.bulletType === "decimal" ? "yellow" : node.attrs.bulletType === "upper-alpha" ? "blue" : "green"}`
+            }];
+        }
+    },
+
     highlight: {
-        parseDOM: [{ style: 'color: blue' }],
+        parseDOM: [{ style: 'text-decoration: underline' }],
         toDOM() {
             return ['span', {
-                style: 'color: blue'
+                style: 'text-decoration: underline; text-decoration-color: rgba(204, 206, 210, 0.92)'
             }];
         }
     },
@@ -293,6 +347,28 @@ export const marks: { [index: string]: MarkSpec } = {
             return ['span', {
                 style: 'background: yellow'
             }];
+        }
+    },
+
+    // the id of the user who entered the text
+    user_mark: {
+        attrs: {
+            userid: { default: "" },
+            hide_users: { default: [] },
+            opened: { default: true },
+            modified: { default: "when?" }
+        },
+        group: "inline",
+        inclusive: false,
+        toDOM(node: any) {
+            let hideUsers = node.attrs.hide_users;
+            let hidden = hideUsers.indexOf(node.attrs.userid) !== -1 || (hideUsers.length === 0 && node.attrs.userid !== Doc.CurrentUserEmail);
+            return hidden ?
+                (node.attrs.opened ?
+                    ['span', { class: "userMarkOpen" }, 0] :
+                    ['span', { class: "userMark" }, ['span', 0]]
+                ) :
+                ['span', 0];
         }
     },
 
@@ -371,7 +447,6 @@ export const marks: { [index: string]: MarkSpec } = {
         attrs: {
             fontSize: { default: 10 }
         },
-        inclusive: false,
         parseDOM: [{ style: 'font-size: 10px;' }],
         toDOM: (node) => ['span', {
             style: `font-size: ${node.attrs.fontSize}px;`
@@ -518,6 +593,141 @@ export class ImageResizeView {
     }
 }
 
+export class OrderedListView {
+    constructor(node: any, view: any, getPos: any) { }
+
+    update(node: any) {
+        return false; // if attr's of an ordered_list (e.g., bulletStyle) change, return false forces the dom node to be recreated which is necessary for the bullet labels to update
+    }
+}
+
+export class FootnoteView {
+    innerView: any;
+    outerView: any;
+    node: any;
+    dom: any;
+    getPos: any;
+
+    constructor(node: any, view: any, getPos: any) {
+        // We'll need these later
+        this.node = node
+        this.outerView = view
+        this.getPos = getPos
+
+        // The node's representation in the editor (empty, for now)
+        this.dom = document.createElement("footnote");
+        this.dom.addEventListener("pointerup", this.toggle, true);
+        // These are used when the footnote is selected
+        this.innerView = null
+    }
+    selectNode() {
+        const attrs = { ...this.node.attrs };
+        attrs.visibility = true;
+        this.dom.classList.add("ProseMirror-selectednode")
+        if (!this.innerView) this.open()
+    }
+
+    deselectNode() {
+        const attrs = { ...this.node.attrs };
+        attrs.visibility = false;
+        this.dom.classList.remove("ProseMirror-selectednode")
+        if (this.innerView) this.close()
+    }
+    open() {
+        if (!(this.outerView as any).isOverlay) return;
+        // Append a tooltip to the outer node
+        let tooltip = this.dom.appendChild(document.createElement("div"))
+        tooltip.className = "footnote-tooltip";
+        // And put a sub-ProseMirror into that
+        this.innerView = new EditorView(tooltip, {
+            // You can use any node as an editor document
+            state: EditorState.create({
+                doc: this.node,
+                plugins: [keymap(baseKeymap),
+                keymap({
+                    "Mod-z": () => undo(this.outerView.state, this.outerView.dispatch),
+                    "Mod-y": () => redo(this.outerView.state, this.outerView.dispatch),
+                    "Mod-b": toggleMark(schema.marks.strong)
+                })]
+            }),
+            // This is the magic part
+            dispatchTransaction: this.dispatchInner.bind(this),
+            handleDOMEvents: {
+                pointerdown: ((view: any, e: PointerEvent) => {
+                    // Kludge to prevent issues due to the fact that the whole
+                    // footnote is node-selected (and thus DOM-selected) when
+                    // the parent editor is focused.
+                    e.stopPropagation();
+                    document.addEventListener("pointerup", this.ignore, true);
+                    if (this.outerView.hasFocus()) this.innerView.focus();
+                }) as any
+            }
+
+        });
+        setTimeout(() => this.innerView && this.innerView.docView.setSelection(0, 0, this.innerView.root, true), 0);
+    }
+
+    ignore = (e: PointerEvent) => {
+        e.stopPropagation();
+        document.removeEventListener("pointerup", this.ignore, true);
+    }
+
+    toggle = () => {
+        if (this.innerView) this.close();
+        else {
+            this.open();
+
+        }
+    }
+    close() {
+        this.innerView && this.innerView.destroy()
+        this.innerView = null
+        this.dom.textContent = ""
+    }
+    dispatchInner(tr: any) {
+        let { state, transactions } = this.innerView.state.applyTransaction(tr)
+        this.innerView.updateState(state)
+
+        if (!tr.getMeta("fromOutside")) {
+            let outerTr = this.outerView.state.tr, offsetMap = StepMap.offset(this.getPos() + 1)
+            for (let i = 0; i < transactions.length; i++) {
+                let steps = transactions[i].steps
+                for (let j = 0; j < steps.length; j++)
+                    outerTr.step(steps[j].map(offsetMap))
+            }
+            if (outerTr.docChanged) this.outerView.dispatch(outerTr)
+        }
+    }
+    update(node: any) {
+        if (!node.sameMarkup(this.node)) return false
+        this.node = node
+        if (this.innerView) {
+            let state = this.innerView.state
+            let start = node.content.findDiffStart(state.doc.content)
+            if (start != null) {
+                let { a: endA, b: endB } = node.content.findDiffEnd(state.doc.content)
+                let overlap = start - Math.min(endA, endB)
+                if (overlap > 0) { endA += overlap; endB += overlap }
+                this.innerView.dispatch(
+                    state.tr
+                        .replace(start, endB, node.slice(start, endA))
+                        .setMeta("fromOutside", true))
+            }
+        }
+        return true
+    }
+
+    destroy() {
+        if (this.innerView) this.close()
+    }
+
+    stopEvent(event: any) {
+        return this.innerView && this.innerView.dom.contains(event.target)
+    }
+
+    ignoreMutation() { return true }
+}
+
 export class SummarizedView {
     // TODO: highlight text that is summarized. to find end of region, walk along mark
     _collapsed: HTMLElement;
@@ -550,6 +760,8 @@ export class SummarizedView {
                 attrs.textslice = newSelection.content().toJSON();
                 view.dispatch(view.state.tr.setNodeMarkup(y, undefined, attrs));
                 view.dispatch(view.state.tr.setSelection(newSelection).deleteSelection(view.state, () => { }));
+                let marks = view.state.storedMarks.filter((m: any) => m.type !== view.state.schema.marks.highlight);
+                view.state.storedMarks = marks;
                 self._collapsed.textContent = "㊉";
             } else {
                 // node.attrs.visibility = !node.attrs.visibility;
@@ -583,7 +795,7 @@ export class SummarizedView {
             let skip = false;
             this._view.state.doc.nodesBetween(start, i, (node: Node, pos: number, parent: Node, index: number) => {
                 if (node.isLeaf && !visited.has(node) && !skip) {
-                    if (node.marks.includes(_mark)) {
+                    if (node.marks.find((m: any) => m.type === _mark.type)) {
                         visited.add(node);
                         endPos = i + node.nodeSize - 1;
                     }

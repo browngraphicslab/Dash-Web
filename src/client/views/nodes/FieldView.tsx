@@ -36,7 +36,6 @@ export interface FieldViewProps {
     isSelected: () => boolean;
     select: (isCtrlPressed: boolean) => void;
     renderDepth: number;
-    selectOnLoad: boolean;
     addDocument?: (document: Doc, allowDuplicates?: boolean) => boolean;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => void;
     pinToPres: (document: Doc) => void;
@@ -108,7 +107,6 @@ export class FieldView extends React.Component<FieldViewProps> {
             //         PanelWidth={returnHundred}
             //         PanelHeight={returnHundred}
             //         renderDepth={0} //TODO Why is renderDepth reset?
-            //         selectOnLoad={false}
             //         focus={emptyFunction}
             //         isSelected={this.props.isSelected}
             //         select={returnFalse}
