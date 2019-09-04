@@ -203,7 +203,6 @@ export const nodes: { [index: string]: NodeSpec } = {
             const decMap = bs ? "decimal" + bs : "";
             const multiMap = bs === 1 ? "decimal1" : bs === 2 ? "upper-alpha" : bs === 3 ? "lower-roman" : bs === 4 ? "lower-alpha" : "";
             let map = node.attrs.mapStyle === "decimal" ? decMap : multiMap;
-            for (let i = 0; i < node.childCount; i++) node.child(i).attrs.className = map;
             return ['ol', { class: `${map}-ol`, style: `list-style: none;` }, 0];
             //return node.attrs.bulletStyle < 2 ? ['ol', { class: `${map}-ol`, style: `list-style: none;` }, 0] :
             //     ['ol', { class: `${node.attrs.bulletStyle}`, style: `list-style: ${node.attrs.bulletStyle}; font-size: 5px` }, "hello"];
@@ -216,7 +215,6 @@ export const nodes: { [index: string]: NodeSpec } = {
         group: 'block',
         // parseDOM: [{ tag: "ul" }, { style: 'list-style-type=disc' }],
         toDOM(node: Node<any>) {
-            for (let i = 0; i < node.childCount; i++) node.child(i).attrs.className = "";
             return ['ul', 0];
         }
     },
@@ -231,12 +229,17 @@ export const nodes: { [index: string]: NodeSpec } = {
     // },
     list_item: {
         attrs: {
-            className: { default: "" }
+            bulletStyle: { default: 0 },
+            mapStyle: { default: "decimal" },
         },
         ...listItem,
         content: 'paragraph block*',
         toDOM(node: any) {
-            return ["li", { class: node.attrs.className }, 0];
+            const bs = node.attrs.bulletStyle;
+            const decMap = bs ? "decimal" + bs : "";
+            const multiMap = bs === 1 ? "decimal1" : bs === 2 ? "upper-alpha" : bs === 3 ? "lower-roman" : bs === 4 ? "lower-alpha" : "";
+            let map = node.attrs.mapStyle === "decimal" ? decMap : multiMap;
+            return ["li", { class: `${map}` }, 0];
         }
     },
 };
