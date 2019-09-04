@@ -688,6 +688,7 @@ app.use(RouteStore.corsProxy, (req, res) => {
 
 let recommender = new Recommender();
 recommender.testModel();
+recommender.arxivRequest("Triangle-GAN");
 
 app.post("/recommender", async (req, res) => {
     let keyphrases = req.body.keyphrases;

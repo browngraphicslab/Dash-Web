@@ -6,6 +6,7 @@ import React = require("react");
 import { observer } from "mobx-react";
 import { observable, action, computed, reaction } from "mobx";
 var assert = require('assert');
+var sw = require('stopword');
 import "./ClientRecommender.scss";
 import { JSXElement } from "babel-types";
 import { ToPlainText, RichTextField } from "../new_fields/RichTextField";
@@ -130,18 +131,84 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
         let data: string;
         fielddata ? data = fielddata[ToPlainText]() : data = "";
         console.log(data);
-        let converter = (results: any) => {
+        let converter = (results: any, data: string) => {
             let keyterms = new List<string>();
+            let keyterms_counted = new List<string>();
             results.documents.forEach((doc: any) => {
                 let keyPhrases = doc.keyPhrases;
                 keyPhrases.map((kp: string) => {
-                    const words = kp.split(" ");
-                    words.forEach((word) => keyterms.push(word));
+                    const frequency = this.countFrequencies(kp, data);
+                    let words = kp.split(" "); // separates phrase into words
+                    words = this.removeStopWords(words);
+                    words.forEach((word) => {
+                        keyterms.push(word);
+                        for (let i = 0; i < frequency; i++) {
+                            keyterms_counted.push(word);
+                        }
+                    });
                 });
             });
-            return keyterms;
+            return { keyterms: keyterms, keyterms_counted: keyterms_counted };
+        };
+        let test = (results: any, data: string) => {
+            results.documents.forEach((doc: any) => {
+                let kps = doc.keyPhrases;
+                kps.map((kp: string) => {
+                    this.countFrequencies(kp, data);
+                });
+            });
         };
         await CognitiveServices.Text.Appliers.analyzer(dataDoc, extDoc, ["key words"], data, converter, mainDoc);
+    }
+
+    private countFrequencies(keyphrase: string, paragraph: string) {
+        let data = paragraph.split(" ");
+        let kp_array = keyphrase.split(" ");
+        let num_keywords = kp_array.length;
+        let par_length = data.length;
+        let frequency = 0;
+        // console.log("Paragraph: ", data);
+        // console.log("Keyphrases:", kp_array);
+        for (let i = 0; i <= par_length - num_keywords; i++) {
+            const window = data.slice(i, i + num_keywords);
+            if (JSON.stringify(window) === JSON.stringify(kp_array)) {
+                frequency++;
+            }
+        }
+        return frequency;
+    }
+
+    private removeStopWords(word_array: string[]) {
+        //console.log(sw.removeStopwords(word_array));
+        return sw.removeStopwords(word_array);
+    }
+
+    /**
+     * Request to the arXiv server for ML articles.
+     */
+
+    arxivrequest = async (query: string) => {
+        let xhttp = new XMLHttpRequest();
+        let serveraddress = "http://export.arxiv.org/api"
+        let endpoint = serveraddress + "/query?search_query=all:" + query + "&start=0&max_results=5";
+        let promisified = (resolve: any, reject: any) => {
+            xhttp.onreadystatechange = function () {
+                if (this.readyState === 4) {
+                    let result = xhttp.response;
+                    switch (this.status) {
+                        case 200:
+                            console.log(result);
+                            return resolve(result);
+                        case 400:
+                        default:
+                            return reject(result);
+                    }
+                }
+            };
+            xhttp.open("GET", endpoint, true);
+            xhttp.send();
+        };
+        return new Promise<any>(promisified);
     }
 
     /***

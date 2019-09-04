@@ -651,6 +651,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 // allDocs.forEach(doc => console.log(doc.title));
                 // clears internal representation of documents as vectors
                 ClientRecommender.Instance.reset_docs();
+                ClientRecommender.Instance.arxivrequest("electrons");
                 await Promise.all(allDocs.map((doc: Doc) => {
                     let mainDoc: boolean = false;
                     const dataDoc = Doc.GetDataDoc(doc);

@@ -15,6 +15,7 @@ type RequestExecutor = (apiKey: string, body: string, service: Service) => Promi
 type AnalysisApplier<D> = (target: Doc, relevantKeys: string[], data: D, ...args: any) => any;
 type BodyConverter<D> = (data: D) => string;
 type Converter = (results: any) => Field;
+type TextConverter = (results: any, data: string) => { keyterms: Field, keyterms_counted: Field };
 
 export type Tag = { name: string, confidence: number };
 export type Rectangle = { top: number, left: number, width: number, height: number };
@@ -263,7 +264,7 @@ export namespace CognitiveServices {
 
         export namespace Appliers {
 
-            export async function vectorize(keyterms: any, dataDoc: Doc, mainDoc: boolean = false) {
+            export async function vectorize(keyterms: any, dataDoc: Doc, mainDoc: boolean = false, data: string) {
                 console.log("vectorizing...");
                 //keyterms = ["father", "king"];
                 let args = { method: 'POST', uri: Utils.prepend("/recommender"), body: { keyphrases: keyterms }, json: true };
@@ -284,15 +285,17 @@ export namespace CognitiveServices {
                 });
             }
 
-            export const analyzer = async (dataDoc: Doc, target: Doc, keys: string[], data: string, converter: Converter, mainDoc: boolean = false) => {
+            export const analyzer = async (dataDoc: Doc, target: Doc, keys: string[], data: string, converter: TextConverter, mainDoc: boolean = false) => {
                 let results = await ExecuteQuery(Service.Text, Manager, data);
                 console.log(results);
-                let keyterms = converter(results);
+                let keyterms = converter(results, data);
                 //target[keys[0]] = Docs.Get.DocumentHierarchyFromJson(results, "Key Word Analysis");
-                target[keys[0]] = keyterms;
+                target[keys[0]] = keyterms.keyterms;
                 console.log("analyzed!");
-                await vectorize(keyterms, dataDoc, mainDoc);
+                await vectorize(keyterms.keyterms_counted, dataDoc, mainDoc, data);
             };
+
+            // export async function countFrequencies() 
         }
 
     }

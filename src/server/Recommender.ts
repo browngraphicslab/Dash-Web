@@ -5,6 +5,9 @@
 
 var w2v = require('word2vec');
 var assert = require('assert');
+var arxivapi = require('arxiv-api-node');
+import requestPromise = require("request-promise");
+
 
 export class Recommender {
 
@@ -73,6 +76,32 @@ export class Recommender {
 
             return word_vecs;
         }
+    }
+
+    public async arxivRequest(query: string) {
+        // let xhttp = new XMLHttpRequest();
+        // let serveraddress = "http://export.arxiv.org/api/query?search_query=all:electron&start=0&max_results=1";
+        // let promisified = (resolve: any, reject: any) => {
+        //     xhttp.onreadystatechange = function () {
+        //         if (this.readyState === 4) {
+        //             let result = xhttp.response;
+        //             switch (this.status) {
+        //                 case 200:
+        //                     console.log(result);
+        //                     return resolve(result);
+        //                 case 400:
+        //                 default:
+        //                     return reject(result);
+        //             }
+        //         }
+        //     };
+        //     xhttp.open("GET", serveraddress, true);
+        //     xhttp.send();
+        // };
+        // return new Promise<any>(promisified);
+
+        let res = await arxivapi.query("all:electrons");
+        console.log(res);
     }
 
 
