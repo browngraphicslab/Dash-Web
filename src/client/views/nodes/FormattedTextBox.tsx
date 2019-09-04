@@ -174,7 +174,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     syncNodeSelection(view: any, sel: any) {
         if (sel instanceof NodeSelection) {
             var desc = view.docView.descAt(sel.from);
-            if (desc != view.lastSelectedViewDesc) {
+            if (desc !== view.lastSelectedViewDesc) {
                 if (view.lastSelectedViewDesc) {
                     view.lastSelectedViewDesc.deselectNode();
                     view.lastSelectedViewDesc = null;
@@ -635,8 +635,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 nodeViews: {
                     image(node, view, getPos) { return new ImageResizeView(node, view, getPos); },
                     star(node, view, getPos) { return new SummarizedView(node, view, getPos); },
-                    ordered_list(node, view, getPos) { return new OrderedListView(node, view, getPos); },
-                    footnote(node, view, getPos) { return new FootnoteView(node, view, getPos) }
+                    ordered_list(node, view, getPos) { return new OrderedListView(); },
+                    footnote(node, view, getPos) { return new FootnoteView(node, view, getPos); }
                 },
                 clipboardTextSerializer: this.clipboardTextSerializer,
                 handlePaste: this.handlePaste,

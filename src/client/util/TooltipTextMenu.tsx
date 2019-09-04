@@ -4,7 +4,7 @@ import { action, observable } from "mobx";
 import { Dropdown, icons, MenuItem } from "prosemirror-menu"; //no import css
 import { Mark, MarkType, Node as ProsNode, NodeType, ResolvedPos, Schema } from "prosemirror-model";
 import { wrapInList } from 'prosemirror-schema-list';
-import { EditorState, NodeSelection, TextSelection } from "prosemirror-state";
+import { EditorState, NodeSelection, TextSelection, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { Doc, Field, Opt } from "../../new_fields/Doc";
 import { Id } from "../../new_fields/FieldSymbols";
@@ -509,30 +509,37 @@ export class TooltipTextMenu {
         }
     }
 
+    updateBullets = (tx2: Transaction, style: string) => {
+        tx2.doc.descendants((node: any, offset: any, index: any) => {
+            if (node.type === schema.nodes.ordered_list || node.type === schema.nodes.list_item) {
+                let path = (tx2.doc.resolve(offset) as any).path;
+                let depth = Array.from(path).reduce((p: number, c: any) => p + (c.hasOwnProperty("type") && (c as any).type === schema.nodes.ordered_list ? 1 : 0), 0);
+                if (node.type === schema.nodes.ordered_list) depth++;
+                tx2.setNodeMarkup(offset, node.type, { mapStyle: style, bulletStyle: depth }, node.marks);
+            }
+        });
+    };
     //remove all node typeand apply the passed-in one to the selected text
-    changeToNodeType(nodeType: NodeType | undefined, view: EditorView) {
+    changeToNodeType = (nodeType: NodeType | undefined, view: EditorView) => {
         //remove oldif (nodeType) { //add new
         if (nodeType === schema.nodes.bullet_list) {
             wrapInList(nodeType)(view.state, view.dispatch);
         } else {
-            var ref = view.state.selection;
-            var range = ref.$from.blockRange(ref.$to);
             var marks = view.state.storedMarks || (view.state.selection.$to.parentOffset && view.state.selection.$from.marks());
-            wrapInList(schema.nodes.ordered_list)(view.state, (tx2: any) => {
-                const resolvedPos = tx2.doc.resolve(Math.round((range!.start + range!.end) / 2));
-                let path = resolvedPos.path;
-                for (let i = path.length - 1; i > 0; i--) {
-                    if (path[i].type === schema.nodes.ordered_list) {
-                        path[i].attrs.bulletStyle = 1;
-                        path[i].attrs.mapStyle = (nodeType as any).attrs.mapStyle;
-                        break;
-                    }
-                }
+            if (!wrapInList(schema.nodes.ordered_list)(view.state, (tx2: any) => {
+                this.updateBullets(tx2, (nodeType as any).attrs.mapStyle);
                 marks && tx2.ensureMarks([...marks]);
                 marks && tx2.setStoredMarks([...marks]);
 
                 view.dispatch(tx2);
-            });
+            })) {
+                let tx2 = view.state.tr;
+                this.updateBullets(tx2, (nodeType as any).attrs.mapStyle);
+                marks && tx2.ensureMarks([...marks]);
+                marks && tx2.setStoredMarks([...marks]);
+
+                view.dispatch(tx2);
+            }
         }
     }
 

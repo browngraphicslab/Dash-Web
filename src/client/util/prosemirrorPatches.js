@@ -6,6 +6,7 @@ var prosemirrorTransform = require('prosemirror-transform');
 var prosemirrorModel = require('prosemirror-model');
 
 exports.liftListItem = liftListItem;
+exports.sinkListItem = sinkListItem;
 // :: (NodeType) → (state: EditorState, dispatch: ?(tr: Transaction)) → bool
 // Create a command to lift the list item around the selection up into
 // a wrapping list.
@@ -59,4 +60,33 @@ function liftOutOfList(tr, dispatch, range) {
             atStart ? 0 : 1, atEnd ? 0 : 1), atStart ? 0 : 1));
     dispatch(tr.scrollIntoView());
     return true
+}
+
+// :: (NodeType) → (state: EditorState, dispatch: ?(tr: Transaction)) → bool
+// Create a command to sink the list item around the selection down
+// into an inner list.
+function sinkListItem(itemType) {
+    return function (state, dispatch) {
+        var ref = state.selection;
+        var $from = ref.$from;
+        var $to = ref.$to;
+        var range = $from.blockRange($to, function (node) { return node.childCount && node.firstChild.type == itemType; });
+        if (!range) { return false }
+        var startIndex = range.startIndex;
+        if (startIndex == 0) { return false }
+        var parent = range.parent, nodeBefore = parent.child(startIndex - 1);
+        if (nodeBefore.type != itemType) { return false; }
+
+        if (dispatch) {
+            var nestedBefore = nodeBefore.lastChild && nodeBefore.lastChild.type == parent.type;
+            var inner = prosemirrorModel.Fragment.from(nestedBefore ? itemType.create() : null);
+            let slice = new prosemirrorModel.Slice(prosemirrorModel.Fragment.from(itemType.create(null, prosemirrorModel.Fragment.from(parent.type.create(parent.attrs, inner)))),
+                nestedBefore ? 3 : 1, 0);
+            var before = range.start, after = range.end;
+            dispatch(state.tr.step(new prosemirrorTransform.ReplaceAroundStep(before - (nestedBefore ? 3 : 1), after,
+                before, after, slice, 1, true))
+                .scrollIntoView());
+        }
+        return true
+    }
 }

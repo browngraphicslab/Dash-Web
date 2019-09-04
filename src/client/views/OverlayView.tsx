@@ -191,7 +191,7 @@ export class OverlayView extends React.Component {
                     zoomToScale={emptyFunction}
                     getScale={returnOne} />
             </div>;
-        })
+        });
     }
 
     render() {

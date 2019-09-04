@@ -92,7 +92,7 @@ export class FormattedTextBoxComment {
         if (lastState && lastState.doc.eq(state.doc) &&
             lastState.selection.eq(state.selection)) return;
 
-        let set = "none"
+        let set = "none";
         if (state.selection.$from) {
             let nbef = findStartOfMark(state.selection.$from, view, findOtherUserMark);
             let naft = findEndOfMark(state.selection.$from, view, findOtherUserMark);
@@ -130,7 +130,7 @@ export class FormattedTextBoxComment {
                 if (mark.attrs.href.indexOf(Utils.prepend("/doc/")) === 0) {
                     let docTarget = mark.attrs.href.replace(Utils.prepend("/doc/"), "").split("?")[0];
                     docTarget && DocServer.GetRefField(docTarget).then(linkDoc =>
-                        (linkDoc as Doc) && (FormattedTextBoxComment.tooltipText.textContent = "link :" + StrCast((linkDoc as Doc)!.title)));
+                        (linkDoc as Doc) && (FormattedTextBoxComment.tooltipText.textContent = "link :" + StrCast((linkDoc as Doc).title)));
                 }
                 // These are in screen coordinates
                 // let start = view.coordsAtPos(state.selection.from), end = view.coordsAtPos(state.selection.to);

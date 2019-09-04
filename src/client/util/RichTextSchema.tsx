@@ -597,8 +597,6 @@ export class ImageResizeView {
 }
 
 export class OrderedListView {
-    constructor(node: any, view: any, getPos: any) { }
-
     update(node: any) {
         return false; // if attr's of an ordered_list (e.g., bulletStyle) change, return false forces the dom node to be recreated which is necessary for the bullet labels to update
     }
@@ -613,33 +611,33 @@ export class FootnoteView {
 
     constructor(node: any, view: any, getPos: any) {
         // We'll need these later
-        this.node = node
-        this.outerView = view
-        this.getPos = getPos
+        this.node = node;
+        this.outerView = view;
+        this.getPos = getPos;
 
         // The node's representation in the editor (empty, for now)
         this.dom = document.createElement("footnote");
         this.dom.addEventListener("pointerup", this.toggle, true);
         // These are used when the footnote is selected
-        this.innerView = null
+        this.innerView = null;
     }
     selectNode() {
         const attrs = { ...this.node.attrs };
         attrs.visibility = true;
-        this.dom.classList.add("ProseMirror-selectednode")
-        if (!this.innerView) this.open()
+        this.dom.classList.add("ProseMirror-selectednode");
+        if (!this.innerView) this.open();
     }
 
     deselectNode() {
         const attrs = { ...this.node.attrs };
         attrs.visibility = false;
-        this.dom.classList.remove("ProseMirror-selectednode")
-        if (this.innerView) this.close()
+        this.dom.classList.remove("ProseMirror-selectednode");
+        if (this.innerView) this.close();
     }
     open() {
-        if (!(this.outerView as any).isOverlay) return;
+        if (!this.outerView.isOverlay) return;
         // Append a tooltip to the outer node
-        let tooltip = this.dom.appendChild(document.createElement("div"))
+        let tooltip = this.dom.appendChild(document.createElement("div"));
         tooltip.className = "footnote-tooltip";
         // And put a sub-ProseMirror into that
         this.innerView = new EditorView(tooltip, {
@@ -679,56 +677,55 @@ export class FootnoteView {
         if (this.innerView) this.close();
         else {
             this.open();
-
         }
     }
     close() {
-        this.innerView && this.innerView.destroy()
-        this.innerView = null
-        this.dom.textContent = ""
+        this.innerView && this.innerView.destroy();
+        this.innerView = null;
+        this.dom.textContent = "";
     }
     dispatchInner(tr: any) {
-        let { state, transactions } = this.innerView.state.applyTransaction(tr)
-        this.innerView.updateState(state)
+        let { state, transactions } = this.innerView.state.applyTransaction(tr);
+        this.innerView.updateState(state);
 
         if (!tr.getMeta("fromOutside")) {
-            let outerTr = this.outerView.state.tr, offsetMap = StepMap.offset(this.getPos() + 1)
-            for (let i = 0; i < transactions.length; i++) {
-                let steps = transactions[i].steps
-                for (let j = 0; j < steps.length; j++)
-                    outerTr.step(steps[j].map(offsetMap))
+            let outerTr = this.outerView.state.tr, offsetMap = StepMap.offset(this.getPos() + 1);
+            for (let steps of transactions) {
+                for (let step of steps) {
+                    outerTr.step(step.map(offsetMap));
+                }
             }
-            if (outerTr.docChanged) this.outerView.dispatch(outerTr)
+            if (outerTr.docChanged) this.outerView.dispatch(outerTr);
         }
     }
     update(node: any) {
-        if (!node.sameMarkup(this.node)) return false
-        this.node = node
+        if (!node.sameMarkup(this.node)) return false;
+        this.node = node;
         if (this.innerView) {
-            let state = this.innerView.state
-            let start = node.content.findDiffStart(state.doc.content)
-            if (start != null) {
-                let { a: endA, b: endB } = node.content.findDiffEnd(state.doc.content)
-                let overlap = start - Math.min(endA, endB)
-                if (overlap > 0) { endA += overlap; endB += overlap }
+            let state = this.innerView.state;
+            let start = node.content.findDiffStart(state.doc.content);
+            if (start !== null) {
+                let { a: endA, b: endB } = node.content.findDiffEnd(state.doc.content);
+                let overlap = start - Math.min(endA, endB);
+                if (overlap > 0) { endA += overlap; endB += overlap; }
                 this.innerView.dispatch(
                     state.tr
                         .replace(start, endB, node.slice(start, endA))
-                        .setMeta("fromOutside", true))
+                        .setMeta("fromOutside", true));
             }
         }
-        return true
+        return true;
     }
 
     destroy() {
-        if (this.innerView) this.close()
+        if (this.innerView) this.close();
     }
 
     stopEvent(event: any) {
-        return this.innerView && this.innerView.dom.contains(event.target)
+        return this.innerView && this.innerView.dom.contains(event.target);
     }
 
-    ignoreMutation() { return true }
+    ignoreMutation() { return true; }
 }
 
 export class SummarizedView {
