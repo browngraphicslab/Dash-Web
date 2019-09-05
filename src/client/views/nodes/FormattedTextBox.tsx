@@ -75,6 +75,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     private _editorView: Opt<EditorView>;
     private _applyingChange: boolean = false;
     private _linkClicked = "";
+    private _nodeClicked: any;
     private _undoTyping?: UndoManager.Batch;
     private _reactionDisposer: Opt<IReactionDisposer>;
     private _searchReactionDisposer?: Lambda;
@@ -671,17 +672,10 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         this._editorView && this._editorView.destroy();
     }
 
+
     onPointerDown = (e: React.PointerEvent): void => {
         let pos = this._editorView!.posAtCoords({ left: e.clientX, top: e.clientY });
-        if (pos) {
-            if (e.nativeEvent.offsetX < 40) {
-                let node = this._editorView!.state.doc.nodeAt(pos.pos);
-                let node2 = node && node.type === schema.nodes.paragraph ? this._editorView!.state.doc.nodeAt(pos.pos - 1) : undefined;
-                if (node2 && (node2.type === schema.nodes.ordered_list || node2.type === schema.nodes.list_item)) {
-                    this._editorView!.dispatch(this._editorView!.state.tr.setNodeMarkup(pos.pos - 1, node2.type, { ...node2.attrs, visibility: !node2.attrs.visibility }));
-                }
-            }
-        }
+        pos && (this._nodeClicked = this._editorView!.state.doc.nodeAt(pos.pos));
         if (this.props.onClick && e.button === 0) {
             e.preventDefault();
         }
@@ -778,6 +772,16 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     onClick = (e: React.MouseEvent): void => {
+        if (this.props.isSelected() && e.nativeEvent.offsetX < 40) {
+            let pos = this._editorView!.posAtCoords({ left: e.clientX, top: e.clientY });
+            if (pos) {
+                let node = this._editorView!.state.doc.nodeAt(pos.pos);
+                let node2 = node && node.type === schema.nodes.paragraph ? this._editorView!.state.doc.nodeAt(pos.pos - 1) : undefined;
+                if (node === this._nodeClicked && node2 && (node2.type === schema.nodes.ordered_list || node2.type === schema.nodes.list_item)) {
+                    this._editorView!.dispatch(this._editorView!.state.tr.setNodeMarkup(pos.pos - 1, node2.type, { ...node2.attrs, visibility: !node2.attrs.visibility }));
+                }
+            }
+        }
         this._proseRef!.focus();
         if (this._linkClicked) {
             this._linkClicked = "";
