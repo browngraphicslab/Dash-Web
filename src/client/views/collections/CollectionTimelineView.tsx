@@ -527,26 +527,16 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         if (this.screenref.current) {
             this.windowheight = this.screenref.current.getBoundingClientRect().height - 40;
         }
-        for (let i = this.rowscale; i < this.windowheight; i
+        for (let i = 0; i < this.windowheight; i
             += this.rowscale) {
-            this.rows.push(<div style={{ position: "absolute", top: i, width: "100%", zIndex: -100 }} />);
+
+
+            this.rows.push(<div onPointerDown={this.onPointerDown_AdjustScale} style={{ cursor: "n-resize", borderTop: "1px black dotted", height: "5px", position: "absolute", top: i, width: "100%", zIndex: 100 }} />);
             this.rowval.push(i);
         }
     }
 
-    @action
-    rowscaleset = (number: number) => {
-        if (this.rowscale + number <= 40) {
-            this.rowscale = 40;
-        }
-        else if (this.rowscale + number >= 100) {
-            this.rowscale = 100;
-        }
-        else {
-            this.rowscale += number;
-        }
-        this.createRows();
-    }
+
 
     private rows: JSX.Element[] = [];
     private rowval: number[] = [];
@@ -568,6 +558,35 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         }
         return color;
     }
+
+
+    @action
+    onPointerDown_AdjustScale = (e: React.PointerEvent<HTMLDivElement>): void => {
+        document.addEventListener("pointermove", this.onPointerMove_AdjustScale);
+        document.addEventListener("pointerup", this.onPointerUp_Dragger);
+        e.stopPropagation();
+        e.preventDefault();
+    }
+
+
+    @action
+    onPointerMove_AdjustScale = (e: PointerEvent): void => {
+        e.stopPropagation();
+        e.preventDefault();
+        let number = e.movementY;
+        if (this.rowscale + number <= 40) {
+            this.rowscale = 40;
+        }
+        else if (this.rowscale + number >= 100) {
+            this.rowscale = 100;
+        }
+        else {
+            this.rowscale += number;
+        }
+        document.addEventListener("pointerup", this.onPointerUp_Dragger);
+    }
+
+
 
     private get leftbound() {
         let doc = this.props.Document;
@@ -695,7 +714,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
             let d = new Doc;
             let closestRow = 0;
             let closestRowVal = 99999999;
-            let y = e.pageY - 50;
+            let y = e.pageY - 70;
             for (let i = 0; i < this.rowval.length; i++) {
                 if (Math.abs(this.rowval[i] - y) < closestRowVal) {
                     closestRowVal = Math.abs(this.rowval[i] - y);
@@ -747,7 +766,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     }
     onPointerUp_Dragger = (e: PointerEvent): void => {
         document.removeEventListener("pointermove", this.onPointerMove_Dragger, true);
-        document.removeEventListener("pointerup", this.onPointerUp_Dragger, true);
+        document.removeEventListener("pointermove", this.onPointerMove_AdjustScale);
         this.screenref.current!.style.cursor = "grab";
     }
 
@@ -808,14 +827,13 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     barref={this.barref}
                     screenref={this.screenref}
                     markerrender={this.markerrender}
-                    setsortstate={this.setsortsate}
-                    rowscaleset={this.rowscaleset}>
+                    setsortstate={this.setsortsate}>
                 </BottomUI>
                 <Measure onResize={() => this.updateWidth()}>
                     {({ measureRef }) => <div ref={measureRef}> </div>}
                 </Measure>
 
-                <div style={{ top: "50px", position: "absolute", bottom: "25%", width: "100%", }}>
+                <div onPointerDown={this.onPointerDown_Dragger} style={{ top: "50px", position: "absolute", height: "90%", width: "100%", }}>
                     {this.rows}
                     {this.thumbnails.map(doc =>
                         <Thumbnail
@@ -831,7 +849,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         </Thumbnail>
 
                     )}
-                    <div ref={this.timelineref} style={{ position: "absolute", height: "25px", width: "100%", zIndex: 999999 }}>
+                    <div ref={this.timelineref} style={{ position: "absolute", height: "25px", width: "100%", zIndex: 0 }}>
                         {DocListCast(this.props.Document.markers).map(d => this.createmarker(d))}
                     </div>
                     <div style={{

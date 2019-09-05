@@ -131,7 +131,6 @@ export class BottomUI extends React.Component<BottomUIProps> {
     onPointerMove_OnBar = (e: PointerEvent): void => {
         e.stopPropagation();
         e.preventDefault();
-        this.props.rowscaleset(e.movementY);
         let newx2 = this.props.rightbound - e.movementX;
         let newx = this.props.leftbound + e.movementX;
         if (newx2 < 0) {
@@ -213,7 +212,6 @@ export class BottomUI extends React.Component<BottomUIProps> {
     onPointerMove_AdjustScale = (e: PointerEvent): void => {
         e.stopPropagation();
         e.preventDefault();
-        this.props.rowscaleset(e.movementX);
         document.addEventListener("pointerup", this.onPointerUp);
     }
 
@@ -282,7 +280,6 @@ export interface BottomUIProps {
     rightbound: number;
     leftboundSet: (number: number) => void;
     rightboundSet: (number: number) => void;
-    rowscaleset: (number: number) => void;
     _range: number;
     barwidth: number;
     minvalue: number;
