@@ -141,37 +141,10 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     @computed get dataDoc() { return this.props.DataDoc && (BoolCast(this.props.Document.isTemplate) || BoolCast(this.props.DataDoc.isTemplate) || this.props.DataDoc.layout === this.props.Document) ? this.props.DataDoc : Doc.GetProto(this.props.Document); }
 
 
-    paste = (e: ClipboardEvent) => {
-        if (e.clipboardData && this._editorView) {
-            // let pdfPasteText = `${Utils.GenerateDeterministicGuid("pdf paste")}`;
-            // for (let i = 0; i < e.clipboardData.items.length; i++) {
-            //     let item = e.clipboardData.items.item(i);
-            //     console.log(item)
-            //     if (item.type === "text/plain") {
-            //         console.log("plain")
-            //         item.getAsString((text) => {
-            //             let pdfPasteIndex = text.indexOf(pdfPasteText);
-            //             if (pdfPasteIndex > -1) {
-            //                 let insertText = text.substr(0, pdfPasteIndex);
-            //                 const tx = this._editorView!.state.tr.insertText(insertText);
-            //                 // tx.setSelection(new Selection(tx.))
-            //                 const state = this._editorView!.state;
-            //                 this._editorView!.dispatch(tx);
-            //                 if (FormattedTextBox._toolTipTextMenu) {
-            //                     // this._toolTipTextMenu.makeLinkWithState(state)
-            //                 }
-            //                 e.stopPropagation();
-            //                 e.preventDefault();
-            //             }
-            //         });
-            //     }
-            // }
-        }
-    }
-
     // this should be internal to prosemirror, but is needed
     // here to make sure that footnote view nodes in the overlay editor
     // get removed when they're not selected.
+
     syncNodeSelection(view: any, sel: any) {
         if (sel instanceof NodeSelection) {
             var desc = view.docView.descAt(sel.from);
@@ -363,8 +336,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     componentDidMount() {
-        document.addEventListener("paste", this.paste);
-
         if (!this.props.isOverlay) {
             this._proxyReactionDisposer = reaction(() => this.props.isSelected(),
                 () => {
@@ -584,7 +555,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 if (link) {
                     cbe.clipboardData!.setData("dash/linkDoc", link[Id]);
                     linkId = link[Id];
-                    let frag = addMarkToFrag(slice.content);
+                    let frag = addMarkToFrag(slice.content, (node: Node) => addLinkMark(node, StrCast(doc.title)));
                     slice = new Slice(frag, slice.openStart, slice.openEnd);
                     var tr = view.state.tr.replaceSelection(slice);
                     view.dispatch(tr.scrollIntoView().setMeta("paste", true).setMeta("uiEvent", "paste"));
@@ -594,19 +565,19 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
         return true;
 
-        function addMarkToFrag(frag: Fragment) {
+        function addMarkToFrag(frag: Fragment, marker: (node: Node) => Node) {
             const nodes: Node[] = [];
-            frag.forEach(node => nodes.push(addLinkMark(node)));
+            frag.forEach(node => nodes.push(marker(node)));
             return Fragment.fromArray(nodes);
         }
-        function addLinkMark(node: Node) {
+        function addLinkMark(node: Node, title: string) {
             if (!node.isText) {
-                const content = addMarkToFrag(node.content);
+                const content = addMarkToFrag(node.content, (node: Node) => addLinkMark(node, title));
                 return node.copy(content);
             }
             const marks = [...node.marks];
             const linkIndex = marks.findIndex(mark => mark.type.name === "link");
-            const link = view.state.schema.mark(view.state.schema.marks.link, { href: `http://localhost:1050/doc/${linkId}`, location: "onRight" });
+            const link = view.state.schema.mark(view.state.schema.marks.link, { href: `http://localhost:1050/doc/${linkId}`, location: "onRight", title: title, docref: true });
             if (linkIndex !== -1) {
                 marks.splice(linkIndex, 1, link);
             } else {
@@ -668,7 +639,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         this._pullReactionDisposer && this._pullReactionDisposer();
         this._heightReactionDisposer && this._heightReactionDisposer();
         this._searchReactionDisposer && this._searchReactionDisposer();
-        document.removeEventListener("paste", this.paste);
         this._editorView && this._editorView.destroy();
     }
 

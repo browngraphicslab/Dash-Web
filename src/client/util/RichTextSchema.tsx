@@ -205,7 +205,7 @@ export const nodes: { [index: string]: NodeSpec } = {
             const multiMap = bs === 1 ? "decimal1" : bs === 2 ? "upper-alpha" : bs === 3 ? "lower-roman" : bs === 4 ? "lower-alpha" : "";
             let map = node.attrs.mapStyle === "decimal" ? decMap : multiMap;
             return node.attrs.visibility ? ['ol', { class: `${map}-ol`, style: `list-style: none;` }, 0] :
-                 ['ol', { class: `${map}-ol`, style: `list-style: none;` }];
+                ['ol', { class: `${map}-ol`, style: `list-style: none;` }];
             //return node.attrs.bulletStyle < 2 ? ['ol', { class: `${map}-ol`, style: `list-style: none;` }, 0] :
             //     ['ol', { class: `${node.attrs.bulletStyle}`, style: `list-style: ${node.attrs.bulletStyle}; font-size: 5px` }, "hello"];
         }
@@ -262,7 +262,8 @@ export const marks: { [index: string]: MarkSpec } = {
         attrs: {
             href: {},
             location: { default: null },
-            title: { default: null }
+            title: { default: null },
+            docref: { default: false }
         },
         inclusive: false,
         parseDOM: [{
@@ -270,7 +271,11 @@ export const marks: { [index: string]: MarkSpec } = {
                 return { href: dom.getAttribute("href"), location: dom.getAttribute("location"), title: dom.getAttribute("title") };
             }
         }],
-        toDOM(node: any) { return ["a", node.attrs, 0]; }
+        toDOM(node: any) {
+            return node.attrs.docref && node.attrs.title ?
+                ["div", ["span", `"`], ["span", 0], ["span", `"`], ["br"], ["a", { ...node.attrs, class: "prosemirror-attribution" }, node.attrs.title], ["br"]] :
+                ["a", { ...node.attrs }, 0];
+        }
     },
 
     // :: MarkSpec An emphasis mark. Rendered as an `<em>` element.

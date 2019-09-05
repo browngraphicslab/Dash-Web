@@ -310,6 +310,10 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     sectionMasonry(heading: SchemaHeaderField | undefined, docList: Doc[]) {
         let cols = Math.max(1, Math.min(docList.length,
             Math.floor((this.props.PanelWidth() - 2 * this.xMargin) / (this.columnWidth + this.gridGap))));
+        if (isNaN(cols)) {
+            console.log("naN");
+            cols = 1;
+        }
         return <div key={heading ? heading.heading : "empty"} className="collectionStackingView-masonrySection">
             {!heading ? (null) :
                 <div key={`${heading.heading}`} className="collectionStackingView-sectionHeader" style={{ background: heading.color }}
