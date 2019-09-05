@@ -99,7 +99,7 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
                 let path = (tx2.doc.resolve(offset) as any).path;
                 let depth = Array.from(path).reduce((p: number, c: any) => p + (c.hasOwnProperty("type") && (c as any).type === schema.nodes.ordered_list ? 1 : 0), 0);
                 if (node.type === schema.nodes.ordered_list) depth++;
-                tx2.setNodeMarkup(offset, node.type, { mapStyle: node.attrs.mapStyle, bulletStyle: depth }, node.marks);
+                tx2.setNodeMarkup(offset, node.type, { ...node.attrs, mapStyle: node.attrs.mapStyle, bulletStyle: depth }, node.marks);
             }
         });
     };

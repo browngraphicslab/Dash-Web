@@ -197,13 +197,15 @@ export const nodes: { [index: string]: NodeSpec } = {
         attrs: {
             bulletStyle: { default: 0 },
             mapStyle: { default: "decimal" },
+            visibility: { default: true }
         },
         toDOM(node: Node<any>) {
             const bs = node.attrs.bulletStyle;
             const decMap = bs ? "decimal" + bs : "";
             const multiMap = bs === 1 ? "decimal1" : bs === 2 ? "upper-alpha" : bs === 3 ? "lower-roman" : bs === 4 ? "lower-alpha" : "";
             let map = node.attrs.mapStyle === "decimal" ? decMap : multiMap;
-            return ['ol', { class: `${map}-ol`, style: `list-style: none;` }, 0];
+            return node.attrs.visibility ? ['ol', { class: `${map}-ol`, style: `list-style: none;` }, 0] :
+                 ['ol', { class: `${map}-ol`, style: `list-style: none;` }];
             //return node.attrs.bulletStyle < 2 ? ['ol', { class: `${map}-ol`, style: `list-style: none;` }, 0] :
             //     ['ol', { class: `${node.attrs.bulletStyle}`, style: `list-style: ${node.attrs.bulletStyle}; font-size: 5px` }, "hello"];
         }
@@ -231,6 +233,7 @@ export const nodes: { [index: string]: NodeSpec } = {
         attrs: {
             bulletStyle: { default: 0 },
             mapStyle: { default: "decimal" },
+            visibility: { default: true }
         },
         ...listItem,
         content: 'paragraph block*',
@@ -239,7 +242,8 @@ export const nodes: { [index: string]: NodeSpec } = {
             const decMap = bs ? "decimal" + bs : "";
             const multiMap = bs === 1 ? "decimal1" : bs === 2 ? "upper-alpha" : bs === 3 ? "lower-roman" : bs === 4 ? "lower-alpha" : "";
             let map = node.attrs.mapStyle === "decimal" ? decMap : multiMap;
-            return ["li", { class: `${map}` }, 0];
+            return node.attrs.visibility ? ["li", { class: `${map}` }, 0] : ["li", { class: `${map}` }, "..."];
+            //return ["li", { class: `${map}` }, 0];
         }
     },
 };

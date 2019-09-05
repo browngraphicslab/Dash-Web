@@ -672,6 +672,16 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
+        let pos = this._editorView!.posAtCoords({ left: e.clientX, top: e.clientY });
+        if (pos) {
+            if (e.nativeEvent.offsetX < 40) {
+                let node = this._editorView!.state.doc.nodeAt(pos.pos);
+                let node2 = node && node.type === schema.nodes.paragraph ? this._editorView!.state.doc.nodeAt(pos.pos - 1) : undefined;
+                if (node2 && (node2.type === schema.nodes.ordered_list || node2.type === schema.nodes.list_item)) {
+                    this._editorView!.dispatch(this._editorView!.state.tr.setNodeMarkup(pos.pos - 1, node2.type, { ...node2.attrs, visibility: !node2.attrs.visibility }));
+                }
+            }
+        }
         if (this.props.onClick && e.button === 0) {
             e.preventDefault();
         }
