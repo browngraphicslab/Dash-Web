@@ -25,6 +25,8 @@ import { ContextMenuProps } from "../ContextMenuItem";
 import { ScriptBox } from "../ScriptBox";
 import { CollectionMasonryViewFieldRow } from "./CollectionMasonryViewFieldRow";
 
+let _height: number = 0;
+
 @observer
 export class CollectionStackingView extends CollectionSubView(doc => doc) {
     _masonryGridRef: HTMLDivElement | null = null;
@@ -34,7 +36,9 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     _sectionFilterDisposer?: IReactionDisposer;
     _docXfs: any[] = [];
     _columnStart: number = 0;
+    // _height: number = 0;
     @observable private cursor: CursorProperty = "grab";
+    // @computed private _height: number = 0;
     @computed get sectionHeaders() { return Cast(this.props.Document.sectionHeaders, listSpec(SchemaHeaderField)); }
     @computed get sectionFilter() { return StrCast(this.props.Document.sectionFilter); }
     @computed get filteredChildren() { return this.childDocs.filter(d => !d.isMinimized); }
@@ -53,6 +57,14 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
 
     childDocHeight(child: Doc) { return this.getDocHeight(Doc.GetLayoutDataDocPair(this.props.Document, this.props.DataDoc, this.props.fieldKey, child).layout); }
+
+    addToDocHeight(sectionHeight: number) {
+        // if (_height !== undefined) {
+        console.log("indiv height: " + _height);
+        _height += sectionHeight;
+        // }
+        // return _height;
+    }
 
     get layoutDoc() {
         // if this document's layout field contains a document (ie, a rendering template), then we will use that
@@ -102,8 +114,40 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     return this.props.ContentScaling() * sectionsList.reduce((maxHght, s) => Math.max(maxHght,
                         (this.Sections.size ? 50 : 0) + s.reduce((height, d, i) => height + this.childDocHeight(d) + (i === s.length - 1 ? this.yMargin : this.gridGap), this.yMargin)), 0);
                 } else {
-                    return this.props.ContentScaling() * sectionsList.reduce((totalHeight, s) => totalHeight +
-                        (this.Sections.size ? 50 : 0) + s.reduce((height, d, i) => height + this.childDocHeight(d) + (i === s.length - 1 ? this.yMargin : this.gridGap), this.yMargin) + 47, 0);
+                    // let rowArray: CollectionMasonryViewFieldRow[] = [];
+                    for (let i = 0; i < this.Sections.size; i++) {
+                        // rowArray.push(this._masonryGridRef);
+                    }
+                    let sum: number = 0;
+                    // let counter: number = 0;
+                    sum += _height; //calculated height of the node from the masonry prop
+                    // console.log("height: " + _height);
+                    if (this.sectionHeaders !== undefined) {
+                        // this.sectionHeaders.forEach(sec => {
+                        //     if (sec.collapsed) {
+                        //         sum += 20;
+                        //         console.log("sec collapsed");
+                        //     } else {
+                        //         // sum += sectionsList[counter].reduce((height, d, i) => height + this.childDocHeight(d) + (i === sectionsList[counter].length - 1 ? this.yMargin : this.gridGap), this.yMargin);
+                        //         // sum += NumCast(document.getElementsByClassName("collectionStackingView-sectionHeader-subCont").offsetHeight);
+                        //         // sum += this.addToDocHeight(this.Sections[counter]);
+                        //         // console.log("section is not collapsed");
+                        //         sum += _height;
+                        //         // this.addToDocHeight(40);
+                        //         // console.log("this._height in componentDidMount: " + _height);
+                        //     }
+                        //     // console.log("IN IF STATEMENT, sum is: " + sum);
+                        //     counter += 1;
+                        // });
+                    }
+                    // return this.props.ContentScaling() * sectionsList.reduce((totalHeight, s) => totalHeight +
+                    //     (this.Sections.size ? 50 : 0) + s.reduce((height, d, i) => height + this.childDocHeight(d) + (i === s.length - 1 ? this.yMargin : this.gridGap), this.yMargin) + 47, 0);
+                    sum += 20; //allow space for the "add group" button
+                    console.log("sum: " + sum);
+                    _height = 0; //without this the height get HUGE (just keeps adding i think...)
+                    return this.props.ContentScaling() * (sum + (this.Sections.size ? 50 : 0)); //+47
+                    // return this.props.ContentScaling() * sectionsList.reduce((totalHeight, s) => totalHeight +
+                    //     (this.Sections.size ? 50 : 0) + s.reduce((height, d, i) => height + this.childDocHeight(d) + (i === s.length - 1 ? this.yMargin : this.gridGap), this.yMargin) + 47, 0);
                 }
             }
             return -1;
@@ -313,6 +357,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             type={type}
             createDropTarget={this.createDropTarget}
             screenToLocalTransform={this.props.ScreenToLocalTransform}
+            addToDocHeight={this.addToDocHeight}
         />;
     }
 

@@ -33,6 +33,7 @@ interface CMVFieldRowProps {
     type: "string" | "number" | "bigint" | "boolean" | "symbol" | "undefined" | "object" | "function" | undefined;
     createDropTarget: (ele: HTMLDivElement) => void;
     screenToLocalTransform: () => Transform;
+    addToDocHeight: (thisHeight: number) => void;
 }
 
 @observer
@@ -43,17 +44,45 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     private dropDisposer?: DragManager.DragDropDisposer;
     private _headerRef: React.RefObject<HTMLDivElement> = React.createRef();
     private _startDragPosition: { x: number, y: number } = { x: 0, y: 0 };
+    private _contRef: React.RefObject<HTMLDivElement> = React.createRef();
     private _sensitivity: number = 16;
 
     @observable _heading = this.props.headingObject ? this.props.headingObject.heading : this.props.heading;
     @observable _color = this.props.headingObject ? this.props.headingObject.color : "#f1efeb";
 
     createRowDropRef = (ele: HTMLDivElement | null) => {
+        console.log("createRowDropRef ran");
         this._dropRef = ele;
         this.dropDisposer && this.dropDisposer();
         if (ele) {
             this.dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.rowDrop.bind(this) } });
         }
+        // this.getTrueHeight();
+    }
+
+    getTrueHeight = () => { //handle collapse in here (if collapsed, return #)
+        //also, don't need to return anything
+        //call this in component did mount or something...
+        if (this.collapsed) {
+            this.props.addToDocHeight(20);
+            console.log("collapsed");
+        } else { //this is calculating the heights correctlty
+            let rawHeight = this._contRef.current!.getBoundingClientRect().height + 20;
+            let transformScale = this.props.screenToLocalTransform().Scale;
+            let trueHeight = rawHeight * transformScale;
+            this.props.addToDocHeight(trueHeight);
+            console.log("trueHeight: " + trueHeight);
+        }
+        this.props.addToDocHeight(20);
+    }
+
+    // componentDidMount = () => {
+    //     this.getTrueHeight();
+    // }
+
+    componentDidUpdate = () => {
+        console.log("componentDidUpdate");
+        this.getTrueHeight(); //why does this
     }
 
     @undoBatch
@@ -323,6 +352,8 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
                 {this.collapsed ? (null) :
                     < div >
                         <div key={`${heading}-stack`} className={`collectionStackingView-masonryGrid`}
+                            // ref={this.getTrueHeight}
+                            ref={this._contRef}
                             style={{
                                 padding: `${this.props.parent.yMargin}px ${this.props.parent.xMargin}px`,
                                 width: this.props.parent.NodeWidth,
