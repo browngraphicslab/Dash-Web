@@ -17,7 +17,6 @@ import { listSpec } from "../../../new_fields/Schema";
 import { DocServer } from "../../DocServer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
-import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 
 enum FollowModes {
     OPENTAB = "Open in Tab",
@@ -321,7 +320,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     }
 
     //set this to be the default link behavior, can be any of the above
-    public defaultLinkBehavior: (options?: any) => void = this.openLinkTab;
+    public defaultLinkBehavior: (options?: any) => string = (options?: any) => "inTab";
 
     @action
     currentLinkBehavior = () => {
