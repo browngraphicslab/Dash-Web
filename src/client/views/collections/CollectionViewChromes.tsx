@@ -756,17 +756,17 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
         let doc = this.props.CollectionView.props.Document;
 
         if (e.key === "Enter") {
-            var thing = (parseFloat(this.searchString!) - this.props.minvalue) * this.props.barwidth / this.props._range;
+            var thing = (parseFloat(this.searchString!) - NumCast(this.props.CollectionView.props.Document.barwidth)) * NumCast(this.props.CollectionView.props.Document.barwidth) / NumCast(this.props.CollectionView.props.Document._range);
             if (!isNaN(thing)) {
-                if (thing > this.props.barwidth) {
+                if (thing > NumCast(this.props.CollectionView.props.Document.barwidth)) {
                     doc.rightbound = 0;
                 }
                 else if
-                    (NumCast(doc.leftbound) + thing >= this.props.barwidth) {
-                    doc.rightbound = (this.props.barwidth - NumCast(doc.leftbound) - 1);
+                    (NumCast(doc.leftbound) + thing >= NumCast(this.props.CollectionView.props.Document.barwidth)) {
+                    doc.rightbound = (NumCast(this.props.CollectionView.props.Document.barwidth) - NumCast(doc.leftbound) - 1);
                 }
                 else {
-                    doc.rightbound = (this.props.barwidth - thing);
+                    doc.rightbound = (NumCast(this.props.CollectionView.props.Document.barwidth) - thing);
                 }
 
 
@@ -786,7 +786,7 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
     enter2 = (e: React.KeyboardEvent<HTMLInputElement>) => {
         let doc = this.props.CollectionView.props.Document;
         if (e.key === "Enter") {
-            var thing = (parseFloat(this.searchString2!) - this.props.minvalue) * NumCast(doc.barwidth) / this.props._range;
+            var thing = (parseFloat(this.searchString2!) - NumCast(this.props.CollectionView.props.Document.minvalue)) * NumCast(doc.barwidth) / NumCast(this.props.CollectionView.props.Document._range);
             if (!isNaN(thing)) {
                 if (thing < 0) {
                     doc.leftbound = 0;
@@ -808,6 +808,36 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
         }
     }
 
+    @action
+    enter3 = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") {
+            let props = this.props.CollectionView.props.Document;
+
+            var thing = (parseFloat(this.searchString2!) - NumCast(props.minvalue)) * NumCast(props.barwidth) / NumCast(props._range);
+            if (!isNaN(thing)) {
+                if (thing < 0) {
+                    props.leftbound = 0;
+                }
+                else if (thing >= NumCast(props.barwidth) - NumCast(props.rightbound)) {
+                    props.leftbound = (NumCast(props.barwidth) - NumCast(props.rightbound) - 1);
+                }
+                else {
+                    props.leftbound = thing;
+                }
+            }
+            props.sortstate = this.searchString3;
+        }
+        if (e.keyCode === 9) {
+            e.preventDefault;
+            e.stopPropagation();
+        }
+    }
+
+    @action.bound
+    onChange3(e: React.ChangeEvent<HTMLInputElement>) {
+        this.searchString3 = e.target.value;
+    }
+
 
     @action.bound
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -822,6 +852,10 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
 
     @observable searchString: string | undefined;
     @observable searchString2: string | undefined;
+    private borderref = React.createRef<HTMLInputElement>();
+    @observable searchString3: string | undefined;
+
+
 
     render() {
         let previewWidth = NumCast(this.props.CollectionView.props.Document.schemaPreviewWidth);
@@ -829,42 +863,36 @@ export class CollectionTimelineViewChrome extends React.Component<CollectionView
 
         return (
             <div className="collectionSchemaViewChrome-cont">
-                <input placeholder={StrCast(this.props.CollectionView.props.Document.selectedColor)}></input>
-                <div ref={this.colorrefYellow} onClick={(e) => this.toggleColor(e, "#ffff80")} className="color1" style={{ position: "relative", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#ffff80", border: "2px solid black" }}></div>
-                <div ref={this.colorrefGreen} onClick={(e) => this.toggleColor(e, "#bfff80")} className="color2" style={{ position: "relative", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#bfff80", border: "2px solid #9c9396" }}></div>
-                <div ref={this.colorrefRed} onClick={(e) => this.toggleColor(e, "#ff8080")} className="color3" style={{ position: "relative", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#ff8080", border: "2px solid #9c9396" }}></div>
-                <div ref={this.colorrefBlue} onClick={(e) => this.toggleColor(e, "#80dfff")} className="color4" style={{ position: "relative", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#80dfff", border: "2px solid #9c9396" }}></div>
-                <div className="reset"> <button onClick={() => runInAction(() => { this.props.CollectionView.props.Document.leftbound = 0; this.props.CollectionView.props.Document.rightbound = 0; (this.searchref.current ? this.searchref.current.reset() : null); })}>Reset Range</button></div>
-                <form className="form" ref={this.searchref}>
-                    <div className="min">
-                        <input size={10} value={this.searchString2} onChange={this.onChange2} onKeyPress={this.enter2} type="text" placeholder={"Min: " + String(Math.round((NumCast(this.props.CollectionView.props.Document.leftbound) * this.props._range / this.props.barwidth) + this.props.minvalue))}
-                            className="searchBox-barChild searchBox-input" />
-                    </div>
-
-                    <div className="max">
-                        <input size={10} value={this.searchString ? this.searchString : undefined} onChange={this.onChange} onFocus={() => this.searchString = ""} onKeyPress={this.enter} type="text" placeholder={"Max: " + String(Math.round(((this.props.barwidth - NumCast(this.props.CollectionView.props.Document.rightbound)) * this.props._range / this.props.barwidth) + this.props.minvalue))}
-                            className="searchBox-barChild searchBox-input" />
-                    </div>
-
-                </form>
-                <div className="collectionSchemaViewChrome-toggle">
-                    <div className="collectionSchemaViewChrome-label">Wrap Text: </div>
-                    <div className="collectionSchemaViewChrome-toggler" onClick={this.toggleTextwrap}>
-                        <div className={"collectionSchemaViewChrome-togglerButton" + (textWrapped ? " on" : " off")}>
-                            {textWrapped ? "on" : "off"}
+                <div className="collectionTimelineViewBottomUI-grid">
+                    <div ref={this.colorrefYellow} onClick={(e) => this.toggleColor(e, "#ffff80")} className="color1" style={{ position: "relative", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#ffff80", border: "2px solid black" }}></div>
+                    <div ref={this.colorrefGreen} onClick={(e) => this.toggleColor(e, "#bfff80")} className="color2" style={{ position: "relative", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#bfff80", border: "2px solid #9c9396" }}></div>
+                    <div ref={this.colorrefRed} onClick={(e) => this.toggleColor(e, "#ff8080")} className="color3" style={{ position: "relative", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#ff8080", border: "2px solid #9c9396" }}></div>
+                    <div ref={this.colorrefBlue} onClick={(e) => this.toggleColor(e, "#80dfff")} className="color4" style={{ position: "relative", borderRadius: "12.5px", width: "25px", height: "25px", backgroundColor: "#80dfff", border: "2px solid #9c9396" }}></div>
+                    <div className="reset"> <button onClick={() => runInAction(() => { this.props.CollectionView.props.Document.leftbound = 0; this.props.CollectionView.props.Document.rightbound = 0; (this.searchref.current ? this.searchref.current.reset() : null); })}>Reset Range</button></div>
+                    <form className="form" ref={this.searchref}>
+                        <div className="min">
+                            <input size={10} value={this.searchString2} onChange={this.onChange2} onKeyPress={this.enter2} type="text" placeholder={"Min: " +
+                                String(Math.round((NumCast(this.props.CollectionView.props.Document.leftbound) *
+                                    NumCast(this.props.CollectionView.props.Document._range) / NumCast(this.props.CollectionView.props.Document.barwidth)) +
+                                    NumCast(this.props.CollectionView.props.Document.minvalue)))}
+                                className="searchBox-barChild searchBox-input" />
                         </div>
-                    </div>
-                </div>
 
-                <div className="collectionSchemaViewChrome-toggle">
-                    <div className="collectionSchemaViewChrome-label">Show Preview: </div>
-                    <div className="collectionSchemaViewChrome-toggler" onClick={this.togglePreview}>
-                        <div className={"collectionSchemaViewChrome-togglerButton" + (previewWidth !== 0 ? " on" : " off")}>
-                            {previewWidth !== 0 ? "on" : "off"}
+                        <div className="max">
+                            <input size={10} value={this.searchString ? this.searchString : undefined} onChange={this.onChange} onFocus={() => this.searchString = ""} onKeyPress={this.enter} type="text" placeholder={
+                                "Max: " + String(Math.round((NumCast(this.props.CollectionView.props.Document.barwidth) -
+                                    NumCast(this.props.CollectionView.props.Document.rightbound)) *
+                                    NumCast(this.props.CollectionView.props.Document._range) / NumCast(this.props.CollectionView.props.Document.barwidth) + NumCast(this.props.CollectionView.props.Document._range) /
+                                    NumCast(this.props.CollectionView.props.Document.minvalue)))}
+                                className="searchBox-barChild searchBox-input" />
                         </div>
+
+                    </form>
+                    <div className="sortinputRIGHT">                    <input height={"20px"} ref={this.borderref} type="text" value={this.searchString3 ? this.searchString : undefined} placeholder={"sort value: " + StrCast(this.props.CollectionView.props.Document.sortstate)} onChange={this.onChange3} onKeyPress={this.enter3} />
                     </div>
-                </div>
-            </div >
+
+                </div >
+            </div>
         );
     }
 }

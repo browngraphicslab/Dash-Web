@@ -5,19 +5,8 @@
     display: grid;
     grid-template-columns: 100px 100px 100px 25px 25px 25px 25px 1fr 1fr 1fr;
     grid-template-rows: 30px;
-    top: 0%;
-    height: auto;
-    padding: 10px;
     width: 100%;
-    position: fixed;
-    background: $intermediate-color;
     z-index: 10000;
-
-    button {
-        height: 25px;
-        padding: 2px;
-        letter-spacing: 1px;
-    }
 
     form {
         grid-template-columns: 1fr 1fr;
@@ -43,7 +32,8 @@
     .reset {
         align-self: center;
         justify-self: center;
-        grid-column: 3/4
+        grid-column: 3/4;
+        grid-row: 1;
     }
 
     .color1 {
@@ -85,7 +75,6 @@
 
     .sortinputRIGHT {
         grid-column: 8/9;
-        border: green 2px solid;
     }
 
 

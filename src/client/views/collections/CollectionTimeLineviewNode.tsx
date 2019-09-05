@@ -67,7 +67,7 @@ export class Thumbnail extends React.Component<NodeProps> {
         let getTransform = () => transform().translate(-centeringOffset, 0).scale(1 / contentScaling());
         let centeringOffset = () => (width - nativeWidth * contentScaling()) / 2;
         return (
-            <div className="collectionSchemaView-previewDoc" style={{ transform: `translate(${centeringOffset}px, 0px)`, width, height, overflow: "hidden" }}>
+            <div className="collectionSchemaView-previewDoc" style={{ transform: `translate(${centeringOffset}px, 0px)`, width: width - 3, height: height - 3, overflow: "hidden" }}>
                 <DocumentView
                     pinToPres={this.props.pinToPres}
                     Document={d}
@@ -136,8 +136,8 @@ export class Thumbnail extends React.Component<NodeProps> {
             <div onClick={(e) => this.toggleSelection(e)} style={{ position: "absolute", left: this.props.leftval, top: this.props.top, width: this.props.scale, height: this.props.scale }}>
                 <div className="unselected" style={{ position: "absolute", width: this.props.scale, height: this.props.scale, pointerEvents: "all" }}>
                     <FontAwesomeIcon icon={this.checkData(this.props.doc)} size="sm" style={{ position: "absolute" }} />
-                    <div className="window" style={{ pointerEvents: "none", zIndex: 10, width: "47px", height: "47px", position: "absolute" }}>
-                        <div className="window" style={{ background: "white", pointerEvents: "none", zIndex: -1, position: "absolute", width: "44px", height: "44px" }}>
+                    <div className="window" style={{ pointerEvents: "none", zIndex: 10, width: this.props.scale - 3, height: this.props.scale - 3, position: "absolute" }}>
+                        <div className="window" style={{ background: "white", pointerEvents: "none", zIndex: -1, position: "absolute", width: this.props.scale - 6, height: this.props.scale - 6 }}>
                             {this.documentDisplay(this.props.doc, this.props.scale - 3, this.props.scale - 3)}
                         </div>
                     </div>

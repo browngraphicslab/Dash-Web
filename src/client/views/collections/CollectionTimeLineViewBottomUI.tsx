@@ -131,6 +131,7 @@ export class BottomUI extends React.Component<BottomUIProps> {
     onPointerMove_OnBar = (e: PointerEvent): void => {
         e.stopPropagation();
         e.preventDefault();
+        this.props.rowscaleset(e.movementY);
         let newx2 = this.props.rightbound - e.movementX;
         let newx = this.props.leftbound + e.movementX;
         if (newx2 < 0) {
@@ -254,23 +255,7 @@ export class BottomUI extends React.Component<BottomUIProps> {
         this.toggleborder();
         return (
             <div>
-                <div className="collectionTimelineViewBottomUI-grid">
-                    <form className="form" ref={this.searchref}>
-                        <div className="min">
-                            <input size={10} value={this.searchString2} onChange={this.onChange2} onKeyPress={this.enter2} type="text" placeholder={"Min: " + String(Math.round((this.props.leftbound * this.props._range / this.props.barwidth) + this.props.minvalue))}
-                                className="searchBox-barChild searchBox-input" />
-                        </div>
-
-                        <div className="max">
-                            <input size={10} value={this.searchString ? this.searchString : undefined} onChange={this.onChange} onFocus={() => this.searchString = ""} onKeyPress={this.enter} type="text" placeholder={"Max: " + String(Math.round(((this.props.barwidth - this.props.rightbound) * this.props._range / this.props.barwidth) + this.props.minvalue))}
-                                className="searchBox-barChild searchBox-input" />
-                        </div>
-
-                    </form>
-                    <div onPointerDown={this.onPointerDown_AdjustScale} style={{ backgroundColor: "black", height: "50px", cursor: "ew-resize", position: "absolute", zIndex: 100, left: this.props.leftbound, width: "50px" }}></div>
-                    <input height={"20px"} ref={this.borderref} type="text" value={this.searchString3 ? this.searchString : undefined} placeholder={"sort value: " + this.props.sortstate} onChange={this.onChange3} onKeyPress={this.enter3} />
-                </div>
-                <div ref={this.props.barref} className="backdropscroll" onPointerDown={this.onPointerDown_OffBar} style={{ zIndex: 99, top: "50px", height: "30px", width: "100%", bottom: "90%", position: "fixed", }}>
+                <div ref={this.props.barref} className="backdropscroll" onPointerDown={this.onPointerDown_OffBar} style={{ zIndex: 99, height: "50px", top: "0px", width: "100%", bottom: "90%", position: "fixed", }}>
                     {this.props.thumbnailmap.map(item => <div
                         style={{
                             position: "absolute",
@@ -304,7 +289,6 @@ export interface BottomUIProps {
     sortstate: string;
     setsortstate: (string: string) => void;
     barref: React.RefObject<HTMLDivElement>;
-    barwidthSet: (number: number) => void;
     screenref: React.RefObject<HTMLDivElement>;
     markerrender: () => void;
 }

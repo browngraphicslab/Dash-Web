@@ -57,11 +57,8 @@ type RowVal = {
 
 @observer
 export class CollectionTimelineView extends CollectionSubView(doc => doc) {
-    @observable private sortstate: string = "x";
-    private _range = 0;
     private screenref = React.createRef<HTMLDivElement>();
     private barref = React.createRef<HTMLDivElement>();
-    private marqueeref = React.createRef<HTMLDivElement>();
     private timelineref = React.createRef<HTMLDivElement>();
     private sortReactionDisposer: IReactionDisposer | undefined;
     @observable private types: boolean[] = [];
@@ -135,7 +132,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         markerUnit.element = (< div ref={(el) => el ? markerUnit.ref = el : null} onDoubleClick={(e) => this.doubleclick(e, markerUnit)} onPointerDown={(e) => this.onPointerDown_DeleteMarker(e, String(markerUnit.document.annotation), markerUnit)}
             style={{
                 border: "2px solid" + String(markerUnit.document.color),
-                width: NumCast(doc.initialWidth), height: this.rowscale, top: "-30px", backgroundColor: String(markerUnit.document.color), zIndex: 5, opacity: 0.5, padding: "2px",
+                top: this.rowval[NumCast(doc.row)],
+                width: NumCast(doc.initialWidth), height: this.rowscale, backgroundColor: String(markerUnit.document.color), zIndex: 5, opacity: 0.5, padding: "2px",
                 position: "absolute", left: NumCast(doc.initialLeft),
             }}>
             <EditableView
@@ -398,7 +396,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
     }
 
     thumbnailloop() {
-        this._range = 1;
         let arr: Doc[] = [];
         //Build an array of all nodes in dash document.
         this.childDocs.map((d) => { arr.push(d); });
@@ -526,19 +523,29 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         //     counter++;
         // }
         this.rows = [];
-        this.rowval = []
+        this.rowval = [];
+        if (this.screenref.current) {
+            this.windowheight = this.screenref.current.getBoundingClientRect().height - 40;
+        }
         for (let i = this.rowscale; i < this.windowheight; i
             += this.rowscale) {
-            this.rows.push(<div style={{ position: "absolute", top: i, border: "1px black dotted", width: "100%", zIndex: -100 }} />);
+            this.rows.push(<div style={{ position: "absolute", top: i, width: "100%", zIndex: -100 }} />);
             this.rowval.push(i);
         }
     }
 
     @action
     rowscaleset = (number: number) => {
-        this.rowscale += number;
+        if (this.rowscale + number <= 40) {
+            this.rowscale = 40;
+        }
+        else if (this.rowscale + number >= 100) {
+            this.rowscale = 100;
+        }
+        else {
+            this.rowscale += number;
+        }
         this.createRows();
-        console.log(this.rowscale);
     }
 
     private rows: JSX.Element[] = [];
@@ -599,8 +606,24 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         return NumCast(doc.barwidth);
     }
 
+
+
     private set barwidth(number) {
         this.props.Document.barwidth = number;
+    }
+
+    private get sortstate() {
+        let doc = this.props.Document;
+        if (!doc.sortstate) {
+            this.sortstate = "x";
+        }
+        return String(doc.sortstate);
+    }
+
+
+
+    private set sortstate(string) {
+        this.props.Document.sortstate = string;
     }
 
 
@@ -611,6 +634,18 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         return true;
     }
 
+
+    private _range = 0;
+
+    private get minvalue() {
+        let doc = this.props.Document;
+        return NumCast(doc.minvalue);
+    }
+
+    private set minvalue(number) {
+        //this.props.Document.minvalue = this._values[0] - this._range * 0.05;
+        this.props.Document.minvalue = number;
+    }
 
 
 
@@ -657,17 +692,24 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     return;
                 }
             }
+            let d = new Doc;
             let closestRow = 0;
             let closestRowVal = 99999999;
-            for (let rows of this.rowval) {
-                // if (Math.abs(rows-))
+            let y = e.pageY - 50;
+            for (let i = 0; i < this.rowval.length; i++) {
+                if (Math.abs(this.rowval[i] - y) < closestRowVal) {
+                    closestRowVal = Math.abs(this.rowval[i] - y);
+                    closestRow = i;
+                }
+
             }
+            d.row = closestRow;
 
             document.addEventListener("pointermove", this.onPointerMove_Selector, true);
             document.addEventListener("pointerup", this.onPointerUp_Selector, true);
             this.preventbug = true;
             e.preventDefault;
-            let d = new Doc;
+
             d.initialLeft = leftval;
             d.firstLeft = leftval;
             d.initialScale = (this.barwidth / (this.barwidth - this.rightbound - this.leftbound));
@@ -734,6 +776,8 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
 
 
     render() {
+        this.props.Document._range = this._range;
+        this.props.Document.minvalue = this.props.Document.minvalue = this._values[0] - this._range * 0.05;
         this.updateWidth();
         this.createRows();
         this.createticks();
@@ -750,7 +794,6 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     }>
                     <button id="schemaOptionsMenuBtn" style={{ position: "fixed" }}><FontAwesomeIcon style={{ color: "white" }} icon="cog" size="sm" /></button>
                 </Flyout>
-
                 <BottomUI
                     thumbnailmap={this.thumbnails}
                     markermap={DocListCast(this.props.Document.markers).map(d => this.createmap(d))}
@@ -772,7 +815,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                     {({ measureRef }) => <div ref={measureRef}> </div>}
                 </Measure>
 
-                <div style={{ top: "125px", position: "absolute", bottom: "25%", width: "100%", }}>
+                <div style={{ top: "50px", position: "absolute", bottom: "25%", width: "100%", }}>
                     {this.rows}
                     {this.thumbnails.map(doc =>
                         <Thumbnail
@@ -788,8 +831,12 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
                         </Thumbnail>
 
                     )}
-                    <div ref={this.timelineref} className="timeline" style={{ position: "fixed", height: "25px", width: "100%", top: "300px", zIndex: 999999 }}>
+                    <div ref={this.timelineref} style={{ position: "absolute", height: "25px", width: "100%", zIndex: 999999 }}>
                         {DocListCast(this.props.Document.markers).map(d => this.createmarker(d))}
+                    </div>
+                    <div style={{
+                        position: "fixed", top: "300px", height: "25px", width: "100%", borderTop: "1px solid black"
+                    }}>
                         {this.ticks}
                     </div>
 
