@@ -150,8 +150,8 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
         var marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
         if (!splitListItem(schema.nodes.list_item)(state, (tx3: Transaction) => dispatch(tx3))) {
             if (!splitBlockKeepMarks(state, (tx3: Transaction) => {
-                marks && tx3.ensureMarks(marks);
-                marks && tx3.setStoredMarks(marks);
+                marks && tx3.ensureMarks(marks.filter((val: any) => val.type !== schema.marks.metadata));
+                marks && tx3.setStoredMarks(marks.filter((val: any) => val.type !== schema.marks.metadata));
                 if (!liftListItem(schema.nodes.list_item)(tx3, dispatch as ((tx: Transaction<Schema<any, any>>) => void))) {
                     dispatch(tx3);
                 }
@@ -160,6 +160,29 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
             }
         }
         return true;
+    });
+    bind("Space", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
+        var marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
+        let tx = state.tr;
+        marks && tx.ensureMarks(marks.filter((val: any) => val.type !== schema.marks.metadata));
+        marks && tx.setStoredMarks(marks.filter((val: any) => val.type !== schema.marks.metadata));
+        dispatch(tx);
+        return false;
+    });
+    bind(":", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
+        let range = state.selection.$from.blockRange(state.selection.$to, (node: any) => {
+            return !node.marks || !node.marks.find((m: any) => m.type === schema.marks.metadata);
+        });
+        let path = (state.doc.resolve(state.selection.from - 1) as any).path;
+        let spaceSeparator = path[path.length - 3].childCount > 1 ? 0 : -1;
+        let textsel = TextSelection.create(state.doc, range!.end - path[path.length - 3].lastChild.nodeSize + spaceSeparator, range!.end);
+        let text = range ? state.doc.textBetween(textsel.from, textsel.to) : "";
+        let whitespace = text.length - 1;
+        for (; whitespace >= 0 && text[whitespace] !== " "; whitespace--) { }
+        if (text.endsWith(":")) {
+            dispatch(state.tr.addMark(textsel.from + whitespace + 1, textsel.to, schema.marks.metadata.create() as any));
+        }
+        return false;
     });
 
 

@@ -173,6 +173,16 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             if (state.selection.empty && FormattedTextBox._toolTipTextMenu && tx.storedMarks) {
                 FormattedTextBox._toolTipTextMenu.mark_key_pressed(tx.storedMarks);
             }
+
+            let metadata = this._editorView!.state.selection.$from.marks().find((m: Mark) => m.type === schema.marks.metadata);
+            if (metadata) {
+                let range = this._editorView!.state.selection.$from.blockRange(this._editorView!.state.selection.$to);
+                let text = range ? this._editorView!.state.doc.textBetween(range.start, range.end) : "";
+                let key = text.split("::")[0];
+                let value = text.split("::")[text.split("::").length - 1];
+                this.dataDoc[key] = value;
+            }
+
             this._keymap["ACTIVE"] = true; // hack to ignore an initial carriage return when creating a textbox from the action menu
 
             this._applyingChange = true;
@@ -787,7 +797,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (e.key === "Tab" || e.key === "Enter") {
             e.preventDefault();
         }
-
         this._editorView!.state.tr.addStoredMark(schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: timenow() }));
 
         this.updateTitle();

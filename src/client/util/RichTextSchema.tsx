@@ -315,6 +315,12 @@ export const marks: { [index: string]: MarkSpec } = {
         }
     },
 
+    metadata: {
+        toDOM() {
+            return ['span', { style: 'border-radius:5px; background:rgba(100, 100, 100, 0.1); box-shadow: black 1px 1px 1px' }];
+        }
+    },
+
     highlight: {
         parseDOM: [
             {
