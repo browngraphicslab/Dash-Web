@@ -381,7 +381,6 @@ export const marks: { [index: string]: MarkSpec } = {
             modified: { default: "when?" }
         },
         group: "inline",
-        inclusive: false,
         toDOM(node: any) {
             let hideUsers = node.attrs.hide_users;
             let hidden = hideUsers.indexOf(node.attrs.userid) !== -1 || (hideUsers.length === 0 && node.attrs.userid !== Doc.CurrentUserEmail);
@@ -759,7 +758,7 @@ export class SummarizedView {
         this._collapsed.onpointerdown = (e: any) => {
             const visible = !node.attrs.visibility;
             const attrs = { ...node.attrs, visibility: visible };
-            let textSelection = TextSelection.create(view.state.doc, getPos() + 1, getPos() + 1);
+            let textSelection = TextSelection.create(view.state.doc, getPos() + 1);
             if (!visible) { // update summarized text and save in attrs
                 textSelection = this.updateSummarizedText(getPos() + 1);
                 attrs.text = textSelection.content();

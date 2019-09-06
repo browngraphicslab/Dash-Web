@@ -173,6 +173,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             if (state.selection.empty && FormattedTextBox._toolTipTextMenu && tx.storedMarks) {
                 FormattedTextBox._toolTipTextMenu.mark_key_pressed(tx.storedMarks);
             }
+            this._keymap["ACTIVE"] = true;
 
             this._applyingChange = true;
             this.extensionDoc && (this.extensionDoc.text = state.doc.textBetween(0, state.doc.content.size, "\n\n"));
@@ -307,14 +308,17 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         return numberRange(count).map(x => schema.nodes.list_item.create(undefined, schema.nodes.paragraph.create()));
     }
 
+    _keymap: any = undefined;
     @computed get config() {
+        this._keymap = buildKeymap(schema);
+        this._keymap["ACTIVE"] = this.extensionDoc.text;
         return {
             schema,
             inpRules, //these currently don't do anything, but could eventually be helpful
             plugins: this.props.isOverlay ? [
                 this.tooltipTextMenuPlugin(),
                 history(),
-                keymap(buildKeymap(schema)),
+                keymap(this._keymap),
                 keymap(baseKeymap),
                 // this.tooltipLinkingMenuPlugin(),
                 new Plugin({
@@ -325,7 +329,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 formattedTextBoxCommentPlugin
             ] : [
                     history(),
-                    keymap(buildKeymap(schema)),
+                    keymap(this._keymap),
                     keymap(baseKeymap),
                 ]
         };
@@ -626,8 +630,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             this.props.select(false);
         }
         else if (this.props.isOverlay) this._editorView!.focus();
-        this._editorView!.dispatch(this._editorView!.state.tr.removeStoredMark(schema.marks.user_mark).
-            addStoredMark(schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: timenow() })));
+        this._editorView!.state.storedMarks = [...(this._editorView!.state.storedMarks ? this._editorView!.state.storedMarks : []), schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: timenow() })];
     }
 
     componentWillUnmount() {
@@ -651,8 +654,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (e.button === 0 && this.props.isSelected() && !e.altKey && !e.ctrlKey && !e.metaKey) {
             e.stopPropagation();
         }
-        this._editorView!.state.tr.removeStoredMark(schema.marks.user_mark).
-            addStoredMark(schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: timenow() }));
         let ctrlKey = e.ctrlKey;
         if (e.button === 0 && ((!this.props.isSelected() && !e.ctrlKey) || (this.props.isSelected() && e.ctrlKey)) && !e.metaKey && e.target) {
             let href = (e.target as any).href;
@@ -786,14 +787,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             SelectionManager.DeselectAll();
         }
         e.stopPropagation();
-        if (e.key === "Tab" || e.key === "Enter") { // bullets typically change "levels" when tab or enter is used.  sometimes backspcae, so maybe that should be added. e.preventDefault();
+        if (e.key === "Tab" || e.key === "Enter") {
             e.preventDefault();
-            // bcz: if we use this, it fixes some problesm with bullet numbers but kills undo/redo
-            // setTimeout(() => { // force re-rendering of bullet numbers that may have had their bullet labels change.  (Our prosemirrior code re-"marks" the changed bullets, but nothing causes the Dom to be re-rendered which is where the nubering takes place)
-            //     SelectionManager.DeselectAll();
-            //     SelectionManager.SelectDoc(DocumentManager.Instance.getDocumentView(this.props.Document, this.props.ContainingCollectionView)!, false);
-            // }, 0);
         }
+        //this._editorView!.state.tr.addStoredMark(schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: timenow() }));
+        this._editorView!.state.storedMarks = [...(this._editorView!.state.storedMarks ? this._editorView!.state.storedMarks : []), schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: timenow() })];
         // stop propagation doesn't seem to stop propagation of native keyboard events.
         // so we set a flag on the native event that marks that the event's been handled.
         (e.nativeEvent as any).DASHFormattedTextBoxHandled = true;

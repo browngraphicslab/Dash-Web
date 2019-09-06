@@ -14,6 +14,7 @@ export type KeyMap = { [key: string]: any };
 export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: KeyMap): KeyMap {
     let keys: { [key: string]: any } = {}, type;
 
+    keys["ACTIVE"] = false;
     function bind(key: string, cmd: any) {
         if (mapKeys) {
             let mapped = mapKeys[key];
@@ -143,6 +144,10 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
     });
 
     bind("Enter", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
+        if (!keys["ACTIVE"]) {
+            dispatch(state.tr.setSelection(TextSelection.create(state.doc, state.selection.from - 1, state.selection.from)).deleteSelection());
+            return true;
+        }
         var marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
         if (!splitListItem(schema.nodes.list_item)(state, (tx3: Transaction) => {
             // marks && tx3.ensureMarks(marks);

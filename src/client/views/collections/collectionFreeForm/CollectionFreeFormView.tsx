@@ -879,9 +879,17 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         });
         layoutItems.push({ description: "Arrange contents in grid", event: this.arrangeContents, icon: "table" });
         layoutItems.push({ description: "Analyze Strokes", event: this.analyzeStrokes, icon: "paint-brush" });
+        layoutItems.push({ description: "1: Note", event: () => this.createText("yellow"), icon: "eye" });
+        layoutItems.push({ description: "2: Idea", event: () => this.createText("pink"), icon: "eye" });
+        layoutItems.push({ description: "3: Topic", event: () => this.createText("lightBlue"), icon: "eye" });
+        layoutItems.push({ description: "4: Person", event: () => this.createText("lightGreen"), icon: "eye" });
         ContextMenu.Instance.addItem({ description: "Freeform Options ...", subitems: layoutItems, icon: "eye" });
     }
 
+    createText = (color: string) => {
+        let pt = this.getTransform().transformPoint(ContextMenu.Instance.pageX, ContextMenu.Instance.pageY);
+        this.addLiveTextBox(Docs.Create.TextDocument({ x: pt[0], y: pt[1], backgroundColor: color }))
+    }
 
     private childViews = () => [
         <CollectionFreeFormBackgroundView key="backgroundView" {...this.props} {...this.getDocumentViewProps(this.props.Document)} />,
