@@ -133,6 +133,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (this.props.isOverlay) {
             DragManager.StartDragFunctions.push(() => FormattedTextBox.InputBoxOverlay = undefined);
         }
+        FormattedTextBox.Instance = this;
     }
 
     public get CurrentDiv(): HTMLDivElement { return this._ref.current!; }

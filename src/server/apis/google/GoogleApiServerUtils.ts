@@ -7,6 +7,7 @@ import { GlobalOptions } from "googleapis-common";
 import { GaxiosResponse } from "gaxios";
 import request = require('request-promise');
 import * as qs from 'query-string';
+import Photos = require('googlephotos');
 
 /**
  * Server side authentication for Google Api queries.
@@ -35,19 +36,19 @@ export namespace GoogleApiServerUtils {
     }
 
     export interface CredentialPaths {
-        credentials: string;
-        token: string;
+        credentialsPath: string;
+        tokenPath: string;
     }
 
     export type ApiResponse = Promise<GaxiosResponse>;
-    export type ApiRouter = (endpoint: Endpoint, paramters: any) => ApiResponse;
+    export type ApiRouter = (endpoint: Endpoint, parameters: any) => ApiResponse;
     export type ApiHandler = (parameters: any) => ApiResponse;
     export type Action = "create" | "retrieve" | "update";
 
     export type Endpoint = { get: ApiHandler, create: ApiHandler, batchUpdate: ApiHandler };
     export type EndpointParameters = GlobalOptions & { version: "v1" };
 
-    export const GetEndpoint = async (sector: string, paths: CredentialPaths) => {
+    export const GetEndpoint = (sector: string, paths: CredentialPaths) => {
         return new Promise<Opt<Endpoint>>(resolve => {
             RetrieveCredentials(paths).then(authentication => {
                 let routed: Opt<Endpoint>;
@@ -65,23 +66,32 @@ export namespace GoogleApiServerUtils {
         });
     };
 
-    export const RetrieveCredentials = async (paths: CredentialPaths) => {
+    export const RetrieveCredentials = (paths: CredentialPaths) => {
         return new Promise<TokenResult>((resolve, reject) => {
-            readFile(paths.credentials, async (err, credentials) => {
+            readFile(paths.credentialsPath, async (err, credentials) => {
                 if (err) {
                     reject(err);
                     return console.log('Error loading client secret file:', err);
                 }
-                authorize(parseBuffer(credentials), paths.token).then(resolve, reject);
+                authorize(parseBuffer(credentials), paths.tokenPath).then(resolve, reject);
             });
         });
     };
 
-    export const RetrieveAccessToken = async (paths: CredentialPaths) => {
+    export const RetrieveAccessToken = (paths: CredentialPaths) => {
         return new Promise<string>((resolve, reject) => {
             RetrieveCredentials(paths).then(
                 credentials => resolve(credentials.token.access_token!),
                 error => reject(`Error: unable to authenticate Google Photos API request.\n${error}`)
+            );
+        });
+    };
+
+    export const RetrievePhotosEndpoint = (paths: CredentialPaths) => {
+        return new Promise<any>((resolve, reject) => {
+            RetrieveAccessToken(paths).then(
+                token => resolve(new Photos(token)),
+                reject
             );
         });
     };
@@ -126,7 +136,7 @@ export namespace GoogleApiServerUtils {
             request.post(url, headerParameters).then(response => {
                 let parsed = JSON.parse(response);
                 credentials.access_token = parsed.access_token;
-                credentials.expiry_date = new Date().getTime() + parsed.expires_in * 1000;
+                credentials.expiry_date = new Date().getTime() + (parsed.expires_in * 1000);
                 writeFile(token_path, JSON.stringify(credentials), (err) => {
                     if (err) {
                         console.error(err);

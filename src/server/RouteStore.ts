@@ -32,7 +32,7 @@ export enum RouteStore {
     // APIS
     cognitiveServices = "/cognitiveservices",
     googleDocs = "/googleDocs",
-    googlePhotosQuery = "/googlePhotosQuery",
+    googlePhotosAccessToken = "/googlePhotosAccessToken",
     googlePhotosMediaUpload = "/googlePhotosMediaUpload"
 
 }

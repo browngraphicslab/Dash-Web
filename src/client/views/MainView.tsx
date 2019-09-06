@@ -40,11 +40,10 @@ import { PreviewCursor } from './PreviewCursor';
 import { FilterBox } from './search/FilterBox';
 import PresModeMenu from './presentationview/PresentationModeMenu';
 import { PresBox } from './nodes/PresBox';
-import { docs_v1 } from 'googleapis';
-import { Album } from '../../server/apis/google/typings/albums';
 import { GooglePhotosClientUtils } from '../apis/google_docs/GooglePhotosClientUtils';
 import { ImageField } from '../../new_fields/URLField';
 import { LinkFollowBox } from './linking/LinkFollowBox';
+import { DocumentManager } from '../util/DocumentManager';
 
 @observer
 export class MainView extends React.Component {
@@ -131,10 +130,7 @@ export class MainView extends React.Component {
         window.removeEventListener("keydown", KeyManager.Instance.handle);
         window.addEventListener("keydown", KeyManager.Instance.handle);
 
-        let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
-        let image = Docs.Create.ImageDocument(imgurl, { width: 200, title: "an image of a cat" });
-        let parameters = { title: StrCast(image.title), MEDIA_BINARY_DATA: GooglePhotosClientUtils.toDataURL(Cast(image.data, ImageField)) };
-        // PostToServer(RouteStore.googlePhotosMediaUpload, parameters).then(console.log);
+        this.executeGooglePhotosRoutine();
 
         reaction(() => {
             let workspaces = CurrentUserUtils.UserDocument.workspaces;
@@ -151,6 +147,15 @@ export class MainView extends React.Component {
             }
             (Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc) as Doc).allowClear = true;
         }, { fireImmediately: true });
+    }
+
+    executeGooglePhotosRoutine = async () => {
+        let imgurl = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg";
+        let doc = Docs.Create.ImageDocument(imgurl, { width: 200, title: "an image of a cat" });
+        doc.caption = "Well isn't this a nice cat image!";
+        let photos = await GooglePhotosClientUtils.endpoint();
+        let albumId = (await photos.albums.list(50)).albums.filter((album: any) => album.title === "This is a generically created album!")[0].id;
+        console.log(await GooglePhotosClientUtils.UploadMedia([doc], { id: albumId }));
     }
 
     componentWillUnMount() {

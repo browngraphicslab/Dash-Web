@@ -1,53 +1,42 @@
-import { Album } from "../../../server/apis/google/typings/albums";
-import { PostToServer } from "../../../Utils";
+import { PostToServer, Utils } from "../../../Utils";
 import { RouteStore } from "../../../server/RouteStore";
 import { ImageField } from "../../../new_fields/URLField";
+import { StrCast, Cast } from "../../../new_fields/Types";
+import { Doc, Opt } from "../../../new_fields/Doc";
+import { Id } from "../../../new_fields/FieldSymbols";
+import requestImageSize = require('../../util/request-image-size');
+import Photos = require('googlephotos');
 
 export namespace GooglePhotosClientUtils {
 
-    export const Create = async (title: string) => {
-        let parameters = {
-            action: Album.Action.Create,
-            body: { album: { title } }
-        } as Album.Create;
-        return PostToServer(RouteStore.googlePhotosQuery, parameters);
-    };
+    export type AlbumReference = { id: string } | { title: string };
+    export const endpoint = () => fetch(Utils.prepend(RouteStore.googlePhotosAccessToken)).then(async response => new Photos(await response.text()));
 
-    export const List = async (options?: Partial<Album.ListOptions>) => {
-        let parameters = {
-            action: Album.Action.List,
-            parameters: {
-                pageSize: (options ? options.pageSize : 20) || 20,
-                pageToken: (options ? options.pageToken : undefined) || undefined,
-                excludeNonAppCreatedData: (options ? options.excludeNonAppCreatedData : false) || false,
-            } as Album.ListOptions
-        } as Album.List;
-        return PostToServer(RouteStore.googlePhotosQuery, parameters);
-    };
+    export interface MediaInput {
+        description: string;
+        source: string;
+    }
 
-    export const Get = async (albumId: string) => {
-        let parameters = {
-            action: Album.Action.Get,
-            albumId
-        } as Album.Get;
-        return PostToServer(RouteStore.googlePhotosQuery, parameters);
-    };
-
-    export const toDataURL = (field: ImageField | undefined) => {
-        if (!field) {
-            return undefined;
+    export const UploadMedia = async (sources: Doc[], album?: AlbumReference) => {
+        if (album && "title" in album) {
+            album = (await endpoint()).albums.create(album.title);
         }
-        const image = document.createElement("img");
-        image.src = field.url.href;
-        image.width = 200;
-        image.height = 200;
-        const canvas = document.createElement("canvas");
-        canvas.width = image.width;
-        canvas.height = image.height;
-        const ctx = canvas.getContext("2d")!;
-        ctx.drawImage(image, 0, 0);
-        const dataUrl = canvas.toDataURL("image/png");
-        return dataUrl.replace(/^data:image\/(png|jpg);base64,/, "");
+        const media: MediaInput[] = [];
+        sources.forEach(document => {
+            const data = Cast(Doc.GetProto(document).data, ImageField);
+            const description = StrCast(document.caption);
+            if (!data) {
+                return undefined;
+            }
+            media.push({
+                source: data.url.href,
+                description,
+            } as MediaInput);
+        });
+        if (media.length) {
+            return PostToServer(RouteStore.googlePhotosMediaUpload, { media, album });
+        }
+        return undefined;
     };
 
 }

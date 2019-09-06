@@ -42,7 +42,6 @@ var AdmZip = require('adm-zip');
 import * as YoutubeApi from "./apis/youtube/youtubeApiSample";
 import { Response } from 'express-serve-static-core';
 import { GoogleApiServerUtils } from "./apis/google/GoogleApiServerUtils";
-import { GooglePhotos } from './apis/google/GooglePhotosServerUtils';
 import { GooglePhotosUploadUtils } from './apis/google/GooglePhotosUploadUtils';
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
@@ -418,10 +417,10 @@ app.get("/thumbnail/:filename", (req, res) => {
     let filename = req.params.filename;
     let noExt = filename.substring(0, filename.length - ".png".length);
     let pagenumber = parseInt(noExt.split('-')[1]);
-    fs.exists(uploadDir + filename, (exists: boolean) => {
-        console.log(`${uploadDir + filename} ${exists ? "exists" : "does not exist"}`);
+    fs.exists(uploadDirectory + filename, (exists: boolean) => {
+        console.log(`${uploadDirectory + filename} ${exists ? "exists" : "does not exist"}`);
         if (exists) {
-            let input = fs.createReadStream(uploadDir + filename);
+            let input = fs.createReadStream(uploadDirectory + filename);
             probe(input, (err: any, result: any) => {
                 if (err) {
                     console.log(err);
@@ -432,7 +431,7 @@ app.get("/thumbnail/:filename", (req, res) => {
             });
         }
         else {
-            LoadPage(uploadDir + filename.substring(0, filename.length - noExt.split('-')[1].length - ".PNG".length - 1) + ".pdf", pagenumber, res);
+            LoadPage(uploadDirectory + filename.substring(0, filename.length - noExt.split('-')[1].length - ".PNG".length - 1) + ".pdf", pagenumber, res);
         }
     });
 });
@@ -556,13 +555,13 @@ class NodeCanvasFactory {
 const pngTypes = [".png", ".PNG"];
 const pdfTypes = [".pdf", ".PDF"];
 const jpgTypes = [".jpg", ".JPG", ".jpeg", ".JPEG"];
-const uploadDir = __dirname + "/public/files/";
+const uploadDirectory = __dirname + "/public/files/";
 // SETTERS
 app.post(
     RouteStore.upload,
     (req, res) => {
         let form = new formidable.IncomingForm();
-        form.uploadDir = uploadDir;
+        form.uploadDir = uploadDirectory;
         form.keepExtensions = true;
         // let path = req.body.path;
         console.log("upload");
@@ -592,7 +591,7 @@ app.post(
                 }
                 if (isImage) {
                     resizers.forEach(resizer => {
-                        fs.createReadStream(uploadDir + file).pipe(resizer.resizer).pipe(fs.createWriteStream(uploadDir + file.substring(0, file.length - ext.length) + resizer.suffix + ext));
+                        fs.createReadStream(uploadDirectory + file).pipe(resizer.resizer).pipe(fs.createWriteStream(uploadDirectory + file.substring(0, file.length - ext.length) + resizer.suffix + ext));
                     });
                 }
                 names.push(`/files/` + file);
@@ -611,7 +610,7 @@ addSecureRoute(
             res.status(401).send("incorrect parameters specified");
             return;
         }
-        imageDataUri.outputFile(uri, uploadDir + filename).then((savedName: string) => {
+        imageDataUri.outputFile(uri, uploadDirectory + filename).then((savedName: string) => {
             const ext = path.extname(savedName);
             let resizers = [
                 { resizer: sharp().resize(100, undefined, { withoutEnlargement: true }), suffix: "_s" },
@@ -632,7 +631,7 @@ addSecureRoute(
             }
             if (isImage) {
                 resizers.forEach(resizer => {
-                    fs.createReadStream(savedName).pipe(resizer.resizer).pipe(fs.createWriteStream(uploadDir + filename + resizer.suffix + ext));
+                    fs.createReadStream(savedName).pipe(resizer.resizer).pipe(fs.createWriteStream(uploadDirectory + filename + resizer.suffix + ext));
                 });
             }
             res.send("/files/" + filename + ext);
@@ -799,8 +798,8 @@ function HandleYoutubeQuery([query, callback]: [YoutubeQueryInput, (result?: any
     }
 }
 
-const credentials = path.join(__dirname, "./credentials/google_docs_credentials.json");
-const token = path.join(__dirname, "./credentials/google_docs_token.json");
+const credentialsPath = path.join(__dirname, "./credentials/google_docs_credentials.json");
+const tokenPath = path.join(__dirname, "./credentials/google_docs_token.json");
 
 const EndpointHandlerMap = new Map<GoogleApiServerUtils.Action, GoogleApiServerUtils.ApiRouter>([
     ["create", (api, params) => api.create(params)],
@@ -811,7 +810,7 @@ const EndpointHandlerMap = new Map<GoogleApiServerUtils.Action, GoogleApiServerU
 app.post(RouteStore.googleDocs + "/:sector/:action", (req, res) => {
     let sector: any = req.params.sector;
     let action: any = req.params.action;
-    GoogleApiServerUtils.GetEndpoint(GoogleApiServerUtils.Service[sector], { credentials, token }).then(endpoint => {
+    GoogleApiServerUtils.GetEndpoint(GoogleApiServerUtils.Service[sector], { credentialsPath, tokenPath }).then(endpoint => {
         let handler = EndpointHandlerMap.get(action);
         if (endpoint && handler) {
             let execute = handler(endpoint, req.body).then(
@@ -825,36 +824,28 @@ app.post(RouteStore.googleDocs + "/:sector/:action", (req, res) => {
     });
 });
 
-app.post(RouteStore.googlePhotosQuery, (req, res) => {
-    GoogleApiServerUtils.RetrieveAccessToken({ credentials, token }).then(
-        token => {
-            GooglePhotos.ExecuteQuery({ token, query: req.body })
-                .then(response => {
-                    if (response === undefined) {
-                        res.send("Error: unable to build suffix for Google Photos API request");
-                        return;
-                    }
-                    res.send(response);
-                })
-                .catch(error => {
-                    res.send(`Error: an exception occurred in the execution of this Google Photos API request\n${error}`);
-                });
-        },
-        error => res.send(error)
-    );
-});
+app.get(RouteStore.googlePhotosAccessToken, (req, res) => GoogleApiServerUtils.RetrieveAccessToken({ credentialsPath, tokenPath }).then(token => res.send(token)));
 
-app.post(RouteStore.googlePhotosMediaUpload, (req, res) => {
-    GoogleApiServerUtils.RetrieveAccessToken({ credentials, token }).then(
-        token => {
-            GooglePhotosUploadUtils.SubmitUpload({ token, ...req.body })
-                .then(response => {
-                    res.send(response);
-                }).catch(error => {
-                    res.send(`Error: an exception occurred in uploading the given media\n${error}`);
-                });
-        },
-        error => res.send(error));
+const tokenError = "Unable to successfully upload bytes for all images!";
+const mediaError = "Unable to convert all uploaded bytes to media items!";
+
+app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
+    const media: GooglePhotosUploadUtils.MediaInput[] = req.body.media;
+    await GooglePhotosUploadUtils.initialize({ uploadDirectory, credentialsPath, tokenPath });
+    const newMediaItems = await Promise.all(media.map(async element => {
+        const uploadToken = await GooglePhotosUploadUtils.DispatchGooglePhotosUpload(element.source);
+        return !uploadToken ? undefined : {
+            description: element.description,
+            simpleMediaItem: { uploadToken }
+        };
+    }));
+    if (!newMediaItems.every(item => item)) {
+        return res.send(tokenError);
+    }
+    GooglePhotosUploadUtils.CreateMediaItems(newMediaItems, req.body.album).then(
+        success => res.send(success),
+        () => res.send(mediaError)
+    );
 });
 
 const suffixMap: { [type: string]: (string | [string, string | ((json: any) => any)]) } = {
