@@ -103,7 +103,6 @@ export const nodes: { [index: string]: NodeSpec } = {
             textslice: { default: undefined },
         },
         group: "inline",
-        inclusive: false,
         toDOM(node) {
             const attrs = { style: `width: 40px` };
             return ["span", { ...node.attrs, ...attrs }];
@@ -333,7 +332,6 @@ export const marks: { [index: string]: MarkSpec } = {
             },
         ],
         inclusive: false,
-        priority: 100,
         toDOM() {
             return ['span', {
                 style: 'text-decoration: underline; text-decoration-style: dotted; text-decoration-color: rgba(204, 206, 210, 0.92)'

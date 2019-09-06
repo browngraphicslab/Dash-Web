@@ -173,19 +173,23 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             if (state.selection.empty && FormattedTextBox._toolTipTextMenu && tx.storedMarks) {
                 FormattedTextBox._toolTipTextMenu.mark_key_pressed(tx.storedMarks);
             }
-            this._keymap["ACTIVE"] = true;
+            this._keymap["ACTIVE"] = true; // hack to ignore an initial carriage return when creating a textbox from the action menu
 
             this._applyingChange = true;
             this.extensionDoc && (this.extensionDoc.text = state.doc.textBetween(0, state.doc.content.size, "\n\n"));
             this.extensionDoc && (this.extensionDoc.lastModified = new DateField(new Date(Date.now())));
             this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()));
             this._applyingChange = false;
+            this.updateTitle();
             let title = StrCast(this.dataDoc.title);
-            if (title && title.startsWith("-") && this._editorView && !this.Document.customTitle) {
-                let str = this._editorView.state.doc.textContent;
-                let titlestr = str.substr(0, Math.min(40, str.length));
-                this.dataDoc.title = "-" + titlestr + (str.length > 40 ? "..." : "");
-            }
+        }
+    }
+
+    updateTitle = () => {
+        if (StrCast(this.dataDoc.title).startsWith("-") && this._editorView && !this.Document.customTitle) {
+            let str = this._editorView.state.doc.textContent;
+            let titlestr = str.substr(0, Math.min(40, str.length));
+            this.dataDoc.title = "-" + titlestr + (str.length > 40 ? "..." : "");
         }
     }
 
@@ -311,7 +315,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     _keymap: any = undefined;
     @computed get config() {
         this._keymap = buildKeymap(schema);
-        this._keymap["ACTIVE"] = this.extensionDoc.text;
+        this._keymap["ACTIVE"] = this.extensionDoc.text;  // hack to ignore an initial carriage return only when creating a textbox from the action menu
         return {
             schema,
             inpRules, //these currently don't do anything, but could eventually be helpful
@@ -333,11 +337,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     keymap(baseKeymap),
                 ]
         };
-    }
-
-    @action
-    rebuildEditor() {
-        this.setupEditor(this.config, this.dataDoc, this.props.fieldKey);
     }
 
     componentDidMount() {
@@ -583,11 +582,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             const marks = [...node.marks];
             const linkIndex = marks.findIndex(mark => mark.type.name === "link");
             const link = view.state.schema.mark(view.state.schema.marks.link, { href: `http://localhost:1050/doc/${linkId}`, location: "onRight", title: title, docref: true });
-            if (linkIndex !== -1) {
-                marks.splice(linkIndex, 1, link);
-            } else {
-                marks.push(link);
-            }
+            marks.splice(linkIndex === -1 ? 0 : linkIndex, 1, link);
             return node.mark(marks);
         }
     }
@@ -630,6 +625,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             this.props.select(false);
         }
         else if (this.props.isOverlay) this._editorView!.focus();
+        // add user mark for any first character that was typed since the user mark that gets set in KeyPress won't have been called yet.
         this._editorView!.state.storedMarks = [...(this._editorView!.state.storedMarks ? this._editorView!.state.storedMarks : []), schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: timenow() })];
     }
 
@@ -734,6 +730,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     }
 
     onClick = (e: React.MouseEvent): void => {
+        // this hackiness handles clicking on the list item bullets to do expand/collapse.  the bullets are ::before pseudo elements so there's no real way to hit test against them.
         if (this.props.isSelected() && e.nativeEvent.offsetX < 40) {
             let pos = this._editorView!.posAtCoords({ left: e.clientX, top: e.clientY });
             if (pos && pos.pos > 0) {
@@ -790,16 +787,11 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         if (e.key === "Tab" || e.key === "Enter") {
             e.preventDefault();
         }
-        //this._editorView!.state.tr.addStoredMark(schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: timenow() }));
-        this._editorView!.state.storedMarks = [...(this._editorView!.state.storedMarks ? this._editorView!.state.storedMarks : []), schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: timenow() })];
-        // stop propagation doesn't seem to stop propagation of native keyboard events.
-        // so we set a flag on the native event that marks that the event's been handled.
-        (e.nativeEvent as any).DASHFormattedTextBoxHandled = true;
-        if (StrCast(this.dataDoc.title).startsWith("-") && this._editorView && !this.Document.customTitle) {
-            let str = this._editorView.state.doc.textContent;
-            let titlestr = str.substr(0, Math.min(40, str.length));
-            this.dataDoc.title = "-" + titlestr + (str.length > 40 ? "..." : "");
-        }
+
+        this._editorView!.state.tr.addStoredMark(schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: timenow() }));
+
+        this.updateTitle();
+
         if (!this._undoTyping) {
             this._undoTyping = UndoManager.StartBatch("undoTyping");
         }
@@ -820,7 +812,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
 
     render() {
-        let self = this;
         let style = this.props.isOverlay ? "scroll" : "hidden";
         let rounded = StrCast(this.props.Document.borderRounding) === "100%" ? "-rounded" : "";
         let interactive: "all" | "none" = InkingControl.Instance.selectedTool || this.props.Document.isBackground ||

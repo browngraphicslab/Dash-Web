@@ -116,8 +116,7 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
             marks && tx2.setStoredMarks([...marks]);
             dispatch(tx2);
         })) { // couldn't sink into an existing list, so wrap in a new one
-            let sxf = state.tr.setSelection(TextSelection.create(state.doc, range!.start, range!.end));
-            let newstate = state.applyTransaction(sxf);
+            let newstate = state.applyTransaction(state.tr.setSelection(TextSelection.create(state.doc, range!.start, range!.end)));
             if (!wrapInList(schema.nodes.ordered_list)(newstate.state, (tx2: Transaction) => {
                 updateBullets(tx2);
                 // when promoting to a list, assume list will format things so don't copy the stored marks.
@@ -144,16 +143,12 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
     });
 
     bind("Enter", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
-        if (!keys["ACTIVE"]) {
+        if (!keys["ACTIVE"]) {// hack to ignore an initial carriage return when creating a textbox from the action menu
             dispatch(state.tr.setSelection(TextSelection.create(state.doc, state.selection.from - 1, state.selection.from)).deleteSelection());
             return true;
         }
         var marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
-        if (!splitListItem(schema.nodes.list_item)(state, (tx3: Transaction) => {
-            // marks && tx3.ensureMarks(marks);
-            // marks && tx3.setStoredMarks(marks);
-            dispatch(tx3);
-        })) {
+        if (!splitListItem(schema.nodes.list_item)(state, (tx3: Transaction) => dispatch(tx3))) {
             if (!splitBlockKeepMarks(state, (tx3: Transaction) => {
                 marks && tx3.ensureMarks(marks);
                 marks && tx3.setStoredMarks(marks);
