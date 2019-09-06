@@ -15,7 +15,7 @@ import { List } from '../../../new_fields/List';
 import { RichTextField, ToPlainText, FromPlainText } from "../../../new_fields/RichTextField";
 import { BoolCast, Cast, NumCast, StrCast, DateCast } from "../../../new_fields/Types";
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
-import { Utils, numberRange } from '../../../Utils';
+import { Utils, numberRange, timenow } from '../../../Utils';
 import { DocServer } from "../../DocServer";
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentManager } from '../../util/DocumentManager';
@@ -117,6 +117,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     @undoBatch
     public setFontColor(color: string) {
+        this._editorView!.state.storedMarks
         if (this._editorView!.state.selection.from === this._editorView!.state.selection.to) return false;
         if (this._editorView!.state.selection.to - this._editorView!.state.selection.from > this._editorView!.state.doc.nodeSize - 3) {
             this.props.Document.color = color;
@@ -654,10 +655,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             this.props.select(false);
         }
         else if (this.props.isOverlay) this._editorView!.focus();
-        var markerss = this._editorView!.state.storedMarks || (this._editorView!.state.selection.$to.parentOffset && this._editorView!.state.selection.$from.marks());
-        let newMarks = [...(markerss ? markerss.filter(m => m.type !== schema.marks.user_mark) : []), schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail })];
-        this._editorView!.state.storedMarks = newMarks;
-
+        this._editorView!.dispatch(this._editorView!.state.tr.removeStoredMark(schema.marks.user_mark).
+            addStoredMark(schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: timenow() })));
     }
 
     componentWillUnmount() {
@@ -681,10 +680,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
         if (e.button === 0 && this.props.isSelected() && !e.altKey && !e.ctrlKey && !e.metaKey) {
             e.stopPropagation();
-            if (FormattedTextBox._toolTipTextMenu && FormattedTextBox._toolTipTextMenu.tooltip) {
-                //this._toolTipTextMenu.tooltip.style.opacity = "0";
-            }
         }
+        this._editorView!.state.tr.removeStoredMark(schema.marks.user_mark).
+            addStoredMark(schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: timenow() }));
         let ctrlKey = e.ctrlKey;
         if (e.button === 0 && ((!this.props.isSelected() && !e.ctrlKey) || (this.props.isSelected() && e.ctrlKey)) && !e.metaKey && e.target) {
             let href = (e.target as any).href;
@@ -744,13 +742,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
     }
 
-    setAnnotation = (start: number, end: number, mark: Mark, opened: boolean, keep: boolean = false) => {
-        let view = this._editorView!;
-        let mid = view.state.doc.resolve(Math.round((start + end) / 2));
-        let nmark = view.state.schema.marks.user_mark.create({ ...mark.attrs, userid: keep ? Doc.CurrentUserEmail : mark.attrs.userid, opened: opened });
-        view.dispatch(view.state.tr.removeMark(start, end, nmark).addMark(start, end, nmark).setSelection(new TextSelection(mid, mid)));
-    }
-
     @action
     onFocused = (e: React.FocusEvent): void => {
         document.removeEventListener("keypress", this.recordKeyHandler);
@@ -774,7 +765,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     onClick = (e: React.MouseEvent): void => {
         if (this.props.isSelected() && e.nativeEvent.offsetX < 40) {
             let pos = this._editorView!.posAtCoords({ left: e.clientX, top: e.clientY });
-            if (pos) {
+            if (pos && pos.pos > 0) {
                 let node = this._editorView!.state.doc.nodeAt(pos.pos);
                 let node2 = node && node.type === schema.nodes.paragraph ? this._editorView!.state.doc.nodeAt(pos.pos - 1) : undefined;
                 if (node === this._nodeClicked && node2 && (node2.type === schema.nodes.ordered_list || node2.type === schema.nodes.list_item)) {
@@ -833,24 +824,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             //     SelectionManager.SelectDoc(DocumentManager.Instance.getDocumentView(this.props.Document, this.props.ContainingCollectionView)!, false);
             // }, 0);
         }
-        function timenow() {
-            var now = new Date();
-            let ampm = 'am';
-            let h = now.getHours();
-            let m: any = now.getMinutes();
-            let s: any = now.getSeconds();
-            if (h >= 12) {
-                if (h > 12) h -= 12;
-                ampm = 'pm';
-            }
-
-            if (m < 10) m = '0' + m;
-            return now.toLocaleDateString() + ' ' + h + ':' + m + ' ' + ampm;
-        }
-        var markerss = this._editorView!.state.storedMarks || (this._editorView!.state.selection.$to.parentOffset && this._editorView!.state.selection.$from.marks());
-        let newMarks = [...(markerss ? markerss.filter(m => m.type !== schema.marks.user_mark) : []), schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: timenow() })];
-        this._editorView!.state.storedMarks = newMarks;
-
         // stop propagation doesn't seem to stop propagation of native keyboard events.
         // so we set a flag on the native event that marks that the event's been handled.
         (e.nativeEvent as any).DASHFormattedTextBoxHandled = true;

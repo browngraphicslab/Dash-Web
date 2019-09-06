@@ -133,6 +133,20 @@ export function WithKeys(obj: any, keys: string[], addKeyFunc?: (dup: any) => vo
     return dup;
 }
 
+export function timenow() {
+    var now = new Date();
+    let ampm = 'am';
+    let h = now.getHours();
+    let m: any = now.getMinutes();
+    let s: any = now.getSeconds();
+    if (h >= 12) {
+        if (h > 12) h -= 12;
+        ampm = 'pm';
+    }
+    if (m < 10) m = '0' + m;
+    return now.toLocaleDateString() + ' ' + h + ':' + m + ' ' + ampm;
+}
+
 export function numberRange(num: number) { return Array.from(Array(num)).map((v, i) => i); }
 
 export function returnTrue() { return true; }

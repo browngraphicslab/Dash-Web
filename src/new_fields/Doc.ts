@@ -308,7 +308,7 @@ export namespace Doc {
 
     // gets the document's prototype or returns the document if it is a prototype
     export function GetProto(doc: Doc) {
-        return Doc.GetT(doc, "isPrototype", "boolean", true) ? doc : (doc.proto || doc);
+        return doc && (Doc.GetT(doc, "isPrototype", "boolean", true) ? doc : (doc.proto || doc));
     }
     export function GetDataDoc(doc: Doc): Doc {
         let proto = Doc.GetProto(doc);

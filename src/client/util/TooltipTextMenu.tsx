@@ -307,10 +307,9 @@ export class TooltipTextMenu {
                     {
                         handlers: {
                             dragComplete: action(() => {
-                                // let m = dragData.droppedDocuments;
                                 let linkDoc = dragData.linkDocument;
                                 let proto = Doc.GetProto(linkDoc);
-                                if (docView && docView.props.ContainingCollectionView) {
+                                if (proto && docView && docView.props.ContainingCollectionView) {
                                     proto.sourceContext = docView.props.ContainingCollectionView.props.Document;
                                 }
                                 linkDoc instanceof Doc && this.makeLink(Utils.prepend("/doc/" + linkDoc[Id]), ctrlKey ? "onRight" : "inTab");
@@ -322,8 +321,6 @@ export class TooltipTextMenu {
                 e.preventDefault();
             };
             this.linkEditor.appendChild(this.linkDrag);
-            // this.linkEditor.appendChild(this.linkText);
-            // this.linkEditor.appendChild(linkBtn);
             this.tooltip.appendChild(this.linkEditor);
         }
 
@@ -432,11 +429,13 @@ export class TooltipTextMenu {
     }
 
     public static insertStar(state: EditorState<any>, dispatch: any) {
-        let newNode = schema.nodes.star.create({ visibility: false, text: state.selection.content(), textslice: state.selection.content().toJSON(), textlen: state.selection.to - state.selection.from });
-        if (dispatch) {
-            //console.log(newNode.attrs.text.toString());
-            dispatch(state.tr.replaceSelectionWith(newNode));
-        }
+        if (state.selection.empty) return false;
+        let mark = state.schema.marks.highlight.create();
+        let tr = state.tr;
+        tr.addMark(state.selection.from, state.selection.to, mark);
+        let content = tr.selection.content();
+        let newNode = schema.nodes.star.create({ visibility: false, text: content, textslice: content.toJSON() });
+        dispatch && dispatch(tr.replaceSelectionWith(newNode).removeMark(tr.selection.from - 1, tr.selection.from, mark));
         return true;
     }
 
@@ -637,7 +636,6 @@ export class TooltipTextMenu {
                         Array.from(this._brushMarks).filter(m => m.type !== schema.marks.user_mark).forEach((mark: Mark) => {
                             const markType = mark.type;
                             this.changeToMarkInGroup(markType, this.view, []);
-
                         });
                     }
                 }

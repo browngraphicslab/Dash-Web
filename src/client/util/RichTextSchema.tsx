@@ -1,4 +1,4 @@
-import { DOMOutputSpecArray, MarkSpec, Node, NodeSpec, Schema, Slice } from "prosemirror-model";
+import { DOMOutputSpecArray, MarkSpec, Node, NodeSpec, Schema, Slice, Fragment } from "prosemirror-model";
 import { bulletList, listItem, orderedList } from 'prosemirror-schema-list';
 import { TextSelection, EditorState } from "prosemirror-state";
 import { Doc } from "../../new_fields/Doc";
@@ -7,6 +7,8 @@ import { EditorView } from "prosemirror-view";
 import { keymap } from "prosemirror-keymap";
 import { undo, redo } from "prosemirror-history";
 import { toggleMark, splitBlock, selectAll, baseKeymap } from "prosemirror-commands";
+import { Domain } from "domain";
+import { DOM } from "@fortawesome/fontawesome-svg-core";
 
 const pDOM: DOMOutputSpecArray = ["p", 0], blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
@@ -41,14 +43,6 @@ export const nodes: { [index: string]: NodeSpec } = {
         parseDOM: [{ tag: "p" }],
         toDOM() { return pDOM; }
     },
-
-    // starmine: {
-    //     inline: true,
-    //     attrs: { oldtext: { default: "" } },
-    //     group: "inline",
-    //     toDOM() { return ["star", "㊉"]; },
-    //     parseDOM: [{ tag: "star" }]
-    // },
 
     // :: NodeSpec A blockquote (`<blockquote>`) wrapping one or more blocks.
     blockquote: {
@@ -107,10 +101,9 @@ export const nodes: { [index: string]: NodeSpec } = {
             visibility: { default: false },
             text: { default: undefined },
             textslice: { default: undefined },
-            textlen: { default: 0 }
-
         },
         group: "inline",
+        inclusive: false,
         toDOM(node) {
             const attrs = { style: `width: 40px` };
             return ["span", { ...node.attrs, ...attrs }];
@@ -205,12 +198,10 @@ export const nodes: { [index: string]: NodeSpec } = {
             const multiMap = bs === 1 ? "decimal1" : bs === 2 ? "upper-alpha" : bs === 3 ? "lower-roman" : bs === 4 ? "lower-alpha" : "";
             let map = node.attrs.mapStyle === "decimal" ? decMap : multiMap;
             return node.attrs.visibility ? ['ol', { class: `${map}-ol`, style: `list-style: none;` }, 0] :
-                 ['ol', { class: `${map}-ol`, style: `list-style: none;` }];
-            //return node.attrs.bulletStyle < 2 ? ['ol', { class: `${map}-ol`, style: `list-style: none;` }, 0] :
-            //     ['ol', { class: `${node.attrs.bulletStyle}`, style: `list-style: ${node.attrs.bulletStyle}; font-size: 5px` }, "hello"];
+                ['ol', { class: `${map}-ol`, style: `list-style: none;` }];
         }
     },
-    //this doesn't currently work for some reason
+
     bullet_list: {
         ...bulletList,
         content: 'list_item+',
@@ -221,14 +212,6 @@ export const nodes: { [index: string]: NodeSpec } = {
         }
     },
 
-    //bullet_list: {
-    //  content: 'list_item+',
-    // group: 'block',
-    //active: blockActive(schema.nodes.bullet_list),
-    //enable: wrapInList(schema.nodes.bullet_list),
-    //run: wrapInList(schema.nodes.bullet_list),
-    //select: state => true,
-    // },
     list_item: {
         attrs: {
             bulletStyle: { default: 0 },
@@ -251,7 +234,6 @@ export const nodes: { [index: string]: NodeSpec } = {
 const emDOM: DOMOutputSpecArray = ["em", 0];
 const strongDOM: DOMOutputSpecArray = ["strong", 0];
 const codeDOM: DOMOutputSpecArray = ["code", 0];
-const underlineDOM: DOMOutputSpecArray = ["underline", 0];
 
 // :: Object [Specs](#model.MarkSpec) for the marks in the schema.
 export const marks: { [index: string]: MarkSpec } = {
@@ -287,16 +269,6 @@ export const marks: { [index: string]: MarkSpec } = {
         { tag: "b" },
         { style: "font-weight" }],
         toDOM() { return strongDOM; }
-    },
-
-    underline: {
-        parseDOM: [
-            { tag: 'u' },
-            { style: 'text-decoration=underline' }
-        ],
-        toDOM: () => ['span', {
-            style: 'text-decoration:underline'
-        }]
     },
 
     strikethrough: {
@@ -340,12 +312,50 @@ export const marks: { [index: string]: MarkSpec } = {
     },
 
     highlight: {
-        parseDOM: [{ style: 'text-decoration: underline' }],
+        parseDOM: [
+            {
+                tag: "span",
+                getAttrs: (p: any) => {
+                    if (typeof (p) !== "string") {
+                        let style = getComputedStyle(p);
+                        if (style.textDecoration === "underline") return null;
+                        if (p.parentElement.outerHTML.indexOf("text-decoration: underline") !== -1 &&
+                            p.parentElement.outerHTML.indexOf("text-decoration-style: dotted") !== -1)
+                            return null;
+                    }
+                    return false;
+                }
+            },
+        ],
+        inclusive: false,
+        priority: 100,
         toDOM() {
             return ['span', {
-                style: 'text-decoration: underline; text-decoration-color: rgba(204, 206, 210, 0.92)'
+                style: 'text-decoration: underline; text-decoration-style: dotted; text-decoration-color: rgba(204, 206, 210, 0.92)'
             }];
         }
+    },
+
+    underline: {
+        parseDOM: [
+            {
+                tag: "span",
+                getAttrs: (p: any) => {
+                    if (typeof (p) !== "string") {
+                        let style = getComputedStyle(p);
+                        if (style.textDecoration === "underline")
+                            return null;
+                        if (p.parentElement.outerHTML.indexOf("text-decoration-style:line") !== -1)
+                            return null;
+                    }
+                    return false;
+                }
+            }
+            // { style: "text-decoration=underline" }
+        ],
+        toDOM: () => ['span', {
+            style: 'text-decoration:underline;text-decoration-style:line'
+        }]
     },
 
     search_highlight: {
@@ -530,9 +540,6 @@ export const marks: { [index: string]: MarkSpec } = {
         }]
     },
 };
-function getFontSize(element: any) {
-    return parseFloat((getComputedStyle(element) as any).fontSize);
-}
 
 export class ImageResizeView {
     _handle: HTMLElement;
@@ -733,73 +740,52 @@ export class FootnoteView {
 }
 
 export class SummarizedView {
-    // TODO: highlight text that is summarized. to find end of region, walk along mark
     _collapsed: HTMLElement;
     _view: any;
     constructor(node: any, view: any, getPos: any) {
         this._collapsed = document.createElement("span");
-        this._collapsed.textContent = node.attrs.visibility ? "㊀" : "㊉";
-        this._collapsed.style.opacity = "0.5";
-        this._collapsed.style.position = "relative";
-        this._collapsed.style.width = "40px";
-        this._collapsed.style.height = "20px";
-        let self = this;
+        this._collapsed.className = this.className(node.attrs.visibility);
         this._view = view;
         const js = node.toJSON;
         node.toJSON = function () {
-
             return js.apply(this, arguments);
         };
-        this._collapsed.onpointerdown = function (e: any) {
-            if (node.attrs.visibility) {
-                // node.attrs.visibility = !node.attrs.visibility;
-                let y = getPos();
-                const attrs = { ...node.attrs };
-                attrs.visibility = !attrs.visibility;
-                let { from, to } = self.updateSummarizedText(y + 1, view.state.schema.marks.highlight);
-                let length = to - from;
-                let newSelection = TextSelection.create(view.state.doc, y + 1, y + 1 + length);
-                // update attrs of node
-                attrs.text = newSelection.content();
-                attrs.textslice = newSelection.content().toJSON();
-                view.dispatch(view.state.tr.setNodeMarkup(y, undefined, attrs));
-                view.dispatch(view.state.tr.setSelection(newSelection).deleteSelection(view.state, () => { }));
-                let marks = view.state.storedMarks.filter((m: any) => m.type !== view.state.schema.marks.highlight);
-                view.state.storedMarks = marks;
-                self._collapsed.textContent = "㊉";
-            } else {
-                // node.attrs.visibility = !node.attrs.visibility;
-                let y = getPos();
-                const attrs = { ...node.attrs };
-                attrs.visibility = !attrs.visibility;
-                view.dispatch(view.state.tr.setNodeMarkup(y, undefined, attrs));
-                let mark = view.state.schema.mark(view.state.schema.marks.highlight);
-                view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, y + 1, y + 1)));
-                const from = view.state.selection.from;
-                let size = node.attrs.text.size;
-                view.dispatch(view.state.tr.replaceSelection(node.attrs.text).addMark(from, from + size, mark).removeStoredMark(mark));
-                self._collapsed.textContent = "㊀";
+
+        this._collapsed.onpointerdown = (e: any) => {
+            const visible = !node.attrs.visibility;
+            const attrs = { ...node.attrs, visibility: visible };
+            let textSelection = TextSelection.create(view.state.doc, getPos() + 1, getPos() + 1);
+            if (!visible) { // update summarized text and save in attrs
+                textSelection = this.updateSummarizedText(getPos() + 1);
+                attrs.text = textSelection.content();
+                attrs.textslice = attrs.text.toJSON();
             }
+            view.dispatch(view.state.tr.
+                setSelection(textSelection). // select the current summarized text (or where it will be if its collapsed)
+                replaceSelection(!visible ? new Slice(Fragment.fromArray([]), 0, 0) : node.attrs.text). // collapse/expand it
+                setNodeMarkup(getPos(), undefined, attrs)); // update the attrs 
             e.preventDefault();
             e.stopPropagation();
+            this._collapsed.className = this.className(visible);
         };
         (this as any).dom = this._collapsed;
-
     }
-    selectNode() {
-    }
+    selectNode() { }
 
-    updateSummarizedText(start?: any, mark?: any) {
-        let $start = this._view.state.doc.resolve(start);
+    deselectNode() { }
+
+    className = (visible: boolean) => "formattedTextBox-summarizer" + (visible ? "" : "-collapsed");
+
+    updateSummarizedText(start?: any) {
+        let mark = this._view.state.schema.marks.highlight.create();
         let endPos = start;
 
-        let _mark = this._view.state.schema.mark(this._view.state.schema.marks.highlight);
         let visited = new Set();
         for (let i: number = start + 1; i < this._view.state.doc.nodeSize - 1; i++) {
             let skip = false;
             this._view.state.doc.nodesBetween(start, i, (node: Node, pos: number, parent: Node, index: number) => {
                 if (node.isLeaf && !visited.has(node) && !skip) {
-                    if (node.marks.find((m: any) => m.type === _mark.type)) {
+                    if (node.marks.find((m: any) => m.type === mark.type)) {
                         visited.add(node);
                         endPos = i + node.nodeSize - 1;
                     }
@@ -807,10 +793,7 @@ export class SummarizedView {
                 }
             });
         }
-        return { from: start, to: endPos };
-    }
-
-    deselectNode() {
+        return TextSelection.create(this._view.state.doc, start, endPos);
     }
 }
 // :: Schema
