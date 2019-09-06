@@ -93,9 +93,8 @@ export class MarqueeView extends React.Component<MarqueeViewProps>
                 }
             });
         } else if (!e.ctrlKey) {
-            let newBox = Docs.Create.TextDocument({ width: 200, height: 100, x: x, y: y, title: "-typed text-" });
-            newBox.proto!.autoHeight = true;
-            this.props.addLiveTextDocument(newBox);
+            this.props.addLiveTextDocument(
+                Docs.Create.TextDocument({ width: 200, height: 100, x: x, y: y, autoHeight: true, title: "-typed text-" }));
         }
         e.stopPropagation();
     }

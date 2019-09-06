@@ -142,6 +142,11 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
         }
     });
 
+    let splitMetadata = (marks: any, tx: Transaction) => {
+        marks && tx.ensureMarks(marks.filter((val: any) => val.type !== schema.marks.metadata && val.type !== schema.marks.metadataKey && val.type !== schema.marks.metadataVal));
+        marks && tx.setStoredMarks(marks.filter((val: any) => val.type !== schema.marks.metadata && val.type !== schema.marks.metadataKey && val.type !== schema.marks.metadataVal));
+        return tx;
+    }
     bind("Enter", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
         if (!keys["ACTIVE"]) {// hack to ignore an initial carriage return when creating a textbox from the action menu
             dispatch(state.tr.setSelection(TextSelection.create(state.doc, state.selection.from - 1, state.selection.from)).deleteSelection());
@@ -150,8 +155,7 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
         var marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
         if (!splitListItem(schema.nodes.list_item)(state, (tx3: Transaction) => dispatch(tx3))) {
             if (!splitBlockKeepMarks(state, (tx3: Transaction) => {
-                marks && tx3.ensureMarks(marks.filter((val: any) => val.type !== schema.marks.metadata));
-                marks && tx3.setStoredMarks(marks.filter((val: any) => val.type !== schema.marks.metadata));
+                splitMetadata(marks, tx3);
                 if (!liftListItem(schema.nodes.list_item)(tx3, dispatch as ((tx: Transaction<Schema<any, any>>) => void))) {
                     dispatch(tx3);
                 }
@@ -163,10 +167,7 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
     });
     bind("Space", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
         var marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
-        let tx = state.tr;
-        marks && tx.ensureMarks(marks.filter((val: any) => val.type !== schema.marks.metadata));
-        marks && tx.setStoredMarks(marks.filter((val: any) => val.type !== schema.marks.metadata));
-        dispatch(tx);
+        dispatch(splitMetadata(marks, state.tr));
         return false;
     });
     bind(":", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
@@ -180,7 +181,8 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
         let whitespace = text.length - 1;
         for (; whitespace >= 0 && text[whitespace] !== " "; whitespace--) { }
         if (text.endsWith(":")) {
-            dispatch(state.tr.addMark(textsel.from + whitespace + 1, textsel.to, schema.marks.metadata.create() as any));
+            dispatch(state.tr.addMark(textsel.from + whitespace + 1, textsel.to, schema.marks.metadata.create() as any).
+                addMark(textsel.from + whitespace + 1, textsel.to - 2, schema.marks.metadataKey.create() as any));
         }
         return false;
     });

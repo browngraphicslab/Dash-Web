@@ -888,7 +888,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     createText = (noteStyle: string, color: string) => {
         let pt = this.getTransform().transformPoint(ContextMenu.Instance.pageX, ContextMenu.Instance.pageY);
-        this.addLiveTextBox(Docs.Create.TextDocument({ title: noteStyle, x: pt[0], y: pt[1], backgroundColor: color }))
+        this.addLiveTextBox(Docs.Create.TextDocument({ title: noteStyle, x: pt[0], y: pt[1], autoHeight: true, backgroundColor: color }))
     }
 
     private childViews = () => [

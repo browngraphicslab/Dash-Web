@@ -317,7 +317,17 @@ export const marks: { [index: string]: MarkSpec } = {
 
     metadata: {
         toDOM() {
-            return ['span', { style: 'border-radius:5px; background:rgba(100, 100, 100, 0.1); box-shadow: black 1px 1px 1px' }];
+            return ['span', { style: 'font-size:75%; background:rgba(100, 100, 100, 0.2); ' }];
+        }
+    },
+    metadataKey: {
+        toDOM() {
+            return ['span', { style: 'font-style:italic; ' }];
+        }
+    },
+    metadataVal: {
+        toDOM() {
+            return ['span', { style: 'background:rgba(100, 100, 100, 0.1);' }];
         }
     },
 

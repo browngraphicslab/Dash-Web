@@ -167,20 +167,32 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
 
     dispatchTransaction = (tx: Transaction) => {
         if (this._editorView) {
+            let metadata = tx.selection.$from.marks().find((m: Mark) => m.type === schema.marks.metadata);
+            if (metadata) {
+                let range = tx.selection.$from.blockRange(tx.selection.$to);
+                let text = range ? tx.doc.textBetween(range.start, range.end) : "";
+                let textEndSelection = tx.selection.to;
+                for (; textEndSelection < range!.end && text[textEndSelection - range!.start] != " "; textEndSelection++) { }
+                text = text.substr(0, textEndSelection - range!.start);
+                text = text.split(" ")[text.split(" ").length - 1];
+                let split = text.split("::");
+                if (split.length > 1 && split[1]) {
+                    let key = split[0];
+                    let value = split[split.length - 1];
+
+                    DocServer.GetRefField(value).then(doc => this.dataDoc[key] = doc || Docs.Create.FreeformDocument([], { title: value, width: 500, height: 500 }, value));
+                    const link = this._editorView!.state.schema.marks.link.create({ href: `http://localhost:1050/doc/${value}`, location: "onRight", title: value });
+                    const mval = this._editorView!.state.schema.marks.metadataVal.create();
+                    let offset = (tx.selection.to === range!.end - 1 ? -1 : 0);
+                    tx = tx.addMark(textEndSelection - value.length + offset, textEndSelection, link).addMark(textEndSelection - value.length + offset, textEndSelection, mval);
+                    this.dataDoc[key] = value;
+                }
+            }
             const state = this._editorView.state.apply(tx);
             this._editorView.updateState(state);
             this.syncNodeSelection(this._editorView, this._editorView.state.selection); // bcz: ugh -- shouldn't be needed but without this the overlay view's footnote popup doesn't get deselected
             if (state.selection.empty && FormattedTextBox._toolTipTextMenu && tx.storedMarks) {
                 FormattedTextBox._toolTipTextMenu.mark_key_pressed(tx.storedMarks);
-            }
-
-            let metadata = this._editorView!.state.selection.$from.marks().find((m: Mark) => m.type === schema.marks.metadata);
-            if (metadata) {
-                let range = this._editorView!.state.selection.$from.blockRange(this._editorView!.state.selection.$to);
-                let text = range ? this._editorView!.state.doc.textBetween(range.start, range.end) : "";
-                let key = text.split("::")[0];
-                let value = text.split("::")[text.split("::").length - 1];
-                this.dataDoc[key] = value;
             }
 
             this._keymap["ACTIVE"] = true; // hack to ignore an initial carriage return when creating a textbox from the action menu
@@ -191,7 +203,6 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()));
             this._applyingChange = false;
             this.updateTitle();
-            let title = StrCast(this.dataDoc.title);
         }
     }
 
@@ -670,6 +681,12 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             for (let parent = (e.target as any).parentNode; !href && parent; parent = parent.parentNode) {
                 href = parent.childNodes[0].href ? parent.childNodes[0].href : parent.href;
             }
+            let node = this._editorView!.state.doc.nodeAt(this._editorView!.posAtCoords({ left: e.clientX, top: e.clientY })!.pos);
+            if (node) {
+                let link = node.marks.find(m => m.type === this._editorView!.state.schema.marks.link);
+                href = link && link.attrs.href;
+                location = link && link.attrs.location;
+            }
             if (href) {
                 if (href.indexOf(Utils.prepend("/doc/")) === 0) {
                     this._linkClicked = href.replace(Utils.prepend("/doc/"), "").split("?")[0];
@@ -690,7 +707,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                                     DocumentManager.Instance.jumpToDocument(targetContext, ctrlKey, false, document => this.props.addDocTab(document, undefined, location ? location : "inTab"));
                                 } else if (jumpToDoc) {
                                     DocumentManager.Instance.jumpToDocument(jumpToDoc, ctrlKey, false, document => this.props.addDocTab(document, undefined, location ? location : "inTab"));
-
+                                } else {
+                                    DocumentManager.Instance.jumpToDocument(linkDoc, ctrlKey, false, document => this.props.addDocTab(document, undefined, location ? location : "inTab"));
                                 }
                             }
                         });
