@@ -180,8 +180,15 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                     let key = split[0];
                     let value = split[split.length - 1];
 
-                    DocServer.GetRefField(value).then(doc => this.dataDoc[key] = doc || Docs.Create.FreeformDocument([], { title: value, width: 500, height: 500 }, value));
-                    const link = this._editorView!.state.schema.marks.link.create({ href: `http://localhost:1050/doc/${value}`, location: "onRight", title: value });
+                    let id = Utils.GenerateDeterministicGuid(this.dataDoc[Id] + key);
+                    DocServer.GetRefField(value).then(doc => {
+                        DocServer.GetRefField(id).then(linkDoc => {
+                            this.dataDoc[key] = doc || Docs.Create.FreeformDocument([], { title: value, width: 500, height: 500 }, value);
+                            if (linkDoc) { (linkDoc as Doc).anchor2 = this.dataDoc[key] as Doc; }
+                            else DocUtils.MakeLink(this.dataDoc, this.dataDoc[key] as Doc, undefined, "Ref:" + value, undefined, undefined, id);
+                        })
+                    });
+                    const link = this._editorView!.state.schema.marks.link.create({ href: `http://localhost:1050/doc/${id}`, location: "onRight", title: value });
                     const mval = this._editorView!.state.schema.marks.metadataVal.create();
                     let offset = (tx.selection.to === range!.end - 1 ? -1 : 0);
                     tx = tx.addMark(textEndSelection - value.length + offset, textEndSelection, link).addMark(textEndSelection - value.length + offset, textEndSelection, mval);
@@ -203,6 +210,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()));
             this._applyingChange = false;
             this.updateTitle();
+            this.tryUpdateHeight();
         }
     }
 
@@ -817,12 +825,9 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         }
         this._editorView!.state.tr.addStoredMark(schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: timenow() }));
 
-        this.updateTitle();
-
         if (!this._undoTyping) {
             this._undoTyping = UndoManager.StartBatch("undoTyping");
         }
-        this.tryUpdateHeight();
     }
 
     @action
