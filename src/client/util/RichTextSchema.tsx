@@ -327,7 +327,7 @@ export const marks: { [index: string]: MarkSpec } = {
     },
     metadataVal: {
         toDOM() {
-            return ['span', { style: 'background:rgba(100, 100, 100, 0.1);' }];
+            return ['span'];
         }
     },
 
@@ -347,7 +347,7 @@ export const marks: { [index: string]: MarkSpec } = {
                 }
             },
         ],
-        inclusive: false,
+        inclusive: true,
         toDOM() {
             return ['span', {
                 style: 'text-decoration: underline; text-decoration-style: dotted; text-decoration-color: rgba(204, 206, 210, 0.92)'
