@@ -598,9 +598,9 @@ export class ImageResizeView {
                 document.removeEventListener("pointermove", onpointermove);
                 document.removeEventListener("pointerup", onpointerup);
                 view.dispatch(
-                    view.state.tr.setNodeMarkup(getPos(), null,
+                    view.state.tr.setSelection(view.state.selection).setNodeMarkup(getPos(), null,
                         { src: node.attrs.src, width: self._outer.style.width })
-                        .setSelection(view.state.selection));
+                        );
             };
 
             document.addEventListener("pointermove", onpointermove);
