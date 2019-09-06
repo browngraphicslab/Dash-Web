@@ -118,6 +118,9 @@ footnote::after {
     width: max-content;
 }
 
+.prosemirror-attribution {
+    font-size: 8px;
+}
 .footnote-tooltip::before {
     border: 5px solid silver;
     border-top-width: 0px;

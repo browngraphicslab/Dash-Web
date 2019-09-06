@@ -522,6 +522,7 @@ export namespace Doc {
         otherdoc.type = DocumentType.TEMPLATE;
         !templateDoc.nativeWidth && (otherdoc.nativeWidth = 0);
         !templateDoc.nativeHeight && (otherdoc.nativeHeight = 0);
+        !templateDoc.nativeWidth && (otherdoc.ignoreAspect = true);
         return otherdoc;
     }
     export function ApplyTemplateTo(templateDoc: Doc, target: Doc, targetData?: Doc) {
@@ -538,6 +539,7 @@ export namespace Doc {
         target.nativeHeight = Doc.GetProto(target).nativeHeight = undefined;
         !templateDoc.nativeWidth && (target.nativeWidth = 0);
         !templateDoc.nativeHeight && (target.nativeHeight = 0);
+        !templateDoc.nativeHeight && (target.ignoreAspect = true);
         target.width = templateDoc.width;
         target.height = templateDoc.height;
         target.onClick = templateDoc.onClick instanceof ObjectField && templateDoc.onClick[Copy]();
@@ -576,7 +578,7 @@ export namespace Doc {
         /* move certain layout properties from the original data doc to the template layout to avoid
            inheriting them from the template's data doc which may also define these fields for its own use.
         */
-        fieldTemplate.ignoreAspect = BoolCast(fieldTemplate.ignoreAspect);
+        fieldTemplate.ignoreAspect = fieldTemplate.ignoreAspect === undefined ? undefined : BoolCast(fieldTemplate.ignoreAspect);
         fieldTemplate.singleColumn = BoolCast(fieldTemplate.singleColumn);
         fieldTemplate.nativeWidth = Cast(fieldTemplate.nativeWidth, "number");
         fieldTemplate.nativeHeight = Cast(fieldTemplate.nativeHeight, "number");

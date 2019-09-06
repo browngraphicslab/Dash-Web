@@ -244,7 +244,8 @@ export const marks: { [index: string]: MarkSpec } = {
         attrs: {
             href: {},
             location: { default: null },
-            title: { default: null }
+            title: { default: null },
+            docref: { default: false }
         },
         inclusive: false,
         parseDOM: [{
@@ -252,7 +253,11 @@ export const marks: { [index: string]: MarkSpec } = {
                 return { href: dom.getAttribute("href"), location: dom.getAttribute("location"), title: dom.getAttribute("title") };
             }
         }],
-        toDOM(node: any) { return ["a", node.attrs, 0]; }
+        toDOM(node: any) {
+            return node.attrs.docref && node.attrs.title ?
+                ["div", ["span", `"`], ["span", 0], ["span", `"`], ["br"], ["a", { ...node.attrs, class: "prosemirror-attribution" }, node.attrs.title], ["br"]] :
+                ["a", { ...node.attrs }, 0];
+        }
     },
 
     // :: MarkSpec An emphasis mark. Rendered as an `<em>` element.
