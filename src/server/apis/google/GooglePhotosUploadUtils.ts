@@ -14,8 +14,8 @@ export namespace GooglePhotosUploadUtils {
     }
 
     export interface MediaInput {
+        url: string;
         description: string;
-        source: string;
     }
 
     export interface DownloadInformation {
@@ -40,21 +40,13 @@ export namespace GooglePhotosUploadUtils {
         Bearer = `Bearer ${token}`;
     };
 
-    export const DispatchGooglePhotosUpload = async (filename: string) => {
-        let body: Buffer;
-        if (filename.includes('upload_')) {
-            const mediaPath = Paths.uploadDirectory + filename;
-            body = await new Promise<Buffer>((resolve, reject) => {
-                fs.readFile(mediaPath, (error, data) => error ? reject(error) : resolve(data));
-            });
-        } else {
-            body = await request(filename, { encoding: null });
-        }
+    export const DispatchGooglePhotosUpload = async (url: string) => {
+        const body = await request(url, { encoding: null });
         const parameters = {
             method: 'POST',
             headers: {
                 ...headers('octet-stream'),
-                'X-Goog-Upload-File-Name': filename,
+                'X-Goog-Upload-File-Name': path.basename(url),
                 'X-Goog-Upload-Protocol': 'raw'
             },
             uri: prepend('uploads'),

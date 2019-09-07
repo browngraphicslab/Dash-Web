@@ -13,8 +13,8 @@ export namespace GooglePhotosClientUtils {
     export const endpoint = () => fetch(Utils.prepend(RouteStore.googlePhotosAccessToken)).then(async response => new Photos(await response.text()));
 
     export interface MediaInput {
+        url: string;
         description: string;
-        source: string;
     }
 
     export const UploadMedia = async (sources: Doc[], album?: AlbumReference) => {
@@ -29,7 +29,7 @@ export namespace GooglePhotosClientUtils {
                 return undefined;
             }
             media.push({
-                source: data.url.href,
+                url: data.url.href,
                 description,
             } as MediaInput);
         });

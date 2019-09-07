@@ -130,7 +130,7 @@ export class MainView extends React.Component {
         window.removeEventListener("keydown", KeyManager.Instance.handle);
         window.addEventListener("keydown", KeyManager.Instance.handle);
 
-        this.executeGooglePhotosRoutine();
+        // this.executeGooglePhotosRoutine();
 
         reaction(() => {
             let workspaces = CurrentUserUtils.UserDocument.workspaces;

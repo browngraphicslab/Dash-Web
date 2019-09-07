@@ -808,9 +808,9 @@ const EndpointHandlerMap = new Map<GoogleApiServerUtils.Action, GoogleApiServerU
 ]);
 
 app.post(RouteStore.googleDocs + "/:sector/:action", (req, res) => {
-    let sector: any = req.params.sector;
-    let action: any = req.params.action;
-    GoogleApiServerUtils.GetEndpoint(GoogleApiServerUtils.Service[sector], { credentialsPath, tokenPath }).then(endpoint => {
+    let sector: GoogleApiServerUtils.Service = req.params.sector;
+    let action: GoogleApiServerUtils.Action = req.params.action;
+    GoogleApiServerUtils.GetEndpoint(sector, { credentialsPath, tokenPath }).then(endpoint => {
         let handler = EndpointHandlerMap.get(action);
         if (endpoint && handler) {
             let execute = handler(endpoint, req.body).then(
@@ -833,7 +833,7 @@ app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
     const media: GooglePhotosUploadUtils.MediaInput[] = req.body.media;
     await GooglePhotosUploadUtils.initialize({ uploadDirectory, credentialsPath, tokenPath });
     const newMediaItems = await Promise.all(media.map(async element => {
-        const uploadToken = await GooglePhotosUploadUtils.DispatchGooglePhotosUpload(element.source);
+        const uploadToken = await GooglePhotosUploadUtils.DispatchGooglePhotosUpload(element.url);
         return !uploadToken ? undefined : {
             description: element.description,
             simpleMediaItem: { uploadToken }
