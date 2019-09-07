@@ -256,7 +256,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private addDocument = (newBox: Doc, allowDuplicates: boolean) => {
         this.props.addDocument(newBox, false);
         this.bringToFront(newBox);
-        this.updateClusters();
+        this.updateCluster(newBox);
         return true;
     }
     private selectDocuments = (docs: Doc[]) => {
@@ -324,7 +324,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         this.bringToFront(d);
                     });
 
-                    this.updateClusters();
+                    de.data.droppedDocuments.length == 1 && this.updateCluster(de.data.droppedDocuments[0]);
                 }
             }
             else if (de.data instanceof DragManager.AnnotationDragData) {
@@ -384,6 +384,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return false;
     }
     @observable sets: (Doc[])[] = [];
+
+    @undoBatch
     @action
     updateClusters() {
         this.sets.length = 0;
@@ -412,12 +414,42 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         this.sets.map((set, i) => set.map(member => member.cluster = i));
     }
 
+    @undoBatch
+    @action
+    updateCluster(doc: Doc) {
+        if (this.props.Document.useClusters) {
+            this.sets.map(set => Doc.IndexOf(doc, set) !== -1 && set.splice(Doc.IndexOf(doc, set), 1));
+            let preferredInd = NumCast(doc.cluster);
+            doc.cluster = -1;
+            this.sets.map((set, i) => set.map(member => {
+                if (doc.cluster === -1 && Doc.IndexOf(member, this.childDocs) !== -1 && this.boundsOverlap(doc, member)) {
+                    doc.cluster = i;
+                }
+            }));
+            if (doc.cluster === -1 && preferredInd !== -1 && (!this.sets[preferredInd] || !this.sets[preferredInd].filter(member => Doc.IndexOf(member, this.childDocs) !== -1).length)) {
+                doc.cluster = preferredInd;
+            }
+            this.sets.map((set, i) => {
+                if (doc.cluster === -1 && !set.filter(member => Doc.IndexOf(member, this.childDocs) !== -1).length) {
+                    doc.cluster = i;
+                }
+            });
+            if (doc.cluster === -1) {
+                doc.cluster = this.sets.length;
+                this.sets.push([doc]);
+            } else {
+                for (let i = this.sets.length; i <= doc.cluster; i++) !this.sets[i] && this.sets.push([]);
+                this.sets[doc.cluster].push(doc);
+            }
+        }
+    }
+
     getClusterColor = (doc: Doc) => {
         if (this.props.Document.useClusters) {
             let cluster = NumCast(doc.cluster);
             if (this.sets.length <= cluster) {
-                setTimeout(() => this.updateClusters(), 0);
-                return;
+                setTimeout(() => this.updateCluster(doc), 0);//  this.updateClusters(), 0);
+                return "";
             }
             let set = this.sets.length > cluster ? this.sets[cluster] : undefined;
             let colors = ["#da42429e", "#31ea318c", "#8c4000", "#4a7ae2c4", "#d809ff", "#ff7601", "#1dffff", "yellow", "#1b8231f2", "#000000ad"];
@@ -869,6 +901,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 Docs.Prototypes.get(DocumentType.TEXT).defaultBackgroundColor = "#f1efeb"; // backward compatibility with databases that didn't have a default background color on prototypes
                 Docs.Prototypes.get(DocumentType.COL).defaultBackgroundColor = "white";
                 this.props.Document.useClusters = !this.props.Document.useClusters;
+                this.updateClusters();
             },
             icon: !this.props.Document.useClusters ? "braille" : "braille"
         });

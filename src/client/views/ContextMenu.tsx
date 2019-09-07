@@ -248,7 +248,7 @@ export class ContextMenu extends React.Component {
             e.preventDefault();
         } else if (e.key === "Enter" || e.key === "Tab") {
             const item = this.flatItems[this.selectedIndex];
-            item.event();
+            item && item.event();
             this.closeMenu();
         }
     }
