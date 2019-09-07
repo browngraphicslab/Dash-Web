@@ -644,40 +644,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         });
         cm.addItem({
             description: "Recommender System",
-            event: async () => {
-                if (!ClientRecommender.Instance) new ClientRecommender({ title: "Client Recommender" });
-                let documents: Doc[] = [];
-                let allDocs = await SearchUtil.GetAllDocs();
-                // allDocs.forEach(doc => console.log(doc.title));
-                // clears internal representation of documents as vectors
-                ClientRecommender.Instance.reset_docs();
-                ClientRecommender.Instance.arxivrequest("electrons");
-                await Promise.all(allDocs.map((doc: Doc) => {
-                    let mainDoc: boolean = false;
-                    const dataDoc = Doc.GetDataDoc(doc);
-                    if (doc.type === DocumentType.TEXT) {
-                        if (dataDoc === Doc.GetDataDoc(this.props.Document)) {
-                            mainDoc = true;
-                            console.log(StrCast(doc.title));
-                        }
-                        if (!documents.includes(dataDoc)) {
-                            documents.push(dataDoc);
-                            const extdoc = doc.data_ext as Doc;
-                            return ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc, mainDoc);
-                        }
-                    }
-                }));
-                console.log(ClientRecommender.Instance.createDistanceMatrix());
-                const doclist = ClientRecommender.Instance.computeSimilarities();
-                let recDocs: { preview: Doc, score: number }[] = [];
-                // tslint:disable-next-line: prefer-for-of
-                for (let i = 0; i < doclist.length; i++) {
-                    console.log(doclist[i].score);
-                    recDocs.push({ preview: doclist[i].actualDoc, score: doclist[i].score });
-                }
-                Recommendations.Instance.addDocuments(recDocs);
-                Recommendations.Instance.displayRecommendations(e.pageX + 100, e.pageY);
-            },
+            event: () => this.recommender(e),
             icon: "brain"
         });
         cm.addItem({ description: "Delete", event: this.deleteClicked, icon: "trash" });
@@ -742,6 +709,38 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 SelectionManager.SelectDoc(this, false);
             }
         });
+    }
+
+    recommender = async (e: React.MouseEvent) => {
+        if (!ClientRecommender.Instance) new ClientRecommender({ title: "Client Recommender" });
+        let documents: Doc[] = [];
+        let allDocs = await SearchUtil.GetAllDocs();
+        // allDocs.forEach(doc => console.log(doc.title));
+        // clears internal representation of documents as vectors
+        ClientRecommender.Instance.reset_docs();
+        //ClientRecommender.Instance.arxivrequest("electrons");
+        await Promise.all(allDocs.map((doc: Doc) => {
+            let mainDoc: boolean = false;
+            const dataDoc = Doc.GetDataDoc(doc);
+            if (doc.type === DocumentType.TEXT) {
+                if (dataDoc === Doc.GetDataDoc(this.props.Document)) {
+                    mainDoc = true;
+                }
+                if (!documents.includes(dataDoc)) {
+                    documents.push(dataDoc);
+                    const extdoc = doc.data_ext as Doc;
+                    return ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc, mainDoc);
+                }
+            }
+        }));
+        const doclist = ClientRecommender.Instance.computeSimilarities();
+        let recDocs: { preview: Doc, score: number }[] = [];
+        // tslint:disable-next-line: prefer-for-of
+        for (let i = 0; i < doclist.length; i++) {
+            recDocs.push({ preview: doclist[i].actualDoc, score: doclist[i].score });
+        }
+        Recommendations.Instance.addDocuments(recDocs);
+        Recommendations.Instance.displayRecommendations(e.pageX + 100, e.pageY);
     }
 
     onPointerEnter = (e: React.PointerEvent): void => { Doc.BrushDoc(this.props.Document); };

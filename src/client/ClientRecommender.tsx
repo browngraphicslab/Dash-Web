@@ -7,6 +7,7 @@ import { observer } from "mobx-react";
 import { observable, action, computed, reaction } from "mobx";
 var assert = require('assert');
 var sw = require('stopword');
+var FeedParser = require('feedparser');
 import "./ClientRecommender.scss";
 import { JSXElement } from "babel-types";
 import { ToPlainText, RichTextField } from "../new_fields/RichTextField";
@@ -130,14 +131,23 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
         let fielddata = Cast(dataDoc.data, RichTextField);
         let data: string;
         fielddata ? data = fielddata[ToPlainText]() : data = "";
-        console.log(data);
         let converter = (results: any, data: string) => {
             let keyterms = new List<string>();
             let keyterms_counted = new List<string>();
+            let highKP: string[] = [""];
+            let high = 0;
             results.documents.forEach((doc: any) => {
                 let keyPhrases = doc.keyPhrases;
                 keyPhrases.map((kp: string) => {
                     const frequency = this.countFrequencies(kp, data);
+                    if (frequency > high) {
+                        high = frequency;
+                        highKP = [kp];
+
+                    }
+                    else if (frequency === high) {
+                        highKP.push(kp);
+                    }
                     let words = kp.split(" "); // separates phrase into words
                     words = this.removeStopWords(words);
                     words.forEach((word) => {
@@ -148,17 +158,16 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
                     });
                 });
             });
+            console.log(highKP);
+            this.sendRequest(highKP);
             return { keyterms: keyterms, keyterms_counted: keyterms_counted };
         };
-        let test = (results: any, data: string) => {
-            results.documents.forEach((doc: any) => {
-                let kps = doc.keyPhrases;
-                kps.map((kp: string) => {
-                    this.countFrequencies(kp, data);
-                });
-            });
-        };
         await CognitiveServices.Text.Appliers.analyzer(dataDoc, extDoc, ["key words"], data, converter, mainDoc);
+    }
+
+    private findImportantKPs(keyterms_counted: string[], paragraph: string) {
+        let imporantSet = new Set<string>();
+
     }
 
     private countFrequencies(keyphrase: string, paragraph: string) {
@@ -183,6 +192,12 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
         return sw.removeStopwords(word_array);
     }
 
+    private async sendRequest(keywords: string[]) {
+        let query = "";
+        keywords.forEach((kp: string) => query += kp);
+        await this.arxivrequest(query);
+    }
+
     /**
      * Request to the arXiv server for ML articles.
      */
@@ -190,14 +205,28 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
     arxivrequest = async (query: string) => {
         let xhttp = new XMLHttpRequest();
         let serveraddress = "http://export.arxiv.org/api"
-        let endpoint = serveraddress + "/query?search_query=all:" + query + "&start=0&max_results=5";
+        let endpoint = serveraddress + "/query?search_query=all:" + query + "&start=0&max_results=1";
         let promisified = (resolve: any, reject: any) => {
             xhttp.onreadystatechange = function () {
                 if (this.readyState === 4) {
                     let result = xhttp.response;
+                    let xml = xhttp.responseXML;
+                    console.log(xml);
                     switch (this.status) {
                         case 200:
-                            console.log(result);
+                            //console.log(result);
+                            if (xml) {
+                                let titles = xml.getElementsByTagName("title");
+                                if (titles && titles.length > 1) {
+                                    let text = titles[1].childNodes[0].nodeValue;
+                                    console.log(text);
+                                }
+                                let ids = xml.getElementsByTagName("id");
+                                if (ids && ids.length > 1) {
+                                    let text = ids[1].childNodes[0].nodeValue;
+                                    console.log(text);
+                                }
+                            }
                             return resolve(result);
                         case 400:
                         default:
@@ -209,6 +238,12 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
             xhttp.send();
         };
         return new Promise<any>(promisified);
+    }
+
+    processArxivResult = (result: any) => {
+        var xmlDoc = result as XMLDocument;
+        let text = xmlDoc.getElementsByTagName("title")[0].childNodes[0].nodeValue;
+        console.log(text);
     }
 
     /***

@@ -56,7 +56,9 @@ export class Recommendations extends React.Component<{}> {
         let returnYDimension = () => 50;
         let scale = () => returnXDimension() / NumCast(renderDoc.nativeWidth, returnXDimension());
         //let scale = () => 1;
-        //let newRenderDoc = Doc.MakeDelegate(renderDoc); ///   newRenderDoc -> renderDoc -> render"data"Doc -> TextProt
+        let newRenderDoc = Doc.MakeAlias(renderDoc); ///   newRenderDoc -> renderDoc -> render"data"Doc -> TextProt
+        newRenderDoc.height = 50;
+        newRenderDoc.autoHeight = false;
         const docview = <div>
             {/* onPointerDown={action(() => {
                 this._useIcons = !this._useIcons;
@@ -66,7 +68,7 @@ export class Recommendations extends React.Component<{}> {
             onPointerLeave={action(() => this._displayDim = 50)} > */}
             <DocumentView
                 fitToBox={StrCast(doc.type).indexOf(DocumentType.COL) !== -1}
-                Document={renderDoc}
+                Document={newRenderDoc}
                 addDocument={returnFalse}
                 removeDocument={returnFalse}
                 ScreenToLocalTransform={Transform.Identity}
