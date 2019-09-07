@@ -152,6 +152,7 @@ export namespace PivotView {
                         y={pos.y}
                         width={pos.width}
                         height={pos.height}
+                        jitterRotation={NumCast(target.props.Document.jitterRotation)}
                         {...target.getChildDocumentViewProps(doc)}
                     />,
                     bounds: {
@@ -797,6 +798,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     if (pair.layout && !(pair.data instanceof Promise)) {
                         prev.push({
                             ele: <CollectionFreeFormDocumentView key={doc[Id]}
+                                jitterRotation={NumCast(this.props.Document.jitterRotation)}
                                 x={script ? pos.x : undefined} y={script ? pos.y : undefined}
                                 width={script ? pos.width : undefined} height={script ? pos.height : undefined} {...this.getChildDocumentViewProps(pair.layout, pair.data)} />,
                             bounds: { x: pos.x || 0, y: pos.y || 0, z: pos.z, width: NumCast(pos.width), height: NumCast(pos.height) }
@@ -912,10 +914,14 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         });
         layoutItems.push({ description: "Arrange contents in grid", event: this.arrangeContents, icon: "table" });
         layoutItems.push({ description: "Analyze Strokes", event: this.analyzeStrokes, icon: "paint-brush" });
-        layoutItems.push({ description: "1: Note", event: () => this.createText("Note", "yellow"), icon: "eye" });
-        layoutItems.push({ description: "2: Idea", event: () => this.createText("Idea", "pink"), icon: "eye" });
-        layoutItems.push({ description: "3: Topic", event: () => this.createText("Topic", "lightBlue"), icon: "eye" });
-        layoutItems.push({ description: "4: Person", event: () => this.createText("Person", "lightGreen"), icon: "eye" });
+        layoutItems.push({ description: "Jitter Rotation", event: action(() => this.props.Document.jitterRotation = 10), icon: "paint-brush" });
+
+        let noteItems: ContextMenuProps[] = [];
+        noteItems.push({ description: "1: Note", event: () => this.createText("Note", "yellow"), icon: "eye" });
+        noteItems.push({ description: "2: Idea", event: () => this.createText("Idea", "pink"), icon: "eye" });
+        noteItems.push({ description: "3: Topic", event: () => this.createText("Topic", "lightBlue"), icon: "eye" });
+        noteItems.push({ description: "4: Person", event: () => this.createText("Person", "lightGreen"), icon: "eye" });
+        layoutItems.push({ description: "Add Note ...", subitems: noteItems, icon: "eye" })
         ContextMenu.Instance.addItem({ description: "Freeform Options ...", subitems: layoutItems, icon: "eye" });
     }
 

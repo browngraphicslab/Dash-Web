@@ -8,12 +8,14 @@ import { DocumentView, DocumentViewProps, positionSchema } from "./DocumentView"
 import "./DocumentView.scss";
 import React = require("react");
 import { Doc } from "../../../new_fields/Doc";
+import { random } from "animejs";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     x?: number;
     y?: number;
     width?: number;
     height?: number;
+    jitterRotation: number;
 }
 
 const schema = createSchema({
@@ -27,7 +29,7 @@ const FreeformDocument = makeInterface(schema, positionSchema);
 
 @observer
 export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeFormDocumentViewProps, FreeformDocument>(FreeformDocument) {
-    @computed get transform() { return `scale(${this.props.ContentScaling()}) translate(${this.X}px, ${this.Y}px) scale(${this.zoom}) `; }
+    @computed get transform() { return `scale(${this.props.ContentScaling()}) translate(${this.X}px, ${this.Y}px) rotate(${random(-1, 1) * this.props.jitterRotation}deg) scale(${this.zoom}) `; }
     @computed get X() { return this.props.x !== undefined ? this.props.x : this.Document.x || 0; }
     @computed get Y() { return this.props.y !== undefined ? this.props.y : this.Document.y || 0; }
     @computed get width(): number { return BoolCast(this.props.Document.willMaximize) ? 0 : this.props.width !== undefined ? this.props.width : this.Document.width || 0; }
