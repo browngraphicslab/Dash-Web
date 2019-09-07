@@ -300,9 +300,9 @@ export namespace Doc {
     export function AreProtosEqual(doc?: Doc, other?: Doc) {
         if (!doc || !other) return false;
         let r = (doc === other);
-        let r2 = (doc.proto === other);
-        let r3 = (other.proto === doc);
-        let r4 = (doc.proto === other.proto && other.proto !== undefined);
+        let r2 = (Doc.GetProto(doc) === other);
+        let r3 = (Doc.GetProto(other) === doc);
+        let r4 = (Doc.GetProto(doc) === Doc.GetProto(other) && Doc.GetProto(other) !== undefined);
         return r || r2 || r3 || r4;
     }
 
@@ -327,6 +327,9 @@ export namespace Doc {
         return Array.from(results);
     }
 
+    export function IndexOf(toFind: Doc, list: Doc[]) {
+        return list.findIndex(doc => doc === toFind || Doc.AreProtosEqual(doc, toFind))
+    }
     export function AddDocToList(target: Doc, key: string, doc: Doc, relativeTo?: Doc, before?: boolean, first?: boolean, allowDuplicates?: boolean, reversed?: boolean) {
         if (target[key] === undefined) {
             Doc.GetProto(target)[key] = new List<Doc>();
