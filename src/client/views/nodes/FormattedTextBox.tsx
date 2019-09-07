@@ -278,11 +278,13 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
     drop = async (e: Event, de: DragManager.DropEvent) => {
         // We're dealing with a link to a document
         if (de.data instanceof DragManager.EmbedDragData && de.data.urlField) {
+            let target = de.data.embeddableSourceDoc;
             // We're dealing with an internal document drop
             let url = de.data.urlField.url.href;
             let model: NodeType = (url.includes(".mov") || url.includes(".mp4")) ? schema.nodes.video : schema.nodes.image;
             let pos = this._editorView!.posAtCoords({ left: de.x, top: de.y });
-            this._editorView!.dispatch(this._editorView!.state.tr.insert(pos!.pos, model.create({ src: url })));
+            this._editorView!.dispatch(this._editorView!.state.tr.insert(pos!.pos, model.create({ src: url, docid: target[Id] })));
+            DocUtils.MakeLink(this.dataDoc, target, undefined, "ImgRef:" + target.title, undefined, undefined, target[Id]);
             e.stopPropagation();
         } else if (de.data instanceof DragManager.DocumentDragData) {
             const draggedDoc = de.data.draggedDocuments.length && de.data.draggedDocuments[0];
@@ -641,7 +643,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
                 state: field && field.Data ? EditorState.fromJSON(config, JSON.parse(field.Data)) : EditorState.create(config),
                 dispatchTransaction: this.dispatchTransaction,
                 nodeViews: {
-                    image(node, view, getPos) { return new ImageResizeView(node, view, getPos); },
+                    image(node, view, getPos) { return new ImageResizeView(node, view, getPos, self.props.addDocTab); },
                     star(node, view, getPos) { return new SummarizedView(node, view, getPos); },
                     ordered_list(node, view, getPos) { return new OrderedListView(); },
                     footnote(node, view, getPos) { return new FootnoteView(node, view, getPos); }
@@ -696,7 +698,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             for (let parent = (e.target as any).parentNode; !href && parent; parent = parent.parentNode) {
                 href = parent.childNodes[0].href ? parent.childNodes[0].href : parent.href;
             }
-            let node = this._editorView!.state.doc.nodeAt(this._editorView!.posAtCoords({ left: e.clientX, top: e.clientY })!.pos);
+            let pcords = this._editorView!.posAtCoords({ left: e.clientX, top: e.clientY });
+            let node = pcords && this._editorView!.state.doc.nodeAt(pcords.pos);
             if (node) {
                 let link = node.marks.find(m => m.type === this._editorView!.state.schema.marks.link);
                 href = link && link.attrs.href;

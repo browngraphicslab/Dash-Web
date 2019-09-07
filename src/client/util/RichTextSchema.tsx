@@ -1,15 +1,16 @@
-import { DOMOutputSpecArray, MarkSpec, Node, NodeSpec, Schema, Slice, Fragment } from "prosemirror-model";
+import { baseKeymap, toggleMark } from "prosemirror-commands";
+import { redo, undo } from "prosemirror-history";
+import { keymap } from "prosemirror-keymap";
+import { DOMOutputSpecArray, Fragment, MarkSpec, Node, NodeSpec, Schema, Slice } from "prosemirror-model";
 import { bulletList, listItem, orderedList } from 'prosemirror-schema-list';
-import { TextSelection, EditorState } from "prosemirror-state";
-import { Doc } from "../../new_fields/Doc";
+import { EditorState, TextSelection } from "prosemirror-state";
 import { StepMap } from "prosemirror-transform";
 import { EditorView } from "prosemirror-view";
-import { keymap } from "prosemirror-keymap";
-import { undo, redo } from "prosemirror-history";
-import { toggleMark, splitBlock, selectAll, baseKeymap } from "prosemirror-commands";
-import { Domain } from "domain";
-import { DOM } from "@fortawesome/fontawesome-svg-core";
+import { Doc } from "../../new_fields/Doc";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
+import { DocServer } from "../DocServer";
+import { Cast, NumCast } from "../../new_fields/Types";
+import { DocumentManager } from "./DocumentManager";
 
 const pDOM: DOMOutputSpecArray = ["p", 0], blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
@@ -128,7 +129,8 @@ export const nodes: { [index: string]: NodeSpec } = {
             width: { default: 100 },
             alt: { default: null },
             title: { default: null },
-            float: { default: "left" }
+            float: { default: "left" },
+            docid: { default: "" }
         },
         group: "inline",
         draggable: true,
@@ -560,7 +562,7 @@ export class ImageResizeView {
     _handle: HTMLElement;
     _img: HTMLElement;
     _outer: HTMLElement;
-    constructor(node: any, view: any, getPos: any) {
+    constructor(node: any, view: any, getPos: any, addDocTab: any) {
         this._handle = document.createElement("span");
         this._img = document.createElement("img");
         this._outer = document.createElement("span");
@@ -581,6 +583,33 @@ export class ImageResizeView {
         this._handle.style.bottom = "-10px";
         this._handle.style.right = "-10px";
         let self = this;
+        this._img.onpointerdown = function (e: any) {
+            if (!view.isOverlay || e.ctrlKey) {
+                e.preventDefault();
+                e.stopPropagation();
+                DocServer.GetRefField(node.attrs.docid).then(async linkDoc => {
+                    if (linkDoc instanceof Doc) {
+                        let proto = Doc.GetProto(linkDoc);
+                        let targetContext = await Cast(proto.targetContext, Doc);
+                        let jumpToDoc = await Cast(linkDoc.anchor2, Doc);
+                        if (jumpToDoc) {
+                            if (DocumentManager.Instance.getDocumentView(jumpToDoc)) {
+
+                                DocumentManager.Instance.jumpToDocument(jumpToDoc, e.altKey, undefined, undefined, NumCast((jumpToDoc === linkDoc.anchor2 ? linkDoc.anchor2Page : linkDoc.anchor1Page)));
+                                return;
+                            }
+                        }
+                        if (targetContext) {
+                            DocumentManager.Instance.jumpToDocument(targetContext, e.ctrlKey, false, document => addDocTab(document, undefined, location ? location : "inTab"));
+                        } else if (jumpToDoc) {
+                            DocumentManager.Instance.jumpToDocument(jumpToDoc, e.ctrlKey, false, document => addDocTab(document, undefined, location ? location : "inTab"));
+                        } else {
+                            DocumentManager.Instance.jumpToDocument(linkDoc, e.ctrlKey, false, document => addDocTab(document, undefined, location ? location : "inTab"));
+                        } e.ctrlKey
+                    }
+                });
+            }
+        }
         this._handle.onpointerdown = function (e: any) {
             e.preventDefault();
             e.stopPropagation();
@@ -599,7 +628,7 @@ export class ImageResizeView {
                 document.removeEventListener("pointerup", onpointerup);
                 view.dispatch(
                     view.state.tr.setSelection(view.state.selection).setNodeMarkup(getPos(), null,
-                        { src: node.attrs.src, width: self._outer.style.width })
+                        { ...node.attrs, width: self._outer.style.width })
                 );
                 FormattedTextBox.InputBoxOverlay!.CurrentDiv.style.opacity = "1";
             };

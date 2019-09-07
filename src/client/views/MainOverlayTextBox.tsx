@@ -25,7 +25,6 @@ export class MainOverlayTextBox extends React.Component<MainOverlayTextBoxProps>
     private _textTargetDiv: HTMLDivElement | undefined;
     private _textProxyDiv: React.RefObject<HTMLDivElement>;
     private _textBottom: boolean | undefined;
-    private _textAutoHeight: boolean | undefined;
     private _setouterdiv = (outerdiv: HTMLElement | null) => { this._outerdiv = outerdiv; this.updateTooltip(); };
     private _outerdiv: HTMLElement | null = null;
     private _textBox: FormattedTextBox | undefined;
