@@ -131,6 +131,8 @@ export class MainView extends React.Component {
         window.addEventListener("keydown", KeyManager.Instance.handle);
 
         // this.executeGooglePhotosRoutine();
+        const imageTag = GooglePhotosClientUtils.ContentCategories;
+        GooglePhotosClientUtils.Search({ included: [imageTag.ANIMALS] });
 
         reaction(() => {
             let workspaces = CurrentUserUtils.UserDocument.workspaces;
@@ -155,7 +157,7 @@ export class MainView extends React.Component {
         doc.caption = "Well isn't this a nice cat image!";
         let photos = await GooglePhotosClientUtils.endpoint();
         let albumId = (await photos.albums.list(50)).albums.filter((album: any) => album.title === "This is a generically created album!")[0].id;
-        console.log(await GooglePhotosClientUtils.UploadMedia([doc], { id: albumId }));
+        console.log(await GooglePhotosClientUtils.UploadImageDocuments([doc], { id: albumId }));
     }
 
     componentWillUnMount() {

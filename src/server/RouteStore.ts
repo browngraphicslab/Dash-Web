@@ -33,6 +33,7 @@ export enum RouteStore {
     cognitiveServices = "/cognitiveservices",
     googleDocs = "/googleDocs",
     googlePhotosAccessToken = "/googlePhotosAccessToken",
-    googlePhotosMediaUpload = "/googlePhotosMediaUpload"
+    googlePhotosMediaUpload = "/googlePhotosMediaUpload",
+    googlePhotosMediaDownload = "/googlePhotosMediaDownload"
 
 }

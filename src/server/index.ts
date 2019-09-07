@@ -113,7 +113,7 @@ function addSecureRoute(method: Method,
 ) {
     let abstracted = (req: express.Request, res: express.Response) => {
         if (req.user) {
-            handler(req.user as any, res, req);
+            handler(req.user, res, req);
         } else {
             req.session!.target = req.originalUrl;
             onRejection(res, req);
@@ -846,6 +846,20 @@ app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
         success => res.send(success),
         () => res.send(mediaError)
     );
+});
+
+app.post(RouteStore.googlePhotosMediaDownload, async (req, res) => {
+    const contents = req.body;
+    if (!contents) {
+        return res.send(undefined);
+    }
+    await GooglePhotosUploadUtils.initialize({ uploadDirectory, credentialsPath, tokenPath });
+    let bundles: GooglePhotosUploadUtils.DownloadInformation[] = [];
+    await Promise.all(contents.mediaItems.forEach(async (item: any) => {
+        const information = await GooglePhotosUploadUtils.IOUtils.Download(item.baseUrl, item.filename);
+        information && bundles.push(information);
+    }));
+    res.send(bundles);
 });
 
 const suffixMap: { [type: string]: (string | [string, string | ((json: any) => any)]) } = {

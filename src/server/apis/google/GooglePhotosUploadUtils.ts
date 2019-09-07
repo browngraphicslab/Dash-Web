@@ -20,6 +20,7 @@ export namespace GooglePhotosUploadUtils {
 
     export interface DownloadInformation {
         mediaPath: string;
+        fileName: string;
         contentType?: string;
         contentSize?: string;
     }
@@ -77,15 +78,9 @@ export namespace GooglePhotosUploadUtils {
 
     export namespace IOUtils {
 
-        export const Download = async (url: string): Promise<Opt<DownloadInformation>> => {
-            const filename = `temporary_upload_${Utils.GenerateGuid()}${path.extname(url).toLowerCase()}`;
-            const temporaryDirectory = Paths.uploadDirectory + "temporary/";
-            const mediaPath = temporaryDirectory + filename;
-
-            if (!(await createIfNotExists(temporaryDirectory))) {
-                return undefined;
-            }
-
+        export const Download = async (url: string, filename?: string): Promise<Opt<DownloadInformation>> => {
+            const resolved = filename || `upload_${Utils.GenerateGuid()}${path.extname(url).toLowerCase()}`;
+            const mediaPath = Paths.uploadDirectory + resolved;
             return new Promise<DownloadInformation>((resolve, reject) => {
                 request.head(url, (error, res) => {
                     if (error) {
@@ -95,6 +90,7 @@ export namespace GooglePhotosUploadUtils {
                         mediaPath,
                         contentType: res.headers['content-type'],
                         contentSize: res.headers['content-length'],
+                        fileName: resolved
                     };
                     request(url).pipe(fs.createWriteStream(mediaPath)).on('close', () => resolve(information));
                 });
