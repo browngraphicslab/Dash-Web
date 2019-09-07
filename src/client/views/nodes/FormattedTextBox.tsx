@@ -261,7 +261,12 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             // }
         }
     }
-
+    setAnnotation = (start: number, end: number, mark: Mark, opened: boolean, keep: boolean = false) => {
+        let view = this._editorView!;
+        let mid = view.state.doc.resolve(Math.round((start + end) / 2));
+        let nmark = view.state.schema.marks.user_mark.create({ ...mark.attrs, userid: keep ? Doc.CurrentUserEmail : mark.attrs.userid, opened: opened });
+        view.dispatch(view.state.tr.removeMark(start, end, nmark).addMark(start, end, nmark).setSelection(new TextSelection(mid)));
+    }
     protected createDropTarget = (ele: HTMLDivElement) => {
         this._proseRef = ele;
         this.dropDisposer && this.dropDisposer();
@@ -276,7 +281,8 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             // We're dealing with an internal document drop
             let url = de.data.urlField.url.href;
             let model: NodeType = (url.includes(".mov") || url.includes(".mp4")) ? schema.nodes.video : schema.nodes.image;
-            this._editorView!.dispatch(this._editorView!.state.tr.insert(0, model.create({ src: url })));
+            let pos = this._editorView!.posAtCoords({ left: de.x, top: de.y });
+            this._editorView!.dispatch(this._editorView!.state.tr.insert(pos!.pos, model.create({ src: url })));
             e.stopPropagation();
         } else if (de.data instanceof DragManager.DocumentDragData) {
             const draggedDoc = de.data.draggedDocuments.length && de.data.draggedDocuments[0];
@@ -629,6 +635,7 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
             }
         }
         if (this._proseRef) {
+            let self = this;
             this._editorView && this._editorView.destroy();
             this._editorView = new EditorView(this._proseRef, {
                 state: field && field.Data ? EditorState.fromJSON(config, JSON.parse(field.Data)) : EditorState.create(config),

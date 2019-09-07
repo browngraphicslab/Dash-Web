@@ -9,6 +9,7 @@ import { undo, redo } from "prosemirror-history";
 import { toggleMark, splitBlock, selectAll, baseKeymap } from "prosemirror-commands";
 import { Domain } from "domain";
 import { DOM } from "@fortawesome/fontawesome-svg-core";
+import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 
 const pDOM: DOMOutputSpecArray = ["p", 0], blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
@@ -124,9 +125,10 @@ export const nodes: { [index: string]: NodeSpec } = {
         inline: true,
         attrs: {
             src: {},
-            width: { default: "100px" },
+            width: { default: 100 },
             alt: { default: null },
-            title: { default: null }
+            title: { default: null },
+            float: { default: "left" }
         },
         group: "inline",
         draggable: true,
@@ -140,11 +142,6 @@ export const nodes: { [index: string]: NodeSpec } = {
                 };
             }
         }],
-        // TODO if we don't define toDom, something weird happens: dragging the image will not move it but clone it. Why?
-        toDOM(node) {
-            const attrs = { style: `width: ${node.attrs.width}` };
-            return ["img", { ...node.attrs, ...attrs }];
-        }
     },
 
     video: {
@@ -571,6 +568,7 @@ export class ImageResizeView {
         this._outer.style.width = node.attrs.width;
         this._outer.style.display = "inline-block";
         this._outer.style.overflow = "hidden";
+        (this._outer.style as any).float = node.attrs.float;
 
         this._img.setAttribute("src", node.attrs.src);
         this._img.style.width = "100%";
@@ -592,6 +590,8 @@ export class ImageResizeView {
                 const currentX = e.pageX;
                 const diffInPx = currentX - startX;
                 self._outer.style.width = `${startWidth + diffInPx}`;
+                //Array.from(FormattedTextBox.InputBoxOverlay!.CurrentDiv.getElementsByTagName("img")).map((img: any) => img.opacity = "0.1");
+                FormattedTextBox.InputBoxOverlay!.CurrentDiv.style.opacity = "0";
             };
 
             const onpointerup = () => {
@@ -600,7 +600,8 @@ export class ImageResizeView {
                 view.dispatch(
                     view.state.tr.setSelection(view.state.selection).setNodeMarkup(getPos(), null,
                         { src: node.attrs.src, width: self._outer.style.width })
-                        );
+                );
+                FormattedTextBox.InputBoxOverlay!.CurrentDiv.style.opacity = "1";
             };
 
             document.addEventListener("pointermove", onpointermove);
