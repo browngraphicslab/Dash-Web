@@ -1,16 +1,16 @@
 import { PostToServer, Utils } from "../../../Utils";
 import { RouteStore } from "../../../server/RouteStore";
 import { ImageField } from "../../../new_fields/URLField";
-import { StrCast, Cast } from "../../../new_fields/Types";
+import { Cast } from "../../../new_fields/Types";
 import { Doc, Opt } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
-import requestImageSize = require('../../util/request-image-size');
 import Photos = require('googlephotos');
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { RichTextUtils } from "../../../new_fields/RichTextUtils";
 import { EditorState } from "prosemirror-state";
 import { FormattedTextBox } from "../../views/nodes/FormattedTextBox";
-import { Docs } from "../../documents/Documents";
+import { Docs, DocumentOptions } from "../../documents/Documents";
+import { type } from "os";
 
 export namespace GooglePhotosClientUtils {
 
@@ -98,7 +98,7 @@ export namespace GooglePhotosClientUtils {
         excluded: [],
         date: undefined,
         includeArchivedMedia: true,
-        type: MediaType.ALL_MEDIA
+        type: MediaType.ALL_MEDIA,
     };
 
     export interface SearchResponse {
@@ -106,7 +106,18 @@ export namespace GooglePhotosClientUtils {
         nextPageToken: string;
     }
 
-    export const Search = async (requested: Opt<Partial<SearchOptions>>) => {
+    export type CollectionConstructor = (data: Array<Doc>, options: DocumentOptions, ...args: any) => Doc;
+    export const CollectionFromSearch = async (provider: CollectionConstructor, requested: Opt<Partial<SearchOptions>>): Promise<Doc> => {
+        let downloads = await Search(requested);
+        return provider(downloads.map((download: any) => {
+            let document = Docs.Create.ImageDocument(Utils.prepend(`/files/${download.fileNames.clean}`));
+            document.fillColumn = true;
+            document.contentSize = download.contentSize;
+            return document;
+        }), { width: 500, height: 500 });
+    };
+
+    export const Search = async (requested: Opt<Partial<SearchOptions>>): Promise<any> => {
         const options = requested || DefaultSearchOptions;
         const photos = await endpoint();
         const filters = new photos.Filters(options.includeArchivedMedia === undefined ? true : options.includeArchivedMedia);
@@ -133,11 +144,7 @@ export namespace GooglePhotosClientUtils {
 
         return new Promise<Doc>(resolve => {
             photos.mediaItems.search(filters, options.pageSize || 20).then(async (response: SearchResponse) => {
-                response && resolve(Docs.Create.StackingDocument((await PostToServer(RouteStore.googlePhotosMediaDownload, response)).map((download: any) => {
-                    let document = Docs.Create.ImageDocument(Utils.prepend(`/files/${download.fileName}`));
-                    document.contentSize = download.contentSize;
-                    return document;
-                }), { width: 500, height: 500 }));
+                response && resolve(await PostToServer(RouteStore.googlePhotosMediaDownload, response));
             });
         });
     };

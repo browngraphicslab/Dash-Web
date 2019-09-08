@@ -21,7 +21,7 @@ import { AggregateFunction } from "../northstar/model/idea/idea";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { IconBox } from "../views/nodes/IconBox";
 import { Field, Doc, Opt } from "../../new_fields/Doc";
-import { OmitKeys, JSONUtils } from "../../Utils";
+import { OmitKeys, JSONUtils, Utils } from "../../Utils";
 import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
 import { List } from "../../new_fields/List";
@@ -332,7 +332,12 @@ export namespace Docs {
         export function ImageDocument(url: string, options: DocumentOptions = {}) {
             let imgField = new ImageField(new URL(url));
             let inst = InstanceFromProto(Prototypes.get(DocumentType.IMG), imgField, { title: path.basename(url), ...options });
-            requestImageSize(imgField.url.href)
+            let target = imgField.url.href;
+            if (new RegExp(window.location.origin).test(target)) {
+                let extension = path.extname(target);
+                target = `${target.substring(0, target.length - extension.length)}_o${extension}`;
+            }
+            requestImageSize(target)
                 .then((size: any) => {
                     let aspect = size.height / size.width;
                     if (!inst.proto!.nativeWidth) {

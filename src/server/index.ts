@@ -42,7 +42,7 @@ var AdmZip = require('adm-zip');
 import * as YoutubeApi from "./apis/youtube/youtubeApiSample";
 import { Response } from 'express-serve-static-core';
 import { GoogleApiServerUtils } from "./apis/google/GoogleApiServerUtils";
-import { GooglePhotosUploadUtils } from './apis/google/GooglePhotosUploadUtils';
+import { GooglePhotosUploadUtils, DownloadUtils } from './apis/google/GooglePhotosUploadUtils';
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const probe = require("probe-image-size");
@@ -153,6 +153,11 @@ app.get("/buxton", (req, res) => {
 
     command_line('python scraper.py', cwd).then(onResolved, tryPython3);
 });
+
+const STATUS = {
+    OK: 200,
+    BAD_REQUEST: 400
+};
 
 const command_line = (command: string, fromDirectory?: string) => {
     return new Promise<string>((resolve, reject) => {
@@ -848,16 +853,22 @@ app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
     );
 });
 
+interface MediaItem {
+    baseUrl: string;
+    filename: string;
+}
 const prefix = "google_photos_";
+
 app.post(RouteStore.googlePhotosMediaDownload, async (req, res) => {
-    const contents = req.body;
-    if (!contents) {
-        return res.send(undefined);
+    const contents: { mediaItems: MediaItem[] } = req.body;
+    if (contents) {
+        const downloads = contents.mediaItems.map(item =>
+            DownloadUtils.Download(item.baseUrl, item.filename, prefix)
+        );
+        res.status(STATUS.OK).send(await Promise.all(downloads));
+        return;
     }
-    await GooglePhotosUploadUtils.initialize({ uploadDirectory, credentialsPath, tokenPath });
-    res.send(await Promise.all(contents.mediaItems.map((item: any) =>
-        GooglePhotosUploadUtils.IOUtils.Download(item.baseUrl, undefined, prefix)))
-    );
+    res.status(STATUS.BAD_REQUEST).send();
 });
 
 const suffixMap: { [type: string]: (string | [string, string | ((json: any) => any)]) } = {

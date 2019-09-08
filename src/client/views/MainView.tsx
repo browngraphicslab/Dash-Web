@@ -470,7 +470,7 @@ export class MainView extends React.Component {
         // let youtubeurl = "https://www.youtube.com/embed/TqcApsGRzWw";
         // let addYoutubeSearcher = action(() => Docs.Create.YoutubeDocument(youtubeurl, { width: 600, height: 600, title: "youtube search" }));
 
-        let googlePhotosSearch = () => GooglePhotosClientUtils.Search({ included: [GooglePhotosClientUtils.ContentCategories.ANIMALS] });
+        let googlePhotosSearch = () => GooglePhotosClientUtils.CollectionFromSearch(Docs.Create.MasonryDocument, { included: [GooglePhotosClientUtils.ContentCategories.LANDSCAPES] });
 
         let btns: [React.RefObject<HTMLDivElement>, IconName, string, () => Doc | Promise<Doc>][] = [
             [React.createRef<HTMLDivElement>(), "object-group", "Add Collection", addColNode],
