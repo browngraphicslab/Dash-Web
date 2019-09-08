@@ -313,7 +313,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                             style={{
                                 pointerEvents: "none",
                                 position: "absolute",
-                                right: isEditing ? 16.3 : 14.5,
+                                right: isEditing ? 14 : 15,
                                 top: isEditing ? 15.4 : 16,
                                 opacity: uploading ? 0 : 1,
                                 transition: "0.4s opacity ease"

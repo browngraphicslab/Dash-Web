@@ -93,63 +93,76 @@ export namespace DownloadUtils {
     const size = "content-length";
     const type = "content-type";
 
-    export interface DownloadInformation {
+    export interface UploadInformation {
         mediaPaths: string[];
         fileNames: { [key: string]: string };
-        contentSize?: string;
+        contentSize?: number;
         contentType?: string;
     }
 
     const generate = (prefix: string, url: string) => `${prefix}upload_${Utils.GenerateGuid()}${path.extname(url).toLowerCase()}`;
     const sanitize = (filename: string) => filename.replace(/\s+/g, "_");
 
-    export const Download = async (url: string, filename?: string, prefix = ""): Promise<Opt<DownloadInformation>> => {
+    export const UploadImage = async (url: string, filename?: string, prefix = ""): Promise<Opt<UploadInformation>> => {
         const resolved = filename ? sanitize(filename) : generate(prefix, url);
         const extension = path.extname(url) || path.extname(resolved) || png;
-        return new Promise<DownloadInformation>((resolve, reject) => {
-            request.head(url, async (error, res) => {
-                if (error) {
-                    return reject(error);
-                }
-                const information: DownloadInformation = {
-                    fileNames: { clean: resolved },
-                    contentSize: res.headers[size],
-                    contentType: res.headers[type],
-                    mediaPaths: []
-                };
-                const resizers = [
-                    { resizer: sharp().rotate(), suffix: "_o" },
-                    ...Object.values(Sizes).map(size => ({
-                        resizer: sharp().resize(size.width, undefined, { withoutEnlargement: true }).rotate(),
-                        suffix: size.suffix
-                    }))
-                ];
-                let validated = true;
-                if (pngs.includes(extension)) {
-                    resizers.forEach(element => element.resizer = element.resizer.png());
-                } else if (jpg.includes(extension)) {
-                    resizers.forEach(element => element.resizer = element.resizer.jpeg());
-                } else {
-                    validated = false;
-                }
-                if (validated) {
-                    for (let resizer of resizers) {
-                        const suffix = resizer.suffix;
-                        let mediaPath: string;
-                        await new Promise<void>(resolve => {
-                            const filename = resolved.substring(0, resolved.length - extension.length) + suffix + extension;
-                            information.mediaPaths.push(mediaPath = uploadDirectory + filename);
-                            information.fileNames[suffix] = filename;
-                            request(url)
-                                .pipe(resizer.resizer)
-                                .pipe(fs.createWriteStream(mediaPath))
-                                .on('close', resolve);
-                        });
+        let information: UploadInformation = {
+            mediaPaths: [],
+            fileNames: { clean: resolved }
+        };
+        const { isLocal, stream } = classify(url = path.normalize(url));
+        if (!isLocal) {
+            const metadata = (await new Promise<any>((resolve, reject) => {
+                request.head(url, async (error, res) => {
+                    if (error) {
+                        return reject(error);
                     }
-                    resolve(information);
+                    resolve(res);
+                });
+            })).headers;
+            information.contentSize = parseInt(metadata[size]);
+            information.contentType = metadata[type];
+        }
+        return new Promise<UploadInformation>(async (resolve, reject) => {
+            const resizers = [
+                { resizer: sharp().rotate(), suffix: "_o" },
+                ...Object.values(Sizes).map(size => ({
+                    resizer: sharp().resize(size.width, undefined, { withoutEnlargement: true }).rotate(),
+                    suffix: size.suffix
+                }))
+            ];
+            let validated = true;
+            if (pngs.includes(extension)) {
+                resizers.forEach(element => element.resizer = element.resizer.png());
+            } else if (jpg.includes(extension)) {
+                resizers.forEach(element => element.resizer = element.resizer.jpeg());
+            } else {
+                validated = false;
+            }
+            if (validated) {
+                for (let resizer of resizers) {
+                    const suffix = resizer.suffix;
+                    let mediaPath: string;
+                    await new Promise<void>(resolve => {
+                        const filename = resolved.substring(0, resolved.length - extension.length) + suffix + extension;
+                        information.mediaPaths.push(mediaPath = uploadDirectory + filename);
+                        information.fileNames[suffix] = filename;
+                        stream(url).pipe(resizer.resizer).pipe(fs.createWriteStream(mediaPath))
+                            .on('close', resolve)
+                            .on('error', reject);
+                    });
                 }
-            });
+                resolve(information);
+            }
         });
+    };
+
+    const classify = (url: string) => {
+        const isLocal = /Dash-Web\\src\\server\\public\\files/g.test(url);
+        return {
+            isLocal,
+            stream: isLocal ? fs.createReadStream : request
+        };
     };
 
     export const createIfNotExists = async (path: string) => {

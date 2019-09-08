@@ -42,7 +42,7 @@ var AdmZip = require('adm-zip');
 import * as YoutubeApi from "./apis/youtube/youtubeApiSample";
 import { Response } from 'express-serve-static-core';
 import { GoogleApiServerUtils } from "./apis/google/GoogleApiServerUtils";
-import { GooglePhotosUploadUtils, DownloadUtils } from './apis/google/GooglePhotosUploadUtils';
+import { GooglePhotosUploadUtils, DownloadUtils as UploadUtils } from './apis/google/GooglePhotosUploadUtils';
 const MongoStore = require('connect-mongo')(session);
 const mongoose = require('mongoose');
 const probe = require("probe-image-size");
@@ -156,7 +156,8 @@ app.get("/buxton", (req, res) => {
 
 const STATUS = {
     OK: 200,
-    BAD_REQUEST: 400
+    BAD_REQUEST: 400,
+    EXECUTION_ERROR: 500
 };
 
 const command_line = (command: string, fromDirectory?: string) => {
@@ -558,7 +559,6 @@ class NodeCanvasFactory {
 }
 
 const pngTypes = [".png", ".PNG"];
-const pdfTypes = [".pdf", ".PDF"];
 const jpgTypes = [".jpg", ".JPG", ".jpeg", ".JPEG"];
 const uploadDirectory = __dirname + "/public/files/";
 // SETTERS
@@ -568,37 +568,11 @@ app.post(
         let form = new formidable.IncomingForm();
         form.uploadDir = uploadDirectory;
         form.keepExtensions = true;
-        // let path = req.body.path;
-        console.log("upload");
-        form.parse(req, (err, fields, files) => {
-            console.log("parsing");
+        form.parse(req, async (_err, _fields, files) => {
             let names: string[] = [];
             for (const name in files) {
                 const file = path.basename(files[name].path);
-                const ext = path.extname(file);
-                let resizers = [
-                    { resizer: sharp().rotate(), suffix: "_o" },
-                    { resizer: sharp().resize(100, undefined, { withoutEnlargement: true }).rotate(), suffix: "_s" },
-                    { resizer: sharp().resize(400, undefined, { withoutEnlargement: true }).rotate(), suffix: "_m" },
-                    { resizer: sharp().resize(900, undefined, { withoutEnlargement: true }).rotate(), suffix: "_l" },
-                ];
-                let isImage = false;
-                if (pngTypes.includes(ext)) {
-                    resizers.forEach(element => {
-                        element.resizer = element.resizer.png();
-                    });
-                    isImage = true;
-                } else if (jpgTypes.includes(ext)) {
-                    resizers.forEach(element => {
-                        element.resizer = element.resizer.jpeg();
-                    });
-                    isImage = true;
-                }
-                if (isImage) {
-                    resizers.forEach(resizer => {
-                        fs.createReadStream(uploadDirectory + file).pipe(resizer.resizer).pipe(fs.createWriteStream(uploadDirectory + file.substring(0, file.length - ext.length) + resizer.suffix + ext));
-                    });
-                }
+                await UploadUtils.UploadImage(uploadDirectory + file, file);
                 names.push(`/files/` + file);
             }
             res.send(names);
@@ -845,11 +819,11 @@ app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
         };
     }));
     if (!newMediaItems.every(item => item)) {
-        return res.send(tokenError);
+        return res.status(STATUS.EXECUTION_ERROR).send(tokenError);
     }
     GooglePhotosUploadUtils.CreateMediaItems(newMediaItems, req.body.album).then(
-        success => res.send(success),
-        () => res.send(mediaError)
+        success => res.status(STATUS.OK).send(success),
+        () => res.status(STATUS.EXECUTION_ERROR).send(mediaError)
     );
 });
 
@@ -859,17 +833,35 @@ interface MediaItem {
 }
 const prefix = "google_photos_";
 
+const downloadError = "Encountered an error while executing downloads.";
+const requestError = "Unable to execute download: the body's media items were malformed.";
+
 app.post(RouteStore.googlePhotosMediaDownload, async (req, res) => {
     const contents: { mediaItems: MediaItem[] } = req.body;
     if (contents) {
-        const downloads = contents.mediaItems.map(item =>
-            DownloadUtils.Download(item.baseUrl, item.filename, prefix)
+        const pending = contents.mediaItems.map(item =>
+            UploadUtils.UploadImage(item.baseUrl, item.filename, prefix)
         );
-        res.status(STATUS.OK).send(await Promise.all(downloads));
+        const completed = await Promise.all(pending).catch(error => _error(res, downloadError, error));
+        _success(res, completed);
         return;
     }
-    res.status(STATUS.BAD_REQUEST).send();
+    _invalid(res, requestError);
 });
+
+const _error = (res: Response, message: string, error: any) => {
+    res.statusMessage = message;
+    res.status(STATUS.EXECUTION_ERROR).send(error);
+};
+
+const _success = (res: Response, body: any) => {
+    res.status(STATUS.OK).send(body);
+};
+
+const _invalid = (res: Response, message: string) => {
+    res.statusMessage = message;
+    res.status(STATUS.BAD_REQUEST).send();
+};
 
 const suffixMap: { [type: string]: (string | [string, string | ((json: any) => any)]) } = {
     "number": "_n",
