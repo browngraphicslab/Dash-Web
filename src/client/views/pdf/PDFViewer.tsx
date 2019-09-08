@@ -181,6 +181,7 @@ export class PDFViewer extends React.Component<IViewerProps> {
 
             let startY = NumCast(this.props.Document.startY, NumCast(this.props.Document.panY));
             this.props.setPanY && this.props.setPanY(startY);
+            this.props.scrollTo(startY);
         }
     }
 
