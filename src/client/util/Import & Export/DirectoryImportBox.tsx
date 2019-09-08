@@ -102,7 +102,9 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
                 method: 'POST',
                 body: formData
             }).then(async (res: Response) => {
-                (await res.json()).map(action((file: any) => {
+                let names = await res.json();
+                console.log(names);
+                await Promise.all(names.map((file: any) => {
                     let docPromise = Docs.Get.DocumentFromType(type, Utils.prepend(file), { nativeWidth: 300, width: 300, title: dropFileName });
                     docPromise.then(doc => {
                         doc && docs.push(doc) && runInAction(() => this.remaining--);
