@@ -78,8 +78,8 @@ export namespace GooglePhotosUploadUtils {
 
     export namespace IOUtils {
 
-        export const Download = async (url: string, filename?: string): Promise<Opt<DownloadInformation>> => {
-            const resolved = filename || `upload_${Utils.GenerateGuid()}${path.extname(url).toLowerCase()}`;
+        export const Download = async (url: string, filename?: string, prefix = ""): Promise<Opt<DownloadInformation>> => {
+            const resolved = filename || `${prefix}upload_${Utils.GenerateGuid()}${path.extname(url).toLowerCase()}`;
             const mediaPath = Paths.uploadDirectory + resolved;
             return new Promise<DownloadInformation>((resolve, reject) => {
                 request.head(url, (error, res) => {
@@ -87,10 +87,10 @@ export namespace GooglePhotosUploadUtils {
                         return reject(error);
                     }
                     const information: DownloadInformation = {
-                        mediaPath,
-                        contentType: res.headers['content-type'],
+                        fileName: resolved,
                         contentSize: res.headers['content-length'],
-                        fileName: resolved
+                        contentType: res.headers['content-type'],
+                        mediaPath
                     };
                     request(url).pipe(fs.createWriteStream(mediaPath)).on('close', () => resolve(information));
                 });

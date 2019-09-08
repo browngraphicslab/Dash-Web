@@ -848,18 +848,16 @@ app.post(RouteStore.googlePhotosMediaUpload, async (req, res) => {
     );
 });
 
+const prefix = "google_photos_";
 app.post(RouteStore.googlePhotosMediaDownload, async (req, res) => {
     const contents = req.body;
     if (!contents) {
         return res.send(undefined);
     }
     await GooglePhotosUploadUtils.initialize({ uploadDirectory, credentialsPath, tokenPath });
-    let bundles: GooglePhotosUploadUtils.DownloadInformation[] = [];
-    await Promise.all(contents.mediaItems.forEach(async (item: any) => {
-        const information = await GooglePhotosUploadUtils.IOUtils.Download(item.baseUrl, item.filename);
-        information && bundles.push(information);
-    }));
-    res.send(bundles);
+    res.send(await Promise.all(contents.mediaItems.map((item: any) =>
+        GooglePhotosUploadUtils.IOUtils.Download(item.baseUrl, undefined, prefix)))
+    );
 });
 
 const suffixMap: { [type: string]: (string | [string, string | ((json: any) => any)]) } = {

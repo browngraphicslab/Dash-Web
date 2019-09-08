@@ -10,6 +10,7 @@ import { RichTextField } from "../../../new_fields/RichTextField";
 import { RichTextUtils } from "../../../new_fields/RichTextUtils";
 import { EditorState } from "prosemirror-state";
 import { FormattedTextBox } from "../../views/nodes/FormattedTextBox";
+import { Docs } from "../../documents/Documents";
 
 export namespace GooglePhotosClientUtils {
 
@@ -130,14 +131,13 @@ export namespace GooglePhotosClientUtils {
 
         filters.setMediaTypeFilter(new photos.MediaTypeFilter(options.type || MediaType.ALL_MEDIA));
 
-        return new Promise<any>((resolve, reject) => {
+        return new Promise<Doc>(resolve => {
             photos.mediaItems.search(filters, options.pageSize || 20).then(async (response: SearchResponse) => {
-                if (!response) {
-                    return reject();
-                }
-                let filenames = await PostToServer(RouteStore.googlePhotosMediaDownload, response);
-                console.log(filenames);
-                resolve(filenames);
+                response && resolve(Docs.Create.StackingDocument((await PostToServer(RouteStore.googlePhotosMediaDownload, response)).map((download: any) => {
+                    let document = Docs.Create.ImageDocument(Utils.prepend(`/files/${download.fileName}`));
+                    document.contentSize = download.contentSize;
+                    return document;
+                }), { width: 500, height: 500 }));
             });
         });
     };

@@ -131,8 +131,6 @@ export class MainView extends React.Component {
         window.addEventListener("keydown", KeyManager.Instance.handle);
 
         // this.executeGooglePhotosRoutine();
-        const imageTag = GooglePhotosClientUtils.ContentCategories;
-        GooglePhotosClientUtils.Search({ included: [imageTag.ANIMALS] });
 
         reaction(() => {
             let workspaces = CurrentUserUtils.UserDocument.workspaces;
@@ -472,12 +470,15 @@ export class MainView extends React.Component {
         // let youtubeurl = "https://www.youtube.com/embed/TqcApsGRzWw";
         // let addYoutubeSearcher = action(() => Docs.Create.YoutubeDocument(youtubeurl, { width: 600, height: 600, title: "youtube search" }));
 
-        let btns: [React.RefObject<HTMLDivElement>, IconName, string, () => Doc][] = [
+        let googlePhotosSearch = () => GooglePhotosClientUtils.Search({ included: [GooglePhotosClientUtils.ContentCategories.ANIMALS] });
+
+        let btns: [React.RefObject<HTMLDivElement>, IconName, string, () => Doc | Promise<Doc>][] = [
             [React.createRef<HTMLDivElement>(), "object-group", "Add Collection", addColNode],
             [React.createRef<HTMLDivElement>(), "tv", "Add Presentation Trail", addPresNode],
             [React.createRef<HTMLDivElement>(), "globe-asia", "Add Website", addWebNode],
             [React.createRef<HTMLDivElement>(), "bolt", "Add Button", addButtonDocument],
             [React.createRef<HTMLDivElement>(), "file", "Add Document Dragger", addDragboxNode],
+            [React.createRef<HTMLDivElement>(), "object-group", "Test Google Photos Search", googlePhotosSearch],
             [React.createRef<HTMLDivElement>(), "cloud-upload-alt", "Import Directory", addImportCollectionNode], //remove at some point in favor of addImportCollectionNode
             //[React.createRef<HTMLDivElement>(), "play", "Add Youtube Searcher", addYoutubeSearcher],
         ];
