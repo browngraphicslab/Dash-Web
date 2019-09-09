@@ -18,8 +18,14 @@ import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { Cast, BoolCast, NumCast } from "../../../new_fields/Types";
 import { listSpec } from "../../../new_fields/Schema";
+import { GooglePhotosClientUtils } from "../../apis/google_docs/GooglePhotosClientUtils";
 
 const unsupported = ["text/html", "text/plain"];
+interface FileResponse {
+    name: string;
+    path: string;
+    type: string;
+}
 
 @observer
 export default class DirectoryImportBox extends React.Component<FieldViewProps> {
@@ -87,34 +93,32 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
         let sizes = [];
         let modifiedDates = [];
 
+        let formData = new FormData();
         for (let uploaded_file of validated) {
-            let formData = new FormData();
-            formData.append('file', uploaded_file);
-            let dropFileName = uploaded_file ? uploaded_file.name : "-empty-";
-            let type = uploaded_file.type;
-
+            formData.append(Utils.GenerateGuid(), uploaded_file);
             sizes.push(uploaded_file.size);
             modifiedDates.push(uploaded_file.lastModified);
-
             runInAction(() => this.remaining++);
-
-            let prom = fetch(Utils.prepend(RouteStore.upload), {
-                method: 'POST',
-                body: formData
-            }).then(async (res: Response) => {
-                let names = await res.json();
-                console.log(names);
-                await Promise.all(names.map((file: any) => {
-                    let docPromise = Docs.Get.DocumentFromType(type, Utils.prepend(file), { nativeWidth: 300, width: 300, title: dropFileName });
-                    docPromise.then(doc => {
-                        doc && docs.push(doc) && runInAction(() => this.remaining--);
-                    });
-                }));
-            });
-            promises.push(prom);
         }
 
-        await Promise.all(promises);
+        const parameters = { method: 'POST', body: formData };
+        const uploads: FileResponse[] = await (await fetch(Utils.prepend(RouteStore.upload), parameters)).json();
+
+        await Promise.all(uploads.map(async upload => {
+            const type = upload.type;
+            const path = Utils.prepend(upload.path);
+            const options = {
+                nativeWidth: 300,
+                width: 300,
+                title: upload.name
+            };
+            const document = await Docs.Get.DocumentFromType(type, path, options);
+            document && docs.push(document) && runInAction(() => this.remaining--);
+            console.log(`(${this.quota - this.remaining}/${this.quota}) ${upload.name}`);
+        }));
+
+        await GooglePhotosClientUtils.UploadImageDocuments(docs, { title: directory });
+        console.log("Finished upload!");
 
         for (let i = 0; i < docs.length; i++) {
             let doc = docs[i];

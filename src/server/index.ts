@@ -561,6 +561,11 @@ class NodeCanvasFactory {
 const pngTypes = [".png", ".PNG"];
 const jpgTypes = [".jpg", ".JPG", ".jpeg", ".JPEG"];
 const uploadDirectory = __dirname + "/public/files/";
+interface FileResponse {
+    name: string;
+    path: string;
+    type: string;
+}
 // SETTERS
 app.post(
     RouteStore.upload,
@@ -569,13 +574,16 @@ app.post(
         form.uploadDir = uploadDirectory;
         form.keepExtensions = true;
         form.parse(req, async (_err, _fields, files) => {
-            let names: string[] = [];
-            for (const name in files) {
-                const file = path.basename(files[name].path);
-                await UploadUtils.UploadImage(uploadDirectory + file, file);
-                names.push(`/files/` + file);
+            let results: FileResponse[] = [];
+            for (const key in files) {
+                const { name, type, path: location } = files[key];
+                const filename = path.basename(location);
+                await UploadUtils.UploadImage(uploadDirectory + filename, path.basename(name));
+                results.push({ name, type, path: `/files/${filename}` });
+                console.log(path.basename(name));
             }
-            res.send(names);
+            console.log("All files traversed!");
+            _success(res, results);
         });
     }
 );
@@ -843,7 +851,7 @@ app.post(RouteStore.googlePhotosMediaDownload, async (req, res) => {
             UploadUtils.UploadImage(item.baseUrl, item.filename, prefix)
         );
         const completed = await Promise.all(pending).catch(error => _error(res, downloadError, error));
-        _success(res, completed);
+        Array.isArray(completed) && _success(res, completed);
         return;
     }
     _invalid(res, requestError);

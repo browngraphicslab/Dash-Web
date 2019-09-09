@@ -89,7 +89,8 @@ export namespace DownloadUtils {
 
     const png = ".png";
     const pngs = [".png", ".PNG"];
-    const jpg = [".jpg", ".JPG", ".jpeg", ".JPEG"];
+    const jpgs = [".jpg", ".JPG", ".jpeg", ".JPEG"];
+    const formats = [".jpg", ".png", ".gif"];
     const size = "content-length";
     const type = "content-type";
 
@@ -110,7 +111,8 @@ export namespace DownloadUtils {
             mediaPaths: [],
             fileNames: { clean: resolved }
         };
-        const { isLocal, stream } = classify(url = path.normalize(url));
+        const { isLocal, stream, normalized } = classify(url);
+        url = normalized;
         if (!isLocal) {
             const metadata = (await new Promise<any>((resolve, reject) => {
                 request.head(url, async (error, res) => {
@@ -131,37 +133,35 @@ export namespace DownloadUtils {
                     suffix: size.suffix
                 }))
             ];
-            let validated = true;
             if (pngs.includes(extension)) {
                 resizers.forEach(element => element.resizer = element.resizer.png());
-            } else if (jpg.includes(extension)) {
+            } else if (jpgs.includes(extension)) {
                 resizers.forEach(element => element.resizer = element.resizer.jpeg());
-            } else {
-                validated = false;
+            } else if (!formats.includes(extension.toLowerCase())) {
+                return reject();
             }
-            if (validated) {
-                for (let resizer of resizers) {
-                    const suffix = resizer.suffix;
-                    let mediaPath: string;
-                    await new Promise<void>(resolve => {
-                        const filename = resolved.substring(0, resolved.length - extension.length) + suffix + extension;
-                        information.mediaPaths.push(mediaPath = uploadDirectory + filename);
-                        information.fileNames[suffix] = filename;
-                        stream(url).pipe(resizer.resizer).pipe(fs.createWriteStream(mediaPath))
-                            .on('close', resolve)
-                            .on('error', reject);
-                    });
-                }
-                resolve(information);
+            for (let resizer of resizers) {
+                const suffix = resizer.suffix;
+                let mediaPath: string;
+                await new Promise<void>(resolve => {
+                    const filename = resolved.substring(0, resolved.length - extension.length) + suffix + extension;
+                    information.mediaPaths.push(mediaPath = uploadDirectory + filename);
+                    information.fileNames[suffix] = filename;
+                    stream(url).pipe(resizer.resizer).pipe(fs.createWriteStream(mediaPath))
+                        .on('close', resolve)
+                        .on('error', reject);
+                });
             }
+            resolve(information);
         });
     };
 
     const classify = (url: string) => {
-        const isLocal = /Dash-Web\\src\\server\\public\\files/g.test(url);
+        const isLocal = /Dash-Web(\\|\/)src(\\|\/)server(\\|\/)public(\\|\/)files/g.test(url);
         return {
             isLocal,
-            stream: isLocal ? fs.createReadStream : request
+            stream: isLocal ? fs.createReadStream : request,
+            normalized: isLocal ? path.normalize(url) : url
         };
     };
 
