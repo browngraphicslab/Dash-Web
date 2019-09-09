@@ -144,6 +144,11 @@ export const nodes: { [index: string]: NodeSpec } = {
                 };
             }
         }],
+        // TODO if we don't define toDom, dragging the image crashes. Why?
+        toDOM(node) {
+            const attrs = { style: `width: ${node.attrs.width}` };
+            return ["img", { ...node.attrs, ...attrs }];
+        }
     },
 
     video: {
