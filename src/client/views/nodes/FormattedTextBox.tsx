@@ -665,6 +665,16 @@ export class FormattedTextBox extends DocComponent<(FieldViewProps & FormattedTe
         else if (this.props.isOverlay) this._editorView!.focus();
         // add user mark for any first character that was typed since the user mark that gets set in KeyPress won't have been called yet.
         this._editorView!.state.storedMarks = [...(this._editorView!.state.storedMarks ? this._editorView!.state.storedMarks : []), schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: timenow() })];
+        let heading = this.props.Document.heading;
+        if (heading) {
+            let ruleProvider = Cast(this.props.Document.ruleProvider, Doc);
+            if (ruleProvider instanceof Doc) {
+                let font = StrCast(ruleProvider["ruleFont_" + heading]);
+                let size = NumCast(ruleProvider["ruleSize_" + heading]);
+                size && (this._editorView!.state.storedMarks = [...this._editorView!.state.storedMarks, schema.marks.pFontSize.create({ fontSize: size })]);
+                font && (this._editorView!.state.storedMarks = [...this._editorView!.state.storedMarks, font === "Arial" ? schema.marks.arial.create() : schema.marks.comicSans.create()]);
+            }
+        }
     }
 
     componentWillUnmount() {

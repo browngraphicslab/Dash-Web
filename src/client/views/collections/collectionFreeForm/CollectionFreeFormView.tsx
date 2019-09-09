@@ -256,6 +256,19 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private getLocalTransform = (): Transform => Transform.Identity().scale(1 / this.zoomScaling()).translate(this.panX(), this.panY());
     private addLiveTextBox = (newBox: Doc) => {
         FormattedTextBox.SelectOnLoad = newBox[Id];// track the new text box so we can give it a prop that tells it to focus itself when it's displayed
+        newBox.heading = 1;
+        for (let i = 0; i < this.childDocs.length; i++) {
+            if (this.childDocs[i].heading == 1) {
+                newBox.heading = 2;
+            }
+        }
+        let ruleProvider = Cast(this.props.Document.ruleProvider, Doc);
+        if (!(ruleProvider instanceof Doc)) ruleProvider = this.props.Document;
+        let col = StrCast(ruleProvider["ruleColor_" + NumCast(newBox.heading)]);
+        let round = StrCast(ruleProvider["ruleRounding_" + NumCast(newBox.heading)]);
+        round && (newBox.borderRounding = round);
+        col && (newBox.backgroundColor = col);
+        newBox.ruleProvider = ruleProvider;
         this.addDocument(newBox, false);
     }
     private addDocument = (newBox: Doc, allowDuplicates: boolean) => {

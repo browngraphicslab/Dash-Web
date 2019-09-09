@@ -9,7 +9,7 @@ import { SelectionManager } from "../util/SelectionManager";
 import { InkTool } from "../../new_fields/InkField";
 import { Doc } from "../../new_fields/Doc";
 import { undoBatch, UndoManager } from "../util/UndoManager";
-import { StrCast } from "../../new_fields/Types";
+import { StrCast, NumCast, Cast } from "../../new_fields/Types";
 import { FormattedTextBox } from "./nodes/FormattedTextBox";
 import { MainOverlayTextBox } from "./MainOverlayTextBox";
 
@@ -50,6 +50,11 @@ export class InkingControl extends React.Component {
                 let targetDoc = view.props.Document.layout instanceof Doc ? view.props.Document.layout : view.props.Document.isTemplate ? view.props.Document : Doc.GetProto(view.props.Document);
                 let oldColor = StrCast(targetDoc.backgroundColor);
                 targetDoc.backgroundColor = this._selectedColor;
+                if (view.props.Document.heading) {
+                    let cv = view.props.ContainingCollectionView;
+                    let ruleProvider = cv && (Cast(cv.props.Document.ruleProvider, Doc) as Doc);
+                    cv && ((ruleProvider ? ruleProvider : cv.props.Document)["ruleColor_" + NumCast(view.props.Document.heading)] = this._selectedColor);
+                }
                 return {
                     target: targetDoc,
                     previous: oldColor
