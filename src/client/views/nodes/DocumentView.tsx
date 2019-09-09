@@ -758,9 +758,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             });
         }
         let showTextTitle = showTitle && StrCast(this.layoutDoc.layout).startsWith("<FormattedTextBox") ? showTitle : undefined;
-        let brushDegree = Doc.IsBrushedDegree(this.props.Document);
         let fullDegree = Doc.isBrushedHighlightedDegree(this.props.Document);
-        // console.log(fullDegree)
         let borderRounding = StrCast(Doc.GetProto(this.props.Document).borderRounding);
         let localScale = this.props.ScreenToLocalTransform().Scale * fullDegree;
         return (

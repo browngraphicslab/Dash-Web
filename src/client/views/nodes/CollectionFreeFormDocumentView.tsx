@@ -1,7 +1,7 @@
 import { computed } from "mobx";
 import { observer } from "mobx-react";
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
-import { BoolCast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
+import { BoolCast, FieldValue, NumCast, StrCast, Cast } from "../../../new_fields/Types";
 import { Transform } from "../../util/Transform";
 import { DocComponent } from "../DocComponent";
 import { DocumentView, DocumentViewProps, positionSchema } from "./DocumentView";
@@ -77,6 +77,21 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     clusterColorFunc = (doc: Doc) => this.clusterColor;
 
     render() {
+        let txf = this.transform;
+        let w = this.width;
+        let h = this.height;
+        let renderScript = this.Document.renderScript;
+        if (renderScript) {
+            let someView = Cast(this.Document.someView, Doc);
+            let minimap = Cast(this.Document.minimap, Doc);
+            if (someView instanceof Doc && minimap instanceof Doc) {
+                let x = (NumCast(someView.panX) - NumCast(someView.width) / 2 / NumCast(someView.scale) - (NumCast(minimap.fitX) - NumCast(minimap.fitW) / 2)) / NumCast(minimap.fitW) * NumCast(minimap.width) - NumCast(minimap.width) / 2;
+                let y = (NumCast(someView.panY) - NumCast(someView.height) / 2 / NumCast(someView.scale) - (NumCast(minimap.fitY) - NumCast(minimap.fitH) / 2)) / NumCast(minimap.fitH) * NumCast(minimap.height) - NumCast(minimap.height) / 2;
+                w = NumCast(someView.width) / NumCast(someView.scale) / NumCast(minimap.fitW) * NumCast(minimap.width);
+                h = NumCast(someView.height) / NumCast(someView.scale) / NumCast(minimap.fitH) * NumCast(minimap.height);
+                txf = `translate(${x}px,${y}px)`;
+            }
+        }
         const hasPosition = this.props.x !== undefined || this.props.y !== undefined;
         return (
             <div className="collectionFreeFormDocumentView-container"
@@ -89,10 +104,10 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                             this.props.Document.isBackground ? `0px 0px 50px 50px ${this.clusterColor}` :
                                 `${this.clusterColor} ${StrCast(this.props.Document.boxShadow, `0vw 0vw ${50 / this.props.ContentScaling()}px`)}`) : undefined,
                     borderRadius: this.borderRounding(),
-                    transform: this.transform,
+                    transform: txf,
                     transition: hasPosition ? "transform 1s" : StrCast(this.props.Document.transition),
-                    width: this.width,
-                    height: this.height,
+                    width: w,
+                    height: h,
                     zIndex: this.Document.zIndex || 0,
                 }} >
                 <DocumentView {...this.props}

@@ -3,7 +3,7 @@ import { faEye } from "@fortawesome/free-regular-svg-icons";
 import { faBraille, faChalkboard, faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faPaintBrush, faTable, faUpload } from "@fortawesome/free-solid-svg-icons";
 import { action, computed, IReactionDisposer, observable, reaction, trace } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCastAsync, Field, FieldResult, HeightSym, Opt, WidthSym } from "../../../../new_fields/Doc";
+import { Doc, DocListCastAsync, Field, FieldResult, HeightSym, Opt, WidthSym, DocListCast } from "../../../../new_fields/Doc";
 import { Id } from "../../../../new_fields/FieldSymbols";
 import { InkField, StrokeData } from "../../../../new_fields/InkField";
 import { createSchema, makeInterface } from "../../../../new_fields/Schema";
@@ -225,8 +225,12 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return bounds;
     }
 
+    @computed get actualContentBounds() {
+        return this.fitToBox && !this.isAnnotationOverlay ? this.ComputeContentBounds(this.elements.filter(e => e.bounds && !e.bounds.z).map(e => e.bounds!)) : undefined;
+    }
+
     @computed get contentBounds() {
-        let bounds = this.fitToBox && !this.isAnnotationOverlay ? this.ComputeContentBounds(this.elements.filter(e => e.bounds && !e.bounds.z).map(e => e.bounds!)) : undefined;
+        let bounds = this.actualContentBounds;
         let res = {
             panX: bounds ? (bounds.x + bounds.r) / 2 : this.Document.panX || 0,
             panY: bounds ? (bounds.y + bounds.b) / 2 : this.Document.panY || 0,
@@ -775,7 +779,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         const initScript = this.Document.arrangeInit;
         const script = this.Document.arrangeScript;
         let state: any = undefined;
-        const docs = this.childDocs;
+        let docs = this.childDocs;
+        let overlayDocs = DocListCast(this.props.Document.localOverlays);
+        overlayDocs && docs.push(...overlayDocs);
         let elements: ViewDefResult[] = [];
         if (initScript) {
             const initResult = initScript.script.run({ docs, collection: this.Document });
@@ -967,6 +973,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     render() {
+        this.props.Document.fitX = this.actualContentBounds && this.actualContentBounds.x;
+        this.props.Document.fitY = this.actualContentBounds && this.actualContentBounds.y;
+        this.props.Document.fitW = this.actualContentBounds && (this.actualContentBounds.r - this.actualContentBounds.x);
+        this.props.Document.fitH = this.actualContentBounds && (this.actualContentBounds.b - this.actualContentBounds.y);
         const easing = () => this.props.Document.panTransformType === "Ease";
         Doc.UpdateDocumentExtensionForField(this.props.DataDoc ? this.props.DataDoc : this.props.Document, this.props.fieldKey);
         return (

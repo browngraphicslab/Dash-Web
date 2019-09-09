@@ -197,7 +197,9 @@ export class OverlayView extends React.Component {
     render() {
         return (
             <div className="overlayView" id="overlayView">
-                {this._elements}
+                <div>
+                    {this._elements}
+                </div>
                 {this.overlayDocs}
             </div>
         );
